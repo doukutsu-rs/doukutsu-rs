@@ -5,6 +5,8 @@ Later plans might involve turning it into a fully-featured modding tool with liv
 
 **The project is still in a very early state and nowhere near being playable. Expect lots of breaking changes and bugs**
 
+[Join the Discord server](https://discord.gg/k8fYBDS)
+
 #### Data files
 
 doukutsu-rs project does not re-distribute any copyrighted files. 
