@@ -1,0 +1,25 @@
+[package]
+authors = ["Alula <julekonopinska@gmail.com>"]
+edition = "2018"
+name = "doukutsu-rs"
+version = "0.1.0"
+
+[profile.release]
+lto = true
+panic = 'abort'
+
+[dependencies]
+byteorder = "1.3"
+ggez = { git = "https://github.com/ggez/ggez", rev = "4f4bdebff463881c36325c7e10520c9a4fd8f75c" }
+imgui = "0.4.0"
+imgui-ext = "0.3.0"
+lazy_static = "1.4.0"
+log = "0.4"
+maplit = "1.0.2"
+num-traits = "0.2.12"
+paste = "1.0.0"
+pretty_env_logger = "0.4.0"
+rodio = { version = "0.11", default-features = false, features = ["flac", "vorbis", "wav"] }
+strum = "0.18.0"
+strum_macros = "0.18.0"
+owning_ref = "0.4.1"
