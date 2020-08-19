@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::io::Read;
 
-use ggez::{Context, GameError, GameResult};
-use ggez::filesystem;
-use ggez::graphics::{Drawable, DrawParam, FilterMode, Image, Rect};
-use ggez::graphics::spritebatch::SpriteBatch;
-use ggez::nalgebra::{Point2, Vector2};
+use crate::ggez::{Context, GameError, GameResult};
+use crate::ggez::filesystem;
+use crate::ggez::graphics::{Drawable, DrawParam, FilterMode, Image, Rect};
+use crate::ggez::graphics::spritebatch::SpriteBatch;
+use crate::ggez::nalgebra::{Point2, Vector2};
 use itertools::Itertools;
 use log::info;
 

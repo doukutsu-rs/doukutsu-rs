@@ -3,10 +3,10 @@ use std::str::from_utf8;
 
 use byteorder::LE;
 use byteorder::ReadBytesExt;
-use ggez::{Context, filesystem, GameResult};
-use ggez::GameError::ResourceLoadError;
 use log::info;
 
+use crate::ggez::{Context, filesystem, GameResult};
+use crate::ggez::GameError::ResourceLoadError;
 use crate::map::Map;
 
 #[derive(Debug, PartialEq, Eq, Hash)]

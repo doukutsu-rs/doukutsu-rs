@@ -1,23 +1,33 @@
 extern crate strum;
 #[macro_use]
 extern crate strum_macros;
+#[macro_use]
+extern crate bitflags;
+#[macro_use]
+extern crate gfx;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate serde_derive;
+#[macro_use]
+extern crate smart_default;
 
 use std::{env, mem};
 use std::path;
 
-use ggez::{Context, ContextBuilder, event, filesystem, GameResult};
-use ggez::conf::{WindowMode, WindowSetup};
-use ggez::event::{KeyCode, KeyMods};
-use ggez::graphics;
-use ggez::graphics::DrawParam;
-use ggez::input::keyboard;
-use ggez::mint::ColumnMatrix4;
-use ggez::nalgebra::Vector2;
 use log::*;
 use pretty_env_logger::env_logger::Env;
 use winit::{ElementState, Event, KeyboardInput, WindowEvent};
 
 use crate::engine_constants::EngineConstants;
+use crate::ggez::{Context, ContextBuilder, event, filesystem, GameResult};
+use crate::ggez::conf::{WindowMode, WindowSetup};
+use crate::ggez::event::{KeyCode, KeyMods};
+use crate::ggez::graphics;
+use crate::ggez::graphics::DrawParam;
+use crate::ggez::input::keyboard;
+use crate::ggez::mint::ColumnMatrix4;
+use crate::ggez::nalgebra::Vector2;
 use crate::live_debugger::LiveDebugger;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
@@ -31,6 +41,7 @@ mod engine_constants;
 mod entity;
 mod enemy;
 mod frame;
+mod ggez;
 mod live_debugger;
 mod map;
 mod player;
@@ -131,7 +142,7 @@ impl Game {
                 texture_set: TextureSet::new(base_path),
                 base_path: str!(base_path),
                 stages: Vec::new(),
-                sound_manager: SoundManager::new(),
+                sound_manager: SoundManager::new(ctx),
                 constants,
                 scale,
                 screen_size,
@@ -217,7 +228,7 @@ pub fn main() -> GameResult {
     info!("Resource directory: {:?}", resource_dir);
     info!("Initializing engine...");
 
-    let cb = ContextBuilder::new("doukutsu-rs", "Alula")
+    let cb = ContextBuilder::new("doukutsu-rs")
         .window_setup(WindowSetup::default().title("Cave Story (doukutsu-rs)"))
         .window_mode(WindowMode::default().dimensions(854.0, 480.0))
         .add_resource_path(resource_dir);

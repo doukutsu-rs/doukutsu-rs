@@ -1,4 +1,4 @@
-use ggez::{Context, GameResult};
+use crate::ggez::{Context, GameResult};
 
 use crate::frame::Frame;
 use crate::SharedGameState;

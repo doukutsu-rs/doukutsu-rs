@@ -1,11 +1,10 @@
-use ggez::{Context, GameResult};
-use ggez::nalgebra::clamp;
 use log::info;
-use num_traits::abs;
 
 use crate::common::Rect;
 use crate::entity::GameEntity;
 use crate::frame::Frame;
+use crate::ggez::{Context, GameResult, timer};
+use crate::ggez::nalgebra::clamp;
 use crate::live_debugger::LiveDebugger;
 use crate::player::Player;
 use crate::scene::Scene;
@@ -272,8 +271,7 @@ impl Scene for GameScene {
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
 
         self.draw_hud(state, ctx)?;
-        self.draw_number(16.0, 50.0, abs(self.player.x) as usize, Alignment::Left, state, ctx)?;
-        self.draw_number(16.0, 58.0, abs(self.player.y) as usize, Alignment::Left, state, ctx)?;
+        self.draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
 
         Ok(())
     }

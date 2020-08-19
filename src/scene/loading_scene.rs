@@ -1,4 +1,4 @@
-use ggez::{Context, GameResult};
+use crate::ggez::{Context, GameResult};
 
 use crate::scene::game_scene::GameScene;
 use crate::scene::Scene;
@@ -23,7 +23,7 @@ impl Scene for LoadingScene {
         if self.tick == 1 {
             let stages = StageData::load_stage_table(ctx, &state.base_path)?;
             state.stages = stages;
-            state.next_scene = Some(Box::new(GameScene::new(state, ctx, 53)?));
+            state.next_scene = Some(Box::new(GameScene::new(state, ctx, 0)?));
         }
 
         self.tick += 1;

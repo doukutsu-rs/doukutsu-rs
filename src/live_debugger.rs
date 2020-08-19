@@ -1,4 +1,4 @@
-use ggez::{Context, GameResult};
+use crate::ggez::{Context, GameResult};
 use imgui::{Condition, im_str, ImStr, ImString, Window};
 use itertools::Itertools;
 
@@ -35,7 +35,8 @@ impl LiveDebugger {
             Window::new(im_str!("Error!"))
                 .resizable(false)
                 .collapsible(false)
-                .size([300.0, 100.0], Condition::Always)
+                .position([((state.screen_size.0 - 300.0) / 2.0).floor(), ((state.screen_size.1 - 100.0) / 2.0).floor()], Condition::Appearing)
+                .size([300.0, 100.0], Condition::Appearing)
                 .build(ui, || {
                     ui.push_item_width(-1.0);
                     ui.text(self.error.as_ref().unwrap());
@@ -47,8 +48,9 @@ impl LiveDebugger {
         }
 
         Window::new(im_str!("Map selector"))
+            .resizable(false)
             .collapsed(true, Condition::FirstUseEver)
-            .size([240.0, 270.0], Condition::FirstUseEver)
+            .size([240.0, 280.0], Condition::FirstUseEver)
             .build(ui, || {
                 if self.stages.is_empty() {
                     for s in state.stages.iter() {

@@ -54,7 +54,7 @@ impl<S: Num + Copy> Rect<S> {
         }
     }
 
-    pub fn from(rect: ggez::graphics::Rect) -> Rect<f32> {
+    pub fn from(rect: crate::ggez::graphics::Rect) -> Rect<f32> {
         Rect {
             left: rect.x,
             top: rect.y,
