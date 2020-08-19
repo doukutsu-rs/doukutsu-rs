@@ -147,14 +147,12 @@ impl TextureSet {
         })
     }
 
-    pub fn ensure_texture_loaded(&mut self, ctx: &mut Context, constants: &EngineConstants, name: &str) -> GameResult {
-        if self.tex_map.contains_key(name) {
-            return Ok(());
+    pub fn get_or_load_batch(&mut self, ctx: &mut Context, constants: &EngineConstants, name: &str) -> GameResult<&mut SizedBatch> {
+        if !self.tex_map.contains_key(name) {
+            let mut batch = self.load_texture(ctx, constants, name)?;
+            self.tex_map.insert(str!(name), batch);
         }
 
-        let batch = self.load_texture(ctx, constants, name)?;
-        self.tex_map.insert(str!(name), batch);
-
-        Ok(())
+        Ok(self.tex_map.get_mut(name).unwrap())
     }
 }

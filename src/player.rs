@@ -3,10 +3,10 @@ use num_traits::clamp;
 
 use crate::bitfield;
 use crate::common::{Direction, Rect};
-use crate::engine_constants::{EngineConstants, PhysicsConsts};
+use crate::engine_constants::PhysicsConsts;
 use crate::entity::GameEntity;
-use crate::game_state::GameState;
-use crate::GameContext;
+use crate::frame::Frame;
+use crate::SharedGameState;
 use crate::str;
 
 bitfield! {
@@ -103,8 +103,11 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(constants: &EngineConstants, ctx: &mut Context) -> GameResult<Player> {
+    pub fn new(state: &mut SharedGameState, ctx: &mut Context) -> GameResult<Player> {
+        let constants = &state.constants;
+
         let tex_player_name = str!("MyChar");
+
         Ok(Player {
             x: 0,
             y: 0,
@@ -142,7 +145,7 @@ impl Player {
         })
     }
 
-    fn tick_normal(&mut self, state: &GameState, constants: &EngineConstants) -> GameResult<()> {
+    fn tick_normal(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<()> {
         if self.cond.cond_x02() {
             return Ok(());
         }
@@ -220,23 +223,23 @@ impl Player {
                         if state.key_state.up() {
                             self.boost_sw = 2;
                             self.xm = 0;
-                            self.ym = constants.booster.b2_0_up;
+                            self.ym = state.constants.booster.b2_0_up;
                         } else if state.key_state.left() {
                             self.boost_sw = 2;
                             self.xm = 0;
-                            self.ym = constants.booster.b2_0_left;
+                            self.ym = state.constants.booster.b2_0_left;
                         } else if state.key_state.right() {
                             self.boost_sw = 2;
                             self.xm = 0;
-                            self.ym = constants.booster.b2_0_right;
+                            self.ym = state.constants.booster.b2_0_right;
                         } else if state.key_state.down() {
                             self.boost_sw = 2;
                             self.xm = 0;
-                            self.ym = constants.booster.b2_0_down;
+                            self.ym = state.constants.booster.b2_0_down;
                         } else {
                             self.boost_sw = 2;
                             self.xm = 0;
-                            self.ym = constants.booster.b2_0_up_nokey;
+                            self.ym = state.constants.booster.b2_0_up_nokey;
                         }
                     }
                 }
@@ -451,11 +454,11 @@ impl Player {
         Ok(())
     }
 
-    fn tick_stream(&mut self, state: &GameState, constants: &EngineConstants) -> GameResult<()> {
+    fn tick_stream(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<()> {
         Ok(())
     }
 
-    fn tick_animation(&mut self, state: &GameState, constants: &EngineConstants) {
+    fn tick_animation(&mut self, state: &SharedGameState) {
         if self.cond.cond_x02() {
             return;
         }
@@ -520,10 +523,10 @@ impl Player {
 
         match self.direction {
             Direction::Left => {
-                self.anim_rect = constants.my_char.animations_left[self.anim_num];
+                self.anim_rect = state.constants.my_char.animations_left[self.anim_num];
             }
             Direction::Right => {
-                self.anim_rect = constants.my_char.animations_right[self.anim_num];
+                self.anim_rect = state.constants.my_char.animations_right[self.anim_num];
             }
             _ => {}
         }
@@ -533,12 +536,7 @@ impl Player {
 }
 
 impl GameEntity for Player {
-    fn init(&mut self, state: &GameState, game_ctx: &mut GameContext, ctx: &mut Context) -> GameResult {
-        game_ctx.texture_set.ensure_texture_loaded(ctx, &game_ctx.constants, &self.tex_player_name)?;
-        Ok(())
-    }
-
-    fn tick(&mut self, state: &GameState, constants: &EngineConstants, ctx: &mut Context) -> GameResult {
+    fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<()> {
         if !self.cond.visible() {
             return Ok(());
         }
@@ -560,35 +558,33 @@ impl GameEntity for Player {
                     // AirProcess(); // todo
                 }
 
-                self.tick_normal(state, constants)?;
+                self.tick_normal(state, ctx)?;
             }
             1 => {
-                self.tick_stream(state, constants)?;
+                self.tick_stream(state, ctx)?;
             }
             _ => {}
         }
 
         self.cond.set_cond_x20(false);
-        self.tick_animation(state, constants);
+        self.tick_animation(state);
 
         Ok(())
     }
 
-    fn draw(&self, state: &GameState, game_ctx: &mut GameContext, ctx: &mut Context) -> GameResult {
+    fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult<()> {
         if !self.cond.visible() || self.cond.cond_x02() {
             return Ok(());
         }
 
         // todo draw weapon
-
-        if let Some(batch) = game_ctx.texture_set.tex_map.get_mut(&self.tex_player_name) {
-            batch.add_rect(
-                (((self.x - self.view.left as isize) / 0x200) - (state.frame.x / 0x200)) as f32,
-                (((self.y - self.view.top as isize) / 0x200) - (state.frame.y / 0x200)) as f32,
-                &self.anim_rect,
-            );
-            batch.draw(ctx)?;
-        }
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_player_name)?;
+        batch.add_rect(
+            (((self.x - self.view.left as isize) / 0x200) - (frame.x / 0x200)) as f32,
+            (((self.y - self.view.top as isize) / 0x200) - (frame.y / 0x200)) as f32,
+            &self.anim_rect,
+        );
+        batch.draw(ctx)?;
 
         Ok(())
     }

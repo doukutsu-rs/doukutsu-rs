@@ -9,9 +9,9 @@ use imgui_gfx_renderer::gfx::handle::RenderTargetView;
 use imgui_gfx_renderer::gfx::memory::Typed;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 
+use crate::live_debugger::LiveDebugger;
 use crate::scene::Scene;
-use crate::GameContext;
-use crate::game_state::GameState;
+use crate::SharedGameState;
 
 mod types {
     pub type Device = gfx_device_gl::Device;
@@ -36,7 +36,7 @@ impl UI {
                 config: Some(FontConfig::default()),
             },
         ]);
-        imgui.style_mut().use_dark_colors();
+        imgui.style_mut().use_classic_colors();
 
         let mut platform = WinitPlatform::init(&mut imgui);
         platform.attach_window(imgui.io_mut(), graphics::window(ctx), HiDpiMode::Rounded);
@@ -78,7 +78,7 @@ impl UI {
         self.platform.handle_event(self.imgui.io_mut(), graphics::window(ctx), &event);
     }
 
-    pub fn draw(&mut self, state: &mut GameState, game_ctx: &mut GameContext, ctx: &mut Context, scene: &mut Box<dyn Scene>) -> GameResult {
+    pub fn draw(&mut self, dbg: &mut LiveDebugger, state: &mut SharedGameState, ctx: &mut Context, scene: &mut Box<dyn Scene>) -> GameResult {
         {
             let io = self.imgui.io_mut();
             self.platform.prepare_frame(io, graphics::window(ctx)).map_err(|e| RenderError(e))?;
@@ -88,7 +88,7 @@ impl UI {
         }
         let mut ui = self.imgui.frame();
 
-        scene.overlay_draw(state, game_ctx, ctx, &mut ui)?;
+        scene.debug_overlay_draw(dbg, state, ctx, &mut ui)?;
 
         self.platform.prepare_render(&ui, graphics::window(ctx));
         let draw_data = ui.render();

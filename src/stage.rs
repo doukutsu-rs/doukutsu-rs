@@ -8,7 +8,6 @@ use ggez::GameError::ResourceLoadError;
 use log::info;
 
 use crate::map::Map;
-use crate::str;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct NpcType {
@@ -375,27 +374,6 @@ pub struct Stage {
 }
 
 impl Stage {
-    pub fn empty() -> Self {
-        Self {
-            map: Map {
-                attrib: [0u8; 256],
-                height: 16,
-                width: 16,
-                tiles: vec![0u8; 16 * 16],
-            },
-            data: StageData {
-                map: str!("0"),
-                name: str!("Null"),
-                background: Background::new("bk0"),
-                background_type: BackgroundType::Black,
-                tileset: Tileset::new("0"),
-                boss_no: 0,
-                npc1: NpcType::new("0"),
-                npc2: NpcType::new("0"),
-            },
-        }
-    }
-
     pub fn load(ctx: &mut Context, root: &str, data: &StageData) -> GameResult<Self> {
         let map_file = filesystem::open(ctx, [root, "Stage/", &data.map, ".pxm"].join(""))?;
         let attrib_file = filesystem::open(ctx, [root, "Stage/", &data.tileset.name, ".pxa"].join(""))?;
