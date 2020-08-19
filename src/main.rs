@@ -5,7 +5,7 @@ extern crate strum_macros;
 use std::{env, mem};
 use std::path;
 
-use ggez::{Context, ContextBuilder, event, GameResult, filesystem};
+use ggez::{Context, ContextBuilder, event, filesystem, GameResult};
 use ggez::conf::{WindowMode, WindowSetup};
 use ggez::event::{KeyCode, KeyMods};
 use ggez::event::winit_event::{ElementState, Event, KeyboardInput, WindowEvent};
@@ -20,9 +20,9 @@ use pretty_env_logger::env_logger::Env;
 use crate::engine_constants::EngineConstants;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
+use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::texture_set::TextureSet;
-use crate::sound::SoundManager;
 
 mod common;
 mod engine_constants;
@@ -203,7 +203,7 @@ pub fn main() -> GameResult {
         path.push("data");
         path
     } else {
-        path::PathBuf::from("./data")
+        path::PathBuf::from(&env::var("CAVESTORY_DATA_DIR").unwrap_or(str!("data")))
     };
 
     info!("Resource directory: {:?}", resource_dir);

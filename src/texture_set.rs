@@ -7,7 +7,7 @@ use ggez::graphics::{Drawable, DrawParam, FilterMode, Image, Rect};
 use ggez::graphics::spritebatch::SpriteBatch;
 use ggez::nalgebra::{Point2, Vector2};
 use itertools::Itertools;
-use log::info;
+use log::{debug, info};
 
 use crate::common;
 use crate::engine_constants::EngineConstants;
@@ -91,15 +91,15 @@ impl TextureSet {
         }
     }
 
-    fn load_image(&self, ctx: &mut Context, constants: &EngineConstants, path: &str) -> GameResult<Image> {
+    fn load_image(&self, ctx: &mut Context, path: &str) -> GameResult<Image> {
         let img = {
             let mut buf = Vec::new();
             let mut reader = filesystem::open(ctx, path)?;
             let _ = reader.read_to_end(&mut buf)?;
-            let mut rgba = image::load_from_memory(&buf)?.to_rgba();
+            let image = image::load_from_memory(&buf)?;
+            let mut rgba = image.to_rgba();
 
-            // Cave Story+ data files don't have an alpha channel, therefore they need a special treatment.
-            if constants.is_cs_plus {
+            if image.color().channel_count() != 4 {
                 for (r, g, b, a) in rgba.iter_mut().tuples() {
                     if *r == 0 && *g == 0 && *b == 0 {
                         *a = 0;
@@ -123,7 +123,7 @@ impl TextureSet {
 
         info!("Loading texture: {}", path);
 
-        let image = self.load_image(ctx, constants, &path)?;
+        let image = self.load_image(ctx, &path)?;
         let size = image.dimensions();
 
         assert_ne!(size.w, 0.0, "size.w == 0");
