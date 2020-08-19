@@ -1,10 +1,13 @@
 use ggez::{Context, GameResult};
 
-use crate::frame::Frame;
-use crate::SharedGameState;
+use crate::engine_constants::EngineConstants;
+use crate::game_state::GameState;
+use crate::GameContext;
 
 pub trait GameEntity {
-    fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult;
+    fn init(&mut self, _state: &GameState, _game_ctx: &mut GameContext, _ctx: &mut Context) -> GameResult { Ok(()) }
 
-    fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult;
+    fn tick(&mut self, state: &GameState, constants: &EngineConstants, ctx: &mut Context) -> GameResult;
+
+    fn draw(&self, state: &GameState, game_ctx: &mut GameContext, ctx: &mut Context) -> GameResult;
 }

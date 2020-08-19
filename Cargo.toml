@@ -10,9 +10,12 @@ panic = 'abort'
 
 [dependencies]
 byteorder = "1.3"
+gfx_device_gl = "0.16"
 ggez = { git = "https://github.com/ggez/ggez", rev = "4f4bdebff463881c36325c7e10520c9a4fd8f75c" }
 imgui = "0.4.0"
 imgui-ext = "0.3.0"
+imgui-gfx-renderer = "0.4.0"
+imgui-winit-support =  {version = "0.4.0", default-features = false, features = ["winit-19"] }
 image = {version = "0.22", default-features = false, features = ["png_codec", "pnm", "bmp"] }
 itertools = "0.9.0"
 lazy_static = "1.4.0"
@@ -25,3 +28,4 @@ rodio = { version = "0.11", default-features = false, features = ["flac", "vorbi
 strum = "0.18.0"
 strum_macros = "0.18.0"
 owning_ref = "0.4.1"
+winit = { version = "0.19.3" }

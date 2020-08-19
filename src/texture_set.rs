@@ -7,7 +7,7 @@ use ggez::graphics::{Drawable, DrawParam, FilterMode, Image, Rect};
 use ggez::graphics::spritebatch::SpriteBatch;
 use ggez::nalgebra::{Point2, Vector2};
 use itertools::Itertools;
-use log::{debug, info};
+use log::info;
 
 use crate::common;
 use crate::engine_constants::EngineConstants;

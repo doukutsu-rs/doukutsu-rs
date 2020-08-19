@@ -1,4 +1,4 @@
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 
 use ggez::{Context, GameResult};
 
