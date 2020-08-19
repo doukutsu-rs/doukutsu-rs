@@ -1,7 +1,7 @@
 use std::io::{Cursor, Read};
 use std::str::from_utf8;
 
-use byteorder::{LE, ReadBytesExt};
+use byteorder::{BE, LE, ReadBytesExt};
 use ggez::{Context, filesystem, GameResult};
 use ggez::GameError::ResourceLoadError;
 use log::info;
@@ -63,15 +63,15 @@ pub struct Tileset {
 
 impl Clone for Tileset {
     fn clone(&self) -> Self {
-        Tileset {
+        Self {
             name: self.name.clone(),
         }
     }
 }
 
 impl Tileset {
-    pub fn new(name: &str) -> Tileset {
-        Tileset {
+    pub fn new(name: &str) -> Self {
+        Self {
             name: name.to_owned(),
         }
     }
@@ -97,15 +97,15 @@ pub struct Background {
 
 impl Clone for Background {
     fn clone(&self) -> Self {
-        Background {
+        Self {
             name: self.name.clone(),
         }
     }
 }
 
 impl Background {
-    pub fn new(name: &str) -> Background {
-        Background {
+    pub fn new(name: &str) -> Self {
+        Self {
             name: name.to_owned(),
         }
     }
@@ -129,17 +129,17 @@ pub enum BackgroundType {
 }
 
 impl BackgroundType {
-    pub fn new(id: u8) -> BackgroundType {
+    pub fn new(id: usize) -> Self {
         match id {
-            0 => { BackgroundType::Stationary }
-            1 => { BackgroundType::MoveDistant }
-            2 => { BackgroundType::MoveNear }
-            3 => { BackgroundType::Water }
-            4 => { BackgroundType::Black }
-            5 => { BackgroundType::Autoscroll }
-            6 => { BackgroundType::OutsideWind }
-            7 => { BackgroundType::Outside }
-            _ => { BackgroundType::Stationary }
+            0 => { Self::Stationary }
+            1 => { Self::MoveDistant }
+            2 => { Self::MoveNear }
+            3 => { Self::Water }
+            4 => { Self::Black }
+            5 => { Self::Autoscroll }
+            6 => { Self::OutsideWind }
+            7 => { Self::Outside }
+            _ => { Self::Black }
         }
     }
 }
@@ -172,11 +172,13 @@ impl Clone for StageData {
 }
 
 impl StageData {
-    pub fn load_stage_table(ctx: &mut Context, root: &str) -> GameResult<Vec<StageData>> {
+    // todo: refactor to make it less repetitive.
+    pub fn load_stage_table(ctx: &mut Context, root: &str) -> GameResult<Vec<Self>> {
         let stage_tbl_path = [root, "stage.tbl"].join("");
         let mrmap_bin_path = [root, "mrmap.bin"].join("");
 
         if filesystem::exists(ctx, &stage_tbl_path) {
+            // Cave Story+ stage table. Probably one of most awful formats out there.
             let mut stages = Vec::new();
 
             info!("Loading stage table from {}", &stage_tbl_path);
@@ -186,10 +188,59 @@ impl StageData {
 
             let count = data.len() / 0xe5;
             let mut f = Cursor::new(data);
-            for i in 0..count {}
+            for _ in 0..count {
+                let mut ts_buf = vec![0u8; 0x20];
+                let mut map_buf = vec![0u8; 0x20];
+                let mut back_buf = vec![0u8; 0x20];
+                let mut npc_buf = vec![0u8; 0x20];
+                let mut boss_buf = vec![0u8; 0x20];
+                let mut name_jap_buf = vec![0u8; 0x20];
+                let mut name_buf = vec![0u8; 0x20];
+
+                f.read_exact(&mut ts_buf)?;
+                f.read_exact(&mut map_buf)?;
+                let bg_type = f.read_u32::<LE>()? as usize;
+                f.read_exact(&mut back_buf)?;
+                f.read_exact(&mut npc_buf)?;
+                f.read_exact(&mut boss_buf)?;
+                let boss_no = f.read_u8()? as usize;
+                f.read_exact(&mut name_jap_buf)?;
+                f.read_exact(&mut name_buf)?;
+
+                let tileset = from_utf8(&ts_buf)
+                    .map_err(|_| ResourceLoadError("UTF-8 error in tileset field".to_string()))?
+                    .trim_matches('\0').to_owned();
+                let map = from_utf8(&map_buf)
+                    .map_err(|_| ResourceLoadError("UTF-8 error in map field".to_string()))?
+                    .trim_matches('\0').to_owned();
+                let background = from_utf8(&back_buf)
+                    .map_err(|_| ResourceLoadError("UTF-8 error in background field".to_string()))?
+                    .trim_matches('\0').to_owned();
+                let boss = from_utf8(&boss_buf)
+                    .map_err(|_| ResourceLoadError("UTF-8 error in boss field".to_string()))?
+                    .trim_matches('\0').to_owned();
+                let name = from_utf8(&name_buf)
+                    .map_err(|_| ResourceLoadError("UTF-8 error in name field".to_string()))?
+                    .trim_matches('\0').to_owned();
+
+                println!("bg type: {}", bg_type);
+
+                let stage = Self {
+                    name: name.clone(),
+                    map: map.clone(),
+                    boss: boss.clone(),
+                    boss_no,
+                    tileset: Tileset::new(&tileset),
+                    background: Background::new(&background),
+                    background_type: BackgroundType::new(bg_type),
+                    npc: NpcType::Zero,
+                };
+                stages.push(stage);
+            }
 
             return Ok(stages);
         } else if filesystem::exists(ctx, &mrmap_bin_path) {
+            // CSE2 stage table
             let mut stages = Vec::new();
 
             info!("Loading stage table from {}", &mrmap_bin_path);
@@ -205,18 +256,17 @@ impl StageData {
             }
 
             let mut f = Cursor::new(data);
-
             for _ in 0..count {
-                let mut map_buf = Box::new(vec![0u8; 0x10]);
-                let mut boss_buf = Box::new(vec![0u8; 0x10]);
-                let mut name_buf = Box::new(vec![0u8; 0x22]);
                 let mut ts_buf = vec![0u8; 0x10];
+                let mut map_buf = vec![0u8; 0x10];
                 let mut back_buf = vec![0u8; 0x10];
                 let mut npc_buf = vec![0u8; 0x10];
+                let mut boss_buf = vec![0u8; 0x10];
+                let mut name_buf = vec![0u8; 0x22];
 
                 f.read_exact(&mut ts_buf)?;
                 f.read_exact(&mut map_buf)?;
-                let bg_type = f.read_u8()?;
+                let bg_type = f.read_u8()? as usize;
                 f.read_exact(&mut back_buf)?;
                 f.read_exact(&mut npc_buf)?;
                 f.read_exact(&mut boss_buf)?;
@@ -239,7 +289,7 @@ impl StageData {
                     .map_err(|_| ResourceLoadError("UTF-8 error in name field".to_string()))?
                     .trim_matches('\0').to_owned();
 
-                let stage = StageData {
+                let stage = Self {
                     name: name.clone(),
                     map: map.clone(),
                     boss: boss.clone(),
@@ -254,6 +304,7 @@ impl StageData {
 
             return Ok(stages);
         }
+        // todo: NXEngine stage.dat support?
 
         Err(ResourceLoadError("No stage table found.".to_string()))
     }
@@ -265,12 +316,12 @@ pub struct Stage {
 }
 
 impl Stage {
-    pub fn load(ctx: &mut Context, data: &StageData) -> GameResult<Stage> {
-        let map_file = filesystem::open(ctx, ["/Stage/", &data.map, ".pxm"].join(""))?;
-        let attrib_file = filesystem::open(ctx, ["/Stage/", &data.tileset.name, ".pxa"].join(""))?;
+    pub fn load(ctx: &mut Context, root: &str, data: &StageData) -> GameResult<Self> {
+        let map_file = filesystem::open(ctx, [root, "Stage/", &data.map, ".pxm"].join(""))?;
+        let attrib_file = filesystem::open(ctx, [root, "Stage/", &data.tileset.name, ".pxa"].join(""))?;
         let map = Map::load_from(map_file, attrib_file)?;
 
-        let stage = Stage {
+        let stage = Self {
             map,
             data: data.clone(),
         };

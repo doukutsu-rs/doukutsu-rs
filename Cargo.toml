@@ -13,6 +13,8 @@ byteorder = "1.3"
 ggez = { git = "https://github.com/ggez/ggez", rev = "4f4bdebff463881c36325c7e10520c9a4fd8f75c" }
 imgui = "0.4.0"
 imgui-ext = "0.3.0"
+image = {version = "0.22", default-features = false, features = ["png_codec", "pnm", "bmp"] }
+itertools = "0.9.0"
 lazy_static = "1.4.0"
 log = "0.4"
 maplit = "1.0.2"

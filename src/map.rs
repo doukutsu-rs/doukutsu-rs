@@ -11,7 +11,7 @@ pub struct Map {
 }
 
 impl Map {
-    pub fn load_from<R: io::Read>(mut map_data: R, mut attrib_data: R) -> io::Result<Map> {
+    pub fn load_from<R: io::Read>(mut map_data: R, mut attrib_data: R) -> io::Result<Self> {
         let mut magic = [0; 3];
 
         map_data.read_exact(&mut magic)?;
@@ -28,7 +28,7 @@ impl Map {
         let mut attrib = [0u8; 0x100];
 
         map_data.read_exact(&mut tiles)?;
-        attrib_data.read_exact(&mut attrib);
+        attrib_data.read_exact(&mut attrib)?;
 
         let map = Map {
             width,

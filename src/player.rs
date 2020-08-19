@@ -107,7 +107,7 @@ impl Player {
         let constants = &state.constants;
 
         let tex_player_name = str!("MyChar");
-        state.texture_set.ensure_texture_loaded(ctx, &tex_player_name)?;
+        state.texture_set.ensure_texture_loaded(ctx, constants, &tex_player_name)?;
 
         Ok(Player {
             x: 0,
@@ -580,18 +580,14 @@ impl GameEntity for Player {
 
         // todo draw weapon
 
-        let sb = state.texture_set.tex_map.get_mut(&self.tex_player_name);
-        if sb.is_none() {
-            return Ok(());
+        if let Some(batch) = state.texture_set.tex_map.get_mut(&self.tex_player_name) {
+            batch.add_rect(
+                (((self.x - self.view.left as isize) / 0x200) - (frame.x / 0x200)) as f32,
+                (((self.y - self.view.top as isize) / 0x200) - (frame.y / 0x200)) as f32,
+                &self.anim_rect,
+            );
+            batch.draw(ctx)?;
         }
-
-        let batch = sb.unwrap();
-        batch.add_rect(
-            (((self.x - self.view.left as isize) / 0x200) - (frame.x / 0x200)) as f32,
-            (((self.y - self.view.top as isize) / 0x200) - (frame.y / 0x200)) as f32,
-            &self.anim_rect,
-        );
-        batch.draw(ctx)?;
 
         Ok(())
     }

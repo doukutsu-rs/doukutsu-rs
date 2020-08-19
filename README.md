@@ -5,13 +5,13 @@ Later plans might involve turning it into a fully-featured modding tool with liv
 
 **The project is still in a very early state and nowhere near being playable. Expect lots of breaking changes and bugs**
 
-[Join the Discord server](https://discord.gg/k8fYBDS)
+[Join the Discord server](https://discord.gg/fbRsNNB)
 
 #### Data files
 
 doukutsu-rs project does not re-distribute any copyrighted files. 
 
-The engine should work fine with [CSE2](https://github.com/Clownacy/CSE2)/[NXEngine](https://github.com/nxengine/nxengine-evo) modified freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) (Nicalis commercial release, partial loading is supported but note we're not aiming to fully support it's features) data files.
+The engine should work fine with [CSE2](https://github.com/Clownacy/CSE2) or [NXEngine](https://github.com/nxengine/nxengine-evo) modified freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) (Nicalis commercial release, loading is supported but note we're not aiming to fully support it's features) data files.
 
 #### Roadmap
 

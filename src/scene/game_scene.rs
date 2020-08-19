@@ -1,6 +1,7 @@
 use ggez::{Context, GameResult};
 use ggez::nalgebra::clamp;
 use log::info;
+use num_traits::abs;
 
 use crate::common::Rect;
 use crate::entity::GameEntity;
@@ -10,7 +11,6 @@ use crate::scene::Scene;
 use crate::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
 use crate::str;
-use num_traits::abs;
 
 pub struct GameScene {
     pub tick: usize,
@@ -38,8 +38,8 @@ pub enum Alignment {
 }
 
 impl GameScene {
-    pub fn new(state: &mut SharedGameState, ctx: &mut Context, id: usize) -> GameResult<GameScene> {
-        let stage = Stage::load(ctx, &state.stages[id])?;
+    pub fn new(state: &mut SharedGameState, ctx: &mut Context, id: usize) -> GameResult<Self> {
+        let stage = Stage::load(ctx, &state.base_path, &state.stages[id])?;
         info!("Loaded stage: {}", stage.data.name);
         info!("Map size: {}x{}", stage.map.width, stage.map.height);
 
@@ -47,11 +47,11 @@ impl GameScene {
         let tex_background_name = stage.data.background.filename();
         let tex_hud_name = str!("TextBox");
 
-        state.texture_set.ensure_texture_loaded(ctx, &tex_tileset_name)?;
-        state.texture_set.ensure_texture_loaded(ctx, &tex_background_name)?;
-        state.texture_set.ensure_texture_loaded(ctx, &tex_hud_name)?;
+        state.texture_set.ensure_texture_loaded(ctx, &state.constants, &tex_tileset_name)?;
+        state.texture_set.ensure_texture_loaded(ctx, &state.constants, &tex_background_name)?;
+        state.texture_set.ensure_texture_loaded(ctx, &state.constants, &tex_hud_name)?;
 
-        Ok(GameScene {
+        Ok(Self {
             tick: 0,
             stage,
             player: Player::new(state, ctx)?,
@@ -197,50 +197,46 @@ impl GameScene {
     }
 
     fn draw_tiles(&self, state: &mut SharedGameState, ctx: &mut Context, layer: TileLayer) -> GameResult {
-        let set = state.texture_set.tex_map.get_mut(&self.tex_tileset_name);
-        if set.is_none() {
-            return Ok(());
-        }
+        if let Some(batch) = state.texture_set.tex_map.get_mut(&self.tex_tileset_name) {
+            let mut rect = Rect::<usize>::new(0, 0, 16, 16);
 
-        let mut rect = Rect::<usize>::new(0, 0, 16, 16);
-        let batch = set.unwrap();
+            let tile_start_x = clamp(self.frame.x / 0x200 / 16, 0, self.stage.map.width as isize) as usize;
+            let tile_start_y = clamp(self.frame.y / 0x200 / 16, 0, self.stage.map.height as isize) as usize;
+            let tile_end_x = clamp((self.frame.x / 0x200 + 8 + state.canvas_size.0 as isize) / 16 + 1, 0, self.stage.map.width as isize) as usize;
+            let tile_end_y = clamp((self.frame.y / 0x200 + 8 + state.canvas_size.1 as isize) / 16 + 1, 0, self.stage.map.height as isize) as usize;
 
-        let tile_start_x = clamp(self.frame.x / 0x200 / 16, 0, self.stage.map.width as isize) as usize;
-        let tile_start_y = clamp(self.frame.y / 0x200 / 16, 0, self.stage.map.height as isize) as usize;
-        let tile_end_x = clamp((self.frame.x / 0x200 + 8 + state.canvas_size.0 as isize) / 16 + 1, 0, self.stage.map.width as isize) as usize;
-        let tile_end_y = clamp((self.frame.y / 0x200 + 8 + state.canvas_size.1 as isize) / 16 + 1, 0, self.stage.map.height as isize) as usize;
+            for y in tile_start_y..tile_end_y {
+                for x in tile_start_x..tile_end_x {
+                    let tile = *self.stage.map.tiles
+                        .get((y * self.stage.map.width) + x)
+                        .unwrap();
 
-        for y in tile_start_y..tile_end_y {
-            for x in tile_start_x..tile_end_x {
-                let tile = *self.stage.map.tiles
-                    .get((y * self.stage.map.width) + x)
-                    .unwrap();
-
-                match layer {
-                    TileLayer::Background => {
-                        if self.stage.map.attrib[tile as usize] >= 0x20 {
-                            continue;
+                    match layer {
+                        TileLayer::Background => {
+                            if self.stage.map.attrib[tile as usize] >= 0x20 {
+                                continue;
+                            }
                         }
-                    }
-                    TileLayer::Foreground => {
-                        let attr = self.stage.map.attrib[tile as usize];
-                        if attr < 0x40 || attr >= 0x80 {
-                            continue;
+                        TileLayer::Foreground => {
+                            let attr = self.stage.map.attrib[tile as usize];
+                            if attr < 0x40 || attr >= 0x80 {
+                                continue;
+                            }
                         }
+                        _ => {}
                     }
-                    _ => {}
+
+                    rect.left = (tile as usize % 16) * 16;
+                    rect.top = (tile as usize / 16) * 16;
+                    rect.right = rect.left + 16;
+                    rect.bottom = rect.top + 16;
+
+                    batch.add_rect((x as f32 * 16.0 - 8.0) - (self.frame.x / 0x200) as f32, (y as f32 * 16.0 - 8.0) - (self.frame.y / 0x200) as f32, &rect);
                 }
-
-                rect.left = (tile as usize % 16) * 16;
-                rect.top = (tile as usize / 16) * 16;
-                rect.right = rect.left + 16;
-                rect.bottom = rect.top + 16;
-
-                batch.add_rect((x as f32 * 16.0 - 8.0) - (self.frame.x / 0x200) as f32, (y as f32 * 16.0 - 8.0) - (self.frame.y / 0x200) as f32, &rect);
             }
-        }
 
-        batch.draw(ctx)?;
+            batch.draw(ctx)?;
+        }
         Ok(())
     }
 }

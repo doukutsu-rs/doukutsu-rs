@@ -5,7 +5,7 @@ extern crate strum_macros;
 use std::{env, mem};
 use std::path;
 
-use ggez::{Context, ContextBuilder, event, GameResult};
+use ggez::{Context, ContextBuilder, event, GameResult, filesystem};
 use ggez::conf::{WindowMode, WindowSetup};
 use ggez::event::{KeyCode, KeyMods};
 use ggez::event::winit_event::{ElementState, Event, KeyboardInput, WindowEvent};
@@ -97,6 +97,18 @@ impl Game {
         let scale = 2.0;
         let screen_size = graphics::drawable_size(ctx);
         let canvas_size = (screen_size.0 / scale, screen_size.1 / scale);
+        let mut constants = EngineConstants::defaults();
+        let mut base_path = "/";
+
+        if filesystem::exists(ctx, "/base/Nicalis.bmp") {
+            info!("Cave Story+ data files detected.");
+            constants.apply_csplus_patches();
+            base_path = "/base/";
+        } else if filesystem::exists(ctx, "/mrmap.bin") || filesystem::exists(ctx, "/Font/font") {
+            info!("CSE2E data files detected.");
+        } else if filesystem::exists(ctx, "/stage.dat") || filesystem::exists(ctx, "/sprites.sif") {
+            info!("NXEngine-evo data files detected.");
+        }
 
         let s = Game {
             scene: None,
@@ -108,11 +120,11 @@ impl Game {
                 flags: GameFlags(0),
                 key_state: KeyState(0),
                 key_trigger: KeyState(0),
-                texture_set: TextureSet::new("/"),
-                base_path: "/".to_string(),
+                texture_set: TextureSet::new(base_path),
+                base_path: str!(base_path),
                 stages: Vec::new(),
                 sound_manager: SoundManager::new(),
-                constants: EngineConstants::defaults(),
+                constants,
                 scale,
                 screen_size,
                 canvas_size,

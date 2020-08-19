@@ -1,13 +1,16 @@
 use std::collections::HashMap;
+use std::io::Read;
 
 use ggez::{Context, GameError, GameResult};
 use ggez::filesystem;
 use ggez::graphics::{Drawable, DrawParam, FilterMode, Image, Rect};
 use ggez::graphics::spritebatch::SpriteBatch;
 use ggez::nalgebra::{Point2, Vector2};
+use itertools::Itertools;
 use log::info;
 
 use crate::common;
+use crate::engine_constants::EngineConstants;
 use crate::str;
 
 pub struct SizedBatch {
@@ -88,25 +91,50 @@ impl TextureSet {
         }
     }
 
-    pub fn load_texture(&self, ctx: &mut Context, path: &str) -> GameResult<SizedBatch> {
+    fn load_image(&self, ctx: &mut Context, constants: &EngineConstants, path: &str) -> GameResult<Image> {
+        let img = {
+            let mut buf = Vec::new();
+            let mut reader = filesystem::open(ctx, path)?;
+            let _ = reader.read_to_end(&mut buf)?;
+            let mut rgba = image::load_from_memory(&buf)?.to_rgba();
+
+            // Cave Story+ data files don't have an alpha channel, therefore they need a special treatment.
+            if constants.is_cs_plus {
+                for (r, g, b, a) in rgba.iter_mut().tuples() {
+                    if *r == 0 && *g == 0 && *b == 0 {
+                        *a = 0;
+                    }
+                }
+            }
+
+            rgba
+        };
+        let (width, height) = img.dimensions();
+
+        Image::from_rgba8(ctx, width as u16, height as u16, img.as_ref())
+    }
+
+    pub fn load_texture(&self, ctx: &mut Context, constants: &EngineConstants, name: &str) -> GameResult<SizedBatch> {
         let path = FILE_TYPES
             .iter()
-            .map(|ext| [&self.base_path, path, ext].join(""))
+            .map(|ext| [&self.base_path, name, ext].join(""))
             .find(|path| filesystem::exists(ctx, path))
-            .ok_or_else(|| GameError::ResourceLoadError(format!("Texture {:?} does not exist.", path)))?;
+            .ok_or_else(|| GameError::ResourceLoadError(format!("Texture {:?} does not exist.", name)))?;
 
         info!("Loading texture: {}", path);
 
-        let image = Image::new(ctx, path)?;
+        let image = self.load_image(ctx, constants, &path)?;
         let size = image.dimensions();
 
         assert_ne!(size.w, 0.0, "size.w == 0");
         assert_ne!(size.h, 0.0, "size.h == 0");
 
-        let scale_x = 1.0;
-        let scale_y = 1.0;
-        let width = (size.w / scale_x) as usize;
-        let height = (size.h / scale_y) as usize;
+        let dim = (size.w as usize, size.h as usize);
+        let orig_dimensions = constants.tex_sizes.get(name).unwrap_or_else(|| &dim);
+        let scale_x = orig_dimensions.0 as f32 / size.w;
+        let scale_y = orig_dimensions.1 as f32 / size.h;
+        let width = (size.w * scale_x) as usize;
+        let height = (size.h * scale_y) as usize;
 
         Ok(SizedBatch {
             batch: SpriteBatch::new(image),
@@ -119,12 +147,12 @@ impl TextureSet {
         })
     }
 
-    pub fn ensure_texture_loaded(&mut self, ctx: &mut Context, name: &str) -> GameResult {
+    pub fn ensure_texture_loaded(&mut self, ctx: &mut Context, constants: &EngineConstants, name: &str) -> GameResult {
         if self.tex_map.contains_key(name) {
             return Ok(());
         }
 
-        let batch = self.load_texture(ctx, name)?;
+        let batch = self.load_texture(ctx, constants, name)?;
         self.tex_map.insert(str!(name), batch);
 
         Ok(())

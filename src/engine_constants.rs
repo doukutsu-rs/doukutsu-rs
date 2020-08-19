@@ -1,3 +1,4 @@
+use log::info;
 use std::collections::HashMap;
 
 use maplit::hashmap;
@@ -46,6 +47,7 @@ pub struct MyCharConsts {
 
 #[derive(Debug)]
 pub struct EngineConstants {
+    pub is_cs_plus: bool,
     pub my_char: MyCharConsts,
     pub booster: BoosterConsts,
     pub tex_sizes: HashMap<String, (usize, usize)>,
@@ -54,6 +56,7 @@ pub struct EngineConstants {
 impl Clone for EngineConstants {
     fn clone(&self) -> Self {
         EngineConstants {
+            is_cs_plus: self.is_cs_plus,
             my_char: self.my_char,
             booster: self.booster,
             tex_sizes: self.tex_sizes.clone(),
@@ -62,8 +65,9 @@ impl Clone for EngineConstants {
 }
 
 impl EngineConstants {
-    pub fn defaults() -> EngineConstants {
+    pub fn defaults() -> Self {
         EngineConstants {
+            is_cs_plus: false,
             my_char: MyCharConsts {
                 cond: 0x80,
                 flags: 0,
@@ -247,5 +251,12 @@ impl EngineConstants {
                 str!("Title") => (320, 48),
             },
         }
+    }
+
+    pub fn apply_csplus_patches(&mut self) {
+        info!("Applying Cave Story+ constants patches...");
+
+        self.is_cs_plus = true;
+        self.tex_sizes.insert(str!("MyChar"), (200, 384));
     }
 }
