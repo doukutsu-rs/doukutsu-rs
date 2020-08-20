@@ -57,6 +57,10 @@ impl SizedBatch {
     }
 
     pub fn add_rect(&mut self, x: f32, y: f32, rect: &common::Rect<usize>) {
+        if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
+            return;
+        }
+
         let param = DrawParam::new()
             .src(Rect::new(rect.left as f32 / self.width as f32,
                            rect.top as f32 / self.height as f32,

@@ -1,6 +1,6 @@
-use log::info;
 use std::collections::HashMap;
 
+use log::info;
 use maplit::hashmap;
 
 use crate::common::{Direction, Rect};
@@ -21,6 +21,7 @@ pub struct PhysicsConsts {
 
 #[derive(Debug, Copy, Clone)]
 pub struct BoosterConsts {
+    pub fuel: usize,
     pub b2_0_up: isize,
     pub b2_0_up_nokey: isize,
     pub b2_0_down: isize,
@@ -36,8 +37,8 @@ pub struct MyCharConsts {
     pub direction: Direction,
     pub view: Rect<usize>,
     pub hit: Rect<usize>,
-    pub life: u16,
-    pub max_life: u16,
+    pub life: usize,
+    pub max_life: usize,
     pub unit: u8,
     pub air_physics: PhysicsConsts,
     pub water_physics: PhysicsConsts,
@@ -46,19 +47,44 @@ pub struct MyCharConsts {
 }
 
 #[derive(Debug)]
+pub struct CaretConsts {
+    pub offsets: [(isize, isize); 18],
+    pub bubble_left_rects: Vec<Rect<usize>>,
+    pub bubble_right_rects: Vec<Rect<usize>>,
+    pub exhaust_rects: Vec<Rect<usize>>,
+    pub question_left_rect: Rect<usize>,
+    pub question_right_rect: Rect<usize>,
+}
+
+impl Clone for CaretConsts {
+    fn clone(&self) -> Self {
+        Self {
+            offsets: self.offsets,
+            bubble_left_rects: self.bubble_left_rects.clone(),
+            bubble_right_rects: self.bubble_right_rects.clone(),
+            exhaust_rects: self.exhaust_rects.clone(),
+            question_left_rect: self.question_left_rect,
+            question_right_rect: self.question_right_rect,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct EngineConstants {
     pub is_cs_plus: bool,
     pub my_char: MyCharConsts,
     pub booster: BoosterConsts,
+    pub caret: CaretConsts,
     pub tex_sizes: HashMap<String, (usize, usize)>,
 }
 
 impl Clone for EngineConstants {
     fn clone(&self) -> Self {
-        EngineConstants {
+        Self {
             is_cs_plus: self.is_cs_plus,
             my_char: self.my_char,
             booster: self.booster,
+            caret: self.caret.clone(),
             tex_sizes: self.tex_sizes.clone(),
         }
     }
@@ -128,11 +154,57 @@ impl EngineConstants {
                 ],
             },
             booster: BoosterConsts {
+                fuel: 50,
                 b2_0_up: -0x5ff,
                 b2_0_up_nokey: -0x5ff,
                 b2_0_down: 0x5ff,
                 b2_0_left: -0x5ff,
-                b2_0_right: 0x5ff
+                b2_0_right: 0x5ff,
+            },
+            caret: CaretConsts {
+                offsets: [
+                    (0, 0),
+                    (4 * 0x200, 4 * 0x200),
+                    (8 * 0x200, 8 * 0x200),
+                    (8 * 0x200, 8 * 0x200),
+                    (8 * 0x200, 8 * 0x200),
+                    (4 * 0x200, 4 * 0x200),
+                    (8 * 0x200, 8 * 0x200),
+                    (4 * 0x200, 4 * 0x200),
+                    (8 * 0x200, 8 * 0x200),
+                    (8 * 0x200, 8 * 0x200),
+                    (28 * 0x200, 8 * 0x200),
+                    (4 * 0x200, 4 * 0x200),
+                    (16 * 0x200, 16 * 0x200),
+                    (4 * 0x200, 4 * 0x200),
+                    (20 * 0x200, 20 * 0x200),
+                    (4 * 0x200, 4 * 0x200),
+                    (20 * 0x200, 4 * 0x200),
+                    (52 * 0x200, 4 * 0x200),
+                ],
+                bubble_left_rects: vec![
+                    Rect { left: 0, top: 64, right: 8, bottom: 72 },
+                    Rect { left: 8, top: 64, right: 16, bottom: 72 },
+                    Rect { left: 16, top: 64, right: 24, bottom: 72 },
+                    Rect { left: 24, top: 64, right: 32, bottom: 72 },
+                ],
+                bubble_right_rects: vec![
+                    Rect { left: 64, top: 24, right: 72, bottom: 32 },
+                    Rect { left: 72, top: 24, right: 80, bottom: 32 },
+                    Rect { left: 80, top: 24, right: 88, bottom: 32 },
+                    Rect { left: 88, top: 24, right: 96, bottom: 32 },
+                ],
+                exhaust_rects: vec![
+                    Rect { left: 56, top: 0, right: 64, bottom: 8 },
+                    Rect { left: 64, top: 0, right: 72, bottom: 8 },
+                    Rect { left: 72, top: 0, right: 80, bottom: 8 },
+                    Rect { left: 80, top: 0, right: 88, bottom: 8 },
+                    Rect { left: 88, top: 0, right: 96, bottom: 8 },
+                    Rect { left: 96, top: 0, right: 104, bottom: 8 },
+                    Rect { left: 104, top: 0, right: 112, bottom: 8 },
+                ],
+                question_left_rect: Rect { left: 0, top: 80, right: 16, bottom: 96 },
+                question_right_rect: Rect { left: 48, top: 64, right: 64, bottom: 80 },
             },
             tex_sizes: hashmap! {
                 str!("ArmsImage") => (256, 16),
@@ -257,6 +329,7 @@ impl EngineConstants {
         info!("Applying Cave Story+ constants patches...");
 
         self.is_cs_plus = true;
+        self.tex_sizes.insert(str!("Caret"), (320, 320));
         self.tex_sizes.insert(str!("MyChar"), (200, 384));
     }
 }

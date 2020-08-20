@@ -1,6 +1,6 @@
 # doukutsu-rs
 
-A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/), aiming for accuracy and cleaner code.
+A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/), aiming for behavior accuracy and cleaner code.
 Later plans might involve turning it into a fully-featured modding tool with live debugging and stuff.
 
 **The project is still in a very early state and nowhere near being playable. Expect lots of breaking changes and bugs**
@@ -26,7 +26,7 @@ The engine should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE
 
 The project is a result of me wanting to build something in a new programming language for memes.
 
-I had an idea of writing my own CS engine long time before and I would've very likely picked C++17/20+SDL2, but after 
+I had an idea of writing my own CS engine long time before and I would've very likely picked C++17/20 and SDL2, but after 
 all I've picked Rust instead because it seemed quite interesting for me.
 
 Would 90% of end-users running this thing care about the programming language software was written in? After all who tf cares if the performance is the same (and maybe a slightly better), but you also get a lot of various benefits?

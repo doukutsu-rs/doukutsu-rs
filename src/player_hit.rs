@@ -3,6 +3,8 @@ use num_traits::clamp;
 use crate::player::Player;
 use crate::stage::Stage;
 use crate::SharedGameState;
+use crate::caret::CaretType;
+use crate::common::Direction;
 
 const OFF_X: &[isize; 4] = &[0, 1, 0, 1];
 const OFF_Y: &[isize; 4] = &[0, 0, 1, 1];
@@ -16,12 +18,12 @@ impl Player {
             && (self.x - self.hit.right as isize) > x * 0x10 * 0x200 {
             self.x = ((x * 0x10 + 8) * 0x200) + self.hit.right as isize;
 
-            if self.xm < -0x180 {
-                self.xm = -0x180;
+            if self.vel_x < -0x180 {
+                self.vel_x = -0x180;
             }
 
-            if !state.key_state.left() && self.xm < 0 {
-                self.xm = 0;
+            if !state.key_state.left() && self.vel_x < 0 {
+                self.vel_x = 0;
             }
 
             self.flags.set_flag_x01(true);
@@ -34,12 +36,12 @@ impl Player {
             && (self.x + self.hit.right as isize) < x * 0x10 * 0x200 {
             self.x = ((x * 0x10 - 8) * 0x200) - self.hit.right as isize;
 
-            if self.xm > 0x180 {
-                self.xm = 0x180;
+            if self.vel_x > 0x180 {
+                self.vel_x = 0x180;
             }
 
-            if !state.key_state.right() && self.xm > 0 {
-                self.xm = 0;
+            if !state.key_state.right() && self.vel_x > 0 {
+                self.vel_x = 0;
             }
 
             self.flags.set_flag_x04(true);
@@ -52,12 +54,12 @@ impl Player {
             && (self.y - self.hit.top as isize) > y * 0x10 * 0x200 {
             self.y = ((y * 0x10 + 8) * 0x200) + self.hit.top as isize;
 
-            if !self.cond.cond_x02() && self.ym < -0x200 {
+            if !self.cond.cond_x02() && self.vel_y < -0x200 {
                 // PutLittleStar(); todo
             }
 
-            if self.ym < 0 {
-                self.ym = 0;
+            if self.vel_y < 0 {
+                self.vel_y = 0;
             }
 
             self.flags.set_flag_x02(true);
@@ -70,12 +72,12 @@ impl Player {
             && ((self.y + self.hit.bottom as isize) < y * 0x10 * 0x200) {
             self.y = ((y * 0x10 - 8) * 0x200) - self.hit.bottom as isize;
 
-            if self.ym > 0x400 {
+            if self.vel_y > 0x400 {
                 // PlaySoundObject(23, SOUND_MODE_PLAY); todo
             }
 
-            if self.ym > 0 {
-                self.ym = 0;
+            if self.vel_y > 0 {
+                self.vel_y = 0;
             }
 
             self.flags.set_flag_x08(true);
@@ -89,12 +91,12 @@ impl Player {
             && (self.y + self.hit.bottom as isize) > (y * 0x10 - 8) * 0x200 {
             self.y = (y * 0x10 * 0x200) - ((self.x - x * 0x10 * 0x200) / 2) + 0x800 + self.hit.top as isize;
 
-            if !self.cond.cond_x02() && self.ym < -0x200 {
+            if !self.cond.cond_x02() && self.vel_y < -0x200 {
                 // PutLittleStar(); todo
             }
 
-            if self.ym < 0 {
-                self.ym = 0;
+            if self.vel_y < 0 {
+                self.vel_y = 0;
             }
 
             self.flags.set_flag_x02(true);
@@ -108,12 +110,12 @@ impl Player {
             && (self.y + self.hit.bottom as isize) > (y * 0x10 - 8) * 0x200 {
             self.y = (y * 0x10 * 0x200) - ((self.x - x * 0x10 * 0x200) / 2) - 0x800 + self.hit.top as isize;
 
-            if !self.cond.cond_x02() && self.ym < -0x200 {
+            if !self.cond.cond_x02() && self.vel_y < -0x200 {
                 // PutLittleStar(); todo
             }
 
-            if self.ym < 0 {
-                self.ym = 0;
+            if self.vel_y < 0 {
+                self.vel_y = 0;
             }
 
             self.flags.set_flag_x02(true);
@@ -127,12 +129,12 @@ impl Player {
             && (self.y + self.hit.bottom as isize) > (y * 0x10 - 8) * 0x200 {
             self.y = (y * 0x10 * 0x200) + ((self.x - x * 0x10 * 0x200) / 2) - 0x800 + self.hit.top as isize;
 
-            if !self.cond.cond_x02() && self.ym < -0x200 {
+            if !self.cond.cond_x02() && self.vel_y < -0x200 {
                 // PutLittleStar(); todo
             }
 
-            if self.ym < 0 {
-                self.ym = 0;
+            if self.vel_y < 0 {
+                self.vel_y = 0;
             }
 
             self.flags.set_flag_x02(true);
@@ -146,12 +148,12 @@ impl Player {
             && (self.y + self.hit.bottom as isize) > (y * 0x10 - 8) * 0x200 {
             self.y = (y * 0x10 * 0x200) + ((self.x - x * 0x10 * 0x200) / 2) + 0x800 + self.hit.top as isize;
 
-            if !self.cond.cond_x02() && self.ym < -0x200 {
+            if !self.cond.cond_x02() && self.vel_y < -0x200 {
                 // PutLittleStar(); todo
             }
 
-            if self.ym < 0 {
-                self.ym = 0;
+            if self.vel_y < 0 {
+                self.vel_y = 0;
             }
 
             self.flags.set_flag_x02(true);
@@ -167,12 +169,12 @@ impl Player {
             && (self.y - self.hit.top as isize) < (y * 0x10 + 8) * 0x200 {
             self.y = (y * 0x10 * 0x200) + ((self.x - x * 0x10 * 0x200) / 2) - 0x800 - self.hit.bottom as isize;
 
-            if self.ym > 0x400 {
+            if self.vel_y > 0x400 {
                 // PlaySoundObject(23, SOUND_MODE_PLAY); todo
             }
 
-            if self.ym > 0 {
-                self.ym = 0;
+            if self.vel_y > 0 {
+                self.vel_y = 0;
             }
 
             self.flags.set_flag_x20(true);
@@ -189,12 +191,12 @@ impl Player {
             && (self.y - self.hit.top as isize) < (y * 0x10 + 8) * 0x200 {
             self.y = (y * 0x10 * 0x200) + ((self.x - x * 0x10 * 0x200) / 2) + 0x800 - self.hit.bottom as isize;
 
-            if self.ym > 0x400 {
+            if self.vel_y > 0x400 {
                 // PlaySoundObject(23, SOUND_MODE_PLAY); todo
             }
 
-            if self.ym > 0 {
-                self.ym = 0;
+            if self.vel_y > 0 {
+                self.vel_y = 0;
             }
 
             self.flags.set_flag_x20(true);
@@ -211,12 +213,12 @@ impl Player {
             && (self.y - self.hit.top as isize) < (y * 0x10 + 8) * 0x200 {
             self.y = (y * 0x10 * 0x200) - ((self.x - x * 0x10 * 0x200) / 2) + 0x800 - self.hit.bottom as isize;
 
-            if self.ym > 0x400 {
+            if self.vel_y > 0x400 {
                 // PlaySoundObject(23, SOUND_MODE_PLAY); todo
             }
 
-            if self.ym > 0 {
-                self.ym = 0;
+            if self.vel_y > 0 {
+                self.vel_y = 0;
             }
 
             self.flags.set_flag_x10(true);
@@ -233,12 +235,12 @@ impl Player {
             && (self.y - self.hit.top as isize) < (y * 0x10 + 8) * 0x200 {
             self.y = (y * 0x10 * 0x200) - ((self.x - x * 0x10 * 0x200) / 2) - 0x800 - self.hit.bottom as isize;
 
-            if self.ym > 0x400 {
+            if self.vel_y > 0x400 {
                 // PlaySoundObject(23, SOUND_MODE_PLAY); todo
             }
 
-            if self.ym > 0 {
-                self.ym = 0;
+            if self.vel_y > 0 {
+                self.vel_y = 0;
             }
 
             self.flags.set_flag_x10(true);
@@ -307,6 +309,12 @@ impl Player {
                 }
                 _ => {}
             }
+        }
+    }
+
+    pub fn tick_npc_collisions(&mut self, state: &mut SharedGameState, stage: &Stage) {
+        if self.question {
+            state.create_caret(self.x, self.y, CaretType::QuestionMark, Direction::Left);
         }
     }
 }

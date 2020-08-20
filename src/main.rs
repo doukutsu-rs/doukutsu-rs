@@ -35,7 +35,10 @@ use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::texture_set::TextureSet;
 use crate::ui::UI;
+use crate::caret::{Caret, CaretType};
+use crate::common::Direction;
 
+mod caret;
 mod common;
 mod engine_constants;
 mod entity;
@@ -46,12 +49,14 @@ mod live_debugger;
 mod map;
 mod player;
 mod player_hit;
+mod rng;
 mod scene;
 mod stage;
 mod sound;
 mod text_script;
 mod texture_set;
 mod ui;
+mod weapon;
 
 bitfield! {
   pub struct KeyState(u16);
@@ -86,6 +91,7 @@ struct Game {
 
 pub struct SharedGameState {
     pub flags: GameFlags,
+    pub carets: Vec<Caret>,
     pub key_state: KeyState,
     pub key_trigger: KeyState,
     pub texture_set: TextureSet,
@@ -106,6 +112,18 @@ impl SharedGameState {
         trigger = self.key_state.0 & trigger;
         self.key_old = self.key_state.0;
         self.key_trigger = KeyState(trigger);
+    }
+
+    pub fn tick_carets(&mut self) {
+        for caret in self.carets.iter_mut() {
+            caret.tick(&self.constants);
+        }
+
+        self.carets.retain(|c| !c.is_dead());
+    }
+
+    pub fn create_caret(&mut self, x: isize, y: isize, ctype: CaretType, direct: Direction) {
+        self.carets.push(Caret::new(x, y, ctype, direct, &self.constants));
     }
 }
 
@@ -137,6 +155,7 @@ impl Game {
             def_matrix: DrawParam::new().to_matrix(),
             state: SharedGameState {
                 flags: GameFlags(0),
+                carets: Vec::new(),
                 key_state: KeyState(0),
                 key_trigger: KeyState(0),
                 texture_set: TextureSet::new(base_path),

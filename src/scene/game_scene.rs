@@ -17,9 +17,10 @@ pub struct GameScene {
     pub stage: Stage,
     pub frame: Frame,
     pub player: Player,
-    tex_tileset_name: String,
     tex_background_name: String,
+    tex_caret_name: String,
     tex_hud_name: String,
+    tex_tileset_name: String,
     life_bar: usize,
     life_bar_count: usize,
 }
@@ -43,9 +44,10 @@ impl GameScene {
         info!("Loaded stage: {}", stage.data.name);
         info!("Map size: {}x{}", stage.map.width, stage.map.height);
 
-        let tex_tileset_name = ["Stage/", &stage.data.tileset.filename()].join("");
         let tex_background_name = stage.data.background.filename();
+        let tex_caret_name = str!("Caret");
         let tex_hud_name = str!("TextBox");
+        let tex_tileset_name = ["Stage/", &stage.data.tileset.filename()].join("");
 
         Ok(Self {
             tick: 0,
@@ -56,9 +58,10 @@ impl GameScene {
                 y: 0,
                 wait: 16,
             },
-            tex_tileset_name,
             tex_background_name,
+            tex_caret_name,
             tex_hud_name,
+            tex_tileset_name,
             life_bar: 3,
             life_bar_count: 0,
         })
@@ -176,6 +179,19 @@ impl GameScene {
         Ok(())
     }
 
+    fn draw_carets(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_caret_name)?;
+
+        for caret in state.carets.iter() {
+            batch.add_rect((((caret.x - caret.offset_x) / 0x200) - (self.frame.x / 0x200)) as f32,
+                           (((caret.y - caret.offset_y) / 0x200) - (self.frame.y / 0x200)) as f32,
+                           &caret.anim_rect);
+        }
+
+        batch.draw(ctx)?;
+        Ok(())
+    }
+
     fn draw_tiles(&self, state: &mut SharedGameState, ctx: &mut Context, layer: TileLayer) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_tileset_name)?;
         let mut rect = Rect::<usize>::new(0, 0, 16, 16);
@@ -226,7 +242,7 @@ impl Scene for GameScene {
         state.sound_manager.play_song(ctx)?;
         //self.player.x = 700 * 0x200;
         //self.player.y = 1000 * 0x200;
-        //self.player.equip.set_booster_2_0(true);
+        self.player.equip.set_booster_2_0(true);
         state.flags.set_flag_x01(true);
         state.flags.set_control_enabled(true);
         Ok(())
@@ -239,7 +255,9 @@ impl Scene for GameScene {
             self.player.tick(state, ctx)?;
 
             self.player.flags.0 = 0;
+            state.tick_carets();
             self.player.tick_map_collisions(state, &self.stage);
+            self.player.tick_npc_collisions(state, &self.stage);
 
             self.frame.update(state, &self.player, &self.stage);
         }
@@ -269,6 +287,7 @@ impl Scene for GameScene {
         self.draw_tiles(state, ctx, TileLayer::Background)?;
         self.player.draw(state, ctx, &self.frame)?;
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
+        self.draw_carets(state, ctx)?;
 
         self.draw_hud(state, ctx)?;
         self.draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;

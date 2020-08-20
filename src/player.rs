@@ -1,11 +1,11 @@
-use crate::ggez::{Context, GameResult};
 use num_traits::clamp;
 
 use crate::bitfield;
+use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
-use crate::engine_constants::PhysicsConsts;
 use crate::entity::GameEntity;
 use crate::frame::Frame;
+use crate::ggez::{Context, GameResult};
 use crate::SharedGameState;
 use crate::str;
 
@@ -69,31 +69,30 @@ bitfield! {
 pub struct Player {
     pub x: isize,
     pub y: isize,
-    pub xm: isize,
-    pub ym: isize,
+    pub vel_x: isize,
+    pub vel_y: isize,
     pub target_x: isize,
     pub target_y: isize,
+    pub life: usize,
+    pub max_life: usize,
     pub cond: Cond,
     pub flags: Flags,
     pub equip: Equip,
     pub direction: Direction,
     pub view: Rect<usize>,
     pub hit: Rect<usize>,
-    pub life: u16,
-    pub max_life: u16,
     pub unit: u8,
-    pub air_physics: PhysicsConsts,
-    pub water_physics: PhysicsConsts,
+    pub question: bool,
+    pub booster_fuel: usize,
     index_x: isize,
     index_y: isize,
     sprash: bool,
-    ques: bool,
     up: bool,
     down: bool,
-    shock: u8,
+    shock_counter: u8,
+    booster_switch: u8,
+    star: u8,
     bubble: u8,
-    boost_sw: u8,
-    boost_cnt: isize,
     exp_wait: isize,
     exp_count: isize,
     anim_num: usize,
@@ -111,31 +110,30 @@ impl Player {
         Ok(Player {
             x: 0,
             y: 0,
-            xm: 0,
-            ym: 0,
+            vel_x: 0,
+            vel_y: 0,
             target_x: 0,
             target_y: 0,
+            life: constants.my_char.life,
+            max_life: constants.my_char.max_life,
             cond: Cond(constants.my_char.cond),
             flags: Flags(constants.my_char.flags),
             equip: Equip(constants.my_char.equip),
             direction: constants.my_char.direction.clone(),
             view: constants.my_char.view,
             hit: constants.my_char.hit,
-            life: constants.my_char.life,
-            max_life: constants.my_char.max_life,
             unit: constants.my_char.unit,
-            air_physics: constants.my_char.air_physics,
-            water_physics: constants.my_char.water_physics,
+            question: false,
+            booster_fuel: 0,
             index_x: 0,
             index_y: 0,
             sprash: false,
-            ques: false,
             up: false,
             down: false,
-            shock: 0,
+            shock_counter: 0,
+            booster_switch: 0,
+            star: 0,
             bubble: 0,
-            boost_sw: 0,
-            boost_cnt: 0,
             exp_wait: 0,
             exp_count: 0,
             anim_num: 0,
@@ -145,42 +143,42 @@ impl Player {
         })
     }
 
-    fn tick_normal(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<()> {
+    fn tick_normal(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.cond.cond_x02() {
             return Ok(());
         }
 
-        let physics = if self.flags.underwater() { &self.water_physics } else { &self.air_physics };
+        let physics = if self.flags.underwater() { state.constants.my_char.water_physics } else { state.constants.my_char.air_physics };
 
-        self.ques = false;
+        self.question = false;
 
         if !state.flags.control_enabled() {
-            self.boost_sw = 0;
+            self.booster_switch = 0;
         }
 
         // todo: split those into separate procedures and refactor (try to not break the logic!)
 
         // ground movement
         if self.flags.flag_x08() || self.flags.flag_x10() || self.flags.flag_x20() {
-            self.boost_sw = 0;
+            self.booster_switch = 0;
 
             if self.equip.has_booster_0_8() || self.equip.has_booster_2_0() {
-                self.boost_cnt = 50;
+                self.booster_fuel = state.constants.booster.fuel;
             } else {
-                self.boost_cnt = 0;
+                self.booster_fuel = 0;
             }
 
             if state.flags.control_enabled() {
-                if state.key_trigger.only_down() && state.key_state.only_down() && !self.cond.cond_x01() && state.flags.flag_x04() {
+                if state.key_trigger.only_down() && state.key_state.only_down() && !self.cond.cond_x01() && !state.flags.flag_x04() {
                     self.cond.set_cond_x01(true);
-                    self.ques = true;
+                    self.question = true;
                 } else {
-                    if state.key_state.left() && self.xm > -physics.max_dash {
-                        self.xm -= physics.dash_ground;
+                    if state.key_state.left() && self.vel_x > -physics.max_dash {
+                        self.vel_x -= physics.dash_ground;
                     }
 
-                    if state.key_state.right() && self.xm < physics.max_dash {
-                        self.xm += physics.dash_ground;
+                    if state.key_state.right() && self.vel_x < physics.max_dash {
+                        self.vel_x += physics.dash_ground;
                     }
 
                     if state.key_state.left() {
@@ -194,62 +192,61 @@ impl Player {
             }
 
             if !self.cond.cond_x20() {
-                if self.xm < 0 {
-                    if self.xm > -physics.resist {
-                        self.xm = 0;
+                if self.vel_x < 0 {
+                    if self.vel_x > -physics.resist {
+                        self.vel_x = 0;
                     } else {
-                        self.xm += physics.resist;
+                        self.vel_x += physics.resist;
                     }
-                } else if self.xm > 0 {
-                    if self.xm < physics.resist {
-                        self.xm = 0;
+                }
+                if self.vel_x > 0 {
+                    if self.vel_x < physics.resist {
+                        self.vel_x = 0;
                     } else {
-                        self.xm -= physics.resist;
+                        self.vel_x -= physics.resist;
                     }
                 }
             }
         } else { // air movement
             if state.flags.control_enabled() {
-                if (self.equip.has_booster_0_8() || self.equip.has_booster_2_0()) && state.key_trigger.jump() && self.boost_cnt != 0 {
+                if state.key_trigger.jump() && self.booster_fuel != 0 {
                     if self.equip.has_booster_0_8() {
-                        self.boost_sw = 1;
+                        self.booster_switch = 1;
 
-                        if self.ym > 0x100 { // 0.5fix9
-                            self.ym /= 2;
+                        if self.vel_y > 0x100 { // 0.5fix9
+                            self.vel_y /= 2;
                         }
-                    }
-
-                    if self.equip.has_booster_2_0() {
+                    } else if self.equip.has_booster_2_0() {
                         if state.key_state.up() {
-                            self.boost_sw = 2;
-                            self.xm = 0;
-                            self.ym = state.constants.booster.b2_0_up;
+                            self.booster_switch = 2;
+                            self.vel_x = 0;
+                            self.vel_y = state.constants.booster.b2_0_up;
                         } else if state.key_state.left() {
-                            self.boost_sw = 2;
-                            self.xm = 0;
-                            self.ym = state.constants.booster.b2_0_left;
+                            self.booster_switch = 1;
+                            self.vel_x = state.constants.booster.b2_0_left;
+                            self.vel_y = 0;
                         } else if state.key_state.right() {
-                            self.boost_sw = 2;
-                            self.xm = 0;
-                            self.ym = state.constants.booster.b2_0_right;
+                            self.booster_switch = 1;
+                            self.vel_x = state.constants.booster.b2_0_right;
+                            self.vel_y = 0;
                         } else if state.key_state.down() {
-                            self.boost_sw = 2;
-                            self.xm = 0;
-                            self.ym = state.constants.booster.b2_0_down;
+                            self.booster_switch = 3;
+                            self.vel_x = 0;
+                            self.vel_y = state.constants.booster.b2_0_down;
                         } else {
-                            self.boost_sw = 2;
-                            self.xm = 0;
-                            self.ym = state.constants.booster.b2_0_up_nokey;
+                            self.booster_switch = 2;
+                            self.vel_x = 0;
+                            self.vel_y = state.constants.booster.b2_0_up_nokey;
                         }
                     }
                 }
 
-                if state.key_state.left() && self.xm > -physics.max_dash {
-                    self.xm -= physics.dash_air;
+                if state.key_state.left() && self.vel_x > -physics.max_dash {
+                    self.vel_x -= physics.dash_air;
                 }
 
-                if state.key_state.right() && self.xm < physics.max_dash {
-                    self.xm += physics.dash_air;
+                if state.key_state.right() && self.vel_x < physics.max_dash {
+                    self.vel_x += physics.dash_air;
                 }
 
                 if state.key_state.left() {
@@ -261,16 +258,16 @@ impl Player {
                 }
             }
 
-            if self.equip.has_booster_2_0() && self.boost_sw != 0 && !state.key_state.jump() || self.boost_cnt == 0 {
-                match self.boost_sw {
-                    1 => { self.xm /= 2 }
-                    2 => { self.ym /= 2 }
+            if self.equip.has_booster_2_0() && self.booster_switch != 0 && (!state.key_state.jump() || self.booster_fuel == 0) {
+                match self.booster_switch {
+                    1 => { self.vel_x /= 2 }
+                    2 => { self.vel_y /= 2 }
                     _ => {}
                 }
             }
 
-            if self.boost_cnt == 0 || !state.key_state.jump() {
-                self.boost_cnt = 0;
+            if self.booster_fuel == 0 || !state.key_state.jump() {
+                self.booster_switch = 0;
             }
         }
 
@@ -281,7 +278,7 @@ impl Player {
 
             if state.key_trigger.jump() && (self.flags.flag_x08() || self.flags.flag_x10() || self.flags.flag_x20()) {
                 if !self.flags.force_up() {
-                    self.ym = -physics.jump;
+                    self.vel_y = -physics.jump;
                     // todo: PlaySoundObject(15, SOUND_MODE_PLAY);
                 }
             }
@@ -293,110 +290,107 @@ impl Player {
         }
 
         // booster losing fuel
-        if self.boost_sw != 0 && self.boost_cnt != 0 {
-            self.boost_cnt -= 1;
+        if self.booster_switch != 0 && self.booster_fuel != 0 {
+            self.booster_fuel -= 1;
         }
 
         // wind / current forces
 
         if self.flags.force_left() {
-            self.xm -= 0x88;
+            self.vel_x -= 0x88;
         }
         if self.flags.force_up() {
-            self.ym -= 0x80;
+            self.vel_y -= 0x80;
         }
         if self.flags.force_right() {
-            self.xm += 0x80;
+            self.vel_x += 0x80;
         }
         if self.flags.force_down() {
-            self.ym += 0x55;
+            self.vel_y += 0x55;
         }
 
-        if self.equip.has_booster_2_0() && self.boost_sw != 0 {
-            match self.boost_sw {
+        if self.equip.has_booster_2_0() && self.booster_switch != 0 {
+            match self.booster_switch {
                 1 => {
                     if self.flags.flag_x01() || self.flags.flag_x04() {
-                        self.ym = -0x100; // -0.5fix9
+                        self.vel_y = -0x100; // -0.5fix9
                     }
 
                     if self.direction == Direction::Left {
-                        self.xm -= 0x20; // 0.1fix9
+                        self.vel_x -= 0x20; // 0.1fix9
                     }
                     if self.direction == Direction::Right {
-                        self.xm += 0x20; // 0.1fix9
+                        self.vel_x += 0x20; // 0.1fix9
                     }
 
-                    // todo: particles and sound
-                    if state.key_trigger.jump() || self.boost_cnt % 3 == 1 {
-                        if self.direction == Direction::Left {
-                            // SetCaret(self.x + 2 * 0x200, self.y + 2 * 0x200, 7, 2);
-                        }
-                        if self.direction == Direction::Right {
-                            // SetCaret(self.x + 2 * 0x200, self.y + 2 * 0x200, 7, 0);
+                    // todo: sound
+                    if state.key_trigger.jump() || self.booster_fuel % 3 == 1 {
+                        if self.direction == Direction::Left || self.direction == Direction::Right {
+                            state.create_caret(self.x + 0x400, self.y + 0x400, CaretType::Exhaust, self.direction.opposite());
                         }
                         // PlaySoundObject(113, SOUND_MODE_PLAY);
                     }
                 }
                 2 => {
-                    self.ym -= 0x20;
+                    self.vel_y -= 0x20;
 
-                    // todo: particles and sound
-                    if state.key_trigger.jump() || self.boost_cnt % 3 == 1 {
-                        // SetCaret(self.x, self.y + 6 * 0x200, 7, 3);
+                    // todo: sound
+                    if state.key_trigger.jump() || self.booster_fuel % 3 == 1 {
+                        state.create_caret(self.x, self.y + 6 * 0x200, CaretType::Exhaust, Direction::Bottom);
                         // PlaySoundObject(113, SOUND_MODE_PLAY);
                     }
                 }
-                // todo: particles and sound
-                3 if state.key_trigger.jump() || self.boost_cnt % 3 == 1 => {
-                    // SetCaret(self.x, self.y + 6 * 0x200, 7, 1);
+                // todo: sound
+                3 if state.key_trigger.jump() || self.booster_fuel % 3 == 1 => {
+                    state.create_caret(self.x, self.y + 6 * 0x200, CaretType::Exhaust, Direction::Up);
                     // PlaySoundObject(113, SOUND_MODE_PLAY);
                 }
                 _ => {}
             }
         } else if self.flags.force_up() {
-            self.ym += physics.gravity_air;
-        } else if self.equip.has_booster_0_8() && self.boost_sw != 0 && self.ym > -0x400 {
-            self.ym -= 0x20;
+            self.vel_y += physics.gravity_air;
+        } else if self.equip.has_booster_0_8() && self.booster_switch != 0 && self.vel_y > -0x400 {
+            self.vel_y -= 0x20;
 
-            if self.boost_cnt % 3 == 0 {
-                // SetCaret(self.x, self.y + self.hit.bottom as isize / 2, 7, 3);
+            if self.booster_fuel % 3 == 0 {
+                state.create_caret(self.x, self.y + self.hit.bottom as isize / 2, CaretType::Exhaust, Direction::Bottom);
                 // PlaySoundObject(113, SOUND_MODE_PLAY);
             }
 
             // bounce off of ceiling
             if self.flags.flag_x02() {
-                self.ym = 0x200; // 1.0fix9
+                self.vel_y = 0x200; // 1.0fix9
             }
-        } else if self.ym < 0 && state.flags.control_enabled() && state.key_state.jump() {
-            self.ym += physics.gravity_air;
+        } else if self.vel_y < 0 && state.flags.control_enabled() && state.key_state.jump() {
+            self.vel_y += physics.gravity_air;
         } else {
-            self.ym += physics.gravity_ground;
+            self.vel_y += physics.gravity_ground;
         }
 
         if !state.flags.control_enabled() || !state.key_trigger.jump() {
-            if self.flags.flag_x10() && self.xm < 0 {
-                self.ym = -self.xm;
+            if self.flags.flag_x10() && self.vel_x < 0 {
+                self.vel_y = -self.vel_x;
             }
 
-            if self.flags.flag_x20() && self.xm > 0 {
-                self.ym = self.xm;
+            if self.flags.flag_x20() && self.vel_x > 0 {
+                self.vel_y = self.vel_x;
             }
 
-            if (self.flags.flag_x08() && self.flags.flag_x80000() && self.xm < 0)
-                || (self.flags.flag_x08() && self.flags.flag_x10000() && self.xm > 0)
+            if (self.flags.flag_x08() && self.flags.flag_x80000() && self.vel_x < 0)
+                || (self.flags.flag_x08() && self.flags.flag_x10000() && self.vel_x > 0)
                 || (self.flags.flag_x08() && self.flags.flag_x20000() && self.flags.flag_x40000()) {
-                self.ym = 0x400; // 2.0fix9
+                self.vel_y = 0x400; // 2.0fix9
             }
         }
 
         let max_move = if self.flags.underwater() && !(self.flags.force_left() || self.flags.force_up() || self.flags.force_right() || self.flags.force_down()) {
-            self.water_physics.max_move
+            physics.max_move
         } else {
-            self.air_physics.max_move
+            physics.max_move
         };
 
-        self.xm = clamp(self.xm, -max_move, max_move);
-        self.ym = clamp(self.ym, -max_move, max_move);
+        self.vel_x = clamp(self.vel_x, -max_move, max_move);
+        self.vel_y = clamp(self.vel_y, -max_move, max_move);
 
         // todo: water splashing
 
@@ -406,7 +400,7 @@ impl Player {
 
         // spike damage
         if self.flags.flag_x400() {
-            //self.damage(10); // todo: borrow checker yells at me
+            self.damage(10);
         }
 
         // camera
@@ -423,14 +417,14 @@ impl Player {
         }
 
         if state.flags.control_enabled() && state.key_state.up() {
-            self.index_x -= 0x200; // 1.0fix9
-            if self.index_x < -0x8000 { // -64.0fix9
-                self.index_x = -0x8000;
+            self.index_y -= 0x200; // 1.0fix9
+            if self.index_y < -0x8000 { // -64.0fix9
+                self.index_y = -0x8000;
             }
         } else if state.flags.control_enabled() && state.key_state.down() {
-            self.index_x += 0x200; // 1.0fix9
-            if self.index_x > 0x8000 { // -64.0fix9
-                self.index_x = 0x8000;
+            self.index_y += 0x200; // 1.0fix9
+            if self.index_y > 0x8000 { // -64.0fix9
+                self.index_y = 0x8000;
             }
         } else {
             if self.index_y > 0x200 { // 1.0fix9
@@ -445,16 +439,16 @@ impl Player {
         self.target_x = self.x + self.index_x;
         self.target_y = self.y + self.index_y;
 
-        if self.xm > physics.resist || self.xm < -physics.resist {
-            self.x += self.xm;
+        if self.vel_x > physics.resist || self.vel_x < -physics.resist {
+            self.x += self.vel_x;
         }
 
-        self.y += self.ym;
+        self.y += self.vel_y;
 
         Ok(())
     }
 
-    fn tick_stream(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<()> {
+    fn tick_stream(&mut self, state: &mut SharedGameState) -> GameResult {
         Ok(())
     }
 
@@ -518,7 +512,7 @@ impl Player {
         } else if state.key_state.down() {
             self.anim_num = 10;
         } else {
-            self.anim_num = if self.ym > 0 { 1 } else { 3 };
+            self.anim_num = if self.vel_y > 0 { 1 } else { 3 };
         }
 
         match self.direction {
@@ -532,11 +526,29 @@ impl Player {
         }
     }
 
-    pub fn damage(&mut self, hp: isize) {}
+    pub fn damage(&mut self, hp: isize) {
+        if self.shock_counter > 0 {
+            return;
+        }
+
+        // PlaySoundObject(16, SOUND_MODE_PLAY); // todo: damage sound
+        self.shock_counter = 128;
+        self.cond.set_cond_x01(false);
+
+        if self.unit != 1 {
+            self.vel_y = -0x400; // -2.0fix9
+        }
+
+        self.life = if hp >= self.life as isize { 0 } else { (self.life as isize - hp) as usize };
+
+        if self.equip.has_whimsical_star() && self.star > 0 {
+            self.star -= 1;
+        }
+    }
 }
 
 impl GameEntity for Player {
-    fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<()> {
+    fn tick(&mut self, state: &mut SharedGameState, _ctx: &mut Context) -> GameResult {
         if !self.cond.visible() {
             return Ok(());
         }
@@ -545,8 +557,8 @@ impl GameEntity for Player {
             self.exp_wait -= 1;
         }
 
-        if self.shock != 0 {
-            self.shock -= 1;
+        if self.shock_counter != 0 {
+            self.shock_counter -= 1;
         } else if self.exp_count != 0 {
             // SetValueView(&self.x, &self.y, self.exp_count); // todo: damage popup
             self.exp_count = 0;
@@ -558,10 +570,10 @@ impl GameEntity for Player {
                     // AirProcess(); // todo
                 }
 
-                self.tick_normal(state, ctx)?;
+                self.tick_normal(state)?;
             }
             1 => {
-                self.tick_stream(state, ctx)?;
+                self.tick_stream(state)?;
             }
             _ => {}
         }

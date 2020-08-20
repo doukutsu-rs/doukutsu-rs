@@ -25,6 +25,15 @@ impl Direction {
             _ => { None }
         }
     }
+
+    pub fn opposite(&self) -> Direction {
+        match self {
+            Direction::Left => { Direction::Right }
+            Direction::Up => { Direction::Bottom }
+            Direction::Right => { Direction::Left }
+            Direction::Bottom => { Direction::Up }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
