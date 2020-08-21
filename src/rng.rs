@@ -1,22 +1,23 @@
-/// Stateful RNG
-pub struct RNG {
-    pub seed: u32,
-}
+use std::cell::Cell;
+
+pub struct RNG(Cell<i32>);
 
 impl RNG {
-    pub fn new() -> Self {
-        Self {
-            seed: 0,
-        }
+    pub fn new(seed: i32) -> Self {
+        Self(Cell::new(seed))
     }
 
-    pub fn next(&mut self) -> u32 {
+    pub fn next(&self) -> i32 {
         // MSVC LCG values
-        self.seed = self.seed.wrapping_mul(214013).wrapping_add(2531011);
-        self.seed
+        self.0.replace(self.0.get().wrapping_mul(214013).wrapping_add(2531011));
+        self.0.get()
     }
 
-    pub fn range(&mut self, start: i32, end: i32) -> i32 {
-        start + (self.next() % (end - start) as u32) as i32
+    pub fn next_u32(&self) -> u32 {
+        self.next() as u32
+    }
+
+    pub fn range(&self, range: std::ops::Range<i32>) -> i32 {
+        range.start.wrapping_add(self.next() % (range.end.wrapping_sub(range.start).wrapping_add(1)))
     }
 }

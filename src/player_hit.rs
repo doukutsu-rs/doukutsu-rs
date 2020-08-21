@@ -55,7 +55,7 @@ impl Player {
             self.y = ((y * 0x10 + 8) * 0x200) + self.hit.top as isize;
 
             if !self.cond.cond_x02() && self.vel_y < -0x200 {
-                // PutLittleStar(); todo
+                self.flags.set_head_bounced(true);
             }
 
             if self.vel_y < 0 {
@@ -92,7 +92,7 @@ impl Player {
             self.y = (y * 0x10 * 0x200) - ((self.x - x * 0x10 * 0x200) / 2) + 0x800 + self.hit.top as isize;
 
             if !self.cond.cond_x02() && self.vel_y < -0x200 {
-                // PutLittleStar(); todo
+                self.flags.set_head_bounced(true);
             }
 
             if self.vel_y < 0 {
@@ -111,7 +111,7 @@ impl Player {
             self.y = (y * 0x10 * 0x200) - ((self.x - x * 0x10 * 0x200) / 2) - 0x800 + self.hit.top as isize;
 
             if !self.cond.cond_x02() && self.vel_y < -0x200 {
-                // PutLittleStar(); todo
+                self.flags.set_head_bounced(true);
             }
 
             if self.vel_y < 0 {
@@ -130,7 +130,7 @@ impl Player {
             self.y = (y * 0x10 * 0x200) + ((self.x - x * 0x10 * 0x200) / 2) - 0x800 + self.hit.top as isize;
 
             if !self.cond.cond_x02() && self.vel_y < -0x200 {
-                // PutLittleStar(); todo
+                self.flags.set_head_bounced(true);
             }
 
             if self.vel_y < 0 {
@@ -149,7 +149,7 @@ impl Player {
             self.y = (y * 0x10 * 0x200) + ((self.x - x * 0x10 * 0x200) / 2) + 0x800 + self.hit.top as isize;
 
             if !self.cond.cond_x02() && self.vel_y < -0x200 {
-                // PutLittleStar(); todo
+                self.flags.set_head_bounced(true);
             }
 
             if self.vel_y < 0 {

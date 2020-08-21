@@ -37,6 +37,8 @@ use crate::texture_set::TextureSet;
 use crate::ui::UI;
 use crate::caret::{Caret, CaretType};
 use crate::common::Direction;
+use crate::rng::RNG;
+use std::time::Instant;
 
 mod caret;
 mod common;
@@ -91,6 +93,8 @@ struct Game {
 
 pub struct SharedGameState {
     pub flags: GameFlags,
+    pub game_rng: RNG,
+    pub effect_rng: RNG,
     pub carets: Vec<Caret>,
     pub key_state: KeyState,
     pub key_trigger: KeyState,
@@ -116,7 +120,7 @@ impl SharedGameState {
 
     pub fn tick_carets(&mut self) {
         for caret in self.carets.iter_mut() {
-            caret.tick(&self.constants);
+            caret.tick(&self.effect_rng, &self.constants);
         }
 
         self.carets.retain(|c| !c.is_dead());
@@ -155,6 +159,8 @@ impl Game {
             def_matrix: DrawParam::new().to_matrix(),
             state: SharedGameState {
                 flags: GameFlags(0),
+                game_rng: RNG::new(0),
+                effect_rng: RNG::new(Instant::now().elapsed().as_nanos() as i32),
                 carets: Vec::new(),
                 key_state: KeyState(0),
                 key_trigger: KeyState(0),

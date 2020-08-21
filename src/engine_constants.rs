@@ -51,6 +51,7 @@ pub struct CaretConsts {
     pub offsets: [(isize, isize); 18],
     pub bubble_left_rects: Vec<Rect<usize>>,
     pub bubble_right_rects: Vec<Rect<usize>>,
+    pub little_particles_rects: Vec<Rect<usize>>,
     pub exhaust_rects: Vec<Rect<usize>>,
     pub question_left_rect: Rect<usize>,
     pub question_right_rect: Rect<usize>,
@@ -62,9 +63,23 @@ impl Clone for CaretConsts {
             offsets: self.offsets,
             bubble_left_rects: self.bubble_left_rects.clone(),
             bubble_right_rects: self.bubble_right_rects.clone(),
+            little_particles_rects: self.little_particles_rects.clone(),
             exhaust_rects: self.exhaust_rects.clone(),
             question_left_rect: self.question_left_rect,
             question_right_rect: self.question_right_rect,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct WorldConsts {
+    pub snack_rect: Rect<usize>,
+}
+
+impl Clone for WorldConsts {
+    fn clone(&self) -> Self {
+        Self {
+            snack_rect: self.snack_rect,
         }
     }
 }
@@ -75,6 +90,7 @@ pub struct EngineConstants {
     pub my_char: MyCharConsts,
     pub booster: BoosterConsts,
     pub caret: CaretConsts,
+    pub world: WorldConsts,
     pub tex_sizes: HashMap<String, (usize, usize)>,
 }
 
@@ -85,6 +101,7 @@ impl Clone for EngineConstants {
             my_char: self.my_char,
             booster: self.booster,
             caret: self.caret.clone(),
+            world: self.world.clone(),
             tex_sizes: self.tex_sizes.clone(),
         }
     }
@@ -194,6 +211,10 @@ impl EngineConstants {
                     Rect { left: 80, top: 24, right: 88, bottom: 32 },
                     Rect { left: 88, top: 24, right: 96, bottom: 32 },
                 ],
+                little_particles_rects: vec![
+                    Rect { left: 56, top: 24, right: 64, bottom: 32 },
+                    Rect { left: 0, top: 0, right: 0, bottom: 0 },
+                ],
                 exhaust_rects: vec![
                     Rect { left: 56, top: 0, right: 64, bottom: 8 },
                     Rect { left: 64, top: 0, right: 72, bottom: 8 },
@@ -205,6 +226,9 @@ impl EngineConstants {
                 ],
                 question_left_rect: Rect { left: 0, top: 80, right: 16, bottom: 96 },
                 question_right_rect: Rect { left: 48, top: 64, right: 64, bottom: 80 },
+            },
+            world: WorldConsts {
+                snack_rect: Rect { left: 256, top: 48, right: 272, bottom: 64 },
             },
             tex_sizes: hashmap! {
                 str!("ArmsImage") => (256, 16),

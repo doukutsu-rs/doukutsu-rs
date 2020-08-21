@@ -20,6 +20,7 @@ pub struct GameScene {
     tex_background_name: String,
     tex_caret_name: String,
     tex_hud_name: String,
+    tex_npcsym_name: String,
     tex_tileset_name: String,
     life_bar: usize,
     life_bar_count: usize,
@@ -30,6 +31,7 @@ pub enum TileLayer {
     All,
     Background,
     Foreground,
+    Snack,
 }
 
 #[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
@@ -47,6 +49,7 @@ impl GameScene {
         let tex_background_name = stage.data.background.filename();
         let tex_caret_name = str!("Caret");
         let tex_hud_name = str!("TextBox");
+        let tex_npcsym_name = str!("Npc/NpcSym");
         let tex_tileset_name = ["Stage/", &stage.data.tileset.filename()].join("");
 
         Ok(Self {
@@ -61,6 +64,7 @@ impl GameScene {
             tex_background_name,
             tex_caret_name,
             tex_hud_name,
+            tex_npcsym_name,
             tex_tileset_name,
             life_bar: 3,
             life_bar_count: 0,
@@ -193,13 +197,21 @@ impl GameScene {
     }
 
     fn draw_tiles(&self, state: &mut SharedGameState, ctx: &mut Context, layer: TileLayer) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_tileset_name)?;
+        let tex = match layer {
+            TileLayer::Snack => &self.tex_npcsym_name,
+            _ => &self.tex_tileset_name,
+        };
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex)?;
         let mut rect = Rect::<usize>::new(0, 0, 16, 16);
 
         let tile_start_x = clamp(self.frame.x / 0x200 / 16, 0, self.stage.map.width as isize) as usize;
         let tile_start_y = clamp(self.frame.y / 0x200 / 16, 0, self.stage.map.height as isize) as usize;
         let tile_end_x = clamp((self.frame.x / 0x200 + 8 + state.canvas_size.0 as isize) / 16 + 1, 0, self.stage.map.width as isize) as usize;
         let tile_end_y = clamp((self.frame.y / 0x200 + 8 + state.canvas_size.1 as isize) / 16 + 1, 0, self.stage.map.height as isize) as usize;
+
+        if layer == TileLayer::Snack {
+            rect = state.constants.world.snack_rect;
+        }
 
         for y in tile_start_y..tile_end_y {
             for x in tile_start_x..tile_end_x {
@@ -212,22 +224,34 @@ impl GameScene {
                         if self.stage.map.attrib[tile as usize] >= 0x20 {
                             continue;
                         }
+
+                        rect.left = (tile as usize % 16) * 16;
+                        rect.top = (tile as usize / 16) * 16;
+                        rect.right = rect.left + 16;
+                        rect.bottom = rect.top + 16;
                     }
                     TileLayer::Foreground => {
                         let attr = self.stage.map.attrib[tile as usize];
-                        if attr < 0x40 || attr >= 0x80 {
+
+                        if attr < 0x40 || attr >= 0x80 || attr == 0x43 {
+                            continue;
+                        }
+
+                        rect.left = (tile as usize % 16) * 16;
+                        rect.top = (tile as usize / 16) * 16;
+                        rect.right = rect.left + 16;
+                        rect.bottom = rect.top + 16;
+                    }
+                    TileLayer::Snack => {
+                        if self.stage.map.attrib[tile as usize] != 0x43 {
                             continue;
                         }
                     }
                     _ => {}
                 }
 
-                rect.left = (tile as usize % 16) * 16;
-                rect.top = (tile as usize / 16) * 16;
-                rect.right = rect.left + 16;
-                rect.bottom = rect.top + 16;
-
-                batch.add_rect((x as f32 * 16.0 - 8.0) - (self.frame.x / 0x200) as f32, (y as f32 * 16.0 - 8.0) - (self.frame.y / 0x200) as f32, &rect);
+                batch.add_rect((x as f32 * 16.0 - 8.0) - (self.frame.x / 0x200) as f32,
+                               (y as f32 * 16.0 - 8.0) - (self.frame.y / 0x200) as f32, &rect);
             }
         }
 
@@ -287,6 +311,7 @@ impl Scene for GameScene {
         self.draw_tiles(state, ctx, TileLayer::Background)?;
         self.player.draw(state, ctx, &self.frame)?;
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
+        self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;
 
         self.draw_hud(state, ctx)?;

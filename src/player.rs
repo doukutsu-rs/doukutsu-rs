@@ -33,6 +33,9 @@ bitfield! {
   pub flag_x20000, set_flag_x20000: 17; // 0x20000
   pub flag_x40000, set_flag_x40000: 18; // 0x40000
   pub flag_x80000, set_flag_x80000: 19; // 0x80000
+
+  // engine specific flags
+  pub head_bounced, set_head_bounced: 31;
 }
 
 bitfield! {
@@ -151,6 +154,12 @@ impl Player {
         let physics = if self.flags.underwater() { state.constants.my_char.water_physics } else { state.constants.my_char.air_physics };
 
         self.question = false;
+        if self.flags.head_bounced() {
+            self.flags.set_head_bounced(false);
+            // todo: PlaySoundObject(3, SOUND_MODE_PLAY);
+            state.create_caret(self.x, self.y - self.hit.top as isize, CaretType::LittleParticles, Direction::Left);
+            state.create_caret(self.x, self.y - self.hit.top as isize, CaretType::LittleParticles, Direction::Left);
+        }
 
         if !state.flags.control_enabled() {
             self.booster_switch = 0;

@@ -1,6 +1,7 @@
 use crate::bitfield;
 use crate::common::{Direction, Rect};
 use crate::engine_constants::EngineConstants;
+use crate::rng::RNG;
 
 bitfield! {
   pub struct Cond(u16);
@@ -24,7 +25,7 @@ pub enum CaretType {
     LevelUp,
     HurtParticles,
     Explosion,
-    SmallParticles,
+    LittleParticles,
     Unknown,
     SmallProjectileDissipation,
     Empty,
@@ -65,7 +66,7 @@ impl Caret {
         }
     }
 
-    pub fn tick(&mut self, constants: &EngineConstants) {
+    pub fn tick(&mut self, rng: &RNG, constants: &EngineConstants) {
         match self.ctype {
             CaretType::None => {}
             CaretType::Bubble => {}
@@ -115,7 +116,41 @@ impl Caret {
             CaretType::LevelUp => {}
             CaretType::HurtParticles => {}
             CaretType::Explosion => {}
-            CaretType::SmallParticles => {}
+            CaretType::LittleParticles => {
+                if self.anim_num == 0 {
+                    match self.direct {
+                        Direction::Left => {
+                            self.vel_x = rng.range(-0x300..0x300) as isize;
+                            self.vel_y = rng.range(-0x100..0x100) as isize;
+                        }
+                        Direction::Up => {
+                            self.vel_y = rng.range(1..3) as isize * 0x100;
+                        }
+                        _ => {}
+                    }
+                }
+
+                self.anim_num += 1;
+
+                if self.direct == Direction::Left {
+                    self.vel_x = (self.vel_x * 4) / 5;
+                    self.vel_y = (self.vel_y * 4) / 5;
+                }
+
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+
+                if self.anim_num == 21 {
+                    self.cond.set_visible(false);
+                    return;
+                }
+
+                self.anim_rect = constants.caret.little_particles_rects[self.anim_num / 2 % constants.caret.little_particles_rects.len()];
+
+                if self.direct == Direction::Right {
+                    self.x -= 4 * 0x200;
+                }
+            }
             CaretType::Unknown => {
                 // not implemented because it was apparently broken in og game?
                 self.cond.set_visible(false);
