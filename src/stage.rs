@@ -8,6 +8,7 @@ use log::info;
 use crate::ggez::{Context, filesystem, GameResult};
 use crate::ggez::GameError::ResourceLoadError;
 use crate::map::Map;
+use crate::text_script::TextScript;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct NpcType {
@@ -371,17 +372,22 @@ impl StageData {
 pub struct Stage {
     pub map: Map,
     pub data: StageData,
+    pub text_script: TextScript,
 }
 
 impl Stage {
     pub fn load(ctx: &mut Context, root: &str, data: &StageData) -> GameResult<Self> {
         let map_file = filesystem::open(ctx, [root, "Stage/", &data.map, ".pxm"].join(""))?;
         let attrib_file = filesystem::open(ctx, [root, "Stage/", &data.tileset.name, ".pxa"].join(""))?;
+        let tsc_file = filesystem::open(ctx, [root, "Stage/", &data.tileset.name, ".tsc"].join(""))?;
+
         let map = Map::load_from(map_file, attrib_file)?;
+        let text_script = TextScript::load_from(tsc_file)?;
 
         let stage = Self {
             map,
             data: data.clone(),
+            text_script,
         };
 
         Ok(stage)
