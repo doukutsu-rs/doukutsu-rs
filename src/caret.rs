@@ -90,7 +90,7 @@ impl Caret {
                 self.anim_rect = constants.caret.exhaust_rects[self.anim_num];
 
                 match self.direct {
-                    Direction::Left => { self.x -= 0x400; }
+                    Direction::Left => { self.x -= 0x400; } // 2.0fix9
                     Direction::Up => { self.y -= 0x400; }
                     Direction::Right => { self.x += 0x400; }
                     Direction::Bottom => { self.y += 0x400; }
@@ -100,7 +100,7 @@ impl Caret {
             CaretType::QuestionMark => {
                 self.anim_wait += 1;
                 if self.anim_wait < 5 {
-                    self.y -= 0x800;
+                    self.y -= 0x800; // 4.0fix9
                 }
 
                 if self.anim_wait == 32 {
@@ -120,8 +120,8 @@ impl Caret {
                 if self.anim_num == 0 {
                     match self.direct {
                         Direction::Left => {
-                            self.vel_x = rng.range(-0x300..0x300) as isize;
-                            self.vel_y = rng.range(-0x100..0x100) as isize;
+                            self.vel_x = rng.range(-0x300..0x300) as isize; // -1.5fix9..1.5fix9
+                            self.vel_y = rng.range(-0x100..0x100) as isize; // -0.5fix9..0.5fix9
                         }
                         Direction::Up => {
                             self.vel_y = rng.range(1..3) as isize * 0x100;
@@ -140,7 +140,7 @@ impl Caret {
                 self.x += self.vel_x;
                 self.y += self.vel_y;
 
-                if self.anim_num == 21 {
+                if self.anim_num == 20 {
                     self.cond.set_visible(false);
                     return;
                 }

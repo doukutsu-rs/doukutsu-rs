@@ -34,6 +34,24 @@ impl Direction {
             Direction::Bottom => { Direction::Up }
         }
     }
+
+    pub fn vector_x(&self) -> isize {
+        match self {
+            Direction::Left => { -1 }
+            Direction::Up => { 0 }
+            Direction::Right => { 1 }
+            Direction::Bottom => { 0 }
+        }
+    }
+
+    pub fn vector_y(&self) -> isize {
+        match self {
+            Direction::Left => { 0 }
+            Direction::Up => { -1 }
+            Direction::Right => { 0 }
+            Direction::Bottom => { 1 }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -148,6 +166,7 @@ macro_rules! bitfield_fields {
         }
 
         paste::paste! {
+        #[allow(dead_code)]
         $($vis)* fn [<only_ $getter>](&self) -> bool {
             use crate::common::Bit;
             self.bit_only($bit)
