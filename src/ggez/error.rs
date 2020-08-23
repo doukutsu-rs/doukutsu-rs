@@ -13,6 +13,7 @@ use gilrs;
 use image;
 use lyon;
 use toml;
+use std::string::FromUtf8Error;
 
 /// An enum containing all kinds of game framework errors.
 #[derive(Debug, Clone)]
@@ -124,6 +125,13 @@ impl From<gfx::mapping::Error> for GameError {
     fn from(e: gfx::mapping::Error) -> GameError {
         let errstr = format!("Buffer mapping error: {:?}", e);
         GameError::VideoError(errstr)
+    }
+}
+
+impl From<std::string::FromUtf8Error> for GameError {
+    fn from(e: FromUtf8Error) -> Self {
+        let errstr = format!("UTF-8 decoding error: {:?}", e);
+        GameError::ConfigError(errstr)
     }
 }
 

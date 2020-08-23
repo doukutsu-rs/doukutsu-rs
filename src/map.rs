@@ -20,7 +20,7 @@ impl Map {
             return Err(Error::new(ErrorKind::InvalidData, "Invalid magic"));
         }
 
-        map_data.read_i8()?; // reserved, alignment?
+        map_data.read_i8()?; // unused
 
         let width = map_data.read_u16::<LE>()? as usize;
         let height = map_data.read_u16::<LE>()? as usize;

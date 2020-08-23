@@ -8,6 +8,7 @@ use crate::SharedGameState;
 pub struct LiveDebugger {
     selected_item: i32,
     map_selector_visible: bool,
+    hacks_visible: bool,
     stages: Vec<ImString>,
     error: Option<ImString>,
 }
@@ -17,15 +18,16 @@ impl LiveDebugger {
         Self {
             selected_item: -1,
             map_selector_visible: false,
+            hacks_visible: false,
             stages: vec![],
             error: None,
         }
     }
 
     pub fn run_ingame(&mut self, game_scene: &mut GameScene, state: &mut SharedGameState, ctx: &mut Context, ui: &mut imgui::Ui) -> GameResult {
-        Window::new(im_str!("Live Debugger"))
+        Window::new(im_str!("Debugger"))
             .position([5.0, 5.0], Condition::FirstUseEver)
-            .size([300.0, 100.0], Condition::FirstUseEver)
+            .size([300.0, 120.0], Condition::FirstUseEver)
             .build(ui, || {
                 ui.text(format!(
                     "Player position: ({:.1},{:.1})",
@@ -45,6 +47,10 @@ impl LiveDebugger {
 
                 if ui.button(im_str!("Map Selector"), [0.0, 0.0]) {
                     self.map_selector_visible = true;
+                }
+
+                if ui.button(im_str!("Hacks"), [0.0, 0.0]) {
+                    self.hacks_visible = true;
                 }
             });
 

@@ -1,6 +1,3 @@
-extern crate strum;
-#[macro_use]
-extern crate strum_macros;
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
@@ -11,14 +8,20 @@ extern crate log;
 extern crate serde_derive;
 #[macro_use]
 extern crate smart_default;
+extern crate strum;
+#[macro_use]
+extern crate strum_macros;
 
 use std::{env, mem};
 use std::path;
+use std::time::Instant;
 
 use log::*;
 use pretty_env_logger::env_logger::Env;
 use winit::{ElementState, Event, KeyboardInput, WindowEvent};
 
+use crate::caret::{Caret, CaretType};
+use crate::common::Direction;
 use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, ContextBuilder, event, filesystem, GameResult};
 use crate::ggez::conf::{WindowMode, WindowSetup};
@@ -29,16 +32,13 @@ use crate::ggez::input::keyboard;
 use crate::ggez::mint::ColumnMatrix4;
 use crate::ggez::nalgebra::Vector2;
 use crate::live_debugger::LiveDebugger;
+use crate::rng::RNG;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::texture_set::TextureSet;
 use crate::ui::UI;
-use crate::caret::{Caret, CaretType};
-use crate::common::Direction;
-use crate::rng::RNG;
-use std::time::Instant;
 
 mod caret;
 mod common;
@@ -85,7 +85,6 @@ bitfield! {
 struct Game {
     scene: Option<Box<dyn Scene>>,
     state: SharedGameState,
-    debugger: LiveDebugger,
     ui: UI,
     scaled_matrix: ColumnMatrix4<f32>,
     def_matrix: ColumnMatrix4<f32>,
@@ -154,19 +153,18 @@ impl Game {
             scaled_matrix: DrawParam::new()
                 .scale(Vector2::new(scale, scale))
                 .to_matrix(),
-            debugger: LiveDebugger::new(),
             ui: UI::new(ctx)?,
             def_matrix: DrawParam::new().to_matrix(),
             state: SharedGameState {
                 flags: GameFlags(0),
                 game_rng: RNG::new(0),
                 effect_rng: RNG::new(Instant::now().elapsed().as_nanos() as i32),
-                carets: Vec::new(),
+                carets: Vec::with_capacity(32),
                 key_state: KeyState(0),
                 key_trigger: KeyState(0),
                 texture_set: TextureSet::new(base_path),
                 base_path: str!(base_path),
-                stages: Vec::new(),
+                stages: Vec::with_capacity(96),
                 sound_manager: SoundManager::new(ctx),
                 constants,
                 scale,
@@ -181,8 +179,8 @@ impl Game {
     }
 
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        if self.scene.is_some() {
-            self.scene.as_mut().unwrap().tick(&mut self.state, ctx)?;
+        if let Some(scene) = self.scene.as_mut() {
+            scene.tick(&mut self.state, ctx)?;
         }
         Ok(())
     }
@@ -192,12 +190,12 @@ impl Game {
         graphics::set_transform(ctx, self.scaled_matrix);
         graphics::apply_transformations(ctx)?;
 
-        if self.scene.is_some() {
-            self.scene.as_ref().unwrap().draw(&mut self.state, ctx)?;
+        if let Some(scene) = self.scene.as_mut() {
+            scene.draw(&mut self.state, ctx)?;
 
             graphics::set_transform(ctx, self.def_matrix);
             graphics::apply_transformations(ctx)?;
-            self.ui.draw(&mut self.debugger, &mut self.state, ctx, self.scene.as_mut().unwrap())?;
+            self.ui.draw(&mut self.state, ctx, scene)?;
         }
 
         graphics::present(ctx)?;
@@ -225,6 +223,7 @@ impl Game {
 
     fn key_up_event(&mut self, _ctx: &mut Context, key_code: KeyCode, _key_mod: KeyMods) {
         let state = &mut self.state;
+
         match key_code {
             KeyCode::Left => { state.key_state.set_left(false) }
             KeyCode::Right => { state.key_state.set_right(false) }

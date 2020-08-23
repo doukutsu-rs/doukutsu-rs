@@ -11,6 +11,7 @@ use crate::scene::Scene;
 use crate::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
 use crate::str;
+use crate::ui::{UI, Components};
 
 pub struct GameScene {
     pub tick: usize,
@@ -196,6 +197,11 @@ impl GameScene {
         Ok(())
     }
 
+    fn draw_black_bars(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+
+        Ok(())
+    }
+
     fn draw_tiles(&self, state: &mut SharedGameState, ctx: &mut Context, layer: TileLayer) -> GameResult {
         let tex = match layer {
             TileLayer::Snack => &self.tex_npcsym_name,
@@ -263,7 +269,6 @@ impl GameScene {
 
 impl Scene for GameScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        state.sound_manager.play_song(ctx)?;
         //self.player.x = 700 * 0x200;
         //self.player.y = 1000 * 0x200;
         self.player.equip.set_booster_2_0(true);
@@ -313,6 +318,7 @@ impl Scene for GameScene {
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;
+        self.draw_black_bars(state, ctx)?;
 
         self.draw_hud(state, ctx)?;
         self.draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
@@ -320,8 +326,8 @@ impl Scene for GameScene {
         Ok(())
     }
 
-    fn debug_overlay_draw(&mut self, dbg: &mut LiveDebugger, state: &mut SharedGameState, ctx: &mut Context, ui: &mut imgui::Ui) -> GameResult {
-        dbg.run_ingame(self, state, ctx, ui)?;
+    fn debug_overlay_draw(&mut self, components: &mut Components, state: &mut SharedGameState, ctx: &mut Context, ui: &mut imgui::Ui) -> GameResult {
+        components.live_debugger.run_ingame(self, state, ctx, ui)?;
         Ok(())
     }
 }

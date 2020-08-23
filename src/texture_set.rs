@@ -91,7 +91,7 @@ impl TextureSet {
     pub fn new(base_path: &str) -> TextureSet {
         TextureSet {
             tex_map: HashMap::new(),
-            base_path: str!(base_path),
+            base_path: base_path.to_string(),
         }
     }
 
@@ -153,7 +153,7 @@ impl TextureSet {
 
     pub fn get_or_load_batch(&mut self, ctx: &mut Context, constants: &EngineConstants, name: &str) -> GameResult<&mut SizedBatch> {
         if !self.tex_map.contains_key(name) {
-            let mut batch = self.load_texture(ctx, constants, name)?;
+            let batch = self.load_texture(ctx, constants, name)?;
             self.tex_map.insert(str!(name), batch);
         }
 

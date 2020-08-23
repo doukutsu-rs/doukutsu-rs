@@ -24,8 +24,13 @@ pub struct UI {
     pub imgui: imgui::Context,
     pub platform: WinitPlatform,
     pub renderer: Renderer<Rgba8, types::Resources>,
+    pub components: Components,
     main_color: RenderTargetView<types::Resources, Rgba8>,
     last_frame: Instant,
+}
+
+pub struct Components {
+    pub live_debugger: LiveDebugger,
 }
 
 impl UI {
@@ -144,6 +149,9 @@ impl UI {
             imgui,
             platform,
             renderer,
+            components: Components {
+                live_debugger: LiveDebugger::new(),
+            },
             main_color: RenderTargetView::new(color),
             last_frame: Instant::now(),
         })
@@ -153,7 +161,7 @@ impl UI {
         self.platform.handle_event(self.imgui.io_mut(), graphics::window(ctx), &event);
     }
 
-    pub fn draw(&mut self, dbg: &mut LiveDebugger, state: &mut SharedGameState, ctx: &mut Context, scene: &mut Box<dyn Scene>) -> GameResult {
+    pub fn draw(&mut self, state: &mut SharedGameState, ctx: &mut Context, scene: &mut Box<dyn Scene>) -> GameResult {
         {
             let io = self.imgui.io_mut();
             self.platform.prepare_frame(io, graphics::window(ctx)).map_err(|e| RenderError(e))?;
@@ -163,7 +171,7 @@ impl UI {
         }
         let mut ui = self.imgui.frame();
 
-        scene.debug_overlay_draw(dbg, state, ctx, &mut ui)?;
+        scene.debug_overlay_draw(&mut self.components, state, ctx, &mut ui)?;
 
         self.platform.prepare_render(&ui, graphics::window(ctx));
         let draw_data = ui.render();
