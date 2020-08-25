@@ -431,20 +431,3 @@ impl Conf {
         self
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::conf;
-
-    /// Tries to encode and decode a `Conf` object
-    /// and makes sure it gets the same result it had.
-    #[test]
-    fn headless_encode_round_trip() {
-        let c1 = conf::Conf::new();
-        let mut writer = Vec::new();
-        let _c = c1.to_toml_file(&mut writer).unwrap();
-        let mut reader = writer.as_slice();
-        let c2 = conf::Conf::from_toml_file(&mut reader).unwrap();
-        assert_eq!(c1, c2);
-    }
-}

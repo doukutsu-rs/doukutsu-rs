@@ -1,19 +1,10 @@
 //! Error types and conversion functions.
 
-use std;
+
 use std::error::Error;
 use std::fmt;
-use std::sync::Arc;
-
-use gfx;
-use glutin;
-use winit;
-
-use gilrs;
-use image;
-use lyon;
-use toml;
 use std::string::FromUtf8Error;
+use std::sync::Arc;
 
 /// An enum containing all kinds of game framework errors.
 #[derive(Debug, Clone)]
@@ -49,6 +40,7 @@ pub enum GameError {
     GamepadError(String),
     /// Something went wrong with the `lyon` shape-tesselation library.
     LyonError(String),
+    ParseError(String),
 }
 
 impl fmt::Display for GameError {
@@ -136,9 +128,9 @@ impl From<std::string::FromUtf8Error> for GameError {
 }
 
 impl<S, D> From<gfx::CopyError<S, D>> for GameError
-where
-    S: fmt::Debug,
-    D: fmt::Debug,
+    where
+        S: fmt::Debug,
+        D: fmt::Debug,
 {
     fn from(e: gfx::CopyError<S, D>) -> GameError {
         let errstr = format!("Memory copy error: {:?}", e);
@@ -172,8 +164,8 @@ impl From<gfx::TargetViewError> for GameError {
 }
 
 impl<T> From<gfx::UpdateError<T>> for GameError
-where
-    T: fmt::Debug + fmt::Display + 'static,
+    where
+        T: fmt::Debug + fmt::Display + 'static,
 {
     fn from(e: gfx::UpdateError<T>) -> GameError {
         let errstr = format!("Buffer update error: {}", e);
@@ -231,5 +223,12 @@ impl From<lyon::lyon_tessellation::geometry_builder::GeometryBuilderError> for G
             s
         );
         GameError::LyonError(errstr)
+    }
+}
+
+impl From<strum::ParseError> for GameError {
+    fn from(s: strum::ParseError) -> GameError {
+        let errstr = format!("Strum parse error: {}", s);
+        GameError::ParseError(errstr)
     }
 }

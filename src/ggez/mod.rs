@@ -102,8 +102,5 @@ pub mod input;
 pub mod timer;
 mod vfs;
 
-#[cfg(test)]
-pub mod tests;
-
 pub use crate::ggez::context::{Context, ContextBuilder};
 pub use crate::ggez::error::*;
