@@ -31,7 +31,7 @@ use crate::ggez::graphics::DrawParam;
 use crate::ggez::input::keyboard;
 use crate::ggez::mint::ColumnMatrix4;
 use crate::ggez::nalgebra::Vector2;
-use crate::live_debugger::LiveDebugger;
+
 use crate::rng::RNG;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
@@ -112,7 +112,7 @@ pub struct SharedGameState {
 impl SharedGameState {
     pub fn update_key_trigger(&mut self) {
         let mut trigger = self.key_state.0 ^ self.key_old;
-        trigger = self.key_state.0 & trigger;
+        trigger &= self.key_state.0;
         self.key_old = self.key_state.0;
         self.key_trigger = KeyState(trigger);
     }
@@ -267,33 +267,30 @@ pub fn main() -> GameResult {
             ctx.process_event(&event);
             game.ui.handle_events(ctx, &event);
 
-            match event {
-                Event::WindowEvent { event, .. } => match event {
-                    WindowEvent::CloseRequested => event::quit(ctx),
-                    WindowEvent::KeyboardInput {
-                        input:
-                        KeyboardInput {
-                            state: el_state,
-                            virtual_keycode: Some(keycode),
-                            modifiers,
-                            ..
-                        },
+            if let Event::WindowEvent { event, .. } = event { match event {
+                WindowEvent::CloseRequested => event::quit(ctx),
+                WindowEvent::KeyboardInput {
+                    input:
+                    KeyboardInput {
+                        state: el_state,
+                        virtual_keycode: Some(keycode),
+                        modifiers,
                         ..
-                    } => {
-                        match el_state {
-                            ElementState::Pressed => {
-                                let repeat = keyboard::is_key_repeated(ctx);
-                                game.key_down_event(ctx, keycode, modifiers.into(), repeat);
-                            }
-                            ElementState::Released => {
-                                game.key_up_event(ctx, keycode, modifiers.into());
-                            }
+                    },
+                    ..
+                } => {
+                    match el_state {
+                        ElementState::Pressed => {
+                            let repeat = keyboard::is_key_repeated(ctx);
+                            game.key_down_event(ctx, keycode, modifiers.into(), repeat);
+                        }
+                        ElementState::Released => {
+                            game.key_up_event(ctx, keycode, modifiers.into());
                         }
                     }
-                    _ => {}
-                },
+                }
                 _ => {}
-            }
+            } }
         });
 
         game.update(ctx)?;

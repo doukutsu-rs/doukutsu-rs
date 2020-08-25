@@ -56,7 +56,7 @@ impl GameScene {
         Ok(Self {
             tick: 0,
             stage,
-            player: Player::new(state, ctx)?,
+            player: Player::new(state),
             frame: Frame {
                 x: 0,
                 y: 0,

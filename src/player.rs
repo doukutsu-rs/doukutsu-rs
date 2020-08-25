@@ -105,12 +105,12 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(state: &mut SharedGameState, ctx: &mut Context) -> GameResult<Player> {
+    pub fn new(state: &mut SharedGameState) -> Self {
         let constants = &state.constants;
 
         let tex_player_name = str!("MyChar");
 
-        Ok(Player {
+        Self {
             x: 0,
             y: 0,
             vel_x: 0,
@@ -122,7 +122,7 @@ impl Player {
             cond: Cond(constants.my_char.cond),
             flags: Flags(constants.my_char.flags),
             equip: Equip(constants.my_char.equip),
-            direction: constants.my_char.direction.clone(),
+            direction: constants.my_char.direction,
             view: constants.my_char.view,
             hit: constants.my_char.hit,
             unit: constants.my_char.unit,
@@ -143,7 +143,7 @@ impl Player {
             anim_wait: 0,
             anim_rect: constants.my_char.animations_right[0],
             tex_player_name,
-        })
+        }
     }
 
     fn tick_normal(&mut self, state: &mut SharedGameState) -> GameResult {
@@ -285,11 +285,9 @@ impl Player {
             self.up = state.key_state.up();
             self.down = state.key_state.down() && !self.flags.flag_x08();
 
-            if state.key_trigger.jump() && (self.flags.flag_x08() || self.flags.flag_x10() || self.flags.flag_x20()) {
-                if !self.flags.force_up() {
-                    self.vel_y = -physics.jump;
-                    // todo: PlaySoundObject(15, SOUND_MODE_PLAY);
-                }
+            if state.key_trigger.jump() && (self.flags.flag_x08() || self.flags.flag_x10() || self.flags.flag_x20()) && !self.flags.force_up() {
+                self.vel_y = -physics.jump;
+                // todo: PlaySoundObject(15, SOUND_MODE_PLAY);
             }
         }
 
@@ -393,9 +391,9 @@ impl Player {
         }
 
         let max_move = if self.flags.underwater() && !(self.flags.force_left() || self.flags.force_up() || self.flags.force_right() || self.flags.force_down()) {
-            physics.max_move
+            state.constants.my_char.water_physics.max_move
         } else {
-            physics.max_move
+            state.constants.my_char.air_physics.max_move
         };
 
         self.vel_x = clamp(self.vel_x, -max_move, max_move);
