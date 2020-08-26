@@ -5,6 +5,7 @@ use maplit::hashmap;
 
 use crate::common::{Direction, Rect};
 use crate::str;
+use crate::text_script::TextScriptEncoding;
 
 #[derive(Debug, Copy, Clone)]
 pub struct PhysicsConsts {
@@ -92,6 +93,7 @@ pub struct EngineConstants {
     pub caret: CaretConsts,
     pub world: WorldConsts,
     pub tex_sizes: HashMap<String, (usize, usize)>,
+    pub tsc_encoding: TextScriptEncoding,
 }
 
 impl Clone for EngineConstants {
@@ -103,6 +105,7 @@ impl Clone for EngineConstants {
             caret: self.caret.clone(),
             world: self.world.clone(),
             tex_sizes: self.tex_sizes.clone(),
+            tsc_encoding: self.tsc_encoding,
         }
     }
 }
@@ -346,6 +349,7 @@ impl EngineConstants {
                 str!("TextBox") => (244, 144),
                 str!("Title") => (320, 48),
             },
+            tsc_encoding: TextScriptEncoding::UTF8,
         }
     }
 
