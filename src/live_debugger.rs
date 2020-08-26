@@ -99,6 +99,7 @@ impl LiveDebugger {
                                 state.next_scene = Some(Box::new(scene));
                             }
                             Err(e) => {
+                                log::error!("Error loading map: {:?}", e);
                                 self.error = Some(ImString::new(e.to_string()));
                             }
                         }
