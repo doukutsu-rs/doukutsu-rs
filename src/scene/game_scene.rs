@@ -102,10 +102,16 @@ impl GameScene {
         // lv
         batch.add_rect(16.0, 32.0,
                        &Rect::<usize>::new_size(80, 80, 16, 8));
+        // xp box
+        batch.add_rect(40.0, 32.0,
+                       &Rect::<usize>::new_size(0, 72, 40, 8));
+        // experience
+        //batch.add_rect(40.0, 32.0,
+        //               &Rect::<usize>::new_size(0, 80, (40), 8)); // todo
         // life box
         batch.add_rect(16.0, 40.0,
                        &Rect::<usize>::new_size(0, 40, 64, 8));
-        // bar
+        // yellow bar
         batch.add_rect(40.0, 40.0,
                        &Rect::<usize>::new_size(0, 32, ((self.life_bar as usize * 40) / self.player.max_life as usize) - 1, 8));
         // life
@@ -114,6 +120,7 @@ impl GameScene {
 
         batch.draw(ctx)?;
 
+        self.draw_number(40.0, 32.0, 0, Alignment::Right, state, ctx)?;
         self.draw_number(40.0, 40.0, self.life_bar as usize, Alignment::Right, state, ctx)?;
 
         Ok(())
