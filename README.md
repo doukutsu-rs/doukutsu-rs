@@ -22,6 +22,10 @@ The engine should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE
 - [ ] Modding enhancements and built-in tools
 - [ ] **idk the list is TBD**
 
+#### Mandatory screenshot
+
+![screenshot of some early release](https://i.imgur.com/oCduSsy.png)
+
 #### why rust, it's a hipster language lol
 
 The project is a result of me wanting to build something in a new programming language for memes.
@@ -37,4 +41,4 @@ Would 90% of end-users running this thing care about the programming language so
 - [Cave Story Tribute Site](https://cavestory.org) - for LOTS of useful resources related to the game. 
 - [Clownacy for CSE2](https://github.com/Clownacy/CSE2) - a great and very accurate reference for game's logic used in this project
 - [CSMC](https://discord.gg/xRsWpz6) - a helpful Cave Story modding community
-- [NXEngine](https://github.com/nxengine/nxengine-evo) - an another OSS rewrite of Cave Story engine.
+- [NXEngine](https://github.com/nxengine/nxengine-evo) - an another OSS rewrite of Cave Story engine I took some inspiration from.
