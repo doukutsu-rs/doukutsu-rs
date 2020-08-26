@@ -22,9 +22,15 @@ The engine should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE
 - [ ] Modding enhancements and built-in tools
 - [ ] **idk the list is TBD**
 
-#### Mandatory screenshot
+#### Mandatory screenshots
 
-![screenshot of some early release](https://i.imgur.com/oCduSsy.png)
+**Freeware data files:**
+
+![freeware](https://i.imgur.com/oCduSsy.png)
+
+**Cave Story+ data files:**
+
+![cs+](https://i.imgur.com/8qbfkeb.png)
 
 #### why rust, it's a hipster language lol
 
