@@ -88,12 +88,18 @@ impl Clone for WorldConsts {
 #[derive(Debug)]
 pub struct TextScriptConsts {
     pub encoding: TextScriptEncoding,
+    pub textbox_rect_top: Rect<usize>,
+    pub textbox_rect_middle: Rect<usize>,
+    pub textbox_rect_bottom: Rect<usize>,
 }
 
 impl Clone for TextScriptConsts {
     fn clone(&self) -> Self {
         Self {
             encoding: self.encoding,
+            textbox_rect_top: self.textbox_rect_top,
+            textbox_rect_middle: self.textbox_rect_middle,
+            textbox_rect_bottom: self.textbox_rect_bottom,
         }
     }
 }
@@ -364,7 +370,10 @@ impl EngineConstants {
             },
             textscript: TextScriptConsts {
                 encoding: TextScriptEncoding::UTF8,
-            }
+                textbox_rect_top: Rect { left: 0, top: 0, right: 244, bottom: 8 },
+                textbox_rect_middle: Rect { left: 0, top: 8, right: 244, bottom: 16 },
+                textbox_rect_bottom: Rect { left: 0, top: 16, right: 244, bottom: 24 },
+            },
         }
     }
 

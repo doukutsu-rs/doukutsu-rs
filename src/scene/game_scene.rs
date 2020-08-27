@@ -5,14 +5,13 @@ use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult, timer};
 use crate::ggez::nalgebra::clamp;
-use crate::live_debugger::LiveDebugger;
 use crate::player::Player;
 use crate::scene::Scene;
 use crate::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
 use crate::str;
-use crate::ui::{UI, Components};
 use crate::text_script::{TextScript, TextScriptVM};
+use crate::ui::Components;
 
 pub struct GameScene {
     pub tick: usize,
@@ -22,6 +21,7 @@ pub struct GameScene {
     pub stage_id: usize,
     tex_background_name: String,
     tex_caret_name: String,
+    tex_face_name: String,
     tex_hud_name: String,
     tex_npcsym_name: String,
     tex_tileset_name: String,
@@ -51,6 +51,7 @@ impl GameScene {
 
         let tex_background_name = stage.data.background.filename();
         let tex_caret_name = str!("Caret");
+        let tex_face_name = str!("Face");
         let tex_hud_name = str!("TextBox");
         let tex_npcsym_name = str!("Npc/NpcSym");
         let tex_tileset_name = ["Stage/", &stage.data.tileset.filename()].join("");
@@ -67,6 +68,7 @@ impl GameScene {
             stage_id: id,
             tex_background_name,
             tex_caret_name,
+            tex_face_name,
             tex_hud_name,
             tex_npcsym_name,
             tex_tileset_name,
@@ -208,6 +210,37 @@ impl GameScene {
     }
 
     fn draw_black_bars(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        Ok(())
+    }
+
+    fn draw_text_boxes(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        if !state.textscript_vm.flags.render() { return Ok(()); }
+
+        let top_pos = if state.textscript_vm.flags.position_top() { 32.0 } else { state.canvas_size.1 as f32 - 64.0 };
+        let left_pos = (state.canvas_size.0 / 2.0 - 122.0).floor();
+
+        if state.textscript_vm.flags.background_visible() {
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_hud_name)?;
+
+            batch.add_rect(left_pos, top_pos, &state.constants.textscript.textbox_rect_top);
+            for i in 1..7 {
+                batch.add_rect(left_pos, top_pos + i as f32 * 8.0, &state.constants.textscript.textbox_rect_middle);
+            }
+            batch.add_rect(left_pos, top_pos + 64.0, &state.constants.textscript.textbox_rect_bottom);
+
+            batch.draw(ctx)?;
+        }
+
+        if state.textscript_vm.face != 0 {
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_face_name)?;
+            batch.add_rect(left_pos + 14.0, top_pos + 8.0, &Rect::<usize>::new_size(
+                (state.textscript_vm.face as usize % 6) * 48,
+                (state.textscript_vm.face as usize / 6) * 48,
+                48, 48,
+            ));
+
+            batch.draw(ctx)?;
+        }
 
         Ok(())
     }
@@ -320,7 +353,7 @@ impl Scene for GameScene {
             }
         }
 
-        TextScriptVM::run(state, self);
+        TextScriptVM::run(state, self)?;
         self.tick = self.tick.wrapping_add(1);
         Ok(())
     }
@@ -336,6 +369,8 @@ impl Scene for GameScene {
 
         self.draw_hud(state, ctx)?;
         self.draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
+
+        self.draw_text_boxes(state, ctx)?;
 
         Ok(())
     }

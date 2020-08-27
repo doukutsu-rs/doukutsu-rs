@@ -159,4 +159,9 @@ impl TextureSet {
 
         Ok(self.tex_map.get_mut(name).unwrap())
     }
+
+    pub fn draw_text(&mut self, ctx: &mut Context, text: &str) -> GameResult {
+
+        Ok(())
+    }
 }

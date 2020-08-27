@@ -76,7 +76,7 @@ bitfield! {
 }
 
 bitfield! {
-  pub struct ControlFlags(u32);
+  pub struct ControlFlags(u16);
   impl Debug;
   pub flag_x01, set_flag_x01: 0;
   pub control_enabled, set_control_enabled: 1;

@@ -12,7 +12,7 @@ use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 
 use crate::{SharedGameState, str};
-use crate::common::CursorIterator;
+use crate::bitfield;
 use crate::ggez::GameError::ParseError;
 use crate::ggez::GameResult;
 use crate::scene::game_scene::GameScene;
@@ -161,34 +161,69 @@ pub enum OpCode {
     // ---- Custom opcodes, for use by modders ----
 }
 
-#[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
+bitfield! {
+  pub struct TextScriptFlags(u16);
+  impl Debug;
+  pub render, set_render: 0;
+  pub background_visible, set_background_visible: 1;
+  pub flag_x10, set_flag_x10: 4;
+  pub position_top, set_position_top: 5;
+  pub flag_x40, set_flag_x40: 6;
+}
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[repr(u8)]
 pub enum TextScriptEncoding {
-    UTF8,
+    UTF8 = 0,
     ShiftJIS,
+}
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[repr(u8)]
+pub enum TextScriptLine {
+    Line1 = 0,
+    Line2,
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum TextScriptExecutionState {
     Ended,
     Running(u16, u32),
-    Msg(u16, u32, u32),
+    Msg(u16, u32, u32, u8),
     WaitTicks(u16, u32, u32),
     WaitInput(u16, u32),
 }
 
 pub struct TextScriptVM {
-    pub global_script: TextScript,
-    pub scene_script: TextScript,
+    pub scripts: TextScriptVMScripts,
     pub state: TextScriptExecutionState,
-    msg_timer: u8,
-    face: u16,
-    line_1: Vec<char>,
-    line_2: Vec<char>,
+    pub flags: TextScriptFlags,
+    pub face: u16,
+    pub current_line: TextScriptLine,
+    pub line_1: Vec<char>,
+    pub line_2: Vec<char>,
 }
 
 impl Default for TextScriptVM {
     fn default() -> Self {
         TextScriptVM::new()
+    }
+}
+
+pub struct TextScriptVMScripts {
+    pub global_script: TextScript,
+    pub scene_script: TextScript,
+}
+
+impl TextScriptVMScripts {
+    pub fn find_script(&self, event_num: u16) -> Option<&Vec<u8>> {
+        if let Some(tsc) = self.scene_script.event_map.get(&event_num) {
+            return Some(tsc);
+        } else if let Some(tsc) = self.global_script.event_map.get(&event_num) {
+            return Some(tsc);
+        }
+
+        None
     }
 }
 
@@ -209,9 +244,9 @@ fn read_cur_varint(cursor: &mut Cursor<&Vec<u8>>) -> GameResult<i32> {
 
 /// Decodes UTF-8 character in a less strict way.
 /// http://simonsapin.github.io/wtf-8/#decoding-wtf-8
-fn read_cur_wtf8(cursor: &mut Cursor<&Vec<u8>>, max_bytes: usize) -> (u8, char) {
+fn read_cur_wtf8(cursor: &mut Cursor<&Vec<u8>>, max_bytes: u32) -> (u32, char) {
     let mut result = 0u32;
-    let mut consumed = 0u8;
+    let mut consumed = 0u32;
 
     if max_bytes == 0 {
         return (0, '\u{fffd}');
@@ -256,39 +291,38 @@ fn read_cur_wtf8(cursor: &mut Cursor<&Vec<u8>>, max_bytes: usize) -> (u8, char) 
 impl TextScriptVM {
     pub fn new() -> Self {
         Self {
-            global_script: TextScript::new(),
-            scene_script: TextScript::new(),
+            scripts: TextScriptVMScripts {
+                global_script: TextScript::new(),
+                scene_script: TextScript::new(),
+            },
             state: TextScriptExecutionState::Ended,
-            msg_timer: 0,
+            flags: TextScriptFlags(0),
             face: 0,
+            current_line: TextScriptLine::Line1,
             line_1: Vec::with_capacity(24),
             line_2: Vec::with_capacity(24),
         }
     }
 
     pub fn set_global_script(&mut self, script: TextScript) {
-        self.global_script = script;
+        self.scripts.global_script = script;
         self.reset();
     }
 
     pub fn set_scene_script(&mut self, script: TextScript) {
-        self.scene_script = script;
+        self.scripts.scene_script = script;
         self.reset();
-    }
-
-    pub fn find_script(&self, event_num: u16) -> Option<&Vec<u8>> {
-        if let Some(tsc) = self.scene_script.event_map.get(&event_num) {
-            return Some(tsc);
-        } else if let Some(tsc) = self.global_script.event_map.get(&event_num) {
-            return Some(tsc);
-        }
-
-        None
     }
 
     pub fn reset(&mut self) {
         self.state = TextScriptExecutionState::Ended;
+        self.clear_text_box();
+    }
+
+    pub fn clear_text_box(&mut self) {
+        self.flags.0 = 0;
         self.face = 0;
+        self.current_line = TextScriptLine::Line1;
         self.line_1.clear();
         self.line_2.clear();
     }
@@ -303,14 +337,52 @@ impl TextScriptVM {
         loop {
             match state.textscript_vm.state {
                 TextScriptExecutionState::Ended => {
+                    state.control_flags.set_flag_x04(false);
                     break;
                 }
                 TextScriptExecutionState::Running(event, ip) => {
+                    state.control_flags.set_flag_x04(true);
                     state.textscript_vm.state = TextScriptVM::execute(event, ip, state, game_scene)?;
-                    println!("new vm state: {:?}", state.textscript_vm.state);
+
+                    if state.textscript_vm.state == TextScriptExecutionState::Ended {
+                        state.textscript_vm.reset();
+                    }
                 }
-                TextScriptExecutionState::Msg(event, ip, remaining) => {
-                    if let Some(bytecode) = state.textscript_vm.find_script(event) {} else {
+                TextScriptExecutionState::Msg(event, ip, remaining, timer) => {
+                    if timer > 0 {
+                        state.textscript_vm.state = TextScriptExecutionState::Msg(event, ip, remaining, timer - 1);
+                        break;
+                    }
+
+                    if let Some(bytecode) = state.textscript_vm.scripts.find_script(event) {
+                        let mut cursor = Cursor::new(bytecode);
+                        cursor.seek(SeekFrom::Start(ip as u64))?;
+
+                        let (consumed, chr) = read_cur_wtf8(&mut cursor, remaining);
+                        println!("char: {} {} {}", chr, remaining, consumed);
+
+                        match chr {
+                            '\n' => {
+                                state.textscript_vm.line_1.clear();
+                                state.textscript_vm.line_2.append(&mut state.textscript_vm.line_1);
+                            }
+                            '\r' => {}
+                            _ if state.textscript_vm.current_line == TextScriptLine::Line1 => {
+                                state.textscript_vm.line_1.push(chr);
+                            }
+                            _ if state.textscript_vm.current_line == TextScriptLine::Line2 => {
+                                state.textscript_vm.line_2.push(chr);
+                            }
+                            _ => {}
+                        }
+
+                        if (remaining - consumed) > 0 {
+                            let ticks = if state.key_state.jump() || state.key_state.fire() { 1 } else { 4 };
+                            state.textscript_vm.state = TextScriptExecutionState::Msg(event, ip + consumed, remaining - consumed, ticks);
+                        } else {
+                            state.textscript_vm.state = TextScriptExecutionState::Running(event, ip + consumed);
+                        }
+                    } else {
                         state.textscript_vm.reset();
                     }
                 }
@@ -337,28 +409,61 @@ impl TextScriptVM {
     pub fn execute(event: u16, ip: u32, state: &mut SharedGameState, game_scene: &mut GameScene) -> GameResult<TextScriptExecutionState> {
         let mut exec_state = state.textscript_vm.state;
 
-        if let Some(bytecode) = state.textscript_vm.find_script(event) {
+        if let Some(bytecode) = state.textscript_vm.scripts.find_script(event) {
             let mut cursor = Cursor::new(bytecode);
             cursor.seek(SeekFrom::Start(ip as u64))?;
 
             let op_maybe: Option<OpCode> = FromPrimitive::from_i32(read_cur_varint(&mut cursor)?);
 
             if let Some(op) = op_maybe {
+                println!("opcode: {:?}", op);
                 match op {
                     OpCode::_NOP => {
-                        println!("opcode: {:?}", op);
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::_UNI => {}
                     OpCode::_STR => {
-                        // simply skip the text if we aren't in message mode.
                         let len = read_cur_varint(&mut cursor)? as u32;
-                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32 + len);
+                        if state.textscript_vm.flags.render() {
+                            exec_state = TextScriptExecutionState::Msg(event, cursor.position() as u32, len, 4);
+                        } else {
+                            // simply skip the text if we aren't in message mode.
+                            exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32 + len);
+                        }
                     }
                     OpCode::_END | OpCode::END => {
+                        state.control_flags.set_flag_x01(true);
+                        state.control_flags.set_control_enabled(true);
+
                         exec_state = TextScriptExecutionState::Ended;
                     }
+                    OpCode::PRI => {
+                        state.control_flags.set_flag_x01(false);
+                        state.control_flags.set_control_enabled(false);
 
+                        game_scene.player.shock_counter = 0;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::KEY => {
+                        state.control_flags.set_flag_x01(true);
+                        state.control_flags.set_control_enabled(false);
+
+                        game_scene.player.up = false;
+                        game_scene.player.down = false;
+                        game_scene.player.shock_counter = 0;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::FRE => {
+                        state.control_flags.set_flag_x01(true);
+                        state.control_flags.set_control_enabled(true);
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::WAI => {
+                        let ticks = read_cur_varint(&mut cursor)? as u32;
+                        exec_state = TextScriptExecutionState::WaitTicks(event, cursor.position() as u32, ticks);
+                    }
                     OpCode::NOD => {
                         exec_state = TextScriptExecutionState::WaitInput(event, cursor.position() as u32);
                     }
@@ -372,6 +477,8 @@ impl TextScriptVM {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
                         if let Some(true) = state.game_flags.get(flag_num) {
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
+                        } else {
+                            exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                         }
                     }
                     OpCode::EVE => {
@@ -380,6 +487,7 @@ impl TextScriptVM {
                     }
                     OpCode::MM0 => {
                         game_scene.player.vel_x = 0;
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::CMP => {
                         let pos_x = read_cur_varint(&mut cursor)? as usize;
@@ -397,23 +505,41 @@ impl TextScriptVM {
                         game_scene.player.max_life += life;
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::FAC => {
+                        let face = read_cur_varint(&mut cursor)? as u16;
+                        state.textscript_vm.face = face;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::MSG => {
+                        state.textscript_vm.face = 0;
+                        state.textscript_vm.current_line = TextScriptLine::Line1;
+                        state.textscript_vm.line_1.clear();
+                        state.textscript_vm.line_2.clear();
+                        state.textscript_vm.flags.set_render(true);
+                        state.textscript_vm.flags.set_background_visible(true);
+                        state.textscript_vm.flags.set_flag_x10(state.textscript_vm.flags.flag_x40());
+                        state.textscript_vm.flags.set_position_top(false);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
 
                     // unimplemented opcodes
                     // Zero operands
                     OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CLO | OpCode::CLR | OpCode::CPS |
                     OpCode::CRE | OpCode::CSS | OpCode::ESC | OpCode::FLA | OpCode::FMU |
-                    OpCode::FRE | OpCode::HMC | OpCode::INI | OpCode::KEY | OpCode::LDP | OpCode::MLP |
-                    OpCode::MNA | OpCode::MS2 | OpCode::MS3 | OpCode::MSG |
-                    OpCode::PRI | OpCode::RMU | OpCode::SAT | OpCode::SLP | OpCode::SMC | OpCode::SPS |
+                    OpCode::HMC | OpCode::INI | OpCode::LDP | OpCode::MLP |
+                    OpCode::MNA | OpCode::MS2 | OpCode::MS3 |
+                    OpCode::RMU | OpCode::SAT | OpCode::SLP | OpCode::SMC | OpCode::SPS |
                     OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM => {
                         println!("unimplemented opcode: {:?}", op);
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // One operand codes
                     OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::FOM | OpCode::QUA | OpCode::UNI |
-                    OpCode::MYB | OpCode::MYD | OpCode::FAI | OpCode::FAO | OpCode::WAI | OpCode::FAC |
+                    OpCode::MYB | OpCode::MYD | OpCode::FAI | OpCode::FAO | OpCode::FAC |
                     OpCode::GIT | OpCode::NUM | OpCode::DNA | OpCode::DNP |
-                    OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm | OpCode::MLp |
+                    OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
                     OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ | OpCode::YNJ |
                     OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU | OpCode::CMU |
                     OpCode::SSS | OpCode::ACH => {
@@ -447,6 +573,8 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                 }
+            } else {
+                exec_state = TextScriptExecutionState::Ended;
             }
         } else {
             return Ok(TextScriptExecutionState::Ended);
@@ -531,7 +659,7 @@ impl TextScript {
                     println!("{:x?}", &bytecode);
                     event_map.insert(event_num, bytecode);
                 }
-                b'\r' | b'\n' => {
+                b'\r' | b'\n' | b' ' => {
                     iter.next();
                 }
                 n => {

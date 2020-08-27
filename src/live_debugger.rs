@@ -86,7 +86,7 @@ impl LiveDebugger {
                 .size([300.0, 100.0], Condition::Appearing)
                 .build(ui, || {
                     ui.push_item_width(-1.0);
-                    ui.text(self.error.as_ref().unwrap());
+                    ui.text_wrapped(self.error.as_ref().unwrap());
 
                     if ui.button(im_str!("OK"), [0.0, 0.0]) {
                         self.error = None;
@@ -135,25 +135,29 @@ impl LiveDebugger {
             Window::new(im_str!("Events"))
                 .resizable(false)
                 .position([80.0, 80.0], Condition::FirstUseEver)
-                .size([250.0, 300.0], Condition::FirstUseEver)
+                .size([280.0, 300.0], Condition::FirstUseEver)
                 .build(ui, || {
                     if self.events.is_empty() {
                         self.event_ids.clear();
 
                         let vm = &state.textscript_vm;
-                        for event in vm.global_script.get_event_ids() {
+                        for event in vm.scripts.global_script.get_event_ids() {
                             self.events.push(ImString::new(format!("Global: #{:04}", event)));
                             self.event_ids.push(event);
                         }
 
-                        for event in vm.scene_script.get_event_ids() {
+                        for event in vm.scripts.scene_script.get_event_ids() {
                             self.events.push(ImString::new(format!("Scene: #{:04}", event)));
                             self.event_ids.push(event);
                         }
                     }
                     let events: Vec<&ImStr> = self.events.iter().map(|e| e.as_ref()).collect();
 
-                    ui.text(format!("Execution state: {:?}", state.textscript_vm.state));
+                    ui.text_wrapped(&ImString::new(format!("Execution state: {:?}", state.textscript_vm.state)));
+                    let line1: String = state.textscript_vm.line_1.iter().collect();
+                    let line2: String = state.textscript_vm.line_2.iter().collect();
+                    ui.text_wrapped(&ImString::new(&line1));
+                    ui.text_wrapped(&ImString::new(&line2));
 
                     ui.push_item_width(-1.0);
                     ui.list_box(im_str!(""), &mut self.selected_event, &events, 10);
