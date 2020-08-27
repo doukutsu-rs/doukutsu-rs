@@ -31,14 +31,15 @@ use crate::ggez::graphics::DrawParam;
 use crate::ggez::input::keyboard;
 use crate::ggez::mint::ColumnMatrix4;
 use crate::ggez::nalgebra::Vector2;
-
 use crate::rng::RNG;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
+use crate::text_script::TextScriptVM;
 use crate::texture_set::TextureSet;
 use crate::ui::UI;
+use bitvec::vec::BitVec;
 
 mod caret;
 mod common;
@@ -75,7 +76,7 @@ bitfield! {
 }
 
 bitfield! {
-  pub struct GameFlags(u32);
+  pub struct ControlFlags(u32);
   impl Debug;
   pub flag_x01, set_flag_x01: 0;
   pub control_enabled, set_control_enabled: 1;
@@ -91,7 +92,8 @@ struct Game {
 }
 
 pub struct SharedGameState {
-    pub flags: GameFlags,
+    pub control_flags: ControlFlags,
+    pub game_flags: BitVec,
     pub game_rng: RNG,
     pub effect_rng: RNG,
     pub carets: Vec<Caret>,
@@ -106,6 +108,7 @@ pub struct SharedGameState {
     pub canvas_size: (f32, f32),
     pub screen_size: (f32, f32),
     pub next_scene: Option<Box<dyn Scene>>,
+    pub textscript_vm: TextScriptVM,
     key_old: u16,
 }
 
@@ -156,7 +159,8 @@ impl Game {
             ui: UI::new(ctx)?,
             def_matrix: DrawParam::new().to_matrix(),
             state: SharedGameState {
-                flags: GameFlags(0),
+                control_flags: ControlFlags(0),
+                game_flags: bitvec::bitvec![0; 8000],
                 game_rng: RNG::new(0),
                 effect_rng: RNG::new(Instant::now().elapsed().as_nanos() as i32),
                 carets: Vec::with_capacity(32),
@@ -171,6 +175,7 @@ impl Game {
                 screen_size,
                 canvas_size,
                 next_scene: None,
+                textscript_vm: TextScriptVM::new(),
                 key_old: 0,
             },
         };
@@ -267,30 +272,32 @@ pub fn main() -> GameResult {
             ctx.process_event(&event);
             game.ui.handle_events(ctx, &event);
 
-            if let Event::WindowEvent { event, .. } = event { match event {
-                WindowEvent::CloseRequested => event::quit(ctx),
-                WindowEvent::KeyboardInput {
-                    input:
-                    KeyboardInput {
-                        state: el_state,
-                        virtual_keycode: Some(keycode),
-                        modifiers,
+            if let Event::WindowEvent { event, .. } = event {
+                match event {
+                    WindowEvent::CloseRequested => event::quit(ctx),
+                    WindowEvent::KeyboardInput {
+                        input:
+                        KeyboardInput {
+                            state: el_state,
+                            virtual_keycode: Some(keycode),
+                            modifiers,
+                            ..
+                        },
                         ..
-                    },
-                    ..
-                } => {
-                    match el_state {
-                        ElementState::Pressed => {
-                            let repeat = keyboard::is_key_repeated(ctx);
-                            game.key_down_event(ctx, keycode, modifiers.into(), repeat);
-                        }
-                        ElementState::Released => {
-                            game.key_up_event(ctx, keycode, modifiers.into());
+                    } => {
+                        match el_state {
+                            ElementState::Pressed => {
+                                let repeat = keyboard::is_key_repeated(ctx);
+                                game.key_down_event(ctx, keycode, modifiers.into(), repeat);
+                            }
+                            ElementState::Released => {
+                                game.key_up_event(ctx, keycode, modifiers.into());
+                            }
                         }
                     }
+                    _ => {}
                 }
-                _ => {}
-            } }
+            }
         });
 
         game.update(ctx)?;

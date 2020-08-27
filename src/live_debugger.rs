@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use imgui::{Condition, im_str, ImStr, ImString, Window};
 use itertools::Itertools;
 
@@ -6,25 +8,41 @@ use crate::scene::game_scene::GameScene;
 use crate::SharedGameState;
 
 pub struct LiveDebugger {
-    selected_item: i32,
     map_selector_visible: bool,
+    events_visible: bool,
     hacks_visible: bool,
+    last_stage_id: usize,
     stages: Vec<ImString>,
+    selected_stage: i32,
+    events: Vec<ImString>,
+    event_ids: Vec<u16>,
+    selected_event: i32,
     error: Option<ImString>,
 }
 
 impl LiveDebugger {
     pub fn new() -> Self {
         Self {
-            selected_item: -1,
             map_selector_visible: false,
+            events_visible: false,
             hacks_visible: false,
-            stages: vec![],
+            last_stage_id: usize::MAX,
+            stages: Vec::new(),
+            selected_stage: -1,
+            events: Vec::new(),
+            event_ids: Vec::new(),
+            selected_event: -1,
             error: None,
         }
     }
 
     pub fn run_ingame(&mut self, game_scene: &mut GameScene, state: &mut SharedGameState, ctx: &mut Context, ui: &mut imgui::Ui) -> GameResult {
+        if self.last_stage_id != game_scene.stage_id {
+            self.last_stage_id = game_scene.stage_id;
+            self.events.clear();
+            self.selected_event = -1;
+        }
+
         Window::new(im_str!("Debugger"))
             .position([5.0, 5.0], Condition::FirstUseEver)
             .size([300.0, 120.0], Condition::FirstUseEver)
@@ -49,6 +67,12 @@ impl LiveDebugger {
                     self.map_selector_visible = true;
                 }
 
+                ui.same_line(0.0);
+                if ui.button(im_str!("Events"), [0.0, 0.0]) {
+                    self.events_visible = true;
+                }
+
+                ui.same_line(0.0);
                 if ui.button(im_str!("Hacks"), [0.0, 0.0]) {
                     self.hacks_visible = true;
                 }
@@ -73,7 +97,7 @@ impl LiveDebugger {
         if self.map_selector_visible {
             Window::new(im_str!("Map selector"))
                 .resizable(false)
-                .position([5.0, 35.0], Condition::FirstUseEver)
+                .position([80.0, 80.0], Condition::FirstUseEver)
                 .size([240.0, 280.0], Condition::FirstUseEver)
                 .build(ui, || {
                     if self.stages.is_empty() {
@@ -81,7 +105,7 @@ impl LiveDebugger {
                             self.stages.push(ImString::new(s.name.to_owned()));
                         }
 
-                        self.selected_item = match state.stages.iter().find_position(|s| s.name == game_scene.stage.data.name) {
+                        self.selected_stage = match state.stages.iter().find_position(|s| s.name == game_scene.stage.data.name) {
                             Some((pos, _)) => { pos as i32 }
                             _ => { -1 }
                         };
@@ -89,10 +113,10 @@ impl LiveDebugger {
                     let stages: Vec<&ImStr> = self.stages.iter().map(|e| e.as_ref()).collect();
 
                     ui.push_item_width(-1.0);
-                    ui.list_box(im_str!(""), &mut self.selected_item, &stages, 10);
+                    ui.list_box(im_str!(""), &mut self.selected_stage, &stages, 10);
 
                     if ui.button(im_str!("Load"), [0.0, 0.0]) {
-                        match GameScene::new(state, ctx, self.selected_item as usize) {
+                        match GameScene::new(state, ctx, self.selected_stage as usize) {
                             Ok(mut scene) => {
                                 scene.player.x = (scene.stage.map.width / 2 * 16 * 0x200) as isize;
                                 scene.player.y = (scene.stage.map.height / 2 * 16 * 0x200) as isize;
@@ -102,6 +126,43 @@ impl LiveDebugger {
                                 log::error!("Error loading map: {:?}", e);
                                 self.error = Some(ImString::new(e.to_string()));
                             }
+                        }
+                    }
+                });
+        }
+
+        if self.events_visible {
+            Window::new(im_str!("Events"))
+                .resizable(false)
+                .position([80.0, 80.0], Condition::FirstUseEver)
+                .size([250.0, 300.0], Condition::FirstUseEver)
+                .build(ui, || {
+                    if self.events.is_empty() {
+                        self.event_ids.clear();
+
+                        let vm = &state.textscript_vm;
+                        for event in vm.global_script.get_event_ids() {
+                            self.events.push(ImString::new(format!("Global: #{:04}", event)));
+                            self.event_ids.push(event);
+                        }
+
+                        for event in vm.scene_script.get_event_ids() {
+                            self.events.push(ImString::new(format!("Scene: #{:04}", event)));
+                            self.event_ids.push(event);
+                        }
+                    }
+                    let events: Vec<&ImStr> = self.events.iter().map(|e| e.as_ref()).collect();
+
+                    ui.text(format!("Execution state: {:?}", state.textscript_vm.state));
+
+                    ui.push_item_width(-1.0);
+                    ui.list_box(im_str!(""), &mut self.selected_event, &events, 10);
+
+                    if ui.button(im_str!("Execute"), [0.0, 0.0]) {
+                        assert_eq!(self.event_ids.len(), self.events.len());
+
+                        if let Some(&event_num) = self.event_ids.get(self.selected_event as usize) {
+                            state.textscript_vm.start_script(event_num);
                         }
                     }
                 });

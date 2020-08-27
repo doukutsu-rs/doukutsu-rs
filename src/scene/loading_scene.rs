@@ -1,9 +1,9 @@
-use crate::ggez::{Context, GameResult};
-
+use crate::ggez::{Context, filesystem, GameResult};
 use crate::scene::game_scene::GameScene;
 use crate::scene::Scene;
 use crate::SharedGameState;
 use crate::stage::StageData;
+use crate::text_script::TextScript;
 
 pub struct LoadingScene {
     tick: usize,
@@ -23,6 +23,8 @@ impl Scene for LoadingScene {
         if self.tick == 1 {
             let stages = StageData::load_stage_table(ctx, &state.base_path)?;
             state.stages = stages;
+            let script = TextScript::load_from(filesystem::open(ctx, [&state.base_path, "/Head.tsc"].join(""))?)?;
+            state.textscript_vm.set_global_script(script);
             state.next_scene = Some(Box::new(GameScene::new(state, ctx, 0)?));
         }
 

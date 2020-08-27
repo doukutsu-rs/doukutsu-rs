@@ -161,7 +161,7 @@ impl Player {
             state.create_caret(self.x, self.y - self.hit.top as isize, CaretType::LittleParticles, Direction::Left);
         }
 
-        if !state.flags.control_enabled() {
+        if !state.control_flags.control_enabled() {
             self.booster_switch = 0;
         }
 
@@ -177,8 +177,8 @@ impl Player {
                 self.booster_fuel = 0;
             }
 
-            if state.flags.control_enabled() {
-                if state.key_trigger.only_down() && state.key_state.only_down() && !self.cond.cond_x01() && !state.flags.flag_x04() {
+            if state.control_flags.control_enabled() {
+                if state.key_trigger.only_down() && state.key_state.only_down() && !self.cond.cond_x01() && !state.control_flags.flag_x04() {
                     self.cond.set_cond_x01(true);
                     self.question = true;
                 } else {
@@ -217,7 +217,7 @@ impl Player {
                 }
             }
         } else { // air movement
-            if state.flags.control_enabled() {
+            if state.control_flags.control_enabled() {
                 if state.key_trigger.jump() && self.booster_fuel != 0 {
                     if self.equip.has_booster_0_8() {
                         self.booster_switch = 1;
@@ -281,7 +281,7 @@ impl Player {
         }
 
         // jumping
-        if state.flags.control_enabled() {
+        if state.control_flags.control_enabled() {
             self.up = state.key_state.up();
             self.down = state.key_state.down() && !self.flags.flag_x08();
 
@@ -292,7 +292,7 @@ impl Player {
         }
 
         // stop interacting when moved
-        if state.flags.control_enabled() && (state.key_state.left() || state.key_state.right() || state.key_state.up() || state.key_state.jump() || state.key_state.fire()) {
+        if state.control_flags.control_enabled() && (state.key_state.left() || state.key_state.right() || state.key_state.up() || state.key_state.jump() || state.key_state.fire()) {
             self.cond.set_cond_x01(false);
         }
 
@@ -368,13 +368,13 @@ impl Player {
             if self.flags.flag_x02() {
                 self.vel_y = 0x200; // 1.0fix9
             }
-        } else if self.vel_y < 0 && state.flags.control_enabled() && state.key_state.jump() {
+        } else if self.vel_y < 0 && state.control_flags.control_enabled() && state.key_state.jump() {
             self.vel_y += physics.gravity_air;
         } else {
             self.vel_y += physics.gravity_ground;
         }
 
-        if !state.flags.control_enabled() || !state.key_trigger.jump() {
+        if !state.control_flags.control_enabled() || !state.key_trigger.jump() {
             if self.flags.flag_x10() && self.vel_x < 0 {
                 self.vel_y = -self.vel_x;
             }
@@ -423,12 +423,12 @@ impl Player {
             }
         }
 
-        if state.flags.control_enabled() && state.key_state.up() {
+        if state.control_flags.control_enabled() && state.key_state.up() {
             self.index_y -= 0x200; // 1.0fix9
             if self.index_y < -0x8000 { // -64.0fix9
                 self.index_y = -0x8000;
             }
-        } else if state.flags.control_enabled() && state.key_state.down() {
+        } else if state.control_flags.control_enabled() && state.key_state.down() {
             self.index_y += 0x200; // 1.0fix9
             if self.index_y > 0x8000 { // -64.0fix9
                 self.index_y = 0x8000;
@@ -467,7 +467,7 @@ impl Player {
         if self.flags.flag_x08() {
             if self.cond.cond_x01() {
                 self.anim_num = 11;
-            } else if state.flags.control_enabled() && state.key_state.up() && (state.key_state.left() || state.key_state.right()) {
+            } else if state.control_flags.control_enabled() && state.key_state.up() && (state.key_state.left() || state.key_state.right()) {
                 self.cond.set_cond_x04(true);
 
                 self.anim_wait += 1;
@@ -483,7 +483,7 @@ impl Player {
                 if self.anim_num > 9 || self.anim_num < 6 {
                     self.anim_num = 6;
                 }
-            } else if state.flags.control_enabled() && (state.key_state.left() || state.key_state.right()) {
+            } else if state.control_flags.control_enabled() && (state.key_state.left() || state.key_state.right()) {
                 self.cond.set_cond_x04(true);
 
                 self.anim_wait += 1;
@@ -499,7 +499,7 @@ impl Player {
                 if self.anim_num > 4 || self.anim_num < 1 {
                     self.anim_num = 1;
                 }
-            } else if state.flags.control_enabled() && state.key_state.up() {
+            } else if state.control_flags.control_enabled() && state.key_state.up() {
                 if self.cond.cond_x04() {
                     // PlaySoundObject(24, SOUND_MODE_PLAY); todo
                 }
@@ -573,7 +573,7 @@ impl GameEntity for Player {
 
         match self.unit {
             0 => {
-                if state.flags.flag_x04() && state.flags.control_enabled() {
+                if state.control_flags.flag_x04() && state.control_flags.control_enabled() {
                     // AirProcess(); // todo
                 }
 

@@ -130,8 +130,8 @@ impl TextureSet {
         let image = self.load_image(ctx, &path)?;
         let size = image.dimensions();
 
-        assert_ne!(size.w, 0.0, "size.w == 0");
-        assert_ne!(size.h, 0.0, "size.h == 0");
+        assert_ne!(size.w as isize, 0, "size.w == 0");
+        assert_ne!(size.h as isize, 0, "size.h == 0");
 
         let dim = (size.w as usize, size.h as usize);
         let orig_dimensions = constants.tex_sizes.get(name).unwrap_or_else(|| &dim);

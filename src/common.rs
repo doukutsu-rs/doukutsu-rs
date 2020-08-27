@@ -4,8 +4,11 @@ pub use core::convert::Into;
 pub use core::fmt;
 #[doc(hidden)]
 pub use core::mem::size_of;
+use std::io::{Cursor, Error};
 
+use byteorder::ReadBytesExt;
 use num_traits::Num;
+use std::cell::RefCell;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -88,6 +91,26 @@ impl<S: Num + Copy> Rect<S> {
             right: (rect.x + rect.w),
             bottom: (rect.y + rect.h),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct CursorIterator<'a> {
+    cursor: RefCell<Cursor<&'a Vec<u8>>>,
+}
+
+impl<'a> CursorIterator<'a> {
+    pub fn new(cursor: RefCell<Cursor<&'a Vec<u8>>>) -> CursorIterator<'a> {
+        CursorIterator { cursor }
+    }
+}
+
+impl<'a> Iterator for CursorIterator<'a> {
+    type Item = u8;
+
+    #[inline]
+    fn next(&mut self) -> Option<u8> {
+        self.cursor.borrow_mut().read_u8().ok()
     }
 }
 

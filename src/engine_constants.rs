@@ -86,6 +86,19 @@ impl Clone for WorldConsts {
 }
 
 #[derive(Debug)]
+pub struct TextScriptConsts {
+    pub encoding: TextScriptEncoding,
+}
+
+impl Clone for TextScriptConsts {
+    fn clone(&self) -> Self {
+        Self {
+            encoding: self.encoding,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct EngineConstants {
     pub is_cs_plus: bool,
     pub my_char: MyCharConsts,
@@ -93,7 +106,7 @@ pub struct EngineConstants {
     pub caret: CaretConsts,
     pub world: WorldConsts,
     pub tex_sizes: HashMap<String, (usize, usize)>,
-    pub tsc_encoding: TextScriptEncoding,
+    pub textscript: TextScriptConsts,
 }
 
 impl Clone for EngineConstants {
@@ -105,7 +118,7 @@ impl Clone for EngineConstants {
             caret: self.caret.clone(),
             world: self.world.clone(),
             tex_sizes: self.tex_sizes.clone(),
-            tsc_encoding: self.tsc_encoding,
+            textscript: self.textscript.clone(),
         }
     }
 }
@@ -349,7 +362,9 @@ impl EngineConstants {
                 str!("TextBox") => (244, 144),
                 str!("Title") => (320, 48),
             },
-            tsc_encoding: TextScriptEncoding::UTF8,
+            textscript: TextScriptConsts {
+                encoding: TextScriptEncoding::UTF8,
+            }
         }
     }
 

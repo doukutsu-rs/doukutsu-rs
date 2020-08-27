@@ -12,12 +12,14 @@ use crate::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
 use crate::str;
 use crate::ui::{UI, Components};
+use crate::text_script::{TextScript, TextScriptVM};
 
 pub struct GameScene {
     pub tick: usize,
     pub stage: Stage,
     pub frame: Frame,
     pub player: Player,
+    pub stage_id: usize,
     tex_background_name: String,
     tex_caret_name: String,
     tex_hud_name: String,
@@ -62,6 +64,7 @@ impl GameScene {
                 y: 0,
                 wait: 16,
             },
+            stage_id: id,
             tex_background_name,
             tex_caret_name,
             tex_hud_name,
@@ -276,18 +279,21 @@ impl GameScene {
 
 impl Scene for GameScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        state.textscript_vm.set_scene_script(self.stage.text_script.clone());
+        self.stage.text_script = TextScript::new();
+
         //self.player.x = 700 * 0x200;
         //self.player.y = 1000 * 0x200;
         self.player.equip.set_booster_2_0(true);
-        state.flags.set_flag_x01(true);
-        state.flags.set_control_enabled(true);
+        state.control_flags.set_flag_x01(true);
+        state.control_flags.set_control_enabled(true);
         Ok(())
     }
 
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         state.update_key_trigger();
 
-        if state.flags.flag_x01() {
+        if state.control_flags.flag_x01() {
             self.player.tick(state, ctx)?;
 
             self.player.flags.0 = 0;
@@ -298,7 +304,7 @@ impl Scene for GameScene {
             self.frame.update(state, &self.player, &self.stage);
         }
 
-        if state.flags.control_enabled() {
+        if state.control_flags.control_enabled() {
             // update health bar
             if self.life_bar < self.player.life as usize {
                 self.life_bar = self.player.life as usize;
@@ -314,6 +320,7 @@ impl Scene for GameScene {
             }
         }
 
+        TextScriptVM::run(state, self);
         self.tick = self.tick.wrapping_add(1);
         Ok(())
     }

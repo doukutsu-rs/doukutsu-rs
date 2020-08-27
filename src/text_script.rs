@@ -1,23 +1,35 @@
+use std::borrow::BorrowMut;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io;
+use std::io::{Cursor, Read, Seek, SeekFrom};
 use std::iter::Peekable;
-use std::slice::Iter;
 use std::str::FromStr;
 
+use byteorder::ReadBytesExt;
 use itertools::Itertools;
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 
+use crate::{SharedGameState, str};
+use crate::common::CursorIterator;
 use crate::ggez::GameError::ParseError;
 use crate::ggez::GameResult;
-use crate::str;
+use crate::scene::game_scene::GameScene;
 
 /// Engine's text script VM operation codes.
-#[derive(EnumString, Debug)]
+#[derive(EnumString, Debug, FromPrimitive, PartialEq)]
+#[repr(i32)]
 pub enum OpCode {
     // ---- Internal opcodes (used by bytecode, no TSC representation)
     /// internal: no operation
-    _NOP,
+    _NOP = 0,
     /// internal: unimplemented
     _UNI,
+    /// internal: string marker
+    _STR,
+    /// internal: implicit END marker
+    _END,
 
     // ---- Official opcodes ----
     /// <BOAxxxx, start boss animation
@@ -155,22 +167,320 @@ pub enum TextScriptEncoding {
     ShiftJIS,
 }
 
-enum TextScriptExecutionState {
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum TextScriptExecutionState {
     Ended,
-    Running(u32, u32),
+    Running(u16, u32),
+    Msg(u16, u32, u32),
+    WaitTicks(u16, u32, u32),
+    WaitInput(u16, u32),
 }
 
-pub struct TextScriptManager {
-    global_script: TextScript,
-    scene_script: TextScript,
-    state: TextScriptExecutionState,
+pub struct TextScriptVM {
+    pub global_script: TextScript,
+    pub scene_script: TextScript,
+    pub state: TextScriptExecutionState,
+    msg_timer: u8,
+    face: u16,
+    line_1: Vec<char>,
+    line_2: Vec<char>,
+}
+
+impl Default for TextScriptVM {
+    fn default() -> Self {
+        TextScriptVM::new()
+    }
+}
+
+fn read_cur_varint(cursor: &mut Cursor<&Vec<u8>>) -> GameResult<i32> {
+    let mut result = 0u32;
+
+    for o in 0..5 {
+        let n = cursor.read_u8()?;
+        result |= (n as u32 & 0x7f) << (o * 7);
+
+        if n & 0x80 == 0 {
+            break;
+        }
+    }
+
+    Ok(((result << 31) ^ (result >> 1)) as i32)
+}
+
+/// Decodes UTF-8 character in a less strict way.
+/// http://simonsapin.github.io/wtf-8/#decoding-wtf-8
+fn read_cur_wtf8(cursor: &mut Cursor<&Vec<u8>>, max_bytes: usize) -> (u8, char) {
+    let mut result = 0u32;
+    let mut consumed = 0u8;
+
+    if max_bytes == 0 {
+        return (0, '\u{fffd}');
+    }
+
+    match cursor.read_u8() {
+        Ok(byte @ 0x00..=0x7f) => {
+            consumed = 1;
+            result = byte as u32;
+        }
+        Ok(byte @ 0xc2..=0xdf) if max_bytes >= 2 => {
+            let byte2 = { if let Ok(n) = cursor.read_u8() { n } else { return (1, '\u{fffd}'); } };
+
+            consumed = 2;
+            result = (byte as u32 & 0x1f) << 6 | (byte2 as u32 & 0x3f);
+        }
+        Ok(byte @ 0xe0..=0xef) if max_bytes >= 3 => {
+            let byte2 = { if let Ok(n) = cursor.read_u8() { n } else { return (1, '\u{fffd}'); } };
+            let byte3 = { if let Ok(n) = cursor.read_u8() { n } else { return (2, '\u{fffd}'); } };
+
+            consumed = 3;
+            result = (byte as u32 & 0x0f) << 12 | (byte2 as u32 & 0x3f) << 6 | (byte3 as u32 & 0x3f);
+        }
+        Ok(byte @ 0xf0..=0xf4) if max_bytes >= 4 => {
+            let byte2 = { if let Ok(n) = cursor.read_u8() { n } else { return (1, '\u{fffd}'); } };
+            let byte3 = { if let Ok(n) = cursor.read_u8() { n } else { return (2, '\u{fffd}'); } };
+            let byte4 = { if let Ok(n) = cursor.read_u8() { n } else { return (3, '\u{fffd}'); } };
+
+            consumed = 4;
+            result = (byte as u32 & 0x07) << 18 | (byte2 as u32 & 0x3f) << 12 | (byte3 as u32 & 0x3f) << 6 | (byte4 as u32 & 0x3f);
+        }
+        _ => { return (1, '\u{fffd}'); }
+    }
+
+    if let Ok(byte) = cursor.read_u8() {} else {
+        return (consumed, '\u{fffd}');
+    }
+
+    (consumed, std::char::from_u32(result).unwrap_or('\u{fffd}'))
+}
+
+impl TextScriptVM {
+    pub fn new() -> Self {
+        Self {
+            global_script: TextScript::new(),
+            scene_script: TextScript::new(),
+            state: TextScriptExecutionState::Ended,
+            msg_timer: 0,
+            face: 0,
+            line_1: Vec::with_capacity(24),
+            line_2: Vec::with_capacity(24),
+        }
+    }
+
+    pub fn set_global_script(&mut self, script: TextScript) {
+        self.global_script = script;
+        self.reset();
+    }
+
+    pub fn set_scene_script(&mut self, script: TextScript) {
+        self.scene_script = script;
+        self.reset();
+    }
+
+    pub fn find_script(&self, event_num: u16) -> Option<&Vec<u8>> {
+        if let Some(tsc) = self.scene_script.event_map.get(&event_num) {
+            return Some(tsc);
+        } else if let Some(tsc) = self.global_script.event_map.get(&event_num) {
+            return Some(tsc);
+        }
+
+        None
+    }
+
+    pub fn reset(&mut self) {
+        self.state = TextScriptExecutionState::Ended;
+        self.face = 0;
+        self.line_1.clear();
+        self.line_2.clear();
+    }
+
+    pub fn start_script(&mut self, event_num: u16) {
+        self.reset();
+        self.state = TextScriptExecutionState::Running(event_num, 0);
+        log::info!("Started script: #{:04}", event_num);
+    }
+
+    pub fn run(state: &mut SharedGameState, game_scene: &mut GameScene) -> GameResult {
+        loop {
+            match state.textscript_vm.state {
+                TextScriptExecutionState::Ended => {
+                    break;
+                }
+                TextScriptExecutionState::Running(event, ip) => {
+                    state.textscript_vm.state = TextScriptVM::execute(event, ip, state, game_scene)?;
+                    println!("new vm state: {:?}", state.textscript_vm.state);
+                }
+                TextScriptExecutionState::Msg(event, ip, remaining) => {
+                    if let Some(bytecode) = state.textscript_vm.find_script(event) {} else {
+                        state.textscript_vm.reset();
+                    }
+                }
+                TextScriptExecutionState::WaitTicks(event, ip, ticks) => {
+                    if ticks == 0 {
+                        state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
+                    } else {
+                        state.textscript_vm.state = TextScriptExecutionState::WaitTicks(event, ip, ticks - 1);
+                        break;
+                    }
+                }
+                TextScriptExecutionState::WaitInput(event, ip) => {
+                    if state.key_trigger.jump() || state.key_trigger.fire() {
+                        state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
+                    }
+                    break;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn execute(event: u16, ip: u32, state: &mut SharedGameState, game_scene: &mut GameScene) -> GameResult<TextScriptExecutionState> {
+        let mut exec_state = state.textscript_vm.state;
+
+        if let Some(bytecode) = state.textscript_vm.find_script(event) {
+            let mut cursor = Cursor::new(bytecode);
+            cursor.seek(SeekFrom::Start(ip as u64))?;
+
+            let op_maybe: Option<OpCode> = FromPrimitive::from_i32(read_cur_varint(&mut cursor)?);
+
+            if let Some(op) = op_maybe {
+                match op {
+                    OpCode::_NOP => {
+                        println!("opcode: {:?}", op);
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::_UNI => {}
+                    OpCode::_STR => {
+                        // simply skip the text if we aren't in message mode.
+                        let len = read_cur_varint(&mut cursor)? as u32;
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32 + len);
+                    }
+                    OpCode::_END | OpCode::END => {
+                        exec_state = TextScriptExecutionState::Ended;
+                    }
+
+                    OpCode::NOD => {
+                        exec_state = TextScriptExecutionState::WaitInput(event, cursor.position() as u32);
+                    }
+                    OpCode::FLp | OpCode::FLm => {
+                        let flag_num = read_cur_varint(&mut cursor)? as usize;
+                        state.game_flags.set(flag_num, op == OpCode::FLp);
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::FLJ => {
+                        let flag_num = read_cur_varint(&mut cursor)? as usize;
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+                        if let Some(true) = state.game_flags.get(flag_num) {
+                            exec_state = TextScriptExecutionState::Running(event_num, 0);
+                        }
+                    }
+                    OpCode::EVE => {
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+                        exec_state = TextScriptExecutionState::Running(event_num, 0);
+                    }
+                    OpCode::MM0 => {
+                        game_scene.player.vel_x = 0;
+                    }
+                    OpCode::CMP => {
+                        let pos_x = read_cur_varint(&mut cursor)? as usize;
+                        let pos_y = read_cur_varint(&mut cursor)? as usize;
+                        let tile_type = read_cur_varint(&mut cursor)? as u8;
+
+                        if let Some(ptr) = game_scene.stage.map.tiles.get_mut(pos_y * game_scene.stage.map.width + pos_x) {
+                            *ptr = tile_type;
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::MLp => {
+                        let life = read_cur_varint(&mut cursor)? as usize;
+                        game_scene.player.max_life += life;
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+
+                    // unimplemented opcodes
+                    // Zero operands
+                    OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CLO | OpCode::CLR | OpCode::CPS |
+                    OpCode::CRE | OpCode::CSS | OpCode::ESC | OpCode::FLA | OpCode::FMU |
+                    OpCode::FRE | OpCode::HMC | OpCode::INI | OpCode::KEY | OpCode::LDP | OpCode::MLP |
+                    OpCode::MNA | OpCode::MS2 | OpCode::MS3 | OpCode::MSG |
+                    OpCode::PRI | OpCode::RMU | OpCode::SAT | OpCode::SLP | OpCode::SMC | OpCode::SPS |
+                    OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM => {
+                        println!("unimplemented opcode: {:?}", op);
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    // One operand codes
+                    OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::FOM | OpCode::QUA | OpCode::UNI |
+                    OpCode::MYB | OpCode::MYD | OpCode::FAI | OpCode::FAO | OpCode::WAI | OpCode::FAC |
+                    OpCode::GIT | OpCode::NUM | OpCode::DNA | OpCode::DNP |
+                    OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm | OpCode::MLp |
+                    OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ | OpCode::YNJ |
+                    OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU | OpCode::CMU |
+                    OpCode::SSS | OpCode::ACH => {
+                        let par_a = read_cur_varint(&mut cursor)?;
+                        println!("unimplemented opcode: {:?} {}", op, par_a);
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    // Two operand codes
+                    OpCode::FON | OpCode::MOV | OpCode::AMp | OpCode::NCJ | OpCode::ECJ |
+                    OpCode::ITJ | OpCode::SKJ | OpCode::AMJ | OpCode::SMP | OpCode::PSp => {
+                        let par_a = read_cur_varint(&mut cursor)?;
+                        let par_b = read_cur_varint(&mut cursor)?;
+                        println!("unimplemented opcode: {:?} {} {}", op, par_a, par_b);
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    // Three operand codes
+                    OpCode::ANP | OpCode::CNP | OpCode::INP | OpCode::TAM => {
+                        let par_a = read_cur_varint(&mut cursor)?;
+                        let par_b = read_cur_varint(&mut cursor)?;
+                        let par_c = read_cur_varint(&mut cursor)?;
+                        println!("unimplemented opcode: {:?} {} {} {}", op, par_a, par_b, par_c);
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    // Four operand codes
+                    OpCode::TRA | OpCode::MNP | OpCode::SNP => {
+                        let par_a = read_cur_varint(&mut cursor)?;
+                        let par_b = read_cur_varint(&mut cursor)?;
+                        let par_c = read_cur_varint(&mut cursor)?;
+                        let par_d = read_cur_varint(&mut cursor)?;
+                        println!("unimplemented opcode: {:?} {} {} {} {}", op, par_a, par_b, par_c, par_d);
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                }
+            }
+        } else {
+            return Ok(TextScriptExecutionState::Ended);
+        }
+
+        Ok(exec_state)
+    }
 }
 
 pub struct TextScript {
     event_map: HashMap<u16, Vec<u8>>,
 }
 
+impl Clone for TextScript {
+    fn clone(&self) -> Self {
+        Self {
+            event_map: self.event_map.clone(),
+        }
+    }
+}
+
+impl Default for TextScript {
+    fn default() -> Self {
+        TextScript::new()
+    }
+}
+
 impl TextScript {
+    pub fn new() -> TextScript {
+        Self {
+            event_map: HashMap::new(),
+        }
+    }
+
     /// Loads, decrypts and compiles a text script from specified stream.
     pub fn load_from<R: io::Read>(mut data: R) -> GameResult<TextScript> {
         let mut buf = Vec::new();
@@ -194,13 +504,18 @@ impl TextScript {
         TextScript::compile(&buf)
     }
 
+    pub fn get_event_ids(&self) -> Vec<u16> {
+        self.event_map.keys().copied().sorted().collect_vec()
+    }
+
     /// Compiles a decrypted text script data into internal bytecode.
     pub fn compile(data: &[u8]) -> GameResult<TextScript> {
-        println!("data: {}", String::from_utf8(data.to_vec())?);
+        let code = unsafe { std::str::from_utf8_unchecked(data) };
+        println!("data: {}", code);
 
         let mut event_map = HashMap::new();
-        let mut iter = data.iter().peekable();
-        while let Some(&&chr) = iter.peek() {
+        let mut iter = data.iter().copied().peekable();
+        while let Some(&chr) = iter.peek() {
             match chr {
                 b'#' => {
                     iter.next();
@@ -230,31 +545,29 @@ impl TextScript {
         })
     }
 
-    fn compile_event(iter: &mut Peekable<Iter<u8>>) -> GameResult<Vec<u8>> {
+    fn compile_event<I: Iterator<Item=u8>>(iter: &mut Peekable<I>) -> GameResult<Vec<u8>> {
         let mut bytecode = Vec::new();
-
         let mut char_buf = Vec::with_capacity(16);
 
-        while let Some(&&chr) = iter.peek() {
+        while let Some(&chr) = iter.peek() {
             match chr {
                 b'#' => {
                     if !char_buf.is_empty() {
-                        TextScript::put_varint(char_buf.len() as i32, &mut bytecode);
-                        bytecode.append(&mut char_buf);
+                        TextScript::put_string(&mut char_buf, &mut bytecode);
                     }
 
                     // some events end without <END marker.
+                    TextScript::put_varint(OpCode::_END as i32, &mut bytecode);
                     break;
                 }
                 b'<' => {
                     if !char_buf.is_empty() {
-                        TextScript::put_varint(char_buf.len() as i32, &mut bytecode);
-                        bytecode.append(&mut char_buf);
+                        TextScript::put_string(&mut char_buf, &mut bytecode);
                     }
 
                     iter.next();
-                    let n = iter.next_tuple::<(&u8, &u8, &u8)>()
-                        .map(|t| [*t.0, *t.1, *t.2])
+                    let n = iter.next_tuple::<(u8, u8, u8)>()
+                        .map(|t| [t.0, t.1, t.2])
                         .ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?;
 
                     let code = unsafe { std::str::from_utf8_unchecked(&n) };
@@ -272,6 +585,12 @@ impl TextScript {
         Ok(bytecode)
     }
 
+    fn put_string(buffer: &mut Vec<u8>, out: &mut Vec<u8>) {
+        TextScript::put_varint(OpCode::_STR as i32, out);
+        TextScript::put_varint(buffer.len() as i32, out);
+        out.append(buffer);
+    }
+
     fn put_varint(val: i32, out: &mut Vec<u8>) {
         let mut x = ((val as u32) >> 31) ^ ((val as u32) << 1);
 
@@ -283,11 +602,11 @@ impl TextScript {
         out.push(x as u8);
     }
 
-    fn read_varint(iter: &mut Peekable<Iter<u8>>) -> GameResult<i32> {
+    fn read_varint<I: Iterator<Item=u8>>(iter: &mut I) -> GameResult<i32> {
         let mut result = 0u32;
 
         for o in 0..5 {
-            let &n = iter.next().ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?;
+            let n = iter.next().ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?;
             result |= (n as u32 & 0x7f) << (o * 7);
 
             if n & 0x80 == 0 {
@@ -298,8 +617,8 @@ impl TextScript {
         Ok(((result << 31) ^ (result >> 1)) as i32)
     }
 
-    fn compile_code(code: &str, iter: &mut Peekable<Iter<u8>>, out: &mut Vec<u8>) -> GameResult {
-        let instr = OpCode::from_str(code).map_err(|e| ParseError(format!("Unknown opcode: {}", code)))?;
+    fn compile_code<I: Iterator<Item=u8>>(code: &str, iter: &mut Peekable<I>, out: &mut Vec<u8>) -> GameResult {
+        let instr = OpCode::from_str(code).map_err(|_| ParseError(format!("Unknown opcode: {}", code)))?;
 
         match instr {
             // Zero operand codes
@@ -372,7 +691,7 @@ impl TextScript {
         Ok(())
     }
 
-    fn expect_newline(iter: &mut Peekable<Iter<u8>>) -> GameResult {
+    fn expect_newline<I: Iterator<Item=u8>>(iter: &mut Peekable<I>) -> GameResult {
         if let Some(b'\r') = iter.peek() {
             iter.next();
         }
@@ -380,14 +699,14 @@ impl TextScript {
         TextScript::expect_char(b'\n', iter)
     }
 
-    fn expect_char(expect: u8, iter: &mut Peekable<Iter<u8>>) -> GameResult {
-        let mut res = iter.next();
+    fn expect_char<I: Iterator<Item=u8>>(expect: u8, iter: &mut I) -> GameResult {
+        let res = iter.next();
 
         match res {
-            Some(&n) if n == expect => {
+            Some(n) if n == expect => {
                 Ok(())
             }
-            Some(&n) => {
+            Some(n) => {
                 Err(ParseError(format!("Expected {}, found {}", expect as char, n as char)))
             }
             None => {
@@ -396,8 +715,8 @@ impl TextScript {
         }
     }
 
-    fn skip_until(expect: u8, iter: &mut Peekable<Iter<u8>>) -> GameResult {
-        while let Some(&chr) = iter.next() {
+    fn skip_until<I: Iterator<Item=u8>>(expect: u8, iter: &mut I) -> GameResult {
+        for chr in iter {
             if chr == expect {
                 return Ok(());
             }
@@ -408,12 +727,12 @@ impl TextScript {
 
     /// Reads a 4 digit TSC formatted number from iterator.
     /// Intentionally does no '0'..'9' range checking, since it was often exploited by modders.
-    fn read_number(iter: &mut Peekable<Iter<u8>>) -> GameResult<i32> {
+    fn read_number<I: Iterator<Item=u8>>(iter: &mut Peekable<I>) -> GameResult<i32> {
         Some(0)
-            .and_then(|result| iter.next().map(|&v| result + 1000 * (v - b'0') as i32))
-            .and_then(|result| iter.next().map(|&v| result + 100 * (v - b'0') as i32))
-            .and_then(|result| iter.next().map(|&v| result + 10 * (v - b'0') as i32))
-            .and_then(|result| iter.next().map(|&v| result + (v - b'0') as i32))
+            .and_then(|result| iter.next().map(|v| result + 1000 * (v - b'0') as i32))
+            .and_then(|result| iter.next().map(|v| result + 100 * (v - b'0') as i32))
+            .and_then(|result| iter.next().map(|v| result + 10 * (v - b'0') as i32))
+            .and_then(|result| iter.next().map(|v| result + (v - b'0') as i32))
             .ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))
     }
 
@@ -428,7 +747,7 @@ fn test_varint() {
     for &n in [1_i32, 23, 456, 7890, 12345, -1, -23, -456].iter() {
         let mut out = Vec::new();
         TextScript::put_varint(n, &mut out);
-        let result = TextScript::read_varint(&mut out.iter().peekable()).unwrap();
+        let result = TextScript::read_varint(&mut out.iter().copied()).unwrap();
         assert_eq!(result, n);
     }
 }
