@@ -1,8 +1,8 @@
-use std::borrow::BorrowMut;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io;
-use std::io::{Cursor, Read, Seek, SeekFrom};
+use std::io::Cursor;
+use std::io::Seek;
+use std::io::SeekFrom;
 use std::iter::Peekable;
 use std::str::FromStr;
 
@@ -13,8 +13,8 @@ use num_traits::FromPrimitive;
 
 use crate::{SharedGameState, str};
 use crate::bitfield;
+use crate::ggez::{Context, GameResult};
 use crate::ggez::GameError::ParseError;
-use crate::ggez::GameResult;
 use crate::scene::game_scene::GameScene;
 
 /// Engine's text script VM operation codes.
@@ -198,6 +198,7 @@ pub struct TextScriptVM {
     pub scripts: TextScriptVMScripts,
     pub state: TextScriptExecutionState,
     pub flags: TextScriptFlags,
+    pub suspend: bool,
     pub face: u16,
     pub current_line: TextScriptLine,
     pub line_1: Vec<char>,
@@ -296,6 +297,7 @@ impl TextScriptVM {
                 scene_script: TextScript::new(),
             },
             state: TextScriptExecutionState::Ended,
+            suspend: true,
             flags: TextScriptFlags(0),
             face: 0,
             current_line: TextScriptLine::Line1,
@@ -306,12 +308,12 @@ impl TextScriptVM {
 
     pub fn set_global_script(&mut self, script: TextScript) {
         self.scripts.global_script = script;
-        self.reset();
+        if !self.suspend { self.reset(); }
     }
 
     pub fn set_scene_script(&mut self, script: TextScript) {
         self.scripts.scene_script = script;
-        self.reset();
+        if !self.suspend { self.reset(); }
     }
 
     pub fn reset(&mut self) {
@@ -333,8 +335,10 @@ impl TextScriptVM {
         log::info!("Started script: #{:04}", event_num);
     }
 
-    pub fn run(state: &mut SharedGameState, game_scene: &mut GameScene) -> GameResult {
+    pub fn run(state: &mut SharedGameState, game_scene: &mut GameScene, ctx: &mut Context) -> GameResult {
         loop {
+            if state.textscript_vm.suspend { break; }
+
             match state.textscript_vm.state {
                 TextScriptExecutionState::Ended => {
                     state.control_flags.set_flag_x04(false);
@@ -342,7 +346,7 @@ impl TextScriptVM {
                 }
                 TextScriptExecutionState::Running(event, ip) => {
                     state.control_flags.set_flag_x04(true);
-                    state.textscript_vm.state = TextScriptVM::execute(event, ip, state, game_scene)?;
+                    state.textscript_vm.state = TextScriptVM::execute(event, ip, state, game_scene, ctx)?;
 
                     if state.textscript_vm.state == TextScriptExecutionState::Ended {
                         state.textscript_vm.reset();
@@ -362,9 +366,12 @@ impl TextScriptVM {
                         println!("char: {} {} {}", chr, remaining, consumed);
 
                         match chr {
+                            '\n' if state.textscript_vm.current_line == TextScriptLine::Line1 => {
+                                state.textscript_vm.current_line = TextScriptLine::Line2;
+                            }
                             '\n' => {
                                 state.textscript_vm.line_1.clear();
-                                state.textscript_vm.line_2.append(&mut state.textscript_vm.line_1);
+                                state.textscript_vm.line_1.append(&mut state.textscript_vm.line_2);
                             }
                             '\r' => {}
                             _ if state.textscript_vm.current_line == TextScriptLine::Line1 => {
@@ -406,14 +413,15 @@ impl TextScriptVM {
         Ok(())
     }
 
-    pub fn execute(event: u16, ip: u32, state: &mut SharedGameState, game_scene: &mut GameScene) -> GameResult<TextScriptExecutionState> {
+    pub fn execute(event: u16, ip: u32, state: &mut SharedGameState, game_scene: &mut GameScene, ctx: &mut Context) -> GameResult<TextScriptExecutionState> {
         let mut exec_state = state.textscript_vm.state;
 
         if let Some(bytecode) = state.textscript_vm.scripts.find_script(event) {
             let mut cursor = Cursor::new(bytecode);
             cursor.seek(SeekFrom::Start(ip as u64))?;
 
-            let op_maybe: Option<OpCode> = FromPrimitive::from_i32(read_cur_varint(&mut cursor)?);
+            let op_maybe: Option<OpCode> = FromPrimitive::from_i32(read_cur_varint(&mut cursor)
+                .unwrap_or_else(|_| OpCode::END as i32));
 
             if let Some(op) = op_maybe {
                 println!("opcode: {:?}", op);
@@ -511,6 +519,13 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::CLR => {
+                        state.textscript_vm.current_line = TextScriptLine::Line1;
+                        state.textscript_vm.line_1.clear();
+                        state.textscript_vm.line_2.clear();
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::MSG => {
                         state.textscript_vm.face = 0;
                         state.textscript_vm.current_line = TextScriptLine::Line1;
@@ -523,10 +538,27 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::TRA => {
+                        let map_id = read_cur_varint(&mut cursor)? as usize;
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+                        let pos_x = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
+                        let pos_y = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
 
+                        let mut new_scene = GameScene::new(state, ctx, map_id)?;
+                        new_scene.player = game_scene.player.clone();
+                        new_scene.player.vel_x = 0;
+                        new_scene.player.vel_y = 0;
+                        new_scene.player.x = pos_x;
+                        new_scene.player.y = pos_y;
+
+                        state.textscript_vm.suspend = true;
+
+                        state.next_scene = Some(Box::new(new_scene));
+                        exec_state = TextScriptExecutionState::Running(event_num, 0);
+                    }
                     // unimplemented opcodes
                     // Zero operands
-                    OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CLO | OpCode::CLR | OpCode::CPS |
+                    OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CLO | OpCode::CPS |
                     OpCode::CRE | OpCode::CSS | OpCode::ESC | OpCode::FLA | OpCode::FMU |
                     OpCode::HMC | OpCode::INI | OpCode::LDP | OpCode::MLP |
                     OpCode::MNA | OpCode::MS2 | OpCode::MS3 |
@@ -537,7 +569,7 @@ impl TextScriptVM {
                     }
                     // One operand codes
                     OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::FOM | OpCode::QUA | OpCode::UNI |
-                    OpCode::MYB | OpCode::MYD | OpCode::FAI | OpCode::FAO | OpCode::FAC |
+                    OpCode::MYB | OpCode::MYD | OpCode::FAI | OpCode::FAO |
                     OpCode::GIT | OpCode::NUM | OpCode::DNA | OpCode::DNP |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
                     OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ | OpCode::YNJ |
@@ -564,7 +596,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Four operand codes
-                    OpCode::TRA | OpCode::MNP | OpCode::SNP => {
+                    OpCode::MNP | OpCode::SNP => {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
                         let par_c = read_cur_varint(&mut cursor)?;

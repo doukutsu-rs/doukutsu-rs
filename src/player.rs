@@ -1,4 +1,5 @@
 use num_traits::clamp;
+use std::clone::Clone;
 
 use crate::bitfield;
 use crate::caret::CaretType;
@@ -10,6 +11,7 @@ use crate::SharedGameState;
 use crate::str;
 
 bitfield! {
+  #[derive(Clone)]
   pub struct Flags(u32);
   impl Debug;
 
@@ -39,6 +41,7 @@ bitfield! {
 }
 
 bitfield! {
+  #[derive(Clone)]
   pub struct Equip(u16);
   impl Debug;
 
@@ -54,8 +57,8 @@ bitfield! {
   // 7 bits wasted, thx pixel
 }
 
-
 bitfield! {
+  #[derive(Clone)]
   pub struct Cond(u16);
   impl Debug;
 
@@ -69,6 +72,7 @@ bitfield! {
   pub visible, set_visible: 7;
 }
 
+#[derive(Clone)]
 pub struct Player {
     pub x: isize,
     pub y: isize,

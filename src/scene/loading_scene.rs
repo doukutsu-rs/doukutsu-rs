@@ -3,7 +3,7 @@ use crate::scene::game_scene::GameScene;
 use crate::scene::Scene;
 use crate::SharedGameState;
 use crate::stage::StageData;
-use crate::text_script::TextScript;
+use crate::text_script::{TextScript, TextScriptExecutionState};
 
 pub struct LoadingScene {
     tick: usize,
@@ -25,7 +25,12 @@ impl Scene for LoadingScene {
             state.stages = stages;
             let script = TextScript::load_from(filesystem::open(ctx, [&state.base_path, "/Head.tsc"].join(""))?)?;
             state.textscript_vm.set_global_script(script);
-            state.next_scene = Some(Box::new(GameScene::new(state, ctx, 0)?));
+
+            let mut next_scene = GameScene::new(state, ctx, 13)?;
+            next_scene.player.x = 10 * 16 * 0x200;
+            next_scene.player.y = 8 * 16 * 0x200;
+            state.next_scene = Some(Box::new(next_scene));
+            state.textscript_vm.state = TextScriptExecutionState::Running(200, 0);
         }
 
         self.tick += 1;

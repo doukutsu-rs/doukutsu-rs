@@ -4,6 +4,7 @@ use crate::common::Rect;
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult, timer};
+use crate::ggez::graphics::{Drawable, DrawParam, Text, TextFragment};
 use crate::ggez::nalgebra::clamp;
 use crate::player::Player;
 use crate::scene::Scene;
@@ -226,7 +227,7 @@ impl GameScene {
             for i in 1..7 {
                 batch.add_rect(left_pos, top_pos + i as f32 * 8.0, &state.constants.textscript.textbox_rect_middle);
             }
-            batch.add_rect(left_pos, top_pos + 64.0, &state.constants.textscript.textbox_rect_bottom);
+            batch.add_rect(left_pos, top_pos + 56.0, &state.constants.textscript.textbox_rect_bottom);
 
             batch.draw(ctx)?;
         }
@@ -240,6 +241,23 @@ impl GameScene {
             ));
 
             batch.draw(ctx)?;
+        }
+
+        let text_offset = if state.textscript_vm.face == 0 { 0.0 } else { 56.0 };
+
+        // todo: proper text rendering
+        if !state.textscript_vm.line_1.is_empty() {
+            let line1: String = state.textscript_vm.line_1.iter().collect();
+            Text::new(TextFragment::from(line1.as_str())).draw(ctx, DrawParam::new()
+                .dest(nalgebra::Point2::new((left_pos + text_offset) * 2.0 + 32.0, top_pos * 2.0 + 32.0))
+                .scale(nalgebra::Vector2::new(0.5, 0.5)))?;
+        }
+
+        if !state.textscript_vm.line_2.is_empty() {
+            let line2: String = state.textscript_vm.line_2.iter().collect();
+            Text::new(TextFragment::from(line2.as_str())).draw(ctx, DrawParam::new()
+                .dest(nalgebra::Point2::new((left_pos + text_offset) * 2.0 + 32.0, (top_pos + 24.0) * 2.0 + 32.0))
+                .scale(nalgebra::Vector2::new(0.5, 0.5)))?;
         }
 
         Ok(())
@@ -314,10 +332,9 @@ impl Scene for GameScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         state.textscript_vm.set_scene_script(self.stage.text_script.clone());
         self.stage.text_script = TextScript::new();
+        state.textscript_vm.suspend = false;
 
-        //self.player.x = 700 * 0x200;
-        //self.player.y = 1000 * 0x200;
-        self.player.equip.set_booster_2_0(true);
+        //self.player.equip.set_booster_2_0(true);
         state.control_flags.set_flag_x01(true);
         state.control_flags.set_control_enabled(true);
         Ok(())
@@ -353,7 +370,7 @@ impl Scene for GameScene {
             }
         }
 
-        TextScriptVM::run(state, self)?;
+        TextScriptVM::run(state, self, ctx)?;
         self.tick = self.tick.wrapping_add(1);
         Ok(())
     }

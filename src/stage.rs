@@ -378,8 +378,8 @@ pub struct Stage {
 impl Stage {
     pub fn load(ctx: &mut Context, root: &str, data: &StageData) -> GameResult<Self> {
         let map_file = filesystem::open(ctx, [root, "Stage/", &data.map, ".pxm"].join(""))?;
+        let tsc_file = filesystem::open(ctx, [root, "Stage/", &data.map, ".tsc"].join(""))?;
         let attrib_file = filesystem::open(ctx, [root, "Stage/", &data.tileset.name, ".pxa"].join(""))?;
-        let tsc_file = filesystem::open(ctx, [root, "Stage/", &data.tileset.name, ".tsc"].join(""))?;
 
         let map = Map::load_from(map_file, attrib_file)?;
         let text_script = TextScript::load_from(tsc_file)?;
