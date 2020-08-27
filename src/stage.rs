@@ -372,24 +372,27 @@ impl StageData {
 pub struct Stage {
     pub map: Map,
     pub data: StageData,
-    pub text_script: TextScript,
 }
 
 impl Stage {
-    pub fn load(ctx: &mut Context, root: &str, data: &StageData) -> GameResult<Self> {
+    pub fn load(root: &str, data: &StageData, ctx: &mut Context) -> GameResult<Self> {
         let map_file = filesystem::open(ctx, [root, "Stage/", &data.map, ".pxm"].join(""))?;
-        let tsc_file = filesystem::open(ctx, [root, "Stage/", &data.map, ".tsc"].join(""))?;
         let attrib_file = filesystem::open(ctx, [root, "Stage/", &data.tileset.name, ".pxa"].join(""))?;
 
         let map = Map::load_from(map_file, attrib_file)?;
-        let text_script = TextScript::load_from(tsc_file)?;
 
         let stage = Self {
             map,
             data: data.clone(),
-            text_script,
         };
 
         Ok(stage)
+    }
+
+    pub fn load_text_script(&mut self, root: &str, ctx: &mut Context) -> GameResult<TextScript> {
+        let tsc_file = filesystem::open(ctx, [root, "Stage/", &self.data.map, ".tsc"].join(""))?;
+        let text_script = TextScript::load_from(tsc_file)?;
+
+        Ok(text_script)
     }
 }

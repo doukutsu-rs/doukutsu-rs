@@ -4,11 +4,11 @@ pub use core::convert::Into;
 pub use core::fmt;
 #[doc(hidden)]
 pub use core::mem::size_of;
-use std::io::{Cursor, Error};
+use std::cell::RefCell;
+use std::io::Cursor;
 
 use byteorder::ReadBytesExt;
 use num_traits::Num;
-use std::cell::RefCell;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {

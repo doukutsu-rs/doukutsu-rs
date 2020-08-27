@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use imgui::{Condition, im_str, ImStr, ImString, Window};
 use itertools::Itertools;
 
@@ -154,10 +152,6 @@ impl LiveDebugger {
                     let events: Vec<&ImStr> = self.events.iter().map(|e| e.as_ref()).collect();
 
                     ui.text_wrapped(&ImString::new(format!("Execution state: {:?}", state.textscript_vm.state)));
-                    let line1: String = state.textscript_vm.line_1.iter().collect();
-                    let line2: String = state.textscript_vm.line_2.iter().collect();
-                    ui.text_wrapped(&ImString::new(&line1));
-                    ui.text_wrapped(&ImString::new(&line2));
 
                     ui.push_item_width(-1.0);
                     ui.list_box(im_str!(""), &mut self.selected_event, &events, 10);

@@ -183,6 +183,7 @@ pub enum TextScriptEncoding {
 pub enum TextScriptLine {
     Line1 = 0,
     Line2,
+    Line3,
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -198,11 +199,16 @@ pub struct TextScriptVM {
     pub scripts: TextScriptVMScripts,
     pub state: TextScriptExecutionState,
     pub flags: TextScriptFlags,
+    /// Toggle for non-strict TSC parsing because English versions of CS+ (both AG and Nicalis release)
+    /// modified the events carelessly and since original Pixel's engine hasn't enforced constraints
+    /// while parsing no one noticed them.
+    pub strict_mode: bool,
     pub suspend: bool,
     pub face: u16,
     pub current_line: TextScriptLine,
     pub line_1: Vec<char>,
     pub line_2: Vec<char>,
+    pub line_3: Vec<char>,
 }
 
 impl Default for TextScriptVM {
@@ -246,8 +252,8 @@ fn read_cur_varint(cursor: &mut Cursor<&Vec<u8>>) -> GameResult<i32> {
 /// Decodes UTF-8 character in a less strict way.
 /// http://simonsapin.github.io/wtf-8/#decoding-wtf-8
 fn read_cur_wtf8(cursor: &mut Cursor<&Vec<u8>>, max_bytes: u32) -> (u32, char) {
-    let mut result = 0u32;
-    let mut consumed = 0u32;
+    let result: u32;
+    let consumed: u32;
 
     if max_bytes == 0 {
         return (0, '\u{fffd}');
@@ -282,10 +288,6 @@ fn read_cur_wtf8(cursor: &mut Cursor<&Vec<u8>>, max_bytes: u32) -> (u32, char) {
         _ => { return (1, '\u{fffd}'); }
     }
 
-    if let Ok(byte) = cursor.read_u8() {} else {
-        return (consumed, '\u{fffd}');
-    }
-
     (consumed, std::char::from_u32(result).unwrap_or('\u{fffd}'))
 }
 
@@ -297,12 +299,14 @@ impl TextScriptVM {
                 scene_script: TextScript::new(),
             },
             state: TextScriptExecutionState::Ended,
+            strict_mode: false,
             suspend: true,
             flags: TextScriptFlags(0),
             face: 0,
             current_line: TextScriptLine::Line1,
             line_1: Vec::with_capacity(24),
             line_2: Vec::with_capacity(24),
+            line_3: Vec::with_capacity(24),
         }
     }
 
@@ -327,6 +331,7 @@ impl TextScriptVM {
         self.current_line = TextScriptLine::Line1;
         self.line_1.clear();
         self.line_2.clear();
+        self.line_3.clear();
     }
 
     pub fn start_script(&mut self, event_num: u16) {
@@ -369,9 +374,13 @@ impl TextScriptVM {
                             '\n' if state.textscript_vm.current_line == TextScriptLine::Line1 => {
                                 state.textscript_vm.current_line = TextScriptLine::Line2;
                             }
+                            '\n' if state.textscript_vm.current_line == TextScriptLine::Line2 => {
+                                state.textscript_vm.current_line = TextScriptLine::Line3;
+                            }
                             '\n' => {
                                 state.textscript_vm.line_1.clear();
                                 state.textscript_vm.line_1.append(&mut state.textscript_vm.line_2);
+                                state.textscript_vm.line_2.append(&mut state.textscript_vm.line_3);
                             }
                             '\r' => {}
                             _ if state.textscript_vm.current_line == TextScriptLine::Line1 => {
@@ -379,6 +388,9 @@ impl TextScriptVM {
                             }
                             _ if state.textscript_vm.current_line == TextScriptLine::Line2 => {
                                 state.textscript_vm.line_2.push(chr);
+                            }
+                            _ if state.textscript_vm.current_line == TextScriptLine::Line3 => {
+                                state.textscript_vm.line_3.push(chr);
                             }
                             _ => {}
                         }
@@ -523,6 +535,7 @@ impl TextScriptVM {
                         state.textscript_vm.current_line = TextScriptLine::Line1;
                         state.textscript_vm.line_1.clear();
                         state.textscript_vm.line_2.clear();
+                        state.textscript_vm.line_3.clear();
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -531,6 +544,7 @@ impl TextScriptVM {
                         state.textscript_vm.current_line = TextScriptLine::Line1;
                         state.textscript_vm.line_1.clear();
                         state.textscript_vm.line_2.clear();
+                        state.textscript_vm.line_3.clear();
                         state.textscript_vm.flags.set_render(true);
                         state.textscript_vm.flags.set_background_visible(true);
                         state.textscript_vm.flags.set_flag_x10(state.textscript_vm.flags.flag_x40());
@@ -661,7 +675,7 @@ impl TextScript {
             *byte = byte.wrapping_add(key);
         }
 
-        TextScript::compile(&buf)
+        TextScript::compile(&buf, false)
     }
 
     pub fn get_event_ids(&self) -> Vec<u16> {
@@ -669,7 +683,7 @@ impl TextScript {
     }
 
     /// Compiles a decrypted text script data into internal bytecode.
-    pub fn compile(data: &[u8]) -> GameResult<TextScript> {
+    pub fn compile(data: &[u8], strict: bool) -> GameResult<TextScript> {
         let code = unsafe { std::str::from_utf8_unchecked(data) };
         println!("data: {}", code);
 
@@ -686,7 +700,7 @@ impl TextScript {
                         return Err(ParseError(format!("Event {} has been defined twice.", event_num)));
                     }
 
-                    let bytecode = TextScript::compile_event(&mut iter)?;
+                    let bytecode = TextScript::compile_event(&mut iter, strict)?;
                     log::info!("Successfully compiled event #{} ({} bytes generated).", event_num, bytecode.len());
                     println!("{:x?}", &bytecode);
                     event_map.insert(event_num, bytecode);
@@ -705,7 +719,7 @@ impl TextScript {
         })
     }
 
-    fn compile_event<I: Iterator<Item=u8>>(iter: &mut Peekable<I>) -> GameResult<Vec<u8>> {
+    fn compile_event<I: Iterator<Item=u8>>(iter: &mut Peekable<I>, strict: bool) -> GameResult<Vec<u8>> {
         let mut bytecode = Vec::new();
         let mut char_buf = Vec::with_capacity(16);
 
@@ -732,7 +746,7 @@ impl TextScript {
 
                     let code = unsafe { std::str::from_utf8_unchecked(&n) };
 
-                    TextScript::compile_code(code, iter, &mut bytecode)?;
+                    TextScript::compile_code(code, strict, iter, &mut bytecode)?;
                 }
                 _ => {
                     char_buf.push(chr);
@@ -777,7 +791,7 @@ impl TextScript {
         Ok(((result << 31) ^ (result >> 1)) as i32)
     }
 
-    fn compile_code<I: Iterator<Item=u8>>(code: &str, iter: &mut Peekable<I>, out: &mut Vec<u8>) -> GameResult {
+    fn compile_code<I: Iterator<Item=u8>>(code: &str, strict: bool, iter: &mut Peekable<I>, out: &mut Vec<u8>) -> GameResult {
         let instr = OpCode::from_str(code).map_err(|_| ParseError(format!("Unknown opcode: {}", code)))?;
 
         match instr {
@@ -806,7 +820,7 @@ impl TextScript {
             OpCode::FON | OpCode::MOV | OpCode::AMp | OpCode::NCJ | OpCode::ECJ | OpCode::FLJ |
             OpCode::ITJ | OpCode::SKJ | OpCode::AMJ | OpCode::SMP | OpCode::PSp => {
                 let operand_a = TextScript::read_number(iter)?;
-                TextScript::expect_char(b':', iter)?;
+                if strict { TextScript::expect_char(b':', iter)?; } else { iter.next().ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?; }
                 let operand_b = TextScript::read_number(iter)?;
 
                 TextScript::put_varint(instr as i32, out);
@@ -816,9 +830,9 @@ impl TextScript {
             // Three operand codes
             OpCode::ANP | OpCode::CNP | OpCode::INP | OpCode::TAM | OpCode::CMP => {
                 let operand_a = TextScript::read_number(iter)?;
-                TextScript::expect_char(b':', iter)?;
+                if strict { TextScript::expect_char(b':', iter)?; } else { iter.next().ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?; }
                 let operand_b = TextScript::read_number(iter)?;
-                TextScript::expect_char(b':', iter)?;
+                if strict { TextScript::expect_char(b':', iter)?; } else { iter.next().ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?; }
                 let operand_c = TextScript::read_number(iter)?;
 
                 TextScript::put_varint(instr as i32, out);
@@ -829,11 +843,11 @@ impl TextScript {
             // Four operand codes
             OpCode::TRA | OpCode::MNP | OpCode::SNP => {
                 let operand_a = TextScript::read_number(iter)?;
-                TextScript::expect_char(b':', iter)?;
+                if strict { TextScript::expect_char(b':', iter)?; } else { iter.next().ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?; }
                 let operand_b = TextScript::read_number(iter)?;
-                TextScript::expect_char(b':', iter)?;
+                if strict { TextScript::expect_char(b':', iter)?; } else { iter.next().ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?; }
                 let operand_c = TextScript::read_number(iter)?;
-                TextScript::expect_char(b':', iter)?;
+                if strict { TextScript::expect_char(b':', iter)?; } else { iter.next().ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?; }
                 let operand_d = TextScript::read_number(iter)?;
 
                 TextScript::put_varint(instr as i32, out);
@@ -889,10 +903,10 @@ impl TextScript {
     /// Intentionally does no '0'..'9' range checking, since it was often exploited by modders.
     fn read_number<I: Iterator<Item=u8>>(iter: &mut Peekable<I>) -> GameResult<i32> {
         Some(0)
-            .and_then(|result| iter.next().map(|v| result + 1000 * (v - b'0') as i32))
-            .and_then(|result| iter.next().map(|v| result + 100 * (v - b'0') as i32))
-            .and_then(|result| iter.next().map(|v| result + 10 * (v - b'0') as i32))
-            .and_then(|result| iter.next().map(|v| result + (v - b'0') as i32))
+            .and_then(|result| iter.next().map(|v| result + 1000 * v.wrapping_sub(b'0') as i32))
+            .and_then(|result| iter.next().map(|v| result + 100 * v.wrapping_sub(b'0') as i32))
+            .and_then(|result| iter.next().map(|v| result + 10 * v.wrapping_sub(b'0') as i32))
+            .and_then(|result| iter.next().map(|v| result + v.wrapping_sub(b'0') as i32))
             .ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))
     }
 

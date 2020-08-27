@@ -29,8 +29,9 @@ impl Scene for LoadingScene {
             let mut next_scene = GameScene::new(state, ctx, 13)?;
             next_scene.player.x = 10 * 16 * 0x200;
             next_scene.player.y = 8 * 16 * 0x200;
-            state.next_scene = Some(Box::new(next_scene));
             state.textscript_vm.state = TextScriptExecutionState::Running(200, 0);
+
+            state.next_scene = Some(Box::new(next_scene));
         }
 
         self.tick += 1;

@@ -11,7 +11,7 @@ use crate::scene::Scene;
 use crate::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
 use crate::str;
-use crate::text_script::{TextScript, TextScriptVM};
+use crate::text_script::TextScriptVM;
 use crate::ui::Components;
 
 pub struct GameScene {
@@ -46,7 +46,7 @@ pub enum Alignment {
 
 impl GameScene {
     pub fn new(state: &mut SharedGameState, ctx: &mut Context, id: usize) -> GameResult<Self> {
-        let stage = Stage::load(ctx, &state.base_path, &state.stages[id])?;
+        let stage = Stage::load(&state.base_path, &state.stages[id], ctx)?;
         info!("Loaded stage: {}", stage.data.name);
         info!("Map size: {}x{}", stage.map.width, stage.map.height);
 
@@ -256,6 +256,13 @@ impl GameScene {
         if !state.textscript_vm.line_2.is_empty() {
             let line2: String = state.textscript_vm.line_2.iter().collect();
             Text::new(TextFragment::from(line2.as_str())).draw(ctx, DrawParam::new()
+                .dest(nalgebra::Point2::new((left_pos + text_offset) * 2.0 + 32.0, (top_pos + 12.0) * 2.0 + 32.0))
+                .scale(nalgebra::Vector2::new(0.5, 0.5)))?;
+        }
+
+        if !state.textscript_vm.line_3.is_empty() {
+            let line3: String = state.textscript_vm.line_3.iter().collect();
+            Text::new(TextFragment::from(line3.as_str())).draw(ctx, DrawParam::new()
                 .dest(nalgebra::Point2::new((left_pos + text_offset) * 2.0 + 32.0, (top_pos + 24.0) * 2.0 + 32.0))
                 .scale(nalgebra::Vector2::new(0.5, 0.5)))?;
         }
@@ -330,13 +337,12 @@ impl GameScene {
 
 impl Scene for GameScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        state.textscript_vm.set_scene_script(self.stage.text_script.clone());
-        self.stage.text_script = TextScript::new();
+        state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.base_path, ctx)?);
         state.textscript_vm.suspend = false;
 
         //self.player.equip.set_booster_2_0(true);
-        state.control_flags.set_flag_x01(true);
-        state.control_flags.set_control_enabled(true);
+        //state.control_flags.set_flag_x01(true);
+        //state.control_flags.set_control_enabled(true);
         Ok(())
     }
 
