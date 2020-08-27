@@ -15,12 +15,28 @@ The engine should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE
 
 #### Roadmap
 
-- [x] Tilemap and player rendering
-- [ ] Weapons
+- [ ] Rendering
+  - [x] Backdrops
+  - [x] Tilemap
+  - [x] Player and it's animations
+  - [x] Carets
+  - [ ] Bullets
+  - [ ] NPCs
+  - [ ] Text
+  - [ ] HUD
 - [ ] Text scripts (TSC)
-- [ ] Making it actually playable
+  - [x] Initial implementation
+  - [x] Execution of basic subset of opcodes and game conversations
+  - [ ] Full implementation
+- [ ] NPCs/entities
+- [ ] Weapons
 - [ ] Modding enhancements and built-in tools
-- [ ] **idk the list is TBD**
+  - [x] Debugger
+  - [ ] Level editor
+  - [ ] Texture auto-reload mode for spriters
+- [ ] Optional enhanced graphics effects
+
+*(tbd)*
 
 #### Mandatory screenshots
 
