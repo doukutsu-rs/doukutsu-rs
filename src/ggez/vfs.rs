@@ -13,7 +13,7 @@
 use std::collections::VecDeque;
 use std::fmt::{self, Debug};
 use std::fs;
-use std::io::{Read, Seek, Write};
+use std::io::{Read, Seek, Write, BufRead};
 use std::path::{self, Path, PathBuf};
 
 use crate::ggez::error::{GameError, GameResult};

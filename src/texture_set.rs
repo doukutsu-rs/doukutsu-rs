@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::Read;
+use std::io::{Read, BufReader, Seek, SeekFrom};
 
 use crate::ggez::{Context, GameError, GameResult};
 use crate::ggez::filesystem;
@@ -97,10 +97,12 @@ impl TextureSet {
 
     fn load_image(&self, ctx: &mut Context, path: &str) -> GameResult<Image> {
         let img = {
-            let mut buf = Vec::new();
+            let mut buf = [0u8; 8];
             let mut reader = filesystem::open(ctx, path)?;
-            let _ = reader.read_to_end(&mut buf)?;
-            let image = image::load_from_memory(&buf)?;
+            reader.read_exact(&mut buf)?;
+            reader.seek(SeekFrom::Start(0))?;
+
+            let image = image::load(BufReader::new(reader), image::guess_format(&buf)?)?;
             let mut rgba = image.to_rgba();
 
             if image.color().channel_count() != 4 {
