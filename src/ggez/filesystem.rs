@@ -307,6 +307,10 @@ impl Filesystem {
         self.vfs.push_back(Box::new(physfs));
     }
 
+    pub(crate) fn mount_vfs(&mut self, vfs: Box<dyn vfs::VFS>) {
+        self.vfs.push_back(vfs);
+    }
+
     /// Looks for a file named `/conf.toml` in any resource directory and
     /// loads it if it finds it.
     /// If it can't read it for some reason, returns an error.
@@ -432,6 +436,10 @@ pub fn log_all(ctx: &mut Context) {
 /// by pushing `$CARGO_MANIFEST_DIR/resources` to it
 pub fn mount(ctx: &mut Context, path: &path::Path, readonly: bool) {
     ctx.filesystem.mount(path, readonly)
+}
+
+pub fn mount_vfs(ctx: &mut Context, vfs: Box<dyn vfs::VFS>) {
+    ctx.filesystem.mount_vfs(vfs)
 }
 
 /// Looks for a file named `/conf.toml` in any resource directory and

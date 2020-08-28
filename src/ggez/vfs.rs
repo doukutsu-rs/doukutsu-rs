@@ -37,11 +37,11 @@ impl<T> VFile for T where T: Read + Write + Seek + Debug {}
 #[must_use]
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct OpenOptions {
-    read: bool,
-    write: bool,
-    create: bool,
-    append: bool,
-    truncate: bool,
+    pub(crate) read: bool,
+    pub(crate) write: bool,
+    pub(crate) create: bool,
+    pub(crate) append: bool,
+    pub(crate) truncate: bool,
 }
 
 impl OpenOptions {

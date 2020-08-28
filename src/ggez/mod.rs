@@ -100,7 +100,7 @@ pub mod filesystem;
 pub mod graphics;
 pub mod input;
 pub mod timer;
-mod vfs;
+pub mod vfs;
 
 pub use crate::ggez::context::{Context, ContextBuilder};
 pub use crate::ggez::error::*;

@@ -40,7 +40,9 @@ use crate::stage::StageData;
 use crate::text_script::TextScriptVM;
 use crate::texture_set::TextureSet;
 use crate::ui::UI;
+use crate::builtin_fs::BuiltinFS;
 
+mod builtin_fs;
 mod caret;
 mod common;
 mod engine_constants;
@@ -265,6 +267,8 @@ pub fn main() -> GameResult {
         .add_resource_path(resource_dir);
 
     let (ctx, event_loop) = &mut cb.build()?;
+    ctx.filesystem.mount_vfs(Box::new(BuiltinFS::new()));
+
     let game = &mut Game::new(ctx)?;
     game.state.next_scene = Some(Box::new(LoadingScene::new()));
 
