@@ -496,12 +496,14 @@ impl Scene for GameScene {
         self.draw_carets(state, ctx)?;
         self.draw_black_bars(state, ctx)?;
 
-        self.draw_hud(state, ctx)?;
-        self.draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
+        if state.control_flags.control_enabled() {
+            self.draw_hud(state, ctx)?;
+        }
 
         self.draw_fade(state, ctx)?;
         self.draw_text_boxes(state, ctx)?;
 
+        self.draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
         Ok(())
     }
 
