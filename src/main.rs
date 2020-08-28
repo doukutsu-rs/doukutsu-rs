@@ -16,12 +16,13 @@ use std::{env, mem};
 use std::path;
 use std::time::Instant;
 
+use bitvec::vec::BitVec;
 use log::*;
 use pretty_env_logger::env_logger::Env;
 use winit::{ElementState, Event, KeyboardInput, WindowEvent};
 
 use crate::caret::{Caret, CaretType};
-use crate::common::Direction;
+use crate::common::{Direction, FadeState};
 use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, ContextBuilder, event, filesystem, GameResult};
 use crate::ggez::conf::{WindowMode, WindowSetup};
@@ -39,7 +40,6 @@ use crate::stage::StageData;
 use crate::text_script::TextScriptVM;
 use crate::texture_set::TextureSet;
 use crate::ui::UI;
-use bitvec::vec::BitVec;
 
 mod caret;
 mod common;
@@ -94,6 +94,7 @@ struct Game {
 pub struct SharedGameState {
     pub control_flags: ControlFlags,
     pub game_flags: BitVec,
+    pub fade_state: FadeState,
     pub game_rng: RNG,
     pub effect_rng: RNG,
     pub carets: Vec<Caret>,
@@ -161,6 +162,7 @@ impl Game {
             state: SharedGameState {
                 control_flags: ControlFlags(0),
                 game_flags: bitvec::bitvec![0; 8000],
+                fade_state: FadeState::Hidden,
                 game_rng: RNG::new(0),
                 effect_rng: RNG::new(Instant::now().elapsed().as_nanos() as i32),
                 carets: Vec::with_capacity(32),

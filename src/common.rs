@@ -8,14 +8,49 @@ use std::cell::RefCell;
 use std::io::Cursor;
 
 use byteorder::ReadBytesExt;
+use num_derive::FromPrimitive;
 use num_traits::Num;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum FadeDirection {
+    Left = 0,
+    Up,
+    Right,
+    Down,
+    Center,
+}
+
+
+impl FadeDirection {
+    pub fn from_int(val: usize) -> Option<FadeDirection> {
+        match val {
+            0 => { Some(FadeDirection::Left) }
+            1 => { Some(FadeDirection::Up) }
+            2 => { Some(FadeDirection::Right) }
+            3 => { Some(FadeDirection::Down) }
+            4 => { Some(FadeDirection::Center) }
+            _ => { None }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+#[repr(u8)]
+pub enum FadeState {
+    Visible,
+    FadeIn(i8, FadeDirection),
+    Hidden,
+    FadeOut(i8, FadeDirection),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum Direction {
     Left = 0,
-    Up = 1,
-    Right = 2,
-    Bottom = 3,
+    Up,
+    Right,
+    Bottom,
 }
 
 impl Direction {

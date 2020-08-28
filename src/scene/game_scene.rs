@@ -1,10 +1,10 @@
 use log::info;
 
-use crate::common::Rect;
+use crate::common::{FadeDirection, FadeState, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
-use crate::ggez::{Context, GameResult, timer};
-use crate::ggez::graphics::{Drawable, DrawParam, Text, TextFragment};
+use crate::ggez::{Context, GameResult, graphics, timer};
+use crate::ggez::graphics::{Color, Drawable, DrawParam, Text, TextFragment};
 use crate::ggez::nalgebra::clamp;
 use crate::player::Player;
 use crate::scene::Scene;
@@ -23,6 +23,7 @@ pub struct GameScene {
     tex_background_name: String,
     tex_caret_name: String,
     tex_face_name: String,
+    tex_fade_name: String,
     tex_hud_name: String,
     tex_npcsym_name: String,
     tex_tileset_name: String,
@@ -53,6 +54,7 @@ impl GameScene {
         let tex_background_name = stage.data.background.filename();
         let tex_caret_name = str!("Caret");
         let tex_face_name = str!("Face");
+        let tex_fade_name = str!("Fade");
         let tex_hud_name = str!("TextBox");
         let tex_npcsym_name = str!("Npc/NpcSym");
         let tex_tileset_name = ["Stage/", &stage.data.tileset.filename()].join("");
@@ -70,6 +72,7 @@ impl GameScene {
             tex_background_name,
             tex_caret_name,
             tex_face_name,
+            tex_fade_name,
             tex_hud_name,
             tex_npcsym_name,
             tex_tileset_name,
@@ -207,6 +210,91 @@ impl GameScene {
         }
 
         batch.draw(ctx)?;
+        Ok(())
+    }
+
+    fn draw_fade(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        match state.fade_state {
+            FadeState::Visible => { return Ok(()); }
+            FadeState::Hidden => {
+                graphics::clear(ctx, Color::from_rgb(0, 0, 32));
+            }
+            FadeState::FadeIn(tick, direction) | FadeState::FadeOut(tick, direction) => {
+                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_fade_name)?;
+                let mut rect = Rect::<usize>::new(0, 0, 16, 16);
+
+                match direction {
+                    FadeDirection::Left | FadeDirection::Right => {
+                        let mut frame = tick;
+
+                        for x in (0..(state.canvas_size.0 as isize + 16)).step_by(16) {
+                            if frame > 15 { frame = 15; } else { frame += 1; }
+
+                            if frame >= 0 {
+                                rect.left = frame as usize * 16;
+                                rect.right = rect.left + 16;
+
+                                for y in (0..(state.canvas_size.1 as isize + 16)).step_by(16) {
+                                    if direction == FadeDirection::Left {
+                                        batch.add_rect(state.canvas_size.0 - x as f32, y as f32, &rect);
+                                    } else {
+                                        batch.add_rect(x as f32, y as f32, &rect);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    FadeDirection::Up | FadeDirection::Down => {
+                        let mut frame = tick;
+
+                        for y in (0..(state.canvas_size.1 as isize + 16)).step_by(16) {
+                            if frame > 15 { frame = 15; } else { frame += 1; }
+
+                            if frame >= 0 {
+                                rect.left = frame as usize * 16;
+                                rect.right = rect.left + 16;
+
+                                for x in (0..(state.canvas_size.0 as isize + 16)).step_by(16) {
+                                    if direction == FadeDirection::Down {
+                                        batch.add_rect(x as f32, y as f32, &rect);
+                                    } else {
+                                        batch.add_rect(x as f32, state.canvas_size.1 - y as f32, &rect);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    FadeDirection::Center => {
+                        let center_x = (state.canvas_size.0 / 2.0 - 8.0) as isize;
+                        let center_y = (state.canvas_size.1 / 2.0 - 8.0) as isize;
+                        let mut start_frame = tick;
+
+                        for x in (0..(center_x + 16)).step_by(16) {
+                            let mut frame = start_frame;
+
+                            for y in (0..(center_y + 16)).step_by(16) {
+                                if frame > 15 { frame = 15; } else { frame += 1; }
+
+                                if frame >= 0 {
+                                    rect.left = frame as usize * 16;
+                                    rect.right = rect.left + 16;
+
+                                    batch.add_rect((center_x - x) as f32, (center_y + y) as f32, &rect);
+                                    batch.add_rect((center_x - x) as f32, (center_y - y) as f32, &rect);
+                                    batch.add_rect((center_x + x) as f32, (center_y + y) as f32, &rect);
+                                    batch.add_rect((center_x + x) as f32, (center_y - y) as f32, &rect);
+                                }
+                            }
+
+                            start_frame += 1;
+                        }
+                    }
+                }
+
+                batch.draw(ctx)?;
+            }
+        }
+
         Ok(())
     }
 
@@ -349,6 +437,24 @@ impl Scene for GameScene {
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         state.update_key_trigger();
 
+        if self.tick % 2 == 0 {
+            match state.fade_state {
+                FadeState::FadeOut(tick, direction) if tick < 15 => {
+                    state.fade_state = FadeState::FadeOut(tick + 1, direction);
+                }
+                FadeState::FadeOut(tick, _) if tick == 15 => {
+                    state.fade_state = FadeState::Hidden;
+                }
+                FadeState::FadeIn(tick, direction) if tick > -15 => {
+                    state.fade_state = FadeState::FadeIn(tick - 1, direction);
+                }
+                FadeState::FadeIn(tick, _) if tick == -15 => {
+                    state.fade_state = FadeState::Visible;
+                }
+                _ => {}
+            }
+        }
+
         if state.control_flags.flag_x01() {
             self.player.tick(state, ctx)?;
 
@@ -393,6 +499,7 @@ impl Scene for GameScene {
         self.draw_hud(state, ctx)?;
         self.draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
 
+        self.draw_fade(state, ctx)?;
         self.draw_text_boxes(state, ctx)?;
 
         Ok(())

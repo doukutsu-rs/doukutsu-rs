@@ -13,6 +13,7 @@ use num_traits::FromPrimitive;
 
 use crate::{SharedGameState, str};
 use crate::bitfield;
+use crate::common::{FadeState, FadeDirection};
 use crate::ggez::{Context, GameResult};
 use crate::ggez::GameError::ParseError;
 use crate::scene::game_scene::GameScene;
@@ -187,12 +188,14 @@ pub enum TextScriptLine {
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
+#[repr(u8)]
 pub enum TextScriptExecutionState {
     Ended,
     Running(u16, u32),
     Msg(u16, u32, u32, u8),
     WaitTicks(u16, u32, u32),
     WaitInput(u16, u32),
+    WaitFade(u16, u32),
 }
 
 pub struct TextScriptVM {
@@ -368,7 +371,6 @@ impl TextScriptVM {
                         cursor.seek(SeekFrom::Start(ip as u64))?;
 
                         let (consumed, chr) = read_cur_wtf8(&mut cursor, remaining);
-                        println!("char: {} {} {}", chr, remaining, consumed);
 
                         match chr {
                             '\n' if state.textscript_vm.current_line == TextScriptLine::Line1 => {
@@ -415,6 +417,12 @@ impl TextScriptVM {
                 }
                 TextScriptExecutionState::WaitInput(event, ip) => {
                     if state.key_trigger.jump() || state.key_trigger.fire() {
+                        state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
+                    }
+                    break;
+                }
+                TextScriptExecutionState::WaitFade(event, ip) => {
+                    if state.fade_state == FadeState::Hidden || state.fade_state == FadeState::Visible {
                         state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
                     }
                     break;
@@ -552,6 +560,14 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::CLO => {
+                        state.textscript_vm.flags.set_render(false);
+                        state.textscript_vm.flags.set_background_visible(false);
+                        state.textscript_vm.flags.set_flag_x10(false);
+                        state.textscript_vm.flags.set_position_top(false);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::TRA => {
                         let map_id = read_cur_varint(&mut cursor)? as usize;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
@@ -570,27 +586,43 @@ impl TextScriptVM {
                         state.next_scene = Some(Box::new(new_scene));
                         exec_state = TextScriptExecutionState::Running(event_num, 0);
                     }
+                    OpCode::FAI => {
+                        let fade_type = read_cur_varint(&mut cursor)? as usize;
+                        if let Some(direction) = FadeDirection::from_int(fade_type) {
+                            state.fade_state = FadeState::FadeIn(15, direction);
+                        }
+
+                        exec_state = TextScriptExecutionState::WaitFade(event, cursor.position() as u32);
+                    }
+                    OpCode::FAO => {
+                        let fade_type = read_cur_varint(&mut cursor)? as usize;
+                        if let Some(direction) = FadeDirection::from_int(fade_type) {
+                            state.fade_state = FadeState::FadeOut(-15, direction);
+                        }
+
+                        exec_state = TextScriptExecutionState::WaitFade(event, cursor.position() as u32);
+                    }
                     // unimplemented opcodes
                     // Zero operands
-                    OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CLO | OpCode::CPS |
+                    OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CPS |
                     OpCode::CRE | OpCode::CSS | OpCode::ESC | OpCode::FLA | OpCode::FMU |
                     OpCode::HMC | OpCode::INI | OpCode::LDP | OpCode::MLP |
                     OpCode::MNA | OpCode::MS2 | OpCode::MS3 |
                     OpCode::RMU | OpCode::SAT | OpCode::SLP | OpCode::SMC | OpCode::SPS |
                     OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM => {
-                        println!("unimplemented opcode: {:?}", op);
+                        log::warn!("unimplemented opcode: {:?}", op);
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // One operand codes
                     OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::FOM | OpCode::QUA | OpCode::UNI |
-                    OpCode::MYB | OpCode::MYD | OpCode::FAI | OpCode::FAO |
+                    OpCode::MYB | OpCode::MYD |
                     OpCode::GIT | OpCode::NUM | OpCode::DNA | OpCode::DNP |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
                     OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ | OpCode::YNJ |
                     OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU | OpCode::CMU |
                     OpCode::SSS | OpCode::ACH => {
                         let par_a = read_cur_varint(&mut cursor)?;
-                        println!("unimplemented opcode: {:?} {}", op, par_a);
+                        log::warn!("unimplemented opcode: {:?} {}", op, par_a);
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Two operand codes
@@ -598,7 +630,7 @@ impl TextScriptVM {
                     OpCode::ITJ | OpCode::SKJ | OpCode::AMJ | OpCode::SMP | OpCode::PSp => {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
-                        println!("unimplemented opcode: {:?} {} {}", op, par_a, par_b);
+                        log::warn!("unimplemented opcode: {:?} {} {}", op, par_a, par_b);
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Three operand codes
@@ -606,7 +638,7 @@ impl TextScriptVM {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
                         let par_c = read_cur_varint(&mut cursor)?;
-                        println!("unimplemented opcode: {:?} {} {} {}", op, par_a, par_b, par_c);
+                        log::warn!("unimplemented opcode: {:?} {} {} {}", op, par_a, par_b, par_c);
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Four operand codes
@@ -615,7 +647,7 @@ impl TextScriptVM {
                         let par_b = read_cur_varint(&mut cursor)?;
                         let par_c = read_cur_varint(&mut cursor)?;
                         let par_d = read_cur_varint(&mut cursor)?;
-                        println!("unimplemented opcode: {:?} {} {} {} {}", op, par_a, par_b, par_c, par_d);
+                        log::warn!("unimplemented opcode: {:?} {} {} {} {}", op, par_a, par_b, par_c, par_d);
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                 }
