@@ -13,6 +13,20 @@ doukutsu-rs project does not re-distribute any copyrighted files.
 
 The engine should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE2) or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) modified freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) (Nicalis commercial release, loading is supported but note we're not going to reverse engineer it or support it's features) data files.
 
+Vanilla Cave Story does not work yet because some important data files are embedded inside executable and we don't have an extractor yet.
+
+##### Where to get them?
+
+**Freeware**
+
+- https://github.com/Clownacy/CSE2/archive/enhanced.zip - copy `game_english/data` from archive to the runtime directory (place you run the executable from, usually project root)
+- https://github.com/nxengine/nxengine-evo/releases/download/v2.6.4/NXEngine-v2.6.4-Win32.zip - copy `NXEngine-evo-2.6.4-xxx/data` from the archive to runtime directory
+
+**Cave Story+**
+
+- PC release - Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
+- Switch release - *tbd*
+
 #### Roadmap
 
 - [ ] Rendering
@@ -27,6 +41,7 @@ The engine should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE
 - [ ] Text scripts (TSC)
   - [x] Initial implementation
   - [x] Execution of basic subset of opcodes and game conversations
+  - [ ] Shift-JIS encoding
   - [ ] Full implementation
 - [ ] NPCs/entities
 - [ ] Weapons
