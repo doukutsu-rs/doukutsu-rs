@@ -729,7 +729,11 @@ impl TextScript {
                     TextScript::skip_until(b'\n', &mut iter)?;
 
                     if event_map.contains_key(&event_num) {
-                        return Err(ParseError(format!("Event {} has been defined twice.", event_num)));
+                        if strict {
+                            return Err(ParseError(format!("Event {} has been defined twice.", event_num)));
+                        } else {
+                            continue;
+                        }
                     }
 
                     let bytecode = TextScript::compile_event(&mut iter, strict)?;
