@@ -12,6 +12,7 @@ use log::info;
 use crate::common;
 use crate::engine_constants::EngineConstants;
 use crate::str;
+use image::RgbaImage;
 
 pub struct SizedBatch {
     pub batch: SpriteBatch,
@@ -95,6 +96,14 @@ impl TextureSet {
         }
     }
 
+    fn make_transparent(rgba: &mut RgbaImage) {
+        for (r, g, b, a) in rgba.iter_mut().tuples() {
+            if *r == 0 && *g == 0 && *b == 0 {
+                *a = 0;
+            }
+        }
+    }
+
     fn load_image(&self, ctx: &mut Context, path: &str) -> GameResult<Image> {
         let img = {
             let mut buf = [0u8; 8];
@@ -104,15 +113,23 @@ impl TextureSet {
 
             let image = image::load(BufReader::new(reader), image::guess_format(&buf)?)?;
             let mut rgba = image.to_rgba();
-
             if image.color().channel_count() != 4 {
-                for (r, g, b, a) in rgba.iter_mut().tuples() {
-                    if *r == 0 && *g == 0 && *b == 0 {
-                        *a = 0;
-                    }
-                }
+                TextureSet::make_transparent(&mut rgba);
             }
+            rgba
+        };
+        let (width, height) = img.dimensions();
 
+        Image::from_rgba8(ctx, width as u16, height as u16, img.as_ref())
+    }
+
+    fn load_image_from_buf(&self, ctx: &mut Context, buf: &[u8]) -> GameResult<Image> {
+        let img = {
+            let image = image::load_from_memory(buf)?;
+            let mut rgba = image.to_rgba();
+            if image.color().channel_count() != 4 {
+                TextureSet::make_transparent(&mut rgba);
+            }
             rgba
         };
         let (width, height) = img.dimensions();
