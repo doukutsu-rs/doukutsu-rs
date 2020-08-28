@@ -746,8 +746,7 @@ impl TextScript {
 
     /// Compiles a decrypted text script data into internal bytecode.
     pub fn compile(data: &[u8], strict: bool) -> GameResult<TextScript> {
-        let code = unsafe { std::str::from_utf8_unchecked(data) };
-        println!("data: {}", code);
+        println!("data: {}", String::from_utf8_lossy(data));
 
         let mut event_map = HashMap::new();
         let mut iter = data.iter().copied().peekable();
@@ -813,9 +812,9 @@ impl TextScript {
                         .map(|t| [t.0, t.1, t.2])
                         .ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?;
 
-                    let code = unsafe { std::str::from_utf8_unchecked(&n) };
+                    let code = String::from_utf8_lossy(&n);
 
-                    TextScript::compile_code(code, strict, iter, &mut bytecode)?;
+                    TextScript::compile_code(code.as_ref(), strict, iter, &mut bytecode)?;
                 }
                 _ => {
                     char_buf.push(chr);
