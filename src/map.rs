@@ -3,6 +3,10 @@ use std::io::{Error, ErrorKind};
 
 use byteorder::{LE, ReadBytesExt};
 
+use crate::ggez::GameError::ResourceLoadError;
+use crate::ggez::GameResult;
+use crate::str;
+
 pub struct Map {
     pub width: usize,
     pub height: usize,
@@ -11,13 +15,13 @@ pub struct Map {
 }
 
 impl Map {
-    pub fn load_from<R: io::Read>(mut map_data: R, mut attrib_data: R) -> io::Result<Self> {
+    pub fn load_from<R: io::Read>(mut map_data: R, mut attrib_data: R) -> GameResult<Self> {
         let mut magic = [0; 3];
 
         map_data.read_exact(&mut magic)?;
 
         if &magic != b"PXM" {
-            return Err(Error::new(ErrorKind::InvalidData, "Invalid magic"));
+            return Err(ResourceLoadError(str!( "Invalid magic")));
         }
 
         map_data.read_i8()?; // unused
