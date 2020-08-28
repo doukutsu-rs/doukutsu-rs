@@ -13,7 +13,7 @@ use num_traits::FromPrimitive;
 
 use crate::{SharedGameState, str};
 use crate::bitfield;
-use crate::common::{FadeState, FadeDirection};
+use crate::common::{Direction, FadeDirection, FadeState};
 use crate::ggez::{Context, GameResult};
 use crate::ggez::GameError::ParseError;
 use crate::scene::game_scene::GameScene;
@@ -486,10 +486,30 @@ impl TextScriptVM {
                     OpCode::FRE => {
                         state.control_flags.set_flag_x01(true);
                         state.control_flags.set_control_enabled(true);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::MYD => {
+                        let new_direction = read_cur_varint(&mut cursor)? as usize;
+                        if let Some(direction) = Direction::from_int(new_direction) {
+                            game_scene.player.direction = direction;
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::SMC => {
+                        game_scene.player.cond.set_hidden(false);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::HMC => {
+                        game_scene.player.cond.set_hidden(true);
+
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::WAI => {
                         let ticks = read_cur_varint(&mut cursor)? as u32;
+
                         exec_state = TextScriptExecutionState::WaitTicks(event, cursor.position() as u32, ticks);
                     }
                     OpCode::NOD => {
@@ -511,10 +531,12 @@ impl TextScriptVM {
                     }
                     OpCode::EVE => {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
+
                         exec_state = TextScriptExecutionState::Running(event_num, 0);
                     }
                     OpCode::MM0 => {
                         game_scene.player.vel_x = 0;
+
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::CMP => {
@@ -531,6 +553,7 @@ impl TextScriptVM {
                     OpCode::MLp => {
                         let life = read_cur_varint(&mut cursor)? as usize;
                         game_scene.player.max_life += life;
+
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::FAC => {
@@ -582,8 +605,8 @@ impl TextScriptVM {
                         new_scene.player.y = pos_y;
 
                         state.textscript_vm.suspend = true;
-
                         state.next_scene = Some(Box::new(new_scene));
+
                         exec_state = TextScriptExecutionState::Running(event_num, 0);
                     }
                     OpCode::FAI => {
@@ -606,23 +629,25 @@ impl TextScriptVM {
                     // Zero operands
                     OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CPS |
                     OpCode::CRE | OpCode::CSS | OpCode::ESC | OpCode::FLA | OpCode::FMU |
-                    OpCode::HMC | OpCode::INI | OpCode::LDP | OpCode::MLP |
+                    OpCode::INI | OpCode::LDP | OpCode::MLP |
                     OpCode::MNA | OpCode::MS2 | OpCode::MS3 |
-                    OpCode::RMU | OpCode::SAT | OpCode::SLP | OpCode::SMC | OpCode::SPS |
+                    OpCode::RMU | OpCode::SAT | OpCode::SLP | OpCode::SPS |
                     OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM => {
                         log::warn!("unimplemented opcode: {:?}", op);
+
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // One operand codes
                     OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::FOM | OpCode::QUA | OpCode::UNI |
-                    OpCode::MYB | OpCode::MYD |
-                    OpCode::GIT | OpCode::NUM | OpCode::DNA | OpCode::DNP |
+                    OpCode::MYB | OpCode::GIT | OpCode::NUM | OpCode::DNA | OpCode::DNP |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
                     OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ | OpCode::YNJ |
                     OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU | OpCode::CMU |
                     OpCode::SSS | OpCode::ACH => {
                         let par_a = read_cur_varint(&mut cursor)?;
+
                         log::warn!("unimplemented opcode: {:?} {}", op, par_a);
+
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Two operand codes
@@ -630,7 +655,9 @@ impl TextScriptVM {
                     OpCode::ITJ | OpCode::SKJ | OpCode::AMJ | OpCode::SMP | OpCode::PSp => {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
+
                         log::warn!("unimplemented opcode: {:?} {} {}", op, par_a, par_b);
+
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Three operand codes
@@ -638,7 +665,9 @@ impl TextScriptVM {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
                         let par_c = read_cur_varint(&mut cursor)?;
+
                         log::warn!("unimplemented opcode: {:?} {} {} {}", op, par_a, par_b, par_c);
+
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Four operand codes
@@ -647,7 +676,9 @@ impl TextScriptVM {
                         let par_b = read_cur_varint(&mut cursor)?;
                         let par_c = read_cur_varint(&mut cursor)?;
                         let par_d = read_cur_varint(&mut cursor)?;
+
                         log::warn!("unimplemented opcode: {:?} {} {} {} {}", op, par_a, par_b, par_c, par_d);
+
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                 }
@@ -731,8 +762,11 @@ impl TextScript {
                     if event_map.contains_key(&event_num) {
                         if strict {
                             return Err(ParseError(format!("Event {} has been defined twice.", event_num)));
-                        } else {
-                            continue;
+                        }
+
+                        match TextScript::skip_until(b'#', &mut iter).ok() {
+                            Some(_) => { continue; }
+                            None => { break; }
                         }
                     }
 
@@ -741,7 +775,7 @@ impl TextScript {
                     println!("{:x?}", &bytecode);
                     event_map.insert(event_num, bytecode);
                 }
-                b'\r' | b'\n' | b' ' => {
+                b'\r' | b'\n' | b' ' | b'\t' => {
                     iter.next();
                 }
                 n => {

@@ -63,7 +63,7 @@ bitfield! {
   impl Debug;
 
   pub cond_x01, set_cond_x01: 0;
-  pub cond_x02, set_cond_x02: 1;
+  pub hidden, set_hidden: 1;
   pub cond_x04, set_cond_x04: 2;
   pub cond_x08, set_cond_x08: 3;
   pub cond_x10, set_cond_x10: 4;
@@ -151,7 +151,7 @@ impl Player {
     }
 
     fn tick_normal(&mut self, state: &mut SharedGameState) -> GameResult {
-        if self.cond.cond_x02() {
+        if self.cond.hidden() {
             return Ok(());
         }
 
@@ -464,7 +464,7 @@ impl Player {
     }
 
     fn tick_animation(&mut self, state: &SharedGameState) {
-        if self.cond.cond_x02() {
+        if self.cond.hidden() {
             return;
         }
 
@@ -596,7 +596,7 @@ impl GameEntity for Player {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult<()> {
-        if !self.cond.visible() || self.cond.cond_x02() {
+        if !self.cond.visible() || self.cond.hidden() {
             return Ok(());
         }
 

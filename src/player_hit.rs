@@ -54,7 +54,7 @@ impl Player {
             && (self.y - self.hit.top as isize) > y * 0x10 * 0x200 {
             self.y = ((y * 0x10 + 8) * 0x200) + self.hit.top as isize;
 
-            if !self.cond.cond_x02() && self.vel_y < -0x200 {
+            if !self.cond.hidden() && self.vel_y < -0x200 {
                 self.flags.set_head_bounced(true);
             }
 
@@ -91,7 +91,7 @@ impl Player {
             && (self.y + self.hit.bottom as isize) > (y * 0x10 - 8) * 0x200 {
             self.y = (y * 0x10 * 0x200) - ((self.x - x * 0x10 * 0x200) / 2) + 0x800 + self.hit.top as isize;
 
-            if !self.cond.cond_x02() && self.vel_y < -0x200 {
+            if !self.cond.hidden() && self.vel_y < -0x200 {
                 self.flags.set_head_bounced(true);
             }
 
@@ -110,7 +110,7 @@ impl Player {
             && (self.y + self.hit.bottom as isize) > (y * 0x10 - 8) * 0x200 {
             self.y = (y * 0x10 * 0x200) - ((self.x - x * 0x10 * 0x200) / 2) - 0x800 + self.hit.top as isize;
 
-            if !self.cond.cond_x02() && self.vel_y < -0x200 {
+            if !self.cond.hidden() && self.vel_y < -0x200 {
                 self.flags.set_head_bounced(true);
             }
 
@@ -129,7 +129,7 @@ impl Player {
             && (self.y + self.hit.bottom as isize) > (y * 0x10 - 8) * 0x200 {
             self.y = (y * 0x10 * 0x200) + ((self.x - x * 0x10 * 0x200) / 2) - 0x800 + self.hit.top as isize;
 
-            if !self.cond.cond_x02() && self.vel_y < -0x200 {
+            if !self.cond.hidden() && self.vel_y < -0x200 {
                 self.flags.set_head_bounced(true);
             }
 
@@ -148,7 +148,7 @@ impl Player {
             && (self.y + self.hit.bottom as isize) > (y * 0x10 - 8) * 0x200 {
             self.y = (y * 0x10 * 0x200) + ((self.x - x * 0x10 * 0x200) / 2) + 0x800 + self.hit.top as isize;
 
-            if !self.cond.cond_x02() && self.vel_y < -0x200 {
+            if !self.cond.hidden() && self.vel_y < -0x200 {
                 self.flags.set_head_bounced(true);
             }
 
