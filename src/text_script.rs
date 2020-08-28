@@ -570,16 +570,16 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
-                    OpCode::MSG => {
+                    OpCode::MSG | OpCode::MS2 | OpCode::MS3 => {
                         state.textscript_vm.face = 0;
                         state.textscript_vm.current_line = TextScriptLine::Line1;
                         state.textscript_vm.line_1.clear();
                         state.textscript_vm.line_2.clear();
                         state.textscript_vm.line_3.clear();
                         state.textscript_vm.flags.set_render(true);
-                        state.textscript_vm.flags.set_background_visible(true);
+                        state.textscript_vm.flags.set_background_visible(op != OpCode::MS2);
                         state.textscript_vm.flags.set_flag_x10(state.textscript_vm.flags.flag_x40());
-                        state.textscript_vm.flags.set_position_top(false);
+                        state.textscript_vm.flags.set_position_top(op != OpCode::MSG);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -629,8 +629,7 @@ impl TextScriptVM {
                     // Zero operands
                     OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CPS |
                     OpCode::CRE | OpCode::CSS | OpCode::ESC | OpCode::FLA | OpCode::FMU |
-                    OpCode::INI | OpCode::LDP | OpCode::MLP |
-                    OpCode::MNA | OpCode::MS2 | OpCode::MS3 |
+                    OpCode::INI | OpCode::LDP | OpCode::MLP | OpCode::MNA |
                     OpCode::RMU | OpCode::SAT | OpCode::SLP | OpCode::SPS |
                     OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM => {
                         log::warn!("unimplemented opcode: {:?}", op);
