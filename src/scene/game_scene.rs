@@ -21,11 +21,6 @@ pub struct GameScene {
     pub player: Player,
     pub stage_id: usize,
     tex_background_name: String,
-    tex_caret_name: String,
-    tex_face_name: String,
-    tex_fade_name: String,
-    tex_hud_name: String,
-    tex_npcsym_name: String,
     tex_tileset_name: String,
     life_bar: usize,
     life_bar_count: usize,
@@ -52,11 +47,6 @@ impl GameScene {
         info!("Map size: {}x{}", stage.map.width, stage.map.height);
 
         let tex_background_name = stage.data.background.filename();
-        let tex_caret_name = str!("Caret");
-        let tex_face_name = str!("Face");
-        let tex_fade_name = str!("Fade");
-        let tex_hud_name = str!("TextBox");
-        let tex_npcsym_name = str!("Npc/NpcSym");
         let tex_tileset_name = ["Stage/", &stage.data.tileset.filename()].join("");
 
         Ok(Self {
@@ -70,11 +60,6 @@ impl GameScene {
             },
             stage_id: id,
             tex_background_name,
-            tex_caret_name,
-            tex_face_name,
-            tex_fade_name,
-            tex_hud_name,
-            tex_npcsym_name,
             tex_tileset_name,
             life_bar: 3,
             life_bar_count: 0,
@@ -82,7 +67,7 @@ impl GameScene {
     }
 
     fn draw_number(&self, x: f32, y: f32, val: usize, align: Alignment, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_hud_name)?;
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
         let n = val.to_string();
         let align_offset = if align == Alignment::Right { n.len() as f32 * 8.0 } else { 0.0 };
 
@@ -96,7 +81,7 @@ impl GameScene {
     }
 
     fn draw_hud(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_hud_name)?;
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
         // todo: max ammo display
 
         // none
@@ -201,7 +186,7 @@ impl GameScene {
     }
 
     fn draw_carets(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_caret_name)?;
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Caret")?;
 
         for caret in state.carets.iter() {
             batch.add_rect((((caret.x - caret.offset_x) / 0x200) - (self.frame.x / 0x200)) as f32,
@@ -220,7 +205,7 @@ impl GameScene {
                 graphics::clear(ctx, Color::from_rgb(0, 0, 32));
             }
             FadeState::FadeIn(tick, direction) | FadeState::FadeOut(tick, direction) => {
-                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_fade_name)?;
+                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Fade")?;
                 let mut rect = Rect::<usize>::new(0, 0, 16, 16);
 
                 match direction {
@@ -305,11 +290,11 @@ impl GameScene {
     fn draw_text_boxes(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         if !state.textscript_vm.flags.render() { return Ok(()); }
 
-        let top_pos = if state.textscript_vm.flags.position_top() { 32.0 } else { state.canvas_size.1 as f32 - 64.0 };
+        let top_pos = if state.textscript_vm.flags.position_top() { 32.0 } else { state.canvas_size.1 as f32 - 66.0 };
         let left_pos = (state.canvas_size.0 / 2.0 - 122.0).floor();
 
         if state.textscript_vm.flags.background_visible() {
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_hud_name)?;
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
 
             batch.add_rect(left_pos, top_pos, &state.constants.textscript.textbox_rect_top);
             for i in 1..7 {
@@ -321,7 +306,7 @@ impl GameScene {
         }
 
         if state.textscript_vm.face != 0 {
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_face_name)?;
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Face")?;
             batch.add_rect(left_pos + 14.0, top_pos + 8.0, &Rect::<usize>::new_size(
                 (state.textscript_vm.face as usize % 6) * 48,
                 (state.textscript_vm.face as usize / 6) * 48,
@@ -335,24 +320,15 @@ impl GameScene {
 
         // todo: proper text rendering
         if !state.textscript_vm.line_1.is_empty() {
-            let line1: String = state.textscript_vm.line_1.iter().collect();
-            Text::new(TextFragment::from(line1.as_str())).draw(ctx, DrawParam::new()
-                .dest(nalgebra::Point2::new((left_pos + text_offset) * 2.0 + 32.0, top_pos * 2.0 + 32.0))
-                .scale(nalgebra::Vector2::new(0.5, 0.5)))?;
+            state.font.draw_text(state.textscript_vm.line_1.iter().copied(), left_pos + text_offset + 14.0, top_pos + 10.0, &state.constants, &mut state.texture_set, ctx)?;
         }
 
         if !state.textscript_vm.line_2.is_empty() {
-            let line2: String = state.textscript_vm.line_2.iter().collect();
-            Text::new(TextFragment::from(line2.as_str())).draw(ctx, DrawParam::new()
-                .dest(nalgebra::Point2::new((left_pos + text_offset) * 2.0 + 32.0, (top_pos + 12.0) * 2.0 + 32.0))
-                .scale(nalgebra::Vector2::new(0.5, 0.5)))?;
+            state.font.draw_text(state.textscript_vm.line_2.iter().copied(), left_pos + text_offset + 14.0, top_pos + 10.0 + 16.0, &state.constants, &mut state.texture_set, ctx)?;
         }
 
         if !state.textscript_vm.line_3.is_empty() {
-            let line3: String = state.textscript_vm.line_3.iter().collect();
-            Text::new(TextFragment::from(line3.as_str())).draw(ctx, DrawParam::new()
-                .dest(nalgebra::Point2::new((left_pos + text_offset) * 2.0 + 32.0, (top_pos + 24.0) * 2.0 + 32.0))
-                .scale(nalgebra::Vector2::new(0.5, 0.5)))?;
+            state.font.draw_text(state.textscript_vm.line_3.iter().copied(), left_pos + text_offset + 14.0, top_pos + 10.0 + 32.0, &state.constants, &mut state.texture_set, ctx)?;
         }
 
         Ok(())
@@ -360,7 +336,7 @@ impl GameScene {
 
     fn draw_tiles(&self, state: &mut SharedGameState, ctx: &mut Context, layer: TileLayer) -> GameResult {
         let tex = match layer {
-            TileLayer::Snack => &self.tex_npcsym_name,
+            TileLayer::Snack => "Npc/NpcSym",
             _ => &self.tex_tileset_name,
         };
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex)?;

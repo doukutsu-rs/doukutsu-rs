@@ -21,6 +21,7 @@ use log::*;
 use pretty_env_logger::env_logger::Env;
 use winit::{ElementState, Event, KeyboardInput, WindowEvent};
 
+use crate::bmfont_renderer::BMFontRenderer;
 use crate::builtin_fs::BuiltinFS;
 use crate::caret::{Caret, CaretType};
 use crate::common::{Direction, FadeState};
@@ -41,8 +42,10 @@ use crate::stage::StageData;
 use crate::text_script::TextScriptVM;
 use crate::texture_set::TextureSet;
 use crate::ui::UI;
+use crate::ggez::GameError::ResourceLoadError;
 
 mod bmfont;
+mod bmfont_renderer;
 mod builtin_fs;
 mod caret;
 mod common;
@@ -103,6 +106,7 @@ pub struct SharedGameState {
     pub carets: Vec<Caret>,
     pub key_state: KeyState,
     pub key_trigger: KeyState,
+    pub font: BMFontRenderer,
     pub texture_set: TextureSet,
     pub base_path: String,
     pub stages: Vec<StageData>,
@@ -154,6 +158,9 @@ impl Game {
         } else if filesystem::exists(ctx, "/stage.dat") || filesystem::exists(ctx, "/sprites.sif") {
             info!("NXEngine-evo data files detected.");
         }
+        let font = BMFontRenderer::load(base_path, &constants.font_path, ctx)?;
+            //.or_else(|| Some(BMFontRenderer::load("/", "builtin/builtin_font.fnt", ctx)?))
+            //.ok_or_else(|| ResourceLoadError(str!("Cannot load game font.")))?;
 
         let s = Game {
             scene: None,
@@ -171,6 +178,7 @@ impl Game {
                 carets: Vec::with_capacity(32),
                 key_state: KeyState(0),
                 key_trigger: KeyState(0),
+                font,
                 texture_set: TextureSet::new(base_path),
                 base_path: str!(base_path),
                 stages: Vec::with_capacity(96),

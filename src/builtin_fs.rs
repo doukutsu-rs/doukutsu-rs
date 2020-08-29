@@ -173,8 +173,6 @@ impl VFS for BuiltinFS {
             return Err(FilesystemError(msg));
         }
 
-        log::info!("open: {:?}", path);
-
         self.get_node(path)?.to_file()
     }
 

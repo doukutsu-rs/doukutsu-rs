@@ -21,7 +21,7 @@ pub struct BmChar {
 }
 
 #[derive(Debug)]
-pub struct BmFont {
+pub struct BMFont {
     pub pages: u16,
     pub font_size: i16,
     pub line_height: u16,
@@ -31,7 +31,7 @@ pub struct BmFont {
 
 const MAGIC: [u8; 4] = [b'B', b'M', b'F', 3];
 
-impl BmFont {
+impl BMFont {
     pub fn load_from<R: io::Read + io::Seek>(mut data: R) -> GameResult<Self> {
         let mut magic = [0u8; 4];
         let mut pages = 0u16;

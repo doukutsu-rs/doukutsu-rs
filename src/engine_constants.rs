@@ -113,6 +113,9 @@ pub struct EngineConstants {
     pub world: WorldConsts,
     pub tex_sizes: HashMap<String, (usize, usize)>,
     pub textscript: TextScriptConsts,
+    pub font_path: String,
+    pub font_scale: f32,
+    pub font_space_offset: f32,
 }
 
 impl Clone for EngineConstants {
@@ -125,6 +128,9 @@ impl Clone for EngineConstants {
             world: self.world.clone(),
             tex_sizes: self.tex_sizes.clone(),
             textscript: self.textscript.clone(),
+            font_path: self.font_path.clone(),
+            font_scale: self.font_scale,
+            font_space_offset: self.font_space_offset,
         }
     }
 }
@@ -374,6 +380,9 @@ impl EngineConstants {
                 textbox_rect_middle: Rect { left: 0, top: 8, right: 244, bottom: 16 },
                 textbox_rect_bottom: Rect { left: 0, top: 16, right: 244, bottom: 24 },
             },
+            font_path: str!("builtin/builtin_font.fnt"),
+            font_scale: 1.0,
+            font_space_offset: -3.0,
         }
     }
 
@@ -383,5 +392,8 @@ impl EngineConstants {
         self.is_cs_plus = true;
         self.tex_sizes.insert(str!("Caret"), (320, 320));
         self.tex_sizes.insert(str!("MyChar"), (200, 384));
+        self.font_path = str!("csfont.fnt");
+        self.font_scale = 0.5;
+        self.font_space_offset = 2.0;
     }
 }

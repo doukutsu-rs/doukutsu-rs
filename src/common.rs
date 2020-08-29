@@ -53,6 +53,8 @@ pub enum Direction {
     Bottom,
 }
 
+pub const FILE_TYPES: [&str; 3] = [".png", ".bmp", ".pbm"];
+
 impl Direction {
     pub fn from_int(val: usize) -> Option<Direction> {
         match val {

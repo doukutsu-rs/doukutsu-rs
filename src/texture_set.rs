@@ -1,18 +1,19 @@
 use std::collections::HashMap;
-use std::io::{Read, BufReader, Seek, SeekFrom};
+use std::io::{BufReader, Read, Seek, SeekFrom};
 
+use image::RgbaImage;
+use itertools::Itertools;
+use log::info;
+
+use crate::common;
+use crate::common::FILE_TYPES;
+use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, GameError, GameResult};
 use crate::ggez::filesystem;
 use crate::ggez::graphics::{Drawable, DrawParam, FilterMode, Image, Rect};
 use crate::ggez::graphics::spritebatch::SpriteBatch;
 use crate::ggez::nalgebra::{Point2, Vector2};
-use itertools::Itertools;
-use log::info;
-
-use crate::common;
-use crate::engine_constants::EngineConstants;
 use crate::str;
-use image::RgbaImage;
 
 pub struct SizedBatch {
     pub batch: SpriteBatch,
@@ -58,6 +59,10 @@ impl SizedBatch {
     }
 
     pub fn add_rect(&mut self, x: f32, y: f32, rect: &common::Rect<usize>) {
+        self.add_rect_scaled(x, y, self.scale_x, self.scale_y, rect)
+    }
+
+    pub fn add_rect_scaled(&mut self, x: f32, y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<usize>) {
         if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
             return;
         }
@@ -68,7 +73,7 @@ impl SizedBatch {
                            (rect.right - rect.left) as f32 / self.width as f32,
                            (rect.bottom - rect.top) as f32 / self.height as f32))
             .dest(Point2::new(x, y))
-            .scale(Vector2::new(self.scale_x, self.scale_y));
+            .scale(Vector2::new(scale_x, scale_y));
 
         self.batch.add(param);
     }
@@ -85,8 +90,6 @@ pub struct TextureSet {
     pub tex_map: HashMap<String, SizedBatch>,
     base_path: String,
 }
-
-static FILE_TYPES: [&str; 3] = [".png", ".bmp", ".pbm"];
 
 impl TextureSet {
     pub fn new(base_path: &str) -> TextureSet {
@@ -142,6 +145,10 @@ impl TextureSet {
             .iter()
             .map(|ext| [&self.base_path, name, ext].join(""))
             .find(|path| filesystem::exists(ctx, path))
+            .or_else(|| FILE_TYPES
+                .iter()
+                .map(|ext| [name, ext].join(""))
+                .find(|path| filesystem::exists(ctx, path)))
             .ok_or_else(|| GameError::ResourceLoadError(format!("Texture {:?} does not exist.", name)))?;
 
         info!("Loading texture: {}", path);
@@ -180,7 +187,6 @@ impl TextureSet {
     }
 
     pub fn draw_text(&mut self, ctx: &mut Context, text: &str) -> GameResult {
-
         Ok(())
     }
 }
