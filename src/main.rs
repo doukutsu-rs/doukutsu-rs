@@ -21,6 +21,7 @@ use log::*;
 use pretty_env_logger::env_logger::Env;
 use winit::{ElementState, Event, KeyboardInput, WindowEvent};
 
+use crate::builtin_fs::BuiltinFS;
 use crate::caret::{Caret, CaretType};
 use crate::common::{Direction, FadeState};
 use crate::engine_constants::EngineConstants;
@@ -40,8 +41,8 @@ use crate::stage::StageData;
 use crate::text_script::TextScriptVM;
 use crate::texture_set::TextureSet;
 use crate::ui::UI;
-use crate::builtin_fs::BuiltinFS;
 
+mod bmfont;
 mod builtin_fs;
 mod caret;
 mod common;
