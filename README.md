@@ -25,7 +25,7 @@ Vanilla Cave Story does not work yet because some important data files are embed
 **Cave Story+**
 
 - PC release - Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
-- Switch release - *tbd*
+- Switch release - While the only significant difference is decrypted text scripts, it's a kind of gray legal area so you have to figure it out yourself... 
 
 #### Roadmap
 
@@ -36,7 +36,7 @@ Vanilla Cave Story does not work yet because some important data files are embed
   - [x] Carets
   - [ ] Bullets
   - [ ] NPCs
-  - [ ] Text
+  - [x] Text
   - [ ] HUD
 - [ ] Text scripts (TSC)
   - [x] Initial implementation
