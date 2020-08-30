@@ -396,4 +396,9 @@ impl EngineConstants {
         self.font_scale = 0.5;
         self.font_space_offset = 2.0;
     }
+
+
+    pub fn apply_csplus_nx_patches(&mut self) {
+        info!("Applying Switch-specific Cave Story+ constants patches...");
+    }
 }

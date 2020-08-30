@@ -150,12 +150,17 @@ impl Game {
         let mut base_path = "/";
 
         if filesystem::exists(ctx, "/base/Nicalis.bmp") {
-            info!("Cave Story+ data files detected.");
+            info!("Cave Story+ (PC) data files detected.");
             constants.apply_csplus_patches();
             base_path = "/base/";
-        } else if filesystem::exists(ctx, "/mrmap.bin") || filesystem::exists(ctx, "/Font/font") {
+        } else if filesystem::exists(ctx, "/base/lighting.tbl") {
+            info!("Cave Story+ (Switch) data files detected.");
+            constants.apply_csplus_patches();
+            constants.apply_csplus_nx_patches();
+            base_path = "/base/";
+        } else if filesystem::exists(ctx, "/mrmap.bin") {
             info!("CSE2E data files detected.");
-        } else if filesystem::exists(ctx, "/stage.dat") || filesystem::exists(ctx, "/sprites.sif") {
+        } else if filesystem::exists(ctx, "/stage.dat") {
             info!("NXEngine-evo data files detected.");
         }
         let font = BMFontRenderer::load(base_path, &constants.font_path, ctx)?;
