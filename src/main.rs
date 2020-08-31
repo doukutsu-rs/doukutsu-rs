@@ -42,7 +42,6 @@ use crate::stage::StageData;
 use crate::text_script::TextScriptVM;
 use crate::texture_set::TextureSet;
 use crate::ui::UI;
-use crate::ggez::GameError::ResourceLoadError;
 
 mod bmfont;
 mod bmfont_renderer;
@@ -55,6 +54,7 @@ mod enemy;
 mod frame;
 mod ggez;
 mod live_debugger;
+mod macros;
 mod map;
 mod player;
 mod player_hit;
@@ -164,8 +164,8 @@ impl Game {
             info!("NXEngine-evo data files detected.");
         }
         let font = BMFontRenderer::load(base_path, &constants.font_path, ctx)?;
-            //.or_else(|| Some(BMFontRenderer::load("/", "builtin/builtin_font.fnt", ctx)?))
-            //.ok_or_else(|| ResourceLoadError(str!("Cannot load game font.")))?;
+        //.or_else(|| Some(BMFontRenderer::load("/", "builtin/builtin_font.fnt", ctx)?))
+        //.ok_or_else(|| ResourceLoadError(str!("Cannot load game font.")))?;
 
         let s = Game {
             scene: None,

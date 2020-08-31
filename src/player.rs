@@ -1,76 +1,15 @@
-use num_traits::clamp;
 use std::clone::Clone;
 
-use crate::bitfield;
+use num_traits::clamp;
+
 use crate::caret::CaretType;
+use crate::common::{Cond, Equip, Flags};
 use crate::common::{Direction, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
 use crate::SharedGameState;
 use crate::str;
-
-bitfield! {
-  #[derive(Clone)]
-  pub struct Flags(u32);
-  impl Debug;
-
-  pub flag_x01, set_flag_x01: 0;
-  pub flag_x02, set_flag_x02: 1;
-  pub flag_x04, set_flag_x04: 2;
-  pub flag_x08, set_flag_x08: 3;
-  pub flag_x10, set_flag_x10: 4;
-  pub flag_x20, set_flag_x20: 5;
-  pub flag_x40, set_flag_x40: 6;
-  pub flag_x80, set_flag_x80: 7;
-  pub underwater, set_underwater: 8; // 0x100
-  pub flag_x200, set_flag_x200: 9;
-  pub flag_x400, set_flag_x400: 10;
-  pub flag_x800, set_flag_x800: 11;
-  pub force_left, set_force_left: 12; // 0x1000
-  pub force_up, set_force_up: 13; // 0x2000
-  pub force_right, set_force_right: 14; // 0x4000
-  pub force_down, set_force_down: 15; // 0x8000
-  pub flag_x10000, set_flag_x10000: 16; // 0x10000
-  pub flag_x20000, set_flag_x20000: 17; // 0x20000
-  pub flag_x40000, set_flag_x40000: 18; // 0x40000
-  pub flag_x80000, set_flag_x80000: 19; // 0x80000
-
-  // engine specific flags
-  pub head_bounced, set_head_bounced: 31;
-}
-
-bitfield! {
-  #[derive(Clone)]
-  pub struct Equip(u16);
-  impl Debug;
-
-  pub has_booster_0_8, set_booster_0_8: 0;
-  pub has_map, set_map: 1;
-  pub has_arms_barrier, set_arms_barrier: 2;
-  pub has_turbocharge, set_turbocharge: 3;
-  pub has_air_tank, set_air_tank: 4;
-  pub has_booster_2_0, set_booster_2_0: 5;
-  pub has_mimiga_mask, set_mimiga_mask: 6;
-  pub has_whimsical_star, set_whimsical_star: 7;
-  pub has_nikumaru, set_nikumaru: 8;
-  // 7 bits wasted, thx pixel
-}
-
-bitfield! {
-  #[derive(Clone)]
-  pub struct Cond(u16);
-  impl Debug;
-
-  pub cond_x01, set_cond_x01: 0;
-  pub hidden, set_hidden: 1;
-  pub cond_x04, set_cond_x04: 2;
-  pub cond_x08, set_cond_x08: 3;
-  pub cond_x10, set_cond_x10: 4;
-  pub cond_x20, set_cond_x20: 5;
-  pub cond_x40, set_cond_x40: 6;
-  pub visible, set_visible: 7;
-}
 
 #[derive(Clone)]
 pub struct Player {
@@ -155,7 +94,7 @@ impl Player {
             return Ok(());
         }
 
-        let physics = if self.flags.underwater() { state.constants.my_char.water_physics } else { state.constants.my_char.air_physics };
+        let physics = if self.flags.in_water() { state.constants.my_char.water_physics } else { state.constants.my_char.air_physics };
 
         self.question = false;
         if self.flags.head_bounced() {
@@ -172,7 +111,7 @@ impl Player {
         // todo: split those into separate procedures and refactor (try to not break the logic!)
 
         // ground movement
-        if self.flags.flag_x08() || self.flags.flag_x10() || self.flags.flag_x20() {
+        if self.flags.hit_bottom_wall() || self.flags.hit_right_slope() || self.flags.hit_left_slope() {
             self.booster_switch = 0;
 
             if self.equip.has_booster_0_8() || self.equip.has_booster_2_0() {
@@ -287,9 +226,9 @@ impl Player {
         // jumping
         if state.control_flags.control_enabled() {
             self.up = state.key_state.up();
-            self.down = state.key_state.down() && !self.flags.flag_x08();
+            self.down = state.key_state.down() && !self.flags.hit_bottom_wall();
 
-            if state.key_trigger.jump() && (self.flags.flag_x08() || self.flags.flag_x10() || self.flags.flag_x20()) && !self.flags.force_up() {
+            if state.key_trigger.jump() && (self.flags.hit_bottom_wall() || self.flags.hit_right_slope() || self.flags.hit_left_slope()) && !self.flags.force_up() {
                 self.vel_y = -physics.jump;
                 // todo: PlaySoundObject(15, SOUND_MODE_PLAY);
             }
@@ -323,7 +262,7 @@ impl Player {
         if self.equip.has_booster_2_0() && self.booster_switch != 0 {
             match self.booster_switch {
                 1 => {
-                    if self.flags.flag_x01() || self.flags.flag_x04() {
+                    if self.flags.hit_left_wall() || self.flags.hit_right_wall() {
                         self.vel_y = -0x100; // -0.5fix9
                     }
 
@@ -369,7 +308,7 @@ impl Player {
             }
 
             // bounce off of ceiling
-            if self.flags.flag_x02() {
+            if self.flags.hit_top_wall() {
                 self.vel_y = 0x200; // 1.0fix9
             }
         } else if self.vel_y < 0 && state.control_flags.control_enabled() && state.key_state.jump() {
@@ -379,22 +318,22 @@ impl Player {
         }
 
         if !state.control_flags.control_enabled() || !state.key_trigger.jump() {
-            if self.flags.flag_x10() && self.vel_x < 0 {
+            if self.flags.hit_right_slope() && self.vel_x < 0 {
                 self.vel_y = -self.vel_x;
             }
 
-            if self.flags.flag_x20() && self.vel_x > 0 {
+            if self.flags.hit_left_slope() && self.vel_x > 0 {
                 self.vel_y = self.vel_x;
             }
 
-            if (self.flags.flag_x08() && self.flags.flag_x80000() && self.vel_x < 0)
-                || (self.flags.flag_x08() && self.flags.flag_x10000() && self.vel_x > 0)
-                || (self.flags.flag_x08() && self.flags.flag_x20000() && self.flags.flag_x40000()) {
+            if (self.flags.hit_bottom_wall() && self.flags.hit_right_bigger_half() && self.vel_x < 0)
+                || (self.flags.hit_bottom_wall() && self.flags.hit_left_bigger_half() && self.vel_x > 0)
+                || (self.flags.hit_bottom_wall() && self.flags.hit_left_smaller_half() && self.flags.hit_right_smaller_half()) {
                 self.vel_y = 0x400; // 2.0fix9
             }
         }
 
-        let max_move = if self.flags.underwater() && !(self.flags.force_left() || self.flags.force_up() || self.flags.force_right() || self.flags.force_down()) {
+        let max_move = if self.flags.in_water() && !(self.flags.force_left() || self.flags.force_up() || self.flags.force_right() || self.flags.force_down()) {
             state.constants.my_char.water_physics.max_move
         } else {
             state.constants.my_char.air_physics.max_move
@@ -405,12 +344,12 @@ impl Player {
 
         // todo: water splashing
 
-        if !self.flags.underwater() {
+        if !self.flags.in_water() {
             self.sprash = false;
         }
 
         // spike damage
-        if self.flags.flag_x400() {
+        if self.flags.hit_by_spike() {
             self.damage(10);
         }
 
@@ -468,7 +407,7 @@ impl Player {
             return;
         }
 
-        if self.flags.flag_x08() {
+        if self.flags.hit_bottom_wall() {
             if self.cond.cond_x01() {
                 self.anim_num = 11;
             } else if state.control_flags.control_enabled() && state.key_state.up() && (state.key_state.left() || state.key_state.right()) {
@@ -560,7 +499,7 @@ impl Player {
 
 impl GameEntity for Player {
     fn tick(&mut self, state: &mut SharedGameState, _ctx: &mut Context) -> GameResult {
-        if !self.cond.visible() {
+        if !self.cond.alive() {
             return Ok(());
         }
 
@@ -596,7 +535,7 @@ impl GameEntity for Player {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult<()> {
-        if !self.cond.visible() || self.cond.hidden() {
+        if !self.cond.alive() || self.cond.hidden() {
             return Ok(());
         }
 

@@ -26,7 +26,7 @@ impl Player {
                 self.vel_x = 0;
             }
 
-            self.flags.set_flag_x01(true);
+            self.flags.set_hit_left_wall(true);
         }
 
         // right wall
@@ -44,7 +44,7 @@ impl Player {
                 self.vel_x = 0;
             }
 
-            self.flags.set_flag_x04(true);
+            self.flags.set_hit_right_wall(true);
         }
 
         // ceiling
@@ -62,7 +62,7 @@ impl Player {
                 self.vel_y = 0;
             }
 
-            self.flags.set_flag_x02(true);
+            self.flags.set_hit_top_wall(true);
         }
 
         // floor
@@ -80,10 +80,11 @@ impl Player {
                 self.vel_y = 0;
             }
 
-            self.flags.set_flag_x08(true);
+            self.flags.set_hit_bottom_wall(true);
         }
     }
 
+    // upper left slope (bigger half)
     fn judge_hit_triangle_a(&mut self, state: &SharedGameState, x: isize, y: isize) {
         if self.x < (x * 0x10 + 8) * 0x200
             && self.x > (x * 0x10 - 8) * 0x200
@@ -99,10 +100,11 @@ impl Player {
                 self.vel_y = 0;
             }
 
-            self.flags.set_flag_x02(true);
+            self.flags.set_hit_top_wall(true);
         }
     }
 
+    // upper left slope (smaller half)
     fn judge_hit_triangle_b(&mut self, state: &SharedGameState, x: isize, y: isize) {
         if self.x < (x * 0x10 + 8) * 0x200
             && self.x > (x * 0x10 - 8) * 0x200
@@ -118,10 +120,11 @@ impl Player {
                 self.vel_y = 0;
             }
 
-            self.flags.set_flag_x02(true);
+            self.flags.set_hit_top_wall(true);
         }
     }
 
+    // upper right slope (smaller half)
     fn judge_hit_triangle_c(&mut self, state: &SharedGameState, x: isize, y: isize) {
         if self.x < (x * 0x10 + 8) * 0x200
             && self.x > (x * 0x10 - 8) * 0x200
@@ -137,10 +140,11 @@ impl Player {
                 self.vel_y = 0;
             }
 
-            self.flags.set_flag_x02(true);
+            self.flags.set_hit_top_wall(true);
         }
     }
 
+    // upper right slope (bigger half)
     fn judge_hit_triangle_d(&mut self, state: &SharedGameState, x: isize, y: isize) {
         if (self.x < (x * 0x10 + 8) * 0x200)
             && (self.x > (x * 0x10 - 8) * 0x200)
@@ -156,12 +160,13 @@ impl Player {
                 self.vel_y = 0;
             }
 
-            self.flags.set_flag_x02(true);
+            self.flags.set_hit_top_wall(true);
         }
     }
 
+    // lower left half (bigger)
     fn judge_hit_triangle_e(&mut self, state: &SharedGameState, x: isize, y: isize) {
-        self.flags.set_flag_x10000(true);
+        self.flags.set_hit_left_bigger_half(true);
 
         if (self.x < (x * 0x10 + 8) * 0x200)
             && (self.x > (x * 0x10 - 8) * 0x200)
@@ -177,13 +182,14 @@ impl Player {
                 self.vel_y = 0;
             }
 
-            self.flags.set_flag_x20(true);
-            self.flags.set_flag_x08(true);
+            self.flags.set_hit_left_slope(true);
+            self.flags.set_hit_bottom_wall(true);
         }
     }
 
+    // lower left half (smaller)
     fn judge_hit_triangle_f(&mut self, state: &SharedGameState, x: isize, y: isize) {
-        self.flags.set_flag_x20000(true);
+        self.flags.set_hit_left_smaller_half(true);
 
         if (self.x < (x * 0x10 + 8) * 0x200)
             && (self.x > (x * 0x10 - 8) * 0x200)
@@ -199,13 +205,14 @@ impl Player {
                 self.vel_y = 0;
             }
 
-            self.flags.set_flag_x20(true);
-            self.flags.set_flag_x08(true);
+            self.flags.set_hit_left_slope(true);
+            self.flags.set_hit_bottom_wall(true);
         }
     }
 
+    // lower right half (smaller)
     fn judge_hit_triangle_g(&mut self, state: &SharedGameState, x: isize, y: isize) {
-        self.flags.set_flag_x40000(true);
+        self.flags.set_hit_right_smaller_half(true);
 
         if (self.x < (x * 0x10 + 8) * 0x200)
             && (self.x > (x * 0x10 - 8) * 0x200)
@@ -221,13 +228,14 @@ impl Player {
                 self.vel_y = 0;
             }
 
-            self.flags.set_flag_x10(true);
-            self.flags.set_flag_x08(true);
+            self.flags.set_hit_right_slope(true);
+            self.flags.set_hit_bottom_wall(true);
         }
     }
 
+    // lower right half (bigger)
     fn judge_hit_triangle_h(&mut self, state: &SharedGameState, x: isize, y: isize) {
-        self.flags.set_flag_x80000(true);
+        self.flags.set_hit_right_bigger_half(true);
 
         if (self.x < (x * 0x10 + 8) * 0x200)
             && (self.x > (x * 0x10 - 8) * 0x200)
@@ -243,8 +251,8 @@ impl Player {
                 self.vel_y = 0;
             }
 
-            self.flags.set_flag_x10(true);
-            self.flags.set_flag_x08(true);
+            self.flags.set_hit_right_slope(true);
+            self.flags.set_hit_bottom_wall(true);
         }
     }
 
@@ -253,7 +261,7 @@ impl Player {
             && (self.x + self.hit.right as isize) > (x * 0x10 - 5) * 0x200
             && (self.y - self.hit.top as isize) < (y * 0x10 + 5) * 0x200
             && (self.y + self.hit.bottom as isize) > y * 0x10 * 0x200 {
-            self.flags.set_underwater(true);
+            self.flags.set_in_water(true);
         }
     }
 
