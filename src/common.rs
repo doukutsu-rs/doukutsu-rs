@@ -54,14 +54,14 @@ bitfield! {
   pub struct Cond(u16);
   impl Debug;
 
-  pub cond_x01, set_cond_x01: 0;
-  pub hidden, set_hidden: 1;
-  pub cond_x04, set_cond_x04: 2;
-  pub cond_x08, set_cond_x08: 3;
-  pub damage_boss, set_damage_boss: 4;
-  pub cond_x20, set_cond_x20: 5;
-  pub cond_x40, set_cond_x40: 6;
-  pub alive, set_alive: 7;
+  pub interacted, set_interacted: 0; // 0x01
+  pub hidden, set_hidden: 1; // 0x02
+  pub fallen, set_fallen: 2; // 0x04
+  pub explode_die, set_explode_die: 3; // 0x08
+  pub damage_boss, set_damage_boss: 4; // 0x10
+  pub cond_x20, set_cond_x20: 5; // 0x20
+  pub cond_x40, set_cond_x40: 6; // 0x40
+  pub alive, set_alive: 7; // 0x80
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

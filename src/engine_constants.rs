@@ -6,6 +6,7 @@ use maplit::hashmap;
 use crate::common::{Direction, Rect};
 use crate::str;
 use crate::text_script::TextScriptEncoding;
+use crate::player::ControlMode;
 
 #[derive(Debug, Copy, Clone)]
 pub struct PhysicsConsts {
@@ -40,7 +41,7 @@ pub struct MyCharConsts {
     pub hit: Rect<usize>,
     pub life: usize,
     pub max_life: usize,
-    pub unit: u8,
+    pub control_mode: ControlMode,
     pub air_physics: PhysicsConsts,
     pub water_physics: PhysicsConsts,
     pub animations_left: [Rect<usize>; 12],
@@ -148,7 +149,7 @@ impl EngineConstants {
                 hit: Rect { left: 5 * 0x200, top: 8 * 0x200, right: 5 * 0x200, bottom: 8 * 0x200 },
                 life: 3,
                 max_life: 3,
-                unit: 0,
+                control_mode: ControlMode::Normal,
                 air_physics: PhysicsConsts {
                     max_dash: 0x32c,
                     max_move: 0x5ff,

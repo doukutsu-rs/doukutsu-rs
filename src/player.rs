@@ -11,6 +11,13 @@ use crate::ggez::{Context, GameResult};
 use crate::SharedGameState;
 use crate::str;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum ControlMode {
+    Normal = 0,
+    IronHead,
+}
+
 #[derive(Clone)]
 pub struct Player {
     pub x: isize,
@@ -27,7 +34,7 @@ pub struct Player {
     pub direction: Direction,
     pub view: Rect<usize>,
     pub hit: Rect<usize>,
-    pub unit: u8,
+    pub control_mode: ControlMode,
     pub question: bool,
     pub booster_fuel: usize,
     pub up: bool,
@@ -68,7 +75,7 @@ impl Player {
             direction: constants.my_char.direction,
             view: constants.my_char.view,
             hit: constants.my_char.hit,
-            unit: constants.my_char.unit,
+            control_mode: constants.my_char.control_mode,
             question: false,
             booster_fuel: 0,
             index_x: 0,
@@ -121,8 +128,8 @@ impl Player {
             }
 
             if state.control_flags.control_enabled() {
-                if state.key_trigger.only_down() && state.key_state.only_down() && !self.cond.cond_x01() && !state.control_flags.flag_x04() {
-                    self.cond.set_cond_x01(true);
+                if state.key_trigger.only_down() && state.key_state.only_down() && !self.cond.interacted() && !state.control_flags.flag_x04() {
+                    self.cond.set_interacted(true);
                     self.question = true;
                 } else {
                     if state.key_state.left() && self.vel_x > -physics.max_dash {
@@ -236,7 +243,7 @@ impl Player {
 
         // stop interacting when moved
         if state.control_flags.control_enabled() && (state.key_state.left() || state.key_state.right() || state.key_state.up() || state.key_state.jump() || state.key_state.fire()) {
-            self.cond.set_cond_x01(false);
+            self.cond.set_interacted(false);
         }
 
         // booster losing fuel
@@ -398,7 +405,8 @@ impl Player {
         Ok(())
     }
 
-    fn tick_stream(&mut self, state: &mut SharedGameState) -> GameResult {
+    fn tick_ironhead(&mut self, state: &mut SharedGameState) -> GameResult {
+        // todo ironhead boss controls
         Ok(())
     }
 
@@ -408,10 +416,10 @@ impl Player {
         }
 
         if self.flags.hit_bottom_wall() {
-            if self.cond.cond_x01() {
+            if self.cond.interacted() {
                 self.anim_num = 11;
             } else if state.control_flags.control_enabled() && state.key_state.up() && (state.key_state.left() || state.key_state.right()) {
-                self.cond.set_cond_x04(true);
+                self.cond.set_fallen(true);
 
                 self.anim_wait += 1;
                 if self.anim_wait > 4 {
@@ -427,7 +435,7 @@ impl Player {
                     self.anim_num = 6;
                 }
             } else if state.control_flags.control_enabled() && (state.key_state.left() || state.key_state.right()) {
-                self.cond.set_cond_x04(true);
+                self.cond.set_fallen(true);
 
                 self.anim_wait += 1;
                 if self.anim_wait > 4 {
@@ -443,18 +451,18 @@ impl Player {
                     self.anim_num = 1;
                 }
             } else if state.control_flags.control_enabled() && state.key_state.up() {
-                if self.cond.cond_x04() {
+                if self.cond.fallen() {
                     // PlaySoundObject(24, SOUND_MODE_PLAY); todo
                 }
 
-                self.cond.set_cond_x04(false);
+                self.cond.set_fallen(false);
                 self.anim_num = 5;
             } else {
-                if self.cond.cond_x04() {
+                if self.cond.fallen() {
                     // PlaySoundObject(24, SOUND_MODE_PLAY); todo
                 }
 
-                self.cond.set_cond_x04(false);
+                self.cond.set_fallen(false);
                 self.anim_num = 0;
             }
         } else if state.key_state.up() {
@@ -483,9 +491,9 @@ impl Player {
 
         // PlaySoundObject(16, SOUND_MODE_PLAY); // todo: damage sound
         self.shock_counter = 128;
-        self.cond.set_cond_x01(false);
+        self.cond.set_interacted(false);
 
-        if self.unit != 1 {
+        if self.control_mode == ControlMode::Normal {
             self.vel_y = -0x400; // -2.0fix9
         }
 
@@ -514,18 +522,18 @@ impl GameEntity for Player {
             self.exp_count = 0;
         }
 
-        match self.unit {
-            0 => {
+        // todo: add additional control modes like NXEngine has such as noclip?
+        match self.control_mode {
+            ControlMode::Normal => {
                 if state.control_flags.flag_x04() && state.control_flags.control_enabled() {
                     // AirProcess(); // todo
                 }
 
                 self.tick_normal(state)?;
             }
-            1 => {
-                self.tick_stream(state)?;
+            ControlMode::IronHead => {
+                self.tick_ironhead(state)?;
             }
-            _ => {}
         }
 
         self.cond.set_cond_x20(false);
