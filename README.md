@@ -76,6 +76,7 @@ Would 90% of end-users running this thing care about the programming language so
 
 - Studio Pixel for Cave Story 
 - [Cave Story Tribute Site](https://cavestory.org) - for LOTS of useful resources related to the game. 
-- [Clownacy for CSE2](https://github.com/Clownacy/CSE2) - a great and very accurate reference for game's logic used in this project
+- [Clownacy for CSE2](https://github.com/Clownacy/CSE2) - some game logic reference / mutual help in reverse engineering bitfields and other shit.
 - [CSMC](https://discord.gg/xRsWpz6) - a helpful Cave Story modding community
+- [LunarLambda](https://gitdab.com/LunarLambda/organism) - for reimplementing Organya in Rust, which is used by us as `.org` playback engine.
 - [NXEngine](https://github.com/nxengine/nxengine-evo) - an another OSS rewrite of Cave Story engine I took some inspiration from.
