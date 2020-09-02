@@ -625,6 +625,11 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::WaitFade(event, cursor.position() as u32);
                     }
+                    OpCode::CMU => {
+                        let song_id = read_cur_varint(&mut cursor)? as usize;
+                        state.sound_manager.play_song(song_id, &state.constants, ctx)?;
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     // unimplemented opcodes
                     // Zero operands
                     OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CPS |
@@ -641,7 +646,7 @@ impl TextScriptVM {
                     OpCode::MYB | OpCode::GIT | OpCode::NUM | OpCode::DNA | OpCode::DNP |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
                     OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ | OpCode::YNJ |
-                    OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU | OpCode::CMU |
+                    OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU |
                     OpCode::SSS | OpCode::ACH => {
                         let par_a = read_cur_varint(&mut cursor)?;
 
@@ -750,12 +755,15 @@ impl TextScript {
 
         let mut event_map = HashMap::new();
         let mut iter = data.iter().copied().peekable();
+        let mut last_event = 0;
+
         while let Some(&chr) = iter.peek() {
             match chr {
                 b'#' => {
                     iter.next();
                     let event_num = TextScript::read_number(&mut iter)? as u16;
                     TextScript::skip_until(b'\n', &mut iter)?;
+                    last_event = event_num;
 
                     if event_map.contains_key(&event_num) {
                         if strict {
@@ -777,7 +785,7 @@ impl TextScript {
                     iter.next();
                 }
                 n => {
-                    return Err(ParseError(format!("Unexpected token: {}", n as char)));
+                    return Err(ParseError(format!("Unexpected token in event {}: {}", last_event, n as char)));
                 }
             }
         }
@@ -957,10 +965,12 @@ impl TextScript {
         }
     }
 
-    fn skip_until<I: Iterator<Item=u8>>(expect: u8, iter: &mut I) -> GameResult {
-        for chr in iter {
+    fn skip_until<I: Iterator<Item=u8>>(expect: u8, iter: &mut Peekable<I>) -> GameResult {
+        while let Some(&chr) = iter.peek() {
             if chr == expect {
                 return Ok(());
+            } else {
+                iter.next();
             }
         }
 
