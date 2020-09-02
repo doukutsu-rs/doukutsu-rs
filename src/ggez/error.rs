@@ -4,7 +4,7 @@
 use std::error::Error;
 use std::fmt;
 use std::string::FromUtf8Error;
-use std::sync::Arc;
+use std::sync::{Arc, PoisonError};
 
 /// An enum containing all kinds of game framework errors.
 #[derive(Debug, Clone)]
@@ -230,5 +230,33 @@ impl From<strum::ParseError> for GameError {
     fn from(s: strum::ParseError) -> GameError {
         let errstr = format!("Strum parse error: {}", s);
         GameError::ParseError(errstr)
+    }
+}
+
+impl From<cpal::DefaultStreamConfigError> for GameError {
+    fn from(s: cpal::DefaultStreamConfigError) -> GameError {
+        let errstr = format!("Default stream config error: {}", s);
+        GameError::AudioError(errstr)
+    }
+}
+
+impl From<cpal::PlayStreamError> for GameError {
+    fn from(s: cpal::PlayStreamError) -> GameError {
+        let errstr = format!("Play stream error: {}", s);
+        GameError::AudioError(errstr)
+    }
+}
+
+impl From<cpal::BuildStreamError> for GameError {
+    fn from(s: cpal::BuildStreamError) -> GameError {
+        let errstr = format!("Build stream error: {}", s);
+        GameError::AudioError(errstr)
+    }
+}
+
+impl<T> From<PoisonError<T>> for GameError {
+    fn from(s: PoisonError<T>) -> GameError {
+        let errstr = format!("Poison error: {}", s);
+        GameError::EventLoopError(errstr)
     }
 }

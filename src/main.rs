@@ -187,7 +187,7 @@ impl Game {
                 texture_set: TextureSet::new(base_path),
                 base_path: str!(base_path),
                 stages: Vec::with_capacity(96),
-                sound_manager: SoundManager::new(ctx),
+                sound_manager: SoundManager::new(ctx)?,
                 constants,
                 scale,
                 screen_size,

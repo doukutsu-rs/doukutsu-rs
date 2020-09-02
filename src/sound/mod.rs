@@ -1,33 +1,204 @@
-use crate::ggez::{Context, GameResult};
+use std::sync::{mpsc, RwLock};
+use std::sync::mpsc::{Receiver, Sender};
+
+use bitflags::_core::time::Duration;
+use cpal::Sample;
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+
+use crate::engine_constants::EngineConstants;
+use crate::ggez::{Context, filesystem, GameResult};
+use crate::ggez::GameError::AudioError;
+use crate::sound::organya::Song;
+use crate::sound::playback::PlaybackEngine;
+use crate::sound::wave_bank::SoundBank;
+use crate::str;
 
 pub mod pixtone;
+mod wave_bank;
+mod organya;
+mod playback;
+mod stuff;
+mod wav;
 
 pub struct SoundManager {
-    intro: Vec<u8>,
-    sloop: Vec<u8>,
+    tx: Sender<PlaybackMessage>,
+    current_song_id: usize,
 }
 
-//unsafe impl Send for SoundManager {}
+static SONGS: [&'static str; 42] = [
+    "XXXX",
+    "WANPAKU",
+    "ANZEN",
+    "GAMEOVER",
+    "GRAVITY",
+    "WEED",
+    "MDOWN2",
+    "FIREEYE",
+    "VIVI",
+    "MURA",
+    "FANFALE1",
+    "GINSUKE",
+    "CEMETERY",
+    "PLANT",
+    "KODOU",
+    "FANFALE3",
+    "FANFALE2",
+    "DR",
+    "ESCAPE",
+    "JENKA",
+    "MAZE",
+    "ACCESS",
+    "IRONH",
+    "GRAND",
+    "Curly",
+    "OSIDE",
+    "REQUIEM",
+    "WANPAK2",
+    "QUIET",
+    "LASTCAVE",
+    "BALCONY",
+    "LASTBTL",
+    "LASTBT3",
+    "ENDING",
+    "ZONBIE",
+    "BDOWN",
+    "HELL",
+    "JENKA2",
+    "MARINE",
+    "BALLOS",
+    "TOROKO",
+    "WHITE"
+];
 
 impl SoundManager {
-    pub fn new(ctx: &mut Context) -> SoundManager {
-        SoundManager {
-            intro: Vec::new(),
-            sloop: Vec::new(),
-        }
+    pub fn new(ctx: &mut Context) -> GameResult<SoundManager> {
+        let (tx, rx): (Sender<PlaybackMessage>, Receiver<PlaybackMessage>) = mpsc::channel();
+
+        let host = cpal::default_host();
+        let device = host.default_output_device().ok_or_else(|| AudioError(str!("Error initializing audio device.")))?;
+        let config = device.default_output_config()?;
+
+        let bnk = wave_bank::SoundBank::load_from(filesystem::open(ctx, "/builtin/pixtone.pcm")?)?;
+
+        std::thread::spawn(move || {
+            if let Err(err) = match config.sample_format() {
+                cpal::SampleFormat::F32 => run::<f32>(rx, bnk, &device, &config.into()),
+                cpal::SampleFormat::I16 => run::<i16>(rx, bnk, &device, &config.into()),
+                cpal::SampleFormat::U16 => run::<u16>(rx, bnk, &device, &config.into()),
+            } {
+                log::error!("Something went wrong in audio thread: {}", err);
+            }
+        });
+
+        Ok(SoundManager {
+            tx: tx.clone(),
+            current_song_id: 0,
+        })
     }
 
-    pub fn play_song(&mut self, ctx: &mut Context) -> GameResult {
-        /*self.intro.clear();
-        self.sloop.clear();
-        ggez::filesystem::open(ctx, "/base/Ogg11/curly_intro.ogg")?.read_to_end(&mut self.intro)?;
-        ggez::filesystem::open(ctx, "/base/Ogg11/curly_loop.ogg")?.read_to_end(&mut self.sloop)?;
+    pub fn play_song(&mut self, song_id: usize, constants: &EngineConstants, ctx: &mut Context) -> GameResult {
+        if self.current_song_id == song_id {
+            return Ok(());
+        }
 
-        let sink = Sink::new(ctx.audio_context.device());
-        sink.append(rodio::Decoder::new(Cursor::new(self.intro.clone()))?);
-        sink.append(rodio::Decoder::new(Cursor::new(self.sloop.clone()))?);
-        sink.detach();*/
+        if let Some(song_name) = SONGS.get(song_id) {
+            let org = organya::Song::load_from(filesystem::open(ctx, ["/base/Org/", &song_name.to_lowercase(), ".org"].join(""))?)?;
+            log::info!("Playing song: {}", song_name);
 
+            self.current_song_id = song_id;
+            self.tx.send(PlaybackMessage::PlaySong(org));
+        }
         Ok(())
+    }
+}
+
+enum PlaybackMessage {
+    Stop,
+    PlaySong(Song),
+}
+
+#[derive(PartialEq, Eq)]
+enum PlaybackState {
+    Stopped,
+    Playing,
+}
+
+fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
+          device: &cpal::Device, config: &cpal::StreamConfig) -> GameResult where
+    T: cpal::Sample,
+{
+    let sample_rate = config.sample_rate.0 as f32;
+    let channels = config.channels as usize;
+    let mut state = PlaybackState::Stopped;
+    let mut new_song: Option<Song> = None;
+    let mut engine = PlaybackEngine::new(Song::empty(), &bank);
+
+    log::info!("Audio format: {} {}", sample_rate, channels);
+    engine.set_sample_rate(sample_rate as usize);
+    engine.loops = usize::MAX;
+
+    let mut buf = vec![0x8080; 441];
+    let mut index = 0;
+    let mut frames = engine.render_to(&mut buf);
+
+    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+
+    let stream = device.build_output_stream(
+        config,
+        move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
+            match rx.try_recv() {
+                Ok(PlaybackMessage::PlaySong(song)) => {
+                    engine.start_song(song, &bank);
+
+                    for i in &mut buf[0..frames] { *i = 0x8080 };
+                    frames = engine.render_to(&mut buf);
+                    index = 0;
+
+                    state = PlaybackState::Playing;
+                }
+                _ => {}
+            }
+
+            for frame in data.chunks_mut(channels) {
+                let sample: u16 = {
+                    if state == PlaybackState::Stopped {
+                        0x8000
+                    } else if index < frames {
+                        let sample = buf[index];
+                        index += 1;
+                        if index & 1 == 0 { (sample & 0xff) << 8 } else { sample & 0xff00 }
+                    } else {
+                        for i in &mut buf[0..frames] { *i = 0x8080 };
+                        frames = engine.render_to(&mut buf);
+                        index = 0;
+                        let sample = buf[0];
+                        (sample & 0xff) << 8
+                    }
+                };
+
+                let value: T = cpal::Sample::from::<u16>(&sample);
+                for sample in frame.iter_mut() {
+                    *sample = value;
+                }
+            }
+        },
+        err_fn,
+    )?;
+    stream.play()?;
+
+    loop {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+fn write_data<T>(output: &mut [T], channels: usize, next_sample: &mut dyn FnMut() -> u16)
+    where
+        T: cpal::Sample,
+{
+    for frame in output.chunks_mut(channels) {
+        let value: T = cpal::Sample::from::<u16>(&next_sample());
+        for sample in frame.iter_mut() {
+            *sample = value;
+        }
     }
 }
