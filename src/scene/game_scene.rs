@@ -404,9 +404,12 @@ impl Scene for GameScene {
         state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.base_path, ctx)?);
         state.textscript_vm.suspend = false;
 
+        let npcs = self.stage.load_npcs(&state.base_path, ctx)?;
+        for npc in npcs {
+
+        }
+
         //self.player.equip.set_booster_2_0(true);
-        //state.control_flags.set_flag_x01(true);
-        //state.control_flags.set_control_enabled(true);
         Ok(())
     }
 

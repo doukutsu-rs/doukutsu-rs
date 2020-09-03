@@ -7,7 +7,7 @@ use log::info;
 
 use crate::ggez::{Context, filesystem, GameResult};
 use crate::ggez::GameError::ResourceLoadError;
-use crate::map::Map;
+use crate::map::{Map, NPCData};
 use crate::text_script::TextScript;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -394,5 +394,12 @@ impl Stage {
         let text_script = TextScript::load_from(tsc_file)?;
 
         Ok(text_script)
+    }
+
+    pub fn load_npcs(&mut self, root: &str, ctx: &mut Context) -> GameResult<Vec<NPCData>> {
+        let pxe_file = filesystem::open(ctx, [root, "Stage/", &self.data.map, ".pxe"].join(""))?;
+        let npc_data = NPCData::load_from(pxe_file)?;
+
+        Ok(npc_data)
     }
 }

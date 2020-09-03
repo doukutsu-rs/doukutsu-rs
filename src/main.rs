@@ -55,6 +55,7 @@ mod ggez;
 mod live_debugger;
 mod macros;
 mod map;
+mod npc;
 mod player;
 mod player_hit;
 mod rng;
