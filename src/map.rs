@@ -56,13 +56,13 @@ impl Map {
 }
 
 pub struct NPCData {
-    x: i16,
-    y: i16,
-    flag_id: u16,
-    event_num: u16,
-    npc_type: u16,
-    flags: u16,
-    layer: u8,
+    pub x: i16,
+    pub y: i16,
+    pub flag_id: u16,
+    pub event_num: u16,
+    pub npc_type: u16,
+    pub flags: u16,
+    pub layer: u8,
 }
 
 impl NPCData {
