@@ -25,7 +25,7 @@ Vanilla Cave Story does not work yet because some important data files are embed
 **Cave Story+**
 
 - PC release - Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
-- Switch release - While the only significant difference is decrypted text scripts, it's a kind of gray legal area so you have to figure it out yourself... 
+- Switch release - While some support is implemented, hacking consoles and extracting cartridge content is a kind of gray legal area so I will leave it to you... 
 
 #### Roadmap
 
@@ -43,6 +43,11 @@ Vanilla Cave Story does not work yet because some important data files are embed
   - [x] Execution of basic subset of opcodes and game conversations
   - [ ] Shift-JIS encoding
   - [ ] Full implementation
+- [ ] Audio
+  - [x] Organya BGM playback
+  - [x] Text script bindings
+  - [ ] CS+ style .ogg BGM playback
+  - [ ] PixTone SFX
 - [ ] NPCs/entities
 - [ ] Weapons
 - [ ] Modding enhancements and built-in tools
