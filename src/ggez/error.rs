@@ -5,6 +5,7 @@ use std::error::Error;
 use std::fmt;
 use std::string::FromUtf8Error;
 use std::sync::{Arc, PoisonError};
+use std::sync::mpsc::SendError;
 
 /// An enum containing all kinds of game framework errors.
 #[derive(Debug, Clone)]
@@ -257,6 +258,13 @@ impl From<cpal::BuildStreamError> for GameError {
 impl<T> From<PoisonError<T>> for GameError {
     fn from(s: PoisonError<T>) -> GameError {
         let errstr = format!("Poison error: {}", s);
+        GameError::EventLoopError(errstr)
+    }
+}
+
+impl<T> From<SendError<T>> for GameError {
+    fn from(s: SendError<T>) -> GameError {
+        let errstr = format!("Send error: {}", s);
         GameError::EventLoopError(errstr)
     }
 }
