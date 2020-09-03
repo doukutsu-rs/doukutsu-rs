@@ -1,8 +1,7 @@
-use std::sync::{mpsc, RwLock};
+use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 
 use bitflags::_core::time::Duration;
-use cpal::Sample;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 use crate::engine_constants::EngineConstants;
@@ -25,7 +24,7 @@ pub struct SoundManager {
     current_song_id: usize,
 }
 
-static SONGS: [&'static str; 42] = [
+static SONGS: [&str; 42] = [
     "XXXX",
     "WANPAKU",
     "ANZEN",
@@ -174,6 +173,9 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
                     index = 0;
 
                     state = PlaybackState::Playing;
+                }
+                Ok(PlaybackMessage::Stop) => {
+                    state = PlaybackState::Stopped;
                 }
                 Ok(PlaybackMessage::SaveState) => {
                     saved_state = Some(engine.get_state());
