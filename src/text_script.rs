@@ -628,14 +628,25 @@ impl TextScriptVM {
                     OpCode::CMU => {
                         let song_id = read_cur_varint(&mut cursor)? as usize;
                         state.sound_manager.play_song(song_id, &state.constants, ctx)?;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::FMU => {
+                        state.sound_manager.save_state()?;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::RMU => {
+                        state.sound_manager.restore_state()?;
+
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // unimplemented opcodes
                     // Zero operands
                     OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CPS |
-                    OpCode::CRE | OpCode::CSS | OpCode::ESC | OpCode::FLA | OpCode::FMU |
+                    OpCode::CRE | OpCode::CSS | OpCode::ESC | OpCode::FLA |
                     OpCode::INI | OpCode::LDP | OpCode::MLP | OpCode::MNA |
-                    OpCode::RMU | OpCode::SAT | OpCode::SLP | OpCode::SPS |
+                    OpCode::SAT | OpCode::SLP | OpCode::SPS |
                     OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM => {
                         log::warn!("unimplemented opcode: {:?}", op);
 
@@ -751,7 +762,7 @@ impl TextScript {
 
     /// Compiles a decrypted text script data into internal bytecode.
     pub fn compile(data: &[u8], strict: bool) -> GameResult<TextScript> {
-        println!("data: {}", String::from_utf8_lossy(data));
+        log::debug!("data: {}", String::from_utf8_lossy(data));
 
         let mut event_map = HashMap::new();
         let mut iter = data.iter().copied().peekable();
@@ -778,7 +789,6 @@ impl TextScript {
 
                     let bytecode = TextScript::compile_event(&mut iter, strict)?;
                     log::info!("Successfully compiled event #{} ({} bytes generated).", event_num, bytecode.len());
-                    println!("{:x?}", &bytecode);
                     event_map.insert(event_num, bytecode);
                 }
                 b'\r' | b'\n' | b' ' | b'\t' => {

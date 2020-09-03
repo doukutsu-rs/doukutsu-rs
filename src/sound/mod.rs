@@ -9,7 +9,7 @@ use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, filesystem, GameResult};
 use crate::ggez::GameError::AudioError;
 use crate::sound::organya::Song;
-use crate::sound::playback::PlaybackEngine;
+use crate::sound::playback::{PlaybackEngine, SavedPlaybackState};
 use crate::sound::wave_bank::SoundBank;
 use crate::str;
 
@@ -101,20 +101,39 @@ impl SoundManager {
             return Ok(());
         }
 
-        if let Some(song_name) = SONGS.get(song_id) {
+        if song_id == 0 {
+            log::info!("Stopping BGM");
+
+            self.current_song_id = 0;
+            self.tx.send(PlaybackMessage::Stop)?;
+        } else if let Some(song_name) = SONGS.get(song_id) {
             let org = organya::Song::load_from(filesystem::open(ctx, ["/base/Org/", &song_name.to_lowercase(), ".org"].join(""))?)?;
-            log::info!("Playing song: {}", song_name);
+            log::info!("Playing BGM: {}", song_name);
 
             self.current_song_id = song_id;
-            self.tx.send(PlaybackMessage::PlaySong(org));
+            self.tx.send(PlaybackMessage::PlaySong(Box::new(org)))?;
         }
+        Ok(())
+    }
+
+    pub fn save_state(&mut self) -> GameResult {
+        self.tx.send(PlaybackMessage::SaveState)?;
+
+        Ok(())
+    }
+
+    pub fn restore_state(&mut self) -> GameResult {
+        self.tx.send(PlaybackMessage::RestoreState)?;
+
         Ok(())
     }
 }
 
 enum PlaybackMessage {
     Stop,
-    PlaySong(Song),
+    PlaySong(Box<Song>),
+    SaveState,
+    RestoreState,
 }
 
 #[derive(PartialEq, Eq)]
@@ -130,7 +149,7 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
     let sample_rate = config.sample_rate.0 as f32;
     let channels = config.channels as usize;
     let mut state = PlaybackState::Stopped;
-    let mut new_song: Option<Song> = None;
+    let mut saved_state: Option<SavedPlaybackState> = None;
     let mut engine = PlaybackEngine::new(Song::empty(), &bank);
 
     log::info!("Audio format: {} {}", sample_rate, channels);
@@ -148,13 +167,28 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
         move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
             match rx.try_recv() {
                 Ok(PlaybackMessage::PlaySong(song)) => {
-                    engine.start_song(song, &bank);
+                    engine.start_song(*song, &bank);
 
                     for i in &mut buf[0..frames] { *i = 0x8080 };
                     frames = engine.render_to(&mut buf);
                     index = 0;
 
                     state = PlaybackState::Playing;
+                }
+                Ok(PlaybackMessage::SaveState) => {
+                    saved_state = Some(engine.get_state());
+                }
+                Ok(PlaybackMessage::RestoreState) => {
+                    if saved_state.is_some() {
+                        engine.set_state(saved_state.clone().unwrap(), &bank);
+                        saved_state = None;
+
+                        for i in &mut buf[0..frames] { *i = 0x8080 };
+                        frames = engine.render_to(&mut buf);
+                        index = 0;
+
+                        state = PlaybackState::Playing;
+                    }
                 }
                 _ => {}
             }

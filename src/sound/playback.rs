@@ -18,9 +18,18 @@ pub struct PlaybackEngine {
     pub loops: usize,
 }
 
-pub struct PlaybackState {
+pub struct SavedPlaybackState {
     song: Organya,
     play_pos: i32,
+}
+
+impl Clone for SavedPlaybackState {
+    fn clone(&self) -> SavedPlaybackState {
+        SavedPlaybackState {
+            song: self.song.clone(),
+            play_pos: self.play_pos,
+        }
+    }
 }
 
 impl PlaybackEngine {
@@ -98,14 +107,14 @@ impl PlaybackEngine {
         self.frames_per_tick = (sample_rate / 1000) * self.song.time.wait as usize;
     }
 
-    pub fn get_state(&self) -> PlaybackState {
-        PlaybackState {
+    pub fn get_state(&self) -> SavedPlaybackState {
+        SavedPlaybackState {
             song: self.song.clone(),
             play_pos: self.play_pos,
         }
     }
 
-    pub fn set_state(&mut self, state: PlaybackState, samples: &SoundBank) {
+    pub fn set_state(&mut self, state: SavedPlaybackState, samples: &SoundBank) {
         self.start_song(state.song, samples);
         self.play_pos = state.play_pos;
     }
