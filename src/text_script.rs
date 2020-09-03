@@ -609,6 +609,17 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event_num, 0);
                     }
+                    OpCode::MOV => {
+                        let pos_x = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
+                        let pos_y = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
+
+                        game_scene.player.vel_x = 0;
+                        game_scene.player.vel_y = 0;
+                        game_scene.player.x = pos_x;
+                        game_scene.player.y = pos_y;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::FAI => {
                         let fade_type = read_cur_varint(&mut cursor)? as usize;
                         if let Some(direction) = FadeDirection::from_int(fade_type) {
@@ -624,6 +635,13 @@ impl TextScriptVM {
                         }
 
                         exec_state = TextScriptExecutionState::WaitFade(event, cursor.position() as u32);
+                    }
+                    OpCode::QUA => {
+                        let count = read_cur_varint(&mut cursor)? as u16;
+
+                        state.quake_counter = count;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::CMU => {
                         let song_id = read_cur_varint(&mut cursor)? as usize;
@@ -653,7 +671,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // One operand codes
-                    OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::FOM | OpCode::QUA | OpCode::UNI |
+                    OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::FOM | OpCode::UNI |
                     OpCode::MYB | OpCode::GIT | OpCode::NUM | OpCode::DNA | OpCode::DNP |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
                     OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ | OpCode::YNJ |
@@ -666,7 +684,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Two operand codes
-                    OpCode::FON | OpCode::MOV | OpCode::AMp | OpCode::NCJ | OpCode::ECJ |
+                    OpCode::FON | OpCode::AMp | OpCode::NCJ | OpCode::ECJ |
                     OpCode::ITJ | OpCode::SKJ | OpCode::AMJ | OpCode::SMP | OpCode::PSp => {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;

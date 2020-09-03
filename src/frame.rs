@@ -9,7 +9,7 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn update(&mut self, state: &SharedGameState, player: &Player, stage: &Stage) {
+    pub fn update(&mut self, state: &mut SharedGameState, player: &Player, stage: &Stage) {
         if (stage.map.width - 1) * 16 < state.canvas_size.0 as usize {
             self.x = -(((state.canvas_size.0 as isize - ((stage.map.width - 1) * 16) as isize) * 0x200) / 2);
         } else {
@@ -40,6 +40,11 @@ impl Frame {
             }
         }
 
-        // todo quake
+        if state.quake_counter > 0 {
+            state.quake_counter -= 1;
+
+            self.x += state.effect_rng.range(-0x300..0x300) as isize;
+            self.y += state.effect_rng.range(-0x300..0x300) as isize;
+        }
     }
 }

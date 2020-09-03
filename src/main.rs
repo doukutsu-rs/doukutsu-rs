@@ -50,7 +50,6 @@ mod caret;
 mod common;
 mod engine_constants;
 mod entity;
-mod enemy;
 mod frame;
 mod ggez;
 mod live_debugger;
@@ -103,6 +102,7 @@ pub struct SharedGameState {
     pub fade_state: FadeState,
     pub game_rng: RNG,
     pub effect_rng: RNG,
+    pub quake_counter: u16,
     pub carets: Vec<Caret>,
     pub key_state: KeyState,
     pub key_trigger: KeyState,
@@ -180,6 +180,7 @@ impl Game {
                 fade_state: FadeState::Hidden,
                 game_rng: RNG::new(0),
                 effect_rng: RNG::new(Instant::now().elapsed().as_nanos() as i32),
+                quake_counter: 0,
                 carets: Vec::with_capacity(32),
                 key_state: KeyState(0),
                 key_trigger: KeyState(0),
