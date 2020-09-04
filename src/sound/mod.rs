@@ -6,11 +6,12 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, filesystem, GameResult};
-use crate::ggez::GameError::AudioError;
+use crate::ggez::GameError::{AudioError, InvalidValue};
 use crate::sound::organya::Song;
 use crate::sound::playback::{PlaybackEngine, SavedPlaybackState};
 use crate::sound::wave_bank::SoundBank;
 use crate::str;
+use cpal::Sample;
 
 pub mod pixtone;
 mod wave_bank;
@@ -126,11 +127,21 @@ impl SoundManager {
 
         Ok(())
     }
+
+    pub fn set_speed(&mut self, speed: f32) -> GameResult {
+        if speed <= 0.0 {
+            return Err(InvalidValue(str!("Speed must be bigger than 0.0!")));
+        }
+        self.tx.send(PlaybackMessage::SetSpeed(speed))?;
+
+        Ok(())
+    }
 }
 
 enum PlaybackMessage {
     Stop,
     PlaySong(Box<Song>),
+    SetSpeed(f32),
     SaveState,
     RestoreState,
 }
@@ -177,6 +188,10 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
                 Ok(PlaybackMessage::Stop) => {
                     state = PlaybackState::Stopped;
                 }
+                Ok(PlaybackMessage::SetSpeed(speed)) => {
+                    assert!(speed > 0.0);
+                    engine.set_sample_rate((sample_rate / speed) as usize);
+                }
                 Ok(PlaybackMessage::SaveState) => {
                     saved_state = Some(engine.get_state());
                 }
@@ -212,7 +227,7 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
                     }
                 };
 
-                let value: T = cpal::Sample::from::<u16>(&sample);
+                let value: T = Sample::from::<u16>(&sample);
                 for sample in frame.iter_mut() {
                     *sample = value;
                 }

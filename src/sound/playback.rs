@@ -103,8 +103,13 @@ impl PlaybackEngine {
     }
 
     pub fn set_sample_rate(&mut self, sample_rate: usize) {
+        self.frames_this_tick = (self.frames_this_tick as f32 * (self.output_format.sample_rate as f32 / sample_rate as f32)) as usize;
         self.output_format.sample_rate = sample_rate as u32;
         self.frames_per_tick = (sample_rate / 1000) * self.song.time.wait as usize;
+
+        if self.frames_this_tick >= self.frames_per_tick {
+            self.frames_this_tick = 0;
+        }
     }
 
     pub fn get_state(&self) -> SavedPlaybackState {
