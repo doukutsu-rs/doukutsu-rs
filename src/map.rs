@@ -55,7 +55,9 @@ impl Map {
     }
 }
 
+#[derive(Debug)]
 pub struct NPCData {
+    pub id: u16,
     pub x: i16,
     pub y: i16,
     pub flag_id: u16,
@@ -66,35 +68,36 @@ pub struct NPCData {
 }
 
 impl NPCData {
-    pub fn load_from<R: io::Read>(mut event_data: R) -> GameResult<Vec<NPCData>> {
+    pub fn load_from<R: io::Read>(mut data: R) -> GameResult<Vec<NPCData>> {
         let mut magic = [0; 3];
 
-        event_data.read_exact(&mut magic)?;
+        data.read_exact(&mut magic)?;
 
         if &magic != b"PXE" {
             return Err(ResourceLoadError(str!("Invalid magic")));
         }
 
-        let version = event_data.read_u8()?;
+        let version = data.read_u8()?;
         if !SUPPORTED_PXE_VERSIONS.contains(&version) {
             return Err(ResourceLoadError(format!("Unsupported PXE version: {:#x}", version)));
         }
 
-        let count = event_data.read_u32::<LE>()? as usize;
+        let count = data.read_u32::<LE>()? as usize;
         let mut npcs = Vec::with_capacity(count);
 
-        for _ in 0..count {
-            let x = event_data.read_i16::<LE>()?;
-            let y = event_data.read_i16::<LE>()?;
-            let flag_id = event_data.read_u16::<LE>()?;
-            let event_num = event_data.read_u16::<LE>()?;
-            let npc_type = event_data.read_u16::<LE>()?;
-            let flags = event_data.read_u16::<LE>()?;
+        for i in 0..count {
+            let x = data.read_i16::<LE>()?;
+            let y = data.read_i16::<LE>()?;
+            let flag_id = data.read_u16::<LE>()?;
+            let event_num = data.read_u16::<LE>()?;
+            let npc_type = data.read_u16::<LE>()?;
+            let flags = data.read_u16::<LE>()?;
 
             // booster's lab also specifies a layer field in version 0x10, prob for multi-layered maps
-            let layer = if version == 0x10 { event_data.read_u8()? } else { 0 };
+            let layer = if version == 0x10 { data.read_u8()? } else { 0 };
 
             npcs.push(NPCData {
+                id: 170 + i as u16,
                 x,
                 y,
                 flag_id,

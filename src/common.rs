@@ -4,7 +4,7 @@ use crate::bitfield;
 
 bitfield! {
   #[derive(Clone)]
-  pub struct Flags(u32);
+  pub struct Flag(u32);
   impl Debug;
 
   pub hit_left_wall, set_hit_left_wall: 0; // 0x01
@@ -34,7 +34,7 @@ bitfield! {
 
 bitfield! {
   #[derive(Clone)]
-  pub struct Equip(u16);
+  pub struct Equipment(u16);
   impl Debug;
 
   pub has_booster_0_8, set_booster_0_8: 0;
@@ -51,7 +51,7 @@ bitfield! {
 
 bitfield! {
   #[derive(Clone)]
-  pub struct Cond(u16);
+  pub struct Condition(u16);
   impl Debug;
 
   pub interacted, set_interacted: 0; // 0x01
@@ -155,8 +155,8 @@ pub struct Rect<T: Num + Copy = isize> {
     pub bottom: T,
 }
 
-impl<S: Num + Copy> Rect<S> {
-    pub fn new<T: Num + Copy>(left: T, top: T, right: T, bottom: T) -> Rect<T> {
+impl<T: Num + Copy> Rect<T> {
+    pub fn new(left: T, top: T, right: T, bottom: T) -> Rect<T> {
         Rect {
             left,
             top,
@@ -165,7 +165,7 @@ impl<S: Num + Copy> Rect<S> {
         }
     }
 
-    pub fn new_size<T: Num + Copy>(x: T, y: T, width: T, height: T) -> Rect<T> {
+    pub fn new_size(x: T, y: T, width: T, height: T) -> Rect<T> {
         Rect {
             left: x,
             top: y,

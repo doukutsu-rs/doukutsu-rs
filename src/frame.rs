@@ -1,6 +1,6 @@
 use crate::player::Player;
-use crate::stage::Stage;
 use crate::SharedGameState;
+use crate::stage::Stage;
 
 pub struct Frame {
     pub x: isize,
@@ -9,6 +9,20 @@ pub struct Frame {
 }
 
 impl Frame {
+    pub fn immediate_update(&mut self, state: &mut SharedGameState, player: &Player, stage: &Stage) {
+        if (stage.map.width - 1) * 16 < state.canvas_size.0 as usize {
+            self.x = -(((state.canvas_size.0 as isize - ((stage.map.width - 1) * 16) as isize) * 0x200) / 2);
+        } else {
+            self.x = player.target_x - (state.canvas_size.0 as isize * 0x200 / 2);
+        }
+
+        if (stage.map.height - 1) * 16 < state.canvas_size.1 as usize {
+            self.y = -(((state.canvas_size.1 as isize - ((stage.map.height - 1) * 16) as isize) * 0x200) / 2);
+        } else {
+            self.y = player.target_y - (state.canvas_size.1 as isize * 0x200 / 2);
+        }
+    }
+
     pub fn update(&mut self, state: &mut SharedGameState, player: &Player, stage: &Stage) {
         if (stage.map.width - 1) * 16 < state.canvas_size.0 as usize {
             self.x = -(((state.canvas_size.0 as isize - ((stage.map.width - 1) * 16) as isize) * 0x200) / 2);

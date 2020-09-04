@@ -4,9 +4,9 @@ use log::info;
 use maplit::hashmap;
 
 use crate::common::{Direction, Rect};
+use crate::player::ControlMode;
 use crate::str;
 use crate::text_script::TextScriptEncoding;
-use crate::player::ControlMode;
 
 #[derive(Debug, Copy, Clone)]
 pub struct PhysicsConsts {
@@ -33,12 +33,8 @@ pub struct BoosterConsts {
 
 #[derive(Debug, Copy, Clone)]
 pub struct MyCharConsts {
-    pub cond: u16,
-    pub flags: u32,
-    pub equip: u16,
-    pub direction: Direction,
-    pub view: Rect<usize>,
-    pub hit: Rect<usize>,
+    pub display_bounds: Rect<usize>,
+    pub hit_bounds: Rect<usize>,
     pub life: usize,
     pub max_life: usize,
     pub control_mode: ControlMode,
@@ -73,36 +69,24 @@ impl Clone for CaretConsts {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct WorldConsts {
     pub snack_rect: Rect<usize>,
 }
 
-impl Clone for WorldConsts {
-    fn clone(&self) -> Self {
-        Self {
-            snack_rect: self.snack_rect,
-        }
-    }
+#[derive(Debug, Copy, Clone)]
+pub struct NPCConsts {
+    pub n016_save_point: [Rect<usize>; 8],
+    pub n017_health_refill: [Rect<usize>; 2],
+    pub n018_door_rects: [Rect<usize>; 2],
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct TextScriptConsts {
     pub encoding: TextScriptEncoding,
     pub textbox_rect_top: Rect<usize>,
     pub textbox_rect_middle: Rect<usize>,
     pub textbox_rect_bottom: Rect<usize>,
-}
-
-impl Clone for TextScriptConsts {
-    fn clone(&self) -> Self {
-        Self {
-            encoding: self.encoding,
-            textbox_rect_top: self.textbox_rect_top,
-            textbox_rect_middle: self.textbox_rect_middle,
-            textbox_rect_bottom: self.textbox_rect_bottom,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -112,6 +96,7 @@ pub struct EngineConstants {
     pub booster: BoosterConsts,
     pub caret: CaretConsts,
     pub world: WorldConsts,
+    pub npc: NPCConsts,
     pub tex_sizes: HashMap<String, (usize, usize)>,
     pub textscript: TextScriptConsts,
     pub font_path: String,
@@ -127,6 +112,7 @@ impl Clone for EngineConstants {
             booster: self.booster,
             caret: self.caret.clone(),
             world: self.world.clone(),
+            npc: self.npc.clone(),
             tex_sizes: self.tex_sizes.clone(),
             textscript: self.textscript.clone(),
             font_path: self.font_path.clone(),
@@ -141,12 +127,8 @@ impl EngineConstants {
         EngineConstants {
             is_cs_plus: false,
             my_char: MyCharConsts {
-                cond: 0x80,
-                flags: 0,
-                equip: 0,
-                direction: Direction::Right,
-                view: Rect { left: 8 * 0x200, top: 8 * 0x200, right: 8 * 0x200, bottom: 8 * 0x200 },
-                hit: Rect { left: 5 * 0x200, top: 8 * 0x200, right: 5 * 0x200, bottom: 8 * 0x200 },
+                display_bounds: Rect { left: 8 * 0x200, top: 8 * 0x200, right: 8 * 0x200, bottom: 8 * 0x200 },
+                hit_bounds: Rect { left: 5 * 0x200, top: 8 * 0x200, right: 5 * 0x200, bottom: 8 * 0x200 },
                 life: 3,
                 max_life: 3,
                 control_mode: ControlMode::Normal,
@@ -258,6 +240,26 @@ impl EngineConstants {
             },
             world: WorldConsts {
                 snack_rect: Rect { left: 256, top: 48, right: 272, bottom: 64 },
+            },
+            npc: NPCConsts {
+                n016_save_point: [
+                    Rect { left: 96, top: 16, right: 112, bottom: 32 },
+                    Rect { left: 112, top: 16, right: 128, bottom: 32 },
+                    Rect { left: 128, top: 16, right: 144, bottom: 32 },
+                    Rect { left: 144, top: 16, right: 160, bottom: 32 },
+                    Rect { left: 160, top: 16, right: 176, bottom: 32 },
+                    Rect { left: 176, top: 16, right: 192, bottom: 32 },
+                    Rect { left: 192, top: 16, right: 208, bottom: 32 },
+                    Rect { left: 208, top: 16, right: 224, bottom: 32 },
+                ],
+                n017_health_refill: [
+                    Rect { left: 288, top: 0, right: 304, bottom: 16 },
+                    Rect { left: 304, top: 0, right: 320, bottom: 16 },
+                ],
+                n018_door_rects: [
+                    Rect { left: 224, top: 16, right: 240, bottom: 40 },
+                    Rect { left: 192, top: 112, right: 208, bottom: 136 },
+                ]
             },
             tex_sizes: hashmap! {
                 str!("ArmsImage") => (256, 16),

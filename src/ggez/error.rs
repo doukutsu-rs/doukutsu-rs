@@ -42,6 +42,7 @@ pub enum GameError {
     /// Something went wrong with the `lyon` shape-tesselation library.
     LyonError(String),
     ParseError(String),
+    InvalidValue(String),
 }
 
 impl fmt::Display for GameError {

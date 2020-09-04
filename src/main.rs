@@ -42,6 +42,7 @@ use crate::stage::StageData;
 use crate::text_script::TextScriptVM;
 use crate::texture_set::TextureSet;
 use crate::ui::UI;
+use crate::npc::NPCTable;
 
 mod bmfont;
 mod bmfont_renderer;
@@ -110,10 +111,12 @@ pub struct SharedGameState {
     pub font: BMFontRenderer,
     pub texture_set: TextureSet,
     pub base_path: String,
+    pub npc_table: NPCTable,
     pub stages: Vec<StageData>,
     pub sound_manager: SoundManager,
     pub constants: EngineConstants,
     pub scale: f32,
+    pub speed_hack: bool,
     pub canvas_size: (f32, f32),
     pub screen_size: (f32, f32),
     pub next_scene: Option<Box<dyn Scene>>,
@@ -139,6 +142,14 @@ impl SharedGameState {
 
     pub fn create_caret(&mut self, x: isize, y: isize, ctype: CaretType, direct: Direction) {
         self.carets.push(Caret::new(x, y, ctype, direct, &self.constants));
+    }
+
+    pub fn set_speed_hack(&mut self, toggle: bool) {
+        self.speed_hack = toggle;
+
+        if let Err(err) = self.sound_manager.set_speed(if toggle { 2.0 } else { 1.0 }) {
+            log::error!("Error while sending a message to sound manager: {}", err);
+        }
     }
 }
 
@@ -188,10 +199,12 @@ impl Game {
                 font,
                 texture_set: TextureSet::new(base_path),
                 base_path: str!(base_path),
+                npc_table: NPCTable::new(),
                 stages: Vec::with_capacity(96),
                 sound_manager: SoundManager::new(ctx)?,
                 constants,
                 scale,
+                speed_hack: false,
                 screen_size,
                 canvas_size,
                 next_scene: None,
@@ -206,6 +219,9 @@ impl Game {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         if let Some(scene) = self.scene.as_mut() {
             scene.tick(&mut self.state, ctx)?;
+            if self.state.speed_hack {
+                scene.tick(&mut self.state, ctx)?;
+            }
         }
         Ok(())
     }
@@ -241,6 +257,7 @@ impl Game {
             KeyCode::X => { state.key_state.set_fire(true) }
             KeyCode::A => { state.key_state.set_weapon_prev(true) }
             KeyCode::S => { state.key_state.set_weapon_next(true) }
+            KeyCode::F12 => { state.set_speed_hack(!state.speed_hack) }
             _ => {}
         }
     }

@@ -6,6 +6,7 @@ use crate::frame::Frame;
 use crate::ggez::{Context, GameResult, graphics, timer};
 use crate::ggez::graphics::{Color, Drawable, DrawParam, Text, TextFragment};
 use crate::ggez::nalgebra::clamp;
+use crate::npc::NPCMap;
 use crate::player::Player;
 use crate::scene::Scene;
 use crate::SharedGameState;
@@ -20,6 +21,7 @@ pub struct GameScene {
     pub frame: Frame,
     pub player: Player,
     pub stage_id: usize,
+    pub npc_map: NPCMap,
     tex_background_name: String,
     tex_tileset_name: String,
     life_bar: usize,
@@ -59,6 +61,7 @@ impl GameScene {
                 wait: 16,
             },
             stage_id: id,
+            npc_map: NPCMap::new(),
             tex_background_name,
             tex_tileset_name,
             life_bar: 3,
@@ -405,10 +408,25 @@ impl Scene for GameScene {
         state.textscript_vm.suspend = false;
 
         let npcs = self.stage.load_npcs(&state.base_path, ctx)?;
-        for npc in npcs {
-
+        for npc_data in npcs.iter() {
+            let mut npc = self.npc_map.create_npc_from_data(&state.npc_table, npc_data);
+            if npc.npc_flags.appear_when_flag_set() {
+                if let Some(true) = state.game_flags.get(npc_data.flag_id as usize) {
+                    npc.cond.set_alive(true);
+                }
+            } else if npc.npc_flags.hide_unless_flag_set() {
+                if let Some(false) = state.game_flags.get(npc_data.flag_id as usize) {
+                    npc.cond.set_alive(true);
+                }
+            } else {
+                npc.cond.set_alive(true);
+            }
         }
 
+        state.npc_table.tex_npc1_name = ["Npc/", &self.stage.data.npc1.filename()].join("");
+        state.npc_table.tex_npc2_name = ["Npc/", &self.stage.data.npc2.filename()].join("");
+
+        self.frame.immediate_update(state, &self.player, &self.stage);
         //self.player.equip.set_booster_2_0(true);
         Ok(())
     }
@@ -440,9 +458,15 @@ impl Scene for GameScene {
             self.player.flags.0 = 0;
             state.tick_carets();
             self.player.tick_map_collisions(state, &self.stage);
-            self.player.tick_npc_collisions(state, &self.stage);
+            self.player.tick_npc_collisions(state, &mut self.npc_map);
 
             self.frame.update(state, &self.player, &self.stage);
+        }
+
+        for npc_id in self.npc_map.npc_ids.iter() {
+            if let Some(npc) = self.npc_map.npcs.get_mut(npc_id) {
+                npc.tick(state, ctx)?;
+            }
         }
 
         if state.control_flags.control_enabled() {
@@ -469,6 +493,9 @@ impl Scene for GameScene {
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
+        for npc in self.npc_map.npcs.values() {
+            npc.draw(state, ctx, &self.frame)?;
+        }
         self.player.draw(state, ctx, &self.frame)?;
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;

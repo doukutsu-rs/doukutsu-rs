@@ -5,6 +5,7 @@ use crate::SharedGameState;
 use crate::stage::StageData;
 use crate::text_script::{TextScript, TextScriptExecutionState};
 use crate::common::FadeState;
+use crate::npc::NPCTable;
 
 pub struct LoadingScene {
     tick: usize,
@@ -24,6 +25,8 @@ impl Scene for LoadingScene {
         if self.tick == 1 {
             let stages = StageData::load_stage_table(ctx, &state.base_path)?;
             state.stages = stages;
+            let npc_table = NPCTable::load_from(filesystem::open(ctx, [&state.base_path, "/npc.tbl"].join(""))?)?;
+            state.npc_table = npc_table;
             let script = TextScript::load_from(filesystem::open(ctx, [&state.base_path, "/Head.tsc"].join(""))?)?;
             state.textscript_vm.set_global_script(script);
 

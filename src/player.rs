@@ -3,7 +3,7 @@ use std::clone::Clone;
 use num_traits::clamp;
 
 use crate::caret::CaretType;
-use crate::common::{Cond, Equip, Flags};
+use crate::common::{Condition, Equipment, Flag};
 use crate::common::{Direction, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
@@ -28,12 +28,12 @@ pub struct Player {
     pub target_y: isize,
     pub life: usize,
     pub max_life: usize,
-    pub cond: Cond,
-    pub flags: Flags,
-    pub equip: Equip,
+    pub cond: Condition,
+    pub flags: Flag,
+    pub equip: Equipment,
     pub direction: Direction,
-    pub view: Rect<usize>,
-    pub hit: Rect<usize>,
+    pub display_bounds: Rect<usize>,
+    pub hit_bounds: Rect<usize>,
     pub control_mode: ControlMode,
     pub question: bool,
     pub booster_fuel: usize,
@@ -48,17 +48,14 @@ pub struct Player {
     bubble: u8,
     exp_wait: isize,
     exp_count: isize,
-    anim_num: usize,
-    anim_wait: isize,
+    anim_num: u16,
+    anim_counter: u16,
     anim_rect: Rect<usize>,
-    tex_player_name: String,
 }
 
 impl Player {
     pub fn new(state: &mut SharedGameState) -> Self {
         let constants = &state.constants;
-
-        let tex_player_name = str!("MyChar");
 
         Self {
             x: 0,
@@ -69,12 +66,12 @@ impl Player {
             target_y: 0,
             life: constants.my_char.life,
             max_life: constants.my_char.max_life,
-            cond: Cond(constants.my_char.cond),
-            flags: Flags(constants.my_char.flags),
-            equip: Equip(constants.my_char.equip),
-            direction: constants.my_char.direction,
-            view: constants.my_char.view,
-            hit: constants.my_char.hit,
+            cond: Condition(0x80),
+            flags: Flag(0),
+            equip: Equipment(0),
+            direction: Direction::Right,
+            display_bounds: constants.my_char.display_bounds,
+            hit_bounds: constants.my_char.hit_bounds,
             control_mode: constants.my_char.control_mode,
             question: false,
             booster_fuel: 0,
@@ -90,9 +87,8 @@ impl Player {
             exp_wait: 0,
             exp_count: 0,
             anim_num: 0,
-            anim_wait: 0,
+            anim_counter: 0,
             anim_rect: constants.my_char.animations_right[0],
-            tex_player_name,
         }
     }
 
@@ -107,8 +103,8 @@ impl Player {
         if self.flags.head_bounced() {
             self.flags.set_head_bounced(false);
             // todo: PlaySoundObject(3, SOUND_MODE_PLAY);
-            state.create_caret(self.x, self.y - self.hit.top as isize, CaretType::LittleParticles, Direction::Left);
-            state.create_caret(self.x, self.y - self.hit.top as isize, CaretType::LittleParticles, Direction::Left);
+            state.create_caret(self.x, self.y - self.hit_bounds.top as isize, CaretType::LittleParticles, Direction::Left);
+            state.create_caret(self.x, self.y - self.hit_bounds.top as isize, CaretType::LittleParticles, Direction::Left);
         }
 
         if !state.control_flags.control_enabled() {
@@ -310,7 +306,7 @@ impl Player {
             self.vel_y -= 0x20;
 
             if self.booster_fuel % 3 == 0 {
-                state.create_caret(self.x, self.y + self.hit.bottom as isize / 2, CaretType::Exhaust, Direction::Bottom);
+                state.create_caret(self.x, self.y + self.hit_bounds.bottom as isize / 2, CaretType::Exhaust, Direction::Bottom);
                 // PlaySoundObject(113, SOUND_MODE_PLAY);
             }
 
@@ -421,9 +417,9 @@ impl Player {
             } else if state.control_flags.control_enabled() && state.key_state.up() && (state.key_state.left() || state.key_state.right()) {
                 self.cond.set_fallen(true);
 
-                self.anim_wait += 1;
-                if self.anim_wait > 4 {
-                    self.anim_wait = 0;
+                self.anim_counter += 1;
+                if self.anim_counter > 4 {
+                    self.anim_counter = 0;
 
                     self.anim_num += 1;
                     if self.anim_num == 7 || self.anim_num == 9 {
@@ -437,9 +433,9 @@ impl Player {
             } else if state.control_flags.control_enabled() && (state.key_state.left() || state.key_state.right()) {
                 self.cond.set_fallen(true);
 
-                self.anim_wait += 1;
-                if self.anim_wait > 4 {
-                    self.anim_wait = 0;
+                self.anim_counter += 1;
+                if self.anim_counter > 4 {
+                    self.anim_counter = 0;
 
                     self.anim_num += 1;
                     if self.anim_num == 2 || self.anim_num == 4 {
@@ -475,10 +471,10 @@ impl Player {
 
         match self.direction {
             Direction::Left => {
-                self.anim_rect = state.constants.my_char.animations_left[self.anim_num];
+                self.anim_rect = state.constants.my_char.animations_left[self.anim_num as usize];
             }
             Direction::Right => {
-                self.anim_rect = state.constants.my_char.animations_right[self.anim_num];
+                self.anim_rect = state.constants.my_char.animations_right[self.anim_num as usize];
             }
             _ => {}
         }
@@ -542,16 +538,16 @@ impl GameEntity for Player {
         Ok(())
     }
 
-    fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult<()> {
+    fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult<> {
         if !self.cond.alive() || self.cond.hidden() {
             return Ok(());
         }
 
         // todo draw weapon
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_player_name)?;
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
         batch.add_rect(
-            (((self.x - self.view.left as isize) / 0x200) - (frame.x / 0x200)) as f32,
-            (((self.y - self.view.top as isize) / 0x200) - (frame.y / 0x200)) as f32,
+            (((self.x - self.display_bounds.left as isize) / 0x200) - (frame.x / 0x200)) as f32,
+            (((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32,
             &self.anim_rect,
         );
         batch.draw(ctx)?;
