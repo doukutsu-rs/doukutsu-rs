@@ -35,21 +35,28 @@ Vanilla Cave Story does not work yet because some important data files are embed
   - [x] Player and it's animations
   - [x] Carets
   - [ ] Bullets
-  - [ ] NPCs
+  - [x] NPCs
   - [x] Text
   - [ ] HUD
 - [ ] Text scripts (TSC)
   - [x] Initial implementation
   - [x] Execution of basic subset of opcodes and game conversations
-  - [ ] Shift-JIS encoding
-  - [ ] Full implementation
+  - [ ] Full implementation of opcodes
+  - [ ] Shift-JIS encoding support
 - [ ] Audio
   - [x] Organya BGM playback
   - [x] Text script bindings
   - [ ] CS+ style .ogg BGM playback
   - [ ] PixTone SFX
 - [ ] NPCs/entities
+  - [x] Initial implementation
+  - [ ] Miscellaneous entities
+  - [ ] First Cave
+  - [ ] Mimiga Village
+  - [ ] Egg Corridor
 - [ ] Weapons
+  - [ ] Initial implementation
+  - [ ] Polar Star
 - [ ] Modding enhancements and built-in tools
   - [x] Debugger
   - [ ] Level editor
