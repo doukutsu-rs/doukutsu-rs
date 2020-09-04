@@ -24,8 +24,9 @@ pub struct GameScene {
     pub npc_map: NPCMap,
     tex_background_name: String,
     tex_tileset_name: String,
-    life_bar: usize,
-    life_bar_count: usize,
+    life_bar: u16,
+    life_bar_counter: u16,
+    map_name_counter: u16,
 }
 
 #[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
@@ -65,8 +66,13 @@ impl GameScene {
             tex_background_name,
             tex_tileset_name,
             life_bar: 3,
-            life_bar_count: 0,
+            life_bar_counter: 0,
+            map_name_counter: 0,
         })
+    }
+
+    pub fn display_map_name(&mut self, ticks: u16) {
+        self.map_name_counter = ticks;
     }
 
     fn draw_number(&self, x: f32, y: f32, val: usize, align: Alignment, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -409,7 +415,7 @@ impl Scene for GameScene {
 
         let npcs = self.stage.load_npcs(&state.base_path, ctx)?;
         for npc_data in npcs.iter() {
-            let mut npc = self.npc_map.create_npc_from_data(&state.npc_table, npc_data);
+            let npc = self.npc_map.create_npc_from_data(&state.npc_table, npc_data);
             if npc.npc_flags.appear_when_flag_set() {
                 if let Some(true) = state.game_flags.get(npc_data.flag_id as usize) {
                     npc.cond.set_alive(true);
@@ -426,6 +432,8 @@ impl Scene for GameScene {
         state.npc_table.tex_npc1_name = ["Npc/", &self.stage.data.npc1.filename()].join("");
         state.npc_table.tex_npc2_name = ["Npc/", &self.stage.data.npc2.filename()].join("");
 
+        self.player.target_x = self.player.x;
+        self.player.target_y = self.player.y;
         self.frame.immediate_update(state, &self.player, &self.stage);
         //self.player.equip.set_booster_2_0(true);
         Ok(())
@@ -471,18 +479,22 @@ impl Scene for GameScene {
 
         if state.control_flags.control_enabled() {
             // update health bar
-            if self.life_bar < self.player.life as usize {
-                self.life_bar = self.player.life as usize;
+            if self.life_bar < self.player.life as u16 {
+                self.life_bar = self.player.life as u16;
             }
 
-            if self.life_bar > self.player.life as usize {
-                self.life_bar_count += 1;
-                if self.life_bar_count > 30 {
+            if self.life_bar > self.player.life as u16 {
+                self.life_bar_counter += 1;
+                if self.life_bar_counter > 30 {
                     self.life_bar -= 1;
                 }
             } else {
-                self.life_bar_count = 0;
+                self.life_bar_counter = 0;
             }
+        }
+
+        if self.map_name_counter > 0 {
+            self.map_name_counter -= 1;
         }
 
         TextScriptVM::run(state, self, ctx)?;
@@ -504,6 +516,13 @@ impl Scene for GameScene {
 
         if state.control_flags.control_enabled() {
             self.draw_hud(state, ctx)?;
+        }
+
+        if self.map_name_counter > 0 {
+            let width = state.font.text_width(self.stage.data.name.chars(), &state.constants);
+            state.font.draw_text(self.stage.data.name.chars(),
+                                 ((state.canvas_size.0 - width) / 2.0).floor(), 80.0,
+                                 &state.constants, &mut state.texture_set, ctx)?;
         }
 
         self.draw_fade(state, ctx)?;

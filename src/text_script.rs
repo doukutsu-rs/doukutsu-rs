@@ -643,6 +643,11 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::MNA => {
+                        game_scene.display_map_name(160);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::CMU => {
                         let song_id = read_cur_varint(&mut cursor)? as usize;
                         state.sound_manager.play_song(song_id, &state.constants, ctx)?;
@@ -663,7 +668,7 @@ impl TextScriptVM {
                     // Zero operands
                     OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CPS |
                     OpCode::CRE | OpCode::CSS | OpCode::ESC | OpCode::FLA |
-                    OpCode::INI | OpCode::LDP | OpCode::MLP | OpCode::MNA |
+                    OpCode::INI | OpCode::LDP | OpCode::MLP |
                     OpCode::SAT | OpCode::SLP | OpCode::SPS |
                     OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM => {
                         log::warn!("unimplemented opcode: {:?}", op);

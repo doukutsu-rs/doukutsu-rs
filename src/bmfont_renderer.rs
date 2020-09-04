@@ -49,6 +49,18 @@ impl BMFontRenderer {
         })
     }
 
+    pub fn text_width<I: Iterator<Item=char>>(&self, iter: I, constants: &EngineConstants) -> f32 {
+        let mut offset_x = 0.0;
+
+        for chr in iter {
+            if let Some(glyph) = self.font.chars.get(&chr) {
+                offset_x += ((glyph.width as f32 + glyph.xoffset as f32) * constants.font_scale).floor() + if chr != ' ' { 1.0 } else { constants.font_space_offset };
+            }
+        }
+
+        offset_x
+    }
+
     pub fn draw_text<I: Iterator<Item=char>>(&self, iter: I, x: f32, y: f32, constants: &EngineConstants, texture_set: &mut TextureSet, ctx: &mut Context) -> GameResult {
         if self.pages.len() == 1 {
             let batch = texture_set.get_or_load_batch(ctx, constants, self.pages.get(0).unwrap())?;
