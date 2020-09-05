@@ -86,6 +86,16 @@ impl FadeDirection {
             _ => { None }
         }
     }
+
+    pub fn opposite(&self) -> FadeDirection {
+        match self {
+            FadeDirection::Left => { FadeDirection::Right }
+            FadeDirection::Up => { FadeDirection::Down }
+            FadeDirection::Right => { FadeDirection::Left }
+            FadeDirection::Down => { FadeDirection::Up }
+            FadeDirection::Center => { FadeDirection::Center }
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]

@@ -631,7 +631,7 @@ impl TextScriptVM {
                     OpCode::FAO => {
                         let fade_type = read_cur_varint(&mut cursor)? as usize;
                         if let Some(direction) = FadeDirection::from_int(fade_type) {
-                            state.fade_state = FadeState::FadeOut(-15, direction);
+                            state.fade_state = FadeState::FadeOut(-15, direction.opposite());
                         }
 
                         exec_state = TextScriptExecutionState::WaitFade(event, cursor.position() as u32);
