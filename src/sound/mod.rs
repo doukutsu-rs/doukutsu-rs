@@ -22,6 +22,7 @@ mod wav;
 
 pub struct SoundManager {
     tx: Sender<PlaybackMessage>,
+    prev_song_id: usize,
     current_song_id: usize,
 }
 
@@ -92,6 +93,7 @@ impl SoundManager {
 
         Ok(SoundManager {
             tx: tx.clone(),
+            prev_song_id: 0,
             current_song_id: 0,
         })
     }
@@ -110,6 +112,7 @@ impl SoundManager {
             let org = organya::Song::load_from(filesystem::open(ctx, ["/base/Org/", &song_name.to_lowercase(), ".org"].join(""))?)?;
             log::info!("Playing BGM: {}", song_name);
 
+            self.prev_song_id = self.current_song_id;
             self.current_song_id = song_id;
             self.tx.send(PlaybackMessage::SaveState)?;
             self.tx.send(PlaybackMessage::PlaySong(Box::new(org)))?;
@@ -119,12 +122,14 @@ impl SoundManager {
 
     pub fn save_state(&mut self) -> GameResult {
         self.tx.send(PlaybackMessage::SaveState)?;
+        self.prev_song_id = self.current_song_id;
 
         Ok(())
     }
 
     pub fn restore_state(&mut self) -> GameResult {
         self.tx.send(PlaybackMessage::RestoreState)?;
+        self.current_song_id = self.prev_song_id;
 
         Ok(())
     }
