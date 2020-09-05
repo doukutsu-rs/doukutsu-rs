@@ -60,7 +60,7 @@ pub struct NPCData {
     pub id: u16,
     pub x: i16,
     pub y: i16,
-    pub flag_id: u16,
+    pub flag_num: u16,
     pub event_num: u16,
     pub npc_type: u16,
     pub flags: u16,
@@ -88,7 +88,7 @@ impl NPCData {
         for i in 0..count {
             let x = data.read_i16::<LE>()?;
             let y = data.read_i16::<LE>()?;
-            let flag_id = data.read_u16::<LE>()?;
+            let flag_num = data.read_u16::<LE>()?;
             let event_num = data.read_u16::<LE>()?;
             let npc_type = data.read_u16::<LE>()?;
             let flags = data.read_u16::<LE>()?;
@@ -100,7 +100,7 @@ impl NPCData {
                 id: 170 + i as u16,
                 x,
                 y,
-                flag_id,
+                flag_num,
                 event_num,
                 npc_type,
                 flags,

@@ -501,8 +501,8 @@ impl Player {
     }
 }
 
-impl GameEntity for Player {
-    fn tick(&mut self, state: &mut SharedGameState, _ctx: &mut Context) -> GameResult {
+impl GameEntity<()> for Player {
+    fn tick(&mut self, state: &mut SharedGameState, _cust: ()) -> GameResult {
         if !self.cond.alive() {
             return Ok(());
         }

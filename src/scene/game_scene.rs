@@ -417,11 +417,11 @@ impl Scene for GameScene {
         for npc_data in npcs.iter() {
             let npc = self.npc_map.create_npc_from_data(&state.npc_table, npc_data);
             if npc.npc_flags.appear_when_flag_set() {
-                if let Some(true) = state.game_flags.get(npc_data.flag_id as usize) {
+                if let Some(true) = state.game_flags.get(npc_data.flag_num as usize) {
                     npc.cond.set_alive(true);
                 }
             } else if npc.npc_flags.hide_unless_flag_set() {
-                if let Some(false) = state.game_flags.get(npc_data.flag_id as usize) {
+                if let Some(false) = state.game_flags.get(npc_data.flag_num as usize) {
                     npc.cond.set_alive(true);
                 }
             } else {
@@ -461,20 +461,20 @@ impl Scene for GameScene {
         }
 
         if state.control_flags.flag_x01() {
-            self.player.tick(state, ctx)?;
+            self.player.tick(state, ())?;
 
             self.player.flags.0 = 0;
             state.tick_carets();
             self.player.tick_map_collisions(state, &self.stage);
             self.player.tick_npc_collisions(state, &mut self.npc_map);
 
-            self.frame.update(state, &self.player, &self.stage);
-        }
-
-        for npc_id in self.npc_map.npc_ids.iter() {
-            if let Some(npc) = self.npc_map.npcs.get_mut(npc_id) {
-                npc.tick(state, ctx)?;
+            for npc_id in self.npc_map.npc_ids.iter() {
+                if let Some(npc) = self.npc_map.npcs.get_mut(npc_id) {
+                    npc.tick(state, &mut self.player)?;
+                }
             }
+
+            self.frame.update(state, &self.player, &self.stage);
         }
 
         if state.control_flags.control_enabled() {
@@ -518,6 +518,7 @@ impl Scene for GameScene {
             self.draw_hud(state, ctx)?;
         }
 
+        self.draw_fade(state, ctx)?;
         if self.map_name_counter > 0 {
             let width = state.font.text_width(self.stage.data.name.chars(), &state.constants);
             state.font.draw_text(self.stage.data.name.chars(),
@@ -525,7 +526,6 @@ impl Scene for GameScene {
                                  &state.constants, &mut state.texture_set, ctx)?;
         }
 
-        self.draw_fade(state, ctx)?;
         self.draw_text_boxes(state, ctx)?;
 
         self.draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;

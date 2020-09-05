@@ -552,6 +552,7 @@ impl TextScriptVM {
                     }
                     OpCode::MLp => {
                         let life = read_cur_varint(&mut cursor)? as usize;
+                        game_scene.player.life += life;
                         game_scene.player.max_life += life;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -664,6 +665,13 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::DNP => {
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                        game_scene.npc_map.remove_by_event(event_num, &mut state.game_flags);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     // unimplemented opcodes
                     // Zero operands
                     OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CPS |
@@ -677,7 +685,7 @@ impl TextScriptVM {
                     }
                     // One operand codes
                     OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::FOM | OpCode::UNI |
-                    OpCode::MYB | OpCode::GIT | OpCode::NUM | OpCode::DNA | OpCode::DNP |
+                    OpCode::MYB | OpCode::GIT | OpCode::NUM | OpCode::DNA |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
                     OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ | OpCode::YNJ |
                     OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU |

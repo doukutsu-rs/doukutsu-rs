@@ -2,6 +2,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::io;
 use std::io::Cursor;
 
+use bitvec::vec::BitVec;
 use byteorder::{LE, ReadBytesExt};
 
 use crate::{bitfield, SharedGameState};
@@ -12,6 +13,7 @@ use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
 use crate::map::NPCData;
+use crate::player::Player;
 use crate::str;
 
 pub mod misc;
@@ -58,20 +60,28 @@ pub struct NPC {
     pub hit_bounds: Rect<usize>,
     pub action_num: u16,
     pub anim_num: u16,
+    pub flag_num: u16,
     pub event_num: u16,
     pub action_counter: u16,
     pub anim_counter: u16,
     pub anim_rect: Rect<usize>,
 }
 
-impl GameEntity for NPC {
-    fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+impl GameEntity<&mut Player> for NPC {
+    fn tick(&mut self, state: &mut SharedGameState, scene: &mut Player) -> GameResult {
         // maybe use macros?
         match self.npc_type {
             0 => { NPC::tick_n000_null(self, state) }
             16 => { NPC::tick_n016_save_point(self, state) }
             17 => { NPC::tick_n017_health_refill(self, state) }
             18 => { NPC::tick_n018_door(self, state) }
+            20 => { NPC::tick_n020_computer(self, state) }
+            27 => { NPC::tick_n027_death_trap(self, state) }
+            32 => { NPC::tick_n032_life_capsule(self, state) }
+            34 => { NPC::tick_n034_bed(self, state) }
+            37 => { NPC::tick_n037_sign(self, state) }
+            38 => { NPC::tick_n038_fireplace(self, state) }
+            39 => { NPC::tick_n039_save_sign(self, state) }
             _ => { Ok(()) }
         }
     }
@@ -132,10 +142,11 @@ impl NPCMap {
             target_y: 0,
             action_num: 0,
             anim_num: 0,
+            flag_num: data.flag_num,
             event_num: data.event_num,
             life: table.get_life(data.npc_type),
             cond: Condition(0x00),
-            flags: Flag(data.flag_id as u32),
+            flags: Flag(data.flag_num as u32),
             npc_flags: NPCFlag(data.flags),
             direction: Direction::Left,
             display_bounds: table.get_display_bounds(data.npc_type),
@@ -150,6 +161,15 @@ impl NPCMap {
         self.npcs.insert(data.id, npc);
 
         self.npcs.get_mut(&data.id).unwrap()
+    }
+
+    pub fn remove_by_event(&mut self, event_num: u16, game_flags: &mut BitVec) {
+        for npc in self.npcs.values_mut() {
+            if npc.event_num == event_num {
+                npc.cond.set_alive(false);
+                game_flags.set(npc.flag_num as usize, true);
+            }
+        }
     }
 }
 
@@ -274,7 +294,6 @@ impl NPCTable {
             Rect { left: 0, top: 0, right: 0, bottom: 0 }
         }
     }
-
 
     pub fn get_hit_bounds(&self, npc_type: u16) -> Rect<usize> {
         if let Some(npc) = self.entries.get(npc_type as usize) {

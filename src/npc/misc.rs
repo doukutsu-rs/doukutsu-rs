@@ -8,8 +8,24 @@ impl NPC {
         Ok(())
     }
 
-
     pub(crate) fn tick_n016_save_point(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            if self.direction == Direction::Right {
+                self.npc_flags.set_interactable(false);
+                self.vel_y = -0x200;
+            }
+        }
+
+        if self.flags.hit_bottom_wall() {
+            self.npc_flags.set_interactable(true);
+        }
+
+        self.anim_counter = (self.anim_counter + 1) % 24;
+        self.anim_num = self.anim_counter / 3;
+        self.anim_rect = state.constants.npc.n016_save_point[self.anim_num as usize];
+
         Ok(())
     }
 
@@ -76,8 +92,8 @@ impl NPC {
         match self.action_num {
             0 => {
                 match self.direction {
-                    Direction::Left => { self.anim_rect = state.constants.npc.n018_door_rects[0] }
-                    Direction::Right => { self.anim_rect = state.constants.npc.n018_door_rects[1] }
+                    Direction::Left => { self.anim_rect = state.constants.npc.n018_door[0] }
+                    Direction::Right => { self.anim_rect = state.constants.npc.n018_door[1] }
                     _ => {}
                 }
             }
@@ -85,6 +101,70 @@ impl NPC {
                 // todo smoke
                 self.action_num = 0;
             }
+            _ => {}
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n020_computer(&mut self, state: &mut SharedGameState) -> GameResult {
+        Ok(())
+    }
+
+    pub(crate) fn tick_n027_death_trap(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n027_death_trap;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n032_life_capsule(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.anim_counter = (self.anim_counter + 1) % 4;
+        self.anim_num = self.anim_counter / 2;
+        self.anim_rect = state.constants.npc.n032_life_capsule[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n034_bed(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.direction {
+            Direction::Left => { self.anim_rect = state.constants.npc.n034_bed[0] }
+            Direction::Right => { self.anim_rect = state.constants.npc.n034_bed[1] }
+            _ => {}
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n037_sign(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.anim_counter = (self.anim_counter + 1) % 4;
+        self.anim_num = self.anim_counter / 2;
+        self.anim_rect = state.constants.npc.n037_sign[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n038_fireplace(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 => {
+                self.anim_counter = (self.anim_counter + 1) % 16;
+                self.anim_num = self.anim_counter / 4;
+                self.anim_rect = state.constants.npc.n038_fireplace[self.anim_num as usize];
+            }
+            10 => {}
+            11 => {}
+            _ => {}
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n039_save_sign(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.direction {
+            Direction::Left => { self.anim_rect = state.constants.npc.n039_save_sign[0] }
+            Direction::Right => { self.anim_rect = state.constants.npc.n039_save_sign[1] }
             _ => {}
         }
 

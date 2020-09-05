@@ -78,7 +78,20 @@ pub struct WorldConsts {
 pub struct NPCConsts {
     pub n016_save_point: [Rect<usize>; 8],
     pub n017_health_refill: [Rect<usize>; 2],
-    pub n018_door_rects: [Rect<usize>; 2],
+    pub n018_door: [Rect<usize>; 2],
+    pub n020_computer: [Rect<usize>; 4],
+    pub n021_chest_open: Rect<usize>,
+    pub n022_teleporter: [Rect<usize>; 2],
+    pub n023_teleporter_lights: [Rect<usize>; 8],
+    pub n027_death_trap: Rect<usize>,
+    pub n029_cthulhu: [Rect<usize>; 4],
+    pub n030_hermit_gunsmith: [Rect<usize>; 3],
+    pub n032_life_capsule: [Rect<usize>; 2],
+    pub n034_bed: [Rect<usize>; 2],
+    pub n035_mannan: [Rect<usize>; 8],
+    pub n037_sign: [Rect<usize>; 2],
+    pub n038_fireplace: [Rect<usize>; 4],
+    pub n039_save_sign: [Rect<usize>; 2],
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -256,9 +269,74 @@ impl EngineConstants {
                     Rect { left: 288, top: 0, right: 304, bottom: 16 },
                     Rect { left: 304, top: 0, right: 320, bottom: 16 },
                 ],
-                n018_door_rects: [
+                n018_door: [
                     Rect { left: 224, top: 16, right: 240, bottom: 40 },
                     Rect { left: 192, top: 112, right: 208, bottom: 136 },
+                ],
+                n020_computer: [
+                    Rect { left: 288, top: 16, right: 320, bottom: 40 }, // left
+                    Rect { left: 288, top: 40, right: 320, bottom: 64 }, // right
+                    Rect { left: 288, top: 40, right: 320, bottom: 64 },
+                    Rect { left: 288, top: 64, right: 320, bottom: 88 },
+                ],
+                n021_chest_open: Rect { left: 224, top: 40, right: 240, bottom: 48 },
+                n022_teleporter: [
+                    Rect { left: 240, top: 16, right: 264, bottom: 48 },
+                    Rect { left: 248, top: 152, right: 272, bottom: 184 },
+                ],
+                n023_teleporter_lights: [
+                    Rect { left: 264, top: 16, right: 288, bottom: 20 },
+                    Rect { left: 264, top: 20, right: 288, bottom: 24 },
+                    Rect { left: 264, top: 24, right: 288, bottom: 28 },
+                    Rect { left: 264, top: 28, right: 288, bottom: 32 },
+                    Rect { left: 264, top: 32, right: 288, bottom: 36 },
+                    Rect { left: 264, top: 36, right: 288, bottom: 40 },
+                    Rect { left: 264, top: 40, right: 288, bottom: 44 },
+                    Rect { left: 264, top: 44, right: 288, bottom: 48 },
+                ],
+                n027_death_trap: Rect { left: 96, top: 64, right: 128, bottom: 88 },
+                n029_cthulhu: [
+                    Rect { left: 0, top: 192, right: 16, bottom: 216 }, // left
+                    Rect { left: 16, top: 192, right: 32, bottom: 216 },
+                    Rect { left: 0, top: 216, right: 16, bottom: 240 }, // right
+                    Rect { left: 16, top: 216, right: 32, bottom: 240 },
+                ],
+                n030_hermit_gunsmith: [
+                    Rect { left: 48, top: 0, right: 64, bottom: 16 },
+                    Rect { left: 48, top: 16, right: 64, bottom: 32 },
+                    Rect { left: 0, top: 32, right: 16, bottom: 48 },
+                ],
+                n032_life_capsule: [
+                    Rect { left: 32, top: 96, right: 48, bottom: 112 },
+                    Rect { left: 48, top: 96, right: 64, bottom: 112 },
+                ],
+                n034_bed: [
+                    Rect { left: 192, top: 48, right: 224, bottom: 64 },
+                    Rect { left: 192, top: 184, right: 224, bottom: 200 },
+                ],
+                n035_mannan: [
+                    Rect { left: 96, top: 64, right: 120, bottom: 96 }, // left
+                    Rect { left: 120, top: 64, right: 144, bottom: 96 },
+                    Rect { left: 144, top: 64, right: 168, bottom: 96 },
+                    Rect { left: 168, top: 64, right: 192, bottom: 96 },
+                    Rect { left: 96, top: 96, right: 120, bottom: 128 }, // right
+                    Rect { left: 120, top: 96, right: 144, bottom: 128 },
+                    Rect { left: 144, top: 96, right: 168, bottom: 128 },
+                    Rect { left: 168, top: 96, right: 192, bottom: 128 },
+                ],
+                n037_sign: [
+                    Rect { left: 192, top: 64, right: 208, bottom: 80 },
+                    Rect { left: 208, top: 64, right: 224, bottom: 80 },
+                ],
+                n038_fireplace: [
+                    Rect { left: 128, top: 64, right: 144, bottom: 80 },
+                    Rect { left: 144, top: 64, right: 160, bottom: 80 },
+                    Rect { left: 160, top: 64, right: 176, bottom: 80 },
+                    Rect { left: 176, top: 64, right: 192, bottom: 80 },
+                ],
+                n039_save_sign: [
+                    Rect { left: 224, top: 64, right: 240, bottom: 80 },
+                    Rect { left: 240, top: 64, right: 256, bottom: 80 },
                 ]
             },
             tex_sizes: hashmap! {
