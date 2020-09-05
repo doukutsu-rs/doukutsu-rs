@@ -4,6 +4,7 @@ use std::io::Cursor;
 use std::io::Seek;
 use std::io::SeekFrom;
 use std::iter::Peekable;
+use std::ops::Not;
 use std::str::FromStr;
 
 use byteorder::ReadBytesExt;
@@ -187,6 +188,25 @@ pub enum TextScriptLine {
     Line3,
 }
 
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[repr(u8)]
+pub enum ConfirmSelection {
+    Yes,
+    No,
+}
+
+impl Not for ConfirmSelection {
+    type Output = ConfirmSelection;
+
+    fn not(self) -> ConfirmSelection {
+        if self == ConfirmSelection::Yes {
+            ConfirmSelection::No
+        } else {
+            ConfirmSelection::Yes
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Copy, Clone)]
 #[repr(u8)]
 pub enum TextScriptExecutionState {
@@ -195,6 +215,7 @@ pub enum TextScriptExecutionState {
     Msg(u16, u32, u32, u8),
     WaitTicks(u16, u32, u32),
     WaitInput(u16, u32),
+    WaitConfirmation(u16, u32, u16, u8, ConfirmSelection),
     WaitFade(u16, u32),
 }
 
@@ -208,6 +229,7 @@ pub struct TextScriptVM {
     pub strict_mode: bool,
     pub suspend: bool,
     pub face: u16,
+    pub item: u16,
     pub current_line: TextScriptLine,
     pub line_1: Vec<char>,
     pub line_2: Vec<char>,
@@ -305,6 +327,7 @@ impl TextScriptVM {
             strict_mode: false,
             suspend: true,
             flags: TextScriptFlags(0),
+            item: 0,
             face: 0,
             current_line: TextScriptLine::Line1,
             line_1: Vec::with_capacity(24),
@@ -414,6 +437,30 @@ impl TextScriptVM {
                         state.textscript_vm.state = TextScriptExecutionState::WaitTicks(event, ip, ticks - 1);
                         break;
                     }
+                }
+                TextScriptExecutionState::WaitConfirmation(event, ip, no_event, wait, selection) => {
+                    if wait > 0 {
+                        state.textscript_vm.state = TextScriptExecutionState::WaitConfirmation(event, ip, no_event, wait - 1, selection);
+                        break;
+                    }
+
+                    if state.key_trigger.left() || state.key_trigger.right() {
+                        state.textscript_vm.state = TextScriptExecutionState::WaitConfirmation(event, ip, no_event, 0, !selection);
+                        break;
+                    }
+
+                    if state.key_trigger.jump() {
+                        match selection {
+                            ConfirmSelection::Yes => {
+                                state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
+                            },
+                            ConfirmSelection::No => {
+                                state.textscript_vm.state = TextScriptExecutionState::Running(no_event, 0);
+                            },
+                        }
+                    }
+
+                    break;
                 }
                 TextScriptExecutionState::WaitInput(event, ip) => {
                     if state.key_trigger.jump() || state.key_trigger.fire() {
@@ -592,6 +639,11 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::YNJ => {
+                        let event_no = read_cur_varint(&mut cursor)? as u16;
+
+                        exec_state = TextScriptExecutionState::WaitConfirmation(event, cursor.position() as u32, event_no, 16, ConfirmSelection::No);
+                    }
                     OpCode::TRA => {
                         let map_id = read_cur_varint(&mut cursor)? as usize;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
@@ -687,7 +739,7 @@ impl TextScriptVM {
                     OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::FOM | OpCode::UNI |
                     OpCode::MYB | OpCode::GIT | OpCode::NUM | OpCode::DNA |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
-                    OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ | OpCode::YNJ |
+                    OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ |
                     OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU |
                     OpCode::SSS | OpCode::ACH => {
                         let par_a = read_cur_varint(&mut cursor)?;

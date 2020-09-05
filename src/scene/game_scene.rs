@@ -12,7 +12,7 @@ use crate::scene::Scene;
 use crate::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
 use crate::str;
-use crate::text_script::TextScriptVM;
+use crate::text_script::{ConfirmSelection, TextScriptExecutionState, TextScriptVM};
 use crate::ui::Components;
 
 pub struct GameScene {
@@ -302,20 +302,41 @@ impl GameScene {
         let top_pos = if state.textscript_vm.flags.position_top() { 32.0 } else { state.canvas_size.1 as f32 - 66.0 };
         let left_pos = (state.canvas_size.0 / 2.0 - 122.0).floor();
 
-        if state.textscript_vm.flags.background_visible() {
+        {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
-
-            batch.add_rect(left_pos, top_pos, &state.constants.textscript.textbox_rect_top);
-            for i in 1..7 {
-                batch.add_rect(left_pos, top_pos + i as f32 * 8.0, &state.constants.textscript.textbox_rect_middle);
+            if state.textscript_vm.flags.background_visible() {
+                batch.add_rect(left_pos, top_pos, &state.constants.textscript.textbox_rect_top);
+                for i in 1..7 {
+                    batch.add_rect(left_pos, top_pos + i as f32 * 8.0, &state.constants.textscript.textbox_rect_middle);
+                }
+                batch.add_rect(left_pos, top_pos + 56.0, &state.constants.textscript.textbox_rect_bottom);
             }
-            batch.add_rect(left_pos, top_pos + 56.0, &state.constants.textscript.textbox_rect_bottom);
+
+            if let TextScriptExecutionState::WaitConfirmation(_, _, _, wait, selection) = state.textscript_vm.state {
+                let pos_y = if wait > 14 {
+                    state.canvas_size.1 - 96.0 - (wait as f32 - 2.0) * 4.0
+                } else {
+                    state.canvas_size.1 - 96.0
+                };
+
+                batch.add_rect((state.canvas_size.0 / 2.0 + 56.0).floor(), pos_y,
+                               &state.constants.textscript.textbox_rect_yes_no);
+
+                if wait == 0 {
+                    let pos_x = if selection == ConfirmSelection::No { 41.0 } else { 0.0 };
+
+                    batch.add_rect((state.canvas_size.0 / 2.0 + 51.0).floor() + pos_x,
+                                   state.canvas_size.1 - 86.0,
+                                   &state.constants.textscript.textbox_rect_cursor);
+                }
+            }
 
             batch.draw(ctx)?;
         }
 
         if state.textscript_vm.face != 0 {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Face")?;
+
             batch.add_rect(left_pos + 14.0, top_pos + 8.0, &Rect::<usize>::new_size(
                 (state.textscript_vm.face as usize % 6) * 48,
                 (state.textscript_vm.face as usize / 6) * 48,

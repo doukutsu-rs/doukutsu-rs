@@ -100,6 +100,8 @@ pub struct TextScriptConsts {
     pub textbox_rect_top: Rect<usize>,
     pub textbox_rect_middle: Rect<usize>,
     pub textbox_rect_bottom: Rect<usize>,
+    pub textbox_rect_yes_no: Rect<usize>,
+    pub textbox_rect_cursor: Rect<usize>,
 }
 
 #[derive(Debug)]
@@ -337,7 +339,7 @@ impl EngineConstants {
                 n039_save_sign: [
                     Rect { left: 224, top: 64, right: 240, bottom: 80 },
                     Rect { left: 240, top: 64, right: 256, bottom: 80 },
-                ]
+                ],
             },
             tex_sizes: hashmap! {
                 str!("ArmsImage") => (256, 16),
@@ -460,6 +462,8 @@ impl EngineConstants {
                 textbox_rect_top: Rect { left: 0, top: 0, right: 244, bottom: 8 },
                 textbox_rect_middle: Rect { left: 0, top: 8, right: 244, bottom: 16 },
                 textbox_rect_bottom: Rect { left: 0, top: 16, right: 244, bottom: 24 },
+                textbox_rect_yes_no: Rect { left: 152, top: 48, right: 244, bottom: 80 },
+                textbox_rect_cursor: Rect { left: 112, top: 88, right: 128, bottom: 104 },
             },
             font_path: str!("builtin/builtin_font.fnt"),
             font_scale: 1.0,
