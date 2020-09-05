@@ -2,6 +2,7 @@ use std::cell::Cell;
 
 pub struct RNG(Cell<(u64, u64, u64, u64)>);
 
+#[inline]
 fn rol64(x: u64, shift: u64) -> u64
 {
     if shift == 0 || shift == 64 {
@@ -37,10 +38,12 @@ impl RNG {
         result as i32
     }
 
+    #[inline]
     pub fn next(&self) -> i32 {
         self.next_u64() as i32
     }
 
+    #[inline]
     pub fn next_u32(&self) -> u32 {
         self.next_u64() as u32
     }
