@@ -111,6 +111,7 @@ impl SoundManager {
             log::info!("Playing BGM: {}", song_name);
 
             self.current_song_id = song_id;
+            self.tx.send(PlaybackMessage::SaveState)?;
             self.tx.send(PlaybackMessage::PlaySong(Box::new(org)))?;
         }
         Ok(())
