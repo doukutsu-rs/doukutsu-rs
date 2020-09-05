@@ -6,7 +6,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, filesystem, GameResult};
-use crate::ggez::GameError::{AudioError, InvalidValue};
+use crate::ggez::GameError::{AudioError, InvalidValue, ResourceLoadError};
 use crate::sound::organya::Song;
 use crate::sound::playback::{PlaybackEngine, SavedPlaybackState};
 use crate::sound::wave_bank::SoundBank;
@@ -112,7 +112,13 @@ impl SoundManager {
             self.tx.send(PlaybackMessage::SaveState)?;
             self.tx.send(PlaybackMessage::Stop)?;
         } else if let Some(song_name) = SONGS.get(song_id) {
-            let org = organya::Song::load_from(filesystem::open(ctx, ["/base/Org/", &song_name.to_lowercase(), ".org"].join(""))?)?;
+            let path = constants.organya_paths
+                .iter()
+                .map(|prefix| [prefix, &song_name.to_lowercase(), ".org"].join(""))
+                .find(|path| filesystem::exists(ctx, path))
+                .ok_or_else(|| ResourceLoadError(format!("BGM {:?} does not exist.", song_name)))?;
+
+            let org = organya::Song::load_from(filesystem::open(ctx, path)?)?;
             log::info!("Playing BGM: {}", song_name);
 
             self.prev_song_id = self.current_song_id;

@@ -117,6 +117,7 @@ pub struct EngineConstants {
     pub font_path: String,
     pub font_scale: f32,
     pub font_space_offset: f32,
+    pub organya_paths: Vec<String>,
 }
 
 impl Clone for EngineConstants {
@@ -133,6 +134,7 @@ impl Clone for EngineConstants {
             font_path: self.font_path.clone(),
             font_scale: self.font_scale,
             font_space_offset: self.font_space_offset,
+            organya_paths: self.organya_paths.clone(),
         }
     }
 }
@@ -468,6 +470,11 @@ impl EngineConstants {
             font_path: str!("builtin/builtin_font.fnt"),
             font_scale: 1.0,
             font_space_offset: -3.0,
+            organya_paths: vec![
+                str!("/org/"), // NXEngine
+                str!("/base/Org/"), // CS+
+                str!("/Resource/ORG/"), // CSE2E
+            ],
         }
     }
 
