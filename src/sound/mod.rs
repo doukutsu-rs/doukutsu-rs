@@ -106,7 +106,10 @@ impl SoundManager {
         if song_id == 0 {
             log::info!("Stopping BGM");
 
+            self.prev_song_id = self.current_song_id;
             self.current_song_id = 0;
+
+            self.tx.send(PlaybackMessage::SaveState)?;
             self.tx.send(PlaybackMessage::Stop)?;
         } else if let Some(song_name) = SONGS.get(song_id) {
             let org = organya::Song::load_from(filesystem::open(ctx, ["/base/Org/", &song_name.to_lowercase(), ".org"].join(""))?)?;
@@ -205,6 +208,10 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
                     if saved_state.is_some() {
                         engine.set_state(saved_state.clone().unwrap(), &bank);
                         saved_state = None;
+
+                        if state == PlaybackState::Stopped {
+                            engine.set_position(0);
+                        }
 
                         for i in &mut buf[0..frames] { *i = 0x8080 };
                         frames = engine.render_to(&mut buf);
