@@ -357,6 +357,10 @@ impl Player {
                     self.vel_x = 0;
                     self.question = false;
                 }
+
+                if npc.npc_flags.event_when_touched() && !state.control_flags.flag_x04() && flags.0 != 0 {
+                    state.textscript_vm.start_script(npc.event_num);
+                }
             }
         }
 

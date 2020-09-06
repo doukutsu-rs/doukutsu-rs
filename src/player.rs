@@ -40,6 +40,7 @@ pub struct Player {
     pub up: bool,
     pub down: bool,
     pub shock_counter: u8,
+    pub update_target: bool,
     index_x: isize,
     index_y: isize,
     sprash: bool,
@@ -78,6 +79,7 @@ impl Player {
             index_x: 0,
             index_y: 0,
             sprash: false,
+            update_target: true,
             up: false,
             down: false,
             shock_counter: 0,
@@ -389,8 +391,10 @@ impl Player {
             }
         }
 
-        self.target_x = self.x + self.index_x;
-        self.target_y = self.y + self.index_y;
+        if self.update_target {
+            self.target_x = self.x + self.index_x;
+            self.target_y = self.y + self.index_y;
+        }
 
         if self.vel_x > physics.resist || self.vel_x < -physics.resist {
             self.x += self.vel_x;

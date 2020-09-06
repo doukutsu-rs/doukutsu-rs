@@ -15,9 +15,12 @@ use crate::ggez::{Context, GameResult};
 use crate::map::NPCData;
 use crate::player::Player;
 use crate::str;
+use crate::text_script::TextScriptExecutionState;
 
+pub mod characters;
+pub mod first_cave;
+pub mod mimiga_village;
 pub mod misc;
-pub mod critter;
 
 bitfield! {
   pub struct NPCFlag(u16);
@@ -35,7 +38,7 @@ bitfield! {
   pub event_when_killed, set_event_when_killed: 9;
   pub flag_x400, set_flag_x400: 10;
   pub appear_when_flag_set, set_appear_when_flag_set: 11;
-  pub spawn_in_other_direction, set_spawn_in_other_direction: 12;
+  pub spawn_facing_right, set_spawn_facing_right: 12;
   pub interactable, set_interactable: 13;
   pub hide_unless_flag_set, set_hide_unless_flag_set: 14;
   pub show_damage, set_show_damage: 15;
@@ -51,6 +54,7 @@ pub struct NPC {
     pub vel_y: isize,
     pub target_x: isize,
     pub target_y: isize,
+    pub shock: u16,
     pub life: u16,
     pub cond: Condition,
     pub flags: Flag,
@@ -68,20 +72,39 @@ pub struct NPC {
 }
 
 impl GameEntity<&mut Player> for NPC {
-    fn tick(&mut self, state: &mut SharedGameState, scene: &mut Player) -> GameResult {
+    fn tick(&mut self, state: &mut SharedGameState, player: &mut Player) -> GameResult {
         // maybe use macros?
         match self.npc_type {
-            0 => { NPC::tick_n000_null(self, state) }
-            16 => { NPC::tick_n016_save_point(self, state) }
-            17 => { NPC::tick_n017_health_refill(self, state) }
-            18 => { NPC::tick_n018_door(self, state) }
-            20 => { NPC::tick_n020_computer(self, state) }
-            27 => { NPC::tick_n027_death_trap(self, state) }
-            32 => { NPC::tick_n032_life_capsule(self, state) }
-            34 => { NPC::tick_n034_bed(self, state) }
-            37 => { NPC::tick_n037_sign(self, state) }
-            38 => { NPC::tick_n038_fireplace(self, state) }
-            39 => { NPC::tick_n039_save_sign(self, state) }
+            0 => { self.tick_n000_null(state) }
+            16 => { self.tick_n016_save_point(state) }
+            17 => { self.tick_n017_health_refill(state) }
+            18 => { self.tick_n018_door(state) }
+            20 => { self.tick_n020_computer(state) }
+            21 => { self.tick_n021_chest_open(state) }
+            22 => { self.tick_n022_teleporter(state) }
+            27 => { self.tick_n027_death_trap(state) }
+            30 => { self.tick_n030_gunsmith(state) }
+            32 => { self.tick_n032_life_capsule(state) }
+            34 => { self.tick_n034_bed(state) }
+            37 => { self.tick_n037_sign(state) }
+            38 => { self.tick_n038_fireplace(state) }
+            39 => { self.tick_n039_save_sign(state) }
+            41 => { self.tick_n041_busted_door(state) }
+            43 => { self.tick_n043_chalkboard(state) }
+            46 => { self.tick_n046_hv_trigger(state, player) }
+            52 => { self.tick_n052_sitting_blue_robot(state) }
+            55 => { self.tick_n055_kazuma(state) }
+            59 => { self.tick_n059_eye_door(state, player) }
+            60 => { self.tick_n060_toroko(state, player) }
+            61 => { self.tick_n061_king(state) }
+            62 => { self.tick_n062_kazuma_computer(state) }
+            70 => { self.tick_n070_sparkle(state) }
+            72 => { self.tick_n072_sprinkler(state) }
+            74 => { self.tick_n074_jack(state) }
+            75 => { self.tick_n075_kanpachi(state, player) }
+            77 => { self.tick_n077_yamashita(state) }
+            78 => { self.tick_n078_pot(state) }
+            79 => { self.tick_n079_mahin(state, player) }
             _ => { Ok(()) }
         }
     }
@@ -131,6 +154,7 @@ impl NPCMap {
     }
 
     pub fn create_npc_from_data(&mut self, table: &NPCTable, data: &NPCData) -> &mut NPC {
+        let npc_flags = NPCFlag(data.flags);
         let npc = NPC {
             id: data.id,
             npc_type: data.npc_type,
@@ -144,11 +168,12 @@ impl NPCMap {
             anim_num: 0,
             flag_num: data.flag_num,
             event_num: data.event_num,
+            shock: 0,
             life: table.get_life(data.npc_type),
             cond: Condition(0x00),
             flags: Flag(data.flag_num as u32),
-            npc_flags: NPCFlag(data.flags),
-            direction: Direction::Left,
+            direction: if npc_flags.spawn_facing_right() { Direction::Right } else { Direction::Left },
+            npc_flags,
             display_bounds: table.get_display_bounds(data.npc_type),
             hit_bounds: table.get_hit_bounds(data.npc_type),
             action_counter: 0,
@@ -174,16 +199,16 @@ impl NPCMap {
 }
 
 pub struct NPCTableEntry {
-    npc_flags: NPCFlag,
-    life: u16,
-    spritesheet_id: u8,
-    death_sound: u8,
-    hurt_sound: u8,
-    death_smoke: u8,
-    experience: u32,
-    damage: u32,
-    display_bounds: Rect<u8>,
-    hit_bounds: Rect<u8>,
+    pub npc_flags: NPCFlag,
+    pub life: u16,
+    pub spritesheet_id: u8,
+    pub death_sound: u8,
+    pub hurt_sound: u8,
+    pub death_smoke: u8,
+    pub experience: u32,
+    pub damage: u32,
+    pub display_bounds: Rect<u8>,
+    pub hit_bounds: Rect<u8>,
 }
 
 pub struct NPCTable {
@@ -272,6 +297,10 @@ impl NPCTable {
         }
 
         Ok(table)
+    }
+
+    pub fn get_entry(&self, npc_type: u16) -> Option<&NPCTableEntry> {
+        self.entries.get(npc_type as usize)
     }
 
     pub fn get_life(&self, npc_type: u16) -> u16 {

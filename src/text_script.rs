@@ -15,6 +15,7 @@ use num_traits::FromPrimitive;
 use crate::{SharedGameState, str};
 use crate::bitfield;
 use crate::common::{Direction, FadeDirection, FadeState};
+use crate::entity::GameEntity;
 use crate::ggez::{Context, GameResult};
 use crate::ggez::GameError::ParseError;
 use crate::scene::game_scene::GameScene;
@@ -213,7 +214,7 @@ pub enum TextScriptExecutionState {
     Ended,
     Running(u16, u32),
     Msg(u16, u32, u32, u8),
-    WaitTicks(u16, u32, u32),
+    WaitTicks(u16, u32, u16),
     WaitInput(u16, u32),
     WaitConfirmation(u16, u32, u16, u8, ConfirmSelection),
     WaitFade(u16, u32),
@@ -453,10 +454,10 @@ impl TextScriptVM {
                         match selection {
                             ConfirmSelection::Yes => {
                                 state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
-                            },
+                            }
                             ConfirmSelection::No => {
                                 state.textscript_vm.state = TextScriptExecutionState::Running(no_event, 0);
-                            },
+                            }
                         }
                     }
 
@@ -482,6 +483,7 @@ impl TextScriptVM {
 
     pub fn execute(event: u16, ip: u32, state: &mut SharedGameState, game_scene: &mut GameScene, ctx: &mut Context) -> GameResult<TextScriptExecutionState> {
         let mut exec_state = state.textscript_vm.state;
+        let mut tick_npc = 0u16;
 
         if let Some(bytecode) = state.textscript_vm.scripts.find_script(event) {
             let mut cursor = Cursor::new(bytecode);
@@ -509,6 +511,9 @@ impl TextScriptVM {
                     OpCode::_END | OpCode::END => {
                         state.control_flags.set_flag_x01(true);
                         state.control_flags.set_control_enabled(true);
+
+                        state.textscript_vm.flags.set_render(false);
+                        state.textscript_vm.flags.set_background_visible(false);
 
                         exec_state = TextScriptExecutionState::Ended;
                     }
@@ -555,7 +560,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::WAI => {
-                        let ticks = read_cur_varint(&mut cursor)? as u32;
+                        let ticks = read_cur_varint(&mut cursor)? as u16;
 
                         exec_state = TextScriptExecutionState::WaitTicks(event, cursor.position() as u32, ticks);
                     }
@@ -644,6 +649,12 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::WaitConfirmation(event, cursor.position() as u32, event_no, 16, ConfirmSelection::No);
                     }
+                    OpCode::GIT => {
+                        let item = read_cur_varint(&mut cursor)? as u16;
+                        state.textscript_vm.item = item;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::TRA => {
                         let map_id = read_cur_varint(&mut cursor)? as usize;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
@@ -708,7 +719,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::FMU => {
-                        state.sound_manager.save_state()?;
+                        state.sound_manager.play_song(0, &state.constants, ctx)?;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -724,6 +735,117 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::FOM => {
+                        let ticks = read_cur_varint(&mut cursor)? as isize;
+                        game_scene.frame.wait = ticks;
+                        game_scene.player.update_target = true;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::FON => {
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+                        let ticks = read_cur_varint(&mut cursor)? as isize;
+                        game_scene.frame.wait = ticks;
+                        game_scene.player.update_target = false;
+
+                        for npc_id in game_scene.npc_map.npc_ids.iter() {
+                            if let Some(npc) = game_scene.npc_map.npcs.get_mut(npc_id) {
+                                if event_num == npc.event_num {
+                                    game_scene.player.target_x = npc.x;
+                                    game_scene.player.target_y = npc.y;
+                                    break;
+                                }
+                            }
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::ANP => {
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+                        let action_num = read_cur_varint(&mut cursor)? as u16;
+                        let direction = read_cur_varint(&mut cursor)? as usize;
+
+                        for npc_id in game_scene.npc_map.npc_ids.iter() {
+                            if let Some(npc) = game_scene.npc_map.npcs.get_mut(npc_id) {
+                                if npc.cond.alive() && npc.event_num == event_num {
+                                    npc.action_num = action_num;
+
+                                    if direction == 4 {
+                                        npc.direction = if game_scene.player.x < npc.x {
+                                            Direction::Right
+                                        } else {
+                                            Direction::Left
+                                        };
+                                    } else if let Some(dir) = Direction::from_int(direction) {
+                                        npc.direction = dir;
+                                    }
+
+                                    break;
+                                }
+                            }
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::CNP => {
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+                        let new_type = read_cur_varint(&mut cursor)? as u16;
+                        let direction = read_cur_varint(&mut cursor)? as usize;
+
+                        for npc_id in game_scene.npc_map.npc_ids.iter() {
+                            if let Some(npc) = game_scene.npc_map.npcs.get_mut(npc_id) {
+                                if npc.cond.alive() && npc.event_num == event_num {
+                                    npc.npc_flags.set_solid_soft(false);
+                                    npc.npc_flags.set_ignore_tile_44(false);
+                                    npc.npc_flags.set_invulnerable(false);
+                                    npc.npc_flags.set_ignore_solidity(false);
+                                    npc.npc_flags.set_bouncy(false);
+                                    npc.npc_flags.set_shootable(false);
+                                    npc.npc_flags.set_solid_hard(false);
+                                    npc.npc_flags.set_rear_and_top_not_hurt(false);
+                                    npc.npc_flags.set_show_damage(false);
+
+                                    npc.npc_type = new_type;
+                                    npc.display_bounds = state.npc_table.get_display_bounds(new_type);
+                                    npc.hit_bounds = state.npc_table.get_hit_bounds(new_type);
+                                    let entry = state.npc_table.get_entry(new_type).unwrap().to_owned();
+                                    npc.npc_flags.0 |= entry.npc_flags.0;
+                                    npc.life = entry.life;
+
+                                    npc.cond.set_alive(true);
+                                    npc.action_num = 0;
+                                    npc.action_counter = 0;
+                                    npc.anim_num = 0;
+                                    npc.anim_counter = 0;
+                                    npc.vel_x = 0;
+                                    npc.vel_y = 0;
+
+                                    if direction == 4 {
+                                        npc.direction = if game_scene.player.x < npc.x {
+                                            Direction::Right
+                                        } else {
+                                            Direction::Left
+                                        };
+                                    } else if let Some(dir) = Direction::from_int(direction) {
+                                        npc.direction = dir;
+                                    }
+
+                                    tick_npc = *npc_id;
+
+                                    break;
+                                }
+                            }
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::INP => {
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+                        let new_type = read_cur_varint(&mut cursor)? as u16;
+                        let direction = read_cur_varint(&mut cursor)? as u8;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     // unimplemented opcodes
                     // Zero operands
                     OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CPS |
@@ -736,8 +858,8 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // One operand codes
-                    OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::FOM | OpCode::UNI |
-                    OpCode::MYB | OpCode::GIT | OpCode::NUM | OpCode::DNA |
+                    OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::UNI |
+                    OpCode::MYB | OpCode::NUM | OpCode::DNA |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
                     OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ |
                     OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU |
@@ -749,7 +871,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Two operand codes
-                    OpCode::FON | OpCode::AMp | OpCode::NCJ | OpCode::ECJ |
+                    OpCode::AMp | OpCode::NCJ | OpCode::ECJ |
                     OpCode::ITJ | OpCode::SKJ | OpCode::AMJ | OpCode::SMP | OpCode::PSp => {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
@@ -759,7 +881,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Three operand codes
-                    OpCode::ANP | OpCode::CNP | OpCode::INP | OpCode::TAM => {
+                    OpCode::TAM => {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
                         let par_c = read_cur_varint(&mut cursor)?;
@@ -785,6 +907,12 @@ impl TextScriptVM {
             }
         } else {
             return Ok(TextScriptExecutionState::Ended);
+        }
+
+        if tick_npc != 0 {
+            if let Some(npc) = game_scene.npc_map.npcs.get_mut(&tick_npc) {
+                npc.tick(state, &mut game_scene.player)?;
+            }
         }
 
         Ok(exec_state)

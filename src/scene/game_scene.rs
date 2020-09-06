@@ -463,25 +463,7 @@ impl Scene for GameScene {
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         state.update_key_trigger();
 
-        if self.tick % 2 == 0 {
-            match state.fade_state {
-                FadeState::FadeOut(tick, direction) if tick < 15 => {
-                    state.fade_state = FadeState::FadeOut(tick + 1, direction);
-                }
-                FadeState::FadeOut(tick, _) if tick == 15 => {
-                    state.fade_state = FadeState::Hidden;
-                }
-                FadeState::FadeIn(tick, direction) if tick > -15 => {
-                    state.fade_state = FadeState::FadeIn(tick - 1, direction);
-                }
-                FadeState::FadeIn(tick, _) if tick == -15 => {
-                    state.fade_state = FadeState::Visible;
-                }
-                _ => {}
-            }
-        }
-
-        if state.control_flags.flag_x01() {
+        if self.tick == 0 || state.control_flags.flag_x01() {
             self.player.tick(state, ())?;
 
             self.player.flags.0 = 0;
@@ -518,6 +500,22 @@ impl Scene for GameScene {
             self.map_name_counter -= 1;
         }
 
+        match state.fade_state {
+            FadeState::FadeOut(tick, direction) if tick < 15 => {
+                state.fade_state = FadeState::FadeOut(tick + 1, direction);
+            }
+            FadeState::FadeOut(tick, _) if tick == 15 => {
+                state.fade_state = FadeState::Hidden;
+            }
+            FadeState::FadeIn(tick, direction) if tick > -15 => {
+                state.fade_state = FadeState::FadeIn(tick - 1, direction);
+            }
+            FadeState::FadeIn(tick, _) if tick == -15 => {
+                state.fade_state = FadeState::Visible;
+            }
+            _ => {}
+        }
+
         TextScriptVM::run(state, self, ctx)?;
         self.tick = self.tick.wrapping_add(1);
         Ok(())
@@ -526,8 +524,10 @@ impl Scene for GameScene {
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
-        for npc in self.npc_map.npcs.values() {
-            npc.draw(state, ctx, &self.frame)?;
+        for npc_id in self.npc_map.npc_ids.iter() {
+            if let Some(npc) = self.npc_map.npcs.get(npc_id) {
+                npc.draw(state, ctx, &self.frame)?;
+            }
         }
         self.player.draw(state, ctx, &self.frame)?;
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;

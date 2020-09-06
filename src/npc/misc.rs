@@ -1,6 +1,8 @@
+use crate::caret::CaretType;
 use crate::common::Direction;
 use crate::ggez::GameResult;
 use crate::npc::NPC;
+use crate::player::Player;
 use crate::SharedGameState;
 
 impl NPC {
@@ -108,6 +110,50 @@ impl NPC {
     }
 
     pub(crate) fn tick_n020_computer(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.direction {
+            Direction::Left if self.anim_num == 0 => {
+                self.anim_num = 1;
+                self.anim_rect = state.constants.npc.n020_computer[0];
+            }
+            Direction::Right => {
+                self.anim_counter = (self.anim_counter + 1) % 12;
+                self.anim_num = self.anim_counter / 4;
+                self.anim_rect = state.constants.npc.n020_computer[1 + self.anim_num as usize];
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n021_chest_open(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            if self.direction == Direction::Right {
+                self.y += 16 * 0x200;
+            }
+
+            self.anim_rect = state.constants.npc.n021_chest_open;
+        }
+
+        Ok(())
+    }
+
+
+    pub(crate) fn tick_n022_teleporter(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 if self.anim_counter == 0 => {
+                self.anim_counter = 1;
+                self.anim_rect = state.constants.npc.n022_teleporter[0];
+            }
+            1 => {
+                self.anim_num = (self.anim_num + 1) & 1;
+                self.anim_rect = state.constants.npc.n022_teleporter[self.anim_num as usize];
+            }
+            _ => {}
+        }
+
         Ok(())
     }
 
@@ -120,6 +166,50 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n030_gunsmith(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.direction == Direction::Left {
+            match self.action_num {
+                0 => {
+                    self.action_num = 1;
+                    self.anim_counter = 0;
+                    self.anim_rect = state.constants.npc.n030_hermit_gunsmith[0];
+                }
+                1 => {
+                    self.action_num = 1;
+                    self.anim_counter = 0;
+
+                    if state.game_rng.range(0..120) == 10 {
+                        self.action_num = 2;
+                        self.action_counter = 8;
+                        self.anim_rect = state.constants.npc.n030_hermit_gunsmith[1];
+                    }
+                }
+                2 => {
+                    if self.action_counter > 0 {
+                        self.action_counter -= 1;
+                        self.anim_rect = state.constants.npc.n030_hermit_gunsmith[0];
+                    }
+                }
+                _ => {}
+            }
+        } else {
+            if self.action_num == 0 {
+                self.action_num = 1;
+                self.anim_rect = state.constants.npc.n030_hermit_gunsmith[2];
+                self.y += 16 * 0x200;
+            }
+
+            self.action_counter += 1;
+            if self.action_counter > 100 {
+                self.action_counter = 0;
+                state.create_caret(self.x, self.y - 0x400, CaretType::Zzz, Direction::Left);
+            }
+        }
+
+        Ok(())
+    }
+
+
     pub(crate) fn tick_n032_life_capsule(&mut self, state: &mut SharedGameState) -> GameResult {
         self.anim_counter = (self.anim_counter + 1) % 4;
         self.anim_num = self.anim_counter / 2;
@@ -129,10 +219,14 @@ impl NPC {
     }
 
     pub(crate) fn tick_n034_bed(&mut self, state: &mut SharedGameState) -> GameResult {
-        match self.direction {
-            Direction::Left => { self.anim_rect = state.constants.npc.n034_bed[0] }
-            Direction::Right => { self.anim_rect = state.constants.npc.n034_bed[1] }
-            _ => {}
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            match self.direction {
+                Direction::Left => { self.anim_rect = state.constants.npc.n034_bed[0] }
+                Direction::Right => { self.anim_rect = state.constants.npc.n034_bed[1] }
+                _ => {}
+            }
         }
 
         Ok(())
@@ -162,10 +256,92 @@ impl NPC {
     }
 
     pub(crate) fn tick_n039_save_sign(&mut self, state: &mut SharedGameState) -> GameResult {
-        match self.direction {
-            Direction::Left => { self.anim_rect = state.constants.npc.n039_save_sign[0] }
-            Direction::Right => { self.anim_rect = state.constants.npc.n039_save_sign[1] }
-            _ => {}
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            match self.direction {
+                Direction::Left => { self.anim_rect = state.constants.npc.n039_save_sign[0] }
+                Direction::Right => { self.anim_rect = state.constants.npc.n039_save_sign[1] }
+                _ => {}
+            }
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n041_busted_door(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n041_busted_door;
+            self.y -= 16 * 0x200;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n043_chalkboard(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.y -= 16 * 0x200;
+
+            match self.direction {
+                Direction::Left => { self.anim_rect = state.constants.npc.n043_chalkboard[0] }
+                Direction::Right => { self.anim_rect = state.constants.npc.n043_chalkboard[1] }
+                _ => {}
+            }
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n046_hv_trigger(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+        self.npc_flags.set_event_when_touched(true);
+
+        if self.direction == Direction::Left {
+            if self.x < player.x {
+                self.x += 0x5ff;
+            } else {
+                self.x -= 0x5ff;
+            }
+        } else if self.y < player.y {
+            self.y += 0x5ff;
+        } else {
+            self.y -= 0x5ff;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n070_sparkle(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.anim_counter = (self.anim_counter + 1) % 16;
+        self.anim_num = self.anim_counter / 4;
+        self.anim_rect = state.constants.npc.n070_sparkle[self.anim_num as usize];
+
+        Ok(())
+    }
+
+
+    pub(crate) fn tick_n072_sprinkler(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.direction == Direction::Left {
+            self.anim_counter = (self.anim_counter + 1) % 4;
+            self.anim_num = self.anim_counter / 2;
+            self.anim_rect = state.constants.npc.n072_sprinkler[self.anim_num as usize];
+
+            // todo: spawn water droplets
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n078_pot(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            match self.direction {
+                Direction::Left => { self.anim_rect = state.constants.npc.n078_pot[0] }
+                Direction::Right => { self.anim_rect = state.constants.npc.n078_pot[1] }
+                _ => {}
+            }
         }
 
         Ok(())
