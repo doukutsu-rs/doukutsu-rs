@@ -384,9 +384,9 @@ impl TextScriptVM {
                         state.textscript_vm.reset();
                     }
                 }
-                TextScriptExecutionState::Msg(event, ip, remaining, timer) => {
-                    if timer > 0 {
-                        state.textscript_vm.state = TextScriptExecutionState::Msg(event, ip, remaining, timer - 1);
+                TextScriptExecutionState::Msg(event, ip, remaining, counter) => {
+                    if counter > 0 {
+                        state.textscript_vm.state = TextScriptExecutionState::Msg(event, ip, remaining, counter - 1);
                         break;
                     }
 
@@ -394,7 +394,7 @@ impl TextScriptVM {
                         let mut cursor = Cursor::new(bytecode);
                         cursor.seek(SeekFrom::Start(ip as u64))?;
 
-                        let (consumed, chr) = read_cur_wtf8(&mut cursor, remaining);
+                        let chr = std::char::from_u32(read_cur_varint(&mut cursor)? as u32).unwrap_or('\u{fffd}');
 
                         match chr {
                             '\n' if state.textscript_vm.current_line == TextScriptLine::Line1 => {
@@ -421,11 +421,11 @@ impl TextScriptVM {
                             _ => {}
                         }
 
-                        if (remaining - consumed) > 0 {
+                        if remaining > 1 {
                             let ticks = if state.key_state.jump() || state.key_state.fire() { 1 } else { 4 };
-                            state.textscript_vm.state = TextScriptExecutionState::Msg(event, ip + consumed, remaining - consumed, ticks);
+                            state.textscript_vm.state = TextScriptExecutionState::Msg(event, cursor.position() as u32, remaining - 1, ticks);
                         } else {
-                            state.textscript_vm.state = TextScriptExecutionState::Running(event, ip + consumed);
+                            state.textscript_vm.state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                         }
                     } else {
                         state.textscript_vm.reset();
@@ -500,12 +500,16 @@ impl TextScriptVM {
                     }
                     OpCode::_UNI => {}
                     OpCode::_STR => {
-                        let len = read_cur_varint(&mut cursor)? as u32;
+                        let mut len = read_cur_varint(&mut cursor)? as u32;
                         if state.textscript_vm.flags.render() {
                             exec_state = TextScriptExecutionState::Msg(event, cursor.position() as u32, len, 4);
                         } else {
+                            while len > 0 {
+                                len -= 1;
+                                let _ = read_cur_varint(&mut cursor)?;
+                            }
                             // simply skip the text if we aren't in message mode.
-                            exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32 + len);
+                            exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                         }
                     }
                     OpCode::_END | OpCode::END => {
@@ -671,6 +675,7 @@ impl TextScriptVM {
                         state.textscript_vm.suspend = true;
                         state.next_scene = Some(Box::new(new_scene));
 
+                        log::info!("Transitioning to stage {}, with script #{:04}", map_id, event_num);
                         exec_state = TextScriptExecutionState::Running(event_num, 0);
                     }
                     OpCode::MOV => {
@@ -973,7 +978,7 @@ impl TextScript {
 
     /// Compiles a decrypted text script data into internal bytecode.
     pub fn compile(data: &[u8], strict: bool) -> GameResult<TextScript> {
-        log::debug!("data: {}", String::from_utf8_lossy(data));
+        log::info!("data: {}", String::from_utf8_lossy(data));
 
         let mut event_map = HashMap::new();
         let mut iter = data.iter().copied().peekable();
@@ -1057,20 +1062,41 @@ impl TextScript {
     }
 
     fn put_string(buffer: &mut Vec<u8>, out: &mut Vec<u8>) {
+        let mut cursor: Cursor<&Vec<u8>> = Cursor::new(buffer);
+        let mut tmp_buf = Vec::new();
+        let mut remaining = buffer.len() as u32;
+        let mut chars = 0;
+
+        while remaining > 0 {
+            let (consumed, chr) = read_cur_wtf8(&mut cursor, remaining);
+            remaining -= consumed;
+            chars += 1;
+
+            TextScript::put_varint(chr as i32, &mut tmp_buf);
+        }
+
+        buffer.clear();
+
         TextScript::put_varint(OpCode::_STR as i32, out);
-        TextScript::put_varint(buffer.len() as i32, out);
-        out.append(buffer);
+        TextScript::put_varint(chars, out);
+        out.append(&mut tmp_buf);
     }
 
     fn put_varint(val: i32, out: &mut Vec<u8>) {
         let mut x = ((val as u32) >> 31) ^ ((val as u32) << 1);
 
-        while x > 0x80 {
-            out.push((x & 0x7f) as u8 | 0x80);
+        loop {
+            let mut n = (x & 0x7f) as u8;
             x >>= 7;
-        }
 
-        out.push(x as u8);
+            if x != 0 {
+                n |= 0x80;
+            }
+
+            out.push(n);
+
+            if x == 0 { break; }
+        }
     }
 
     fn read_varint<I: Iterator<Item=u8>>(iter: &mut I) -> GameResult<i32> {
@@ -1080,9 +1106,7 @@ impl TextScript {
             let n = iter.next().ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?;
             result |= (n as u32 & 0x7f) << (o * 7);
 
-            if n & 0x80 == 0 {
-                break;
-            }
+            if n & 0x80 == 0 { break; }
         }
 
         Ok(((result << 31) ^ (result >> 1)) as i32)
@@ -1217,10 +1241,14 @@ impl TextScript {
 
 #[test]
 fn test_varint() {
-    for &n in [1_i32, 23, 456, 7890, 12345, -1, -23, -456].iter() {
+    for n in -4000..=4000 {
         let mut out = Vec::new();
         TextScript::put_varint(n, &mut out);
+
         let result = TextScript::read_varint(&mut out.iter().copied()).unwrap();
+        assert_eq!(result, n);
+        let mut cur = Cursor::new(&out);
+        let result = read_cur_varint(&mut cur).unwrap();
         assert_eq!(result, n);
     }
 }
