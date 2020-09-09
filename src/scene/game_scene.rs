@@ -66,7 +66,7 @@ impl GameScene {
             npc_map: NPCMap::new(),
             tex_background_name,
             tex_tileset_name,
-            life_bar: 3,
+            life_bar: 0,
             life_bar_counter: 0,
             map_name_counter: 0,
         })
@@ -112,15 +112,18 @@ impl GameScene {
         // experience
         //batch.add_rect(40.0, 32.0,
         //               &Rect::<usize>::new_size(0, 80, (40), 8)); // todo
-        // life box
-        batch.add_rect(16.0, 40.0,
-                       &Rect::<usize>::new_size(0, 40, 64, 8));
-        // yellow bar
-        batch.add_rect(40.0, 40.0,
-                       &Rect::<usize>::new_size(0, 32, ((self.life_bar as usize * 40) / self.player.max_life as usize), 8));
-        // life
-        batch.add_rect(40.0, 40.0,
-                       &Rect::<usize>::new_size(0, 24, ((self.player.life as usize * 40) / self.player.max_life as usize), 8));
+
+        if self.player.max_life != 0 {
+            // life box
+            batch.add_rect(16.0, 40.0,
+                           &Rect::<usize>::new_size(0, 40, 64, 8));
+            // yellow bar
+            batch.add_rect(40.0, 40.0,
+                           &Rect::<usize>::new_size(0, 32, ((self.life_bar as usize * 40) / self.player.max_life as usize), 8));
+            // life
+            batch.add_rect(40.0, 40.0,
+                           &Rect::<usize>::new_size(0, 24, ((self.player.life as usize * 40) / self.player.max_life as usize), 8));
+        }
 
         batch.draw(ctx)?;
 
