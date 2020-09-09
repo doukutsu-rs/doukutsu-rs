@@ -10,7 +10,7 @@ use std::str::FromStr;
 use byteorder::ReadBytesExt;
 use itertools::Itertools;
 use num_derive::FromPrimitive;
-use num_traits::FromPrimitive;
+use num_traits::{FromPrimitive, clamp};
 
 use crate::{SharedGameState, str};
 use crate::bitfield;
@@ -822,7 +822,7 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
-                    OpCode::CNP => {
+                    OpCode::CNP | OpCode::INP => {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
                         let new_type = read_cur_varint(&mut cursor)? as u16;
                         let direction = read_cur_varint(&mut cursor)? as usize;
@@ -839,6 +839,10 @@ impl TextScriptVM {
                                     npc.npc_flags.set_solid_hard(false);
                                     npc.npc_flags.set_rear_and_top_not_hurt(false);
                                     npc.npc_flags.set_show_damage(false);
+
+                                    if op == OpCode::INP {
+                                        npc.npc_flags.set_event_when_touched(true);
+                                    }
 
                                     npc.npc_type = new_type;
                                     npc.display_bounds = state.npc_table.get_display_bounds(new_type);
@@ -874,10 +878,10 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
-                    OpCode::INP => {
-                        let event_num = read_cur_varint(&mut cursor)? as u16;
-                        let new_type = read_cur_varint(&mut cursor)? as u16;
-                        let direction = read_cur_varint(&mut cursor)? as u8;
+                    OpCode::LIp => {
+                        let life = read_cur_varint(&mut cursor)? as usize;
+
+                        game_scene.player.life = clamp(game_scene.player.life + life, 0, game_scene.player.max_life);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -897,7 +901,7 @@ impl TextScriptVM {
                     OpCode::NUM | OpCode::DNA |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
                     OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ |
-                    OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU |
+                    OpCode::XX1 | OpCode::SIL | OpCode::SOU |
                     OpCode::SSS | OpCode::ACH => {
                         let par_a = read_cur_varint(&mut cursor)?;
 
