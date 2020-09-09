@@ -100,6 +100,7 @@ impl GameEntity<&mut Player> for NPC {
             60 => { self.tick_n060_toroko(state, player) }
             61 => { self.tick_n061_king(state) }
             62 => { self.tick_n062_kazuma_computer(state) }
+            64 => { self.tick_n064_first_cave_critter(state, player) }
             70 => { self.tick_n070_sparkle(state) }
             72 => { self.tick_n072_sprinkler(state) }
             74 => { self.tick_n074_jack(state) }

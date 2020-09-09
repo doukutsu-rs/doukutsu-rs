@@ -117,8 +117,10 @@ pub struct NPCConsts {
     pub n060_toroko: [Rect<usize>; 16],
     pub n061_king: [Rect<usize>; 20],
     pub n062_kazuma_computer: [Rect<usize>; 3],
-    pub n070_sparkle: [Rect<usize>; 4],
     pub n063_toroko_stick: [Rect<usize>; 12],
+    pub n064_first_cave_critter: [Rect<usize>; 6],
+    pub n065_first_cave_bat: [Rect<usize>; 8],
+    pub n070_sparkle: [Rect<usize>; 4],
     pub n071_chinfish: [Rect<usize>; 6],
     pub n072_sprinkler: [Rect<usize>; 2],
     pub n073_water_droplet: [Rect<usize>; 5],
@@ -553,13 +555,30 @@ impl EngineConstants {
                     Rect { left: 96, top: 64, right: 112, bottom: 80 },
                     Rect { left: 112, top: 64, right: 128, bottom: 80 },
                     Rect { left: 128, top: 64, right: 144, bottom: 80 },
-
                     Rect { left: 64, top: 80, right: 80, bottom: 96 }, // right
                     Rect { left: 80, top: 80, right: 96, bottom: 96 },
                     Rect { left: 64, top: 80, right: 80, bottom: 96 },
                     Rect { left: 96, top: 80, right: 112, bottom: 96 },
                     Rect { left: 112, top: 80, right: 128, bottom: 96 },
                     Rect { left: 128, top: 80, right: 144, bottom: 96 },
+                ],
+                n064_first_cave_critter: [
+                    Rect { left: 0, top: 0, right: 16, bottom: 16 },
+                    Rect { left: 16, top: 0, right: 32, bottom: 16 },
+                    Rect { left: 32, top: 0, right: 48, bottom: 16 },
+                    Rect { left: 0, top: 16, right: 16, bottom: 32 },
+                    Rect { left: 16, top: 16, right: 32, bottom: 32 },
+                    Rect { left: 32, top: 16, right: 48, bottom: 32 },
+                ],
+                n065_first_cave_bat: [
+                    Rect { left: 32, top: 32, right: 48, bottom: 48 },
+                    Rect { left: 48, top: 32, right: 64, bottom: 48 },
+                    Rect { left: 64, top: 32, right: 80, bottom: 48 },
+                    Rect { left: 80, top: 32, right: 96, bottom: 48 },
+                    Rect { left: 32, top: 48, right: 48, bottom: 64 },
+                    Rect { left: 48, top: 48, right: 64, bottom: 64 },
+                    Rect { left: 64, top: 48, right: 80, bottom: 64 },
+                    Rect { left: 80, top: 48, right: 96, bottom: 64 },
                 ],
                 n070_sparkle: [
                     Rect { left: 96, top: 48, right: 112, bottom: 64 },
@@ -571,7 +590,6 @@ impl EngineConstants {
                     Rect { left: 64, top: 32, right: 80, bottom: 48 }, // left
                     Rect { left: 80, top: 32, right: 96, bottom: 48 },
                     Rect { left: 96, top: 32, right: 112, bottom: 48 },
-
                     Rect { left: 64, top: 48, right: 80, bottom: 64 }, // right
                     Rect { left: 80, top: 48, right: 96, bottom: 64 },
                     Rect { left: 96, top: 48, right: 112, bottom: 64 },
@@ -594,7 +612,6 @@ impl EngineConstants {
                     Rect { left: 64, top: 0, right: 80, bottom: 16 },
                     Rect { left: 112, top: 0, right: 128, bottom: 16 },
                     Rect { left: 64, top: 0, right: 80, bottom: 16 },
-
                     Rect { left: 64, top: 16, right: 80, bottom: 32 }, // right
                     Rect { left: 80, top: 16, right: 96, bottom: 32 },
                     Rect { left: 96, top: 16, right: 112, bottom: 32 },
@@ -619,7 +636,6 @@ impl EngineConstants {
                     Rect { left: 0, top: 0, right: 16, bottom: 16 }, // left
                     Rect { left: 16, top: 0, right: 32, bottom: 16 },
                     Rect { left: 32, top: 0, right: 48, bottom: 16 },
-
                     Rect { left: 0, top: 16, right: 16, bottom: 32 }, // right
                     Rect { left: 16, top: 16, right: 32, bottom: 32 },
                     Rect { left: 32, top: 16, right: 48, bottom: 32 },

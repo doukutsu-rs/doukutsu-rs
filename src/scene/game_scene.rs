@@ -478,6 +478,7 @@ impl Scene for GameScene {
                     npc.tick(state, &mut self.player)?;
 
                     if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
+                        npc.flags.0 = 0;
                         npc.tick_map_collisions(state, &self.stage);
                     }
                 }
