@@ -104,6 +104,7 @@ impl GameEntity<&mut Player> for NPC {
             64 => { self.tick_n064_first_cave_critter(state, player) }
             65 => { self.tick_n065_first_cave_bat(state, player) }
             70 => { self.tick_n070_sparkle(state) }
+            71 => { self.tick_n071_chinfish(state) }
             72 => { self.tick_n072_sprinkler(state) }
             74 => { self.tick_n074_jack(state) }
             75 => { self.tick_n075_kanpachi(state, player) }
