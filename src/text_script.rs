@@ -355,6 +355,7 @@ impl TextScriptVM {
     pub fn clear_text_box(&mut self) {
         self.flags.0 = 0;
         self.face = 0;
+        self.item = 0;
         self.current_line = TextScriptLine::Line1;
         self.line_1.clear();
         self.line_2.clear();
@@ -648,7 +649,6 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::MSG | OpCode::MS2 | OpCode::MS3 => {
-                        state.textscript_vm.face = 0;
                         state.textscript_vm.current_line = TextScriptLine::Line1;
                         state.textscript_vm.line_1.clear();
                         state.textscript_vm.line_2.clear();
@@ -657,6 +657,9 @@ impl TextScriptVM {
                         state.textscript_vm.flags.set_background_visible(op != OpCode::MS2);
                         state.textscript_vm.flags.set_flag_x10(state.textscript_vm.flags.flag_x40());
                         state.textscript_vm.flags.set_position_top(op != OpCode::MSG);
+                        if op == OpCode::MS2 {
+                            state.textscript_vm.face = 0;
+                        }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -692,6 +695,13 @@ impl TextScriptVM {
                         new_scene.player.x = pos_x;
                         new_scene.player.y = pos_y;
 
+                        state.textscript_vm.flags.0 = 0;
+                        state.textscript_vm.face = 0;
+                        state.textscript_vm.item = 0;
+                        state.textscript_vm.current_line = TextScriptLine::Line1;
+                        state.textscript_vm.line_1.clear();
+                        state.textscript_vm.line_2.clear();
+                        state.textscript_vm.line_3.clear();
                         state.textscript_vm.suspend = true;
                         state.next_scene = Some(Box::new(new_scene));
 
