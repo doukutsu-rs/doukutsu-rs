@@ -13,6 +13,7 @@ use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
 use crate::map::NPCData;
+use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::str;
 use crate::text_script::TextScriptExecutionState;
@@ -54,6 +55,7 @@ pub struct NPC {
     pub vel_y: isize,
     pub target_x: isize,
     pub target_y: isize,
+    pub size: u8,
     pub shock: u16,
     pub life: u16,
     pub cond: Condition,
@@ -128,6 +130,78 @@ impl GameEntity<&mut Player> for NPC {
     }
 }
 
+impl PhysicalEntity for NPC {
+    #[inline(always)]
+    fn x(&self) -> isize {
+        self.x
+    }
+
+    #[inline(always)]
+    fn y(&self) -> isize {
+        self.y
+    }
+
+    #[inline(always)]
+    fn vel_x(&self) -> isize {
+        self.vel_x
+    }
+
+    #[inline(always)]
+    fn vel_y(&self) -> isize {
+        self.vel_y
+    }
+
+    #[inline(always)]
+    fn size(&self) -> u8 {
+        self.size
+    }
+
+    #[inline(always)]
+    fn hit_bounds(&self) -> &Rect<usize> {
+        &self.hit_bounds
+    }
+
+    #[inline(always)]
+    fn set_x(&mut self, x: isize) {
+        self.x = x;
+    }
+
+    #[inline(always)]
+    fn set_y(&mut self, y: isize) {
+        self.y = y;
+    }
+
+    #[inline(always)]
+    fn set_vel_x(&mut self, vel_x: isize) {
+        self.vel_x = vel_x;
+    }
+
+    #[inline(always)]
+    fn set_vel_y(&mut self, vel_y: isize) {
+        self.vel_y = vel_y;
+    }
+
+    #[inline(always)]
+    fn cond(&mut self) -> &mut Condition {
+        &mut self.cond
+    }
+
+    #[inline(always)]
+    fn flags(&mut self) -> &mut Flag {
+        &mut self.flags
+    }
+
+    #[inline(always)]
+    fn is_player(&self) -> bool {
+        false
+    }
+
+    #[inline(always)]
+    fn ignore_tile_44(&self) -> bool {
+        self.npc_flags.ignore_tile_44()
+    }
+}
+
 pub struct NPCMap {
     /// A sorted pool of free IDs to make ID assignment for new entities a bit cheaper.
     free_npc_ids: BTreeSet<u16>,
@@ -155,6 +229,13 @@ impl NPCMap {
 
     pub fn create_npc_from_data(&mut self, table: &NPCTable, data: &NPCData) -> &mut NPC {
         let npc_flags = NPCFlag(data.flags);
+        let display_bounds = table.get_display_bounds(data.npc_type);
+        let hit_bounds = table.get_hit_bounds(data.npc_type);
+        let (size, life) = match table.get_entry(data.npc_type) {
+            Some(entry) => { (entry.size, entry.life) }
+            None => { (1, 0) }
+        };
+
         let npc = NPC {
             id: data.id,
             npc_type: data.npc_type,
@@ -169,13 +250,14 @@ impl NPCMap {
             flag_num: data.flag_num,
             event_num: data.event_num,
             shock: 0,
-            life: table.get_life(data.npc_type),
+            size,
+            life,
             cond: Condition(0x00),
             flags: Flag(data.flag_num as u32),
             direction: if npc_flags.spawn_facing_right() { Direction::Right } else { Direction::Left },
             npc_flags,
-            display_bounds: table.get_display_bounds(data.npc_type),
-            hit_bounds: table.get_hit_bounds(data.npc_type),
+            display_bounds,
+            hit_bounds,
             action_counter: 0,
             anim_counter: 0,
             anim_rect: Rect::new(0, 0, 0, 0),
@@ -204,7 +286,7 @@ pub struct NPCTableEntry {
     pub spritesheet_id: u8,
     pub death_sound: u8,
     pub hurt_sound: u8,
-    pub death_smoke: u8,
+    pub size: u8,
     pub experience: u32,
     pub damage: u32,
     pub display_bounds: Rect<u8>,
@@ -242,7 +324,7 @@ impl NPCTable {
                 spritesheet_id: 0,
                 death_sound: 0,
                 hurt_sound: 0,
-                death_smoke: 0,
+                size: 0,
                 experience: 0,
                 damage: 0,
                 display_bounds: Rect::new(0, 0, 0, 0),
@@ -271,7 +353,7 @@ impl NPCTable {
         }
 
         for npc in table.entries.iter_mut() {
-            npc.death_smoke = f.read_u8()?;
+            npc.size = f.read_u8()?;
         }
 
         for npc in table.entries.iter_mut() {
@@ -301,14 +383,6 @@ impl NPCTable {
 
     pub fn get_entry(&self, npc_type: u16) -> Option<&NPCTableEntry> {
         self.entries.get(npc_type as usize)
-    }
-
-    pub fn get_life(&self, npc_type: u16) -> u16 {
-        if let Some(npc) = self.entries.get(npc_type as usize) {
-            npc.life
-        } else {
-            0
-        }
     }
 
     pub fn get_display_bounds(&self, npc_type: u16) -> Rect<usize> {

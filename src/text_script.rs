@@ -519,6 +519,8 @@ impl TextScriptVM {
                         state.textscript_vm.flags.set_render(false);
                         state.textscript_vm.flags.set_background_visible(false);
 
+                        game_scene.player.update_target = true;
+
                         exec_state = TextScriptExecutionState::Ended;
                     }
                     OpCode::PRI => {
@@ -549,6 +551,24 @@ impl TextScriptVM {
                         let new_direction = read_cur_varint(&mut cursor)? as usize;
                         if let Some(direction) = Direction::from_int(new_direction) {
                             game_scene.player.direction = direction;
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::MYB => {
+                        let new_direction = read_cur_varint(&mut cursor)? as usize;
+
+                        game_scene.player.vel_y = -0x200;
+
+                        if let Some(direction) = Direction::from_int(new_direction) {
+                            match direction {
+                                Direction::Left => { game_scene.player.vel_x = 0x200 }
+                                Direction::Up => { game_scene.player.vel_y = 0x200 }
+                                Direction::Right => { game_scene.player.vel_x = -0x200 }
+                                Direction::Bottom => { game_scene.player.vel_y = -0x200 }
+                            }
+                        } else {
+                            // todo npc direction dependent bump
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -864,7 +884,7 @@ impl TextScriptVM {
                     }
                     // One operand codes
                     OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::UNI |
-                    OpCode::MYB | OpCode::NUM | OpCode::DNA |
+                    OpCode::NUM | OpCode::DNA |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
                     OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ |
                     OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU |

@@ -1,9 +1,10 @@
+use num_traits::clamp;
+
 use crate::common::Direction;
 use crate::ggez::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::SharedGameState;
-use num_traits::clamp;
 
 impl NPC {
     pub(crate) fn tick_n052_sitting_blue_robot(&mut self, state: &mut SharedGameState) -> GameResult {
@@ -82,7 +83,6 @@ impl NPC {
 
                 if (self.x - (16 * 0x200) < player.x) && (self.x + (16 * 0x200) > player.x)
                     && (self.y - (16 * 0x200) < player.y) && (self.y + (16 * 0x200) > player.y) {
-
                     if self.x > player.x {
                         self.direction = Direction::Left;
                     } else {
@@ -97,7 +97,13 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            3 => {
+            3 | 4 => {
+                if self.action_num == 3 {
+                    self.action_num = 4;
+                    self.anim_num = 1;
+                    self.anim_counter = 0;
+                }
+
                 self.anim_counter += 1;
                 if self.anim_counter > 2 {
                     self.anim_counter = 0;
@@ -110,10 +116,12 @@ impl NPC {
 
                 if self.flags.hit_left_wall() {
                     self.direction = Direction::Right;
+                    self.vel_x = 0x200;
                 }
 
                 if self.flags.hit_right_wall() {
                     self.direction = Direction::Left;
+                    self.vel_x = -0x200;
                 }
 
                 if self.direction == Direction::Left {
@@ -202,8 +210,8 @@ impl NPC {
             self.vel_y = 0x5ff;
         }
 
-        //self.x += self.vel_x;
-        //self.y += self.vel_y;
+        self.x += self.vel_x;
+        self.y += self.vel_y;
 
         if self.direction == Direction::Left {
             self.anim_rect = state.constants.npc.n060_toroko[self.anim_num as usize];
@@ -327,8 +335,8 @@ impl NPC {
             }
         }
 
-        //self.x += self.vel_x;
-        //self.y += self.vel_y;
+        self.x += self.vel_x;
+        self.y += self.vel_y;
 
         if self.direction == Direction::Left {
             self.anim_rect = state.constants.npc.n061_king[self.anim_num as usize];
@@ -456,8 +464,8 @@ impl NPC {
             self.vel_y = 0x5ff;
         }
 
-        //self.x += self.vel_x;
-        //self.y += self.vel_y;
+        self.x += self.vel_x;
+        self.y += self.vel_y;
 
         if self.direction == Direction::Left {
             self.anim_rect = state.constants.npc.n074_jack[self.anim_num as usize];

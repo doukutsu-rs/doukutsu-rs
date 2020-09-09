@@ -64,6 +64,28 @@ bitfield! {
   pub alive, set_alive: 7; // 0x80
 }
 
+bitfield! {
+  pub struct KeyState(u16);
+  impl Debug;
+  pub left, set_left: 0;
+  pub right, set_right: 1;
+  pub up, set_up: 2;
+  pub down, set_down: 3;
+  pub map, set_map: 4;
+  pub jump, set_jump: 5;
+  pub fire, set_fire: 6;
+  pub weapon_next, set_weapon_next: 7;
+  pub weapon_prev, set_weapon_prev: 8;
+}
+
+bitfield! {
+  pub struct ControlFlags(u16);
+  impl Debug;
+  pub flag_x01, set_flag_x01: 0;
+  pub control_enabled, set_control_enabled: 1;
+  pub flag_x04, set_flag_x04: 2;
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum FadeDirection {

@@ -7,6 +7,7 @@ use crate::ggez::{Context, GameResult, graphics, timer};
 use crate::ggez::graphics::{Color, Drawable, DrawParam, Text, TextFragment};
 use crate::ggez::nalgebra::clamp;
 use crate::npc::NPCMap;
+use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::scene::Scene;
 use crate::SharedGameState;
@@ -468,12 +469,17 @@ impl Scene for GameScene {
 
             self.player.flags.0 = 0;
             state.tick_carets();
+
             self.player.tick_map_collisions(state, &self.stage);
             self.player.tick_npc_collisions(state, &mut self.npc_map);
 
             for npc_id in self.npc_map.npc_ids.iter() {
                 if let Some(npc) = self.npc_map.npcs.get_mut(npc_id) {
                     npc.tick(state, &mut self.player)?;
+
+                    if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
+                        npc.tick_map_collisions(state, &self.stage);
+                    }
                 }
             }
 

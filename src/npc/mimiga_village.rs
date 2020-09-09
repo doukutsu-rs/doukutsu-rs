@@ -149,7 +149,7 @@ impl NPC {
             self.vel_y = 0x5ff;
         }
 
-        //self.y += self.vel_y;
+        self.y += self.vel_y;
 
         if self.direction == Direction::Left {
             self.anim_rect = state.constants.npc.n079_mahin[self.anim_num as usize];

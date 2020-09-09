@@ -24,7 +24,7 @@ use winit::{ElementState, Event, KeyboardInput, WindowEvent};
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::builtin_fs::BuiltinFS;
 use crate::caret::{Caret, CaretType};
-use crate::common::{Direction, FadeState};
+use crate::common::{Direction, FadeState, KeyState, ControlFlags};
 use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, ContextBuilder, event, filesystem, GameResult};
 use crate::ggez::conf::{WindowMode, WindowSetup};
@@ -57,6 +57,7 @@ mod live_debugger;
 mod macros;
 mod map;
 mod npc;
+mod physics;
 mod player;
 mod player_hit;
 mod rng;
@@ -67,28 +68,6 @@ mod text_script;
 mod texture_set;
 mod ui;
 mod weapon;
-
-bitfield! {
-  pub struct KeyState(u16);
-  impl Debug;
-  left, set_left: 0;
-  right, set_right: 1;
-  up, set_up: 2;
-  down, set_down: 3;
-  map, set_map: 4;
-  jump, set_jump: 5;
-  fire, set_fire: 6;
-  weapon_next, set_weapon_next: 7;
-  weapon_prev, set_weapon_prev: 8;
-}
-
-bitfield! {
-  pub struct ControlFlags(u16);
-  impl Debug;
-  pub flag_x01, set_flag_x01: 0;
-  pub control_enabled, set_control_enabled: 1;
-  pub flag_x04, set_flag_x04: 2;
-}
 
 struct Game {
     scene: Option<Box<dyn Scene>>,
