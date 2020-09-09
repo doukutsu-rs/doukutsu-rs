@@ -158,9 +158,24 @@ impl GameScene {
                     }
                 }
             }
-            BackgroundType::MoveNear => {}
+            BackgroundType::MoveNear => {
+                let off_x = self.frame.x as usize % (batch.width() * 0x200);
+                let off_y = self.frame.y as usize % (batch.height() * 0x200);
+
+                let count_x = state.canvas_size.0 as usize / batch.width() + 2;
+                let count_y = state.canvas_size.1 as usize / batch.height() + 2;
+
+                for y in 0..count_y {
+                    for x in 0..count_x {
+                        batch.add((x * batch.width()) as f32 - (off_x / 0x200) as f32,
+                                  (y * batch.height()) as f32 - (off_y / 0x200) as f32);
+                    }
+                }
+            }
             BackgroundType::Water => {}
-            BackgroundType::Black => {}
+            BackgroundType::Black => {
+                graphics::clear(ctx, Color::from_rgb(0, 0, 32));
+            }
             BackgroundType::Autoscroll => {}
             BackgroundType::OutsideWind | BackgroundType::Outside => {
                 let offset = (self.tick % 640) as isize;
