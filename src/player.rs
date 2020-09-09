@@ -355,7 +355,7 @@ impl Player {
 
         // spike damage
         if self.flags.hit_by_spike() {
-            self.damage(10);
+            self.damage(10, state);
         }
 
         // camera
@@ -484,12 +484,12 @@ impl Player {
         }
     }
 
-    pub fn damage(&mut self, hp: isize) {
+    pub fn damage(&mut self, hp: isize, state: &mut SharedGameState) {
         if self.shock_counter > 0 {
             return;
         }
 
-        // PlaySoundObject(16, SOUND_MODE_PLAY); // todo: damage sound
+        // todo play sound 16
         self.shock_counter = 128;
         self.cond.set_interacted(false);
 
@@ -501,6 +501,12 @@ impl Player {
 
         if self.equip.has_whimsical_star() && self.star > 0 {
             self.star -= 1;
+        }
+
+        if self.life == 0 {
+            // todo play sound 17
+            self.cond.0 = 0;
+            state.textscript_vm.start_script(40);
         }
     }
 }

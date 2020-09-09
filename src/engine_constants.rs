@@ -129,6 +129,7 @@ pub struct NPCConsts {
     pub n077_yamashita: [Rect<usize>; 3],
     pub n078_pot: [Rect<usize>; 2],
     pub n079_mahin: [Rect<usize>; 6],
+    pub n211_small_spikes: [Rect<usize>; 4],
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -639,6 +640,12 @@ impl EngineConstants {
                     Rect { left: 0, top: 16, right: 16, bottom: 32 }, // right
                     Rect { left: 16, top: 16, right: 32, bottom: 32 },
                     Rect { left: 32, top: 16, right: 48, bottom: 32 },
+                ],
+                n211_small_spikes: [
+                    Rect { left: 256, top: 200, right: 272, bottom: 216 },
+                    Rect { left: 272, top: 200, right: 288, bottom: 216 },
+                    Rect { left: 288, top: 200, right: 304, bottom: 216 },
+                    Rect { left: 304, top: 200, right: 320, bottom: 216 },
                 ],
             },
             tex_sizes: hashmap! {

@@ -51,7 +51,7 @@ Vanilla Cave Story does not work yet because some important data files are embed
 - [ ] NPCs/entities
   - [x] Initial implementation
   - [ ] Miscellaneous entities
-  - [ ] First Cave
+  - [x] First Cavez
   - [ ] Mimiga Village
   - [ ] Egg Corridor
 - [ ] Weapons

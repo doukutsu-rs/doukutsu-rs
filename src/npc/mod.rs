@@ -58,6 +58,7 @@ pub struct NPC {
     pub size: u8,
     pub shock: u16,
     pub life: u16,
+    pub damage: u16,
     pub cond: Condition,
     pub flags: Flag,
     pub npc_flags: NPCFlag,
@@ -101,6 +102,7 @@ impl GameEntity<&mut Player> for NPC {
             61 => { self.tick_n061_king(state) }
             62 => { self.tick_n062_kazuma_computer(state) }
             64 => { self.tick_n064_first_cave_critter(state, player) }
+            65 => { self.tick_n065_first_cave_bat(state, player) }
             70 => { self.tick_n070_sparkle(state) }
             72 => { self.tick_n072_sprinkler(state) }
             74 => { self.tick_n074_jack(state) }
@@ -108,6 +110,7 @@ impl GameEntity<&mut Player> for NPC {
             77 => { self.tick_n077_yamashita(state) }
             78 => { self.tick_n078_pot(state) }
             79 => { self.tick_n079_mahin(state, player) }
+            211 => { self.tick_n211_small_spikes(state) }
             _ => { Ok(()) }
         }
     }
@@ -232,9 +235,9 @@ impl NPCMap {
         let npc_flags = NPCFlag(data.flags);
         let display_bounds = table.get_display_bounds(data.npc_type);
         let hit_bounds = table.get_hit_bounds(data.npc_type);
-        let (size, life) = match table.get_entry(data.npc_type) {
-            Some(entry) => { (entry.size, entry.life) }
-            None => { (1, 0) }
+        let (size, life, damage) = match table.get_entry(data.npc_type) {
+            Some(entry) => { (entry.size, entry.life, entry.damage as u16) }
+            None => { (1, 0, 0) }
         };
 
         let npc = NPC {
@@ -253,6 +256,7 @@ impl NPCMap {
             shock: 0,
             size,
             life,
+            damage,
             cond: Condition(0x00),
             flags: Flag(data.flag_num as u32),
             direction: if npc_flags.spawn_facing_right() { Direction::Right } else { Direction::Left },

@@ -346,4 +346,13 @@ impl NPC {
 
         Ok(())
     }
+
+    pub(crate) fn tick_n211_small_spikes(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n211_small_spikes[self.event_num as usize % 4];
+        }
+
+        Ok(())
+    }
 }

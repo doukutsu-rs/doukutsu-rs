@@ -76,6 +76,61 @@ impl PhysicalEntity for Player {
 }
 
 impl Player {
+    fn judge_hit_npc_solid_soft(&mut self, npc: &NPC) -> Flag {
+        let mut flags = Flag(0);
+
+        if ((self.y - self.hit_bounds.top as isize) < (npc.y + npc.hit_bounds.bottom as isize - 3 * 0x200))
+            && ((self.y + self.hit_bounds.top as isize) > (npc.y - npc.hit_bounds.bottom as isize + 3 * 0x200))
+            && ((self.x - self.hit_bounds.right as isize) < (npc.x + npc.hit_bounds.right as isize))
+            && ((self.x - self.hit_bounds.right as isize) > npc.x) {
+            if self.vel_x < 0x200 {
+                self.vel_x += 0x200;
+            }
+
+            flags.set_hit_left_wall(true);
+        }
+
+        if ((self.y - self.hit_bounds.top as isize) < (npc.y + npc.hit_bounds.bottom as isize - 3 * 0x200))
+            && ((self.y + self.hit_bounds.top as isize) > (npc.y - npc.hit_bounds.bottom as isize + 3 * 0x200))
+            && ((self.x + self.hit_bounds.right as isize - 0x200) > (npc.x - npc.hit_bounds.right as isize))
+            && ((self.x + self.hit_bounds.right as isize - 0x200) < npc.x) {
+            if self.vel_x > -0x200 {
+                self.vel_x -= 0x200;
+            }
+
+            flags.set_hit_right_wall(true);
+        }
+
+
+        if ((self.x - self.hit_bounds.right as isize) < (npc.x + npc.hit_bounds.right as isize - 3 * 0x200))
+            && ((self.x + self.hit_bounds.right as isize) > (npc.x - npc.hit_bounds.right as isize + 3 * 0x200))
+            && ((self.y - self.hit_bounds.top as isize) < (npc.y + npc.hit_bounds.bottom as isize))
+            && ((self.y - self.hit_bounds.top as isize) > npc.y) {
+            if self.vel_y < 0 {
+                self.vel_y = 0;
+            }
+
+            flags.set_hit_top_wall(true);
+        }
+
+        if ((self.x - self.hit_bounds.right as isize) < (npc.x + npc.hit_bounds.right as isize - 3 * 0x200))
+            && ((self.x + self.hit_bounds.right as isize) > (npc.x - npc.hit_bounds.right as isize + 3 * 0x200))
+            && ((self.y + self.hit_bounds.bottom as isize - 0x200) > (npc.y - npc.hit_bounds.top as isize))
+            && ((self.y + self.hit_bounds.bottom as isize - 0x200) < (npc.y + 3 * 0x200)) {
+            if npc.npc_flags.bouncy() {
+                self.vel_y = npc.vel_y - 0x200;
+                flags.set_hit_bottom_wall(true);
+            } else if !self.flags.hit_bottom_wall() && self.vel_y > npc.vel_y {
+                self.y = npc.y - npc.hit_bounds.top as isize - self.hit_bounds.bottom as isize + 0x200;
+                self.vel_y = npc.vel_y;
+                self.x += npc.vel_x;
+                flags.set_hit_bottom_wall(true);
+            }
+        }
+
+        flags
+    }
+
     fn judge_hit_npc_non_solid(&mut self, npc: &NPC) -> Flag {
         let mut flags = Flag(0);
         let hit_left = if npc.direction == Direction::Left { npc.hit_bounds.left } else { npc.hit_bounds.right } as isize;
@@ -99,7 +154,8 @@ impl Player {
                 let mut flags = Flag(0);
 
                 if npc.npc_flags.solid_soft() {
-                    //
+                    flags = self.judge_hit_npc_solid_soft(npc);
+                    self.flags.0 |= flags.0;
                 } else if npc.npc_flags.solid_hard() {
                     //
                 } else {
@@ -115,6 +171,12 @@ impl Player {
 
                 if npc.npc_flags.event_when_touched() && !state.control_flags.flag_x04() && flags.0 != 0 {
                     state.textscript_vm.start_script(npc.event_num);
+                }
+
+                if state.control_flags.control_enabled() && !npc.npc_flags.interactable() {
+                    if flags.0 != 0 && npc.damage != 0 && !state.control_flags.flag_x04() {
+                        self.damage(npc.damage as isize, state);
+                    }
                 }
             }
         }

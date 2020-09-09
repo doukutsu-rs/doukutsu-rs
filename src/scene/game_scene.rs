@@ -117,10 +117,10 @@ impl GameScene {
                        &Rect::<usize>::new_size(0, 40, 64, 8));
         // yellow bar
         batch.add_rect(40.0, 40.0,
-                       &Rect::<usize>::new_size(0, 32, ((self.life_bar as usize * 40) / self.player.max_life as usize) - 1, 8));
+                       &Rect::<usize>::new_size(0, 32, ((self.life_bar as usize * 40) / self.player.max_life as usize), 8));
         // life
         batch.add_rect(40.0, 40.0,
-                       &Rect::<usize>::new_size(0, 24, ((self.player.life as usize * 40) / self.player.max_life as usize) - 1, 8));
+                       &Rect::<usize>::new_size(0, 24, ((self.player.life as usize * 40) / self.player.max_life as usize), 8));
 
         batch.draw(ctx)?;
 
@@ -437,6 +437,8 @@ impl Scene for GameScene {
 
         let npcs = self.stage.load_npcs(&state.base_path, ctx)?;
         for npc_data in npcs.iter() {
+            log::info!("creating npc: {:?}", npc_data);
+
             let npc = self.npc_map.create_npc_from_data(&state.npc_table, npc_data);
             if npc.npc_flags.appear_when_flag_set() {
                 if let Some(true) = state.game_flags.get(npc_data.flag_num as usize) {

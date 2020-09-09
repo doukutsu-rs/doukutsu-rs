@@ -3,6 +3,7 @@ use crate::ggez::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::SharedGameState;
+use nalgebra::clamp;
 
 impl NPC {
     pub(crate) fn tick_n059_eye_door(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
@@ -134,6 +135,60 @@ impl NPC {
 
         self.x += self.vel_x;
         self.y += self.vel_y;
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n065_first_cave_bat(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.target_x = self.x;
+                    self.target_y = self.y;
+
+                    self.action_num = 1;
+                    self.action_counter = state.game_rng.range(0..50) as u16;
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 50 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.vel_y = 0x300;
+                }
+            }
+            2 => {
+                if self.x > player.x {
+                    self.direction = Direction::Left;
+                } else {
+                    self.direction = Direction::Right;
+                }
+
+                if self.target_y < self.y {
+                    self.vel_y -= 0x10;
+                } else if self.target_y > self.y {
+                    self.vel_y += 0x10;
+                }
+
+                self.vel_y = clamp(self.vel_y, -0x300, 0x300);
+            }
+            _ =>{}
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        self.anim_counter += 1;
+        if self.anim_counter > 1 {
+            self.anim_counter = 0;
+            self.anim_num += 1;
+
+            if self.anim_num > 2 {
+                self.anim_num = 0;
+            }
+
+            self.anim_rect = state.constants.npc.n065_first_cave_bat[self.anim_num as usize + if self.direction == Direction::Right { 4 } else { 0 }];
+        }
 
         Ok(())
     }
