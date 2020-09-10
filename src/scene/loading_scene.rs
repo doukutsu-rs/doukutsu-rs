@@ -27,8 +27,10 @@ impl Scene for LoadingScene {
             state.stages = stages;
             let npc_table = NPCTable::load_from(filesystem::open(ctx, [&state.base_path, "/npc.tbl"].join(""))?)?;
             state.npc_table = npc_table;
-            let script = TextScript::load_from(filesystem::open(ctx, [&state.base_path, "/Head.tsc"].join(""))?)?;
-            state.textscript_vm.set_global_script(script);
+            let head_script = TextScript::load_from(filesystem::open(ctx, [&state.base_path, "/Head.tsc"].join(""))?)?;
+            let arms_item_script = TextScript::load_from(filesystem::open(ctx, [&state.base_path, "/ArmsItem.tsc"].join(""))?)?;
+            state.textscript_vm.set_global_script(head_script);
+            state.textscript_vm.append_global_script(arms_item_script);
 
             let mut next_scene = GameScene::new(state, ctx, 13)?;
             next_scene.player.x = 10 * 16 * 0x200;

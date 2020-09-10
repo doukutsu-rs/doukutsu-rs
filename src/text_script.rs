@@ -347,6 +347,22 @@ impl TextScriptVM {
         if !self.suspend { self.reset(); }
     }
 
+    pub fn append_global_script(&mut self, script: TextScript) {
+        for (key, val) in script.event_map {
+            self.scripts.global_script.event_map.insert(key, val);
+        }
+
+        if !self.suspend { self.reset(); }
+    }
+
+    pub fn append_scene_script(&mut self, script: TextScript) {
+        for (key, val) in script.event_map {
+            self.scripts.scene_script.event_map.insert(key, val);
+        }
+
+        if !self.suspend { self.reset(); }
+    }
+
     pub fn reset(&mut self) {
         self.state = TextScriptExecutionState::Ended;
         self.clear_text_box();
