@@ -1,4 +1,4 @@
-use num_traits::Num;
+use num_traits::{Num, AsPrimitive};
 
 use crate::bitfield;
 
@@ -213,5 +213,14 @@ impl<T: Num + Copy> Rect<T> {
             right: (rect.x + rect.w),
             bottom: (rect.y + rect.h),
         }
+    }
+}
+
+impl<T: Num + Copy + AsPrimitive<f32>> Into<crate::ggez::graphics::Rect> for Rect<T> {
+    fn into(self) -> crate::ggez::graphics::Rect {
+        crate::ggez::graphics::Rect::new(self.top.as_(),
+                                         self.left.as_(),
+                                         self.bottom.sub(self.top).as_(),
+                                         self.right.sub(self.left).as_())
     }
 }
