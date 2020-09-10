@@ -331,6 +331,21 @@ impl GameScene {
                 batch.add_rect(left_pos, top_pos + 56.0, &state.constants.textscript.textbox_rect_bottom);
             }
 
+            if state.textscript_vm.item != 0 {
+                batch.add_rect((state.canvas_size.0 / 2.0 - 40.0).floor(), state.canvas_size.1 - 112.0,
+                               &state.constants.textscript.get_item_top_left);
+                batch.add_rect((state.canvas_size.0 / 2.0 - 40.0).floor(), state.canvas_size.1 - 96.0,
+                               &state.constants.textscript.get_item_bottom_left);
+                batch.add_rect((state.canvas_size.0 / 2.0 + 32.0).floor(), state.canvas_size.1 - 112.0,
+                               &state.constants.textscript.get_item_top_right);
+                batch.add_rect((state.canvas_size.0 / 2.0 + 32.0).floor(), state.canvas_size.1 - 104.0,
+                               &state.constants.textscript.get_item_right);
+                batch.add_rect((state.canvas_size.0 / 2.0 + 32.0).floor(), state.canvas_size.1 - 96.0,
+                               &state.constants.textscript.get_item_right);
+                batch.add_rect((state.canvas_size.0 / 2.0 + 32.0).floor(), state.canvas_size.1 - 88.0,
+                               &state.constants.textscript.get_item_bottom_right);
+            }
+
             if let TextScriptExecutionState::WaitConfirmation(_, _, _, wait, selection) = state.textscript_vm.state {
                 let pos_y = if wait > 14 {
                     state.canvas_size.1 - 96.0 - (wait as f32 - 2.0) * 4.0
@@ -363,6 +378,34 @@ impl GameScene {
             ));
 
             batch.draw(ctx)?;
+        }
+
+        if state.textscript_vm.item != 0 {
+            let mut rect = Rect::<usize>::new(0, 0, 0, 0);
+
+            if state.textscript_vm.item < 1000 {
+                let item_id = state.textscript_vm.item as usize;
+
+                rect.left = (item_id % 16) * 16;
+                rect.right = rect.left + 16;
+                rect.top = (item_id / 16) * 16;
+                rect.bottom = rect.top + 16;
+
+                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ArmsImage")?;
+                batch.add_rect((state.canvas_size.0 / 2.0 - 12.0).floor(), state.canvas_size.1 - 104.0, &rect);
+                batch.draw(ctx)?;
+            } else {
+                let item_id = state.textscript_vm.item as usize - 1000;
+
+                rect.left = (item_id % 8) * 32;
+                rect.right = rect.left + 32;
+                rect.top = (item_id / 8) * 16;
+                rect.bottom = rect.top + 16;
+
+                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ItemImage")?;
+                batch.add_rect((state.canvas_size.0 / 2.0 - 20.0).floor(), state.canvas_size.1 - 104.0, &rect);
+                batch.draw(ctx)?;
+            }
         }
 
         let text_offset = if state.textscript_vm.face == 0 { 0.0 } else { 56.0 };

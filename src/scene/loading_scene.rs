@@ -29,7 +29,7 @@ impl Scene for LoadingScene {
             state.npc_table = npc_table;
             let head_script = TextScript::load_from(filesystem::open(ctx, [&state.base_path, "/Head.tsc"].join(""))?)?;
             state.textscript_vm.set_global_script(head_script);
-            
+
             let mut next_scene = GameScene::new(state, ctx, 13)?;
             next_scene.player.x = 10 * 16 * 0x200;
             next_scene.player.y = 8 * 16 * 0x200;

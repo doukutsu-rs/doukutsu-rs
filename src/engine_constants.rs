@@ -146,6 +146,11 @@ pub struct TextScriptConsts {
     pub textbox_rect_bottom: Rect<usize>,
     pub textbox_rect_yes_no: Rect<usize>,
     pub textbox_rect_cursor: Rect<usize>,
+    pub get_item_top_left: Rect<usize>,
+    pub get_item_bottom_left: Rect<usize>,
+    pub get_item_top_right: Rect<usize>,
+    pub get_item_right: Rect<usize>,
+    pub get_item_bottom_right: Rect<usize>,
 }
 
 #[derive(Debug)]
@@ -845,6 +850,11 @@ impl EngineConstants {
                 textbox_rect_bottom: Rect { left: 0, top: 16, right: 244, bottom: 24 },
                 textbox_rect_yes_no: Rect { left: 152, top: 48, right: 244, bottom: 80 },
                 textbox_rect_cursor: Rect { left: 112, top: 88, right: 128, bottom: 104 },
+                get_item_top_left: Rect { left: 0, top: 0, right: 72, bottom: 16 },
+                get_item_bottom_left: Rect { left: 0, top: 8, right: 72, bottom: 24 },
+                get_item_top_right: Rect { left: 240, top: 0, right: 244, bottom: 8 },
+                get_item_right: Rect { left: 240, top: 8, right: 244, bottom: 16 },
+                get_item_bottom_right: Rect { left: 240, top: 16, right: 244, bottom: 24 },
             },
             font_path: str!("builtin/builtin_font.fnt"),
             font_scale: 1.0,
