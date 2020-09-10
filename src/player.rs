@@ -10,6 +10,7 @@ use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
 use crate::SharedGameState;
 use crate::str;
+use crate::inventory::Inventory;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -31,6 +32,7 @@ pub struct Player {
     pub cond: Condition,
     pub flags: Flag,
     pub equip: Equipment,
+    pub inventory: Inventory,
     pub direction: Direction,
     pub display_bounds: Rect<usize>,
     pub hit_bounds: Rect<usize>,
@@ -70,6 +72,7 @@ impl Player {
             cond: Condition(0x80),
             flags: Flag(0),
             equip: Equipment(0),
+            inventory: Inventory::new(),
             direction: Direction::Right,
             display_bounds: constants.my_char.display_bounds,
             hit_bounds: constants.my_char.hit_bounds,

@@ -67,7 +67,7 @@ mod sound;
 mod text_script;
 mod texture_set;
 mod ui;
-mod weapon;
+mod inventory;
 
 struct Game {
     scene: Option<Box<dyn Scene>>,
