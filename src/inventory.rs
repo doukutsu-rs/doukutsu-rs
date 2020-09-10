@@ -42,4 +42,41 @@ impl Inventory {
     pub fn has_item(&self, item_id: u16) -> bool {
         self.items.iter().any(|item| item.0 == item_id)
     }
+
+    pub fn add_weapon(&mut self, weapon_id: u16, max_ammo: u16) {
+        if !self.has_weapon(weapon_id) {
+            self.weapons.push(Weapon {
+                id: weapon_id,
+                level: 1,
+                experience: 0,
+                ammo: max_ammo,
+                max_ammo,
+            });
+        }
+    }
+
+    pub fn remove_weapon(&mut self, weapon_id: u16) {
+        self.weapons.retain(|weapon| weapon.id != weapon_id);
+    }
+
+    pub fn get_current_weapon(&mut self) -> Option<&mut Weapon> {
+        self.weapons.get_mut(self.current_weapon as usize)
+    }
+
+    pub fn refill_all_ammo(&mut self) {
+        for weapon in self.weapons.iter_mut() {
+            weapon.ammo = weapon.max_ammo;
+        }
+    }
+
+    pub fn reset_all_weapon_xp(&mut self) {
+        for weapon in self.weapons.iter_mut() {
+            weapon.level = 1;
+            weapon.experience = 0;
+        }
+    }
+
+    pub fn has_weapon(&self, weapon_id: u16) -> bool {
+        self.weapons.iter().any(|weapon| weapon.id == weapon_id)
+    }
 }

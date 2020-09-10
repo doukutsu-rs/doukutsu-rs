@@ -287,6 +287,24 @@ impl NPCMap {
             }
         }
     }
+
+    pub fn is_alive(&self, npc_id: u16) -> bool {
+        if let Some(npc) = self.npcs.get(&npc_id) {
+            return npc.cond.alive();
+        }
+
+        false
+    }
+
+    pub fn is_alive_by_event(&self, event_num: u16) -> bool {
+        for npc in self.npcs.values() {
+            if npc.cond.alive() && npc.event_num == event_num {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 pub struct NPCTableEntry {

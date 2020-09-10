@@ -10,7 +10,7 @@ use std::str::FromStr;
 use byteorder::ReadBytesExt;
 use itertools::Itertools;
 use num_derive::FromPrimitive;
-use num_traits::{FromPrimitive, clamp};
+use num_traits::{clamp, FromPrimitive};
 
 use crate::{SharedGameState, str};
 use crate::bitfield;
@@ -18,6 +18,7 @@ use crate::common::{Direction, FadeDirection, FadeState};
 use crate::entity::GameEntity;
 use crate::ggez::{Context, GameResult};
 use crate::ggez::GameError::ParseError;
+use crate::player::ControlMode;
 use crate::scene::game_scene::GameScene;
 
 /// Engine's text script VM operation codes.
@@ -216,6 +217,7 @@ pub enum TextScriptExecutionState {
     Msg(u16, u32, u32, u8),
     WaitTicks(u16, u32, u16),
     WaitInput(u16, u32),
+    WaitStanding(u16, u32),
     WaitConfirmation(u16, u32, u16, u8, ConfirmSelection),
     WaitFade(u16, u32),
 }
@@ -480,6 +482,12 @@ impl TextScriptVM {
 
                     break;
                 }
+                TextScriptExecutionState::WaitStanding(event, ip) => {
+                    if game_scene.player.flags.hit_bottom_wall() {
+                        state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
+                    }
+                    break;
+                }
                 TextScriptExecutionState::WaitInput(event, ip) => {
                     if state.key_trigger.jump() || state.key_trigger.fire() {
                         state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
@@ -605,6 +613,9 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::WaitTicks(event, cursor.position() as u32, ticks);
                     }
+                    OpCode::WAS => {
+                        exec_state = TextScriptExecutionState::WaitStanding(event, cursor.position() as u32);
+                    }
                     OpCode::NOD => {
                         exec_state = TextScriptExecutionState::WaitInput(event, cursor.position() as u32);
                     }
@@ -617,6 +628,46 @@ impl TextScriptVM {
                         let flag_num = read_cur_varint(&mut cursor)? as usize;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
                         if let Some(true) = state.game_flags.get(flag_num) {
+                            exec_state = TextScriptExecutionState::Running(event_num, 0);
+                        } else {
+                            exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                        }
+                    }
+                    OpCode::ITJ => {
+                        let item_id = read_cur_varint(&mut cursor)? as u16;
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                        if game_scene.player.inventory.has_item(item_id) {
+                            exec_state = TextScriptExecutionState::Running(event_num, 0);
+                        } else {
+                            exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                        }
+                    }
+                    OpCode::AMJ => {
+                        let weapon = read_cur_varint(&mut cursor)? as u16;
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                        if game_scene.player.inventory.has_weapon(weapon) {
+                            exec_state = TextScriptExecutionState::Running(event_num, 0);
+                        } else {
+                            exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                        }
+                    }
+                    OpCode::NCJ => {
+                        let npc_id = read_cur_varint(&mut cursor)? as u16;
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                        if game_scene.npc_map.is_alive(npc_id) {
+                            exec_state = TextScriptExecutionState::Running(event_num, 0);
+                        } else {
+                            exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                        }
+                    }
+                    OpCode::ECJ => {
+                        let npc_event_num = read_cur_varint(&mut cursor)? as u16;
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                        if game_scene.npc_map.is_alive_by_event(npc_event_num) {
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -735,8 +786,19 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::UNI => {
+                        let control_mode = read_cur_varint(&mut cursor)? as u8;
+
+                        let mode: Option<ControlMode> = FromPrimitive::from_u8(control_mode);
+                        if let Some(mode) = mode {
+                            game_scene.player.control_mode = mode;
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::FAI => {
                         let fade_type = read_cur_varint(&mut cursor)? as usize;
+
                         if let Some(direction) = FadeDirection::from_int(fade_type) {
                             state.fade_state = FadeState::FadeIn(15, direction);
                         }
@@ -745,6 +807,7 @@ impl TextScriptVM {
                     }
                     OpCode::FAO => {
                         let fade_type = read_cur_varint(&mut cursor)? as usize;
+
                         if let Some(direction) = FadeDirection::from_int(fade_type) {
                             state.fade_state = FadeState::FadeOut(-15, direction.opposite());
                         }
@@ -894,10 +957,78 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::MNP => {
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+                        let x = read_cur_varint(&mut cursor)? as isize;
+                        let y = read_cur_varint(&mut cursor)? as isize;
+                        let direction = read_cur_varint(&mut cursor)? as usize;
+
+                        for npc_id in game_scene.npc_map.npc_ids.iter() {
+                            if let Some(npc) = game_scene.npc_map.npcs.get_mut(npc_id) {
+                                if npc.cond.alive() && npc.event_num == event_num {
+                                    npc.x = x * 16 * 0x200;
+                                    npc.y = y * 16 * 0x200;
+
+                                    if direction == 4 {
+                                        npc.direction = if game_scene.player.x < npc.x {
+                                            Direction::Right
+                                        } else {
+                                            Direction::Left
+                                        };
+                                    } else if let Some(dir) = Direction::from_int(direction) {
+                                        npc.direction = dir;
+                                    }
+
+                                    break;
+                                }
+                            }
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::LIp => {
                         let life = read_cur_varint(&mut cursor)? as usize;
 
                         game_scene.player.life = clamp(game_scene.player.life + life, 0, game_scene.player.max_life);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::ITp => {
+                        let item_id = read_cur_varint(&mut cursor)? as u16;
+
+                        game_scene.player.inventory.add_item(item_id);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::ITm => {
+                        let item_id = read_cur_varint(&mut cursor)? as u16;
+
+                        game_scene.player.inventory.remove_item(item_id);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::AMp => {
+                        let weapon_id = read_cur_varint(&mut cursor)? as u16;
+                        let max_ammo = read_cur_varint(&mut cursor)? as u16;
+
+                        game_scene.player.inventory.add_weapon(weapon_id, max_ammo);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::AMm => {
+                        let weapon_id = read_cur_varint(&mut cursor)? as u16;
+
+                        game_scene.player.inventory.remove_weapon(weapon_id);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::AEp => {
+                        game_scene.player.inventory.refill_all_ammo();
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::ZAM => {
+                        game_scene.player.inventory.reset_all_weapon_xp();
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -907,17 +1038,15 @@ impl TextScriptVM {
                     OpCode::CRE | OpCode::CSS | OpCode::ESC | OpCode::FLA |
                     OpCode::INI | OpCode::LDP | OpCode::MLP |
                     OpCode::SAT | OpCode::SLP | OpCode::SPS |
-                    OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM => {
+                    OpCode::STC | OpCode::SVP | OpCode::TUR => {
                         log::warn!("unimplemented opcode: {:?}", op);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // One operand codes
-                    OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::UNI |
-                    OpCode::NUM | OpCode::DNA |
+                    OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::NUM | OpCode::DNA |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
-                    OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ |
-                    OpCode::XX1 | OpCode::SIL | OpCode::SOU |
+                    OpCode::UNJ | OpCode::MPJ | OpCode::XX1 | OpCode::SIL | OpCode::SOU |
                     OpCode::SSS | OpCode::ACH => {
                         let par_a = read_cur_varint(&mut cursor)?;
 
@@ -926,8 +1055,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Two operand codes
-                    OpCode::AMp | OpCode::NCJ | OpCode::ECJ |
-                    OpCode::ITJ | OpCode::SKJ | OpCode::AMJ | OpCode::SMP | OpCode::PSp => {
+                    OpCode::SKJ | OpCode::SMP | OpCode::PSp => {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
 
@@ -946,7 +1074,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Four operand codes
-                    OpCode::MNP | OpCode::SNP => {
+                    OpCode::SNP => {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
                         let par_c = read_cur_varint(&mut cursor)?;

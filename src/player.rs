@@ -1,6 +1,7 @@
 use std::clone::Clone;
 
-use num_traits::clamp;
+use num_derive::FromPrimitive;
+use num_traits::{clamp, FromPrimitive};
 
 use crate::caret::CaretType;
 use crate::common::{Condition, Equipment, Flag};
@@ -8,11 +9,10 @@ use crate::common::{Direction, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
-use crate::SharedGameState;
-use crate::str;
 use crate::inventory::Inventory;
+use crate::SharedGameState;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
 #[repr(u8)]
 pub enum ControlMode {
     Normal = 0,
@@ -488,7 +488,7 @@ impl Player {
     }
 
     pub fn damage(&mut self, hp: isize, state: &mut SharedGameState) {
-        if self.shock_counter > 0 {
+        if state.god_mode || self.shock_counter > 0 {
             return;
         }
 

@@ -95,6 +95,7 @@ pub struct SharedGameState {
     pub sound_manager: SoundManager,
     pub constants: EngineConstants,
     pub scale: f32,
+    pub god_mode: bool,
     pub speed_hack: bool,
     pub canvas_size: (f32, f32),
     pub screen_size: (f32, f32),
@@ -183,6 +184,7 @@ impl Game {
                 sound_manager: SoundManager::new(ctx)?,
                 constants,
                 scale,
+                god_mode: false,
                 speed_hack: false,
                 screen_size,
                 canvas_size,
@@ -236,6 +238,7 @@ impl Game {
             KeyCode::X => { state.key_state.set_fire(true) }
             KeyCode::A => { state.key_state.set_weapon_prev(true) }
             KeyCode::S => { state.key_state.set_weapon_next(true) }
+            KeyCode::F11 => { state.god_mode = !state.god_mode }
             KeyCode::F12 => { state.set_speed_hack(!state.speed_hack) }
             _ => {}
         }

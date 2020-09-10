@@ -62,17 +62,17 @@ impl LiveDebugger {
                 ));
 
                 if ui.button(im_str!("Map Selector"), [0.0, 0.0]) {
-                    self.map_selector_visible = true;
+                    self.map_selector_visible = !self.map_selector_visible;
                 }
 
                 ui.same_line(0.0);
                 if ui.button(im_str!("Events"), [0.0, 0.0]) {
-                    self.events_visible = true;
+                    self.events_visible = !self.events_visible;
                 }
 
                 ui.same_line(0.0);
                 if ui.button(im_str!("Hacks"), [0.0, 0.0]) {
-                    self.hacks_visible = true;
+                    self.hacks_visible = !self.hacks_visible;
                 }
             });
 
