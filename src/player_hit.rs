@@ -162,19 +162,19 @@ impl Player {
                     flags = self.judge_hit_npc_non_solid(npc);
                 }
 
-                if npc.npc_flags.interactable() && !state.control_flags.flag_x04() && flags.0 != 0 && self.cond.interacted() {
+                if npc.npc_flags.interactable() && !state.control_flags.interactions_disabled() && flags.0 != 0 && self.cond.interacted() {
                     state.textscript_vm.start_script(npc.event_num);
                     self.cond.set_interacted(false);
                     self.vel_x = 0;
                     self.question = false;
                 }
 
-                if npc.npc_flags.event_when_touched() && !state.control_flags.flag_x04() && flags.0 != 0 {
+                if npc.npc_flags.event_when_touched() && !state.control_flags.interactions_disabled() && flags.0 != 0 {
                     state.textscript_vm.start_script(npc.event_num);
                 }
 
                 if state.control_flags.control_enabled() && !npc.npc_flags.interactable() {
-                    if flags.0 != 0 && npc.damage != 0 && !state.control_flags.flag_x04() {
+                    if flags.0 != 0 && npc.damage != 0 && !state.control_flags.interactions_disabled() {
                         self.damage(npc.damage as isize, state);
                     }
                 }

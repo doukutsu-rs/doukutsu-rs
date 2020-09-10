@@ -83,7 +83,7 @@ bitfield! {
   impl Debug;
   pub flag_x01, set_flag_x01: 0;
   pub control_enabled, set_control_enabled: 1;
-  pub flag_x04, set_flag_x04: 2;
+  pub interactions_disabled, set_interactions_disabled: 2;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

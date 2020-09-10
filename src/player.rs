@@ -129,7 +129,7 @@ impl Player {
             }
 
             if state.control_flags.control_enabled() {
-                if state.key_trigger.only_down() && state.key_state.only_down() && !self.cond.interacted() && !state.control_flags.flag_x04() {
+                if state.key_trigger.only_down() && state.key_state.only_down() && !self.cond.interacted() && !state.control_flags.interactions_disabled() {
                     self.cond.set_interacted(true);
                     self.question = true;
                 } else {
@@ -534,7 +534,7 @@ impl GameEntity<()> for Player {
         // todo: add additional control modes like NXEngine has such as noclip?
         match self.control_mode {
             ControlMode::Normal => {
-                if state.control_flags.flag_x04() && state.control_flags.control_enabled() {
+                if state.control_flags.interactions_disabled() && state.control_flags.control_enabled() {
                     // AirProcess(); // todo
                 }
 

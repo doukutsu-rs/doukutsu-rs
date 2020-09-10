@@ -383,6 +383,7 @@ impl TextScriptVM {
     pub fn start_script(&mut self, event_num: u16) {
         self.reset();
         self.state = TextScriptExecutionState::Running(event_num, 0);
+
         log::info!("Started script: #{:04}", event_num);
     }
 
@@ -392,11 +393,11 @@ impl TextScriptVM {
 
             match state.textscript_vm.state {
                 TextScriptExecutionState::Ended => {
-                    state.control_flags.set_flag_x04(false);
                     break;
                 }
                 TextScriptExecutionState::Running(event, ip) => {
-                    state.control_flags.set_flag_x04(true);
+                    state.control_flags.set_flag_x01(true);
+                    state.control_flags.set_interactions_disabled(true);
                     state.textscript_vm.state = TextScriptVM::execute(event, ip, state, game_scene, ctx)?;
 
                     if state.textscript_vm.state == TextScriptExecutionState::Ended {
@@ -540,6 +541,7 @@ impl TextScriptVM {
                     OpCode::_END | OpCode::END => {
                         state.control_flags.set_flag_x01(true);
                         state.control_flags.set_control_enabled(true);
+                        state.control_flags.set_interactions_disabled(false);
 
                         state.textscript_vm.flags.set_render(false);
                         state.textscript_vm.flags.set_background_visible(false);
