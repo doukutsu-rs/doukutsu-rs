@@ -1,4 +1,4 @@
-use imgui::{Condition, im_str, ImStr, ImString, Window};
+use imgui::{CollapsingHeader, Condition, im_str, ImStr, ImString, Window};
 use itertools::Itertools;
 
 use crate::ggez::{Context, GameResult};
@@ -9,6 +9,7 @@ pub struct LiveDebugger {
     map_selector_visible: bool,
     events_visible: bool,
     hacks_visible: bool,
+    flags_visible: bool,
     last_stage_id: usize,
     stages: Vec<ImString>,
     selected_stage: i32,
@@ -24,6 +25,7 @@ impl LiveDebugger {
             map_selector_visible: false,
             events_visible: false,
             hacks_visible: false,
+            flags_visible: false,
             last_stage_id: usize::MAX,
             stages: Vec::new(),
             selected_stage: -1,
@@ -74,6 +76,11 @@ impl LiveDebugger {
                 if ui.button(im_str!("Hacks"), [0.0, 0.0]) {
                     self.hacks_visible = !self.hacks_visible;
                 }
+
+                ui.same_line(0.0);
+                if ui.button(im_str!("Flags"), [0.0, 0.0]) {
+                    self.flags_visible = !self.flags_visible;
+                }
             });
 
         if self.error.is_some() {
@@ -116,8 +123,14 @@ impl LiveDebugger {
                     if ui.button(im_str!("Load"), [0.0, 0.0]) {
                         match GameScene::new(state, ctx, self.selected_stage as usize) {
                             Ok(mut scene) => {
+                                scene.player = game_scene.player.clone();
                                 scene.player.x = (scene.stage.map.width / 2 * 16 * 0x200) as isize;
                                 scene.player.y = (scene.stage.map.height / 2 * 16 * 0x200) as isize;
+
+                                if scene.player.life == 0 {
+                                    scene.player.life = scene.player.max_life;
+                                }
+
                                 state.next_scene = Some(Box::new(scene));
                             }
                             Err(e) => {
@@ -162,6 +175,21 @@ impl LiveDebugger {
                         if let Some(&event_num) = self.event_ids.get(self.selected_event as usize) {
                             state.textscript_vm.start_script(event_num);
                         }
+                    }
+                });
+        }
+
+
+        if self.flags_visible {
+            Window::new(im_str!("Flags"))
+                .position([80.0, 80.0], Condition::FirstUseEver)
+                .size([280.0, 300.0], Condition::FirstUseEver)
+                .build(ui, || {
+                    if CollapsingHeader::new(im_str!("Control flags")).default_open(true).build(&ui)
+                    {
+                        ui.checkbox_flags(im_str!("Flag 0x01"), &mut state.control_flags.0, 1);
+                        ui.checkbox_flags(im_str!("Control enabled"), &mut state.control_flags.0, 2);
+                        ui.checkbox_flags(im_str!("Interactions disabled"), &mut state.control_flags.0, 4);
                     }
                 });
         }
