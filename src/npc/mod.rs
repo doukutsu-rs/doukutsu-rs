@@ -16,9 +16,9 @@ use crate::map::NPCData;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::str;
-use crate::text_script::TextScriptExecutionState;
 
 pub mod characters;
+pub mod egg_corridor;
 pub mod first_cave;
 pub mod mimiga_village;
 pub mod misc;
@@ -79,6 +79,9 @@ impl GameEntity<&mut Player> for NPC {
         // maybe use macros?
         match self.npc_type {
             0 => { self.tick_n000_null(state) }
+            2 => { self.tick_n002_behemoth(state) }
+            5 => { self.tick_n005_green_critter(state, player) }
+            7 => { self.tick_n007_basil(state, player) }
             16 => { self.tick_n016_save_point(state) }
             17 => { self.tick_n017_health_refill(state) }
             18 => { self.tick_n018_door(state) }

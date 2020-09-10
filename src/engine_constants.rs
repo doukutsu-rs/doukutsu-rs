@@ -86,6 +86,12 @@ pub struct WorldConsts {
 
 #[derive(Debug, Copy, Clone)]
 pub struct NPCConsts {
+    pub n002_behemoth: [Rect<usize>; 14],
+    pub n004_smoke: [Rect<usize>; 16],
+    pub n005_green_critter: [Rect<usize>; 6],
+    pub n006_green_beetle: [Rect<usize>; 10],
+    pub n007_basil: [Rect<usize>; 6],
+    pub n008_blue_beetle: [Rect<usize>; 4],
     pub n016_save_point: [Rect<usize>; 8],
     pub n017_health_refill: [Rect<usize>; 2],
     pub n018_door: [Rect<usize>; 2],
@@ -316,6 +322,74 @@ impl EngineConstants {
                 snack_rect: Rect { left: 256, top: 48, right: 272, bottom: 64 },
             },
             npc: NPCConsts {
+                n002_behemoth: [
+                    Rect { left: 32, top: 0, right: 64, bottom: 24 }, // left
+                    Rect { left: 0, top: 0, right: 32, bottom: 24 },
+                    Rect { left: 32, top: 0, right: 64, bottom: 24 },
+                    Rect { left: 64, top: 0, right: 96, bottom: 24 },
+                    Rect { left: 96, top: 0, right: 128, bottom: 24 },
+                    Rect { left: 128, top: 0, right: 160, bottom: 24 },
+                    Rect { left: 160, top: 0, right: 192, bottom: 24 },
+                    Rect { left: 32, top: 24, right: 64, bottom: 48 }, // right
+                    Rect { left: 0, top: 24, right: 32, bottom: 48 },
+                    Rect { left: 32, top: 24, right: 64, bottom: 48 },
+                    Rect { left: 64, top: 24, right: 96, bottom: 48 },
+                    Rect { left: 96, top: 24, right: 128, bottom: 48 },
+                    Rect { left: 128, top: 24, right: 160, bottom: 48 },
+                    Rect { left: 160, top: 24, right: 192, bottom: 48 },
+                ],
+                n004_smoke: [
+                    Rect { left: 16, top: 0, right: 17, bottom: 1 }, // left
+                    Rect { left: 16, top: 0, right: 32, bottom: 16 },
+                    Rect { left: 32, top: 0, right: 48, bottom: 16 },
+                    Rect { left: 48, top: 0, right: 64, bottom: 16 },
+                    Rect { left: 64, top: 0, right: 80, bottom: 16 },
+                    Rect { left: 80, top: 0, right: 96, bottom: 16 },
+                    Rect { left: 96, top: 0, right: 112, bottom: 16 },
+                    Rect { left: 112, top: 0, right: 128, bottom: 16 },
+                    Rect { left: 16, top: 0, right: 17, bottom: 1 }, // right
+                    Rect { left: 80, top: 48, right: 96, bottom: 64 },
+                    Rect { left: 0, top: 128, right: 16, bottom: 144 },
+                    Rect { left: 16, top: 128, right: 32, bottom: 144 },
+                    Rect { left: 32, top: 128, right: 48, bottom: 144 },
+                    Rect { left: 48, top: 128, right: 64, bottom: 144 },
+                    Rect { left: 64, top: 128, right: 80, bottom: 144 },
+                    Rect { left: 80, top: 128, right: 96, bottom: 144 },
+                ],
+                n005_green_critter: [
+                    Rect { left: 0, top: 48, right: 16, bottom: 64 }, // left
+                    Rect { left: 16, top: 48, right: 32, bottom: 64 },
+                    Rect { left: 32, top: 48, right: 48, bottom: 64 },
+                    Rect { left: 0, top: 64, right: 16, bottom: 80 }, // right
+                    Rect { left: 16, top: 64, right: 32, bottom: 80 },
+                    Rect { left: 32, top: 64, right: 48, bottom: 80 },
+                ],
+                n006_green_beetle: [
+                    Rect { left: 0, top: 80, right: 16, bottom: 96 }, // left
+                    Rect { left: 16, top: 80, right: 32, bottom: 96 },
+                    Rect { left: 32, top: 80, right: 48, bottom: 96 },
+                    Rect { left: 48, top: 80, right: 64, bottom: 96 },
+                    Rect { left: 64, top: 80, right: 80, bottom: 96 },
+                    Rect { left: 0, top: 96, right: 16, bottom: 112 }, // right
+                    Rect { left: 16, top: 96, right: 32, bottom: 112 },
+                    Rect { left: 32, top: 96, right: 48, bottom: 112 },
+                    Rect { left: 48, top: 96, right: 64, bottom: 112 },
+                    Rect { left: 64, top: 96, right: 80, bottom: 112 },
+                ],
+                n007_basil: [
+                    Rect { left: 256, top: 64, right: 288, bottom: 80 }, // left
+                    Rect { left: 256, top: 80, right: 288, bottom: 96 },
+                    Rect { left: 256, top: 96, right: 288, bottom: 112 },
+                    Rect { left: 288, top: 64, right: 320, bottom: 80 }, // right
+                    Rect { left: 288, top: 80, right: 320, bottom: 96 },
+                    Rect { left: 288, top: 96, right: 320, bottom: 112 },
+                ],
+                n008_blue_beetle: [
+                    Rect { left: 80, top: 80, right: 96, bottom: 96 },// left
+                    Rect { left: 96, top: 80, right: 112, bottom: 96 },
+                    Rect { left: 80, top: 96, right: 96, bottom: 112 }, // right
+                    Rect { left: 96, top: 96, right: 112, bottom: 112 },
+                ],
                 n016_save_point: [
                     Rect { left: 96, top: 16, right: 112, bottom: 32 },
                     Rect { left: 112, top: 16, right: 128, bottom: 32 },
