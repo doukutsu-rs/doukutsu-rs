@@ -5,12 +5,12 @@ use image::RgbaImage;
 use itertools::Itertools;
 use log::info;
 
-use crate::common;
+use crate::{common, ggez};
 use crate::common::FILE_TYPES;
 use crate::engine_constants::EngineConstants;
-use crate::ggez::{Context, GameError, GameResult};
+use crate::ggez::{Context, GameError, GameResult, graphics};
 use crate::ggez::filesystem;
-use crate::ggez::graphics::{Drawable, DrawParam, FilterMode, Image, Rect};
+use crate::ggez::graphics::{Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh, Rect};
 use crate::ggez::graphics::spritebatch::SpriteBatch;
 use crate::ggez::nalgebra::{Point2, Vector2};
 use crate::str;
@@ -72,7 +72,7 @@ impl SizedBatch {
                            rect.top as f32 / self.height as f32,
                            (rect.right - rect.left) as f32 / self.width as f32,
                            (rect.bottom - rect.top) as f32 / self.height as f32))
-            .dest(Point2::new(x, y))
+            .dest(mint::Point2 { x, y })
             .scale(Vector2::new(scale_x, scale_y));
 
         self.batch.add(param);
@@ -184,5 +184,17 @@ impl TextureSet {
         }
 
         Ok(self.tex_map.get_mut(name).unwrap())
+    }
+
+    pub fn draw_rect(&self, rect: common::Rect, color: [f32; 4], ctx: &mut Context) -> GameResult {
+        let rect = Mesh::new_rectangle(ctx, DrawMode::fill(), rect.into(), color.into())?;
+        graphics::draw(ctx, &rect, DrawParam::new())?;
+        Ok(())
+    }
+
+    pub fn draw_outline_rect(&self, rect: common::Rect, width: f32, color: [f32; 4], ctx: &mut Context) -> GameResult {
+        let rect = Mesh::new_rectangle(ctx, DrawMode::stroke(width), rect.into(), color.into())?;
+        graphics::draw(ctx, &rect, DrawParam::new())?;
+        Ok(())
     }
 }
