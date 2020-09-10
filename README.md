@@ -75,18 +75,9 @@ Vanilla Cave Story does not work yet because some important data files are embed
 
 ![cs+](https://i.imgur.com/DIlz4eo.jpg)
 
-#### why rust, it's a hipster language lol
-
-The project is a result of me wanting to build something in a new programming language for memes.
-
-I had an idea of writing my own CS engine long time before and I would've very likely picked C++17/20 and SDL2, but after 
-all I've picked Rust instead because it seemed quite interesting for me.
-
-Would 90% of end-users running this thing care about the programming language software was written in? After all who tf cares if the performance is the same (and maybe a slightly better), but you also get a lot of various benefits?
-
 #### Credits
 
 - Studio Pixel for Cave Story 
 - [Cave Story Tribute Site](https://cavestory.org) - for LOTS of useful resources related to the game. 
-- [Clownacy for CSE2](https://github.com/Clownacy/CSE2) - some game logic reference / mutual help in reverse engineering bitfields and other shit.
-- [LunarLambda for organism](https://gitdab.com/LunarLambda/organism) - for reimplementing Organya in Rust, which is used by us as `.org` playback engine.
+- [Clownacy/Cucky for CSE2](https://github.com/Clownacy/CSE2) - some game logic reference / mutual help in reverse engineering bitfields and other shit.
+- [LunarLambda for organism](https://gitdab.com/LunarLambda/organism) - which is being used by us as `.org` playback engine.
