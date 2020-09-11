@@ -233,7 +233,7 @@ impl StageData {
                     .map_err(|_| ResourceLoadError("UTF-8 error in name field".to_string()))?
                     .to_owned();
 
-                let stage = Self {
+                let stage = StageData {
                     name: name.clone(),
                     map: map.clone(),
                     boss_no,
@@ -302,7 +302,7 @@ impl StageData {
 
                 println!("bg type: {}", bg_type);
 
-                let stage = Self {
+                let stage = StageData {
                     name: name.clone(),
                     map: map.clone(),
                     boss_no,
@@ -343,8 +343,8 @@ impl StageData {
                 let bg_id = f.read_u8()? as usize;
                 let bg_type = f.read_u8()? as usize;
                 let boss_no = f.read_u8()? as usize;
-                let _npc1 = f.read_u8()? as usize;
-                let _npc2 = f.read_u8()? as usize;
+                let npc1 = f.read_u8()? as usize;
+                let npc2 = f.read_u8()? as usize;
 
                 let map = from_utf8(&map_buf)
                     .map_err(|_| ResourceLoadError("UTF-8 error in map field".to_string()))?
@@ -353,15 +353,15 @@ impl StageData {
                     .map_err(|_| ResourceLoadError("UTF-8 error in name field".to_string()))?
                     .trim_matches('\0').to_owned();
 
-                let stage = Self {
+                let stage = StageData {
                     name: name.clone(),
                     map: map.clone(),
                     boss_no,
                     tileset: Tileset::new(NXENGINE_TILESETS.get(tileset_id).unwrap_or(&"0")),
                     background: Background::new(NXENGINE_BACKDROPS.get(bg_id).unwrap_or(&"0")),
                     background_type: BackgroundType::new(bg_type),
-                    npc1: NpcType::new(NXENGINE_NPCS.get(tileset_id).unwrap_or(&"0")),
-                    npc2: NpcType::new(NXENGINE_NPCS.get(tileset_id).unwrap_or(&"0")),
+                    npc1: NpcType::new(NXENGINE_NPCS.get(npc1).unwrap_or(&"0")),
+                    npc2: NpcType::new(NXENGINE_NPCS.get(npc2).unwrap_or(&"0")),
                 };
                 stages.push(stage);
             }
