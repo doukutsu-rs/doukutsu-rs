@@ -28,6 +28,7 @@ pub struct GameScene {
     life_bar: u16,
     life_bar_counter: u16,
     map_name_counter: u16,
+    weapon_x_pos: isize,
 }
 
 #[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
@@ -69,6 +70,7 @@ impl GameScene {
             life_bar: 0,
             life_bar_counter: 0,
             map_name_counter: 0,
+            weapon_x_pos: 16,
         })
     }
 
@@ -91,14 +93,17 @@ impl GameScene {
     }
 
     fn draw_hud(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
-        // todo: max ammo display
-
         // none
-        batch.add_rect(16.0 + 48.0, 16.0,
-                       &Rect::<usize>::new_size(80, 48, 16, 8));
-        batch.add_rect(16.0 + 48.0, 24.0,
-                       &Rect::<usize>::new_size(80, 48, 16, 8));
+        let weap_x = self.weapon_x_pos as f32;
+        let (ammo, max_ammo) = self.player.inventory.get_current_ammo();
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
+
+        if max_ammo == 0 {
+            batch.add_rect(weap_x + 48.0, 16.0,
+                           &Rect::<usize>::new_size(80, 48, 16, 8));
+            batch.add_rect(weap_x + 48.0, 24.0,
+                           &Rect::<usize>::new_size(80, 48, 16, 8));
+        }
 
         // per
         batch.add_rect(16.0 + 32.0, 24.0,
@@ -126,8 +131,43 @@ impl GameScene {
         }
 
         batch.draw(ctx)?;
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ArmsImage")?;
 
-        self.draw_number(40.0, 32.0, 0, Alignment::Right, state, ctx)?;
+        let weapon_count = self.player.inventory.get_weapon_count();
+        if weapon_count != 0 {
+            let current_weapon = self.player.inventory.get_current_weapon_idx() as usize;
+            let mut rect = Rect::new(0, 0, 0, 16);
+
+            for a in 0..weapon_count {
+                let mut pos_x = ((a - current_weapon) as f32 * 16.0) + weap_x;
+
+                if pos_x < 8.0 {
+                    pos_x += 48.0 + weapon_count as f32 * 16.0;
+                } else if pos_x >= 24.0 {
+                    pos_x += 48.0;
+                }
+
+                if pos_x >= 72.0 + ((weapon_count - 1) as f32 * 16.0) {
+                    pos_x -= 48.0 + weapon_count as f32 * 16.0;
+                } else if pos_x < 72.0 && pos_x >= 24.0 {
+                    pos_x -= 48.0;
+                }
+
+                if let Some(weapon) = self.player.inventory.get_weapon(a) {
+                    rect.left = weapon.id as usize * 16;
+                    rect.right = rect.left + 16;
+                    batch.add_rect(pos_x, 16.0, &rect);
+                }
+            }
+        }
+
+        batch.draw(ctx)?;
+
+        if max_ammo != 0 {
+            self.draw_number(weap_x + 64.0, 16.0, ammo as usize, Alignment::Right, state, ctx)?;
+            self.draw_number(weap_x + 64.0, 24.0, max_ammo as usize, Alignment::Right, state, ctx)?;
+        }
+        self.draw_number(40.0, 32.0, self.player.inventory.get_current_level() as usize, Alignment::Right, state, ctx)?;
         self.draw_number(40.0, 40.0, self.life_bar as usize, Alignment::Right, state, ctx)?;
 
         Ok(())
@@ -568,6 +608,12 @@ impl Scene for GameScene {
 
         if self.map_name_counter > 0 {
             self.map_name_counter -= 1;
+        }
+
+        if self.weapon_x_pos > 16 {
+            self.weapon_x_pos -= 2;
+        } else if self.weapon_x_pos < 16 {
+            self.weapon_x_pos += 2;
         }
 
         match state.fade_state {

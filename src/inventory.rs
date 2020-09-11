@@ -1,10 +1,10 @@
 #[derive(Clone)]
 pub struct Weapon {
-    id: u16,
-    level: u16,
-    experience: u16,
-    ammo: u16,
-    max_ammo: u16,
+    pub id: u16,
+    pub level: u16,
+    pub experience: u16,
+    pub ammo: u16,
+    pub max_ammo: u16,
 }
 
 #[derive(Clone, Copy)]
@@ -59,7 +59,11 @@ impl Inventory {
         self.weapons.retain(|weapon| weapon.id != weapon_id);
     }
 
-    pub fn get_current_weapon(&mut self) -> Option<&mut Weapon> {
+    pub fn get_weapon(&self, idx: usize) -> Option<&Weapon> {
+        self.weapons.get(idx)
+    }
+
+    pub fn get_current_weapon_mut(&mut self) -> Option<&mut Weapon> {
         self.weapons.get_mut(self.current_weapon as usize)
     }
 
@@ -74,6 +78,30 @@ impl Inventory {
             weapon.level = 1;
             weapon.experience = 0;
         }
+    }
+
+    pub fn get_current_ammo(&self) -> (u16, u16) {
+        if let Some(weapon) = self.weapons.get(self.current_weapon as usize) {
+            (weapon.ammo, weapon.max_ammo)
+        } else {
+            (0, 0)
+        }
+    }
+
+    pub fn get_current_level(&self) -> u16 {
+        if let Some(weapon) = self.weapons.get(self.current_weapon as usize) {
+            weapon.level
+        } else {
+            0
+        }
+    }
+
+    pub fn get_current_weapon_idx(&self) -> u16 {
+        self.current_weapon
+    }
+
+    pub fn get_weapon_count(&self) -> usize {
+        self.weapons.len()
     }
 
     pub fn has_weapon(&self, weapon_id: u16) -> bool {

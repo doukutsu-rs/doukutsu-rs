@@ -1,4 +1,4 @@
-use num_traits::{Num, AsPrimitive};
+use num_traits::{AsPrimitive, Num};
 
 use crate::bitfield;
 
@@ -95,7 +95,6 @@ pub enum FadeDirection {
     Down,
     Center,
 }
-
 
 impl FadeDirection {
     pub fn from_int(val: usize) -> Option<FadeDirection> {
