@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-
 use log::info;
-use maplit::hashmap;
 
-use crate::common::{Direction, Rect};
+use case_insensitive_hashmap::CaseInsensitiveHashMap;
+
+use crate::case_insensitive_hashmap;
+use crate::common::{Rect, Flag};
 use crate::player::ControlMode;
 use crate::str;
 use crate::text_script::TextScriptEncoding;
@@ -19,7 +19,6 @@ pub struct PhysicsConsts {
     pub resist: isize,
     pub jump: isize,
 }
-
 
 #[derive(Debug, Copy, Clone)]
 pub struct BoosterConsts {
@@ -75,6 +74,33 @@ impl Clone for CaretConsts {
             exhaust_rects: self.exhaust_rects.clone(),
             question_left_rect: self.question_left_rect,
             question_right_rect: self.question_right_rect,
+        }
+    }
+}
+
+
+#[derive(Debug, Copy, Clone)]
+pub struct BulletData {
+    pub damage: u8,
+    pub life: u8,
+    pub lifetime: u16,
+    pub flags: Flag,
+    pub enemy_hit_width: u16,
+    pub enemy_hit_height: u16,
+    pub block_hit_width: u16,
+    pub block_hit_height: u16,
+    pub display_bounds: Rect<u8>,
+}
+
+#[derive(Debug)]
+pub struct WeaponConsts {
+    pub bullet_table: Vec<BulletData>,
+}
+
+impl Clone for WeaponConsts {
+    fn clone(&self) -> WeaponConsts {
+        WeaponConsts {
+            bullet_table: self.bullet_table.clone(),
         }
     }
 }
@@ -161,7 +187,8 @@ pub struct EngineConstants {
     pub caret: CaretConsts,
     pub world: WorldConsts,
     pub npc: NPCConsts,
-    pub tex_sizes: HashMap<String, (usize, usize)>,
+    pub weapon: WeaponConsts,
+    pub tex_sizes: CaseInsensitiveHashMap<(usize, usize)>,
     pub textscript: TextScriptConsts,
     pub font_path: String,
     pub font_scale: f32,
@@ -170,14 +197,15 @@ pub struct EngineConstants {
 }
 
 impl Clone for EngineConstants {
-    fn clone(&self) -> Self {
-        Self {
+    fn clone(&self) -> EngineConstants {
+        EngineConstants {
             is_cs_plus: self.is_cs_plus,
             my_char: self.my_char,
             booster: self.booster,
             caret: self.caret.clone(),
             world: self.world.clone(),
             npc: self.npc.clone(),
+            weapon: self.weapon.clone(),
             tex_sizes: self.tex_sizes.clone(),
             textscript: self.textscript.clone(),
             font_path: self.font_path.clone(),
@@ -727,121 +755,191 @@ impl EngineConstants {
                     Rect { left: 304, top: 200, right: 320, bottom: 216 },
                 ],
             },
-            tex_sizes: hashmap! {
-                str!("ArmsImage") => (256, 16),
-                str!("Arms") => (320, 200),
-                str!("bk0") => (64, 64),
-                str!("bkBlack") => (64, 64),
-                str!("bkBlue") => (64, 64),
-                str!("bkFall") => (64, 64),
-                str!("bkFog") => (320, 240),
-                str!("bkFog480fix") => (480, 272), // nxengine
-                str!("bkGard") => (48, 64),
-                str!("bkGray") => (64, 64),
-                str!("bkGreen") => (64, 64),
-                str!("bkHellish") => (320, 240), // nxengine
-                str!("bkHellish480fix") => (480, 272), // nxengine
-                str!("bkLight") => (320, 240), // nxengine
-                str!("bkLight480fix") => (480, 272), // nxengine
-                str!("bkMaze") => (64, 64),
-                str!("bkMoon") => (320, 240),
-                str!("bkMoon480fix") => (480, 272), // nxengine
-                str!("bkRed") => (32, 32),
-                str!("bkSunset") => (320, 240), // nxengine
-                str!("bkSunset480fix") => (480, 272), // nxengine
-                str!("bkWater") => (32, 48),
-                str!("Bullet") => (320, 176),
-                str!("Caret") => (320, 240),
-                str!("casts") => (320, 240),
-                str!("Face") => (288, 240),
-                str!("Face_0") => (288, 240), // nxengine
-                str!("Face_1") => (288, 240), // nxengine
-                str!("Face_2") => (288, 240), // nxengine
-                str!("Fade") => (256, 32),
-                str!("ItemImage") => (256, 128),
-                str!("Loading") => (64, 8),
-                str!("MyChar") => (200, 64),
-                str!("Npc/Npc0") => (32, 32),
-                str!("Npc/NpcAlmo1") => (320, 240),
-                str!("Npc/NpcAlmo2") => (320, 240),
-                str!("Npc/NpcBallos") => (320, 240),
-                str!("Npc/NpcBllg") => (320, 96),
-                str!("Npc/NpcCemet") => (320, 112),
-                str!("Npc/NpcCent") => (320, 192),
-                str!("Npc/NpcCurly") => (256, 80),
-                str!("Npc/NpcDark") => (160, 64),
-                str!("Npc/NpcDr") => (320, 240),
-                str!("Npc/NpcEggs1") => (320, 112),
-                str!("Npc/NpcEggs2") => (320, 128),
-                str!("Npc/NpcFrog") => (320, 240),
-                str!("Npc/NpcGuest") => (320, 184),
-                str!("Npc/NpcHell") => (320, 160),
-                str!("Npc/NpcHeri") => (320, 128),
-                str!("Npc/NpcIronH") => (320, 72),
-                str!("Npc/NpcIsland") => (320, 80),
-                str!("Npc/NpcKings") => (96, 48),
-                str!("Npc/NpcMaze") => (320, 192),
-                str!("Npc/NpcMiza") => (320, 240),
-                str!("Npc/NpcMoon") => (320, 128),
-                str!("Npc/NpcOmg") => (320, 120),
-                str!("Npc/NpcPlant") => (320, 48),
-                str!("Npc/NpcPress") => (320, 240),
-                str!("Npc/NpcPriest") => (320, 240),
-                str!("Npc/NpcRavil") => (320, 168),
-                str!("Npc/NpcRed") => (320, 144),
-                str!("Npc/NpcRegu") => (320, 240),
-                str!("Npc/NpcSand") => (320, 176),
-                str!("Npc/NpcStream") => (64, 32),
-                str!("Npc/NpcSym") => (320, 240),
-                str!("Npc/NpcToro") => (320, 144),
-                str!("Npc/NpcTwinD") => (320, 144),
-                str!("Npc/NpcWeed") => (320, 240),
-                str!("Npc/NpcX") => (320, 240),
-                str!("Resource/BITMAP/Credit01") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit02") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit03") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit04") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit05") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit06") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit07") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit08") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit09") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit10") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit11") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit12") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit14") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit15") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit16") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit17") => (160, 240), // cse2
-                str!("Resource/BITMAP/Credit18") => (160, 240), // cse2
-                str!("Resource/BITMAP/pixel") => (160, 16), // cse2
-                str!("Resource/CURSOR/CURSOR_IKA") => (32, 32), // cse2
-                str!("Resource/CURSOR/CURSOR_NORMAL") => (32, 32), // cse2
-                str!("StageImage") => (256, 16),
-                str!("Stage/Prt0") => (32, 32),
-                str!("Stage/PrtAlmond") => (256, 96),
-                str!("Stage/PrtBarr") => (256, 88),
-                str!("Stage/PrtCave") => (256, 80),
-                str!("Stage/PrtCent") => (256, 128),
-                str!("Stage/PrtEggIn") => (256, 80),
-                str!("Stage/PrtEggs") => (256, 240),
-                str!("Stage/PrtEggX") => (256, 240),
-                str!("Stage/PrtFall") => (256, 128),
-                str!("Stage/PrtGard") => (256, 97),
-                str!("Stage/PrtHell") => (256, 240),
-                str!("Stage/PrtJail") => (256, 128),
-                str!("Stage/PrtLabo") => (128, 64),
-                str!("Stage/PrtMaze") => (256, 160),
-                str!("Stage/PrtMimi") => (256, 160),
-                str!("Stage/PrtOside") => (256, 64),
-                str!("Stage/PrtPens") => (256, 64),
-                str!("Stage/PrtRiver") => (256, 96),
-                str!("Stage/PrtSand") => (256, 112),
-                str!("Stage/PrtStore") => (256, 112),
-                str!("Stage/PrtWeed") => (256, 128),
-                str!("Stage/PrtWhite") => (256, 240),
-                str!("TextBox") => (244, 144),
-                str!("Title") => (320, 48),
+            weapon: WeaponConsts {
+                bullet_table: vec![
+                    // Null
+                    BulletData { damage: 0, life: 0, lifetime: 0, flags: Flag(0), enemy_hit_width: 0, enemy_hit_height: 0, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    // Snake
+                    BulletData { damage: 4, life: 1, lifetime: 20, flags: Flag(36), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 6, life: 1, lifetime: 23, flags: Flag(36), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 8, life: 1, lifetime: 30, flags: Flag(36), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    // Polar Star
+                    BulletData { damage: 1, life: 1, lifetime: 8, flags: Flag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 2, life: 1, lifetime: 12, flags: Flag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 4, life: 1, lifetime: 16, flags: Flag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    // Fireball
+                    BulletData { damage: 2, life: 2, lifetime: 100, flags: Flag(8), enemy_hit_width: 8, enemy_hit_height: 16, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 3, life: 2, lifetime: 100, flags: Flag(8), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 3, life: 2, lifetime: 100, flags: Flag(8), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    // Machine Gun
+                    BulletData { damage: 2, life: 1, lifetime: 20, flags: Flag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 4, life: 1, lifetime: 20, flags: Flag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 6, life: 1, lifetime: 20, flags: Flag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    // Missile Launcher
+                    BulletData { damage: 0, life: 10, lifetime: 50, flags: Flag(40), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 0, life: 10, lifetime: 70, flags: Flag(40), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 4, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 0, life: 10, lifetime: 90, flags: Flag(40), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    // Missile Launcher explosion
+                    BulletData { damage: 1, life: 100, lifetime: 100, flags: Flag(20), enemy_hit_width: 16, enemy_hit_height: 16, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 1, life: 100, lifetime: 100, flags: Flag(20), enemy_hit_width: 16, enemy_hit_height: 16, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 1, life: 100, lifetime: 100, flags: Flag(20), enemy_hit_width: 16, enemy_hit_height: 16, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    // Bubbler
+                    BulletData { damage: 1, life: 1, lifetime: 20, flags: Flag(8), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    BulletData { damage: 2, life: 1, lifetime: 20, flags: Flag(8), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    BulletData { damage: 2, life: 1, lifetime: 20, flags: Flag(8), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 4, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    // Bubbler level 3 thorns
+                    BulletData { damage: 3, life: 1, lifetime: 32, flags: Flag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    // Blade slashes
+                    BulletData { damage: 0, life: 100, lifetime: 0, flags: Flag(36), enemy_hit_width: 8, enemy_hit_height: 8, block_hit_width: 8, block_hit_height: 8, display_bounds: Rect { left: 12, top: 12, right: 12, bottom: 12 } },
+                    // Falling spike
+                    BulletData { damage: 127, life: 1, lifetime: 2, flags: Flag(4), enemy_hit_width: 8, enemy_hit_height: 4, block_hit_width: 8, block_hit_height: 4, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    // Blade
+                    BulletData { damage: 15, life: 1, lifetime: 30, flags: Flag(36), enemy_hit_width: 8, enemy_hit_height: 8, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 6, life: 3, lifetime: 18, flags: Flag(36), enemy_hit_width: 10, enemy_hit_height: 10, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 12, top: 12, right: 12, bottom: 12 } },
+                    BulletData { damage: 1, life: 100, lifetime: 30, flags: Flag(36), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 4, block_hit_height: 4, display_bounds: Rect { left: 12, top: 12, right: 12, bottom: 12 } },
+                    // Super Missile Launcher
+                    BulletData { damage: 0, life: 10, lifetime: 30, flags: Flag(40), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 0, life: 10, lifetime: 40, flags: Flag(40), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 4, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 0, life: 10, lifetime: 40, flags: Flag(40), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    // Super Missile Launcher explosion
+                    BulletData { damage: 2, life: 100, lifetime: 100, flags: Flag(20), enemy_hit_width: 12, enemy_hit_height: 12, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 2, life: 100, lifetime: 100, flags: Flag(20), enemy_hit_width: 12, enemy_hit_height: 12, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 2, life: 100, lifetime: 100, flags: Flag(20), enemy_hit_width: 12, enemy_hit_height: 12, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    // Nemesis
+                    BulletData { damage: 4, life: 4, lifetime: 20, flags: Flag(32), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 24, bottom: 8 } },
+                    BulletData { damage: 4, life: 2, lifetime: 20, flags: Flag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 24, bottom: 8 } },
+                    BulletData { damage: 1, life: 1, lifetime: 20, flags: Flag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 24, bottom: 8 } },
+                    // Spur
+                    BulletData { damage: 4, life: 4, lifetime: 30, flags: Flag(64), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 8, life: 8, lifetime: 30, flags: Flag(64), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 12, life: 12, lifetime: 30, flags: Flag(64), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    // Spur trail
+                    BulletData { damage: 3, life: 100, lifetime: 30, flags: Flag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    BulletData { damage: 6, life: 100, lifetime: 30, flags: Flag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    BulletData { damage: 11, life: 100, lifetime: 30, flags: Flag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    // Curly's Nemesis
+                    BulletData { damage: 4, life: 4, lifetime: 20, flags: Flag(32), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 24, bottom: 8 } },
+                    // EnemyClear?
+                    BulletData { damage: 0, life: 4, lifetime: 4, flags: Flag(4), enemy_hit_width: 0, enemy_hit_height: 0, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    // Whimsical Star
+                    BulletData { damage: 1, life: 1, lifetime: 1, flags: Flag(36), enemy_hit_width: 1, enemy_hit_height: 1, block_hit_width: 1, block_hit_height: 1, display_bounds: Rect { left: 1, top: 1, right: 1, bottom: 1 } },
+                ],
+            },
+            tex_sizes: case_insensitive_hashmap! {
+                "ArmsImage" => (256, 16),
+                "Arms" => (320, 200),
+                "bk0" => (64, 64),
+                "bkBlack" => (64, 64),
+                "bkBlue" => (64, 64),
+                "bkFall" => (64, 64),
+                "bkFog" => (320, 240),
+                "bkFog480fix" => (480, 272), // nxengine
+                "bkGard" => (48, 64),
+                "bkGray" => (64, 64),
+                "bkGreen" => (64, 64),
+                "bkHellish" => (320, 240), // nxengine
+                "bkHellish480fix" => (480, 272), // nxengine
+                "bkLight" => (320, 240), // nxengine
+                "bkLight480fix" => (480, 272), // nxengine
+                "bkMaze" => (64, 64),
+                "bkMoon" => (320, 240),
+                "bkMoon480fix" => (480, 272), // nxengine
+                "bkRed" => (32, 32),
+                "bkSunset" => (320, 240), // nxengine
+                "bkSunset480fix" => (480, 272), // nxengine
+                "bkWater" => (32, 48),
+                "Bullet" => (320, 176),
+                "Caret" => (320, 240),
+                "casts" => (320, 240),
+                "Face" => (288, 240),
+                "Face_0" => (288, 240), // nxengine
+                "Face_1" => (288, 240), // nxengine
+                "Face_2" => (288, 240), // nxengine
+                "Fade" => (256, 32),
+                "ItemImage" => (256, 128),
+                "Loading" => (64, 8),
+                "MyChar" => (200, 64),
+                "Npc/Npc0" => (32, 32),
+                "Npc/NpcAlmo1" => (320, 240),
+                "Npc/NpcAlmo2" => (320, 240),
+                "Npc/NpcBallos" => (320, 240),
+                "Npc/NpcBllg" => (320, 96),
+                "Npc/NpcCemet" => (320, 112),
+                "Npc/NpcCent" => (320, 192),
+                "Npc/NpcCurly" => (256, 80),
+                "Npc/NpcDark" => (160, 64),
+                "Npc/NpcDr" => (320, 240),
+                "Npc/NpcEggs1" => (320, 112),
+                "Npc/NpcEggs2" => (320, 128),
+                "Npc/NpcFrog" => (320, 240),
+                "Npc/NpcGuest" => (320, 184),
+                "Npc/NpcHell" => (320, 160),
+                "Npc/NpcHeri" => (320, 128),
+                "Npc/NpcIronH" => (320, 72),
+                "Npc/NpcIsland" => (320, 80),
+                "Npc/NpcKings" => (96, 48),
+                "Npc/NpcMaze" => (320, 192),
+                "Npc/NpcMiza" => (320, 240),
+                "Npc/NpcMoon" => (320, 128),
+                "Npc/NpcOmg" => (320, 120),
+                "Npc/NpcPlant" => (320, 48),
+                "Npc/NpcPress" => (320, 240),
+                "Npc/NpcPriest" => (320, 240),
+                "Npc/NpcRavil" => (320, 168),
+                "Npc/NpcRed" => (320, 144),
+                "Npc/NpcRegu" => (320, 240),
+                "Npc/NpcSand" => (320, 176),
+                "Npc/NpcStream" => (64, 32),
+                "Npc/NpcSym" => (320, 240),
+                "Npc/NpcToro" => (320, 144),
+                "Npc/NpcTwinD" => (320, 144),
+                "Npc/NpcWeed" => (320, 240),
+                "Npc/NpcX" => (320, 240),
+                "Resource/BITMAP/Credit01" => (160, 240), // cse2
+                "Resource/BITMAP/Credit02" => (160, 240), // cse2
+                "Resource/BITMAP/Credit03" => (160, 240), // cse2
+                "Resource/BITMAP/Credit04" => (160, 240), // cse2
+                "Resource/BITMAP/Credit05" => (160, 240), // cse2
+                "Resource/BITMAP/Credit06" => (160, 240), // cse2
+                "Resource/BITMAP/Credit07" => (160, 240), // cse2
+                "Resource/BITMAP/Credit08" => (160, 240), // cse2
+                "Resource/BITMAP/Credit09" => (160, 240), // cse2
+                "Resource/BITMAP/Credit10" => (160, 240), // cse2
+                "Resource/BITMAP/Credit11" => (160, 240), // cse2
+                "Resource/BITMAP/Credit12" => (160, 240), // cse2
+                "Resource/BITMAP/Credit14" => (160, 240), // cse2
+                "Resource/BITMAP/Credit15" => (160, 240), // cse2
+                "Resource/BITMAP/Credit16" => (160, 240), // cse2
+                "Resource/BITMAP/Credit17" => (160, 240), // cse2
+                "Resource/BITMAP/Credit18" => (160, 240), // cse2
+                "Resource/BITMAP/pixel" => (160, 16), // cse2
+                "Resource/CURSOR/CURSOR_IKA" => (32, 32), // cse2
+                "Resource/CURSOR/CURSOR_NORMAL" => (32, 32), // cse2
+                "StageImage" => (256, 16),
+                "Stage/Prt0" => (32, 32),
+                "Stage/PrtAlmond" => (256, 96),
+                "Stage/PrtBarr" => (256, 88),
+                "Stage/PrtCave" => (256, 80),
+                "Stage/PrtCent" => (256, 128),
+                "Stage/PrtEggIn" => (256, 80),
+                "Stage/PrtEggs" => (256, 240),
+                "Stage/PrtEggX" => (256, 240),
+                "Stage/PrtFall" => (256, 128),
+                "Stage/PrtGard" => (256, 97),
+                "Stage/PrtHell" => (256, 240),
+                "Stage/PrtJail" => (256, 128),
+                "Stage/PrtLabo" => (128, 64),
+                "Stage/PrtMaze" => (256, 160),
+                "Stage/PrtMimi" => (256, 160),
+                "Stage/PrtOside" => (256, 64),
+                "Stage/PrtPens" => (256, 64),
+                "Stage/PrtRiver" => (256, 96),
+                "Stage/PrtSand" => (256, 112),
+                "Stage/PrtStore" => (256, 112),
+                "Stage/PrtWeed" => (256, 128),
+                "Stage/PrtWhite" => (256, 240),
+                "TextBox" => (244, 144),
+                "Title" => (320, 48),
             },
             textscript: TextScriptConsts {
                 encoding: TextScriptEncoding::UTF8,

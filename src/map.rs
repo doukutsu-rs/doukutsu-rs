@@ -39,8 +39,12 @@ impl Map {
         let mut tiles = vec![0u8; width * height];
         let mut attrib = [0u8; 0x100];
 
+        log::info!("Map size: {}x{}", width, height);
+
         map_data.read_exact(&mut tiles)?;
-        attrib_data.read_exact(&mut attrib)?;
+        if attrib_data.read_exact(&mut attrib).is_err() {
+            log::warn!("Map attribute data is shorter than 256 bytes!");
+        }
 
         Ok(Map {
             width,

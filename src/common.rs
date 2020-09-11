@@ -3,7 +3,7 @@ use num_traits::{AsPrimitive, Num};
 use crate::bitfield;
 
 bitfield! {
-  #[derive(Clone)]
+  #[derive(Clone, Copy)]
   pub struct Flag(u32);
   impl Debug;
 
@@ -33,7 +33,7 @@ bitfield! {
 }
 
 bitfield! {
-  #[derive(Clone)]
+  #[derive(Clone, Copy)]
   pub struct Equipment(u16);
   impl Debug;
 
@@ -50,7 +50,7 @@ bitfield! {
 }
 
 bitfield! {
-  #[derive(Clone)]
+  #[derive(Clone, Copy)]
   pub struct Condition(u16);
   impl Debug;
 
@@ -65,8 +65,10 @@ bitfield! {
 }
 
 bitfield! {
+  #[derive(Clone, Copy)]
   pub struct KeyState(u16);
   impl Debug;
+
   pub left, set_left: 0;
   pub right, set_right: 1;
   pub up, set_up: 2;
@@ -79,8 +81,10 @@ bitfield! {
 }
 
 bitfield! {
+  #[derive(Clone, Copy)]
   pub struct ControlFlags(u16);
   impl Debug;
+  
   pub flag_x01, set_flag_x01: 0;
   pub control_enabled, set_control_enabled: 1;
   pub interactions_disabled, set_interactions_disabled: 2;

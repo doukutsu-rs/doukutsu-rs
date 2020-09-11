@@ -26,49 +26,50 @@ pub struct SoundManager {
     current_song_id: usize,
 }
 
-static SONGS: [&str; 42] = [
-    "XXXX",
-    "WANPAKU",
-    "ANZEN",
-    "GAMEOVER",
-    "GRAVITY",
-    "WEED",
-    "MDOWN2",
-    "FIREEYE",
-    "VIVI",
-    "MURA",
-    "FANFALE1",
-    "GINSUKE",
-    "CEMETERY",
-    "PLANT",
-    "KODOU",
-    "FANFALE3",
-    "FANFALE2",
-    "DR",
-    "ESCAPE",
-    "JENKA",
-    "MAZE",
-    "ACCESS",
-    "IRONH",
-    "GRAND",
-    "Curly",
-    "OSIDE",
-    "REQUIEM",
-    "WANPAK2",
-    "QUIET",
-    "LASTCAVE",
-    "BALCONY",
-    "LASTBTL",
-    "LASTBT3",
-    "ENDING",
-    "ZONBIE",
-    "BDOWN",
-    "HELL",
-    "JENKA2",
-    "MARINE",
-    "BALLOS",
-    "TOROKO",
-    "WHITE"
+static SONGS: [&str; 43] = [
+    "xxxx",
+    "wanpaku",
+    "anzen",
+    "gameover",
+    "gravity",
+    "weed",
+    "mdown2",
+    "fireeye",
+    "vivi",
+    "mura",
+    "fanfale1",
+    "ginsuke",
+    "cemetery",
+    "plant",
+    "kodou",
+    "fanfale3",
+    "fanfale2",
+    "dr",
+    "escape",
+    "jenka",
+    "maze",
+    "access",
+    "ironh",
+    "grand",
+    "curly",
+    "oside",
+    "requiem",
+    "wanpak2",
+    "quiet",
+    "lastcave",
+    "balcony",
+    "lastbtl",
+    "lastbt3",
+    "ending",
+    "zonbie",
+    "bdown",
+    "hell",
+    "jenka2",
+    "marine",
+    "ballos",
+    "toroko",
+    "white",
+    "kaze"
 ];
 
 impl SoundManager {
@@ -258,17 +259,5 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
 
     loop {
         std::thread::sleep(Duration::from_millis(10));
-    }
-}
-
-fn write_data<T>(output: &mut [T], channels: usize, next_sample: &mut dyn FnMut() -> u16)
-    where
-        T: cpal::Sample,
-{
-    for frame in output.chunks_mut(channels) {
-        let value: T = cpal::Sample::from::<u16>(&next_sample());
-        for sample in frame.iter_mut() {
-            *sample = value;
-        }
     }
 }

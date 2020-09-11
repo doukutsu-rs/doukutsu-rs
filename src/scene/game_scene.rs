@@ -47,9 +47,9 @@ pub enum Alignment {
 
 impl GameScene {
     pub fn new(state: &mut SharedGameState, ctx: &mut Context, id: usize) -> GameResult<Self> {
+        info!("Loading stage {} ({})", id, &state.stages[id].map);
         let stage = Stage::load(&state.base_path, &state.stages[id], ctx)?;
         info!("Loaded stage: {}", stage.data.name);
-        info!("Map size: {}x{}", stage.map.width, stage.map.height);
 
         let tex_background_name = stage.data.background.filename();
         let tex_tileset_name = ["Stage/", &stage.data.tileset.filename()].join("");

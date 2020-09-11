@@ -173,6 +173,10 @@ const NXENGINE_NPCS: [&str; 34] = [
     "Press", "Priest", "Ballos", "Island"
 ];
 
+fn zero_index(s: &[u8]) -> usize {
+    s.iter().position(|&c| c == b'\0').unwrap_or(s.len())
+}
+
 impl StageData {
     // todo: refactor to make it less repetitive.
     pub fn load_stage_table(ctx: &mut Context, root: &str) -> GameResult<Vec<Self>> {
@@ -210,24 +214,24 @@ impl StageData {
                 f.read_exact(&mut name_jap_buf)?;
                 f.read_exact(&mut name_buf)?;
 
-                let tileset = from_utf8(&ts_buf)
+                let tileset = from_utf8(&ts_buf[0..zero_index(&ts_buf)])
                     .map_err(|_| ResourceLoadError("UTF-8 error in tileset field".to_string()))?
-                    .trim_matches('\0').to_owned();
-                let map = from_utf8(&map_buf)
+                    .to_owned();
+                let map = from_utf8(&map_buf[0..zero_index(&map_buf)])
                     .map_err(|_| ResourceLoadError("UTF-8 error in map field".to_string()))?
-                    .trim_matches('\0').to_owned();
-                let background = from_utf8(&back_buf)
+                    .to_owned();
+                let background = from_utf8(&back_buf[0..zero_index(&back_buf)])
                     .map_err(|_| ResourceLoadError("UTF-8 error in background field".to_string()))?
-                    .trim_matches('\0').to_owned();
-                let npc1 = from_utf8(&npc1_buf)
+                    .to_owned();
+                let npc1 = from_utf8(&npc1_buf[0..zero_index(&npc1_buf)])
                     .map_err(|_| ResourceLoadError("UTF-8 error in npc1 field".to_string()))?
-                    .trim_matches('\0').to_owned();
-                let npc2 = from_utf8(&npc2_buf)
+                    .to_owned();
+                let npc2 = from_utf8(&npc2_buf[0..zero_index(&npc2_buf)])
                     .map_err(|_| ResourceLoadError("UTF-8 error in npc2 field".to_string()))?
-                    .trim_matches('\0').to_owned();
-                let name = from_utf8(&name_buf)
+                    .to_owned();
+                let name = from_utf8(&name_buf[0..zero_index(&name_buf)])
                     .map_err(|_| ResourceLoadError("UTF-8 error in name field".to_string()))?
-                    .trim_matches('\0').to_owned();
+                    .to_owned();
 
                 let stage = Self {
                     name: name.clone(),
@@ -277,9 +281,9 @@ impl StageData {
                 let boss_no = f.read_u8()? as usize;
                 f.read_exact(&mut name_buf)?;
 
-                let tileset = from_utf8(&ts_buf)
+                let tileset = from_utf8(&ts_buf[0..zero_index(&ts_buf)])
                     .map_err(|_| ResourceLoadError("UTF-8 error in tileset field".to_string()))?
-                    .trim_matches('\0').to_owned();
+                    .to_owned();
                 let map = from_utf8(&map_buf)
                     .map_err(|_| ResourceLoadError("UTF-8 error in map field".to_string()))?
                     .trim_matches('\0').to_owned();

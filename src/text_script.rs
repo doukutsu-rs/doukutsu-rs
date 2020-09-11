@@ -1205,6 +1205,12 @@ impl TextScript {
                     iter.next();
                 }
                 n => {
+                    // CS+ boss rush is the buggiest shit ever.
+                    if !strict && last_event == 0 {
+                        iter.next();
+                        continue;
+                    }
+
                     return Err(ParseError(format!("Unexpected token in event {}: {}", last_event, n as char)));
                 }
             }
@@ -1378,14 +1384,6 @@ impl TextScript {
         }
 
         Ok(())
-    }
-
-    fn expect_newline<I: Iterator<Item=u8>>(iter: &mut Peekable<I>) -> GameResult {
-        if let Some(b'\r') = iter.peek() {
-            iter.next();
-        }
-
-        TextScript::expect_char(b'\n', iter)
     }
 
     fn expect_char<I: Iterator<Item=u8>>(expect: u8, iter: &mut I) -> GameResult {

@@ -47,6 +47,7 @@ use crate::npc::NPCTable;
 mod bmfont;
 mod bmfont_renderer;
 mod builtin_fs;
+mod bullet;
 mod caret;
 mod common;
 mod engine_constants;
@@ -331,5 +332,6 @@ pub fn main() -> GameResult {
             game.scene.as_mut().unwrap().init(&mut game.state, ctx)?;
         }
     }
+
     Ok(())
 }
