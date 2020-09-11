@@ -162,7 +162,7 @@ impl TextureSet {
         let dim = (size.w as usize, size.h as usize);
         let orig_dimensions = constants.tex_sizes.get(name).unwrap_or_else(|| &dim);
         let scale_x = orig_dimensions.0 as f32 / size.w;
-        let scale_y = orig_dimensions.1 as f32 / size.h;
+        let scale_y = orig_dimensions.0 as f32 / size.w;
         let width = (size.w * scale_x) as usize;
         let height = (size.h * scale_y) as usize;
 
