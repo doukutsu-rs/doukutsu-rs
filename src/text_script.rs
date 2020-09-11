@@ -1034,9 +1034,23 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::EQp => {
+                        let mask = read_cur_varint(&mut cursor)? as u16;
+
+                        game_scene.player.equip.0 |= mask;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::EQm => {
+                        let mask = read_cur_varint(&mut cursor)? as u16;
+
+                        game_scene.player.equip.0 &= !mask;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     // unimplemented opcodes
                     // Zero operands
-                    OpCode::AEp | OpCode::CAT | OpCode::CIL | OpCode::CPS |
+                    OpCode::CAT | OpCode::CIL | OpCode::CPS |
                     OpCode::CRE | OpCode::CSS | OpCode::ESC | OpCode::FLA |
                     OpCode::INI | OpCode::LDP | OpCode::MLP |
                     OpCode::SAT | OpCode::SLP | OpCode::SPS |
@@ -1047,7 +1061,7 @@ impl TextScriptVM {
                     }
                     // One operand codes
                     OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::NUM | OpCode::DNA |
-                    OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm |
+                    OpCode::MPp | OpCode::SKm | OpCode::SKp |
                     OpCode::UNJ | OpCode::MPJ | OpCode::XX1 | OpCode::SIL | OpCode::SOU |
                     OpCode::SSS | OpCode::ACH => {
                         let par_a = read_cur_varint(&mut cursor)?;
