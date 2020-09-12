@@ -54,9 +54,19 @@ Vanilla Cave Story does not work yet because some important data files are embed
   - [x] First Cave
   - [ ] Mimiga Village
   - [ ] Egg Corridor
+  - [ ] Grasstown
 - [ ] Weapons
-  - [ ] Initial implementation
-  - [ ] Polar Star
+  - [x] Initial implementation
+  - [ ] Snake
+  - [x] Polar Star
+  - [ ] Fireball
+  - [ ] Machine Gun
+  - [ ] Missile Launcher
+  - [ ] Bubbler
+  - [ ] Blade
+  - [ ] Super Missile Launcher
+  - [ ] Nemesis
+  - [ ] Spur
 - [ ] Modding enhancements and built-in tools
   - [x] Debugger
   - [ ] Level editor
