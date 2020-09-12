@@ -16,7 +16,7 @@ pub enum WeaponType {
     MachineGun = 4,
     MissileLauncher = 5,
     Bubbler = 7,
-    Sword = 9,
+    Blade = 9,
     SuperMissileLauncher = 10,
     Nemesis = 12,
     Spur = 13,
@@ -137,7 +137,7 @@ impl Weapon {
             WeaponType::MachineGun => {}
             WeaponType::MissileLauncher => {}
             WeaponType::Bubbler => {}
-            WeaponType::Sword => {}
+            WeaponType::Blade => {}
             WeaponType::SuperMissileLauncher => {}
             WeaponType::Nemesis => {}
             WeaponType::Spur => {}
