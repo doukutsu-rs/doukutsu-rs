@@ -3,7 +3,7 @@ use log::info;
 use case_insensitive_hashmap::CaseInsensitiveHashMap;
 
 use crate::case_insensitive_hashmap;
-use crate::common::{Rect, Flag};
+use crate::common::{Flag, Rect};
 use crate::player::ControlMode;
 use crate::str;
 use crate::text_script::TextScriptEncoding;
@@ -107,6 +107,12 @@ pub struct BulletRects {
     pub b004_polar_star_l1: [Rect<usize>; 2],
     pub b005_polar_star_l2: [Rect<usize>; 2],
     pub b006_polar_star_l3: [Rect<usize>; 2],
+    pub b037_spur_l1: [Rect<usize>; 2],
+    pub b038_spur_l2: [Rect<usize>; 2],
+    pub b039_spur_l3: [Rect<usize>; 2],
+    pub b040_spur_trail_l1: [Rect<usize>; 6],
+    pub b041_spur_trail_l2: [Rect<usize>; 6],
+    pub b042_spur_trail_l3: [Rect<usize>; 6],
 }
 
 #[derive(Debug)]
@@ -131,6 +137,7 @@ pub struct WorldConsts {
 
 #[derive(Debug, Copy, Clone)]
 pub struct NPCConsts {
+    pub n001_experience: [Rect<usize>; 6],
     pub n002_behemoth: [Rect<usize>; 14],
     pub n004_smoke: [Rect<usize>; 16],
     pub n005_green_critter: [Rect<usize>; 6],
@@ -401,6 +408,14 @@ impl EngineConstants {
                 snack_rect: Rect { left: 256, top: 48, right: 272, bottom: 64 },
             },
             npc: NPCConsts {
+                n001_experience: [
+                    Rect { left: 0, top: 16, right: 16, bottom: 32 },
+                    Rect { left: 16, top: 16, right: 32, bottom: 32 },
+                    Rect { left: 32, top: 16, right: 48, bottom: 32 },
+                    Rect { left: 48, top: 16, right: 64, bottom: 32 },
+                    Rect { left: 64, top: 16, right: 80, bottom: 32 },
+                    Rect { left: 80, top: 16, right: 96, bottom: 32 },
+                ],
                 n002_behemoth: [
                     Rect { left: 32, top: 0, right: 64, bottom: 24 }, // left
                     Rect { left: 0, top: 0, right: 32, bottom: 24 },
@@ -872,16 +887,52 @@ impl EngineConstants {
                 ],
                 bullet_rects: BulletRects {
                     b004_polar_star_l1: [
-                        Rect { left: 128, top: 32, right: 144, bottom: 48 },
-                        Rect { left: 144, top: 32, right: 160, bottom: 48 },
+                        Rect { left: 128, top: 32, right: 144, bottom: 48 }, // horizontal
+                        Rect { left: 144, top: 32, right: 160, bottom: 48 }, // vertical
                     ],
                     b005_polar_star_l2: [
-                        Rect { left: 160, top: 32, right: 176, bottom: 48 },
-                        Rect { left: 176, top: 32, right: 192, bottom: 48 },
+                        Rect { left: 160, top: 32, right: 176, bottom: 48 }, // horizontal
+                        Rect { left: 176, top: 32, right: 192, bottom: 48 }, // vertical
                     ],
                     b006_polar_star_l3: [
-                        Rect { left: 128, top: 48, right: 144, bottom: 64 },
-                        Rect { left: 144, top: 48, right: 160, bottom: 64 },
+                        Rect { left: 128, top: 48, right: 144, bottom: 64 }, // horizontal
+                        Rect { left: 144, top: 48, right: 160, bottom: 64 }, // vertical
+                    ],
+                    b037_spur_l1: [
+                        Rect { left: 128, top: 32, right: 144, bottom: 48 }, // horizontal
+                        Rect { left: 144, top: 32, right: 160, bottom: 48 }, // vertical
+                    ],
+                    b038_spur_l2: [
+                        Rect { left: 160, top: 32, right: 176, bottom: 48 }, // horizontal
+                        Rect { left: 176, top: 32, right: 192, bottom: 48 }, // vertical
+                    ],
+                    b039_spur_l3: [
+                        Rect { left: 128, top: 48, right: 144, bottom: 64 }, // horizontal
+                        Rect { left: 144, top: 48, right: 160, bottom: 64 }, // vertical
+                    ],
+                    b040_spur_trail_l1: [
+                        Rect { left: 192, top: 32, right: 200, bottom: 40 }, // horizontal
+                        Rect { left: 200, top: 32, right: 208, bottom: 40 },
+                        Rect { left: 208, top: 32, right: 216, bottom: 40 },
+                        Rect { left: 192, top: 40, right: 200, bottom: 48 }, // vertical
+                        Rect { left: 200, top: 40, right: 208, bottom: 48 },
+                        Rect { left: 208, top: 40, right: 216, bottom: 48 },
+                    ],
+                    b041_spur_trail_l2: [
+                        Rect { left: 216, top: 32, right: 224, bottom: 40 }, // horizontal
+                        Rect { left: 224, top: 32, right: 232, bottom: 40 },
+                        Rect { left: 232, top: 32, right: 240, bottom: 40 },
+                        Rect { left: 216, top: 40, right: 224, bottom: 48 }, // vertical
+                        Rect { left: 224, top: 40, right: 232, bottom: 48 },
+                        Rect { left: 232, top: 40, right: 240, bottom: 48 },
+                    ],
+                    b042_spur_trail_l3: [
+                        Rect { left: 240, top: 32, right: 248, bottom: 40 }, // horizontal
+                        Rect { left: 248, top: 32, right: 256, bottom: 40 },
+                        Rect { left: 256, top: 32, right: 264, bottom: 40 },
+                        Rect { left: 240, top: 32, right: 248, bottom: 40 }, // vertical
+                        Rect { left: 248, top: 32, right: 256, bottom: 40 },
+                        Rect { left: 256, top: 32, right: 264, bottom: 40 },
                     ],
                 },
             },

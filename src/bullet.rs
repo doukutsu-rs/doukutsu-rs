@@ -12,6 +12,7 @@ pub struct BulletManager {
 }
 
 impl BulletManager {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> BulletManager {
         BulletManager {
             bullets: Vec::with_capacity(32),
@@ -22,9 +23,9 @@ impl BulletManager {
         self.bullets.push(Bullet::new(x, y, btype, direction, constants));
     }
 
-    pub fn tick_bullets(&mut self, state: &mut SharedGameState, stage: &mut Stage) {
+    pub fn tick_bullets(&mut self, state: &mut SharedGameState, player: &dyn PhysicalEntity, stage: &mut Stage) {
         for bullet in self.bullets.iter_mut() {
-            bullet.tick(state);
+            bullet.tick(state, player);
             bullet.hit_flags.0 = 0;
             bullet.tick_map_collisions(state, stage);
         }
@@ -206,7 +207,101 @@ impl Bullet {
         }
     }
 
-    pub fn tick(&mut self, state: &mut SharedGameState) {
+    fn tick_fireball(&mut self, state: &mut SharedGameState, player: &dyn PhysicalEntity) {
+        self.action_counter += 1;
+        if self.action_counter > self.lifetime {
+            self.cond.set_alive(false);
+            state.create_caret(self.x, self.y, CaretType::Shoot, Direction::Left);
+            return;
+        }
+
+        if (self.flags.hit_left_wall() && self.flags.hit_right_wall())
+            || (self.flags.hit_top_wall() && self.flags.hit_bottom_wall()) {
+            self.cond.set_alive(false);
+            state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
+            // todo play sound 28
+            return;
+        }
+
+        // bounce off walls
+        match self.direction {
+            Direction::Left if self.flags.hit_left_wall() => {
+                self.direction = Direction::Right;
+            }
+            Direction::Right if self.flags.hit_right_wall() => {
+                self.direction = Direction::Left;
+            }
+            _ => {}
+        }
+
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            match self.direction {
+                Direction::Left => {
+                    self.vel_x = -0x400;
+                }
+                Direction::Right => {
+                    self.vel_x = 0x400;
+                }
+                Direction::Up => {
+                    self.vel_x = player.vel_x();
+
+                    self.direction = if self.vel_x < 0 {
+                        Direction::Left
+                    } else {
+                        Direction::Right
+                    };
+
+                    self.vel_x += if player.direction() == Direction::Left {
+                        -0x80
+                    } else {
+                        0x80
+                    };
+
+                    self.vel_y = -0x5ff;
+                }
+                Direction::Bottom => {
+                    self.vel_x = player.vel_x();
+
+                    self.direction = if self.vel_x < 0 {
+                        Direction::Left
+                    } else {
+                        Direction::Right
+                    };
+
+                    self.vel_y = 0x5ff;
+                }
+            }
+        } else {
+            if self.flags.hit_bottom_wall() {
+                self.vel_y = -0x400;
+            } else if self.flags.hit_left_wall() {
+                self.vel_x = 0x400;
+            } else if self.flags.hit_right_wall() {
+                self.vel_x = -0x400;
+            }
+
+            self.vel_y += 0x55;
+            if self.vel_y > 0x3ff {
+                self.vel_y = 0x3ff;
+            }
+
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+
+            if self.flags.hit_left_wall() || self.flags.hit_right_wall() || self.flags.hit_bottom_wall() {
+                // todo play sound 34
+            }
+        }
+
+        self.anim_num += 1;
+
+        if self.btype == 7 { // level 1
+        }
+    }
+
+    pub fn tick(&mut self, state: &mut SharedGameState, player: &PhysicalEntity) {
         if self.lifetime == 0 {
             self.cond.set_alive(false);
             return;
@@ -215,6 +310,9 @@ impl Bullet {
         match self.btype {
             4 | 5 | 6 => {
                 self.tick_polar_star(state);
+            }
+            7 | 8 | 9 => {
+                self.tick_fireball(state, player);
             }
             _ => { self.cond.set_alive(false); }
         }
@@ -320,61 +418,78 @@ impl Bullet {
             }
         } else if self.hit_flags.hit_left_wall() || self.hit_flags.hit_top_wall()
             || self.hit_flags.hit_right_wall() || self.hit_flags.hit_bottom_wall() {
-
             self.vanish(state);
         }
     }
 }
 
 impl PhysicalEntity for Bullet {
+    #[inline(always)]
     fn x(&self) -> isize {
         self.x
     }
 
+    #[inline(always)]
     fn y(&self) -> isize {
         self.y
     }
 
+    #[inline(always)]
     fn vel_x(&self) -> isize {
         self.vel_x
     }
 
+    #[inline(always)]
     fn vel_y(&self) -> isize {
         self.vel_y
     }
 
+    #[inline(always)]
     fn size(&self) -> u8 {
         1
     }
 
+    #[inline(always)]
     fn hit_bounds(&self) -> &Rect<usize> {
         &self.hit_bounds
     }
 
+    #[inline(always)]
     fn set_x(&mut self, x: isize) {
         self.x = x;
     }
 
+    #[inline(always)]
     fn set_y(&mut self, y: isize) {
         self.y = y;
     }
 
+    #[inline(always)]
     fn set_vel_x(&mut self, vel_x: isize) {
         self.vel_x = vel_x;
     }
 
+    #[inline(always)]
     fn set_vel_y(&mut self, vel_y: isize) {
         self.vel_y = vel_y;
     }
 
+    #[inline(always)]
     fn cond(&mut self) -> &mut Condition {
         &mut self.cond
     }
 
+    #[inline(always)]
     fn flags(&mut self) -> &mut Flag {
         &mut self.hit_flags
     }
 
+    #[inline(always)]
+    fn direction(&self) -> Direction {
+        self.direction
+    }
+
+    #[inline(always)]
     fn is_player(&self) -> bool {
         false
     }
@@ -388,7 +503,6 @@ impl PhysicalEntity for Bullet {
             self.hit_flags.set_weapon_hit_block(true);
         }
     }
-
 
     fn tick_map_collisions(&mut self, state: &mut SharedGameState, stage: &mut Stage) {
         let x = clamp(self.x() / 16 / 0x200, 0, stage.map.width as isize);
