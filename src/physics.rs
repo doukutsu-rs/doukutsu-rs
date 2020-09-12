@@ -4,8 +4,8 @@ use crate::common::{Condition, Flag, Rect};
 use crate::SharedGameState;
 use crate::stage::Stage;
 
-const OFF_X: [isize; 9] = [0, 1, 0, 1, 2, 2, 2, 0, 1];
-const OFF_Y: [isize; 9] = [0, 0, 1, 1, 0, 1, 2, 2, 2];
+pub const OFF_X: [isize; 9] = [0, 1, 0, 1, 2, 2, 2, 0, 1];
+pub const OFF_Y: [isize; 9] = [0, 0, 1, 1, 0, 1, 2, 2, 2];
 
 pub trait PhysicalEntity {
     fn x(&self) -> isize;
@@ -304,7 +304,7 @@ pub trait PhysicalEntity {
         }
     }
 
-    fn tick_map_collisions(&mut self, state: &SharedGameState, stage: &Stage) {
+    fn tick_map_collisions(&mut self, state: &mut SharedGameState, stage: &mut Stage) {
         let big = self.size() >= 3;
         let x = clamp((self.x() - if big { 0x1000 } else { 0 }) / 16 / 0x200, 0, stage.map.width as isize);
         let y = clamp((self.y() - if big { 0x1000 } else { 0 }) / 16 / 0x200, 0, stage.map.height as isize);

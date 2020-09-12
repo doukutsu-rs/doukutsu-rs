@@ -868,7 +868,9 @@ impl TextScriptVM {
                         game_scene.player.update_target = false;
 
                         for npc_id in game_scene.npc_map.npc_ids.iter() {
-                            if let Some(npc) = game_scene.npc_map.npcs.get_mut(npc_id) {
+                            if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
+                                let npc = npc_cell.borrow();
+
                                 if event_num == npc.event_num {
                                     game_scene.player.target_x = npc.x;
                                     game_scene.player.target_y = npc.y;
@@ -885,7 +887,9 @@ impl TextScriptVM {
                         let direction = read_cur_varint(&mut cursor)? as usize;
 
                         for npc_id in game_scene.npc_map.npc_ids.iter() {
-                            if let Some(npc) = game_scene.npc_map.npcs.get_mut(npc_id) {
+                            if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
+                                let mut npc = npc_cell.borrow_mut();
+
                                 if npc.cond.alive() && npc.event_num == event_num {
                                     npc.action_num = action_num;
 
@@ -912,7 +916,9 @@ impl TextScriptVM {
                         let direction = read_cur_varint(&mut cursor)? as usize;
 
                         for npc_id in game_scene.npc_map.npc_ids.iter() {
-                            if let Some(npc) = game_scene.npc_map.npcs.get_mut(npc_id) {
+                            if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
+                                let mut npc = npc_cell.borrow_mut();
+
                                 if npc.cond.alive() && npc.event_num == event_num {
                                     npc.npc_flags.set_solid_soft(false);
                                     npc.npc_flags.set_ignore_tile_44(false);
@@ -969,7 +975,9 @@ impl TextScriptVM {
                         let direction = read_cur_varint(&mut cursor)? as usize;
 
                         for npc_id in game_scene.npc_map.npc_ids.iter() {
-                            if let Some(npc) = game_scene.npc_map.npcs.get_mut(npc_id) {
+                            if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
+                                let mut npc = npc_cell.borrow_mut();
+
                                 if npc.cond.alive() && npc.event_num == event_num {
                                     npc.x = x * 16 * 0x200;
                                     npc.y = y * 16 * 0x200;
@@ -1118,8 +1126,8 @@ impl TextScriptVM {
         }
 
         if tick_npc != 0 {
-            if let Some(npc) = game_scene.npc_map.npcs.get_mut(&tick_npc) {
-                npc.tick(state, &mut game_scene.player)?;
+            if let Some(npc) = game_scene.npc_map.npcs.get(&tick_npc) {
+                npc.borrow_mut().tick(state, &mut game_scene.player)?;
             }
         }
 

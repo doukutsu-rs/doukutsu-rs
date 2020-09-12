@@ -76,7 +76,7 @@ impl Caret {
                             self.anim_counter = 0;
                             self.anim_num += 1;
 
-                            if self.anim_num > constants.caret.projectile_dissipation_left_rects.len() as u16 {
+                            if self.anim_num >= constants.caret.projectile_dissipation_left_rects.len() as u16 {
                                 self.cond.set_alive(false);
                                 return;
                             }
@@ -100,7 +100,7 @@ impl Caret {
                             self.anim_counter = 0;
                             self.anim_num += 1;
 
-                            if self.anim_num > constants.caret.projectile_dissipation_right_rects.len() as u16 {
+                            if self.anim_num >= constants.caret.projectile_dissipation_right_rects.len() as u16 {
                                 self.cond.set_alive(false);
                                 return;
                             }
@@ -122,10 +122,10 @@ impl Caret {
                 if self.anim_counter > 3 {
                     self.anim_counter = 0;
                     self.anim_num += 1;
-                }
 
-                if self.anim_num == constants.caret.shoot_rects.len() as u16 {
-                    self.cond.set_alive(false);
+                    if self.anim_num >= constants.caret.shoot_rects.len() as u16 {
+                        self.cond.set_alive(false);
+                    }
                 }
             }
             CaretType::SnakeAfterimage | CaretType::SnakeAfterimage2 => {} // dupe, unused
@@ -138,11 +138,11 @@ impl Caret {
                 if self.anim_counter > 4 {
                     self.anim_counter = 0;
                     self.anim_num += 1;
-                }
 
-                if self.anim_num == constants.caret.zzz_rects.len() as u16 {
-                    self.cond.set_alive(false);
-                    return;
+                    if self.anim_num >= constants.caret.zzz_rects.len() as u16 {
+                        self.cond.set_alive(false);
+                        return;
+                    }
                 }
 
                 self.x += 0x80; // 0.4fix9
@@ -200,7 +200,21 @@ impl Caret {
             }
             CaretType::LevelUp => {}
             CaretType::HurtParticles => {}
-            CaretType::Explosion => {}
+            CaretType::Explosion => {
+                if self.anim_counter == 0 {
+                    self.anim_rect = constants.caret.explosion_rects[self.anim_num as usize];
+                }
+
+                self.anim_counter += 1;
+                if self.anim_counter > 2 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+
+                    if self.anim_num >= constants.caret.explosion_rects.len() as u16 {
+                        self.cond.set_alive(false);
+                    }
+                }
+            }
             CaretType::LittleParticles => {
                 if self.anim_num == 0 {
                     match self.direction {

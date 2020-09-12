@@ -1,7 +1,9 @@
+use num_traits::clamp;
+
 use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Flag, Rect};
 use crate::engine_constants::{BulletData, EngineConstants};
-use crate::physics::PhysicalEntity;
+use crate::physics::{OFF_X, OFF_Y, PhysicalEntity};
 use crate::SharedGameState;
 use crate::stage::Stage;
 
@@ -20,10 +22,10 @@ impl BulletManager {
         self.bullets.push(Bullet::new(x, y, btype, direction, constants));
     }
 
-    pub fn tick_bullets(&mut self, state: &mut SharedGameState, stage: &Stage) {
+    pub fn tick_bullets(&mut self, state: &mut SharedGameState, stage: &mut Stage) {
         for bullet in self.bullets.iter_mut() {
             bullet.tick(state);
-            bullet.flags.0 = 0;
+            bullet.hit_flags.0 = 0;
             bullet.tick_map_collisions(state, stage);
         }
 
@@ -52,6 +54,7 @@ pub struct Bullet {
     pub damage: u16,
     pub cond: Condition,
     pub flags: Flag,
+    pub hit_flags: Flag,
     pub direction: Direction,
     pub anim_rect: Rect<usize>,
     pub enemy_hit_width: u32,
@@ -93,6 +96,7 @@ impl Bullet {
             damage: bullet.damage as u16,
             cond: Condition(0x80),
             flags: bullet.flags,
+            hit_flags: Flag(0),
             direction,
             anim_rect: Rect::new(0, 0, 0, 0),
             enemy_hit_width: bullet.enemy_hit_width as u32 * 0x200,
@@ -215,6 +219,111 @@ impl Bullet {
             _ => { self.cond.set_alive(false); }
         }
     }
+
+    pub fn vanish(&mut self, state: &mut SharedGameState) {
+        if self.btype != 37 && self.btype != 38 && self.btype != 39 {
+            // todo play sound 28
+        } else {
+            state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Up);
+        }
+
+        self.cond.set_alive(false);
+        state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Right);
+    }
+
+    fn judge_hit_block_destroy(&mut self, x: isize, y: isize, hit_attribs: &[u8; 4], state: &mut SharedGameState) {
+        let mut hits = [false; 4];
+        let mut block_x = (x * 16 + 8) * 0x200;
+        let mut block_y = (y * 16 + 8) * 0x200;
+
+        for (i, &attr) in hit_attribs.iter().enumerate() {
+            if self.flags.snack_destroy() {
+                hits[i] = attr == 0x41 || attr == 0x61;
+            } else {
+                hits[i] = attr == 0x41 || attr == 0x43 || attr == 0x61;
+            }
+        }
+
+        // left wall
+        if hits[0] && hits[2] {
+            if (self.x - self.hit_bounds.left as isize) < block_x {
+                self.hit_flags.set_hit_left_wall(true);
+            }
+        } else if hits[0] && !hits[2] {
+            if (self.x - self.hit_bounds.left as isize) < block_x
+                && (self.y - self.hit_bounds.top as isize) < block_y - (3 * 0x200) {
+                self.hit_flags.set_hit_left_wall(true);
+            }
+        } else if !hits[0] && hits[2]
+            && (self.x - self.hit_bounds.left as isize) < block_x
+            && (self.y + self.hit_bounds.top as isize) > block_y + (3 * 0x200) {
+            self.hit_flags.set_hit_left_wall(true);
+        }
+
+        // right wall
+        if hits[1] && hits[3] {
+            if (self.x + self.hit_bounds.right as isize) > block_x {
+                self.hit_flags.set_hit_right_wall(true);
+            }
+        } else if hits[1] && !hits[3] {
+            if (self.x + self.hit_bounds.right as isize) > block_x
+                && (self.y - self.hit_bounds.top as isize) < block_y - (3 * 0x200) {
+                self.hit_flags.set_hit_right_wall(true);
+            }
+        } else if !hits[1] && hits[3]
+            && (self.x + self.hit_bounds.right as isize) > block_x
+            && (self.y + self.hit_bounds.top as isize) > block_y + (3 * 0x200) {
+            self.hit_flags.set_hit_right_wall(true);
+        }
+
+        // ceiling
+        if hits[0] && hits[1] {
+            if (self.y - self.hit_bounds.top as isize) < block_y {
+                self.hit_flags.set_hit_top_wall(true);
+            }
+        } else if hits[0] && !hits[1] {
+            if (self.x - self.hit_bounds.left as isize) < block_x - (3 * 0x200)
+                && (self.y - self.hit_bounds.top as isize) < block_y {
+                self.hit_flags.set_hit_top_wall(true);
+            }
+        } else if !hits[0] && hits[1]
+            && (self.x + self.hit_bounds.right as isize) > block_x + (3 * 0x200)
+            && (self.y - self.hit_bounds.top as isize) < block_y {
+            self.hit_flags.set_hit_top_wall(true);
+        }
+
+        // ground
+        if hits[2] && hits[3] {
+            if (self.y + self.hit_bounds.bottom as isize) > block_y {
+                self.hit_flags.set_hit_bottom_wall(true);
+            }
+        } else if hits[2] && !hits[3] {
+            if (self.x - self.hit_bounds.left as isize) < block_x - (3 * 0x200)
+                && (self.y + self.hit_bounds.bottom as isize) > block_y {
+                self.hit_flags.set_hit_bottom_wall(true);
+            }
+        } else if !hits[2] && hits[3]
+            && (self.x + self.hit_bounds.right as isize) > block_x + (3 * 0x200)
+            && (self.y + self.hit_bounds.bottom as isize) > block_y {
+            self.hit_flags.set_hit_bottom_wall(true);
+        }
+
+        if self.flags.hit_bottom_wall() {
+            if self.hit_flags.hit_left_wall() {
+                self.x = block_x + self.hit_bounds.right as isize;
+            } else if self.hit_flags.hit_right_wall() {
+                self.x = block_x + self.hit_bounds.left as isize;
+            } else if self.hit_flags.hit_left_wall() {
+                self.x = block_x + self.hit_bounds.right as isize;
+            } else if self.hit_flags.hit_right_wall() {
+                self.x = block_x + self.hit_bounds.left as isize;
+            }
+        } else if self.hit_flags.hit_left_wall() || self.hit_flags.hit_top_wall()
+            || self.hit_flags.hit_right_wall() || self.hit_flags.hit_bottom_wall() {
+
+            self.vanish(state);
+        }
+    }
 }
 
 impl PhysicalEntity for Bullet {
@@ -263,14 +372,92 @@ impl PhysicalEntity for Bullet {
     }
 
     fn flags(&mut self) -> &mut Flag {
-        &mut self.flags
+        &mut self.hit_flags
     }
 
     fn is_player(&self) -> bool {
         false
     }
 
-    /*fn judge_hit_block(&mut self, state: &SharedGameState, x: isize, y: isize) {
+    fn judge_hit_block(&mut self, state: &SharedGameState, x: isize, y: isize) {
+        if (self.x - self.hit_bounds.left as isize) < (x * 16 + 8) * 0x200
+            && (self.x + self.hit_bounds.right as isize) > (x * 16 - 8) * 0x200
+            && (self.y - self.hit_bounds.top as isize) < (y * 16 + 8) * 0x200
+            && (self.y + self.hit_bounds.bottom as isize) > (y * 16 - 8) * 0x200
+        {
+            self.hit_flags.set_weapon_hit_block(true);
+        }
+    }
 
-    }*/
+
+    fn tick_map_collisions(&mut self, state: &mut SharedGameState, stage: &mut Stage) {
+        let x = clamp(self.x() / 16 / 0x200, 0, stage.map.width as isize);
+        let y = clamp(self.y() / 16 / 0x200, 0, stage.map.height as isize);
+        let mut hit_attribs = [0u8; 4];
+
+        if self.flags.hit_right_wall() { // ???
+            return;
+        }
+
+        for (idx, (&ox, &oy)) in OFF_X.iter().zip(OFF_Y.iter()).enumerate() {
+            if idx == 4 {
+                break;
+            }
+
+            let attrib = stage.map.get_attribute((x + ox) as usize, (y + oy) as usize);
+            hit_attribs[idx] = attrib;
+
+            match attrib {
+                // Blocks
+                0x41 | 0x44 | 0x61 | 0x64 => {
+                    self.judge_hit_block(state, x + ox, y + oy);
+                }
+                0x43 => {
+                    self.judge_hit_block(state, x + ox, y + oy);
+
+                    if self.hit_flags.0 != 0 && (self.flags.hit_left_slope() || self.flags.snack_destroy()) {
+                        if !self.flags.snack_destroy() {
+                            self.cond.set_alive(false);
+                        }
+
+                        state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
+                        // todo play sound 12
+                        // todo smoke
+
+                        if let Some(tile) = stage.map.tiles.get_mut(stage.map.width * (y + oy) as usize + (x + ox) as usize) {
+                            *tile = tile.wrapping_sub(1);
+                        }
+                    }
+                }
+                // Slopes
+                0x50 | 0x70 => {
+                    self.judge_hit_triangle_a(x + ox, y + oy);
+                }
+                0x51 | 0x71 => {
+                    self.judge_hit_triangle_b(x + ox, y + oy);
+                }
+                0x52 | 0x72 => {
+                    self.judge_hit_triangle_c(x + ox, y + oy);
+                }
+                0x53 | 0x73 => {
+                    self.judge_hit_triangle_d(x + ox, y + oy);
+                }
+                0x54 | 0x74 => {
+                    self.judge_hit_triangle_e(x + ox, y + oy);
+                }
+                0x55 | 0x75 => {
+                    self.judge_hit_triangle_f(x + ox, y + oy);
+                }
+                0x56 | 0x76 => {
+                    self.judge_hit_triangle_g(x + ox, y + oy);
+                }
+                0x57 | 0x77 => {
+                    self.judge_hit_triangle_h(x + ox, y + oy);
+                }
+                _ => {}
+            }
+        }
+
+        self.judge_hit_block_destroy(x, y, &hit_attribs, state);
+    }
 }

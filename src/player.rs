@@ -41,7 +41,9 @@ pub struct Player {
     pub up: bool,
     pub down: bool,
     pub shock_counter: u8,
+    pub current_weapon: u8,
     pub update_target: bool,
+    weapon_offset_y: i8,
     index_x: isize,
     index_y: isize,
     sprash: bool,
@@ -53,13 +55,14 @@ pub struct Player {
     anim_num: u16,
     anim_counter: u16,
     anim_rect: Rect<usize>,
+    weapon_rect: Rect<usize>,
 }
 
 impl Player {
-    pub fn new(state: &mut SharedGameState) -> Self {
+    pub fn new(state: &mut SharedGameState) -> Player {
         let constants = &state.constants;
 
-        Self {
+        Player {
             x: 0,
             y: 0,
             vel_x: 0,
@@ -83,6 +86,8 @@ impl Player {
             update_target: true,
             up: false,
             down: false,
+            current_weapon: 0,
+            weapon_offset_y: 0,
             shock_counter: 0,
             booster_switch: 0,
             star: 0,
@@ -92,6 +97,7 @@ impl Player {
             anim_num: 0,
             anim_counter: 0,
             anim_rect: constants.my_char.animations_right[0],
+            weapon_rect: Rect::new(0, 0, 0, 0),
         }
     }
 
@@ -474,14 +480,36 @@ impl Player {
             self.anim_num = if self.vel_y > 0 { 1 } else { 3 };
         }
 
+        self.weapon_offset_y = 0;
+        self.weapon_rect.left = (self.current_weapon as usize % 13) * 24;
+        self.weapon_rect.top = (self.current_weapon as usize / 13) * 96;
+        self.weapon_rect.right = self.weapon_rect.left + 24;
+        self.weapon_rect.bottom = self.weapon_rect.top + 16;
+
         match self.direction {
             Direction::Left => {
                 self.anim_rect = state.constants.my_char.animations_left[self.anim_num as usize];
             }
             Direction::Right => {
+                self.weapon_rect.top += 16;
+                self.weapon_rect.bottom += 16;
                 self.anim_rect = state.constants.my_char.animations_right[self.anim_num as usize];
             }
             _ => {}
+        }
+
+        if self.up {
+            self.weapon_offset_y = -4;
+            self.weapon_rect.top += 32;
+            self.weapon_rect.bottom += 32;
+        } else if self.down {
+            self.weapon_offset_y = 4;
+            self.weapon_rect.top += 64;
+            self.weapon_rect.bottom += 64;
+        }
+
+        if self.anim_num == 1 || self.anim_num == 3 || self.anim_num == 6 || self.anim_num == 8 {
+            self.weapon_rect.top += 1;
         }
     }
 
@@ -550,18 +578,42 @@ impl GameEntity<()> for Player {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult<> {
-        if !self.cond.alive() || self.cond.hidden() {
+        if !self.cond.alive() || self.cond.hidden() || (self.shock_counter / 2 % 2 != 0) {
             return Ok(());
         }
 
-        // todo draw weapon
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
-        batch.add_rect(
-            (((self.x - self.display_bounds.left as isize) / 0x200) - (frame.x / 0x200)) as f32,
-            (((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32,
-            &self.anim_rect,
-        );
-        batch.draw(ctx)?;
+        {
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
+            batch.add_rect(
+                (((self.x - self.display_bounds.left as isize) / 0x200) - (frame.x / 0x200)) as f32,
+                (((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32,
+                &self.anim_rect,
+            );
+            batch.draw(ctx)?;
+        }
+
+        if self.current_weapon != 0 {
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Arms")?;
+            match self.direction {
+                Direction::Left => {
+                    batch.add_rect(
+                        (((self.x - self.display_bounds.left as isize) / 0x200) - (frame.x / 0x200)) as f32 - 8.0,
+                        (((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32 + self.weapon_offset_y as f32,
+                        &self.weapon_rect,
+                    );
+                }
+                Direction::Right => {
+                    batch.add_rect(
+                        (((self.x - self.display_bounds.left as isize) / 0x200) - (frame.x / 0x200)) as f32,
+                        (((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32 + self.weapon_offset_y as f32,
+                        &self.weapon_rect,
+                    );
+                }
+                _ => {}
+            }
+
+            batch.draw(ctx)?;
+        }
 
         Ok(())
     }

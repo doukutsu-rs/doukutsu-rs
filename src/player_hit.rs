@@ -7,6 +7,7 @@ use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::SharedGameState;
 use crate::stage::Stage;
+use std::borrow::Borrow;
 
 impl PhysicalEntity for Player {
     #[inline(always)]
@@ -148,18 +149,19 @@ impl Player {
 
     pub fn tick_npc_collisions(&mut self, state: &mut SharedGameState, npc_map: &mut NPCMap) {
         for npc_id in npc_map.npc_ids.iter() {
-            if let Some(npc) = npc_map.npcs.get_mut(npc_id) {
+            if let Some(npc_cell) = npc_map.npcs.get(npc_id) {
+                let npc = npc_cell.borrow_mut();
                 if !npc.cond.alive() { continue; }
 
                 let mut flags = Flag(0);
 
                 if npc.npc_flags.solid_soft() {
-                    flags = self.judge_hit_npc_solid_soft(npc);
+                    flags = self.judge_hit_npc_solid_soft(npc.borrow());
                     self.flags.0 |= flags.0;
                 } else if npc.npc_flags.solid_hard() {
                     //
                 } else {
-                    flags = self.judge_hit_npc_non_solid(npc);
+                    flags = self.judge_hit_npc_non_solid(npc.borrow());
                 }
 
                 if npc.npc_flags.interactable() && !state.control_flags.interactions_disabled() && flags.0 != 0 && self.cond.interacted() {

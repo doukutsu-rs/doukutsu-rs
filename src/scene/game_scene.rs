@@ -1,6 +1,7 @@
 use log::info;
 
 use crate::bullet::BulletManager;
+use crate::caret::CaretType;
 use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
@@ -564,6 +565,92 @@ impl GameScene {
 
         Ok(())
     }
+
+    pub fn tick_npc_bullet_collissions(&mut self, state: &mut SharedGameState) {
+        let mut dead_npcs = Vec::new();
+
+        for npc_id in self.npc_map.npc_ids.iter() {
+            if let Some(npc_cell) = self.npc_map.npcs.get(npc_id) {
+                let mut npc = npc_cell.borrow_mut();
+                if !npc.cond.alive() {
+                    continue;
+                }
+
+                if npc.npc_flags.shootable() && npc.npc_flags.interactable() {
+                    continue;
+                }
+
+                for bullet in self.bullet_manager.bullets.iter_mut() {
+                    if bullet.damage < 1 {
+                        continue;
+                    }
+
+                    let hit = (
+                        npc.npc_flags.shootable()
+                            && (npc.x - npc.hit_bounds.right as isize) < (bullet.x + bullet.enemy_hit_width as isize)
+                            && (npc.x + npc.hit_bounds.right as isize) > (bullet.x - bullet.enemy_hit_width as isize)
+                            && (npc.y - npc.hit_bounds.top as isize) < (bullet.y + bullet.enemy_hit_height as isize)
+                            && (npc.y + npc.hit_bounds.bottom as isize) > (bullet.y - bullet.enemy_hit_height as isize)
+                    ) || (
+                        npc.npc_flags.invulnerable()
+                            && (npc.x - npc.hit_bounds.right as isize) < (bullet.x + bullet.hit_bounds.right as isize)
+                            && (npc.x + npc.hit_bounds.right as isize) > (bullet.x - bullet.hit_bounds.left as isize)
+                            && (npc.y - npc.hit_bounds.top as isize) < (bullet.y + bullet.hit_bounds.bottom as isize)
+                            && (npc.y + npc.hit_bounds.bottom as isize) > (bullet.y - bullet.hit_bounds.top as isize)
+                    );
+
+                    if !hit {
+                        continue;
+                    }
+                    println!("npc hit: {}", npc.id);
+
+                    if npc.npc_flags.shootable() {
+                        log::info!("damage: {} {}", npc.life, -(bullet.damage.min(npc.life) as isize));
+                        npc.life -= bullet.damage.min(npc.life);
+
+                        if npc.life == 0 {
+                            if npc.npc_flags.show_damage() {
+                                // todo show damage
+                            }
+
+                            if self.player.cond.alive() && npc.npc_flags.event_when_killed() {
+                                state.textscript_vm.start_script(npc.event_num);
+                            } else {
+                                npc.cond.set_explode_die(true);
+                            }
+                        } else {
+                            if npc.shock < 14 {
+                                // todo play hurt sound
+                                npc.shock = 16;
+                            }
+
+                            if npc.npc_flags.show_damage() {
+                                // todo show damage
+                            }
+                        }
+                    } else if !bullet.flags.hit_right_slope() {
+                        state.create_caret((bullet.x + npc.x) / 2, (bullet.y + npc.y) / 2, CaretType::ProjectileDissipation, Direction::Right);
+                        // todo play sound 31
+                        bullet.life = 0;
+                        continue;
+                    }
+
+                    if bullet.life > 0 {
+                        bullet.life -= 1;
+                    }
+                }
+
+                if npc.cond.explode_die() {
+                    dead_npcs.push(npc.id);
+                }
+            }
+        }
+
+        if !dead_npcs.is_empty() {
+            self.npc_map.process_dead_npcs(&dead_npcs, state);
+            self.npc_map.garbage_collect();
+        }
+    }
 }
 
 impl Scene for GameScene {
@@ -596,7 +683,7 @@ impl Scene for GameScene {
         self.player.target_y = self.player.y;
         self.frame.immediate_update(state, &self.player, &self.stage);
 
-        self.inventory.add_weapon(WeaponType::PolarStar, 0);
+        //self.inventory.add_weapon(WeaponType::PolarStar, 0);
         //self.player.equip.set_booster_2_0(true);
         Ok(())
     }
@@ -605,25 +692,35 @@ impl Scene for GameScene {
         state.update_key_trigger();
 
         if self.tick == 0 || state.control_flags.flag_x01() {
+            self.player.current_weapon = {
+                if let Some(weapon) = self.inventory.get_current_weapon_mut() {
+                    weapon.wtype as u8
+                } else {
+                    0
+                }
+            };
             self.player.tick(state, ())?;
 
             self.player.flags.0 = 0;
             state.tick_carets();
-            self.bullet_manager.tick_bullets(state, &self.stage);
+            self.bullet_manager.tick_bullets(state, &mut self.stage);
 
-            self.player.tick_map_collisions(state, &self.stage);
+            self.player.tick_map_collisions(state, &mut self.stage);
             self.player.tick_npc_collisions(state, &mut self.npc_map);
 
             for npc_id in self.npc_map.npc_ids.iter() {
-                if let Some(npc) = self.npc_map.npcs.get_mut(npc_id) {
+                if let Some(npc_cell) = self.npc_map.npcs.get_mut(npc_id) {
+                    let mut npc = npc_cell.borrow_mut();
                     npc.tick(state, &mut self.player)?;
 
                     if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
                         npc.flags.0 = 0;
-                        npc.tick_map_collisions(state, &self.stage);
+                        npc.tick_map_collisions(state, &mut self.stage);
                     }
                 }
             }
+
+            self.tick_npc_bullet_collissions(state);
 
             self.frame.update(state, &self.player, &self.stage);
         }
@@ -683,8 +780,8 @@ impl Scene for GameScene {
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
         for npc_id in self.npc_map.npc_ids.iter() {
-            if let Some(npc) = self.npc_map.npcs.get(npc_id) {
-                npc.draw(state, ctx, &self.frame)?;
+            if let Some(npc_cell) = self.npc_map.npcs.get(npc_id) {
+                npc_cell.borrow().draw(state, ctx, &self.frame)?;
             }
         }
         self.player.draw(state, ctx, &self.frame)?;

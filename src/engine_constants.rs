@@ -57,6 +57,7 @@ pub struct CaretConsts {
     pub drowned_quote_right_rect: Rect<usize>,
     pub level_up_rects: Vec<Rect<usize>>,
     pub level_down_rects: Vec<Rect<usize>>,
+    pub explosion_rects: Vec<Rect<usize>>,
     pub little_particles_rects: Vec<Rect<usize>>,
     pub exhaust_rects: Vec<Rect<usize>>,
     pub question_left_rect: Rect<usize>,
@@ -78,6 +79,7 @@ impl Clone for CaretConsts {
             drowned_quote_right_rect: self.drowned_quote_right_rect,
             level_up_rects: self.level_up_rects.clone(),
             level_down_rects: self.level_down_rects.clone(),
+            explosion_rects: self.explosion_rects.clone(),
             little_particles_rects: self.little_particles_rects.clone(),
             exhaust_rects: self.exhaust_rects.clone(),
             question_left_rect: self.question_left_rect,
@@ -374,6 +376,10 @@ impl EngineConstants {
                 level_down_rects: vec![
                     Rect { left: 0, top: 96, right: 56, bottom: 112 },
                     Rect { left: 0, top: 112, right: 56, bottom: 128 },
+                ],
+                explosion_rects: vec![
+                    Rect { left: 112, top: 0, right: 144, bottom: 32 },
+                    Rect { left: 144, top: 0, right: 176, bottom: 32 },
                 ],
                 little_particles_rects: vec![
                     Rect { left: 56, top: 24, right: 64, bottom: 32 },

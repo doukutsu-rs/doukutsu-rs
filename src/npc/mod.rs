@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap};
 use std::io;
 use std::io::Cursor;
@@ -6,6 +7,7 @@ use bitvec::vec::BitVec;
 use byteorder::{LE, ReadBytesExt};
 
 use crate::{bitfield, SharedGameState};
+use crate::caret::CaretType;
 use crate::common::{Condition, Rect};
 use crate::common::Direction;
 use crate::common::Flag;
@@ -24,6 +26,7 @@ pub mod mimiga_village;
 pub mod misc;
 
 bitfield! {
+  #[derive(Clone, Copy)]
   pub struct NPCFlag(u16);
   impl Debug;
 
@@ -45,7 +48,7 @@ bitfield! {
   pub show_damage, set_show_damage: 15;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NPC {
     pub id: u16,
     pub npc_type: u16,
@@ -211,12 +214,10 @@ impl PhysicalEntity for NPC {
 }
 
 pub struct NPCMap {
-    /// A sorted pool of free IDs to make ID assignment for new entities a bit cheaper.
-    free_npc_ids: BTreeSet<u16>,
     /// A sorted pool of used IDs to used to iterate over NPCs in order, as original game does.
     pub npc_ids: BTreeSet<u16>,
     /// Do not iterate over this directly outside render pipeline.
-    pub npcs: HashMap<u16, NPC>,
+    pub npcs: HashMap<u16, RefCell<NPC>>,
 }
 
 impl NPCMap {
@@ -224,25 +225,23 @@ impl NPCMap {
     pub fn new() -> NPCMap {
         NPCMap {
             npc_ids: BTreeSet::new(),
-            free_npc_ids: BTreeSet::new(),
             npcs: HashMap::with_capacity(256),
         }
     }
 
     pub fn clear(&mut self) {
-        self.free_npc_ids.clear();
         self.npc_ids.clear();
         self.npcs.clear();
     }
 
     pub fn create_npc_from_data(&mut self, table: &NPCTable, data: &NPCData) -> &mut NPC {
-        let npc_flags = NPCFlag(data.flags);
         let display_bounds = table.get_display_bounds(data.npc_type);
         let hit_bounds = table.get_hit_bounds(data.npc_type);
-        let (size, life, damage) = match table.get_entry(data.npc_type) {
-            Some(entry) => { (entry.size, entry.life, entry.damage as u16) }
-            None => { (1, 0, 0) }
+        let (size, life, damage, flags) = match table.get_entry(data.npc_type) {
+            Some(entry) => { (entry.size, entry.life, entry.damage as u16, entry.npc_flags) }
+            None => { (1, 0, 0, NPCFlag(0)) }
         };
+        let npc_flags = NPCFlag(data.flags | flags.0);
 
         let npc = NPC {
             id: data.id,
@@ -262,7 +261,7 @@ impl NPCMap {
             life,
             damage,
             cond: Condition(0x00),
-            flags: Flag(data.flag_num as u32),
+            flags: Flag(0),
             direction: if npc_flags.spawn_facing_right() { Direction::Right } else { Direction::Left },
             npc_flags,
             display_bounds,
@@ -272,15 +271,20 @@ impl NPCMap {
             anim_rect: Rect::new(0, 0, 0, 0),
         };
 
-        self.free_npc_ids.remove(&data.id);
         self.npc_ids.insert(data.id);
-        self.npcs.insert(data.id, npc);
+        self.npcs.insert(data.id, RefCell::new(npc));
 
-        self.npcs.get_mut(&data.id).unwrap()
+        self.npcs.get_mut(&data.id).unwrap().get_mut()
+    }
+
+    pub fn garbage_collect(&mut self) {
+        self.npcs.retain(|_, npc_cell| npc_cell.borrow().cond.alive());
     }
 
     pub fn remove_by_event(&mut self, event_num: u16, game_flags: &mut BitVec) {
-        for npc in self.npcs.values_mut() {
+        for npc_cell in self.npcs.values_mut() {
+            let mut npc = npc_cell.borrow_mut();
+
             if npc.event_num == event_num {
                 npc.cond.set_alive(false);
                 game_flags.set(npc.flag_num as usize, true);
@@ -288,16 +292,81 @@ impl NPCMap {
         }
     }
 
+    pub fn allocate_id(&mut self) -> u16 {
+        for i in 0..(u16::MAX) {
+            if !self.npc_ids.contains(&i) {
+                return i;
+            }
+        }
+
+        unreachable!()
+    }
+
+    pub fn create_death_effect(&self, x: isize, y: isize, radius: usize, count: usize, state: &mut SharedGameState) -> Vec<NPC> {
+        let mut npcs = Vec::new();
+        let radius = radius as i32 / 0x200;
+
+        for _ in 0..count {
+            let off_x = state.game_rng.range(-radius..radius) * 0x200;
+            let off_y = state.game_rng.range(-radius..radius) * 0x200;
+
+            // todo smoke
+        }
+
+        state.create_caret(x, y, CaretType::Explosion, Direction::Left);
+        npcs
+    }
+
+    pub fn process_dead_npcs(&mut self, list: &Vec<u16>, state: &mut SharedGameState) {
+        let mut new_npcs = Vec::new();
+
+        for id in list {
+            let npc_cell = self.npcs.get(id);
+            if npc_cell.is_some() {
+                let mut npc = npc_cell.unwrap().borrow_mut();
+
+                let mut npcs = match npc.size {
+                    1 => { self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 3, state) }
+                    2 => { self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 7, state) }
+                    3 => { self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 12, state) }
+                    _ => { vec![] }
+                };
+
+                if !npcs.is_empty() {
+                    new_npcs.append(&mut npcs);
+                }
+
+                state.game_flags.set(npc.flag_num as usize, true);
+
+                // todo vanish / show damage
+
+                npc.cond.set_alive(false);
+            }
+        }
+
+        for mut npc in new_npcs {
+            let id = if npc.id == 0 {
+                self.allocate_id()
+            } else {
+                npc.id
+            };
+
+            npc.id = id;
+            self.npcs.insert(id, RefCell::new(npc));
+        }
+    }
+
     pub fn is_alive(&self, npc_id: u16) -> bool {
-        if let Some(npc) = self.npcs.get(&npc_id) {
-            return npc.cond.alive();
+        if let Some(npc_cell) = self.npcs.get(&npc_id) {
+            return npc_cell.borrow().cond.alive();
         }
 
         false
     }
 
     pub fn is_alive_by_event(&self, event_num: u16) -> bool {
-        for npc in self.npcs.values() {
+        for npc_cell in self.npcs.values() {
+            let npc = npc_cell.borrow();
             if npc.cond.alive() && npc.event_num == event_num {
                 return true;
             }
@@ -373,11 +442,11 @@ impl NPCTable {
         }
 
         for npc in table.entries.iter_mut() {
-            npc.death_sound = f.read_u8()?;
+            npc.hurt_sound = f.read_u8()?;
         }
 
         for npc in table.entries.iter_mut() {
-            npc.hurt_sound = f.read_u8()?;
+            npc.death_sound = f.read_u8()?;
         }
 
         for npc in table.entries.iter_mut() {
