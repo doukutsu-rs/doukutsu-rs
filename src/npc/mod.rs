@@ -24,6 +24,7 @@ pub mod egg_corridor;
 pub mod first_cave;
 pub mod mimiga_village;
 pub mod misc;
+pub mod pickups;
 
 bitfield! {
   #[derive(Clone, Copy)]
@@ -58,6 +59,7 @@ pub struct NPC {
     pub vel_y: isize,
     pub target_x: isize,
     pub target_y: isize,
+    pub exp: u16,
     pub size: u8,
     pub shock: u16,
     pub life: u16,
@@ -73,6 +75,7 @@ pub struct NPC {
     pub flag_num: u16,
     pub event_num: u16,
     pub action_counter: u16,
+    pub action_counter2: u16,
     pub anim_counter: u16,
     pub anim_rect: Rect<usize>,
 }
@@ -82,6 +85,7 @@ impl GameEntity<&mut Player> for NPC {
         // maybe use macros?
         match self.npc_type {
             0 => { self.tick_n000_null(state) }
+            1 => { self.tick_n001_experience(state) }
             2 => { self.tick_n002_behemoth(state) }
             5 => { self.tick_n005_green_critter(state, player) }
             7 => { self.tick_n007_basil(state, player) }
@@ -203,6 +207,11 @@ impl PhysicalEntity for NPC {
     }
 
     #[inline(always)]
+    fn direction(&self) -> Direction {
+        self.direction
+    }
+
+    #[inline(always)]
     fn is_player(&self) -> bool {
         false
     }
@@ -237,9 +246,9 @@ impl NPCMap {
     pub fn create_npc_from_data(&mut self, table: &NPCTable, data: &NPCData) -> &mut NPC {
         let display_bounds = table.get_display_bounds(data.npc_type);
         let hit_bounds = table.get_hit_bounds(data.npc_type);
-        let (size, life, damage, flags) = match table.get_entry(data.npc_type) {
-            Some(entry) => { (entry.size, entry.life, entry.damage as u16, entry.npc_flags) }
-            None => { (1, 0, 0, NPCFlag(0)) }
+        let (size, life, damage, flags, exp) = match table.get_entry(data.npc_type) {
+            Some(entry) => { (entry.size, entry.life, entry.damage as u16, entry.npc_flags, entry.experience as u16) }
+            None => { (1, 0, 0, NPCFlag(0), 0) }
         };
         let npc_flags = NPCFlag(data.flags | flags.0);
 
@@ -257,6 +266,7 @@ impl NPCMap {
             flag_num: data.flag_num,
             event_num: data.event_num,
             shock: 0,
+            exp,
             size,
             life,
             damage,
@@ -267,6 +277,7 @@ impl NPCMap {
             display_bounds,
             hit_bounds,
             action_counter: 0,
+            action_counter2: 0,
             anim_counter: 0,
             anim_rect: Rect::new(0, 0, 0, 0),
         };
@@ -275,6 +286,46 @@ impl NPCMap {
         self.npcs.insert(data.id, RefCell::new(npc));
 
         self.npcs.get_mut(&data.id).unwrap().get_mut()
+    }
+
+    pub fn create_npc(&self, npc_type: u16, table: &NPCTable) -> NPC {
+        let display_bounds = table.get_display_bounds(npc_type);
+        let hit_bounds = table.get_hit_bounds(npc_type);
+        let (size, life, damage, flags, exp) = match table.get_entry(npc_type) {
+            Some(entry) => { (entry.size, entry.life, entry.damage as u16, entry.npc_flags, entry.experience as u16) }
+            None => { (1, 0, 0, NPCFlag(0), 0) }
+        };
+        let npc_flags = NPCFlag(flags.0);
+
+        NPC {
+            id: 0,
+            npc_type,
+            x: 0,
+            y: 0,
+            vel_x: 0,
+            vel_y: 0,
+            target_x: 0,
+            target_y: 0,
+            action_num: 0,
+            anim_num: 0,
+            flag_num: 0,
+            event_num: 0,
+            shock: 0,
+            exp,
+            size,
+            life,
+            damage,
+            cond: Condition(0x00),
+            flags: Flag(0),
+            direction: if npc_flags.spawn_facing_right() { Direction::Right } else { Direction::Left },
+            npc_flags,
+            display_bounds,
+            hit_bounds,
+            action_counter: 0,
+            action_counter2: 0,
+            anim_counter: 0,
+            anim_rect: Rect::new(0, 0, 0, 0),
+        }
     }
 
     pub fn garbage_collect(&mut self) {
@@ -292,8 +343,8 @@ impl NPCMap {
         }
     }
 
-    pub fn allocate_id(&mut self) -> u16 {
-        for i in 0..(u16::MAX) {
+    pub fn allocate_id(&mut self, start: u16) -> u16 {
+        for i in start..(u16::MAX) {
             if !self.npc_ids.contains(&i) {
                 return i;
             }
@@ -336,6 +387,37 @@ impl NPCMap {
                     new_npcs.append(&mut npcs);
                 }
 
+                if npc.exp != 0 {
+                    //if state.game_rng.range(0..4) == 0 {
+                    // health
+
+                    //} else {
+                    let mut exp = npc.exp;
+
+                    while exp > 0 {
+                        let exp_piece = if exp >= 20 {
+                            exp -= 20;
+                            20
+                        } else if exp >= 5 {
+                            exp -= 5;
+                            5
+                        } else {
+                            exp -= 1;
+                            1
+                        };
+
+                        let mut xp_npc = self.create_npc(1, &state.npc_table);
+                        xp_npc.cond.set_alive(true);
+                        xp_npc.direction = Direction::Left;
+                        xp_npc.x = npc.x;
+                        xp_npc.y = npc.y;
+                        xp_npc.exp = exp_piece;
+
+                        new_npcs.push(xp_npc);
+                    }
+                    //}
+                }
+
                 state.game_flags.set(npc.flag_num as usize, true);
 
                 // todo vanish / show damage
@@ -346,12 +428,17 @@ impl NPCMap {
 
         for mut npc in new_npcs {
             let id = if npc.id == 0 {
-                self.allocate_id()
+                if npc.npc_type == 1 {
+                    self.allocate_id(0x100)
+                } else {
+                    self.allocate_id(0)
+                }
             } else {
                 npc.id
             };
 
             npc.id = id;
+            self.npc_ids.insert(id);
             self.npcs.insert(id, RefCell::new(npc));
         }
     }

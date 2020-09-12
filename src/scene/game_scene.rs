@@ -683,8 +683,8 @@ impl Scene for GameScene {
         self.player.target_y = self.player.y;
         self.frame.immediate_update(state, &self.player, &self.stage);
 
-        //self.inventory.add_weapon(WeaponType::PolarStar, 0);
-        //self.player.equip.set_booster_2_0(true);
+        self.inventory.add_weapon(WeaponType::PolarStar, 0);
+        self.player.equip.set_booster_2_0(true);
         Ok(())
     }
 
@@ -703,7 +703,7 @@ impl Scene for GameScene {
 
             self.player.flags.0 = 0;
             state.tick_carets();
-            self.bullet_manager.tick_bullets(state, &mut self.stage);
+            self.bullet_manager.tick_bullets(state, &self.player, &mut self.stage);
 
             self.player.tick_map_collisions(state, &mut self.stage);
             self.player.tick_npc_collisions(state, &mut self.npc_map);

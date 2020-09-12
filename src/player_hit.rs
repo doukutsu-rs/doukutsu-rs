@@ -71,6 +71,11 @@ impl PhysicalEntity for Player {
     }
 
     #[inline(always)]
+    fn direction(&self) -> Direction {
+        self.direction
+    }
+
+    #[inline(always)]
     fn is_player(&self) -> bool {
         true
     }

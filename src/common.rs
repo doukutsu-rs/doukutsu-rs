@@ -88,6 +88,9 @@ bitfield! {
   pub flag_x01, set_flag_x01: 0;
   pub control_enabled, set_control_enabled: 1;
   pub interactions_disabled, set_interactions_disabled: 2;
+
+  // engine specific flags
+  pub wind, set_wind: 15;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
