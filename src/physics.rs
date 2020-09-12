@@ -1,6 +1,6 @@
 use num_traits::clamp;
 
-use crate::common::{Condition, Flag, Rect};
+use crate::common::{Condition, Direction, Flag, Rect};
 use crate::SharedGameState;
 use crate::stage::Stage;
 
@@ -25,6 +25,7 @@ pub trait PhysicalEntity {
     fn cond(&mut self) -> &mut Condition;
     fn flags(&mut self) -> &mut Flag;
 
+    fn direction(&self) -> Direction;
     fn is_player(&self) -> bool;
     fn ignore_tile_44(&self) -> bool { true }
 
@@ -295,12 +296,33 @@ pub trait PhysicalEntity {
         }
     }
 
-    fn judge_hit_spike(&mut self, x: isize, y: isize) {
+    fn judge_hit_spike(&mut self, x: isize, y: isize, water: bool) {
         if (self.x() - 0x800) < (x * 16 + 4) * 0x200
             && (self.x() + 0x800) > (x * 16 - 4) * 0x200
             && (self.y() - 0x800) < (y * 16 + 3) * 0x200
             && (self.y() + 0x800) > (y * 16 - 3) * 0x200 {
             self.flags().set_hit_by_spike(true);
+            if water {
+                self.flags().set_in_water(true);
+            }
+        }
+    }
+
+    fn judge_hit_force(&mut self, x: isize, y: isize, direction: Direction, water: bool) {
+        if (self.x() - self.hit_bounds().left as isize) < (x * 16 + 6) * 0x200
+            && (self.x() + self.hit_bounds().right as isize) > (x * 16 - 6) * 0x200
+            && (self.y() - self.hit_bounds().top as isize) < (y * 16 + 6) * 0x200
+            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 - 6) * 0x200 {
+            match direction {
+                Direction::Left => { self.flags().set_force_left(true); }
+                Direction::Up => { self.flags().set_force_up(true); }
+                Direction::Right => { self.flags().set_force_right(true); }
+                Direction::Bottom => { self.flags().set_force_down(true); }
+            }
+
+            if water {
+                self.flags().set_in_water(true);
+            }
         }
     }
 
@@ -318,8 +340,7 @@ pub trait PhysicalEntity {
             match attrib {
                 // Spikes
                 0x62 | 0x42 if self.is_player() => {
-                    if attrib & 0x20 != 0 { self.flags().set_in_water(true); }
-                    self.judge_hit_spike(x + ox, y + ox);
+                    self.judge_hit_spike(x + ox, y + oy, attrib & 0x20 != 0);
                 }
 
                 // Blocks
@@ -382,20 +403,16 @@ pub trait PhysicalEntity {
 
                 // Forces
                 0x80 | 0xa0 => {
-                    if attrib & 0x20 != 0 { self.flags().set_in_water(true); }
-                    self.flags().set_force_left(true);
+                    self.judge_hit_force(x + ox, y + ox, Direction::Left, attrib & 0x20 != 0 );
                 }
                 0x81 | 0xa1 => {
-                    if attrib & 0x20 != 0 { self.flags().set_in_water(true); }
-                    self.flags().set_force_up(true);
+                    self.judge_hit_force(x + ox, y + ox, Direction::Up, attrib & 0x20 != 0 );
                 }
                 0x82 | 0xa2 => {
-                    if attrib & 0x20 != 0 { self.flags().set_in_water(true); }
-                    self.flags().set_force_right(true);
+                    self.judge_hit_force(x + ox, y + ox, Direction::Right, attrib & 0x20 != 0 );
                 }
                 0x83 | 0xa3 => {
-                    if attrib & 0x20 != 0 { self.flags().set_in_water(true); }
-                    self.flags().set_force_down(true);
+                    self.judge_hit_force(x + ox, y + ox, Direction::Bottom, attrib & 0x20 != 0 );
                 }
                 _ => {}
             }
