@@ -8,6 +8,7 @@ use crate::player::Player;
 use crate::SharedGameState;
 use crate::stage::Stage;
 use std::borrow::Borrow;
+use crate::inventory::{Inventory, AddExperienceResult};
 
 impl PhysicalEntity for Player {
     #[inline(always)]
@@ -152,10 +153,10 @@ impl Player {
         flags
     }
 
-    pub fn tick_npc_collisions(&mut self, state: &mut SharedGameState, npc_map: &mut NPCMap) {
+    pub fn tick_npc_collisions(&mut self, state: &mut SharedGameState, npc_map: &mut NPCMap, inventory: &mut Inventory) {
         for npc_id in npc_map.npc_ids.iter() {
             if let Some(npc_cell) = npc_map.npcs.get(npc_id) {
-                let npc = npc_cell.borrow_mut();
+                let mut npc = npc_cell.borrow_mut();
                 if !npc.cond.alive() { continue; }
 
                 let mut flags = Flag(0);
@@ -167,6 +168,23 @@ impl Player {
                     //
                 } else {
                     flags = self.judge_hit_npc_non_solid(npc.borrow());
+                }
+
+                // xp pickup
+                if flags.0 != 0 && npc.npc_type == 1 {
+                    match inventory.add_xp(npc.exp, state) {
+                        AddExperienceResult::None => {},
+                        AddExperienceResult::LevelUp => {
+                            // todo play sound 27
+                            state.create_caret(self.x, self.y, CaretType::LevelUp, Direction::Left);
+                        },
+                        AddExperienceResult::AddStar => {
+                            if self.equip.has_whimsical_star() && self.stars < 3 {
+                                self.stars += 1;
+                            }
+                        },
+                    }
+                    npc.cond.set_alive(false);
                 }
 
                 if npc.npc_flags.interactable() && !state.control_flags.interactions_disabled() && flags.0 != 0 && self.cond.interacted() {

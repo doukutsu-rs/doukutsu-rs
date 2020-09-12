@@ -43,12 +43,12 @@ pub struct Player {
     pub shock_counter: u8,
     pub current_weapon: u8,
     pub update_target: bool,
+    pub stars: u8,
     weapon_offset_y: i8,
     index_x: isize,
     index_y: isize,
-    sprash: bool,
+    splash: bool,
     booster_switch: u8,
-    star: u8,
     bubble: u8,
     exp_wait: isize,
     exp_count: isize,
@@ -82,7 +82,7 @@ impl Player {
             booster_fuel: 0,
             index_x: 0,
             index_y: 0,
-            sprash: false,
+            splash: false,
             update_target: true,
             up: false,
             down: false,
@@ -90,7 +90,7 @@ impl Player {
             weapon_offset_y: 0,
             shock_counter: 0,
             booster_switch: 0,
-            star: 0,
+            stars: 0,
             bubble: 0,
             exp_wait: 0,
             exp_count: 0,
@@ -357,7 +357,7 @@ impl Player {
         // todo: water splashing
 
         if !self.flags.in_water() {
-            self.sprash = false;
+            self.splash = false;
         }
 
         // spike damage
@@ -528,8 +528,8 @@ impl Player {
 
         self.life = if hp >= self.life as isize { 0 } else { (self.life as isize - hp) as usize };
 
-        if self.equip.has_whimsical_star() && self.star > 0 {
-            self.star -= 1;
+        if self.equip.has_whimsical_star() && self.stars > 0 {
+            self.stars -= 1;
         }
 
         if self.life == 0 {

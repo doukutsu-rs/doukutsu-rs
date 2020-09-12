@@ -119,6 +119,7 @@ pub struct BulletRects {
 pub struct WeaponConsts {
     pub bullet_table: Vec<BulletData>,
     pub bullet_rects: BulletRects,
+    pub level_table: [[u16; 3]; 14],
 }
 
 impl Clone for WeaponConsts {
@@ -126,6 +127,7 @@ impl Clone for WeaponConsts {
         WeaponConsts {
             bullet_table: self.bullet_table.clone(),
             bullet_rects: self.bullet_rects,
+            level_table: self.level_table,
         }
     }
 }
@@ -935,6 +937,22 @@ impl EngineConstants {
                         Rect { left: 256, top: 32, right: 264, bottom: 40 },
                     ],
                 },
+                level_table: [
+                    [0, 0, 100],
+                    [30, 40, 16],
+                    [10, 20, 10],
+                    [10, 20, 20],
+                    [30, 40, 10],
+                    [10, 20, 10],
+                    [10, 20, 30],
+                    [10, 20, 5],
+                    [10, 20, 100],
+                    [30, 60, 0],
+                    [30, 60, 10],
+                    [10, 20, 100],
+                    [1, 1, 1],
+                    [40, 60, 200],
+                ],
             },
             tex_sizes: case_insensitive_hashmap! {
                 "ArmsImage" => (256, 16),

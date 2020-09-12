@@ -22,15 +22,6 @@ pub enum WeaponType {
     Spur = 13,
 }
 
-#[derive(Clone)]
-pub struct Weapon {
-    pub wtype: WeaponType,
-    pub level: WeaponLevel,
-    pub experience: u16,
-    pub ammo: u16,
-    pub max_ammo: u16,
-}
-
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
 pub enum WeaponLevel {
@@ -38,6 +29,26 @@ pub enum WeaponLevel {
     Level1 = 1,
     Level2 = 2,
     Level3 = 3,
+}
+
+impl WeaponLevel {
+    pub fn next(self) -> WeaponLevel {
+        match self {
+            WeaponLevel::None => { WeaponLevel::Level1 }
+            WeaponLevel::Level1 => { WeaponLevel::Level2 }
+            WeaponLevel::Level2 => { WeaponLevel::Level3 }
+            WeaponLevel::Level3 => { WeaponLevel::Level3 }
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Weapon {
+    pub wtype: WeaponType,
+    pub level: WeaponLevel,
+    pub experience: u16,
+    pub ammo: u16,
+    pub max_ammo: u16,
 }
 
 impl Weapon {

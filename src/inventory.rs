@@ -1,3 +1,5 @@
+use crate::engine_constants::EngineConstants;
+use crate::SharedGameState;
 use crate::weapon::{Weapon, WeaponLevel, WeaponType};
 
 #[derive(Clone, Copy)]
@@ -9,6 +11,13 @@ pub struct Inventory {
     current_weapon: u16,
     items: Vec<Item>,
     weapons: Vec<Weapon>,
+}
+
+#[derive(Clone, Copy)]
+pub enum AddExperienceResult {
+    None,
+    LevelUp,
+    AddStar,
 }
 
 impl Inventory {
@@ -56,6 +65,10 @@ impl Inventory {
         self.weapons.get(idx)
     }
 
+    pub fn get_current_weapon(&self) -> Option<&Weapon> {
+        self.weapons.get(self.current_weapon as usize)
+    }
+
     pub fn get_current_weapon_mut(&mut self) -> Option<&mut Weapon> {
         self.weapons.get_mut(self.current_weapon as usize)
     }
@@ -70,6 +83,50 @@ impl Inventory {
         for weapon in self.weapons.iter_mut() {
             weapon.level = WeaponLevel::Level1;
             weapon.experience = 0;
+        }
+    }
+
+    pub fn add_xp(&mut self, exp: u16, state: &mut SharedGameState) -> AddExperienceResult {
+        let mut result = AddExperienceResult::None;
+
+        if let Some(weapon) = self.get_current_weapon_mut() {
+            let curr_level_idx = weapon.level as usize - 1;
+            let lvl_table = state.constants.weapon.level_table[weapon.wtype as usize];
+
+            weapon.experience += exp;
+
+            if weapon.level == WeaponLevel::Level3 {
+                if weapon.experience > lvl_table[2] {
+                    weapon.experience = lvl_table[2];
+                    result = AddExperienceResult::AddStar;
+                }
+            } else {
+                if weapon.experience > lvl_table[curr_level_idx] {
+                    weapon.level = weapon.level.next();
+                    weapon.experience = 0;
+
+                    if weapon.wtype != WeaponType::Spur {
+                        result = AddExperienceResult::LevelUp;
+                    }
+                }
+            }
+        }
+
+        result
+    }
+
+    pub fn get_current_max_exp(&self, constants: &EngineConstants) -> (u16, u16) {
+        if let Some(weapon) = self.weapons.get(self.current_weapon as usize) {
+            if weapon.level == WeaponLevel::None {
+                return (0, 0);
+            }
+
+            let level_idx = weapon.level as usize - 1;
+            let max_exp = constants.weapon.level_table[weapon.wtype as usize][level_idx];
+
+            (weapon.experience, max_exp)
+        } else {
+            (0, 0)
         }
     }
 

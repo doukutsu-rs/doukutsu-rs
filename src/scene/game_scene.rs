@@ -103,6 +103,7 @@ impl GameScene {
         // none
         let weap_x = self.weapon_x_pos as f32;
         let (ammo, max_ammo) = self.inventory.get_current_ammo();
+        let (xp, max_xp) = self.inventory.get_current_max_exp(&state.constants);
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
 
         if max_ammo == 0 {
@@ -113,17 +114,28 @@ impl GameScene {
         }
 
         // per
-        batch.add_rect(16.0 + 32.0, 24.0,
+        batch.add_rect(weap_x + 32.0, 24.0,
                        &Rect::<usize>::new_size(72, 48, 8, 8));
         // lv
-        batch.add_rect(16.0, 32.0,
+        batch.add_rect(weap_x, 32.0,
                        &Rect::<usize>::new_size(80, 80, 16, 8));
         // xp box
-        batch.add_rect(40.0, 32.0,
+        batch.add_rect(weap_x + 24.0, 32.0,
                        &Rect::<usize>::new_size(0, 72, 40, 8));
-        // experience
-        //batch.add_rect(40.0, 32.0,
-        //               &Rect::<usize>::new_size(0, 80, (40), 8)); // todo
+        if max_xp > 0 {
+            if xp == max_xp {
+                // max level bar
+                batch.add_rect(weap_x + 24.0, 32.0,
+                               &Rect::<usize>::new_size(40, 72, 40, 8));
+
+            } else {
+                // xp bar
+                let bar_width = (xp as f32 / max_xp as f32 * 40.0) as usize;
+
+                batch.add_rect(weap_x + 24.0, 32.0,
+                               &Rect::<usize>::new_size(0, 80, bar_width, 8));
+            }
+        }
 
         if self.player.max_life != 0 {
             // life box
@@ -174,7 +186,7 @@ impl GameScene {
             self.draw_number(weap_x + 64.0, 16.0, ammo as usize, Alignment::Right, state, ctx)?;
             self.draw_number(weap_x + 64.0, 24.0, max_ammo as usize, Alignment::Right, state, ctx)?;
         }
-        self.draw_number(40.0, 32.0, self.inventory.get_current_level() as usize, Alignment::Right, state, ctx)?;
+        self.draw_number(weap_x + 24.0, 32.0, self.inventory.get_current_level() as usize, Alignment::Right, state, ctx)?;
         self.draw_number(40.0, 40.0, self.life_bar as usize, Alignment::Right, state, ctx)?;
 
         Ok(())
@@ -486,7 +498,6 @@ impl GameScene {
 
         let text_offset = if state.textscript_vm.face == 0 { 0.0 } else { 56.0 };
 
-        // todo: proper text rendering
         if !state.textscript_vm.line_1.is_empty() {
             state.font.draw_text(state.textscript_vm.line_1.iter().copied(), left_pos + text_offset + 14.0, top_pos + 10.0, &state.constants, &mut state.texture_set, ctx)?;
         }
@@ -683,8 +694,8 @@ impl Scene for GameScene {
         self.player.target_y = self.player.y;
         self.frame.immediate_update(state, &self.player, &self.stage);
 
-        self.inventory.add_weapon(WeaponType::PolarStar, 0);
-        self.player.equip.set_booster_2_0(true);
+        //self.inventory.add_weapon(WeaponType::PolarStar, 0);
+        //self.player.equip.set_booster_2_0(true);
         Ok(())
     }
 
@@ -706,7 +717,7 @@ impl Scene for GameScene {
             self.bullet_manager.tick_bullets(state, &self.player, &mut self.stage);
 
             self.player.tick_map_collisions(state, &mut self.stage);
-            self.player.tick_npc_collisions(state, &mut self.npc_map);
+            self.player.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory);
 
             for npc_id in self.npc_map.npc_ids.iter() {
                 if let Some(npc_cell) = self.npc_map.npcs.get_mut(npc_id) {
