@@ -327,6 +327,7 @@ pub struct NPCTable {
 }
 
 impl NPCTable {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> NPCTable {
         NPCTable {
             entries: Vec::new(),

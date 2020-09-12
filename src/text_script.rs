@@ -20,6 +20,7 @@ use crate::ggez::{Context, GameResult};
 use crate::ggez::GameError::ParseError;
 use crate::player::ControlMode;
 use crate::scene::game_scene::GameScene;
+use crate::weapon::WeaponType;
 
 /// Engine's text script VM operation codes.
 #[derive(EnumString, Debug, FromPrimitive, PartialEq)]
@@ -639,17 +640,18 @@ impl TextScriptVM {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
-                        if game_scene.player.inventory.has_item(item_id) {
+                        if game_scene.inventory.has_item(item_id) {
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                         }
                     }
                     OpCode::AMJ => {
-                        let weapon = read_cur_varint(&mut cursor)? as u16;
+                        let weapon = read_cur_varint(&mut cursor)? as u8;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
+                        let weapon_type: Option<WeaponType> = FromPrimitive::from_u8(weapon);
 
-                        if game_scene.player.inventory.has_weapon(weapon) {
+                        if weapon_type.is_some() && game_scene.inventory.has_weapon(weapon_type.unwrap()) {
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -743,7 +745,7 @@ impl TextScriptVM {
                     OpCode::YNJ => {
                         let event_no = read_cur_varint(&mut cursor)? as u16;
 
-                        exec_state = TextScriptExecutionState::WaitConfirmation(event, cursor.position() as u32, event_no, 16, ConfirmSelection::No);
+                        exec_state = TextScriptExecutionState::WaitConfirmation(event, cursor.position() as u32, event_no, 16, ConfirmSelection::Yes);
                     }
                     OpCode::GIT => {
                         let item = read_cur_varint(&mut cursor)? as u16;
@@ -758,6 +760,7 @@ impl TextScriptVM {
                         let pos_y = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
 
                         let mut new_scene = GameScene::new(state, ctx, map_id)?;
+                        new_scene.inventory = game_scene.inventory.clone();
                         new_scene.player = game_scene.player.clone();
                         new_scene.player.vel_x = 0;
                         new_scene.player.vel_y = 0;
@@ -998,39 +1001,45 @@ impl TextScriptVM {
                     OpCode::ITp => {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
 
-                        game_scene.player.inventory.add_item(item_id);
+                        game_scene.inventory.add_item(item_id);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::ITm => {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
 
-                        game_scene.player.inventory.remove_item(item_id);
+                        game_scene.inventory.remove_item(item_id);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::AMp => {
-                        let weapon_id = read_cur_varint(&mut cursor)? as u16;
+                        let weapon_id = read_cur_varint(&mut cursor)? as u8;
                         let max_ammo = read_cur_varint(&mut cursor)? as u16;
+                        let weapon_type: Option<WeaponType> = FromPrimitive::from_u8(weapon_id);
 
-                        game_scene.player.inventory.add_weapon(weapon_id, max_ammo);
+                        if let Some(wtype) = weapon_type {
+                            game_scene.inventory.add_weapon(wtype, max_ammo);
+                        }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::AMm => {
-                        let weapon_id = read_cur_varint(&mut cursor)? as u16;
+                        let weapon_id = read_cur_varint(&mut cursor)? as u8;
+                        let weapon_type: Option<WeaponType> = FromPrimitive::from_u8(weapon_id);
 
-                        game_scene.player.inventory.remove_weapon(weapon_id);
+                        if let Some(wtype) = weapon_type {
+                            game_scene.inventory.remove_weapon(wtype);
+                        }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::AEp => {
-                        game_scene.player.inventory.refill_all_ammo();
+                        game_scene.inventory.refill_all_ammo();
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::ZAM => {
-                        game_scene.player.inventory.reset_all_weapon_xp();
+                        game_scene.inventory.reset_all_weapon_xp();
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }

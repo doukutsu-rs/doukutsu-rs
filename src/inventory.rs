@@ -1,11 +1,4 @@
-#[derive(Clone)]
-pub struct Weapon {
-    pub id: u16,
-    pub level: u16,
-    pub experience: u16,
-    pub ammo: u16,
-    pub max_ammo: u16,
-}
+use crate::weapon::{Weapon, WeaponLevel, WeaponType};
 
 #[derive(Clone, Copy)]
 pub struct Item(u16);
@@ -43,20 +36,20 @@ impl Inventory {
         self.items.iter().any(|item| item.0 == item_id)
     }
 
-    pub fn add_weapon(&mut self, weapon_id: u16, max_ammo: u16) {
+    pub fn add_weapon(&mut self, weapon_id: WeaponType, max_ammo: u16) {
         if !self.has_weapon(weapon_id) {
-            self.weapons.push(Weapon {
-                id: weapon_id,
-                level: 1,
-                experience: 0,
-                ammo: max_ammo,
+            self.weapons.push(Weapon::new(
+                weapon_id,
+                WeaponLevel::Level1,
+                0,
                 max_ammo,
-            });
+                max_ammo,
+            ));
         }
     }
 
-    pub fn remove_weapon(&mut self, weapon_id: u16) {
-        self.weapons.retain(|weapon| weapon.id != weapon_id);
+    pub fn remove_weapon(&mut self, wtype: WeaponType) {
+        self.weapons.retain(|weapon| weapon.wtype != wtype);
     }
 
     pub fn get_weapon(&self, idx: usize) -> Option<&Weapon> {
@@ -75,7 +68,7 @@ impl Inventory {
 
     pub fn reset_all_weapon_xp(&mut self) {
         for weapon in self.weapons.iter_mut() {
-            weapon.level = 1;
+            weapon.level = WeaponLevel::Level1;
             weapon.experience = 0;
         }
     }
@@ -88,11 +81,11 @@ impl Inventory {
         }
     }
 
-    pub fn get_current_level(&self) -> u16 {
+    pub fn get_current_level(&self) -> WeaponLevel {
         if let Some(weapon) = self.weapons.get(self.current_weapon as usize) {
             weapon.level
         } else {
-            0
+            WeaponLevel::None
         }
     }
 
@@ -104,7 +97,7 @@ impl Inventory {
         self.weapons.len()
     }
 
-    pub fn has_weapon(&self, weapon_id: u16) -> bool {
-        self.weapons.iter().any(|weapon| weapon.id == weapon_id)
+    pub fn has_weapon(&self, wtype: WeaponType) -> bool {
+        self.weapons.iter().any(|weapon| weapon.wtype == wtype)
     }
 }

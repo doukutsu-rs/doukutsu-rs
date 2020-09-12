@@ -1,28 +1,32 @@
 use log::info;
 
-use crate::common::{FadeDirection, FadeState, Rect};
+use crate::bullet::BulletManager;
+use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult, graphics, timer};
-use crate::ggez::graphics::{Color, Drawable, DrawParam, Text, TextFragment};
+use crate::ggez::graphics::Color;
 use crate::ggez::nalgebra::clamp;
+use crate::inventory::Inventory;
 use crate::npc::NPCMap;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::scene::Scene;
 use crate::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
-use crate::str;
 use crate::text_script::{ConfirmSelection, TextScriptExecutionState, TextScriptVM};
 use crate::ui::Components;
+use crate::weapon::WeaponType;
 
 pub struct GameScene {
     pub tick: usize,
     pub stage: Stage,
     pub frame: Frame,
     pub player: Player,
+    pub inventory: Inventory,
     pub stage_id: usize,
     pub npc_map: NPCMap,
+    pub bullet_manager: BulletManager,
     tex_background_name: String,
     tex_tileset_name: String,
     life_bar: u16,
@@ -58,6 +62,7 @@ impl GameScene {
             tick: 0,
             stage,
             player: Player::new(state),
+            inventory: Inventory::new(),
             frame: Frame {
                 x: 0,
                 y: 0,
@@ -65,6 +70,7 @@ impl GameScene {
             },
             stage_id: id,
             npc_map: NPCMap::new(),
+            bullet_manager: BulletManager::new(),
             tex_background_name,
             tex_tileset_name,
             life_bar: 0,
@@ -95,7 +101,7 @@ impl GameScene {
     fn draw_hud(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         // none
         let weap_x = self.weapon_x_pos as f32;
-        let (ammo, max_ammo) = self.player.inventory.get_current_ammo();
+        let (ammo, max_ammo) = self.inventory.get_current_ammo();
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
 
         if max_ammo == 0 {
@@ -133,9 +139,9 @@ impl GameScene {
         batch.draw(ctx)?;
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ArmsImage")?;
 
-        let weapon_count = self.player.inventory.get_weapon_count();
+        let weapon_count = self.inventory.get_weapon_count();
         if weapon_count != 0 {
-            let current_weapon = self.player.inventory.get_current_weapon_idx() as usize;
+            let current_weapon = self.inventory.get_current_weapon_idx() as usize;
             let mut rect = Rect::new(0, 0, 0, 16);
 
             for a in 0..weapon_count {
@@ -153,8 +159,8 @@ impl GameScene {
                     pos_x -= 48.0;
                 }
 
-                if let Some(weapon) = self.player.inventory.get_weapon(a) {
-                    rect.left = weapon.id as usize * 16;
+                if let Some(weapon) = self.inventory.get_weapon(a) {
+                    rect.left = weapon.wtype as usize * 16;
                     rect.right = rect.left + 16;
                     batch.add_rect(pos_x, 16.0, &rect);
                 }
@@ -167,7 +173,7 @@ impl GameScene {
             self.draw_number(weap_x + 64.0, 16.0, ammo as usize, Alignment::Right, state, ctx)?;
             self.draw_number(weap_x + 64.0, 24.0, max_ammo as usize, Alignment::Right, state, ctx)?;
         }
-        self.draw_number(40.0, 32.0, self.player.inventory.get_current_level() as usize, Alignment::Right, state, ctx)?;
+        self.draw_number(40.0, 32.0, self.inventory.get_current_level() as usize, Alignment::Right, state, ctx)?;
         self.draw_number(40.0, 40.0, self.life_bar as usize, Alignment::Right, state, ctx)?;
 
         Ok(())
@@ -187,23 +193,18 @@ impl GameScene {
                     }
                 }
             }
-            BackgroundType::MoveDistant => {
-                let off_x = self.frame.x as usize / 2 % (batch.width() * 0x200);
-                let off_y = self.frame.y as usize / 2 % (batch.height() * 0x200);
-
-                let count_x = state.canvas_size.0 as usize / batch.width() + 2;
-                let count_y = state.canvas_size.1 as usize / batch.height() + 2;
-
-                for y in 0..count_y {
-                    for x in 0..count_x {
-                        batch.add((x * batch.width()) as f32 - (off_x / 0x200) as f32,
-                                  (y * batch.height()) as f32 - (off_y / 0x200) as f32);
-                    }
-                }
-            }
-            BackgroundType::MoveNear => {
-                let off_x = self.frame.x as usize % (batch.width() * 0x200);
-                let off_y = self.frame.y as usize % (batch.height() * 0x200);
+            BackgroundType::MoveDistant | BackgroundType::MoveNear => {
+                let (off_x, off_y) = if self.stage.data.background_type == BackgroundType::MoveDistant {
+                    (
+                        self.frame.x as usize % (batch.width() * 0x200),
+                        self.frame.y as usize % (batch.height() * 0x200)
+                    )
+                } else {
+                    (
+                        self.frame.x as usize / 2 % (batch.width() * 0x200),
+                        self.frame.y as usize / 2 % (batch.height() * 0x200)
+                    )
+                };
 
                 let count_x = state.canvas_size.0 as usize / batch.width() + 2;
                 let count_y = state.canvas_size.1 as usize / batch.height() + 2;
@@ -250,6 +251,40 @@ impl GameScene {
 
         batch.draw(ctx)?;
 
+        Ok(())
+    }
+
+    fn draw_bullets(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Bullet")?;
+        let mut x: isize;
+        let mut y: isize;
+
+        for bullet in self.bullet_manager.bullets.iter() {
+            match bullet.direction {
+                Direction::Left => {
+                    x = bullet.x - bullet.display_bounds.left as isize;
+                    y = bullet.y - bullet.display_bounds.top as isize;
+                }
+                Direction::Up => {
+                    x = bullet.x - bullet.display_bounds.top as isize;
+                    y = bullet.y - bullet.display_bounds.left as isize;
+                }
+                Direction::Right => {
+                    x = bullet.x - bullet.display_bounds.right as isize;
+                    y = bullet.y - bullet.display_bounds.top as isize;
+                }
+                Direction::Bottom => {
+                    x = bullet.x - bullet.display_bounds.top as isize;
+                    y = bullet.y - bullet.display_bounds.right as isize;
+                }
+            }
+
+            batch.add_rect(((x / 0x200) - (self.frame.x / 0x200)) as f32,
+                           ((y / 0x200) - (self.frame.y / 0x200)) as f32,
+                           &bullet.anim_rect);
+        }
+
+        batch.draw(ctx)?;
         Ok(())
     }
 
@@ -560,6 +595,8 @@ impl Scene for GameScene {
         self.player.target_x = self.player.x;
         self.player.target_y = self.player.y;
         self.frame.immediate_update(state, &self.player, &self.stage);
+
+        self.inventory.add_weapon(WeaponType::PolarStar, 0);
         //self.player.equip.set_booster_2_0(true);
         Ok(())
     }
@@ -572,6 +609,7 @@ impl Scene for GameScene {
 
             self.player.flags.0 = 0;
             state.tick_carets();
+            self.bullet_manager.tick_bullets(state, &self.stage);
 
             self.player.tick_map_collisions(state, &self.stage);
             self.player.tick_npc_collisions(state, &mut self.npc_map);
@@ -591,6 +629,10 @@ impl Scene for GameScene {
         }
 
         if state.control_flags.control_enabled() {
+            if let Some(weapon) = self.inventory.get_current_weapon_mut() {
+                weapon.shoot_bullet(&self.player, &mut self.bullet_manager, state);
+            }
+
             // update health bar
             if self.life_bar < self.player.life as u16 {
                 self.life_bar = self.player.life as u16;
@@ -646,6 +688,7 @@ impl Scene for GameScene {
             }
         }
         self.player.draw(state, ctx, &self.frame)?;
+        self.draw_bullets(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;

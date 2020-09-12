@@ -24,7 +24,7 @@ use winit::{ElementState, Event, KeyboardInput, WindowEvent};
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::builtin_fs::BuiltinFS;
 use crate::caret::{Caret, CaretType};
-use crate::common::{Direction, FadeState, KeyState, ControlFlags};
+use crate::common::{ControlFlags, Direction, FadeState, KeyState};
 use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, ContextBuilder, event, filesystem, GameResult};
 use crate::ggez::conf::{WindowMode, WindowSetup};
@@ -34,6 +34,7 @@ use crate::ggez::graphics::DrawParam;
 use crate::ggez::input::keyboard;
 use crate::ggez::mint::ColumnMatrix4;
 use crate::ggez::nalgebra::Vector2;
+use crate::npc::NPCTable;
 use crate::rng::RNG;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
@@ -42,7 +43,6 @@ use crate::stage::StageData;
 use crate::text_script::TextScriptVM;
 use crate::texture_set::TextureSet;
 use crate::ui::UI;
-use crate::npc::NPCTable;
 
 mod bmfont;
 mod bmfont_renderer;
@@ -53,6 +53,7 @@ mod common;
 mod engine_constants;
 mod entity;
 mod frame;
+mod inventory;
 mod ggez;
 mod live_debugger;
 mod macros;
@@ -68,7 +69,7 @@ mod sound;
 mod text_script;
 mod texture_set;
 mod ui;
-mod inventory;
+mod weapon;
 
 struct Game {
     scene: Option<Box<dyn Scene>>,

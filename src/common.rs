@@ -13,10 +13,10 @@ bitfield! {
   pub hit_bottom_wall, set_hit_bottom_wall: 3; // 0x08
   pub hit_right_slope, set_hit_right_slope: 4; // 0x10
   pub hit_left_slope, set_hit_left_slope: 5; // 0x20
-  pub flag_x40, set_flag_x40: 6; // 0x40
+  pub snack_destroy, set_snack_destroy: 6; // 0x40
   pub flag_x80, set_flag_x80: 7; // 0x80
   pub in_water, set_in_water: 8; // 0x100
-  pub flag_x200, set_flag_x200: 9; // 0x200
+  pub weapon_hit_block, set_weapon_hit_block: 9; // 0x200
   pub hit_by_spike, set_hit_by_spike: 10; // 0x400
   pub water_splash_facing_right, set_water_splash_facing_right: 11; // 0x800
   pub force_left, set_force_left: 12; // 0x1000
@@ -84,7 +84,7 @@ bitfield! {
   #[derive(Clone, Copy)]
   pub struct ControlFlags(u16);
   impl Debug;
-  
+
   pub flag_x01, set_flag_x01: 0;
   pub control_enabled, set_control_enabled: 1;
   pub interactions_disabled, set_interactions_disabled: 2;

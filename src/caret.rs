@@ -2,6 +2,7 @@ use crate::bitfield;
 use crate::common::{Condition, Direction, Rect};
 use crate::engine_constants::EngineConstants;
 use crate::rng::RNG;
+use std::fs::read_to_string;
 
 #[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum CaretType {
@@ -36,14 +37,15 @@ pub struct Caret {
     pub cond: Condition,
     pub direction: Direction,
     pub anim_rect: Rect<usize>,
-    anim_num: usize,
-    anim_counter: isize,
+    anim_num: u16,
+    anim_counter: u16,
 }
 
 impl Caret {
-    pub fn new(x: isize, y: isize, ctype: CaretType, direct: Direction, constants: &EngineConstants) -> Self {
+    pub fn new(x: isize, y: isize, ctype: CaretType, direct: Direction, constants: &EngineConstants) -> Caret {
         let (offset_x, offset_y) = constants.caret.offsets[ctype as usize];
-        Self {
+
+        Caret {
             ctype,
             x,
             y,
@@ -53,7 +55,7 @@ impl Caret {
             offset_y,
             cond: Condition(0x80),
             direction: direct,
-            anim_rect: Rect::<usize>::new(0, 0, 0, 0),
+            anim_rect: Rect::new(0, 0, 0, 0),
             anim_num: 0,
             anim_counter: 0,
         }
@@ -63,13 +65,73 @@ impl Caret {
         match self.ctype {
             CaretType::None => {}
             CaretType::Bubble => {}
-            CaretType::ProjectileDissipation => {}
-            CaretType::Shoot => {}
-            CaretType::SnakeAfterimage | CaretType::SnakeAfterimage2 => { // dupe, unused
+            CaretType::ProjectileDissipation => {
+                match self.direction {
+                    Direction::Left => {
+                        self.vel_y -= 0x10;
+                        self.y += self.vel_y;
+
+                        self.anim_counter += 1;
+                        if self.anim_counter > 5 {
+                            self.anim_counter = 0;
+                            self.anim_num += 1;
+
+                            if self.anim_num > constants.caret.projectile_dissipation_left_rects.len() as u16 {
+                                self.cond.set_alive(false);
+                                return;
+                            }
+
+                            self.anim_rect = constants.caret.projectile_dissipation_left_rects[self.anim_num as usize];
+                        }
+                    },
+                    Direction::Up => {
+                        self.anim_counter += 1;
+
+                        if self.anim_counter > 24 {
+                            self.cond.set_alive(false);
+                        }
+
+                        let len = constants.caret.projectile_dissipation_up_rects.len();
+                        self.anim_rect = constants.caret.projectile_dissipation_up_rects[(self.anim_num as usize / 2) % len];
+                    },
+                    Direction::Right => {
+                        self.anim_counter += 1;
+                        if self.anim_counter > 2 {
+                            self.anim_counter = 0;
+                            self.anim_num += 1;
+
+                            if self.anim_num > constants.caret.projectile_dissipation_right_rects.len() as u16 {
+                                self.cond.set_alive(false);
+                                return;
+                            }
+
+                            self.anim_rect = constants.caret.projectile_dissipation_right_rects[self.anim_num as usize];
+                        }
+                    },
+                    Direction::Bottom => {
+                        self.cond.set_alive(false);
+                    },
+                }
             }
+            CaretType::Shoot => {
+                if self.anim_counter == 0 {
+                    self.anim_rect = constants.caret.shoot_rects[self.anim_num as usize];
+                }
+
+                self.anim_counter += 1;
+                if self.anim_counter > 3 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                }
+
+                if self.anim_num == constants.caret.shoot_rects.len() as u16 {
+                    self.cond.set_alive(false);
+                }
+            }
+            CaretType::SnakeAfterimage | CaretType::SnakeAfterimage2 => {} // dupe, unused
             CaretType::Zzz => {
                 if self.anim_counter == 0 {
-                    self.anim_rect = constants.caret.zzz_rects[self.anim_num];
+                    self.anim_rect = constants.caret.zzz_rects[self.anim_num as usize];
                 }
 
                 self.anim_counter += 1;
@@ -78,26 +140,29 @@ impl Caret {
                     self.anim_num += 1;
                 }
 
-                if self.anim_num == constants.caret.zzz_rects.len() {
+                if self.anim_num == constants.caret.zzz_rects.len() as u16 {
                     self.cond.set_alive(false);
+                    return;
                 }
 
                 self.x += 0x80; // 0.4fix9
                 self.y -= 0x80;
             }
             CaretType::Exhaust => {
+                if self.anim_counter == 0 {
+                    self.anim_rect = constants.caret.exhaust_rects[self.anim_num as usize];
+                }
+
                 self.anim_counter += 1;
                 if self.anim_counter > 1 {
                     self.anim_counter = 0;
                     self.anim_num += 1;
-                }
 
-                if self.anim_num >= constants.caret.exhaust_rects.len() {
-                    self.cond.set_alive(false);
-                    return;
+                    if self.anim_num >= constants.caret.exhaust_rects.len() as u16 {
+                        self.cond.set_alive(false);
+                        return;
+                    }
                 }
-
-                self.anim_rect = constants.caret.exhaust_rects[self.anim_num];
 
                 match self.direction {
                     Direction::Left => { self.x -= 0x400; } // 2.0fix9
@@ -165,7 +230,8 @@ impl Caret {
                     return;
                 }
 
-                self.anim_rect = constants.caret.little_particles_rects[self.anim_num / 2 % constants.caret.little_particles_rects.len()];
+                let len = constants.caret.little_particles_rects.len();
+                self.anim_rect = constants.caret.little_particles_rects[self.anim_num as usize / 2 % len];
 
                 if self.direction == Direction::Right {
                     self.x -= 4 * 0x200;

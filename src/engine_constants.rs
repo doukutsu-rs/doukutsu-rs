@@ -48,6 +48,10 @@ pub struct CaretConsts {
     pub offsets: [(isize, isize); 18],
     pub bubble_left_rects: Vec<Rect<usize>>,
     pub bubble_right_rects: Vec<Rect<usize>>,
+    pub projectile_dissipation_left_rects: Vec<Rect<usize>>,
+    pub projectile_dissipation_right_rects: Vec<Rect<usize>>,
+    pub projectile_dissipation_up_rects: Vec<Rect<usize>>,
+    pub shoot_rects: Vec<Rect<usize>>,
     pub zzz_rects: Vec<Rect<usize>>,
     pub drowned_quote_left_rect: Rect<usize>,
     pub drowned_quote_right_rect: Rect<usize>,
@@ -65,6 +69,10 @@ impl Clone for CaretConsts {
             offsets: self.offsets,
             bubble_left_rects: self.bubble_left_rects.clone(),
             bubble_right_rects: self.bubble_right_rects.clone(),
+            projectile_dissipation_left_rects: self.projectile_dissipation_left_rects.clone(),
+            projectile_dissipation_right_rects: self.projectile_dissipation_right_rects.clone(),
+            projectile_dissipation_up_rects: self.projectile_dissipation_up_rects.clone(),
+            shoot_rects: self.shoot_rects.clone(),
             zzz_rects: self.zzz_rects.clone(),
             drowned_quote_left_rect: self.drowned_quote_left_rect,
             drowned_quote_right_rect: self.drowned_quote_right_rect,
@@ -92,15 +100,24 @@ pub struct BulletData {
     pub display_bounds: Rect<u8>,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct BulletRects {
+    pub b004_polar_star_l1: [Rect<usize>; 2],
+    pub b005_polar_star_l2: [Rect<usize>; 2],
+    pub b006_polar_star_l3: [Rect<usize>; 2],
+}
+
 #[derive(Debug)]
 pub struct WeaponConsts {
     pub bullet_table: Vec<BulletData>,
+    pub bullet_rects: BulletRects,
 }
 
 impl Clone for WeaponConsts {
     fn clone(&self) -> WeaponConsts {
         WeaponConsts {
             bullet_table: self.bullet_table.clone(),
+            bullet_rects: self.bullet_rects,
         }
     }
 }
@@ -315,6 +332,29 @@ impl EngineConstants {
                     Rect { left: 72, top: 24, right: 80, bottom: 32 },
                     Rect { left: 80, top: 24, right: 88, bottom: 32 },
                     Rect { left: 88, top: 24, right: 96, bottom: 32 },
+                ],
+                projectile_dissipation_left_rects: vec![
+                    Rect { left: 0, top: 32, right: 16, bottom: 48 },
+                    Rect { left: 16, top: 32, right: 32, bottom: 48 },
+                    Rect { left: 32, top: 32, right: 48, bottom: 48 },
+                    Rect { left: 48, top: 32, right: 64, bottom: 48 },
+                ],
+                projectile_dissipation_right_rects: vec![
+                    Rect { left: 176, top: 0, right: 192, bottom: 16 },
+                    Rect { left: 192, top: 0, right: 208, bottom: 16 },
+                    Rect { left: 208, top: 0, right: 224, bottom: 16 },
+                    Rect { left: 224, top: 0, right: 240, bottom: 16 },
+                ],
+                projectile_dissipation_up_rects: vec![
+                    Rect { left: 0, top: 32, right: 16, bottom: 48 },
+                    Rect { left: 32, top: 32, right: 48, bottom: 48 },
+                    Rect { left: 16, top: 32, right: 32, bottom: 48 },
+                ],
+                shoot_rects: vec![
+                    Rect { left: 0, top: 48, right: 16, bottom: 64 },
+                    Rect { left: 16, top: 48, right: 32, bottom: 64 },
+                    Rect { left: 32, top: 48, right: 48, bottom: 64 },
+                    Rect { left: 48, top: 48, right: 64, bottom: 64 },
                 ],
                 zzz_rects: vec![
                     Rect { left: 32, top: 64, right: 40, bottom: 72 },
@@ -824,6 +864,20 @@ impl EngineConstants {
                     // Whimsical Star
                     BulletData { damage: 1, life: 1, lifetime: 1, flags: Flag(36), enemy_hit_width: 1, enemy_hit_height: 1, block_hit_width: 1, block_hit_height: 1, display_bounds: Rect { left: 1, top: 1, right: 1, bottom: 1 } },
                 ],
+                bullet_rects: BulletRects {
+                    b004_polar_star_l1: [
+                        Rect { left: 128, top: 32, right: 144, bottom: 48 },
+                        Rect { left: 144, top: 32, right: 160, bottom: 48 },
+                    ],
+                    b005_polar_star_l2: [
+                        Rect { left: 160, top: 32, right: 176, bottom: 48 },
+                        Rect { left: 176, top: 32, right: 192, bottom: 48 },
+                    ],
+                    b006_polar_star_l3: [
+                        Rect { left: 128, top: 48, right: 144, bottom: 64 },
+                        Rect { left: 144, top: 48, right: 160, bottom: 64 },
+                    ],
+                },
             },
             tex_sizes: case_insensitive_hashmap! {
                 "ArmsImage" => (256, 16),
