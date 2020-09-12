@@ -195,7 +195,7 @@ impl GameScene {
                 }
             }
             BackgroundType::MoveDistant | BackgroundType::MoveNear => {
-                let (off_x, off_y) = if self.stage.data.background_type == BackgroundType::MoveDistant {
+                let (off_x, off_y) = if self.stage.data.background_type == BackgroundType::MoveNear {
                     (
                         self.frame.x as usize % (batch.width() * 0x200),
                         self.frame.y as usize % (batch.height() * 0x200)
