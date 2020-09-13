@@ -115,21 +115,24 @@ impl Inventory {
         result
     }
 
-    pub fn get_current_max_exp(&self, constants: &EngineConstants) -> (u16, u16) {
+    /// Get current experience state. Returns a (exp, max exp, max level/exp) tuple.
+    pub fn get_current_max_exp(&self, constants: &EngineConstants) -> (u16, u16, bool) {
         if let Some(weapon) = self.weapons.get(self.current_weapon as usize) {
             if weapon.level == WeaponLevel::None {
-                return (0, 0);
+                return (0, 0, false);
             }
 
             let level_idx = weapon.level as usize - 1;
             let max_exp = constants.weapon.level_table[weapon.wtype as usize][level_idx];
+            let max = weapon.level == WeaponLevel::Level3 && weapon.experience == max_exp;
 
-            (weapon.experience, max_exp)
+            (weapon.experience, max_exp, max)
         } else {
-            (0, 0)
+            (0, 0, false)
         }
     }
 
+    /// Get current ammunition state. Returns a (ammo, max ammo) tuple.
     pub fn get_current_ammo(&self) -> (u16, u16) {
         if let Some(weapon) = self.weapons.get(self.current_weapon as usize) {
             (weapon.ammo, weapon.max_ammo)

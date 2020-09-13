@@ -103,7 +103,7 @@ impl GameScene {
         // none
         let weap_x = self.weapon_x_pos as f32;
         let (ammo, max_ammo) = self.inventory.get_current_ammo();
-        let (xp, max_xp) = self.inventory.get_current_max_exp(&state.constants);
+        let (xp, max_xp, max_level) = self.inventory.get_current_max_exp(&state.constants);
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
 
         if max_ammo == 0 {
@@ -122,19 +122,18 @@ impl GameScene {
         // xp box
         batch.add_rect(weap_x + 24.0, 32.0,
                        &Rect::<usize>::new_size(0, 72, 40, 8));
+
+        if max_level {
+            batch.add_rect(weap_x + 24.0, 32.0,
+                           &Rect::<usize>::new_size(40, 72, 40, 8));
+        }
+
         if max_xp > 0 {
-            if xp == max_xp {
-                // max level bar
-                batch.add_rect(weap_x + 24.0, 32.0,
-                               &Rect::<usize>::new_size(40, 72, 40, 8));
+            // xp bar
+            let bar_width = (xp as f32 / max_xp as f32 * 40.0) as usize;
 
-            } else {
-                // xp bar
-                let bar_width = (xp as f32 / max_xp as f32 * 40.0) as usize;
-
-                batch.add_rect(weap_x + 24.0, 32.0,
-                               &Rect::<usize>::new_size(0, 80, bar_width, 8));
-            }
+            batch.add_rect(weap_x + 24.0, 32.0,
+                           &Rect::<usize>::new_size(0, 80, bar_width, 8));
         }
 
         if self.player.max_life != 0 {
@@ -613,7 +612,6 @@ impl GameScene {
                     if !hit {
                         continue;
                     }
-                    println!("npc hit: {}", npc.id);
 
                     if npc.npc_flags.shootable() {
                         log::info!("damage: {} {}", npc.life, -(bullet.damage.min(npc.life) as isize));
