@@ -207,6 +207,11 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n006_green_beetle(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n007_basil(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
         match self.action_num {
             0 => {

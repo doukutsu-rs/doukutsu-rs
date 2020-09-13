@@ -1,7 +1,7 @@
 use crate::caret::CaretType;
 use crate::common::Direction;
 use crate::ggez::GameResult;
-use crate::npc::NPC;
+use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::SharedGameState;
 
@@ -17,6 +17,66 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n003_dead_enemy(&mut self) -> GameResult {
+        if self.action_num != 0xffff {
+            self.action_num = 0xffff;
+            self.action_counter2 = 0;
+            self.anim_rect.left = 0;
+            self.anim_rect.top = 0;
+            self.anim_rect.right = 0;
+            self.anim_rect.bottom = 0;
+        }
+
+        self.action_counter2 += 1;
+        if self.action_counter2 == 100 {
+            self.cond.set_alive(false);
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n004_smoke(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_num = state.game_rng.range(0..4) as u16;
+            self.anim_counter = state.game_rng.range(0..3) as u16;
+
+            if self.direction == Direction::Left || self.direction == Direction::Up {
+                let angle = state.game_rng.range(0..31415) as f32 / 5000.0;
+                self.vel_x = (angle.cos() * state.game_rng.range(0x200..0x5ff) as f32) as isize;
+                self.vel_y = (angle.sin() * state.game_rng.range(0x200..0x5ff) as f32) as isize;
+            }
+        } else {
+            self.vel_x = (self.vel_x * 20) / 21;
+            self.vel_y = (self.vel_y * 20) / 21;
+
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+        }
+
+        self.anim_counter += 1;
+        if self.anim_counter > 4 {
+            self.anim_counter = 0;
+            self.anim_num += 1;
+
+            if self.anim_num > 7 {
+                self.cond.set_alive(false);
+            }
+        }
+
+        match self.direction {
+            Direction::Left | Direction::Right => {
+                self.anim_rect = state.constants.npc.n004_smoke[self.anim_num as usize];
+            }
+            Direction::Up => {
+                self.anim_rect = state.constants.npc.n004_smoke[self.anim_num as usize + 8];
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n015_chest_closed(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -27,7 +87,18 @@ impl NPC {
                     if self.direction == Direction::Right {
                         self.vel_y = -0x200;
 
-                        // todo smoke
+                        for _ in 0..4 {
+                            let mut npc = NPCMap::create_npc(4, &state.npc_table);
+
+                            npc.cond.set_alive(true);
+                            npc.direction = Direction::Left;
+                            npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
+                            npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
+                            npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
+                            npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+
+                            state.new_npcs.push(npc);
+                        }
                     }
 
                     self.anim_rect = state.constants.npc.n015_closed_chest[0];
@@ -39,6 +110,10 @@ impl NPC {
                 }
             }
             2 => {
+                if self.anim_counter == 0 {
+                    self.anim_rect = state.constants.npc.n015_closed_chest[self.anim_num as usize];
+                }
+
                 self.anim_counter += 1;
                 if self.anim_counter > 1 {
                     self.anim_counter = 0;
@@ -48,8 +123,6 @@ impl NPC {
                         self.anim_num = 0;
                         self.action_num = 1;
                     }
-
-                    self.anim_rect = state.constants.npc.n015_closed_chest[self.anim_num as usize];
                 }
             }
             _ => {}
@@ -169,7 +242,19 @@ impl NPC {
                 }
             }
             1 => {
-                // todo smoke
+                for _ in 0..4 {
+                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+
+                    npc.cond.set_alive(true);
+                    npc.direction = Direction::Left;
+                    npc.x = self.x;
+                    npc.y = self.y;
+                    npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
+                    npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+
+                    state.new_npcs.push(npc);
+                }
+
                 self.action_num = 0;
                 self.anim_rect = state.constants.npc.n018_door[0]
             }

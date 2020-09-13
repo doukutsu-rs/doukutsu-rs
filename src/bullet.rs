@@ -6,6 +6,7 @@ use crate::engine_constants::{BulletData, EngineConstants};
 use crate::physics::{OFF_X, OFF_Y, PhysicalEntity};
 use crate::SharedGameState;
 use crate::stage::Stage;
+use crate::npc::NPCMap;
 
 pub struct BulletManager {
     pub bullets: Vec<Bullet>,
@@ -541,7 +542,19 @@ impl PhysicalEntity for Bullet {
 
                         state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
                         // todo play sound 12
-                        // todo smoke
+
+                        for _ in 0..4 {
+                            let mut npc = NPCMap::create_npc(4, &state.npc_table);
+
+                            npc.cond.set_alive(true);
+                            npc.direction = Direction::Left;
+                            npc.x = x * 16 * 0x200;
+                            npc.y = y * 16 * 0x200;
+                            npc.vel_x = state.game_rng.range(-0x200..0x200) as isize;
+                            npc.vel_y = state.game_rng.range(-0x200..0x200) as isize;
+
+                            state.new_npcs.push(npc);
+                        }
 
                         if let Some(tile) = stage.map.tiles.get_mut(stage.map.width * (y + oy) as usize + (x + ox) as usize) {
                             *tile = tile.wrapping_sub(1);

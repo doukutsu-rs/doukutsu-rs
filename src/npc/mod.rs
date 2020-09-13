@@ -5,6 +5,7 @@ use std::io::Cursor;
 
 use bitvec::vec::BitVec;
 use byteorder::{LE, ReadBytesExt};
+use itertools::Itertools;
 
 use crate::{bitfield, SharedGameState};
 use crate::caret::CaretType;
@@ -49,7 +50,7 @@ bitfield! {
   pub show_damage, set_show_damage: 15;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct NPC {
     pub id: u16,
     pub npc_type: u16,
@@ -80,6 +81,16 @@ pub struct NPC {
     pub anim_rect: Rect<usize>,
 }
 
+impl NPC {
+    pub fn get_start_index(&self) -> u16 {
+        if self.npc_type == 1 || self.npc_type == 4 {
+            0x100
+        } else {
+            0
+        }
+    }
+}
+
 impl GameEntity<&mut Player> for NPC {
     fn tick(&mut self, state: &mut SharedGameState, player: &mut Player) -> GameResult {
         if !self.cond.alive() {
@@ -90,6 +101,8 @@ impl GameEntity<&mut Player> for NPC {
             0 => { self.tick_n000_null() }
             1 => { self.tick_n001_experience(state) }
             2 => { self.tick_n002_behemoth(state) }
+            3 => { self.tick_n003_dead_enemy() }
+            4 => { self.tick_n004_smoke(state) }
             5 => { self.tick_n005_green_critter(state, player) }
             7 => { self.tick_n007_basil(state, player) }
             15 => { self.tick_n015_chest_closed(state) }
@@ -302,7 +315,7 @@ impl NPCMap {
         self.npcs.get_mut(&data.id).unwrap().get_mut()
     }
 
-    pub fn create_npc(&self, npc_type: u16, table: &NPCTable) -> NPC {
+    pub fn create_npc(npc_type: u16, table: &NPCTable) -> NPC {
         let display_bounds = table.get_display_bounds(npc_type);
         let hit_bounds = table.get_hit_bounds(npc_type);
         let (size, life, damage, flags, exp) = match table.get_entry(npc_type) {
@@ -343,7 +356,18 @@ impl NPCMap {
     }
 
     pub fn garbage_collect(&mut self) {
-        self.npcs.retain(|_, npc_cell| npc_cell.borrow().cond.alive());
+        let dead_npcs = self.npcs.iter().filter_map(|(&id, npc_cell)| {
+            if !npc_cell.borrow().cond.alive() {
+                Some(id)
+            } else {
+                None
+            }
+        }).collect_vec();
+
+        for npc_id in dead_npcs.iter() {
+            self.npc_ids.remove(npc_id);
+            self.npcs.remove(npc_id);
+        }
     }
 
     pub fn remove_by_event(&mut self, event_num: u16, game_flags: &mut BitVec) {
@@ -367,39 +391,38 @@ impl NPCMap {
         unreachable!()
     }
 
-    pub fn create_death_effect(&self, x: isize, y: isize, radius: usize, count: usize, state: &mut SharedGameState) -> Vec<NPC> {
-        let mut npcs = Vec::new();
+    pub fn create_death_effect(&self, x: isize, y: isize, radius: usize, count: usize, state: &mut SharedGameState) {
         let radius = radius as i32 / 0x200;
 
         for _ in 0..count {
-            let off_x = state.game_rng.range(-radius..radius) * 0x200;
-            let off_y = state.game_rng.range(-radius..radius) * 0x200;
+            let off_x = state.game_rng.range(-radius..radius) as isize * 0x200;
+            let off_y = state.game_rng.range(-radius..radius) as isize * 0x200;
 
-            // todo smoke
+            let mut npc = NPCMap::create_npc(4, &state.npc_table);
+
+            npc.cond.set_alive(true);
+            npc.direction = Direction::Left;
+            npc.x = x + off_x;
+            npc.y = y + off_y;
+
+            state.new_npcs.push(npc);
         }
 
         state.create_caret(x, y, CaretType::Explosion, Direction::Left);
-        npcs
     }
 
-    pub fn process_dead_npcs(&mut self, list: &Vec<u16>, state: &mut SharedGameState) {
-        let mut new_npcs = Vec::new();
-
+    pub fn process_dead_npcs(&mut self, list: &[u16], state: &mut SharedGameState) {
         for id in list {
             let npc_cell = self.npcs.get(id);
             if npc_cell.is_some() {
                 let mut npc = npc_cell.unwrap().borrow_mut();
 
-                let mut npcs = match npc.size {
-                    1 => { self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 3, state) }
-                    2 => { self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 7, state) }
-                    3 => { self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 12, state) }
-                    _ => { vec![] }
+                match npc.size {
+                    1 => { self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 3, state); }
+                    2 => { self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 7, state); }
+                    3 => { self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 12, state); }
+                    _ => {}
                 };
-
-                if !npcs.is_empty() {
-                    new_npcs.append(&mut npcs);
-                }
 
                 if npc.exp != 0 {
                     //if state.game_rng.range(0..4) == 0 {
@@ -420,14 +443,14 @@ impl NPCMap {
                             1
                         };
 
-                        let mut xp_npc = self.create_npc(1, &state.npc_table);
+                        let mut xp_npc = NPCMap::create_npc(1, &state.npc_table);
                         xp_npc.cond.set_alive(true);
                         xp_npc.direction = Direction::Left;
                         xp_npc.x = npc.x;
                         xp_npc.y = npc.y;
                         xp_npc.exp = exp_piece;
 
-                        new_npcs.push(xp_npc);
+                        state.new_npcs.push(xp_npc);
                     }
                     //}
                 }
@@ -440,20 +463,24 @@ impl NPCMap {
             }
         }
 
-        for mut npc in new_npcs {
-            let id = if npc.id == 0 {
-                if npc.npc_type == 1 {
-                    self.allocate_id(0x100)
-                } else {
-                    self.allocate_id(0)
-                }
-            } else {
-                npc.id
-            };
+        self.process_npc_changes(state);
+    }
 
-            npc.id = id;
-            self.npc_ids.insert(id);
-            self.npcs.insert(id, RefCell::new(npc));
+    pub fn process_npc_changes(&mut self, state: &mut SharedGameState) {
+        if !state.new_npcs.is_empty() {
+            for mut npc in state.new_npcs.iter_mut() {
+                let id = if npc.id == 0 {
+                    self.allocate_id(npc.get_start_index())
+                } else {
+                    npc.id
+                };
+
+                npc.id = id;
+                self.npc_ids.insert(id);
+                self.npcs.insert(id, RefCell::new(*npc));
+            }
+
+            state.new_npcs.clear();
         }
     }
 

@@ -444,7 +444,7 @@ impl EngineConstants {
                     Rect { left: 80, top: 0, right: 96, bottom: 16 },
                     Rect { left: 96, top: 0, right: 112, bottom: 16 },
                     Rect { left: 112, top: 0, right: 128, bottom: 16 },
-                    Rect { left: 16, top: 0, right: 17, bottom: 1 }, // right
+                    Rect { left: 16, top: 0, right: 17, bottom: 1 }, // up
                     Rect { left: 80, top: 48, right: 96, bottom: 64 },
                     Rect { left: 0, top: 128, right: 16, bottom: 144 },
                     Rect { left: 16, top: 128, right: 32, bottom: 144 },

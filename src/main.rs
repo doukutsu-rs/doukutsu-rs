@@ -34,7 +34,7 @@ use crate::ggez::graphics::DrawParam;
 use crate::ggez::input::keyboard;
 use crate::ggez::mint::ColumnMatrix4;
 use crate::ggez::nalgebra::Vector2;
-use crate::npc::NPCTable;
+use crate::npc::{NPCTable, NPC};
 use crate::rng::RNG;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
@@ -97,6 +97,7 @@ pub struct SharedGameState {
     pub stages: Vec<StageData>,
     pub sound_manager: SoundManager,
     pub constants: EngineConstants,
+    pub new_npcs: Vec<NPC>,
     pub scale: f32,
     pub god_mode: bool,
     pub speed_hack: bool,
@@ -186,6 +187,7 @@ impl Game {
                 stages: Vec::with_capacity(96),
                 sound_manager: SoundManager::new(ctx)?,
                 constants,
+                new_npcs: Vec::with_capacity(8),
                 scale,
                 god_mode: false,
                 speed_hack: false,

@@ -715,6 +715,7 @@ impl Scene for GameScene {
             self.player.flags.0 = 0;
             state.tick_carets();
             self.bullet_manager.tick_bullets(state, &self.player, &mut self.stage);
+            self.npc_map.process_npc_changes(state);
 
             self.player.tick_map_collisions(state, &mut self.stage);
             self.player.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory);
@@ -730,7 +731,7 @@ impl Scene for GameScene {
                     }
                 }
             }
-
+            self.npc_map.process_npc_changes(state);
             self.tick_npc_bullet_collissions(state);
 
             self.frame.update(state, &self.player, &self.stage);
