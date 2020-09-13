@@ -84,11 +84,12 @@ impl GameEntity<&mut Player> for NPC {
     fn tick(&mut self, state: &mut SharedGameState, player: &mut Player) -> GameResult {
         // maybe use macros?
         match self.npc_type {
-            0 => { self.tick_n000_null(state) }
+            0 => { self.tick_n000_null() }
             1 => { self.tick_n001_experience(state) }
             2 => { self.tick_n002_behemoth(state) }
             5 => { self.tick_n005_green_critter(state, player) }
             7 => { self.tick_n007_basil(state, player) }
+            15 => { self.tick_n015_chest_closed(state) }
             16 => { self.tick_n016_save_point(state) }
             17 => { self.tick_n017_health_refill(state) }
             18 => { self.tick_n018_door(state) }

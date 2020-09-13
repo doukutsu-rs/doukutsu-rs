@@ -146,6 +146,7 @@ pub struct NPCConsts {
     pub n006_green_beetle: [Rect<usize>; 10],
     pub n007_basil: [Rect<usize>; 6],
     pub n008_blue_beetle: [Rect<usize>; 4],
+    pub n015_closed_chest: [Rect<usize>; 3],
     pub n016_save_point: [Rect<usize>; 8],
     pub n017_health_refill: [Rect<usize>; 2],
     pub n018_door: [Rect<usize>; 2],
@@ -485,6 +486,11 @@ impl EngineConstants {
                     Rect { left: 96, top: 80, right: 112, bottom: 96 },
                     Rect { left: 80, top: 96, right: 96, bottom: 112 }, // right
                     Rect { left: 96, top: 96, right: 112, bottom: 112 },
+                ],
+                n015_closed_chest: [
+                    Rect { left: 240, top: 0, right: 256, bottom: 16 },
+                    Rect { left: 256, top: 0, right: 272, bottom: 16 },
+                    Rect { left: 272, top: 0, right: 288, bottom: 16 },
                 ],
                 n016_save_point: [
                     Rect { left: 96, top: 16, right: 112, bottom: 32 },

@@ -6,7 +6,62 @@ use crate::player::Player;
 use crate::SharedGameState;
 
 impl NPC {
-    pub(crate) fn tick_n000_null(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n000_null(&mut self) -> GameResult {
+        if self.action_num != 0xffff {
+            self.action_num = 0xffff;
+            self.anim_rect.left = 0;
+            self.anim_rect.top = 0;
+            self.anim_rect.right = 0;
+            self.anim_rect.bottom = 0;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn tick_n015_chest_closed(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.npc_flags.set_interactable(true);
+
+                    if self.direction == Direction::Right {
+                        self.vel_y = -0x200;
+
+                        // todo smoke
+                    }
+
+                    self.anim_rect = state.constants.npc.n015_closed_chest[0];
+                }
+
+                self.anim_num = 0;
+                if state.game_rng.range(0..30) == 0 {
+                    self.action_num = 2;
+                }
+            }
+            2 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 1 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+
+                    if self.anim_num > 2 {
+                        self.anim_num = 0;
+                        self.action_num = 1;
+                    }
+
+                    self.anim_rect = state.constants.npc.n015_closed_chest[self.anim_num as usize];
+                }
+            }
+            _ => {}
+        }
+
+        self.vel_y += 0x40;
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.y += self.vel_y;
+
         Ok(())
     }
 
@@ -27,6 +82,13 @@ impl NPC {
         self.anim_counter = (self.anim_counter + 1) % 24;
         self.anim_num = self.anim_counter / 3;
         self.anim_rect = state.constants.npc.n016_save_point[self.anim_num as usize];
+
+        self.vel_y += 0x40;
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.y += self.vel_y;
 
         Ok(())
     }
@@ -87,6 +149,13 @@ impl NPC {
             _ => {}
         }
 
+        self.vel_y += 0x40;
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.y += self.vel_y;
+
         Ok(())
     }
 
@@ -102,6 +171,7 @@ impl NPC {
             1 => {
                 // todo smoke
                 self.action_num = 0;
+                self.anim_rect = state.constants.npc.n018_door[0]
             }
             _ => {}
         }
@@ -139,7 +209,6 @@ impl NPC {
 
         Ok(())
     }
-
 
     pub(crate) fn tick_n022_teleporter(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
