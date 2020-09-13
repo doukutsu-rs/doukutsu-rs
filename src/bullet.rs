@@ -25,6 +25,11 @@ impl BulletManager {
 
     pub fn tick_bullets(&mut self, state: &mut SharedGameState, player: &dyn PhysicalEntity, stage: &mut Stage) {
         for bullet in self.bullets.iter_mut() {
+            if bullet.life < 1 {
+                bullet.cond.set_alive(false);
+                continue;
+            }
+            
             bullet.tick(state, player);
             bullet.hit_flags.0 = 0;
             bullet.tick_map_collisions(state, stage);
