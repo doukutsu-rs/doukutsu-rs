@@ -82,7 +82,10 @@ pub struct NPC {
 
 impl GameEntity<&mut Player> for NPC {
     fn tick(&mut self, state: &mut SharedGameState, player: &mut Player) -> GameResult {
-        // maybe use macros?
+        if !self.cond.alive() {
+            return Ok(());
+        }
+
         match self.npc_type {
             0 => { self.tick_n000_null() }
             1 => { self.tick_n001_experience(state) }
@@ -124,7 +127,13 @@ impl GameEntity<&mut Player> for NPC {
             79 => { self.tick_n079_mahin(state, player) }
             211 => { self.tick_n211_small_spikes(state) }
             _ => { Ok(()) }
+        }?;
+
+        if self.shock > 0 {
+            self.shock -= 1;
         }
+
+        Ok(())
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
@@ -135,8 +144,12 @@ impl GameEntity<&mut Player> for NPC {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, state.npc_table.get_texture_name(self.npc_type))?;
 
         let off_x = if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right } as isize;
+        let shock = if self.shock > 0 {
+            (2 * ((self.shock as isize / 2) % 2) - 1) as f32
+        } else { 0.0 };
+
         batch.add_rect(
-            (((self.x - off_x) / 0x200) - (frame.x / 0x200)) as f32,
+            (((self.x - off_x) / 0x200) - (frame.x / 0x200)) as f32 + shock,
             (((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32,
             &self.anim_rect,
         );
