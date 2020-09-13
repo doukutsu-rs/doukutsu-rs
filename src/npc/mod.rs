@@ -104,7 +104,9 @@ impl GameEntity<&mut Player> for NPC {
             3 => { self.tick_n003_dead_enemy() }
             4 => { self.tick_n004_smoke(state) }
             5 => { self.tick_n005_green_critter(state, player) }
+            6 => { self.tick_n006_green_beetle(state) }
             7 => { self.tick_n007_basil(state, player) }
+            8 => { self.tick_n008_blue_beetle(state, player) }
             15 => { self.tick_n015_chest_closed(state) }
             16 => { self.tick_n016_save_point(state) }
             17 => { self.tick_n017_health_refill(state) }

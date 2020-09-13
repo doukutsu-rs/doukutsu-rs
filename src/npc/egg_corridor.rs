@@ -207,7 +207,101 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n006_green_beetle(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n006_green_beetle(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 => {
+                self.action_num = 1;
+
+                match self.direction {
+                    Direction::Left => { self.action_num = 1; }
+                    Direction::Right => { self.action_num = 3; }
+                    _ => {}
+                }
+            }
+            1 => {
+                self.vel_x -= 0x10;
+
+                if self.vel_x < -0x400 {
+                    self.vel_x = -0x400;
+                }
+
+                if self.shock > 0 {
+                    self.x += self.vel_x / 2;
+                } else {
+                    self.x += self.vel_x;
+                }
+
+                self.anim_counter += 1;
+                if self.anim_counter > 1 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+
+                    if self.anim_num > 2 {
+                        self.anim_num = 1;
+                    }
+                }
+
+                if self.flags.hit_left_wall() {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                    self.vel_x = 0;
+                    self.direction = Direction::Right;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 60 {
+                    self.action_num = 3;
+                    self.anim_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            3 => {
+                self.vel_x += 0x10;
+
+                if self.vel_x > 0x400 {
+                    self.vel_x = 0x400;
+                }
+
+                if self.shock > 0 {
+                    self.x += self.vel_x / 2;
+                } else {
+                    self.x += self.vel_x;
+                }
+
+                self.anim_counter += 1;
+                if self.anim_counter > 1 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+
+                    if self.anim_num > 2 {
+                        self.anim_num = 1;
+                    }
+                }
+
+                if self.flags.hit_right_wall() {
+                    self.action_num = 4;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                    self.vel_x = 0;
+                    self.direction = Direction::Left;
+                }
+            }
+            4 => {
+                self.action_counter += 1;
+                if self.action_counter > 60 {
+                    self.action_num = 1;
+                    self.anim_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            _ => {}
+        }
+
+        if self.anim_counter == 1 {
+            self.anim_rect = state.constants.npc.n006_green_beetle[self.anim_num as usize + if self.direction == Direction::Right { 5 } else { 0 }];
+        }
 
         Ok(())
     }
@@ -264,7 +358,84 @@ impl NPC {
         if self.anim_counter > 1 {
             self.anim_counter = 0;
             self.anim_num = (self.anim_num + 1) % 2;
+        }
+
+        if self.anim_counter == 1 {
             self.anim_rect = state.constants.npc.n007_basil[self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n008_blue_beetle(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+        match self.action_num {
+            0 => {
+                if player.x < self.x + 16 * 0x200 && player.x > self.x - 16 * 0x200 {
+                    self.npc_flags.set_shootable(true);
+                    self.vel_y = -0x100;
+                    self.target_y = self.y;
+                    self.action_num = 1;
+                    self.damage = 2;
+
+                    match self.direction {
+                        Direction::Left => {
+                            self.x = player.x + 256 * 0x200;
+                            self.vel_x = -0x2ff;
+                        }
+                        Direction::Right => {
+                            self.x = player.x - 256 * 0x200;
+                            self.vel_x = 0x2ff;
+                        }
+                        _ => {}
+                    }
+                } else {
+                    self.npc_flags.set_shootable(false);
+                    self.anim_rect.left = 0;
+                    self.anim_rect.right = 0;
+                    self.damage = 0;
+                    self.vel_x = 0;
+                    self.vel_y = 0;
+
+                    return Ok(());
+                }
+            }
+            1 => {
+                if self.x > player.x {
+                    self.direction = Direction::Left;
+                    self.vel_x -= 0x10;
+                } else {
+                    self.direction = Direction::Right;
+                    self.vel_x += 0x10;
+                }
+
+                self.vel_y += if self.y < self.target_y { 8 } else { -8 };
+
+                self.vel_x = clamp(self.vel_x, -0x2ff, 0x2ff);
+                self.vel_y = clamp(self.vel_y, -0x100, 0x100);
+
+                if self.shock > 0 {
+                    self.x += self.vel_x / 2;
+                    self.y += self.vel_y / 2;
+                } else {
+                    self.x += self.vel_x;
+                    self.y += self.vel_y;
+                }
+            }
+            _ => {}
+        }
+
+        self.anim_counter += 1;
+        if self.anim_counter > 1 {
+            self.anim_counter = 0;
+            self.anim_num += 1;
+
+            if self.anim_num > 1 {
+                self.anim_num = 0;
+            }
+        }
+
+        if self.anim_counter == 1 {
+            self.anim_rect = state.constants.npc.n008_blue_beetle[self.anim_num as usize + if self.direction == Direction::Right { 2 } else { 0 }];
         }
 
         Ok(())
