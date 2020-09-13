@@ -15,6 +15,7 @@ use num_traits::{clamp, FromPrimitive};
 use crate::{SharedGameState, str};
 use crate::bitfield;
 use crate::common::{Direction, FadeDirection, FadeState};
+use crate::encoding::{read_cur_shift_jis, read_cur_wtf8};
 use crate::entity::GameEntity;
 use crate::ggez::{Context, GameResult};
 use crate::ggez::GameError::ParseError;
@@ -276,48 +277,6 @@ fn read_cur_varint(cursor: &mut Cursor<&Vec<u8>>) -> GameResult<i32> {
     }
 
     Ok(((result << 31) ^ (result >> 1)) as i32)
-}
-
-/// Decodes UTF-8 character in a less strict way.
-/// http://simonsapin.github.io/wtf-8/#decoding-wtf-8
-fn read_cur_wtf8(cursor: &mut Cursor<&Vec<u8>>, max_bytes: u32) -> (u32, char) {
-    let result: u32;
-    let consumed: u32;
-
-    if max_bytes == 0 {
-        return (0, '\u{fffd}');
-    }
-
-    match cursor.read_u8() {
-        Ok(byte @ 0x00..=0x7f) => {
-            consumed = 1;
-            result = byte as u32;
-        }
-        Ok(byte @ 0xc2..=0xdf) if max_bytes >= 2 => {
-            let byte2 = { if let Ok(n) = cursor.read_u8() { n } else { return (1, '\u{fffd}'); } };
-
-            consumed = 2;
-            result = (byte as u32 & 0x1f) << 6 | (byte2 as u32 & 0x3f);
-        }
-        Ok(byte @ 0xe0..=0xef) if max_bytes >= 3 => {
-            let byte2 = { if let Ok(n) = cursor.read_u8() { n } else { return (1, '\u{fffd}'); } };
-            let byte3 = { if let Ok(n) = cursor.read_u8() { n } else { return (2, '\u{fffd}'); } };
-
-            consumed = 3;
-            result = (byte as u32 & 0x0f) << 12 | (byte2 as u32 & 0x3f) << 6 | (byte3 as u32 & 0x3f);
-        }
-        Ok(byte @ 0xf0..=0xf4) if max_bytes >= 4 => {
-            let byte2 = { if let Ok(n) = cursor.read_u8() { n } else { return (1, '\u{fffd}'); } };
-            let byte3 = { if let Ok(n) = cursor.read_u8() { n } else { return (2, '\u{fffd}'); } };
-            let byte4 = { if let Ok(n) = cursor.read_u8() { n } else { return (3, '\u{fffd}'); } };
-
-            consumed = 4;
-            result = (byte as u32 & 0x07) << 18 | (byte2 as u32 & 0x3f) << 12 | (byte3 as u32 & 0x3f) << 6 | (byte4 as u32 & 0x3f);
-        }
-        _ => { return (1, '\u{fffd}'); }
-    }
-
-    (consumed, std::char::from_u32(result).unwrap_or('\u{fffd}'))
 }
 
 impl TextScriptVM {
@@ -1214,7 +1173,7 @@ impl TextScript {
                         }
                     }
 
-                    let bytecode = TextScript::compile_event(&mut iter, strict)?;
+                    let bytecode = TextScript::compile_event(&mut iter, strict, TextScriptEncoding::ShiftJIS)?;
                     log::info!("Successfully compiled event #{} ({} bytes generated).", event_num, bytecode.len());
                     event_map.insert(event_num, bytecode);
                 }
@@ -1238,7 +1197,7 @@ impl TextScript {
         })
     }
 
-    fn compile_event<I: Iterator<Item=u8>>(iter: &mut Peekable<I>, strict: bool) -> GameResult<Vec<u8>> {
+    fn compile_event<I: Iterator<Item=u8>>(iter: &mut Peekable<I>, strict: bool, encoding: TextScriptEncoding) -> GameResult<Vec<u8>> {
         let mut bytecode = Vec::new();
         let mut char_buf = Vec::with_capacity(16);
 
@@ -1246,7 +1205,7 @@ impl TextScript {
             match chr {
                 b'#' => {
                     if !char_buf.is_empty() {
-                        TextScript::put_string(&mut char_buf, &mut bytecode);
+                        TextScript::put_string(&mut char_buf, &mut bytecode, encoding);
                     }
 
                     // some events end without <END marker.
@@ -1255,7 +1214,7 @@ impl TextScript {
                 }
                 b'<' => {
                     if !char_buf.is_empty() {
-                        TextScript::put_string(&mut char_buf, &mut bytecode);
+                        TextScript::put_string(&mut char_buf, &mut bytecode, encoding);
                     }
 
                     iter.next();
@@ -1278,14 +1237,18 @@ impl TextScript {
         Ok(bytecode)
     }
 
-    fn put_string(buffer: &mut Vec<u8>, out: &mut Vec<u8>) {
+    fn put_string(buffer: &mut Vec<u8>, out: &mut Vec<u8>, encoding: TextScriptEncoding) {
         let mut cursor: Cursor<&Vec<u8>> = Cursor::new(buffer);
         let mut tmp_buf = Vec::new();
         let mut remaining = buffer.len() as u32;
         let mut chars = 0;
 
         while remaining > 0 {
-            let (consumed, chr) = read_cur_wtf8(&mut cursor, remaining);
+            let (consumed, chr) = if encoding == TextScriptEncoding::UTF8 {
+                read_cur_wtf8(&mut cursor, remaining)
+            } else {
+                read_cur_shift_jis(&mut cursor, remaining)
+            };
             remaining -= consumed;
             chars += 1;
 

@@ -9,6 +9,7 @@ use crate::ggez::{Context, filesystem, GameResult};
 use crate::ggez::GameError::ResourceLoadError;
 use crate::map::{Map, NPCData};
 use crate::text_script::TextScript;
+use crate::encoding::read_cur_shift_jis;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct NpcType {
@@ -177,6 +178,20 @@ fn zero_index(s: &[u8]) -> usize {
     s.iter().position(|&c| c == b'\0').unwrap_or(s.len())
 }
 
+fn from_shift_jis(s: &[u8]) -> String {
+    let mut cursor = Cursor::new(s);
+    let mut chars = Vec::new();
+    let mut bytes = s.len() as u32;
+
+    while bytes > 0 {
+        let (consumed, chr) = read_cur_shift_jis(&mut cursor, bytes);
+        chars.push(chr);
+        bytes -= consumed;
+    }
+
+    chars.iter().collect()
+}
+
 impl StageData {
     // todo: refactor to make it less repetitive.
     pub fn load_stage_table(ctx: &mut Context, root: &str) -> GameResult<Vec<Self>> {
@@ -214,24 +229,12 @@ impl StageData {
                 f.read_exact(&mut name_jap_buf)?;
                 f.read_exact(&mut name_buf)?;
 
-                let tileset = from_utf8(&ts_buf[0..zero_index(&ts_buf)])
-                    .map_err(|_| ResourceLoadError("UTF-8 error in tileset field".to_string()))?
-                    .to_owned();
-                let map = from_utf8(&map_buf[0..zero_index(&map_buf)])
-                    .map_err(|_| ResourceLoadError("UTF-8 error in map field".to_string()))?
-                    .to_owned();
-                let background = from_utf8(&back_buf[0..zero_index(&back_buf)])
-                    .map_err(|_| ResourceLoadError("UTF-8 error in background field".to_string()))?
-                    .to_owned();
-                let npc1 = from_utf8(&npc1_buf[0..zero_index(&npc1_buf)])
-                    .map_err(|_| ResourceLoadError("UTF-8 error in npc1 field".to_string()))?
-                    .to_owned();
-                let npc2 = from_utf8(&npc2_buf[0..zero_index(&npc2_buf)])
-                    .map_err(|_| ResourceLoadError("UTF-8 error in npc2 field".to_string()))?
-                    .to_owned();
-                let name = from_utf8(&name_buf[0..zero_index(&name_buf)])
-                    .map_err(|_| ResourceLoadError("UTF-8 error in name field".to_string()))?
-                    .to_owned();
+                let tileset = from_shift_jis(&ts_buf[0..zero_index(&ts_buf)]);
+                let map = from_shift_jis(&map_buf[0..zero_index(&map_buf)]);
+                let background = from_shift_jis(&back_buf[0..zero_index(&back_buf)]);
+                let npc1 = from_shift_jis(&npc1_buf[0..zero_index(&npc1_buf)]);
+                let npc2 = from_shift_jis(&npc2_buf[0..zero_index(&npc2_buf)]);
+                let name = from_shift_jis(&name_buf[0..zero_index(&name_buf)]);
 
                 let stage = StageData {
                     name: name.clone(),
@@ -281,24 +284,13 @@ impl StageData {
                 let boss_no = f.read_u8()? as usize;
                 f.read_exact(&mut name_buf)?;
 
-                let tileset = from_utf8(&ts_buf[0..zero_index(&ts_buf)])
-                    .map_err(|_| ResourceLoadError("UTF-8 error in tileset field".to_string()))?
-                    .to_owned();
-                let map = from_utf8(&map_buf)
-                    .map_err(|_| ResourceLoadError("UTF-8 error in map field".to_string()))?
-                    .trim_matches('\0').to_owned();
-                let background = from_utf8(&back_buf)
-                    .map_err(|_| ResourceLoadError("UTF-8 error in background field".to_string()))?
-                    .trim_matches('\0').to_owned();
-                let npc1 = from_utf8(&npc1_buf)
-                    .map_err(|_| ResourceLoadError("UTF-8 error in npc1 field".to_string()))?
-                    .trim_matches('\0').to_owned();
-                let npc2 = from_utf8(&npc2_buf)
-                    .map_err(|_| ResourceLoadError("UTF-8 error in npc2 field".to_string()))?
-                    .trim_matches('\0').to_owned();
-                let name = from_utf8(&name_buf)
-                    .map_err(|_| ResourceLoadError("UTF-8 error in name field".to_string()))?
-                    .trim_matches('\0').to_owned();
+
+                let tileset = from_shift_jis(&ts_buf[0..zero_index(&ts_buf)]);
+                let map = from_shift_jis(&map_buf[0..zero_index(&map_buf)]);
+                let background = from_shift_jis(&back_buf[0..zero_index(&back_buf)]);
+                let npc1 = from_shift_jis(&npc1_buf[0..zero_index(&npc1_buf)]);
+                let npc2 = from_shift_jis(&npc2_buf[0..zero_index(&npc2_buf)]);
+                let name = from_shift_jis(&name_buf[0..zero_index(&name_buf)]);
 
                 println!("bg type: {}", bg_type);
 

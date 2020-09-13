@@ -29,7 +29,7 @@ impl BulletManager {
                 bullet.cond.set_alive(false);
                 continue;
             }
-            
+
             bullet.tick(state, player);
             bullet.hit_flags.0 = 0;
             bullet.tick_map_collisions(state, stage);

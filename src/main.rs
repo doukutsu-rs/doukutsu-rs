@@ -50,6 +50,7 @@ mod builtin_fs;
 mod bullet;
 mod caret;
 mod common;
+mod encoding;
 mod engine_constants;
 mod entity;
 mod frame;
