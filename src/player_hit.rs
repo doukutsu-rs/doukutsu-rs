@@ -1,14 +1,12 @@
-use num_traits::clamp;
+use std::borrow::Borrow;
 
 use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Flag, Rect};
+use crate::inventory::{AddExperienceResult, Inventory};
 use crate::npc::{NPC, NPCMap};
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::SharedGameState;
-use crate::stage::Stage;
-use std::borrow::Borrow;
-use crate::inventory::{Inventory, AddExperienceResult};
 
 impl PhysicalEntity for Player {
     #[inline(always)]
@@ -172,17 +170,18 @@ impl Player {
 
                 // xp pickup
                 if flags.0 != 0 && npc.npc_type == 1 {
+                    state.sound_manager.play_sfx(14);
                     match inventory.add_xp(npc.exp, state) {
-                        AddExperienceResult::None => {},
+                        AddExperienceResult::None => {}
                         AddExperienceResult::LevelUp => {
-                            // todo play sound 27
+                            state.sound_manager.play_sfx(27);
                             state.create_caret(self.x, self.y, CaretType::LevelUp, Direction::Left);
-                        },
+                        }
                         AddExperienceResult::AddStar => {
                             if self.equip.has_whimsical_star() && self.stars < 3 {
                                 self.stars += 1;
                             }
-                        },
+                        }
                     }
                     npc.cond.set_alive(false);
                 }

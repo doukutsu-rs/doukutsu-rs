@@ -145,7 +145,39 @@ pub static PIXTONE_TABLE: [PixToneParameters; 51] = [
         }, Channel::disabled(), Channel::disabled()]
     },
     PixToneParameters::empty(),
-    PixToneParameters::empty(),
+    PixToneParameters {
+        channels: [Channel {
+            enabled: true,
+            length: 10000,
+            carrier: Waveform {
+                waveform_type: 1,
+                pitch: 246.0,
+                level: 23,
+                offset: 0,
+            },
+            frequency: Waveform {
+                waveform_type: 4,
+                pitch: 0.6,
+                level: 22,
+                offset: 239,
+            },
+            amplitude: Waveform {
+                waveform_type: 4,
+                pitch: 6.0,
+                level: 63,
+                offset: 0,
+            },
+            envelope: Envelope {
+                initial: 0,
+                time_a: 11,
+                value_a: 63,
+                time_b: 13,
+                value_b: 63,
+                time_c: 255,
+                value_c: 0,
+            },
+        }, Channel::disabled(), Channel::disabled(), Channel::disabled()]
+    },
     PixToneParameters {
         channels: [Channel {
             enabled: true,

@@ -692,7 +692,7 @@ impl Scene for GameScene {
         self.player.target_y = self.player.y;
         self.frame.immediate_update(state, &self.player, &self.stage);
 
-        self.inventory.add_weapon(WeaponType::PolarStar, 0);
+        //self.inventory.add_weapon(WeaponType::PolarStar, 0);
         //self.player.equip.set_booster_2_0(true);
         Ok(())
     }
