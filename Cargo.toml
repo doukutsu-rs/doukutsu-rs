@@ -36,7 +36,6 @@ lazy_static = "1.4.0"
 log = "0.4"
 lru = "0.6.0"
 lyon = "0.13"
-maplit = "1.0.2"
 mint = "0.5"
 nalgebra = {version = "0.18", features = ["mint"] }
 num-derive = "0.3.2"
@@ -51,4 +50,6 @@ strum = "0.18.0"
 strum_macros = "0.18.0"
 toml = "0.5"
 varint = "0.9.0"
+# remove and replace when drain_filter is in stable
+vec_mut_scan = "0.3.0"
 winit = { version = "0.19.3" }

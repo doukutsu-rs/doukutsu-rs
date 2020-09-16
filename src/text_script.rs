@@ -403,6 +403,7 @@ impl TextScriptVM {
 
                         if remaining > 1 {
                             let ticks = if state.key_state.jump() || state.key_state.fire() { 1 } else { 4 };
+                            state.sound_manager.play_sfx(2);
                             state.textscript_vm.state = TextScriptExecutionState::Msg(event, cursor.position() as u32, remaining - 1, ticks);
                         } else {
                             state.textscript_vm.state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -658,7 +659,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::MLp => {
-                        let life = read_cur_varint(&mut cursor)? as usize;
+                        let life = read_cur_varint(&mut cursor)? as u16;
                         game_scene.player.life += life;
                         game_scene.player.max_life += life;
 
@@ -959,7 +960,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::LIp => {
-                        let life = read_cur_varint(&mut cursor)? as usize;
+                        let life = read_cur_varint(&mut cursor)? as u16;
 
                         game_scene.player.life = clamp(game_scene.player.life + life, 0, game_scene.player.max_life);
 

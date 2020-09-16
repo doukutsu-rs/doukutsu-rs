@@ -126,9 +126,7 @@ impl GameScene {
         if max_level {
             batch.add_rect(weap_x + 24.0, 32.0,
                            &Rect::<usize>::new_size(40, 72, 40, 8));
-        }
-
-        if max_xp > 0 {
+        } else if max_xp > 0 {
             // xp bar
             let bar_width = (xp as f32 / max_xp as f32 * 40.0) as usize;
 
@@ -615,7 +613,7 @@ impl GameScene {
 
                     if npc.npc_flags.shootable() {
                         log::info!("damage: {} {}", npc.life, -(bullet.damage.min(npc.life) as isize));
-                        npc.life -= bullet.damage.min(npc.life);
+                        npc.life = npc.life.saturating_sub(bullet.damage);
 
                         if npc.life == 0 {
                             if npc.npc_flags.show_damage() {

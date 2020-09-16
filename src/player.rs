@@ -27,8 +27,8 @@ pub struct Player {
     pub vel_y: isize,
     pub target_x: isize,
     pub target_y: isize,
-    pub life: usize,
-    pub max_life: usize,
+    pub life: u16,
+    pub max_life: u16,
     pub cond: Condition,
     pub flags: Flag,
     pub equip: Equipment,
@@ -111,7 +111,7 @@ impl Player {
         self.question = false;
         if self.flags.head_bounced() {
             self.flags.set_head_bounced(false);
-            // todo: PlaySoundObject(3, SOUND_MODE_PLAY);
+            state.sound_manager.play_sfx(3);
             state.create_caret(self.x, self.y - self.hit_bounds.top as isize, CaretType::LittleParticles, Direction::Left);
             state.create_caret(self.x, self.y - self.hit_bounds.top as isize, CaretType::LittleParticles, Direction::Left);
         }
@@ -242,7 +242,7 @@ impl Player {
 
             if state.key_trigger.jump() && (self.flags.hit_bottom_wall() || self.flags.hit_right_slope() || self.flags.hit_left_slope()) && !self.flags.force_up() {
                 self.vel_y = -physics.jump;
-                // todo: PlaySoundObject(15, SOUND_MODE_PLAY);
+                state.sound_manager.play_sfx(15);
             }
         }
 
@@ -285,27 +285,24 @@ impl Player {
                         self.vel_x += 0x20; // 0.1fix9
                     }
 
-                    // todo: sound
                     if state.key_trigger.jump() || self.booster_fuel % 3 == 1 {
                         if self.direction == Direction::Left || self.direction == Direction::Right {
                             state.create_caret(self.x + 0x400, self.y + 0x400, CaretType::Exhaust, self.direction.opposite());
                         }
-                        // PlaySoundObject(113, SOUND_MODE_PLAY);
+                        state.sound_manager.play_sfx(113);
                     }
                 }
                 2 => {
                     self.vel_y -= 0x20;
 
-                    // todo: sound
                     if state.key_trigger.jump() || self.booster_fuel % 3 == 1 {
                         state.create_caret(self.x, self.y + 6 * 0x200, CaretType::Exhaust, Direction::Bottom);
-                        // PlaySoundObject(113, SOUND_MODE_PLAY);
+                        state.sound_manager.play_sfx(113);
                     }
                 }
-                // todo: sound
                 3 if state.key_trigger.jump() || self.booster_fuel % 3 == 1 => {
                     state.create_caret(self.x, self.y + 6 * 0x200, CaretType::Exhaust, Direction::Up);
-                    // PlaySoundObject(113, SOUND_MODE_PLAY);
+                    state.sound_manager.play_sfx(113);
                 }
                 _ => {}
             }
@@ -316,7 +313,7 @@ impl Player {
 
             if self.booster_fuel % 3 == 0 {
                 state.create_caret(self.x, self.y + self.hit_bounds.bottom as isize / 2, CaretType::Exhaust, Direction::Bottom);
-                // PlaySoundObject(113, SOUND_MODE_PLAY);
+                state.sound_manager.play_sfx(113);
             }
 
             // bounce off of ceiling
@@ -417,7 +414,7 @@ impl Player {
         Ok(())
     }
 
-    fn tick_animation(&mut self, state: &SharedGameState) {
+    fn tick_animation(&mut self, state: &mut SharedGameState) {
         if self.cond.hidden() {
             return;
         }
@@ -434,7 +431,7 @@ impl Player {
 
                     self.anim_num += 1;
                     if self.anim_num == 7 || self.anim_num == 9 {
-                        // PlaySoundObject(24, SOUND_MODE_PLAY); todo
+                        state.sound_manager.play_sfx(24);
                     }
                 }
 
@@ -450,7 +447,7 @@ impl Player {
 
                     self.anim_num += 1;
                     if self.anim_num == 2 || self.anim_num == 4 {
-                        // PlaySoundObject(24, SOUND_MODE_PLAY); todo
+                        state.sound_manager.play_sfx(24);
                     }
                 }
 
@@ -459,14 +456,14 @@ impl Player {
                 }
             } else if state.control_flags.control_enabled() && state.key_state.up() {
                 if self.cond.fallen() {
-                    // PlaySoundObject(24, SOUND_MODE_PLAY); todo
+                    state.sound_manager.play_sfx(24);
                 }
 
                 self.cond.set_fallen(false);
                 self.anim_num = 5;
             } else {
                 if self.cond.fallen() {
-                    // PlaySoundObject(24, SOUND_MODE_PLAY); todo
+                    state.sound_manager.play_sfx(24);
                 }
 
                 self.cond.set_fallen(false);
@@ -518,7 +515,7 @@ impl Player {
             return;
         }
 
-        // todo play sound 16
+        state.sound_manager.play_sfx(16);
         self.shock_counter = 128;
         self.cond.set_interacted(false);
 
@@ -526,14 +523,14 @@ impl Player {
             self.vel_y = -0x400; // -2.0fix9
         }
 
-        self.life = if hp >= self.life as isize { 0 } else { (self.life as isize - hp) as usize };
+        self.life = self.life.saturating_sub(hp as u16);
 
         if self.equip.has_whimsical_star() && self.stars > 0 {
             self.stars -= 1;
         }
 
         if self.life == 0 {
-            // todo play sound 17
+            state.sound_manager.play_sfx(17);
             self.cond.0 = 0;
             state.textscript_vm.start_script(40);
         }

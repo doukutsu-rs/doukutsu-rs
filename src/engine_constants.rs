@@ -34,8 +34,8 @@ pub struct BoosterConsts {
 pub struct MyCharConsts {
     pub display_bounds: Rect<usize>,
     pub hit_bounds: Rect<usize>,
-    pub life: usize,
-    pub max_life: usize,
+    pub life: u16,
+    pub max_life: u16,
     pub control_mode: ControlMode,
     pub air_physics: PhysicsConsts,
     pub water_physics: PhysicsConsts,
