@@ -4,6 +4,8 @@ use vec_mut_scan::VecMutScan;
 
 use lazy_static::lazy_static;
 
+use crate::sound::pixtone_sfx::PIXTONE_TABLE;
+
 lazy_static! {
     static ref WAVEFORMS: [[i8; 0x100]; 6] = {
         let mut sine = [0i8; 0x100];
@@ -41,7 +43,7 @@ lazy_static! {
     };
 }
 
-#[test]
+/*#[test]
 fn test_waveforms() {
     let reference = include_bytes!("pixtone_ref.dat");
 
@@ -50,195 +52,13 @@ fn test_waveforms() {
             assert_eq!((val as u8, i, n), (reference[n as usize * 256 + i], i, n));
         }
     }
-}
-
-static PIXTONE_TABLE: [PixToneParameters; 17] = [
-    PixToneParameters::empty(),
-    PixToneParameters {
-        channels: [
-            Channel {
-                enabled: true,
-                length: 3000,
-                carrier: Waveform {
-                    waveform_type: 0,
-                    pitch: 99.0,
-                    level: 32,
-                    offset: 0,
-                },
-                frequency: Waveform {
-                    waveform_type: 2,
-                    pitch: 1.0,
-                    level: 55,
-                    offset: 197,
-                },
-                amplitude: Waveform {
-                    waveform_type: 5,
-                    pitch: 0.0,
-                    level: 0,
-                    offset: 0,
-                },
-                envelope: Envelope {
-                    initial: 63,
-                    time_a: 0,
-                    value_a: 63,
-                    time_b: 164,
-                    value_b: 28,
-                    time_c: 255,
-                    value_c: 0,
-                },
-            }, Channel::disabled(), Channel::disabled(), Channel::disabled()
-        ]
-    },
-    PixToneParameters {
-        channels: [
-            Channel {
-                enabled: true,
-                length: 4000,
-                carrier: Waveform {
-                    waveform_type: 1,
-                    pitch: 54.0,
-                    level: 32,
-                    offset: 0,
-                },
-                frequency: Waveform {
-                    waveform_type: 5,
-                    pitch: 0.1,
-                    level: 33,
-                    offset: 0,
-                },
-                amplitude: Waveform {
-                    waveform_type: 0,
-                    pitch: 0.0,
-                    level: 32,
-                    offset: 0,
-                },
-                envelope: Envelope {
-                    initial: 53,
-                    time_a: 57,
-                    value_a: 44,
-                    time_b: 128,
-                    value_b: 24,
-                    time_c: 255,
-                    value_c: 0,
-                },
-            }, Channel::disabled(), Channel::disabled(), Channel::disabled()
-        ]
-    },
-    PixToneParameters::empty(),
-    PixToneParameters::empty(),
-    PixToneParameters::empty(),
-    PixToneParameters::empty(),
-    PixToneParameters::empty(),
-    PixToneParameters::empty(),
-    PixToneParameters::empty(),
-    PixToneParameters::empty(),
-    PixToneParameters::empty(),
-    PixToneParameters::empty(),
-    PixToneParameters::empty(),
-    PixToneParameters::empty(),
-    PixToneParameters {
-        channels: [Channel {
-            enabled: true,
-            length: 1000,
-            carrier: Waveform {
-                waveform_type: 5,
-                pitch: 1.0,
-                level: 32,
-                offset: 0,
-            },
-            frequency: Waveform {
-                waveform_type: 3,
-                pitch: 1.0,
-                level: 63,
-                offset: 0,
-            },
-            amplitude: Waveform {
-                waveform_type: 0,
-                pitch: 0.0,
-                level: 63,
-                offset: 0,
-            },
-            envelope: Envelope {
-                initial: 0,
-                time_a: 28,
-                value_a: 63,
-                time_b: 53,
-                value_b: 31,
-                time_c: 210,
-                value_c: 31,
-            },
-        }, Channel::disabled(), Channel::disabled(), Channel::disabled()]
-    },
-    PixToneParameters {
-        channels: [Channel {
-            enabled: true,
-            length: 5000,
-            carrier: Waveform {
-                waveform_type: 2,
-                pitch: 50.0,
-                level: 39,
-                offset: 0,
-            },
-            frequency: Waveform {
-                waveform_type: 3,
-                pitch: 0.5,
-                level: 40,
-                offset: 217,
-            },
-            amplitude: Waveform {
-                waveform_type: 1,
-                pitch: 0.0,
-                level: 32,
-                offset: 0,
-            },
-            envelope: Envelope {
-                initial: 63,
-                time_a: 64,
-                value_a: 63,
-                time_b: 128,
-                value_b: 34,
-                time_c: 198,
-                value_c: 32,
-            },
-        }, Channel {
-            enabled: true,
-            length: 5000,
-            carrier: Waveform {
-                waveform_type: 5,
-                pitch: 10.0,
-                level: 39,
-                offset: 0,
-            },
-            frequency: Waveform {
-                waveform_type: 3,
-                pitch: 0.5,
-                level: 24,
-                offset: 217,
-            },
-            amplitude: Waveform {
-                waveform_type: 1,
-                pitch: 4.0,
-                level: 32,
-                offset: 0,
-            },
-            envelope: Envelope {
-                initial: 0,
-                time_a: 4,
-                value_a: 63,
-                time_b: 128,
-                value_b: 34,
-                time_c: 198,
-                value_c: 32,
-            },
-        }, Channel::disabled(), Channel::disabled()]
-    }
-];
+}*/
 
 pub struct Waveform {
-    waveform_type: u8,
-    pitch: f32,
-    level: i32,
-    offset: i32,
+    pub waveform_type: u8,
+    pub pitch: f32,
+    pub level: i32,
+    pub offset: i32,
 }
 
 impl Waveform {
@@ -248,13 +68,13 @@ impl Waveform {
 }
 
 pub struct Envelope {
-    initial: i32,
-    time_a: i32,
-    value_a: i32,
-    time_b: i32,
-    value_b: i32,
-    time_c: i32,
-    value_c: i32,
+    pub initial: i32,
+    pub time_a: i32,
+    pub value_a: i32,
+    pub time_b: i32,
+    pub value_b: i32,
+    pub time_c: i32,
+    pub value_c: i32,
 }
 
 impl Envelope {
@@ -291,12 +111,12 @@ impl Envelope {
 }
 
 pub struct Channel {
-    enabled: bool,
-    length: u32,
-    carrier: Waveform,
-    frequency: Waveform,
-    amplitude: Waveform,
-    envelope: Envelope,
+    pub enabled: bool,
+    pub length: u32,
+    pub carrier: Waveform,
+    pub frequency: Waveform,
+    pub amplitude: Waveform,
+    pub envelope: Envelope,
 }
 
 impl Channel {
@@ -336,7 +156,7 @@ impl Channel {
 }
 
 pub struct PixToneParameters {
-    channels: [Channel; 4],
+    pub channels: [Channel; 4],
 }
 
 impl PixToneParameters {

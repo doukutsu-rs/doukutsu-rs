@@ -14,9 +14,10 @@ use crate::sound::playback::{PlaybackEngine, SavedPlaybackState};
 use crate::sound::wave_bank::SoundBank;
 use crate::str;
 
-pub mod pixtone;
 mod wave_bank;
 mod organya;
+mod pixtone;
+mod pixtone_sfx;
 mod playback;
 mod stuff;
 mod wav;
