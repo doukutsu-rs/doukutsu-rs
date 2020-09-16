@@ -203,7 +203,7 @@ impl PixToneParameters {
 }
 
 #[derive(Copy, Clone, PartialEq)]
-pub struct PlaybackState(u8, f32);
+pub struct PlaybackState(u8, f32, u32);
 
 pub struct PixTonePlayback {
     pub samples: HashMap<u8, Vec<i16>>,
@@ -226,13 +226,17 @@ impl PixTonePlayback {
 
     pub fn play_sfx(&mut self, id: u8) {
         for state in self.playback_state.iter_mut() {
-            if state.0 == id {
+            if state.0 == id && state.2 == 0 {
                 state.1 = 0.0;
                 return;
             }
         }
 
-        self.playback_state.push(PlaybackState(id, 0.0));
+        self.playback_state.push(PlaybackState(id, 0.0, 0));
+    }
+
+    pub fn play_concurrent(&mut self, id: u8, tag: u32) {
+        self.playback_state.push(PlaybackState(id, 0.0, tag));
     }
 
     pub fn mix(&mut self, dst: &mut [u16], sample_rate: f32) {
