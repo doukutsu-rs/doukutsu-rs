@@ -4,6 +4,7 @@ use crate::sound::organya::Song as Organya;
 use crate::sound::stuff::*;
 use crate::sound::wav::*;
 use crate::sound::wave_bank::SoundBank;
+use num_traits::real::Real;
 
 pub struct PlaybackEngine {
     song: Organya,
@@ -328,7 +329,7 @@ impl PlaybackEngine {
 }
 
 // TODO: Create a MixingBuffer or something...
-fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
+pub fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
     let freq = dst_fmt.sample_rate as f64;
 
     for buf in srcs {
@@ -352,21 +353,6 @@ fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
                 } else {
                     v
                 }
-            }
-
-            // s1: sample 1
-            // s2: sample 2
-            // sp: previous sample (before s1)
-            // sn: next sample (after s2)
-            // mu: position to interpolate for
-            fn cubic_interp(s1: f32, s2: f32, sp: f32, sn: f32, mu: f32) -> f32 {
-                let mu2 = mu * mu;
-                let a0 = sn - s2 - sp + s1;
-                let a1 = sp - s1 - a0;
-                let a2 = s2 - sp;
-                let a3 = s1;
-
-                a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3
             }
 
             #[allow(unused_variables)]

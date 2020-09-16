@@ -34,3 +34,18 @@ pub fn org_vol_to_vol(vol: u8) -> i32 {
 pub fn org_key_to_oct_pitch(key: u8) -> (u8, u8) {
     (key/12, key%12)
 }
+
+// s1: sample 1
+// s2: sample 2
+// sp: previous sample (before s1)
+// sn: next sample (after s2)
+// mu: position to interpolate for
+pub fn cubic_interp(s1: f32, s2: f32, sp: f32, sn: f32, mu: f32) -> f32 {
+    let mu2 = mu * mu;
+    let a0 = sn - s2 - sp + s1;
+    let a1 = sp - s1 - a0;
+    let a2 = s2 - sp;
+    let a3 = s1;
+
+    a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3
+}

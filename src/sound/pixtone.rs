@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
+use num_traits::clamp;
 use vec_mut_scan::VecMutScan;
 
 use lazy_static::lazy_static;
 
 use crate::sound::pixtone_sfx::PIXTONE_TABLE;
+use crate::sound::stuff::cubic_interp;
 
 lazy_static! {
     static ref WAVEFORMS: [[i8; 0x100]; 6] = {
@@ -26,7 +28,7 @@ lazy_static! {
         }
 
         // todo i can't get this shit right
-        /*
+/*
         let mut seed = 0i32;
 
         for i in 0..255 {
@@ -36,7 +38,7 @@ lazy_static! {
             saw_up[i] = (-0x40i32).wrapping_add(i as i32 / 2) as i8;
             saw_down[i] = (0x40i32.wrapping_sub(i as i32 / 2)) as i8;
             square[i] = (0x40i32.wrapping_sub(i as i32 & 0x80)) as i8;
-            random[i] = ((seed >> 16) / 2) as i8;
+            random[i] = (seed >> 16) as i8 / 2;
         }*/
 
         [sine, triangle, saw_up, saw_down, square, random]
@@ -79,17 +81,6 @@ pub struct Envelope {
 
 impl Envelope {
     pub fn evaluate(&self, i: i32) -> i32 {
-        let (prev_time, prev_val) = {
-            if i >= self.time_a {
-                (self.time_a, self.value_a)
-            } else if i >= self.time_b {
-                (self.time_b, self.value_b)
-            } else if i >= self.time_c {
-                (self.time_c, self.value_c)
-            } else {
-                (0, self.initial)
-            }
-        };
         let (next_time, next_val) = {
             if i < self.time_c {
                 (self.time_c, self.value_c)
@@ -99,6 +90,18 @@ impl Envelope {
                 (self.time_a, self.value_a)
             } else {
                 (256, 0)
+            }
+        };
+
+        let (prev_time, prev_val) = {
+            if i >= self.time_a {
+                (self.time_a, self.value_a)
+            } else if i >= self.time_b {
+                (self.time_b, self.value_b)
+            } else if i >= self.time_c {
+                (self.time_c, self.value_c)
+            } else {
+                (0, self.initial)
             }
         };
 
@@ -188,11 +191,15 @@ impl PixToneParameters {
             let amplitude_wave = channel.amplitude.get_waveform();
 
             for (i, result) in samples.iter_mut().enumerate() {
+                if i == channel.length as usize {
+                    break;
+                }
+
                 let carrier = carrier_wave[0xff & phase as usize] as i32 * channel.carrier.level;
                 let freq = frequency_wave[0xff & (channel.frequency.offset as f32 + s(channel.frequency.pitch, i, channel.length)) as usize] as i32 * channel.frequency.level;
                 let amp = amplitude_wave[0xff & (channel.amplitude.offset as f32 + s(channel.amplitude.pitch, i, channel.length)) as usize] as i32 * channel.amplitude.level;
 
-                *result += ((carrier * (amp + 4096) / 4096 * channel.envelope.evaluate(s(1.0, i, channel.length) as i32) / 4096) * 256) as i16;
+                *result = clamp((*result as i32) + (carrier * (amp + 4096) / 4096 * channel.envelope.evaluate(s(1.0, i, channel.length) as i32) / 4096) * 256, -32767, 32767) as i16;
 
                 phase += delta * (1.0 + (freq as f32 / (if freq < 0 { 8192.0 } else { 2048.0 })));
             }
@@ -258,7 +265,17 @@ impl PixTonePlayback {
                         remove = true;
                         break;
                     } else {
-                        *result = ((*result as u16 ^ 0x8000u16) as i16).saturating_add(sample[state.1 as usize]) as u16 ^ 0x8000u16;
+                        let pos = state.1 as usize;
+                        let s1 = (sample[pos] as f32) / 32768.0;
+                        let s2 = (sample[clamp(pos + 1, 0, sample.len() - 1)] as f32) / 32768.0;
+                        let s3 = (sample[clamp(pos + 2, 0, sample.len() - 1)] as f32) / 32768.0;
+                        let s4 = (sample[pos.saturating_sub(1)] as f32) / 32768.0;
+
+                        let s = cubic_interp(s1, s2, s4, s3, state.1.fract()) * 32768.0;
+                        let sam = (*result ^ 0x8000) as i16;
+
+                        *result = sam.saturating_add(s as i16) as u16 ^ 0x8000;
+
                         state.1 += delta;
                     }
                 }
