@@ -71,14 +71,14 @@ impl NPC {
             }
 
             if self.flags.hit_bottom_wall() {
-                // todo play sound 45
+                state.sound_manager.play_sfx(45);
 
                 self.vel_y = -0x280;
                 self.vel_x = 2 * self.vel_x / 3;
             }
 
             if self.flags.hit_left_wall() || self.flags.hit_right_wall() || self.flags.hit_bottom_wall() {
-                // todo play sound 45
+                state.sound_manager.play_sfx(45);
                 self.action_counter2 += 1;
 
                 if self.action_counter2 > 2 {

@@ -326,7 +326,7 @@ impl Bullet {
 
     pub fn vanish(&mut self, state: &mut SharedGameState) {
         if self.btype != 37 && self.btype != 38 && self.btype != 39 {
-            // todo play sound 28
+            state.sound_manager.play_sfx(28);
         } else {
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Up);
         }
@@ -337,8 +337,8 @@ impl Bullet {
 
     fn judge_hit_block_destroy(&mut self, x: isize, y: isize, hit_attribs: &[u8; 4], state: &mut SharedGameState) {
         let mut hits = [false; 4];
-        let mut block_x = (x * 16 + 8) * 0x200;
-        let mut block_y = (y * 16 + 8) * 0x200;
+        let block_x = (x * 16 + 8) * 0x200;
+        let block_y = (y * 16 + 8) * 0x200;
 
         for (i, &attr) in hit_attribs.iter().enumerate() {
             if self.flags.snack_destroy() {
@@ -541,7 +541,7 @@ impl PhysicalEntity for Bullet {
                         }
 
                         state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
-                        // todo play sound 12
+                        state.sound_manager.play_sfx(12);
 
                         for _ in 0..4 {
                             let mut npc = NPCMap::create_npc(4, &state.npc_table);

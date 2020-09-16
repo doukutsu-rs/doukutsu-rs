@@ -85,7 +85,7 @@ impl Weapon {
             };
 
             if !self.consume_ammo(1) {
-                // todo: play sound 37
+                state.sound_manager.play_sfx(37);
                 return;
             }
 
@@ -128,9 +128,9 @@ impl Weapon {
             }
 
             if self.level == WeaponLevel::Level3 {
-                // todo play sound 49
+                state.sound_manager.play_sfx(49);
             } else {
-                // todo play sound 32
+                state.sound_manager.play_sfx(32);
             }
         }
     }

@@ -627,7 +627,7 @@ impl GameScene {
                             }
                         } else {
                             if npc.shock < 14 {
-                                // todo play hurt sound
+                                state.sound_manager.play_sfx(npc.hurt_sound);
                                 npc.shock = 16;
                             }
 
@@ -639,7 +639,7 @@ impl GameScene {
                         && bullet.btype != 13 && bullet.btype != 14 && bullet.btype != 15
                         && bullet.btype != 28 && bullet.btype != 29 && bullet.btype != 30 {
                         state.create_caret((bullet.x + npc.x) / 2, (bullet.y + npc.y) / 2, CaretType::ProjectileDissipation, Direction::Right);
-                        // todo play sound 31
+                        state.sound_manager.play_sfx(31);
                         bullet.life = 0;
                         continue;
                     }
@@ -692,7 +692,7 @@ impl Scene for GameScene {
         self.player.target_y = self.player.y;
         self.frame.immediate_update(state, &self.player, &self.stage);
 
-        //self.inventory.add_weapon(WeaponType::PolarStar, 0);
+        self.inventory.add_weapon(WeaponType::PolarStar, 0);
         //self.player.equip.set_booster_2_0(true);
         Ok(())
     }

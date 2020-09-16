@@ -142,7 +142,7 @@ impl NPC {
                     }
 
                     self.vel_y = -0x5ff;
-                    // todo play sound 30
+                    state.sound_manager.play_sfx(30);
 
                     if self.direction == Direction::Left {
                         self.vel_x = -0x100;
@@ -157,7 +157,7 @@ impl NPC {
                     self.action_counter = 0;
                     self.action_num = 1;
 
-                    // tood play sound 23
+                    state.sound_manager.play_sfx(23);
 
                     if self.anim_num != 0 {
                         self.anim_num = 0;
