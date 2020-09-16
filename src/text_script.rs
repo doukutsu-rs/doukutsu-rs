@@ -807,6 +807,13 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::SOU => {
+                        let sound = read_cur_varint(&mut cursor)? as u8;
+
+                        state.sound_manager.play_sfx(sound);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::DNP => {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
@@ -1039,7 +1046,7 @@ impl TextScriptVM {
                     // One operand codes
                     OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::NUM | OpCode::DNA |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp |
-                    OpCode::UNJ | OpCode::MPJ | OpCode::XX1 | OpCode::SIL | OpCode::SOU |
+                    OpCode::UNJ | OpCode::MPJ | OpCode::XX1 | OpCode::SIL |
                     OpCode::SSS | OpCode::ACH => {
                         let par_a = read_cur_varint(&mut cursor)?;
 
