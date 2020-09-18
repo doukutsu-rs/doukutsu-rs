@@ -3,7 +3,7 @@
 A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/), aiming for behavior accuracy and cleaner code.
 Later plans might involve turning it into a fully-featured modding tool with live debugging and stuff.
 
-**The project is still in a very early state and nowhere near being playable. Expect lots of breaking changes and bugs**
+**The project is still incomplete and might not be playable. Expect lots of breaking changes and bugs**
 
 [Join the Discord server](https://discord.gg/fbRsNNB)
 
@@ -29,28 +29,29 @@ Vanilla Cave Story does not work yet because some important data files are embed
 
 #### Roadmap
 
-- [ ] Rendering
+- [x] Rendering
   - [x] Backdrops
   - [x] Tilemap
   - [x] Player and it's animations
   - [x] Carets
-  - [ ] Bullets
+  - [x] Bullets
   - [x] NPCs
   - [x] Text
-  - [ ] HUD
+  - [x] HUD
 - [ ] Text scripts (TSC)
   - [x] Initial implementation
   - [x] Execution of basic subset of opcodes and game conversations
   - [ ] Full implementation of opcodes
-  - [ ] Shift-JIS encoding support
+  - [x] Shift-JIS encoding support
 - [ ] Audio
   - [x] Organya BGM playback
   - [x] Text script bindings
   - [ ] CS+ style .ogg BGM playback
-  - [ ] PixTone SFX
+  - [x] PixTone SFX
 - [ ] NPCs/entities
   - [x] Initial implementation
   - [ ] Miscellaneous entities
+  - [ ] Bosses
   - [x] First Cave
   - [ ] Mimiga Village
   - [ ] Egg Corridor
