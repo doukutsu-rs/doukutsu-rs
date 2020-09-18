@@ -11,7 +11,7 @@ Later plans might involve turning it into a fully-featured modding tool with liv
 
 doukutsu-rs project does not re-distribute any copyrighted files. 
 
-The engine should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE2) or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) modified freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) (Nicalis commercial release, loading is supported but note we're not going to reverse engineer it or support it's features) data files.
+The engine should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE2) or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) modified freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) (Nicalis commercial release, loading is supported, features are implemented in clean room way, using guess work or stuff already being inside the engine) data files.
 
 Vanilla Cave Story does not work yet because some important data files are embedded inside executable and we don't have an extractor yet.
 
