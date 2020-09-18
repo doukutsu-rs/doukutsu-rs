@@ -175,7 +175,7 @@ impl PixToneParameters {
             return Vec::new();
         }
 
-        let mut samples = vec![0; length];
+        let mut samples = vec![0i16; length + 100];
 
         for channel in self.channels.iter() {
             if !channel.enabled { continue; }
@@ -189,19 +189,30 @@ impl PixToneParameters {
             let carrier_wave = channel.carrier.get_waveform();
             let frequency_wave = channel.frequency.get_waveform();
             let amplitude_wave = channel.amplitude.get_waveform();
+            let mut last_wave = 0;
 
             for (i, result) in samples.iter_mut().enumerate() {
-                if i == channel.length as usize {
-                    break;
+                if i >= channel.length as usize {
+                    if i == channel.length as usize {
+                        last_wave = *result;
+                    } else if i == (channel.length as usize + 100) {
+                        break;
+                    }
+
+                    let fac = (i - channel.length as usize) as i16 / 2 + 1;
+
+                    last_wave /= fac;
+                    *result = last_wave;
+                    continue;
+                } else {
+                    let carrier = carrier_wave[0xff & phase as usize] as i32 * channel.carrier.level;
+                    let freq = frequency_wave[0xff & (channel.frequency.offset as f32 + s(channel.frequency.pitch, i, channel.length)) as usize] as i32 * channel.frequency.level;
+                    let amp = amplitude_wave[0xff & (channel.amplitude.offset as f32 + s(channel.amplitude.pitch, i, channel.length)) as usize] as i32 * channel.amplitude.level;
+
+                    *result = clamp((*result as i32) + (carrier * (amp + 4096) / 4096 * channel.envelope.evaluate(s(1.0, i, channel.length) as i32) / 4096) * 192, -32767, 32767) as i16;
+
+                    phase += delta * (1.0 + (freq as f32 / (if freq < 0 { 8192.0 } else { 2048.0 })));
                 }
-
-                let carrier = carrier_wave[0xff & phase as usize] as i32 * channel.carrier.level;
-                let freq = frequency_wave[0xff & (channel.frequency.offset as f32 + s(channel.frequency.pitch, i, channel.length)) as usize] as i32 * channel.frequency.level;
-                let amp = amplitude_wave[0xff & (channel.amplitude.offset as f32 + s(channel.amplitude.pitch, i, channel.length)) as usize] as i32 * channel.amplitude.level;
-
-                *result = clamp((*result as i32) + (carrier * (amp + 4096) / 4096 * channel.envelope.evaluate(s(1.0, i, channel.length) as i32) / 4096) * 256, -32767, 32767) as i16;
-
-                phase += delta * (1.0 + (freq as f32 / (if freq < 0 { 8192.0 } else { 2048.0 })));
             }
         }
 
@@ -210,7 +221,7 @@ impl PixToneParameters {
 }
 
 #[derive(Copy, Clone, PartialEq)]
-pub struct PlaybackState(u8, f32, u32);
+pub struct PlaybackState(u8, f32, f32, u32);
 
 pub struct PixTonePlayback {
     pub samples: HashMap<u8, Vec<i16>>,
@@ -233,17 +244,17 @@ impl PixTonePlayback {
 
     pub fn play_sfx(&mut self, id: u8) {
         for state in self.playback_state.iter_mut() {
-            if state.0 == id && state.2 == 0 {
-                state.1 = 0.0;
-                return;
+            if state.0 == id && state.3 == 0 {
+                state.2 = 200.0;
+                state.3 = 0xffffffff;
             }
         }
 
-        self.playback_state.push(PlaybackState(id, 0.0, 0));
+        self.playback_state.push(PlaybackState(id, 0.0, 0.0, 0));
     }
 
     pub fn play_concurrent(&mut self, id: u8, tag: u32) {
-        self.playback_state.push(PlaybackState(id, 0.0, tag));
+        self.playback_state.push(PlaybackState(id, 0.0, 0.0, tag));
     }
 
     pub fn mix(&mut self, dst: &mut [u16], sample_rate: f32) {
@@ -271,10 +282,21 @@ impl PixTonePlayback {
                         let s3 = (sample[clamp(pos + 2, 0, sample.len() - 1)] as f32) / 32768.0;
                         let s4 = (sample[pos.saturating_sub(1)] as f32) / 32768.0;
 
-                        let s = cubic_interp(s1, s2, s4, s3, state.1.fract()) * 32768.0;
-                        let sam = (*result ^ 0x8000) as i16;
+                        let mut s = cubic_interp(s1, s2, s4, s3, state.1.fract()) * 32768.0;
 
-                        *result = sam.saturating_add(s as i16) as u16 ^ 0x8000;
+                        if state.2 > 0.0 {
+                            s *= (state.2 / 200.0);
+
+                            state.2 -= delta;
+
+                            if state.2 <= 0.0 {
+                                remove = true;
+                                break;
+                            }
+                        }
+
+                        let sam = (*result ^ 0x8000) as i16;
+                        *result = sam.wrapping_add(s as i16) as u16 ^ 0x8000;
 
                         state.1 += delta;
                     }
