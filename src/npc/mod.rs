@@ -94,10 +94,6 @@ impl NPC {
 
 impl GameEntity<&mut Player> for NPC {
     fn tick(&mut self, state: &mut SharedGameState, player: &mut Player) -> GameResult {
-        if !self.cond.alive() {
-            return Ok(());
-        }
-
         match self.npc_type {
             0 => { self.tick_n000_null() }
             1 => { self.tick_n001_experience(state) }
@@ -131,6 +127,7 @@ impl GameEntity<&mut Player> for NPC {
             60 => { self.tick_n060_toroko(state, player) }
             61 => { self.tick_n061_king(state) }
             62 => { self.tick_n062_kazuma_computer(state) }
+            63 => { self.tick_n063_toroko_stick(state) }
             64 => { self.tick_n064_first_cave_critter(state, player) }
             65 => { self.tick_n065_first_cave_bat(state, player) }
             70 => { self.tick_n070_sparkle(state) }
