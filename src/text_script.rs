@@ -1094,7 +1094,7 @@ impl TextScriptVM {
 
         if tick_npc != 0 {
             if let Some(npc) = game_scene.npc_map.npcs.get(&tick_npc) {
-                npc.borrow_mut().tick(state, &mut game_scene.player)?;
+                npc.borrow_mut().tick(state, (&mut game_scene.player, &game_scene.npc_map.npcs))?;
             }
         }
 

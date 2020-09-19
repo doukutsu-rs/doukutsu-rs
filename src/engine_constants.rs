@@ -181,6 +181,8 @@ pub struct NPCConsts {
     pub n063_toroko_stick: [Rect<usize>; 12],
     pub n064_first_cave_critter: [Rect<usize>; 6],
     pub n065_first_cave_bat: [Rect<usize>; 8],
+    pub n066_misery_bubble: [Rect<usize>; 4],
+    pub n067_misery_floating: [Rect<usize>; 16],
     pub n070_sparkle: [Rect<usize>; 4],
     pub n071_chinfish: [Rect<usize>; 6],
     pub n072_sprinkler: [Rect<usize>; 2],
@@ -756,6 +758,32 @@ impl EngineConstants {
                     Rect { left: 48, top: 48, right: 64, bottom: 64 },
                     Rect { left: 64, top: 48, right: 80, bottom: 64 },
                     Rect { left: 80, top: 48, right: 96, bottom: 64 },
+                ],
+                n066_misery_bubble: [
+                    Rect { left: 32, top: 192, right: 56, bottom: 216 },
+                    Rect { left: 56, top: 192, right: 80, bottom: 216 },
+                    Rect { left: 32, top: 216, right: 56, bottom: 240 },
+                    Rect { left: 56, top: 216, right: 80, bottom: 240 },
+                ],
+                n067_misery_floating: [
+                    Rect { left: 80, top: 0, right: 96, bottom: 16 }, // left
+                    Rect { left: 96, top: 0, right: 112, bottom: 16 },
+                    Rect { left: 112, top: 0, right: 128, bottom: 16 },
+                    Rect { left: 128, top: 0, right: 144, bottom: 16 },
+                    Rect { left: 144, top: 0, right: 160, bottom: 16 },
+                    Rect { left: 160, top: 0, right: 176, bottom: 16 },
+                    Rect { left: 176, top: 0, right: 192, bottom: 16 },
+                    Rect { left: 144, top: 0, right: 160, bottom: 16 },
+
+
+                    Rect { left: 80, top: 16, right: 96, bottom: 32 }, // right
+                    Rect { left: 96, top: 16, right: 112, bottom: 32 },
+                    Rect { left: 112, top: 16, right: 128, bottom: 32 },
+                    Rect { left: 128, top: 16, right: 144, bottom: 32 },
+                    Rect { left: 144, top: 16, right: 160, bottom: 32 },
+                    Rect { left: 160, top: 16, right: 176, bottom: 32 },
+                    Rect { left: 176, top: 16, right: 192, bottom: 32 },
+                    Rect { left: 144, top: 16, right: 160, bottom: 32 },
                 ],
                 n070_sparkle: [
                     Rect { left: 96, top: 48, right: 112, bottom: 64 },

@@ -25,7 +25,9 @@ pub mod egg_corridor;
 pub mod first_cave;
 pub mod mimiga_village;
 pub mod misc;
+pub mod misery;
 pub mod pickups;
+pub mod toroko;
 
 bitfield! {
   #[derive(Clone, Copy)]
@@ -92,8 +94,8 @@ impl NPC {
     }
 }
 
-impl GameEntity<&mut Player> for NPC {
-    fn tick(&mut self, state: &mut SharedGameState, player: &mut Player) -> GameResult {
+impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>)> for NPC {
+    fn tick(&mut self, state: &mut SharedGameState, (player, map): (&mut Player, &HashMap<u16, RefCell<NPC>>)) -> GameResult {
         match self.npc_type {
             0 => { self.tick_n000_null() }
             1 => { self.tick_n001_experience(state) }
@@ -130,6 +132,8 @@ impl GameEntity<&mut Player> for NPC {
             63 => { self.tick_n063_toroko_stick(state) }
             64 => { self.tick_n064_first_cave_critter(state, player) }
             65 => { self.tick_n065_first_cave_bat(state, player) }
+            66 => { self.tick_n066_misery_bubble(state, map) }
+            67 => { self.tick_n067_misery_floating(state) }
             70 => { self.tick_n070_sparkle(state) }
             71 => { self.tick_n071_chinfish(state) }
             72 => { self.tick_n072_sprinkler(state) }

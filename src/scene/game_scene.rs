@@ -692,9 +692,9 @@ impl Scene for GameScene {
         self.player.target_y = self.player.y;
         self.frame.immediate_update(state, &self.player, &self.stage);
 
-        //self.inventory.add_weapon(WeaponType::PolarStar, 0);
-        //self.inventory.add_xp(120, state);
-        //self.player.equip.set_booster_2_0(true);
+        self.inventory.add_weapon(WeaponType::PolarStar, 0);
+        self.inventory.add_xp(120, state);
+        self.player.equip.set_booster_2_0(true);
         Ok(())
     }
 
@@ -711,11 +711,11 @@ impl Scene for GameScene {
             };
             self.player.tick(state, ())?;
             for npc_id in self.npc_map.npc_ids.iter() {
-                if let Some(npc_cell) = self.npc_map.npcs.get_mut(npc_id) {
+                if let Some(npc_cell) = self.npc_map.npcs.get(npc_id) {
                     let mut npc = npc_cell.borrow_mut();
 
                     if npc.cond.alive() {
-                        npc.tick(state, &mut self.player)?;
+                        npc.tick(state, (&mut self.player, &self.npc_map.npcs))?;
                     }
                 }
             }
