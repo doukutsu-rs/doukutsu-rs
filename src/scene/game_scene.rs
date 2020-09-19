@@ -693,6 +693,7 @@ impl Scene for GameScene {
         self.frame.immediate_update(state, &self.player, &self.stage);
 
         //self.inventory.add_weapon(WeaponType::PolarStar, 0);
+        //self.inventory.add_xp(120, state);
         //self.player.equip.set_booster_2_0(true);
         Ok(())
     }
@@ -709,19 +710,26 @@ impl Scene for GameScene {
                 }
             };
             self.player.tick(state, ())?;
-
-            self.player.flags.0 = 0;
-            state.tick_carets();
-            self.bullet_manager.tick_bullets(state, &self.player, &mut self.stage);
-            self.npc_map.process_npc_changes(state);
-
-            self.player.tick_map_collisions(state, &mut self.stage);
-            self.player.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory);
-
             for npc_id in self.npc_map.npc_ids.iter() {
                 if let Some(npc_cell) = self.npc_map.npcs.get_mut(npc_id) {
                     let mut npc = npc_cell.borrow_mut();
-                    npc.tick(state, &mut self.player)?;
+
+                    if npc.cond.alive() {
+                        npc.tick(state, &mut self.player)?;
+                    }
+                }
+            }
+            self.npc_map.process_npc_changes(state);
+            self.npc_map.process_npc_changes(state);
+
+            self.player.flags.0 = 0;
+
+            self.player.tick_map_collisions(state, &mut self.stage);
+            self.player.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory);
+            self.npc_map.process_npc_changes(state);
+            for npc_id in self.npc_map.npc_ids.iter() {
+                if let Some(npc_cell) = self.npc_map.npcs.get_mut(npc_id) {
+                    let mut npc = npc_cell.borrow_mut();
 
                     if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
                         npc.flags.0 = 0;
@@ -731,6 +739,9 @@ impl Scene for GameScene {
             }
             self.npc_map.process_npc_changes(state);
             self.tick_npc_bullet_collissions(state);
+
+            state.tick_carets();
+            self.bullet_manager.tick_bullets(state, &self.player, &mut self.stage);
 
             self.frame.update(state, &self.player, &self.stage);
         }
@@ -794,8 +805,8 @@ impl Scene for GameScene {
                 npc_cell.borrow().draw(state, ctx, &self.frame)?;
             }
         }
-        self.player.draw(state, ctx, &self.frame)?;
         self.draw_bullets(state, ctx)?;
+        self.player.draw(state, ctx, &self.frame)?;
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;

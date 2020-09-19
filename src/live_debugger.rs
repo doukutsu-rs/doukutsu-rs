@@ -123,6 +123,7 @@ impl LiveDebugger {
                     if ui.button(im_str!("Load"), [0.0, 0.0]) {
                         match GameScene::new(state, ctx, self.selected_stage as usize) {
                             Ok(mut scene) => {
+                                scene.inventory = game_scene.inventory.clone();
                                 scene.player = game_scene.player.clone();
                                 scene.player.x = (scene.stage.map.width / 2 * 16 * 0x200) as isize;
                                 scene.player.y = (scene.stage.map.height / 2 * 16 * 0x200) as isize;

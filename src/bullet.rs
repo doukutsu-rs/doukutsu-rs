@@ -3,10 +3,10 @@ use num_traits::clamp;
 use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Flag, Rect};
 use crate::engine_constants::{BulletData, EngineConstants};
+use crate::npc::NPCMap;
 use crate::physics::{OFF_X, OFF_Y, PhysicalEntity};
 use crate::SharedGameState;
 use crate::stage::Stage;
-use crate::npc::NPCMap;
 
 pub struct BulletManager {
     pub bullets: Vec<Bullet>,
@@ -500,7 +500,7 @@ impl PhysicalEntity for Bullet {
         false
     }
 
-    fn judge_hit_block(&mut self, state: &SharedGameState, x: isize, y: isize) {
+    fn judge_hit_block(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
         if (self.x - self.hit_bounds.left as isize) < (x * 16 + 8) * 0x200
             && (self.x + self.hit_bounds.right as isize) > (x * 16 - 8) * 0x200
             && (self.y - self.hit_bounds.top as isize) < (y * 16 + 8) * 0x200
@@ -563,28 +563,28 @@ impl PhysicalEntity for Bullet {
                 }
                 // Slopes
                 0x50 | 0x70 => {
-                    self.judge_hit_triangle_a(x + ox, y + oy);
+                    self.judge_hit_triangle_a(state, x + ox, y + oy);
                 }
                 0x51 | 0x71 => {
-                    self.judge_hit_triangle_b(x + ox, y + oy);
+                    self.judge_hit_triangle_b(state, x + ox, y + oy);
                 }
                 0x52 | 0x72 => {
-                    self.judge_hit_triangle_c(x + ox, y + oy);
+                    self.judge_hit_triangle_c(state, x + ox, y + oy);
                 }
                 0x53 | 0x73 => {
-                    self.judge_hit_triangle_d(x + ox, y + oy);
+                    self.judge_hit_triangle_d(state, x + ox, y + oy);
                 }
                 0x54 | 0x74 => {
-                    self.judge_hit_triangle_e(x + ox, y + oy);
+                    self.judge_hit_triangle_e(state, x + ox, y + oy);
                 }
                 0x55 | 0x75 => {
-                    self.judge_hit_triangle_f(x + ox, y + oy);
+                    self.judge_hit_triangle_f(state, x + ox, y + oy);
                 }
                 0x56 | 0x76 => {
-                    self.judge_hit_triangle_g(x + ox, y + oy);
+                    self.judge_hit_triangle_g(state, x + ox, y + oy);
                 }
                 0x57 | 0x77 => {
-                    self.judge_hit_triangle_h(x + ox, y + oy);
+                    self.judge_hit_triangle_h(state, x + ox, y + oy);
                 }
                 _ => {}
             }

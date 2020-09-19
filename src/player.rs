@@ -109,12 +109,6 @@ impl Player {
         let physics = if self.flags.in_water() { state.constants.my_char.water_physics } else { state.constants.my_char.air_physics };
 
         self.question = false;
-        if self.flags.head_bounced() {
-            self.flags.set_head_bounced(false);
-            state.sound_manager.play_sfx(3);
-            state.create_caret(self.x, self.y - self.hit_bounds.top as isize, CaretType::LittleParticles, Direction::Left);
-            state.create_caret(self.x, self.y - self.hit_bounds.top as isize, CaretType::LittleParticles, Direction::Left);
-        }
 
         if !state.control_flags.control_enabled() {
             self.booster_switch = 0;

@@ -27,9 +27,6 @@ bitfield! {
   pub hit_left_smaller_half, set_hit_left_smaller_half: 17; // 0x20000
   pub hit_right_smaller_half, set_hit_right_smaller_half: 18; // 0x40000
   pub hit_right_bigger_half, set_hit_right_bigger_half: 19; // 0x80000
-
-  // engine specific flags
-  pub head_bounced, set_head_bounced: 31;
 }
 
 bitfield! {
