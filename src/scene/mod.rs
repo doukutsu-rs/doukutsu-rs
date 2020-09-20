@@ -5,6 +5,7 @@ use crate::ui::Components;
 
 pub mod game_scene;
 pub mod loading_scene;
+pub mod title_scene;
 
 pub trait Scene {
     fn init(&mut self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult { Ok(()) }

@@ -217,6 +217,14 @@ impl<T: Num + Copy> Rect<T> {
             bottom: (rect.y + rect.h),
         }
     }
+
+    pub fn width(&self) -> T {
+        self.right.sub(self.left)
+    }
+
+    pub fn height(&self) -> T {
+        self.bottom.sub(self.top)
+    }
 }
 
 impl<T: Num + Copy + AsPrimitive<f32>> Into<crate::ggez::graphics::Rect> for Rect<T> {

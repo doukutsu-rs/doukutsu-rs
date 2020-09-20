@@ -59,6 +59,7 @@ mod ggez;
 mod live_debugger;
 mod macros;
 mod map;
+mod menu;
 mod npc;
 mod physics;
 mod player;

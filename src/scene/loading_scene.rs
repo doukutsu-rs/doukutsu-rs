@@ -1,11 +1,10 @@
 use crate::ggez::{Context, filesystem, GameResult};
-use crate::scene::game_scene::GameScene;
+use crate::npc::NPCTable;
 use crate::scene::Scene;
+use crate::scene::title_scene::TitleScene;
 use crate::SharedGameState;
 use crate::stage::StageData;
-use crate::text_script::{TextScript, TextScriptExecutionState};
-use crate::common::FadeState;
-use crate::npc::NPCTable;
+use crate::text_script::TextScript;
 
 pub struct LoadingScene {
     tick: usize,
@@ -30,13 +29,7 @@ impl Scene for LoadingScene {
             let head_script = TextScript::load_from(filesystem::open(ctx, [&state.base_path, "/Head.tsc"].join(""))?)?;
             state.textscript_vm.set_global_script(head_script);
 
-            let mut next_scene = GameScene::new(state, ctx, 13)?;
-            next_scene.player.x = 10 * 16 * 0x200;
-            next_scene.player.y = 8 * 16 * 0x200;
-            state.fade_state = FadeState::Hidden;
-            state.textscript_vm.state = TextScriptExecutionState::Running(200, 0);
-
-            state.next_scene = Some(Box::new(next_scene));
+            state.next_scene = Some(Box::new(TitleScene::new()));
         }
 
         self.tick += 1;

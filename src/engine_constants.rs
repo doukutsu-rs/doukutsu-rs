@@ -210,6 +210,21 @@ pub struct TextScriptConsts {
     pub get_item_bottom_right: Rect<usize>,
 }
 
+
+#[derive(Debug, Copy, Clone)]
+pub struct TitleConsts {
+    pub logo_rect: Rect<usize>,
+    pub menu_left_top: Rect<usize>,
+    pub menu_right_top: Rect<usize>,
+    pub menu_left_bottom: Rect<usize>,
+    pub menu_right_bottom: Rect<usize>,
+    pub menu_top: Rect<usize>,
+    pub menu_bottom: Rect<usize>,
+    pub menu_middle: Rect<usize>,
+    pub menu_left: Rect<usize>,
+    pub menu_right: Rect<usize>
+}
+
 #[derive(Debug)]
 pub struct EngineConstants {
     pub is_cs_plus: bool,
@@ -221,6 +236,7 @@ pub struct EngineConstants {
     pub weapon: WeaponConsts,
     pub tex_sizes: CaseInsensitiveHashMap<(usize, usize)>,
     pub textscript: TextScriptConsts,
+    pub title: TitleConsts,
     pub font_path: String,
     pub font_scale: f32,
     pub font_space_offset: f32,
@@ -239,6 +255,7 @@ impl Clone for EngineConstants {
             weapon: self.weapon.clone(),
             tex_sizes: self.tex_sizes.clone(),
             textscript: self.textscript.clone(),
+            title: self.title,
             font_path: self.font_path.clone(),
             font_scale: self.font_scale,
             font_space_offset: self.font_space_offset,
@@ -1117,6 +1134,18 @@ impl EngineConstants {
                 get_item_right: Rect { left: 240, top: 8, right: 244, bottom: 16 },
                 get_item_bottom_right: Rect { left: 240, top: 16, right: 244, bottom: 24 },
             },
+            title: TitleConsts {
+                logo_rect: Rect { left: 0, top: 0, right: 144, bottom: 40 },
+                menu_left_top: Rect { left: 0, top: 0, right: 8, bottom: 8 },
+                menu_right_top: Rect { left: 236, top: 0, right: 244, bottom: 8 },
+                menu_left_bottom: Rect { left: 0, top: 16, right: 8, bottom: 24 },
+                menu_right_bottom: Rect { left: 236, top: 16, right: 244, bottom: 24 },
+                menu_top: Rect { left: 8, top: 0, right: 236, bottom: 8 },
+                menu_middle: Rect { left: 8, top: 8, right: 236, bottom: 16 },
+                menu_bottom: Rect { left: 8, top: 16, right: 236, bottom: 24 },
+                menu_left: Rect { left: 0, top: 8, right: 8, bottom: 16 },
+                menu_right: Rect { left: 236, top: 8, right: 244, bottom: 16 },
+            },
             font_path: str!("builtin/builtin_font.fnt"),
             font_scale: 1.0,
             font_space_offset: -3.0,
@@ -1135,6 +1164,7 @@ impl EngineConstants {
         self.tex_sizes.insert(str!("Caret"), (320, 320));
         self.tex_sizes.insert(str!("MyChar"), (200, 384));
         self.tex_sizes.insert(str!("Npc/NpcRegu"), (320, 410));
+        self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 50};
         self.font_path = str!("csfont.fnt");
         self.font_scale = 0.5;
         self.font_space_offset = 2.0;
