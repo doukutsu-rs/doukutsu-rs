@@ -18,8 +18,8 @@ use crate::ggez::{Context, GameResult};
 use crate::map::NPCData;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
-use crate::str;
 use crate::shared_game_state::SharedGameState;
+use crate::str;
 
 pub mod characters;
 pub mod egg_corridor;
@@ -74,7 +74,6 @@ pub struct NPC {
     pub direction: Direction,
     pub display_bounds: Rect<usize>,
     pub hit_bounds: Rect<usize>,
-    pub hurt_sound: u8,
     pub action_num: u16,
     pub anim_num: u16,
     pub flag_num: u16,
@@ -278,9 +277,9 @@ impl NPCMap {
     pub fn create_npc_from_data(&mut self, table: &NPCTable, data: &NPCData) -> &mut NPC {
         let display_bounds = table.get_display_bounds(data.npc_type);
         let hit_bounds = table.get_hit_bounds(data.npc_type);
-        let (size, life, damage, flags, exp, hurt_sound) = match table.get_entry(data.npc_type) {
-            Some(entry) => { (entry.size, entry.life, entry.damage as u16, entry.npc_flags, entry.experience as u16, entry.hurt_sound) }
-            None => { (1, 0, 0, NPCFlag(0), 0, 0) }
+        let (size, life, damage, flags, exp) = match table.get_entry(data.npc_type) {
+            Some(entry) => { (entry.size, entry.life, entry.damage as u16, entry.npc_flags, entry.experience as u16) }
+            None => { (1, 0, 0, NPCFlag(0), 0) }
         };
         let npc_flags = NPCFlag(data.flags | flags.0);
 
@@ -308,7 +307,6 @@ impl NPCMap {
             npc_flags,
             display_bounds,
             hit_bounds,
-            hurt_sound,
             action_counter: 0,
             action_counter2: 0,
             anim_counter: 0,
@@ -324,9 +322,9 @@ impl NPCMap {
     pub fn create_npc(npc_type: u16, table: &NPCTable) -> NPC {
         let display_bounds = table.get_display_bounds(npc_type);
         let hit_bounds = table.get_hit_bounds(npc_type);
-        let (size, life, damage, flags, exp, hurt_sound) = match table.get_entry(npc_type) {
-            Some(entry) => { (entry.size, entry.life, entry.damage as u16, entry.npc_flags, entry.experience as u16, entry.hurt_sound) }
-            None => { (1, 0, 0, NPCFlag(0), 0, 0) }
+        let (size, life, damage, flags, exp) = match table.get_entry(npc_type) {
+            Some(entry) => { (entry.size, entry.life, entry.damage as u16, entry.npc_flags, entry.experience as u16) }
+            None => { (1, 0, 0, NPCFlag(0), 0) }
         };
         let npc_flags = NPCFlag(flags.0);
 
@@ -354,7 +352,6 @@ impl NPCMap {
             npc_flags,
             display_bounds,
             hit_bounds,
-            hurt_sound,
             action_counter: 0,
             action_counter2: 0,
             anim_counter: 0,
@@ -420,9 +417,12 @@ impl NPCMap {
 
     pub fn process_dead_npcs(&mut self, list: &[u16], state: &mut SharedGameState) {
         for id in list {
-            let npc_cell = self.npcs.get(id);
-            if npc_cell.is_some() {
-                let mut npc = npc_cell.unwrap().borrow_mut();
+            if let Some(npc_cell) = self.npcs.get(id) {
+                let mut npc = npc_cell.borrow_mut();
+
+                if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
+                    state.sound_manager.play_sfx(table_entry.death_sound);
+                }
 
                 match npc.size {
                     1 => { self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 3, state); }

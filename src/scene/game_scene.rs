@@ -627,7 +627,9 @@ impl GameScene {
                             }
                         } else {
                             if npc.shock < 14 {
-                                state.sound_manager.play_sfx(npc.hurt_sound);
+                                if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
+                                    state.sound_manager.play_sfx(table_entry.hurt_sound);
+                                }
                                 npc.shock = 16;
                             }
 
