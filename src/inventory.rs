@@ -73,6 +73,22 @@ impl Inventory {
         self.weapons.get_mut(self.current_weapon as usize)
     }
 
+    pub fn next_weapon(&mut self) {
+        if (1 + self.current_weapon as usize) < self.weapons.len() {
+            self.current_weapon += 1;
+        } else {
+            self.current_weapon = 0;
+        }
+    }
+
+    pub fn prev_weapon(&mut self) {
+        if self.current_weapon as usize > 0 {
+            self.current_weapon -= 1;
+        } else {
+            self.current_weapon = self.weapons.len().saturating_sub(1) as u16;
+        }
+    }
+
     pub fn refill_all_ammo(&mut self) {
         for weapon in self.weapons.iter_mut() {
             weapon.ammo = weapon.max_ammo;

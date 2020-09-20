@@ -151,11 +151,11 @@ impl GameScene {
 
         let weapon_count = self.inventory.get_weapon_count();
         if weapon_count != 0 {
-            let current_weapon = self.inventory.get_current_weapon_idx() as usize;
+            let current_weapon = self.inventory.get_current_weapon_idx() as isize;
             let mut rect = Rect::new(0, 0, 0, 16);
 
             for a in 0..weapon_count {
-                let mut pos_x = ((a - current_weapon) as f32 * 16.0) + weap_x;
+                let mut pos_x = ((a as isize - current_weapon) as f32 * 16.0) + weap_x;
 
                 if pos_x < 8.0 {
                     pos_x += 48.0 + weapon_count as f32 * 16.0;
@@ -751,6 +751,16 @@ impl Scene for GameScene {
         if state.control_flags.control_enabled() {
             if let Some(weapon) = self.inventory.get_current_weapon_mut() {
                 weapon.shoot_bullet(&self.player, &mut self.bullet_manager, state);
+            }
+
+            if state.key_trigger.weapon_next() {
+                self.inventory.next_weapon();
+                self.weapon_x_pos = 32;
+            }
+
+            if state.key_trigger.weapon_prev() {
+                self.inventory.prev_weapon();
+                self.weapon_x_pos = 0;
             }
 
             // update health bar
