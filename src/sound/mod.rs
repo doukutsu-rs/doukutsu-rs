@@ -13,6 +13,7 @@ use crate::sound::pixtone::PixTonePlayback;
 use crate::sound::playback::{PlaybackEngine, SavedPlaybackState};
 use crate::sound::wave_bank::SoundBank;
 use crate::str;
+use num_traits::clamp;
 
 mod wave_bank;
 mod organya;
@@ -266,7 +267,7 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
                         (sample & 0xff) << 8
                     }
                 };
-                let pxt_sample: u16 = pxt_buf[pxt_index] ^ 0x8000;
+                let pxt_sample: u16 = pxt_buf[pxt_index];
 
                 if pxt_index < (pxt_buf.len() - 1) {
                     pxt_index += 1;
@@ -276,7 +277,10 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
                     pixtone.mix(&mut pxt_buf, sample_rate / speed);
                 }
 
-                let sample = org_sample.wrapping_add(pxt_sample);
+                let sample = clamp(
+                    (((org_sample ^ 0x8000) as i16) as isize)
+                        + (((pxt_sample ^ 0x8000) as i16) as isize)
+                    , -0x7fff, 0x7fff) as u16 ^ 0x8000;
 
                 let value: T = Sample::from::<u16>(&sample);
                 for sample in frame.iter_mut() {
