@@ -876,7 +876,7 @@ pub fn set_window_title(context: &Context, title: &str) {
 /// Ideally you should not need to use this because ggez
 /// would provide all the functions you need without having
 /// to dip into Glutin itself.  But life isn't always ideal.
-pub fn window(context: &Context) -> &glutin::Window {
+pub fn window(context: &Context) -> &glutin::WindowedContext {
     let gfx = &context.gfx_context;
     &gfx.window
 }

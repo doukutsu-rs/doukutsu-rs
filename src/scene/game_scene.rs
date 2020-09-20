@@ -13,7 +13,7 @@ use crate::npc::NPCMap;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::scene::Scene;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, TextScriptExecutionState, TextScriptVM};
 use crate::ui::Components;
@@ -692,9 +692,9 @@ impl Scene for GameScene {
         self.player.target_y = self.player.y;
         self.frame.immediate_update(state, &self.player, &self.stage);
 
-        self.inventory.add_weapon(WeaponType::PolarStar, 0);
-        self.inventory.add_xp(120, state);
-        self.player.equip.set_booster_2_0(true);
+        // self.inventory.add_weapon(WeaponType::PolarStar, 0);
+        // self.inventory.add_xp(120, state);
+        // self.player.equip.set_booster_2_0(true);
         Ok(())
     }
 

@@ -7,7 +7,7 @@ use bitvec::vec::BitVec;
 use byteorder::{LE, ReadBytesExt};
 use itertools::Itertools;
 
-use crate::{bitfield, SharedGameState};
+use crate::bitfield;
 use crate::caret::CaretType;
 use crate::common::{Condition, Rect};
 use crate::common::Direction;
@@ -19,6 +19,7 @@ use crate::map::NPCData;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::str;
+use crate::shared_game_state::SharedGameState;
 
 pub mod characters;
 pub mod egg_corridor;

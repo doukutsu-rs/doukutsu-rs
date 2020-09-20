@@ -1,5 +1,5 @@
 use crate::player::Player;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
 pub struct Frame {

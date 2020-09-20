@@ -7,7 +7,7 @@ use num_traits::real::Real;
 use crate::common::Direction;
 use crate::ggez::GameResult;
 use crate::npc::{NPC, NPCMap, NPCTable};
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 
 impl NPC {
     pub(crate) fn tick_n066_misery_bubble(&mut self, state: &mut SharedGameState, map: &HashMap<u16, RefCell<NPC>>) -> GameResult {

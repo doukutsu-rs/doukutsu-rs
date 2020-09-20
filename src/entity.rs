@@ -1,7 +1,7 @@
 use crate::ggez::{Context, GameResult};
 
 use crate::frame::Frame;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 
 pub trait GameEntity<C> {
     fn tick(&mut self, state: &mut SharedGameState, custom: C) -> GameResult;

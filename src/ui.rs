@@ -3,7 +3,9 @@ use std::time::Instant;
 use imgui::{FontConfig, FontSource};
 use imgui::sys::*;
 use imgui_gfx_renderer::{Renderer, Shaders};
+use imgui_gfx_renderer::gfx::format::DepthStencil;
 use imgui_gfx_renderer::gfx::format::Rgba8;
+use imgui_gfx_renderer::gfx::handle::DepthStencilView;
 use imgui_gfx_renderer::gfx::handle::RenderTargetView;
 use imgui_gfx_renderer::gfx::memory::Typed;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
@@ -12,7 +14,7 @@ use crate::ggez::{Context, GameResult, graphics};
 use crate::ggez::GameError::RenderError;
 use crate::live_debugger::LiveDebugger;
 use crate::scene::Scene;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 
 mod types {
     pub type Device = gfx_device_gl::Device;
@@ -25,7 +27,8 @@ pub struct UI {
     pub platform: WinitPlatform,
     pub renderer: Renderer<Rgba8, types::Resources>,
     pub components: Components,
-    main_color: RenderTargetView<types::Resources, Rgba8>,
+    pub main_color: RenderTargetView<types::Resources, Rgba8>,
+    pub main_depth: DepthStencilView<types::Resources, DepthStencil>,
     last_frame: Instant,
 }
 
@@ -121,7 +124,7 @@ impl UI {
         let mut platform = WinitPlatform::init(&mut imgui);
         platform.attach_window(imgui.io_mut(), graphics::window(ctx), HiDpiMode::Rounded);
 
-        let (factory, dev, _, _, color) = graphics::gfx_objects(ctx);
+        let (factory, dev, _, depth, color) = graphics::gfx_objects(ctx);
         let shaders = {
             let version = dev.get_info().shading_language;
             if version.is_embedded {
@@ -153,6 +156,7 @@ impl UI {
                 live_debugger: LiveDebugger::new(),
             },
             main_color: RenderTargetView::new(color),
+            main_depth: DepthStencilView::new(depth),
             last_frame: Instant::now(),
         })
     }

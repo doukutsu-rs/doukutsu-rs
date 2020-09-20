@@ -10,7 +10,7 @@ use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
 use crate::inventory::Inventory;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
 #[repr(u8)]

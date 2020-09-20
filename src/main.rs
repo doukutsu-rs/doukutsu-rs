@@ -14,19 +14,13 @@ extern crate strum_macros;
 
 use std::{env, mem};
 use std::path;
-use std::time::Instant;
 
-use bitvec::vec::BitVec;
 use log::*;
 use pretty_env_logger::env_logger::Env;
 use winit::{ElementState, Event, KeyboardInput, WindowEvent};
 
-use crate::bmfont_renderer::BMFontRenderer;
 use crate::builtin_fs::BuiltinFS;
-use crate::caret::{Caret, CaretType};
-use crate::common::{ControlFlags, Direction, FadeState, KeyState};
-use crate::engine_constants::EngineConstants;
-use crate::ggez::{Context, ContextBuilder, event, filesystem, GameResult};
+use crate::ggez::{Context, ContextBuilder, filesystem, GameResult};
 use crate::ggez::conf::{WindowMode, WindowSetup};
 use crate::ggez::event::{KeyCode, KeyMods};
 use crate::ggez::graphics;
@@ -34,14 +28,9 @@ use crate::ggez::graphics::DrawParam;
 use crate::ggez::input::keyboard;
 use crate::ggez::mint::ColumnMatrix4;
 use crate::ggez::nalgebra::Vector2;
-use crate::npc::{NPCTable, NPC};
-use crate::rng::RNG;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
-use crate::sound::SoundManager;
-use crate::stage::StageData;
-use crate::text_script::TextScriptVM;
-use crate::texture_set::TextureSet;
+use crate::shared_game_state::SharedGameState;
 use crate::ui::UI;
 
 mod bmfont;
@@ -66,6 +55,7 @@ mod player;
 mod player_hit;
 mod rng;
 mod scene;
+mod shared_game_state;
 mod stage;
 mod sound;
 mod text_script;
@@ -77,127 +67,16 @@ struct Game {
     scene: Option<Box<dyn Scene>>,
     state: SharedGameState,
     ui: UI,
-    scaled_matrix: ColumnMatrix4<f32>,
     def_matrix: ColumnMatrix4<f32>,
-}
-
-pub struct SharedGameState {
-    pub control_flags: ControlFlags,
-    pub game_flags: BitVec,
-    pub fade_state: FadeState,
-    pub game_rng: RNG,
-    pub effect_rng: RNG,
-    pub quake_counter: u16,
-    pub carets: Vec<Caret>,
-    pub key_state: KeyState,
-    pub key_trigger: KeyState,
-    pub font: BMFontRenderer,
-    pub texture_set: TextureSet,
-    pub base_path: String,
-    pub npc_table: NPCTable,
-    pub stages: Vec<StageData>,
-    pub sound_manager: SoundManager,
-    pub constants: EngineConstants,
-    pub new_npcs: Vec<NPC>,
-    pub scale: f32,
-    pub god_mode: bool,
-    pub speed_hack: bool,
-    pub canvas_size: (f32, f32),
-    pub screen_size: (f32, f32),
-    pub next_scene: Option<Box<dyn Scene>>,
-    pub textscript_vm: TextScriptVM,
-    key_old: u16,
-}
-
-impl SharedGameState {
-    pub fn update_key_trigger(&mut self) {
-        let mut trigger = self.key_state.0 ^ self.key_old;
-        trigger &= self.key_state.0;
-        self.key_old = self.key_state.0;
-        self.key_trigger = KeyState(trigger);
-    }
-
-    pub fn tick_carets(&mut self) {
-        for caret in self.carets.iter_mut() {
-            caret.tick(&self.effect_rng, &self.constants);
-        }
-
-        self.carets.retain(|c| !c.is_dead());
-    }
-
-    pub fn create_caret(&mut self, x: isize, y: isize, ctype: CaretType, direct: Direction) {
-        self.carets.push(Caret::new(x, y, ctype, direct, &self.constants));
-    }
-
-    pub fn set_speed_hack(&mut self, toggle: bool) {
-        self.speed_hack = toggle;
-
-        if let Err(err) = self.sound_manager.set_speed(if toggle { 2.0 } else { 1.0 }) {
-            log::error!("Error while sending a message to sound manager: {}", err);
-        }
-    }
 }
 
 impl Game {
     fn new(ctx: &mut Context) -> GameResult<Game> {
-        let scale = 2.0;
-        let screen_size = graphics::drawable_size(ctx);
-        let canvas_size = (screen_size.0 / scale, screen_size.1 / scale);
-        let mut constants = EngineConstants::defaults();
-        let mut base_path = "/";
-
-        if filesystem::exists(ctx, "/base/Nicalis.bmp") {
-            info!("Cave Story+ (PC) data files detected.");
-            constants.apply_csplus_patches();
-            base_path = "/base/";
-        } else if filesystem::exists(ctx, "/base/lighting.tbl") {
-            info!("Cave Story+ (Switch) data files detected.");
-            constants.apply_csplus_patches();
-            constants.apply_csplus_nx_patches();
-            base_path = "/base/";
-        } else if filesystem::exists(ctx, "/mrmap.bin") {
-            info!("CSE2E data files detected.");
-        } else if filesystem::exists(ctx, "/stage.dat") {
-            info!("NXEngine-evo data files detected.");
-        }
-        let font = BMFontRenderer::load(base_path, &constants.font_path, ctx)?;
-        //.or_else(|| Some(BMFontRenderer::load("/", "builtin/builtin_font.fnt", ctx)?))
-        //.ok_or_else(|| ResourceLoadError(str!("Cannot load game font.")))?;
-
         let s = Game {
             scene: None,
-            scaled_matrix: DrawParam::new()
-                .scale(Vector2::new(scale, scale))
-                .to_matrix(),
             ui: UI::new(ctx)?,
             def_matrix: DrawParam::new().to_matrix(),
-            state: SharedGameState {
-                control_flags: ControlFlags(0),
-                game_flags: bitvec::bitvec![0; 8000],
-                fade_state: FadeState::Hidden,
-                game_rng: RNG::new(0),
-                effect_rng: RNG::new(Instant::now().elapsed().as_nanos() as i32),
-                quake_counter: 0,
-                carets: Vec::with_capacity(32),
-                key_state: KeyState(0),
-                key_trigger: KeyState(0),
-                font,
-                texture_set: TextureSet::new(base_path),
-                base_path: str!(base_path),
-                npc_table: NPCTable::new(),
-                stages: Vec::with_capacity(96),
-                sound_manager: SoundManager::new(ctx)?,
-                constants,
-                new_npcs: Vec::with_capacity(8),
-                scale,
-                god_mode: false,
-                speed_hack: false,
-                screen_size,
-                canvas_size,
-                next_scene: None,
-                textscript_vm: TextScriptVM::new(),
-                key_old: 0,
-            },
+            state: SharedGameState::new(ctx)?,
         };
 
         Ok(s)
@@ -215,7 +94,9 @@ impl Game {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
-        graphics::set_transform(ctx, self.scaled_matrix);
+        graphics::set_transform(ctx, DrawParam::new()
+            .scale(Vector2::new(self.state.scale, self.state.scale))
+            .to_matrix());
         graphics::apply_transformations(ctx)?;
 
         if let Some(scene) = self.scene.as_mut() {
@@ -284,7 +165,10 @@ pub fn main() -> GameResult {
 
     let cb = ContextBuilder::new("doukutsu-rs")
         .window_setup(WindowSetup::default().title("Cave Story (doukutsu-rs)"))
-        .window_mode(WindowMode::default().dimensions(854.0, 480.0))
+        .window_mode(WindowMode::default()
+            .resizable(true)
+            .min_dimensions(320.0, 240.0)
+            .dimensions(854.0, 480.0))
         .add_resource_path(resource_dir);
 
     let (ctx, event_loop) = &mut cb.build()?;
@@ -301,7 +185,11 @@ pub fn main() -> GameResult {
 
             if let Event::WindowEvent { event, .. } = event {
                 match event {
-                    WindowEvent::CloseRequested => event::quit(ctx),
+                    WindowEvent::CloseRequested => { game.state.shutdown(); }
+                    WindowEvent::Resized(_) => {
+                        game.state.handle_resize(ctx).unwrap();
+                        gfx_window_glutin::update_views(graphics::window(ctx), &mut game.ui.main_color, &mut game.ui.main_depth);
+                    }
                     WindowEvent::KeyboardInput {
                         input:
                         KeyboardInput {
@@ -329,6 +217,11 @@ pub fn main() -> GameResult {
 
         game.update(ctx)?;
         game.draw(ctx)?;
+
+        if game.state.shutdown {
+            log::info!("Shutting down...");
+            break;
+        }
 
         if game.state.next_scene.is_some() {
             mem::swap(&mut game.scene, &mut game.state.next_scene);

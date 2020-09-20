@@ -1,5 +1,5 @@
 use crate::engine_constants::EngineConstants;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 use crate::weapon::{Weapon, WeaponLevel, WeaponType};
 
 #[derive(Clone, Copy)]

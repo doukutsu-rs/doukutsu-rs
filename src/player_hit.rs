@@ -6,7 +6,7 @@ use crate::inventory::{AddExperienceResult, Inventory};
 use crate::npc::{NPC, NPCMap};
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 
 impl PhysicalEntity for Player {
     #[inline(always)]

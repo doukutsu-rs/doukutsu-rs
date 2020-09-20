@@ -2,7 +2,7 @@ use crate::common::Direction;
 use crate::ggez::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 use nalgebra::clamp;
 
 impl NPC {

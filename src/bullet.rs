@@ -5,7 +5,7 @@ use crate::common::{Condition, Direction, Flag, Rect};
 use crate::engine_constants::{BulletData, EngineConstants};
 use crate::npc::NPCMap;
 use crate::physics::{OFF_X, OFF_Y, PhysicalEntity};
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
 pub struct BulletManager {

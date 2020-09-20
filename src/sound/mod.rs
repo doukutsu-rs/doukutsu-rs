@@ -289,6 +289,6 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
     stream.play()?;
 
     loop {
-        std::thread::sleep(Duration::from_millis(4));
+        std::thread::sleep(Duration::from_millis(1));
     }
 }

@@ -4,7 +4,7 @@ use crate::common::Direction;
 use crate::ggez::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 
 impl NPC {
     pub(crate) fn tick_n002_behemoth(&mut self, state: &mut SharedGameState) -> GameResult {

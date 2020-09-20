@@ -3,7 +3,7 @@ use itertools::Itertools;
 
 use crate::ggez::{Context, GameResult};
 use crate::scene::game_scene::GameScene;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 
 pub struct LiveDebugger {
     map_selector_visible: bool,

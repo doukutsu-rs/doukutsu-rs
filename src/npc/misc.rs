@@ -3,7 +3,7 @@ use crate::common::Direction;
 use crate::ggez::GameResult;
 use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 
 impl NPC {
     pub(crate) fn tick_n000_null(&mut self) -> GameResult {

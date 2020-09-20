@@ -2,7 +2,7 @@ use crate::ggez::{Context, filesystem, GameResult};
 use crate::npc::NPCTable;
 use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 use crate::stage::StageData;
 use crate::text_script::TextScript;
 

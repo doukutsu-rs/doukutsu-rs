@@ -175,7 +175,7 @@ impl PixToneParameters {
             return Vec::new();
         }
 
-        let mut samples = vec![0i16; length + 100];
+        let mut samples = vec![0i16; length];
 
         for channel in self.channels.iter() {
             if !channel.enabled { continue; }
@@ -277,12 +277,13 @@ impl PixTonePlayback {
                         break;
                     } else {
                         let pos = state.1 as usize;
-                        let s1 = (sample[pos] as f32) / 32768.0;
-                        let s2 = (sample[clamp(pos + 1, 0, sample.len() - 1)] as f32) / 32768.0;
-                        let s3 = (sample[clamp(pos + 2, 0, sample.len() - 1)] as f32) / 32768.0;
-                        let s4 = (sample[pos.saturating_sub(1)] as f32) / 32768.0;
+                        //let s1 = (sample[pos] as f32) / 32768.0;
+                        //let s2 = (sample[clamp(pos + 1, 0, sample.len() - 1)] as f32) / 32768.0;
+                        //let s3 = (sample[clamp(pos + 2, 0, sample.len() - 1)] as f32) / 32768.0;
+                        //let s4 = (sample[pos.saturating_sub(1)] as f32) / 32768.0;
 
-                        let s = cubic_interp(s1, s2, s4, s3, state.1.fract()) * 32768.0;
+                        //let s = cubic_interp(s1, s2, s4, s3, state.1.fract()) * 32768.0;
+                        let s = sample[pos] as f32;
                         let sam = (*result ^ 0x8000) as i16;
                         *result = sam.saturating_add(s as i16) as u16 ^ 0x8000;
 

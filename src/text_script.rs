@@ -12,7 +12,7 @@ use itertools::Itertools;
 use num_derive::FromPrimitive;
 use num_traits::{clamp, FromPrimitive};
 
-use crate::{SharedGameState, str};
+use crate::str;
 use crate::bitfield;
 use crate::common::{Direction, FadeDirection, FadeState};
 use crate::encoding::{read_cur_shift_jis, read_cur_wtf8};
@@ -21,6 +21,8 @@ use crate::ggez::{Context, GameResult};
 use crate::ggez::GameError::ParseError;
 use crate::player::ControlMode;
 use crate::scene::game_scene::GameScene;
+use crate::scene::title_scene::TitleScene;
+use crate::shared_game_state::SharedGameState;
 use crate::weapon::WeaponType;
 
 /// Engine's text script VM operation codes.
@@ -427,11 +429,13 @@ impl TextScriptVM {
                     }
 
                     if state.key_trigger.left() || state.key_trigger.right() {
+                        state.sound_manager.play_sfx(1);
                         state.textscript_vm.state = TextScriptExecutionState::WaitConfirmation(event, ip, no_event, 0, !selection);
                         break;
                     }
 
                     if state.key_trigger.jump() {
+                        state.sound_manager.play_sfx(18);
                         match selection {
                             ConfirmSelection::Yes => {
                                 state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
@@ -704,6 +708,8 @@ impl TextScriptVM {
                     }
                     OpCode::YNJ => {
                         let event_no = read_cur_varint(&mut cursor)? as u16;
+
+                        state.sound_manager.play_sfx(5);
 
                         exec_state = TextScriptExecutionState::WaitConfirmation(event, cursor.position() as u32, event_no, 16, ConfirmSelection::Yes);
                     }
@@ -1032,10 +1038,15 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::ESC => {
+                        state.next_scene = Some(Box::new(TitleScene::new()));
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     // unimplemented opcodes
                     // Zero operands
                     OpCode::CAT | OpCode::CIL | OpCode::CPS |
-                    OpCode::CRE | OpCode::CSS | OpCode::ESC | OpCode::FLA |
+                    OpCode::CRE | OpCode::CSS | OpCode::FLA |
                     OpCode::INI | OpCode::LDP | OpCode::MLP |
                     OpCode::SAT | OpCode::SLP | OpCode::SPS |
                     OpCode::STC | OpCode::SVP | OpCode::TUR => {

@@ -1,6 +1,6 @@
 use crate::ggez::{Context, GameResult};
 
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 use crate::ui::Components;
 
 pub mod game_scene;

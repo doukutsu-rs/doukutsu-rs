@@ -1,9 +1,9 @@
 use crate::common::{FadeState, Rect};
 use crate::ggez::{Context, GameResult};
-use crate::menu::{Menu, MenuSelectionResult, MenuEntry};
+use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::game_scene::GameScene;
 use crate::scene::Scene;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 use crate::text_script::TextScriptExecutionState;
 
 pub struct TitleScene {
@@ -19,7 +19,9 @@ impl TitleScene {
         }
     }
 
-    fn start_game(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+    fn new_game(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        state.reset();
+
         let mut next_scene = GameScene::new(state, ctx, 13)?;
         next_scene.player.x = 10 * 16 * 0x200;
         next_scene.player.y = 8 * 16 * 0x200;
@@ -94,10 +96,13 @@ impl Scene for TitleScene {
 
         match self.title_menu.tick(state) {
             MenuSelectionResult::Selected(0, _) => {
-                self.start_game(state, ctx);
+                self.new_game(state, ctx)?;
             }
             MenuSelectionResult::Selected(1, _) => {
-                self.start_game(state, ctx);
+                self.new_game(state, ctx)?;
+            }
+            MenuSelectionResult::Selected(4, _) => {
+                state.shutdown();
             }
             _ => {}
         }

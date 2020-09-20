@@ -2,7 +2,7 @@ use num_traits::clamp;
 
 use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Flag, Rect};
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
 pub const OFF_X: [isize; 9] = [0, 1, 0, 1, 2, 2, 2, 0, 1];

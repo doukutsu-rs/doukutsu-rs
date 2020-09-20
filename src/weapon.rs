@@ -4,7 +4,7 @@ use crate::bullet::BulletManager;
 use crate::caret::CaretType;
 use crate::common::Direction;
 use crate::player::Player;
-use crate::SharedGameState;
+use crate::shared_game_state::SharedGameState;
 
 #[derive(PartialEq, Eq, Copy, Clone, FromPrimitive)]
 #[repr(u8)]
