@@ -528,7 +528,6 @@ impl TextScriptVM {
                         state.control_flags.set_control_enabled(false);
 
                         game_scene.player.up = false;
-                        game_scene.player.down = false;
                         game_scene.player.shock_counter = 0;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);

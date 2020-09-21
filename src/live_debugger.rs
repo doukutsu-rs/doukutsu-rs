@@ -174,6 +174,8 @@ impl LiveDebugger {
                         assert_eq!(self.event_ids.len(), self.events.len());
 
                         if let Some(&event_num) = self.event_ids.get(self.selected_event as usize) {
+                            state.control_flags.set_flag_x01(true);
+                            state.control_flags.set_interactions_disabled(true);
                             state.textscript_vm.start_script(event_num);
                         }
                     }

@@ -621,6 +621,8 @@ impl GameScene {
                             }
 
                             if self.player.cond.alive() && npc.npc_flags.event_when_killed() {
+                                state.control_flags.set_flag_x01(true);
+                                state.control_flags.set_interactions_disabled(true);
                                 state.textscript_vm.start_script(npc.event_num);
                             } else {
                                 npc.cond.set_explode_die(true);

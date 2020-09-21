@@ -1,7 +1,8 @@
 use crate::common::{FadeState, Rect};
-use crate::ggez::{Context, GameResult, graphics};
+use crate::ggez::{Context, filesystem, GameResult, graphics};
 use crate::ggez::graphics::Color;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
+use crate::profile::GameProfile;
 use crate::scene::game_scene::GameScene;
 use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
@@ -13,6 +14,7 @@ enum CurrentMenu {
     MainMenu,
     OptionMenu,
     StartGame,
+    LoadGame,
 }
 
 pub struct TitleScene {
@@ -95,8 +97,8 @@ impl Scene for TitleScene {
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         if self.tick == 0 {
             state.sound_manager.play_song(24, &state.constants, ctx)?;
-            self.main_menu.push_entry(MenuEntry::Active("Load game".to_string()));
             self.main_menu.push_entry(MenuEntry::Active("New game".to_string()));
+            self.main_menu.push_entry(MenuEntry::Active("Load game".to_string()));
             self.main_menu.push_entry(MenuEntry::Active("Options".to_string()));
             self.main_menu.push_entry(MenuEntry::Disabled("Editor".to_string()));
             self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
@@ -122,10 +124,9 @@ impl Scene for TitleScene {
                         self.current_menu = CurrentMenu::StartGame;
                     }
                     MenuSelectionResult::Selected(1, _) => {
-                        state.reset();
                         state.sound_manager.play_song(0, &state.constants, ctx)?;
                         self.tick = 1;
-                        self.current_menu = CurrentMenu::StartGame;
+                        self.current_menu = CurrentMenu::LoadGame;
                     }
                     MenuSelectionResult::Selected(2, _) => {
                         self.current_menu = CurrentMenu::OptionMenu;
@@ -160,6 +161,30 @@ impl Scene for TitleScene {
                     self.start_game(state, ctx)?;
                 }
             }
+            CurrentMenu::LoadGame => {
+                if self.tick == 30 {
+                    if let Ok(data) = filesystem::open(ctx, "/Profile.dat") {
+                        match GameProfile::load_from_save(data) {
+                            Ok(profile) => {
+                                state.reset();
+                                let mut next_scene = GameScene::new(state, ctx, profile.current_map as usize)?;
+
+                                profile.apply(state, &mut next_scene, ctx);
+
+                                state.next_scene = Some(Box::new(next_scene));
+                                return Ok(());
+                            }
+                            Err(e) => {
+                                log::warn!("Failed to load save game, starting new one: {}", e);
+                            }
+                        }
+                    } else {
+                        log::warn!("No save game found, starting new one...");
+                    }
+
+                    self.start_game(state, ctx)?;
+                }
+            }
         }
 
         self.tick += 1;
@@ -168,7 +193,7 @@ impl Scene for TitleScene {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if self.current_menu == CurrentMenu::StartGame {
+        if self.current_menu == CurrentMenu::StartGame || self.current_menu == CurrentMenu::LoadGame {
             graphics::clear(ctx, Color::from_rgb(0, 0, 0));
             return Ok(());
         }
@@ -195,7 +220,7 @@ impl Scene for TitleScene {
         match self.current_menu {
             CurrentMenu::MainMenu => { self.main_menu.draw(state, ctx)?; }
             CurrentMenu::OptionMenu => { self.option_menu.draw(state, ctx)?; }
-            CurrentMenu::StartGame => {}
+            _ => {}
         }
 
         Ok(())

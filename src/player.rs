@@ -1,7 +1,8 @@
 use std::clone::Clone;
 
 use num_derive::FromPrimitive;
-use num_traits::{clamp, FromPrimitive};
+use num_traits::clamp;
+use num_traits::FromPrimitive;
 
 use crate::caret::CaretType;
 use crate::common::{Condition, Equipment, Flag};
@@ -9,7 +10,6 @@ use crate::common::{Direction, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
-use crate::inventory::Inventory;
 use crate::shared_game_state::SharedGameState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
@@ -526,6 +526,8 @@ impl Player {
         if self.life == 0 {
             state.sound_manager.play_sfx(17);
             self.cond.0 = 0;
+            state.control_flags.set_flag_x01(true);
+            state.control_flags.set_interactions_disabled(true);
             state.textscript_vm.start_script(40);
         }
     }

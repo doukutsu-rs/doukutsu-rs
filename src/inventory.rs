@@ -8,8 +8,8 @@ pub struct Item(u16, u16);
 
 #[derive(Clone)]
 pub struct Inventory {
-    current_item: u16,
-    current_weapon: u16,
+    pub current_item: u16,
+    pub current_weapon: u16,
     items: Vec<Item>,
     weapons: Vec<Weapon>,
 }
@@ -61,7 +61,7 @@ impl Inventory {
         self.items.iter().any(|item| item.0 == item_id)
     }
 
-    pub fn add_weapon(&mut self, weapon_id: WeaponType, max_ammo: u16) {
+    pub fn add_weapon(&mut self, weapon_id: WeaponType, max_ammo: u16) -> &mut Weapon {
         if !self.has_weapon(weapon_id) {
             self.weapons.push(Weapon::new(
                 weapon_id,
@@ -71,6 +71,8 @@ impl Inventory {
                 max_ammo,
             ));
         }
+
+        self.weapons.iter_mut().find(|w| w.wtype == weapon_id).unwrap()
     }
 
     pub fn remove_weapon(&mut self, wtype: WeaponType) {

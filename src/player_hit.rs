@@ -187,6 +187,8 @@ impl Player {
                 }
 
                 if npc.npc_flags.interactable() && !state.control_flags.interactions_disabled() && flags.0 != 0 && self.cond.interacted() {
+                    state.control_flags.set_flag_x01(true);
+                    state.control_flags.set_interactions_disabled(true);
                     state.textscript_vm.start_script(npc.event_num);
                     self.cond.set_interacted(false);
                     self.vel_x = 0;
@@ -194,6 +196,8 @@ impl Player {
                 }
 
                 if npc.npc_flags.event_when_touched() && !state.control_flags.interactions_disabled() && flags.0 != 0 {
+                    state.control_flags.set_flag_x01(true);
+                    state.control_flags.set_interactions_disabled(true);
                     state.textscript_vm.start_script(npc.event_num);
                 }
 

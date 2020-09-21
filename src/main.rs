@@ -53,6 +53,7 @@ mod npc;
 mod physics;
 mod player;
 mod player_hit;
+mod profile;
 mod rng;
 mod scene;
 mod shared_game_state;
@@ -169,7 +170,8 @@ pub fn main() -> GameResult {
             .resizable(true)
             .min_dimensions(320.0, 240.0)
             .dimensions(854.0, 480.0))
-        .add_resource_path(resource_dir);
+        .add_resource_path(resource_dir)
+        .add_resource_path(path::PathBuf::from(str!("./")));
 
     let (ctx, event_loop) = &mut cb.build()?;
     ctx.filesystem.mount_vfs(Box::new(BuiltinFS::new()));
