@@ -132,14 +132,12 @@ impl Inventory {
                     weapon.experience = lvl_table[2];
                     result = AddExperienceResult::AddStar;
                 }
-            } else {
-                if weapon.experience > lvl_table[curr_level_idx] {
-                    weapon.level = weapon.level.next();
-                    weapon.experience = 0;
+            } else if weapon.experience > lvl_table[curr_level_idx] {
+                weapon.level = weapon.level.next();
+                weapon.experience = 0;
 
-                    if weapon.wtype != WeaponType::Spur {
-                        result = AddExperienceResult::LevelUp;
-                    }
+                if weapon.wtype != WeaponType::Spur {
+                    result = AddExperienceResult::LevelUp;
                 }
             }
         }
