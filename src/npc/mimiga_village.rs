@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use num_traits::clamp;
 
 use crate::common::Direction;
@@ -16,11 +18,11 @@ impl NPC {
         }
 
         if self.action_num == 1 {
-            if self.target_y < self.y {
-                self.vel_y -= 8;
-            } else if self.target_y > self.y {
-                self.vel_y += 8;
-            }
+            self.vel_y += match self.target_y.cmp(&self.y) {
+                Ordering::Less => { -8 }
+                Ordering::Equal => { 0 }
+                Ordering::Greater => { 8 }
+            };
 
             self.vel_y = clamp(self.vel_y, -0x100, 0x100);
         }

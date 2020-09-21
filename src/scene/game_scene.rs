@@ -754,11 +754,13 @@ impl Scene for GameScene {
             }
 
             if state.key_trigger.weapon_next() {
+                state.sound_manager.play_sfx(4);
                 self.inventory.next_weapon();
                 self.weapon_x_pos = 32;
             }
 
             if state.key_trigger.weapon_prev() {
+                state.sound_manager.play_sfx(4);
                 self.inventory.prev_weapon();
                 self.weapon_x_pos = 0;
             }
