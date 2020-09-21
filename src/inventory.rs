@@ -3,7 +3,8 @@ use crate::shared_game_state::SharedGameState;
 use crate::weapon::{Weapon, WeaponLevel, WeaponType};
 
 #[derive(Clone, Copy)]
-pub struct Item(u16);
+/// (id, amount)
+pub struct Item(u16, u16);
 
 #[derive(Clone)]
 pub struct Inventory {
@@ -33,12 +34,27 @@ impl Inventory {
 
     pub fn add_item(&mut self, item_id: u16) {
         if !self.has_item(item_id) {
-            self.items.push(Item(item_id));
+            self.items.push(Item(item_id, 1));
         }
+    }
+
+    pub fn consume_item(&mut self, item_id: u16) {
+        if let Some(item) = self.get_item(item_id) {
+            if item.1 > 1 {
+                item.1 -= 1;
+                return;
+            }
+        }
+
+        self.remove_item(item_id);
     }
 
     pub fn remove_item(&mut self, item_id: u16) {
         self.items.retain(|item| item.0 != item_id);
+    }
+
+    pub fn get_item(&mut self, item_id: u16) -> Option<&mut Item> {
+        self.items.iter_mut().by_ref().find(|item| item.0 == item_id)
     }
 
     pub fn has_item(&self, item_id: u16) -> bool {
