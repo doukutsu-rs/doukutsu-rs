@@ -1,27 +1,38 @@
 use crate::common::{FadeState, Rect};
-use crate::ggez::{Context, GameResult};
+use crate::ggez::{Context, GameResult, graphics};
+use crate::ggez::graphics::Color;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::game_scene::GameScene;
 use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
 use crate::text_script::TextScriptExecutionState;
 
+#[derive(PartialEq, Eq, Copy, Clone)]
+#[repr(u8)]
+enum CurrentMenu {
+    MainMenu,
+    OptionMenu,
+    StartGame,
+}
+
 pub struct TitleScene {
     tick: usize,
-    title_menu: Menu,
+    current_menu: CurrentMenu,
+    main_menu: Menu,
+    option_menu: Menu,
 }
 
 impl TitleScene {
     pub fn new() -> Self {
         Self {
             tick: 0,
-            title_menu: Menu::new(0, 0, 100, 78),
+            current_menu: CurrentMenu::MainMenu,
+            main_menu: Menu::new(0, 0, 100, 5 * 14 + 6),
+            option_menu: Menu::new(0, 0, 140, 3 * 14 + 6),
         }
     }
 
-    fn new_game(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        state.reset();
-
+    fn start_game(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let mut next_scene = GameScene::new(state, ctx, 13)?;
         next_scene.player.x = 10 * 16 * 0x200;
         next_scene.player.y = 8 * 16 * 0x200;
@@ -84,27 +95,71 @@ impl Scene for TitleScene {
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         if self.tick == 0 {
             state.sound_manager.play_song(24, &state.constants, ctx)?;
-            self.title_menu.push_entry(MenuEntry::Active("Load game".to_string()));
-            self.title_menu.push_entry(MenuEntry::Active("New game".to_string()));
-            self.title_menu.push_entry(MenuEntry::Disabled("Options".to_string()));
-            self.title_menu.push_entry(MenuEntry::Disabled("Editor".to_string()));
-            self.title_menu.push_entry(MenuEntry::Active("Quit".to_string()));
+            self.main_menu.push_entry(MenuEntry::Active("Load game".to_string()));
+            self.main_menu.push_entry(MenuEntry::Active("New game".to_string()));
+            self.main_menu.push_entry(MenuEntry::Active("Options".to_string()));
+            self.main_menu.push_entry(MenuEntry::Disabled("Editor".to_string()));
+            self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
+
+            self.option_menu.push_entry(MenuEntry::Toggle("Test toggle".to_string(), false));
+            self.option_menu.push_entry(MenuEntry::Toggle("2x Speed hack".to_string(), false));
+            self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
         }
 
-        self.title_menu.x = ((state.canvas_size.0 - self.title_menu.width as f32) / 2.0).floor() as isize;
-        self.title_menu.y = ((state.canvas_size.1 + 70.0 - self.title_menu.height as f32) / 2.0).floor() as isize;
+        self.main_menu.x = ((state.canvas_size.0 - self.main_menu.width as f32) / 2.0).floor() as isize;
+        self.main_menu.y = ((state.canvas_size.1 + 70.0 - self.main_menu.height as f32) / 2.0).floor() as isize;
 
-        match self.title_menu.tick(state) {
-            MenuSelectionResult::Selected(0, _) => {
-                self.new_game(state, ctx)?;
+        self.option_menu.x = ((state.canvas_size.0 - self.option_menu.width as f32) / 2.0).floor() as isize;
+        self.option_menu.y = ((state.canvas_size.1 + 70.0 - self.option_menu.height as f32) / 2.0).floor() as isize;
+
+        match self.current_menu {
+            CurrentMenu::MainMenu => {
+                match self.main_menu.tick(state) {
+                    MenuSelectionResult::Selected(0, _) => {
+                        state.reset();
+                        state.sound_manager.play_song(0, &state.constants, ctx)?;
+                        self.tick = 1;
+                        self.current_menu = CurrentMenu::StartGame;
+                    }
+                    MenuSelectionResult::Selected(1, _) => {
+                        state.reset();
+                        state.sound_manager.play_song(0, &state.constants, ctx)?;
+                        self.tick = 1;
+                        self.current_menu = CurrentMenu::StartGame;
+                    }
+                    MenuSelectionResult::Selected(2, _) => {
+                        self.current_menu = CurrentMenu::OptionMenu;
+                    }
+                    MenuSelectionResult::Selected(4, _) => {
+                        state.shutdown();
+                    }
+                    _ => {}
+                }
             }
-            MenuSelectionResult::Selected(1, _) => {
-                self.new_game(state, ctx)?;
+            CurrentMenu::OptionMenu => {
+                match self.option_menu.tick(state) {
+                    MenuSelectionResult::Selected(0, toggle) => {
+                        if let MenuEntry::Toggle(_, value) = toggle {
+                            *value = !(*value);
+                        }
+                    }
+                    MenuSelectionResult::Selected(1, toggle) => {
+                        if let MenuEntry::Toggle(_, value) = toggle {
+                            *value = !(*value);
+                            state.set_speed_hack(*value);
+                        }
+                    }
+                    MenuSelectionResult::Selected(2, _) | MenuSelectionResult::Canceled => {
+                        self.current_menu = CurrentMenu::MainMenu;
+                    }
+                    _ => {}
+                }
             }
-            MenuSelectionResult::Selected(4, _) => {
-                state.shutdown();
+            CurrentMenu::StartGame => {
+                if self.tick == 30 {
+                    self.start_game(state, ctx)?;
+                }
             }
-            _ => {}
         }
 
         self.tick += 1;
@@ -113,6 +168,11 @@ impl Scene for TitleScene {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        if self.current_menu == CurrentMenu::StartGame {
+            graphics::clear(ctx, Color::from_rgb(0, 0, 0));
+            return Ok(());
+        }
+
         self.draw_background(state, ctx)?;
 
         {
@@ -132,7 +192,11 @@ impl Scene for TitleScene {
             self.draw_text_centered(COPYRIGHT_PIXEL, state.canvas_size.1 - 30.0, state, ctx)?;
         }
 
-        self.title_menu.draw(state, ctx)?;
+        match self.current_menu {
+            CurrentMenu::MainMenu => { self.main_menu.draw(state, ctx)?; }
+            CurrentMenu::OptionMenu => { self.option_menu.draw(state, ctx)?; }
+            CurrentMenu::StartGame => {}
+        }
 
         Ok(())
     }

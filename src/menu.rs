@@ -5,12 +5,13 @@ use crate::shared_game_state::SharedGameState;
 pub enum MenuEntry {
     Active(String),
     Disabled(String),
+    Toggle(String, bool),
 }
 
 pub enum MenuSelectionResult<'a> {
     None,
     Canceled,
-    Selected(usize, &'a MenuEntry),
+    Selected(usize, &'a mut MenuEntry),
 }
 
 pub struct Menu {
@@ -147,8 +148,7 @@ impl Menu {
 
         batch.add_rect(self.x as f32,
                        self.y as f32 + 2.0 + (self.selected as f32 * 14.0),
-                       &rect,
-        );
+                       &rect);
 
         batch.draw(ctx)?;
 
@@ -160,6 +160,14 @@ impl Menu {
                 }
                 MenuEntry::Disabled(name) => {
                     state.font.draw_text(name.chars(), self.x as f32 + 20.0, y, &state.constants, &mut state.texture_set, ctx)?;
+                }
+                MenuEntry::Toggle(name, value) => {
+                    let value_text = if *value { "ON" } else { "OFF" };
+                    let val_text_len = state.font.text_width(value_text.chars(), &state.constants);
+
+                    state.font.draw_text(name.chars(), self.x as f32 + 20.0, y, &state.constants, &mut state.texture_set, ctx)?;
+
+                    state.font.draw_text(value_text.chars(), self.x as f32 + self.width as f32 - val_text_len, y, &state.constants, &mut state.texture_set, ctx)?;
                 }
             }
 
@@ -195,6 +203,7 @@ impl Menu {
                 if let Some(entry) = self.entries.get(self.selected) {
                     match entry {
                         MenuEntry::Active(_) => { break; }
+                        MenuEntry::Toggle(_, _) => { break; }
                         _ => {}
                     }
                 } else {
@@ -204,9 +213,9 @@ impl Menu {
         }
 
         if state.key_trigger.jump() && !self.entries.is_empty() {
-            if let Some(entry) = self.entries.get(self.selected) {
+            if let Some(entry) = self.entries.get_mut(self.selected) {
                 match entry {
-                    MenuEntry::Active(_) => {
+                    MenuEntry::Active(_) | MenuEntry::Toggle(_, _) => {
                         state.sound_manager.play_sfx(18);
                         return MenuSelectionResult::Selected(self.selected, entry);
                     }
