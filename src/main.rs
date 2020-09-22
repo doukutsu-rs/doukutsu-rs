@@ -14,6 +14,7 @@ extern crate strum_macros;
 
 use std::{env, mem};
 use std::path;
+use std::time::Instant;
 
 use log::*;
 use pretty_env_logger::env_logger::Env;
@@ -32,7 +33,6 @@ use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
 use crate::ui::UI;
-use std::time::Instant;
 
 mod bmfont;
 mod bmfont_renderer;
@@ -70,7 +70,9 @@ struct Game {
     state: SharedGameState,
     ui: UI,
     def_matrix: ColumnMatrix4<f32>,
-    last_frame_delta: Instant,
+    start_time: Instant,
+    next_tick: u64,
+    loops: u64,
 }
 
 impl Game {
@@ -80,7 +82,9 @@ impl Game {
             ui: UI::new(ctx)?,
             def_matrix: DrawParam::new().to_matrix(),
             state: SharedGameState::new(ctx)?,
-            last_frame_delta: Instant::now(),
+            start_time: Instant::now(),
+            next_tick: 0,
+            loops: 0,
         };
 
         Ok(s)
@@ -90,24 +94,24 @@ impl Game {
         if let Some(scene) = self.scene.as_mut() {
             match self.state.timing_mode {
                 TimingMode::_50Hz | TimingMode::_60Hz => {
-                    let time = self.last_frame_delta.elapsed().as_millis() as isize;
-                    if (time - self.state.timing_mode.get_delta() as isize) < 0 {
-                        return Ok(());
+                    while self.start_time.elapsed().as_millis() as u64 > self.next_tick && self.loops < 3 {
+                        self.next_tick += self.state.timing_mode.get_delta() as u64;
+                        self.loops += 1;
                     }
 
-                    self.last_frame_delta = Instant::now();
-
-                    scene.tick(&mut self.state, ctx)?;
-                    if self.state.speed_hack {
+                    for _ in 0..self.loops {
                         scene.tick(&mut self.state, ctx)?;
+                        if self.state.speed_hack {
+                            scene.tick(&mut self.state, ctx)?;
+                        }
                     }
-                },
+                }
                 TimingMode::FrameSynchronized => {
                     scene.tick(&mut self.state, ctx)?;
                     if self.state.speed_hack {
                         scene.tick(&mut self.state, ctx)?;
                     }
-                },
+                }
             }
         }
         Ok(())
@@ -129,6 +133,7 @@ impl Game {
         }
 
         graphics::present(ctx)?;
+        self.loops = 0;
         Ok(())
     }
 
