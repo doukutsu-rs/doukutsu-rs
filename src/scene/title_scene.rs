@@ -151,12 +151,12 @@ impl Scene for TitleScene {
                 }
             }
             CurrentMenu::StartGame => {
-                if self.tick == 30 {
+                if self.tick == 10 {
                     state.start_new_game(ctx)?;
                 }
             }
             CurrentMenu::LoadGame => {
-                if self.tick == 30 {
+                if self.tick == 10 {
                     state.load_or_start_game(ctx)?;
                 }
             }
