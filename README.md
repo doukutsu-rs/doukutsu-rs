@@ -9,7 +9,7 @@ Later plans might involve turning it into a fully-featured modding tool with liv
 
 #### Data files
 
-doukutsu-rs project does not re-distribute any copyrighted files. 
+This repo does not redistribute any copyrighted files. 
 
 The engine should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE2) or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) modified freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) (Nicalis commercial release, loading is supported, features are implemented in clean room way, using guess work or stuff already being inside the engine) data files.
 
@@ -19,6 +19,7 @@ Vanilla Cave Story does not work yet because some important data files are embed
 
 **Freeware**
 
+- https://github.com/doukutsu-rs/game-data - Freeware game data distributed with CI builds, based on those two below.
 - https://github.com/Clownacy/CSE2/archive/enhanced.zip - copy `game_english/data` from archive to the runtime directory (place you run the executable from, usually project root)
 - https://github.com/nxengine/nxengine-evo/releases/download/v2.6.4/NXEngine-v2.6.4-Win32.zip - copy `NXEngine-evo-2.6.4-xxx/data` from the archive to runtime directory
 
