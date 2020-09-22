@@ -3,7 +3,7 @@ use crate::ggez::{Context, GameResult, graphics};
 use crate::ggez::graphics::Color;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::Scene;
-use crate::shared_game_state::SharedGameState;
+use crate::shared_game_state::{SharedGameState, TimingMode};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
@@ -90,8 +90,8 @@ impl Scene for TitleScene {
             self.main_menu.push_entry(MenuEntry::Disabled("Editor".to_string()));
             self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
 
-            self.option_menu.push_entry(MenuEntry::Toggle("Test toggle".to_string(), false));
-            self.option_menu.push_entry(MenuEntry::Toggle("2x Speed hack".to_string(), false));
+            self.option_menu.push_entry(MenuEntry::Toggle("50 FPS timing".to_string(), state.timing_mode == TimingMode::_50Hz));
+            self.option_menu.push_entry(MenuEntry::Toggle("2x Speed hack".to_string(), state.speed_hack));
             self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
             self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));
             self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
@@ -130,7 +130,13 @@ impl Scene for TitleScene {
                 match self.option_menu.tick(state) {
                     MenuSelectionResult::Selected(0, toggle) => {
                         if let MenuEntry::Toggle(_, value) = toggle {
-                            *value = !(*value);
+                            match state.timing_mode {
+                                TimingMode::_50Hz => { state.timing_mode = TimingMode::_60Hz }
+                                TimingMode::_60Hz => { state.timing_mode = TimingMode::_50Hz }
+                                _ => {}
+                            }
+
+                            *value = state.timing_mode == TimingMode::_50Hz;
                         }
                     }
                     MenuSelectionResult::Selected(1, toggle) => {

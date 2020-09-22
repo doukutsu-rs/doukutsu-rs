@@ -9,17 +9,35 @@ use crate::common::{ControlFlags, Direction, FadeState, KeyState};
 use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, filesystem, GameResult, graphics};
 use crate::npc::{NPC, NPCTable};
+use crate::profile::GameProfile;
 use crate::rng::RNG;
+use crate::scene::game_scene::GameScene;
 use crate::scene::Scene;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::str;
-use crate::text_script::{TextScriptVM, TextScriptExecutionState};
+use crate::text_script::{TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
-use crate::profile::GameProfile;
-use crate::scene::game_scene::GameScene;
+
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub enum TimingMode {
+    _50Hz,
+    _60Hz,
+    FrameSynchronized,
+}
+
+impl TimingMode {
+    pub fn get_delta(self) -> usize {
+        match self {
+            TimingMode::_50Hz => { 1000 / 50 - 1 }
+            TimingMode::_60Hz => { 1000 / 60 - 1 }
+            TimingMode::FrameSynchronized => { 0 }
+        }
+    }
+}
 
 pub struct SharedGameState {
+    pub timing_mode: TimingMode,
     pub control_flags: ControlFlags,
     pub game_flags: BitVec,
     pub fade_state: FadeState,
@@ -76,6 +94,7 @@ impl SharedGameState {
             .or_else(|_| BMFontRenderer::load("/", "builtin/builtin_font.fnt", ctx))?;
 
         Ok(SharedGameState {
+            timing_mode: TimingMode::_60Hz,
             control_flags: ControlFlags(0),
             game_flags: bitvec::bitvec![0; 8000],
             fade_state: FadeState::Hidden,

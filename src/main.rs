@@ -30,8 +30,9 @@ use crate::ggez::mint::ColumnMatrix4;
 use crate::ggez::nalgebra::Vector2;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
-use crate::shared_game_state::SharedGameState;
+use crate::shared_game_state::{SharedGameState, TimingMode};
 use crate::ui::UI;
+use std::time::Instant;
 
 mod bmfont;
 mod bmfont_renderer;
@@ -69,6 +70,7 @@ struct Game {
     state: SharedGameState,
     ui: UI,
     def_matrix: ColumnMatrix4<f32>,
+    last_frame_delta: Instant,
 }
 
 impl Game {
@@ -78,6 +80,7 @@ impl Game {
             ui: UI::new(ctx)?,
             def_matrix: DrawParam::new().to_matrix(),
             state: SharedGameState::new(ctx)?,
+            last_frame_delta: Instant::now(),
         };
 
         Ok(s)
@@ -85,9 +88,26 @@ impl Game {
 
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         if let Some(scene) = self.scene.as_mut() {
-            scene.tick(&mut self.state, ctx)?;
-            if self.state.speed_hack {
-                scene.tick(&mut self.state, ctx)?;
+            match self.state.timing_mode {
+                TimingMode::_50Hz | TimingMode::_60Hz => {
+                    let time = self.last_frame_delta.elapsed().as_millis() as isize;
+                    if (time - self.state.timing_mode.get_delta() as isize) < 0 {
+                        return Ok(());
+                    }
+
+                    self.last_frame_delta = Instant::now();
+
+                    scene.tick(&mut self.state, ctx)?;
+                    if self.state.speed_hack {
+                        scene.tick(&mut self.state, ctx)?;
+                    }
+                },
+                TimingMode::FrameSynchronized => {
+                    scene.tick(&mut self.state, ctx)?;
+                    if self.state.speed_hack {
+                        scene.tick(&mut self.state, ctx)?;
+                    }
+                },
             }
         }
         Ok(())
