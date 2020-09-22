@@ -1,12 +1,9 @@
-use crate::common::{FadeState, Rect};
-use crate::ggez::{Context, filesystem, GameResult, graphics};
+use crate::common::Rect;
+use crate::ggez::{Context, GameResult, graphics};
 use crate::ggez::graphics::Color;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
-use crate::profile::GameProfile;
-use crate::scene::game_scene::GameScene;
 use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
-use crate::text_script::TextScriptExecutionState;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
@@ -32,18 +29,6 @@ impl TitleScene {
             main_menu: Menu::new(0, 0, 100, 5 * 14 + 6),
             option_menu: Menu::new(0, 0, 140, 3 * 14 + 6),
         }
-    }
-
-    fn start_game(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let mut next_scene = GameScene::new(state, ctx, 13)?;
-        next_scene.player.x = 10 * 16 * 0x200;
-        next_scene.player.y = 8 * 16 * 0x200;
-        state.fade_state = FadeState::Hidden;
-        state.textscript_vm.state = TextScriptExecutionState::Running(200, 0);
-
-        state.next_scene = Some(Box::new(next_scene));
-
-        Ok(())
     }
 
     fn draw_background(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -158,31 +143,12 @@ impl Scene for TitleScene {
             }
             CurrentMenu::StartGame => {
                 if self.tick == 30 {
-                    self.start_game(state, ctx)?;
+                    state.start_new_game(ctx)?;
                 }
             }
             CurrentMenu::LoadGame => {
                 if self.tick == 30 {
-                    if let Ok(data) = filesystem::open(ctx, "/Profile.dat") {
-                        match GameProfile::load_from_save(data) {
-                            Ok(profile) => {
-                                state.reset();
-                                let mut next_scene = GameScene::new(state, ctx, profile.current_map as usize)?;
-
-                                profile.apply(state, &mut next_scene, ctx);
-
-                                state.next_scene = Some(Box::new(next_scene));
-                                return Ok(());
-                            }
-                            Err(e) => {
-                                log::warn!("Failed to load save game, starting new one: {}", e);
-                            }
-                        }
-                    } else {
-                        log::warn!("No save game found, starting new one...");
-                    }
-
-                    self.start_game(state, ctx)?;
+                    state.load_or_start_game(ctx)?;
                 }
             }
         }

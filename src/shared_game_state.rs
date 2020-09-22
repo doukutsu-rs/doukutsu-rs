@@ -14,8 +14,10 @@ use crate::scene::Scene;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::str;
-use crate::text_script::TextScriptVM;
+use crate::text_script::{TextScriptVM, TextScriptExecutionState};
 use crate::texture_set::TextureSet;
+use crate::profile::GameProfile;
+use crate::scene::game_scene::GameScene;
 
 pub struct SharedGameState {
     pub control_flags: ControlFlags,
@@ -101,6 +103,41 @@ impl SharedGameState {
             key_old: 0,
             shutdown: false,
         })
+    }
+
+    pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
+        let mut next_scene = GameScene::new(self, ctx, 13)?;
+        next_scene.player.x = 10 * 16 * 0x200;
+        next_scene.player.y = 8 * 16 * 0x200;
+        self.fade_state = FadeState::Hidden;
+        self.textscript_vm.state = TextScriptExecutionState::Running(200, 0);
+
+        self.next_scene = Some(Box::new(next_scene));
+
+        Ok(())
+    }
+
+    pub fn load_or_start_game(&mut self, ctx: &mut Context) -> GameResult {
+        if let Ok(data) = filesystem::open(ctx, "/Profile.dat") {
+            match GameProfile::load_from_save(data) {
+                Ok(profile) => {
+                    self.reset();
+                    let mut next_scene = GameScene::new(self, ctx, profile.current_map as usize)?;
+
+                    profile.apply(self, &mut next_scene, ctx);
+
+                    self.next_scene = Some(Box::new(next_scene));
+                    return Ok(());
+                }
+                Err(e) => {
+                    log::warn!("Failed to load save game, starting new one: {}", e);
+                }
+            }
+        } else {
+            log::warn!("No save game found, starting new one...");
+        }
+
+        self.start_new_game(ctx)
     }
 
     pub fn reset(&mut self) {

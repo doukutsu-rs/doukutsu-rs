@@ -224,6 +224,7 @@ pub enum TextScriptExecutionState {
     WaitStanding(u16, u32),
     WaitConfirmation(u16, u32, u16, u8, ConfirmSelection),
     WaitFade(u16, u32),
+    LoadProfile,
 }
 
 pub struct TextScriptVM {
@@ -464,6 +465,10 @@ impl TextScriptVM {
                     if state.fade_state == FadeState::Hidden || state.fade_state == FadeState::Visible {
                         state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
                     }
+                    break;
+                }
+                TextScriptExecutionState::LoadProfile => {
+                    state.load_or_start_game(ctx)?;
                     break;
                 }
             }
@@ -1042,11 +1047,14 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::LDP => {
+                        exec_state = TextScriptExecutionState::LoadProfile;
+                    }
                     // unimplemented opcodes
                     // Zero operands
                     OpCode::CAT | OpCode::CIL | OpCode::CPS |
                     OpCode::CRE | OpCode::CSS | OpCode::FLA |
-                    OpCode::INI | OpCode::LDP | OpCode::MLP |
+                    OpCode::INI | OpCode::MLP |
                     OpCode::SAT | OpCode::SLP | OpCode::SPS |
                     OpCode::STC | OpCode::SVP | OpCode::TUR => {
                         log::warn!("unimplemented opcode: {:?}", op);
