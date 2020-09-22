@@ -10,7 +10,7 @@ use crate::common::FILE_TYPES;
 use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, GameError, GameResult, graphics};
 use crate::ggez::filesystem;
-use crate::ggez::graphics::{Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh, Rect};
+use crate::ggez::graphics::{Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh, Rect, Color};
 use crate::ggez::graphics::spritebatch::SpriteBatch;
 use crate::ggez::nalgebra::{Point2, Vector2};
 use crate::str;
@@ -68,6 +68,23 @@ impl SizedBatch {
         }
 
         let param = DrawParam::new()
+            .src(Rect::new(rect.left as f32 / self.width as f32,
+                           rect.top as f32 / self.height as f32,
+                           (rect.right - rect.left) as f32 / self.width as f32,
+                           (rect.bottom - rect.top) as f32 / self.height as f32))
+            .dest(mint::Point2 { x, y })
+            .scale(Vector2::new(scale_x, scale_y));
+
+        self.batch.add(param);
+    }
+
+    pub fn add_rect_scaled_tinted(&mut self, x: f32, y: f32, color: (u8,u8,u8), scale_x: f32, scale_y: f32, rect: &common::Rect<usize>) {
+        if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
+            return;
+        }
+
+        let param = DrawParam::new()
+            .color(color.into())
             .src(Rect::new(rect.left as f32 / self.width as f32,
                            rect.top as f32 / self.height as f32,
                            (rect.right - rect.left) as f32 / self.width as f32,

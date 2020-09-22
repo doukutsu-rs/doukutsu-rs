@@ -159,7 +159,7 @@ impl Menu {
                     state.font.draw_text(name.chars(), self.x as f32 + 20.0, y, &state.constants, &mut state.texture_set, ctx)?;
                 }
                 MenuEntry::Disabled(name) => {
-                    state.font.draw_text(name.chars(), self.x as f32 + 20.0, y, &state.constants, &mut state.texture_set, ctx)?;
+                    state.font.draw_colored_text(name.chars(), self.x as f32 + 20.0, y, (0xa0, 0xa0, 0xff), &state.constants, &mut state.texture_set, ctx)?;
                 }
                 MenuEntry::Toggle(name, value) => {
                     let value_text = if *value { "ON" } else { "OFF" };

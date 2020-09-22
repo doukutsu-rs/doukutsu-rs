@@ -61,19 +61,25 @@ impl BMFontRenderer {
         offset_x
     }
 
+
     pub fn draw_text<I: Iterator<Item=char>>(&self, iter: I, x: f32, y: f32, constants: &EngineConstants, texture_set: &mut TextureSet, ctx: &mut Context) -> GameResult {
+        self.draw_colored_text(iter, x, y, (255, 255, 255), constants, texture_set, ctx)
+    }
+
+    pub fn draw_colored_text<I: Iterator<Item=char>>(&self, iter: I, x: f32, y: f32, color: (u8, u8, u8),
+                                                     constants: &EngineConstants, texture_set: &mut TextureSet, ctx: &mut Context) -> GameResult {
         if self.pages.len() == 1 {
             let batch = texture_set.get_or_load_batch(ctx, constants, self.pages.get(0).unwrap())?;
             let mut offset_x = x;
 
             for chr in iter {
                 if let Some(glyph) = self.font.chars.get(&chr) {
-                    batch.add_rect_scaled(offset_x, y + (glyph.yoffset as f32 * constants.font_scale).floor(),
-                                          constants.font_scale, constants.font_scale,
-                                          &Rect::<usize>::new_size(
-                                              glyph.x as usize, glyph.y as usize,
-                                              glyph.width as usize, glyph.height as usize,
-                                          ));
+                    batch.add_rect_scaled_tinted(offset_x, y + (glyph.yoffset as f32 * constants.font_scale).floor(), color,
+                                                 constants.font_scale, constants.font_scale,
+                                                 &Rect::<usize>::new_size(
+                                                     glyph.x as usize, glyph.y as usize,
+                                                     glyph.width as usize, glyph.height as usize,
+                                                 ));
 
                     offset_x += ((glyph.width as f32 + glyph.xoffset as f32) * constants.font_scale).floor() + if chr != ' ' { 1.0 } else { constants.font_space_offset };
                 }
@@ -103,12 +109,12 @@ impl BMFontRenderer {
 
                 for (chr, glyph) in chars.iter() {
                     if glyph.page == page {
-                        batch.add_rect_scaled(offset_x, y + (glyph.yoffset as f32 * constants.font_scale).floor(),
-                                              constants.font_scale, constants.font_scale,
-                                              &Rect::<usize>::new_size(
-                                                  glyph.x as usize, glyph.y as usize,
-                                                  glyph.width as usize, glyph.height as usize,
-                                              ));
+                        batch.add_rect_scaled_tinted(offset_x, y + (glyph.yoffset as f32 * constants.font_scale).floor(), color,
+                                                     constants.font_scale, constants.font_scale,
+                                                     &Rect::<usize>::new_size(
+                                                         glyph.x as usize, glyph.y as usize,
+                                                         glyph.width as usize, glyph.height as usize,
+                                                     ));
                     }
 
                     offset_x += ((glyph.width as f32 + glyph.xoffset as f32) * constants.font_scale).floor() + if *chr != ' ' { 1.0 } else { constants.font_space_offset };

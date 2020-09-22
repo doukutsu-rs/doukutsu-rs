@@ -27,7 +27,7 @@ impl TitleScene {
             tick: 0,
             current_menu: CurrentMenu::MainMenu,
             main_menu: Menu::new(0, 0, 100, 5 * 14 + 6),
-            option_menu: Menu::new(0, 0, 140, 3 * 14 + 6),
+            option_menu: Menu::new(0, 0, 180, 5 * 14 + 6),
         }
     }
 
@@ -78,6 +78,8 @@ static COPYRIGHT_PIXEL: &str = "2004.12  Studio Pixel";
 static COPYRIGHT_NICALIS: &str = "@2011 NICALIS INC.";
 static COPYRIGHT_NICALIS_SWITCH: &str = "@2017 NICALIS INC."; // untested?
 
+static DISCORD_LINK: &str = "https://discord.gg/fbRsNNB";
+
 impl Scene for TitleScene {
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         if self.tick == 0 {
@@ -90,6 +92,8 @@ impl Scene for TitleScene {
 
             self.option_menu.push_entry(MenuEntry::Toggle("Test toggle".to_string(), false));
             self.option_menu.push_entry(MenuEntry::Toggle("2x Speed hack".to_string(), false));
+            self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
+            self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));
             self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
         }
 
@@ -135,7 +139,12 @@ impl Scene for TitleScene {
                             state.set_speed_hack(*value);
                         }
                     }
-                    MenuSelectionResult::Selected(2, _) | MenuSelectionResult::Canceled => {
+                    MenuSelectionResult::Selected(2, _) => {
+                        if let Err(e) = webbrowser::open(DISCORD_LINK) {
+                            log::warn!("Error opening web browser: {}", e);
+                        }
+                    }
+                    MenuSelectionResult::Selected(4, _) | MenuSelectionResult::Canceled => {
                         self.current_menu = CurrentMenu::MainMenu;
                     }
                     _ => {}
