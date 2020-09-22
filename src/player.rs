@@ -578,8 +578,8 @@ impl GameEntity<()> for Player {
         {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
             batch.add_rect(
-                (((self.x - self.display_bounds.left as isize) / 0x200) - (frame.x / 0x200)) as f32,
-                (((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32,
+                ((((self.x - self.display_bounds.left as isize) / 0x200) - (frame.x / 0x200)) as f32).floor(),
+                ((((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32).floor(),
                 &self.anim_rect,
             );
             batch.draw(ctx)?;
@@ -590,8 +590,8 @@ impl GameEntity<()> for Player {
             match self.direction {
                 Direction::Left => {
                     batch.add_rect(
-                        (((self.x - self.display_bounds.left as isize) / 0x200) - (frame.x / 0x200)) as f32 - 8.0,
-                        (((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32 + self.weapon_offset_y as f32,
+                        ((((self.x - self.display_bounds.left as isize) / 0x200) - (frame.x / 0x200)) as f32 - 8.0).floor(),
+                        ((((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32 + self.weapon_offset_y as f32).floor(),
                         &self.weapon_rect,
                     );
                 }
