@@ -8,7 +8,7 @@ use crate::frame::Frame;
 use crate::ggez::{Context, GameResult, graphics, timer};
 use crate::ggez::graphics::Color;
 use crate::ggez::nalgebra::clamp;
-use crate::inventory::Inventory;
+use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::npc::NPCMap;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
@@ -714,6 +714,19 @@ impl Scene for GameScene {
                 }
             };
             self.player.tick(state, ())?;
+
+            if self.player.damage > 0 {
+                let xp_loss = self.player.damage * if self.player.equip.has_arms_barrier() { 1 } else { 2 };
+                match self.inventory.take_xp(xp_loss, state) {
+                    TakeExperienceResult::LevelDown if self.player.life > 0 => {
+                        state.create_caret(self.player.x, self.player.y, CaretType::LevelUp, Direction::Right);
+                    }
+                    _ => {}
+                }
+
+                self.player.damage = 0;
+            }
+
             for npc_id in self.npc_map.npc_ids.iter() {
                 if let Some(npc_cell) = self.npc_map.npcs.get(npc_id) {
                     let mut npc = npc_cell.borrow_mut();

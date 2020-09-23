@@ -1,8 +1,9 @@
+use std::fs::read_to_string;
+
 use crate::bitfield;
 use crate::common::{Condition, Direction, Rect};
 use crate::engine_constants::EngineConstants;
 use crate::rng::RNG;
-use std::fs::read_to_string;
 
 #[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum CaretType {
@@ -83,7 +84,7 @@ impl Caret {
 
                             self.anim_rect = constants.caret.projectile_dissipation_left_rects[self.anim_num as usize];
                         }
-                    },
+                    }
                     Direction::Up => {
                         self.anim_counter += 1;
 
@@ -93,7 +94,7 @@ impl Caret {
 
                         let len = constants.caret.projectile_dissipation_up_rects.len();
                         self.anim_rect = constants.caret.projectile_dissipation_up_rects[(self.anim_num as usize / 2) % len];
-                    },
+                    }
                     Direction::Right => {
                         self.anim_counter += 1;
                         if self.anim_counter > 2 {
@@ -107,10 +108,10 @@ impl Caret {
 
                             self.anim_rect = constants.caret.projectile_dissipation_right_rects[self.anim_num as usize];
                         }
-                    },
+                    }
                     Direction::Bottom => {
                         self.cond.set_alive(false);
-                    },
+                    }
                 }
             }
             CaretType::Shoot => {
@@ -198,7 +199,33 @@ impl Caret {
                     _ => { self.anim_rect }
                 }
             }
-            CaretType::LevelUp => {}
+            CaretType::LevelUp => {
+                self.anim_counter += 1;
+
+                if self.anim_counter == 80 {
+                    self.cond.set_alive(false);
+                }
+
+                match self.direction {
+                    Direction::Left => {
+                        if self.anim_counter < 20 {
+                            self.y -= 0x400; // 2.0fix9
+                        }
+
+                        let count = constants.caret.level_up_rects.len();
+                        self.anim_rect = constants.caret.level_up_rects[self.anim_counter as usize / 2 % count]
+                    }
+                    Direction::Right => {
+                        if self.anim_counter < 20 {
+                            self.y -= 0x200; // 2.0fix9
+                        }
+
+                        let count = constants.caret.level_down_rects.len();
+                        self.anim_rect = constants.caret.level_down_rects[self.anim_counter as usize / 2 % count]
+                    }
+                    _ => {}
+                }
+            }
             CaretType::HurtParticles => {}
             CaretType::Explosion => {
                 if self.anim_counter == 0 {

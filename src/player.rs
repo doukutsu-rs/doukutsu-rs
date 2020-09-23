@@ -44,6 +44,7 @@ pub struct Player {
     pub current_weapon: u8,
     pub update_target: bool,
     pub stars: u8,
+    pub damage: u16,
     weapon_offset_y: i8,
     index_x: isize,
     index_y: isize,
@@ -91,6 +92,7 @@ impl Player {
             shock_counter: 0,
             booster_switch: 0,
             stars: 0,
+            damage: 0,
             bubble: 0,
             exp_wait: 0,
             exp_count: 0,
@@ -522,6 +524,8 @@ impl Player {
         if self.equip.has_whimsical_star() && self.stars > 0 {
             self.stars -= 1;
         }
+
+        self.damage = self.damage.saturating_add(hp as u16);
 
         if self.life == 0 {
             state.sound_manager.play_sfx(17);

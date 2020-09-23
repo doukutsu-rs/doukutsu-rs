@@ -21,6 +21,12 @@ pub enum AddExperienceResult {
     AddStar,
 }
 
+#[derive(Clone, Copy)]
+pub enum TakeExperienceResult {
+    None,
+    LevelDown,
+}
+
 impl Inventory {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Inventory {
@@ -118,6 +124,37 @@ impl Inventory {
             weapon.level = WeaponLevel::Level1;
             weapon.experience = 0;
         }
+    }
+
+    pub fn take_xp(&mut self, exp: u16, state: &mut SharedGameState) -> TakeExperienceResult {
+        let mut result = TakeExperienceResult::None;
+
+        if let Some(weapon) = self.get_current_weapon_mut() {
+            let lvl_table = state.constants.weapon.level_table[weapon.wtype as usize];
+            let mut tmp_exp = weapon.experience as isize - exp as isize;
+            
+            if tmp_exp >= 0 {
+                weapon.experience = tmp_exp as u16;
+            } else {
+                while tmp_exp < 0 {
+                    if weapon.level == WeaponLevel::Level1 {
+                        weapon.experience = 0;
+                        tmp_exp = 0;
+                    } else if weapon.experience < exp {
+                        let max_level = lvl_table[weapon.level as usize - 1] as isize;
+                        weapon.level = weapon.level.prev();
+                        weapon.experience = (max_level + tmp_exp.max(-max_level)) as u16;
+                        tmp_exp += max_level;
+
+                        if weapon.wtype != WeaponType::Spur {
+                            result = TakeExperienceResult::LevelDown;
+                        }
+                    }
+                }
+            }
+        }
+
+        result
     }
 
     pub fn add_xp(&mut self, exp: u16, state: &mut SharedGameState) -> AddExperienceResult {

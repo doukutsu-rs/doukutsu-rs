@@ -40,6 +40,15 @@ impl WeaponLevel {
             WeaponLevel::Level3 => { WeaponLevel::Level3 }
         }
     }
+
+    pub fn prev(self) -> WeaponLevel {
+        match self {
+            WeaponLevel::None => { WeaponLevel::Level1 }
+            WeaponLevel::Level1 => { WeaponLevel::Level1 }
+            WeaponLevel::Level2 => { WeaponLevel::Level1 }
+            WeaponLevel::Level3 => { WeaponLevel::Level2 }
+        }
+    }
 }
 
 #[derive(Clone)]
