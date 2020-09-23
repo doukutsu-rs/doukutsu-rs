@@ -14,7 +14,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-stable-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-stable-cargo-registry
           restore-keys: |
             ${{ runner.os }}-stable-cargo-registry-
 
@@ -22,17 +22,17 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-stable-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-stable-cargo-index
           restore-keys: |
             ${{ runner.os }}-stable-cargo-index-
 
       - name: Cache Cargo build
         uses: actions/cache@v2
         with:
-          path: target/release
-          key: ${{ runner.os }}-stable-debug-target-${{ hashFiles('**/Cargo.lock') }}
+          path: target
+          key: ${{ runner.os }}-stable-target
           restore-keys: |
-            ${{ runner.os }}-stable-debug-target-
+            ${{ runner.os }}-stable-target
 
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -85,7 +85,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-stable-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-stable-cargo-registry
           restore-keys: |
             ${{ runner.os }}-stable-cargo-registry-
 
@@ -93,17 +93,17 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-stable-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-stable-cargo-index
           restore-keys: |
             ${{ runner.os }}-stable-cargo-index-
 
       - name: Cache Cargo build
         uses: actions/cache@v2
         with:
-          path: target/release
-          key: ${{ runner.os }}-stable-debug-target-${{ hashFiles('**/Cargo.lock') }}
+          path: target
+          key: ${{ runner.os }}-stable-target
           restore-keys: |
-            ${{ runner.os }}-stable-debug-target-
+            ${{ runner.os }}-stable-target
 
       - name: Checkout sources
         uses: actions/checkout@v2
