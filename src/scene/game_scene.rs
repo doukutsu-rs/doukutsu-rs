@@ -689,6 +689,7 @@ impl Scene for GameScene {
             }
         }
 
+        state.npc_table.tileset_name = self.tex_tileset_name.to_owned();
         state.npc_table.tex_npc1_name = ["Npc/", &self.stage.data.npc1.filename()].join("");
         state.npc_table.tex_npc2_name = ["Npc/", &self.stage.data.npc2.filename()].join("");
 
@@ -732,12 +733,12 @@ impl Scene for GameScene {
                     let mut npc = npc_cell.borrow_mut();
 
                     if npc.cond.alive() {
-                        npc.tick(state, (&mut self.player, &self.npc_map.npcs))?;
+                        npc.tick(state, (&mut self.player, &self.npc_map.npcs, &self.stage))?;
                     }
                 }
             }
             self.npc_map.process_npc_changes(state);
-            self.npc_map.process_npc_changes(state);
+            self.npc_map.garbage_collect();
 
             self.player.flags.0 = 0;
 
@@ -755,6 +756,7 @@ impl Scene for GameScene {
                 }
             }
             self.npc_map.process_npc_changes(state);
+            self.npc_map.garbage_collect();
             self.tick_npc_bullet_collissions(state);
 
             state.tick_carets();

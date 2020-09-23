@@ -132,7 +132,7 @@ impl Inventory {
         if let Some(weapon) = self.get_current_weapon_mut() {
             let lvl_table = state.constants.weapon.level_table[weapon.wtype as usize];
             let mut tmp_exp = weapon.experience as isize - exp as isize;
-            
+
             if tmp_exp >= 0 {
                 weapon.experience = tmp_exp as u16;
             } else {
@@ -141,8 +141,8 @@ impl Inventory {
                         weapon.experience = 0;
                         tmp_exp = 0;
                     } else if weapon.experience < exp {
-                        let max_level = lvl_table[weapon.level as usize - 1] as isize;
                         weapon.level = weapon.level.prev();
+                        let max_level = lvl_table[weapon.level as usize - 1] as isize;
                         weapon.experience = (max_level + tmp_exp.max(-max_level)) as u16;
                         tmp_exp += max_level;
 

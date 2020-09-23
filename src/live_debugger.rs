@@ -60,6 +60,12 @@ impl LiveDebugger {
                 ));
 
                 ui.text(format!(
+                    "NPC Count: {}/{}",
+                    game_scene.npc_map.npcs.len(),
+                    game_scene.npc_map.npc_ids.len(),
+                ));
+
+                ui.text(format!(
                     "Booster fuel: ({})", game_scene.player.booster_fuel
                 ));
 

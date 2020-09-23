@@ -4,6 +4,8 @@ use crate::ggez::GameResult;
 use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
+use crate::stage::Stage;
+use num_traits::real::Real;
 
 impl NPC {
     pub(crate) fn tick_n000_null(&mut self) -> GameResult {
@@ -475,13 +477,75 @@ impl NPC {
     }
 
 
-    pub(crate) fn tick_n072_sprinkler(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n072_sprinkler(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
         if self.direction == Direction::Left {
             self.anim_counter = (self.anim_counter + 1) % 4;
             self.anim_num = self.anim_counter / 2;
             self.anim_rect = state.constants.npc.n072_sprinkler[self.anim_num as usize];
 
-            // todo: spawn water droplets
+            if self.anim_num % 2 == 0 && (player.x - self.x).abs() < 480 * 0x200 {
+                self.action_counter = self.action_counter.wrapping_add(1);
+
+                let mut droplet = NPCMap::create_npc(73, &state.npc_table);
+                droplet.cond.set_alive(true);
+                droplet.direction = Direction::Left;
+                droplet.x = self.x;
+                droplet.y = self.y;
+                droplet.vel_x = 2 * state.game_rng.range(-0x200..0x200) as isize;
+                droplet.vel_y = 3 * state.game_rng.range(-0x200..0x80) as isize;
+                state.new_npcs.push(droplet);
+
+                if self.action_counter % 2 == 0 {
+                    droplet.vel_x = 2 * state.game_rng.range(-0x200..0x200) as isize;
+                    droplet.vel_y = 3 * state.game_rng.range(-0x200..0x80) as isize;
+                    state.new_npcs.push(droplet);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n073_water_droplet(&mut self, state: &mut SharedGameState, stage: &Stage) -> GameResult {
+        self.vel_y += 0x20;
+
+        self.anim_rect = state.constants.npc.n073_water_droplet[state.game_rng.range(0..4) as usize];
+
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        if self.direction == Direction::Right {
+            self.anim_rect.top += 2;
+            self.anim_rect.bottom += 2;
+        }
+
+        self.action_counter += 1;
+        if self.action_counter > 10 && (self.flags.hit_left_wall() || self.flags.hit_right_wall()
+            || self.flags.hit_bottom_wall() || self.flags.in_water()) {
+            // hit something
+            self.cond.set_alive(false);
+        }
+
+        if self.y > stage.map.height as isize * 16 * 0x200 {
+            // out of map
+            self.cond.set_alive(false);
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n076_flowers(&mut self) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            self.anim_rect.left = self.event_num as usize * 16;
+            self.anim_rect.top = 0;
+            self.anim_rect.right = self.anim_rect.left + 16;
+            self.anim_rect.bottom = self.anim_rect.top + 16;
         }
 
         Ok(())

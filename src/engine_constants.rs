@@ -183,6 +183,8 @@ pub struct NPCConsts {
     pub n065_first_cave_bat: [Rect<usize>; 8],
     pub n066_misery_bubble: [Rect<usize>; 4],
     pub n067_misery_floating: [Rect<usize>; 16],
+    pub n068_balrog: [Rect<usize>; 18],
+    pub n069_pignon: [Rect<usize>; 12],
     pub n070_sparkle: [Rect<usize>; 4],
     pub n071_chinfish: [Rect<usize>; 6],
     pub n072_sprinkler: [Rect<usize>; 2],
@@ -222,7 +224,7 @@ pub struct TitleConsts {
     pub menu_bottom: Rect<usize>,
     pub menu_middle: Rect<usize>,
     pub menu_left: Rect<usize>,
-    pub menu_right: Rect<usize>
+    pub menu_right: Rect<usize>,
 }
 
 #[derive(Debug)]
@@ -791,8 +793,6 @@ impl EngineConstants {
                     Rect { left: 160, top: 0, right: 176, bottom: 16 },
                     Rect { left: 176, top: 0, right: 192, bottom: 16 },
                     Rect { left: 144, top: 0, right: 160, bottom: 16 },
-
-
                     Rect { left: 80, top: 16, right: 96, bottom: 32 }, // right
                     Rect { left: 96, top: 16, right: 112, bottom: 32 },
                     Rect { left: 112, top: 16, right: 128, bottom: 32 },
@@ -801,6 +801,40 @@ impl EngineConstants {
                     Rect { left: 160, top: 16, right: 176, bottom: 32 },
                     Rect { left: 176, top: 16, right: 192, bottom: 32 },
                     Rect { left: 144, top: 16, right: 160, bottom: 32 },
+                ],
+                n068_balrog: [
+                    Rect { left: 0, top: 0, right: 40, bottom: 24 }, // left
+                    Rect { left: 0, top: 48, right: 40, bottom: 72 },
+                    Rect { left: 0, top: 0, right: 40, bottom: 24 },
+                    Rect { left: 40, top: 48, right: 80, bottom: 72 },
+                    Rect { left: 0, top: 0, right: 40, bottom: 24 },
+                    Rect { left: 80, top: 48, right: 120, bottom: 72 },
+                    Rect { left: 120, top: 48, right: 160, bottom: 72 },
+                    Rect { left: 120, top: 0, right: 160, bottom: 24 },
+                    Rect { left: 80, top: 0, right: 120, bottom: 24 },
+                    Rect { left: 0, top: 24, right: 40, bottom: 48 }, // right
+                    Rect { left: 0, top: 72, right: 40, bottom: 96 },
+                    Rect { left: 0, top: 24, right: 40, bottom: 48 },
+                    Rect { left: 40, top: 72, right: 80, bottom: 96 },
+                    Rect { left: 0, top: 24, right: 40, bottom: 48 },
+                    Rect { left: 80, top: 72, right: 120, bottom: 96 },
+                    Rect { left: 120, top: 72, right: 160, bottom: 96 },
+                    Rect { left: 120, top: 24, right: 160, bottom: 48 },
+                    Rect { left: 80, top: 24, right: 120, bottom: 48 },
+                ],
+                n069_pignon: [
+                    Rect { left: 48, top: 0, right: 64, bottom: 16 }, // left
+                    Rect { left: 64, top: 0, right: 80, bottom: 16 },
+                    Rect { left: 80, top: 0, right: 96, bottom: 16 },
+                    Rect { left: 96, top: 0, right: 112, bottom: 16 },
+                    Rect { left: 48, top: 0, right: 64, bottom: 16 },
+                    Rect { left: 112, top: 0, right: 128, bottom: 16 },
+                    Rect { left: 48, top: 16, right: 64, bottom: 32 }, // right
+                    Rect { left: 64, top: 16, right: 80, bottom: 32 },
+                    Rect { left: 80, top: 16, right: 96, bottom: 32 },
+                    Rect { left: 96, top: 16, right: 112, bottom: 32 },
+                    Rect { left: 48, top: 16, right: 64, bottom: 32 },
+                    Rect { left: 112, top: 16, right: 128, bottom: 32 },
                 ],
                 n070_sparkle: [
                     Rect { left: 96, top: 48, right: 112, bottom: 64 },
@@ -1093,8 +1127,6 @@ impl EngineConstants {
                 "Resource/BITMAP/Credit17" => (160, 240), // cse2
                 "Resource/BITMAP/Credit18" => (160, 240), // cse2
                 "Resource/BITMAP/pixel" => (160, 16), // cse2
-                "Resource/CURSOR/CURSOR_IKA" => (32, 32), // cse2
-                "Resource/CURSOR/CURSOR_NORMAL" => (32, 32), // cse2
                 "StageImage" => (256, 16),
                 "Stage/Prt0" => (32, 32),
                 "Stage/PrtAlmond" => (256, 96),
@@ -1164,7 +1196,7 @@ impl EngineConstants {
         self.tex_sizes.insert(str!("Caret"), (320, 320));
         self.tex_sizes.insert(str!("MyChar"), (200, 384));
         self.tex_sizes.insert(str!("Npc/NpcRegu"), (320, 410));
-        self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 50};
+        self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 50 };
         self.font_path = str!("csfont.fnt");
         self.font_scale = 0.5;
         self.font_space_offset = 2.0;

@@ -19,6 +19,7 @@ use crate::map::NPCData;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
+use crate::stage::Stage;
 use crate::str;
 
 pub mod characters;
@@ -84,9 +85,11 @@ pub struct NPC {
     pub anim_rect: Rect<usize>,
 }
 
+static PARTICLE_NPCS: [u16; 3] = [1, 4, 73];
+
 impl NPC {
     pub fn get_start_index(&self) -> u16 {
-        if self.npc_type == 1 || self.npc_type == 4 {
+        if PARTICLE_NPCS.contains(&self.npc_type) {
             0x100
         } else {
             0
@@ -94,8 +97,8 @@ impl NPC {
     }
 }
 
-impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>)> for NPC {
-    fn tick(&mut self, state: &mut SharedGameState, (player, map): (&mut Player, &HashMap<u16, RefCell<NPC>>)) -> GameResult {
+impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &Stage)> for NPC {
+    fn tick(&mut self, state: &mut SharedGameState, (player, map, stage): (&mut Player, &HashMap<u16, RefCell<NPC>>, &Stage)) -> GameResult {
         match self.npc_type {
             0 => { self.tick_n000_null() }
             1 => { self.tick_n001_experience(state) }
@@ -134,11 +137,14 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>)> for NPC {
             65 => { self.tick_n065_first_cave_bat(state, player) }
             66 => { self.tick_n066_misery_bubble(state, map) }
             67 => { self.tick_n067_misery_floating(state) }
+            69 => { self.tick_n069_pignon(state) }
             70 => { self.tick_n070_sparkle(state) }
             71 => { self.tick_n071_chinfish(state) }
-            72 => { self.tick_n072_sprinkler(state) }
+            72 => { self.tick_n072_sprinkler(state, player) }
+            73 => { self.tick_n073_water_droplet(state, stage) }
             74 => { self.tick_n074_jack(state) }
             75 => { self.tick_n075_kanpachi(state, player) }
+            76 => { self.tick_n076_flowers() }
             77 => { self.tick_n077_yamashita(state) }
             78 => { self.tick_n078_pot(state) }
             79 => { self.tick_n079_mahin(state, player) }
@@ -368,6 +374,10 @@ impl NPCMap {
             }
         }).collect_vec();
 
+        if !dead_npcs.is_empty() {
+            println!("deleting npcs: {:?}", dead_npcs);
+        }
+
         for npc_id in dead_npcs.iter() {
             self.npc_ids.remove(npc_id);
             self.npcs.remove(npc_id);
@@ -526,6 +536,7 @@ pub struct NPCTableEntry {
 
 pub struct NPCTable {
     entries: Vec<NPCTableEntry>,
+    pub tileset_name: String,
     pub tex_npc1_name: String,
     pub tex_npc2_name: String,
 }
@@ -535,6 +546,7 @@ impl NPCTable {
     pub fn new() -> NPCTable {
         NPCTable {
             entries: Vec::new(),
+            tileset_name: str!("Stage/Prt0"),
             tex_npc1_name: str!("Npc/Npc0"),
             tex_npc2_name: str!("Npc/Npc0"),
         }
@@ -646,9 +658,12 @@ impl NPCTable {
     pub fn get_texture_name(&self, npc_type: u16) -> &str {
         if let Some(npc) = self.entries.get(npc_type as usize) {
             match npc.spritesheet_id {
+                2 => &self.tileset_name,
+                17 => "Bullet",
+                19 => "Caret",
                 20 => "Npc/NpcSym",
-                21 => self.tex_npc1_name.as_str(),
-                22 => self.tex_npc2_name.as_str(),
+                21 => &self.tex_npc1_name,
+                22 => &self.tex_npc2_name,
                 23 => "Npc/NpcRegu",
                 _ => "Npc/Npc0"
             }

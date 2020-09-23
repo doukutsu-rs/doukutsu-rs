@@ -12,7 +12,6 @@ use itertools::Itertools;
 use num_derive::FromPrimitive;
 use num_traits::{clamp, FromPrimitive};
 
-use crate::str;
 use crate::bitfield;
 use crate::common::{Direction, FadeDirection, FadeState};
 use crate::encoding::{read_cur_shift_jis, read_cur_wtf8};
@@ -23,6 +22,7 @@ use crate::player::ControlMode;
 use crate::scene::game_scene::GameScene;
 use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::SharedGameState;
+use crate::str;
 use crate::weapon::WeaponType;
 
 /// Engine's text script VM operation codes.
@@ -1112,7 +1112,7 @@ impl TextScriptVM {
 
         if tick_npc != 0 {
             if let Some(npc) = game_scene.npc_map.npcs.get(&tick_npc) {
-                npc.borrow_mut().tick(state, (&mut game_scene.player, &game_scene.npc_map.npcs))?;
+                npc.borrow_mut().tick(state, (&mut game_scene.player, &game_scene.npc_map.npcs, &game_scene.stage))?;
             }
         }
 

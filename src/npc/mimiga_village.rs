@@ -9,6 +9,113 @@ use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
+    pub(crate) fn tick_n069_pignon(&mut self, state: &mut SharedGameState) -> GameResult {
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                    self.vel_x = 0;
+
+                    self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
+                }
+
+                if state.game_rng.range(0..100) == 1 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+
+                    self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
+                }
+
+
+                if state.game_rng.range(0..150) == 1 {
+                    self.action_num = 3;
+                    self.action_counter = 50;
+                    self.anim_num = 0;
+
+                    self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+
+                    self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
+                }
+            }
+            3 | 4 => {
+                if self.action_num == 3 {
+                    self.action_num = 4;
+                    self.anim_num = 2;
+                    self.anim_counter = 0;
+
+                    self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
+                }
+
+                if self.action_counter > 0 {
+                    self.action_counter -= 1;
+                } else {
+                    self.action_num = 0;
+                }
+
+                self.anim_counter += 1;
+                if self.anim_counter > 2 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 4 {
+                        self.anim_num = 2;
+                    }
+
+                    self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
+                }
+
+                if self.flags.hit_left_wall() {
+                    self.direction = Direction::Right;
+                }
+
+                if self.flags.hit_right_wall() {
+                    self.direction = Direction::Left;
+                }
+
+                self.vel_x = match self.direction {
+                    Direction::Left => { -0x100 } // -0.5fix9
+                    Direction::Right => { 0x100 } // 0.5fix9
+                    _ => { 0 }
+                };
+            }
+            5 => {
+                if self.flags.hit_bottom_wall() {
+                    self.action_num = 0;
+                }
+            }
+            _ => {}
+        }
+
+        if self.shock > 0 && [1,2,4].contains(&self.action_num) {
+            self.vel_y = -0x200;
+            self.anim_num = 5;
+            self.action_num = 5;
+
+            self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
+        }
+
+        self.vel_y += 0x40;
+
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n071_chinfish(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
