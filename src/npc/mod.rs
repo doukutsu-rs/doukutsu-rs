@@ -22,6 +22,7 @@ use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 use crate::str;
 
+pub mod balrog;
 pub mod characters;
 pub mod egg_corridor;
 pub mod first_cave;
@@ -137,6 +138,7 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &Stage)> for NPC {
             65 => { self.tick_n065_first_cave_bat(state, player) }
             66 => { self.tick_n066_misery_bubble(state, map) }
             67 => { self.tick_n067_misery_floating(state) }
+            68 => { self.tick_n068_balrog_running(state, player) }
             69 => { self.tick_n069_pignon(state) }
             70 => { self.tick_n070_sparkle(state) }
             71 => { self.tick_n071_chinfish(state) }

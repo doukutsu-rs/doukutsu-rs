@@ -183,7 +183,7 @@ pub struct NPCConsts {
     pub n065_first_cave_bat: [Rect<usize>; 8],
     pub n066_misery_bubble: [Rect<usize>; 4],
     pub n067_misery_floating: [Rect<usize>; 16],
-    pub n068_balrog: [Rect<usize>; 18],
+    pub n068_balrog_running: [Rect<usize>; 18],
     pub n069_pignon: [Rect<usize>; 12],
     pub n070_sparkle: [Rect<usize>; 4],
     pub n071_chinfish: [Rect<usize>; 6],
@@ -802,7 +802,7 @@ impl EngineConstants {
                     Rect { left: 176, top: 16, right: 192, bottom: 32 },
                     Rect { left: 144, top: 16, right: 160, bottom: 32 },
                 ],
-                n068_balrog: [
+                n068_balrog_running: [
                     Rect { left: 0, top: 0, right: 40, bottom: 24 }, // left
                     Rect { left: 0, top: 48, right: 40, bottom: 72 },
                     Rect { left: 0, top: 0, right: 40, bottom: 24 },
