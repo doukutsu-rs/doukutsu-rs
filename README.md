@@ -1,5 +1,9 @@
 # doukutsu-rs
 
+![Release](https://github.com/doukutsu-rs/doukutsu-rs/workflows/Release/badge.svg)
+
+[Download latest Nightly builds](https://github.com/doukutsu-rs/doukutsu-rs/actions) (Requires being logged in to GitHub)
+
 A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/), aiming for behavior accuracy and cleaner code.
 Later plans might involve turning it into a fully-featured modding tool with live debugging and stuff.
 
