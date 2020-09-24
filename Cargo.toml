@@ -5,7 +5,7 @@ name = "doukutsu-rs"
 version = "0.1.0"
 
 [profile.release]
-lto = true
+lto = thin
 panic = 'abort'
 
 [profile.dev]
