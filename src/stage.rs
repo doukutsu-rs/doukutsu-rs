@@ -5,11 +5,12 @@ use byteorder::LE;
 use byteorder::ReadBytesExt;
 use log::info;
 
+use crate::encoding::read_cur_shift_jis;
+use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, filesystem, GameResult};
 use crate::ggez::GameError::ResourceLoadError;
 use crate::map::{Map, NPCData};
 use crate::text_script::TextScript;
-use crate::encoding::read_cur_shift_jis;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct NpcType {
@@ -385,9 +386,9 @@ impl Stage {
         Ok(stage)
     }
 
-    pub fn load_text_script(&mut self, root: &str, ctx: &mut Context) -> GameResult<TextScript> {
+    pub fn load_text_script(&mut self, root: &str, constants: &EngineConstants, ctx: &mut Context) -> GameResult<TextScript> {
         let tsc_file = filesystem::open(ctx, [root, "Stage/", &self.data.map, ".tsc"].join(""))?;
-        let text_script = TextScript::load_from(tsc_file)?;
+        let text_script = TextScript::load_from(tsc_file, constants)?;
 
         Ok(text_script)
     }

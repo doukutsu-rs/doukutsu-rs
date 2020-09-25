@@ -1,6 +1,6 @@
 use crate::common::Rect;
 use crate::ggez::{Context, GameResult, graphics};
-use crate::ggez::graphics::Color;
+use crate::ggez::graphics::{Color, FilterMode};
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
@@ -91,6 +91,7 @@ impl Scene for TitleScene {
             self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
 
             self.option_menu.push_entry(MenuEntry::Toggle("50 FPS timing".to_string(), state.timing_mode == TimingMode::_50Hz));
+            self.option_menu.push_entry(MenuEntry::Toggle("Linear scaling".to_string(), ctx.filter_mode == FilterMode::Linear));
             self.option_menu.push_entry(MenuEntry::Toggle("2x Speed hack".to_string(), state.speed_hack));
             self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
             self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));
@@ -141,16 +142,26 @@ impl Scene for TitleScene {
                     }
                     MenuSelectionResult::Selected(1, toggle) => {
                         if let MenuEntry::Toggle(_, value) = toggle {
+                            match ctx.filter_mode {
+                                FilterMode::Linear => { ctx.filter_mode = FilterMode::Nearest }
+                                FilterMode::Nearest => { ctx.filter_mode = FilterMode::Linear }
+                            }
+
+                            *value = ctx.filter_mode == FilterMode::Linear;
+                        }
+                    }
+                    MenuSelectionResult::Selected(2, toggle) => {
+                        if let MenuEntry::Toggle(_, value) = toggle {
                             *value = !(*value);
                             state.set_speed_hack(*value);
                         }
                     }
-                    MenuSelectionResult::Selected(2, _) => {
+                    MenuSelectionResult::Selected(3, _) => {
                         if let Err(e) = webbrowser::open(DISCORD_LINK) {
                             log::warn!("Error opening web browser: {}", e);
                         }
                     }
-                    MenuSelectionResult::Selected(4, _) | MenuSelectionResult::Canceled => {
+                    MenuSelectionResult::Selected(5, _) | MenuSelectionResult::Canceled => {
                         self.current_menu = CurrentMenu::MainMenu;
                     }
                     _ => {}
@@ -192,7 +203,9 @@ impl Scene for TitleScene {
 
         self.draw_text_centered(ENGINE_VERSION, state.canvas_size.1 - 15.0, state, ctx)?;
 
-        if state.constants.is_cs_plus {
+        if state.constants.is_switch {
+            self.draw_text_centered(COPYRIGHT_NICALIS_SWITCH, state.canvas_size.1 - 30.0, state, ctx)?;
+        } else if state.constants.is_cs_plus {
             self.draw_text_centered(COPYRIGHT_NICALIS, state.canvas_size.1 - 30.0, state, ctx)?;
         } else {
             self.draw_text_centered(COPYRIGHT_PIXEL, state.canvas_size.1 - 30.0, state, ctx)?;

@@ -24,9 +24,11 @@ impl Scene for LoadingScene {
         if self.tick == 1 {
             let stages = StageData::load_stage_table(ctx, &state.base_path)?;
             state.stages = stages;
-            let npc_table = NPCTable::load_from(filesystem::open(ctx, [&state.base_path, "/npc.tbl"].join(""))?)?;
+            let npc_tbl = filesystem::open(ctx, [&state.base_path, "/npc.tbl"].join(""))?;
+            let npc_table = NPCTable::load_from(npc_tbl)?;
             state.npc_table = npc_table;
-            let head_script = TextScript::load_from(filesystem::open(ctx, [&state.base_path, "/Head.tsc"].join(""))?)?;
+            let head_tsc = filesystem::open(ctx, [&state.base_path, "/Head.tsc"].join(""))?;
+            let head_script = TextScript::load_from(head_tsc, &state.constants)?;
             state.textscript_vm.set_global_script(head_script);
 
             state.next_scene = Some(Box::new(TitleScene::new()));

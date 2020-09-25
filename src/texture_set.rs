@@ -96,7 +96,7 @@ impl SizedBatch {
     }
 
     pub fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        self.batch.set_filter(FilterMode::Nearest);
+        self.batch.set_filter(ctx.filter_mode);
         self.batch.draw(ctx, DrawParam::new())?;
         self.batch.clear();
         Ok(())

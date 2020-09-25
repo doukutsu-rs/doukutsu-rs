@@ -1,4 +1,9 @@
+use std::borrow::Cow;
 use std::fmt;
+use std::path;
+#[cfg(debug_assertions)]
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 /// We re-export winit so it's easy for people to use the same version as we are
 /// without having to mess around figuring it out.
 pub use winit;
@@ -7,7 +12,7 @@ use crate::ggez::conf;
 use crate::ggez::error::GameResult;
 use crate::ggez::event::winit_event;
 use crate::ggez::filesystem::Filesystem;
-use crate::ggez::graphics::{self, Point2};
+use crate::ggez::graphics::{self, FilterMode, Point2};
 use crate::ggez::input::{gamepad, keyboard, mouse};
 use crate::ggez::timer;
 
@@ -56,6 +61,8 @@ pub struct Context {
     /// Set this with `ggez::event::quit()`.
     pub continuing: bool,
 
+    pub filter_mode: FilterMode,
+
     /// Context-specific unique ID.
     /// Compiles to nothing in release mode, and so
     /// vanishes; meanwhile we get dead-code warnings.
@@ -102,6 +109,7 @@ impl Context {
             keyboard_context,
             gamepad_context,
             mouse_context,
+            filter_mode: FilterMode::Nearest,
 
             debug_id,
         };
@@ -143,12 +151,12 @@ impl Context {
                 }
                 winit_event::WindowEvent::KeyboardInput {
                     input:
-                        winit::KeyboardInput {
-                            state,
-                            virtual_keycode: Some(keycode),
-                            modifiers,
-                            ..
-                        },
+                    winit::KeyboardInput {
+                        state,
+                        virtual_keycode: Some(keycode),
+                        modifiers,
+                        ..
+                    },
                     ..
                 } => {
                     let pressed = match state {
@@ -175,9 +183,6 @@ impl Context {
         };
     }
 }
-
-use std::borrow::Cow;
-use std::path;
 
 /// A builder object for creating a [`Context`](struct.Context.html).
 #[derive(Debug, Clone, PartialEq)]
@@ -237,8 +242,8 @@ impl ContextBuilder {
     /// Add a new read-only filesystem path to the places to search
     /// for resources.
     pub fn add_resource_path<T>(mut self, path: T) -> Self
-    where
-        T: Into<path::PathBuf>,
+        where
+            T: Into<path::PathBuf>,
     {
         self.paths.push(path.into());
         self
@@ -272,8 +277,6 @@ impl ContextBuilder {
 }
 
 #[cfg(debug_assertions)]
-use std::sync::atomic::{AtomicUsize, Ordering};
-#[cfg(debug_assertions)]
 static DEBUG_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 /// This is a type that contains a unique ID for each `Context` and
@@ -285,6 +288,7 @@ static DEBUG_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg(debug_assertions)]
 pub(crate) struct DebugId(u32);
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg(not(debug_assertions))]
 pub(crate) struct DebugId;

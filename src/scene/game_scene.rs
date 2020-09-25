@@ -50,6 +50,9 @@ pub enum Alignment {
     Right,
 }
 
+static FACE_TEX: &str = "Face";
+static SWITCH_FACE_TEX: [&str; 4] = ["Face1", "Face2", "Face3", "Face4"];
+
 impl GameScene {
     pub fn new(state: &mut SharedGameState, ctx: &mut Context, id: usize) -> GameResult<Self> {
         info!("Loading stage {} ({})", id, &state.stages[id].map);
@@ -454,7 +457,12 @@ impl GameScene {
         }
 
         if state.textscript_vm.face != 0 {
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Face")?;
+            let tex_name = if state.constants.textscript.animated_face_pics {
+                SWITCH_FACE_TEX[0]
+            } else {
+                FACE_TEX
+            };
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex_name)?;
 
             batch.add_rect(left_pos + 14.0, top_pos + 8.0, &Rect::<usize>::new_size(
                 (state.textscript_vm.face as usize % 6) * 48,
@@ -668,7 +676,7 @@ impl GameScene {
 
 impl Scene for GameScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.base_path, ctx)?);
+        state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.base_path, &state.constants, ctx)?);
         state.textscript_vm.suspend = false;
 
         let npcs = self.stage.load_npcs(&state.base_path, ctx)?;

@@ -472,7 +472,7 @@ impl DrawMode {
 }
 
 /// Specifies what blending method to use when scaling up/down images.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum FilterMode {
     /// Use linear interpolation (ie, smooth)
     Linear,

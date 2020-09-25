@@ -200,6 +200,8 @@ pub struct NPCConsts {
 #[derive(Debug, Copy, Clone)]
 pub struct TextScriptConsts {
     pub encoding: TextScriptEncoding,
+    pub encrypted: bool,
+    pub animated_face_pics: bool,
     pub textbox_rect_top: Rect<usize>,
     pub textbox_rect_middle: Rect<usize>,
     pub textbox_rect_bottom: Rect<usize>,
@@ -230,6 +232,7 @@ pub struct TitleConsts {
 #[derive(Debug)]
 pub struct EngineConstants {
     pub is_cs_plus: bool,
+    pub is_switch: bool,
     pub my_char: MyCharConsts,
     pub booster: BoosterConsts,
     pub caret: CaretConsts,
@@ -249,6 +252,7 @@ impl Clone for EngineConstants {
     fn clone(&self) -> EngineConstants {
         EngineConstants {
             is_cs_plus: self.is_cs_plus,
+            is_switch: self.is_switch,
             my_char: self.my_char,
             booster: self.booster,
             caret: self.caret.clone(),
@@ -270,6 +274,7 @@ impl EngineConstants {
     pub fn defaults() -> Self {
         EngineConstants {
             is_cs_plus: false,
+            is_switch: false,
             my_char: MyCharConsts {
                 display_bounds: Rect { left: 8 * 0x200, top: 8 * 0x200, right: 8 * 0x200, bottom: 8 * 0x200 },
                 hit_bounds: Rect { left: 5 * 0x200, top: 8 * 0x200, right: 5 * 0x200, bottom: 8 * 0x200 },
@@ -1069,6 +1074,11 @@ impl EngineConstants {
                 "Face_0" => (288, 240), // nxengine
                 "Face_1" => (288, 240), // nxengine
                 "Face_2" => (288, 240), // nxengine
+                "Face1" => (288, 240), // switch
+                "Face2" => (288, 240), // switch
+                "Face3" => (288, 240), // switch
+                "Face4" => (288, 240), // switch
+                "Face5" => (288, 240), // switch
                 "Fade" => (256, 32),
                 "ItemImage" => (256, 128),
                 "Loading" => (64, 8),
@@ -1154,7 +1164,9 @@ impl EngineConstants {
                 "Title" => (320, 48),
             },
             textscript: TextScriptConsts {
-                encoding: TextScriptEncoding::UTF8,
+                encoding: TextScriptEncoding::ShiftJIS,
+                encrypted: true,
+                animated_face_pics: false,
                 textbox_rect_top: Rect { left: 0, top: 0, right: 244, bottom: 8 },
                 textbox_rect_middle: Rect { left: 0, top: 8, right: 244, bottom: 16 },
                 textbox_rect_bottom: Rect { left: 0, top: 16, right: 244, bottom: 24 },
@@ -1183,7 +1195,7 @@ impl EngineConstants {
             font_space_offset: -3.0,
             organya_paths: vec![
                 str!("/org/"), // NXEngine
-                str!("/base/Org/"), // CS+
+                str!("/base/Org/"), // CS+ PC
                 str!("/Resource/ORG/"), // CSE2E
             ],
         }
@@ -1205,5 +1217,13 @@ impl EngineConstants {
 
     pub fn apply_csplus_nx_patches(&mut self) {
         info!("Applying Switch-specific Cave Story+ constants patches...");
+
+        self.is_switch = true;
+        self.tex_sizes.insert(str!("bkMoon"), (427, 240));
+        self.tex_sizes.insert(str!("bkFog"), (427, 240));
+        self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 62 };
+        self.textscript.encoding = TextScriptEncoding::UTF8;
+        self.textscript.encrypted = false;
+        self.textscript.animated_face_pics = true;
     }
 }

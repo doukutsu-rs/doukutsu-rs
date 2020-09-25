@@ -15,6 +15,7 @@ use num_traits::{clamp, FromPrimitive};
 use crate::bitfield;
 use crate::common::{Direction, FadeDirection, FadeState};
 use crate::encoding::{read_cur_shift_jis, read_cur_wtf8};
+use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::ggez::{Context, GameResult};
 use crate::ggez::GameError::ParseError;
@@ -165,6 +166,18 @@ pub enum OpCode {
     // ---- Cave Story+ specific opcodes ----
     /// <ACHXXXX, triggers a Steam achievement.
     ACH,
+
+
+    // ---- Cave Story+ (Switch) specific opcodes ----
+    /// <HM2, in "you've never been seen again" script, name and context of other opcodes suggests it might be second player related
+    /// HMC for player 2 i think?
+    HM2,
+    /// <2MV:xxxx, context suggests it's probably MOV for player 2 but what's the operand for?
+    #[strum(serialize = "2MV")]
+    S2MV,
+    /// <INJ:xxxx:yyyy:zzzz, xxxx = item id, yyyy = ???, zzzz = event id, a variant of <ITJ
+    /// seems like a ITJ which jumps if there's a specific number of items but i'm not sure
+    INJ,
 
     // ---- Custom opcodes, for use by modders ----
 }
@@ -1067,7 +1080,7 @@ impl TextScriptVM {
                     OpCode::CAT | OpCode::CIL | OpCode::CPS |
                     OpCode::CRE | OpCode::CSS | OpCode::FLA | OpCode::MLP |
                     OpCode::SAT | OpCode::SLP | OpCode::SPS |
-                    OpCode::STC | OpCode::SVP | OpCode::TUR => {
+                    OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::HM2 => {
                         log::warn!("unimplemented opcode: {:?}", op);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1076,7 +1089,7 @@ impl TextScriptVM {
                     OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::NUM | OpCode::DNA |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp |
                     OpCode::UNJ | OpCode::MPJ | OpCode::XX1 | OpCode::SIL |
-                    OpCode::SSS | OpCode::ACH => {
+                    OpCode::SSS | OpCode::ACH | OpCode::S2MV => {
                         let par_a = read_cur_varint(&mut cursor)?;
 
                         log::warn!("unimplemented opcode: {:?} {}", op, par_a);
@@ -1093,7 +1106,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Three operand codes
-                    OpCode::TAM => {
+                    OpCode::TAM | OpCode::INJ => {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
                         let par_c = read_cur_varint(&mut cursor)?;
@@ -1157,26 +1170,29 @@ impl TextScript {
     }
 
     /// Loads, decrypts and compiles a text script from specified stream.
-    pub fn load_from<R: io::Read>(mut data: R) -> GameResult<TextScript> {
+    pub fn load_from<R: io::Read>(mut data: R, constants: &EngineConstants) -> GameResult<TextScript> {
         let mut buf = Vec::new();
         data.read_to_end(&mut buf)?;
 
-        let half = buf.len() / 2;
-        let key = if let Some(0) = buf.get(half) {
-            0xf9
-        } else {
-            (-(*buf.get(half).unwrap() as isize)) as u8
-        };
+        if constants.textscript.encrypted {
+            let half = buf.len() / 2;
+            let key = if let Some(0) = buf.get(half) {
+                0xf9
+            } else {
+                (-(*buf.get(half).unwrap() as isize)) as u8
+            };
+            log::info!("Decrypting TSC using key {:#x}", key);
 
-        for (idx, byte) in buf.iter_mut().enumerate() {
-            if idx == half {
-                continue;
+            for (idx, byte) in buf.iter_mut().enumerate() {
+                if idx == half {
+                    continue;
+                }
+
+                *byte = byte.wrapping_add(key);
             }
-
-            *byte = byte.wrapping_add(key);
         }
 
-        TextScript::compile(&buf, false)
+        TextScript::compile(&buf, false, constants.textscript.encoding)
     }
 
     pub fn get_event_ids(&self) -> Vec<u16> {
@@ -1184,7 +1200,7 @@ impl TextScript {
     }
 
     /// Compiles a decrypted text script data into internal bytecode.
-    pub fn compile(data: &[u8], strict: bool) -> GameResult<TextScript> {
+    pub fn compile(data: &[u8], strict: bool, encoding: TextScriptEncoding) -> GameResult<TextScript> {
         log::info!("data: {}", String::from_utf8_lossy(data));
 
         let mut event_map = HashMap::new();
@@ -1210,7 +1226,7 @@ impl TextScript {
                         }
                     }
 
-                    let bytecode = TextScript::compile_event(&mut iter, strict, TextScriptEncoding::ShiftJIS)?;
+                    let bytecode = TextScript::compile_event(&mut iter, strict, encoding)?;
                     log::info!("Successfully compiled event #{} ({} bytes generated).", event_num, bytecode.len());
                     event_map.insert(event_num, bytecode);
                 }
@@ -1281,11 +1297,11 @@ impl TextScript {
         let mut chars = 0;
 
         while remaining > 0 {
-            let (consumed, chr) = if encoding == TextScriptEncoding::UTF8 {
-                read_cur_wtf8(&mut cursor, remaining)
-            } else {
-                read_cur_shift_jis(&mut cursor, remaining)
+            let (consumed, chr) = match encoding {
+                TextScriptEncoding::UTF8 => read_cur_wtf8(&mut cursor, remaining),
+                TextScriptEncoding::ShiftJIS => read_cur_shift_jis(&mut cursor, remaining),
             };
+
             remaining -= consumed;
             chars += 1;
 
@@ -1339,7 +1355,7 @@ impl TextScript {
             OpCode::FRE | OpCode::HMC | OpCode::INI | OpCode::KEY | OpCode::LDP | OpCode::MLP |
             OpCode::MM0 | OpCode::MNA | OpCode::MS2 | OpCode::MS3 | OpCode::MSG | OpCode::NOD |
             OpCode::PRI | OpCode::RMU | OpCode::SAT | OpCode::SLP | OpCode::SMC | OpCode::SPS |
-            OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM => {
+            OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM | OpCode::HM2 => {
                 TextScript::put_varint(instr as i32, out);
             }
             // One operand codes
@@ -1349,7 +1365,7 @@ impl TextScript {
             OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm | OpCode::MLp |
             OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ | OpCode::YNJ |
             OpCode::EVE | OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU | OpCode::CMU |
-            OpCode::SSS | OpCode::ACH => {
+            OpCode::SSS | OpCode::ACH | OpCode::S2MV => {
                 let operand = TextScript::read_number(iter)?;
                 TextScript::put_varint(instr as i32, out);
                 TextScript::put_varint(operand as i32, out);
@@ -1366,7 +1382,7 @@ impl TextScript {
                 TextScript::put_varint(operand_b as i32, out);
             }
             // Three operand codes
-            OpCode::ANP | OpCode::CNP | OpCode::INP | OpCode::TAM | OpCode::CMP => {
+            OpCode::ANP | OpCode::CNP | OpCode::INP | OpCode::TAM | OpCode::CMP | OpCode::INJ => {
                 let operand_a = TextScript::read_number(iter)?;
                 if strict { TextScript::expect_char(b':', iter)?; } else { iter.next().ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?; }
                 let operand_b = TextScript::read_number(iter)?;

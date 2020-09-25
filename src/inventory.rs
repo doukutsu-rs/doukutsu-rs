@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::engine_constants::EngineConstants;
 use crate::shared_game_state::SharedGameState;
 use crate::weapon::{Weapon, WeaponLevel, WeaponType};
@@ -41,6 +43,11 @@ impl Inventory {
     pub fn add_item(&mut self, item_id: u16) {
         if !self.has_item(item_id) {
             self.items.push(Item(item_id, 1));
+        } else {
+            if let Some(item) = self.get_item(item_id) {
+                item.1 += 1;
+                return;
+            }
         }
     }
 
@@ -65,6 +72,16 @@ impl Inventory {
 
     pub fn has_item(&self, item_id: u16) -> bool {
         self.items.iter().any(|item| item.0 == item_id)
+    }
+
+    pub fn has_item_amount(&self, item_id: u16, operator: Ordering, amount: u16) -> bool {
+        let result = self.items.iter().any(|item| item.0 == item_id && item.1.cmp(&amount) == operator);
+
+        if (operator == Ordering::Equal && amount == 0 && !result) || (operator == Ordering::Less && !self.has_item(item_id)) {
+            return true;
+        }
+
+        result
     }
 
     pub fn add_weapon(&mut self, weapon_id: WeaponType, max_ammo: u16) -> &mut Weapon {
@@ -229,4 +246,35 @@ impl Inventory {
     pub fn has_weapon(&self, wtype: WeaponType) -> bool {
         self.weapons.iter().any(|weapon| weapon.wtype == wtype)
     }
+}
+
+#[test]
+fn inventory_test() {
+    let mut inventory = Inventory::new();
+
+    inventory.add_item(3);
+    assert_eq!(inventory.has_item(2), false);
+    assert_eq!(inventory.has_item(3), true);
+
+    assert_eq!(inventory.has_item_amount(3, Ordering::Equal, 1), true);
+    assert_eq!(inventory.has_item_amount(3, Ordering::Less, 2), true);
+    inventory.consume_item(3);
+
+    assert_eq!(inventory.has_item_amount(3, Ordering::Equal, 0), true);
+    assert_eq!(inventory.has_item_amount(3, Ordering::Less, 2), true);
+
+    inventory.add_item(2);
+    assert_eq!(inventory.has_item(2), true);
+    assert_eq!(inventory.has_item_amount(2, Ordering::Equal, 1), true);
+    assert_eq!(inventory.has_item_amount(2, Ordering::Less, 1), false);
+
+    inventory.add_item(4);
+    inventory.add_item(4);
+    inventory.add_item(4);
+    inventory.add_item(4);
+
+    assert_eq!(inventory.has_item(4), true);
+    assert_eq!(inventory.has_item_amount(4, Ordering::Greater, 3), true);
+    assert_eq!(inventory.has_item_amount(4, Ordering::Equal, 4), true);
+    assert_eq!(inventory.has_item_amount(4, Ordering::Less, 2), false);
 }

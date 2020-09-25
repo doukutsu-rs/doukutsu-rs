@@ -178,12 +178,14 @@ impl Game {
 pub fn main() -> GameResult {
     pretty_env_logger::env_logger::init_from_env(Env::default().default_filter_or("info"));
 
-    let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
+    let resource_dir = if let Ok(data_dir) = env::var("CAVESTORY_DATA_DIR") {
+        path::PathBuf::from(data_dir)
+    } else if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
         let mut path = path::PathBuf::from(manifest_dir);
         path.push("data");
         path
     } else {
-        path::PathBuf::from(&env::var("CAVESTORY_DATA_DIR").unwrap_or(str!("data")))
+        path::PathBuf::from("data")
     };
 
     info!("Resource directory: {:?}", resource_dir);
