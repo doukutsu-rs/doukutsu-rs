@@ -7,6 +7,10 @@
 A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/), aiming for behavior accuracy and cleaner code.
 Later plans might involve turning it into a fully-featured modding tool with live debugging and stuff.
 
+The engine also contains some (might be buggy and not accurate, everything was pure guess work on data files to avoid legal issues) implementation of Cave Story+ features from both PC and Switch versions.
+
+Note you have to ship the data files yourself if you want to play with those features, but nothing is stopping you from creating a modification of freeware files that uses those new TSC opcodes and features. I'd actually would like to see something cool created using this engine.
+
 **The project is still incomplete and might not be playable. Expect lots of breaking changes and bugs**
 
 [Join the Discord server](https://discord.gg/fbRsNNB)
@@ -15,7 +19,7 @@ Later plans might involve turning it into a fully-featured modding tool with liv
 
 This repo does not redistribute any copyrighted files. 
 
-The engine should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE2) or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) modified freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) (Nicalis commercial release, loading is supported, features are implemented in clean room way, using guess work or stuff already being inside the engine) data files.
+The engine should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE2) or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) modified freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) data files.
 
 Vanilla Cave Story does not work yet because some important data files are embedded inside executable and we don't have an extractor yet.
 

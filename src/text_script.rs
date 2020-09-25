@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io;
 use std::io::Cursor;
@@ -40,144 +41,242 @@ pub enum OpCode {
     /// internal: implicit END marker
     _END,
 
-    // ---- Official opcodes ----
-    /// <BOAxxxx, start boss animation
+    // ---- Vanilla opcodes ----
+    /// <BOAxxxx, Starts boss animation
     BOA,
-    /// <BSLxxxx, start boss fight
+    /// <BSLxxxx, Starts boss fight
     BSL,
 
-    /// <FOBxxxx, Focus on boss
+    /// <FOBxxxx, Focuses on boss
     FOB,
+    /// <FOMxxxx, Focuses on me
     FOM,
+    /// <FONxxxx:yyyy, Focuses on NPC for yyyy ticks
     FON,
+    /// <FLA, Flashes screen
     FLA,
+    /// <QUAxxxx, Starts quake for xxxx ticks
     QUA,
 
+    /// <UNIxxxx, Sets player movement mode (0 = normal, 1 = main artery)
     UNI,
+    /// <HMC, Hides the player
     HMC,
+    /// <SMC, Shows the player
     SMC,
+    /// <MM0, Halts horizontal movement
     MM0,
+    /// <MOVxxxx:yyyy, Moves the player to tile (xxxx,yyyy)
     MOV,
+    /// <MYBxxxx, Bumps the player from direction xxxx
     MYB,
+    /// <MYDxxxx, Makes the player face direction xxxx
     MYD,
+    /// <TRAxxxx:yyyy:zzzz:wwww, Travels to map xxxx, starts event yyyy, places the player at tile (zzzz,wwww)
     TRA,
 
+    /// <END, Ends the current event
     END,
+    /// <FRE, Starts world ticking and unlocks player controls.
     FRE,
+    /// <FAIxxxx, Fades in with direction xxxx
     FAI,
+    /// <FAOxxxx, Fades out with direction xxxx
     FAO,
+    /// <WAIxxxx, Waits for xxxx frames
     WAI,
+    /// <WASs, Waits until the player is standing
     WAS,
+    /// <KEY, Locks out the player controls.
     KEY,
+    /// <PRI, Stops world ticking and locks out player controls.
     PRI,
+    /// <NOD, Waits for input
     NOD,
+    /// <CAT, Instantly displays the text, works for entire event
     CAT,
+    /// <SAT, Speeds up text display
     SAT,
+    /// <TUR, Instantly displays the text, works until <MSG/2/3 or <END
     TUR,
+    /// <CLO, Closes the text box
     CLO,
+    /// <CLR, Clears the text box
     CLR,
+    /// <FACxxxx, Shows the face xxxx in text box, 0 to hide, add 100 to the
+    /// number to display the face in opposite direction.
     FAC,
+    /// <GITxxxx, Shows the item xxxx above text box, 0 to hide
     GIT,
+    /// <MS2, Displays text on top of the screen without background.
     MS2,
+    /// <MS3, Displays text on top of the screen with background.
     MS3,
+    /// <MSG, Displays text on bottom of the screen with background.
     MSG,
+    /// <NUMxxxx, Displays a value from AM+, buggy in vanilla.
     NUM,
 
+    /// <ANPxxxx:yyyy:zzzz, Changes the animation state of NPC tagged with
+    /// event xxxx to yyyy and set the direction to zzzz
     ANP,
+    /// <CNPxxxx:yyyy:zzzz, Changes the NPC tagged with event xxxx to type yyyy
+    /// and makes it face direction zzzz
     CNP,
+    /// <INPxxxx:yyyy:zzzz, Same as <CNP, but also sets NPC flag event_when_touched (0x100)
     INP,
+    /// <MNPxxxx:yyyy:zzzz:wwww, Moves NPC tagged with event xxxx to tile position (xxxx,yyyy)
+    /// and makes it face direction zzzz
     MNP,
+    /// <DNAxxxx, Deletes all NPCs of type xxxx
     DNA,
+    /// <DNPxxxx, Deletes all NPCs of type xxxx
     DNP,
     SNP,
 
+    /// <FL-xxxx, Sets the flag xxxx to false
     #[strum(serialize = "FL-")]
     FLm,
+    /// <FL+xxxx, Sets the flag xxxx to true
     #[strum(serialize = "FL+")]
     FLp,
+    /// <MP-xxxx, Sets the map xxxx to true
     #[strum(serialize = "MP+")]
     MPp,
+    /// <SK-xxxx, Sets the skip flag xxx to false
     #[strum(serialize = "SK-")]
     SKm,
+    /// <SK+xxxx, Sets the skip flag xxx to true
     #[strum(serialize = "SK+")]
     SKp,
 
+    /// <EQ+xxxx, Sets specified bits in equip bitfield
     #[strum(serialize = "EQ+")]
     EQp,
+    /// <EQ-xxxx, Unsets specified bits in equip bitfield
     #[strum(serialize = "EQ-")]
     EQm,
+    /// <ML+xxxx, Adds xxxx to maximum health.
     #[strum(serialize = "ML+")]
     MLp,
+    /// <IT+xxxx, Adds item xxxx to players inventory.
     #[strum(serialize = "IT+")]
     ITp,
+    /// <IT-xxxx, Removes item xxxx to players inventory.
     #[strum(serialize = "IT-")]
     ITm,
+    /// <AM+xxxx:yyyy, Adds weapon xxxx with yyyy ammo (0 = infinite) to players inventory.
     #[strum(serialize = "AM+")]
     AMp,
+    /// <AM-xxxx, Removes weapon xxxx from players inventory.
     #[strum(serialize = "AM-")]
     AMm,
+    /// <TAMxxxx:yyyy:zzzz, Trades weapon xxxx for weapon yyyy with zzzz ammo
     TAM,
 
+    /// <UNJxxxx, Jumps to event xxxx if no damage has been taken
     UNJ,
+    /// <NCJxxxx:yyyy, Jumps to event xxxx if NPC of type yyyy is alive
     NCJ,
+    /// <ECJxxxx:yyyy, Jumps to event xxxx if NPC tagged with event yyyy is alive
     ECJ,
+    /// <FLJxxxx:yyyy, Jumps to event xxxx if flag yyyy is set
     FLJ,
+    /// <FLJxxxx:yyyy, Jumps to event xxxx if player has item yyyy
     ITJ,
+    /// <MPJxxxx, Jumps to event xxxx if map flag for current stage is set
     MPJ,
+    /// <YNJxxxx, Jumps to event xxxx if prompt response is No, otherwise continues event execution
     YNJ,
+    /// <MPJxxxx, Jumps to event xxxx if skip flag for is set
     SKJ,
+    /// <EVExxxx, Jumps to event xxxx
     EVE,
+    /// <AMJyyyy, Jumps to event xxxx player has weapon yyyy
     AMJ,
 
+    /// <MLP, Displays the map of current stage
     MLP,
+    /// <MLP, Displays the name of current stage
     MNA,
+    /// <CMPxxxx:yyyy:zzzz, Sets the tile at (xxxx,yyyy) to type zzzz
     CMP,
+    /// <SMPxxxx:yyyy:zzzz, Subtracts 1 from tile type at (xxxx,yyyy)
     SMP,
 
+    /// <CRE, Shows credits
     CRE,
+    /// <XX1xxxx, Shows falling island
     XX1,
+    /// <CIL, Hides credits illustration
     CIL,
+    /// <SILxxxx, Shows credits illustration xxxx
     SIL,
+    /// <ESC, Exits to title screen
     ESC,
+    /// <ESC, Exits to credits
     INI,
+    /// <LDP, Loads a saved game
     LDP,
+    /// <PS+xxxx:yyyy, Sets teleporter slot xxxx to event number yyyy
     #[strum(serialize = "PS+")]
     PSp,
+    /// <SLP, Shows the teleporter menu
     SLP,
+    /// <ZAM, Resets the experience and level of all weapons
     ZAM,
 
+    /// <AE+, Refills ammunition
     #[strum(serialize = "AE+")]
     AEp,
+    /// <LI+xxxx, Recovers xxxx health
     #[strum(serialize = "LI+")]
     LIp,
 
+    /// <SVP, Saves the current game
     SVP,
+    /// <STC, Saves the state of Nikumaru counter
     STC,
 
+    /// <SOUxxxx, Plays sound effect xxxx
     SOU,
+    /// <CMUxxxx, Changes BGM to xxxx
     CMU,
+    /// <FMU, Fades the BGM
     FMU,
+    /// <RMU, Restores the music state of BGM played before current one
     RMU,
+    /// <CPS, Stops the propeller sound
     CPS,
+    /// <SPS, Starts the propeller sound
     SPS,
+    /// <CSS, Stops the stream sound
     CSS,
+    /// <SSSxxxx, Starts the stream sound at volume xxxx
     SSS,
 
     // ---- Cave Story+ specific opcodes ----
-    /// <ACHXXXX, triggers a Steam achievement.
+    /// <ACHxxxx, triggers a Steam achievement.
     ACH,
 
-
     // ---- Cave Story+ (Switch) specific opcodes ----
-    /// <HM2, in "you've never been seen again" script, name and context of other opcodes suggests it might be second player related
-    /// HMC for player 2 i think?
+    /// <HM2, HMC for player 2
     HM2,
-    /// <2MV:xxxx, context suggests it's probably MOV for player 2 but what's the operand for?
+    /// <2MVxxxx, looks like MOV for player 2, purpose of xxxx operand is still unknown
     #[strum(serialize = "2MV")]
     S2MV,
-    /// <INJ:xxxx:yyyy:zzzz, xxxx = item id, yyyy = ???, zzzz = event id, a variant of <ITJ
-    /// seems like a ITJ which jumps if there's a specific number of items but i'm not sure
+    /// <INJxxxx:yyyy:zzzz, Jumps to event zzzz if amount of item xxxx equals yyyy
     INJ,
+    /// <I+Nxxxx:yyyy, Adds item xxxx with maximum amount of yyyy
+    #[strum(serialize = "I+N")]
+    IpN,
+    /// <FF-xxxx:yyyy, Set flags in range xxxx-yyyy to false
+    #[strum(serialize = "FF-")]
+    FFm,
+    /// <PSHxxxx, Pushes text script state to stack and starts event xxxx
+    PSH,
+    /// <POP, Restores text script state from stack and resumes previous event.
+    POP,
 
     // ---- Custom opcodes, for use by modders ----
 }
@@ -243,6 +342,7 @@ pub enum TextScriptExecutionState {
 pub struct TextScriptVM {
     pub scripts: TextScriptVMScripts,
     pub state: TextScriptExecutionState,
+    pub stack: Vec<TextScriptExecutionState>,
     pub flags: TextScriptFlags,
     /// Toggle for non-strict TSC parsing because English versions of CS+ (both AG and Nicalis release)
     /// modified the events carelessly and since original Pixel's engine hasn't enforced constraints
@@ -303,6 +403,7 @@ impl TextScriptVM {
                 scene_script: TextScript::new(),
             },
             state: TextScriptExecutionState::Ended,
+            stack: Vec::with_capacity(6),
             strict_mode: false,
             suspend: true,
             flags: TextScriptFlags(0),
@@ -530,6 +631,7 @@ impl TextScriptVM {
 
                         state.textscript_vm.flags.set_render(false);
                         state.textscript_vm.flags.set_background_visible(false);
+                        state.textscript_vm.stack.clear();
 
                         game_scene.player.cond.set_interacted(false);
                         game_scene.player.update_target = true;
@@ -611,6 +713,18 @@ impl TextScriptVM {
                         state.game_flags.set(flag_num, op == OpCode::FLp);
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::FFm => {
+                        let flag_from = read_cur_varint(&mut cursor)? as usize;
+                        let flag_to = read_cur_varint(&mut cursor)? as usize;
+
+                        if flag_to >= flag_from {
+                            for flag in flag_from..=flag_to {
+                                state.game_flags.set(flag, false);
+                            }
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::FLJ => {
                         let flag_num = read_cur_varint(&mut cursor)? as usize;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
@@ -625,6 +739,17 @@ impl TextScriptVM {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
                         if game_scene.inventory.has_item(item_id) {
+                            exec_state = TextScriptExecutionState::Running(event_num, 0);
+                        } else {
+                            exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                        }
+                    }
+                    OpCode::INJ => {
+                        let item_id = read_cur_varint(&mut cursor)? as u16;
+                        let amount = read_cur_varint(&mut cursor)? as u16;
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                        if game_scene.inventory.has_item_amount(item_id, Ordering::Equal, amount) {
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -665,6 +790,22 @@ impl TextScriptVM {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
                         exec_state = TextScriptExecutionState::Running(event_num, 0);
+                    }
+                    OpCode::PSH => {
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                        let saved_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                        state.textscript_vm.stack.push(saved_state);
+
+                        exec_state = TextScriptExecutionState::Running(event_num, 0);
+                    }
+                    OpCode::POP => {
+                        if let Some(saved_state) = state.textscript_vm.stack.pop() {
+                            exec_state = saved_state;
+                        } else {
+                            log::warn!("Tried to <POP from TSC stack without saved state!");
+                            exec_state = TextScriptExecutionState::Ended;
+                        }
                     }
                     OpCode::MM0 => {
                         game_scene.player.vel_x = 0;
@@ -1003,14 +1144,26 @@ impl TextScriptVM {
                     OpCode::ITp => {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
 
-                        game_scene.inventory.add_item(item_id);
+                        if !game_scene.inventory.has_item(item_id) {
+                            game_scene.inventory.add_item(item_id);
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::IpN => {
+                        let item_id = read_cur_varint(&mut cursor)? as u16;
+                        let amount = read_cur_varint(&mut cursor)? as u16;
+
+                        if game_scene.inventory.has_item_amount(item_id, Ordering::Less, amount) {
+                            game_scene.inventory.add_item(item_id);
+                        }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::ITm => {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
 
-                        game_scene.inventory.remove_item(item_id);
+                        game_scene.inventory.consume_item(item_id);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1106,7 +1259,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Three operand codes
-                    OpCode::TAM | OpCode::INJ => {
+                    OpCode::TAM => {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
                         let par_c = read_cur_varint(&mut cursor)?;
@@ -1357,7 +1510,8 @@ impl TextScript {
             OpCode::FRE | OpCode::HMC | OpCode::INI | OpCode::KEY | OpCode::LDP | OpCode::MLP |
             OpCode::MM0 | OpCode::MNA | OpCode::MS2 | OpCode::MS3 | OpCode::MSG | OpCode::NOD |
             OpCode::PRI | OpCode::RMU | OpCode::SAT | OpCode::SLP | OpCode::SMC | OpCode::SPS |
-            OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM | OpCode::HM2 => {
+            OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM | OpCode::HM2 |
+            OpCode::POP => {
                 TextScript::put_varint(instr as i32, out);
             }
             // One operand codes
@@ -1367,14 +1521,15 @@ impl TextScript {
             OpCode::MPp | OpCode::SKm | OpCode::SKp | OpCode::EQp | OpCode::EQm | OpCode::MLp |
             OpCode::ITp | OpCode::ITm | OpCode::AMm | OpCode::UNJ | OpCode::MPJ | OpCode::YNJ |
             OpCode::EVE | OpCode::XX1 | OpCode::SIL | OpCode::LIp | OpCode::SOU | OpCode::CMU |
-            OpCode::SSS | OpCode::ACH | OpCode::S2MV => {
+            OpCode::SSS | OpCode::ACH | OpCode::S2MV | OpCode::PSH => {
                 let operand = TextScript::read_number(iter)?;
                 TextScript::put_varint(instr as i32, out);
                 TextScript::put_varint(operand as i32, out);
             }
             // Two operand codes
             OpCode::FON | OpCode::MOV | OpCode::AMp | OpCode::NCJ | OpCode::ECJ | OpCode::FLJ |
-            OpCode::ITJ | OpCode::SKJ | OpCode::AMJ | OpCode::SMP | OpCode::PSp => {
+            OpCode::ITJ | OpCode::SKJ | OpCode::AMJ | OpCode::SMP | OpCode::PSp | OpCode::IpN |
+            OpCode::FFm => {
                 let operand_a = TextScript::read_number(iter)?;
                 if strict { TextScript::expect_char(b':', iter)?; } else { iter.next().ok_or_else(|| ParseError(str!("Script unexpectedly ended.")))?; }
                 let operand_b = TextScript::read_number(iter)?;
@@ -1412,9 +1567,8 @@ impl TextScript {
                 TextScript::put_varint(operand_c as i32, out);
                 TextScript::put_varint(operand_d as i32, out);
             }
-            _ => {
-                TextScript::put_varint(OpCode::_UNI as i32, out);
-                log::warn!("Unimplemented opcode: {:?}", instr);
+            OpCode::_NOP | OpCode::_UNI | OpCode::_STR | OpCode::_END => {
+                unreachable!()
             }
         }
 
