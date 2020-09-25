@@ -10,6 +10,7 @@ use crate::common::{Direction, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
+use crate::npc::NPCMap;
 use crate::shared_game_state::SharedGameState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
@@ -347,7 +348,36 @@ impl Player {
         self.vel_x = clamp(self.vel_x, -max_move, max_move);
         self.vel_y = clamp(self.vel_y, -max_move, max_move);
 
-        // todo: water splashing
+        if !self.splash && self.flags.in_water() {
+            let vertical_splash = !self.flags.hit_bottom_wall() && self.vel_y > 0x200;
+            let horizontal_splash = self.vel_x > 0x200 || self.vel_x < -0x200;
+            let should_splash = vertical_splash || horizontal_splash;
+
+            if should_splash {
+                for _ in 0..7 {
+                    let mut droplet = NPCMap::create_npc(73, &state.npc_table);
+
+                    droplet.cond.set_alive(true);
+                    droplet.direction = if self.flags.water_splash_facing_right() { Direction::Right } else { Direction::Left };
+                    droplet.x = self.x + (state.game_rng.range(-8..8) * 0x200) as isize;
+                    droplet.y = self.y;
+                    droplet.vel_x = if vertical_splash { 
+                        (self.vel_x + state.game_rng.range(-0x200..0x200) as isize) - (self.vel_x / 2)
+                    } else if horizontal_splash {
+                        self.vel_x + state.game_rng.range(-0x200..0x200) as isize
+                    } else {
+                        0 as isize
+                    };
+                    droplet.vel_y = state.game_rng.range(-0x200..0x80) as isize;
+
+                    state.new_npcs.push(droplet);                    
+                }
+
+                state.sound_manager.play_sfx(56);
+            }
+
+            self.splash = true;
+        }
 
         if !self.flags.in_water() {
             self.splash = false;
