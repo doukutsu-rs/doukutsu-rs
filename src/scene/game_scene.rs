@@ -533,6 +533,20 @@ impl GameScene {
                                      &Rect::new(0, 0, 64, 64))
     }
 
+    fn draw_directional_light(&self, x: f32, y: f32, size: f32, direction: Direction, color: (u8, u8, u8), batch: &mut SizedBatch) {
+        let (rect, offset_x, offset_y) = match direction {
+            Direction::Left => (Rect { left: 0, top: 0, right: 32, bottom: 32 }, -size * 32.0, -size * 16.0),
+            Direction::Up => (Rect { left: 32, top: 0, right: 64, bottom: 32 }, -size * 16.0, -size * 32.0),
+            Direction::Right => (Rect { left: 32, top: 32, right: 64, bottom: 64 }, 0.0, -size * 16.0),
+            Direction::Bottom => (Rect { left: 0, top: 32, right: 32, bottom: 64 }, -size * 16.0, -size * 0.0),
+        };
+
+        batch.add_rect_scaled_tinted(x + offset_x, y + offset_y, color,
+                                     size,
+                                     size,
+                                     &rect)
+    }
+
     fn draw_light_map(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         if self.stage.data.background_type == BackgroundType::Black {
             return Ok(());
@@ -541,15 +555,27 @@ impl GameScene {
         graphics::set_canvas(ctx, Some(&state.lightmap_canvas));
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
-        graphics::clear(ctx, Color::from_rgb(130, 130, 130));
+        graphics::clear(ctx, Color::from_rgb(150, 150, 150));
         {
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
+            if !self.player.cond.hidden() && self.inventory.get_current_weapon().is_some() {
+                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/direct")?;
 
-            if state.control_flags.control_enabled() {
-                self.draw_light(((self.player.x - self.frame.x) / 0x200) as f32,
-                                ((self.player.y - self.frame.y) / 0x200) as f32,
-                                3.0, (255, 255, 255), batch);
+                let direction = if self.player.up {
+                    Direction::Up
+                } else if self.player.down {
+                    Direction::Bottom
+                } else {
+                    self.player.direction
+                };
+
+                self.draw_directional_light(((self.player.x - self.frame.x) / 0x200) as f32,
+                                            ((self.player.y - self.frame.y) / 0x200) as f32,
+                                            3.0, direction, (255, 255, 255), batch);
+
+                batch.draw_filtered(FilterMode::Linear, ctx)?;
             }
+
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
 
             for bullet in self.bullet_manager.bullets.iter() {
                 self.draw_light(((bullet.x - self.frame.x) / 0x200) as f32,
