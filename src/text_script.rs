@@ -1212,7 +1212,9 @@ impl TextScript {
                 b'#' => {
                     iter.next();
                     let event_num = TextScript::read_number(&mut iter)? as u16;
-                    TextScript::skip_until(b'\n', &mut iter)?;
+                    if iter.peek().is_some() {
+                        TextScript::skip_until(b'\n', &mut iter)?;
+                    }
                     last_event = event_num;
 
                     if event_map.contains_key(&event_num) {

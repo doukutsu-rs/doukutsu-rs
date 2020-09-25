@@ -465,11 +465,18 @@ impl GameScene {
             };
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex_name)?;
 
-            batch.add_rect(left_pos + 14.0, top_pos + 8.0, &Rect::<usize>::new_size(
-                (state.textscript_vm.face as usize % 6) * 48,
-                (state.textscript_vm.face as usize / 6) * 48,
-                48, 48,
-            ));
+            // switch version uses +100 face offset to display a flipped version
+            let flip = state.textscript_vm.face > 100;
+            let face_num = state.textscript_vm.face % 100;
+            let (scale_x, scale_y) = batch.scale();
+
+            batch.add_rect_scaled(left_pos + 14.0 + if flip { 48.0 } else { 0.0 }, top_pos + 8.0,
+                                  scale_x * if flip { -1.0 } else { 1.0 }, scale_y,
+                                  &Rect::<usize>::new_size(
+                                      (face_num as usize % 6) * 48,
+                                      (face_num as usize / 6) * 48,
+                                      48, 48,
+                                  ));
 
             batch.draw(ctx)?;
         }
@@ -527,6 +534,10 @@ impl GameScene {
     }
 
     fn draw_light_map(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        if self.stage.data.background_type == BackgroundType::Black {
+            return Ok(());
+        }
+
         graphics::set_canvas(ctx, Some(&state.lightmap_canvas));
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
@@ -970,6 +981,10 @@ impl Scene for GameScene {
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
+        if state.enhanced_graphics {
+            self.draw_light_map(state, ctx)?;
+        }
+
         for npc_id in self.npc_map.npc_ids.iter() {
             if let Some(npc_cell) = self.npc_map.npcs.get(npc_id) {
                 npc_cell.borrow().draw(state, ctx, &self.frame)?;
@@ -980,9 +995,6 @@ impl Scene for GameScene {
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;
-        if state.enhanced_graphics {
-            self.draw_light_map(state, ctx)?;
-        }
         self.draw_black_bars(state, ctx)?;
 
         if state.control_flags.control_enabled() {

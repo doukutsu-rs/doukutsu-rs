@@ -47,6 +47,11 @@ impl SizedBatch {
     }
 
     #[inline(always)]
+    pub fn scale(&self) -> (f32, f32) {
+        (self.scale_x, self.scale_y)
+    }
+
+    #[inline(always)]
     pub fn to_rect(&self) -> common::Rect<usize> {
         common::Rect::<usize>::new(0, 0, self.width, self.height)
     }
