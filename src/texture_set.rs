@@ -26,26 +26,32 @@ pub struct SizedBatch {
 }
 
 impl SizedBatch {
+    #[inline(always)]
     pub fn width(&self) -> usize {
         self.width
     }
 
+    #[inline(always)]
     pub fn height(&self) -> usize {
         self.height
     }
 
+    #[inline(always)]
     pub fn dimensions(&self) -> (usize, usize) {
         (self.width, self.height)
     }
 
+    #[inline(always)]
     pub fn real_dimensions(&self) -> (usize, usize) {
         (self.real_width, self.real_height)
     }
 
+    #[inline(always)]
     pub fn to_rect(&self) -> common::Rect<usize> {
         common::Rect::<usize>::new(0, 0, self.width, self.height)
     }
 
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.batch.clear();
     }
@@ -58,6 +64,7 @@ impl SizedBatch {
         self.batch.add(param);
     }
 
+    #[inline(always)]
     pub fn add_rect(&mut self, x: f32, y: f32, rect: &common::Rect<usize>) {
         self.add_rect_scaled(x, y, self.scale_x, self.scale_y, rect)
     }
@@ -95,8 +102,13 @@ impl SizedBatch {
         self.batch.add(param);
     }
 
+    #[inline(always)]
     pub fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        self.batch.set_filter(ctx.filter_mode);
+        self.draw_filtered(ctx.filter_mode, ctx)
+    }
+
+    pub fn draw_filtered(&mut self, filter: FilterMode, ctx: &mut Context) -> GameResult {
+        self.batch.set_filter(filter);
         self.batch.draw(ctx, DrawParam::new())?;
         self.batch.clear();
         Ok(())

@@ -190,6 +190,7 @@ impl NPC {
             }
             2 => {
                 self.anim_rect = state.constants.npc.n017_health_refill[0];
+                self.anim_num = 0;
 
                 if self.action_counter > 0 {
                     self.action_counter -= 1;
@@ -201,8 +202,10 @@ impl NPC {
                 self.anim_counter += 1;
 
                 if self.anim_counter % 2 == 0 {
+                    self.anim_num = 1;
                     self.anim_rect = state.constants.npc.n017_health_refill[1];
                 } else {
+                    self.anim_num = 0;
                     self.anim_rect = state.constants.npc.n017_health_refill[0];
                 }
 
@@ -213,6 +216,7 @@ impl NPC {
                 }
             }
             4 => {
+                self.anim_num = 1;
                 self.anim_rect = state.constants.npc.n017_health_refill[1];
 
                 if self.action_counter > 0 {

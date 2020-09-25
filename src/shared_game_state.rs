@@ -18,6 +18,7 @@ use crate::stage::StageData;
 use crate::str;
 use crate::text_script::{TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
+use crate::ggez::graphics::Canvas;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -58,6 +59,8 @@ pub struct SharedGameState {
     pub scale: f32,
     pub god_mode: bool,
     pub speed_hack: bool,
+    pub enhanced_graphics: bool,
+    pub lightmap_canvas: Canvas,
     pub canvas_size: (f32, f32),
     pub screen_size: (f32, f32),
     pub next_scene: Option<Box<dyn Scene>>,
@@ -115,6 +118,8 @@ impl SharedGameState {
             scale,
             god_mode: false,
             speed_hack: false,
+            enhanced_graphics: true,
+            lightmap_canvas: Canvas::with_window_size(ctx)?,
             screen_size,
             canvas_size,
             next_scene: None,

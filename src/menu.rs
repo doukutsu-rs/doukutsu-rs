@@ -19,10 +19,10 @@ pub struct Menu {
     pub y: isize,
     pub width: usize,
     pub height: usize,
-    selected: usize,
+    pub selected: usize,
+    pub entries: Vec<MenuEntry>,
     anim_num: u16,
     anim_wait: u16,
-    entries: Vec<MenuEntry>,
 }
 
 static QUOTE_FRAMES: [usize; 4] = [0, 1, 0, 2];

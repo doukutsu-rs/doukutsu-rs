@@ -26,8 +26,8 @@ impl TitleScene {
         Self {
             tick: 0,
             current_menu: CurrentMenu::MainMenu,
-            main_menu: Menu::new(0, 0, 100, 5 * 14 + 6),
-            option_menu: Menu::new(0, 0, 180, 5 * 14 + 6),
+            main_menu: Menu::new(0, 0, 100, 1 * 14 + 6),
+            option_menu: Menu::new(0, 0, 180, 1 * 14 + 6),
         }
     }
 
@@ -89,13 +89,16 @@ impl Scene for TitleScene {
             self.main_menu.push_entry(MenuEntry::Active("Options".to_string()));
             self.main_menu.push_entry(MenuEntry::Disabled("Editor".to_string()));
             self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
+            self.main_menu.height = self.main_menu.entries.len() * 14 + 6;
 
             self.option_menu.push_entry(MenuEntry::Toggle("50 FPS timing".to_string(), state.timing_mode == TimingMode::_50Hz));
             self.option_menu.push_entry(MenuEntry::Toggle("Linear scaling".to_string(), ctx.filter_mode == FilterMode::Linear));
+            self.option_menu.push_entry(MenuEntry::Toggle("Enhanced graphics".to_string(), state.enhanced_graphics));
             self.option_menu.push_entry(MenuEntry::Toggle("2x Speed hack".to_string(), state.speed_hack));
             self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
             self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));
             self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
+            self.option_menu.height = self.option_menu.entries.len() * 14 + 6;
         }
 
         self.main_menu.x = ((state.canvas_size.0 - self.main_menu.width as f32) / 2.0).floor() as isize;
@@ -152,16 +155,24 @@ impl Scene for TitleScene {
                     }
                     MenuSelectionResult::Selected(2, toggle) => {
                         if let MenuEntry::Toggle(_, value) = toggle {
-                            *value = !(*value);
-                            state.set_speed_hack(*value);
+                            state.enhanced_graphics = !state.enhanced_graphics;
+
+                            *value = state.enhanced_graphics;
                         }
                     }
-                    MenuSelectionResult::Selected(3, _) => {
+                    MenuSelectionResult::Selected(3, toggle) => {
+                        if let MenuEntry::Toggle(_, value) = toggle {
+                            state.set_speed_hack(!state.speed_hack);
+
+                            *value = state.speed_hack;
+                        }
+                    }
+                    MenuSelectionResult::Selected(4, _) => {
                         if let Err(e) = webbrowser::open(DISCORD_LINK) {
                             log::warn!("Error opening web browser: {}", e);
                         }
                     }
-                    MenuSelectionResult::Selected(5, _) | MenuSelectionResult::Canceled => {
+                    MenuSelectionResult::Selected(6, _) | MenuSelectionResult::Canceled => {
                         self.current_menu = CurrentMenu::MainMenu;
                     }
                     _ => {}

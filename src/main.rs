@@ -25,7 +25,7 @@ use crate::ggez::{Context, ContextBuilder, filesystem, GameResult};
 use crate::ggez::conf::{WindowMode, WindowSetup};
 use crate::ggez::event::{KeyCode, KeyMods};
 use crate::ggez::graphics;
-use crate::ggez::graphics::DrawParam;
+use crate::ggez::graphics::{Canvas, DrawParam};
 use crate::ggez::input::keyboard;
 use crate::ggez::mint::ColumnMatrix4;
 use crate::ggez::nalgebra::Vector2;
@@ -217,6 +217,7 @@ pub fn main() -> GameResult {
                     WindowEvent::CloseRequested => { game.state.shutdown(); }
                     WindowEvent::Resized(_) => {
                         game.state.handle_resize(ctx).unwrap();
+                        game.state.lightmap_canvas = Canvas::with_window_size(ctx).unwrap();
                         gfx_window_glutin::update_views(graphics::window(ctx), &mut game.ui.main_color, &mut game.ui.main_depth);
                     }
                     WindowEvent::KeyboardInput {

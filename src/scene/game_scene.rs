@@ -6,7 +6,7 @@ use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult, graphics, timer};
-use crate::ggez::graphics::Color;
+use crate::ggez::graphics::{BlendMode, Color, Drawable, DrawParam, FilterMode, Vector2};
 use crate::ggez::nalgebra::clamp;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::npc::NPCMap;
@@ -16,6 +16,7 @@ use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, TextScriptExecutionState, TextScriptVM};
+use crate::texture_set::SizedBatch;
 use crate::ui::Components;
 use crate::weapon::WeaponType;
 
@@ -518,6 +519,136 @@ impl GameScene {
         Ok(())
     }
 
+    fn draw_light(&self, x: f32, y: f32, size: f32, color: (u8, u8, u8), batch: &mut SizedBatch) {
+        batch.add_rect_scaled_tinted(x - size * 32.0, y - size * 32.0, color,
+                                     size,
+                                     size,
+                                     &Rect::new(0, 0, 64, 64))
+    }
+
+    fn draw_light_map(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        graphics::set_canvas(ctx, Some(&state.lightmap_canvas));
+        graphics::set_blend_mode(ctx, BlendMode::Add)?;
+
+        graphics::clear(ctx, Color::from_rgb(130, 130, 130));
+        {
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
+
+            if state.control_flags.control_enabled() {
+                self.draw_light(((self.player.x - self.frame.x) / 0x200) as f32,
+                                ((self.player.y - self.frame.y) / 0x200) as f32,
+                                3.0, (255, 255, 255), batch);
+            }
+
+            for bullet in self.bullet_manager.bullets.iter() {
+                self.draw_light(((bullet.x - self.frame.x) / 0x200) as f32,
+                                ((bullet.y - self.frame.y) / 0x200) as f32,
+                                1.0, (200, 200, 200), batch);
+            }
+
+            for caret in state.carets.iter() {
+                match caret.ctype {
+                    CaretType::ProjectileDissipation | CaretType::Shoot => {
+                        self.draw_light(((caret.x - self.frame.x) / 0x200) as f32,
+                                        ((caret.y - self.frame.y) / 0x200) as f32,
+                                        1.0, (200, 200, 200), batch);
+                    }
+                    CaretType::LevelUp if caret.direction == Direction::Left => {
+                        self.draw_light(((caret.x - self.frame.x) / 0x200) as f32,
+                                        ((caret.y - self.frame.y) / 0x200) as f32,
+                                        2.0, (0, 100, 160), batch);
+                    }
+                    CaretType::LevelUp if caret.direction == Direction::Right => {
+                        self.draw_light(((caret.x - self.frame.x) / 0x200) as f32,
+                                        ((caret.y - self.frame.y) / 0x200) as f32,
+                                        2.0, (255, 30, 30), batch);
+                    }
+                    _ => {}
+                }
+            }
+
+            for npc_cell in self.npc_map.npcs.values() {
+                let npc = npc_cell.borrow();
+
+                if npc.x < (self.frame.x - 128 * 0x200) || npc.x > (self.frame.x + (state.canvas_size.0 as isize + 128) * 0x200)
+                    && npc.y < (self.frame.y - 128 * 0x200) || npc.y > (self.frame.y + (state.canvas_size.1 as isize + 128) * 0x200) {
+                    continue;
+                }
+
+                match npc.npc_type {
+                    1 => self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                         ((npc.y - self.frame.y) / 0x200) as f32,
+                                         0.5, (255, 150, 0), batch),
+                    4 | 7 => self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                             ((npc.y - self.frame.y) / 0x200) as f32,
+                                             1.0, (200, 200, 200), batch),
+                    17 if npc.anim_num == 0 =>
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                                        2.0, (255, 30, 30), batch),
+                    20 if npc.direction == Direction::Right => {
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                                        2.0, (0, 0, 255), batch);
+
+                        if npc.anim_num < 2 {
+                            self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                            ((npc.y - self.frame.y) / 0x200) as f32,
+                                            0.5, (0, 0, 255), batch);
+                        }
+                    }
+                    22 if npc.action_num == 1 && npc.anim_num == 1 =>
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                                        3.0, (0, 0, 255), batch),
+                    32 => {
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                                        3.0, (255, 0, 0), batch);
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                                        2.0, (255, 0, 0), batch);
+                    }
+                    38 => {
+                        let flicker = 200 + state.effect_rng.range(0..55) as u8;
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                                        2.0, (flicker, flicker - 80, 0), batch);
+                    }
+                    66 if npc.action_num == 1 && npc.anim_counter % 2 == 0 =>
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                                        3.0, (0, 100, 255), batch),
+                    67 => self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                          ((npc.y - self.frame.y) / 0x200) as f32,
+                                          2.0, (0, 100, 200), batch),
+                    70 => {
+                        let flicker = 100 + npc.anim_num as u8 * 50;
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                                        2.0, (flicker, flicker, flicker), batch);
+                    }
+                    75 | 77 => self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                               ((npc.y - self.frame.y) / 0x200) as f32,
+                                               3.0, (255, 100, 0), batch),
+                    _ => {}
+                }
+            }
+
+            batch.draw_filtered(FilterMode::Linear, ctx)?;
+        }
+
+        graphics::set_canvas(ctx, None);
+        graphics::set_blend_mode(ctx, BlendMode::Multiply)?;
+        state.lightmap_canvas.set_filter(FilterMode::Linear);
+        state.lightmap_canvas.draw(ctx, DrawParam::new()
+            .scale(Vector2::new(1.0 / state.scale, 1.0 / state.scale)))?;
+
+        graphics::set_blend_mode(ctx, BlendMode::Alpha)?;
+
+        Ok(())
+    }
+
     fn draw_tiles(&self, state: &mut SharedGameState, ctx: &mut Context, layer: TileLayer) -> GameResult {
         let tex = match layer {
             TileLayer::Snack => "Npc/NpcSym",
@@ -849,6 +980,9 @@ impl Scene for GameScene {
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;
+        if state.enhanced_graphics {
+            self.draw_light_map(state, ctx)?;
+        }
         self.draw_black_bars(state, ctx)?;
 
         if state.control_flags.control_enabled() {
