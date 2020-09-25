@@ -560,7 +560,7 @@ impl Player {
         if self.life == 0 {
             state.sound_manager.play_sfx(17);
             self.cond.0 = 0;
-            state.control_flags.set_flag_x01(true);
+            state.control_flags.set_tick_world(true);
             state.control_flags.set_interactions_disabled(true);
             state.textscript_vm.start_script(40);
         }

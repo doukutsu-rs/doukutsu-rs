@@ -376,10 +376,6 @@ impl NPCMap {
             }
         }).collect_vec();
 
-        if !dead_npcs.is_empty() {
-            println!("deleting npcs: {:?}", dead_npcs);
-        }
-
         for npc_id in dead_npcs.iter() {
             self.npc_ids.remove(npc_id);
             self.npcs.remove(npc_id);

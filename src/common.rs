@@ -34,16 +34,24 @@ bitfield! {
   pub struct Equipment(u16);
   impl Debug;
 
-  pub has_booster_0_8, set_booster_0_8: 0;
-  pub has_map, set_map: 1;
-  pub has_arms_barrier, set_arms_barrier: 2;
-  pub has_turbocharge, set_turbocharge: 3;
-  pub has_air_tank, set_air_tank: 4;
-  pub has_booster_2_0, set_booster_2_0: 5;
-  pub has_mimiga_mask, set_mimiga_mask: 6;
-  pub has_whimsical_star, set_whimsical_star: 7;
-  pub has_nikumaru, set_nikumaru: 8;
-  // 7 bits wasted, thx pixel
+  pub has_booster_0_8, set_booster_0_8: 0; // 0x01 / 0001
+  pub has_map, set_map: 1; // 0x02 / 0002
+  pub has_arms_barrier, set_arms_barrier: 2; // 0x04 / 0004
+  pub has_turbocharge, set_turbocharge: 3; // 0x08 / 0008
+  pub has_air_tank, set_air_tank: 4; // 0x10 / 0016
+  pub has_booster_2_0, set_booster_2_0: 5; // 0x20 / 0032
+  pub has_mimiga_mask, set_mimiga_mask: 6; // 0x40 / 0064
+  pub has_whimsical_star, set_whimsical_star: 7; // 0x080 / 0128
+  pub has_nikumaru, set_nikumaru: 8; // 0x100 / 0256
+  // for custom equips
+  pub unused_1, set_unused_1: 9; // 0x200 / 0512
+  pub unused_2, set_unused_2: 10; // 0x400 / 1024
+  pub unused_3, set_unused_3: 11; // 0x800 / 2048
+  pub unused_4, set_unused_4: 12; // 0x1000 / 4096
+  pub unused_5, set_unused_5: 13; // 0x2000 / 8192
+  // bit 14 and 15 aren't accessible via TSC without abusing overflows (won't work in strict mode)
+  pub unused_6, set_unused_6: 14; // 0x4000 / @384
+  pub unused_7, set_unused_7: 15; // 0x8000 / P768
 }
 
 bitfield! {
@@ -82,9 +90,10 @@ bitfield! {
   pub struct ControlFlags(u16);
   impl Debug;
 
-  pub flag_x01, set_flag_x01: 0;
-  pub control_enabled, set_control_enabled: 1;
-  pub interactions_disabled, set_interactions_disabled: 2;
+  pub tick_world, set_tick_world: 0; // 0x01
+  pub control_enabled, set_control_enabled: 1; // 0x02
+  pub interactions_disabled, set_interactions_disabled: 2; // 0x04
+  pub credits_running, set_credits_running: 3; // 0x08
 
   // engine specific flags
   pub wind, set_wind: 15;

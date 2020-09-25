@@ -621,7 +621,7 @@ impl GameScene {
                             }
 
                             if self.player.cond.alive() && npc.npc_flags.event_when_killed() {
-                                state.control_flags.set_flag_x01(true);
+                                state.control_flags.set_tick_world(true);
                                 state.control_flags.set_interactions_disabled(true);
                                 state.textscript_vm.start_script(npc.event_num);
                             } else {
@@ -706,7 +706,7 @@ impl Scene for GameScene {
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         state.update_key_trigger();
 
-        if self.tick == 0 || state.control_flags.flag_x01() {
+        if state.control_flags.tick_world() {
             self.player.current_weapon = {
                 if let Some(weapon) = self.inventory.get_current_weapon_mut() {
                     weapon.wtype as u8

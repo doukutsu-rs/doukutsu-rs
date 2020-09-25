@@ -356,10 +356,10 @@ impl TextScriptVM {
 
             match state.textscript_vm.state {
                 TextScriptExecutionState::Ended => {
+                    state.control_flags.set_interactions_disabled(false);
                     break;
                 }
                 TextScriptExecutionState::Running(event, ip) => {
-                    state.control_flags.set_flag_x01(true);
                     state.control_flags.set_interactions_disabled(true);
                     state.textscript_vm.state = TextScriptVM::execute(event, ip, state, game_scene, ctx)?;
 
@@ -508,20 +508,23 @@ impl TextScriptVM {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                         }
                     }
-                    OpCode::_END | OpCode::END => {
-                        state.control_flags.set_flag_x01(true);
+                    OpCode::_END => {
+                        exec_state = TextScriptExecutionState::Ended;
+                    }
+                    OpCode::END => {
+                        state.control_flags.set_tick_world(true);
                         state.control_flags.set_control_enabled(true);
-                        state.control_flags.set_interactions_disabled(false);
 
                         state.textscript_vm.flags.set_render(false);
                         state.textscript_vm.flags.set_background_visible(false);
 
+                        game_scene.player.cond.set_interacted(false);
                         game_scene.player.update_target = true;
 
                         exec_state = TextScriptExecutionState::Ended;
                     }
                     OpCode::PRI => {
-                        state.control_flags.set_flag_x01(false);
+                        state.control_flags.set_tick_world(false);
                         state.control_flags.set_control_enabled(false);
 
                         game_scene.player.shock_counter = 0;
@@ -529,7 +532,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::KEY => {
-                        state.control_flags.set_flag_x01(true);
+                        state.control_flags.set_tick_world(true);
                         state.control_flags.set_control_enabled(false);
 
                         game_scene.player.up = false;
@@ -538,7 +541,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::FRE => {
-                        state.control_flags.set_flag_x01(true);
+                        state.control_flags.set_tick_world(true);
                         state.control_flags.set_control_enabled(true);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -737,6 +740,7 @@ impl TextScriptVM {
                         new_scene.player.x = pos_x;
                         new_scene.player.y = pos_y;
 
+                        state.control_flags.set_tick_world(true);
                         state.textscript_vm.flags.0 = 0;
                         state.textscript_vm.face = 0;
                         state.textscript_vm.item = 0;
@@ -1042,19 +1046,26 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
-                    OpCode::ESC => {
+                    // todo: INI starts intro
+                    OpCode::INI | OpCode::ESC => {
                         state.next_scene = Some(Box::new(TitleScene::new()));
+                        state.control_flags.set_tick_world(false);
+                        state.control_flags.set_control_enabled(false);
+                        state.control_flags.set_interactions_disabled(true);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::LDP => {
+                        state.control_flags.set_tick_world(false);
+                        state.control_flags.set_control_enabled(false);
+                        state.control_flags.set_interactions_disabled(true);
+
                         exec_state = TextScriptExecutionState::LoadProfile;
                     }
                     // unimplemented opcodes
                     // Zero operands
                     OpCode::CAT | OpCode::CIL | OpCode::CPS |
-                    OpCode::CRE | OpCode::CSS | OpCode::FLA |
-                    OpCode::INI | OpCode::MLP |
+                    OpCode::CRE | OpCode::CSS | OpCode::FLA | OpCode::MLP |
                     OpCode::SAT | OpCode::SLP | OpCode::SPS |
                     OpCode::STC | OpCode::SVP | OpCode::TUR => {
                         log::warn!("unimplemented opcode: {:?}", op);

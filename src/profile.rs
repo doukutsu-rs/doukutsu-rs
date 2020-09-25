@@ -48,7 +48,7 @@ pub struct GameProfile {
 impl GameProfile {
     pub fn apply(&self, state: &mut SharedGameState, game_scene: &mut GameScene, ctx: &mut Context) {
         state.fade_state = FadeState::Visible;
-        state.control_flags.set_flag_x01(true);
+        state.control_flags.set_tick_world(true);
         state.control_flags.set_control_enabled(true);
 
         state.sound_manager.play_song(self.current_song as usize, &state.constants, ctx);
