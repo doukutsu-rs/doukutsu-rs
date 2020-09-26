@@ -103,8 +103,10 @@ pub enum OpCode {
     CLO,
     /// <CLR, Clears the text box
     CLR,
-    /// <FACxxxx, Shows the face xxxx in text box, 0 to hide, add 100 to the
-    /// number to display the face in opposite direction.
+    /// <FACxxxx, Shows the face xxxx in text box, 0 to hide,
+    /// CS+ Switch extensions:
+    /// - add 0100 to display talking animation (requires faceanm.dat)
+    /// - add 1000 to the number to display the face in opposite direction. (works on any CS, including freeware mods)
     FAC,
     /// <GITxxxx, Shows the item xxxx above text box, 0 to hide
     GIT,

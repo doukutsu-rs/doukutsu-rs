@@ -465,8 +465,8 @@ impl GameScene {
             };
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex_name)?;
 
-            // switch version uses +100 face offset to display a flipped version
-            let flip = state.textscript_vm.face > 100;
+            // switch version uses +1000 face offset to display a flipped version
+            let flip = state.textscript_vm.face > 1000;
             let face_num = state.textscript_vm.face % 100;
             let (scale_x, scale_y) = batch.scale();
 
