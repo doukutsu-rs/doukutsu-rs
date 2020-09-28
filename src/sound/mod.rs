@@ -252,19 +252,19 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
             }
 
             for frame in data.chunks_mut(channels) {
-                let org_sample: u16 = {
+                let (org_sample_l, org_sample_r): (u16, u16) = {
                     if state == PlaybackState::Stopped {
-                        0x8000
+                        (0x8000, 0x8000)
                     } else if org_index < frames {
                         let sample = org_buf[org_index];
                         org_index += 1;
-                        if org_index & 1 == 0 { (sample & 0xff) << 8 } else { sample & 0xff00 }
+                        ((sample & 0xff) << 8, sample & 0xff00)
                     } else {
                         for i in &mut org_buf[0..frames] { *i = 0x8080 };
                         frames = engine.render_to(&mut org_buf);
                         org_index = 0;
                         let sample = org_buf[0];
-                        (sample & 0xff) << 8
+                        ((sample & 0xff) << 8, sample & 0xff00)
                     }
                 };
                 let pxt_sample: u16 = pxt_buf[pxt_index];
@@ -277,14 +277,25 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
                     pixtone.mix(&mut pxt_buf, sample_rate / speed);
                 }
 
-                let sample = clamp(
-                    (((org_sample ^ 0x8000) as i16) as isize)
-                        + (((pxt_sample ^ 0x8000) as i16) as isize)
-                    , -0x7fff, 0x7fff) as u16 ^ 0x8000;
+                if frame.len() >= 2 {
+                    let sample_l = clamp(
+                        (((org_sample_l ^ 0x8000) as i16) as isize)
+                            + (((pxt_sample ^ 0x8000) as i16) as isize)
+                        , -0x7fff, 0x7fff) as u16 ^ 0x8000;
+                    let sample_r = clamp(
+                        (((org_sample_r ^ 0x8000) as i16) as isize)
+                            + (((pxt_sample ^ 0x8000) as i16) as isize)
+                        , -0x7fff, 0x7fff) as u16 ^ 0x8000;
 
-                let value: T = Sample::from::<u16>(&sample);
-                for sample in frame.iter_mut() {
-                    *sample = value;
+                    frame[0] = Sample::from::<u16>(&sample_l);
+                    frame[1] = Sample::from::<u16>(&sample_r);
+                } else {
+                    let sample = clamp(
+                        (((org_sample_l ^ 0x8000) as i16) as isize)
+                            + (((pxt_sample ^ 0x8000) as i16) as isize)
+                        , -0x7fff, 0x7fff) as u16 ^ 0x8000;
+
+                    frame[0] = Sample::from::<u16>(&sample);
                 }
             }
         },
