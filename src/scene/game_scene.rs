@@ -553,10 +553,6 @@ impl GameScene {
     }
 
     fn draw_light_map(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if self.stage.data.background_type == BackgroundType::Black {
-            return Ok(());
-        }
-
         graphics::set_canvas(ctx, Some(&state.lightmap_canvas));
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
@@ -633,7 +629,7 @@ impl GameScene {
                         self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                         ((npc.y - self.frame.y) / 0x200) as f32,
                                         3.0, (0, 0, 255), batch),
-                    32 => {
+                    32 | 211 => {
                         self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                         ((npc.y - self.frame.y) / 0x200) as f32,
                                         3.0, (255, 0, 0), batch);
@@ -1101,7 +1097,10 @@ impl Scene for GameScene {
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
-        if state.settings.enhanced_graphics {
+        if state.settings.enhanced_graphics
+            && self.stage.data.background_type != BackgroundType::Black
+            && self.stage.data.background_type != BackgroundType::Outside
+            && self.stage.data.background_type != BackgroundType::OutsideWind {
             self.draw_light_map(state, ctx)?;
         }
 
@@ -1115,6 +1114,11 @@ impl Scene for GameScene {
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;
+        if state.settings.enhanced_graphics
+            && self.stage.data.background_type == BackgroundType::Black {
+            self.draw_light_map(state, ctx)?;
+        }
+
         self.draw_black_bars(state, ctx)?;
 
         if state.control_flags.control_enabled() {
