@@ -555,7 +555,7 @@ impl GameScene {
         graphics::set_canvas(ctx, Some(&state.lightmap_canvas));
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
-        graphics::clear(ctx, Color::from_rgb(150, 150, 150));
+        graphics::clear(ctx, Color::from_rgb(120, 120, 120));
         {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
 
@@ -568,7 +568,7 @@ impl GameScene {
             for bullet in self.bullet_manager.bullets.iter() {
                 self.draw_light(((bullet.x - self.frame.x) / 0x200) as f32,
                                 ((bullet.y - self.frame.y) / 0x200) as f32,
-                                1.0, (200, 200, 200), batch);
+                                0.7, (200, 200, 200), batch);
             }
 
             for caret in state.carets.iter() {
@@ -576,7 +576,7 @@ impl GameScene {
                     CaretType::ProjectileDissipation | CaretType::Shoot => {
                         self.draw_light(((caret.x - self.frame.x) / 0x200) as f32,
                                         ((caret.y - self.frame.y) / 0x200) as f32,
-                                        4.0, (200, 200, 200), batch);
+                                        1.0, (200, 200, 200), batch);
                     }
                     _ => {}
                 }
@@ -591,16 +591,28 @@ impl GameScene {
                 }
 
                 match npc.npc_type {
-                    1 => self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                         ((npc.y - self.frame.y) / 0x200) as f32,
-                                         0.5, (255, 150, 0), batch),
+                    1 => {
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                                        0.7, (255, 255, 0), batch);
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                                        1.2, (255, 150, 0), batch);
+                    }
                     4 | 7 => self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                              ((npc.y - self.frame.y) / 0x200) as f32,
                                              1.0, (200, 200, 200), batch),
-                    17 if npc.anim_num == 0 =>
+                    17 if npc.anim_num == 0 => {
                         self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                         ((npc.y - self.frame.y) / 0x200) as f32,
-                                        2.0, (255, 30, 30), batch),
+                                        2.0, (255, 0, 0), batch);
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                                        2.0, (255, 0, 0), batch);
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                                        1.0, (255, 0, 0), batch);
+                    }
                     20 if npc.direction == Direction::Right => {
                         self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                         ((npc.y - self.frame.y) / 0x200) as f32,
