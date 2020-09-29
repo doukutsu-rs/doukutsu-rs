@@ -4,6 +4,7 @@ use crate::ggez::graphics::{Color, FilterMode};
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
+use crate::texture_set::TextureSet;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
@@ -93,8 +94,13 @@ impl Scene for TitleScene {
 
             self.option_menu.push_entry(MenuEntry::Toggle("50 FPS timing".to_string(), state.timing_mode == TimingMode::_50Hz));
             self.option_menu.push_entry(MenuEntry::Toggle("Linear scaling".to_string(), ctx.filter_mode == FilterMode::Linear));
-            self.option_menu.push_entry(MenuEntry::Toggle("Enhanced graphics".to_string(), state.enhanced_graphics));
-            self.option_menu.push_entry(MenuEntry::Toggle("2x Speed hack".to_string(), state.speed_hack));
+            self.option_menu.push_entry(MenuEntry::Toggle("Enhanced graphics".to_string(), state.settings.enhanced_graphics));
+            if state.constants.is_cs_plus {
+                self.option_menu.push_entry(MenuEntry::Toggle("Original textures".to_string(), state.settings.original_textures));
+            } else {
+                self.option_menu.push_entry(MenuEntry::Disabled("Original textures".to_string()));
+            }
+            self.option_menu.push_entry(MenuEntry::Toggle("2x Speed hack".to_string(), state.settings.speed_hack));
             self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
             self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));
             self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
@@ -155,24 +161,38 @@ impl Scene for TitleScene {
                     }
                     MenuSelectionResult::Selected(2, toggle) => {
                         if let MenuEntry::Toggle(_, value) = toggle {
-                            state.enhanced_graphics = !state.enhanced_graphics;
+                            state.settings.enhanced_graphics = !state.settings.enhanced_graphics;
 
-                            *value = state.enhanced_graphics;
+                            *value = state.settings.enhanced_graphics;
                         }
                     }
                     MenuSelectionResult::Selected(3, toggle) => {
                         if let MenuEntry::Toggle(_, value) = toggle {
-                            state.set_speed_hack(!state.speed_hack);
+                            state.settings.original_textures = !state.settings.original_textures;
 
-                            *value = state.speed_hack;
+                            let path = if state.settings.original_textures {
+                                "/base/ogph/"
+                            } else {
+                                "/base/"
+                            };
+                            state.texture_set = TextureSet::new(path);
+
+                            *value = state.settings.original_textures;
                         }
                     }
-                    MenuSelectionResult::Selected(4, _) => {
+                    MenuSelectionResult::Selected(4, toggle) => {
+                        if let MenuEntry::Toggle(_, value) = toggle {
+                            state.set_speed_hack(!state.settings.speed_hack);
+
+                            *value = state.settings.speed_hack;
+                        }
+                    }
+                    MenuSelectionResult::Selected(5, _) => {
                         if let Err(e) = webbrowser::open(DISCORD_LINK) {
                             log::warn!("Error opening web browser: {}", e);
                         }
                     }
-                    MenuSelectionResult::Selected(6, _) | MenuSelectionResult::Canceled => {
+                    MenuSelectionResult::Selected(7, _) | MenuSelectionResult::Canceled => {
                         self.current_menu = CurrentMenu::MainMenu;
                     }
                     _ => {}

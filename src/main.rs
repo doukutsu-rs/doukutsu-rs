@@ -101,14 +101,14 @@ impl Game {
 
                     for _ in 0..self.loops {
                         scene.tick(&mut self.state, ctx)?;
-                        if self.state.speed_hack {
+                        if self.state.settings.speed_hack {
                             scene.tick(&mut self.state, ctx)?;
                         }
                     }
                 }
                 TimingMode::FrameSynchronized => {
                     scene.tick(&mut self.state, ctx)?;
-                    if self.state.speed_hack {
+                    if self.state.settings.speed_hack {
                         scene.tick(&mut self.state, ctx)?;
                     }
                 }
@@ -151,8 +151,8 @@ impl Game {
             KeyCode::X => { state.key_state.set_fire(true) }
             KeyCode::A => { state.key_state.set_weapon_prev(true) }
             KeyCode::S => { state.key_state.set_weapon_next(true) }
-            KeyCode::F11 => { state.god_mode = !state.god_mode }
-            KeyCode::F12 => { state.set_speed_hack(!state.speed_hack) }
+            KeyCode::F11 => { state.settings.god_mode = !state.settings.god_mode }
+            KeyCode::F12 => { state.set_speed_hack(!state.settings.speed_hack) }
             _ => {}
         }
     }

@@ -37,6 +37,13 @@ impl TimingMode {
     }
 }
 
+pub struct Settings {
+    pub god_mode: bool,
+    pub speed_hack: bool,
+    pub original_textures: bool,
+    pub enhanced_graphics: bool,
+}
+
 pub struct SharedGameState {
     pub timing_mode: TimingMode,
     pub control_flags: ControlFlags,
@@ -54,12 +61,10 @@ pub struct SharedGameState {
     pub npc_table: NPCTable,
     pub stages: Vec<StageData>,
     pub sound_manager: SoundManager,
+    pub settings: Settings,
     pub constants: EngineConstants,
     pub new_npcs: Vec<NPC>,
     pub scale: f32,
-    pub god_mode: bool,
-    pub speed_hack: bool,
-    pub enhanced_graphics: bool,
     pub lightmap_canvas: Canvas,
     pub canvas_size: (f32, f32),
     pub screen_size: (f32, f32),
@@ -113,12 +118,15 @@ impl SharedGameState {
             npc_table: NPCTable::new(),
             stages: Vec::with_capacity(96),
             sound_manager: SoundManager::new(ctx)?,
+            settings: Settings {
+                god_mode: false,
+                speed_hack: false,
+                original_textures: false,
+                enhanced_graphics: true,
+            },
             constants,
             new_npcs: Vec::with_capacity(8),
             scale,
-            god_mode: false,
-            speed_hack: false,
-            enhanced_graphics: true,
             lightmap_canvas: Canvas::with_window_size(ctx)?,
             screen_size,
             canvas_size,
@@ -209,7 +217,7 @@ impl SharedGameState {
     }
 
     pub fn set_speed_hack(&mut self, toggle: bool) {
-        self.speed_hack = toggle;
+        self.settings.speed_hack = toggle;
 
         if let Err(err) = self.sound_manager.set_speed(if toggle { 2.0 } else { 1.0 }) {
             log::error!("Error while sending a message to sound manager: {}", err);

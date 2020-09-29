@@ -44,6 +44,7 @@ impl LiveDebugger {
         }
 
         Window::new(im_str!("Debugger"))
+            .collapsed(true, Condition::FirstUseEver)
             .position([5.0, 5.0], Condition::FirstUseEver)
             .size([300.0, 120.0], Condition::FirstUseEver)
             .build(ui, || {

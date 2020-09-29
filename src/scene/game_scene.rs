@@ -557,25 +557,13 @@ impl GameScene {
 
         graphics::clear(ctx, Color::from_rgb(150, 150, 150));
         {
-            if !self.player.cond.hidden() && self.inventory.get_current_weapon().is_some() {
-                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/direct")?;
-
-                let direction = if self.player.up {
-                    Direction::Up
-                } else if self.player.down {
-                    Direction::Bottom
-                } else {
-                    self.player.direction
-                };
-
-                self.draw_directional_light(((self.player.x - self.frame.x) / 0x200) as f32,
-                                            ((self.player.y - self.frame.y) / 0x200) as f32,
-                                            3.0, direction, (255, 255, 255), batch);
-
-                batch.draw_filtered(FilterMode::Linear, ctx)?;
-            }
-
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
+
+            if !self.player.cond.hidden() && self.inventory.get_current_weapon().is_some() {
+                self.draw_light(((self.player.x - self.frame.x) / 0x200) as f32,
+                                ((self.player.y - self.frame.y) / 0x200) as f32,
+                                2.5, (255, 255, 255), batch);
+            }
 
             for bullet in self.bullet_manager.bullets.iter() {
                 self.draw_light(((bullet.x - self.frame.x) / 0x200) as f32,
@@ -588,17 +576,7 @@ impl GameScene {
                     CaretType::ProjectileDissipation | CaretType::Shoot => {
                         self.draw_light(((caret.x - self.frame.x) / 0x200) as f32,
                                         ((caret.y - self.frame.y) / 0x200) as f32,
-                                        1.0, (200, 200, 200), batch);
-                    }
-                    CaretType::LevelUp if caret.direction == Direction::Left => {
-                        self.draw_light(((caret.x - self.frame.x) / 0x200) as f32,
-                                        ((caret.y - self.frame.y) / 0x200) as f32,
-                                        2.0, (0, 100, 160), batch);
-                    }
-                    CaretType::LevelUp if caret.direction == Direction::Right => {
-                        self.draw_light(((caret.x - self.frame.x) / 0x200) as f32,
-                                        ((caret.y - self.frame.y) / 0x200) as f32,
-                                        2.0, (255, 30, 30), batch);
+                                        4.0, (200, 200, 200), batch);
                     }
                     _ => {}
                 }
@@ -1007,7 +985,7 @@ impl Scene for GameScene {
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
-        if state.enhanced_graphics {
+        if state.settings.enhanced_graphics {
             self.draw_light_map(state, ctx)?;
         }
 

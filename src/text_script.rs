@@ -279,6 +279,10 @@ pub enum OpCode {
     PSH,
     /// <POP, Restores text script state from stack and resumes previous event.
     POP,
+    /// <KE2, Seen in ArmsItem.tsc, unknown purpose, related to puppies
+    KE2,
+    /// <FR2, likely related to <KE2, seen at end of events using it
+    FR2,
 
     // ---- Custom opcodes, for use by modders ----
 }
@@ -315,6 +319,14 @@ pub enum ConfirmSelection {
     No,
 }
 
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[repr(u8)]
+pub enum ScriptMode {
+    Map,
+    Inventory,
+    StageSelect,
+}
+
 impl Not for ConfirmSelection {
     type Output = ConfirmSelection;
 
@@ -342,10 +354,11 @@ pub enum TextScriptExecutionState {
 }
 
 pub struct TextScriptVM {
-    pub scripts: TextScriptVMScripts,
+    pub scripts: Scripts,
     pub state: TextScriptExecutionState,
     pub stack: Vec<TextScriptExecutionState>,
     pub flags: TextScriptFlags,
+    pub mode: ScriptMode,
     /// Toggle for non-strict TSC parsing because English versions of CS+ (both AG and Nicalis release)
     /// modified the events carelessly and since original Pixel's engine hasn't enforced constraints
     /// while parsing no one noticed them.
@@ -365,12 +378,18 @@ impl Default for TextScriptVM {
     }
 }
 
-pub struct TextScriptVMScripts {
+pub struct Scripts {
+    /// Head.tsc - shared part of map scripts
     pub global_script: TextScript,
+    /// <Map>.tsc - map script
     pub scene_script: TextScript,
+    /// ArmsItem.tsc - used by inventory
+    pub inventory_script: TextScript,
+    /// StageSelect.tsc - used by teleport target selector
+    pub stage_select_script: TextScript,
 }
 
-impl TextScriptVMScripts {
+impl Scripts {
     pub fn find_script(&self, event_num: u16) -> Option<&Vec<u8>> {
         if let Some(tsc) = self.scene_script.event_map.get(&event_num) {
             return Some(tsc);
@@ -400,9 +419,11 @@ fn read_cur_varint(cursor: &mut Cursor<&Vec<u8>>) -> GameResult<i32> {
 impl TextScriptVM {
     pub fn new() -> Self {
         Self {
-            scripts: TextScriptVMScripts {
+            scripts: Scripts {
                 global_script: TextScript::new(),
                 scene_script: TextScript::new(),
+                inventory_script: TextScript::new(),
+                stage_select_script: TextScript::new(),
             },
             state: TextScriptExecutionState::Ended,
             stack: Vec::with_capacity(6),
@@ -415,6 +436,7 @@ impl TextScriptVM {
             line_1: Vec::with_capacity(24),
             line_2: Vec::with_capacity(24),
             line_3: Vec::with_capacity(24),
+            mode: ScriptMode::Map,
         }
     }
 
@@ -428,20 +450,12 @@ impl TextScriptVM {
         if !self.suspend { self.reset(); }
     }
 
-    pub fn append_global_script(&mut self, script: TextScript) {
-        for (key, val) in script.event_map {
-            self.scripts.global_script.event_map.insert(key, val);
-        }
-
-        if !self.suspend { self.reset(); }
+    pub fn set_inventory_script(&mut self, script: TextScript) {
+        self.scripts.inventory_script = script;
     }
 
-    pub fn append_scene_script(&mut self, script: TextScript) {
-        for (key, val) in script.event_map {
-            self.scripts.scene_script.event_map.insert(key, val);
-        }
-
-        if !self.suspend { self.reset(); }
+    pub fn set_stage_select_script(&mut self, script: TextScript) {
+        self.scripts.stage_select_script = script;
     }
 
     pub fn reset(&mut self) {
@@ -458,6 +472,8 @@ impl TextScriptVM {
         self.line_2.clear();
         self.line_3.clear();
     }
+
+    pub fn set_mode(&mut self, mode: ScriptMode) {}
 
     pub fn start_script(&mut self, event_num: u16) {
         self.reset();
@@ -1232,9 +1248,9 @@ impl TextScriptVM {
                     }
                     // unimplemented opcodes
                     // Zero operands
-                    OpCode::CAT | OpCode::CIL | OpCode::CPS |
+                    OpCode::CAT | OpCode::CIL | OpCode::CPS | OpCode::KE2 |
                     OpCode::CRE | OpCode::CSS | OpCode::FLA | OpCode::MLP |
-                    OpCode::SAT | OpCode::SLP | OpCode::SPS |
+                    OpCode::SAT | OpCode::SLP | OpCode::SPS | OpCode::FR2 |
                     OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::HM2 => {
                         log::warn!("unimplemented opcode: {:?}", op);
 
@@ -1513,7 +1529,7 @@ impl TextScript {
             OpCode::MM0 | OpCode::MNA | OpCode::MS2 | OpCode::MS3 | OpCode::MSG | OpCode::NOD |
             OpCode::PRI | OpCode::RMU | OpCode::SAT | OpCode::SLP | OpCode::SMC | OpCode::SPS |
             OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::WAS | OpCode::ZAM | OpCode::HM2 |
-            OpCode::POP => {
+            OpCode::POP | OpCode::KE2 | OpCode::FR2 => {
                 TextScript::put_varint(instr as i32, out);
             }
             // One operand codes

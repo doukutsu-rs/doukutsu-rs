@@ -31,6 +31,14 @@ impl Scene for LoadingScene {
             let head_script = TextScript::load_from(head_tsc, &state.constants)?;
             state.textscript_vm.set_global_script(head_script);
 
+            let arms_item_tsc = filesystem::open(ctx, [&state.base_path, "/ArmsItem.tsc"].join(""))?;
+            let arms_item_script = TextScript::load_from(arms_item_tsc, &state.constants)?;
+            state.textscript_vm.set_inventory_script(arms_item_script);
+
+            let stage_select_tsc = filesystem::open(ctx, [&state.base_path, "/StageSelect.tsc"].join(""))?;
+            let stage_select_script = TextScript::load_from(stage_select_tsc, &state.constants)?;
+            state.textscript_vm.set_stage_select_script(stage_select_script);
+
             state.next_scene = Some(Box::new(TitleScene::new()));
         }
 

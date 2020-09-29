@@ -537,7 +537,7 @@ impl Player {
     }
 
     pub fn damage(&mut self, hp: isize, state: &mut SharedGameState) {
-        if state.god_mode || self.shock_counter > 0 {
+        if state.settings.god_mode || self.shock_counter > 0 {
             return;
         }
 
