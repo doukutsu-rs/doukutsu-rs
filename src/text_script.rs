@@ -390,11 +390,25 @@ pub struct Scripts {
 }
 
 impl Scripts {
-    pub fn find_script(&self, event_num: u16) -> Option<&Vec<u8>> {
-        if let Some(tsc) = self.scene_script.event_map.get(&event_num) {
-            return Some(tsc);
-        } else if let Some(tsc) = self.global_script.event_map.get(&event_num) {
-            return Some(tsc);
+    pub fn find_script(&self, mode: ScriptMode, event_num: u16) -> Option<&Vec<u8>> {
+        match mode {
+            ScriptMode::Map => {
+                if let Some(tsc) = self.scene_script.event_map.get(&event_num) {
+                    return Some(tsc);
+                } else if let Some(tsc) = self.global_script.event_map.get(&event_num) {
+                    return Some(tsc);
+                }
+            }
+            ScriptMode::Inventory => {
+                if let Some(tsc) = self.inventory_script.event_map.get(&event_num) {
+                    return Some(tsc);
+                }
+            }
+            ScriptMode::StageSelect => {
+                if let Some(tsc) = self.stage_select_script.event_map.get(&event_num) {
+                    return Some(tsc);
+                }
+            }
         }
 
         None
@@ -473,7 +487,10 @@ impl TextScriptVM {
         self.line_3.clear();
     }
 
-    pub fn set_mode(&mut self, mode: ScriptMode) {}
+    pub fn set_mode(&mut self, mode: ScriptMode) {
+        self.reset();
+        self.mode = mode;
+    }
 
     pub fn start_script(&mut self, event_num: u16) {
         self.reset();
@@ -505,7 +522,7 @@ impl TextScriptVM {
                         break;
                     }
 
-                    if let Some(bytecode) = state.textscript_vm.scripts.find_script(event) {
+                    if let Some(bytecode) = state.textscript_vm.scripts.find_script(state.textscript_vm.mode, event) {
                         let mut cursor = Cursor::new(bytecode);
                         cursor.seek(SeekFrom::Start(ip as u64))?;
 
@@ -613,7 +630,7 @@ impl TextScriptVM {
         let mut exec_state = state.textscript_vm.state;
         let mut tick_npc = 0u16;
 
-        if let Some(bytecode) = state.textscript_vm.scripts.find_script(event) {
+        if let Some(bytecode) = state.textscript_vm.scripts.find_script(state.textscript_vm.mode, event) {
             let mut cursor = Cursor::new(bytecode);
             cursor.seek(SeekFrom::Start(ip as u64))?;
 
@@ -655,6 +672,29 @@ impl TextScriptVM {
                         game_scene.player.update_target = true;
 
                         exec_state = TextScriptExecutionState::Ended;
+                    }
+                    OpCode::SLP => {
+                        state.textscript_vm.set_mode(ScriptMode::StageSelect);
+
+                        let event_num = if let Some(slot) = state.teleporter_slots.get(game_scene.current_teleport_slot as usize) {
+                            1000 + slot.0
+                        } else {
+                            1000
+                        };
+
+                        exec_state = TextScriptExecutionState::Running(event_num, 0);
+                    }
+                    OpCode::PSp => {
+                        let index = read_cur_varint(&mut cursor)? as u16;
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                        if let Some(slot) = state.teleporter_slots.iter_mut().find(|s| s.0 == index) {
+                            slot.1 = event_num;
+                        } else {
+                            state.teleporter_slots.push((index, event_num));
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::PRI => {
                         state.control_flags.set_tick_world(false);
@@ -1250,7 +1290,7 @@ impl TextScriptVM {
                     // Zero operands
                     OpCode::CAT | OpCode::CIL | OpCode::CPS | OpCode::KE2 |
                     OpCode::CRE | OpCode::CSS | OpCode::FLA | OpCode::MLP |
-                    OpCode::SAT | OpCode::SLP | OpCode::SPS | OpCode::FR2 |
+                    OpCode::SAT | OpCode::SPS | OpCode::FR2 |
                     OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::HM2 => {
                         log::warn!("unimplemented opcode: {:?}", op);
 
@@ -1268,7 +1308,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Two operand codes
-                    OpCode::SKJ | OpCode::SMP | OpCode::PSp => {
+                    OpCode::SKJ | OpCode::SMP => {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
 

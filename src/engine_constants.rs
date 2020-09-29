@@ -212,6 +212,8 @@ pub struct TextScriptConsts {
     pub get_item_top_right: Rect<usize>,
     pub get_item_right: Rect<usize>,
     pub get_item_bottom_right: Rect<usize>,
+    pub stage_select_text: Rect<usize>,
+    pub cursor: [Rect<usize>; 2],
 }
 
 
@@ -1177,6 +1179,11 @@ impl EngineConstants {
                 get_item_top_right: Rect { left: 240, top: 0, right: 244, bottom: 8 },
                 get_item_right: Rect { left: 240, top: 8, right: 244, bottom: 16 },
                 get_item_bottom_right: Rect { left: 240, top: 16, right: 244, bottom: 24 },
+                stage_select_text: Rect { left: 80, top: 64, right: 144, bottom: 72 },
+                cursor: [
+                    Rect { left: 80, top: 88, right: 112, bottom: 104 },
+                    Rect { left: 80, top: 104, right: 112, bottom: 120 },
+                ],
             },
             title: TitleConsts {
                 logo_rect: Rect { left: 0, top: 0, right: 144, bottom: 40 },

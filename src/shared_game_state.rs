@@ -16,7 +16,7 @@ use crate::scene::Scene;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::str;
-use crate::text_script::{TextScriptExecutionState, TextScriptVM};
+use crate::text_script::{TextScriptExecutionState, TextScriptVM, ScriptMode};
 use crate::texture_set::TextureSet;
 use crate::ggez::graphics::Canvas;
 
@@ -52,6 +52,7 @@ pub struct SharedGameState {
     pub game_rng: RNG,
     pub effect_rng: RNG,
     pub quake_counter: u16,
+    pub teleporter_slots: Vec<(u16, u16)>,
     pub carets: Vec<Caret>,
     pub key_state: KeyState,
     pub key_trigger: KeyState,
@@ -109,6 +110,7 @@ impl SharedGameState {
             game_rng: RNG::new(0),
             effect_rng: RNG::new(Instant::now().elapsed().as_nanos() as i32),
             quake_counter: 0,
+            teleporter_slots: Vec::with_capacity(8),
             carets: Vec::with_capacity(32),
             key_state: KeyState(0),
             key_trigger: KeyState(0),
@@ -177,13 +179,14 @@ impl SharedGameState {
         self.game_flags = bitvec::bitvec![0; 8000];
         self.fade_state = FadeState::Hidden;
         self.game_rng = RNG::new(0);
+        self.teleporter_slots.clear();
         self.quake_counter = 0;
         self.carets.clear();
         self.key_state.0 = 0;
         self.key_trigger.0 = 0;
         self.key_old = 0;
         self.new_npcs.clear();
-        self.textscript_vm.reset();
+        self.textscript_vm.set_mode(ScriptMode::Map);
         self.textscript_vm.suspend = true;
     }
 

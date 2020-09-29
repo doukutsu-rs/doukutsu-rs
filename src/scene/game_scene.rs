@@ -12,13 +12,14 @@ use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::npc::NPCMap;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
-use crate::text_script::{ConfirmSelection, TextScriptExecutionState, TextScriptVM};
+use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::SizedBatch;
 use crate::ui::Components;
-use crate::weapon::WeaponType;
+use itertools::Itertools;
 
 pub struct GameScene {
     pub tick: usize,
@@ -29,11 +30,13 @@ pub struct GameScene {
     pub stage_id: usize,
     pub npc_map: NPCMap,
     pub bullet_manager: BulletManager,
+    pub current_teleport_slot: u8,
     tex_background_name: String,
     tex_tileset_name: String,
     life_bar: u16,
     life_bar_counter: u16,
     map_name_counter: u16,
+    stage_select_text_y_pos: usize,
     weapon_x_pos: isize,
 }
 
@@ -81,6 +84,8 @@ impl GameScene {
             life_bar: 0,
             life_bar_counter: 0,
             map_name_counter: 0,
+            stage_select_text_y_pos: 54,
+            current_teleport_slot: 0,
             weapon_x_pos: 16,
         })
     }
@@ -740,7 +745,7 @@ impl GameScene {
         Ok(())
     }
 
-    pub fn tick_npc_bullet_collissions(&mut self, state: &mut SharedGameState) {
+    fn tick_npc_bullet_collissions(&mut self, state: &mut SharedGameState) {
         let mut dead_npcs = Vec::new();
 
         for npc_id in self.npc_map.npc_ids.iter() {
@@ -830,10 +835,194 @@ impl GameScene {
             self.npc_map.garbage_collect();
         }
     }
+
+    fn tick_world(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.stage_select_text_y_pos = 54;
+        self.current_teleport_slot = 0;
+
+        self.player.current_weapon = {
+            if let Some(weapon) = self.inventory.get_current_weapon_mut() {
+                weapon.wtype as u8
+            } else {
+                0
+            }
+        };
+        self.player.tick(state, ())?;
+
+        if self.player.damage > 0 {
+            let xp_loss = self.player.damage * if self.player.equip.has_arms_barrier() { 1 } else { 2 };
+            match self.inventory.take_xp(xp_loss, state) {
+                TakeExperienceResult::LevelDown if self.player.life > 0 => {
+                    state.create_caret(self.player.x, self.player.y, CaretType::LevelUp, Direction::Right);
+                }
+                _ => {}
+            }
+
+            self.player.damage = 0;
+        }
+
+        for npc_id in self.npc_map.npc_ids.iter() {
+            if let Some(npc_cell) = self.npc_map.npcs.get(npc_id) {
+                let mut npc = npc_cell.borrow_mut();
+
+                if npc.cond.alive() {
+                    npc.tick(state, (&mut self.player, &self.npc_map.npcs, &self.stage))?;
+                }
+            }
+        }
+        self.npc_map.process_npc_changes(state);
+        self.npc_map.garbage_collect();
+
+        self.player.flags.0 = 0;
+
+        self.player.tick_map_collisions(state, &mut self.stage);
+        self.player.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory);
+        self.npc_map.process_npc_changes(state);
+        for npc_id in self.npc_map.npc_ids.iter() {
+            if let Some(npc_cell) = self.npc_map.npcs.get_mut(npc_id) {
+                let mut npc = npc_cell.borrow_mut();
+
+                if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
+                    npc.flags.0 = 0;
+                    npc.tick_map_collisions(state, &mut self.stage);
+                }
+            }
+        }
+        self.npc_map.process_npc_changes(state);
+        self.npc_map.garbage_collect();
+        self.tick_npc_bullet_collissions(state);
+
+        state.tick_carets();
+        self.bullet_manager.tick_bullets(state, &self.player, &mut self.stage);
+
+        self.frame.update(state, &self.player, &self.stage);
+
+        if state.control_flags.control_enabled() {
+            if let Some(weapon) = self.inventory.get_current_weapon_mut() {
+                weapon.shoot_bullet(&self.player, &mut self.bullet_manager, state);
+            }
+
+            if state.key_trigger.weapon_next() {
+                state.sound_manager.play_sfx(4);
+                self.inventory.next_weapon();
+                self.weapon_x_pos = 32;
+            }
+
+            if state.key_trigger.weapon_prev() {
+                state.sound_manager.play_sfx(4);
+                self.inventory.prev_weapon();
+                self.weapon_x_pos = 0;
+            }
+
+            // update health bar
+            if self.life_bar < self.player.life as u16 {
+                self.life_bar = self.player.life as u16;
+            }
+
+            if self.life_bar > self.player.life as u16 {
+                self.life_bar_counter += 1;
+                if self.life_bar_counter > 30 {
+                    self.life_bar -= 1;
+                }
+            } else {
+                self.life_bar_counter = 0;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn tick_stage_select(&mut self, state: &mut SharedGameState) -> GameResult {
+        let slot_count = state.teleporter_slots.iter()
+            .filter(|&&(index, _event_num)| index != 0)
+            .count();
+
+        if self.stage_select_text_y_pos > 46 {
+            self.stage_select_text_y_pos -= 1;
+        }
+
+        if state.key_trigger.left() {
+            if self.current_teleport_slot == 0 {
+                self.current_teleport_slot = slot_count.saturating_sub(1) as u8;
+            } else {
+                self.current_teleport_slot -= 1;
+            }
+        } else if state.key_trigger.right() {
+            if self.current_teleport_slot == slot_count.saturating_sub(1) as u8 {
+                self.current_teleport_slot = 0;
+            } else {
+                self.current_teleport_slot += 1;
+            }
+        }
+
+        if state.key_trigger.left() || state.key_trigger.right() {
+            state.sound_manager.play_sfx(1);
+            if let Some(&(index, _event_num)) = state.teleporter_slots.get(self.current_teleport_slot as usize) {
+                state.textscript_vm.start_script(1000 + index);
+            } else {
+                state.textscript_vm.start_script(1000);
+            }
+        }
+
+        if state.key_trigger.jump() | state.key_trigger.fire() {
+            state.textscript_vm.set_mode(ScriptMode::Map);
+            state.control_flags.set_tick_world(true);
+            state.control_flags.set_control_enabled(true);
+            state.control_flags.set_interactions_disabled(false);
+
+            if state.key_trigger.jump() {
+                if let Some(&(_index, event_num)) = state.teleporter_slots.get(self.current_teleport_slot as usize) {
+                    state.textscript_vm.start_script(event_num);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn draw_stage_select(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "StageImage")?;
+
+        let slot_count = state.teleporter_slots.iter()
+            .filter(|&&(index, _event_num)| index != 0)
+            .count();
+        let slot_offset = ((state.canvas_size.0 - 40.0 * slot_count as f32) / 2.0).floor();
+        let mut slot_rect = Rect::new(0,0,0,0);
+
+        for i in 0..slot_count {
+            let index = state.teleporter_slots[i].0;
+
+            slot_rect.left = 32 * (index as usize % 8);
+            slot_rect.top = 16 * (index as usize / 8);
+            slot_rect.right = slot_rect.left + 32;
+            slot_rect.bottom = slot_rect.top + 16;
+
+            batch.add_rect(slot_offset + i as f32 * 40.0, 64.0, &slot_rect);
+        }
+
+        batch.draw(ctx)?;
+
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
+
+        batch.add_rect(128.0, self.stage_select_text_y_pos as f32, &state.constants.textscript.stage_select_text);
+        if slot_count > 0 {
+            batch.add_rect(slot_offset + self.current_teleport_slot as f32 * 40.0, 64.0, &state.constants.textscript.cursor[self.tick / 2 % 2]);
+        }
+
+        batch.draw(ctx)?;
+
+        Ok(())
+    }
 }
 
 impl Scene for GameScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let seed = (self.player.max_life as i32)
+            .wrapping_add(self.player.x as i32)
+            .wrapping_add(self.player.y as i32)
+            .wrapping_add(self.stage_id as i32)
+            .wrapping_mul(7);
+        state.game_rng = RNG::new(seed);
         state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.base_path, &state.constants, ctx)?);
         state.textscript_vm.suspend = false;
 
@@ -872,95 +1061,10 @@ impl Scene for GameScene {
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         state.update_key_trigger();
 
-        if state.control_flags.tick_world() {
-            self.player.current_weapon = {
-                if let Some(weapon) = self.inventory.get_current_weapon_mut() {
-                    weapon.wtype as u8
-                } else {
-                    0
-                }
-            };
-            self.player.tick(state, ())?;
-
-            if self.player.damage > 0 {
-                let xp_loss = self.player.damage * if self.player.equip.has_arms_barrier() { 1 } else { 2 };
-                match self.inventory.take_xp(xp_loss, state) {
-                    TakeExperienceResult::LevelDown if self.player.life > 0 => {
-                        state.create_caret(self.player.x, self.player.y, CaretType::LevelUp, Direction::Right);
-                    }
-                    _ => {}
-                }
-
-                self.player.damage = 0;
-            }
-
-            for npc_id in self.npc_map.npc_ids.iter() {
-                if let Some(npc_cell) = self.npc_map.npcs.get(npc_id) {
-                    let mut npc = npc_cell.borrow_mut();
-
-                    if npc.cond.alive() {
-                        npc.tick(state, (&mut self.player, &self.npc_map.npcs, &self.stage))?;
-                    }
-                }
-            }
-            self.npc_map.process_npc_changes(state);
-            self.npc_map.garbage_collect();
-
-            self.player.flags.0 = 0;
-
-            self.player.tick_map_collisions(state, &mut self.stage);
-            self.player.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory);
-            self.npc_map.process_npc_changes(state);
-            for npc_id in self.npc_map.npc_ids.iter() {
-                if let Some(npc_cell) = self.npc_map.npcs.get_mut(npc_id) {
-                    let mut npc = npc_cell.borrow_mut();
-
-                    if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
-                        npc.flags.0 = 0;
-                        npc.tick_map_collisions(state, &mut self.stage);
-                    }
-                }
-            }
-            self.npc_map.process_npc_changes(state);
-            self.npc_map.garbage_collect();
-            self.tick_npc_bullet_collissions(state);
-
-            state.tick_carets();
-            self.bullet_manager.tick_bullets(state, &self.player, &mut self.stage);
-
-            self.frame.update(state, &self.player, &self.stage);
-        }
-
-        if state.control_flags.control_enabled() {
-            if let Some(weapon) = self.inventory.get_current_weapon_mut() {
-                weapon.shoot_bullet(&self.player, &mut self.bullet_manager, state);
-            }
-
-            if state.key_trigger.weapon_next() {
-                state.sound_manager.play_sfx(4);
-                self.inventory.next_weapon();
-                self.weapon_x_pos = 32;
-            }
-
-            if state.key_trigger.weapon_prev() {
-                state.sound_manager.play_sfx(4);
-                self.inventory.prev_weapon();
-                self.weapon_x_pos = 0;
-            }
-
-            // update health bar
-            if self.life_bar < self.player.life as u16 {
-                self.life_bar = self.player.life as u16;
-            }
-
-            if self.life_bar > self.player.life as u16 {
-                self.life_bar_counter += 1;
-                if self.life_bar_counter > 30 {
-                    self.life_bar -= 1;
-                }
-            } else {
-                self.life_bar_counter = 0;
-            }
+        match state.textscript_vm.mode {
+            ScriptMode::Map if state.control_flags.tick_world() => self.tick_world(state)?,
+            ScriptMode::StageSelect => self.tick_stage_select(state)?,
+            _ => {}
         }
 
         if self.map_name_counter > 0 {
@@ -1015,6 +1119,10 @@ impl Scene for GameScene {
 
         if state.control_flags.control_enabled() {
             self.draw_hud(state, ctx)?;
+        }
+
+        if state.textscript_vm.mode == ScriptMode::StageSelect {
+            self.draw_stage_select(state, ctx)?;
         }
 
         self.draw_fade(state, ctx)?;
