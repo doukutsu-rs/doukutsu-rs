@@ -26,6 +26,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
 use crate::weapon::WeaponType;
+use crate::npc::NPCMap;
 
 /// Engine's text script VM operation codes.
 #[derive(EnumString, Debug, FromPrimitive, PartialEq)]
@@ -732,15 +733,16 @@ impl TextScriptVM {
 
                         game_scene.player.vel_y = -0x200;
 
-                        if let Some(direction) = Direction::from_int(new_direction) {
+                        if let Some(direction) = Direction::from_int_facing(new_direction) {
                             match direction {
-                                Direction::Left => { game_scene.player.vel_x = 0x200 }
-                                Direction::Up => { game_scene.player.vel_y = 0x200 }
-                                Direction::Right => { game_scene.player.vel_x = -0x200 }
-                                Direction::Bottom => { game_scene.player.vel_y = -0x200 }
+                                Direction::Left => game_scene.player.vel_x = 0x200,
+                                Direction::Up => game_scene.player.vel_y = 0x200,
+                                Direction::Right => game_scene.player.vel_x = -0x200,
+                                Direction::Bottom => game_scene.player.vel_y = -0x200,
+                                Direction::FacingPlayer => {
+                                    // todo npc direction dependent bump
+                                }
                             }
-                        } else {
-                            // todo npc direction dependent bump
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -875,8 +877,14 @@ impl TextScriptVM {
                         let pos_y = read_cur_varint(&mut cursor)? as usize;
                         let tile_type = read_cur_varint(&mut cursor)? as u8;
 
-                        if let Some(ptr) = game_scene.stage.map.tiles.get_mut(pos_y * game_scene.stage.map.width + pos_x) {
-                            *ptr = tile_type;
+                        if game_scene.stage.change_tile(pos_x, pos_y, tile_type) {
+                            let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                            npc.cond.set_alive(true);
+                            npc.x = pos_x as isize * 16 * 0x200;
+                            npc.y = pos_y as isize * 16 * 0x200;
+
+                            state.new_npcs.push(npc);
+                            state.new_npcs.push(npc);
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1347,7 +1355,7 @@ impl TextScriptVM {
 
         if tick_npc != 0 {
             if let Some(npc) = game_scene.npc_map.npcs.get(&tick_npc) {
-                npc.borrow_mut().tick(state, (&mut game_scene.player, &game_scene.npc_map.npcs, &game_scene.stage))?;
+                npc.borrow_mut().tick(state, (&mut game_scene.player, &game_scene.npc_map.npcs, &mut game_scene.stage))?;
             }
         }
 

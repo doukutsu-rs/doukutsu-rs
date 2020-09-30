@@ -42,6 +42,7 @@ pub struct Settings {
     pub speed_hack: bool,
     pub original_textures: bool,
     pub enhanced_graphics: bool,
+    pub debug_outlines: bool,
 }
 
 pub struct SharedGameState {
@@ -125,6 +126,7 @@ impl SharedGameState {
                 speed_hack: false,
                 original_textures: false,
                 enhanced_graphics: true,
+                debug_outlines: false,
             },
             constants,
             new_npcs: Vec::with_capacity(8),

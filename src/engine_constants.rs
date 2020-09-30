@@ -146,10 +146,17 @@ pub struct NPCConsts {
     pub n006_green_beetle: [Rect<usize>; 10],
     pub n007_basil: [Rect<usize>; 6],
     pub n008_blue_beetle: [Rect<usize>; 4],
+    pub n009_balrog_falling_in: [Rect<usize>; 6],
+    pub n010_balrog_shooting: [Rect<usize>; 8],
+    pub n011_balrogs_projectile: [Rect<usize>; 3],
+    pub n012_balrog_cutscene: [Rect<usize>; 28],
+    pub n013_forcefield: [Rect<usize>; 4],
+    pub n014_key: [Rect<usize>; 3],
     pub n015_closed_chest: [Rect<usize>; 3],
     pub n016_save_point: [Rect<usize>; 8],
     pub n017_health_refill: [Rect<usize>; 2],
     pub n018_door: [Rect<usize>; 2],
+    pub n019_balrog_burst: [Rect<usize>; 8],
     pub n020_computer: [Rect<usize>; 4],
     pub n021_chest_open: Rect<usize>,
     pub n022_teleporter: [Rect<usize>; 2],
@@ -515,6 +522,70 @@ impl EngineConstants {
                     Rect { left: 80, top: 96, right: 96, bottom: 112 }, // right
                     Rect { left: 96, top: 96, right: 112, bottom: 112 },
                 ],
+                n009_balrog_falling_in: [
+                    Rect { left: 0, top: 0, right: 40, bottom: 24 }, // left
+                    Rect { left: 80, top: 0, right: 120, bottom: 24 },
+                    Rect { left: 120, top: 0, right: 160, bottom: 24 },
+                    Rect { left: 0, top: 24, right: 40, bottom: 48 }, // right
+                    Rect { left: 80, top: 24, right: 120, bottom: 48 },
+                    Rect { left: 120, top: 24, right: 160, bottom: 48 },
+                ],
+                n010_balrog_shooting: [
+                    Rect { left: 0, top: 0, right: 40, bottom: 24 }, // left
+                    Rect { left: 40, top: 0, right: 80, bottom: 24 },
+                    Rect { left: 80, top: 0, right: 120, bottom: 24 },
+                    Rect { left: 120, top: 0, right: 160, bottom: 24 },
+                    Rect { left: 0, top: 24, right: 40, bottom: 48 }, // right
+                    Rect { left: 40, top: 24, right: 80, bottom: 48 },
+                    Rect { left: 80, top: 24, right: 120, bottom: 48 },
+                    Rect { left: 120, top: 24, right: 160, bottom: 48 },
+                ],
+                n011_balrogs_projectile: [
+                    Rect { left: 208, top: 104, right: 224, bottom: 120 },
+                    Rect { left: 224, top: 104, right: 240, bottom: 120 },
+                    Rect { left: 240, top: 104, right: 256, bottom: 120 },
+                ],
+                n012_balrog_cutscene: [
+                    Rect { left: 0, top: 0, right: 40, bottom: 24 }, // left
+                    Rect { left: 160, top: 0, right: 200, bottom: 24 },
+                    Rect { left: 80, top: 0, right: 120, bottom: 24 },
+                    Rect { left: 120, top: 0, right: 160, bottom: 24 },
+                    Rect { left: 240, top: 0, right: 280, bottom: 24 },
+                    Rect { left: 200, top: 0, right: 240, bottom: 24 },
+                    Rect { left: 280, top: 0, right: 320, bottom: 24 },
+                    Rect { left: 0, top: 0, right: 0, bottom: 0 },
+                    Rect { left: 80, top: 48, right: 120, bottom: 72 },
+                    Rect { left: 0, top: 48, right: 40, bottom: 72 },
+                    Rect { left: 0, top: 0, right: 40, bottom: 24 },
+                    Rect { left: 40, top: 48, right: 80, bottom: 72 },
+                    Rect { left: 0, top: 0, right: 40, bottom: 24 },
+                    Rect { left: 280, top: 0, right: 320, bottom: 24 },
+                    Rect { left: 0, top: 24, right: 40, bottom: 48 }, // right
+                    Rect { left: 160, top: 24, right: 200, bottom: 48 },
+                    Rect { left: 80, top: 24, right: 120, bottom: 48 },
+                    Rect { left: 120, top: 24, right: 160, bottom: 48 },
+                    Rect { left: 240, top: 24, right: 280, bottom: 48 },
+                    Rect { left: 200, top: 24, right: 240, bottom: 48 },
+                    Rect { left: 280, top: 24, right: 320, bottom: 48 },
+                    Rect { left: 0, top: 0, right: 0, bottom: 0 },
+                    Rect { left: 80, top: 72, right: 120, bottom: 96 },
+                    Rect { left: 0, top: 72, right: 40, bottom: 96 },
+                    Rect { left: 0, top: 24, right: 40, bottom: 48 },
+                    Rect { left: 40, top: 72, right: 80, bottom: 96 },
+                    Rect { left: 0, top: 24, right: 40, bottom: 48 },
+                    Rect { left: 280, top: 24, right: 320, bottom: 48 },
+                ],
+                n013_forcefield: [
+                    Rect { left: 128, top: 0, right: 144, bottom: 16 },
+                    Rect { left: 144, top: 0, right: 160, bottom: 16 },
+                    Rect { left: 160, top: 0, right: 176, bottom: 16 },
+                    Rect { left: 176, top: 0, right: 192, bottom: 16 },
+                ],
+                n014_key: [
+                    Rect { left: 192, top: 0, right: 208, bottom: 16 },
+                    Rect { left: 208, top: 0, right: 224, bottom: 16 },
+                    Rect { left: 224, top: 0, right: 240, bottom: 16 },
+                ],
                 n015_closed_chest: [
                     Rect { left: 240, top: 0, right: 256, bottom: 16 },
                     Rect { left: 256, top: 0, right: 272, bottom: 16 },
@@ -537,6 +608,16 @@ impl EngineConstants {
                 n018_door: [
                     Rect { left: 224, top: 16, right: 240, bottom: 40 },
                     Rect { left: 192, top: 112, right: 208, bottom: 136 },
+                ],
+                n019_balrog_burst: [
+                    Rect { left: 0, top: 0, right: 40, bottom: 24 }, // left
+                    Rect { left: 160, top: 0, right: 200, bottom: 24 },
+                    Rect { left: 80, top: 0, right: 120, bottom: 24 },
+                    Rect { left: 120, top: 0, right: 160, bottom: 24 },
+                    Rect { left: 0, top: 24, right: 40, bottom: 48 }, // right
+                    Rect { left: 160, top: 24, right: 200, bottom: 48 },
+                    Rect { left: 80, top: 24, right: 120, bottom: 48 },
+                    Rect { left: 120, top: 24, right: 160, bottom: 48 },
                 ],
                 n020_computer: [
                     Rect { left: 288, top: 16, right: 320, bottom: 40 }, // left

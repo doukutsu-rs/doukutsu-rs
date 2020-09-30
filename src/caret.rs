@@ -112,6 +112,7 @@ impl Caret {
                     Direction::Bottom => {
                         self.cond.set_alive(false);
                     }
+                    Direction::FacingPlayer => unreachable!(),
                 }
             }
             CaretType::Shoot => {
@@ -166,10 +167,11 @@ impl Caret {
                 }
 
                 match self.direction {
-                    Direction::Left => { self.x -= 0x400; } // 2.0fix9
-                    Direction::Up => { self.y -= 0x400; }
-                    Direction::Right => { self.x += 0x400; }
-                    Direction::Bottom => { self.y += 0x400; }
+                    Direction::Left =>  self.x -= 0x400,  // 2.0fix9
+                    Direction::Up =>  self.y -= 0x400,
+                    Direction::Right =>  self.x += 0x400,
+                    Direction::Bottom =>  self.y += 0x400,
+                    Direction::FacingPlayer => unreachable!(),
                 }
             }
             CaretType::DrownedQuote => {
@@ -177,8 +179,9 @@ impl Caret {
                     self.anim_counter = 1;
 
                     match self.direction {
-                        Direction::Left => { self.anim_rect = constants.caret.drowned_quote_left_rect; }
-                        Direction::Right => { self.anim_rect = constants.caret.drowned_quote_right_rect; }
+                        Direction::Left =>  self.anim_rect = constants.caret.drowned_quote_left_rect,
+                        Direction::Right =>  self.anim_rect = constants.caret.drowned_quote_right_rect,
+                        Direction::FacingPlayer => unreachable!(),
                         _ => {}
                     }
                 }

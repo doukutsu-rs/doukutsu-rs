@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use log::info;
 
 use crate::bullet::BulletManager;
@@ -19,7 +20,6 @@ use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::SizedBatch;
 use crate::ui::Components;
-use itertools::Itertools;
 
 pub struct GameScene {
     pub tick: usize,
@@ -296,6 +296,7 @@ impl GameScene {
                     x = bullet.x - bullet.display_bounds.top as isize;
                     y = bullet.y - bullet.display_bounds.right as isize;
                 }
+                Direction::FacingPlayer => unreachable!(),
             }
 
             batch.add_rect(((x / 0x200) - (self.frame.x / 0x200)) as f32,
@@ -544,6 +545,7 @@ impl GameScene {
             Direction::Up => (Rect { left: 32, top: 0, right: 64, bottom: 32 }, -size * 16.0, -size * 32.0),
             Direction::Right => (Rect { left: 32, top: 32, right: 64, bottom: 64 }, 0.0, -size * 16.0),
             Direction::Bottom => (Rect { left: 0, top: 32, right: 32, bottom: 64 }, -size * 16.0, -size * 0.0),
+            Direction::FacingPlayer => unreachable!(),
         };
 
         batch.add_rect_scaled_tinted(x + offset_x, y + offset_y, color,
@@ -862,7 +864,7 @@ impl GameScene {
                 let mut npc = npc_cell.borrow_mut();
 
                 if npc.cond.alive() {
-                    npc.tick(state, (&mut self.player, &self.npc_map.npcs, &self.stage))?;
+                    npc.tick(state, (&mut self.player, &self.npc_map.npcs, &mut self.stage))?;
                 }
             }
         }
@@ -870,10 +872,9 @@ impl GameScene {
         self.npc_map.garbage_collect();
 
         self.player.flags.0 = 0;
-
         self.player.tick_map_collisions(state, &mut self.stage);
         self.player.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory);
-        self.npc_map.process_npc_changes(state);
+
         for npc_id in self.npc_map.npc_ids.iter() {
             if let Some(npc_cell) = self.npc_map.npcs.get_mut(npc_id) {
                 let mut npc = npc_cell.borrow_mut();
@@ -886,10 +887,12 @@ impl GameScene {
         }
         self.npc_map.process_npc_changes(state);
         self.npc_map.garbage_collect();
-        self.tick_npc_bullet_collissions(state);
 
-        state.tick_carets();
+        self.tick_npc_bullet_collissions(state);
+        self.npc_map.process_npc_changes(state);
+
         self.bullet_manager.tick_bullets(state, &self.player, &mut self.stage);
+        state.tick_carets();
 
         self.frame.update(state, &self.player, &self.stage);
 
@@ -983,7 +986,7 @@ impl GameScene {
             .filter(|&&(index, _event_num)| index != 0)
             .count();
         let slot_offset = ((state.canvas_size.0 - 40.0 * slot_count as f32) / 2.0).floor();
-        let mut slot_rect = Rect::new(0,0,0,0);
+        let mut slot_rect = Rect::new(0, 0, 0, 0);
 
         for i in 0..slot_count {
             let index = state.teleporter_slots[i].0;
@@ -1007,6 +1010,46 @@ impl GameScene {
 
         batch.draw(ctx)?;
 
+        Ok(())
+    }
+
+    fn draw_debug_outlines(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        for npc in self.npc_map.npcs.values() {
+            let npc = npc.borrow();
+
+            if npc.x < self.frame.x || npc.y < self.frame.y {
+                continue;
+            }
+
+            // top
+            state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.left as isize - self.frame.x) / 0x200,
+                                                       (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
+                                                       (npc.hit_bounds.left + npc.hit_bounds.right) as isize / 0x200,
+                                                       1),
+                                        [0.0, if npc.flags.hit_top_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
+            // bottom
+            state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.left as isize - self.frame.x) / 0x200,
+                                                       (npc.y + npc.hit_bounds.bottom as isize - self.frame.y) / 0x200,
+                                                       (npc.hit_bounds.left + npc.hit_bounds.right) as isize / 0x200,
+                                                       1),
+                                        [0.0, if npc.flags.hit_bottom_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
+            // left
+            state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.left as isize - self.frame.x) / 0x200,
+                                                       (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
+                                                       1,
+                                                       (npc.hit_bounds.top + npc.hit_bounds.bottom) as isize / 0x200),
+                                        [0.0, if npc.flags.hit_left_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
+            // right
+            state.texture_set.draw_rect(Rect::new_size((npc.x + npc.hit_bounds.right as isize - self.frame.x) / 0x200,
+                                                       (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
+                                                       1,
+                                                       (npc.hit_bounds.top + npc.hit_bounds.bottom) as isize / 0x200),
+                                        [0.0, if npc.flags.hit_right_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
+
+            let text = format!("i{} n{} s{} a{} h{}", npc.id, npc.npc_type, npc.size, npc.action_num, npc.life);
+            state.font.draw_colored_text(text.chars(), ((npc.x - self.frame.x) / 0x200) as f32, ((npc.y - self.frame.y) / 0x200) as f32,
+                                         (0, 255, 0), &state.constants, &mut state.texture_set, ctx)?;
+        }
         Ok(())
     }
 }
@@ -1138,6 +1181,10 @@ impl Scene for GameScene {
         }
 
         self.draw_text_boxes(state, ctx)?;
+
+        if state.settings.debug_outlines {
+            self.draw_debug_outlines(state, ctx)?;
+        }
 
         self.draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
         Ok(())

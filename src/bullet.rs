@@ -144,21 +144,19 @@ impl Bullet {
             self.action_num = 1;
 
             match self.direction {
-                Direction::Left => { self.vel_x = -0x1000 }
-                Direction::Up => { self.vel_y = -0x1000 }
-                Direction::Right => { self.vel_x = 0x1000 }
-                Direction::Bottom => { self.vel_y = 0x1000 }
+                Direction::Left => self.vel_x = -0x1000,
+                Direction::Up => self.vel_y = -0x1000,
+                Direction::Right => self.vel_x = 0x1000,
+                Direction::Bottom => self.vel_y = 0x1000,
+                Direction::FacingPlayer => unreachable!(),
             }
 
             match self.btype {
                 4 => {
                     match self.direction {
-                        Direction::Left | Direction::Right => {
-                            self.enemy_hit_height = 0x400;
-                        }
-                        Direction::Up | Direction::Bottom => {
-                            self.enemy_hit_width = 0x400;
-                        }
+                        Direction::Left | Direction::Right => self.enemy_hit_height = 0x400,
+                        Direction::Up | Direction::Bottom => self.enemy_hit_width = 0x400,
+                        Direction::FacingPlayer => unreachable!(),
                     }
                 }
                 5 => {
@@ -169,6 +167,7 @@ impl Bullet {
                         Direction::Up | Direction::Bottom => {
                             self.enemy_hit_width = 0x800;
                         }
+                        Direction::FacingPlayer => unreachable!(),
                     }
                 }
                 6 => {
@@ -278,6 +277,7 @@ impl Bullet {
 
                     self.vel_y = 0x5ff;
                 }
+                Direction::FacingPlayer => unreachable!(),
             }
         } else {
             if self.flags.hit_bottom_wall() {

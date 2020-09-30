@@ -148,6 +148,7 @@ pub enum Direction {
     Up,
     Right,
     Bottom,
+    FacingPlayer,
 }
 
 pub const FILE_TYPES: [&str; 3] = [".png", ".bmp", ".pbm"];
@@ -163,12 +164,24 @@ impl Direction {
         }
     }
 
+    pub fn from_int_facing(val: usize) -> Option<Direction> {
+        match val {
+            0 => { Some(Direction::Left) }
+            1 => { Some(Direction::Up) }
+            2 => { Some(Direction::Right) }
+            3 => { Some(Direction::Bottom) }
+            4 => { Some(Direction::FacingPlayer) }
+            _ => { None }
+        }
+    }
+
     pub fn opposite(&self) -> Direction {
         match self {
             Direction::Left => { Direction::Right }
             Direction::Up => { Direction::Bottom }
             Direction::Right => { Direction::Left }
             Direction::Bottom => { Direction::Up }
+            Direction::FacingPlayer => unreachable!(),
         }
     }
 
@@ -178,6 +191,7 @@ impl Direction {
             Direction::Up => { 0 }
             Direction::Right => { 1 }
             Direction::Bottom => { 0 }
+            Direction::FacingPlayer => unreachable!(),
         }
     }
 
@@ -187,6 +201,7 @@ impl Direction {
             Direction::Up => { -1 }
             Direction::Right => { 0 }
             Direction::Bottom => { 1 }
+            Direction::FacingPlayer => unreachable!(),
         }
     }
 }
@@ -238,9 +253,9 @@ impl<T: Num + Copy> Rect<T> {
 
 impl<T: Num + Copy + AsPrimitive<f32>> Into<crate::ggez::graphics::Rect> for Rect<T> {
     fn into(self) -> crate::ggez::graphics::Rect {
-        crate::ggez::graphics::Rect::new(self.top.as_(),
-                                         self.left.as_(),
-                                         self.bottom.sub(self.top).as_(),
-                                         self.right.sub(self.left).as_())
+        crate::ggez::graphics::Rect::new(self.left.as_(),
+                                         self.top.as_(),
+                                         self.width().as_(),
+                                         self.height().as_())
     }
 }

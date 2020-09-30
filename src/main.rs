@@ -151,6 +151,7 @@ impl Game {
             KeyCode::X => { state.key_state.set_fire(true) }
             KeyCode::A => { state.key_state.set_weapon_prev(true) }
             KeyCode::S => { state.key_state.set_weapon_next(true) }
+            KeyCode::F10 => { state.settings.debug_outlines = !state.settings.debug_outlines }
             KeyCode::F11 => { state.settings.god_mode = !state.settings.god_mode }
             KeyCode::F12 => { state.set_speed_hack(!state.settings.speed_hack) }
             _ => {}
@@ -176,7 +177,9 @@ impl Game {
 }
 
 pub fn main() -> GameResult {
-    pretty_env_logger::env_logger::init_from_env(Env::default().default_filter_or("info"));
+    pretty_env_logger::env_logger::from_env(Env::default().default_filter_or("info"))
+        .filter(Some("gfx_device_gl::factory"), LevelFilter::Warn)
+        .init();
 
     let resource_dir = if let Ok(data_dir) = env::var("CAVESTORY_DATA_DIR") {
         path::PathBuf::from(data_dir)

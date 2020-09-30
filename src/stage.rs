@@ -386,17 +386,29 @@ impl Stage {
         Ok(stage)
     }
 
-    pub fn load_text_script(&mut self, root: &str, constants: &EngineConstants, ctx: &mut Context) -> GameResult<TextScript> {
+    pub fn load_text_script(&self, root: &str, constants: &EngineConstants, ctx: &mut Context) -> GameResult<TextScript> {
         let tsc_file = filesystem::open(ctx, [root, "Stage/", &self.data.map, ".tsc"].join(""))?;
         let text_script = TextScript::load_from(tsc_file, constants)?;
 
         Ok(text_script)
     }
 
-    pub fn load_npcs(&mut self, root: &str, ctx: &mut Context) -> GameResult<Vec<NPCData>> {
+    pub fn load_npcs(&self, root: &str, ctx: &mut Context) -> GameResult<Vec<NPCData>> {
         let pxe_file = filesystem::open(ctx, [root, "Stage/", &self.data.map, ".pxe"].join(""))?;
         let npc_data = NPCData::load_from(pxe_file)?;
 
         Ok(npc_data)
+    }
+
+    /// Returns true if smoke should be emitted
+    pub fn change_tile(&mut self, x: usize, y: usize, tile_type: u8) -> bool {
+        if let Some(ptr) = self.map.tiles.get_mut(y * self.map.width + x) {
+            if *ptr != tile_type {
+                *ptr = tile_type;
+                return true;
+            }
+        }
+
+        false
     }
 }

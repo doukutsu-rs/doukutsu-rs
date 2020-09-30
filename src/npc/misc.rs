@@ -89,9 +89,9 @@ impl NPC {
                     if self.direction == Direction::Right {
                         self.vel_y = -0x200;
 
-                        for _ in 0..4 {
-                            let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                        let mut npc = NPCMap::create_npc(4, &state.npc_table);
 
+                        for _ in 0..4 {
                             npc.cond.set_alive(true);
                             npc.direction = Direction::Left;
                             npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;

@@ -108,7 +108,7 @@ impl Weapon {
                         bullet_manager.create_bullet(player.x + 0x200, player.y - 8 * 0x200, btype, Direction::Up, &state.constants);
                         state.create_caret(player.x + 0x200, player.y - 8 * 0x200, CaretType::Shoot, Direction::Left);
                     }
-                    _ => { unreachable!() }
+                    _ => {}
                 }
             } else if player.down {
                 match player.direction {
@@ -120,7 +120,7 @@ impl Weapon {
                         bullet_manager.create_bullet(player.x + 0x200, player.y + 8 * 0x200, btype, Direction::Bottom, &state.constants);
                         state.create_caret(player.x + 0x200, player.y + 8 * 0x200, CaretType::Shoot, Direction::Left);
                     }
-                    _ => { unreachable!() }
+                    _ => {}
                 }
             } else {
                 match player.direction {
@@ -132,7 +132,7 @@ impl Weapon {
                         bullet_manager.create_bullet(player.x + 6 * 0x200, player.y + 3 * 0x200, btype, Direction::Right, &state.constants);
                         state.create_caret(player.x + 6 * 0x200, player.y + 3 * 0x200, CaretType::Shoot, Direction::Right);
                     }
-                    _ => { unreachable!() }
+                    _ => {}
                 }
             }
 

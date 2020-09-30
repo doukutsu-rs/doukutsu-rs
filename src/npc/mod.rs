@@ -37,22 +37,22 @@ bitfield! {
   pub struct NPCFlag(u16);
   impl Debug;
 
-  pub solid_soft, set_solid_soft: 0;
-  pub ignore_tile_44, set_ignore_tile_44: 1;
-  pub invulnerable, set_invulnerable: 2;
-  pub ignore_solidity, set_ignore_solidity: 3;
-  pub bouncy, set_bouncy: 4;
-  pub shootable, set_shootable: 5;
-  pub solid_hard, set_solid_hard: 6;
-  pub rear_and_top_not_hurt, set_rear_and_top_not_hurt: 7;
-  pub event_when_touched, set_event_when_touched: 8;
-  pub event_when_killed, set_event_when_killed: 9;
-  pub flag_x400, set_flag_x400: 10;
-  pub appear_when_flag_set, set_appear_when_flag_set: 11;
-  pub spawn_facing_right, set_spawn_facing_right: 12;
-  pub interactable, set_interactable: 13;
-  pub hide_unless_flag_set, set_hide_unless_flag_set: 14;
-  pub show_damage, set_show_damage: 15;
+  pub solid_soft, set_solid_soft: 0; // 0x01
+  pub ignore_tile_44, set_ignore_tile_44: 1; // 0x02
+  pub invulnerable, set_invulnerable: 2; // 0x04
+  pub ignore_solidity, set_ignore_solidity: 3; // 0x08
+  pub bouncy, set_bouncy: 4; // 0x10
+  pub shootable, set_shootable: 5; // 0x20
+  pub solid_hard, set_solid_hard: 6; // 0x40
+  pub rear_and_top_not_hurt, set_rear_and_top_not_hurt: 7; // 0x80
+  pub event_when_touched, set_event_when_touched: 8; // 0x100
+  pub event_when_killed, set_event_when_killed: 9; // 0x200
+  pub flag_x400, set_flag_x400: 10; // 0x400
+  pub appear_when_flag_set, set_appear_when_flag_set: 11; // 0x800
+  pub spawn_facing_right, set_spawn_facing_right: 12; // 0x1000
+  pub interactable, set_interactable: 13; // 0x2000
+  pub hide_unless_flag_set, set_hide_unless_flag_set: 14; // 0x4000
+  pub show_damage, set_show_damage: 15; // 0x8000
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -76,6 +76,7 @@ pub struct NPC {
     pub direction: Direction,
     pub display_bounds: Rect<usize>,
     pub hit_bounds: Rect<usize>,
+    pub parent_id: u16,
     pub action_num: u16,
     pub anim_num: u16,
     pub flag_num: u16,
@@ -86,7 +87,7 @@ pub struct NPC {
     pub anim_rect: Rect<usize>,
 }
 
-static PARTICLE_NPCS: [u16; 3] = [1, 4, 73];
+static PARTICLE_NPCS: [u16; 4] = [1, 4, 73, 355];
 
 impl NPC {
     pub fn get_start_index(&self) -> u16 {
@@ -98,8 +99,8 @@ impl NPC {
     }
 }
 
-impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &Stage)> for NPC {
-    fn tick(&mut self, state: &mut SharedGameState, (player, map, stage): (&mut Player, &HashMap<u16, RefCell<NPC>>, &Stage)) -> GameResult {
+impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC {
+    fn tick(&mut self, state: &mut SharedGameState, (player, map, stage): (&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)) -> GameResult {
         match self.npc_type {
             0 => { self.tick_n000_null() }
             1 => { self.tick_n001_experience(state) }
@@ -110,6 +111,10 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &Stage)> for NPC {
             6 => { self.tick_n006_green_beetle(state) }
             7 => { self.tick_n007_basil(state, player) }
             8 => { self.tick_n008_blue_beetle(state, player) }
+            9 => { self.tick_n009_balrog_falling_in(state) }
+            10 => { self.tick_n010_balrog_shooting(state, player) }
+            11 => { self.tick_n011_balrogs_projectile(state) }
+            12 => { self.tick_n012_balrog_cutscene(state, player, map, stage) }
             15 => { self.tick_n015_chest_closed(state) }
             16 => { self.tick_n016_save_point(state) }
             17 => { self.tick_n017_health_refill(state) }
@@ -315,6 +320,7 @@ impl NPCMap {
             npc_flags,
             display_bounds,
             hit_bounds,
+            parent_id: 0,
             action_counter: 0,
             action_counter2: 0,
             anim_counter: 0,
@@ -360,6 +366,7 @@ impl NPCMap {
             npc_flags,
             display_bounds,
             hit_bounds,
+            parent_id: 0,
             action_counter: 0,
             action_counter2: 0,
             anim_counter: 0,
@@ -400,7 +407,7 @@ impl NPCMap {
             }
         }
 
-        unreachable!()
+        0xffff
     }
 
     pub fn create_death_effect(&self, x: isize, y: isize, radius: usize, count: usize, state: &mut SharedGameState) {

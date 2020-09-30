@@ -31,10 +31,11 @@ pub trait PhysicalEntity {
     fn ignore_tile_44(&self) -> bool { true }
 
     fn judge_hit_block(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
-        let bounds_x = if self.is_player() { 4 } else { 5 };
+        let bounds_x = 5;
+        let bounds_y = if self.is_player() { 4 } else { 5 };
         // left wall
-        if (self.y() - self.hit_bounds().top as isize) < (y * 16 + bounds_x) * 0x200
-            && self.y() + self.hit_bounds().bottom as isize > (y * 16 - bounds_x) * 0x200
+        if (self.y() - self.hit_bounds().top as isize) < (y * 16 + bounds_y) * 0x200
+            && self.y() + self.hit_bounds().bottom as isize > (y * 16 - bounds_y) * 0x200
             && (self.x() - self.hit_bounds().right as isize) < (x * 16 + 8) * 0x200
             && (self.x() - self.hit_bounds().right as isize) > x * 16 * 0x200 {
             self.set_x(((x * 16 + 8) * 0x200) + self.hit_bounds().right as isize);
@@ -53,8 +54,8 @@ pub trait PhysicalEntity {
         }
 
         // right wall
-        if (self.y() - self.hit_bounds().top as isize) < (y * 16 + bounds_x) * 0x200
-            && self.y() + self.hit_bounds().bottom as isize > (y * 16 - bounds_x) * 0x200
+        if (self.y() - self.hit_bounds().top as isize) < (y * 16 + bounds_y) * 0x200
+            && self.y() + self.hit_bounds().bottom as isize > (y * 16 - bounds_y) * 0x200
             && (self.x() + self.hit_bounds().right as isize) > (x * 16 - 8) * 0x200
             && (self.x() + self.hit_bounds().right as isize) < x * 16 * 0x200 {
             self.set_x(((x * 16 - 8) * 0x200) - self.hit_bounds().right as isize);
@@ -329,10 +330,11 @@ pub trait PhysicalEntity {
             && (self.y() - self.hit_bounds().top as isize) < (y * 16 + 6) * 0x200
             && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 - 6) * 0x200 {
             match direction {
-                Direction::Left => { self.flags().set_force_left(true); }
-                Direction::Up => { self.flags().set_force_up(true); }
-                Direction::Right => { self.flags().set_force_right(true); }
-                Direction::Bottom => { self.flags().set_force_down(true); }
+                Direction::Left => self.flags().set_force_left(true),
+                Direction::Up => self.flags().set_force_up(true),
+                Direction::Right => self.flags().set_force_right(true),
+                Direction::Bottom => self.flags().set_force_down(true),
+                Direction::FacingPlayer => unreachable!(),
             }
 
             if water {
