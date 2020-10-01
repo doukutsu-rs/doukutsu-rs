@@ -871,7 +871,6 @@ impl GameScene {
         self.npc_map.process_npc_changes(state);
         self.npc_map.garbage_collect();
 
-        self.player.flags.0 = 0;
         self.player.tick_map_collisions(state, &mut self.stage);
         self.player.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory);
 
@@ -880,7 +879,6 @@ impl GameScene {
                 let mut npc = npc_cell.borrow_mut();
 
                 if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
-                    npc.flags.0 = 0;
                     npc.tick_map_collisions(state, &mut self.stage);
                 }
             }
@@ -1022,25 +1020,25 @@ impl GameScene {
             }
 
             // top
-            state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.left as isize - self.frame.x) / 0x200,
+            state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.right as isize - self.frame.x) / 0x200,
                                                        (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
-                                                       (npc.hit_bounds.left + npc.hit_bounds.right) as isize / 0x200,
+                                                       (npc.hit_bounds.right + npc.hit_bounds.right) as isize / 0x200,
                                                        1),
                                         [0.0, if npc.flags.hit_top_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
             // bottom
-            state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.left as isize - self.frame.x) / 0x200,
-                                                       (npc.y + npc.hit_bounds.bottom as isize - self.frame.y) / 0x200,
-                                                       (npc.hit_bounds.left + npc.hit_bounds.right) as isize / 0x200,
+            state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.right as isize - self.frame.x) / 0x200,
+                                                       (npc.y + npc.hit_bounds.bottom as isize - self.frame.y) / 0x200 - 1,
+                                                       (npc.hit_bounds.right + npc.hit_bounds.right) as isize / 0x200,
                                                        1),
                                         [0.0, if npc.flags.hit_bottom_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
             // left
-            state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.left as isize - self.frame.x) / 0x200,
+            state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.right as isize - self.frame.x) / 0x200,
                                                        (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
                                                        1,
                                                        (npc.hit_bounds.top + npc.hit_bounds.bottom) as isize / 0x200),
                                         [0.0, if npc.flags.hit_left_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
             // right
-            state.texture_set.draw_rect(Rect::new_size((npc.x + npc.hit_bounds.right as isize - self.frame.x) / 0x200,
+            state.texture_set.draw_rect(Rect::new_size((npc.x + npc.hit_bounds.right as isize - self.frame.x) / 0x200 - 1,
                                                        (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
                                                        1,
                                                        (npc.hit_bounds.top + npc.hit_bounds.bottom) as isize / 0x200),

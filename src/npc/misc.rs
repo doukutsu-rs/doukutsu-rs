@@ -1,3 +1,5 @@
+use num_traits::real::Real;
+
 use crate::caret::CaretType;
 use crate::common::Direction;
 use crate::ggez::GameResult;
@@ -5,17 +7,22 @@ use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
-use num_traits::real::Real;
 
 impl NPC {
     pub(crate) fn tick_n000_null(&mut self) -> GameResult {
-        if self.action_num != 0xffff {
-            self.action_num = 0xffff;
-            self.anim_rect.left = 0;
-            self.anim_rect.top = 0;
-            self.anim_rect.right = 0;
-            self.anim_rect.bottom = 0;
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            if self.direction == Direction::Right {
+                self.y += 16 * 0x200;
+            }
         }
+
+        self.anim_rect.left = 0;
+        self.anim_rect.top = 0;
+        self.anim_rect.right = 16;
+        self.anim_rect.bottom = 16;
+
         Ok(())
     }
 

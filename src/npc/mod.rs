@@ -191,29 +191,25 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
 
 impl PhysicalEntity for NPC {
     #[inline(always)]
-    fn x(&self) -> isize {
-        self.x
-    }
+    fn x(&self) -> isize { self.x }
 
     #[inline(always)]
-    fn y(&self) -> isize {
-        self.y
-    }
+    fn y(&self) -> isize { self.y }
 
     #[inline(always)]
-    fn vel_x(&self) -> isize {
-        self.vel_x
-    }
+    fn vel_x(&self) -> isize { self.vel_x }
 
     #[inline(always)]
-    fn vel_y(&self) -> isize {
-        self.vel_y
-    }
+    fn vel_y(&self) -> isize { self.vel_y }
 
     #[inline(always)]
-    fn size(&self) -> u8 {
-        self.size
-    }
+    fn hit_rect_size(&self) -> usize { if self.size >= 3 { 3 } else { 2 } }
+
+    #[inline(always)]
+    fn offset_x(&self) -> isize { if self.size >= 3 { -0x1000 } else { 0 } }
+
+    #[inline(always)]
+    fn offset_y(&self) -> isize { if self.size >= 3 { -0x1000 } else { 0 } }
 
     #[inline(always)]
     fn hit_bounds(&self) -> &Rect<usize> {

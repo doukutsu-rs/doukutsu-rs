@@ -29,9 +29,8 @@ impl PhysicalEntity for Player {
         self.vel_y
     }
 
-    #[inline(always)]
-    fn size(&self) -> u8 {
-        1
+    fn hit_rect_size(&self) -> usize {
+        2
     }
 
     #[inline(always)]

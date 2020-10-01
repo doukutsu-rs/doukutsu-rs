@@ -32,7 +32,6 @@ impl BulletManager {
             }
 
             bullet.tick(state, player);
-            bullet.hit_flags.0 = 0;
             bullet.tick_map_collisions(state, stage);
         }
 
@@ -450,9 +449,8 @@ impl PhysicalEntity for Bullet {
         self.vel_y
     }
 
-    #[inline(always)]
-    fn size(&self) -> u8 {
-        1
+    fn hit_rect_size(&self) -> usize {
+        2
     }
 
     #[inline(always)]
@@ -515,6 +513,7 @@ impl PhysicalEntity for Bullet {
         let y = clamp(self.y() / 16 / 0x200, 0, stage.map.height as isize);
         let mut hit_attribs = [0u8; 4];
 
+        self.flags().0 = 0;
         if self.flags.hit_right_wall() { // ???
             return;
         }

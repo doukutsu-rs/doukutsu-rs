@@ -189,7 +189,7 @@ impl NPC {
             }
         }
 
-        self.anim_rect = state.constants.npc.n011_balrogs_projectile[self.anim_num as usize];
+        self.anim_rect = state.constants.npc.n011_balrog_energy_shot[self.anim_num as usize];
 
         self.action_counter2 += 1;
         if self.action_counter2 > 150 {
@@ -591,7 +591,7 @@ impl NPC {
                 } else {
                     self.action_counter += 1;
 
-                    if self.flags.hit_left_wall() || self.flags.hit_right_wall() || self.action_counter > 75 {
+                    if (self.flags.hit_left_wall() || self.flags.hit_right_wall()) || self.action_counter > 75 {
                         self.action_num = 9;
                         self.anim_num = 0;
                     } else if self.action_counter2 % 3 == 0 && self.action_counter > 25 {

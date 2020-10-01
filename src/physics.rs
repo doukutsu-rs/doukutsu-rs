@@ -5,8 +5,14 @@ use crate::common::{Condition, Direction, Flag, Rect};
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
-pub const OFF_X: [isize; 9] = [0, 1, 0, 1, 2, 2, 2, 0, 1];
-pub const OFF_Y: [isize; 9] = [0, 0, 1, 1, 0, 1, 2, 2, 2];
+//      -1  0  1  2
+//    +------------
+// -1 | 10 14 15 16
+//  0 | 11  1  2  5
+//  1 | 12  3  4  6
+//  2 | 13  8  9  7
+pub const OFF_X: [isize; 16] = [0, 1, 0, 1, 2, 2, 2, 0, 1, -1, -1, -1, -1, 0, 1, 2];
+pub const OFF_Y: [isize; 16] = [0, 0, 1, 1, 0, 1, 2, 2, 2, -1, 0, 1, 2, -1, -1, -1];
 
 pub trait PhysicalEntity {
     fn x(&self) -> isize;
@@ -14,7 +20,9 @@ pub trait PhysicalEntity {
     fn vel_x(&self) -> isize;
     fn vel_y(&self) -> isize;
 
-    fn size(&self) -> u8;
+    fn hit_rect_size(&self) -> usize;
+    fn offset_x(&self) -> isize { 0 }
+    fn offset_y(&self) -> isize { 0 }
 
     fn hit_bounds(&self) -> &Rect<usize>;
 
@@ -31,11 +39,11 @@ pub trait PhysicalEntity {
     fn ignore_tile_44(&self) -> bool { true }
 
     fn judge_hit_block(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
-        let bounds_x = 5;
+        let bounds_x = if self.is_player() { 5 } else { 8 };
         let bounds_y = if self.is_player() { 4 } else { 5 };
         // left wall
         if (self.y() - self.hit_bounds().top as isize) < (y * 16 + bounds_y) * 0x200
-            && self.y() + self.hit_bounds().bottom as isize > (y * 16 - bounds_y) * 0x200
+            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 - bounds_y) * 0x200
             && (self.x() - self.hit_bounds().right as isize) < (x * 16 + 8) * 0x200
             && (self.x() - self.hit_bounds().right as isize) > x * 16 * 0x200 {
             self.set_x(((x * 16 + 8) * 0x200) + self.hit_bounds().right as isize);
@@ -100,8 +108,8 @@ pub trait PhysicalEntity {
         // floor
         if ((self.x() - self.hit_bounds().right as isize) < (x * 16 + bounds_x) * 0x200)
             && ((self.x() + self.hit_bounds().right as isize) > (x * 16 - bounds_x) * 0x200)
-            && ((self.y() + self.hit_bounds().bottom as isize) > (y * 16 - 8) * 0x200)
-            && ((self.y() + self.hit_bounds().bottom as isize) < y * 16 * 0x200) {
+            && ((self.y() + self.hit_bounds().bottom as isize) > ((y * 16 - 8) * 0x200))
+            && ((self.y() + self.hit_bounds().bottom as isize) < (y * 16 * 0x200)) {
             self.set_y(((y * 16 - 8) * 0x200) - self.hit_bounds().bottom as isize);
 
             if self.is_player() {
@@ -344,12 +352,15 @@ pub trait PhysicalEntity {
     }
 
     fn tick_map_collisions(&mut self, state: &mut SharedGameState, stage: &mut Stage) {
-        let big = self.size() >= 3;
-        let x = clamp((self.x() - if big { 0x1000 } else { 0 }) / 16 / 0x200, 0, stage.map.width as isize);
-        let y = clamp((self.y() - if big { 0x1000 } else { 0 }) / 16 / 0x200, 0, stage.map.height as isize);
+        let hit_rect_size = clamp(self.hit_rect_size(), 1, 4);
+        let hit_rect_size = hit_rect_size * hit_rect_size;
 
+        let x = clamp((self.x() + self.offset_x()) / 16 / 0x200, 0, stage.map.width as isize);
+        let y = clamp((self.y() + self.offset_y()) / 16 / 0x200, 0, stage.map.height as isize);
+
+        self.flags().0 = 0;
         for (idx, (&ox, &oy)) in OFF_X.iter().zip(OFF_Y.iter()).enumerate() {
-            if idx == 4 && !big {
+            if idx == hit_rect_size {
                 break;
             }
 
@@ -368,12 +379,12 @@ pub trait PhysicalEntity {
                     self.judge_hit_water(x + ox, y + oy);
                 }
                 0x61 => {
-                    self.judge_hit_water(x + ox, y + oy);
                     self.judge_hit_block(state, x + ox, y + oy);
+                    self.judge_hit_water(x + ox, y + oy);
                 }
                 0x04 | 0x64 if !self.is_player() => {
-                    self.judge_hit_water(x + ox, y + oy);
                     self.judge_hit_block(state, x + ox, y + oy);
+                    self.judge_hit_water(x + ox, y + oy);
                 }
                 0x05 | 0x41 | 0x43 | 0x46 if self.is_player() => {
                     self.judge_hit_block(state, x + ox, y + oy);
@@ -423,16 +434,16 @@ pub trait PhysicalEntity {
 
                 // Forces
                 0x80 | 0xa0 if self.is_player() => {
-                    self.judge_hit_force(x + ox, y + ox, Direction::Left, attrib & 0x20 != 0);
+                    self.judge_hit_force(x + ox, y + oy, Direction::Left, attrib & 0x20 != 0);
                 }
                 0x81 | 0xa1 if self.is_player() => {
-                    self.judge_hit_force(x + ox, y + ox, Direction::Up, attrib & 0x20 != 0);
+                    self.judge_hit_force(x + ox, y + oy, Direction::Up, attrib & 0x20 != 0);
                 }
                 0x82 | 0xa2 if self.is_player() => {
-                    self.judge_hit_force(x + ox, y + ox, Direction::Right, attrib & 0x20 != 0);
+                    self.judge_hit_force(x + ox, y + oy, Direction::Right, attrib & 0x20 != 0);
                 }
                 0x83 | 0xa3 if self.is_player() => {
-                    self.judge_hit_force(x + ox, y + ox, Direction::Bottom, attrib & 0x20 != 0);
+                    self.judge_hit_force(x + ox, y + oy, Direction::Bottom, attrib & 0x20 != 0);
                 }
                 0x80 | 0xa0 if !self.is_player() => {
                     self.flags().set_force_left(true);

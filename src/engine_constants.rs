@@ -148,7 +148,7 @@ pub struct NPCConsts {
     pub n008_blue_beetle: [Rect<usize>; 4],
     pub n009_balrog_falling_in: [Rect<usize>; 6],
     pub n010_balrog_shooting: [Rect<usize>; 8],
-    pub n011_balrogs_projectile: [Rect<usize>; 3],
+    pub n011_balrog_energy_shot: [Rect<usize>; 3],
     pub n012_balrog_cutscene: [Rect<usize>; 28],
     pub n013_forcefield: [Rect<usize>; 4],
     pub n014_key: [Rect<usize>; 3],
@@ -156,7 +156,7 @@ pub struct NPCConsts {
     pub n016_save_point: [Rect<usize>; 8],
     pub n017_health_refill: [Rect<usize>; 2],
     pub n018_door: [Rect<usize>; 2],
-    pub n019_balrog_burst: [Rect<usize>; 8],
+    pub n019_balrog_bust_in: [Rect<usize>; 8],
     pub n020_computer: [Rect<usize>; 4],
     pub n021_chest_open: Rect<usize>,
     pub n022_teleporter: [Rect<usize>; 2],
@@ -540,7 +540,7 @@ impl EngineConstants {
                     Rect { left: 80, top: 24, right: 120, bottom: 48 },
                     Rect { left: 120, top: 24, right: 160, bottom: 48 },
                 ],
-                n011_balrogs_projectile: [
+                n011_balrog_energy_shot: [
                     Rect { left: 208, top: 104, right: 224, bottom: 120 },
                     Rect { left: 224, top: 104, right: 240, bottom: 120 },
                     Rect { left: 240, top: 104, right: 256, bottom: 120 },
@@ -609,7 +609,7 @@ impl EngineConstants {
                     Rect { left: 224, top: 16, right: 240, bottom: 40 },
                     Rect { left: 192, top: 112, right: 208, bottom: 136 },
                 ],
-                n019_balrog_burst: [
+                n019_balrog_bust_in: [
                     Rect { left: 0, top: 0, right: 40, bottom: 24 }, // left
                     Rect { left: 160, top: 0, right: 200, bottom: 24 },
                     Rect { left: 80, top: 0, right: 120, bottom: 24 },
