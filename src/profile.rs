@@ -75,6 +75,10 @@ impl GameProfile {
             game_scene.inventory.get_item(item as u16);
         }
 
+        for slot in self.teleporter_slots.iter() {
+            state.teleporter_slots.push((slot.index as u16, slot.event_num as u16));
+        }
+
         for (idx, &flags) in self.flags.iter().enumerate() {
             if flags & 0b00000001 != 0 { state.game_flags.set(idx * 8, true); }
             if flags & 0b00000010 != 0 { state.game_flags.set(idx * 8 + 1, true); }
