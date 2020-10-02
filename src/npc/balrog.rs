@@ -536,6 +536,80 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n019_balrog_bust_in(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    for _ in 0..16 {
+                        npc.cond.set_alive(true);
+                        npc.direction = Direction::Left;
+                        npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+
+                        state.new_npcs.push(npc);
+                    }
+
+                    state.sound_manager.play_sfx(12);
+                    state.sound_manager.play_sfx(26);
+                    state.quake_counter = 30;
+
+                    self.y += 10 * 0x200;
+                    self.action_num = 1;
+                    self.anim_num = 3;
+                    self.vel_y = -0x100;
+                }
+
+                self.vel_y += 0x10;
+
+                if self.vel_y > 0 && self.flags.hit_bottom_wall() {
+                    self.action_num = 2;
+                    self.anim_num = 2;
+                    self.action_counter = 0;
+
+                    state.sound_manager.play_sfx(26);
+                    state.quake_counter = 30;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 16 {
+                    self.action_num = 3;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+            }
+            3 => {
+                if state.game_rng.range(0..100) == 0 {
+                    self.action_num = 4;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            4 => {
+                self.action_counter += 1;
+                if self.action_counter > 16 {
+                    self.action_num = 3;
+                    self.anim_num = 0;
+                }
+            }
+            _ => {}
+        }
+
+        self.vel_y = clamp(self.vel_y, -0x5ff, 0x5ff);
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
+
+        self.anim_rect = state.constants.npc.n019_balrog_bust_in[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n068_balrog_running(&mut self, state: &mut SharedGameState, player: &mut Player) -> GameResult {
         match self.action_num {
             0 | 1 => {

@@ -122,6 +122,7 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             16 => { self.tick_n016_save_point(state) }
             17 => { self.tick_n017_health_refill(state) }
             18 => { self.tick_n018_door(state) }
+            19 => { self.tick_n019_balrog_bust_in(state) }
             20 => { self.tick_n020_computer(state) }
             21 => { self.tick_n021_chest_open(state) }
             22 => { self.tick_n022_teleporter(state) }
