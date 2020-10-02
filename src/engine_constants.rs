@@ -206,6 +206,8 @@ pub struct NPCConsts {
     pub n078_pot: [Rect<usize>; 2],
     pub n079_mahin: [Rect<usize>; 6],
     pub n129_fireball_snake_trail: [Rect<usize>; 18],
+    pub n149_horizontal_moving_block: Rect<usize>,
+    pub n157_vertical_moving_block: Rect<usize>,
     pub n211_small_spikes: [Rect<usize>; 4],
 }
 
@@ -993,27 +995,24 @@ impl EngineConstants {
                     Rect { left: 128, top: 48, right: 144, bottom: 64 },
                     Rect { left: 144, top: 48, right: 160, bottom: 64 },
                     Rect { left: 160, top: 48, right: 176, bottom: 64 },
-
                     Rect { left: 128, top: 64, right: 144, bottom: 80 },
                     Rect { left: 144, top: 64, right: 160, bottom: 80 },
                     Rect { left: 160, top: 64, right: 176, bottom: 80 },
-
                     Rect { left: 128, top: 80, right: 144, bottom: 96 },
                     Rect { left: 144, top: 80, right: 160, bottom: 96 },
                     Rect { left: 160, top: 80, right: 176, bottom: 96 },
-
                     Rect { left: 176, top: 48, right: 192, bottom: 64 },
                     Rect { left: 192, top: 48, right: 208, bottom: 64 },
                     Rect { left: 208, top: 48, right: 224, bottom: 64 },
-
                     Rect { left: 176, top: 64, right: 192, bottom: 80 },
                     Rect { left: 192, top: 64, right: 208, bottom: 80 },
                     Rect { left: 208, top: 64, right: 224, bottom: 80 },
-
                     Rect { left: 176, top: 80, right: 192, bottom: 96 },
                     Rect { left: 192, top: 80, right: 208, bottom: 96 },
                     Rect { left: 208, top: 80, right: 224, bottom: 96 },
                 ],
+                n149_horizontal_moving_block: Rect { left: 16, top: 0, right: 48, bottom: 32 },
+                n157_vertical_moving_block: Rect { left: 16, top: 0, right: 48, bottom: 32 },
                 n211_small_spikes: [
                     Rect { left: 256, top: 200, right: 272, bottom: 216 },
                     Rect { left: 272, top: 200, right: 288, bottom: 216 },

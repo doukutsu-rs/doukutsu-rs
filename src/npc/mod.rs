@@ -16,12 +16,12 @@ use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
 use crate::map::NPCData;
+use crate::npc::boss::BossNPCMap;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 use crate::str;
-use crate::npc::boss::BossNPCMap;
 
 pub mod balrog;
 pub mod boss;
@@ -29,6 +29,7 @@ pub mod characters;
 pub mod egg_corridor;
 pub mod first_cave;
 pub mod grasstown;
+pub mod maze;
 pub mod mimiga_village;
 pub mod misc;
 pub mod misery;
@@ -102,7 +103,7 @@ impl NPC {
             0
         }
     }
-    
+
     pub fn empty() -> NPC {
         NPC {
             id: 0,
@@ -140,65 +141,67 @@ impl NPC {
 impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC {
     fn tick(&mut self, state: &mut SharedGameState, (player, map, stage): (&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)) -> GameResult {
         match self.npc_type {
-            0 => { self.tick_n000_null() }
-            1 => { self.tick_n001_experience(state) }
-            2 => { self.tick_n002_behemoth(state) }
-            3 => { self.tick_n003_dead_enemy() }
-            4 => { self.tick_n004_smoke(state) }
-            5 => { self.tick_n005_green_critter(state, player) }
-            6 => { self.tick_n006_green_beetle(state) }
-            7 => { self.tick_n007_basil(state, player) }
-            8 => { self.tick_n008_blue_beetle(state, player) }
-            9 => { self.tick_n009_balrog_falling_in(state) }
-            10 => { self.tick_n010_balrog_shooting(state, player) }
-            11 => { self.tick_n011_balrogs_projectile(state) }
-            12 => { self.tick_n012_balrog_cutscene(state, player, map, stage) }
-            13 => { self.tick_n013_forcefield(state) }
-            14 => { self.tick_n014_key(state) }
-            15 => { self.tick_n015_chest_closed(state) }
-            16 => { self.tick_n016_save_point(state) }
-            17 => { self.tick_n017_health_refill(state) }
-            18 => { self.tick_n018_door(state) }
-            19 => { self.tick_n019_balrog_bust_in(state) }
-            20 => { self.tick_n020_computer(state) }
-            21 => { self.tick_n021_chest_open(state) }
-            22 => { self.tick_n022_teleporter(state) }
-            27 => { self.tick_n027_death_trap(state) }
-            30 => { self.tick_n030_gunsmith(state) }
-            32 => { self.tick_n032_life_capsule(state) }
-            34 => { self.tick_n034_bed(state) }
-            37 => { self.tick_n037_sign(state) }
-            38 => { self.tick_n038_fireplace(state) }
-            39 => { self.tick_n039_save_sign(state) }
-            41 => { self.tick_n041_busted_door(state) }
-            43 => { self.tick_n043_chalkboard(state) }
-            46 => { self.tick_n046_hv_trigger(state, player) }
-            52 => { self.tick_n052_sitting_blue_robot(state) }
-            55 => { self.tick_n055_kazuma(state) }
-            59 => { self.tick_n059_eye_door(state, player) }
-            60 => { self.tick_n060_toroko(state, player) }
-            61 => { self.tick_n061_king(state) }
-            62 => { self.tick_n062_kazuma_computer(state) }
-            63 => { self.tick_n063_toroko_stick(state) }
-            64 => { self.tick_n064_first_cave_critter(state, player) }
-            65 => { self.tick_n065_first_cave_bat(state, player) }
-            66 => { self.tick_n066_misery_bubble(state, map) }
-            67 => { self.tick_n067_misery_floating(state) }
-            68 => { self.tick_n068_balrog_running(state, player) }
-            69 => { self.tick_n069_pignon(state) }
-            70 => { self.tick_n070_sparkle(state) }
-            71 => { self.tick_n071_chinfish(state) }
-            72 => { self.tick_n072_sprinkler(state, player) }
-            73 => { self.tick_n073_water_droplet(state, stage) }
-            74 => { self.tick_n074_jack(state) }
-            75 => { self.tick_n075_kanpachi(state, player) }
-            76 => { self.tick_n076_flowers() }
-            77 => { self.tick_n077_yamashita(state) }
-            78 => { self.tick_n078_pot(state) }
-            79 => { self.tick_n079_mahin(state, player) }
-            129 => { self.tick_n129_fireball_snake_trail(state) }
-            211 => { self.tick_n211_small_spikes(state) }
-            _ => { Ok(()) }
+            0 => self.tick_n000_null(),
+            1 => self.tick_n001_experience(state),
+            2 => self.tick_n002_behemoth(state),
+            3 => self.tick_n003_dead_enemy(),
+            4 => self.tick_n004_smoke(state),
+            5 => self.tick_n005_green_critter(state, player),
+            6 => self.tick_n006_green_beetle(state),
+            7 => self.tick_n007_basil(state, player),
+            8 => self.tick_n008_blue_beetle(state, player),
+            9 => self.tick_n009_balrog_falling_in(state),
+            10 => self.tick_n010_balrog_shooting(state, player),
+            11 => self.tick_n011_balrogs_projectile(state),
+            12 => self.tick_n012_balrog_cutscene(state, player, map, stage),
+            13 => self.tick_n013_forcefield(state),
+            14 => self.tick_n014_key(state),
+            15 => self.tick_n015_chest_closed(state),
+            16 => self.tick_n016_save_point(state),
+            17 => self.tick_n017_health_refill(state),
+            18 => self.tick_n018_door(state),
+            19 => self.tick_n019_balrog_bust_in(state),
+            20 => self.tick_n020_computer(state),
+            21 => self.tick_n021_chest_open(state),
+            22 => self.tick_n022_teleporter(state),
+            27 => self.tick_n027_death_trap(state),
+            30 => self.tick_n030_gunsmith(state),
+            32 => self.tick_n032_life_capsule(state),
+            34 => self.tick_n034_bed(state),
+            37 => self.tick_n037_sign(state),
+            38 => self.tick_n038_fireplace(state),
+            39 => self.tick_n039_save_sign(state),
+            41 => self.tick_n041_busted_door(state),
+            43 => self.tick_n043_chalkboard(state),
+            46 => self.tick_n046_hv_trigger(state, player),
+            52 => self.tick_n052_sitting_blue_robot(state),
+            55 => self.tick_n055_kazuma(state),
+            59 => self.tick_n059_eye_door(state, player),
+            60 => self.tick_n060_toroko(state, player),
+            61 => self.tick_n061_king(state),
+            62 => self.tick_n062_kazuma_computer(state),
+            63 => self.tick_n063_toroko_stick(state),
+            64 => self.tick_n064_first_cave_critter(state, player),
+            65 => self.tick_n065_first_cave_bat(state, player),
+            66 => self.tick_n066_misery_bubble(state, map),
+            67 => self.tick_n067_misery_floating(state),
+            68 => self.tick_n068_balrog_running(state, player),
+            69 => self.tick_n069_pignon(state),
+            70 => self.tick_n070_sparkle(state),
+            71 => self.tick_n071_chinfish(state),
+            72 => self.tick_n072_sprinkler(state, player),
+            73 => self.tick_n073_water_droplet(state, stage),
+            74 => self.tick_n074_jack(state),
+            75 => self.tick_n075_kanpachi(state, player),
+            76 => self.tick_n076_flowers(),
+            77 => self.tick_n077_yamashita(state),
+            78 => self.tick_n078_pot(state),
+            79 => self.tick_n079_mahin(state, player),
+            129 => self.tick_n129_fireball_snake_trail(state),
+            149 => self.tick_n149_horizontal_moving_block(state, player),
+            157 => self.tick_n157_vertical_moving_block(state, player),
+            211 => self.tick_n211_small_spikes(state),
+            _ => Ok(()),
         }?;
 
         if self.shock > 0 {

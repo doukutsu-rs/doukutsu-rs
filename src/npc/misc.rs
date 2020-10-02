@@ -7,6 +7,7 @@ use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
+use num_traits::clamp;
 
 impl NPC {
     pub(crate) fn tick_n000_null(&mut self) -> GameResult {
@@ -616,6 +617,240 @@ impl NPC {
                 Direction::Right => { self.anim_rect = state.constants.npc.n078_pot[1] }
                 _ => {}
             }
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n149_horizontal_moving_block(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+        match self.action_num {
+            0 => {
+                self.x += 8 * 0x200;
+                self.y += 8 * 0x200;
+                self.npc_flags.set_solid_hard(true);
+                self.vel_x = 0;
+                self.vel_y = 0;
+                self.action_num = if self.direction == Direction::Right { 20 } else { 10 };
+            }
+            10 => {
+                self.npc_flags.set_rear_and_top_not_hurt(false);
+                self.damage = 0;
+                if (player.x < self.x + 25 * 0x200) && (player.x > self.x - 25 * 16 * 0x200)
+                    && (player.y < self.y + 25 * 0x200) && (player.y > self.y - 25 * 0x200) {
+                    self.action_num = 11;
+                    self.action_counter = 0;
+                }
+            }
+            11 => {
+                self.action_counter += 1;
+                if self.action_counter % 10 == 6 {
+                    state.sound_manager.play_sfx(107);
+                }
+
+                if self.flags.hit_left_wall() {
+                    self.vel_x = 0;
+                    self.direction = Direction::Right;
+                    self.action_num = 20;
+
+                    state.quake_counter = 10;
+                    state.sound_manager.play_sfx(26);
+
+                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    for _ in 0..3 {
+                        npc.cond.set_alive(true);
+                        npc.direction = Direction::Left;
+                        npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+
+                        state.new_npcs.push(npc);
+                    }
+                } else {
+                    if player.flags.hit_left_wall() {
+                        self.npc_flags.set_rear_and_top_not_hurt(true);
+                        self.damage = 100;
+                    } else {
+                        self.npc_flags.set_rear_and_top_not_hurt(false);
+                        self.damage = 0;
+                    }
+
+                    self.vel_x -= 0x20;
+                }
+            }
+            20 => {
+                self.npc_flags.set_rear_and_top_not_hurt(false);
+                self.damage = 0;
+
+                if (player.x > self.x - 25 * 0x200) && (player.x < self.x + 25 * 16 * 0x200)
+                    && (player.y < self.y + 25 * 0x200) && (player.y > self.y - 25 * 0x200) {
+                    self.action_num = 21;
+                    self.action_counter = 0;
+                }
+            }
+            21 => {
+                self.action_counter += 1;
+                if self.action_counter % 10 == 6 {
+                    state.sound_manager.play_sfx(107);
+                }
+
+                if self.flags.hit_right_wall() {
+                    self.vel_x = 0;
+                    self.direction = Direction::Left;
+                    self.action_num = 10;
+
+                    state.quake_counter = 10;
+                    state.sound_manager.play_sfx(26);
+
+                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    for _ in 0..3 {
+                        npc.cond.set_alive(true);
+                        npc.direction = Direction::Left;
+                        npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+
+                        state.new_npcs.push(npc);
+                    }
+                } else {
+                    if player.flags.hit_right_wall() {
+                        self.npc_flags.set_rear_and_top_not_hurt(true);
+                        self.damage = 100;
+                    } else {
+                        self.npc_flags.set_rear_and_top_not_hurt(false);
+                        self.damage = 0;
+                    }
+
+                    self.vel_x += 0x20;
+                }
+            }
+            _ => {}
+        }
+
+        self.vel_x = clamp(self.vel_x, -0x200, 0x200);
+        self.x += self.vel_x;
+
+        if self.anim_num != 149 {
+            self.anim_num = 149;
+            self.anim_rect = state.constants.npc.n149_horizontal_moving_block;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n157_vertical_moving_block(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+        match self.action_num {
+            0 => {
+                self.x += 8 * 0x200;
+                self.y += 8 * 0x200;
+                self.npc_flags.set_solid_hard(true);
+                self.vel_x = 0;
+                self.vel_y = 0;
+                self.action_num = if self.direction == Direction::Right { 20 } else { 10 };
+            }
+            10 => {
+                self.npc_flags.set_rear_and_top_not_hurt(false);
+                self.damage = 0;
+                if (player.y < self.y + 25 * 0x200) && (player.y > self.y - 25 * 16 * 0x200)
+                    && (player.x < self.x + 25 * 0x200) && (player.x > self.x - 25 * 0x200) {
+                    self.action_num = 11;
+                    self.action_counter = 0;
+                }
+            }
+            11 => {
+                self.action_counter += 1;
+                if self.action_counter % 10 == 6 {
+                    state.sound_manager.play_sfx(107);
+                }
+
+                if self.flags.hit_top_wall() {
+                    self.vel_y = 0;
+                    self.direction = Direction::Right;
+                    self.action_num = 20;
+
+                    state.quake_counter = 10;
+                    state.sound_manager.play_sfx(26);
+
+                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    for _ in 0..3 {
+                        npc.cond.set_alive(true);
+                        npc.direction = Direction::Left;
+                        npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+
+                        state.new_npcs.push(npc);
+                    }
+                } else {
+                    if player.flags.hit_top_wall() {
+                        self.npc_flags.set_rear_and_top_not_hurt(true);
+                        self.damage = 100;
+                    } else {
+                        self.npc_flags.set_rear_and_top_not_hurt(false);
+                        self.damage = 0;
+                    }
+
+                    self.vel_y -= 0x20;
+                }
+            }
+            20 => {
+                self.npc_flags.set_rear_and_top_not_hurt(false);
+                self.damage = 0;
+
+                if (player.y > self.y - 25 * 0x200) && (player.y < self.y + 25 * 16 * 0x200)
+                    && (player.x < self.x + 25 * 0x200) && (player.x > self.x - 25 * 0x200) {
+                    self.action_num = 21;
+                    self.action_counter = 0;
+                }
+            }
+            21 => {
+                self.action_counter += 1;
+                if self.action_counter % 10 == 6 {
+                    state.sound_manager.play_sfx(107);
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    self.vel_x = 0;
+                    self.direction = Direction::Left;
+                    self.action_num = 10;
+
+                    state.quake_counter = 10;
+                    state.sound_manager.play_sfx(26);
+
+                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    for _ in 0..3 {
+                        npc.cond.set_alive(true);
+                        npc.direction = Direction::Left;
+                        npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+
+                        state.new_npcs.push(npc);
+                    }
+                } else {
+                    if player.flags.hit_bottom_wall() {
+                        self.npc_flags.set_rear_and_top_not_hurt(true);
+                        self.damage = 100;
+                    } else {
+                        self.npc_flags.set_rear_and_top_not_hurt(false);
+                        self.damage = 0;
+                    }
+
+                    self.vel_y += 0x20;
+                }
+            }
+            _ => {}
+        }
+
+        self.vel_y = clamp(self.vel_y, -0x200, 0x200);
+        self.y += self.vel_y;
+
+        if self.anim_num != 149 {
+            self.anim_num = 149;
+            self.anim_rect = state.constants.npc.n149_horizontal_moving_block;
         }
 
         Ok(())
