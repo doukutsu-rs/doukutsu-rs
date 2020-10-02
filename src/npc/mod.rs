@@ -118,6 +118,8 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             10 => { self.tick_n010_balrog_shooting(state, player) }
             11 => { self.tick_n011_balrogs_projectile(state) }
             12 => { self.tick_n012_balrog_cutscene(state, player, map, stage) }
+            13 => { self.tick_n013_forcefield(state) }
+            14 => { self.tick_n014_key(state) }
             15 => { self.tick_n015_chest_closed(state) }
             16 => { self.tick_n016_save_point(state) }
             17 => { self.tick_n017_health_refill(state) }

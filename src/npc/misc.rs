@@ -86,6 +86,51 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n013_forcefield(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.anim_counter = (self.anim_counter + 1) % 2;
+        if self.anim_counter == 1 {
+            self.anim_num = (self.anim_num + 1) % 4;
+            self.anim_rect = state.constants.npc.n013_forcefield[self.anim_num as usize];
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n014_key(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            if self.direction == Direction::Right {
+                self.vel_y = -0x200;
+            }
+        }
+
+        if self.flags.hit_bottom_wall() {
+            self.npc_flags.set_interactable(true);
+        }
+
+        self.anim_counter += 1;
+        if self.anim_counter > 1 {
+            self.anim_counter = 0;
+            self.anim_num += 1;
+            if self.anim_num > 2 {
+                self.anim_num = 0
+            }
+        }
+
+        self.vel_y += 0x40;
+
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.y += self.vel_y;
+
+        self.anim_rect = state.constants.npc.n014_key[self.anim_num as usize];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n015_chest_closed(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
             0 | 1 => {
