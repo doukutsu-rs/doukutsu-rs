@@ -59,8 +59,8 @@ pub struct Bullet {
     pub lifetime: u16,
     pub damage: u16,
     pub cond: Condition,
+    pub weapon_flags: Flag,
     pub flags: Flag,
-    pub hit_flags: Flag,
     pub direction: Direction,
     pub anim_rect: Rect<usize>,
     pub enemy_hit_width: u32,
@@ -101,8 +101,8 @@ impl Bullet {
             lifetime: bullet.lifetime,
             damage: bullet.damage as u16,
             cond: Condition(0x80),
-            flags: bullet.flags,
-            hit_flags: Flag(0),
+            weapon_flags: bullet.flags,
+            flags: Flag(0),
             direction,
             anim_rect: Rect::new(0, 0, 0, 0),
             enemy_hit_width: bullet.enemy_hit_width as u32 * 0x200,
@@ -129,6 +129,38 @@ impl Bullet {
     #[inline]
     pub fn is_dead(&self) -> bool {
         !self.cond.alive()
+    }
+
+    fn tick_snake_1(&mut self, state: &mut SharedGameState) {
+        self.action_counter += 1;
+        if self.action_counter > self.lifetime {
+            self.cond.set_alive(false);
+            state.create_caret(self.x, self.y, CaretType::Shoot, Direction::Left);
+            return;
+        }
+
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_num = state.game_rng.range(0..2) as u16;
+
+            match self.direction {
+                Direction::Left => self.vel_x = -0x600,
+                Direction::Up => self.vel_y = -0x600,
+                Direction::Right => self.vel_x = 0x600,
+                Direction::Bottom => self.vel_y = 0x600,
+                Direction::FacingPlayer => unreachable!(),
+            }
+        } else {
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+        }
+
+        self.anim_num = (self.anim_num + 1) % 3;
+
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
+
+        self.anim_rect = state.constants.weapon.bullet_rects.b001_snake_l1[self.anim_num as usize + dir_offset];
     }
 
     fn tick_polar_star(&mut self, state: &mut SharedGameState) {
@@ -223,7 +255,7 @@ impl Bullet {
             || (self.flags.hit_top_wall() && self.flags.hit_bottom_wall()) {
             self.cond.set_alive(false);
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
-            // todo play sound 28
+            state.sound_manager.play_sfx(28);
             return;
         }
 
@@ -296,30 +328,51 @@ impl Bullet {
             self.y += self.vel_y;
 
             if self.flags.hit_left_wall() || self.flags.hit_right_wall() || self.flags.hit_bottom_wall() {
-                // todo play sound 34
+                state.sound_manager.play_sfx(34);
             }
         }
 
         self.anim_num += 1;
 
         if self.btype == 7 { // level 1
+            if self.anim_num > 3 {
+                self.anim_num = 0;
+            }
+
+            let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
+
+            self.anim_rect = state.constants.weapon.bullet_rects.b007_fireball_l1[self.anim_num as usize + dir_offset];
+        } else {
+            if self.anim_num > 2 {
+                self.anim_num = 0;
+            }
+
+            let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+
+            self.anim_rect = state.constants.weapon.bullet_rects.b008_009_fireball_l2_3[self.anim_num as usize + dir_offset];
+
+            let mut npc = NPCMap::create_npc(129, &state.npc_table);
+            npc.cond.set_alive(true);
+            npc.x = self.x;
+            npc.y = self.y;
+            npc.vel_y = -0x200;
+            npc.action_counter2 = if self.btype == 9 { self.anim_num + 3 } else { self.anim_num };
+
+            state.new_npcs.push(npc);
         }
     }
 
-    pub fn tick(&mut self, state: &mut SharedGameState, player: &PhysicalEntity) {
+    pub fn tick(&mut self, state: &mut SharedGameState, player: &dyn PhysicalEntity) {
         if self.lifetime == 0 {
             self.cond.set_alive(false);
             return;
         }
 
         match self.btype {
-            4 | 5 | 6 => {
-                self.tick_polar_star(state);
-            }
-            7 | 8 | 9 => {
-                self.tick_fireball(state, player);
-            }
-            _ => { self.cond.set_alive(false); }
+            1 => self.tick_snake_1(state),
+            4 | 5 | 6 => self.tick_polar_star(state),
+            7 | 8 | 9 => self.tick_fireball(state, player),
+            _ => self.cond.set_alive(false),
         }
     }
 
@@ -340,7 +393,7 @@ impl Bullet {
         let block_y = (y * 16 + 8) * 0x200;
 
         for (i, &attr) in hit_attribs.iter().enumerate() {
-            if self.flags.snack_destroy() {
+            if self.weapon_flags.snack_destroy() {
                 hits[i] = attr == 0x41 || attr == 0x61;
             } else {
                 hits[i] = attr == 0x41 || attr == 0x43 || attr == 0x61;
@@ -350,79 +403,79 @@ impl Bullet {
         // left wall
         if hits[0] && hits[2] {
             if (self.x - self.hit_bounds.left as isize) < block_x {
-                self.hit_flags.set_hit_left_wall(true);
+                self.flags.set_hit_left_wall(true);
             }
         } else if hits[0] && !hits[2] {
             if (self.x - self.hit_bounds.left as isize) < block_x
                 && (self.y - self.hit_bounds.top as isize) < block_y - (3 * 0x200) {
-                self.hit_flags.set_hit_left_wall(true);
+                self.flags.set_hit_left_wall(true);
             }
         } else if !hits[0] && hits[2]
             && (self.x - self.hit_bounds.left as isize) < block_x
             && (self.y + self.hit_bounds.top as isize) > block_y + (3 * 0x200) {
-            self.hit_flags.set_hit_left_wall(true);
+            self.flags.set_hit_left_wall(true);
         }
 
         // right wall
         if hits[1] && hits[3] {
             if (self.x + self.hit_bounds.right as isize) > block_x {
-                self.hit_flags.set_hit_right_wall(true);
+                self.flags.set_hit_right_wall(true);
             }
         } else if hits[1] && !hits[3] {
             if (self.x + self.hit_bounds.right as isize) > block_x
                 && (self.y - self.hit_bounds.top as isize) < block_y - (3 * 0x200) {
-                self.hit_flags.set_hit_right_wall(true);
+                self.flags.set_hit_right_wall(true);
             }
         } else if !hits[1] && hits[3]
             && (self.x + self.hit_bounds.right as isize) > block_x
             && (self.y + self.hit_bounds.top as isize) > block_y + (3 * 0x200) {
-            self.hit_flags.set_hit_right_wall(true);
+            self.flags.set_hit_right_wall(true);
         }
 
         // ceiling
         if hits[0] && hits[1] {
             if (self.y - self.hit_bounds.top as isize) < block_y {
-                self.hit_flags.set_hit_top_wall(true);
+                self.flags.set_hit_top_wall(true);
             }
         } else if hits[0] && !hits[1] {
             if (self.x - self.hit_bounds.left as isize) < block_x - (3 * 0x200)
                 && (self.y - self.hit_bounds.top as isize) < block_y {
-                self.hit_flags.set_hit_top_wall(true);
+                self.flags.set_hit_top_wall(true);
             }
         } else if !hits[0] && hits[1]
             && (self.x + self.hit_bounds.right as isize) > block_x + (3 * 0x200)
             && (self.y - self.hit_bounds.top as isize) < block_y {
-            self.hit_flags.set_hit_top_wall(true);
+            self.flags.set_hit_top_wall(true);
         }
 
         // ground
         if hits[2] && hits[3] {
             if (self.y + self.hit_bounds.bottom as isize) > block_y {
-                self.hit_flags.set_hit_bottom_wall(true);
+                self.flags.set_hit_bottom_wall(true);
             }
         } else if hits[2] && !hits[3] {
             if (self.x - self.hit_bounds.left as isize) < block_x - (3 * 0x200)
                 && (self.y + self.hit_bounds.bottom as isize) > block_y {
-                self.hit_flags.set_hit_bottom_wall(true);
+                self.flags.set_hit_bottom_wall(true);
             }
         } else if !hits[2] && hits[3]
             && (self.x + self.hit_bounds.right as isize) > block_x + (3 * 0x200)
             && (self.y + self.hit_bounds.bottom as isize) > block_y {
-            self.hit_flags.set_hit_bottom_wall(true);
+            self.flags.set_hit_bottom_wall(true);
         }
 
-        if self.flags.hit_bottom_wall() {
-            if self.hit_flags.hit_left_wall() {
+        if self.weapon_flags.hit_bottom_wall() {
+            if self.flags.hit_left_wall() {
                 self.x = block_x + self.hit_bounds.right as isize;
-            } else if self.hit_flags.hit_right_wall() {
+            } else if self.flags.hit_right_wall() {
                 self.x = block_x + self.hit_bounds.left as isize;
-            } else if self.hit_flags.hit_left_wall() {
+            } else if self.flags.hit_left_wall() {
                 self.x = block_x + self.hit_bounds.right as isize;
-            } else if self.hit_flags.hit_right_wall() {
+            } else if self.flags.hit_right_wall() {
                 self.x = block_x + self.hit_bounds.left as isize;
             }
-        } else if self.hit_flags.hit_left_wall() || self.hit_flags.hit_top_wall()
-            || self.hit_flags.hit_right_wall() || self.hit_flags.hit_bottom_wall() {
+        } else if self.flags.hit_left_wall() || self.flags.hit_top_wall()
+            || self.flags.hit_right_wall() || self.flags.hit_bottom_wall() {
             self.vanish(state);
         }
     }
@@ -485,7 +538,7 @@ impl PhysicalEntity for Bullet {
 
     #[inline(always)]
     fn flags(&mut self) -> &mut Flag {
-        &mut self.hit_flags
+        &mut self.flags
     }
 
     #[inline(always)]
@@ -504,7 +557,7 @@ impl PhysicalEntity for Bullet {
             && (self.y - self.hit_bounds.top as isize) < (y * 16 + 8) * 0x200
             && (self.y + self.hit_bounds.bottom as isize) > (y * 16 - 8) * 0x200
         {
-            self.hit_flags.set_weapon_hit_block(true);
+            self.flags.set_weapon_hit_block(true);
         }
     }
 
@@ -514,7 +567,7 @@ impl PhysicalEntity for Bullet {
         let mut hit_attribs = [0u8; 4];
 
         self.flags().0 = 0;
-        if self.flags.hit_right_wall() { // ???
+        if self.weapon_flags.hit_right_wall() { // ???
             return;
         }
 
@@ -534,8 +587,8 @@ impl PhysicalEntity for Bullet {
                 0x43 => {
                     self.judge_hit_block(state, x + ox, y + oy);
 
-                    if self.hit_flags.0 != 0 && (self.flags.hit_left_slope() || self.flags.snack_destroy()) {
-                        if !self.flags.snack_destroy() {
+                    if self.flags.0 != 0 && (self.weapon_flags.hit_left_slope() || self.weapon_flags.snack_destroy()) {
+                        if !self.weapon_flags.snack_destroy() {
                             self.cond.set_alive(false);
                         }
 

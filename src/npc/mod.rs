@@ -26,11 +26,14 @@ pub mod balrog;
 pub mod characters;
 pub mod egg_corridor;
 pub mod first_cave;
+pub mod grasstown;
 pub mod mimiga_village;
 pub mod misc;
 pub mod misery;
 pub mod pickups;
+pub mod sand_zone;
 pub mod toroko;
+pub mod weapon_trail;
 
 bitfield! {
   #[derive(Clone, Copy)]
@@ -87,7 +90,7 @@ pub struct NPC {
     pub anim_rect: Rect<usize>,
 }
 
-static PARTICLE_NPCS: [u16; 4] = [1, 4, 73, 355];
+static PARTICLE_NPCS: [u16; 5] = [1, 4, 73, 129, 355];
 
 impl NPC {
     pub fn get_start_index(&self) -> u16 {
@@ -155,6 +158,7 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             77 => { self.tick_n077_yamashita(state) }
             78 => { self.tick_n078_pot(state) }
             79 => { self.tick_n079_mahin(state, player) }
+            129 => { self.tick_n129_fireball_snake_trail(state) }
             211 => { self.tick_n211_small_spikes(state) }
             _ => { Ok(()) }
         }?;

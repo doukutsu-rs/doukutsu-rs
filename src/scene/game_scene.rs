@@ -808,7 +808,7 @@ impl GameScene {
                                 // todo show damage
                             }
                         }
-                    } else if !bullet.flags.hit_right_slope()
+                    } else if !bullet.weapon_flags.hit_right_slope()
                         && bullet.btype != 13 && bullet.btype != 14 && bullet.btype != 15
                         && bullet.btype != 28 && bullet.btype != 29 && bullet.btype != 30 {
                         state.create_caret((bullet.x + npc.x) / 2, (bullet.y + npc.y) / 2, CaretType::ProjectileDissipation, Direction::Right);

@@ -104,9 +104,13 @@ pub struct BulletData {
 
 #[derive(Debug, Copy, Clone)]
 pub struct BulletRects {
+    pub b001_snake_l1: [Rect<usize>; 8],
+    pub b002_003_snake_l2_3: [Rect<usize>; 3],
     pub b004_polar_star_l1: [Rect<usize>; 2],
     pub b005_polar_star_l2: [Rect<usize>; 2],
     pub b006_polar_star_l3: [Rect<usize>; 2],
+    pub b007_fireball_l1: [Rect<usize>; 8],
+    pub b008_009_fireball_l2_3: [Rect<usize>; 6],
     pub b037_spur_l1: [Rect<usize>; 2],
     pub b038_spur_l2: [Rect<usize>; 2],
     pub b039_spur_l3: [Rect<usize>; 2],
@@ -201,6 +205,7 @@ pub struct NPCConsts {
     pub n077_yamashita: [Rect<usize>; 3],
     pub n078_pot: [Rect<usize>; 2],
     pub n079_mahin: [Rect<usize>; 6],
+    pub n129_fireball_snake_trail: [Rect<usize>; 18],
     pub n211_small_spikes: [Rect<usize>; 4],
 }
 
@@ -984,6 +989,31 @@ impl EngineConstants {
                     Rect { left: 16, top: 16, right: 32, bottom: 32 },
                     Rect { left: 32, top: 16, right: 48, bottom: 32 },
                 ],
+                n129_fireball_snake_trail: [
+                    Rect { left: 128, top: 48, right: 144, bottom: 64 },
+                    Rect { left: 144, top: 48, right: 160, bottom: 64 },
+                    Rect { left: 160, top: 48, right: 176, bottom: 64 },
+
+                    Rect { left: 128, top: 64, right: 144, bottom: 80 },
+                    Rect { left: 144, top: 64, right: 160, bottom: 80 },
+                    Rect { left: 160, top: 64, right: 176, bottom: 80 },
+
+                    Rect { left: 128, top: 80, right: 144, bottom: 96 },
+                    Rect { left: 144, top: 80, right: 160, bottom: 96 },
+                    Rect { left: 160, top: 80, right: 176, bottom: 96 },
+
+                    Rect { left: 176, top: 48, right: 192, bottom: 64 },
+                    Rect { left: 192, top: 48, right: 208, bottom: 64 },
+                    Rect { left: 208, top: 48, right: 224, bottom: 64 },
+
+                    Rect { left: 176, top: 64, right: 192, bottom: 80 },
+                    Rect { left: 192, top: 64, right: 208, bottom: 80 },
+                    Rect { left: 208, top: 64, right: 224, bottom: 80 },
+
+                    Rect { left: 176, top: 80, right: 192, bottom: 96 },
+                    Rect { left: 192, top: 80, right: 208, bottom: 96 },
+                    Rect { left: 208, top: 80, right: 224, bottom: 96 },
+                ],
                 n211_small_spikes: [
                     Rect { left: 256, top: 200, right: 272, bottom: 216 },
                     Rect { left: 272, top: 200, right: 288, bottom: 216 },
@@ -1061,6 +1091,21 @@ impl EngineConstants {
                     BulletData { damage: 1, life: 1, lifetime: 1, flags: Flag(36), enemy_hit_width: 1, enemy_hit_height: 1, block_hit_width: 1, block_hit_height: 1, display_bounds: Rect { left: 1, top: 1, right: 1, bottom: 1 } },
                 ],
                 bullet_rects: BulletRects {
+                    b001_snake_l1: [
+                        Rect { left: 136, top: 80, right: 152, bottom: 80 }, // left
+                        Rect { left: 120, top: 80, right: 136, bottom: 96 },
+                        Rect { left: 136, top: 64, right: 152, bottom: 80 },
+                        Rect { left: 120, top: 64, right: 136, bottom: 80 },
+                        Rect { left: 120, top: 64, right: 136, bottom: 80 }, // right
+                        Rect { left: 136, top: 64, right: 152, bottom: 80 },
+                        Rect { left: 120, top: 80, right: 136, bottom: 96 },
+                        Rect { left: 136, top: 80, right: 152, bottom: 80 },
+                    ],
+                    b002_003_snake_l2_3: [
+                        Rect { left: 192, top: 16, right: 208, bottom: 32 },
+                        Rect { left: 208, top: 16, right: 224, bottom: 32 },
+                        Rect { left: 224, top: 16, right: 240, bottom: 32 },
+                    ],
                     b004_polar_star_l1: [
                         Rect { left: 128, top: 32, right: 144, bottom: 48 }, // horizontal
                         Rect { left: 144, top: 32, right: 160, bottom: 48 }, // vertical
@@ -1072,6 +1117,24 @@ impl EngineConstants {
                     b006_polar_star_l3: [
                         Rect { left: 128, top: 48, right: 144, bottom: 64 }, // horizontal
                         Rect { left: 144, top: 48, right: 160, bottom: 64 }, // vertical
+                    ],
+                    b007_fireball_l1: [
+                        Rect { left: 128, top: 0, right: 144, bottom: 16 }, // left
+                        Rect { left: 144, top: 0, right: 160, bottom: 16 },
+                        Rect { left: 160, top: 0, right: 176, bottom: 16 },
+                        Rect { left: 176, top: 0, right: 192, bottom: 16 },
+                        Rect { left: 128, top: 16, right: 144, bottom: 32 }, // right
+                        Rect { left: 144, top: 16, right: 160, bottom: 32 },
+                        Rect { left: 160, top: 16, right: 176, bottom: 32 },
+                        Rect { left: 176, top: 16, right: 192, bottom: 32 },
+                    ],
+                    b008_009_fireball_l2_3: [
+                        Rect { left: 192, top: 16, right: 208, bottom: 32 }, // left
+                        Rect { left: 208, top: 16, right: 224, bottom: 32 },
+                        Rect { left: 224, top: 16, right: 240, bottom: 32 },
+                        Rect { left: 224, top: 16, right: 240, bottom: 32 }, // right
+                        Rect { left: 208, top: 16, right: 224, bottom: 32 },
+                        Rect { left: 192, top: 16, right: 208, bottom: 32 },
                     ],
                     b037_spur_l1: [
                         Rect { left: 128, top: 32, right: 144, bottom: 48 }, // horizontal
