@@ -21,8 +21,10 @@ use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 use crate::str;
+use crate::npc::boss::BossNPCMap;
 
 pub mod balrog;
+pub mod boss;
 pub mod characters;
 pub mod egg_corridor;
 pub mod first_cave;
@@ -98,6 +100,39 @@ impl NPC {
             0x100
         } else {
             0
+        }
+    }
+    
+    pub fn empty() -> NPC {
+        NPC {
+            id: 0,
+            npc_type: 0,
+            x: 0,
+            y: 0,
+            vel_x: 0,
+            vel_y: 0,
+            target_x: 0,
+            target_y: 0,
+            exp: 0,
+            size: 0,
+            shock: 0,
+            life: 0,
+            damage: 0,
+            cond: Condition(0),
+            flags: Flag(0),
+            npc_flags: NPCFlag(0),
+            direction: Direction::Left,
+            display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 },
+            hit_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 },
+            parent_id: 0,
+            action_num: 0,
+            anim_num: 0,
+            flag_num: 0,
+            event_num: 0,
+            action_counter: 0,
+            action_counter2: 0,
+            anim_counter: 0,
+            anim_rect: Rect { left: 0, top: 0, right: 0, bottom: 0 },
         }
     }
 }
@@ -274,6 +309,8 @@ pub struct NPCMap {
     pub npc_ids: BTreeSet<u16>,
     /// Do not iterate over this directly outside render pipeline.
     pub npcs: HashMap<u16, RefCell<NPC>>,
+    /// NPCMap but for bosses and of static size.
+    pub boss_map: BossNPCMap,
 }
 
 impl NPCMap {
@@ -282,6 +319,7 @@ impl NPCMap {
         NPCMap {
             npc_ids: BTreeSet::new(),
             npcs: HashMap::with_capacity(256),
+            boss_map: BossNPCMap::new(),
         }
     }
 

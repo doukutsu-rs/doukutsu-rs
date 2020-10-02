@@ -1,4 +1,4 @@
-use std::borrow::Borrow;
+use std::borrow::{Borrow, BorrowMut};
 
 use num_traits::abs;
 
@@ -228,62 +228,72 @@ impl Player {
         flags
     }
 
+    fn tick_npc_collision(&mut self, state: &mut SharedGameState, npc: &mut NPC, inventory: &mut Inventory) {
+        let flags: Flag;
+
+        if npc.npc_flags.solid_soft() {
+            flags = self.judge_hit_npc_solid_soft(npc.borrow());
+            self.flags.0 |= flags.0;
+        } else if npc.npc_flags.solid_hard() {
+            flags = self.judge_hit_npc_solid_hard(npc.borrow(), state);
+            self.flags.0 |= flags.0;
+        } else {
+            flags = self.judge_hit_npc_non_solid(npc.borrow());
+        }
+
+        // xp pickup
+        if flags.0 != 0 && npc.npc_type == 1 {
+            state.sound_manager.play_sfx(14);
+            match inventory.add_xp(npc.exp, state) {
+                AddExperienceResult::None => {}
+                AddExperienceResult::LevelUp => {
+                    state.sound_manager.play_sfx(27);
+                    state.create_caret(self.x, self.y, CaretType::LevelUp, Direction::Left);
+                }
+                AddExperienceResult::AddStar => {
+                    if self.equip.has_whimsical_star() && self.stars < 3 {
+                        self.stars += 1;
+                    }
+                }
+            }
+            npc.cond.set_alive(false);
+        }
+
+        if npc.npc_flags.interactable() && !state.control_flags.interactions_disabled() && flags.0 != 0 && self.cond.interacted() {
+            state.control_flags.set_tick_world(true);
+            state.control_flags.set_interactions_disabled(true);
+            state.textscript_vm.start_script(npc.event_num);
+            self.cond.set_interacted(false);
+            self.vel_x = 0;
+            self.question = false;
+        }
+
+        if npc.npc_flags.event_when_touched() && !state.control_flags.interactions_disabled() && flags.0 != 0 {
+            state.control_flags.set_tick_world(true);
+            state.control_flags.set_interactions_disabled(true);
+            state.textscript_vm.start_script(npc.event_num);
+        }
+
+        if state.control_flags.control_enabled() && !npc.npc_flags.interactable() {
+            if flags.0 != 0 && npc.damage != 0 && !state.control_flags.interactions_disabled() {
+                self.damage(npc.damage as isize, state);
+            }
+        }
+    }
+
     pub fn tick_npc_collisions(&mut self, state: &mut SharedGameState, npc_map: &mut NPCMap, inventory: &mut Inventory) {
         for npc_id in npc_map.npc_ids.iter() {
             if let Some(npc_cell) = npc_map.npcs.get(npc_id) {
                 let mut npc = npc_cell.borrow_mut();
                 if !npc.cond.alive() { continue; }
 
-                let mut flags = Flag(0);
+                self.tick_npc_collision(state, npc.borrow_mut(), inventory);
+            }
+        }
 
-                if npc.npc_flags.solid_soft() {
-                    flags = self.judge_hit_npc_solid_soft(npc.borrow());
-                    self.flags.0 |= flags.0;
-                } else if npc.npc_flags.solid_hard() {
-                    flags = self.judge_hit_npc_solid_hard(npc.borrow(), state);
-                    self.flags.0 |= flags.0;
-                } else {
-                    flags = self.judge_hit_npc_non_solid(npc.borrow());
-                }
-
-                // xp pickup
-                if flags.0 != 0 && npc.npc_type == 1 {
-                    state.sound_manager.play_sfx(14);
-                    match inventory.add_xp(npc.exp, state) {
-                        AddExperienceResult::None => {}
-                        AddExperienceResult::LevelUp => {
-                            state.sound_manager.play_sfx(27);
-                            state.create_caret(self.x, self.y, CaretType::LevelUp, Direction::Left);
-                        }
-                        AddExperienceResult::AddStar => {
-                            if self.equip.has_whimsical_star() && self.stars < 3 {
-                                self.stars += 1;
-                            }
-                        }
-                    }
-                    npc.cond.set_alive(false);
-                }
-
-                if npc.npc_flags.interactable() && !state.control_flags.interactions_disabled() && flags.0 != 0 && self.cond.interacted() {
-                    state.control_flags.set_tick_world(true);
-                    state.control_flags.set_interactions_disabled(true);
-                    state.textscript_vm.start_script(npc.event_num);
-                    self.cond.set_interacted(false);
-                    self.vel_x = 0;
-                    self.question = false;
-                }
-
-                if npc.npc_flags.event_when_touched() && !state.control_flags.interactions_disabled() && flags.0 != 0 {
-                    state.control_flags.set_tick_world(true);
-                    state.control_flags.set_interactions_disabled(true);
-                    state.textscript_vm.start_script(npc.event_num);
-                }
-
-                if state.control_flags.control_enabled() && !npc.npc_flags.interactable() {
-                    if flags.0 != 0 && npc.damage != 0 && !state.control_flags.interactions_disabled() {
-                        self.damage(npc.damage as isize, state);
-                    }
-                }
+        for boss_npc in npc_map.boss_map.parts.iter_mut() {
+            if boss_npc.cond.alive() {
+                self.tick_npc_collision(state, boss_npc, inventory);
             }
         }
 
