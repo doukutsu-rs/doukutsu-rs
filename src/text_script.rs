@@ -20,13 +20,13 @@ use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::ggez::{Context, GameResult};
 use crate::ggez::GameError::ParseError;
+use crate::npc::NPCMap;
 use crate::player::ControlMode;
 use crate::scene::game_scene::GameScene;
 use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
 use crate::weapon::WeaponType;
-use crate::npc::NPCMap;
 
 /// Engine's text script VM operation codes.
 #[derive(EnumString, Debug, FromPrimitive, PartialEq)]
@@ -96,7 +96,7 @@ pub enum OpCode {
     NOD,
     /// <CAT, Instantly displays the text, works for entire event
     CAT,
-    /// <SAT, Speeds up text display
+    /// <SAT, Same as <CAT
     SAT,
     /// <TUR, Instantly displays the text, works until <MSG/2/3 or <END
     TUR,
@@ -293,9 +293,9 @@ bitfield! {
   impl Debug;
   pub render, set_render: 0;
   pub background_visible, set_background_visible: 1;
-  pub flag_x10, set_flag_x10: 4;
+  pub fast, set_fast: 4;
   pub position_top, set_position_top: 5;
-  pub flag_x40, set_flag_x40: 6;
+  pub perma_fast, set_perma_fast: 6;
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -555,8 +555,18 @@ impl TextScriptVM {
                         }
 
                         if remaining > 1 {
-                            let ticks = if state.key_state.jump() || state.key_state.fire() { 1 } else { 4 };
-                            state.sound_manager.play_sfx(2);
+                            let ticks = if state.textscript_vm.flags.fast() {
+                                0
+                            } else if state.key_state.jump() || state.key_state.fire() {
+                                1
+                            } else {
+                                4
+                            };
+
+                            if ticks > 0 {
+                                state.sound_manager.play_sfx(2);
+                            }
+
                             state.textscript_vm.state = TextScriptExecutionState::Msg(event, cursor.position() as u32, remaining - 1, ticks);
                         } else {
                             state.textscript_vm.state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -917,7 +927,7 @@ impl TextScriptVM {
                         state.textscript_vm.line_3.clear();
                         state.textscript_vm.flags.set_render(true);
                         state.textscript_vm.flags.set_background_visible(op != OpCode::MS2);
-                        state.textscript_vm.flags.set_flag_x10(state.textscript_vm.flags.flag_x40());
+                        state.textscript_vm.flags.set_fast(state.textscript_vm.flags.perma_fast());
                         state.textscript_vm.flags.set_position_top(op != OpCode::MSG);
                         if op == OpCode::MS2 {
                             state.textscript_vm.face = 0;
@@ -925,10 +935,21 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::SAT | OpCode::CAT => {
+                        state.textscript_vm.flags.set_perma_fast(true);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+
+                    OpCode::TUR => {
+                        state.textscript_vm.flags.set_fast(true);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::CLO => {
                         state.textscript_vm.flags.set_render(false);
                         state.textscript_vm.flags.set_background_visible(false);
-                        state.textscript_vm.flags.set_flag_x10(false);
+                        state.textscript_vm.flags.set_fast(false);
                         state.textscript_vm.flags.set_position_top(false);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1296,10 +1317,10 @@ impl TextScriptVM {
                     }
                     // unimplemented opcodes
                     // Zero operands
-                    OpCode::CAT | OpCode::CIL | OpCode::CPS | OpCode::KE2 |
+                    OpCode::CIL | OpCode::CPS | OpCode::KE2 |
                     OpCode::CRE | OpCode::CSS | OpCode::FLA | OpCode::MLP |
-                    OpCode::SAT | OpCode::SPS | OpCode::FR2 |
-                    OpCode::STC | OpCode::SVP | OpCode::TUR | OpCode::HM2 => {
+                    OpCode::SPS | OpCode::FR2 |
+                    OpCode::STC | OpCode::SVP | OpCode::HM2 => {
                         log::warn!("unimplemented opcode: {:?}", op);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
