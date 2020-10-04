@@ -103,7 +103,7 @@ Vanilla Cave Story does not work yet because some important data files are embed
 
 **Cave Story+ data files:**
 
-![CS+ with enhanced graphics](https://media.discordapp.net/attachments/745322954660905103/760599695009251328/unknown.png)
+![CS+ with enhanced graphics](https://media.discordapp.net/attachments/745322954660905103/760598347450679366/unknown.png)
 
 #### Credits
 
