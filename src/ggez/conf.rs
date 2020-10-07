@@ -168,7 +168,7 @@ pub struct WindowSetup {
     pub icon: String,
     /// Whether or not to enable sRGB (gamma corrected color)
     /// handling on the display.
-    #[default = true]
+    #[default = false]
     pub srgb: bool,
 }
 

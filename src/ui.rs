@@ -122,7 +122,7 @@ impl UI {
         colors[ImGuiCol_ModalWindowDimBg as usize] = [0.20, 0.20, 0.20, 0.35];
 
         let mut platform = WinitPlatform::init(&mut imgui);
-        platform.attach_window(imgui.io_mut(), graphics::window(ctx), HiDpiMode::Rounded);
+        platform.attach_window(imgui.io_mut(), graphics::window(ctx).window(), HiDpiMode::Rounded);
 
         let (factory, dev, _, depth, color) = graphics::gfx_objects(ctx);
         let shaders = {
@@ -161,23 +161,25 @@ impl UI {
         })
     }
 
-    pub fn handle_events(&mut self, ctx: &mut Context, event: &winit::Event) {
-        self.platform.handle_event(self.imgui.io_mut(), graphics::window(ctx), &event);
+    pub fn handle_events(&mut self, ctx: &mut Context, event: &winit::event::Event<()>) {
+        self.platform.handle_event(self.imgui.io_mut(), graphics::window(ctx).window(), &event);
     }
 
     pub fn draw(&mut self, state: &mut SharedGameState, ctx: &mut Context, scene: &mut Box<dyn Scene>) -> GameResult {
         {
             let io = self.imgui.io_mut();
-            self.platform.prepare_frame(io, graphics::window(ctx)).map_err(|e| RenderError(e))?;
+            self.platform.prepare_frame(io, graphics::window(ctx).window())
+                .map_err(|e| RenderError(e.to_string()))?;
 
-            io.update_delta_time(self.last_frame);
-            self.last_frame = Instant::now();
+            let now = Instant::now();
+            io.update_delta_time(now - self.last_frame);
+            self.last_frame = now;
         }
         let mut ui = self.imgui.frame();
 
         scene.debug_overlay_draw(&mut self.components, state, ctx, &mut ui)?;
 
-        self.platform.prepare_render(&ui, graphics::window(ctx));
+        self.platform.prepare_render(&ui, graphics::window(ctx).window());
         let draw_data = ui.render();
         let (factory, dev, encoder, _, _) = graphics::gfx_objects(ctx);
         self.renderer
