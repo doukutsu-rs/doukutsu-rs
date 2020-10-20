@@ -22,7 +22,7 @@ use winit::event::{ElementState, Event, KeyboardInput, WindowEvent, TouchPhase};
 use winit::event_loop::ControlFlow;
 
 use crate::builtin_fs::BuiltinFS;
-use crate::ggez::{Context, ContextBuilder, filesystem, GameResult};
+use crate::ggez::{Context, ContextBuilder, filesystem, GameResult, GameError};
 use crate::ggez::conf::{Backend, WindowMode, WindowSetup};
 use crate::ggez::event::{KeyCode, KeyMods};
 use crate::ggez::graphics;
@@ -34,7 +34,6 @@ use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
 use crate::ui::UI;
-use crate::ggez::event::winit_event::ModifiersState;
 
 mod bmfont;
 mod bmfont_renderer;
@@ -64,6 +63,7 @@ mod stage;
 mod sound;
 mod text_script;
 mod texture_set;
+mod touch_controls;
 mod ui;
 mod weapon;
 
@@ -128,6 +128,9 @@ impl Game {
 
         if let Some(scene) = self.scene.as_mut() {
             scene.draw(&mut self.state, ctx)?;
+            if self.state.settings.touch_controls {
+                self.state.touch_controls.draw(&self.state.constants, &mut self.state.texture_set, ctx)?;
+            }
 
             graphics::set_transform(ctx, self.def_matrix);
             graphics::apply_transformations(ctx)?;
@@ -234,27 +237,34 @@ pub fn android_main() {
     init().unwrap();
 }
 
-fn init_ctx<P: Into<path::PathBuf>>(event_loop: &winit::event_loop::EventLoopWindowTarget<()>, resource_dir: P) -> GameResult<Context> {
-    let backend = if cfg!(target_os = "android") {
-        Backend::OpenGLES { major: 2, minor: 0 }
-    } else {
-        Backend::OpenGL { major: 3, minor: 2 }
-    };
+static BACKENDS: [Backend; 4] = [
+    Backend::OpenGL {major: 3, minor: 2},
+    Backend::OpenGLES { major: 3, minor: 2},
+    Backend::OpenGLES { major: 3, minor: 0},
+    Backend::OpenGLES { major: 2, minor: 0}
+];
 
-    let mut ctx = ContextBuilder::new("doukutsu-rs")
-        .window_setup(WindowSetup::default().title("Cave Story (doukutsu-rs)"))
-        .window_mode(WindowMode::default()
-            .resizable(true)
-            .min_dimensions(320.0, 240.0)
-            .dimensions(854.0, 480.0))
-        .add_resource_path(resource_dir)
-        .add_resource_path(path::PathBuf::from(str!("./")))
-        .backend(backend)
-        .build(event_loop)?;
+fn init_ctx<P: Into<path::PathBuf> + Clone>(event_loop: &winit::event_loop::EventLoopWindowTarget<()>, resource_dir: P) -> GameResult<Context> {
+    for backend in BACKENDS.iter() {
+        let mut ctx = ContextBuilder::new("doukutsu-rs")
+            .window_setup(WindowSetup::default().title("Cave Story (doukutsu-rs)"))
+            .window_mode(WindowMode::default()
+                .resizable(true)
+                .min_dimensions(320.0, 240.0)
+                .dimensions(854.0, 480.0))
+            .add_resource_path(resource_dir.clone())
+            .add_resource_path(path::PathBuf::from(str!("./")))
+            .backend(*backend)
+            .build(event_loop);
 
-    ctx.filesystem.mount_vfs(Box::new(BuiltinFS::new()));
+        if let Ok(mut ctx) = ctx {
+            ctx.filesystem.mount_vfs(Box::new(BuiltinFS::new()));
 
-    Ok(ctx)
+            return Ok(ctx);
+        }
+    }
+
+    Err(GameError::EventLoopError("Failed to initialize OpenGL backend. Perhaps the driver is outdated?".to_string()))
 }
 
 pub fn init() -> GameResult {
@@ -345,7 +355,7 @@ pub fn init() -> GameResult {
                     }
                     WindowEvent::Touch(touch) => {
                         if let Some(game) = &mut game {
-
+                            game.state.touch_controls.process_winit_event(game.state.scale, &mut game.state.key_state, touch);
                         }
                     }
                     WindowEvent::KeyboardInput {
@@ -405,5 +415,5 @@ pub fn init() -> GameResult {
             }
             _ => {}
         }
-    });
+    })
 }
