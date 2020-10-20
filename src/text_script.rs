@@ -1124,8 +1124,6 @@ impl TextScriptVM {
                                     } else if let Some(dir) = Direction::from_int(direction) {
                                         npc.direction = dir;
                                     }
-
-                                    break;
                                 }
                             }
                         }
@@ -1182,8 +1180,6 @@ impl TextScriptVM {
                                     }
 
                                     tick_npc = *npc_id;
-
-                                    break;
                                 }
                             }
                         }

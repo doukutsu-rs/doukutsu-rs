@@ -181,8 +181,8 @@ impl From<gfx::shade::ProgramError> for GameError {
     }
 }
 
-impl From<winit::EventsLoopClosed> for GameError {
-    fn from(_: glutin::EventsLoopClosed) -> GameError {
+impl<T> From<winit::event_loop::EventLoopClosed<T>> for GameError {
+    fn from(_: winit::event_loop::EventLoopClosed<T>) -> GameError {
         let e = "An event loop proxy attempted to wake up an event loop that no longer exists."
             .to_owned();
         GameError::EventLoopError(e)
@@ -205,6 +205,13 @@ impl From<gilrs::Error> for GameError {
     fn from(s: gilrs::Error) -> GameError {
         let errstr = format!("Gamepad error: {}", s);
         GameError::GamepadError(errstr)
+    }
+}
+
+#[cfg(target_os = "android")]
+impl From<jni::errors::Error> for GameError {
+    fn from(e: jni::errors::Error) -> GameError {
+        GameError::WindowError(e.to_string())
     }
 }
 

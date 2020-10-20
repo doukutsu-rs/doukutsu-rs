@@ -197,14 +197,15 @@ impl StageData {
     // todo: refactor to make it less repetitive.
     pub fn load_stage_table(ctx: &mut Context, root: &str) -> GameResult<Vec<Self>> {
         let stage_tbl_path = [root, "stage.tbl"].join("");
-        let stage_dat_path = [root, "stage.dat"].join("");
+        let stage_sect_path = [root, "stage.sect"].join("");
         let mrmap_bin_path = [root, "mrmap.bin"].join("");
+        let stage_dat_path = [root, "stage.dat"].join("");
 
         if filesystem::exists(ctx, &stage_tbl_path) {
             // Cave Story+ stage table.
             let mut stages = Vec::new();
 
-            info!("Loading CaveStory+/Booster's Lab style stage table from {}", &stage_tbl_path);
+            info!("Loading Cave Story+/Booster's Lab style stage table from {}", &stage_tbl_path);
 
             let mut data = Vec::new();
             filesystem::open(ctx, stage_tbl_path)?.read_to_end(&mut data)?;
@@ -229,6 +230,59 @@ impl StageData {
                 let boss_no = f.read_u8()? as usize;
                 f.read_exact(&mut name_jap_buf)?;
                 f.read_exact(&mut name_buf)?;
+
+                let tileset = from_shift_jis(&ts_buf[0..zero_index(&ts_buf)]);
+                let map = from_shift_jis(&map_buf[0..zero_index(&map_buf)]);
+                let background = from_shift_jis(&back_buf[0..zero_index(&back_buf)]);
+                let npc1 = from_shift_jis(&npc1_buf[0..zero_index(&npc1_buf)]);
+                let npc2 = from_shift_jis(&npc2_buf[0..zero_index(&npc2_buf)]);
+                let name = from_shift_jis(&name_buf[0..zero_index(&name_buf)]);
+
+                let stage = StageData {
+                    name: name.clone(),
+                    map: map.clone(),
+                    boss_no,
+                    tileset: Tileset::new(&tileset),
+                    background: Background::new(&background),
+                    background_type: BackgroundType::new(bg_type),
+                    npc1: NpcType::new(&npc1),
+                    npc2: NpcType::new(&npc2),
+                };
+                stages.push(stage);
+            }
+
+            return Ok(stages);
+        } else if filesystem::exists(ctx, &stage_sect_path) {
+            // Cave Story freeware executable dump.
+            let mut stages = Vec::new();
+
+            info!("Loading Cave Story freeware exe dump style stage table from {}", &stage_sect_path);
+
+            let mut data = Vec::new();
+            filesystem::open(ctx, stage_sect_path)?.read_to_end(&mut data)?;
+
+            let count = data.len() / 0xc8;
+            let mut f = Cursor::new(data);
+            for _ in 0..count {
+                let mut ts_buf = vec![0u8; 0x20];
+                let mut map_buf = vec![0u8; 0x20];
+                let mut back_buf = vec![0u8; 0x20];
+                let mut npc1_buf = vec![0u8; 0x20];
+                let mut npc2_buf = vec![0u8; 0x20];
+                let mut name_buf = vec![0u8; 0x20];
+
+                f.read_exact(&mut ts_buf)?;
+                f.read_exact(&mut map_buf)?;
+                let bg_type = f.read_u32::<LE>()? as usize;
+                f.read_exact(&mut back_buf)?;
+                f.read_exact(&mut npc1_buf)?;
+                f.read_exact(&mut npc2_buf)?;
+                let boss_no = f.read_u8()? as usize;
+                f.read_exact(&mut name_buf)?;
+                // alignment
+                let _ = f.read_u8()?;
+                let _ = f.read_u8()?;
+                let _ = f.read_u8()?;
 
                 let tileset = from_shift_jis(&ts_buf[0..zero_index(&ts_buf)]);
                 let map = from_shift_jis(&map_buf[0..zero_index(&map_buf)]);

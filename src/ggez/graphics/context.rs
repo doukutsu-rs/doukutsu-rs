@@ -1,18 +1,20 @@
 use std::cell::RefCell;
+use std::path::Path;
 use std::rc::Rc;
 
-use gfx::traits::FactoryExt;
 use gfx::Factory;
+use gfx::traits::FactoryExt;
 use glutin;
-use glyph_brush::{GlyphBrush, GlyphBrushBuilder};
+use glutin::PossiblyCurrent;
 use winit::{self, dpi};
+use winit::window::Fullscreen;
 
 use crate::ggez::conf::{FullscreenType, WindowMode, WindowSetup};
 use crate::ggez::context::DebugId;
-use crate::ggez::filesystem::Filesystem;
-use crate::ggez::graphics::*;
-
 use crate::ggez::error::GameResult;
+use crate::ggez::filesystem::Filesystem;
+use crate::ggez::GameError;
+use crate::ggez::graphics::*;
 
 /// A structure that contains graphics state.
 /// For instance,
@@ -20,8 +22,8 @@ use crate::ggez::error::GameResult;
 ///
 /// As an end-user you shouldn't ever have to touch this.
 pub(crate) struct GraphicsContextGeneric<B>
-where
-    B: BackendSpec,
+    where
+        B: BackendSpec,
 {
     shader_globals: Globals,
     pub(crate) projection: Matrix4,
@@ -30,10 +32,9 @@ where
     pub(crate) screen_rect: Rect,
     color_format: gfx::format::Format,
     depth_format: gfx::format::Format,
-    srgb: bool,
 
     pub(crate) backend_spec: B,
-    pub(crate) window: glutin::WindowedContext,
+    pub(crate) window: glutin::WindowedContext<PossiblyCurrent>,
     pub(crate) multisample_samples: u8,
     pub(crate) device: Box<B::Device>,
     pub(crate) factory: Box<B::Factory>,
@@ -52,15 +53,11 @@ where
     default_shader: ShaderId,
     pub(crate) current_shader: Rc<RefCell<Option<ShaderId>>>,
     pub(crate) shaders: Vec<Box<dyn ShaderHandle<B>>>,
-
-    pub(crate) glyph_brush: GlyphBrush<'static, DrawParam>,
-    pub(crate) glyph_cache: ImageGeneric<B>,
-    pub(crate) glyph_state: Rc<RefCell<spritebatch::SpriteBatch>>,
 }
 
 impl<B> fmt::Debug for GraphicsContextGeneric<B>
-where
-    B: BackendSpec,
+    where
+        B: BackendSpec,
 {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "<GraphicsContext: {:p}>", self)
@@ -74,24 +71,16 @@ impl GraphicsContextGeneric<GlBackendSpec> {
     /// Create a new GraphicsContext
     pub(crate) fn new(
         filesystem: &mut Filesystem,
-        events_loop: &winit::EventsLoop,
+        events_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         window_setup: &WindowSetup,
         window_mode: WindowMode,
         backend: GlBackendSpec,
         debug_id: DebugId,
     ) -> GameResult<Self> {
-        let srgb = window_setup.srgb;
-        let color_format = if srgb {
-            gfx::format::Format(
-                gfx::format::SurfaceType::R8_G8_B8_A8,
-                gfx::format::ChannelType::Srgb,
-            )
-        } else {
-            gfx::format::Format(
-                gfx::format::SurfaceType::R8_G8_B8_A8,
-                gfx::format::ChannelType::Unorm,
-            )
-        };
+        let color_format = gfx::format::Format(
+            gfx::format::SurfaceType::R8_G8_B8_A8,
+            gfx::format::ChannelType::Unorm,
+        );
         let depth_format = gfx::format::Format(
             gfx::format::SurfaceType::D24_S8,
             gfx::format::ChannelType::Unorm,
@@ -110,10 +99,10 @@ impl GraphicsContextGeneric<GlBackendSpec> {
             .with_vsync(window_setup.vsync);
 
         let window_size =
-            dpi::LogicalSize::from((f64::from(window_mode.width), f64::from(window_mode.height)));
-        let mut window_builder = winit::WindowBuilder::new()
+            dpi::LogicalSize::<f64>::from((f64::from(window_mode.width), f64::from(window_mode.height)));
+        let mut window_builder = glutin::window::WindowBuilder::new()
             .with_title(window_setup.title.clone())
-            .with_dimensions(window_size)
+            .with_inner_size(window_size)
             .with_resizable(window_mode.resizable);
 
         window_builder = if !window_setup.icon.is_empty() {
@@ -136,19 +125,15 @@ impl GraphicsContextGeneric<GlBackendSpec> {
         // since we have no good control over it.
         {
             // Log a bunch of OpenGL state info pulled out of winit and gfx
-            let dpi::LogicalSize {
+            let dpi::PhysicalSize {
                 width: w,
                 height: h,
-            } = window
-                .get_outer_size()
-                .ok_or_else(|| GameError::VideoError("Window doesn't exist!".to_owned()))?;
-            let dpi::LogicalSize {
+            } = window.window().outer_size();
+            let dpi::PhysicalSize {
                 width: dw,
                 height: dh,
-            } = window
-                .get_inner_size()
-                .ok_or_else(|| GameError::VideoError("Window doesn't exist!".to_owned()))?;
-            let hidpi_factor = window.get_hidpi_factor();
+            } = window.window().inner_size();
+            let hidpi_factor = window.window().scale_factor();
             debug!(
                 "Window created, desired size {}x{}, hidpi factor {}.",
                 window_mode.width, window_mode.height, hidpi_factor
@@ -226,33 +211,6 @@ impl GraphicsContextGeneric<GlBackendSpec> {
         let texture = white_image.texture.clone();
         let typed_thingy = backend.raw_to_typed_shader_resource(texture);
 
-        let data = pipe::Data {
-            vbuf: quad_vertex_buffer.clone(),
-            tex: (typed_thingy, sampler),
-            rect_instance_properties: rect_inst_props,
-            globals: globals_buffer,
-            out: screen_render_target.clone(),
-        };
-
-        // Glyph cache stuff.
-        let glyph_brush =
-            GlyphBrushBuilder::using_font_bytes(Font::default_font_bytes().to_vec()).build();
-        let (glyph_cache_width, glyph_cache_height) = glyph_brush.texture_dimensions();
-        let initial_contents =
-            vec![255; 4 * glyph_cache_width as usize * glyph_cache_height as usize];
-        let glyph_cache = ImageGeneric::make_raw(
-            &mut factory,
-            &sampler_info,
-            glyph_cache_width as u16,
-            glyph_cache_height as u16,
-            &initial_contents,
-            color_format,
-            debug_id,
-        )?;
-        let glyph_state = Rc::new(RefCell::new(spritebatch::SpriteBatch::new(
-            glyph_cache.clone(),
-        )));
-
         // Set initial uniform values
         let left = 0.0;
         let right = window_mode.width;
@@ -264,6 +222,15 @@ impl GraphicsContextGeneric<GlBackendSpec> {
             mvp_matrix: initial_projection.into(),
         };
 
+        let data = pipe::Data {
+            vbuf: quad_vertex_buffer.clone(),
+            mvp: globals.mvp_matrix.into(),
+            tex: (typed_thingy, sampler),
+            rect_instance_properties: rect_inst_props,
+            globals: globals_buffer,
+            out: screen_render_target.clone(),
+        };
+
         let mut gfx = Self {
             shader_globals: globals,
             projection: initial_projection,
@@ -272,7 +239,6 @@ impl GraphicsContextGeneric<GlBackendSpec> {
             screen_rect: Rect::new(left, top, right - left, bottom - top),
             color_format,
             depth_format,
-            srgb,
 
             backend_spec: backend,
             window,
@@ -293,10 +259,6 @@ impl GraphicsContextGeneric<GlBackendSpec> {
             default_shader: shader.shader_id(),
             current_shader: Rc::new(RefCell::new(None)),
             shaders: vec![draw],
-
-            glyph_brush,
-            glyph_cache,
-            glyph_state,
         };
         gfx.set_window_mode(window_mode)?;
 
@@ -320,11 +282,11 @@ impl GraphicsContextGeneric<GlBackendSpec> {
 // but still better than
 // having `winit` try to do the image loading for us.
 // see https://github.com/tomaka/winit/issues/661
-pub(crate) fn load_icon(icon_file: &Path, filesystem: &mut Filesystem) -> GameResult<winit::Icon> {
+pub(crate) fn load_icon(icon_file: &Path, filesystem: &mut Filesystem) -> GameResult<winit::window::Icon> {
     use ::image;
     use ::image::GenericImageView;
     use std::io::Read;
-    use winit::Icon;
+    use winit::window::Icon;
 
     let mut buf = Vec::new();
     let mut reader = filesystem.open(icon_file)?;
@@ -338,14 +300,13 @@ pub(crate) fn load_icon(icon_file: &Path, filesystem: &mut Filesystem) -> GameRe
 }
 
 impl<B> GraphicsContextGeneric<B>
-where
-    B: BackendSpec + 'static,
+    where
+        B: BackendSpec + 'static,
 {
     /// Sends the current value of the graphics context's shader globals
     /// to the graphics card.
     pub(crate) fn update_globals(&mut self) -> GameResult {
-        self.encoder
-            .update_buffer(&self.data.globals, &[self.shader_globals], 0)?;
+        self.encoder.update_constant_buffer(&self.data.globals, &self.shader_globals);
         Ok(())
     }
 
@@ -358,6 +319,7 @@ where
             .last()
             .expect("Transform stack empty; should never happen");
         let mvp = self.projection * modelview;
+        self.data.mvp = mvp.into();
         self.shader_globals.mvp_matrix = mvp.into();
     }
 
@@ -406,7 +368,7 @@ where
     pub(crate) fn update_instance_properties(&mut self, draw_params: DrawTransform) -> GameResult {
         let mut new_draw_params = draw_params;
         new_draw_params.color = draw_params.color;
-        let properties = new_draw_params.to_instance_properties(self.srgb);
+        let properties = new_draw_params.to_instance_properties();
         self.encoder
             .update_buffer(&self.data.rect_instance_properties, &[properties], 0)?;
         Ok(())
@@ -509,7 +471,7 @@ where
 
     /// Sets window mode from a WindowMode object.
     pub(crate) fn set_window_mode(&mut self, mode: WindowMode) -> GameResult {
-        let window = &self.window;
+        let window = &self.window.window();
 
         window.set_maximized(mode.maximized);
 
@@ -522,7 +484,7 @@ where
         } else {
             None
         };
-        window.set_min_dimensions(min_dimensions);
+        window.set_min_inner_size(min_dimensions);
 
         let max_dimensions = if mode.max_width > 0.0 && mode.max_height > 0.0 {
             Some(dpi::LogicalSize {
@@ -532,9 +494,10 @@ where
         } else {
             None
         };
-        window.set_max_dimensions(max_dimensions);
+        window.set_max_inner_size(max_dimensions);
 
-        let monitor = window.get_current_monitor();
+        let monitor = window.current_monitor();
+        #[cfg(not(target_os = "android"))]
         match mode.fullscreen_type {
             FullscreenType::Windowed => {
                 window.set_fullscreen(None);
@@ -546,20 +509,23 @@ where
                 window.set_resizable(mode.resizable);
             }
             FullscreenType::True => {
-                window.set_fullscreen(Some(monitor));
+                window.set_fullscreen(Some(Fullscreen::Borderless(monitor)));
                 window.set_inner_size(dpi::LogicalSize {
                     width: f64::from(mode.width),
                     height: f64::from(mode.height),
                 });
             }
             FullscreenType::Desktop => {
-                let position = monitor.get_position();
-                let dimensions = monitor.get_dimensions();
-                let hidpi_factor = window.get_hidpi_factor();
-                window.set_fullscreen(None);
-                window.set_decorations(false);
-                window.set_inner_size(dimensions.to_logical(hidpi_factor));
-                window.set_position(position.to_logical(hidpi_factor));
+                if let Some(monitor) = monitor {
+                    let position = monitor.position();
+                    let dimensions = monitor.size();
+                    let hidpi_factor = window.scale_factor();
+
+                    window.set_fullscreen(None);
+                    window.set_decorations(false);
+                    window.set_inner_size(dimensions.to_logical::<f64>(hidpi_factor));
+                    window.set_outer_position(position.to_logical::<f64>(hidpi_factor));
+                }
             }
         }
         Ok(())

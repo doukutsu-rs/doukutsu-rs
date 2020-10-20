@@ -11,36 +11,35 @@
 //! example](https://github.com/ggez/ggez/blob/master/examples/eventloop.rs).
 
 use gilrs;
+/// An analog axis of some device (gamepad thumbstick, joystick...).
+pub use gilrs::Axis;
+/// A button of some device (gamepad, joystick...).
+pub use gilrs::Button;
 use winit::{self, dpi};
+/// A mouse button.
+pub use winit::event::MouseButton;
+/// `winit` event loop.
+pub use winit::event_loop::EventLoop;
+
+use crate::ggez::context::Context;
+use crate::ggez::error::GameResult;
+pub use crate::ggez::input::gamepad::GamepadId;
+pub use crate::ggez::input::keyboard::{KeyCode, KeyMods};
+
+use self::winit_event::*;
+use crate::ggez::graphics::window;
 
 // TODO LATER: I kinda hate all these re-exports.  I kinda hate
 // a lot of the details of the `EventHandler` and input now though,
 // and look forward to ripping it all out and replacing it with newer winit.
 
-/// A mouse button.
-pub use winit::MouseButton;
-
-/// An analog axis of some device (gamepad thumbstick, joystick...).
-pub use gilrs::Axis;
-/// A button of some device (gamepad, joystick...).
-pub use gilrs::Button;
-
 /// `winit` events; nested in a module for re-export neatness.
 pub mod winit_event {
-    pub use super::winit::{
+    pub use winit::event::{
         DeviceEvent, ElementState, Event, KeyboardInput, ModifiersState, MouseScrollDelta,
         TouchPhase, WindowEvent,
     };
 }
-pub use crate::ggez::input::gamepad::GamepadId;
-pub use crate::ggez::input::keyboard::{KeyCode, KeyMods};
-
-use self::winit_event::*;
-/// `winit` event loop.
-pub use winit::EventsLoop;
-
-use crate::ggez::context::Context;
-use crate::ggez::error::GameResult;
 
 /// A trait defining event callbacks.  This is your primary interface with
 /// `ggez`'s event loop.  Implement this trait for a type and
@@ -71,8 +70,7 @@ pub trait EventHandler {
         _button: MouseButton,
         _x: f32,
         _y: f32,
-    ) {
-    }
+    ) {}
 
     /// A mouse button was released
     fn mouse_button_up_event(
@@ -81,8 +79,7 @@ pub trait EventHandler {
         _button: MouseButton,
         _x: f32,
         _y: f32,
-    ) {
-    }
+    ) {}
 
     /// The mouse was moved; it provides both absolute x and y coordinates in the window,
     /// and relative x and y coordinates compared to its last position.
@@ -130,8 +127,7 @@ pub trait EventHandler {
     /// A gamepad axis moved; `id` identifies which gamepad.
     /// Use [`input::gamepad()`](../input/fn.gamepad.html) to get more info about
     /// the gamepad.
-    fn gamepad_axis_event(&mut self, _ctx: &mut Context, _axis: Axis, _value: f32, _id: GamepadId) {
-    }
+    fn gamepad_axis_event(&mut self, _ctx: &mut Context, _axis: Axis, _value: f32, _id: GamepadId) {}
 
     /// Called when the window is shown or hidden.
     fn focus_event(&mut self, _ctx: &mut Context, _gained: bool) {}
@@ -155,24 +151,25 @@ pub fn quit(ctx: &mut Context) {
     ctx.continuing = false;
 }
 
+/*
 /// Runs the game's main loop, calling event callbacks on the given state
 /// object as events occur.
 ///
 /// It does not try to do any type of framerate limiting.  See the
 /// documentation for the [`timer`](../timer/index.html) module for more info.
-pub fn run<S>(ctx: &mut Context, events_loop: &mut EventsLoop, state: &mut S) -> GameResult
-where
-    S: EventHandler,
+pub fn run<S>(ctx: &'static mut Context, events_loop: &mut EventLoop<()>, state: &'static mut S) -> GameResult
+    where
+        S: EventHandler,
 {
     use crate::ggez::input::{keyboard, mouse};
 
+    // If you are writing your own event loop, make sure
+    // you include `timer_context.tick()` and
+    // `ctx.process_event()` calls.  These update ggez's
+    // internal state however necessary.
     while ctx.continuing {
-        // If you are writing your own event loop, make sure
-        // you include `timer_context.tick()` and
-        // `ctx.process_event()` calls.  These update ggez's
-        // internal state however necessary.
-        ctx.timer_context.tick();
-        events_loop.poll_events(|event| {
+        events_loop.run_return(|event, _target, _flow| {
+            ctx.timer_context.tick();
             ctx.process_event(&event);
             match event {
                 Event::WindowEvent { event, .. } => match event {
@@ -197,12 +194,12 @@ where
                     }
                     WindowEvent::KeyboardInput {
                         input:
-                            KeyboardInput {
-                                state: ElementState::Pressed,
-                                virtual_keycode: Some(keycode),
-                                modifiers,
-                                ..
-                            },
+                        KeyboardInput {
+                            state: ElementState::Pressed,
+                            virtual_keycode: Some(keycode),
+                            modifiers,
+                            ..
+                        },
                         ..
                     } => {
                         let repeat = keyboard::is_key_repeated(ctx);
@@ -210,12 +207,12 @@ where
                     }
                     WindowEvent::KeyboardInput {
                         input:
-                            KeyboardInput {
-                                state: ElementState::Released,
-                                virtual_keycode: Some(keycode),
-                                modifiers,
-                                ..
-                            },
+                        KeyboardInput {
+                            state: ElementState::Released,
+                            virtual_keycode: Some(keycode),
+                            modifiers,
+                            ..
+                        },
                         ..
                     } => {
                         state.key_up_event(ctx, keycode, modifiers.into());
@@ -256,30 +253,38 @@ where
                 Event::DeviceEvent { event, .. } => match event {
                     _ => (),
                 },
-                Event::Awakened => (),
-                Event::Suspended(_) => (),
+                Event::Resumed => (),
+                Event::Suspended => (),
+                Event::RedrawRequested(win) => {
+                    if win == ctx.gfx_context.window.window().id() {
+                        state.draw(ctx).unwrap();
+                    }
+                }
+                Event::MainEventsCleared => {
+                    // Handle gamepad events if necessary.
+                    if ctx.conf.modules.gamepad {
+                        while let Some(gilrs::Event { id, event, .. }) = ctx.gamepad_context.next_event() {
+                            match event {
+                                gilrs::EventType::ButtonPressed(button, _) => {
+                                    state.gamepad_button_down_event(ctx, button, GamepadId(id));
+                                }
+                                gilrs::EventType::ButtonReleased(button, _) => {
+                                    state.gamepad_button_up_event(ctx, button, GamepadId(id));
+                                }
+                                gilrs::EventType::AxisChanged(axis, value, _) => {
+                                    state.gamepad_axis_event(ctx, axis, value, GamepadId(id));
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    state.update(ctx).unwrap();
+                    window(ctx).window().request_redraw();
+                }
+                _ => {}
             }
         });
-        // Handle gamepad events if necessary.
-        if ctx.conf.modules.gamepad {
-            while let Some(gilrs::Event { id, event, .. }) = ctx.gamepad_context.next_event() {
-                match event {
-                    gilrs::EventType::ButtonPressed(button, _) => {
-                        state.gamepad_button_down_event(ctx, button, GamepadId(id));
-                    }
-                    gilrs::EventType::ButtonReleased(button, _) => {
-                        state.gamepad_button_up_event(ctx, button, GamepadId(id));
-                    }
-                    gilrs::EventType::AxisChanged(axis, value, _) => {
-                        state.gamepad_axis_event(ctx, axis, value, GamepadId(id));
-                    }
-                    _ => {}
-                }
-            }
-        }
-        state.update(ctx)?;
-        state.draw(ctx)?;
     }
 
     Ok(())
-}
+}*/
