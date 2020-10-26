@@ -1,4 +1,7 @@
+use std::cmp::Ordering;
+
 use num_traits::{AsPrimitive, Num};
+use num_traits::real::Real;
 
 use crate::bitfield;
 
@@ -64,7 +67,7 @@ bitfield! {
   pub fallen, set_fallen: 2; // 0x04
   pub explode_die, set_explode_die: 3; // 0x08
   pub damage_boss, set_damage_boss: 4; // 0x10
-  pub cond_x20, set_cond_x20: 5; // 0x20
+  pub increase_acceleration, set_increase_acceleration: 5; // 0x20
   pub cond_x40, set_cond_x40: 6; // 0x40
   pub alive, set_alive: 7; // 0x80
 }
@@ -207,14 +210,14 @@ impl Direction {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Rect<T: Num + Copy = isize> {
+pub struct Rect<T: Num + PartialOrd + Copy = isize> {
     pub left: T,
     pub top: T,
     pub right: T,
     pub bottom: T,
 }
 
-impl<T: Num + Copy> Rect<T> {
+impl<T: Num + PartialOrd + Copy> Rect<T> {
     pub fn new(left: T, top: T, right: T, bottom: T) -> Rect<T> {
         Rect {
             left,
@@ -243,15 +246,23 @@ impl<T: Num + Copy> Rect<T> {
     }
 
     pub fn width(&self) -> T {
-        self.right.sub(self.left)
+        if let Some(Ordering::Greater) = self.left.partial_cmp(&self.right) {
+            self.left.sub(self.right)
+        } else {
+            self.right.sub(self.left)
+        }
     }
 
     pub fn height(&self) -> T {
-        self.bottom.sub(self.top)
+        if let Some(Ordering::Greater) = self.top.partial_cmp(&self.bottom) {
+            self.top.sub(self.bottom)
+        } else {
+            self.bottom.sub(self.top)
+        }
     }
 }
 
-impl<T: Num + Copy + AsPrimitive<f32>> Into<crate::ggez::graphics::Rect> for Rect<T> {
+impl<T: Num + PartialOrd + Copy + AsPrimitive<f32>> Into<crate::ggez::graphics::Rect> for Rect<T> {
     fn into(self) -> crate::ggez::graphics::Rect {
         crate::ggez::graphics::Rect::new(self.left.as_(),
                                          self.top.as_(),

@@ -152,7 +152,7 @@ impl Player {
                 }
             }
 
-            if !self.cond.cond_x20() {
+            if !self.cond.increase_acceleration() {
                 if self.vel_x < 0 {
                     if self.vel_x > -physics.resist {
                         self.vel_x = 0;
@@ -598,7 +598,7 @@ impl GameEntity<()> for Player {
             }
         }
 
-        self.cond.set_cond_x20(false);
+        self.cond.set_increase_acceleration(false);
         self.tick_animation(state);
 
         Ok(())

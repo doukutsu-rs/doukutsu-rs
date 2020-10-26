@@ -93,7 +93,7 @@ pub struct NPC {
     pub anim_rect: Rect<usize>,
 }
 
-static PARTICLE_NPCS: [u16; 5] = [1, 4, 73, 129, 355];
+static PARTICLE_NPCS: [u16; 6] = [1, 4, 73, 129, 199, 355];
 
 impl NPC {
     pub fn get_start_index(&self) -> u16 {
@@ -197,9 +197,14 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             77 => self.tick_n077_yamashita(state),
             78 => self.tick_n078_pot(state),
             79 => self.tick_n079_mahin(state, player),
+            96 => self.tick_n096_fan_left(state, player),
+            97 => self.tick_n097_fan_up(state, player),
+            98 => self.tick_n098_fan_right(state, player),
+            99 => self.tick_n099_fan_down(state, player),
             129 => self.tick_n129_fireball_snake_trail(state),
             149 => self.tick_n149_horizontal_moving_block(state, player),
             157 => self.tick_n157_vertical_moving_block(state, player),
+            199 => self.tick_n199_wind_particles(state),
             211 => self.tick_n211_small_spikes(state),
             _ => Ok(()),
         }?;

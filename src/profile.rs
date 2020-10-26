@@ -10,7 +10,7 @@ use crate::player::ControlMode;
 use crate::scene::game_scene::GameScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
-use crate::weapon::{WeaponType, WeaponLevel};
+use crate::weapon::{WeaponLevel, WeaponType};
 
 pub struct WeaponData {
     pub weapon_id: u32,
@@ -63,19 +63,23 @@ impl GameProfile {
                 let w = game_scene.inventory.add_weapon(wtype, weapon.max_ammo as u16);
                 w.ammo = weapon.ammo as u16;
                 w.level = match weapon.level {
-                    2 => {WeaponLevel::Level2}
-                    3 => {WeaponLevel::Level3}
-                    _ => {WeaponLevel::Level1}
+                    2 => { WeaponLevel::Level2 }
+                    3 => { WeaponLevel::Level3 }
+                    _ => { WeaponLevel::Level1 }
                 };
                 w.experience = weapon.exp as u16;
             }
         }
 
         for item in self.items.iter().copied() {
-            game_scene.inventory.get_item(item as u16);
+            if item == 0 { break; }
+
+            game_scene.inventory.add_item(item as u16);
         }
 
         for slot in self.teleporter_slots.iter() {
+            if slot.event_num == 0 { break; }
+
             state.teleporter_slots.push((slot.index as u16, slot.event_num as u16));
         }
 

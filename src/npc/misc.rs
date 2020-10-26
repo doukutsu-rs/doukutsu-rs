@@ -1,3 +1,4 @@
+use num_traits::{abs, clamp};
 use num_traits::real::Real;
 
 use crate::caret::CaretType;
@@ -7,7 +8,6 @@ use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
-use num_traits::clamp;
 
 impl NPC {
     pub(crate) fn tick_n000_null(&mut self) -> GameResult {
@@ -851,6 +851,208 @@ impl NPC {
         if self.anim_num != 149 {
             self.anim_num = 149;
             self.anim_rect = state.constants.npc.n149_horizontal_moving_block;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n096_fan_left(&mut self, state: &mut SharedGameState, player: &mut Player) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 && self.direction == Direction::Right {
+                    self.action_num = 2;
+                }
+
+                self.anim_num = 1;
+            }
+            2 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 0 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 2 {
+                        self.anim_num = 0;
+                    }
+                }
+
+                if abs(player.x - self.x) < 480 * 0x200 && abs(player.y - self.y) < 240 * 0x200
+                    && state.game_rng.range(0..5) == 1 {
+                    let mut particle = NPCMap::create_npc(199, &state.npc_table);
+                    particle.cond.set_alive(true);
+                    particle.direction = Direction::Left;
+                    particle.x = self.x;
+                    particle.y = self.y + (state.game_rng.range(-8..8) * 0x200) as isize;
+                    state.new_npcs.push(particle);
+                }
+
+                if abs(player.y - self.y) < 8 * 0x200 && player.x < self.x && player.x > self.x - 96 * 0x200 {
+                    player.vel_x -= 0x88;
+                    player.cond.set_increase_acceleration(true);
+                }
+            }
+            _ => {}
+        }
+
+        if self.anim_counter == 0 {
+            self.anim_rect = state.constants.npc.n098_fan_right[self.anim_num as usize];
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n097_fan_up(&mut self, state: &mut SharedGameState, player: &mut Player) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 && self.direction == Direction::Right {
+                    self.action_num = 2;
+                }
+
+                self.anim_num = 1;
+            }
+            2 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 0 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 2 {
+                        self.anim_num = 0;
+                    }
+                }
+
+                if abs(player.x - self.x) < 480 * 0x200 && abs(player.y - self.y) < 240 * 0x200
+                    && state.game_rng.range(0..5) == 1 {
+                    let mut particle = NPCMap::create_npc(199, &state.npc_table);
+                    particle.cond.set_alive(true);
+                    particle.direction = Direction::Up;
+                    particle.x = self.x + (state.game_rng.range(-8..8) * 0x200) as isize;
+                    particle.y = self.y;
+                    state.new_npcs.push(particle);
+                }
+
+                if abs(player.x - self.x) < 8 * 0x200 && player.y < self.y && player.y > self.y - 96 * 0x200 {
+                    player.vel_y -= 0x88;
+                }
+            }
+            _ => {}
+        }
+
+        if self.anim_counter == 0 {
+            self.anim_rect = state.constants.npc.n097_fan_up[self.anim_num as usize];
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n098_fan_right(&mut self, state: &mut SharedGameState, player: &mut Player) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 && self.direction == Direction::Right {
+                    self.action_num = 2;
+                }
+
+                self.anim_num = 1;
+            }
+            2 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 0 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 2 {
+                        self.anim_num = 0;
+                    }
+                }
+
+                if abs(player.x - self.x) < 480 * 0x200 && abs(player.y - self.y) < 240 * 0x200
+                    && state.game_rng.range(0..5) == 1 {
+                    let mut particle = NPCMap::create_npc(199, &state.npc_table);
+                    particle.cond.set_alive(true);
+                    particle.direction = Direction::Right;
+                    particle.x = self.x;
+                    particle.y = self.y + (state.game_rng.range(-8..8) * 0x200) as isize;
+                    state.new_npcs.push(particle);
+                }
+
+                if abs(player.y - self.y) < 8 * 0x200 && player.x > self.x && player.x < self.x + 96 * 0x200 {
+                    player.vel_x += 0x88;
+                    player.cond.set_increase_acceleration(true);
+                }
+            }
+            _ => {}
+        }
+
+        if self.anim_counter == 0 {
+            self.anim_rect = state.constants.npc.n098_fan_right[self.anim_num as usize];
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n099_fan_down(&mut self, state: &mut SharedGameState, player: &mut Player) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 && self.direction == Direction::Right {
+                    self.action_num = 2;
+                }
+
+                self.anim_num = 1;
+            }
+            2 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 0 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 2 {
+                        self.anim_num = 0;
+                    }
+                }
+
+                if abs(player.x - self.x) < 480 * 0x200 && abs(player.y - self.y) < 240 * 0x200
+                    && state.game_rng.range(0..5) == 1 {
+                    let mut particle = NPCMap::create_npc(199, &state.npc_table);
+                    particle.cond.set_alive(true);
+                    particle.direction = Direction::Bottom;
+                    particle.x = self.x + (state.game_rng.range(-8..8) * 0x200) as isize;
+                    particle.y = self.y;
+                    state.new_npcs.push(particle);
+                }
+
+                if abs(player.x - self.x) < 8 * 0x200 && player.y > self.y && player.y < self.y + 96 * 0x200 {
+                    player.vel_y -= 0x88;
+                }
+            }
+            _ => {}
+        }
+
+        if self.anim_counter == 0 {
+            self.anim_rect = state.constants.npc.n097_fan_up[self.anim_num as usize];
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n199_wind_particles(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_num = state.game_rng.range(0..2) as u16;
+            self.vel_x = self.direction.vector_x() * (state.game_rng.range(4..8) * 0x200 / 2) as isize;
+            self.vel_y = self.direction.vector_y() * (state.game_rng.range(4..8) * 0x200 / 2) as isize;
+        }
+
+        self.anim_counter += 1;
+        if self.anim_counter > 6 {
+            self.anim_counter = 0;
+            self.anim_num += 1;
+            if self.anim_num > 4 {
+                self.cond.set_alive(false);
+                return Ok(());
+            }
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        if self.anim_counter == 1 {
+            self.anim_rect = state.constants.npc.n199_wind_particles[self.anim_num as usize];
         }
 
         Ok(())

@@ -539,33 +539,18 @@ impl GameScene {
                                      &Rect::new(0, 0, 64, 64))
     }
 
-    fn draw_directional_light(&self, x: f32, y: f32, size: f32, direction: Direction, color: (u8, u8, u8), batch: &mut SizedBatch) {
-        let (rect, offset_x, offset_y) = match direction {
-            Direction::Left => (Rect { left: 0, top: 0, right: 32, bottom: 32 }, -size * 32.0, -size * 16.0),
-            Direction::Up => (Rect { left: 32, top: 0, right: 64, bottom: 32 }, -size * 16.0, -size * 32.0),
-            Direction::Right => (Rect { left: 32, top: 32, right: 64, bottom: 64 }, 0.0, -size * 16.0),
-            Direction::Bottom => (Rect { left: 0, top: 32, right: 32, bottom: 64 }, -size * 16.0, -size * 0.0),
-            Direction::FacingPlayer => unreachable!(),
-        };
-
-        batch.add_rect_scaled_tinted(x + offset_x, y + offset_y, color,
-                                     size,
-                                     size,
-                                     &rect)
-    }
-
     fn draw_light_map(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         graphics::set_canvas(ctx, Some(&state.lightmap_canvas));
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
-        graphics::clear(ctx, Color::from_rgb(120, 120, 120));
+        graphics::clear(ctx, Color::from_rgb(100, 100, 110));
         {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
 
             if !self.player.cond.hidden() && self.inventory.get_current_weapon().is_some() {
                 self.draw_light(((self.player.x - self.frame.x) / 0x200) as f32,
                                 ((self.player.y - self.frame.y) / 0x200) as f32,
-                                2.5, (255, 255, 255), batch);
+                                2.5, (225, 225, 225), batch);
             }
 
             for bullet in self.bullet_manager.bullets.iter() {
@@ -588,8 +573,10 @@ impl GameScene {
             for npc_cell in self.npc_map.npcs.values() {
                 let npc = npc_cell.borrow();
 
-                if npc.x < (self.frame.x - 128 * 0x200) || npc.x > (self.frame.x + (state.canvas_size.0 as isize + 128) * 0x200)
-                    && npc.y < (self.frame.y - 128 * 0x200) || npc.y > (self.frame.y + (state.canvas_size.1 as isize + 128) * 0x200) {
+                if npc.x < (self.frame.x - npc.display_bounds.width() as isize * 0x200)
+                    || npc.x > (self.frame.x + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
+                    && npc.y < (self.frame.y - npc.display_bounds.height() as isize * 0x200)
+                    || npc.y > (self.frame.y + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
                     continue;
                 }
 
@@ -597,24 +584,18 @@ impl GameScene {
                     1 => {
                         self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                         ((npc.y - self.frame.y) / 0x200) as f32,
-                                        0.7, (255, 255, 0), batch);
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32,
-                                        1.2, (255, 150, 0), batch);
+                                        0.4, (255, 255, 0), batch);
                     }
                     4 | 7 => self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                              ((npc.y - self.frame.y) / 0x200) as f32,
-                                             1.0, (200, 200, 200), batch),
+                                             1.0, (100, 100, 100), batch),
                     17 if npc.anim_num == 0 => {
                         self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                         ((npc.y - self.frame.y) / 0x200) as f32,
-                                        2.0, (255, 0, 0), batch);
+                                        2.0, (160, 0, 0), batch);
                         self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                         ((npc.y - self.frame.y) / 0x200) as f32,
-                                        2.0, (255, 0, 0), batch);
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32,
-                                        1.0, (255, 0, 0), batch);
+                                        0.5, (255, 0, 0), batch);
                     }
                     20 if npc.direction == Direction::Right => {
                         self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
@@ -624,7 +605,7 @@ impl GameScene {
                         if npc.anim_num < 2 {
                             self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                             ((npc.y - self.frame.y) / 0x200) as f32,
-                                            0.5, (0, 0, 255), batch);
+                                            2.1, (0, 0, 30), batch);
                         }
                     }
                     22 if npc.action_num == 1 && npc.anim_num == 1 =>
@@ -653,7 +634,7 @@ impl GameScene {
                                           ((npc.y - self.frame.y) / 0x200) as f32,
                                           2.0, (0, 100, 200), batch),
                     70 => {
-                        let flicker = 100 + npc.anim_num as u8 * 50;
+                        let flicker = 50 + npc.anim_num as u8 * 15;
                         self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                         ((npc.y - self.frame.y) / 0x200) as f32,
                                         2.0, (flicker, flicker, flicker), batch);
@@ -1147,7 +1128,16 @@ impl Scene for GameScene {
 
         for npc_id in self.npc_map.npc_ids.iter() {
             if let Some(npc_cell) = self.npc_map.npcs.get(npc_id) {
-                npc_cell.borrow().draw(state, ctx, &self.frame)?;
+                let npc = npc_cell.borrow();
+
+                if npc.x < (self.frame.x - npc.display_bounds.width() as isize * 0x200)
+                    || npc.x > (self.frame.x + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
+                    && npc.y < (self.frame.y - npc.display_bounds.height() as isize * 0x200)
+                    || npc.y > (self.frame.y + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
+                    continue;
+                }
+
+                npc.draw(state, ctx, &self.frame)?;
             }
         }
         self.draw_bullets(state, ctx)?;

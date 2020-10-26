@@ -1,6 +1,5 @@
-use log::info;
-
 use case_insensitive_hashmap::CaseInsensitiveHashMap;
+use log::info;
 
 use crate::case_insensitive_hashmap;
 use crate::common::{Flag, Rect};
@@ -205,10 +204,31 @@ pub struct NPCConsts {
     pub n077_yamashita: [Rect<usize>; 3],
     pub n078_pot: [Rect<usize>; 2],
     pub n079_mahin: [Rect<usize>; 6],
+    pub n080_gravekeeper: [Rect<usize>; 14],
+    pub n081_giant_pignon: [Rect<usize>; 12],
+    pub n082_misery_standing: [Rect<usize>; 18],
+    pub n083_igor_cutscene: [Rect<usize>; 16],
+    pub n084_basu_projectile: [Rect<usize>; 4],
+    pub n085_terminal: [Rect<usize>; 6],
+    pub n086_missile_pickup: [Rect<usize>; 5],
+    pub n087_heart_pickup: [Rect<usize>; 5],
+    pub n088_igor_boss: [Rect<usize>; 24],
+    pub n089_igor_dead: [Rect<usize>; 8],
+    pub n090_background: Rect<usize>,
+    pub n091_mimiga_cage: Rect<usize>,
+    pub n092_sue_at_pc: [Rect<usize>; 3],
+    pub n093_chaco: [Rect<usize>; 14],
+    pub n094_kulala: [Rect<usize>; 5],
+    pub n095_jelly: [Rect<usize>; 8],
+    pub n096_fan_left: [Rect<usize>; 3],
+    pub n097_fan_up: [Rect<usize>; 3],
+    pub n098_fan_right: [Rect<usize>; 3],
+    pub n099_fan_down: [Rect<usize>; 3],
     pub n129_fireball_snake_trail: [Rect<usize>; 18],
     pub n149_horizontal_moving_block: Rect<usize>,
     pub n157_vertical_moving_block: Rect<usize>,
     pub n211_small_spikes: [Rect<usize>; 4],
+    pub n199_wind_particles: [Rect<usize>; 5]
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -991,6 +1011,198 @@ impl EngineConstants {
                     Rect { left: 16, top: 16, right: 32, bottom: 32 },
                     Rect { left: 32, top: 16, right: 48, bottom: 32 },
                 ],
+                n080_gravekeeper: [
+                    Rect { left: 0, top: 64, right: 24, bottom: 88 }, // left
+                    Rect { left: 24, top: 64, right: 48, bottom: 88 },
+                    Rect { left: 0, top: 64, right: 24, bottom: 88 },
+                    Rect { left: 48, top: 64, right: 72, bottom: 88 },
+                    Rect { left: 72, top: 64, right: 96, bottom: 88 },
+                    Rect { left: 96, top: 64, right: 120, bottom: 88 },
+                    Rect { left: 120, top: 64, right: 144, bottom: 88 },
+                    Rect { left: 0, top: 88, right: 24, bottom: 112 }, // right
+                    Rect { left: 24, top: 88, right: 48, bottom: 112 },
+                    Rect { left: 0, top: 88, right: 24, bottom: 112 },
+                    Rect { left: 48, top: 88, right: 72, bottom: 112 },
+                    Rect { left: 72, top: 88, right: 96, bottom: 112 },
+                    Rect { left: 96, top: 88, right: 120, bottom: 112 },
+                    Rect { left: 120, top: 88, right: 144, bottom: 112 },
+                ],
+                n081_giant_pignon: [
+                    Rect { left: 144, top: 64, right: 168, bottom: 88 }, // left
+                    Rect { left: 168, top: 64, right: 192, bottom: 88 },
+                    Rect { left: 192, top: 64, right: 216, bottom: 88 },
+                    Rect { left: 216, top: 64, right: 240, bottom: 88 },
+                    Rect { left: 144, top: 64, right: 168, bottom: 88 },
+                    Rect { left: 240, top: 64, right: 264, bottom: 88 },
+                    Rect { left: 144, top: 88, right: 168, bottom: 112 }, // right
+                    Rect { left: 168, top: 88, right: 192, bottom: 112 },
+                    Rect { left: 192, top: 88, right: 216, bottom: 112 },
+                    Rect { left: 216, top: 88, right: 240, bottom: 112 },
+                    Rect { left: 144, top: 88, right: 168, bottom: 112 },
+                    Rect { left: 240, top: 88, right: 264, bottom: 112 },
+                ],
+                n082_misery_standing: [
+                    Rect { left: 80, top: 0, right: 96, bottom: 16 }, // left
+                    Rect { left: 96, top: 0, right: 112, bottom: 16 },
+                    Rect { left: 112, top: 0, right: 128, bottom: 16 },
+                    Rect { left: 128, top: 0, right: 144, bottom: 16 },
+                    Rect { left: 144, top: 0, right: 160, bottom: 16 },
+                    Rect { left: 160, top: 0, right: 176, bottom: 16 },
+                    Rect { left: 176, top: 0, right: 192, bottom: 16 },
+                    Rect { left: 144, top: 0, right: 160, bottom: 16 },
+                    Rect { left: 208, top: 64, right: 224, bottom: 80 },
+                    Rect { left: 80, top: 16, right: 96, bottom: 32 }, // right
+                    Rect { left: 96, top: 16, right: 112, bottom: 32 },
+                    Rect { left: 112, top: 16, right: 128, bottom: 32 },
+                    Rect { left: 128, top: 16, right: 144, bottom: 32 },
+                    Rect { left: 144, top: 16, right: 160, bottom: 32 },
+                    Rect { left: 160, top: 16, right: 176, bottom: 32 },
+                    Rect { left: 176, top: 16, right: 192, bottom: 32 },
+                    Rect { left: 144, top: 16, right: 160, bottom: 32 },
+                    Rect { left: 208, top: 80, right: 224, bottom: 96 },
+                ],
+                n083_igor_cutscene: [
+                    Rect { left: 0, top: 0, right: 40, bottom: 40 }, // left
+                    Rect { left: 40, top: 0, right: 80, bottom: 40 },
+                    Rect { left: 80, top: 0, right: 120, bottom: 40 },
+                    Rect { left: 0, top: 0, right: 40, bottom: 40 },
+                    Rect { left: 120, top: 0, right: 160, bottom: 40 },
+                    Rect { left: 0, top: 0, right: 40, bottom: 40 },
+                    Rect { left: 160, top: 0, right: 200, bottom: 40 },
+                    Rect { left: 200, top: 0, right: 240, bottom: 40 },
+                    Rect { left: 0, top: 40, right: 40, bottom: 80 }, // right
+                    Rect { left: 40, top: 40, right: 80, bottom: 80 },
+                    Rect { left: 80, top: 40, right: 120, bottom: 80 },
+                    Rect { left: 0, top: 40, right: 40, bottom: 80 },
+                    Rect { left: 120, top: 40, right: 160, bottom: 80 },
+                    Rect { left: 0, top: 40, right: 40, bottom: 80 },
+                    Rect { left: 160, top: 40, right: 200, bottom: 80 },
+                    Rect { left: 200, top: 40, right: 240, bottom: 80 },
+                ],
+                n084_basu_projectile: [
+                    Rect { left: 48, top: 48, right: 64, bottom: 64 },
+                    Rect { left: 64, top: 48, right: 80, bottom: 64 },
+                    Rect { left: 48, top: 64, right: 64, bottom: 80 },
+                    Rect { left: 64, top: 64, right: 80, bottom: 80 },
+                ],
+                n085_terminal: [
+                    Rect { left: 256, top: 96, right: 272, bottom: 120 }, // left
+                    Rect { left: 256, top: 96, right: 272, bottom: 120 },
+                    Rect { left: 272, top: 96, right: 288, bottom: 120 },
+                    Rect { left: 256, top: 96, right: 272, bottom: 120 }, // right
+                    Rect { left: 288, top: 96, right: 304, bottom: 120 },
+                    Rect { left: 304, top: 96, right: 320, bottom: 120 },
+                ],
+                n086_missile_pickup: [
+                    Rect { left: 0, top: 80, right: 16, bottom: 96 }, // 1 xp
+                    Rect { left: 16, top: 80, right: 32, bottom: 96 },
+                    Rect { left: 0, top: 112, right: 16, bottom: 128 }, // 3 xp
+                    Rect { left: 16, top: 112, right: 32, bottom: 128 },
+                    Rect { left: 16, top: 0, right: 32, bottom: 16 }, // final
+                ],
+                n087_heart_pickup: [
+                    Rect { left: 32, top: 80, right: 48, bottom: 96 }, // 2 hp
+                    Rect { left: 48, top: 80, right: 64, bottom: 96 },
+                    Rect { left: 64, top: 80, right: 80, bottom: 96 }, // 6 hp
+                    Rect { left: 80, top: 80, right: 96, bottom: 96 },
+                    Rect { left: 16, top: 0, right: 32, bottom: 16 }, // final
+                ],
+                n088_igor_boss: [
+                    Rect { left: 0, top: 0, right: 40, bottom: 40 }, // left
+                    Rect { left: 40, top: 0, right: 80, bottom: 40 },
+                    Rect { left: 80, top: 0, right: 120, bottom: 40 },
+                    Rect { left: 0, top: 0, right: 40, bottom: 40 },
+                    Rect { left: 120, top: 0, right: 160, bottom: 40 },
+                    Rect { left: 0, top: 0, right: 40, bottom: 40 },
+                    Rect { left: 160, top: 0, right: 200, bottom: 40 },
+                    Rect { left: 200, top: 0, right: 240, bottom: 40 },
+                    Rect { left: 0, top: 80, right: 40, bottom: 120 },
+                    Rect { left: 40, top: 80, right: 80, bottom: 120 },
+                    Rect { left: 240, top: 0, right: 280, bottom: 40 },
+                    Rect { left: 280, top: 0, right: 320, bottom: 40 },
+                    Rect { left: 0, top: 40, right: 40, bottom: 80 }, // right
+                    Rect { left: 40, top: 40, right: 80, bottom: 80 },
+                    Rect { left: 80, top: 40, right: 120, bottom: 80 },
+                    Rect { left: 0, top: 40, right: 40, bottom: 80 },
+                    Rect { left: 120, top: 40, right: 160, bottom: 80 },
+                    Rect { left: 0, top: 40, right: 40, bottom: 80 },
+                    Rect { left: 160, top: 40, right: 200, bottom: 80 },
+                    Rect { left: 200, top: 40, right: 240, bottom: 80 },
+                    Rect { left: 120, top: 80, right: 160, bottom: 120 },
+                    Rect { left: 160, top: 80, right: 200, bottom: 120 },
+                    Rect { left: 240, top: 40, right: 280, bottom: 80 },
+                    Rect { left: 280, top: 40, right: 320, bottom: 80 },
+                ],
+                n089_igor_dead: [
+                    Rect { left: 80, top: 80, right: 120, bottom: 120 }, // left
+                    Rect { left: 240, top: 80, right: 264, bottom: 104 },
+                    Rect { left: 264, top: 80, right: 288, bottom: 104 },
+                    Rect { left: 288, top: 80, right: 312, bottom: 104 },
+                    Rect { left: 200, top: 80, right: 240, bottom: 120 }, // right
+                    Rect { left: 240, top: 104, right: 264, bottom: 128 },
+                    Rect { left: 264, top: 104, right: 288, bottom: 128 },
+                    Rect { left: 288, top: 104, right: 312, bottom: 128 },
+                ],
+                n090_background: Rect { left: 280, top: 80, right: 296, bottom: 104 },
+                n091_mimiga_cage: Rect { left: 96, top: 88, right: 128, bottom: 112 },
+                n092_sue_at_pc: [
+                    Rect { left: 272, top: 216, right: 288, bottom: 240 },
+                    Rect { left: 288, top: 216, right: 304, bottom: 240 },
+                    Rect { left: 304, top: 216, right: 320, bottom: 240 },
+                ],
+                n093_chaco: [
+                    Rect { left: 128, top: 0, right: 144, bottom: 16 }, // left
+                    Rect { left: 144, top: 0, right: 160, bottom: 16 },
+                    Rect { left: 160, top: 0, right: 176, bottom: 16 },
+                    Rect { left: 128, top: 0, right: 144, bottom: 16 },
+                    Rect { left: 176, top: 0, right: 192, bottom: 16 },
+                    Rect { left: 128, top: 0, right: 144, bottom: 16 },
+                    Rect { left: 32, top: 32, right: 48, bottom: 48 },
+                    Rect { left: 128, top: 16, right: 144, bottom: 32 }, // right
+                    Rect { left: 144, top: 16, right: 160, bottom: 32 },
+                    Rect { left: 160, top: 16, right: 176, bottom: 32 },
+                    Rect { left: 128, top: 16, right: 144, bottom: 32 },
+                    Rect { left: 176, top: 16, right: 192, bottom: 32 },
+                    Rect { left: 128, top: 16, right: 144, bottom: 32 },
+                    Rect { left: 32, top: 32, right: 48, bottom: 48 },
+                ],
+                n094_kulala: [
+                    Rect { left: 272, top: 0, right: 320, bottom: 24 },
+                    Rect { left: 272, top: 24, right: 320, bottom: 48 },
+                    Rect { left: 272, top: 48, right: 320, bottom: 72 },
+                    Rect { left: 272, top: 72, right: 320, bottom: 96 },
+                    Rect { left: 272, top: 96, right: 320, bottom: 120 },
+                ],
+                n095_jelly: [
+                    Rect { left: 208, top: 64, right: 224, bottom: 80 }, // left
+                    Rect { left: 224, top: 64, right: 240, bottom: 80 },
+                    Rect { left: 240, top: 64, right: 256, bottom: 80 },
+                    Rect { left: 256, top: 64, right: 272, bottom: 80 },
+                    Rect { left: 208, top: 80, right: 224, bottom: 96 }, // right
+                    Rect { left: 224, top: 80, right: 240, bottom: 96 },
+                    Rect { left: 240, top: 80, right: 256, bottom: 96 },
+                    Rect { left: 256, top: 80, right: 272, bottom: 96 },
+                ],
+                n096_fan_left: [
+                    Rect { left: 272, top: 120, right: 288, bottom: 136 },
+                    Rect { left: 288, top: 120, right: 304, bottom: 136 },
+                    Rect { left: 304, top: 120, right: 320, bottom: 136 },
+                ],
+                n097_fan_up: [
+                    Rect { left: 272, top: 136, right: 288, bottom: 152 },
+                    Rect { left: 288, top: 136, right: 304, bottom: 152 },
+                    Rect { left: 304, top: 136, right: 320, bottom: 152 },
+                ],
+                n098_fan_right: [
+                    Rect { left: 272, top: 152, right: 288, bottom: 168 },
+                    Rect { left: 288, top: 152, right: 304, bottom: 168 },
+                    Rect { left: 304, top: 152, right: 320, bottom: 168 },
+                ],
+                n099_fan_down: [
+                    Rect { left: 272, top: 168, right: 288, bottom: 184 },
+                    Rect { left: 288, top: 168, right: 304, bottom: 184 },
+                    Rect { left: 304, top: 168, right: 320, bottom: 184 },
+                ],
                 n129_fireball_snake_trail: [
                     Rect { left: 128, top: 48, right: 144, bottom: 64 },
                     Rect { left: 144, top: 48, right: 160, bottom: 64 },
@@ -1013,6 +1225,13 @@ impl EngineConstants {
                 ],
                 n149_horizontal_moving_block: Rect { left: 16, top: 0, right: 48, bottom: 32 },
                 n157_vertical_moving_block: Rect { left: 16, top: 0, right: 48, bottom: 32 },
+                n199_wind_particles: [
+                    Rect { left: 72, top: 16, right: 74, bottom: 18 },
+                    Rect { left: 74, top: 16, right: 76, bottom: 18 },
+                    Rect { left: 76, top: 16, right: 78, bottom: 18 },
+                    Rect { left: 78, top: 16, right: 80, bottom: 18 },
+                    Rect { left: 80, top: 16, right: 82, bottom: 18 },
+                ],
                 n211_small_spikes: [
                     Rect { left: 256, top: 200, right: 272, bottom: 216 },
                     Rect { left: 272, top: 200, right: 288, bottom: 216 },
