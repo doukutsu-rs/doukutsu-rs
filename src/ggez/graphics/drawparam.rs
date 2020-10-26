@@ -244,14 +244,9 @@ impl From<DrawParam> for DrawTransform {
 }
 
 impl DrawTransform {
-    pub(crate) fn to_instance_properties(&self, srgb: bool) -> InstanceProperties {
+    pub(crate) fn to_instance_properties(&self) -> InstanceProperties {
         let mat: [[f32; 4]; 4] = self.matrix.into();
-        let color: [f32; 4] = if srgb {
-            let linear_color: types::LinearColor = self.color.into();
-            linear_color.into()
-        } else {
-            self.color.into()
-        };
+        let color: [f32; 4] = self.color.into();
         InstanceProperties {
             src: self.src.into(),
             col1: mat[0],

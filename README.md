@@ -49,8 +49,8 @@ Vanilla Cave Story does not work yet because some important data files are embed
   - [x] HUD
 - [ ] Text scripts (TSC)
   - [x] Initial implementation
-  - [x] Execution of basic subset of opcodes and game conversations
   - [ ] Full implementation of opcodes
+  - [ ] Credits
   - [x] Shift-JIS encoding support
 - [ ] Audio
   - [x] Organya BGM playback
@@ -65,11 +65,21 @@ Vanilla Cave Story does not work yet because some important data files are embed
   - [ ] Mimiga Village
   - [ ] Egg Corridor
   - [ ] Grasstown
+  - [ ] Sand Zone
+  - [ ] Labirynth
+  - [ ] Outer Wall
+  - [ ] Plantation
+  - [ ] Last Cave
+  - [ ] Balcony
+  - [ ] Hell
+  - [ ] Cave Story+ additions (no accuracy guaranteed)
+    - [ ] Dashing Gaudis (361)
+    - [ ] ??? (362)
 - [ ] Weapons
   - [x] Initial implementation
-  - [ ] Snake
+  - [x] Snake
   - [x] Polar Star
-  - [ ] Fireball
+  - [x] Fireball
   - [ ] Machine Gun
   - [ ] Missile Launcher
   - [ ] Bubbler
@@ -81,7 +91,7 @@ Vanilla Cave Story does not work yet because some important data files are embed
   - [x] Debugger
   - [ ] Level editor
   - [ ] Texture auto-reload mode for spriters
-- [ ] Optional enhanced graphics effects
+- [x] Optional enhanced graphics effects
 
 *(tbd)*
 
@@ -93,7 +103,7 @@ Vanilla Cave Story does not work yet because some important data files are embed
 
 **Cave Story+ data files:**
 
-![cs+](https://i.imgur.com/DIlz4eo.jpg)
+![CS+ with enhanced graphics](https://media.discordapp.net/attachments/745322954660905103/760598347450679366/unknown.png)
 
 #### Credits
 

@@ -19,6 +19,7 @@ use crate::str;
 use crate::text_script::{TextScriptExecutionState, TextScriptVM, ScriptMode};
 use crate::texture_set::TextureSet;
 use crate::ggez::graphics::Canvas;
+use crate::touch_controls::TouchControls;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -43,6 +44,7 @@ pub struct Settings {
     pub original_textures: bool,
     pub enhanced_graphics: bool,
     pub debug_outlines: bool,
+    pub touch_controls: bool,
 }
 
 pub struct SharedGameState {
@@ -57,6 +59,7 @@ pub struct SharedGameState {
     pub carets: Vec<Caret>,
     pub key_state: KeyState,
     pub key_trigger: KeyState,
+    pub touch_controls: TouchControls,
     pub font: BMFontRenderer,
     pub texture_set: TextureSet,
     pub base_path: String,
@@ -115,6 +118,7 @@ impl SharedGameState {
             carets: Vec::with_capacity(32),
             key_state: KeyState(0),
             key_trigger: KeyState(0),
+            touch_controls: TouchControls::new(),
             font,
             texture_set: TextureSet::new(base_path),
             base_path: str!(base_path),
@@ -127,6 +131,7 @@ impl SharedGameState {
                 original_textures: false,
                 enhanced_graphics: true,
                 debug_outlines: false,
+                touch_controls: cfg!(target_os = "android")
             },
             constants,
             new_npcs: Vec::with_capacity(8),

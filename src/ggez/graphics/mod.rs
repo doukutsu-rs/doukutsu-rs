@@ -25,11 +25,17 @@ use std::path::Path;
 use std::u16;
 
 use gfx;
-use gfx::texture;
 use gfx::Device;
 use gfx::Factory;
+use gfx::texture;
 use gfx_device_gl;
 use glutin;
+use glutin::{NotCurrent, PossiblyCurrent};
+pub use mint;
+pub(crate) use nalgebra as na;
+use winit::event_loop::EventLoopWindowTarget;
+
+use glutin_ext::*;
 
 use crate::ggez::conf;
 use crate::ggez::conf::WindowMode;
@@ -37,28 +43,23 @@ use crate::ggez::context::Context;
 use crate::ggez::context::DebugId;
 use crate::ggez::GameError;
 use crate::ggez::GameResult;
-
-pub(crate) mod canvas;
-pub(crate) mod context;
-pub(crate) mod drawparam;
-pub(crate) mod image;
-pub(crate) mod mesh;
-pub(crate) mod shader;
-pub(crate) mod text;
-pub(crate) mod types;
-
-pub use mint;
-pub(crate) use nalgebra as na;
-
-pub mod spritebatch;
-
 pub use crate::ggez::graphics::canvas::*;
 pub use crate::ggez::graphics::drawparam::*;
 pub use crate::ggez::graphics::image::*;
 pub use crate::ggez::graphics::mesh::*;
 pub use crate::ggez::graphics::shader::*;
-pub use crate::ggez::graphics::text::*;
 pub use crate::ggez::graphics::types::*;
+
+pub(crate) mod canvas;
+pub(crate) mod context;
+pub(crate) mod drawparam;
+pub(crate) mod glutin_ext;
+pub(crate) mod image;
+pub(crate) mod mesh;
+pub(crate) mod shader;
+pub(crate) mod types;
+
+pub mod spritebatch;
 
 // This isn't really particularly nice, but it's only used
 // in a couple places and it's not very easy to change or configure.
@@ -68,8 +69,11 @@ pub use crate::ggez::graphics::types::*;
 // It exists basically because gfx-rs is incomplete and we can't *always*
 // specify texture formats and such entirely at runtime, which we need to
 // do to make sRGB handling work properly.
-pub(crate) type BuggoSurfaceFormat = gfx::format::Srgba8;
+pub(crate) type BuggoSurfaceFormat = gfx::format::Rgba8;
 type ShaderResourceType = [f32; 4];
+
+type ColorFormat = gfx::format::Rgba8;
+type DepthFormat = gfx::format::DepthStencil;
 
 /// A trait providing methods for working with a particular backend, such as OpenGL,
 /// with associated gfx-rs types for that backend.  As a user you probably
@@ -83,7 +87,7 @@ pub trait BackendSpec: fmt::Debug {
     /// gfx command buffer type
     type CommandBuffer: gfx::CommandBuffer<Self::Resources>;
     /// gfx device type
-    type Device: gfx::Device<Resources = Self::Resources, CommandBuffer = Self::CommandBuffer>;
+    type Device: gfx::Device<Resources=Self::Resources, CommandBuffer=Self::CommandBuffer>;
 
     /// A helper function to take a RawShaderResourceView and turn it into a typed one based on
     /// the surface type defined in a `BackendSpec`.
@@ -101,27 +105,6 @@ pub trait BackendSpec: fmt::Debug {
         // probably won't go away on pre-ll gfx...
         let typed_view: gfx::handle::ShaderResourceView<_, ShaderResourceType> =
             gfx::memory::Typed::new(texture_view);
-        typed_view
-    }
-
-    /// Helper function that turns a raw to typed texture.
-    /// A bit hacky since we can't really specify surface formats as part
-    /// of this that well, alas.  There's some functions, like
-    /// `gfx::Encoder::update_texture()`, that don't seem to have a `_raw()`
-    /// counterpart, so we need this, so we need `BuggoSurfaceFormat` to
-    /// keep fixed at compile time what texture format we're actually using.
-    /// Oh well!
-    fn raw_to_typed_texture(
-        &self,
-        texture_view: gfx::handle::RawTexture<Self::Resources>,
-    ) -> gfx::handle::Texture<
-        <Self as BackendSpec>::Resources,
-        <BuggoSurfaceFormat as gfx::format::Formatted>::Surface,
-    > {
-        let typed_view: gfx::handle::Texture<
-            _,
-            <BuggoSurfaceFormat as gfx::format::Formatted>::Surface,
-        > = gfx::memory::Typed::new(texture_view);
         typed_view
     }
 
@@ -144,14 +127,14 @@ pub trait BackendSpec: fmt::Debug {
     /// Creates the window.
     fn init<'a>(
         &self,
-        window_builder: glutin::WindowBuilder,
-        gl_builder: glutin::ContextBuilder<'a>,
-        events_loop: &glutin::EventsLoop,
+        window_builder: glutin::window::WindowBuilder,
+        gl_builder: glutin::ContextBuilder<'a, NotCurrent>,
+        events_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         color_format: gfx::format::Format,
         depth_format: gfx::format::Format,
     ) -> Result<
         (
-            glutin::WindowedContext,
+            glutin::WindowedContext<PossiblyCurrent>,
             Self::Device,
             Self::Factory,
             gfx::handle::RawRenderTargetView<Self::Resources>,
@@ -170,7 +153,7 @@ pub trait BackendSpec: fmt::Debug {
         depth_view: &gfx::handle::RawDepthStencilView<Self::Resources>,
         color_format: gfx::format::Format,
         depth_format: gfx::format::Format,
-        window: &glutin::WindowedContext,
+        window: &glutin::WindowedContext<PossiblyCurrent>,
     ) -> Option<(
         gfx::handle::RawRenderTargetView<Self::Resources>,
         gfx::handle::RawDepthStencilView<Self::Resources>,
@@ -231,12 +214,12 @@ impl BackendSpec for GlBackendSpec {
     fn shaders(&self) -> (&'static [u8], &'static [u8]) {
         match self.api {
             glutin::Api::OpenGl => (
-                include_bytes!("shader/basic_150.glslv"),
-                include_bytes!("shader/basic_150.glslf"),
+                include_bytes!("shader/basic_150.vert.glsl"),
+                include_bytes!("shader/basic_150.frag.glsl"),
             ),
             glutin::Api::OpenGlEs => (
-                include_bytes!("shader/basic_es300.glslv"),
-                include_bytes!("shader/basic_es300.glslf"),
+                include_bytes!("shader/basic_es100.vert.glsl"),
+                include_bytes!("shader/basic_es100.frag.glsl"),
             ),
             a => panic!("Unsupported API: {:?}, should never happen", a),
         }
@@ -244,14 +227,14 @@ impl BackendSpec for GlBackendSpec {
 
     fn init<'a>(
         &self,
-        window_builder: glutin::WindowBuilder,
-        gl_builder: glutin::ContextBuilder<'a>,
-        events_loop: &glutin::EventsLoop,
+        window_builder: glutin::window::WindowBuilder,
+        gl_builder: glutin::ContextBuilder<'a, NotCurrent>,
+        events_loop: &EventLoopWindowTarget<()>,
         color_format: gfx::format::Format,
         depth_format: gfx::format::Format,
     ) -> Result<
         (
-            glutin::WindowedContext,
+            glutin::WindowedContext<PossiblyCurrent>,
             Self::Device,
             Self::Factory,
             gfx::handle::RawRenderTargetView<Self::Resources>,
@@ -259,13 +242,10 @@ impl BackendSpec for GlBackendSpec {
         ),
         glutin::CreationError,
     > {
-        gfx_window_glutin::init_raw(
-            window_builder,
-            gl_builder,
-            events_loop,
-            color_format,
-            depth_format,
-        )
+        Ok(gl_builder
+            .with_gfx_color_depth::<ColorFormat, DepthFormat>()
+            .build_windowed(window_builder, &events_loop)?
+            .init_gfx_raw(color_format, depth_format))
     }
 
     fn info(&self, device: &Self::Device) -> String {
@@ -289,7 +269,7 @@ impl BackendSpec for GlBackendSpec {
         depth_view: &gfx::handle::RawDepthStencilView<Self::Resources>,
         color_format: gfx::format::Format,
         depth_format: gfx::format::Format,
-        window: &glutin::WindowedContext,
+        window: &glutin::WindowedContext<PossiblyCurrent>,
     ) -> Option<(
         gfx::handle::RawRenderTargetView<Self::Resources>,
         gfx::handle::RawDepthStencilView<Self::Resources>,
@@ -298,8 +278,7 @@ impl BackendSpec for GlBackendSpec {
         // gfx_window_glutin::update_views()
         let dim = color_view.get_dimensions();
         assert_eq!(dim, depth_view.get_dimensions());
-        if let Some((cv, dv)) =
-            gfx_window_glutin::update_views_raw(window, dim, color_format, depth_format)
+        if let Some((cv, dv)) = window.updated_views_raw(dim, color_format, depth_format)
         {
             Some((cv, dv))
         } else {
@@ -366,6 +345,7 @@ gfx_defines! {
     // breaks the gfx_defines! macro though.  :-(
     pipeline pipe {
         vbuf: gfx::VertexBuffer<Vertex> = (),
+        mvp: gfx::Global<[[f32; 4]; 4]> = "u_MVP",
         tex: gfx::TextureSampler<[f32; 4]> = "t_Texture",
         globals: gfx::ConstantBuffer<Globals> = "Globals",
         rect_instance_properties: gfx::InstanceBuffer<InstanceProperties> = (),
@@ -373,7 +353,7 @@ gfx_defines! {
         // pipeline init values in `shader::create_shader()`.
         out: gfx::RawRenderTarget =
           ("Target0",
-           gfx::format::Format(gfx::format::SurfaceType::R8_G8_B8_A8, gfx::format::ChannelType::Srgb),
+           gfx::format::Format(gfx::format::SurfaceType::R8_G8_B8_A8, gfx::format::ChannelType::Unorm),
            gfx::state::ColorMask::all(), Some(gfx::preset::blend::ALPHA)
           ),
     }
@@ -409,18 +389,19 @@ impl Default for InstanceProperties {
         }
     }
 }
+
 /// A structure for conveniently storing `Sampler`'s, based off
 /// their `SamplerInfo`.
 pub(crate) struct SamplerCache<B>
-where
-    B: BackendSpec,
+    where
+        B: BackendSpec,
 {
     samplers: HashMap<texture::SamplerInfo, gfx::handle::Sampler<B::Resources>>,
 }
 
 impl<B> SamplerCache<B>
-where
-    B: BackendSpec,
+    where
+        B: BackendSpec,
 {
     fn new() -> Self {
         SamplerCache {
@@ -467,17 +448,16 @@ impl From<gfx::buffer::CreationError> for GameError {
 /// Clear the screen to the background color.
 pub fn clear(ctx: &mut Context, color: Color) {
     let gfx = &mut ctx.gfx_context;
-    let linear_color: types::LinearColor = color.into();
-    let c: [f32; 4] = linear_color.into();
+    let c: [f32; 4] = color.into();
     gfx.encoder.clear_raw(&gfx.data.out, c.into());
 }
 
 /// Draws the given `Drawable` object to the screen by calling its
 /// [`draw()`](trait.Drawable.html#tymethod.draw) method.
 pub fn draw<D, T>(ctx: &mut Context, drawable: &D, params: T) -> GameResult
-where
-    D: Drawable,
-    T: Into<DrawParam>,
+    where
+        D: Drawable,
+        T: Into<DrawParam>,
 {
     let params = params.into();
     drawable.draw(ctx, params)
@@ -646,8 +626,8 @@ pub fn set_screen_coordinates(context: &mut Context, rect: Rect) -> GameResult {
 /// after calling this to apply these changes and recalculate the
 /// underlying MVP matrix.
 pub fn set_projection<M>(context: &mut Context, proj: M)
-where
-    M: Into<mint::ColumnMatrix4<f32>>,
+    where
+        M: Into<mint::ColumnMatrix4<f32>>,
 {
     let proj = Matrix4::from(proj.into());
     let gfx = &mut context.gfx_context;
@@ -660,8 +640,8 @@ where
 /// after calling this to apply these changes and recalculate the
 /// underlying MVP matrix.
 pub fn mul_projection<M>(context: &mut Context, transform: M)
-where
-    M: Into<mint::ColumnMatrix4<f32>>,
+    where
+        M: Into<mint::ColumnMatrix4<f32>>,
 {
     let transform = Matrix4::from(transform.into());
     let gfx = &mut context.gfx_context;
@@ -698,8 +678,8 @@ pub fn projection(context: &Context) -> mint::ColumnMatrix4<f32> {
 /// # }
 /// ```
 pub fn push_transform<M>(context: &mut Context, transform: Option<M>)
-where
-    M: Into<mint::ColumnMatrix4<f32>>,
+    where
+        M: Into<mint::ColumnMatrix4<f32>>,
 {
     let transform = transform.map(|transform| Matrix4::from(transform.into()));
     let gfx = &mut context.gfx_context;
@@ -746,8 +726,8 @@ pub fn pop_transform(context: &mut Context) {
 /// # }
 /// ```
 pub fn set_transform<M>(context: &mut Context, transform: M)
-where
-    M: Into<mint::ColumnMatrix4<f32>>,
+    where
+        M: Into<mint::ColumnMatrix4<f32>>,
 {
     let transform = transform.into();
     let gfx = &mut context.gfx_context;
@@ -782,8 +762,8 @@ pub fn transform(context: &Context) -> mint::ColumnMatrix4<f32> {
 /// # }
 /// ```
 pub fn mul_transform<M>(context: &mut Context, transform: M)
-where
-    M: Into<mint::ColumnMatrix4<f32>>,
+    where
+        M: Into<mint::ColumnMatrix4<f32>>,
 {
     let transform = Matrix4::from(transform.into());
     let gfx = &mut context.gfx_context;
@@ -863,20 +843,21 @@ pub fn set_window_icon<P: AsRef<Path>>(context: &mut Context, path: Option<P>) -
         }
         None => None,
     };
-    context.gfx_context.window.set_window_icon(icon);
+
+    context.gfx_context.window.window().set_window_icon(icon);
     Ok(())
 }
 
 /// Sets the window title.
 pub fn set_window_title(context: &Context, title: &str) {
-    context.gfx_context.window.set_title(title);
+    context.gfx_context.window.window().set_title(title);
 }
 
 /// Returns a reference to the Glutin window.
 /// Ideally you should not need to use this because ggez
 /// would provide all the functions you need without having
 /// to dip into Glutin itself.  But life isn't always ideal.
-pub fn window(context: &Context) -> &glutin::WindowedContext {
+pub fn window(context: &Context) -> &glutin::WindowedContext<PossiblyCurrent> {
     let gfx = &context.gfx_context;
     &gfx.window
 }
@@ -886,20 +867,16 @@ pub fn window(context: &Context) -> &glutin::WindowedContext {
 /// Returns zeros if the window doesn't exist.
 pub fn size(context: &Context) -> (f32, f32) {
     let gfx = &context.gfx_context;
-    gfx.window
-        .get_outer_size()
-        .map(|logical_size| (logical_size.width as f32, logical_size.height as f32))
-        .unwrap_or((0.0, 0.0))
+    let size = gfx.window.window().outer_size();
+    (size.width as f32, size.height as f32)
 }
 
 /// Returns the size of the window's underlying drawable in pixels as (width, height).
 /// Returns zeros if window doesn't exist.
 pub fn drawable_size(context: &Context) -> (f32, f32) {
     let gfx = &context.gfx_context;
-    gfx.window
-        .get_inner_size()
-        .map(|logical_size| (logical_size.width as f32, logical_size.height as f32))
-        .unwrap_or((0.0, 0.0))
+    let size = gfx.window.window().inner_size();
+    (size.width as f32, size.height as f32)
 }
 
 /// Returns raw `gfx-rs` state objects, if you want to use `gfx-rs` to write
@@ -971,9 +948,11 @@ pub fn transform_rect(rect: Rect, param: DrawParam) -> Rect {
 
 #[cfg(test)]
 mod tests {
-    use crate::graphics::{transform_rect, DrawParam, Rect};
-    use approx::assert_relative_eq;
     use std::f32::consts::PI;
+
+    use approx::assert_relative_eq;
+
+    use crate::graphics::{DrawParam, Rect, transform_rect};
 
     #[test]
     fn headless_test_transform_rect() {
