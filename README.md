@@ -79,6 +79,7 @@ Vanilla Cave Story does not work yet because some important data files are embed
     - [ ] Dashing Gaudis (361)
     - [ ] ??? (362)
 - [ ] Weapons
+  - [x] Leveling / XP system
   - [x] Initial implementation
   - [x] Snake
   - [x] Polar Star
