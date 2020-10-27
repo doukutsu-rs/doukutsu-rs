@@ -8,6 +8,7 @@ use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState, KeyState};
 use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, filesystem, GameResult, graphics};
+use crate::ggez::graphics::Canvas;
 use crate::npc::{NPC, NPCTable};
 use crate::profile::GameProfile;
 use crate::rng::RNG;
@@ -16,9 +17,8 @@ use crate::scene::Scene;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::str;
-use crate::text_script::{TextScriptExecutionState, TextScriptVM, ScriptMode};
+use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
-use crate::ggez::graphics::Canvas;
 use crate::touch_controls::TouchControls;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -52,7 +52,9 @@ pub struct SharedGameState {
     pub control_flags: ControlFlags,
     pub game_flags: BitVec,
     pub fade_state: FadeState,
+    /// RNG used by game state, using it for anything else might cause unintended side effects and break replays.
     pub game_rng: RNG,
+    /// RNG used by graphics effects that aren't dependent on game's state.
     pub effect_rng: RNG,
     pub quake_counter: u16,
     pub teleporter_slots: Vec<(u16, u16)>,
@@ -64,6 +66,7 @@ pub struct SharedGameState {
     pub texture_set: TextureSet,
     pub base_path: String,
     pub npc_table: NPCTable,
+    pub npc_super_pos: (isize, isize),
     pub stages: Vec<StageData>,
     pub sound_manager: SoundManager,
     pub settings: Settings,
@@ -123,6 +126,7 @@ impl SharedGameState {
             texture_set: TextureSet::new(base_path),
             base_path: str!(base_path),
             npc_table: NPCTable::new(),
+            npc_super_pos: (0, 0),
             stages: Vec::with_capacity(96),
             sound_manager: SoundManager::new(ctx)?,
             settings: Settings {
@@ -131,7 +135,7 @@ impl SharedGameState {
                 original_textures: false,
                 enhanced_graphics: true,
                 debug_outlines: false,
-                touch_controls: cfg!(target_os = "android")
+                touch_controls: cfg!(target_os = "android"),
             },
             constants,
             new_npcs: Vec::with_capacity(8),

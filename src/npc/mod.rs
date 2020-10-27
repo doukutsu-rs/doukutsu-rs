@@ -29,12 +29,14 @@ pub mod characters;
 pub mod egg_corridor;
 pub mod first_cave;
 pub mod grasstown;
+pub mod igor;
 pub mod maze;
 pub mod mimiga_village;
 pub mod misc;
 pub mod misery;
 pub mod pickups;
 pub mod sand_zone;
+pub mod sue;
 pub mod toroko;
 pub mod weapon_trail;
 
@@ -172,6 +174,7 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             38 => self.tick_n038_fireplace(state),
             39 => self.tick_n039_save_sign(state),
             41 => self.tick_n041_busted_door(state),
+            42 => self.tick_n042_sue(state, player, map),
             43 => self.tick_n043_chalkboard(state),
             46 => self.tick_n046_hv_trigger(state, player),
             52 => self.tick_n052_sitting_blue_robot(state),
@@ -197,6 +200,13 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             77 => self.tick_n077_yamashita(state),
             78 => self.tick_n078_pot(state),
             79 => self.tick_n079_mahin(state, player),
+            80 => self.tick_n080_gravekeeper(state, player),
+            81 => self.tick_n081_giant_pignon(state, player),
+            82 => self.tick_n082_misery_standing(state),
+            83 => self.tick_n083_igor_cutscene(state),
+            84 => self.tick_n084_basu_projectile(state),
+            85 => self.tick_n085_terminal(state, player),
+            91 => self.tick_n091_mimiga_cage(state),
             96 => self.tick_n096_fan_left(state, player),
             97 => self.tick_n097_fan_up(state, player),
             98 => self.tick_n098_fan_right(state, player),
@@ -643,11 +653,11 @@ impl NPCTable {
         }
 
         for npc in table.entries.iter_mut() {
-            npc.hurt_sound = f.read_u8()?;
+            npc.death_sound = f.read_u8()?;
         }
 
         for npc in table.entries.iter_mut() {
-            npc.death_sound = f.read_u8()?;
+            npc.hurt_sound = f.read_u8()?;
         }
 
         for npc in table.entries.iter_mut() {
@@ -713,12 +723,20 @@ impl NPCTable {
         if let Some(npc) = self.entries.get(npc_type as usize) {
             match npc.spritesheet_id {
                 2 => &self.tileset_name,
+                6 => "Fade",
+                8 => "ItemImage",
+                11 => "Arms",
+                12 => "ArmsImage",
+                14 => "StageImage",
+                15 => "Loading",
+                16 => "MyChar",
                 17 => "Bullet",
                 19 => "Caret",
                 20 => "Npc/NpcSym",
                 21 => &self.tex_npc1_name,
                 22 => &self.tex_npc2_name,
                 23 => "Npc/NpcRegu",
+                26 => "TextBox",
                 _ => "Npc/Npc0"
             }
         } else {

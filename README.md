@@ -38,6 +38,9 @@ Vanilla Cave Story does not work yet because some important data files are embed
 
 #### Roadmap
 
+- [x] Checkmarked things = fully implemented
+- [ ] Unmarked things = partially or not implemented yet.
+
 - [x] Rendering
   - [x] Backdrops
   - [x] Tilemap
@@ -49,7 +52,7 @@ Vanilla Cave Story does not work yet because some important data files are embed
   - [x] HUD
 - [ ] Text scripts (TSC)
   - [x] Initial implementation
-  - [ ] Full implementation of opcodes
+  - [ ] Full implementation of opcodes (~80% done)
   - [ ] Credits
   - [x] Shift-JIS encoding support
 - [ ] Audio
@@ -59,14 +62,14 @@ Vanilla Cave Story does not work yet because some important data files are embed
   - [x] PixTone SFX
 - [ ] NPCs/entities
   - [x] Initial implementation
-  - [ ] Miscellaneous entities
+  - [ ] Miscellaneous entities (~30% done)
   - [ ] Bosses
   - [x] First Cave
-  - [ ] Mimiga Village
-  - [ ] Egg Corridor
-  - [ ] Grasstown
-  - [ ] Sand Zone
-  - [ ] Labirynth
+  - [x] Mimiga Village
+  - [ ] Egg Corridor (~70% done)
+  - [ ] Grasstown (~10% done)
+  - [ ] Sand Zone (~10% done)
+  - [ ] Labirynth (~10% done)
   - [ ] Outer Wall
   - [ ] Plantation
   - [ ] Last Cave

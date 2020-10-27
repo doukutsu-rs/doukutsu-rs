@@ -600,7 +600,7 @@ impl GameScene {
                     20 if npc.direction == Direction::Right => {
                         self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                         ((npc.y - self.frame.y) / 0x200) as f32,
-                                        2.0, (0, 0, 255), batch);
+                                        2.0, (0, 0, 150), batch);
 
                         if npc.anim_num < 2 {
                             self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
@@ -621,10 +621,10 @@ impl GameScene {
                                         2.0, (255, 0, 0), batch);
                     }
                     38 => {
-                        let flicker = 200 + state.effect_rng.range(0..55) as u8;
+                        let flicker = (npc.anim_num ^ 5 & 3) as u8 * 15;
                         self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                         ((npc.y - self.frame.y) / 0x200) as f32,
-                                        2.0, (flicker, flicker - 80, 0), batch);
+                                        3.5, (130 + flicker, 40 + flicker, 0), batch);
                     }
                     66 if npc.action_num == 1 && npc.anim_counter % 2 == 0 =>
                         self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
@@ -642,6 +642,23 @@ impl GameScene {
                     75 | 77 => self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
                                                ((npc.y - self.frame.y) / 0x200) as f32,
                                                3.0, (255, 100, 0), batch),
+                    85 if npc.action_num == 1 => {
+                        let (color, color2) = if npc.direction == Direction::Left {
+                            ((0, 150, 100), (0, 50, 30))
+                        } else {
+                            ((150, 0, 0), (50, 0, 0))
+                        };
+
+                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                        ((npc.y - self.frame.y) / 0x200) as f32 - 8.0,
+                                        1.5, color, batch);
+
+                        if npc.anim_num < 2 {
+                            self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
+                                            ((npc.y - self.frame.y) / 0x200) as f32 - 8.0,
+                                            2.1, color2, batch);
+                        }
+                    }
                     _ => {}
                 }
             }

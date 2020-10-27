@@ -143,4 +143,8 @@ impl NPC {
 
         Ok(())
     }
+
+    pub(crate) fn tick_n086_missile_pickup(&mut self, state: &mut SharedGameState) -> GameResult {
+        Ok(())
+    }
 }

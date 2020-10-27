@@ -5,6 +5,7 @@ use crate::ggez::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
+use crate::caret::CaretType;
 
 impl NPC {
     pub(crate) fn tick_n002_behemoth(&mut self, state: &mut SharedGameState) -> GameResult {
@@ -436,6 +437,31 @@ impl NPC {
 
         if self.anim_counter == 1 {
             self.anim_rect = state.constants.npc.n008_blue_beetle[self.anim_num as usize + if self.direction == Direction::Right { 2 } else { 0 }];
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n084_basu_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        self.anim_counter += 1;
+        if self.anim_counter > 2 {
+            self.anim_counter = 0;
+            self.anim_num += 1;
+
+            if self.anim_num > 3 {
+                self.anim_num = 0;
+            }
+        }
+
+        self.anim_rect = state.constants.npc.n084_basu_projectile[self.anim_num as usize];
+
+        self.action_counter2 += 1;
+        if self.flags.0 != 0 || self.action_counter2 > 300 {
+            state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
+            self.cond.set_alive(false);
         }
 
         Ok(())

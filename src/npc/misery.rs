@@ -24,7 +24,7 @@ impl NPC {
                             self.target_x = npc.x;
                             self.target_y = npc.y;
 
-                            let angle = ((self.y - self.target_y) as f64 / (self.x - self.target_x) as f64 ).atan();
+                            let angle = ((self.y - self.target_y) as f64 / (self.x - self.target_x) as f64).atan();
                             self.vel_x = (angle.cos() * 1024.0) as isize; // 2.0fix9
                             self.vel_y = (angle.sin() * 1024.0) as isize;
 
@@ -222,16 +222,186 @@ impl NPC {
             _ => {}
         }
 
-        if self.direction == Direction::Left {
-            self.anim_rect = state.constants.npc.n067_misery_floating[self.anim_num as usize];
-        } else {
-            self.anim_rect = state.constants.npc.n067_misery_floating[self.anim_num as usize + 8];
-        }
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 8 };
+        self.anim_rect = state.constants.npc.n067_misery_floating[self.anim_num as usize + dir_offset];
 
         if self.action_num == 1 && self.anim_counter < 32 {
             self.anim_counter += 1;
             self.anim_rect.bottom = self.anim_counter as usize / 2 + self.anim_rect.bottom as usize - 16;
         }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n082_misery_standing(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 2;
+                }
+
+                if state.game_rng.range(0..120) == 10 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 3;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 2;
+                }
+            }
+            15 | 16 => {
+                if self.action_num == 15 {
+                    self.action_num = 16;
+                    self.action_counter = 0;
+                    self.anim_num = 4;
+                }
+
+                self.action_counter += 1;
+                if self.action_counter == 30 {
+                    state.sound_manager.play_sfx(21);
+
+                    let mut npc = NPCMap::create_npc(66, &state.npc_table);
+                    npc.x = self.x;
+                    npc.y = self.y - 16 * 0x200;
+                    npc.cond.set_alive(true);
+
+                    state.new_npcs.push(npc);
+                }
+
+                if self.action_counter == 50 {
+                    self.action_num = 14;
+                }
+            }
+            20 | 21 => {
+                if self.action_num == 20 {
+                    self.action_num = 21;
+                    self.anim_num = 0;
+                    self.vel_y = 0;
+                    self.npc_flags.set_ignore_solidity(true);
+                }
+
+                self.vel_y -= 0x20;
+
+                if self.y < -8 * 0x200 {
+                    self.cond.set_alive(false);
+                }
+            }
+            25 | 26 => {
+                if self.action_num == 25 {
+                    self.action_num = 26;
+                    self.action_counter = 0;
+                    self.anim_num = 5;
+                    self.anim_counter = 0;
+                }
+
+                self.anim_num += 1;
+                if self.anim_num > 7 {
+                    self.anim_num = 5;
+                }
+
+                self.action_counter += 1;
+                if self.action_counter == 30 {
+                    state.sound_manager.play_sfx(101);
+                    // todo flash
+                    self.action_num = 27;
+                    self.anim_num = 7;
+                }
+            }
+            27 => {
+                self.action_counter += 1;
+                if self.action_counter == 50 {
+                    self.action_num = 14;
+                }
+            }
+            30 | 31 => {
+                if self.action_num == 30 {
+                    self.action_num = 31;
+                    self.anim_num = 3;
+                    self.anim_counter = 0;
+                }
+
+                self.anim_counter += 1;
+                if self.anim_counter > 10 {
+                    self.action_num = 32;
+                    self.anim_num = 4;
+                    self.anim_counter = 0;
+                }
+            }
+            32 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 100 {
+                    self.action_num = 1;
+                    self.anim_num = 2;
+                }
+            }
+            40 | 41 => {
+                if self.action_num == 40 {
+                    self.action_num = 41;
+                    self.action_counter = 0;
+                }
+
+                self.anim_num = 4;
+
+                self.action_counter += 1;
+                if self.action_counter == 30 || self.action_counter == 40 || self.action_counter == 50 {
+                    state.sound_manager.play_sfx(33);
+
+                    let mut npc = NPCMap::create_npc(11, &state.npc_table);
+                    npc.x = self.x + 8 * 0x200;
+                    npc.y = self.y - 8 * 0x200;
+                    npc.vel_x = 0x600;
+                    npc.vel_y = state.game_rng.range(-0x200..0) as isize;
+                    npc.cond.set_alive(true);
+
+                    state.new_npcs.push(npc);
+                }
+            }
+            50 => {
+                self.anim_num = 8;
+            }
+            _ => {}
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        if self.action_num == 11
+        {
+            if self.anim_counter != 0
+            {
+                self.anim_counter -= 1;
+                self.anim_num = 1;
+            } else {
+                if state.game_rng.range(0..100) == 1 {
+                    self.anim_counter = 30;
+                }
+
+                self.anim_num = 0;
+            }
+        }
+
+        if self.action_num == 14
+        {
+            if self.action_counter != 0
+            {
+                self.action_counter -= 1;
+                self.anim_num = 3;
+            } else {
+                if state.game_rng.range(0..100) == 1 {
+                    self.anim_counter = 30;
+                }
+
+                self.anim_num = 2;
+            }
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 9 };
+        self.anim_rect = state.constants.npc.n082_misery_standing[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
