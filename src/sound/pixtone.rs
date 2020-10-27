@@ -246,7 +246,7 @@ impl PixTonePlayback {
         for state in self.playback_state.iter_mut() {
             if state.0 == id && state.2 == 0 {
                 state.1 = 0.0;
-                break;
+                return;
             }
         }
 
