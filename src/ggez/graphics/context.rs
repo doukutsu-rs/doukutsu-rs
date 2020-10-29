@@ -15,6 +15,8 @@ use crate::ggez::error::GameResult;
 use crate::ggez::filesystem::Filesystem;
 use crate::ggez::GameError;
 use crate::ggez::graphics::*;
+#[cfg(target_os = "windows")]
+use glutin::platform::windows::WindowBuilderExtWindows;
 
 /// A structure that contains graphics state.
 /// For instance,
@@ -104,6 +106,8 @@ impl GraphicsContextGeneric<GlBackendSpec> {
             .with_title(window_setup.title.clone())
             .with_inner_size(window_size)
             .with_resizable(window_mode.resizable);
+        #[cfg(target_os = "windows")]
+        window_builder.with_drag_and_drop(false);
 
         window_builder = if !window_setup.icon.is_empty() {
             let icon = load_icon(window_setup.icon.as_ref(), filesystem)?;
