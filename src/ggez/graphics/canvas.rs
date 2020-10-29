@@ -40,12 +40,22 @@ where
 pub type Canvas = CanvasGeneric<GlBackendSpec>;
 
 impl Canvas {
-    /// Create a new `Canvas` with the given size and number of samples.
     pub fn new(
         ctx: &mut Context,
         width: u16,
         height: u16,
         samples: conf::NumSamples,
+    ) -> GameResult<Canvas> {
+        Canvas::new_format(ctx, width, height, samples, ctx.gfx_context.color_format())
+    }
+
+    /// Create a new `Canvas` with the given size and number of samples.
+    pub fn new_format(
+        ctx: &mut Context,
+        width: u16,
+        height: u16,
+        samples: conf::NumSamples,
+        color_format: gfx::format::Format,
     ) -> GameResult<Canvas> {
         let debug_id = DebugId::get(ctx);
         let aa = match samples {
@@ -54,7 +64,6 @@ impl Canvas {
         };
         let kind = Kind::D2(width, height, aa);
         let levels = 1;
-        let color_format = ctx.gfx_context.color_format();
         let factory = &mut ctx.gfx_context.factory;
         let texture_create_info = gfx::texture::Info {
             kind,
