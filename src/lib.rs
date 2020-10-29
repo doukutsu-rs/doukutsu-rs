@@ -314,7 +314,6 @@ pub fn init() -> GameResult {
 
     event_loop.run(move |event, target, flow| {
         if let Some(ctx) = &mut context {
-            ctx.timer_context.tick();
             ctx.process_event(&event);
 
             if let Some(game) = &mut game {
@@ -394,6 +393,7 @@ pub fn init() -> GameResult {
             Event::RedrawRequested(win) => {
                 if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
                     if win == window(ctx).window().id() {
+                        ctx.timer_context.tick();
                         game.draw(ctx).unwrap();
                     }
                 }
@@ -403,8 +403,10 @@ pub fn init() -> GameResult {
                     game.update(ctx).unwrap();
 
                     #[cfg(target_os = "android")]
-                        game.draw(ctx).unwrap(); // redraw request is unimplemented on shitdroid
-
+                        {
+                            ctx.timer_context.tick();
+                            game.draw(ctx).unwrap(); // redraw request is unimplemented on shitdroid
+                        }
                     window(ctx).window().request_redraw();
 
                     if game.state.shutdown {
