@@ -5,8 +5,7 @@ use num_traits::clamp;
 use num_traits::FromPrimitive;
 
 use crate::caret::CaretType;
-use crate::common::{Condition, Equipment, Flag};
-use crate::common::{Direction, Rect};
+use crate::common::{Condition, Direction, Equipment, fix9_scale, Flag, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
@@ -361,7 +360,7 @@ impl Player {
                     droplet.direction = if self.flags.water_splash_facing_right() { Direction::Right } else { Direction::Left };
                     droplet.x = self.x + (state.game_rng.range(-8..8) * 0x200) as isize;
                     droplet.y = self.y;
-                    droplet.vel_x = if vertical_splash { 
+                    droplet.vel_x = if vertical_splash {
                         (self.vel_x + state.game_rng.range(-0x200..0x200) as isize) - (self.vel_x / 2)
                     } else if horizontal_splash {
                         self.vel_x + state.game_rng.range(-0x200..0x200) as isize
@@ -370,7 +369,7 @@ impl Player {
                     };
                     droplet.vel_y = state.game_rng.range(-0x200..0x80) as isize;
 
-                    state.new_npcs.push(droplet);                    
+                    state.new_npcs.push(droplet);
                 }
 
                 state.sound_manager.play_sfx(56);
@@ -612,8 +611,8 @@ impl GameEntity<()> for Player {
         {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
             batch.add_rect(
-                ((((self.x - self.display_bounds.left as isize) / 0x200) - (frame.x / 0x200)) as f32).floor(),
-                ((((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32).floor(),
+                fix9_scale(self.x - self.display_bounds.left as isize - frame.x, state.scale),
+                fix9_scale(self.y - self.display_bounds.top as isize - frame.y, state.scale),
                 &self.anim_rect,
             );
             batch.draw(ctx)?;
@@ -624,15 +623,15 @@ impl GameEntity<()> for Player {
             match self.direction {
                 Direction::Left => {
                     batch.add_rect(
-                        ((((self.x - self.display_bounds.left as isize) / 0x200) - (frame.x / 0x200)) as f32 - 8.0).floor(),
-                        ((((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32 + self.weapon_offset_y as f32).floor(),
+                        fix9_scale(self.x - self.display_bounds.left as isize - frame.x, state.scale) - 8.0,
+                        fix9_scale(self.y - self.display_bounds.top as isize - frame.y, state.scale) + self.weapon_offset_y as f32,
                         &self.weapon_rect,
                     );
                 }
                 Direction::Right => {
                     batch.add_rect(
-                        (((self.x - self.display_bounds.left as isize) / 0x200) - (frame.x / 0x200)) as f32,
-                        (((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32 + self.weapon_offset_y as f32,
+                        fix9_scale(self.x - self.display_bounds.left as isize - frame.x, state.scale),
+                        fix9_scale(self.y - self.display_bounds.top as isize - frame.y, state.scale) + self.weapon_offset_y as f32,
                         &self.weapon_rect,
                     );
                 }

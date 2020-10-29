@@ -9,7 +9,7 @@ use itertools::Itertools;
 
 use crate::bitfield;
 use crate::caret::CaretType;
-use crate::common::{Condition, Rect};
+use crate::common::{Condition, Rect, fix9_scale};
 use crate::common::Direction;
 use crate::common::Flag;
 use crate::entity::GameEntity;
@@ -232,6 +232,7 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
         }
 
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, state.npc_table.get_texture_name(self.npc_type))?;
+        let scale = state.scale;
 
         let off_x = if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right } as isize;
         let shock = if self.shock > 0 {
@@ -239,8 +240,8 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
         } else { 0.0 };
 
         batch.add_rect(
-            (((self.x - off_x) / 0x200) - (frame.x / 0x200)) as f32 + shock,
-            (((self.y - self.display_bounds.top as isize) / 0x200) - (frame.y / 0x200)) as f32,
+            fix9_scale(self.x - off_x - frame.x, scale) + shock,
+            fix9_scale(self.y - self.display_bounds.top as isize - frame.y, scale),
             &self.anim_rect,
         );
         batch.draw(ctx)?;

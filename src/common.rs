@@ -270,3 +270,8 @@ impl<T: Num + PartialOrd + Copy + AsPrimitive<f32>> Into<crate::ggez::graphics::
                                          self.height().as_())
     }
 }
+
+#[inline(always)]
+pub fn fix9_scale(val: isize, scale: f32) -> f32 {
+    (val as f64 * scale as f64 / 512.0).floor() as f32 / scale
+}

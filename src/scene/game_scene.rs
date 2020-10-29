@@ -3,7 +3,7 @@ use log::info;
 
 use crate::bullet::BulletManager;
 use crate::caret::CaretType;
-use crate::common::{Direction, FadeDirection, FadeState, Rect};
+use crate::common::{Direction, FadeDirection, FadeState, Rect, fix9_scale};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult, graphics, timer};
@@ -200,6 +200,7 @@ impl GameScene {
 
     fn draw_background(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_background_name)?;
+        let scale = state.scale;
 
         match self.stage.data.background_type {
             BackgroundType::Stationary => {
@@ -230,8 +231,8 @@ impl GameScene {
 
                 for y in 0..count_y {
                     for x in 0..count_x {
-                        batch.add((x * batch.width()) as f32 - (off_x / 0x200) as f32,
-                                  (y * batch.height()) as f32 - (off_y / 0x200) as f32);
+                        batch.add((x * batch.width()) as f32 - fix9_scale(off_x as isize, scale),
+                                  (y * batch.height()) as f32 - fix9_scale(off_y as isize, scale));
                     }
                 }
             }
@@ -275,6 +276,7 @@ impl GameScene {
 
     fn draw_bullets(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Bullet")?;
+        let scale = state.scale;
         let mut x: isize;
         let mut y: isize;
 
@@ -299,8 +301,8 @@ impl GameScene {
                 Direction::FacingPlayer => unreachable!(),
             }
 
-            batch.add_rect(((x / 0x200) - (self.frame.x / 0x200)) as f32,
-                           ((y / 0x200) - (self.frame.y / 0x200)) as f32,
+            batch.add_rect(fix9_scale(x - self.frame.x, scale),
+                           fix9_scale(y - self.frame.y, scale),
                            &bullet.anim_rect);
         }
 
@@ -310,10 +312,11 @@ impl GameScene {
 
     fn draw_carets(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Caret")?;
+        let scale = state.scale;
 
         for caret in state.carets.iter() {
-            batch.add_rect((((caret.x - caret.offset_x) / 0x200) - (self.frame.x / 0x200)) as f32,
-                           (((caret.y - caret.offset_y) / 0x200) - (self.frame.y / 0x200)) as f32,
+            batch.add_rect(fix9_scale(caret.x - caret.offset_x - self.frame.x, scale),
+                           fix9_scale(caret.y - caret.offset_y - self.frame.y, scale),
                            &caret.anim_rect);
         }
 
@@ -545,25 +548,26 @@ impl GameScene {
 
         graphics::clear(ctx, Color::from_rgb(100, 100, 110));
         {
+            let scale = state.scale;
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
 
             if !self.player.cond.hidden() && self.inventory.get_current_weapon().is_some() {
-                self.draw_light(((self.player.x - self.frame.x) / 0x200) as f32,
-                                ((self.player.y - self.frame.y) / 0x200) as f32,
+                self.draw_light(fix9_scale(self.player.x - self.frame.x, scale),
+                                fix9_scale(self.player.y - self.frame.y, scale),
                                 2.5, (225, 225, 225), batch);
             }
 
             for bullet in self.bullet_manager.bullets.iter() {
-                self.draw_light(((bullet.x - self.frame.x) / 0x200) as f32,
-                                ((bullet.y - self.frame.y) / 0x200) as f32,
+                self.draw_light(fix9_scale(bullet.x - self.frame.x, scale),
+                                fix9_scale(bullet.y - self.frame.y, scale),
                                 0.7, (200, 200, 200), batch);
             }
 
             for caret in state.carets.iter() {
                 match caret.ctype {
                     CaretType::ProjectileDissipation | CaretType::Shoot => {
-                        self.draw_light(((caret.x - self.frame.x) / 0x200) as f32,
-                                        ((caret.y - self.frame.y) / 0x200) as f32,
+                        self.draw_light(fix9_scale(caret.x - self.frame.x, scale),
+                                        fix9_scale(caret.y - self.frame.y, scale),
                                         1.0, (200, 200, 200), batch);
                     }
                     _ => {}
@@ -582,65 +586,65 @@ impl GameScene {
 
                 match npc.npc_type {
                     1 => {
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
                                         0.4, (255, 255, 0), batch);
                     }
-                    4 | 7 => self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                             ((npc.y - self.frame.y) / 0x200) as f32,
+                    4 | 7 => self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                             fix9_scale(npc.y - self.frame.y, scale),
                                              1.0, (100, 100, 100), batch),
                     17 if npc.anim_num == 0 => {
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
                                         2.0, (160, 0, 0), batch);
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
                                         0.5, (255, 0, 0), batch);
                     }
                     20 if npc.direction == Direction::Right => {
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
                                         2.0, (0, 0, 150), batch);
 
                         if npc.anim_num < 2 {
-                            self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                            ((npc.y - self.frame.y) / 0x200) as f32,
+                            self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                            fix9_scale(npc.y - self.frame.y, scale),
                                             2.1, (0, 0, 30), batch);
                         }
                     }
                     22 if npc.action_num == 1 && npc.anim_num == 1 =>
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
                                         3.0, (0, 0, 255), batch),
                     32 | 211 => {
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
                                         3.0, (255, 0, 0), batch);
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
                                         2.0, (255, 0, 0), batch);
                     }
                     38 => {
                         let flicker = (npc.anim_num ^ 5 & 3) as u8 * 15;
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
                                         3.5, (130 + flicker, 40 + flicker, 0), batch);
                     }
                     66 if npc.action_num == 1 && npc.anim_counter % 2 == 0 =>
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
                                         3.0, (0, 100, 255), batch),
-                    67 => self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                          ((npc.y - self.frame.y) / 0x200) as f32,
+                    67 => self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                          fix9_scale(npc.y - self.frame.y, scale),
                                           2.0, (0, 100, 200), batch),
                     70 => {
                         let flicker = 50 + npc.anim_num as u8 * 15;
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32,
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
                                         2.0, (flicker, flicker, flicker), batch);
                     }
-                    75 | 77 => self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                               ((npc.y - self.frame.y) / 0x200) as f32,
+                    75 | 77 => self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                               fix9_scale(npc.y - self.frame.y, scale),
                                                3.0, (255, 100, 0), batch),
                     85 if npc.action_num == 1 => {
                         let (color, color2) = if npc.direction == Direction::Left {
@@ -649,13 +653,13 @@ impl GameScene {
                             ((150, 0, 0), (50, 0, 0))
                         };
 
-                        self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                        ((npc.y - self.frame.y) / 0x200) as f32 - 8.0,
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
                                         1.5, color, batch);
 
                         if npc.anim_num < 2 {
-                            self.draw_light(((npc.x - self.frame.x) / 0x200) as f32,
-                                            ((npc.y - self.frame.y) / 0x200) as f32 - 8.0,
+                            self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                            fix9_scale(npc.y - self.frame.y, scale) - 8.0,
                                             2.1, color2, batch);
                         }
                     }
@@ -731,8 +735,8 @@ impl GameScene {
                     _ => {}
                 }
 
-                batch.add_rect((x as f32 * 16.0 - 8.0) - (self.frame.x / 0x200) as f32,
-                               (y as f32 * 16.0 - 8.0) - (self.frame.y / 0x200) as f32, &rect);
+                batch.add_rect((x as f32 * 16.0 - 8.0) - fix9_scale(self.frame.x, state.scale),
+                               (y as f32 * 16.0 - 8.0) - fix9_scale(self.frame.y, state.scale), &rect);
             }
         }
 
