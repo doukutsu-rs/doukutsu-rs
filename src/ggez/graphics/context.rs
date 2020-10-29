@@ -5,6 +5,8 @@ use std::rc::Rc;
 use gfx::Factory;
 use gfx::traits::FactoryExt;
 use glutin;
+#[cfg(target_os = "windows")]
+use glutin::platform::windows::WindowBuilderExtWindows;
 use glutin::PossiblyCurrent;
 use winit::{self, dpi};
 use winit::window::Fullscreen;
@@ -15,8 +17,6 @@ use crate::ggez::error::GameResult;
 use crate::ggez::filesystem::Filesystem;
 use crate::ggez::GameError;
 use crate::ggez::graphics::*;
-#[cfg(target_os = "windows")]
-use glutin::platform::windows::WindowBuilderExtWindows;
 
 /// A structure that contains graphics state.
 /// For instance,
@@ -107,7 +107,9 @@ impl GraphicsContextGeneric<GlBackendSpec> {
             .with_inner_size(window_size)
             .with_resizable(window_mode.resizable);
         #[cfg(target_os = "windows")]
-        windows_builder = window_builder.with_drag_and_drop(false);
+            {
+                window_builder = window_builder.with_drag_and_drop(false);
+            }
 
         window_builder = if !window_setup.icon.is_empty() {
             let icon = load_icon(window_setup.icon.as_ref(), filesystem)?;
