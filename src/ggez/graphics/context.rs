@@ -107,7 +107,7 @@ impl GraphicsContextGeneric<GlBackendSpec> {
             .with_inner_size(window_size)
             .with_resizable(window_mode.resizable);
         #[cfg(target_os = "windows")]
-        window_builder.with_drag_and_drop(false);
+        windows_builder = window_builder.with_drag_and_drop(false);
 
         window_builder = if !window_setup.icon.is_empty() {
             let icon = load_icon(window_setup.icon.as_ref(), filesystem)?;
