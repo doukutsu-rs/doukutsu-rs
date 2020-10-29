@@ -75,9 +75,9 @@ impl TitleScene {
 static ENGINE_VERSION: &str = "doukutsu-rs 0.1.0";
 // asset copyright for freeware version
 static COPYRIGHT_PIXEL: &str = "2004.12  Studio Pixel";
-// asset copyright for Nicalis, why they've even replaced © with @?
+// asset copyright for Nicalis
 static COPYRIGHT_NICALIS: &str = "@2011 NICALIS INC.";
-static COPYRIGHT_NICALIS_SWITCH: &str = "@2017 NICALIS INC."; // untested?
+static COPYRIGHT_NICALIS_SWITCH: &str = "@2017 NICALIS INC.";
 
 static DISCORD_LINK: &str = "https://discord.gg/fbRsNNB";
 
@@ -100,7 +100,6 @@ impl Scene for TitleScene {
             } else {
                 self.option_menu.push_entry(MenuEntry::Disabled("Original textures".to_string()));
             }
-            self.option_menu.push_entry(MenuEntry::Toggle("2x Speed hack".to_string(), state.settings.speed_hack));
             self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
             self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));
             self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
@@ -180,19 +179,12 @@ impl Scene for TitleScene {
                             *value = state.settings.original_textures;
                         }
                     }
-                    MenuSelectionResult::Selected(4, toggle) => {
-                        if let MenuEntry::Toggle(_, value) = toggle {
-                            state.set_speed_hack(!state.settings.speed_hack);
-
-                            *value = state.settings.speed_hack;
-                        }
-                    }
-                    MenuSelectionResult::Selected(5, _) => {
+                    MenuSelectionResult::Selected(4, _) => {
                         if let Err(e) = webbrowser::open(DISCORD_LINK) {
                             log::warn!("Error opening web browser: {}", e);
                         }
                     }
-                    MenuSelectionResult::Selected(7, _) | MenuSelectionResult::Canceled => {
+                    MenuSelectionResult::Selected(6, _) | MenuSelectionResult::Canceled => {
                         self.current_menu = CurrentMenu::MainMenu;
                     }
                     _ => {}

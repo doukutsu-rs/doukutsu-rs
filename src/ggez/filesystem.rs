@@ -36,6 +36,7 @@ use crate::ggez::{Context, GameError, GameResult};
 use crate::ggez::conf;
 use crate::ggez::vfs::{self, VFS};
 pub use crate::ggez::vfs::OpenOptions;
+use directories::ProjectDirs;
 
 const CONFIG_NAME: &str = "/conf.toml";
 
@@ -43,9 +44,9 @@ const CONFIG_NAME: &str = "/conf.toml";
 #[derive(Debug)]
 pub struct Filesystem {
     vfs: vfs::OverlayFS,
-    /*resources_path: path::PathBuf,
+    //resources_path: path::PathBuf,
     user_config_path: path::PathBuf,
-    user_data_path: path::PathBuf,*/
+    user_data_path: path::PathBuf,
 }
 
 /// Represents a file, either in the filesystem, or in the resources zip file,
@@ -112,12 +113,12 @@ impl Filesystem {
         // Set up VFS to merge resource path, root path, and zip path.
         let mut overlay = vfs::OverlayFS::new();
 
-        /*let mut resources_path;
-        let mut resources_zip_path;
         let user_data_path;
         let user_config_path;
+        // let mut resources_path;
+        // let mut resources_zip_path;
 
-        let project_dirs = match ProjectDirs::from("", author, id) {
+        let project_dirs = match ProjectDirs::from("", "", id) {
             Some(dirs) => dirs,
             None => {
                 return Err(GameError::FilesystemError(String::from(
@@ -128,7 +129,7 @@ impl Filesystem {
 
 
         // <game exe root>/resources/
-        {
+        /*{
             resources_path = root_path.clone();
             resources_path.push("resources");
             trace!("Resources path: {:?}", resources_path);
@@ -147,13 +148,13 @@ impl Filesystem {
             } else {
                 trace!("No resources zip file found");
             }
-        }
+        }*/
 
         // Per-user data dir,
         // ~/.local/share/whatever/
         {
             user_data_path = project_dirs.data_local_dir();
-            trace!("User-local data path: {:?}", user_data_path);
+            log::trace!("User-local data path: {:?}", user_data_path);
             let physfs = vfs::PhysicalFS::new(&user_data_path, true);
             overlay.push_back(Box::new(physfs));
         }
@@ -162,15 +163,15 @@ impl Filesystem {
         // Save game dir is read-write
         {
             user_config_path = project_dirs.config_dir();
-            trace!("User-local configuration path: {:?}", user_config_path);
+            log::trace!("User-local configuration path: {:?}", user_config_path);
             let physfs = vfs::PhysicalFS::new(&user_config_path, false);
             overlay.push_back(Box::new(physfs));
-        }*/
+        }
 
         let fs = Filesystem {
             vfs: overlay,
-            //user_config_path: user_config_path.to_path_buf(),
-            //user_data_path: user_data_path.to_path_buf(),
+            user_config_path: user_config_path.to_path_buf(),
+            user_data_path: user_data_path.to_path_buf(),
         };
 
         Ok(fs)
@@ -473,6 +474,8 @@ mod tests {
         ofs.push_front(Box::new(physfs));
         Filesystem {
             vfs: ofs,
+            user_config_path: path,
+            user_data_path: path
         }
     }
 

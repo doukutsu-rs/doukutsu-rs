@@ -18,11 +18,11 @@ use std::time::Instant;
 
 use log::*;
 use pretty_env_logger::env_logger::Env;
-use winit::event::{ElementState, Event, KeyboardInput, WindowEvent, TouchPhase};
+use winit::event::{ElementState, Event, KeyboardInput, TouchPhase, WindowEvent};
 use winit::event_loop::ControlFlow;
 
 use crate::builtin_fs::BuiltinFS;
-use crate::ggez::{Context, ContextBuilder, filesystem, GameResult, GameError};
+use crate::ggez::{Context, ContextBuilder, filesystem, GameError, GameResult};
 use crate::ggez::conf::{Backend, WindowMode, WindowSetup};
 use crate::ggez::event::{KeyCode, KeyMods};
 use crate::ggez::graphics;
@@ -73,7 +73,7 @@ struct Game {
     ui: UI,
     def_matrix: ColumnMatrix4<f32>,
     start_time: Instant,
-    next_tick: u64,
+    next_tick: u128,
     loops: u64,
 }
 
@@ -96,23 +96,21 @@ impl Game {
         if let Some(scene) = self.scene.as_mut() {
             match self.state.timing_mode {
                 TimingMode::_50Hz | TimingMode::_60Hz => {
-                    while self.start_time.elapsed().as_millis() as u64 > self.next_tick && self.loops < 3 {
-                        self.next_tick += self.state.timing_mode.get_delta() as u64;
+                    while self.start_time.elapsed().as_nanos() >= self.next_tick && self.loops < 3 {
+                        if (self.state.settings.speed - 1.0).abs() < 0.01 {
+                            self.next_tick += self.state.timing_mode.get_delta() as u128;
+                        } else {
+                            self.next_tick += (self.state.timing_mode.get_delta() as f64 / self.state.settings.speed) as u128;
+                        }
                         self.loops += 1;
                     }
 
                     for _ in 0..self.loops {
                         scene.tick(&mut self.state, ctx)?;
-                        if self.state.settings.speed_hack {
-                            scene.tick(&mut self.state, ctx)?;
-                        }
                     }
                 }
                 TimingMode::FrameSynchronized => {
                     scene.tick(&mut self.state, ctx)?;
-                    if self.state.settings.speed_hack {
-                        scene.tick(&mut self.state, ctx)?;
-                    }
                 }
             }
         }
@@ -156,9 +154,19 @@ impl Game {
             KeyCode::X => { state.key_state.set_fire(true) }
             KeyCode::A => { state.key_state.set_weapon_prev(true) }
             KeyCode::S => { state.key_state.set_weapon_next(true) }
+            KeyCode::F7 => { state.set_speed(1.0) }
+            KeyCode::F8 => {
+                if state.settings.speed > 0.5 {
+                    state.set_speed(state.settings.speed - 0.1);
+                }
+            }
+            KeyCode::F9 => {
+                if state.settings.speed < 3.0 {
+                    state.set_speed(state.settings.speed + 0.1);
+                }
+            }
             KeyCode::F10 => { state.settings.debug_outlines = !state.settings.debug_outlines }
             KeyCode::F11 => { state.settings.god_mode = !state.settings.god_mode }
-            KeyCode::F12 => { state.set_speed_hack(!state.settings.speed_hack) }
             _ => {}
         }
     }
@@ -238,10 +246,10 @@ pub fn android_main() {
 }
 
 static BACKENDS: [Backend; 4] = [
-    Backend::OpenGL {major: 3, minor: 2},
-    Backend::OpenGLES { major: 3, minor: 2},
-    Backend::OpenGLES { major: 3, minor: 0},
-    Backend::OpenGLES { major: 2, minor: 0}
+    Backend::OpenGL { major: 3, minor: 2 },
+    Backend::OpenGLES { major: 3, minor: 2 },
+    Backend::OpenGLES { major: 3, minor: 0 },
+    Backend::OpenGLES { major: 2, minor: 0 }
 ];
 
 fn init_ctx<P: Into<path::PathBuf> + Clone>(event_loop: &winit::event_loop::EventLoopWindowTarget<()>, resource_dir: P) -> GameResult<Context> {
@@ -372,7 +380,7 @@ pub fn init() -> GameResult {
                             match el_state {
                                 ElementState::Pressed => {
                                     let repeat = keyboard::is_key_repeated(ctx);
-                                    game.key_down_event( keycode, modifiers.into(), repeat);
+                                    game.key_down_event(keycode, modifiers.into(), repeat);
                                 }
                                 ElementState::Released => {
                                     game.key_up_event(keycode, modifiers.into());

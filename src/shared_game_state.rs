@@ -31,8 +31,8 @@ pub enum TimingMode {
 impl TimingMode {
     pub fn get_delta(self) -> usize {
         match self {
-            TimingMode::_50Hz => { 1000 / 50 }
-            TimingMode::_60Hz => { 1000 / 60 }
+            TimingMode::_50Hz => { 1000000000 / 50 }
+            TimingMode::_60Hz => { 1000000000 / 60 }
             TimingMode::FrameSynchronized => { 0 }
         }
     }
@@ -40,7 +40,7 @@ impl TimingMode {
 
 pub struct Settings {
     pub god_mode: bool,
-    pub speed_hack: bool,
+    pub speed: f64,
     pub original_textures: bool,
     pub enhanced_graphics: bool,
     pub debug_outlines: bool,
@@ -131,7 +131,7 @@ impl SharedGameState {
             sound_manager: SoundManager::new(ctx)?,
             settings: Settings {
                 god_mode: false,
-                speed_hack: false,
+                speed: 1.0,
                 original_textures: false,
                 enhanced_graphics: true,
                 debug_outlines: false,
@@ -230,10 +230,10 @@ impl SharedGameState {
         self.carets.push(Caret::new(x, y, ctype, direct, &self.constants));
     }
 
-    pub fn set_speed_hack(&mut self, toggle: bool) {
-        self.settings.speed_hack = toggle;
+    pub fn set_speed(&mut self, value: f64) {
+        self.settings.speed = value;
 
-        if let Err(err) = self.sound_manager.set_speed(if toggle { 2.0 } else { 1.0 }) {
+        if let Err(err) = self.sound_manager.set_speed(value as f32) {
             log::error!("Error while sending a message to sound manager: {}", err);
         }
     }
