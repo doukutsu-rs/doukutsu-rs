@@ -4,12 +4,7 @@
 
 [Download latest Nightly builds](https://github.com/doukutsu-rs/doukutsu-rs/actions) (Requires being logged in to GitHub)
 
-A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/), aiming for behavior accuracy and cleaner code.
-Later plans might involve turning it into a fully-featured modding tool with live debugging and stuff.
-
-The engine also contains some (might be buggy and not accurate, everything was pure guess work on data files to avoid legal issues) implementation of Cave Story+ features from both PC and Switch versions.
-
-Note you have to ship the data files yourself if you want to play with those features, but nothing is stopping you from creating a modification of freeware files that uses those new TSC opcodes and features. I'd actually would like to see something cool created using this engine.
+A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/).
 
 **The project is still incomplete and might not be playable. Expect lots of breaking changes and bugs**
 
@@ -17,11 +12,13 @@ Note you have to ship the data files yourself if you want to play with those fea
 
 #### Data files
 
-This repo does not redistribute any copyrighted files. 
+This repository does not contain any copyrighted files. 
 
-The engine should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE2) or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) modified freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) data files.
+For better user experience, binaries are being distributed with slightly modified freeware game files. 
 
-Vanilla Cave Story does not work yet because some important data files are embedded inside executable and we don't have an extractor yet.
+*doukutsu-rs* should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE2) or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) modified freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) data files.
+
+Vanilla Cave Story does not work yet because some important data files have been embedded inside the executable. and we don't have a loader/extractor implemented yet.
 
 ##### Where to get them?
 
@@ -34,7 +31,9 @@ Vanilla Cave Story does not work yet because some important data files are embed
 **Cave Story+**
 
 - PC release - Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
-- Switch release - While some support is implemented, hacking consoles and extracting cartridge content is a kind of gray legal area so I will leave it to you... 
+- Switch release - Not supported, because extracting the data files from the console is complicated and requires 
+device-specific decryption keys. Some of release-specific features have been implemented, so you should be able to play 
+it without any major issues. Google will likely help you if you really want to.
 
 #### Roadmap
 
@@ -75,7 +74,7 @@ Vanilla Cave Story does not work yet because some important data files are embed
   - [ ] Last Cave
   - [ ] Balcony
   - [ ] Hell
-  - [ ] Cave Story+ additions (no accuracy guaranteed)
+  - [ ] Cave Story+ specific NPCs
     - [ ] Dashing Gaudis (361)
     - [ ] ??? (362)
 - [ ] Weapons
@@ -95,6 +94,18 @@ Vanilla Cave Story does not work yet because some important data files are embed
   - [x] Debugger
   - [ ] Level editor
   - [ ] Texture auto-reload mode for spriters
+- [x] Saving and loading game state
+- [ ] Data file support
+  - [ ] Vanilla
+  - [x] Modified vanilla
+  - [ ] Cave Story+
+    - [x] Base mod
+    - [ ] Mod loading
+    - [ ] Curly Story
+    - [ ] Wind Fortress
+    - [ ] Boss Run
+    - [ ] Seasonal graphics
+    - [ ] Remastered soundtrack
 - [x] Optional enhanced graphics effects
 
 *(tbd)*
@@ -103,11 +114,11 @@ Vanilla Cave Story does not work yet because some important data files are embed
 
 **Freeware data files:**
 
-![freeware](https://i.imgur.com/ZvOtpaI.png)
+![Japanese Freeware](https://i.imgur.com/eZ0V5rK.png)
 
 **Cave Story+ data files:**
 
-![CS+ with enhanced graphics](https://media.discordapp.net/attachments/745322954660905103/760598347450679366/unknown.png)
+![CS+ with enhanced graphics](https://i.imgur.com/YaPAs70.png)
 
 #### Credits
 
