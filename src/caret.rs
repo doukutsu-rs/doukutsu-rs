@@ -249,11 +249,11 @@ impl Caret {
                 if self.anim_num == 0 {
                     match self.direction {
                         Direction::Left => {
-                            self.vel_x = rng.range(-0x300..0x300) as isize; // -1.5fix9..1.5fix9
-                            self.vel_y = rng.range(-0x100..0x100) as isize; // -0.5fix9..0.5fix9
+                            self.vel_x = rng.range(-0x600..0x600) as isize; // -3.0fix9..3.0fix9
+                            self.vel_y = rng.range(-0x200..0x200) as isize; // -1.0fix9..1.0fix9
                         }
                         Direction::Up => {
-                            self.vel_y = rng.range(1..3) as isize * 0x100;
+                            self.vel_y = rng.range(-3..-1) as isize * 0x200;
                         }
                         _ => {}
                     }
@@ -269,7 +269,8 @@ impl Caret {
                 self.x += self.vel_x;
                 self.y += self.vel_y;
 
-                if self.anim_num == 20 {
+                self.anim_counter += 1;
+                if self.anim_counter > 20 {
                     self.cond.set_alive(false);
                     return;
                 }

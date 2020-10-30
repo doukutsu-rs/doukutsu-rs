@@ -227,8 +227,11 @@ pub struct NPCConsts {
     pub n129_fireball_snake_trail: [Rect<usize>; 18],
     pub n149_horizontal_moving_block: Rect<usize>,
     pub n157_vertical_moving_block: Rect<usize>,
+    pub n199_wind_particles: [Rect<usize>; 5],
     pub n211_small_spikes: [Rect<usize>; 4],
-    pub n199_wind_particles: [Rect<usize>; 5]
+    pub n298_intro_doctor: [Rect<usize>; 8],
+    pub n299_intro_balrog_misery: [Rect<usize>; 2],
+    pub n300_intro_demon_crown: Rect<usize>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -251,8 +254,9 @@ pub struct TextScriptConsts {
 }
 
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub struct TitleConsts {
+    pub intro_text: String,
     pub logo_rect: Rect<usize>,
     pub menu_left_top: Rect<usize>,
     pub menu_right_top: Rect<usize>,
@@ -263,6 +267,24 @@ pub struct TitleConsts {
     pub menu_middle: Rect<usize>,
     pub menu_left: Rect<usize>,
     pub menu_right: Rect<usize>,
+}
+
+impl Clone for TitleConsts {
+    fn clone(&self) -> TitleConsts {
+        TitleConsts {
+            intro_text: self.intro_text.clone(),
+            logo_rect: self.logo_rect,
+            menu_left_top: self.menu_left_top,
+            menu_right_top: self.menu_right_top,
+            menu_left_bottom: self.menu_left_bottom,
+            menu_right_bottom: self.menu_right_bottom,
+            menu_top: self.menu_top,
+            menu_bottom: self.menu_bottom,
+            menu_middle: self.menu_middle,
+            menu_left: self.menu_left,
+            menu_right: self.menu_right,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -292,12 +314,12 @@ impl Clone for EngineConstants {
             my_char: self.my_char,
             booster: self.booster,
             caret: self.caret.clone(),
-            world: self.world.clone(),
-            npc: self.npc.clone(),
+            world: self.world,
+            npc: self.npc,
             weapon: self.weapon.clone(),
             tex_sizes: self.tex_sizes.clone(),
-            textscript: self.textscript.clone(),
-            title: self.title,
+            textscript: self.textscript,
+            title: self.title.clone(),
             font_path: self.font_path.clone(),
             font_scale: self.font_scale,
             font_space_offset: self.font_space_offset,
@@ -1238,6 +1260,21 @@ impl EngineConstants {
                     Rect { left: 288, top: 200, right: 304, bottom: 216 },
                     Rect { left: 304, top: 200, right: 320, bottom: 216 },
                 ],
+                n298_intro_doctor: [
+                    Rect { left: 72, top: 128, right: 88, bottom: 160 },
+                    Rect { left: 88, top: 128, right: 104, bottom: 160 },
+                    Rect { left: 104, top: 128, right: 120, bottom: 160 },
+                    Rect { left: 72, top: 128, right: 88, bottom: 160 },
+                    Rect { left: 120, top: 128, right: 136, bottom: 160 },
+                    Rect { left: 72, top: 128, right: 88, bottom: 160 },
+                    Rect { left: 104, top: 160, right: 120, bottom: 192 },
+                    Rect { left: 120, top: 160, right: 136, bottom: 192 },
+                ],
+                n299_intro_balrog_misery: [
+                    Rect { left: 0, top: 0, right: 48, bottom: 48 },
+                    Rect { left: 48, top: 0, right: 96, bottom: 48 },
+                ],
+                n300_intro_demon_crown: Rect { left: 192, top: 80, right: 208, bottom: 96 },
             },
             weapon: WeaponConsts {
                 bullet_table: vec![
@@ -1548,6 +1585,7 @@ impl EngineConstants {
                 ],
             },
             title: TitleConsts {
+                intro_text: "Studio Pixel presents".to_string(),
                 logo_rect: Rect { left: 0, top: 0, right: 144, bottom: 40 },
                 menu_left_top: Rect { left: 0, top: 0, right: 8, bottom: 8 },
                 menu_right_top: Rect { left: 236, top: 0, right: 244, bottom: 8 },
@@ -1559,12 +1597,12 @@ impl EngineConstants {
                 menu_left: Rect { left: 0, top: 8, right: 8, bottom: 16 },
                 menu_right: Rect { left: 236, top: 8, right: 244, bottom: 16 },
             },
-            font_path: str!("builtin/builtin_font.fnt"),
+            font_path: "builtin/builtin_font.fnt".to_string(),
             font_scale: 1.0,
             font_space_offset: -3.0,
             organya_paths: vec![
                 str!("/org/"), // NXEngine
-                str!("/base/Org/"), // CS+ PC
+                str!("/base/Org/"), // CS+
                 str!("/Resource/ORG/"), // CSE2E
             ],
         }

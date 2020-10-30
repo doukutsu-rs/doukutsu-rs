@@ -664,6 +664,16 @@ impl GameScene {
                                             2.1, color2, batch);
                         }
                     }
+                    299 => {
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
+                                        4.0, (30, 30, 200), batch);
+                    }
+                    300 => {
+                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                        fix9_scale(npc.y - self.frame.y, scale),
+                                        1.5, (200, 10, 10), batch);
+                    }
                     _ => {}
                 }
             }
@@ -1103,7 +1113,7 @@ impl Scene for GameScene {
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         state.update_key_trigger();
 
-        if self.intro_mode && (state.key_trigger.jump() || self.tick >= 500){
+        if self.intro_mode && (state.key_trigger.jump() || self.tick >= 500) {
             state.next_scene = Some(Box::new(TitleScene::new()));
         }
 
@@ -1190,8 +1200,14 @@ impl Scene for GameScene {
 
         self.draw_fade(state, ctx)?;
         if self.map_name_counter > 0 {
-            let width = state.font.text_width(self.stage.data.name.chars(), &state.constants);
-            state.font.draw_text(self.stage.data.name.chars(),
+            let map_name = if self.intro_mode {
+                state.constants.title.intro_text.chars()
+            } else {
+                self.stage.data.name.chars()
+            };
+            let width = state.font.text_width(map_name.clone(), &state.constants);
+
+            state.font.draw_text(map_name,
                                  ((state.canvas_size.0 - width) / 2.0).floor(), 80.0,
                                  &state.constants, &mut state.texture_set, ctx)?;
         }

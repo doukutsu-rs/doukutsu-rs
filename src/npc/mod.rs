@@ -30,12 +30,14 @@ pub mod egg_corridor;
 pub mod first_cave;
 pub mod grasstown;
 pub mod igor;
+pub mod intro;
 pub mod maze;
 pub mod mimiga_village;
 pub mod misc;
 pub mod misery;
 pub mod pickups;
 pub mod sand_zone;
+pub mod santa;
 pub mod sue;
 pub mod toroko;
 pub mod weapon_trail;
@@ -218,6 +220,9 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             157 => self.tick_n157_vertical_moving_block(state, player),
             199 => self.tick_n199_wind_particles(state),
             211 => self.tick_n211_small_spikes(state),
+            298 => self.tick_n298_intro_doctor(state),
+            299 => self.tick_n299_intro_balrog_misery(state),
+            300 => self.tick_n300_intro_demon_crown(state),
             _ => Ok(()),
         }?;
 
