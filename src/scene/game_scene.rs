@@ -21,6 +21,7 @@ use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::SizedBatch;
 use crate::ui::Components;
+use crate::weapon::WeaponType;
 
 pub struct GameScene {
     pub tick: usize,
@@ -619,13 +620,10 @@ impl GameScene {
                         self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
                                         fix9_scale(npc.y - self.frame.y, scale),
                                         3.0, (0, 0, 255), batch),
-                    32 | 211 => {
+                    32 | 87 | 211 => {
                         self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
                                         fix9_scale(npc.y - self.frame.y, scale),
-                                        3.0, (255, 0, 0), batch);
-                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
-                                        fix9_scale(npc.y - self.frame.y, scale),
-                                        2.0, (255, 0, 0), batch);
+                                        2.0, (255, 30, 30), batch);
                     }
                     38 => {
                         let flicker = (npc.anim_num ^ 5 & 3) as u8 * 15;
@@ -834,7 +832,9 @@ impl GameScene {
         }
 
         if !dead_npcs.is_empty() {
-            self.npc_map.process_dead_npcs(&dead_npcs, state);
+            let missile = self.inventory.has_weapon(WeaponType::MissileLauncher)
+                | self.inventory.has_weapon(WeaponType::SuperMissileLauncher);
+            self.npc_map.process_dead_npcs(&dead_npcs, missile, state);
             self.npc_map.garbage_collect();
         }
     }

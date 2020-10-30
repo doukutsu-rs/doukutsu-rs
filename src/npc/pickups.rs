@@ -145,6 +145,138 @@ impl NPC {
     }
 
     pub(crate) fn tick_n086_missile_pickup(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.direction == Direction::Left {
+            self.anim_counter += 1;
+            if self.anim_counter > 2 {
+                self.anim_counter = 0;
+                self.anim_num += 1;
+                if self.anim_num > 1 {
+                    self.anim_num = 0;
+                }
+            }
+
+            self.action_counter2 += 1;
+        }
+
+        if state.control_flags.wind() {
+            if self.action_num == 0 {
+                self.action_num = 1;
+                self.vel_x = state.game_rng.range(0x7f..0x100) as isize;
+                self.vel_y = state.game_rng.range(-0x20..0x20) as isize;
+            }
+
+            self.vel_x -= 0x08;
+            if self.x < 80 * 0x200 {
+                self.cond.set_alive(false)
+            }
+
+            if self.flags.hit_left_wall() {
+                self.vel_x = 0x100;
+            }
+
+            if self.flags.hit_top_wall() {
+                self.vel_y = 0x40;
+            }
+
+            if self.flags.hit_bottom_wall() {
+                self.vel_y = -0x40;
+            }
+
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+        }
+
+        match self.exp {
+            1 => {
+                self.anim_rect = state.constants.npc.n086_missile_pickup[self.anim_num as usize];
+            }
+            3 => {
+                self.anim_rect = state.constants.npc.n086_missile_pickup[2 + self.anim_num as usize];
+            }
+            _ => {}
+        }
+
+        if self.action_counter2 > 550 {
+            self.cond.set_alive(false);
+        }
+
+        if self.action_counter2 > 500 && self.action_counter2 / 2 % 2 != 0 {
+            self.anim_rect.right = self.anim_rect.left;
+            self.anim_rect.bottom = self.anim_rect.top;
+        }
+
+        if self.action_counter2 > 547 {
+            self.anim_rect = state.constants.npc.n086_missile_pickup[4];
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n087_heart_pickup(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.direction == Direction::Left {
+            self.anim_counter += 1;
+            if self.anim_counter > 2 {
+                self.anim_counter = 0;
+                self.anim_num += 1;
+                if self.anim_num > 1 {
+                    self.anim_num = 0;
+                }
+            }
+
+            self.action_counter2 += 1;
+        }
+
+        if state.control_flags.wind() {
+            if self.action_num == 0 {
+                self.action_num = 1;
+                self.vel_x = state.game_rng.range(0x7f..0x100) as isize;
+                self.vel_y = state.game_rng.range(-0x20..0x20) as isize;
+            }
+
+            self.vel_x -= 0x08;
+            if self.x < 80 * 0x200 {
+                self.cond.set_alive(false)
+            }
+
+            if self.flags.hit_left_wall() {
+                self.vel_x = 0x100;
+            }
+
+            if self.flags.hit_top_wall() {
+                self.vel_y = 0x40;
+            }
+
+            if self.flags.hit_bottom_wall() {
+                self.vel_y = -0x40;
+            }
+
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+        }
+
+        match self.exp {
+            2 => {
+                self.anim_rect = state.constants.npc.n087_heart_pickup[self.anim_num as usize];
+            }
+            6 => {
+                self.anim_rect = state.constants.npc.n087_heart_pickup[2 + self.anim_num as usize];
+            }
+            _ => {}
+        }
+
+        if self.action_counter2 > 550 {
+            self.cond.set_alive(false);
+        }
+
+        if self.action_counter2 > 500 && self.action_counter2 / 2 % 2 != 0 {
+            self.anim_rect.right = self.anim_rect.left;
+            self.anim_rect.bottom = self.anim_rect.top;
+        }
+
+        if self.action_counter2 > 547 {
+            self.anim_rect = state.constants.npc.n087_heart_pickup[4];
+        }
+
         Ok(())
     }
 }

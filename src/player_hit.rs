@@ -241,22 +241,41 @@ impl Player {
             flags = self.judge_hit_npc_non_solid(npc.borrow());
         }
 
-        // xp pickup
-        if flags.0 != 0 && npc.npc_type == 1 {
-            state.sound_manager.play_sfx(14);
-            match inventory.add_xp(npc.exp, state) {
-                AddExperienceResult::None => {}
-                AddExperienceResult::LevelUp => {
-                    state.sound_manager.play_sfx(27);
-                    state.create_caret(self.x, self.y, CaretType::LevelUp, Direction::Left);
-                }
-                AddExperienceResult::AddStar => {
-                    if self.equip.has_whimsical_star() && self.stars < 3 {
-                        self.stars += 1;
+        if flags.0 != 0 {
+            match npc.npc_type {
+                // experience pickup
+                1 => {
+                    state.sound_manager.play_sfx(14);
+                    match inventory.add_xp(npc.exp, state) {
+                        AddExperienceResult::None => {}
+                        AddExperienceResult::LevelUp => {
+                            state.sound_manager.play_sfx(27);
+                            state.create_caret(self.x, self.y, CaretType::LevelUp, Direction::Left);
+                        }
+                        AddExperienceResult::AddStar => {
+                            if self.equip.has_whimsical_star() && self.stars < 3 {
+                                self.stars += 1;
+                            }
+                        }
                     }
+                    npc.cond.set_alive(false);
                 }
+                // missile pickup
+                86 => {
+                    // todo add bullets
+                    npc.cond.set_alive(false);
+
+                    state.sound_manager.play_sfx(42);
+                }
+                // heart pickup
+                87 => {
+                    self.life = self.max_life.min(self.life.saturating_add(npc.exp));
+                    npc.cond.set_alive(false);
+
+                    state.sound_manager.play_sfx(20);
+                }
+                _ => {}
             }
-            npc.cond.set_alive(false);
         }
 
         if npc.npc_flags.interactable() && !state.control_flags.interactions_disabled() && flags.0 != 0 && self.cond.interacted() {

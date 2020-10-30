@@ -9,7 +9,7 @@ use itertools::Itertools;
 
 use crate::bitfield;
 use crate::caret::CaretType;
-use crate::common::{Condition, Rect, fix9_scale};
+use crate::common::{Condition, fix9_scale, Rect};
 use crate::common::Direction;
 use crate::common::Flag;
 use crate::entity::GameEntity;
@@ -95,7 +95,7 @@ pub struct NPC {
     pub anim_rect: Rect<usize>,
 }
 
-static PARTICLE_NPCS: [u16; 6] = [1, 4, 73, 129, 199, 355];
+static PARTICLE_NPCS: [u16; 8] = [1, 4, 73, 86, 87, 129, 199, 355];
 
 impl NPC {
     pub fn get_start_index(&self) -> u16 {
@@ -206,6 +206,8 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             83 => self.tick_n083_igor_cutscene(state),
             84 => self.tick_n084_basu_projectile(state),
             85 => self.tick_n085_terminal(state, player),
+            86 => self.tick_n086_missile_pickup(state),
+            87 => self.tick_n087_heart_pickup(state),
             91 => self.tick_n091_mimiga_cage(state),
             96 => self.tick_n096_fan_left(state, player),
             97 => self.tick_n097_fan_up(state, player),
@@ -490,7 +492,7 @@ impl NPCMap {
         state.create_caret(x, y, CaretType::Explosion, Direction::Left);
     }
 
-    pub fn process_dead_npcs(&mut self, list: &[u16], state: &mut SharedGameState) {
+    pub fn process_dead_npcs(&mut self, list: &[u16], has_missile: bool, state: &mut SharedGameState) {
         for id in list {
             if let Some(npc_cell) = self.npcs.get(id) {
                 let mut npc = npc_cell.borrow_mut();
@@ -507,34 +509,54 @@ impl NPCMap {
                 };
 
                 if npc.exp != 0 {
-                    //if state.game_rng.range(0..4) == 0 {
-                    // health
+                    let rng = state.game_rng.range(0..4);
+                    match rng {
+                        0 => {
+                            let mut heart_pick = NPCMap::create_npc(87, &state.npc_table);
+                            heart_pick.cond.set_alive(true);
+                            heart_pick.direction = Direction::Left;
+                            heart_pick.x = npc.x;
+                            heart_pick.y = npc.y;
+                            heart_pick.exp = if npc.exp > 6 { 6 } else { 2 };
 
-                    //} else {
-                    let mut exp = npc.exp;
+                            state.new_npcs.push(heart_pick);
+                        }
+                        1 if has_missile => {
+                            let mut missile_pick = NPCMap::create_npc(86, &state.npc_table);
+                            missile_pick.cond.set_alive(true);
+                            missile_pick.direction = Direction::Left;
+                            missile_pick.x = npc.x;
+                            missile_pick.y = npc.y;
+                            missile_pick.exp = if npc.exp > 6 { 3 } else { 1 };
 
-                    while exp > 0 {
-                        let exp_piece = if exp >= 20 {
-                            exp -= 20;
-                            20
-                        } else if exp >= 5 {
-                            exp -= 5;
-                            5
-                        } else {
-                            exp -= 1;
-                            1
-                        };
+                            state.new_npcs.push(missile_pick);
+                        }
+                        _ => {
+                            let mut exp = npc.exp;
 
-                        let mut xp_npc = NPCMap::create_npc(1, &state.npc_table);
-                        xp_npc.cond.set_alive(true);
-                        xp_npc.direction = Direction::Left;
-                        xp_npc.x = npc.x;
-                        xp_npc.y = npc.y;
-                        xp_npc.exp = exp_piece;
+                            while exp > 0 {
+                                let exp_piece = if exp >= 20 {
+                                    exp -= 20;
+                                    20
+                                } else if exp >= 5 {
+                                    exp -= 5;
+                                    5
+                                } else {
+                                    exp -= 1;
+                                    1
+                                };
 
-                        state.new_npcs.push(xp_npc);
+                                let mut xp_npc = NPCMap::create_npc(1, &state.npc_table);
+                                xp_npc.cond.set_alive(true);
+                                xp_npc.direction = Direction::Left;
+                                xp_npc.x = npc.x;
+                                xp_npc.y = npc.y;
+                                xp_npc.exp = exp_piece;
+
+                                state.new_npcs.push(xp_npc);
+                            }
+                        }
                     }
-                    //}
                 }
 
                 state.game_flags.set(npc.flag_num as usize, true);
