@@ -6,10 +6,11 @@ use std::io::Cursor;
 use bitvec::vec::BitVec;
 use byteorder::{LE, ReadBytesExt};
 use itertools::Itertools;
+use num_traits::abs;
 
 use crate::bitfield;
 use crate::caret::CaretType;
-use crate::common::{Condition, fix9_scale, Rect};
+use crate::common::{Condition, fix9_scale, interpolate_fix9_scale, Rect};
 use crate::common::Direction;
 use crate::common::Flag;
 use crate::entity::GameEntity;
@@ -75,6 +76,8 @@ pub struct NPC {
     pub vel_y: isize,
     pub target_x: isize,
     pub target_y: isize,
+    pub prev_x: isize,
+    pub prev_y: isize,
     pub exp: u16,
     pub size: u8,
     pub shock: u16,
@@ -118,6 +121,8 @@ impl NPC {
             vel_y: 0,
             target_x: 0,
             target_y: 0,
+            prev_x: 0,
+            prev_y: 0,
             exp: 0,
             size: 0,
             shock: 0,
@@ -230,6 +235,14 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             self.shock -= 1;
         }
 
+        if abs(self.prev_x - self.x) > 0x1000 {
+            self.prev_x = self.x;
+        }
+
+        if abs(self.prev_y - self.y) > 0x1000 {
+            self.prev_y = self.y;
+        }
+
         Ok(())
     }
 
@@ -239,7 +252,6 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
         }
 
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, state.npc_table.get_texture_name(self.npc_type))?;
-        let scale = state.scale;
 
         let off_x = if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right } as isize;
         let shock = if self.shock > 0 {
@@ -247,8 +259,12 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
         } else { 0.0 };
 
         batch.add_rect(
-            fix9_scale(self.x - off_x - frame.x, scale) + shock,
-            fix9_scale(self.y - self.display_bounds.top as isize - frame.y, scale),
+            interpolate_fix9_scale(self.prev_x - off_x - frame.prev_x,
+                                   self.x - off_x - frame.x,
+                                   state.frame_time, state.scale) + shock,
+            interpolate_fix9_scale(self.prev_y - self.display_bounds.top as isize - frame.prev_y,
+                                   self.y - self.display_bounds.top as isize - frame.y,
+                                   state.frame_time, state.scale),
             &self.anim_rect,
         );
         batch.draw(ctx)?;
@@ -372,6 +388,8 @@ impl NPCMap {
             vel_y: 0,
             target_x: 0,
             target_y: 0,
+            prev_x: 0,
+            prev_y: 0,
             action_num: 0,
             anim_num: 0,
             flag_num: data.flag_num,
@@ -418,6 +436,8 @@ impl NPCMap {
             vel_y: 0,
             target_x: 0,
             target_y: 0,
+            prev_x: 0,
+            prev_y: 0,
             action_num: 0,
             anim_num: 0,
             flag_num: 0,

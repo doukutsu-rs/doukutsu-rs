@@ -92,13 +92,13 @@ impl Scene for TitleScene {
             self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
             self.main_menu.height = self.main_menu.entries.len() * 14 + 6;
 
-            self.option_menu.push_entry(MenuEntry::Toggle("50 FPS timing".to_string(), state.timing_mode == TimingMode::_50Hz));
+            self.option_menu.push_entry(MenuEntry::Toggle("Original timing (50TPS)".to_string(), state.timing_mode == TimingMode::_50Hz));
             self.option_menu.push_entry(MenuEntry::Toggle("Linear scaling".to_string(), ctx.filter_mode == FilterMode::Linear));
             self.option_menu.push_entry(MenuEntry::Toggle("Lighting effects".to_string(), state.settings.lighting_efects));
             if state.constants.is_cs_plus {
-                self.option_menu.push_entry(MenuEntry::Toggle("Original textures".to_string(), state.settings.original_textures));
+                self.option_menu.push_entry(MenuEntry::Toggle("Freeware textures".to_string(), state.settings.original_textures));
             } else {
-                self.option_menu.push_entry(MenuEntry::Disabled("Original textures".to_string()));
+                self.option_menu.push_entry(MenuEntry::Disabled("Freeware textures".to_string()));
             }
             self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
             self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));

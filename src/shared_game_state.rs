@@ -38,6 +38,14 @@ impl TimingMode {
             TimingMode::FrameSynchronized => { 0 }
         }
     }
+
+    pub fn get_delta_millis(self) -> f64 {
+        match self {
+            TimingMode::_50Hz => { 1000.0 / 50.0 }
+            TimingMode::_60Hz => { 1000.0 / 60.0 }
+            TimingMode::FrameSynchronized => { 0.0 }
+        }
+    }
 }
 
 pub struct Settings {
@@ -74,6 +82,8 @@ pub struct SharedGameState {
     pub settings: Settings,
     pub constants: EngineConstants,
     pub new_npcs: Vec<NPC>,
+    pub frame_time: f64,
+    pub prev_frame_time: f64,
     pub scale: f32,
     pub lightmap_canvas: Canvas,
     pub canvas_size: (f32, f32),
@@ -112,7 +122,7 @@ impl SharedGameState {
             .or_else(|_| BMFontRenderer::load("/", "builtin/builtin_font.fnt", ctx))?;
 
         Ok(SharedGameState {
-            timing_mode: TimingMode::_60Hz,
+            timing_mode: TimingMode::_50Hz,
             control_flags: ControlFlags(0),
             game_flags: bitvec::bitvec![0; 8000],
             fade_state: FadeState::Hidden,
@@ -141,6 +151,8 @@ impl SharedGameState {
             },
             constants,
             new_npcs: Vec::with_capacity(8),
+            frame_time: 0.0,
+            prev_frame_time: 0.0,
             scale,
             lightmap_canvas: Canvas::with_window_size(ctx)?,
             screen_size,
@@ -259,6 +271,8 @@ impl SharedGameState {
 
     pub fn set_speed(&mut self, value: f64) {
         self.settings.speed = value;
+        self.frame_time = 0.0;
+        self.prev_frame_time = 0.0;
 
         if let Err(err) = self.sound_manager.set_speed(value as f32) {
             log::error!("Error while sending a message to sound manager: {}", err);

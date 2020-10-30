@@ -1,14 +1,24 @@
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
+use crate::common::interpolate_fix9_scale;
 
 pub struct Frame {
     pub x: isize,
     pub y: isize,
+    pub prev_x: isize,
+    pub prev_y: isize,
     pub wait: isize,
 }
 
 impl Frame {
+    pub fn xy_interpolated(&self, frame_time: f64, scale: f32) -> (f32, f32) {
+        let x = interpolate_fix9_scale(self.prev_x, self.x, frame_time, scale);
+        let y = interpolate_fix9_scale(self.prev_y, self.y, frame_time, scale);
+
+        (x, y)
+    }
+
     pub fn immediate_update(&mut self, state: &mut SharedGameState, player: &Player, stage: &Stage) {
         if (stage.map.width - 1) * 16 < state.canvas_size.0 as usize {
             self.x = -(((state.canvas_size.0 as isize - ((stage.map.width - 1) * 16) as isize) * 0x200) / 2);
@@ -39,6 +49,9 @@ impl Frame {
                 self.y = max_y;
             }
         }
+
+        self.prev_x = self.x;
+        self.prev_y = self.y;
     }
 
     pub fn update(&mut self, state: &mut SharedGameState, player: &Player, stage: &Stage) {

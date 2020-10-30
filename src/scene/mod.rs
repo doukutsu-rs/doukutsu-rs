@@ -12,6 +12,8 @@ pub trait Scene {
 
     fn tick(&mut self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult { Ok(()) }
 
+    fn draw_tick(&mut self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult { Ok(()) }
+
     fn draw(&self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult { Ok(()) }
 
     fn debug_overlay_draw(&mut self, _game_ui: &mut Components, _state: &mut SharedGameState, _ctx: &mut Context, _frame: &mut imgui::Ui) -> GameResult { Ok(()) }

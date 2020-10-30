@@ -275,3 +275,13 @@ impl<T: Num + PartialOrd + Copy + AsPrimitive<f32>> Into<crate::ggez::graphics::
 pub fn fix9_scale(val: isize, scale: f32) -> f32 {
     (val as f64 * scale as f64 / 512.0).floor() as f32 / scale
 }
+
+#[inline(always)]
+fn lerp_f64(v1: f64, v2: f64, t: f64) -> f64 {
+    v1 * (1.0 - t.fract()) + v2 * t.fract()
+}
+
+#[inline(always)]
+pub fn interpolate_fix9_scale(old_val: isize, val: isize, frame_delta: f64, scale: f32) -> f32 {
+    ((lerp_f64(old_val as f64, val as f64, frame_delta) * scale as f64 / 512.0).floor() / (scale as f64)) as f32
+}

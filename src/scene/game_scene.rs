@@ -77,6 +77,8 @@ impl GameScene {
             frame: Frame {
                 x: 0,
                 y: 0,
+                prev_x: 0,
+                prev_y: 0,
                 wait: 16,
             },
             stage_id: id,
@@ -222,6 +224,7 @@ impl GameScene {
     fn draw_background(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_background_name)?;
         let scale = state.scale;
+        let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time, state.scale);
 
         match self.stage.data.background_type {
             BackgroundType::Stationary => {
@@ -237,13 +240,13 @@ impl GameScene {
             BackgroundType::MoveDistant | BackgroundType::MoveNear => {
                 let (off_x, off_y) = if self.stage.data.background_type == BackgroundType::MoveNear {
                     (
-                        self.frame.x as usize % (batch.width() * 0x200),
-                        self.frame.y as usize % (batch.height() * 0x200)
+                        frame_x % (batch.width() as f32),
+                        frame_y % (batch.height() as f32)
                     )
                 } else {
                     (
-                        self.frame.x as usize / 2 % (batch.width() * 0x200),
-                        self.frame.y as usize / 2 % (batch.height() * 0x200)
+                        ((frame_x / 2.0 * scale).floor() / scale) % (batch.width() as f32),
+                        ((frame_y / 2.0 * scale).floor() / scale) % (batch.height() as f32)
                     )
                 };
 
@@ -252,8 +255,8 @@ impl GameScene {
 
                 for y in 0..count_y {
                     for x in 0..count_x {
-                        batch.add((x * batch.width()) as f32 - fix9_scale(off_x as isize, scale),
-                                  (y * batch.height()) as f32 - fix9_scale(off_y as isize, scale));
+                        batch.add((x * batch.width()) as f32 - off_x,
+                                  (y * batch.height()) as f32 - off_y);
                     }
                 }
             }
@@ -598,9 +601,9 @@ impl GameScene {
             for npc_cell in self.npc_map.npcs.values() {
                 let npc = npc_cell.borrow();
 
-                if npc.x < (self.frame.x - npc.display_bounds.width() as isize * 0x200)
+                if npc.x < (self.frame.x - 128 - npc.display_bounds.width() as isize * 0x200)
                     || npc.x > (self.frame.x + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
-                    && npc.y < (self.frame.y - npc.display_bounds.height() as isize * 0x200)
+                    && npc.y < (self.frame.y - 128 - npc.display_bounds.height() as isize * 0x200)
                     || npc.y > (self.frame.y + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
                     continue;
                 }
@@ -716,6 +719,7 @@ impl GameScene {
         };
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex)?;
         let mut rect = Rect::<usize>::new(0, 0, 16, 16);
+        let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time, state.scale);
 
         let tile_start_x = clamp(self.frame.x / 0x200 / 16, 0, self.stage.map.width as isize) as usize;
         let tile_start_y = clamp(self.frame.y / 0x200 / 16, 0, self.stage.map.height as isize) as usize;
@@ -763,8 +767,8 @@ impl GameScene {
                     _ => {}
                 }
 
-                batch.add_rect((x as f32 * 16.0 - 8.0) - fix9_scale(self.frame.x, state.scale),
-                               (y as f32 * 16.0 - 8.0) - fix9_scale(self.frame.y, state.scale), &rect);
+                batch.add_rect((x as f32 * 16.0 - 8.0) - frame_x,
+                               (y as f32 * 16.0 - 8.0) - frame_y, &rect);
             }
         }
 
@@ -1124,6 +1128,24 @@ impl Scene for GameScene {
         Ok(())
     }
 
+    fn draw_tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        self.frame.prev_x = self.frame.x;
+        self.frame.prev_y = self.frame.y;
+        self.player.prev_x = self.player.x;
+        self.player.prev_y = self.player.y;
+
+        for npc_cell in self.npc_map.npcs.values() {
+            let mut npc = npc_cell.borrow_mut();
+
+            if npc.cond.alive() {
+                npc.prev_x = npc.x;
+                npc.prev_y = npc.y;
+            }
+        }
+
+        Ok(())
+    }
+
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         state.update_key_trigger();
 
@@ -1182,9 +1204,9 @@ impl Scene for GameScene {
             if let Some(npc_cell) = self.npc_map.npcs.get(npc_id) {
                 let npc = npc_cell.borrow();
 
-                if npc.x < (self.frame.x - npc.display_bounds.width() as isize * 0x200)
+                if npc.x < (self.frame.x - 128 - npc.display_bounds.width() as isize * 0x200)
                     || npc.x > (self.frame.x + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
-                    && npc.y < (self.frame.y - npc.display_bounds.height() as isize * 0x200)
+                    && npc.y < (self.frame.y - 128 - npc.display_bounds.height() as isize * 0x200)
                     || npc.y > (self.frame.y + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
                     continue;
                 }

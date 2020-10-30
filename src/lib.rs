@@ -72,6 +72,7 @@ struct Game {
     state: SharedGameState,
     ui: UI,
     def_matrix: ColumnMatrix4<f32>,
+    last_time: Instant,
     start_time: Instant,
     next_tick: u128,
     loops: u64,
@@ -84,6 +85,7 @@ impl Game {
             ui: UI::new(ctx)?,
             def_matrix: DrawParam::new().to_matrix(),
             state: SharedGameState::new(ctx)?,
+            last_time: Instant::now(),
             start_time: Instant::now(),
             next_tick: 0,
             loops: 0,
@@ -118,6 +120,15 @@ impl Game {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
+        if self.state.timing_mode != TimingMode::FrameSynchronized {
+            let now = Instant::now();
+            let delta = (now.duration_since(self.last_time).as_nanos() as f64 / 1000000.0).floor()
+                / (self.state.timing_mode.get_delta_millis() / self.state.settings.speed);
+            self.state.frame_time += delta;
+            self.last_time = now;
+        }
+        self.loops = 0;
+
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
         graphics::set_transform(ctx, DrawParam::new()
             .scale(Vector2::new(self.state.scale, self.state.scale))
@@ -125,6 +136,11 @@ impl Game {
         graphics::apply_transformations(ctx)?;
 
         if let Some(scene) = self.scene.as_mut() {
+            if self.state.frame_time.floor() > self.state.prev_frame_time.floor() {
+                self.state.prev_frame_time = self.state.frame_time;
+                scene.draw_tick(&mut self.state, ctx)?;
+            }
+
             scene.draw(&mut self.state, ctx)?;
             if self.state.settings.touch_controls {
                 self.state.touch_controls.draw(&self.state.constants, &mut self.state.texture_set, ctx)?;
@@ -136,7 +152,6 @@ impl Game {
         }
 
         graphics::present(ctx)?;
-        self.loops = 0;
         Ok(())
     }
 
@@ -333,6 +348,7 @@ pub fn init() -> GameResult {
 
                 if let Some(game) = &mut game {
                     game.loops = 0;
+                    game.last_time = Instant::now();
                 }
             }
             Event::Suspended => {
@@ -342,6 +358,7 @@ pub fn init() -> GameResult {
                     }
                 if let Some(game) = &mut game {
                     game.loops = 0;
+                    game.last_time = Instant::now();
                 }
             }
             Event::WindowEvent { event, .. } => {
@@ -419,6 +436,9 @@ pub fn init() -> GameResult {
                         game.state.next_scene = None;
 
                         game.scene.as_mut().unwrap().init(&mut game.state, ctx).unwrap();
+                        game.loops = 0;
+                        game.state.frame_time = 0.0;
+                        game.state.prev_frame_time = 0.0;
                     }
                 }
             }

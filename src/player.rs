@@ -5,7 +5,7 @@ use num_traits::clamp;
 use num_traits::FromPrimitive;
 
 use crate::caret::CaretType;
-use crate::common::{Condition, Direction, Equipment, fix9_scale, Flag, Rect};
+use crate::common::{Condition, Direction, Equipment, fix9_scale, Flag, interpolate_fix9_scale, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
@@ -27,6 +27,8 @@ pub struct Player {
     pub vel_y: isize,
     pub target_x: isize,
     pub target_y: isize,
+    pub prev_x: isize,
+    pub prev_y: isize,
     pub life: u16,
     pub max_life: u16,
     pub cond: Condition,
@@ -72,6 +74,8 @@ impl Player {
             vel_y: 0,
             target_x: 0,
             target_y: 0,
+            prev_x: 0,
+            prev_y: 0,
             life: constants.my_char.life,
             max_life: constants.my_char.max_life,
             cond: Condition(0x80),
@@ -635,8 +639,12 @@ impl GameEntity<()> for Player {
         {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
             batch.add_rect(
-                fix9_scale(self.x - self.display_bounds.left as isize - frame.x, state.scale),
-                fix9_scale(self.y - self.display_bounds.top as isize - frame.y, state.scale),
+                interpolate_fix9_scale(self.prev_x - self.display_bounds.left as isize - frame.prev_x,
+                                       self.x - self.display_bounds.left as isize - frame.x,
+                                       state.frame_time, state.scale),
+                interpolate_fix9_scale(self.prev_y - self.display_bounds.left as isize - frame.prev_y,
+                                       self.y - self.display_bounds.left as isize - frame.y,
+                                       state.frame_time, state.scale),
                 &self.anim_rect,
             );
             batch.draw(ctx)?;
@@ -647,15 +655,23 @@ impl GameEntity<()> for Player {
             match self.direction {
                 Direction::Left => {
                     batch.add_rect(
-                        fix9_scale(self.x - self.display_bounds.left as isize - frame.x, state.scale) - 8.0,
-                        fix9_scale(self.y - self.display_bounds.top as isize - frame.y, state.scale) + self.weapon_offset_y as f32,
+                        interpolate_fix9_scale(self.prev_x - self.display_bounds.left as isize - frame.prev_x,
+                                               self.x - self.display_bounds.left as isize - frame.x,
+                                               state.frame_time, state.scale) - 8.0,
+                        interpolate_fix9_scale(self.prev_y - self.display_bounds.left as isize - frame.prev_y,
+                                               self.y - self.display_bounds.left as isize - frame.y,
+                                               state.frame_time, state.scale) + self.weapon_offset_y as f32,
                         &self.weapon_rect,
                     );
                 }
                 Direction::Right => {
                     batch.add_rect(
-                        fix9_scale(self.x - self.display_bounds.left as isize - frame.x, state.scale),
-                        fix9_scale(self.y - self.display_bounds.top as isize - frame.y, state.scale) + self.weapon_offset_y as f32,
+                        interpolate_fix9_scale(self.prev_x - self.display_bounds.left as isize - frame.prev_x,
+                                               self.x - self.display_bounds.left as isize - frame.x,
+                                               state.frame_time, state.scale),
+                        interpolate_fix9_scale(self.prev_y - self.display_bounds.left as isize - frame.prev_y,
+                                               self.y - self.display_bounds.left as isize - frame.y,
+                                               state.frame_time, state.scale) + self.weapon_offset_y as f32,
                         &self.weapon_rect,
                     );
                 }
