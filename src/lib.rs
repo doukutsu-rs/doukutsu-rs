@@ -96,7 +96,7 @@ impl Game {
         if let Some(scene) = self.scene.as_mut() {
             match self.state.timing_mode {
                 TimingMode::_50Hz | TimingMode::_60Hz => {
-                    while self.start_time.elapsed().as_nanos() >= self.next_tick && self.loops < 3 {
+                    while self.start_time.elapsed().as_nanos() >= self.next_tick && self.loops < 10 {
                         if (self.state.settings.speed - 1.0).abs() < 0.01 {
                             self.next_tick += self.state.timing_mode.get_delta() as u128;
                         } else {
@@ -255,13 +255,12 @@ static BACKENDS: [Backend; 4] = [
 fn init_ctx<P: Into<path::PathBuf> + Clone>(event_loop: &winit::event_loop::EventLoopWindowTarget<()>, resource_dir: P) -> GameResult<Context> {
     for backend in BACKENDS.iter() {
         let mut ctx = ContextBuilder::new("doukutsu-rs")
-            .window_setup(WindowSetup::default().title("Cave Story (doukutsu-rs)"))
+            .window_setup(WindowSetup::default().title("Cave Story ~ Doukutsu Monogatari (doukutsu-rs)"))
             .window_mode(WindowMode::default()
                 .resizable(true)
                 .min_dimensions(320.0, 240.0)
                 .dimensions(854.0, 480.0))
             .add_resource_path(resource_dir.clone())
-            .add_resource_path(path::PathBuf::from(str!("./")))
             .backend(*backend)
             .build(event_loop);
 

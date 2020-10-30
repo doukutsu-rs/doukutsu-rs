@@ -241,7 +241,7 @@ impl Image {
     ) -> GameResult {
         use std::io;
         let data = self.to_rgba8(ctx)?;
-        let f = filesystem::create(ctx, path)?;
+        let f = filesystem::user_create(ctx, path)?;
         let writer = &mut io::BufWriter::new(f);
         let color_format = image::ColorType::RGBA(8);
         match format {

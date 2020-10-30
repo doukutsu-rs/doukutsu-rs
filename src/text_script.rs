@@ -27,6 +27,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
 use crate::weapon::WeaponType;
+use crate::profile::GameProfile;
 
 /// Engine's text script VM operation codes.
 #[derive(EnumString, Debug, FromPrimitive, PartialEq)]
@@ -351,6 +352,7 @@ pub enum TextScriptExecutionState {
     WaitStanding(u16, u32),
     WaitConfirmation(u16, u32, u16, u8, ConfirmSelection),
     WaitFade(u16, u32),
+    SaveProfile(u16, u32),
     LoadProfile,
 }
 
@@ -625,6 +627,12 @@ impl TextScriptVM {
                     if state.fade_state == FadeState::Hidden || state.fade_state == FadeState::Visible {
                         state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
                     }
+                    break;
+                }
+
+                TextScriptExecutionState::SaveProfile(event, ip) => {
+                    state.save_game(game_scene, ctx)?;
+                    state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
                     break;
                 }
                 TextScriptExecutionState::LoadProfile => {
@@ -1304,6 +1312,9 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::SVP => {
+                        exec_state = TextScriptExecutionState::SaveProfile(event, cursor.position() as u32);
+                    }
                     OpCode::LDP => {
                         state.control_flags.set_tick_world(false);
                         state.control_flags.set_control_enabled(false);
@@ -1316,7 +1327,7 @@ impl TextScriptVM {
                     OpCode::CIL | OpCode::CPS | OpCode::KE2 |
                     OpCode::CRE | OpCode::CSS | OpCode::FLA | OpCode::MLP |
                     OpCode::SPS | OpCode::FR2 |
-                    OpCode::STC | OpCode::SVP | OpCode::HM2 => {
+                    OpCode::STC | OpCode::HM2 => {
                         log::warn!("unimplemented opcode: {:?}", op);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);

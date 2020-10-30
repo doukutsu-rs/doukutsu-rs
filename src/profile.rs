@@ -1,6 +1,6 @@
 use std::io;
 
-use byteorder::{BE, LE, ReadBytesExt};
+use byteorder::{BE, LE, ReadBytesExt, WriteBytesExt};
 use num_traits::{clamp, FromPrimitive};
 
 use crate::common::{Direction, FadeState};
@@ -107,6 +107,142 @@ impl GameProfile {
         game_scene.player.stars = clamp(self.stars, 0, 3) as u8;
     }
 
+    pub fn dump(state: &mut SharedGameState, game_scene: &mut GameScene) -> GameProfile {
+        let current_map = game_scene.stage_id as u32;
+        let current_song = state.sound_manager.current_song() as u32;
+        let pos_x = game_scene.player.x as i32;
+        let pos_y = game_scene.player.y as i32;
+        let direction = game_scene.player.direction;
+        let max_life = game_scene.player.max_life;
+        let stars = game_scene.player.stars as u16;
+        let life = game_scene.player.life;
+        let current_weapon = game_scene.inventory.current_weapon as u32;
+        let current_item = game_scene.inventory.current_item as u32;
+        let equipment = game_scene.player.equip.0 as u32;
+        let control_mode = game_scene.player.control_mode as u32;
+        let counter = 0; // TODO
+        let mut weapon_data = [
+            WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
+            WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
+            WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
+            WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
+            WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
+            WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
+            WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
+            WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
+        ];
+        let mut items = [0u32; 32];
+        let mut teleporter_slots = [
+            TeleporterSlotData { index: 0, event_num: 0 },
+            TeleporterSlotData { index: 0, event_num: 0 },
+            TeleporterSlotData { index: 0, event_num: 0 },
+            TeleporterSlotData { index: 0, event_num: 0 },
+            TeleporterSlotData { index: 0, event_num: 0 },
+            TeleporterSlotData { index: 0, event_num: 0 },
+            TeleporterSlotData { index: 0, event_num: 0 },
+            TeleporterSlotData { index: 0, event_num: 0 },
+        ];
+
+        for (idx, weap) in weapon_data.iter_mut().enumerate() {
+            if let Some(weapon) = game_scene.inventory.get_weapon(idx) {
+                weap.weapon_id = weapon.wtype as u32;
+                weap.level = weapon.level as u32;
+                weap.exp = weapon.experience as u32;
+                weap.max_ammo = weapon.max_ammo as u32;
+                weap.ammo = weapon.ammo as u32;
+            }
+        }
+
+        for (idx, item) in items.iter_mut().enumerate() {
+            if let Some(sitem) = game_scene.inventory.get_item_idx(idx) {
+                *item = sitem.0 as u32;
+            }
+        }
+
+        for (idx, slot) in teleporter_slots.iter_mut().enumerate() {
+            if let Some(&(index, event_num)) = state.teleporter_slots.get(idx) {
+                slot.index = index as u32;
+                slot.event_num = event_num as u32;
+            }
+        }
+
+        let mut bidx = 0;
+        let mut flags = [0u8; 1000];
+        for bits in state.game_flags.as_slice() {
+            let bytes = bits.to_le_bytes();
+            for b in bytes.iter() {
+                if let Some(out) = flags.get_mut(bidx) {
+                    *out = *b;
+                }
+                bidx += 1;
+            }
+        }
+
+        GameProfile {
+            current_map,
+            current_song,
+            pos_x,
+            pos_y,
+            direction,
+            max_life,
+            stars,
+            life,
+            current_weapon,
+            current_item,
+            equipment,
+            control_mode,
+            counter,
+            weapon_data,
+            items,
+            teleporter_slots,
+            flags,
+        }
+    }
+
+    pub fn write_save<W: io::Write>(&self, mut data: W) -> GameResult {
+        data.write_u64::<BE>(0x446f303431323230)?;
+
+        data.write_u32::<LE>(self.current_map)?;
+        data.write_u32::<LE>(self.current_song)?;
+        data.write_i32::<LE>(self.pos_x)?;
+        data.write_i32::<LE>(self.pos_y)?;
+        data.write_u32::<LE>(self.direction as u32)?;
+        data.write_u16::<LE>(self.max_life)?;
+        data.write_u16::<LE>(self.stars)?;
+        data.write_u16::<LE>(self.life)?;
+        data.write_u16::<LE>(0)?;
+        data.write_u32::<LE>(self.current_weapon)?;
+        data.write_u32::<LE>(self.current_item)?;
+        data.write_u32::<LE>(self.equipment)?;
+        data.write_u32::<LE>(self.control_mode)?;
+        data.write_u32::<LE>(self.counter)?;
+
+        for weapon in self.weapon_data.iter() {
+            data.write_u32::<LE>(weapon.weapon_id)?;
+            data.write_u32::<LE>(weapon.level)?;
+            data.write_u32::<LE>(weapon.exp)?;
+            data.write_u32::<LE>(weapon.max_ammo)?;
+            data.write_u32::<LE>(weapon.ammo)?;
+        }
+
+        for item in self.items.iter().copied() {
+            data.write_u32::<LE>(item)?;
+        }
+
+        for slot in self.teleporter_slots.iter() {
+            data.write_u32::<LE>(slot.index)?;
+            data.write_u32::<LE>(slot.event_num)?;
+        }
+
+        let mut something = [0u8; 0x80];
+        data.write(&something);
+
+        data.write_u32::<BE>(0x464c4147)?;
+        data.write(&self.flags)?;
+
+        Ok(())
+    }
+
     pub fn load_from_save<R: io::Read>(mut data: R) -> GameResult<GameProfile> {
         // Do041220
         if data.read_u64::<BE>()? != 0x446f303431323230 {
@@ -125,7 +261,7 @@ impl GameProfile {
         let current_weapon = data.read_u32::<LE>()?;
         let current_item = data.read_u32::<LE>()?;
         let equipment = data.read_u32::<LE>()?;
-        let move_mode = data.read_u32::<LE>()?;
+        let control_mode = data.read_u32::<LE>()?;
         let counter = data.read_u32::<LE>()?;
         let mut weapon_data = [
             WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
@@ -188,7 +324,7 @@ impl GameProfile {
             current_weapon,
             current_item,
             equipment,
-            control_mode: move_mode,
+            control_mode,
             counter,
             weapon_data,
             items,

@@ -159,6 +159,10 @@ impl SoundManager {
 
         Ok(())
     }
+
+    pub fn current_song(&self) -> usize {
+        self.current_song_id
+    }
 }
 
 enum PlaybackMessage {

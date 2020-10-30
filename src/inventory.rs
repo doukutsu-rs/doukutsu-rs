@@ -6,7 +6,7 @@ use crate::weapon::{Weapon, WeaponLevel, WeaponType};
 
 #[derive(Clone, Copy)]
 /// (id, amount)
-pub struct Item(u16, u16);
+pub struct Item(pub u16, pub u16);
 
 #[derive(Clone)]
 pub struct Inventory {
@@ -68,6 +68,10 @@ impl Inventory {
 
     pub fn get_item(&mut self, item_id: u16) -> Option<&mut Item> {
         self.items.iter_mut().by_ref().find(|item| item.0 == item_id)
+    }
+
+    pub fn get_item_idx(&self, idx: usize) -> Option<&Item> {
+        self.items.get(idx)
     }
 
     pub fn has_item(&self, item_id: u16) -> bool {

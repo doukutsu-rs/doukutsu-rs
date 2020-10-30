@@ -20,6 +20,8 @@ use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
 use crate::touch_controls::TouchControls;
+use crate::ggez::filesystem::OpenOptions;
+use std::io::Seek;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -162,8 +164,19 @@ impl SharedGameState {
         Ok(())
     }
 
+    pub fn save_game(&mut self, game_scene: &mut GameScene, ctx: &mut Context) -> GameResult {
+        if let Ok(data) = filesystem::open_options(ctx, "/Profile.dat", OpenOptions::new().write(true).create(true)) {
+            let profile = GameProfile::dump(self, game_scene);
+            profile.write_save(data)?;
+        } else {
+            log::warn!("Cannot open save file.");
+        }
+
+        Ok(())
+    }
+
     pub fn load_or_start_game(&mut self, ctx: &mut Context) -> GameResult {
-        if let Ok(data) = filesystem::open(ctx, "/Profile.dat") {
+        if let Ok(data) = filesystem::user_open(ctx, "/Profile.dat") {
             match GameProfile::load_from_save(data) {
                 Ok(profile) => {
                     self.reset();
