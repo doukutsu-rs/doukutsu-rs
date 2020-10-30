@@ -116,10 +116,12 @@ impl Player {
                 self.air_counter = 60;
                 if self.air > 0 {
                     self.air -= 1;
+                } else if let Some(true) = state.game_flags.get(4000) {
+                    state.textscript_vm.start_script(1100);
                 } else {
                     self.cond.set_hidden(true);
-                    state.textscript_vm.start_script(41);
                     state.create_caret(self.x, self.y, CaretType::DrownedQuote, self.direction);
+                    state.textscript_vm.start_script(41);
                 }
             } else {
                 self.air = 1000;
