@@ -45,14 +45,16 @@ pub struct Player {
     pub update_target: bool,
     pub stars: u8,
     pub damage: u16,
+    pub air_counter: u16,
+    pub air: u16,
     weapon_offset_y: i8,
     index_x: isize,
     index_y: isize,
     splash: bool,
     booster_switch: u8,
     bubble: u8,
-    exp_wait: isize,
-    exp_count: isize,
+    damage_counter: u16,
+    damage_taken: i16,
     anim_num: u16,
     anim_counter: u16,
     anim_rect: Rect<usize>,
@@ -93,9 +95,11 @@ impl Player {
             booster_switch: 0,
             stars: 0,
             damage: 0,
+            air_counter: 0,
+            air: 0,
             bubble: 0,
-            exp_wait: 0,
-            exp_count: 0,
+            damage_counter: 0,
+            damage_taken: 0,
             anim_num: 0,
             anim_counter: 0,
             anim_rect: constants.my_char.animations_right[0],
@@ -104,11 +108,37 @@ impl Player {
     }
 
     fn tick_normal(&mut self, state: &mut SharedGameState) -> GameResult {
+        if !state.control_flags.interactions_disabled() && state.control_flags.control_enabled() {
+            if self.equip.has_air_tank() {
+                self.air = 1000;
+                self.air_counter = 0;
+            } else if self.flags.in_water() {
+                self.air_counter = 60;
+                if self.air > 0 {
+                    self.air -= 1;
+                } else {
+                    self.cond.set_hidden(true);
+                    state.textscript_vm.start_script(41);
+                    state.create_caret(self.x, self.y, CaretType::DrownedQuote, self.direction);
+                }
+            } else {
+                self.air = 1000;
+
+                if self.air_counter > 0 {
+                    self.air_counter -= 1;
+                }
+            }
+        }
+
         if self.cond.hidden() {
             return Ok(());
         }
 
-        let physics = if self.flags.in_water() { state.constants.my_char.water_physics } else { state.constants.my_char.air_physics };
+        let physics = if self.flags.in_water() {
+            state.constants.my_char.water_physics
+        } else {
+            state.constants.my_char.air_physics
+        };
 
         self.question = false;
 
@@ -572,29 +602,21 @@ impl GameEntity<()> for Player {
             return Ok(());
         }
 
-        if self.exp_wait != 0 {
-            self.exp_wait -= 1;
+        if self.damage_counter != 0 {
+            self.damage_counter -= 1;
         }
 
         if self.shock_counter != 0 {
             self.shock_counter -= 1;
-        } else if self.exp_count != 0 {
+        } else if self.damage_taken != 0 {
             // SetValueView(&self.x, &self.y, self.exp_count); // todo: damage popup
-            self.exp_count = 0;
+            self.damage_taken = 0;
         }
 
         // todo: add additional control modes like NXEngine has such as noclip?
         match self.control_mode {
-            ControlMode::Normal => {
-                if state.control_flags.interactions_disabled() && state.control_flags.control_enabled() {
-                    // AirProcess(); // todo
-                }
-
-                self.tick_normal(state)?;
-            }
-            ControlMode::IronHead => {
-                self.tick_ironhead(state)?;
-            }
+            ControlMode::Normal => self.tick_normal(state)?,
+            ControlMode::IronHead => self.tick_ironhead(state)?,
         }
 
         self.cond.set_increase_acceleration(false);

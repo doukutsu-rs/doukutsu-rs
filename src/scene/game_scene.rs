@@ -150,13 +150,24 @@ impl GameScene {
         if self.player.max_life != 0 {
             // life box
             batch.add_rect(16.0, 40.0,
-                           &Rect::<usize>::new_size(0, 40, 64, 8));
+                           &Rect::new_size(0, 40, 64, 8));
             // yellow bar
             batch.add_rect(40.0, 40.0,
-                           &Rect::<usize>::new_size(0, 32, ((self.life_bar as usize * 40) / self.player.max_life as usize), 8));
+                           &Rect::new_size(0, 32, ((self.life_bar as usize * 40) / self.player.max_life as usize), 8));
             // life
             batch.add_rect(40.0, 40.0,
-                           &Rect::<usize>::new_size(0, 24, ((self.player.life as usize * 40) / self.player.max_life as usize), 8));
+                           &Rect::new_size(0, 24, ((self.player.life as usize * 40) / self.player.max_life as usize), 8));
+        }
+
+        if self.player.air_counter > 0 {
+            let rect = if self.player.air % 30 > 10 {
+                Rect::new_size(112, 72, 32, 8)
+            } else {
+                Rect::new_size(112, 80, 32, 8)
+            };
+
+            batch.add_rect((state.canvas_size.0 / 2.0).floor() - 40.0,
+                           (state.canvas_size.1 / 2.0).floor(), &rect);
         }
 
         batch.draw(ctx)?;
@@ -191,6 +202,12 @@ impl GameScene {
         }
 
         batch.draw(ctx)?;
+
+        if self.player.air_counter > 0 && self.player.air_counter % 6 < 4 {
+            self.draw_number((state.canvas_size.0 / 2.0).floor() + 8.0,
+                             (state.canvas_size.1 / 2.0).floor(),
+                             (self.player.air / 10) as usize, Alignment::Left, state, ctx)?;
+        }
 
         if max_ammo != 0 {
             self.draw_number(weap_x + 64.0, 16.0, ammo as usize, Alignment::Right, state, ctx)?;
@@ -1104,9 +1121,6 @@ impl Scene for GameScene {
         self.player.target_y = self.player.y;
         self.frame.immediate_update(state, &self.player, &self.stage);
 
-        // self.inventory.add_weapon(WeaponType::PolarStar, 0);
-        // self.inventory.add_xp(120, state);
-        // self.player.equip.set_booster_2_0(true);
         Ok(())
     }
 
