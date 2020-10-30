@@ -1140,7 +1140,7 @@ impl Scene for GameScene {
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
-        if state.settings.enhanced_graphics
+        if state.settings.lighting_efects
             && self.stage.data.background_type != BackgroundType::Black
             && self.stage.data.background_type != BackgroundType::Outside
             && self.stage.data.background_type != BackgroundType::OutsideWind {
@@ -1166,7 +1166,7 @@ impl Scene for GameScene {
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;
-        if state.settings.enhanced_graphics
+        if state.settings.lighting_efects
             && self.stage.data.background_type == BackgroundType::Black {
             self.draw_light_map(state, ctx)?;
         }

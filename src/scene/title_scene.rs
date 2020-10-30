@@ -94,7 +94,7 @@ impl Scene for TitleScene {
 
             self.option_menu.push_entry(MenuEntry::Toggle("50 FPS timing".to_string(), state.timing_mode == TimingMode::_50Hz));
             self.option_menu.push_entry(MenuEntry::Toggle("Linear scaling".to_string(), ctx.filter_mode == FilterMode::Linear));
-            self.option_menu.push_entry(MenuEntry::Toggle("Enhanced graphics".to_string(), state.settings.enhanced_graphics));
+            self.option_menu.push_entry(MenuEntry::Toggle("Lighting effects".to_string(), state.settings.lighting_efects));
             if state.constants.is_cs_plus {
                 self.option_menu.push_entry(MenuEntry::Toggle("Original textures".to_string(), state.settings.original_textures));
             } else {
@@ -160,9 +160,9 @@ impl Scene for TitleScene {
                     }
                     MenuSelectionResult::Selected(2, toggle) => {
                         if let MenuEntry::Toggle(_, value) = toggle {
-                            state.settings.enhanced_graphics = !state.settings.enhanced_graphics;
+                            state.settings.lighting_efects = !state.settings.lighting_efects;
 
-                            *value = state.settings.enhanced_graphics;
+                            *value = state.settings.lighting_efects;
                         }
                     }
                     MenuSelectionResult::Selected(3, toggle) => {

@@ -44,7 +44,7 @@ pub struct Settings {
     pub god_mode: bool,
     pub speed: f64,
     pub original_textures: bool,
-    pub enhanced_graphics: bool,
+    pub lighting_efects: bool,
     pub debug_outlines: bool,
     pub touch_controls: bool,
 }
@@ -135,7 +135,7 @@ impl SharedGameState {
                 god_mode: false,
                 speed: 1.0,
                 original_textures: false,
-                enhanced_graphics: true,
+                lighting_efects: true,
                 debug_outlines: false,
                 touch_controls: cfg!(target_os = "android"),
             },
