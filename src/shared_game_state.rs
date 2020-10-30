@@ -164,6 +164,20 @@ impl SharedGameState {
         Ok(())
     }
 
+    pub fn start_intro(&mut self, ctx: &mut Context) -> GameResult {
+        let mut next_scene = GameScene::new(self, ctx, 72)?;
+        next_scene.player.cond.set_hidden(true);
+        next_scene.player.x = 3 * 16 * 0x200;
+        next_scene.player.y = 3 * 16 * 0x200;
+        next_scene.intro_mode = true;
+        self.fade_state = FadeState::Hidden;
+        self.textscript_vm.state = TextScriptExecutionState::Running(100, 0);
+
+        self.next_scene = Some(Box::new(next_scene));
+
+        Ok(())
+    }
+
     pub fn save_game(&mut self, game_scene: &mut GameScene, ctx: &mut Context) -> GameResult {
         if let Ok(data) = filesystem::open_options(ctx, "/Profile.dat", OpenOptions::new().write(true).create(true)) {
             let profile = GameProfile::dump(self, game_scene);

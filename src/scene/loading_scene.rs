@@ -39,7 +39,7 @@ impl Scene for LoadingScene {
             let stage_select_script = TextScript::load_from(stage_select_tsc, &state.constants)?;
             state.textscript_vm.set_stage_select_script(stage_select_script);
 
-            state.next_scene = Some(Box::new(TitleScene::new()));
+            state.start_intro(ctx)?;
         }
 
         self.tick += 1;

@@ -3,7 +3,7 @@ use log::info;
 
 use crate::bullet::BulletManager;
 use crate::caret::CaretType;
-use crate::common::{Direction, FadeDirection, FadeState, Rect, fix9_scale};
+use crate::common::{Direction, FadeDirection, FadeState, fix9_scale, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult, graphics, timer};
@@ -15,6 +15,7 @@ use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::scene::Scene;
+use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptVM};
@@ -31,6 +32,7 @@ pub struct GameScene {
     pub npc_map: NPCMap,
     pub bullet_manager: BulletManager,
     pub current_teleport_slot: u8,
+    pub intro_mode: bool,
     tex_background_name: String,
     tex_tileset_name: String,
     life_bar: u16,
@@ -79,13 +81,14 @@ impl GameScene {
             stage_id: id,
             npc_map: NPCMap::new(),
             bullet_manager: BulletManager::new(),
+            current_teleport_slot: 0,
+            intro_mode: false,
             tex_background_name,
             tex_tileset_name,
             life_bar: 0,
             life_bar_counter: 0,
             map_name_counter: 0,
             stage_select_text_y_pos: 54,
-            current_teleport_slot: 0,
             weapon_x_pos: 16,
         })
     }
@@ -1099,6 +1102,10 @@ impl Scene for GameScene {
 
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         state.update_key_trigger();
+
+        if self.intro_mode && (state.key_trigger.jump() || self.tick >= 500){
+            state.next_scene = Some(Box::new(TitleScene::new()));
+        }
 
         match state.textscript_vm.mode {
             ScriptMode::Map if state.control_flags.tick_world() => self.tick_world(state)?,
