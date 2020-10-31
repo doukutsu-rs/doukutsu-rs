@@ -224,6 +224,8 @@ pub struct NPCConsts {
     pub n097_fan_up: [Rect<usize>; 3],
     pub n098_fan_right: [Rect<usize>; 3],
     pub n099_fan_down: [Rect<usize>; 3],
+    pub n111_quote_teleport_out: [Rect<usize>; 4],
+    pub n112_quote_teleport_in: [Rect<usize>; 4],
     pub n129_fireball_snake_trail: [Rect<usize>; 18],
     pub n149_horizontal_moving_block: Rect<usize>,
     pub n157_vertical_moving_block: Rect<usize>,
@@ -1224,6 +1226,18 @@ impl EngineConstants {
                     Rect { left: 272, top: 168, right: 288, bottom: 184 },
                     Rect { left: 288, top: 168, right: 304, bottom: 184 },
                     Rect { left: 304, top: 168, right: 320, bottom: 184 },
+                ],
+                n111_quote_teleport_out: [
+                    Rect { left: 0, top: 0, right: 16, bottom: 16 }, // left
+                    Rect { left: 16, top: 0, right: 32, bottom: 16 },
+                    Rect { left: 0, top: 16, right: 16, bottom: 32 }, // right
+                    Rect { left: 16, top: 16, right: 32, bottom: 32 },
+                ],
+                n112_quote_teleport_in: [
+                    Rect { left: 0, top: 0, right: 16, bottom: 16 }, // left
+                    Rect { left: 16, top: 0, right: 32, bottom: 16 },
+                    Rect { left: 0, top: 16, right: 16, bottom: 32 }, // right
+                    Rect { left: 16, top: 16, right: 32, bottom: 32 },
                 ],
                 n129_fireball_snake_trail: [
                     Rect { left: 128, top: 48, right: 144, bottom: 64 },

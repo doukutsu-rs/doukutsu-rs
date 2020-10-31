@@ -37,6 +37,7 @@ pub mod mimiga_village;
 pub mod misc;
 pub mod misery;
 pub mod pickups;
+pub mod quote;
 pub mod sand_zone;
 pub mod santa;
 pub mod sue;
@@ -220,6 +221,8 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             97 => self.tick_n097_fan_up(state, player),
             98 => self.tick_n098_fan_right(state, player),
             99 => self.tick_n099_fan_down(state, player),
+            111 => self.tick_n111_quote_teleport_out(state, player),
+            112 => self.tick_n112_quote_teleport_in(state, player),
             129 => self.tick_n129_fireball_snake_trail(state),
             149 => self.tick_n149_horizontal_moving_block(state, player),
             157 => self.tick_n157_vertical_moving_block(state, player),
