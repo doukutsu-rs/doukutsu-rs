@@ -648,6 +648,7 @@ impl TextScriptVM {
     pub fn execute(event: u16, ip: u32, state: &mut SharedGameState, game_scene: &mut GameScene, ctx: &mut Context) -> GameResult<TextScriptExecutionState> {
         let mut exec_state = state.textscript_vm.state;
         let mut tick_npc = 0u16;
+        let mut npc_remove_type = 0u16;
 
         if let Some(bytecode) = state.textscript_vm.scripts.find_script(state.textscript_vm.mode, event) {
             let mut cursor = Cursor::new(bytecode);
@@ -1085,6 +1086,11 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::DNA => {
+                        npc_remove_type = read_cur_varint(&mut cursor)? as u16;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::FOM => {
                         let ticks = read_cur_varint(&mut cursor)? as isize;
                         game_scene.frame.wait = ticks;
@@ -1142,7 +1148,8 @@ impl TextScriptVM {
                     OpCode::CNP | OpCode::INP => {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
                         let new_type = read_cur_varint(&mut cursor)? as u16;
-                        let direction = read_cur_varint(&mut cursor)? as usize;
+                        let direction = Direction::from_int_facing(read_cur_varint(&mut cursor)? as usize)
+                            .unwrap_or(Direction::Left);
 
                         for npc_id in game_scene.npc_map.npc_ids.iter() {
                             if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
@@ -1181,14 +1188,14 @@ impl TextScriptVM {
                                     npc.vel_x = 0;
                                     npc.vel_y = 0;
 
-                                    if direction == 4 {
+                                    if direction == Direction::FacingPlayer {
                                         npc.direction = if game_scene.player.x < npc.x {
                                             Direction::Right
                                         } else {
                                             Direction::Left
                                         };
-                                    } else if let Some(dir) = Direction::from_int(direction) {
-                                        npc.direction = dir;
+                                    } else {
+                                        npc.direction = direction;
                                     }
 
                                     tick_npc = *npc_id;
@@ -1202,7 +1209,8 @@ impl TextScriptVM {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
                         let x = read_cur_varint(&mut cursor)? as isize;
                         let y = read_cur_varint(&mut cursor)? as isize;
-                        let direction = read_cur_varint(&mut cursor)? as usize;
+                        let direction = Direction::from_int_facing(read_cur_varint(&mut cursor)? as usize)
+                            .unwrap_or(Direction::Left);
 
                         for npc_id in game_scene.npc_map.npc_ids.iter() {
                             if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
@@ -1212,20 +1220,46 @@ impl TextScriptVM {
                                     npc.x = x * 16 * 0x200;
                                     npc.y = y * 16 * 0x200;
 
-                                    if direction == 4 {
+                                    if direction == Direction::FacingPlayer {
                                         npc.direction = if game_scene.player.x < npc.x {
                                             Direction::Right
                                         } else {
                                             Direction::Left
                                         };
-                                    } else if let Some(dir) = Direction::from_int(direction) {
-                                        npc.direction = dir;
+                                    } else {
+                                        npc.direction = direction;
                                     }
 
                                     break;
                                 }
                             }
                         }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::SNP => {
+                        let npc_type = read_cur_varint(&mut cursor)? as u16;
+                        let x = read_cur_varint(&mut cursor)? as isize;
+                        let y = read_cur_varint(&mut cursor)?as isize ;
+                        let direction = Direction::from_int_facing(read_cur_varint(&mut cursor)? as usize)
+                            .unwrap_or(Direction::Left);
+
+                        let mut npc = NPCMap::create_npc(npc_type, &state.npc_table);
+                        npc.cond.set_alive(true);
+                        npc.x = x * 16 * 0x200;
+                        npc.y = y * 16 * 0x200;
+
+                        if direction == Direction::FacingPlayer {
+                            npc.direction = if game_scene.player.x < npc.x {
+                                Direction::Right
+                            } else {
+                                Direction::Left
+                            };
+                        } else {
+                            npc.direction = direction;
+                        }
+
+                        state.new_npcs.push(npc);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1337,7 +1371,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // One operand codes
-                    OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::NUM | OpCode::DNA |
+                    OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::NUM |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp |
                     OpCode::UNJ | OpCode::MPJ | OpCode::XX1 | OpCode::SIL |
                     OpCode::SSS | OpCode::ACH | OpCode::S2MV => {
@@ -1366,17 +1400,6 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
-                    // Four operand codes
-                    OpCode::SNP => {
-                        let par_a = read_cur_varint(&mut cursor)?;
-                        let par_b = read_cur_varint(&mut cursor)?;
-                        let par_c = read_cur_varint(&mut cursor)?;
-                        let par_d = read_cur_varint(&mut cursor)?;
-
-                        log::warn!("unimplemented opcode: {:?} {} {} {} {}", op, par_a, par_b, par_c, par_d);
-
-                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
-                    }
                 }
             } else {
                 exec_state = TextScriptExecutionState::Ended;
@@ -1389,6 +1412,10 @@ impl TextScriptVM {
             if let Some(npc) = game_scene.npc_map.npcs.get(&tick_npc) {
                 npc.borrow_mut().tick(state, (&mut game_scene.player, &game_scene.npc_map.npcs, &mut game_scene.stage))?;
             }
+        }
+
+        if npc_remove_type != 0 {
+            game_scene.npc_map.remove_by_type(npc_remove_type, state);
         }
 
         Ok(exec_state)

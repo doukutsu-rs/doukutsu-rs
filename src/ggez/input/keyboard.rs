@@ -65,12 +65,13 @@
 //! }
 //! ```
 
-use crate::ggez::context::Context;
-
 use std::collections::HashSet;
+
 use winit::event::ModifiersState;
 /// A key code.
 pub use winit::event::VirtualKeyCode as KeyCode;
+
+use crate::ggez::context::Context;
 
 bitflags! {
     /// Bitflags describing the state of keyboard modifiers, such as `Control` or `Shift`.
@@ -242,66 +243,31 @@ mod tests {
     fn key_mod_conversions() {
         assert_eq!(
             KeyMods::empty(),
-            KeyMods::from(ModifiersState {
-                shift: false,
-                ctrl: false,
-                alt: false,
-                logo: false,
-            })
+            KeyMods::from(ModifiersState::from_bits(0).unwrap())
         );
         assert_eq!(
             KeyMods::SHIFT,
-            KeyMods::from(ModifiersState {
-                shift: true,
-                ctrl: false,
-                alt: false,
-                logo: false,
-            })
+            KeyMods::from(ModifiersState::SHIFT)
         );
         assert_eq!(
             KeyMods::SHIFT | KeyMods::ALT,
-            KeyMods::from(ModifiersState {
-                shift: true,
-                ctrl: false,
-                alt: true,
-                logo: false,
-            })
+            KeyMods::from(ModifiersState::SHIFT | ModifiersState::ALT)
         );
         assert_eq!(
             KeyMods::SHIFT | KeyMods::ALT | KeyMods::CTRL,
-            KeyMods::from(ModifiersState {
-                shift: true,
-                ctrl: true,
-                alt: true,
-                logo: false,
-            })
+            KeyMods::from(ModifiersState::SHIFT | ModifiersState::ALT | ModifiersState::CTRL)
         );
         assert_eq!(
             KeyMods::SHIFT - KeyMods::ALT,
-            KeyMods::from(ModifiersState {
-                shift: true,
-                ctrl: false,
-                alt: false,
-                logo: false,
-            })
+            KeyMods::from(ModifiersState::SHIFT)
         );
         assert_eq!(
             (KeyMods::SHIFT | KeyMods::ALT) - KeyMods::ALT,
-            KeyMods::from(ModifiersState {
-                shift: true,
-                ctrl: false,
-                alt: false,
-                logo: false,
-            })
+            KeyMods::from(ModifiersState::SHIFT)
         );
         assert_eq!(
             KeyMods::SHIFT - (KeyMods::ALT | KeyMods::SHIFT),
-            KeyMods::from(ModifiersState {
-                shift: false,
-                ctrl: false,
-                alt: false,
-                logo: false,
-            })
+            KeyMods::from(ModifiersState::from_bits(0).unwrap())
         );
     }
 
@@ -360,12 +326,8 @@ mod tests {
 
         // this test is mostly useless and is primarily for code coverage
         assert_eq!(keyboard.active_mods(), KeyMods::default());
-        keyboard.set_modifiers(KeyMods::from(ModifiersState {
-            shift: true,
-            ctrl: true,
-            alt: true,
-            logo: true,
-        }));
+        keyboard.set_modifiers(KeyMods::from(ModifiersState::SHIFT | ModifiersState::CTRL
+            | ModifiersState::ALT | ModifiersState::LOGO));
 
         // these test the workaround for https://github.com/tomaka/winit/issues/600
         assert_eq!(

@@ -122,8 +122,8 @@ impl Game {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         if self.state.timing_mode != TimingMode::FrameSynchronized {
             let now = Instant::now();
-            let delta = (now.duration_since(self.last_time).as_nanos() as f64 / 1000000.0).floor()
-                / (self.state.timing_mode.get_delta_millis() / self.state.settings.speed);
+            let delta = (now.duration_since(self.last_time).as_nanos() as f64)
+                / (self.state.timing_mode.get_delta() as f64 / self.state.settings.speed);
             self.state.frame_time += delta;
             self.last_time = now;
         }

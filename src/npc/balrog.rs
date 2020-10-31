@@ -98,6 +98,7 @@ impl NPC {
 
                     let mut npc = NPCMap::create_npc(11, &state.npc_table);
 
+                    npc.cond.set_alive(true);
                     npc.x = self.x;
                     npc.y = self.y + 4 * 0x200; // 4.0fix9
 
@@ -109,6 +110,11 @@ impl NPC {
                     state.new_npcs.push(npc);
 
                     state.sound_manager.play_sfx(39);
+
+                    if self.action_counter2 == 0 {
+                        self.action_num = 3;
+                        self.action_counter = 0;
+                    }
                 }
             }
             3 => {
@@ -126,11 +132,7 @@ impl NPC {
                     self.vel_x = 0;
                 }
 
-                if self.y + 10 * 0x200 >= player.y {
-                    self.damage = 0;
-                } else {
-                    self.damage = 5;
-                }
+                self.damage = if self.y + 16 * 0x200 < player.y { 5 } else { 0 };
 
                 if self.flags.hit_bottom_wall() {
                     self.action_num = 5;
@@ -668,7 +670,7 @@ impl NPC {
                     if (self.flags.hit_left_wall() || self.flags.hit_right_wall()) || self.action_counter > 75 {
                         self.action_num = 9;
                         self.anim_num = 0;
-                    } else if self.action_counter2 % 3 == 0 && self.action_counter > 25 {
+                    } else if (self.action_counter2 % 3 == 0) && self.action_counter > 25 {
                         self.action_num = 4;
                         self.anim_num = 7;
                         self.vel_y = -2 * 0x200; // -2.0fix9

@@ -1051,7 +1051,10 @@ impl GameScene {
         for npc in self.npc_map.npcs.values() {
             let npc = npc.borrow();
 
-            if npc.x < self.frame.x || npc.y < self.frame.y {
+            if npc.x < (self.frame.x - 128 - npc.display_bounds.width() as isize * 0x200)
+                || npc.x > (self.frame.x + 128 + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
+                && npc.y < (self.frame.y - 128 - npc.display_bounds.height() as isize * 0x200)
+                || npc.y > (self.frame.y + 128 + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
                 continue;
             }
 
@@ -1080,9 +1083,39 @@ impl GameScene {
                                                        (npc.hit_bounds.top + npc.hit_bounds.bottom) as isize / 0x200),
                                         [0.0, if npc.flags.hit_right_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
 
-            let text = format!("i{} n{} s{} a{} h{}", npc.id, npc.npc_type, npc.size, npc.action_num, npc.life);
+            {
+                let hit_rect_size = clamp(npc.hit_rect_size(), 1, 4);
+                let hit_rect_size = hit_rect_size * hit_rect_size;
+
+                let x = (npc.x + npc.offset_x()) / (16 * 0x200);
+                let y = (npc.y + npc.offset_y()) / (16 * 0x200);
+                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Caret")?;
+
+                let caret_rect = Rect::new_size(2, 74, 4, 4);
+                let caret2_rect = Rect::new_size(65, 9, 6, 6);
+
+                for (idx, (&ox, &oy)) in crate::physics::OFF_X.iter()
+                    .zip(crate::physics::OFF_Y.iter()).enumerate() {
+                    if idx == hit_rect_size {
+                        break;
+                    }
+
+                    batch.add_rect(((x + ox) * 16 - self.frame.x / 0x200) as f32 - 2.0,
+                                   ((y + oy) * 16 - self.frame.y / 0x200) as f32 - 2.0,
+                                    &caret_rect);
+                }
+
+
+                batch.add_rect(((npc.x - self.frame.x) / 0x200) as f32 - 3.0,
+                               ((npc.y - self.frame.y) / 0x200) as f32 - 3.0,
+                               &caret_rect);
+
+                batch.draw(ctx)?;
+            }
+
+            let text = format!("{}:{}:{}", npc.id, npc.npc_type, npc.size);
             state.font.draw_colored_text(text.chars(), ((npc.x - self.frame.x) / 0x200) as f32, ((npc.y - self.frame.y) / 0x200) as f32,
-                                         (0, 255, 0), &state.constants, &mut state.texture_set, ctx)?;
+                                         (0, 255, (npc.id & 0xff) as u8), &state.constants, &mut state.texture_set, ctx)?;
         }
         Ok(())
     }
@@ -1205,9 +1238,9 @@ impl Scene for GameScene {
                 let npc = npc_cell.borrow();
 
                 if npc.x < (self.frame.x - 128 - npc.display_bounds.width() as isize * 0x200)
-                    || npc.x > (self.frame.x + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
+                    || npc.x > (self.frame.x + 128 + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
                     && npc.y < (self.frame.y - 128 - npc.display_bounds.height() as isize * 0x200)
-                    || npc.y > (self.frame.y + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
+                    || npc.y > (self.frame.y + 128 + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
                     continue;
                 }
 

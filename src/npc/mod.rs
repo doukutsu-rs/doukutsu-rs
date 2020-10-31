@@ -426,7 +426,7 @@ impl NPCMap {
         let hit_bounds = table.get_hit_bounds(npc_type);
         let (size, life, damage, flags, exp) = match table.get_entry(npc_type) {
             Some(entry) => { (entry.size, entry.life, entry.damage as u16, entry.npc_flags, entry.experience as u16) }
-            None => { (1, 0, 0, NPCFlag(0), 0) }
+            None => { (2, 0, 0, NPCFlag(0), 0) }
         };
         let npc_flags = NPCFlag(flags.0);
 
@@ -486,6 +486,24 @@ impl NPCMap {
             if npc.event_num == event_num {
                 npc.cond.set_alive(false);
                 game_flags.set(npc.flag_num as usize, true);
+            }
+        }
+    }
+
+    pub fn remove_by_type(&mut self, npc_type: u16, state: &mut SharedGameState) {
+        for npc_cell in self.npcs.values() {
+            let mut npc = npc_cell.borrow_mut();
+
+            if npc.npc_type == npc_type {
+                npc.cond.set_alive(false);
+                state.game_flags.set(npc.flag_num as usize, true);
+
+                match npc.size {
+                    1 => self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 3, state),
+                    2 => self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 7, state),
+                    3 => self.create_death_effect(npc.x, npc.y, npc.display_bounds.right, 12, state),
+                    _ => {}
+                };
             }
         }
     }

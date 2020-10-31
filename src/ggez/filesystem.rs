@@ -501,10 +501,14 @@ mod tests {
         path.push("resources");
         let physfs = vfs::PhysicalFS::new(&path, false);
         let mut ofs = vfs::OverlayFS::new();
-        ofs.push_front(Box::new(physfs));
+        ofs.push_front(Box::new(physfs.clone()));
+
+        let mut user_ofs = vfs::OverlayFS::new();
+        user_ofs.push_front(Box::new(physfs.clone()));
+
         Filesystem {
             vfs: ofs,
-            user_vfs: ofs,
+            user_vfs: user_ofs,
             //user_config_path: path,
             user_data_path: path
         }
@@ -539,7 +543,7 @@ mod tests {
         let bytes = "test".as_bytes();
 
         {
-            let mut file = fs.create(test_file).unwrap();
+            let mut file = fs.user_create(test_file).unwrap();
             let _ = file.write(bytes).unwrap();
         }
         {
@@ -549,7 +553,7 @@ mod tests {
             assert_eq!(bytes, buffer.as_slice());
         }
 
-        fs.delete(test_file).unwrap();
+        fs.user_delete(test_file).unwrap();
     }
 
     #[test]
@@ -573,19 +577,5 @@ mod tests {
                 Ok(f) => panic!("Should have gotten an error but instead got {:?}", f),
             }
         }
-    }
-
-    #[test]
-    fn headless_test_write_config() {
-        let mut f = dummy_fs_for_tests();
-        let conf = conf::Conf::new();
-        // The config file should end up in
-        // the resources directory with this
-        match f.write_config(&conf) {
-            Ok(_) => (),
-            Err(e) => panic!("{:?}", e),
-        }
-        // Remove the config file!
-        f.delete(CONFIG_NAME).unwrap();
     }
 }

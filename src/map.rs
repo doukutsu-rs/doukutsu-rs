@@ -56,6 +56,7 @@ impl Map {
 
     pub fn get_attribute(&self, x: usize, y: usize) -> u8 {
         if x >= self.width || y >= self.height {
+            log::warn!("x: {} > {}, y: {} > {}", x, self.width, y, self.height);
             return 0;
         }
 

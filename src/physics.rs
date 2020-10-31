@@ -355,8 +355,8 @@ pub trait PhysicalEntity {
         let hit_rect_size = clamp(self.hit_rect_size(), 1, 4);
         let hit_rect_size = hit_rect_size * hit_rect_size;
 
-        let x = clamp((self.x() + self.offset_x()) / 16 / 0x200, 0, stage.map.width as isize);
-        let y = clamp((self.y() + self.offset_y()) / 16 / 0x200, 0, stage.map.height as isize);
+        let x = (self.x() + self.offset_x()) / (16 * 0x200);
+        let y = (self.y() + self.offset_y()) / (16 * 0x200);
 
         self.flags().0 = 0;
         for (idx, (&ox, &oy)) in OFF_X.iter().zip(OFF_Y.iter()).enumerate() {
