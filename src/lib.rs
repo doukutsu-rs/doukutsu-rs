@@ -14,7 +14,7 @@ extern crate strum_macros;
 
 use std::{env, mem};
 use std::path;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use log::*;
 use pretty_env_logger::env_logger::Env;
@@ -34,6 +34,7 @@ use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
 use crate::ui::UI;
+use crate::ggez::graphics::glutin_ext::WindowUpdateExt;
 
 mod bmfont;
 mod bmfont_renderer;
@@ -373,7 +374,7 @@ pub fn init() -> GameResult {
                         if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
                             game.state.handle_resize(ctx).unwrap();
                             game.state.lightmap_canvas = Canvas::with_window_size(ctx).unwrap();
-                            //old_school_gfx_glutin_ext::WindowUpdateExt::update_gfx(graphics::window(ctx), &mut game.ui.main_color, &mut game.ui.main_depth);
+                            graphics::window(ctx).update_gfx(&mut game.ui.main_color, &mut game.ui.main_depth);
                         }
                     }
                     WindowEvent::Touch(touch) => {
