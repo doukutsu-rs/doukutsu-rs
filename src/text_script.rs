@@ -754,9 +754,9 @@ impl TextScriptVM {
                         if let Some(direction) = Direction::from_int_facing(new_direction) {
                             match direction {
                                 Direction::Left => game_scene.player.vel_x = 0x200,
-                                Direction::Up => game_scene.player.vel_y = 0x200,
+                                Direction::Up => game_scene.player.vel_y = -0x200,
                                 Direction::Right => game_scene.player.vel_x = -0x200,
-                                Direction::Bottom => game_scene.player.vel_y = -0x200,
+                                Direction::Bottom => game_scene.player.vel_y = 0x200,
                                 Direction::FacingPlayer => {
                                     // todo npc direction dependent bump
                                 }
@@ -982,6 +982,7 @@ impl TextScriptVM {
                         let pos_y = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
 
                         let mut new_scene = GameScene::new(state, ctx, map_id)?;
+                        new_scene.intro_mode = game_scene.intro_mode;
                         new_scene.inventory = game_scene.inventory.clone();
                         new_scene.player = game_scene.player.clone();
                         new_scene.player.vel_x = 0;
@@ -1168,6 +1169,9 @@ impl TextScriptVM {
                                     let entry = state.npc_table.get_entry(new_type).unwrap().to_owned();
                                     npc.npc_flags.0 |= entry.npc_flags.0;
                                     npc.life = entry.life;
+                                    npc.size = entry.size;
+                                    npc.exp = entry.experience as u16;
+                                    npc.damage = entry.damage as u16;
 
                                     npc.cond.set_alive(true);
                                     npc.action_num = 0;
