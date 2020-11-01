@@ -454,7 +454,15 @@ impl Stage {
         Ok(npc_data)
     }
 
-    /// Returns true if smoke should be emitted
+    pub fn tile_at(&self, x: usize, y: usize) -> u8 {
+        if let Some(&tile) = self.map.tiles.get(y * self.map.width + x) {
+            tile
+        } else {
+            0
+        }
+    }
+
+    /// Changes map tile. Returns true if smoke should be emitted
     pub fn change_tile(&mut self, x: usize, y: usize, tile_type: u8) -> bool {
         if let Some(ptr) = self.map.tiles.get_mut(y * self.map.width + x) {
             if *ptr != tile_type {

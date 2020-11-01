@@ -891,6 +891,15 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::SMP => {
+                        let pos_x = read_cur_varint(&mut cursor)? as usize;
+                        let pos_y = read_cur_varint(&mut cursor)? as usize;
+                        
+                        let tile_type = game_scene.stage.tile_at(pos_x, pos_y);
+                        game_scene.stage.change_tile(pos_x, pos_y, tile_type.wrapping_sub(1));
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::CMP => {
                         let pos_x = read_cur_varint(&mut cursor)? as usize;
                         let pos_y = read_cur_varint(&mut cursor)? as usize;
@@ -1387,7 +1396,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // Two operand codes
-                    OpCode::SKJ | OpCode::SMP => {
+                    OpCode::SKJ => {
                         let par_a = read_cur_varint(&mut cursor)?;
                         let par_b = read_cur_varint(&mut cursor)?;
 
