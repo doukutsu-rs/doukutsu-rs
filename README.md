@@ -31,9 +31,9 @@ Vanilla Cave Story does not work yet because some important data files have been
 **Cave Story+**
 
 - PC release - Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
-- Switch release - Not supported, because extracting the data files from the console is complicated and requires 
-device-specific decryption keys. Some of release-specific features have been implemented, so you should be able to play 
-it without any major issues. Google will likely help you if you really want to.
+- Switch release - **Not supported or actively tested.** Some of release-specific opcodes have been implemented (no code 
+decompilation was involved, just pure data file analysis), so you should be able to play it without any major issues. 
+Because methods used to extract game data from cartridge vary, you have to find that out on your own.
 
 #### Roadmap
 
@@ -51,7 +51,7 @@ it without any major issues. Google will likely help you if you really want to.
   - [x] HUD
 - [ ] Text scripts (TSC)
   - [x] Initial implementation
-  - [ ] Full implementation of opcodes (~80% done)
+  - [ ] Full implementation of opcodes (~90% done)
   - [ ] Credits
   - [x] Shift-JIS encoding support
 - [ ] Audio
@@ -65,8 +65,8 @@ it without any major issues. Google will likely help you if you really want to.
   - [ ] Bosses
   - [x] First Cave
   - [x] Mimiga Village
-  - [ ] Egg Corridor (~70% done)
-  - [ ] Grasstown (~10% done)
+  - [x] Egg Corridor
+  - [ ] Grasstown (~30% done)
   - [ ] Sand Zone (~10% done)
   - [ ] Labirynth (~10% done)
   - [ ] Outer Wall
@@ -95,7 +95,7 @@ it without any major issues. Google will likely help you if you really want to.
   - [ ] Level editor
   - [ ] Texture auto-reload mode for spriters
 - [x] Saving and loading game state
-- [ ] Data file support
+- [ ] Support for different game editions
   - [ ] Vanilla
   - [x] Modified vanilla
   - [ ] Cave Story+
