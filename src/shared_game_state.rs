@@ -50,6 +50,7 @@ impl TimingMode {
 
 pub struct Settings {
     pub god_mode: bool,
+    pub infinite_booster: bool,
     pub speed: f64,
     pub original_textures: bool,
     pub lighting_efects: bool,
@@ -143,6 +144,7 @@ impl SharedGameState {
             sound_manager: SoundManager::new(ctx)?,
             settings: Settings {
                 god_mode: false,
+                infinite_booster: false,
                 speed: 1.0,
                 original_textures: false,
                 lighting_efects: true,

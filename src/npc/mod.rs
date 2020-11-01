@@ -73,11 +73,19 @@ pub struct NPC {
     pub npc_type: u16,
     pub x: isize,
     pub y: isize,
+    /// X velocity, affected by physics code
     pub vel_x: isize,
+    /// Y velocity, affected by physics code
     pub vel_y: isize,
+    /// X velocity, unaffected by physics code
+    pub vel_x2: isize,
+    /// Y velocity, unaffected by physics code
+    pub vel_y2: isize,
     pub target_x: isize,
     pub target_y: isize,
+    /// Previous X position, used by frame interpolator
     pub prev_x: isize,
+    /// Previous Y position, used by frame interpolator
     pub prev_y: isize,
     pub exp: u16,
     pub size: u8,
@@ -88,6 +96,9 @@ pub struct NPC {
     pub flags: Flag,
     pub npc_flags: NPCFlag,
     pub direction: Direction,
+    /// Raw direction value set by TSC because some NPCs have it set outside 0-4 range,
+    /// breaking the direction type.
+    pub tsc_direction: u16,
     pub display_bounds: Rect<usize>,
     pub hit_bounds: Rect<usize>,
     pub parent_id: u16,
@@ -101,7 +112,7 @@ pub struct NPC {
     pub anim_rect: Rect<usize>,
 }
 
-static PARTICLE_NPCS: [u16; 8] = [1, 4, 73, 86, 87, 129, 199, 355];
+static PARTICLE_NPCS: [u16; 9] = [1, 4, 73, 84, 86, 87, 129, 199, 355];
 
 impl NPC {
     pub fn get_start_index(&self) -> u16 {
@@ -120,6 +131,8 @@ impl NPC {
             y: 0,
             vel_x: 0,
             vel_y: 0,
+            vel_x2: 0,
+            vel_y2: 0,
             target_x: 0,
             target_y: 0,
             prev_x: 0,
@@ -133,6 +146,7 @@ impl NPC {
             flags: Flag(0),
             npc_flags: NPCFlag(0),
             direction: Direction::Left,
+            tsc_direction: 0,
             display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 },
             hit_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 },
             parent_id: 0,
@@ -174,7 +188,13 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             20 => self.tick_n020_computer(state),
             21 => self.tick_n021_chest_open(state),
             22 => self.tick_n022_teleporter(state),
+            23 => self.tick_n023_teleporter_lights(state),
+            24 => self.tick_n024_power_critter(state, player),
+            25 => self.tick_n025_lift(state),
+            26 => self.tick_n026_bat_flying(state, player),
             27 => self.tick_n027_death_trap(state),
+            28 => self.tick_n028_flying_critter(state, player),
+            29 => self.tick_n029_cthulhu(state, player),
             30 => self.tick_n030_gunsmith(state),
             32 => self.tick_n032_life_capsule(state),
             34 => self.tick_n034_bed(state),
@@ -187,6 +207,7 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             46 => self.tick_n046_hv_trigger(state, player),
             52 => self.tick_n052_sitting_blue_robot(state),
             55 => self.tick_n055_kazuma(state),
+            58 => self.tick_n058_basu(state, player),
             59 => self.tick_n059_eye_door(state, player),
             60 => self.tick_n060_toroko(state, player),
             61 => self.tick_n061_king(state),
@@ -225,12 +246,15 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             112 => self.tick_n112_quote_teleport_in(state, player),
             129 => self.tick_n129_fireball_snake_trail(state),
             149 => self.tick_n149_horizontal_moving_block(state, player),
+            150 => self.tick_n150_quote(state, player),
+            154 => self.tick_n154_gaudi_dead(state),
             157 => self.tick_n157_vertical_moving_block(state, player),
             199 => self.tick_n199_wind_particles(state),
             211 => self.tick_n211_small_spikes(state),
             298 => self.tick_n298_intro_doctor(state),
             299 => self.tick_n299_intro_balrog_misery(state),
             300 => self.tick_n300_intro_demon_crown(state),
+            361 => self.tick_n361_gaudi_dashing(state, player),
             _ => Ok(()),
         }?;
 
@@ -389,6 +413,8 @@ impl NPCMap {
             y: data.y as isize * 16 * 0x200,
             vel_x: 0,
             vel_y: 0,
+            vel_x2: 0,
+            vel_y2: 0,
             target_x: 0,
             target_y: 0,
             prev_x: 0,
@@ -405,6 +431,7 @@ impl NPCMap {
             cond: Condition(0x00),
             flags: Flag(0),
             direction: if npc_flags.spawn_facing_right() { Direction::Right } else { Direction::Left },
+            tsc_direction: 0,
             npc_flags,
             display_bounds,
             hit_bounds,
@@ -437,6 +464,8 @@ impl NPCMap {
             y: 0,
             vel_x: 0,
             vel_y: 0,
+            vel_x2: 0,
+            vel_y2: 0,
             target_x: 0,
             target_y: 0,
             prev_x: 0,
@@ -453,6 +482,7 @@ impl NPCMap {
             cond: Condition(0x00),
             flags: Flag(0),
             direction: if npc_flags.spawn_facing_right() { Direction::Right } else { Direction::Left },
+            tsc_direction: 0,
             npc_flags,
             display_bounds,
             hit_bounds,

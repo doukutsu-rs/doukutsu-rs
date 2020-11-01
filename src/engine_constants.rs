@@ -164,9 +164,14 @@ pub struct NPCConsts {
     pub n021_chest_open: Rect<usize>,
     pub n022_teleporter: [Rect<usize>; 2],
     pub n023_teleporter_lights: [Rect<usize>; 8],
+    pub n024_power_critter: [Rect<usize>; 12],
+    pub n025_lift: [Rect<usize>; 2],
+    pub n026_bat_flying: [Rect<usize>; 8],
     pub n027_death_trap: Rect<usize>,
+    pub n028_flying_critter: [Rect<usize>; 12],
     pub n029_cthulhu: [Rect<usize>; 4],
     pub n030_hermit_gunsmith: [Rect<usize>; 3],
+    pub n031_bat_hanging: [Rect<usize>; 10],
     pub n032_life_capsule: [Rect<usize>; 2],
     pub n034_bed: [Rect<usize>; 2],
     pub n035_mannan: [Rect<usize>; 8],
@@ -184,6 +189,7 @@ pub struct NPCConsts {
     pub n049_skullhead: [Rect<usize>; 6],
     pub n052_sitting_blue_robot: Rect<usize>,
     pub n055_kazuma: [Rect<usize>; 12],
+    pub n058_basu: [Rect<usize>; 6],
     pub n059_eye_door: [Rect<usize>; 4],
     pub n060_toroko: [Rect<usize>; 16],
     pub n061_king: [Rect<usize>; 20],
@@ -228,12 +234,15 @@ pub struct NPCConsts {
     pub n112_quote_teleport_in: [Rect<usize>; 4],
     pub n129_fireball_snake_trail: [Rect<usize>; 18],
     pub n149_horizontal_moving_block: Rect<usize>,
+    pub n150_quote: [Rect<usize>; 18],
+    pub n154_gaudi_dead: [Rect<usize>; 6],
     pub n157_vertical_moving_block: Rect<usize>,
     pub n199_wind_particles: [Rect<usize>; 5],
     pub n211_small_spikes: [Rect<usize>; 4],
     pub n298_intro_doctor: [Rect<usize>; 8],
     pub n299_intro_balrog_misery: [Rect<usize>; 2],
     pub n300_intro_demon_crown: Rect<usize>,
+    pub n361_gaudi_dashing: [Rect<usize>; 4],
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -692,7 +701,49 @@ impl EngineConstants {
                     Rect { left: 264, top: 40, right: 288, bottom: 44 },
                     Rect { left: 264, top: 44, right: 288, bottom: 48 },
                 ],
+                n024_power_critter: [
+                    Rect { left: 0, top: 0, right: 24, bottom: 24 }, // left
+                    Rect { left: 24, top: 0, right: 48, bottom: 24 },
+                    Rect { left: 48, top: 0, right: 72, bottom: 24 },
+                    Rect { left: 72, top: 0, right: 96, bottom: 24 },
+                    Rect { left: 96, top: 0, right: 120, bottom: 24 },
+                    Rect { left: 120, top: 0, right: 144, bottom: 24 },
+                    Rect { left: 0, top: 24, right: 24, bottom: 48 }, // right
+                    Rect { left: 24, top: 24, right: 48, bottom: 48 },
+                    Rect { left: 48, top: 24, right: 72, bottom: 48 },
+                    Rect { left: 72, top: 24, right: 96, bottom: 48 },
+                    Rect { left: 96, top: 24, right: 120, bottom: 48 },
+                    Rect { left: 120, top: 24, right: 144, bottom: 48 },
+                ],
+                n025_lift: [
+                    Rect { left: 256, top: 64, right: 288, bottom: 80 },
+                    Rect { left: 256, top: 80, right: 288, bottom: 96 },
+                ],
+                n026_bat_flying: [
+                    Rect { left: 32, top: 80, right: 48, bottom: 96 }, // left
+                    Rect { left: 48, top: 80, right: 64, bottom: 96 },
+                    Rect { left: 64, top: 80, right: 80, bottom: 96 },
+                    Rect { left: 80, top: 80, right: 96, bottom: 96 },
+                    Rect { left: 32, top: 96, right: 48, bottom: 112 }, // right
+                    Rect { left: 48, top: 96, right: 64, bottom: 112 },
+                    Rect { left: 64, top: 96, right: 80, bottom: 112 },
+                    Rect { left: 80, top: 96, right: 96, bottom: 112 },
+                ],
                 n027_death_trap: Rect { left: 96, top: 64, right: 128, bottom: 88 },
+                n028_flying_critter: [
+                    Rect { left: 0, top: 48, right: 16, bottom: 64 }, // left
+                    Rect { left: 16, top: 48, right: 32, bottom: 64 },
+                    Rect { left: 32, top: 48, right: 48, bottom: 64 },
+                    Rect { left: 48, top: 48, right: 64, bottom: 64 },
+                    Rect { left: 64, top: 48, right: 80, bottom: 64 },
+                    Rect { left: 80, top: 48, right: 96, bottom: 64 },
+                    Rect { left: 0, top: 64, right: 16, bottom: 80 }, // right
+                    Rect { left: 16, top: 64, right: 32, bottom: 80 },
+                    Rect { left: 32, top: 64, right: 48, bottom: 80 },
+                    Rect { left: 48, top: 64, right: 64, bottom: 80 },
+                    Rect { left: 64, top: 64, right: 80, bottom: 80 },
+                    Rect { left: 80, top: 64, right: 96, bottom: 80 },
+                ],
                 n029_cthulhu: [
                     Rect { left: 0, top: 192, right: 16, bottom: 216 }, // left
                     Rect { left: 16, top: 192, right: 32, bottom: 216 },
@@ -703,6 +754,18 @@ impl EngineConstants {
                     Rect { left: 48, top: 0, right: 64, bottom: 16 },
                     Rect { left: 48, top: 16, right: 64, bottom: 32 },
                     Rect { left: 0, top: 32, right: 16, bottom: 48 },
+                ],
+                n031_bat_hanging: [
+                    Rect { left: 0, top: 80, right: 16, bottom: 96 }, // left
+                    Rect { left: 16, top: 80, right: 32, bottom: 96 },
+                    Rect { left: 32, top: 80, right: 48, bottom: 96 },
+                    Rect { left: 48, top: 80, right: 64, bottom: 96 },
+                    Rect { left: 64, top: 80, right: 80, bottom: 96 },
+                    Rect { left: 0, top: 96, right: 16, bottom: 112 }, // right
+                    Rect { left: 16, top: 96, right: 32, bottom: 112 },
+                    Rect { left: 32, top: 96, right: 48, bottom: 112 },
+                    Rect { left: 48, top: 96, right: 64, bottom: 112 },
+                    Rect { left: 64, top: 96, right: 80, bottom: 112 },
                 ],
                 n032_life_capsule: [
                     Rect { left: 32, top: 96, right: 48, bottom: 112 },
@@ -833,6 +896,14 @@ impl EngineConstants {
                     Rect { left: 224, top: 216, right: 240, bottom: 240 },
                     Rect { left: 192, top: 216, right: 208, bottom: 240 },
                     Rect { left: 240, top: 216, right: 256, bottom: 240 },
+                ],
+                n058_basu: [
+                    Rect { left: 192, top: 0, right: 216, bottom: 24 }, // left
+                    Rect { left: 216, top: 0, right: 240, bottom: 24 },
+                    Rect { left: 240, top: 0, right: 264, bottom: 24 },
+                    Rect { left: 192, top: 24, right: 216, bottom: 48 }, // right
+                    Rect { left: 216, top: 24, right: 240, bottom: 48 },
+                    Rect { left: 240, top: 24, right: 264, bottom: 48 },
                 ],
                 n059_eye_door: [
                     Rect { left: 224, top: 16, right: 240, bottom: 40 },
@@ -1260,6 +1331,34 @@ impl EngineConstants {
                     Rect { left: 208, top: 80, right: 224, bottom: 96 },
                 ],
                 n149_horizontal_moving_block: Rect { left: 16, top: 0, right: 48, bottom: 32 },
+                n150_quote: [
+                    Rect { left: 0, top: 0, right: 16, bottom: 16 }, // left
+                    Rect { left: 48, top: 0, right: 64, bottom: 16 },
+                    Rect { left: 144, top: 0, right: 160, bottom: 16 },
+                    Rect { left: 16, top: 0, right: 32, bottom: 16 },
+                    Rect { left: 0, top: 0, right: 16, bottom: 16 },
+                    Rect { left: 32, top: 0, right: 48, bottom: 16 },
+                    Rect { left: 0, top: 0, right: 16, bottom: 16 },
+                    Rect { left: 160, top: 0, right: 176, bottom: 16 },
+                    Rect { left: 112, top: 0, right: 128, bottom: 16 },
+                    Rect { left: 0, top: 16, right: 16, bottom: 32 }, //right
+                    Rect { left: 48, top: 16, right: 64, bottom: 32 },
+                    Rect { left: 144, top: 16, right: 160, bottom: 32 },
+                    Rect { left: 16, top: 16, right: 32, bottom: 32 },
+                    Rect { left: 0, top: 16, right: 16, bottom: 32 },
+                    Rect { left: 32, top: 16, right: 48, bottom: 32 },
+                    Rect { left: 0, top: 16, right: 16, bottom: 32 },
+                    Rect { left: 160, top: 16, right: 176, bottom: 32 },
+                    Rect { left: 112, top: 16, right: 128, bottom: 32 },
+                ],
+                n154_gaudi_dead: [
+                    Rect { left: 168, top: 24, right: 192, bottom: 48 }, // left
+                    Rect { left: 192, top: 24, right: 216, bottom: 48 },
+                    Rect { left: 216, top: 24, right: 240, bottom: 48 },
+                    Rect { left: 168, top: 0, right: 192, bottom: 24 }, // right
+                    Rect { left: 192, top: 0, right: 216, bottom: 24 },
+                    Rect { left: 216, top: 0, right: 240, bottom: 24 },
+                ],
                 n157_vertical_moving_block: Rect { left: 16, top: 0, right: 48, bottom: 32 },
                 n199_wind_particles: [
                     Rect { left: 72, top: 16, right: 74, bottom: 18 },
@@ -1289,6 +1388,12 @@ impl EngineConstants {
                     Rect { left: 48, top: 0, right: 96, bottom: 48 },
                 ],
                 n300_intro_demon_crown: Rect { left: 192, top: 80, right: 208, bottom: 96 },
+                n361_gaudi_dashing: [
+                    Rect { left: 48, top: 48, right: 72, bottom: 72 }, // left
+                    Rect { left: 72, top: 48, right: 96, bottom: 72 },
+                    Rect { left: 48, top: 72, right: 72, bottom: 96 }, // right
+                    Rect { left: 72, top: 72, right: 96, bottom: 96 },
+                ],
             },
             weapon: WeaponConsts {
                 bullet_table: vec![

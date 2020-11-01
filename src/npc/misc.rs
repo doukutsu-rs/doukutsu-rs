@@ -370,6 +370,21 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n023_teleporter_lights(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.anim_counter += 1;
+        if self.anim_counter > 1 {
+            self.anim_counter = 0;
+            self.anim_num += 1;
+            if self.anim_num > 7 {
+                self.anim_num = 0;
+            }
+        } else if self.anim_counter == 1 {
+            self.anim_rect = state.constants.npc.n023_teleporter_lights[self.anim_num as usize];
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n027_death_trap(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;

@@ -183,6 +183,7 @@ impl Game {
             }
             KeyCode::F10 => { state.settings.debug_outlines = !state.settings.debug_outlines }
             KeyCode::F11 => { state.settings.god_mode = !state.settings.god_mode }
+            KeyCode::F12 => { state.settings.infinite_booster = !state.settings.infinite_booster }
             _ => {}
         }
     }

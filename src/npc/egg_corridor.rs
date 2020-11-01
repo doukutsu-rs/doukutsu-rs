@@ -1,11 +1,12 @@
 use nalgebra::clamp;
+use num_traits::abs;
 
-use crate::common::Direction;
+use crate::caret::CaretType;
+use crate::common::{Direction, Rect, CDEG_RAD};
 use crate::ggez::GameResult;
-use crate::npc::NPC;
+use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
-use crate::caret::CaretType;
 
 impl NPC {
     pub(crate) fn tick_n002_behemoth(&mut self, state: &mut SharedGameState) -> GameResult {
@@ -438,6 +439,209 @@ impl NPC {
         if self.anim_counter == 1 {
             self.anim_rect = state.constants.npc.n008_blue_beetle[self.anim_num as usize + if self.direction == Direction::Right { 2 } else { 0 }];
         }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n025_lift(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.x += 8 * 0x200;
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 1;
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 150 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 64 {
+                    self.action_num = 3;
+                    self.action_counter = 0;
+                } else {
+                    self.y -= 0x200;
+                }
+            }
+            3 => {
+                self.action_counter += 1;
+                if self.action_counter > 150 {
+                    self.action_num = 4;
+                    self.action_counter = 0;
+                }
+            }
+            4 => {
+                self.action_counter += 1;
+                if self.action_counter > 64 {
+                    self.action_num = 5;
+                    self.action_counter = 0;
+                } else {
+                    self.y -= 0x200;
+                }
+            }
+            5 => {
+                self.action_counter += 1;
+                if self.action_counter > 150 {
+                    self.action_num = 6;
+                    self.action_counter = 0;
+                }
+            }
+            6 => {
+                self.action_counter += 1;
+                if self.action_counter > 64 {
+                    self.action_num = 7;
+                    self.action_counter = 0;
+                } else {
+                    self.y += 0x200;
+                }
+            }
+            7 => {
+                self.action_counter += 1;
+                if self.action_counter > 150 {
+                    self.action_num = 8;
+                    self.action_counter = 0;
+                }
+            }
+            8 => {
+                self.action_counter += 1;
+                if self.action_counter > 64 {
+                    self.action_num = 1;
+                    self.action_counter = 0;
+                } else {
+                    self.y += 0x200;
+                }
+            }
+            _ => {}
+        }
+
+        if [2, 4, 6, 8].contains(&self.action_num) {
+            self.anim_counter += 1;
+            if self.anim_counter > 1 {
+                self.anim_num += 1;
+                if self.anim_num > 1 {
+                    self.anim_num = 0;
+                }
+            }
+        }
+
+        if self.anim_counter == 1 {
+            self.anim_rect = state.constants.npc.n025_lift[self.anim_num as usize];
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n058_basu(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+        match self.action_num {
+            0 => {
+                if player.x < self.x + 16 * 0x200 && player.x > self.x - 16 * 0x200 {
+                    self.target_x = self.x;
+                    self.target_y = self.y;
+                    self.action_num = 1;
+                    self.action_counter = 0;
+                    self.action_counter2 = 0;
+                    self.damage = 6;
+                    self.vel_y = -0x100;
+                    self.tsc_direction = self.direction as u16;
+                    self.npc_flags.set_shootable(true);
+
+                    self.x = player.x + self.direction.vector_x() * 16 * 16 * 0x200;
+                    self.vel_x = self.direction.vector_x() * 0x2ff;
+                } else {
+                    self.anim_rect = Rect::new(0, 0, 0, 0);
+                    self.damage = 0;
+                    self.vel_x = 0;
+                    self.vel_y = 0;
+                    self.npc_flags.set_shootable(false);
+                }
+
+                return Ok(());
+            }
+            1 => {
+                if self.x > player.x {
+                    self.direction = Direction::Left;
+                    self.vel_x -= 0x10;
+                } else {
+                    self.direction = Direction::Right;
+                    self.vel_x += 0x10;
+                }
+
+                if self.flags.hit_left_wall() {
+                    self.vel_x = 0x200;
+                }
+
+                if self.flags.hit_right_wall() {
+                    self.vel_x = -0x200;
+                }
+
+                self.vel_y += ((self.target_y - self.y).signum() | 1) * 0x08;
+
+                if self.shock > 0 {
+                    self.x += self.vel_x / 2;
+                    self.y += self.vel_y / 2;
+                } else {
+                    self.x += self.vel_x;
+                    self.y += self.vel_y;
+                }
+
+                if player.x > self.x + 400 * 0x200 || player.x < self.x - 400 * 0x200 {
+                    self.action_num = 0;
+                    self.vel_x = 0;
+                    self.x = self.target_x;
+                    self.damage = 0;
+                    self.direction = Direction::from_int_facing(self.tsc_direction as usize)
+                        .unwrap_or(Direction::Left);
+                    self.anim_rect = Rect::new(0, 0, 0, 0);
+                    return Ok(());
+                }
+            }
+            _ => {}
+        }
+
+        if self.action_counter < 150 {
+            self.action_counter += 1;
+        } else {
+            self.action_counter2 += 1;
+            if (self.action_counter2 % 8) == 0 && abs(self.x - player.x) < 160 * 0x200 {
+                let angle = ((player.y - self.y) as f64 / (player.x - self.x) as f64).atan();
+                    + (state.game_rng.range(-6..6) as u8) as f64 * CDEG_RAD;
+
+                let mut npc = NPCMap::create_npc(84, &state.npc_table);
+                npc.cond.set_alive(true);
+                npc.x = self.x;
+                npc.y = self.y;
+                npc.vel_x = (angle.cos() * 1024.0) as isize;
+                npc.vel_y = (angle.sin() * 1024.0) as isize;
+
+                state.new_npcs.push(npc);
+            }
+
+            if self.action_counter2 > 8 {
+                self.action_counter = 0;
+                self.action_counter2 = 0;
+            }
+        }
+
+        self.anim_counter += 1;
+        if self.anim_counter > 1 {
+            self.anim_counter = 0;
+            self.anim_num += 1;
+            if self.anim_num > 1 {
+                self.anim_num = 0;
+            }
+        }
+
+        if self.action_counter > 120 && self.action_counter / 2 % 2 == 1 && self.anim_num == 1 {
+            self.anim_num = 2;
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+        self.anim_rect = state.constants.npc.n058_basu[self.anim_num as usize + dir_offset];
 
         Ok(())
     }

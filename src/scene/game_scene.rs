@@ -783,6 +783,11 @@ impl GameScene {
         for npc_id in self.npc_map.npc_ids.iter() {
             if let Some(npc_cell) = self.npc_map.npcs.get(npc_id) {
                 let mut npc = npc_cell.borrow_mut();
+
+                if npc.cond.drs_destroyed() {
+                    dead_npcs.push(npc.id);
+                }
+
                 if !npc.cond.alive() {
                     continue;
                 }
@@ -856,9 +861,11 @@ impl GameScene {
                     }
                 }
 
-                if npc.cond.explode_die() {
+                if npc.cond.explode_die() && !npc.cond.drs_destroyed() {
                     dead_npcs.push(npc.id);
                 }
+
+                npc.cond.set_drs_destroyed(false);
             }
         }
 
@@ -1058,30 +1065,31 @@ impl GameScene {
                 continue;
             }
 
-            // top
-            state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.right as isize - self.frame.x) / 0x200,
-                                                       (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
-                                                       (npc.hit_bounds.right + npc.hit_bounds.right) as isize / 0x200,
-                                                       1),
-                                        [0.0, if npc.flags.hit_top_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
-            // bottom
-            state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.right as isize - self.frame.x) / 0x200,
-                                                       (npc.y + npc.hit_bounds.bottom as isize - self.frame.y) / 0x200 - 1,
-                                                       (npc.hit_bounds.right + npc.hit_bounds.right) as isize / 0x200,
-                                                       1),
-                                        [0.0, if npc.flags.hit_bottom_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
-            // left
-            state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.right as isize - self.frame.x) / 0x200,
-                                                       (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
-                                                       1,
-                                                       (npc.hit_bounds.top + npc.hit_bounds.bottom) as isize / 0x200),
-                                        [0.0, if npc.flags.hit_left_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
-            // right
-            state.texture_set.draw_rect(Rect::new_size((npc.x + npc.hit_bounds.right as isize - self.frame.x) / 0x200 - 1,
-                                                       (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
-                                                       1,
-                                                       (npc.hit_bounds.top + npc.hit_bounds.bottom) as isize / 0x200),
-                                        [0.0, if npc.flags.hit_right_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
+            // todo faster way to draw dynamic rectangles
+            // // top
+            // state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.right as isize - self.frame.x) / 0x200,
+            //                                            (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
+            //                                            (npc.hit_bounds.right + npc.hit_bounds.right) as isize / 0x200,
+            //                                            1),
+            //                             [0.0, if npc.flags.hit_top_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
+            // // bottom
+            // state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.right as isize - self.frame.x) / 0x200,
+            //                                            (npc.y + npc.hit_bounds.bottom as isize - self.frame.y) / 0x200 - 1,
+            //                                            (npc.hit_bounds.right + npc.hit_bounds.right) as isize / 0x200,
+            //                                            1),
+            //                             [0.0, if npc.flags.hit_bottom_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
+            // // left
+            // state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.right as isize - self.frame.x) / 0x200,
+            //                                            (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
+            //                                            1,
+            //                                            (npc.hit_bounds.top + npc.hit_bounds.bottom) as isize / 0x200),
+            //                             [0.0, if npc.flags.hit_left_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
+            // // right
+            // state.texture_set.draw_rect(Rect::new_size((npc.x + npc.hit_bounds.right as isize - self.frame.x) / 0x200 - 1,
+            //                                            (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
+            //                                            1,
+            //                                            (npc.hit_bounds.top + npc.hit_bounds.bottom) as isize / 0x200),
+            //                             [0.0, if npc.flags.hit_right_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
 
             {
                 let hit_rect_size = clamp(npc.hit_rect_size(), 1, 4);
@@ -1108,7 +1116,7 @@ impl GameScene {
 
                 batch.add_rect(((npc.x - self.frame.x) / 0x200) as f32 - 3.0,
                                ((npc.y - self.frame.y) / 0x200) as f32 - 3.0,
-                               &caret_rect);
+                               &caret2_rect);
 
                 batch.draw(ctx)?;
             }

@@ -5,6 +5,10 @@ use num_traits::real::Real;
 
 use crate::bitfield;
 
+/// Multiply cave story degrees (0-255, which corresponds to 0°-360°) with this to get
+/// respective value in radians.
+pub const CDEG_RAD: f64 = std::f64::consts::PI * 0.003950617283950617;
+
 bitfield! {
   #[derive(Clone, Copy)]
   pub struct Flag(u32);
@@ -70,6 +74,9 @@ bitfield! {
   pub increase_acceleration, set_increase_acceleration: 5; // 0x20
   pub cond_x40, set_cond_x40: 6; // 0x40
   pub alive, set_alive: 7; // 0x80
+
+  // engine specific flags
+  pub drs_destroyed, set_drs_destroyed: 15;
 }
 
 bitfield! {

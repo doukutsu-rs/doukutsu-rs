@@ -1,4 +1,4 @@
-use num_traits::clamp;
+use num_traits::{clamp, abs};
 
 use crate::common::Direction;
 use crate::ggez::GameResult;
@@ -7,6 +7,25 @@ use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
+    pub(crate) fn tick_n029_cthulhu(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_num = 0;
+            self.anim_counter = 0;
+        }
+
+        if abs(self.x - player.x) < 48 * 0x200 && self.y - 48 * 0x200 < player.y && self.y + 16 * 0x200 > player.y {
+            self.anim_num = 1;
+        } else {
+            self.anim_num = 0;
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+        self.anim_rect = state.constants.npc.n029_cthulhu[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n052_sitting_blue_robot(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;

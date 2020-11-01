@@ -158,7 +158,9 @@ impl Player {
         if self.flags.hit_bottom_wall() || self.flags.hit_right_slope() || self.flags.hit_left_slope() {
             self.booster_switch = 0;
 
-            if self.equip.has_booster_0_8() || self.equip.has_booster_2_0() {
+            if state.settings.infinite_booster {
+                self.booster_fuel = usize::MAX;
+            } else if self.equip.has_booster_0_8() || self.equip.has_booster_2_0() {
                 self.booster_fuel = state.constants.booster.fuel;
             } else {
                 self.booster_fuel = 0;
@@ -212,7 +214,7 @@ impl Player {
                         if self.vel_y > 0x100 { // 0.5fix9
                             self.vel_y /= 2;
                         }
-                    } else if self.equip.has_booster_2_0() {
+                    } else if (state.settings.infinite_booster || self.equip.has_booster_2_0()) {
                         if state.key_state.up() {
                             self.booster_switch = 2;
                             self.vel_x = 0;
@@ -254,7 +256,8 @@ impl Player {
                 }
             }
 
-            if self.equip.has_booster_2_0() && self.booster_switch != 0 && (!state.key_state.jump() || self.booster_fuel == 0) {
+            if (state.settings.infinite_booster || self.equip.has_booster_2_0()) && self.booster_switch != 0
+                && (!state.key_state.jump() || self.booster_fuel == 0) {
                 match self.booster_switch {
                     1 => { self.vel_x /= 2 }
                     2 => { self.vel_y /= 2 }
@@ -297,13 +300,13 @@ impl Player {
             self.vel_y -= 0x80;
         }
         if self.flags.force_right() {
-            self.vel_x += 0x80;
+            self.vel_x += 0x88;
         }
         if self.flags.force_down() {
             self.vel_y += 0x55;
         }
 
-        if self.equip.has_booster_2_0() && self.booster_switch != 0 {
+        if (state.settings.infinite_booster || self.equip.has_booster_2_0()) && self.booster_switch != 0 {
             match self.booster_switch {
                 1 => {
                     if self.flags.hit_left_wall() || self.flags.hit_right_wall() {
@@ -386,12 +389,11 @@ impl Player {
         if !self.splash && self.flags.in_water() {
             let vertical_splash = !self.flags.hit_bottom_wall() && self.vel_y > 0x200;
             let horizontal_splash = self.vel_x > 0x200 || self.vel_x < -0x200;
-            let should_splash = vertical_splash || horizontal_splash;
 
-            if should_splash {
+            if vertical_splash || horizontal_splash {
+                let mut droplet = NPCMap::create_npc(73, &state.npc_table);
+
                 for _ in 0..7 {
-                    let mut droplet = NPCMap::create_npc(73, &state.npc_table);
-
                     droplet.cond.set_alive(true);
                     droplet.direction = if self.flags.water_splash_facing_right() { Direction::Right } else { Direction::Left };
                     droplet.x = self.x + (state.game_rng.range(-8..8) * 0x200) as isize;
@@ -424,17 +426,7 @@ impl Player {
         }
 
         // camera
-        if self.direction == Direction::Left {
-            self.index_x -= 0x200; // 1.0fix9
-            if self.index_x < -0x8000 { // -64.0fix9
-                self.index_x = -0x8000;
-            }
-        } else { // possible bug?
-            self.index_x += 0x200; // 1.0fix9
-            if self.index_x > 0x8000 { // -64.0fix9
-                self.index_x = 0x8000;
-            }
-        }
+        self.index_x = clamp(self.index_x + self.direction.vector_x() * 0x200, -0x8000, 0x8000);
 
         if state.control_flags.control_enabled() && state.key_state.up() {
             self.index_y -= 0x200; // 1.0fix9

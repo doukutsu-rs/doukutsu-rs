@@ -22,12 +22,12 @@ use crate::ggez::{Context, GameResult};
 use crate::ggez::GameError::ParseError;
 use crate::npc::NPCMap;
 use crate::player::ControlMode;
+use crate::profile::GameProfile;
 use crate::scene::game_scene::GameScene;
 use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
 use crate::weapon::WeaponType;
-use crate::profile::GameProfile;
 
 /// Engine's text script VM operation codes.
 #[derive(EnumString, Debug, FromPrimitive, PartialEq)]
@@ -1121,7 +1121,8 @@ impl TextScriptVM {
                     OpCode::ANP => {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
                         let action_num = read_cur_varint(&mut cursor)? as u16;
-                        let direction = read_cur_varint(&mut cursor)? as usize;
+                        let tsc_direction = read_cur_varint(&mut cursor)? as usize;
+                        let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
                         for npc_id in game_scene.npc_map.npc_ids.iter() {
                             if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
@@ -1129,15 +1130,16 @@ impl TextScriptVM {
 
                                 if npc.cond.alive() && npc.event_num == event_num {
                                     npc.action_num = action_num;
+                                    npc.tsc_direction = tsc_direction as u16;
 
-                                    if direction == 4 {
+                                    if direction == Direction::FacingPlayer {
                                         npc.direction = if game_scene.player.x < npc.x {
                                             Direction::Right
                                         } else {
                                             Direction::Left
                                         };
-                                    } else if let Some(dir) = Direction::from_int(direction) {
-                                        npc.direction = dir;
+                                    } else {
+                                        npc.direction = direction;
                                     }
                                 }
                             }
@@ -1148,8 +1150,8 @@ impl TextScriptVM {
                     OpCode::CNP | OpCode::INP => {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
                         let new_type = read_cur_varint(&mut cursor)? as u16;
-                        let direction = Direction::from_int_facing(read_cur_varint(&mut cursor)? as usize)
-                            .unwrap_or(Direction::Left);
+                        let tsc_direction = read_cur_varint(&mut cursor)? as usize;
+                        let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
                         for npc_id in game_scene.npc_map.npc_ids.iter() {
                             if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
@@ -1187,6 +1189,7 @@ impl TextScriptVM {
                                     npc.anim_counter = 0;
                                     npc.vel_x = 0;
                                     npc.vel_y = 0;
+                                    npc.tsc_direction = tsc_direction as u16;
 
                                     if direction == Direction::FacingPlayer {
                                         npc.direction = if game_scene.player.x < npc.x {
@@ -1209,8 +1212,8 @@ impl TextScriptVM {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
                         let x = read_cur_varint(&mut cursor)? as isize;
                         let y = read_cur_varint(&mut cursor)? as isize;
-                        let direction = Direction::from_int_facing(read_cur_varint(&mut cursor)? as usize)
-                            .unwrap_or(Direction::Left);
+                        let tsc_direction = read_cur_varint(&mut cursor)? as usize;
+                        let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
                         for npc_id in game_scene.npc_map.npc_ids.iter() {
                             if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
@@ -1219,6 +1222,7 @@ impl TextScriptVM {
                                 if npc.cond.alive() && npc.event_num == event_num {
                                     npc.x = x * 16 * 0x200;
                                     npc.y = y * 16 * 0x200;
+                                    npc.tsc_direction = tsc_direction as u16;
 
                                     if direction == Direction::FacingPlayer {
                                         npc.direction = if game_scene.player.x < npc.x {
@@ -1240,14 +1244,15 @@ impl TextScriptVM {
                     OpCode::SNP => {
                         let npc_type = read_cur_varint(&mut cursor)? as u16;
                         let x = read_cur_varint(&mut cursor)? as isize;
-                        let y = read_cur_varint(&mut cursor)?as isize ;
-                        let direction = Direction::from_int_facing(read_cur_varint(&mut cursor)? as usize)
-                            .unwrap_or(Direction::Left);
+                        let y = read_cur_varint(&mut cursor)? as isize;
+                        let tsc_direction = read_cur_varint(&mut cursor)? as usize;
+                        let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
                         let mut npc = NPCMap::create_npc(npc_type, &state.npc_table);
                         npc.cond.set_alive(true);
                         npc.x = x * 16 * 0x200;
                         npc.y = y * 16 * 0x200;
+                        npc.tsc_direction = tsc_direction as u16;
 
                         if direction == Direction::FacingPlayer {
                             npc.direction = if game_scene.player.x < npc.x {
