@@ -44,7 +44,6 @@ pub struct Player {
     pub down: bool,
     pub shock_counter: u8,
     pub current_weapon: u8,
-    pub update_target: bool,
     pub stars: u8,
     pub damage: u16,
     pub air_counter: u16,
@@ -90,7 +89,6 @@ impl Player {
             index_x: 0,
             index_y: 0,
             splash: false,
-            update_target: true,
             up: false,
             down: false,
             current_weapon: 0,
@@ -448,10 +446,8 @@ impl Player {
             }
         }
 
-        if self.update_target {
-            self.target_x = self.x + self.index_x;
-            self.target_y = self.y + self.index_y;
-        }
+        self.target_x = self.x + self.index_x;
+        self.target_y = self.y + self.index_y;
 
         if self.vel_x > physics.resist || self.vel_x < -physics.resist {
             self.x += self.vel_x;

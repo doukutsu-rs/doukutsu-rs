@@ -28,6 +28,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
 use crate::weapon::WeaponType;
+use crate::frame::UpdateTarget;
 
 /// Engine's text script VM operation codes.
 #[derive(EnumString, Debug, FromPrimitive, PartialEq)]
@@ -49,11 +50,11 @@ pub enum OpCode {
     /// <BSLxxxx, Starts boss fight
     BSL,
 
-    /// <FOBxxxx, Focuses on boss
+    /// <FOBxxxx:yyyy, Focuses on boss part xxxx and sets speed to yyyy ticks
     FOB,
-    /// <FOMxxxx, Focuses on me
+    /// <FOMxxxx, Focuses on player and sets speed to xxxx
     FOM,
-    /// <FONxxxx:yyyy, Focuses on NPC for yyyy ticks
+    /// <FONxxxx:yyyy, Focuses on NPC tagged with event xxxx and sets speed to yyyy
     FON,
     /// <FLA, Flashes screen
     FLA,
@@ -354,6 +355,7 @@ pub enum TextScriptExecutionState {
     WaitFade(u16, u32),
     SaveProfile(u16, u32),
     LoadProfile,
+    Reset,
 }
 
 pub struct TextScriptVM {
@@ -639,6 +641,10 @@ impl TextScriptVM {
                     state.load_or_start_game(ctx)?;
                     break;
                 }
+                TextScriptExecutionState::Reset => {
+                    state.start_intro(ctx)?;
+                    break;
+                }
             }
         }
 
@@ -689,7 +695,7 @@ impl TextScriptVM {
                         state.textscript_vm.stack.clear();
 
                         game_scene.player.cond.set_interacted(false);
-                        game_scene.player.update_target = true;
+                        game_scene.frame.update_target = UpdateTarget::Player;
 
                         exec_state = TextScriptExecutionState::Ended;
                     }
@@ -894,7 +900,7 @@ impl TextScriptVM {
                     OpCode::SMP => {
                         let pos_x = read_cur_varint(&mut cursor)? as usize;
                         let pos_y = read_cur_varint(&mut cursor)? as usize;
-                        
+
                         let tile_type = game_scene.stage.tile_at(pos_x, pos_y);
                         game_scene.stage.change_tile(pos_x, pos_y, tile_type.wrapping_sub(1));
 
@@ -1100,10 +1106,19 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::FOB => {
+                        let part_id = read_cur_varint(&mut cursor)? as u16;
+                        let ticks = read_cur_varint(&mut cursor)? as isize;
+
+                        game_scene.frame.wait = ticks;
+                        game_scene.frame.update_target = UpdateTarget::Boss(part_id);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::FOM => {
                         let ticks = read_cur_varint(&mut cursor)? as isize;
                         game_scene.frame.wait = ticks;
-                        game_scene.player.update_target = true;
+                        game_scene.frame.update_target = UpdateTarget::Player;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1111,15 +1126,13 @@ impl TextScriptVM {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
                         let ticks = read_cur_varint(&mut cursor)? as isize;
                         game_scene.frame.wait = ticks;
-                        game_scene.player.update_target = false;
 
                         for npc_id in game_scene.npc_map.npc_ids.iter() {
                             if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
                                 let npc = npc_cell.borrow();
 
                                 if event_num == npc.event_num {
-                                    game_scene.player.target_x = npc.x;
-                                    game_scene.player.target_y = npc.y;
+                                    game_scene.frame.update_target = UpdateTarget::NPC(npc.id);
                                     break;
                                 }
                             }
@@ -1355,8 +1368,10 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
-                    // todo: INI starts intro
-                    OpCode::INI | OpCode::ESC => {
+                    OpCode::INI => {
+                        exec_state = TextScriptExecutionState::Reset;
+                    }
+                    OpCode::ESC => {
                         state.next_scene = Some(Box::new(TitleScene::new()));
                         state.control_flags.set_tick_world(false);
                         state.control_flags.set_control_enabled(false);

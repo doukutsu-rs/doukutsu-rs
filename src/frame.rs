@@ -3,11 +3,22 @@ use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 use crate::common::interpolate_fix9_scale;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum UpdateTarget {
+    Player,
+    NPC(u16),
+    Boss(u16),
+}
+
 pub struct Frame {
     pub x: isize,
     pub y: isize,
     pub prev_x: isize,
     pub prev_y: isize,
+    pub update_target: UpdateTarget,
+    pub target_x: isize,
+    pub target_y: isize,
     pub wait: isize,
 }
 
@@ -19,11 +30,11 @@ impl Frame {
         (x, y)
     }
 
-    pub fn immediate_update(&mut self, state: &mut SharedGameState, player: &Player, stage: &Stage) {
+    pub fn immediate_update(&mut self, state: &mut SharedGameState, stage: &Stage) {
         if (stage.map.width - 1) * 16 < state.canvas_size.0 as usize {
             self.x = -(((state.canvas_size.0 as isize - ((stage.map.width - 1) * 16) as isize) * 0x200) / 2);
         } else {
-            self.x = player.target_x - (state.canvas_size.0 as isize * 0x200 / 2);
+            self.x = self.target_x - (state.canvas_size.0 as isize * 0x200 / 2);
 
             if self.x < 0 {
                 self.x = 0;
@@ -38,7 +49,7 @@ impl Frame {
         if (stage.map.height - 1) * 16 < state.canvas_size.1 as usize {
             self.y = -(((state.canvas_size.1 as isize - ((stage.map.height - 1) * 16) as isize) * 0x200) / 2);
         } else {
-            self.y = player.target_y - (state.canvas_size.1 as isize * 0x200 / 2);
+            self.y = self.target_y - (state.canvas_size.1 as isize * 0x200 / 2);
 
             if self.y < 0 {
                 self.y = 0;
@@ -54,11 +65,11 @@ impl Frame {
         self.prev_y = self.y;
     }
 
-    pub fn update(&mut self, state: &mut SharedGameState, player: &Player, stage: &Stage) {
+    pub fn update(&mut self, state: &mut SharedGameState, stage: &Stage) {
         if (stage.map.width - 1) * 16 < state.canvas_size.0 as usize {
             self.x = -(((state.canvas_size.0 as isize - ((stage.map.width - 1) * 16) as isize) * 0x200) / 2);
         } else {
-            self.x += (player.target_x - (state.canvas_size.0 as isize * 0x200 / 2) - self.x) / self.wait;
+            self.x += (self.target_x - (state.canvas_size.0 as isize * 0x200 / 2) - self.x) / self.wait;
 
             if self.x < 0 {
                 self.x = 0;
@@ -73,7 +84,7 @@ impl Frame {
         if (stage.map.height - 1) * 16 < state.canvas_size.1 as usize {
             self.y = -(((state.canvas_size.1 as isize - ((stage.map.height - 1) * 16) as isize) * 0x200) / 2);
         } else {
-            self.y += (player.target_y - (state.canvas_size.1 as isize * 0x200 / 2) - self.y) / self.wait;
+            self.y += (self.target_y - (state.canvas_size.1 as isize * 0x200 / 2) - self.y) / self.wait;
 
             if self.y < 0 {
                 self.y = 0;

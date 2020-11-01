@@ -5,7 +5,7 @@ use crate::bullet::BulletManager;
 use crate::caret::CaretType;
 use crate::common::{Direction, FadeDirection, FadeState, fix9_scale, Rect};
 use crate::entity::GameEntity;
-use crate::frame::Frame;
+use crate::frame::{Frame, UpdateTarget};
 use crate::ggez::{Context, GameResult, graphics, timer};
 use crate::ggez::graphics::{BlendMode, Color, Drawable, DrawParam, FilterMode, Vector2};
 use crate::ggez::nalgebra::clamp;
@@ -79,6 +79,9 @@ impl GameScene {
                 y: 0,
                 prev_x: 0,
                 prev_y: 0,
+                update_target: UpdateTarget::Player,
+                target_x: 0,
+                target_y: 0,
                 wait: 16,
             },
             stage_id: id,
@@ -918,7 +921,7 @@ impl GameScene {
         self.player.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory);
 
         for npc_id in self.npc_map.npc_ids.iter() {
-            if let Some(npc_cell) = self.npc_map.npcs.get_mut(npc_id) {
+            if let Some(npc_cell) = self.npc_map.npcs.get(npc_id) {
                 let mut npc = npc_cell.borrow_mut();
 
                 if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
@@ -935,7 +938,31 @@ impl GameScene {
         self.bullet_manager.tick_bullets(state, &self.player, &mut self.stage);
         state.tick_carets();
 
-        self.frame.update(state, &self.player, &self.stage);
+        match self.frame.update_target {
+            UpdateTarget::Player => {
+                self.frame.target_x = self.player.target_x;
+                self.frame.target_y = self.player.target_y;
+            }
+            UpdateTarget::NPC(npc_id) => {
+                if let Some(npc_cell) = self.npc_map.npcs.get(&npc_id) {
+                    let mut npc = npc_cell.borrow();
+
+                    if npc.cond.alive() {
+                        self.frame.target_x = npc.x;
+                        self.frame.target_y = npc.y;
+                    }
+                }
+            }
+            UpdateTarget::Boss(boss_id) => {
+                if let Some(boss) = self.npc_map.boss_map.parts.get(boss_id as usize) {
+                    if boss.cond.alive() {
+                        self.frame.target_x = boss.x;
+                        self.frame.target_y = boss.y;
+                    }
+                }
+            }
+        }
+        self.frame.update(state, &self.stage);
 
         if state.control_flags.control_enabled() {
             if let Some(weapon) = self.inventory.get_current_weapon_mut() {
@@ -1162,9 +1189,9 @@ impl Scene for GameScene {
         state.npc_table.tex_npc1_name = ["Npc/", &self.stage.data.npc1.filename()].join("");
         state.npc_table.tex_npc2_name = ["Npc/", &self.stage.data.npc2.filename()].join("");
 
-        self.player.target_x = self.player.x;
-        self.player.target_y = self.player.y;
-        self.frame.immediate_update(state, &self.player, &self.stage);
+        self.frame.target_x = self.player.x;
+        self.frame.target_y = self.player.y;
+        self.frame.immediate_update(state, &self.stage);
 
         Ok(())
     }
