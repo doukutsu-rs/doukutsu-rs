@@ -1140,6 +1140,13 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::BOA => {
+                        let action_num = read_cur_varint(&mut cursor)? as u16;
+
+                        game_scene.npc_map.boss_map.parts[0].action_num = action_num;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::ANP => {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
                         let action_num = read_cur_varint(&mut cursor)? as u16;
@@ -1400,7 +1407,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // One operand codes
-                    OpCode::BOA | OpCode::BSL | OpCode::FOB | OpCode::NUM |
+                    OpCode::BSL | OpCode::NUM |
                     OpCode::MPp | OpCode::SKm | OpCode::SKp |
                     OpCode::UNJ | OpCode::MPJ | OpCode::XX1 | OpCode::SIL |
                     OpCode::SSS | OpCode::ACH | OpCode::S2MV => {

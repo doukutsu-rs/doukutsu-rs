@@ -914,6 +914,7 @@ impl GameScene {
                 }
             }
         }
+        self.npc_map.boss_map.tick(state, (&mut self.player, &self.npc_map.npcs, &mut self.stage))?;
         self.npc_map.process_npc_changes(state);
         self.npc_map.garbage_collect();
 
@@ -928,6 +929,9 @@ impl GameScene {
                     npc.tick_map_collisions(state, &mut self.stage);
                 }
             }
+        }
+        for npc in self.npc_map.boss_map.parts.iter_mut() {
+            npc.tick_map_collisions(state, &mut self.stage);
         }
         self.npc_map.process_npc_changes(state);
         self.npc_map.garbage_collect();
@@ -1220,6 +1224,13 @@ impl Scene for GameScene {
             }
         }
 
+        for npc in self.npc_map.boss_map.parts.iter_mut() {
+            if npc.cond.alive() {
+                npc.prev_x = npc.x;
+                npc.prev_y = npc.y;
+            }
+        }
+
         Ok(())
     }
 
@@ -1291,6 +1302,7 @@ impl Scene for GameScene {
                 npc.draw(state, ctx, &self.frame)?;
             }
         }
+        self.npc_map.boss_map.draw(state, ctx, &self.frame)?;
         self.draw_bullets(state, ctx)?;
         self.player.draw(state, ctx, &self.frame)?;
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;

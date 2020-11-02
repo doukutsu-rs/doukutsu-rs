@@ -243,6 +243,7 @@ pub struct NPCConsts {
     pub n299_intro_balrog_misery: [Rect<usize>; 2],
     pub n300_intro_demon_crown: Rect<usize>,
     pub n361_gaudi_dashing: [Rect<usize>; 4],
+    pub b02_balfrog: [Rect<usize>; 18],
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -1393,6 +1394,26 @@ impl EngineConstants {
                     Rect { left: 72, top: 48, right: 96, bottom: 72 },
                     Rect { left: 48, top: 72, right: 72, bottom: 96 }, // right
                     Rect { left: 72, top: 72, right: 96, bottom: 96 },
+                ],
+                b02_balfrog: [
+                    Rect { left: 0, top: 0, right: 0, bottom: 0 }, // left
+                    Rect { left: 0, top: 48, right: 80, bottom: 112 },
+                    Rect { left: 0, top: 112, right: 80, bottom: 176 },
+                    Rect { left: 0, top: 176, right: 80, bottom: 240 },
+                    Rect { left: 160, top: 48, right: 240, bottom: 112 },
+                    Rect { left: 160, top: 112, right: 240, bottom: 200 },
+                    Rect { left: 200, top: 0, right: 240, bottom: 24 },
+                    Rect { left: 80, top: 0, right: 120, bottom: 24 },
+                    Rect { left: 120, top: 0, right: 160, bottom: 24 },
+                    Rect { left: 0, top: 0, right: 0, bottom: 0 }, // right
+                    Rect { left: 80, top: 48, right: 160, bottom: 112 },
+                    Rect { left: 80, top: 112, right: 160, bottom: 176 },
+                    Rect { left: 80, top: 176, right: 160, bottom: 240 },
+                    Rect { left: 240, top: 48, right: 320, bottom: 112 },
+                    Rect { left: 240, top: 112, right: 320, bottom: 200 },
+                    Rect { left: 200, top: 24, right: 240, bottom: 48 },
+                    Rect { left: 80, top: 24, right: 120, bottom: 48 },
+                    Rect { left: 120, top: 24, right: 160, bottom: 48 },
                 ],
             },
             weapon: WeaponConsts {

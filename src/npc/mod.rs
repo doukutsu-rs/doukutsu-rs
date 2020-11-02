@@ -17,7 +17,7 @@ use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
 use crate::map::NPCData;
-use crate::npc::boss::BossNPCMap;
+use crate::npc::boss::BossNPC;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
@@ -379,7 +379,7 @@ pub struct NPCMap {
     /// Do not iterate over this directly outside render pipeline.
     pub npcs: HashMap<u16, RefCell<NPC>>,
     /// NPCMap but for bosses and of static size.
-    pub boss_map: BossNPCMap,
+    pub boss_map: BossNPC,
 }
 
 impl NPCMap {
@@ -388,7 +388,7 @@ impl NPCMap {
         NPCMap {
             npc_ids: BTreeSet::new(),
             npcs: HashMap::with_capacity(256),
-            boss_map: BossNPCMap::new(),
+            boss_map: BossNPC::new(),
         }
     }
 
