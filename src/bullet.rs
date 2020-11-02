@@ -572,7 +572,7 @@ impl PhysicalEntity for Bullet {
         }
 
         for (idx, (&ox, &oy)) in OFF_X.iter().zip(OFF_Y.iter()).enumerate() {
-            if idx == 4 {
+            if idx == 4 || !self.cond.alive() {
                 break;
             }
 
@@ -595,13 +595,13 @@ impl PhysicalEntity for Bullet {
                         state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
                         state.sound_manager.play_sfx(12);
 
-                        for _ in 0..4 {
-                            let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                        let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                        npc.cond.set_alive(true);
+                        npc.direction = Direction::Left;
+                        npc.x = x * 16 * 0x200;
+                        npc.y = y * 16 * 0x200;
 
-                            npc.cond.set_alive(true);
-                            npc.direction = Direction::Left;
-                            npc.x = x * 16 * 0x200;
-                            npc.y = y * 16 * 0x200;
+                        for _ in 0..4 {
                             npc.vel_x = state.game_rng.range(-0x200..0x200) as isize;
                             npc.vel_y = state.game_rng.range(-0x200..0x200) as isize;
 
