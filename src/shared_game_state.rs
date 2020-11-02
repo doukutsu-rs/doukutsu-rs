@@ -1,13 +1,16 @@
+use std::io::Seek;
 use std::ops::Div;
-use std::time::Instant;
+use std::time::{Instant, SystemTime};
 
 use bitvec::vec::BitVec;
+use chrono::{Local, Datelike};
 
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState, KeyState};
 use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, filesystem, GameResult, graphics};
+use crate::ggez::filesystem::OpenOptions;
 use crate::ggez::graphics::Canvas;
 use crate::npc::{NPC, NPCTable};
 use crate::profile::GameProfile;
@@ -20,8 +23,6 @@ use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
 use crate::touch_controls::TouchControls;
-use crate::ggez::filesystem::OpenOptions;
-use std::io::Seek;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -48,10 +49,33 @@ impl TimingMode {
     }
 }
 
+
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub enum Season {
+    None,
+    Halloween,
+    Christmas,
+}
+
+impl Season {
+    pub fn current() -> Season {
+        let now = Local::now();
+
+        if (now.month() == 10 && now.day() > 25) || (now.month() == 11 && now.day() < 3) {
+            Season::Halloween
+        } else if (now.month() == 12 && now.day() > 23) || (now.month() == 0 && now.day() < 7) {
+            Season::Christmas
+        } else {
+            Season::None
+        }
+    }
+}
+
 pub struct Settings {
     pub god_mode: bool,
     pub infinite_booster: bool,
     pub speed: f64,
+    pub seasonal_textures: bool,
     pub original_textures: bool,
     pub lighting_efects: bool,
     pub debug_outlines: bool,
@@ -73,15 +97,10 @@ pub struct SharedGameState {
     pub key_state: KeyState,
     pub key_trigger: KeyState,
     pub touch_controls: TouchControls,
-    pub font: BMFontRenderer,
-    pub texture_set: TextureSet,
     pub base_path: String,
     pub npc_table: NPCTable,
     pub npc_super_pos: (isize, isize),
     pub stages: Vec<StageData>,
-    pub sound_manager: SoundManager,
-    pub settings: Settings,
-    pub constants: EngineConstants,
     pub new_npcs: Vec<NPC>,
     pub frame_time: f64,
     pub prev_frame_time: f64,
@@ -91,6 +110,12 @@ pub struct SharedGameState {
     pub screen_size: (f32, f32),
     pub next_scene: Option<Box<dyn Scene>>,
     pub textscript_vm: TextScriptVM,
+    pub season: Season,
+    pub constants: EngineConstants,
+    pub font: BMFontRenderer,
+    pub texture_set: TextureSet,
+    pub sound_manager: SoundManager,
+    pub settings: Settings,
     pub shutdown: bool,
     key_old: u16,
 }
@@ -98,11 +123,12 @@ pub struct SharedGameState {
 impl SharedGameState {
     pub fn new(ctx: &mut Context) -> GameResult<SharedGameState> {
         let screen_size = graphics::drawable_size(ctx);
-        let scale = screen_size.1.div(240.0).floor().max(1.0);
+        let scale = screen_size.1.div(235.0).floor().max(1.0);
         let canvas_size = (screen_size.0 / scale, screen_size.1 / scale);
 
         let mut constants = EngineConstants::defaults();
         let mut base_path = "/";
+        let settings = SharedGameState::load_settings(ctx)?;
 
         if filesystem::exists(ctx, "/base/Nicalis.bmp") {
             info!("Cave Story+ (PC) data files detected.");
@@ -121,6 +147,14 @@ impl SharedGameState {
 
         let font = BMFontRenderer::load(base_path, &constants.font_path, ctx)
             .or_else(|_| BMFontRenderer::load("/", "builtin/builtin_font.fnt", ctx))?;
+        let season = Season::current();
+        let mut texture_set = TextureSet::new(base_path);
+
+        if constants.is_cs_plus {
+            texture_set.apply_seasonal_content(season, &settings);
+        }
+
+        println!("lookup path: {:#?}", texture_set.paths);
 
         Ok(SharedGameState {
             timing_mode: TimingMode::_50Hz,
@@ -135,23 +169,10 @@ impl SharedGameState {
             key_state: KeyState(0),
             key_trigger: KeyState(0),
             touch_controls: TouchControls::new(),
-            font,
-            texture_set: TextureSet::new(base_path),
             base_path: str!(base_path),
             npc_table: NPCTable::new(),
             npc_super_pos: (0, 0),
             stages: Vec::with_capacity(96),
-            sound_manager: SoundManager::new(ctx)?,
-            settings: Settings {
-                god_mode: false,
-                infinite_booster: false,
-                speed: 1.0,
-                original_textures: false,
-                lighting_efects: true,
-                debug_outlines: false,
-                touch_controls: cfg!(target_os = "android"),
-            },
-            constants,
             new_npcs: Vec::with_capacity(8),
             frame_time: 0.0,
             prev_frame_time: 0.0,
@@ -161,9 +182,38 @@ impl SharedGameState {
             canvas_size,
             next_scene: None,
             textscript_vm: TextScriptVM::new(),
-            key_old: 0,
+            season,
+            constants,
+            font,
+            texture_set,
+            sound_manager: SoundManager::new(ctx)?,
+            settings,
             shutdown: false,
+            key_old: 0,
         })
+    }
+
+    fn load_settings(ctx: &mut Context) -> GameResult<Settings> {
+        Ok(Settings {
+            god_mode: false,
+            infinite_booster: false,
+            speed: 1.0,
+            seasonal_textures: true,
+            original_textures: false,
+            lighting_efects: true,
+            debug_outlines: false,
+            touch_controls: cfg!(target_os = "android"),
+        })
+    }
+
+    pub fn reload_textures(&mut self) {
+        let mut texture_set = TextureSet::new(self.base_path.as_str());
+
+        if self.constants.is_cs_plus {
+            texture_set.apply_seasonal_content(self.season, &self.settings);
+        }
+
+        self.texture_set = texture_set;
     }
 
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {

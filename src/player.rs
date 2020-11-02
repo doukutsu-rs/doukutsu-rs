@@ -5,7 +5,7 @@ use num_traits::clamp;
 use num_traits::FromPrimitive;
 
 use crate::caret::CaretType;
-use crate::common::{Condition, Direction, Equipment, fix9_scale, Flag, interpolate_fix9_scale, Rect};
+use crate::common::{Condition, Direction, Equipment, Flag, interpolate_fix9_scale, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::ggez::{Context, GameResult};
@@ -17,6 +17,18 @@ use crate::shared_game_state::SharedGameState;
 pub enum ControlMode {
     Normal = 0,
     IronHead,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
+#[repr(u8)]
+/// Cave Story+ player skins
+pub enum PlayerAppearance {
+    Quote = 0,
+    YellowQuote,
+    HumanQuote,
+    HalloweenQuote,
+    ReindeerQuote,
+    Curly,
 }
 
 #[derive(Clone)]
@@ -48,6 +60,7 @@ pub struct Player {
     pub damage: u16,
     pub air_counter: u16,
     pub air: u16,
+    pub appearance: PlayerAppearance,
     weapon_offset_y: i8,
     index_x: isize,
     index_y: isize,
@@ -99,6 +112,7 @@ impl Player {
             damage: 0,
             air_counter: 0,
             air: 0,
+            appearance: PlayerAppearance::Quote,
             bubble: 0,
             damage_counter: 0,
             damage_taken: 0,
@@ -107,6 +121,10 @@ impl Player {
             anim_rect: constants.my_char.animations_right[0],
             weapon_rect: Rect::new(0, 0, 0, 0),
         }
+    }
+
+    pub fn get_texture_offset(&self) -> usize {
+        self.appearance as usize * 64 + if self.equip.has_mimiga_mask() { 32 } else { 0 }
     }
 
     fn tick_normal(&mut self, state: &mut SharedGameState) -> GameResult {
@@ -557,6 +575,10 @@ impl Player {
         if self.anim_num == 1 || self.anim_num == 3 || self.anim_num == 6 || self.anim_num == 8 {
             self.weapon_rect.top += 1;
         }
+
+        let offset = self.get_texture_offset();
+        self.anim_rect.top += offset;
+        self.anim_rect.bottom += offset;
     }
 
     pub fn damage(&mut self, hp: isize, state: &mut SharedGameState) {

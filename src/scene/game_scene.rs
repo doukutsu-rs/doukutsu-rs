@@ -12,11 +12,11 @@ use crate::ggez::nalgebra::clamp;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::npc::NPCMap;
 use crate::physics::PhysicalEntity;
-use crate::player::Player;
+use crate::player::{Player, PlayerAppearance};
 use crate::rng::RNG;
 use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
-use crate::shared_game_state::SharedGameState;
+use crate::shared_game_state::{SharedGameState, Season};
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::SizedBatch;
@@ -1189,6 +1189,15 @@ impl Scene for GameScene {
         state.npc_table.tex_npc1_name = ["Npc/", &self.stage.data.npc1.filename()].join("");
         state.npc_table.tex_npc2_name = ["Npc/", &self.stage.data.npc2.filename()].join("");
 
+        if state.constants.is_cs_plus {
+            match state.season {
+                Season::Halloween => self.player.appearance = PlayerAppearance::HalloweenQuote,
+                Season::Christmas => self.player.appearance = PlayerAppearance::ReindeerQuote,
+                _ => {}
+            }
+        }
+
+        self.npc_map.boss_map.boss_type = self.stage.data.boss_no as u16;
         self.frame.target_x = self.player.x;
         self.frame.target_y = self.player.y;
         self.frame.immediate_update(state, &self.stage);

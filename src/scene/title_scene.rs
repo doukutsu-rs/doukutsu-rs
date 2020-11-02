@@ -97,8 +97,10 @@ impl Scene for TitleScene {
             self.option_menu.push_entry(MenuEntry::Toggle("Lighting effects".to_string(), state.settings.lighting_efects));
             if state.constants.is_cs_plus {
                 self.option_menu.push_entry(MenuEntry::Toggle("Freeware textures".to_string(), state.settings.original_textures));
+                self.option_menu.push_entry(MenuEntry::Toggle("Seasonal textures".to_string(), state.settings.seasonal_textures));
             } else {
                 self.option_menu.push_entry(MenuEntry::Disabled("Freeware textures".to_string()));
+                self.option_menu.push_entry(MenuEntry::Disabled("Seasonal textures".to_string()));
             }
             self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
             self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));
@@ -168,23 +170,25 @@ impl Scene for TitleScene {
                     MenuSelectionResult::Selected(3, toggle) => {
                         if let MenuEntry::Toggle(_, value) = toggle {
                             state.settings.original_textures = !state.settings.original_textures;
-
-                            let path = if state.settings.original_textures {
-                                "/base/ogph/"
-                            } else {
-                                "/base/"
-                            };
-                            state.texture_set = TextureSet::new(path);
+                            state.reload_textures();
 
                             *value = state.settings.original_textures;
                         }
                     }
-                    MenuSelectionResult::Selected(4, _) => {
+                    MenuSelectionResult::Selected(4, toggle) => {
+                        if let MenuEntry::Toggle(_, value) = toggle {
+                            state.settings.seasonal_textures = !state.settings.seasonal_textures;
+                            state.reload_textures();
+
+                            *value = state.settings.seasonal_textures;
+                        }
+                    }
+                    MenuSelectionResult::Selected(5, _) => {
                         if let Err(e) = webbrowser::open(DISCORD_LINK) {
                             log::warn!("Error opening web browser: {}", e);
                         }
                     }
-                    MenuSelectionResult::Selected(6, _) | MenuSelectionResult::Canceled => {
+                    MenuSelectionResult::Selected(7, _) | MenuSelectionResult::Canceled => {
                         self.current_menu = CurrentMenu::MainMenu;
                     }
                     _ => {}

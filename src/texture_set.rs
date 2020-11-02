@@ -10,10 +10,11 @@ use crate::common::FILE_TYPES;
 use crate::engine_constants::EngineConstants;
 use crate::ggez::{Context, GameError, GameResult, graphics};
 use crate::ggez::filesystem;
-use crate::ggez::graphics::{Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh, Rect, Color};
+use crate::ggez::graphics::{Color, Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh, Rect};
 use crate::ggez::graphics::spritebatch::SpriteBatch;
 use crate::ggez::nalgebra::{Point2, Vector2};
 use crate::str;
+use crate::shared_game_state::{Season, Settings};
 
 pub struct SizedBatch {
     pub batch: SpriteBatch,
@@ -90,7 +91,7 @@ impl SizedBatch {
         self.batch.add(param);
     }
 
-    pub fn add_rect_scaled_tinted(&mut self, x: f32, y: f32, color: (u8,u8,u8), scale_x: f32, scale_y: f32, rect: &common::Rect<usize>) {
+    pub fn add_rect_scaled_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8), scale_x: f32, scale_y: f32, rect: &common::Rect<usize>) {
         if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
             return;
         }
@@ -122,14 +123,26 @@ impl SizedBatch {
 
 pub struct TextureSet {
     pub tex_map: HashMap<String, SizedBatch>,
-    base_path: String,
+    pub paths: Vec<String>,
 }
 
 impl TextureSet {
     pub fn new(base_path: &str) -> TextureSet {
         TextureSet {
             tex_map: HashMap::new(),
-            base_path: base_path.to_string(),
+            paths: vec![base_path.to_string(), "".to_string()],
+        }
+    }
+
+    pub fn apply_seasonal_content(&mut self, season: Season, settings: &Settings) {
+        if settings.original_textures {
+            self.paths.insert(0, "/base/ogph/".to_string())
+        } else if settings.seasonal_textures {
+            match season {
+                Season::Halloween => self.paths.insert(0, "/Halloween/season/".to_string()),
+                Season::Christmas => self.paths.insert(0, "/Christmas/season/".to_string()),
+                _ => {}
+            }
         }
     }
 
@@ -175,15 +188,14 @@ impl TextureSet {
     }
 
     pub fn load_texture(&self, ctx: &mut Context, constants: &EngineConstants, name: &str) -> GameResult<SizedBatch> {
-        let path = FILE_TYPES
+        let path = self.paths.iter().find_map(|s| FILE_TYPES
             .iter()
-            .map(|ext| [&self.base_path, name, ext].join(""))
-            .find(|path| filesystem::exists(ctx, path))
-            .or_else(|| FILE_TYPES
-                .iter()
-                .map(|ext| [name, ext].join(""))
-                .find(|path| filesystem::exists(ctx, path)))
-            .ok_or_else(|| GameError::ResourceLoadError(format!("Texture {:?} does not exist.", name)))?;
+            .map(|ext| [s, name, ext].join(""))
+            .find(|path| {
+                println!("{}", path);
+                filesystem::exists(ctx, path)
+            })
+        ).ok_or_else(|| GameError::ResourceLoadError(format!("Texture {} does not exist.", name)))?;
 
         info!("Loading texture: {}", path);
 
