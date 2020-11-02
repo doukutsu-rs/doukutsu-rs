@@ -1,14 +1,14 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use crate::ggez::{GameResult, Context};
+use crate::common::{Direction, interpolate_fix9_scale};
+use crate::entity::GameEntity;
+use crate::frame::Frame;
+use crate::ggez::{Context, GameResult};
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
-use crate::entity::GameEntity;
-use crate::frame::Frame;
-use crate::common::{Direction, interpolate_fix9_scale};
 
 pub mod balfrog;
 pub mod ballos;
@@ -23,13 +23,20 @@ pub mod undead_core;
 pub struct BossNPC {
     pub boss_type: u16,
     pub parts: [NPC; 16],
+    pub hurt_sound: [u8; 16],
+    pub death_sound: [u8; 16],
 }
 
 impl BossNPC {
     pub fn new() -> BossNPC {
+        let mut part = NPC::empty();
+        part.cond.set_drs_boss(true);
+
         BossNPC {
             boss_type: 0,
-            parts: [NPC::empty(); 16],
+            parts: [part; 16],
+            hurt_sound: [0; 16],
+            death_sound: [0; 16],
         }
     }
 }
@@ -38,7 +45,7 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for Boss
     fn tick(&mut self, state: &mut SharedGameState, (player, map, stage): (&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)) -> GameResult {
         match self.boss_type {
             1 => self.tick_b01_omega(),
-            2 => self.tick_b02_balfrog(state),
+            2 => self.tick_b02_balfrog(state, player),
             3 => self.tick_b03_monster_x(),
             4 => self.tick_b04_core(),
             5 => self.tick_b05_ironhead(),

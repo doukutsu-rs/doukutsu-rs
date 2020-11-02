@@ -112,7 +112,7 @@ pub struct NPC {
     pub anim_rect: Rect<usize>,
 }
 
-static PARTICLE_NPCS: [u16; 9] = [1, 4, 73, 84, 86, 87, 129, 199, 355];
+static PARTICLE_NPCS: [u16; 10] = [1, 4, 73, 84, 86, 87, 108, 129, 199, 355];
 
 impl NPC {
     pub fn get_start_index(&self) -> u16 {
@@ -314,13 +314,19 @@ impl PhysicalEntity for NPC {
     fn vel_y(&self) -> isize { self.vel_y }
 
     #[inline(always)]
-    fn hit_rect_size(&self) -> usize { if self.size >= 3 { 3 } else { 2 } }
+    fn hit_rect_size(&self) -> usize {
+        if self.size >= 3 {
+            if self.cond.drs_boss() { 4 } else { 3 }
+        } else {
+            2
+        }
+    }
 
     #[inline(always)]
-    fn offset_x(&self) -> isize { if self.size >= 3 { -0x1000 } else { 0 } }
+    fn offset_x(&self) -> isize { if self.size >= 3 && !self.cond.drs_boss() { -0x1000 } else { 0 } }
 
     #[inline(always)]
-    fn offset_y(&self) -> isize { if self.size >= 3 { -0x1000 } else { 0 } }
+    fn offset_y(&self) -> isize { if self.size >= 3 && !self.cond.drs_boss() { -0x1000 } else { 0 } }
 
     #[inline(always)]
     fn hit_bounds(&self) -> &Rect<usize> {

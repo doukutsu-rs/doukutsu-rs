@@ -19,7 +19,7 @@ pub enum ControlMode {
     IronHead,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 /// Cave Story+ player skins
 pub enum PlayerAppearance {

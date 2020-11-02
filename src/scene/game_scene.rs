@@ -4,6 +4,7 @@ use log::info;
 use crate::bullet::BulletManager;
 use crate::caret::CaretType;
 use crate::common::{Direction, FadeDirection, FadeState, fix9_scale, Rect};
+use crate::components::boss_life_bar::BossLifeBar;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
 use crate::ggez::{Context, GameResult, graphics, timer};
@@ -16,7 +17,7 @@ use crate::player::{Player, PlayerAppearance};
 use crate::rng::RNG;
 use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
-use crate::shared_game_state::{SharedGameState, Season};
+use crate::shared_game_state::{Season, SharedGameState};
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::SizedBatch;
@@ -26,6 +27,7 @@ use crate::weapon::WeaponType;
 pub struct GameScene {
     pub tick: usize,
     pub stage: Stage,
+    pub boss_life_bar: BossLifeBar,
     pub frame: Frame,
     pub player: Player,
     pub inventory: Inventory,
@@ -74,6 +76,7 @@ impl GameScene {
             stage,
             player: Player::new(state),
             inventory: Inventory::new(),
+            boss_life_bar: BossLifeBar::new(),
             frame: Frame {
                 x: 0,
                 y: 0,
@@ -800,7 +803,7 @@ impl GameScene {
                 }
 
                 for bullet in self.bullet_manager.bullets.iter_mut() {
-                    if bullet.damage < 1 {
+                    if !bullet.cond.alive() || bullet.damage < 1 {
                         continue;
                     }
 
@@ -823,7 +826,6 @@ impl GameScene {
                     }
 
                     if npc.npc_flags.shootable() {
-                        log::info!("damage: {} {}", npc.life, -(bullet.damage.min(npc.life) as isize));
                         npc.life = npc.life.saturating_sub(bullet.damage);
 
                         if npc.life == 0 {
@@ -843,7 +845,12 @@ impl GameScene {
                                 if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
                                     state.sound_manager.play_sfx(table_entry.hurt_sound);
                                 }
+
                                 npc.shock = 16;
+
+                                for _ in 0..3 {
+                                    state.create_caret((bullet.x + npc.x) / 2, (bullet.y + npc.y) / 2, CaretType::HurtParticles, Direction::Left);
+                                }
                             }
 
                             if npc.npc_flags.show_damage() {
@@ -869,6 +876,95 @@ impl GameScene {
                 }
 
                 npc.cond.set_drs_destroyed(false);
+            }
+        }
+
+        for i in 0..self.npc_map.boss_map.parts.len() {
+            let mut idx = i;
+            let (mut destroy_x, mut destroy_y, mut destroy_radius, mut destroy_count) = (0, 0, 0, 0);
+            let mut npc = unsafe { self.npc_map.boss_map.parts.get_unchecked_mut(i) };
+            if !npc.cond.alive() {
+                continue;
+            }
+
+            for bullet in self.bullet_manager.bullets.iter_mut() {
+                if !bullet.cond.alive() || bullet.damage < 1 {
+                    continue;
+                }
+
+                let hit = (
+                    npc.npc_flags.shootable()
+                        && (npc.x - npc.hit_bounds.right as isize) < (bullet.x + bullet.enemy_hit_width as isize)
+                        && (npc.x + npc.hit_bounds.right as isize) > (bullet.x - bullet.enemy_hit_width as isize)
+                        && (npc.y - npc.hit_bounds.top as isize) < (bullet.y + bullet.enemy_hit_height as isize)
+                        && (npc.y + npc.hit_bounds.bottom as isize) > (bullet.y - bullet.enemy_hit_height as isize)
+                ) || (
+                    npc.npc_flags.invulnerable()
+                        && (npc.x - npc.hit_bounds.right as isize) < (bullet.x + bullet.hit_bounds.right as isize)
+                        && (npc.x + npc.hit_bounds.right as isize) > (bullet.x - bullet.hit_bounds.left as isize)
+                        && (npc.y - npc.hit_bounds.top as isize) < (bullet.y + bullet.hit_bounds.bottom as isize)
+                        && (npc.y + npc.hit_bounds.bottom as isize) > (bullet.y - bullet.hit_bounds.top as isize)
+                );
+
+                if !hit {
+                    continue;
+                }
+
+                if npc.npc_flags.shootable() {
+                    if npc.cond.damage_boss() {
+                        idx = 0;
+                        npc = unsafe { self.npc_map.boss_map.parts.get_unchecked_mut(0) };
+                    }
+
+                    npc.life = npc.life.saturating_sub(bullet.damage);
+
+                    if npc.life == 0 {
+                        npc.life = npc.id;
+
+                        if self.player.cond.alive() && npc.npc_flags.event_when_killed() {
+                            state.control_flags.set_tick_world(true);
+                            state.control_flags.set_interactions_disabled(true);
+                            state.textscript_vm.start_script(npc.event_num);
+                        } else {
+                            state.sound_manager.play_sfx(self.npc_map.boss_map.death_sound[idx]);
+
+                            destroy_x = npc.x;
+                            destroy_y = npc.y;
+                            destroy_radius = npc.display_bounds.right;
+                            destroy_count = 4usize * (2usize).pow((npc.size as u32).saturating_sub(1));
+
+                            npc.cond.set_alive(false);
+                        }
+                    } else {
+                        if npc.shock < 14 {
+                            for _ in 0..3 {
+                                state.create_caret(bullet.x, bullet.y, CaretType::HurtParticles, Direction::Left);
+                            }
+                            state.sound_manager.play_sfx(self.npc_map.boss_map.hurt_sound[idx]);
+                        }
+
+                        npc.shock = 8;
+
+                        npc = unsafe { self.npc_map.boss_map.parts.get_unchecked_mut(0) };
+                        npc.shock = 8;
+                    }
+
+                    bullet.life = bullet.life.saturating_sub(1);
+                    if bullet.life < 1 {
+                        bullet.cond.set_alive(false);
+                    }
+                } else if [13, 14, 15, 28, 29, 30].contains(&bullet.btype) {
+                    bullet.life = bullet.life.saturating_sub(1);
+                } else if !bullet.weapon_flags.hit_right_slope() {
+                    state.create_caret(bullet.x, bullet.y, CaretType::ProjectileDissipation, Direction::Right);
+                    state.sound_manager.play_sfx(31);
+                    bullet.life = 0;
+                    continue;
+                }
+            }
+
+            if destroy_count != 0 {
+                self.npc_map.create_death_effect(destroy_x, destroy_y, destroy_radius, destroy_count, state);
             }
         }
 
@@ -998,6 +1094,8 @@ impl GameScene {
             } else {
                 self.life_bar_counter = 0;
             }
+
+            self.boss_life_bar.tick(state, &self.npc_map)?;
         }
 
         Ok(())
@@ -1141,7 +1239,7 @@ impl GameScene {
 
                     batch.add_rect(((x + ox) * 16 - self.frame.x / 0x200) as f32 - 2.0,
                                    ((y + oy) * 16 - self.frame.y / 0x200) as f32 - 2.0,
-                                    &caret_rect);
+                                   &caret_rect);
                 }
 
 
@@ -1317,6 +1415,7 @@ impl Scene for GameScene {
 
         if state.control_flags.control_enabled() {
             self.draw_hud(state, ctx)?;
+            self.boss_life_bar.draw(state, ctx, &self.frame)?;
         }
 
         if state.textscript_vm.mode == ScriptMode::StageSelect {

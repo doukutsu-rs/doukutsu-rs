@@ -1140,6 +1140,26 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::BSL => {
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                        if event_num == 0 {
+                            game_scene.boss_life_bar.set_boss_target(&game_scene.npc_map);
+                        } else {
+                            for npc_id in game_scene.npc_map.npc_ids.iter() {
+                                if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
+                                    let npc = npc_cell.borrow();
+
+                                    if event_num == npc.event_num {
+                                        game_scene.boss_life_bar.set_npc_target(npc.id, &game_scene.npc_map);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::BOA => {
                         let action_num = read_cur_varint(&mut cursor)? as u16;
 
@@ -1407,8 +1427,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // One operand codes
-                    OpCode::BSL | OpCode::NUM |
-                    OpCode::MPp | OpCode::SKm | OpCode::SKp |
+                    OpCode::NUM | OpCode::MPp | OpCode::SKm | OpCode::SKp |
                     OpCode::UNJ | OpCode::MPJ | OpCode::XX1 | OpCode::SIL |
                     OpCode::SSS | OpCode::ACH | OpCode::S2MV => {
                         let par_a = read_cur_varint(&mut cursor)?;
