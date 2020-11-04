@@ -198,6 +198,7 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             30 => self.tick_n030_gunsmith(state),
             32 => self.tick_n032_life_capsule(state),
             34 => self.tick_n034_bed(state),
+            35 => self.tick_n035_mannan(state),
             37 => self.tick_n037_sign(state),
             38 => self.tick_n038_fireplace(state),
             39 => self.tick_n039_save_sign(state),
@@ -650,7 +651,11 @@ impl NPCMap {
 
                 // todo vanish / show damage
 
-                npc.cond.set_alive(false);
+                if npc.cond.drs_dont_remove() {
+                    npc.cond.set_drs_dont_remove(false);
+                } else {
+                    npc.cond.set_alive(false);
+                }
             }
         }
 

@@ -3,7 +3,7 @@ use num_traits::clamp;
 
 use crate::common::Direction;
 use crate::ggez::GameResult;
-use crate::npc::NPC;
+use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 
@@ -347,6 +347,58 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n035_mannan(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num <= 2 && self.life <= 89 {
+            self.action_num = 3;
+            self.action_counter = 0;
+            self.anim_num = 2;
+            self.damage = 0;
+            self.npc_flags.set_shootable(false);
+
+            state.sound_manager.play_sfx(71);
+            self.cond.set_drs_dont_remove(true);
+            self.cond.set_drs_destroyed(true);
+        }
+
+        if self.action_num == 2 {
+            self.action_counter += 1;
+            if self.action_counter > 20 {
+                self.action_counter = 0;
+                self.action_num = 1;
+                self.anim_num = 0;
+            }
+        } else if self.action_num > 2 {
+            if self.action_num == 3 {
+                self.action_counter += 1;
+                if self.action_counter == 50 || self.action_counter == 60 {
+                    self.anim_num = 3;
+                }
+                if self.action_counter == 53 || self.action_counter == 63 {
+                    self.anim_num = 2;
+                }
+                if self.action_counter > 100 {
+                    self.action_num = 4;
+                }
+            }
+        } else if self.action_num >= 0 && self.shock >= 0 {
+            self.action_num = 2;
+            self.action_counter = 0;
+            self.anim_num = 1;
+
+            let mut npc = NPCMap::create_npc(103, &state.npc_table);
+            npc.cond.set_alive(true);
+            npc.x = self.x + self.direction.vector_x() * 32 * 0x200;
+            npc.y = self.y + 32 * 0x200;
+            npc.direction = self.direction;
+            state.new_npcs.push(npc);
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
+        self.anim_rect = state.constants.npc.n035_mannan[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n094_kulala(&mut self, state: &SharedGameState, player: &Player) -> GameResult {
         match self.action_num {
             0 => {
@@ -538,10 +590,10 @@ impl NPC {
             self.y += self.vel_y;
         }
 
-
-        let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
-        self.anim_rect = state.constants.npc.n095_jelly[self.anim_num as usize + dir_offset];
-
+        if self.anim_counter == 1 {
+            let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
+            self.anim_rect = state.constants.npc.n095_jelly[self.anim_num as usize + dir_offset];
+        }
         Ok(())
     }
 

@@ -475,8 +475,14 @@ impl NPC {
                 self.anim_num = self.anim_counter / 4;
                 self.anim_rect = state.constants.npc.n038_fireplace[self.anim_num as usize];
             }
-            10 => {}
-            11 => {}
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                }
+
+                self.anim_rect.left = 0;
+                self.anim_rect.right = 0;
+            }
             _ => {}
         }
 
