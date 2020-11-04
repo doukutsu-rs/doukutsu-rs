@@ -308,6 +308,7 @@ impl NPC {
                 self.vel_x = self.direction.vector_x() * 0x100;
             }
             3 => {
+                self.anim_num = 4;
                 self.vel_x = 0;
 
                 self.action_counter += 1;
@@ -316,18 +317,16 @@ impl NPC {
                     self.action_num = 4;
                     state.sound_manager.play_sfx(106);
                 }
-
-                self.anim_num = 4;
             }
             4 => {
+                self.anim_num = 5;
                 self.damage = 10;
+
                 self.action_counter += 1;
                 if self.action_counter > 2 {
                     self.action_counter = 0;
                     self.action_num = 5;
                 }
-
-                self.anim_num = 5;
             }
             5 => {
                 self.action_counter += 1;

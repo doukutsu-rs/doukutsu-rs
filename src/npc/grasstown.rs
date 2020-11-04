@@ -346,4 +346,244 @@ impl NPC {
 
         Ok(())
     }
+
+    pub fn tick_n104_frog(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+        match self.action_num {
+            0 => {
+                self.action_num = 1;
+                self.action_counter = 0;
+                self.vel_x = 0;
+                self.vel_y = 0;
+
+                if self.tsc_direction == 4 {
+                    self.direction = if (state.game_rng.next() & 1) == 0 { Direction::Left } else { Direction::Right };
+                    self.tsc_direction = self.direction as u16;
+                    self.action_num = 3;
+                    self.anim_num = 2;
+                    self.npc_flags.set_ignore_solidity(true);
+                } else {
+                    self.npc_flags.set_ignore_solidity(false);
+                }
+
+                self.action_counter += 1;
+
+                if state.game_rng.range(0..50) == 1 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+            }
+            1 => {
+                self.action_counter += 1;
+
+                if state.game_rng.range(0..50) == 1 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                self.anim_counter += 1;
+
+                if self.anim_counter > 2 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 1 {
+                        self.anim_num = 0;
+                    }
+                }
+
+                if self.action_counter > 18 {
+                    self.action_num = 1;
+                }
+            }
+            3 => {
+                self.action_counter += 1;
+                if self.action_counter > 40 {
+                    self.npc_flags.set_ignore_solidity(false);
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    self.anim_num = 0;
+                    self.action_num = 0;
+                    self.action_counter = 0;
+                }
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                }
+
+                if self.flags.hit_left_wall() && self.vel_x < 0 {
+                    self.vel_x = -self.vel_x;
+                    self.direction = Direction::Right;
+                }
+
+                if self.flags.hit_right_wall() && self.vel_x > 0 {
+                    self.vel_x = -self.vel_x;
+                    self.direction = Direction::Left;
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    self.action_num = 0;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                }
+            }
+            _ => {}
+        }
+
+        if self.action_num <= 9 && self.action_num != 3 && self.action_counter > 10
+            && ((self.shock > 0)
+            || (abs(self.x - player.x) < 160 * 0x200
+            && abs(self.y - player.y) < 64 * 0x200)
+            && state.game_rng.range(0..50) == 2) {
+            self.direction = if self.x >= player.x {
+                Direction::Left
+            } else {
+                Direction::Right
+            };
+            self.action_num = 10;
+            self.anim_num = 2;
+            self.vel_x = self.direction.vector_x() * 0x200;
+            self.vel_y = -0x5ff;
+
+            if !player.cond.hidden() {
+                state.sound_manager.play_sfx(30);
+            }
+        }
+
+        self.vel_y = (self.vel_y + 0x80).min(0x5ff);
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+        self.anim_rect = state.constants.npc.n104_frog[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub fn tick_n110_puchi(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+        match self.action_num {
+            0 => {
+                self.action_num = 1;
+                self.action_counter = 0;
+                self.vel_x = 0;
+                self.vel_y = 0;
+
+                if self.tsc_direction == 4 {
+                    self.direction = if (state.game_rng.next() & 1) == 0 { Direction::Left } else { Direction::Right };
+                    self.tsc_direction = self.direction as u16;
+                    self.action_num = 3;
+                    self.anim_num = 2;
+                    self.npc_flags.set_ignore_solidity(true);
+                } else {
+                    self.npc_flags.set_ignore_solidity(false);
+                }
+
+                self.action_counter += 1;
+
+                if state.game_rng.range(0..50) == 1 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+            }
+            1 => {
+                self.action_counter += 1;
+
+                if state.game_rng.range(0..50) == 1 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                self.anim_counter += 1;
+
+                if self.anim_counter > 2 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 1 {
+                        self.anim_num = 0;
+                    }
+                }
+
+                if self.action_counter > 18 {
+                    self.action_num = 1;
+                }
+            }
+            3 => {
+                self.action_counter += 1;
+                if self.action_counter > 40 {
+                    self.npc_flags.set_ignore_solidity(false);
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    self.anim_num = 0;
+                    self.action_num = 0;
+                    self.action_counter = 0;
+                }
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                }
+
+                if self.flags.hit_left_wall() && self.vel_x < 0 {
+                    self.vel_x = -self.vel_x;
+                    self.direction = Direction::Right;
+                }
+
+                if self.flags.hit_right_wall() && self.vel_x > 0 {
+                    self.vel_x = -self.vel_x;
+                    self.direction = Direction::Left;
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    self.action_num = 0;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                }
+            }
+            _ => {}
+        }
+
+        if self.action_num <= 9 && self.action_num != 3 && self.action_counter > 10
+            && ((self.shock > 0)
+            || (abs(self.x - player.x) < 160 * 0x200
+            && abs(self.y - player.y) < 64 * 0x200)
+            && state.game_rng.range(0..50) == 2) {
+            self.direction = if self.x >= player.x {
+                Direction::Left
+            } else {
+                Direction::Right
+            };
+            self.action_num = 10;
+            self.anim_num = 2;
+            self.vel_x = self.direction.vector_x() * 0x100;
+            self.vel_y = -0x2ff;
+
+            if !player.cond.hidden() {
+                state.sound_manager.play_sfx(30);
+            }
+        }
+
+        self.vel_y = (self.vel_y + 0x80).min(0x5ff);
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+        self.anim_rect = state.constants.npc.n110_puchi[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
 }

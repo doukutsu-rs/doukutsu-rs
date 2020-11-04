@@ -230,6 +230,9 @@ pub struct NPCConsts {
     pub n097_fan_up: [Rect<usize>; 3],
     pub n098_fan_right: [Rect<usize>; 3],
     pub n099_fan_down: [Rect<usize>; 3],
+    pub n104_frog: [Rect<usize>; 6],
+    pub n108_balfrog_projectile: [Rect<usize>; 3],
+    pub n110_puchi: [Rect<usize>; 6],
     pub n111_quote_teleport_out: [Rect<usize>; 4],
     pub n112_quote_teleport_in: [Rect<usize>; 4],
     pub n129_fireball_snake_trail: [Rect<usize>; 18],
@@ -1298,6 +1301,27 @@ impl EngineConstants {
                     Rect { left: 272, top: 168, right: 288, bottom: 184 },
                     Rect { left: 288, top: 168, right: 304, bottom: 184 },
                     Rect { left: 304, top: 168, right: 320, bottom: 184 },
+                ],
+                n104_frog: [
+                    Rect { left: 0, top: 112, right: 32, bottom: 144 }, // left
+                    Rect { left: 32, top: 112, right: 64, bottom: 144 },
+                    Rect { left: 64, top: 112, right: 96, bottom: 144 },
+                    Rect { left: 0, top: 144, right: 32, bottom: 176 }, // right
+                    Rect { left: 32, top: 144, right: 64, bottom: 176 },
+                    Rect { left: 64, top: 144, right: 96, bottom: 176 },
+                ],
+                n108_balfrog_projectile: [
+                    Rect { left: 96, top: 48, right: 112, bottom: 64 },
+                    Rect { left: 112, top: 48, right: 128, bottom: 64 },
+                    Rect { left: 128, top: 48, right: 144, bottom: 64 },
+                ],
+                n110_puchi: [
+                    Rect { left: 96, top: 128, right: 112, bottom: 144 }, // left
+                    Rect { left: 112, top: 128, right: 128, bottom: 144 },
+                    Rect { left: 128, top: 128, right: 144, bottom: 144 },
+                    Rect { left: 96, top: 144, right: 112, bottom: 160 }, // right
+                    Rect { left: 112, top: 144, right: 128, bottom: 160 },
+                    Rect { left: 128, top: 144, right: 144, bottom: 160 },
                 ],
                 n111_quote_teleport_out: [
                     Rect { left: 0, top: 0, right: 16, bottom: 16 }, // left

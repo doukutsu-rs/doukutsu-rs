@@ -29,12 +29,16 @@ pub struct BossNPC {
 
 impl BossNPC {
     pub fn new() -> BossNPC {
-        let mut part = NPC::empty();
-        part.cond.set_drs_boss(true);
+        let mut parts = [{
+            let mut part = NPC::empty();
+            part.cond.set_drs_boss(true);
+            part
+        }; 16];
+        parts[0].cond.set_alive(true);
 
         BossNPC {
             boss_type: 0,
-            parts: [part; 16],
+            parts,
             hurt_sound: [0; 16],
             death_sound: [0; 16],
         }
@@ -43,6 +47,10 @@ impl BossNPC {
 
 impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for BossNPC {
     fn tick(&mut self, state: &mut SharedGameState, (player, map, stage): (&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)) -> GameResult {
+        if !self.parts[0].cond.alive() {
+            return Ok(());
+        }
+
         match self.boss_type {
             1 => self.tick_b01_omega(),
             2 => self.tick_b02_balfrog(state, player),
@@ -53,6 +61,12 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for Boss
             7 => self.tick_b07_undead_core(),
             8 => self.tick_b09_ballos(),
             _ => {}
+        }
+
+        for part in self.parts.iter_mut() {
+            if part.shock > 0 {
+                part.shock -= 1;
+            }
         }
         Ok(())
     }

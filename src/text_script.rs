@@ -1150,7 +1150,7 @@ impl TextScriptVM {
                                 if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
                                     let npc = npc_cell.borrow();
 
-                                    if event_num == npc.event_num {
+                                    if npc.cond.alive() && event_num == npc.event_num {
                                         game_scene.boss_life_bar.set_npc_target(npc.id, &game_scene.npc_map);
                                         break;
                                     }

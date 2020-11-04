@@ -242,6 +242,9 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             97 => self.tick_n097_fan_up(state, player),
             98 => self.tick_n098_fan_right(state, player),
             99 => self.tick_n099_fan_down(state, player),
+            104 => self.tick_n104_frog(state, player),
+            108 => self.tick_n108_balfrog_projectile(state),
+            110 => self.tick_n110_puchi(state, player),
             111 => self.tick_n111_quote_teleport_out(state, player),
             112 => self.tick_n112_quote_teleport_in(state, player),
             129 => self.tick_n129_fireball_snake_trail(state),
@@ -574,7 +577,7 @@ impl NPCMap {
         state.create_caret(x, y, CaretType::Explosion, Direction::Left);
     }
 
-    pub fn process_dead_npcs(&mut self, list: &[u16], has_missile: bool, state: &mut SharedGameState) {
+    pub fn process_dead_npcs(&mut self, list: &[u16], has_missile: bool, player: &Player, state: &mut SharedGameState) {
         for id in list {
             if let Some(npc_cell) = self.npcs.get(id) {
                 let mut npc = npc_cell.borrow_mut();
@@ -649,10 +652,10 @@ impl NPCMap {
             }
         }
 
-        self.process_npc_changes(state);
+        self.process_npc_changes(player, state);
     }
 
-    pub fn process_npc_changes(&mut self, state: &mut SharedGameState) {
+    pub fn process_npc_changes(&mut self, player: &Player, state: &mut SharedGameState) {
         if !state.new_npcs.is_empty() {
             for mut npc in state.new_npcs.iter_mut() {
                 let id = if npc.id == 0 {
@@ -662,6 +665,18 @@ impl NPCMap {
                 };
 
                 npc.id = id;
+                if npc.tsc_direction == 0 {
+                    npc.tsc_direction = npc.direction as u16;
+                }
+
+                if npc.direction == Direction::FacingPlayer {
+                    npc.direction = if npc.x < player.x {
+                        Direction::Right
+                    } else {
+                        Direction::Left
+                    };
+                }
+
                 self.npc_ids.insert(id);
                 self.npcs.insert(id, RefCell::new(*npc));
             }

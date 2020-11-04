@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use itertools::Itertools;
 use log::info;
 
@@ -11,7 +13,7 @@ use crate::ggez::{Context, GameResult, graphics, timer};
 use crate::ggez::graphics::{BlendMode, Color, Drawable, DrawParam, FilterMode, Vector2};
 use crate::ggez::nalgebra::clamp;
 use crate::inventory::{Inventory, TakeExperienceResult};
-use crate::npc::NPCMap;
+use crate::npc::{NPC, NPCMap};
 use crate::physics::PhysicalEntity;
 use crate::player::{Player, PlayerAppearance};
 use crate::rng::RNG;
@@ -607,10 +609,10 @@ impl GameScene {
             for npc_cell in self.npc_map.npcs.values() {
                 let npc = npc_cell.borrow();
 
-                if npc.x < (self.frame.x - 128 - npc.display_bounds.width() as isize * 0x200)
-                    || npc.x > (self.frame.x + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
-                    && npc.y < (self.frame.y - 128 - npc.display_bounds.height() as isize * 0x200)
-                    || npc.y > (self.frame.y + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
+                if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as isize * 0x200)
+                    || npc.x > (self.frame.x + 128 * 0x200 + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
+                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as isize * 0x200)
+                    || npc.y > (self.frame.y + 128 * 0x200 + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
                     continue;
                 }
 
@@ -971,7 +973,7 @@ impl GameScene {
         if !dead_npcs.is_empty() {
             let missile = self.inventory.has_weapon(WeaponType::MissileLauncher)
                 | self.inventory.has_weapon(WeaponType::SuperMissileLauncher);
-            self.npc_map.process_dead_npcs(&dead_npcs, missile, state);
+            self.npc_map.process_dead_npcs(&dead_npcs, missile, &self.player, state);
             self.npc_map.garbage_collect();
         }
     }
@@ -1011,7 +1013,7 @@ impl GameScene {
             }
         }
         self.npc_map.boss_map.tick(state, (&mut self.player, &self.npc_map.npcs, &mut self.stage))?;
-        self.npc_map.process_npc_changes(state);
+        self.npc_map.process_npc_changes(&self.player, state);
         self.npc_map.garbage_collect();
 
         self.player.tick_map_collisions(state, &mut self.stage);
@@ -1027,13 +1029,15 @@ impl GameScene {
             }
         }
         for npc in self.npc_map.boss_map.parts.iter_mut() {
-            npc.tick_map_collisions(state, &mut self.stage);
+            if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
+                npc.tick_map_collisions(state, &mut self.stage);
+            }
         }
-        self.npc_map.process_npc_changes(state);
+        self.npc_map.process_npc_changes(&self.player, state);
         self.npc_map.garbage_collect();
 
         self.tick_npc_bullet_collissions(state);
-        self.npc_map.process_npc_changes(state);
+        self.npc_map.process_npc_changes(&self.player, state);
 
         self.bullet_manager.tick_bullets(state, &self.player, &mut self.stage);
         state.tick_carets();
@@ -1183,77 +1187,61 @@ impl GameScene {
         Ok(())
     }
 
-    fn draw_debug_outlines(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        for npc in self.npc_map.npcs.values() {
-            let npc = npc.borrow();
+    fn draw_debug_npc(&self, npc: &NPC, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        if npc.x < (self.frame.x - 128 - npc.display_bounds.width() as isize * 0x200)
+            || npc.x > (self.frame.x + 128 + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
+            && npc.y < (self.frame.y - 128 - npc.display_bounds.height() as isize * 0x200)
+            || npc.y > (self.frame.y + 128 + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
+            return Ok(());
+        }
 
-            if npc.x < (self.frame.x - 128 - npc.display_bounds.width() as isize * 0x200)
-                || npc.x > (self.frame.x + 128 + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
-                && npc.y < (self.frame.y - 128 - npc.display_bounds.height() as isize * 0x200)
-                || npc.y > (self.frame.y + 128 + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
-                continue;
-            }
+        {
+            let hit_rect_size = clamp(npc.hit_rect_size(), 1, 4);
+            let hit_rect_size = hit_rect_size * hit_rect_size;
 
-            // todo faster way to draw dynamic rectangles
-            // // top
-            // state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.right as isize - self.frame.x) / 0x200,
-            //                                            (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
-            //                                            (npc.hit_bounds.right + npc.hit_bounds.right) as isize / 0x200,
-            //                                            1),
-            //                             [0.0, if npc.flags.hit_top_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
-            // // bottom
-            // state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.right as isize - self.frame.x) / 0x200,
-            //                                            (npc.y + npc.hit_bounds.bottom as isize - self.frame.y) / 0x200 - 1,
-            //                                            (npc.hit_bounds.right + npc.hit_bounds.right) as isize / 0x200,
-            //                                            1),
-            //                             [0.0, if npc.flags.hit_bottom_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
-            // // left
-            // state.texture_set.draw_rect(Rect::new_size((npc.x - npc.hit_bounds.right as isize - self.frame.x) / 0x200,
-            //                                            (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
-            //                                            1,
-            //                                            (npc.hit_bounds.top + npc.hit_bounds.bottom) as isize / 0x200),
-            //                             [0.0, if npc.flags.hit_left_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
-            // // right
-            // state.texture_set.draw_rect(Rect::new_size((npc.x + npc.hit_bounds.right as isize - self.frame.x) / 0x200 - 1,
-            //                                            (npc.y - npc.hit_bounds.top as isize - self.frame.y) / 0x200,
-            //                                            1,
-            //                                            (npc.hit_bounds.top + npc.hit_bounds.bottom) as isize / 0x200),
-            //                             [0.0, if npc.flags.hit_right_wall() { 1.0 } else { 0.0 }, 1.0, 1.0], ctx)?;
+            let x = (npc.x + npc.offset_x()) / (16 * 0x200);
+            let y = (npc.y + npc.offset_y()) / (16 * 0x200);
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Caret")?;
 
-            {
-                let hit_rect_size = clamp(npc.hit_rect_size(), 1, 4);
-                let hit_rect_size = hit_rect_size * hit_rect_size;
+            let caret_rect = Rect::new_size(2, 74, 4, 4);
+            let caret2_rect = Rect::new_size(65, 9, 6, 6);
 
-                let x = (npc.x + npc.offset_x()) / (16 * 0x200);
-                let y = (npc.y + npc.offset_y()) / (16 * 0x200);
-                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Caret")?;
-
-                let caret_rect = Rect::new_size(2, 74, 4, 4);
-                let caret2_rect = Rect::new_size(65, 9, 6, 6);
-
-                for (idx, (&ox, &oy)) in crate::physics::OFF_X.iter()
-                    .zip(crate::physics::OFF_Y.iter()).enumerate() {
-                    if idx == hit_rect_size {
-                        break;
-                    }
-
-                    batch.add_rect(((x + ox) * 16 - self.frame.x / 0x200) as f32 - 2.0,
-                                   ((y + oy) * 16 - self.frame.y / 0x200) as f32 - 2.0,
-                                   &caret_rect);
+            for (idx, (&ox, &oy)) in crate::physics::OFF_X.iter()
+                .zip(crate::physics::OFF_Y.iter()).enumerate() {
+                if idx == hit_rect_size {
+                    break;
                 }
 
-
-                batch.add_rect(((npc.x - self.frame.x) / 0x200) as f32 - 3.0,
-                               ((npc.y - self.frame.y) / 0x200) as f32 - 3.0,
-                               &caret2_rect);
-
-                batch.draw(ctx)?;
+                batch.add_rect(((x + ox) * 16 - self.frame.x / 0x200) as f32 - 2.0,
+                               ((y + oy) * 16 - self.frame.y / 0x200) as f32 - 2.0,
+                               &caret_rect);
             }
 
-            let text = format!("{}:{}:{}", npc.id, npc.npc_type, npc.size);
-            state.font.draw_colored_text(text.chars(), ((npc.x - self.frame.x) / 0x200) as f32, ((npc.y - self.frame.y) / 0x200) as f32,
-                                         (0, 255, (npc.id & 0xff) as u8), &state.constants, &mut state.texture_set, ctx)?;
+
+            batch.add_rect(((npc.x - self.frame.x) / 0x200) as f32 - 3.0,
+                           ((npc.y - self.frame.y) / 0x200) as f32 - 3.0,
+                           &caret2_rect);
+
+            batch.draw(ctx)?;
         }
+
+        let text = format!("{}:{}:{}", npc.id, npc.npc_type, npc.action_num);
+        state.font.draw_colored_text(text.chars(), ((npc.x - self.frame.x) / 0x200) as f32, ((npc.y - self.frame.y) / 0x200) as f32,
+                                     ((npc.id & 0xf0) as u8, (npc.cond.0 >> 8) as u8, (npc.id & 0x0f << 4) as u8),
+                                     &state.constants, &mut state.texture_set, ctx)?;
+
+        Ok(())
+    }
+
+    fn draw_debug_outlines(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        for npc in self.npc_map.npcs.values().map(|n| n.borrow()) {
+            self.draw_debug_npc(npc.deref(), state, ctx)?;
+        }
+
+        for boss in self.npc_map.boss_map.parts.iter() {
+            self.draw_debug_npc(boss, state, ctx)?;
+        }
+
         Ok(())
     }
 }
@@ -1386,21 +1374,21 @@ impl Scene for GameScene {
             self.draw_light_map(state, ctx)?;
         }
 
+        self.npc_map.boss_map.draw(state, ctx, &self.frame)?;
         for npc_id in self.npc_map.npc_ids.iter() {
             if let Some(npc_cell) = self.npc_map.npcs.get(npc_id) {
                 let npc = npc_cell.borrow();
 
-                if npc.x < (self.frame.x - 128 - npc.display_bounds.width() as isize * 0x200)
-                    || npc.x > (self.frame.x + 128 + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
-                    && npc.y < (self.frame.y - 128 - npc.display_bounds.height() as isize * 0x200)
-                    || npc.y > (self.frame.y + 128 + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
+                if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as isize * 0x200)
+                    || npc.x > (self.frame.x + 128 * 0x200 + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
+                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as isize * 0x200)
+                    || npc.y > (self.frame.y + 128 * 0x200 + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
                     continue;
                 }
 
                 npc.draw(state, ctx, &self.frame)?;
             }
         }
-        self.npc_map.boss_map.draw(state, ctx, &self.frame)?;
         self.draw_bullets(state, ctx)?;
         self.player.draw(state, ctx, &self.frame)?;
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;

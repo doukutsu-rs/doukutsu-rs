@@ -7,7 +7,7 @@ use crate::common::{Condition, Direction, Flag, Rect};
 use crate::inventory::{AddExperienceResult, Inventory};
 use crate::npc::{NPC, NPCMap};
 use crate::physics::PhysicalEntity;
-use crate::player::{Player, ControlMode};
+use crate::player::{ControlMode, Player};
 use crate::shared_game_state::SharedGameState;
 
 impl PhysicalEntity for Player {
@@ -241,7 +241,7 @@ impl Player {
             flags = self.judge_hit_npc_non_solid(npc.borrow());
         }
 
-        if flags.0 != 0 {
+        if !npc.cond.drs_boss() && flags.0 != 0 {
             match npc.npc_type {
                 // experience pickup
                 1 => {
@@ -294,7 +294,14 @@ impl Player {
         }
 
         if state.control_flags.control_enabled() && !npc.npc_flags.interactable() {
-            if flags.0 != 0 && npc.damage != 0 && !state.control_flags.interactions_disabled() {
+            if npc.npc_flags.rear_and_top_not_hurt() {
+                if flags.hit_left_wall() && npc.vel_x > 0
+                    || flags.hit_right_wall() && npc.vel_x < 0
+                    || flags.hit_top_wall() && npc.vel_y > 0
+                    || flags.hit_bottom_wall() && npc.vel_y < 0 {
+                    self.damage(npc.damage as isize, state);
+                }
+            } else if flags.0 != 0 && npc.damage != 0 && !state.control_flags.interactions_disabled() {
                 self.damage(npc.damage as isize, state);
             }
         }
