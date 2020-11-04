@@ -238,6 +238,8 @@ impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC 
             86 => self.tick_n086_missile_pickup(state),
             87 => self.tick_n087_heart_pickup(state),
             91 => self.tick_n091_mimiga_cage(state),
+            94 => self.tick_n094_kulala(state, player),
+            95 => self.tick_n095_jelly(state),
             96 => self.tick_n096_fan_left(state, player),
             97 => self.tick_n097_fan_up(state, player),
             98 => self.tick_n098_fan_right(state, player),
@@ -685,14 +687,19 @@ impl NPCMap {
         }
     }
 
-    pub fn is_alive(&self, npc_id: u16) -> bool {
-        if let Some(npc_cell) = self.npcs.get(&npc_id) {
-            return npc_cell.borrow().cond.alive();
+    /// Returns true if at least one NPC with specified type is alive.
+    pub fn is_alive_by_type(&self, npc_type: u16) -> bool {
+        for npc_cell in self.npcs.values() {
+            let npc = npc_cell.borrow();
+            if npc.cond.alive() && npc.npc_type == npc_type {
+                return true;
+            }
         }
 
         false
     }
 
+    /// Returns true if at least one NPC with specified event is alive.
     pub fn is_alive_by_event(&self, event_num: u16) -> bool {
         for npc_cell in self.npcs.values() {
             let npc = npc_cell.borrow();

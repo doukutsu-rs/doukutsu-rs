@@ -347,7 +347,205 @@ impl NPC {
         Ok(())
     }
 
-    pub fn tick_n104_frog(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n094_kulala(&mut self, state: &SharedGameState, player: &Player) -> GameResult {
+        match self.action_num {
+            0 => {
+                self.anim_num = 4;
+                if self.shock > 0 {
+                    self.anim_num = 0;
+                    self.action_num = 10;
+                    self.action_counter = 0;
+                }
+            }
+            10 => {
+                self.npc_flags.set_shootable(true);
+                self.npc_flags.set_invulnerable(false);
+
+                self.action_counter += 1;
+                if self.action_counter > 40 {
+                    self.action_num = 11;
+                    self.action_counter = 0;
+                    self.anim_counter = 0;
+                }
+            }
+            11 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 5 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 2 {
+                        self.action_num = 12;
+                        self.anim_num = 3;
+                    }
+                }
+            }
+            12 => {
+                self.vel_y = -0x155;
+
+                self.action_counter += 1;
+                if self.action_counter > 20 {
+                    self.action_num = 10;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                }
+            }
+            20 => {
+                self.vel_x /= 2;
+                self.vel_y += 0x10;
+
+                if self.shock == 0 {
+                    self.action_num = 10;
+                    self.action_counter = 30;
+                    self.anim_num = 0;
+                }
+            }
+            _ => {}
+        }
+
+        if self.shock > 0 {
+            self.action_counter2 += 1;
+            if self.action_counter2 > 12 {
+                self.action_num = 20;
+                self.anim_num = 4;
+                self.npc_flags.set_shootable(false);
+                self.npc_flags.set_invulnerable(true);
+            }
+        } else {
+            self.action_counter2 = 0;
+        }
+
+        if self.action_num >= 10 {
+            if self.flags.hit_left_wall() {
+                self.vel_x2 = 50;
+                self.direction = Direction::Right;
+            }
+
+            if self.flags.hit_right_wall() {
+                self.vel_x2 = 50;
+                self.direction = Direction::Left;
+            }
+
+            if self.vel_x2 > 0 {
+                self.vel_x2 -= 1;
+
+                self.vel_x += self.direction.vector_x() * 0x80;
+            } else {
+                self.vel_x2 = 50;
+                self.direction = if self.x > player.x {
+                    Direction::Left
+                } else {
+                    Direction::Right
+                };
+            }
+
+            self.vel_y += 0x10;
+
+            if self.flags.hit_bottom_wall() {
+                self.vel_y = -2 * 0x200;
+            }
+        }
+
+        self.vel_x = clamp(self.vel_x, -0x100, 0x100);
+        self.vel_y = clamp(self.vel_y, -0x300, 0x300);
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        self.anim_rect = state.constants.npc.n094_kulala[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n095_jelly(&mut self, state: &SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 | 10 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.action_counter = state.game_rng.range(0..50) as u16;
+                    self.target_x = self.x;
+                    self.target_y = self.y;
+
+                    self.vel_x = -self.direction.vector_x() * 0x200;
+                }
+
+                if self.action_num == 1 {
+                    if self.action_counter > 0 {
+                        self.action_counter -= 1;
+                    } else {
+                        self.action_num = 10;
+                    }
+                }
+
+                if self.action_num == 10 {
+                    self.action_counter += 1;
+                    if self.action_counter > 10 {
+                        self.action_num = 11;
+                        self.action_counter = 0;
+                        self.anim_counter = 0;
+                    }
+                }
+            }
+            11 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 5 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num == 2 {
+                        self.vel_x += self.direction.vector_x() * 0x100;
+                        self.vel_y -= 0x200;
+                    } else if self.anim_num > 2 {
+                        self.action_num = 12;
+                        self.anim_num = 3;
+                    }
+                }
+            }
+            12 => {
+                self.action_counter += 1;
+                if self.action_counter > 10 && self.y > self.target_y {
+                    self.action_num = 10;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                }
+            }
+            _ => {}
+        }
+
+        self.direction = if self.x <= self.target_x { Direction::Right } else { Direction::Left };
+
+        if self.flags.hit_left_wall() {
+            self.action_counter2 = 50;
+            self.direction = Direction::Right;
+        }
+
+        if self.flags.hit_right_wall() {
+            self.action_counter2 = 50;
+            self.direction = Direction::Left;
+        }
+
+        self.vel_y += 0x20;
+        if self.flags.hit_bottom_wall() {
+            self.vel_y = -2 * 0x200;
+        }
+
+        self.vel_x = clamp(self.vel_x, -0x100, 0x100);
+        self.vel_y = clamp(self.vel_y, -0x200, 0x200);
+
+        if self.shock > 0 {
+            self.x += self.vel_x / 2;
+            self.y += self.vel_y / 2;
+        } else {
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+        }
+
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
+        self.anim_rect = state.constants.npc.n095_jelly[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n104_frog(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -467,7 +665,7 @@ impl NPC {
         Ok(())
     }
 
-    pub fn tick_n110_puchi(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n110_puchi(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;

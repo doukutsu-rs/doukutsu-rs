@@ -109,6 +109,12 @@ impl Game {
                         self.loops += 1;
                     }
 
+                    if self.loops == 10 {
+                        log::warn!("Frame skip is way too high, a long system lag occurred?");
+                        self.next_tick = self.start_time.elapsed().as_nanos();
+                        self.loops = 0;
+                    }
+
                     for _ in 0..self.loops {
                         scene.tick(&mut self.state, ctx)?;
                     }

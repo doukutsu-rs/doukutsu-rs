@@ -185,7 +185,7 @@ pub enum OpCode {
     NCJ,
     /// <ECJxxxx:yyyy, Jumps to event xxxx if NPC tagged with event yyyy is alive
     ECJ,
-    /// <FLJxxxx:yyyy, Jumps to event xxxx if flag yyyy is set
+    /// <FLJxxxx:yyyy, Jumps to event yyyy if flag xxxx is set
     FLJ,
     /// <FLJxxxx:yyyy, Jumps to event xxxx if player has item yyyy
     ITJ,
@@ -852,10 +852,10 @@ impl TextScriptVM {
                         }
                     }
                     OpCode::NCJ => {
-                        let npc_id = read_cur_varint(&mut cursor)? as u16;
+                        let npc_type = read_cur_varint(&mut cursor)? as u16;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
-                        if game_scene.npc_map.is_alive(npc_id) {
+                        if game_scene.npc_map.is_alive_by_type(npc_type) {
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);

@@ -586,7 +586,7 @@ impl GameScene {
             if !self.player.cond.hidden() && self.inventory.get_current_weapon().is_some() {
                 self.draw_light(fix9_scale(self.player.x - self.frame.x, scale),
                                 fix9_scale(self.player.y - self.frame.y, scale),
-                                2.5, (225, 225, 225), batch);
+                                4.0, (140, 140, 140), batch);
             }
 
             for bullet in self.bullet_manager.bullets.iter() {
