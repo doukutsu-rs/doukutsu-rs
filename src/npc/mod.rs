@@ -1,11 +1,12 @@
 use std::cell::RefCell;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, HashSet};
 use std::io;
 use std::io::Cursor;
+use std::ops::DerefMut;
 
 use bitvec::vec::BitVec;
 use byteorder::{LE, ReadBytesExt};
-use itertools::Itertools;
+use ggez::{Context, GameResult};
 use num_traits::abs;
 
 use crate::bitfield;
@@ -15,7 +16,6 @@ use crate::common::Direction;
 use crate::common::Flag;
 use crate::entity::GameEntity;
 use crate::frame::Frame;
-use crate::ggez::{Context, GameResult};
 use crate::map::NPCData;
 use crate::npc::boss::BossNPC;
 use crate::physics::PhysicalEntity;
@@ -162,8 +162,8 @@ impl NPC {
     }
 }
 
-impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for NPC {
-    fn tick(&mut self, state: &mut SharedGameState, (player, map, stage): (&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)) -> GameResult {
+impl GameEntity<(&mut Player, &BTreeMap<u16, RefCell<NPC>>, &mut Stage)> for NPC {
+    fn tick(&mut self, state: &mut SharedGameState, (player, map, stage): (&mut Player, &BTreeMap<u16, RefCell<NPC>>, &mut Stage)) -> GameResult {
         match self.npc_type {
             0 => self.tick_n000_null(),
             1 => self.tick_n001_experience(state),
@@ -386,10 +386,9 @@ impl PhysicalEntity for NPC {
 }
 
 pub struct NPCMap {
-    /// A sorted pool of used IDs to used to iterate over NPCs in order, as original game does.
-    pub npc_ids: BTreeSet<u16>,
+    ids: HashSet<u16>,
     /// Do not iterate over this directly outside render pipeline.
-    pub npcs: HashMap<u16, RefCell<NPC>>,
+    pub npcs: BTreeMap<u16, RefCell<NPC>>,
     /// NPCMap but for bosses and of static size.
     pub boss_map: BossNPC,
 }
@@ -398,14 +397,14 @@ impl NPCMap {
     #[allow(clippy::new_without_default)]
     pub fn new() -> NPCMap {
         NPCMap {
-            npc_ids: BTreeSet::new(),
-            npcs: HashMap::with_capacity(256),
+            ids: HashSet::new(),
+            npcs: BTreeMap::new(),
             boss_map: BossNPC::new(),
         }
     }
 
     pub fn clear(&mut self) {
-        self.npc_ids.clear();
+        self.ids.clear();
         self.npcs.clear();
     }
 
@@ -454,8 +453,9 @@ impl NPCMap {
             anim_rect: Rect::new(0, 0, 0, 0),
         };
 
-        self.npc_ids.insert(data.id);
-        self.npcs.insert(data.id, RefCell::new(npc));
+        let cell = RefCell::new(npc);
+        self.npcs.insert(data.id, cell);
+        self.ids.insert(data.id);
 
         self.npcs.get_mut(&data.id).unwrap().get_mut()
     }
@@ -507,17 +507,24 @@ impl NPCMap {
     }
 
     pub fn garbage_collect(&mut self) {
-        let dead_npcs = self.npcs.iter().filter_map(|(&id, npc_cell)| {
-            if !npc_cell.borrow().cond.alive() {
-                Some(id)
-            } else {
-                None
-            }
-        }).collect_vec();
+        // let dead_npcs = self.npcs.iter().(|(&id, npc_cell)| {
+        //     if !npc_cell.borrow().cond.alive() {
+        //         Some(id)
+        //     } else {
+        //         None
+        //     }
+        // }).collect_vec();
+        //
+        // for npc_id in dead_npcs.iter() {
+        //     self.npcs.remove(npc_id);
+        // }
 
-        for npc_id in dead_npcs.iter() {
-            self.npc_ids.remove(npc_id);
-            self.npcs.remove(npc_id);
+        for npc_cell in self.npcs.values_mut() {
+            let mut npc = npc_cell.borrow();
+
+            if !npc.cond.alive() {
+                self.ids.remove(&npc.id);
+            }
         }
     }
 
@@ -552,7 +559,7 @@ impl NPCMap {
 
     pub fn allocate_id(&mut self, start: u16) -> u16 {
         for i in start..(u16::MAX) {
-            if !self.npc_ids.contains(&i) {
+            if !self.ids.contains(&i) {
                 return i;
             }
         }
@@ -684,7 +691,7 @@ impl NPCMap {
                     };
                 }
 
-                self.npc_ids.insert(id);
+                self.ids.insert(id);
                 self.npcs.insert(id, RefCell::new(*npc));
             }
 

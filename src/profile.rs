@@ -4,8 +4,8 @@ use byteorder::{BE, LE, ReadBytesExt, WriteBytesExt};
 use num_traits::{clamp, FromPrimitive};
 
 use crate::common::{Direction, FadeState};
-use crate::ggez::{Context, GameResult};
-use crate::ggez::GameError::ResourceLoadError;
+use ggez::{Context, GameResult};
+use ggez::GameError::ResourceLoadError;
 use crate::player::ControlMode;
 use crate::scene::game_scene::GameScene;
 use crate::shared_game_state::SharedGameState;

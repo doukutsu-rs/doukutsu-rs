@@ -5,9 +5,9 @@ use std::io::ErrorKind;
 use std::io::SeekFrom;
 use std::path::{Component, Path, PathBuf};
 
-use crate::ggez::{GameError, GameResult};
-use crate::ggez::GameError::FilesystemError;
-use crate::ggez::vfs::{OpenOptions, VFile, VFS, VMetadata};
+use ggez::{GameError, GameResult};
+use ggez::GameError::FilesystemError;
+use ggez::vfs::{OpenOptions, VFile, VFS, VMetadata};
 
 #[derive(Debug)]
 pub struct BuiltinFile(Cursor<&'static [u8]>);

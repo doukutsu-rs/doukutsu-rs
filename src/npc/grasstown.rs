@@ -2,7 +2,7 @@ use num_traits::abs;
 use num_traits::clamp;
 
 use crate::common::Direction;
-use crate::ggez::GameResult;
+use ggez::GameResult;
 use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
@@ -380,7 +380,7 @@ impl NPC {
                     self.action_num = 4;
                 }
             }
-        } else if self.action_num >= 0 && self.shock >= 0 {
+        } else if self.action_num >= 0 && self.shock > 0 {
             self.action_num = 2;
             self.action_counter = 0;
             self.anim_num = 1;

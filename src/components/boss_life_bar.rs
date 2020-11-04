@@ -1,6 +1,6 @@
 use crate::entity::GameEntity;
 use crate::frame::Frame;
-use crate::ggez::{Context, GameResult};
+use ggez::{Context, GameResult};
 use crate::npc::NPCMap;
 use crate::shared_game_state::SharedGameState;
 use crate::common::Rect;

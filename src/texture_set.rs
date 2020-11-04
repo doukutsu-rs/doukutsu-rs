@@ -1,20 +1,21 @@
 use std::collections::HashMap;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 
+use ggez;
+use ggez::{Context, GameError, GameResult, graphics};
+use ggez::filesystem;
+use ggez::graphics::{Color, Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh, Rect, mint};
+use ggez::graphics::spritebatch::SpriteBatch;
+use ggez::nalgebra::{Point2, Vector2};
 use image::RgbaImage;
 use itertools::Itertools;
 use log::info;
 
-use crate::{common, ggez};
+use crate::common;
 use crate::common::FILE_TYPES;
 use crate::engine_constants::EngineConstants;
-use crate::ggez::{Context, GameError, GameResult, graphics};
-use crate::ggez::filesystem;
-use crate::ggez::graphics::{Color, Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh, Rect};
-use crate::ggez::graphics::spritebatch::SpriteBatch;
-use crate::ggez::nalgebra::{Point2, Vector2};
-use crate::str;
 use crate::shared_game_state::{Season, Settings};
+use crate::str;
 
 pub struct SizedBatch {
     pub batch: SpriteBatch,
@@ -110,7 +111,7 @@ impl SizedBatch {
 
     #[inline(always)]
     pub fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        self.draw_filtered(ctx.filter_mode, ctx)
+        self.draw_filtered(FilterMode::Nearest, ctx)
     }
 
     pub fn draw_filtered(&mut self, filter: FilterMode, ctx: &mut Context) -> GameResult {

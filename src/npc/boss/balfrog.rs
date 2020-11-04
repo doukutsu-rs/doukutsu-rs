@@ -1,6 +1,6 @@
 use crate::caret::CaretType;
 use crate::common::{Direction, Rect, CDEG_RAD};
-use crate::ggez::GameResult;
+use ggez::GameResult;
 use crate::npc::{NPC, NPCMap};
 use crate::npc::boss::BossNPC;
 use crate::player::Player;

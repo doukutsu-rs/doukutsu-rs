@@ -1,9 +1,8 @@
-use nalgebra::clamp;
-use num_traits::abs;
+use ggez::GameResult;
+use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
-use crate::common::{Direction, Rect, CDEG_RAD};
-use crate::ggez::GameResult;
+use crate::common::{CDEG_RAD, Direction, Rect};
 use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;

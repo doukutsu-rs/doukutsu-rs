@@ -1,7 +1,7 @@
 use imgui::{CollapsingHeader, Condition, im_str, ImStr, ImString, Window};
 use itertools::Itertools;
 
-use crate::ggez::{Context, GameResult};
+use ggez::{Context, GameResult};
 use crate::scene::game_scene::GameScene;
 use crate::shared_game_state::SharedGameState;
 
@@ -62,8 +62,8 @@ impl LiveDebugger {
 
                 ui.text(format!(
                     "NPC Count: {}/{}",
+                    game_scene.npc_map.npcs.values().filter(|n| n.borrow().cond.alive()).count(),
                     game_scene.npc_map.npcs.len(),
-                    game_scene.npc_map.npc_ids.len(),
                 ));
 
                 ui.text(format!(

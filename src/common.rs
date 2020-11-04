@@ -245,7 +245,7 @@ impl<T: Num + PartialOrd + Copy> Rect<T> {
         }
     }
 
-    pub fn from(rect: crate::ggez::graphics::Rect) -> Rect<f32> {
+    pub fn from(rect: ggez::graphics::Rect) -> Rect<f32> {
         Rect {
             left: rect.x,
             top: rect.y,
@@ -271,9 +271,9 @@ impl<T: Num + PartialOrd + Copy> Rect<T> {
     }
 }
 
-impl<T: Num + PartialOrd + Copy + AsPrimitive<f32>> Into<crate::ggez::graphics::Rect> for Rect<T> {
-    fn into(self) -> crate::ggez::graphics::Rect {
-        crate::ggez::graphics::Rect::new(self.left.as_(),
+impl<T: Num + PartialOrd + Copy + AsPrimitive<f32>> Into<ggez::graphics::Rect> for Rect<T> {
+    fn into(self) -> ggez::graphics::Rect {
+        ggez::graphics::Rect::new(self.left.as_(),
                                          self.top.as_(),
                                          self.width().as_(),
                                          self.height().as_())

@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use num_traits::{abs, clamp};
 
 use crate::common::Direction;
-use crate::ggez::GameResult;
+use ggez::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;

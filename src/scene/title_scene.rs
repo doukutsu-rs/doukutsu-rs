@@ -1,10 +1,10 @@
+use ggez::{Context, GameResult, graphics};
+use ggez::graphics::Color;
+
 use crate::common::Rect;
-use crate::ggez::{Context, GameResult, graphics};
-use crate::ggez::graphics::{Color, FilterMode};
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
-use crate::texture_set::TextureSet;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
@@ -93,7 +93,6 @@ impl Scene for TitleScene {
             self.main_menu.height = self.main_menu.entries.len() * 14 + 6;
 
             self.option_menu.push_entry(MenuEntry::Toggle("Original timing (50TPS)".to_string(), state.timing_mode == TimingMode::_50Hz));
-            self.option_menu.push_entry(MenuEntry::Toggle("Linear scaling".to_string(), ctx.filter_mode == FilterMode::Linear));
             self.option_menu.push_entry(MenuEntry::Toggle("Lighting effects".to_string(), state.settings.lighting_efects));
             if state.constants.is_cs_plus {
                 self.option_menu.push_entry(MenuEntry::Toggle("Freeware textures".to_string(), state.settings.original_textures));
@@ -152,22 +151,12 @@ impl Scene for TitleScene {
                     }
                     MenuSelectionResult::Selected(1, toggle) => {
                         if let MenuEntry::Toggle(_, value) = toggle {
-                            match ctx.filter_mode {
-                                FilterMode::Linear => { ctx.filter_mode = FilterMode::Nearest }
-                                FilterMode::Nearest => { ctx.filter_mode = FilterMode::Linear }
-                            }
-
-                            *value = ctx.filter_mode == FilterMode::Linear;
-                        }
-                    }
-                    MenuSelectionResult::Selected(2, toggle) => {
-                        if let MenuEntry::Toggle(_, value) = toggle {
                             state.settings.lighting_efects = !state.settings.lighting_efects;
 
                             *value = state.settings.lighting_efects;
                         }
                     }
-                    MenuSelectionResult::Selected(3, toggle) => {
+                    MenuSelectionResult::Selected(2, toggle) => {
                         if let MenuEntry::Toggle(_, value) = toggle {
                             state.settings.original_textures = !state.settings.original_textures;
                             state.reload_textures();
@@ -175,7 +164,7 @@ impl Scene for TitleScene {
                             *value = state.settings.original_textures;
                         }
                     }
-                    MenuSelectionResult::Selected(4, toggle) => {
+                    MenuSelectionResult::Selected(3, toggle) => {
                         if let MenuEntry::Toggle(_, value) = toggle {
                             state.settings.seasonal_textures = !state.settings.seasonal_textures;
                             state.reload_textures();
@@ -183,12 +172,12 @@ impl Scene for TitleScene {
                             *value = state.settings.seasonal_textures;
                         }
                     }
-                    MenuSelectionResult::Selected(5, _) => {
+                    MenuSelectionResult::Selected(4, _) => {
                         if let Err(e) = webbrowser::open(DISCORD_LINK) {
                             log::warn!("Error opening web browser: {}", e);
                         }
                     }
-                    MenuSelectionResult::Selected(7, _) | MenuSelectionResult::Canceled => {
+                    MenuSelectionResult::Selected(6, _) | MenuSelectionResult::Canceled => {
                         self.current_menu = CurrentMenu::MainMenu;
                     }
                     _ => {}

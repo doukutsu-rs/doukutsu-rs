@@ -31,16 +31,21 @@ application_metadatas = [
 lto = 'thin'
 panic = 'abort'
 
-[profile.dev]
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.dev.build-override]
+opt-level = 1
+
+[profile.release.build-override]
 opt-level = 1
 
 [dependencies]
-#cpal = {path = "./cpal"}
-#gfx_device_gl = {path = "./gfx/src/backend/gl"}
-#glutin = {path = "./glutin/glutin"}
+#cpal = {path = "./3rdparty/cpal"}
+#gfx_device_gl = {path = "./3rdparty/gfx/src/backend/gl"}
+#ggez = {path = "./3rdparty/ggez"}
+#glutin = {path = "./3rdparty/glutin/glutin"}
 
-approx = "0.3"
-bitflags = "1"
 bitvec = "0.17.4"
 byteorder = "1.3"
 case_insensitive_hashmap = "1.0.0"
@@ -50,7 +55,7 @@ directories = "2"
 gfx = "0.18"
 gfx_core = "0.9"
 gfx_device_gl = {git = "https://github.com/doukutsu-rs/gfx.git", branch = "pre-ll"}
-gilrs = "0.7"
+ggez = {git = "https://github.com/doukutsu-rs/ggez.git", branch = "d-rs"}
 glutin = {git = "https://github.com/doukutsu-rs/glutin.git", branch = "android-support"}
 imgui = {git = "https://github.com/JMS55/imgui-rs.git"}
 imgui-gfx-renderer = {git = "https://github.com/JMS55/imgui-rs.git"}
@@ -60,21 +65,12 @@ itertools = "0.9.0"
 lazy_static = "1.4.0"
 log = "0.4"
 lru = "0.6.0"
-lyon = "0.13"
-mint = "0.5"
-nalgebra = {version = "0.18", features = ["mint"]}
 num-derive = "0.3.2"
 num-traits = "0.2.12"
-owning_ref = "0.4.1"
 paste = "1.0.0"
 pretty_env_logger = "0.4.0"
-serde = "1"
-serde_derive = "1"
-smart-default = "0.5"
 strum = "0.18.0"
 strum_macros = "0.18.0"
-toml = "0.5"
-varint = "0.9.0"
 # remove and replace when drain_filter is in stable
 vec_mut_scan = "0.3.0"
 webbrowser = "0.5.5"

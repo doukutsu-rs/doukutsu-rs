@@ -1,10 +1,11 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
+
+use ggez::{Context, GameResult};
 
 use crate::common::{Direction, interpolate_fix9_scale};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
-use crate::ggez::{Context, GameResult};
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
@@ -45,8 +46,8 @@ impl BossNPC {
     }
 }
 
-impl GameEntity<(&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)> for BossNPC {
-    fn tick(&mut self, state: &mut SharedGameState, (player, map, stage): (&mut Player, &HashMap<u16, RefCell<NPC>>, &mut Stage)) -> GameResult {
+impl GameEntity<(&mut Player, &BTreeMap<u16, RefCell<NPC>>, &mut Stage)> for BossNPC {
+    fn tick(&mut self, state: &mut SharedGameState, (player, map, stage): (&mut Player, &BTreeMap<u16, RefCell<NPC>>, &mut Stage)) -> GameResult {
         if !self.parts[0].cond.alive() {
             return Ok(());
         }

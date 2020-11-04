@@ -1,6 +1,6 @@
 use winit::event::TouchPhase;
 use crate::texture_set::TextureSet;
-use crate::ggez::{Context, GameResult};
+use ggez::{Context, GameResult};
 use crate::common::{KeyState, Rect};
 use crate::engine_constants::EngineConstants;
 

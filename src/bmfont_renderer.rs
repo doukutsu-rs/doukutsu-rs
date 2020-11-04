@@ -4,8 +4,8 @@ use std::path::PathBuf;
 use crate::bmfont::BMFont;
 use crate::common::{FILE_TYPES, Rect};
 use crate::engine_constants::EngineConstants;
-use crate::ggez::{Context, filesystem, GameResult};
-use crate::ggez::GameError::ResourceLoadError;
+use ggez::{Context, filesystem, GameResult};
+use ggez::GameError::ResourceLoadError;
 use crate::str;
 use crate::texture_set::TextureSet;
 

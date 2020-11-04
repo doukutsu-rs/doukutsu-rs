@@ -1,36 +1,29 @@
 #[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate gfx;
-#[macro_use]
 extern crate log;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate smart_default;
 extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 
 use std::{env, mem};
 use std::path;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
+use ggez::{Context, ContextBuilder, filesystem, GameError, GameResult};
+use ggez::conf::{Backend, WindowMode, WindowSetup};
+use ggez::event::{KeyCode, KeyMods};
+use ggez::filesystem::mount_vfs;
+use ggez::graphics;
+use ggez::graphics::{Canvas, DrawParam, window};
+use ggez::graphics::glutin_ext::WindowUpdateExt;
+use ggez::input::keyboard;
+use ggez::mint::ColumnMatrix4;
+use ggez::nalgebra::Vector2;
 use log::*;
 use pretty_env_logger::env_logger::Env;
 use winit::event::{ElementState, Event, KeyboardInput, TouchPhase, WindowEvent};
 use winit::event_loop::ControlFlow;
 
 use crate::builtin_fs::BuiltinFS;
-use crate::ggez::{Context, ContextBuilder, filesystem, GameError, GameResult};
-use crate::ggez::conf::{Backend, WindowMode, WindowSetup};
-use crate::ggez::event::{KeyCode, KeyMods};
-use crate::ggez::graphics;
-use crate::ggez::graphics::{Canvas, DrawParam, window};
-use crate::ggez::graphics::glutin_ext::WindowUpdateExt;
-use crate::ggez::input::keyboard;
-use crate::ggez::mint::ColumnMatrix4;
-use crate::ggez::nalgebra::Vector2;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
@@ -48,7 +41,6 @@ mod engine_constants;
 mod entity;
 mod frame;
 mod inventory;
-mod ggez;
 mod live_debugger;
 mod macros;
 mod map;
@@ -111,7 +103,8 @@ impl Game {
 
                     if self.loops == 10 {
                         log::warn!("Frame skip is way too high, a long system lag occurred?");
-                        self.next_tick = self.start_time.elapsed().as_nanos();
+                        self.next_tick = self.start_time.elapsed().as_nanos()
+                            + (self.state.timing_mode.get_delta() as f64 / self.state.settings.speed) as u128;
                         self.loops = 0;
                     }
 
@@ -289,7 +282,7 @@ fn init_ctx<P: Into<path::PathBuf> + Clone>(event_loop: &winit::event_loop::Even
             .build(event_loop);
 
         if let Ok(mut ctx) = ctx {
-            ctx.filesystem.mount_vfs(Box::new(BuiltinFS::new()));
+            mount_vfs(&mut ctx, Box::new(BuiltinFS::new()));
 
             return Ok(ctx);
         }

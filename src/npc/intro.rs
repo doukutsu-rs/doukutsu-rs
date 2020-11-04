@@ -1,6 +1,6 @@
 use crate::caret::CaretType;
 use crate::common::Direction;
-use crate::ggez::GameResult;
+use ggez::GameResult;
 use crate::npc::NPC;
 use crate::shared_game_state::SharedGameState;
 

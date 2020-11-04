@@ -1,5 +1,5 @@
 use crate::common::Direction;
-use crate::ggez::GameResult;
+use ggez::GameResult;
 use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;

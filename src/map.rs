@@ -3,8 +3,8 @@ use std::io::{Error, ErrorKind};
 
 use byteorder::{LE, ReadBytesExt};
 
-use crate::ggez::GameError::ResourceLoadError;
-use crate::ggez::GameResult;
+use ggez::GameError::ResourceLoadError;
+use ggez::GameResult;
 use crate::str;
 
 static SUPPORTED_PXM_VERSIONS: [u8; 1] = [0x10];

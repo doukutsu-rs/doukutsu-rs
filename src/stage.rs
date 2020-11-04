@@ -7,8 +7,8 @@ use log::info;
 
 use crate::encoding::read_cur_shift_jis;
 use crate::engine_constants::EngineConstants;
-use crate::ggez::{Context, filesystem, GameResult};
-use crate::ggez::GameError::ResourceLoadError;
+use ggez::{Context, filesystem, GameResult};
+use ggez::GameError::ResourceLoadError;
 use crate::map::{Map, NPCData};
 use crate::text_script::TextScript;
 

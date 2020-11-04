@@ -1,7 +1,7 @@
-use nalgebra::clamp;
+use ggez::GameResult;
+use num_traits::{abs, clamp};
 
 use crate::common::Direction;
-use crate::ggez::GameResult;
 use crate::npc::NPC;
 use crate::shared_game_state::SharedGameState;
 

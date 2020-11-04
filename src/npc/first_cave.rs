@@ -1,9 +1,10 @@
+use ggez::GameResult;
+use num_traits::{abs, clamp};
+
 use crate::common::Direction;
-use crate::ggez::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
-use nalgebra::clamp;
 
 impl NPC {
     pub(crate) fn tick_n059_eye_door(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
@@ -212,7 +213,7 @@ impl NPC {
 
                 self.vel_y = clamp(self.vel_y, -0x300, 0x300);
             }
-            _ =>{}
+            _ => {}
         }
 
         self.x += self.vel_x;

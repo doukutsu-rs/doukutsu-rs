@@ -1,15 +1,15 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::common::Direction;
-use crate::ggez::GameResult;
+use ggez::GameResult;
 use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 use num_traits::clamp;
 
 impl NPC {
-    pub fn tick_n042_sue(&mut self, state: &mut SharedGameState, player: &Player, map: &HashMap<u16, RefCell<NPC>>) -> GameResult {
+    pub fn tick_n042_sue(&mut self, state: &mut SharedGameState, player: &Player, map: &BTreeMap<u16, RefCell<NPC>>) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {

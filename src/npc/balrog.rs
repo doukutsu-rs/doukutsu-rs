@@ -1,12 +1,11 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
+use ggez::GameResult;
 use num_traits::clamp;
-use num_traits::real::Real;
 
 use crate::caret::CaretType;
 use crate::common::Direction;
-use crate::ggez::GameResult;
 use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
@@ -202,7 +201,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n012_balrog_cutscene(&mut self, state: &mut SharedGameState, player: &Player, map: &HashMap<u16, RefCell<NPC>>, stage: &mut Stage) -> GameResult {
+    pub(crate) fn tick_n012_balrog_cutscene(&mut self, state: &mut SharedGameState, player: &Player, map: &BTreeMap<u16, RefCell<NPC>>, stage: &mut Stage) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {

@@ -8,7 +8,7 @@ use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Equipment, Flag, interpolate_fix9_scale, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
-use crate::ggez::{Context, GameResult};
+use ggez::{Context, GameResult};
 use crate::npc::NPCMap;
 use crate::shared_game_state::SharedGameState;
 
@@ -230,7 +230,7 @@ impl Player {
                         if self.vel_y > 0x100 { // 0.5fix9
                             self.vel_y /= 2;
                         }
-                    } else if (state.settings.infinite_booster || self.equip.has_booster_2_0()) {
+                    } else if state.settings.infinite_booster || self.equip.has_booster_2_0() {
                         if state.key_state.up() {
                             self.booster_switch = 2;
                             self.vel_x = 0;

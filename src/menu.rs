@@ -1,5 +1,5 @@
 use crate::common::Rect;
-use crate::ggez::{Context, GameResult};
+use ggez::{Context, GameResult};
 use crate::shared_game_state::SharedGameState;
 
 pub enum MenuEntry {

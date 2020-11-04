@@ -308,13 +308,11 @@ impl Player {
     }
 
     pub fn tick_npc_collisions(&mut self, state: &mut SharedGameState, npc_map: &mut NPCMap, inventory: &mut Inventory) {
-        for npc_id in npc_map.npc_ids.iter() {
-            if let Some(npc_cell) = npc_map.npcs.get(npc_id) {
-                let mut npc = npc_cell.borrow_mut();
-                if !npc.cond.alive() { continue; }
+        for npc_cell in npc_map.npcs.values() {
+            let mut npc = npc_cell.borrow_mut();
+            if !npc.cond.alive() { continue; }
 
-                self.tick_npc_collision(state, npc.borrow_mut(), inventory);
-            }
+            self.tick_npc_collision(state, npc.borrow_mut(), inventory);
         }
 
         for boss_npc in npc_map.boss_map.parts.iter_mut() {

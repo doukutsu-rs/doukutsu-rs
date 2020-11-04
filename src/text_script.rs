@@ -9,6 +9,8 @@ use std::ops::Not;
 use std::str::FromStr;
 
 use byteorder::ReadBytesExt;
+use ggez::{Context, GameResult};
+use ggez::GameError::ParseError;
 use itertools::Itertools;
 use num_derive::FromPrimitive;
 use num_traits::{clamp, FromPrimitive};
@@ -18,8 +20,7 @@ use crate::common::{Direction, FadeDirection, FadeState};
 use crate::encoding::{read_cur_shift_jis, read_cur_wtf8};
 use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
-use crate::ggez::{Context, GameResult};
-use crate::ggez::GameError::ParseError;
+use crate::frame::UpdateTarget;
 use crate::npc::NPCMap;
 use crate::player::ControlMode;
 use crate::profile::GameProfile;
@@ -28,7 +29,6 @@ use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
 use crate::weapon::WeaponType;
-use crate::frame::UpdateTarget;
 
 /// Engine's text script VM operation codes.
 #[derive(EnumString, Debug, FromPrimitive, PartialEq)]
@@ -1127,14 +1127,12 @@ impl TextScriptVM {
                         let ticks = read_cur_varint(&mut cursor)? as isize;
                         game_scene.frame.wait = ticks;
 
-                        for npc_id in game_scene.npc_map.npc_ids.iter() {
-                            if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
-                                let npc = npc_cell.borrow();
+                        for npc_cell in game_scene.npc_map.npcs.values() {
+                            let npc = npc_cell.borrow();
 
-                                if event_num == npc.event_num {
-                                    game_scene.frame.update_target = UpdateTarget::NPC(npc.id);
-                                    break;
-                                }
+                            if event_num == npc.event_num {
+                                game_scene.frame.update_target = UpdateTarget::NPC(npc.id);
+                                break;
                             }
                         }
 
@@ -1146,14 +1144,12 @@ impl TextScriptVM {
                         if event_num == 0 {
                             game_scene.boss_life_bar.set_boss_target(&game_scene.npc_map);
                         } else {
-                            for npc_id in game_scene.npc_map.npc_ids.iter() {
-                                if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
-                                    let npc = npc_cell.borrow();
+                            for npc_cell in game_scene.npc_map.npcs.values() {
+                                let npc = npc_cell.borrow();
 
-                                    if npc.cond.alive() && event_num == npc.event_num {
-                                        game_scene.boss_life_bar.set_npc_target(npc.id, &game_scene.npc_map);
-                                        break;
-                                    }
+                                if npc.cond.alive() && event_num == npc.event_num {
+                                    game_scene.boss_life_bar.set_npc_target(npc.id, &game_scene.npc_map);
+                                    break;
                                 }
                             }
                         }
@@ -1173,23 +1169,21 @@ impl TextScriptVM {
                         let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                         let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
-                        for npc_id in game_scene.npc_map.npc_ids.iter() {
-                            if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
-                                let mut npc = npc_cell.borrow_mut();
+                        for npc_cell in game_scene.npc_map.npcs.values() {
+                            let mut npc = npc_cell.borrow_mut();
 
-                                if npc.cond.alive() && npc.event_num == event_num {
-                                    npc.action_num = action_num;
-                                    npc.tsc_direction = tsc_direction as u16;
+                            if npc.cond.alive() && npc.event_num == event_num {
+                                npc.action_num = action_num;
+                                npc.tsc_direction = tsc_direction as u16;
 
-                                    if direction == Direction::FacingPlayer {
-                                        npc.direction = if game_scene.player.x < npc.x {
-                                            Direction::Right
-                                        } else {
-                                            Direction::Left
-                                        };
+                                if direction == Direction::FacingPlayer {
+                                    npc.direction = if game_scene.player.x < npc.x {
+                                        Direction::Right
                                     } else {
-                                        npc.direction = direction;
-                                    }
+                                        Direction::Left
+                                    };
+                                } else {
+                                    npc.direction = direction;
                                 }
                             }
                         }
@@ -1202,56 +1196,54 @@ impl TextScriptVM {
                         let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                         let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
-                        for npc_id in game_scene.npc_map.npc_ids.iter() {
-                            if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
-                                let mut npc = npc_cell.borrow_mut();
+                        for npc_cell in game_scene.npc_map.npcs.values() {
+                            let mut npc = npc_cell.borrow_mut();
 
-                                if npc.cond.alive() && npc.event_num == event_num {
-                                    npc.npc_flags.set_solid_soft(false);
-                                    npc.npc_flags.set_ignore_tile_44(false);
-                                    npc.npc_flags.set_invulnerable(false);
-                                    npc.npc_flags.set_ignore_solidity(false);
-                                    npc.npc_flags.set_bouncy(false);
-                                    npc.npc_flags.set_shootable(false);
-                                    npc.npc_flags.set_solid_hard(false);
-                                    npc.npc_flags.set_rear_and_top_not_hurt(false);
-                                    npc.npc_flags.set_show_damage(false);
+                            if npc.cond.alive() && npc.event_num == event_num {
+                                npc.npc_flags.set_solid_soft(false);
+                                npc.npc_flags.set_ignore_tile_44(false);
+                                npc.npc_flags.set_invulnerable(false);
+                                npc.npc_flags.set_ignore_solidity(false);
+                                npc.npc_flags.set_bouncy(false);
+                                npc.npc_flags.set_shootable(false);
+                                npc.npc_flags.set_solid_hard(false);
+                                npc.npc_flags.set_rear_and_top_not_hurt(false);
+                                npc.npc_flags.set_show_damage(false);
 
-                                    if op == OpCode::INP {
-                                        npc.npc_flags.set_event_when_touched(true);
-                                    }
-
-                                    npc.npc_type = new_type;
-                                    npc.display_bounds = state.npc_table.get_display_bounds(new_type);
-                                    npc.hit_bounds = state.npc_table.get_hit_bounds(new_type);
-                                    let entry = state.npc_table.get_entry(new_type).unwrap().to_owned();
-                                    npc.npc_flags.0 |= entry.npc_flags.0;
-                                    npc.life = entry.life;
-                                    npc.size = entry.size;
-                                    npc.exp = entry.experience as u16;
-                                    npc.damage = entry.damage as u16;
-
-                                    npc.cond.set_alive(true);
-                                    npc.action_num = 0;
-                                    npc.action_counter = 0;
-                                    npc.anim_num = 0;
-                                    npc.anim_counter = 0;
-                                    npc.vel_x = 0;
-                                    npc.vel_y = 0;
-                                    npc.tsc_direction = tsc_direction as u16;
-
-                                    if direction == Direction::FacingPlayer {
-                                        npc.direction = if game_scene.player.x < npc.x {
-                                            Direction::Right
-                                        } else {
-                                            Direction::Left
-                                        };
-                                    } else {
-                                        npc.direction = direction;
-                                    }
-
-                                    tick_npc = *npc_id;
+                                if op == OpCode::INP {
+                                    npc.npc_flags.set_event_when_touched(true);
                                 }
+
+                                npc.npc_type = new_type;
+                                npc.display_bounds = state.npc_table.get_display_bounds(new_type);
+                                npc.hit_bounds = state.npc_table.get_hit_bounds(new_type);
+                                let entry = state.npc_table.get_entry(new_type).unwrap().to_owned();
+                                npc.npc_flags.0 |= entry.npc_flags.0;
+                                npc.life = entry.life;
+                                npc.size = entry.size;
+                                npc.exp = entry.experience as u16;
+                                npc.damage = entry.damage as u16;
+
+                                npc.cond.set_alive(true);
+                                npc.action_num = 0;
+                                npc.action_counter = 0;
+                                npc.anim_num = 0;
+                                npc.anim_counter = 0;
+                                npc.vel_x = 0;
+                                npc.vel_y = 0;
+                                npc.tsc_direction = tsc_direction as u16;
+
+                                if direction == Direction::FacingPlayer {
+                                    npc.direction = if game_scene.player.x < npc.x {
+                                        Direction::Right
+                                    } else {
+                                        Direction::Left
+                                    };
+                                } else {
+                                    npc.direction = direction;
+                                }
+
+                                tick_npc = npc.id;
                             }
                         }
 
@@ -1264,27 +1256,25 @@ impl TextScriptVM {
                         let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                         let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
-                        for npc_id in game_scene.npc_map.npc_ids.iter() {
-                            if let Some(npc_cell) = game_scene.npc_map.npcs.get(npc_id) {
-                                let mut npc = npc_cell.borrow_mut();
+                        for npc_cell in game_scene.npc_map.npcs.values() {
+                            let mut npc = npc_cell.borrow_mut();
 
-                                if npc.cond.alive() && npc.event_num == event_num {
-                                    npc.x = x * 16 * 0x200;
-                                    npc.y = y * 16 * 0x200;
-                                    npc.tsc_direction = tsc_direction as u16;
+                            if npc.cond.alive() && npc.event_num == event_num {
+                                npc.x = x * 16 * 0x200;
+                                npc.y = y * 16 * 0x200;
+                                npc.tsc_direction = tsc_direction as u16;
 
-                                    if direction == Direction::FacingPlayer {
-                                        npc.direction = if game_scene.player.x < npc.x {
-                                            Direction::Right
-                                        } else {
-                                            Direction::Left
-                                        };
+                                if direction == Direction::FacingPlayer {
+                                    npc.direction = if game_scene.player.x < npc.x {
+                                        Direction::Right
                                     } else {
-                                        npc.direction = direction;
-                                    }
-
-                                    break;
+                                        Direction::Left
+                                    };
+                                } else {
+                                    npc.direction = direction;
                                 }
+
+                                break;
                             }
                         }
 

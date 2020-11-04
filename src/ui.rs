@@ -10,8 +10,8 @@ use imgui_gfx_renderer::gfx::handle::RenderTargetView;
 use imgui_gfx_renderer::gfx::memory::Typed;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 
-use crate::ggez::{Context, GameResult, graphics};
-use crate::ggez::GameError::RenderError;
+use ggez::{Context, GameResult, graphics};
+use ggez::GameError::RenderError;
 use crate::live_debugger::LiveDebugger;
 use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
