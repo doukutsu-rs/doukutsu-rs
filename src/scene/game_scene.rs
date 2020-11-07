@@ -1,13 +1,14 @@
 use std::ops::Deref;
 
 use ggez::{Context, GameResult, graphics, timer};
-use ggez::graphics::{BlendMode, Color, Drawable, DrawParam, FilterMode};
+use ggez::graphics::{BlendMode, Color, Drawable, DrawParam, FilterMode, mint};
+use ggez::graphics::spritebatch::SpriteBatch;
 use ggez::nalgebra::{clamp, Vector2};
 use log::info;
 
 use crate::bullet::BulletManager;
 use crate::caret::CaretType;
-use crate::common::{Direction, FadeDirection, FadeState, fix9_scale, Rect};
+use crate::common::{Direction, FadeDirection, FadeState, fix9_scale, interpolate_fix9_scale, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
@@ -37,6 +38,7 @@ pub struct GameScene {
     pub bullet_manager: BulletManager,
     pub current_teleport_slot: u8,
     pub intro_mode: bool,
+    water_visible: bool,
     tex_background_name: String,
     tex_tileset_name: String,
     life_bar: u16,
@@ -93,6 +95,7 @@ impl GameScene {
             bullet_manager: BulletManager::new(),
             current_teleport_slot: 0,
             intro_mode: false,
+            water_visible: true,
             tex_background_name,
             tex_tileset_name,
             life_bar: 0,
@@ -235,6 +238,8 @@ impl GameScene {
 
         match self.stage.data.background_type {
             BackgroundType::Stationary => {
+                graphics::clear(ctx, Color::from_rgb(0, 0, 0));
+
                 let count_x = state.canvas_size.0 as usize / batch.width() + 1;
                 let count_y = state.canvas_size.1 as usize / batch.height() + 1;
 
@@ -245,6 +250,8 @@ impl GameScene {
                 }
             }
             BackgroundType::MoveDistant | BackgroundType::MoveNear => {
+                graphics::clear(ctx, Color::from_rgb(0, 0, 0));
+
                 let (off_x, off_y) = if self.stage.data.background_type == BackgroundType::MoveNear {
                     (
                         frame_x % (batch.width() as f32),
@@ -267,15 +274,24 @@ impl GameScene {
                     }
                 }
             }
-            BackgroundType::Water => {}
+            BackgroundType::Water => {
+                graphics::clear(ctx, Color::from_rgb(0, 0, 32));
+            }
             BackgroundType::Black => {
                 graphics::clear(ctx, Color::from_rgb(0, 0, 32));
             }
             BackgroundType::Autoscroll => {}
             BackgroundType::OutsideWind | BackgroundType::Outside => {
+                graphics::clear(ctx, Color::from_rgb(0, 0, 0));
+
                 let offset = (self.tick % 640) as isize;
 
-                batch.add_rect(((state.canvas_size.0 - 320.0) / 2.0).floor(), 0.0,
+                for x in (0..(state.canvas_size.0 as isize)).step_by(200) {
+                    batch.add_rect(x as f32, 0.0,
+                                   &Rect::<usize>::new_size(0, 0, 200, 88));
+                }
+
+                batch.add_rect(state.canvas_size.0 - 320.0, 0.0,
                                &Rect::<usize>::new_size(0, 0, 320, 88));
 
                 for x in ((-offset / 2)..(state.canvas_size.0 as isize)).step_by(320) {
@@ -310,30 +326,44 @@ impl GameScene {
         let scale = state.scale;
         let mut x: isize;
         let mut y: isize;
+        let mut prev_x: isize;
+        let mut prev_y: isize;
 
         for bullet in self.bullet_manager.bullets.iter() {
             match bullet.direction {
                 Direction::Left => {
                     x = bullet.x - bullet.display_bounds.left as isize;
                     y = bullet.y - bullet.display_bounds.top as isize;
+                    prev_x = bullet.prev_x - bullet.display_bounds.left as isize;
+                    prev_y = bullet.prev_y - bullet.display_bounds.top as isize;
                 }
                 Direction::Up => {
                     x = bullet.x - bullet.display_bounds.top as isize;
                     y = bullet.y - bullet.display_bounds.left as isize;
+                    prev_x = bullet.prev_x - bullet.display_bounds.top as isize;
+                    prev_y = bullet.prev_y - bullet.display_bounds.left as isize;
                 }
                 Direction::Right => {
                     x = bullet.x - bullet.display_bounds.right as isize;
                     y = bullet.y - bullet.display_bounds.top as isize;
+                    prev_x = bullet.prev_x - bullet.display_bounds.right as isize;
+                    prev_y = bullet.prev_y - bullet.display_bounds.top as isize;
                 }
                 Direction::Bottom => {
                     x = bullet.x - bullet.display_bounds.top as isize;
                     y = bullet.y - bullet.display_bounds.right as isize;
+                    prev_x = bullet.prev_x - bullet.display_bounds.top as isize;
+                    prev_y = bullet.prev_y - bullet.display_bounds.right as isize;
                 }
                 Direction::FacingPlayer => unreachable!(),
             }
 
-            batch.add_rect(fix9_scale(x - self.frame.x, scale),
-                           fix9_scale(y - self.frame.y, scale),
+            batch.add_rect(interpolate_fix9_scale(prev_x - self.frame.prev_x,
+                                                  x - self.frame.x,
+                                                  state.frame_time),
+                           interpolate_fix9_scale(prev_y - self.frame.prev_y,
+                                                  y - self.frame.y,
+                                                  state.frame_time),
                            &bullet.anim_rect);
         }
 
@@ -346,8 +376,12 @@ impl GameScene {
         let scale = state.scale;
 
         for caret in state.carets.iter() {
-            batch.add_rect(fix9_scale(caret.x - caret.offset_x - self.frame.x, scale),
-                           fix9_scale(caret.y - caret.offset_y - self.frame.y, scale),
+            batch.add_rect(interpolate_fix9_scale(caret.prev_x - caret.offset_x - self.frame.prev_x,
+                                                  caret.x - caret.offset_x - self.frame.x,
+                                                  state.frame_time),
+                           interpolate_fix9_scale(caret.prev_y - caret.offset_y - self.frame.prev_y,
+                                                  caret.y - caret.offset_y - self.frame.y,
+                                                  state.frame_time),
                            &caret.anim_rect);
         }
 
@@ -708,13 +742,91 @@ impl GameScene {
             batch.draw_filtered(FilterMode::Linear, ctx)?;
         }
 
-        graphics::set_canvas(ctx, None);
         graphics::set_blend_mode(ctx, BlendMode::Multiply)?;
+        graphics::set_canvas(ctx, Some(&state.game_canvas));
         state.lightmap_canvas.set_filter(FilterMode::Linear);
         state.lightmap_canvas.draw(ctx, DrawParam::new()
             .scale(Vector2::new(1.0 / state.scale, 1.0 / state.scale)))?;
 
         graphics::set_blend_mode(ctx, BlendMode::Alpha)?;
+
+        Ok(())
+    }
+
+    fn is_water(&self, tile: u8) -> bool {
+        [0x02, 0x04, 0x60, 0x61, 0x62, 0x64, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0xa0, 0xa1, 0xa2, 0xa3].contains(&tile)
+    }
+
+    fn draw_water(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        {
+            state.shaders.water_shader_params.resolution = [state.canvas_size.0, state.canvas_size.1];
+            state.shaders.water_shader_params.t = self.tick as f32;
+            let _lock = graphics::use_shader(ctx, &state.shaders.water_shader);
+            state.shaders.water_shader.send(ctx, state.shaders.water_shader_params)?;
+
+            graphics::set_canvas(ctx, Some(&state.tmp_canvas));
+            graphics::clear(ctx, Color::new(0.0, 0.0, 0.0, 1.0));
+            state.game_canvas.draw(ctx, DrawParam::new()
+                .scale(mint::Vector2 { x: 1.0 / state.scale, y: -1.0 / state.scale })
+                .offset(mint::Point2 { x: 0.0, y: -1.0 }))?;
+        }
+        graphics::set_canvas(ctx, Some(&state.game_canvas));
+
+        // cheap, clones a reference underneath
+        let mut tmp_batch = SpriteBatch::new(state.tmp_canvas.image().clone());
+
+        let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time, state.scale);
+
+        let tile_start_x = clamp(self.frame.x / 0x200 / 16, 0, self.stage.map.width as isize) as usize;
+        let tile_start_y = clamp(self.frame.y / 0x200 / 16, 0, self.stage.map.height as isize) as usize;
+        let tile_end_x = clamp((self.frame.x / 0x200 + 8 + state.canvas_size.0 as isize) / 16 + 1, 0, self.stage.map.width as isize) as usize;
+        let tile_end_y = clamp((self.frame.y / 0x200 + 8 + state.canvas_size.1 as isize) / 16 + 1, 0, self.stage.map.height as isize) as usize;
+        let mut rect = Rect {
+            left: 0.0,
+            top: 0.0,
+            right: 16.0,
+            bottom: 16.0,
+        };
+
+        for y in tile_start_y..tile_end_y {
+            for x in tile_start_x..tile_end_x {
+                let tile = self.stage.map.attrib[*self.stage.map.tiles
+                    .get((y * self.stage.map.width) + x)
+                    .unwrap() as usize];
+                let tile_above = self.stage.map.attrib[*self.stage.map.tiles
+                    .get((y.saturating_sub(1) * self.stage.map.width) + x)
+                    .unwrap() as usize];
+
+                if !self.is_water(tile) {
+                    continue;
+                }
+
+                rect.left = (x as f32 * 16.0 - 8.0) - frame_x;
+                rect.top = (y as f32 * 16.0 - 8.0) - frame_y;
+                rect.right = rect.left + 16.0;
+                rect.bottom = rect.top + 16.0;
+
+                if tile_above == 0 {
+                    rect.top += 3.0;
+                }
+
+                tmp_batch.add(DrawParam::new()
+                    .src(ggez::graphics::Rect::new(rect.left / state.canvas_size.0,
+                                                   rect.top / state.canvas_size.1,
+                                                   (rect.right - rect.left) / state.canvas_size.0,
+                                                   (rect.bottom - rect.top) / state.canvas_size.1))
+                    .scale(mint::Vector2 {
+                        x: 1.0 / state.scale,
+                        y: 1.0 / state.scale,
+                    })
+                    .dest(mint::Point2 {
+                        x: rect.left,
+                        y: rect.top,
+                    }));
+            }
+        }
+
+        tmp_batch.draw(ctx, DrawParam::new())?;
 
         Ok(())
     }
@@ -1310,6 +1422,20 @@ impl Scene for GameScene {
             }
         }
 
+        for bullet in self.bullet_manager.bullets.iter_mut() {
+            if bullet.cond.alive() {
+                bullet.prev_x = bullet.x;
+                bullet.prev_y = bullet.y;
+            }
+        }
+
+        for caret in state.carets.iter_mut() {
+            if caret.cond.alive() {
+                caret.prev_x = caret.x;
+                caret.prev_y = caret.y;
+            }
+        }
+
         Ok(())
     }
 
@@ -1358,9 +1484,10 @@ impl Scene for GameScene {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        graphics::set_canvas(ctx, Some(&state.game_canvas));
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
-        if state.settings.lighting_efects
+        if state.settings.shader_effects
             && self.stage.data.background_type != BackgroundType::Black
             && self.stage.data.background_type != BackgroundType::Outside
             && self.stage.data.background_type != BackgroundType::OutsideWind {
@@ -1382,14 +1509,21 @@ impl Scene for GameScene {
         }
         self.draw_bullets(state, ctx)?;
         self.player.draw(state, ctx, &self.frame)?;
+        if state.settings.shader_effects && self.water_visible {
+            self.draw_water(state, ctx)?;
+        }
+
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;
-        if state.settings.lighting_efects
+        if state.settings.shader_effects
             && self.stage.data.background_type == BackgroundType::Black {
             self.draw_light_map(state, ctx)?;
         }
 
+        graphics::set_canvas(ctx, None);
+        state.game_canvas.draw(ctx, DrawParam::new()
+            .scale(Vector2::new(1.0 / state.scale, 1.0 / state.scale)))?;
         self.draw_black_bars(state, ctx)?;
 
         if state.control_flags.control_enabled() {

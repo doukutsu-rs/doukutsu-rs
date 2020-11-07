@@ -93,7 +93,7 @@ impl Scene for TitleScene {
             self.main_menu.height = self.main_menu.entries.len() * 14 + 6;
 
             self.option_menu.push_entry(MenuEntry::Toggle("Original timing (50TPS)".to_string(), state.timing_mode == TimingMode::_50Hz));
-            self.option_menu.push_entry(MenuEntry::Toggle("Lighting effects".to_string(), state.settings.lighting_efects));
+            self.option_menu.push_entry(MenuEntry::Toggle("Lighting effects".to_string(), state.settings.shader_effects));
             if state.constants.is_cs_plus {
                 self.option_menu.push_entry(MenuEntry::Toggle("Freeware textures".to_string(), state.settings.original_textures));
                 self.option_menu.push_entry(MenuEntry::Toggle("Seasonal textures".to_string(), state.settings.seasonal_textures));
@@ -151,9 +151,9 @@ impl Scene for TitleScene {
                     }
                     MenuSelectionResult::Selected(1, toggle) => {
                         if let MenuEntry::Toggle(_, value) = toggle {
-                            state.settings.lighting_efects = !state.settings.lighting_efects;
+                            state.settings.shader_effects = !state.settings.shader_effects;
 
-                            *value = state.settings.lighting_efects;
+                            *value = state.settings.shader_effects;
                         }
                     }
                     MenuSelectionResult::Selected(2, toggle) => {

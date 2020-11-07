@@ -68,6 +68,7 @@ struct Game {
     def_matrix: ColumnMatrix4<f32>,
     last_time: Instant,
     start_time: Instant,
+    last_tick: u128,
     next_tick: u128,
     loops: u64,
 }
@@ -81,6 +82,7 @@ impl Game {
             state: SharedGameState::new(ctx)?,
             last_time: Instant::now(),
             start_time: Instant::now(),
+            last_tick: 0,
             next_tick: 0,
             loops: 0,
         };
@@ -92,6 +94,8 @@ impl Game {
         if let Some(scene) = self.scene.as_mut() {
             match self.state.timing_mode {
                 TimingMode::_50Hz | TimingMode::_60Hz => {
+                    let last_tick = self.next_tick;
+
                     while self.start_time.elapsed().as_nanos() >= self.next_tick && self.loops < 10 {
                         if (self.state.settings.speed - 1.0).abs() < 0.01 {
                             self.next_tick += self.state.timing_mode.get_delta() as u128;
@@ -103,9 +107,14 @@ impl Game {
 
                     if self.loops == 10 {
                         log::warn!("Frame skip is way too high, a long system lag occurred?");
-                        self.next_tick = self.start_time.elapsed().as_nanos()
-                            + (self.state.timing_mode.get_delta() as f64 / self.state.settings.speed) as u128;
+                        self.last_tick = self.start_time.elapsed().as_nanos();
+                        self.next_tick = self.last_tick + (self.state.timing_mode.get_delta() as f64 / self.state.settings.speed) as u128;
                         self.loops = 0;
+                    }
+
+                    if self.loops != 0 {
+                        scene.draw_tick(&mut self.state, ctx)?;
+                        self.last_tick = last_tick;
                     }
 
                     for _ in 0..self.loops {
@@ -122,11 +131,9 @@ impl Game {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         if self.state.timing_mode != TimingMode::FrameSynchronized {
-            let now = Instant::now();
-            let delta = (now.duration_since(self.last_time).as_nanos() as f64)
-                / (self.state.timing_mode.get_delta() as f64 / self.state.settings.speed);
-            self.state.frame_time += delta;
-            self.last_time = now;
+            let n1 = (self.start_time.elapsed().as_nanos() - self.last_tick) as f64;
+            let n2 = (self.next_tick - self.last_tick) as f64;
+            self.state.frame_time = n1 / n2;
         }
         self.loops = 0;
 
@@ -137,11 +144,6 @@ impl Game {
         graphics::apply_transformations(ctx)?;
 
         if let Some(scene) = self.scene.as_mut() {
-            if self.state.frame_time.floor() > self.state.prev_frame_time.floor() {
-                self.state.prev_frame_time = self.state.frame_time;
-                scene.draw_tick(&mut self.state, ctx)?;
-            }
-
             scene.draw(&mut self.state, ctx)?;
             if self.state.settings.touch_controls {
                 self.state.touch_controls.draw(&self.state.constants, &mut self.state.texture_set, ctx)?;
@@ -350,7 +352,6 @@ pub fn init() -> GameResult {
 
                 if let Some(game) = &mut game {
                     game.loops = 0;
-                    game.last_time = Instant::now();
                 }
             }
             Event::Suspended => {
@@ -360,7 +361,6 @@ pub fn init() -> GameResult {
                     }
                 if let Some(game) = &mut game {
                     game.loops = 0;
-                    game.last_time = Instant::now();
                 }
             }
             Event::WindowEvent { event, .. } => {
@@ -373,8 +373,12 @@ pub fn init() -> GameResult {
                     }
                     WindowEvent::Resized(_) => {
                         if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
-                            game.state.handle_resize(ctx).unwrap();
+                            let (w, h) = graphics::drawable_size(ctx);
+
+                            game.state.tmp_canvas = Canvas::with_window_size(ctx).unwrap();
+                            game.state.game_canvas = Canvas::with_window_size(ctx).unwrap();
                             game.state.lightmap_canvas = Canvas::with_window_size(ctx).unwrap();
+                            game.state.handle_resize(ctx).unwrap();
                             graphics::window(ctx).update_gfx(&mut game.ui.main_color, &mut game.ui.main_depth);
                         }
                     }
@@ -440,7 +444,6 @@ pub fn init() -> GameResult {
                         game.scene.as_mut().unwrap().init(&mut game.state, ctx).unwrap();
                         game.loops = 0;
                         game.state.frame_time = 0.0;
-                        game.state.prev_frame_time = 0.0;
                     }
                 }
             }

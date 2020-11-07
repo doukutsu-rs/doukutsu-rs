@@ -88,10 +88,10 @@ impl GameEntity<(&mut Player, &BTreeMap<u16, RefCell<NPC>>, &mut Stage)> for Bos
             batch.add_rect(
                 interpolate_fix9_scale(npc.prev_x - off_x - frame.prev_x,
                                        npc.x - off_x - frame.x,
-                                       state.frame_time, state.scale) + shock,
+                                       state.frame_time) + shock,
                 interpolate_fix9_scale(npc.prev_y - npc.display_bounds.top as isize - frame.prev_y,
                                        npc.y - npc.display_bounds.top as isize - frame.y,
-                                       state.frame_time, state.scale),
+                                       state.frame_time),
                 &npc.anim_rect,
             );
         }

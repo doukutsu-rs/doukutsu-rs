@@ -1,17 +1,17 @@
-use std::io::Seek;
 use std::ops::Div;
-use std::time::{Instant, SystemTime};
+use std::time::Instant;
 
 use bitvec::vec::BitVec;
-use chrono::{Local, Datelike};
+use chrono::{Datelike, Local};
+use gfx::{self, *};
+use ggez::{Context, filesystem, GameResult, graphics};
+use ggez::filesystem::OpenOptions;
+use ggez::graphics::{Canvas, Shader};
 
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState, KeyState};
 use crate::engine_constants::EngineConstants;
-use ggez::{Context, filesystem, GameResult, graphics};
-use ggez::filesystem::OpenOptions;
-use ggez::graphics::Canvas;
 use crate::npc::{NPC, NPCTable};
 use crate::profile::GameProfile;
 use crate::rng::RNG;
@@ -77,9 +77,43 @@ pub struct Settings {
     pub speed: f64,
     pub seasonal_textures: bool,
     pub original_textures: bool,
-    pub lighting_efects: bool,
+    pub shader_effects: bool,
+    pub motion_interpolation: bool,
     pub debug_outlines: bool,
     pub touch_controls: bool,
+}
+
+gfx_defines! {
+    constant WaterShaderParams {
+        resolution: [f32; 2] = "u_Resolution",
+        t: f32 = "u_Tick",
+    }
+}
+
+pub struct Shaders {
+    pub water_shader: Shader<WaterShaderParams>,
+    pub water_shader_params: WaterShaderParams,
+}
+
+impl Shaders {
+    pub fn new(ctx: &mut Context) -> GameResult<Shaders> {
+        let water_shader_params = WaterShaderParams {
+            t: 0.0,
+            resolution: [0.0, 0.0],
+        };
+
+        Ok(Shaders {
+            water_shader: Shader::new(
+                ctx,
+                "/builtin/shaders/basic_150.vert.glsl",
+                "/builtin/shaders/water_150.frag.glsl",
+                water_shader_params,
+                "WaterShaderParams",
+                None,
+            )?,
+            water_shader_params,
+        })
+    }
 }
 
 pub struct SharedGameState {
@@ -103,8 +137,10 @@ pub struct SharedGameState {
     pub stages: Vec<StageData>,
     pub new_npcs: Vec<NPC>,
     pub frame_time: f64,
-    pub prev_frame_time: f64,
     pub scale: f32,
+    pub shaders: Shaders,
+    pub tmp_canvas: Canvas,
+    pub game_canvas: Canvas,
     pub lightmap_canvas: Canvas,
     pub canvas_size: (f32, f32),
     pub screen_size: (f32, f32),
@@ -175,8 +211,10 @@ impl SharedGameState {
             stages: Vec::with_capacity(96),
             new_npcs: Vec::with_capacity(8),
             frame_time: 0.0,
-            prev_frame_time: 0.0,
             scale,
+            shaders: Shaders::new(ctx)?,
+            tmp_canvas: Canvas::with_window_size(ctx)?,
+            game_canvas: Canvas::with_window_size(ctx)?,
             lightmap_canvas: Canvas::with_window_size(ctx)?,
             screen_size,
             canvas_size,
@@ -200,7 +238,8 @@ impl SharedGameState {
             speed: 1.0,
             seasonal_textures: true,
             original_textures: false,
-            lighting_efects: true,
+            shader_effects: true,
+            motion_interpolation: true,
             debug_outlines: false,
             touch_controls: cfg!(target_os = "android"),
         })
@@ -324,7 +363,6 @@ impl SharedGameState {
     pub fn set_speed(&mut self, value: f64) {
         self.settings.speed = value;
         self.frame_time = 0.0;
-        self.prev_frame_time = 0.0;
 
         if let Err(err) = self.sound_manager.set_speed(value as f32) {
             log::error!("Error while sending a message to sound manager: {}", err);

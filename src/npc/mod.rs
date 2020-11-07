@@ -294,10 +294,10 @@ impl GameEntity<(&mut Player, &BTreeMap<u16, RefCell<NPC>>, &mut Stage)> for NPC
         batch.add_rect(
             interpolate_fix9_scale(self.prev_x - off_x - frame.prev_x,
                                    self.x - off_x - frame.x,
-                                   state.frame_time, state.scale) + shock,
+                                   state.frame_time) + shock,
             interpolate_fix9_scale(self.prev_y - self.display_bounds.top as isize - frame.prev_y,
                                    self.y - self.display_bounds.top as isize - frame.y,
-                                   state.frame_time, state.scale),
+                                   state.frame_time),
             &self.anim_rect,
         );
         batch.draw(ctx)?;

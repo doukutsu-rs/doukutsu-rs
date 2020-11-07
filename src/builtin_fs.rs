@@ -111,6 +111,10 @@ impl BuiltinFS {
                     FSNode::File("builtin_font_0.png", include_bytes!("builtin/builtin_font_0.png")),
                     FSNode::File("builtin_font_1.png", include_bytes!("builtin/builtin_font_1.png")),
                     FSNode::File("pixtone.pcm", include_bytes!("builtin/pixtone.pcm")),
+                    FSNode::Directory("shaders", vec![
+                        FSNode::File("basic_150.vert.glsl", include_bytes!("builtin/shaders/basic_150.vert.glsl")),
+                        FSNode::File("water_150.frag.glsl", include_bytes!("builtin/shaders/water_150.frag.glsl")),
+                    ]),
                     FSNode::Directory("lightmap", vec![
                         FSNode::File("spot.png", include_bytes!("builtin/lightmap/spot.png")),
                         FSNode::File("direct.png", include_bytes!("builtin/lightmap/direct.png")),

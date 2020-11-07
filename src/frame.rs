@@ -1,7 +1,7 @@
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
-use crate::common::interpolate_fix9_scale;
+use crate::common::{interpolate_fix9_scale, fix9_scale};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -24,8 +24,12 @@ pub struct Frame {
 
 impl Frame {
     pub fn xy_interpolated(&self, frame_time: f64, scale: f32) -> (f32, f32) {
-        let x = interpolate_fix9_scale(self.prev_x, self.x, frame_time, scale);
-        let y = interpolate_fix9_scale(self.prev_y, self.y, frame_time, scale);
+        if self.prev_x == self.x && self.prev_y == self.y {
+            return (fix9_scale(self.x, scale), fix9_scale(self.y, scale));
+        }
+
+        let x = interpolate_fix9_scale(self.prev_x, self.x, frame_time);
+        let y = interpolate_fix9_scale(self.prev_y, self.y, frame_time);
 
         (x, y)
     }

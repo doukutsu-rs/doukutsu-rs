@@ -55,7 +55,7 @@ directories = "2"
 gfx = "0.18"
 gfx_core = "0.9"
 gfx_device_gl = {git = "https://github.com/doukutsu-rs/gfx.git", branch = "pre-ll"}
-ggez = {git = "https://github.com/doukutsu-rs/ggez.git", branch = "d-rs"}
+ggez = {git = "https://github.com/doukutsu-rs/ggez.git", rev = "aad56b0d173ca9f4aeb28599075b5af49ab9214e"}
 glutin = {git = "https://github.com/doukutsu-rs/glutin.git", branch = "android-support"}
 imgui = {git = "https://github.com/JMS55/imgui-rs.git"}
 imgui-gfx-renderer = {git = "https://github.com/JMS55/imgui-rs.git"}

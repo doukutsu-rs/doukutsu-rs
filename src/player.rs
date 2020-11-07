@@ -132,7 +132,7 @@ impl Player {
             if self.equip.has_air_tank() {
                 self.air = 1000;
                 self.air_counter = 0;
-            } else if self.flags.in_water() {
+            } else if !state.settings.god_mode && self.flags.in_water() {
                 self.air_counter = 60;
                 if self.air > 0 {
                     self.air -= 1;
@@ -651,10 +651,10 @@ impl GameEntity<()> for Player {
             batch.add_rect(
                 interpolate_fix9_scale(self.prev_x - self.display_bounds.left as isize - frame.prev_x,
                                        self.x - self.display_bounds.left as isize - frame.x,
-                                       state.frame_time, state.scale),
+                                       state.frame_time),
                 interpolate_fix9_scale(self.prev_y - self.display_bounds.left as isize - frame.prev_y,
                                        self.y - self.display_bounds.left as isize - frame.y,
-                                       state.frame_time, state.scale),
+                                       state.frame_time),
                 &self.anim_rect,
             );
             batch.draw(ctx)?;
@@ -667,10 +667,10 @@ impl GameEntity<()> for Player {
                     batch.add_rect(
                         interpolate_fix9_scale(self.prev_x - self.display_bounds.left as isize - frame.prev_x,
                                                self.x - self.display_bounds.left as isize - frame.x,
-                                               state.frame_time, state.scale) - 8.0,
+                                               state.frame_time) - 8.0,
                         interpolate_fix9_scale(self.prev_y - self.display_bounds.left as isize - frame.prev_y,
                                                self.y - self.display_bounds.left as isize - frame.y,
-                                               state.frame_time, state.scale) + self.weapon_offset_y as f32,
+                                               state.frame_time) + self.weapon_offset_y as f32,
                         &self.weapon_rect,
                     );
                 }
@@ -678,10 +678,10 @@ impl GameEntity<()> for Player {
                     batch.add_rect(
                         interpolate_fix9_scale(self.prev_x - self.display_bounds.left as isize - frame.prev_x,
                                                self.x - self.display_bounds.left as isize - frame.x,
-                                               state.frame_time, state.scale),
+                                               state.frame_time),
                         interpolate_fix9_scale(self.prev_y - self.display_bounds.left as isize - frame.prev_y,
                                                self.y - self.display_bounds.left as isize - frame.y,
-                                               state.frame_time, state.scale) + self.weapon_offset_y as f32,
+                                               state.frame_time) + self.weapon_offset_y as f32,
                         &self.weapon_rect,
                     );
                 }
