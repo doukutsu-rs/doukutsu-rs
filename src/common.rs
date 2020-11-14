@@ -290,8 +290,11 @@ fn lerp_f64(v1: f64, v2: f64, t: f64) -> f64 {
     v1 * (1.0 - t.fract()) + v2 * t.fract()
 }
 
-#[inline(always)]
 pub fn interpolate_fix9_scale(old_val: isize, val: isize, frame_delta: f64) -> f32 {
+    if (frame_delta - 1.0).abs() < 0.001 {
+        return (val / 0x200) as f32;
+    }
+
     (lerp_f64(old_val as f64, val as f64, frame_delta) / 512.0) as f32
     //((lerp_f64(old_val as f64, val as f64, frame_delta) * scale as f64 / 512.0).floor() / (scale as f64)) as f32
 }

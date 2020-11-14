@@ -323,7 +323,6 @@ impl GameScene {
 
     fn draw_bullets(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Bullet")?;
-        let scale = state.scale;
         let mut x: isize;
         let mut y: isize;
         let mut prev_x: isize;
@@ -373,7 +372,6 @@ impl GameScene {
 
     fn draw_carets(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Caret")?;
-        let scale = state.scale;
 
         for caret in state.carets.iter() {
             batch.add_rect(interpolate_fix9_scale(caret.prev_x - caret.offset_x - self.frame.prev_x,

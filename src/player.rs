@@ -168,8 +168,6 @@ impl Player {
             self.booster_switch = 0;
         }
 
-        // todo: split those into separate procedures and refactor (try to not break the logic!)
-
         // ground movement
         if self.flags.hit_bottom_wall() || self.flags.hit_right_slope() || self.flags.hit_left_slope() {
             self.booster_switch = 0;
@@ -608,6 +606,16 @@ impl Player {
             state.control_flags.set_tick_world(true);
             state.control_flags.set_interactions_disabled(true);
             state.textscript_vm.start_script(40);
+
+            state.create_caret(self.x, self.y, CaretType::Explosion, Direction::Left);
+            let mut npc = NPCMap::create_npc(4, &state.npc_table);
+            npc.cond.set_alive(true);
+            for _ in 0..0x40 {
+                npc.x = self.x + state.game_rng.range(-10..10) as isize * 0x200;
+                npc.y = self.y + state.game_rng.range(-10..10) as isize * 0x200;
+
+                state.new_npcs.push(npc);
+            }
         }
     }
 }

@@ -174,7 +174,7 @@ impl Game {
             KeyCode::S => { state.key_state.set_weapon_next(true) }
             KeyCode::F7 => { state.set_speed(1.0) }
             KeyCode::F8 => {
-                if state.settings.speed > 0.5 {
+                if state.settings.speed > 0.2 {
                     state.set_speed(state.settings.speed - 0.1);
                 }
             }

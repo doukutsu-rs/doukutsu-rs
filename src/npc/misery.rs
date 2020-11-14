@@ -113,7 +113,7 @@ impl NPC {
             }
             10 | 11 => {
                 if self.action_num == 10 {
-                    self.action_num = 1;
+                    self.action_num = 11;
                     self.action_counter = 0;
                     self.anim_num = 0;
                     self.vel_y = 0x200;

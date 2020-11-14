@@ -6,7 +6,7 @@
 
 A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/).
 
-**The project is still incomplete and might not be playable. Expect lots of breaking changes and bugs**
+**The project is still incomplete and not fully playable yet.**
 
 [Join the Discord server](https://discord.gg/fbRsNNB)
 
@@ -14,9 +14,9 @@ A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust]
 
 This repository does not contain any copyrighted files. 
 
-For better user experience, binaries are being distributed with slightly modified freeware game files. 
+For better user experience, pre-built binaries are distributed with slightly modified freeware game files. 
 
-*doukutsu-rs* should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE2) or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) modified freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) data files.
+*doukutsu-rs* should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE2) or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) data files.
 
 Vanilla Cave Story does not work yet because some important data files have been embedded inside the executable. and we don't have a loader/extractor implemented yet.
 
@@ -30,12 +30,12 @@ Vanilla Cave Story does not work yet because some important data files have been
 
 **Cave Story+**
 
-- PC release - Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
+- PC release - (Tested only with Steam version, both Windows and Linux builds) Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
 - Switch release - **Not supported or actively tested.** Some of release-specific opcodes have been implemented (no code 
 decompilation was involved, just pure data file analysis), so you should be able to play it without any major issues. 
 Because methods used to extract game data from cartridge vary, you have to find that out on your own.
 
-#### Roadmap
+#### Gameplay support roadmap
 
 - [x] Checkmarked things = fully implemented
 - [ ] Unmarked things = partially or not implemented yet.
@@ -51,9 +51,9 @@ Because methods used to extract game data from cartridge vary, you have to find 
   - [x] HUD
 - [ ] Text scripts (TSC)
   - [x] Initial implementation
-  - [ ] Full implementation of opcodes (~90% done)
-  - [ ] Credits
+  - [x] Full implementation of gameplay opcodes
   - [x] Shift-JIS encoding support
+  - [ ] Credits opcodes
 - [ ] Audio
   - [x] Organya BGM playback
   - [x] Text script bindings
@@ -62,11 +62,11 @@ Because methods used to extract game data from cartridge vary, you have to find 
 - [ ] NPCs/entities
   - [x] Initial implementation
   - [ ] Miscellaneous entities (~30% done)
-  - [ ] Bosses
+  - [ ] Bosses (~20% done)
   - [x] First Cave
   - [x] Mimiga Village
   - [x] Egg Corridor
-  - [ ] Grasstown (~30% done)
+  - [ ] Grasstown (~90% done)
   - [ ] Sand Zone (~10% done)
   - [ ] Labirynth (~10% done)
   - [ ] Outer Wall
@@ -75,7 +75,7 @@ Because methods used to extract game data from cartridge vary, you have to find 
   - [ ] Balcony
   - [ ] Hell
   - [ ] Cave Story+ specific NPCs
-    - [ ] Dashing Gaudis (361)
+    - [x] Dashing Gaudis (361)
     - [ ] ??? (362)
 - [ ] Weapons
   - [x] Leveling / XP system
@@ -90,10 +90,6 @@ Because methods used to extract game data from cartridge vary, you have to find 
   - [ ] Super Missile Launcher
   - [ ] Nemesis
   - [ ] Spur
-- [ ] Modding enhancements and built-in tools
-  - [x] Debugger
-  - [ ] Level editor
-  - [ ] Texture auto-reload mode for spriters
 - [x] Saving and loading game state
 - [ ] Support for different game editions
   - [ ] Vanilla
@@ -102,11 +98,10 @@ Because methods used to extract game data from cartridge vary, you have to find 
     - [x] Base mod
     - [ ] Mod loading
     - [ ] Curly Story
-    - [ ] Wind Fortress
+    - [ ] Wind Fortress (~40%)
     - [ ] Boss Run
-    - [ ] Seasonal graphics
+    - [x] Seasonal graphics
     - [ ] Remastered soundtrack
-- [x] Optional enhanced graphics effects
 
 *(tbd)*
 
@@ -120,9 +115,17 @@ Because methods used to extract game data from cartridge vary, you have to find 
 
 ![CS+ with enhanced graphics](https://i.imgur.com/YaPAs70.png)
 
+#### Legal note
+
+This project includes reverse engineered implementations of NPC and game physics algorithms, derived from freeware Cave Story and PC Cave Story+ executables.
+
+Since the game's (non-existent, even for CS+) EULA does not prohibit reverse engineering, 
+[according to Secion 103(f)](https://www.law.cornell.edu/uscode/text/17/1201) we could legally revese engineer those parts 
+to achieve interoperability.   
+
 #### Credits
 
-- Studio Pixel for Cave Story 
-- [Cave Story Tribute Site](https://cavestory.org) - for LOTS of useful resources related to the game. 
-- [Clownacy/Cucky for CSE2](https://github.com/Clownacy/CSE2) - some game logic reference / mutual help in reverse engineering bitfields and other shit.
+- Studio Pixel/Nicalis for Cave Story 
+- [Cave Story Tribute Site](https://cavestory.org) - has lots of useful resources related to the game. 
+- [CSE2](https://github.com/Clownacy/CSE2) - widescreen fixes, more readable reference for game logic, mutual help in various things.
 - [LunarLambda for organism](https://gitdab.com/LunarLambda/organism) - which is being used by us as `.org` playback engine.
