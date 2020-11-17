@@ -112,7 +112,7 @@ pub struct NPC {
     pub anim_rect: Rect<u16>,
 }
 
-static PARTICLE_NPCS: [u16; 10] = [1, 4, 73, 84, 86, 87, 108, 129, 199, 355];
+static PARTICLE_NPCS: [u16; 11] = [1, 4, 11, 73, 84, 86, 87, 108, 129, 199, 355];
 
 impl NPC {
     pub fn get_start_index(&self) -> u16 {
@@ -238,6 +238,8 @@ impl GameEntity<(&mut Player, &BTreeMap<u16, RefCell<NPC>>, &mut Stage)> for NPC
             85 => self.tick_n085_terminal(state, player),
             86 => self.tick_n086_missile_pickup(state),
             87 => self.tick_n087_heart_pickup(state),
+            88 => self.tick_n088_igor_boss(state, player),
+            89 => self.tick_n089_igor_dead(state, player),
             91 => self.tick_n091_mimiga_cage(state),
             94 => self.tick_n094_kulala(state, player),
             95 => self.tick_n095_jelly(state),

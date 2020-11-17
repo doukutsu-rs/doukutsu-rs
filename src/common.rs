@@ -8,7 +8,7 @@ use crate::bitfield;
 
 /// Multiply cave story degrees (0-255, which corresponds to 0°-360°) with this to get
 /// respective value in radians.
-pub const CDEG_RAD: f64 = std::f64::consts::PI * 0.003950617283950617;
+pub const CDEG_RAD: f64 = std::f64::consts::PI / 128.0;
 
 bitfield! {
   #[derive(Clone, Copy)]
