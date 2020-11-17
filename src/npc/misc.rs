@@ -620,7 +620,7 @@ impl NPC {
         if self.action_num == 0 {
             self.action_num = 1;
 
-            self.anim_rect.left = self.event_num as usize * 16;
+            self.anim_rect.left = self.event_num as u16 * 16;
             self.anim_rect.top = 0;
             self.anim_rect.right = self.anim_rect.left + 16;
             self.anim_rect.bottom = self.anim_rect.top + 16;

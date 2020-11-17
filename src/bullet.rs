@@ -64,7 +64,7 @@ pub struct Bullet {
     pub weapon_flags: Flag,
     pub flags: Flag,
     pub direction: Direction,
-    pub anim_rect: Rect<usize>,
+    pub anim_rect: Rect<u16>,
     pub enemy_hit_width: u32,
     pub enemy_hit_height: u32,
     pub anim_num: u16,

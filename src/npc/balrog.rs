@@ -528,7 +528,7 @@ impl NPC {
         self.anim_rect = state.constants.npc.n012_balrog_cutscene[self.anim_num as usize + dir_offset];
 
         if self.action_num == 71 {
-            self.anim_rect.bottom = self.anim_rect.top + self.action_counter as usize / 2;
+            self.anim_rect.bottom = self.anim_rect.top + self.action_counter as u16 / 2;
             if self.action_counter % 2 == 0 {
                 self.anim_rect.left += 1;
             }

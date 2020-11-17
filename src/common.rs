@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 
 use num_traits::{AsPrimitive, Num};
 use num_traits::real::Real;
+use serde::{Deserialize, Serialize};
 
 use crate::bitfield;
 
@@ -98,7 +99,7 @@ bitfield! {
 }
 
 bitfield! {
-  #[derive(Clone, Copy)]
+  #[derive(Clone, Copy, Serialize, Deserialize)]
   pub struct ControlFlags(u16);
   impl Debug;
 
@@ -218,7 +219,7 @@ impl Direction {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Rect<T: Num + PartialOrd + Copy = isize> {
     pub left: T,
     pub top: T,
@@ -274,9 +275,9 @@ impl<T: Num + PartialOrd + Copy> Rect<T> {
 impl<T: Num + PartialOrd + Copy + AsPrimitive<f32>> Into<ggez::graphics::Rect> for Rect<T> {
     fn into(self) -> ggez::graphics::Rect {
         ggez::graphics::Rect::new(self.left.as_(),
-                                         self.top.as_(),
-                                         self.width().as_(),
-                                         self.height().as_())
+                                  self.top.as_(),
+                                  self.width().as_(),
+                                  self.height().as_())
     }
 }
 

@@ -17,18 +17,18 @@ pub enum MenuSelectionResult<'a> {
 pub struct Menu {
     pub x: isize,
     pub y: isize,
-    pub width: usize,
-    pub height: usize,
+    pub width: u16,
+    pub height: u16,
     pub selected: usize,
     pub entries: Vec<MenuEntry>,
     anim_num: u16,
     anim_wait: u16,
 }
 
-static QUOTE_FRAMES: [usize; 4] = [0, 1, 0, 2];
+static QUOTE_FRAMES: [u16; 4] = [0, 1, 0, 2];
 
 impl Menu {
-    pub fn new(x: isize, y: isize, width: usize, height: usize) -> Menu {
+    pub fn new(x: isize, y: isize, width: u16, height: u16) -> Menu {
         Menu {
             x,
             y,

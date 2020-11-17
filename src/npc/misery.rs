@@ -226,7 +226,7 @@ impl NPC {
 
         if self.action_num == 1 && self.anim_counter < 32 {
             self.anim_counter += 1;
-            self.anim_rect.bottom = self.anim_counter as usize / 2 + self.anim_rect.bottom as usize - 16;
+            self.anim_rect.bottom = self.anim_counter / 2 + self.anim_rect.bottom - 16;
         }
 
         Ok(())

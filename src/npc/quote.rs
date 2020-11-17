@@ -64,7 +64,7 @@ impl NPC {
         }
 
         if self.action_num == 4 {
-            self.anim_rect.bottom = self.anim_rect.top + self.action_counter as usize / 4;
+            self.anim_rect.bottom = self.anim_rect.top + self.action_counter / 4;
 
             if self.action_counter / 2 % 2 != 0 {
                 self.anim_rect.left += 1;
@@ -122,7 +122,7 @@ impl NPC {
         }
 
         if self.action_num == 1 {
-            self.anim_rect.bottom = self.anim_rect.top + self.action_counter as usize / 4;
+            self.anim_rect.bottom = self.anim_rect.top + self.action_counter / 4;
 
             if self.action_counter / 2 % 2 != 0 {
                 self.anim_rect.left += 1;
@@ -275,7 +275,7 @@ impl NPC {
         self.anim_rect = state.constants.npc.n150_quote[self.anim_num as usize + dir_offset];
 
         if self.action_num == 21 {
-            self.anim_rect.bottom = self.anim_rect.top + self.action_counter as usize / 4;
+            self.anim_rect.bottom = self.anim_rect.top + self.action_counter / 4;
         }
 
         if player.equip.has_mimiga_mask() {

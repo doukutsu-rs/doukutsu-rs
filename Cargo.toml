@@ -69,6 +69,9 @@ num-derive = "0.3.2"
 num-traits = "0.2.12"
 paste = "1.0.0"
 pretty_env_logger = "0.4.0"
+serde = {version = "1", features = ["derive"]}
+serde_derive = "1"
+serde_yaml = "0.8"
 strum = "0.18.0"
 strum_macros = "0.18.0"
 # remove and replace when drain_filter is in stable

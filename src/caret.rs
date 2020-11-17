@@ -39,7 +39,7 @@ pub struct Caret {
     pub prev_y: isize,
     pub cond: Condition,
     pub direction: Direction,
-    pub anim_rect: Rect<usize>,
+    pub anim_rect: Rect<u16>,
     anim_num: u16,
     anim_counter: u16,
 }

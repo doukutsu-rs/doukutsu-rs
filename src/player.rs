@@ -71,8 +71,8 @@ pub struct Player {
     damage_taken: i16,
     anim_num: u16,
     anim_counter: u16,
-    anim_rect: Rect<usize>,
-    weapon_rect: Rect<usize>,
+    anim_rect: Rect<u16>,
+    weapon_rect: Rect<u16>,
 }
 
 impl Player {
@@ -123,8 +123,8 @@ impl Player {
         }
     }
 
-    pub fn get_texture_offset(&self) -> usize {
-        self.appearance as usize * 64 + if self.equip.has_mimiga_mask() { 32 } else { 0 }
+    pub fn get_texture_offset(&self) -> u16 {
+        self.appearance as u16 * 64 + if self.equip.has_mimiga_mask() { 32 } else { 0 }
     }
 
     fn tick_normal(&mut self, state: &mut SharedGameState) -> GameResult {
@@ -543,8 +543,8 @@ impl Player {
         }
 
         self.weapon_offset_y = 0;
-        self.weapon_rect.left = (self.current_weapon as usize % 13) * 24;
-        self.weapon_rect.top = (self.current_weapon as usize / 13) * 96;
+        self.weapon_rect.left = (self.current_weapon as u16 % 13) * 24;
+        self.weapon_rect.top = (self.current_weapon as u16 / 13) * 96;
         self.weapon_rect.right = self.weapon_rect.left + 24;
         self.weapon_rect.bottom = self.weapon_rect.top + 16;
 

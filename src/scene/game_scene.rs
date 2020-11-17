@@ -116,8 +116,8 @@ impl GameScene {
         let align_offset = if align == Alignment::Right { n.len() as f32 * 8.0 } else { 0.0 };
 
         for (offset, chr) in n.chars().enumerate() {
-            let idx = chr as usize - '0' as usize;
-            batch.add_rect(x - align_offset + offset as f32 * 8.0, y, &Rect::<usize>::new_size(idx * 8, 56, 8, 8));
+            let idx = chr as u16 - '0' as u16;
+            batch.add_rect(x - align_offset + offset as f32 * 8.0, y, &Rect::new_size(idx * 8, 56, 8, 8));
         }
 
         batch.draw(ctx)?;
@@ -133,30 +133,30 @@ impl GameScene {
 
         if max_ammo == 0 {
             batch.add_rect(weap_x + 48.0, 16.0,
-                           &Rect::<usize>::new_size(80, 48, 16, 8));
+                           &Rect::new_size(80, 48, 16, 8));
             batch.add_rect(weap_x + 48.0, 24.0,
-                           &Rect::<usize>::new_size(80, 48, 16, 8));
+                           &Rect::new_size(80, 48, 16, 8));
         }
 
         // per
         batch.add_rect(weap_x + 32.0, 24.0,
-                       &Rect::<usize>::new_size(72, 48, 8, 8));
+                       &Rect::new_size(72, 48, 8, 8));
         // lv
         batch.add_rect(weap_x, 32.0,
-                       &Rect::<usize>::new_size(80, 80, 16, 8));
+                       &Rect::new_size(80, 80, 16, 8));
         // xp box
         batch.add_rect(weap_x + 24.0, 32.0,
-                       &Rect::<usize>::new_size(0, 72, 40, 8));
+                       &Rect::new_size(0, 72, 40, 8));
 
         if max_level {
             batch.add_rect(weap_x + 24.0, 32.0,
-                           &Rect::<usize>::new_size(40, 72, 40, 8));
+                           &Rect::new_size(40, 72, 40, 8));
         } else if max_xp > 0 {
             // xp bar
-            let bar_width = (xp as f32 / max_xp as f32 * 40.0) as usize;
+            let bar_width = (xp as f32 / max_xp as f32 * 40.0) as u16;
 
             batch.add_rect(weap_x + 24.0, 32.0,
-                           &Rect::<usize>::new_size(0, 80, bar_width, 8));
+                           &Rect::new_size(0, 80, bar_width, 8));
         }
 
         if self.player.max_life != 0 {
@@ -165,10 +165,10 @@ impl GameScene {
                            &Rect::new_size(0, 40, 64, 8));
             // yellow bar
             batch.add_rect(40.0, 40.0,
-                           &Rect::new_size(0, 32, (self.life_bar as usize * 40) / self.player.max_life as usize, 8));
+                           &Rect::new_size(0, 32, (self.life_bar * 40) / self.player.max_life, 8));
             // life
             batch.add_rect(40.0, 40.0,
-                           &Rect::new_size(0, 24, (self.player.life as usize * 40) / self.player.max_life as usize, 8));
+                           &Rect::new_size(0, 24, (self.player.life * 40) / self.player.max_life, 8));
         }
 
         if self.player.air_counter > 0 {
@@ -206,7 +206,7 @@ impl GameScene {
                 }
 
                 if let Some(weapon) = self.inventory.get_weapon(a) {
-                    rect.left = weapon.wtype as usize * 16;
+                    rect.left = weapon.wtype as u16 * 16;
                     rect.right = rect.left + 16;
                     batch.add_rect(pos_x, 16.0, &rect);
                 }
@@ -288,30 +288,30 @@ impl GameScene {
 
                 for x in (0..(state.canvas_size.0 as isize)).step_by(200) {
                     batch.add_rect(x as f32, 0.0,
-                                   &Rect::<usize>::new_size(0, 0, 200, 88));
+                                   &Rect::new_size(0, 0, 200, 88));
                 }
 
                 batch.add_rect(state.canvas_size.0 - 320.0, 0.0,
-                               &Rect::<usize>::new_size(0, 0, 320, 88));
+                               &Rect::new_size(0, 0, 320, 88));
 
                 for x in ((-offset / 2)..(state.canvas_size.0 as isize)).step_by(320) {
                     batch.add_rect(x as f32, 88.0,
-                                   &Rect::<usize>::new_size(0, 88, 320, 35));
+                                   &Rect::new_size(0, 88, 320, 35));
                 }
 
                 for x in ((-offset % 320)..(state.canvas_size.0 as isize)).step_by(320) {
                     batch.add_rect(x as f32, 123.0,
-                                   &Rect::<usize>::new_size(0, 123, 320, 23));
+                                   &Rect::new_size(0, 123, 320, 23));
                 }
 
                 for x in ((-offset * 2)..(state.canvas_size.0 as isize)).step_by(320) {
                     batch.add_rect(x as f32, 146.0,
-                                   &Rect::<usize>::new_size(0, 146, 320, 30));
+                                   &Rect::new_size(0, 146, 320, 30));
                 }
 
                 for x in ((-offset * 4)..(state.canvas_size.0 as isize)).step_by(320) {
                     batch.add_rect(x as f32, 176.0,
-                                   &Rect::<usize>::new_size(0, 176, 320, 64));
+                                   &Rect::new_size(0, 176, 320, 64));
                 }
             }
         }
@@ -395,7 +395,7 @@ impl GameScene {
             }
             FadeState::FadeIn(tick, direction) | FadeState::FadeOut(tick, direction) => {
                 let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Fade")?;
-                let mut rect = Rect::<usize>::new(0, 0, 16, 16);
+                let mut rect = Rect::new(0, 0, 16, 16);
 
                 match direction {
                     FadeDirection::Left | FadeDirection::Right => {
@@ -405,7 +405,7 @@ impl GameScene {
                             if frame > 15 { frame = 15; } else { frame += 1; }
 
                             if frame >= 0 {
-                                rect.left = frame as usize * 16;
+                                rect.left = frame as u16 * 16;
                                 rect.right = rect.left + 16;
 
                                 for y in (0..(state.canvas_size.1 as isize + 16)).step_by(16) {
@@ -425,7 +425,7 @@ impl GameScene {
                             if frame > 15 { frame = 15; } else { frame += 1; }
 
                             if frame >= 0 {
-                                rect.left = frame as usize * 16;
+                                rect.left = frame as u16 * 16;
                                 rect.right = rect.left + 16;
 
                                 for x in (0..(state.canvas_size.0 as isize + 16)).step_by(16) {
@@ -450,7 +450,7 @@ impl GameScene {
                                 if frame > 15 { frame = 15; } else { frame += 1; }
 
                                 if frame >= 0 {
-                                    rect.left = frame as usize * 16;
+                                    rect.left = frame as u16 * 16;
                                     rect.right = rect.left + 16;
 
                                     batch.add_rect((center_x - x) as f32, (center_y + y) as f32, &rect);
@@ -544,9 +544,9 @@ impl GameScene {
 
             batch.add_rect_scaled(left_pos + 14.0 + if flip { 48.0 } else { 0.0 }, top_pos + 8.0,
                                   scale_x * if flip { -1.0 } else { 1.0 }, scale_y,
-                                  &Rect::<usize>::new_size(
-                                      (face_num as usize % 6) * 48,
-                                      (face_num as usize / 6) * 48,
+                                  &Rect::new_size(
+                                      (face_num as u16 % 6) * 48,
+                                      (face_num as u16 / 6) * 48,
                                       48, 48,
                                   ));
 
@@ -554,10 +554,10 @@ impl GameScene {
         }
 
         if state.textscript_vm.item != 0 {
-            let mut rect = Rect::<usize>::new(0, 0, 0, 0);
+            let mut rect = Rect::new(0, 0, 0, 0);
 
             if state.textscript_vm.item < 1000 {
-                let item_id = state.textscript_vm.item as usize;
+                let item_id = state.textscript_vm.item as u16;
 
                 rect.left = (item_id % 16) * 16;
                 rect.right = rect.left + 16;
@@ -568,7 +568,7 @@ impl GameScene {
                 batch.add_rect((state.canvas_size.0 / 2.0 - 12.0).floor(), state.canvas_size.1 - 104.0, &rect);
                 batch.draw(ctx)?;
             } else {
-                let item_id = state.textscript_vm.item as usize - 1000;
+                let item_id = state.textscript_vm.item as u16 - 1000;
 
                 rect.left = (item_id % 8) * 32;
                 rect.right = rect.left + 32;
@@ -835,7 +835,7 @@ impl GameScene {
             _ => &self.tex_tileset_name,
         };
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex)?;
-        let mut rect = Rect::<usize>::new(0, 0, 16, 16);
+        let mut rect = Rect::new(0, 0, 16, 16);
         let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time, state.scale);
 
         let tile_start_x = clamp(self.frame.x / 0x200 / 16, 0, self.stage.map.width as isize) as usize;
@@ -859,8 +859,8 @@ impl GameScene {
                             continue;
                         }
 
-                        rect.left = (tile as usize % 16) * 16;
-                        rect.top = (tile as usize / 16) * 16;
+                        rect.left = (tile as u16 % 16) * 16;
+                        rect.top = (tile as u16 / 16) * 16;
                         rect.right = rect.left + 16;
                         rect.bottom = rect.top + 16;
                     }
@@ -871,8 +871,8 @@ impl GameScene {
                             continue;
                         }
 
-                        rect.left = (tile as usize % 16) * 16;
-                        rect.top = (tile as usize / 16) * 16;
+                        rect.left = (tile as u16 % 16) * 16;
+                        rect.top = (tile as u16 / 16) * 16;
                         rect.right = rect.left + 16;
                         rect.bottom = rect.top + 16;
                     }
@@ -1268,8 +1268,8 @@ impl GameScene {
         for i in 0..slot_count {
             let index = state.teleporter_slots[i].0;
 
-            slot_rect.left = 32 * (index as usize % 8);
-            slot_rect.top = 16 * (index as usize / 8);
+            slot_rect.left = 32 * (index as u16 % 8);
+            slot_rect.top = 16 * (index as u16 / 8);
             slot_rect.right = slot_rect.left + 32;
             slot_rect.bottom = slot_rect.top + 16;
 

@@ -76,9 +76,9 @@ impl BMFontRenderer {
                 if let Some(glyph) = self.font.chars.get(&chr) {
                     batch.add_rect_scaled_tinted(offset_x, y + (glyph.yoffset as f32 * constants.font_scale).floor(), color,
                                                  constants.font_scale, constants.font_scale,
-                                                 &Rect::<usize>::new_size(
-                                                     glyph.x as usize, glyph.y as usize,
-                                                     glyph.width as usize, glyph.height as usize,
+                                                 &Rect::new_size(
+                                                     glyph.x as u16, glyph.y as u16,
+                                                     glyph.width as u16, glyph.height as u16,
                                                  ));
 
                     offset_x += ((glyph.width as f32 + glyph.xoffset as f32) * constants.font_scale).floor() + if chr != ' ' { 1.0 } else { constants.font_space_offset };
@@ -111,9 +111,9 @@ impl BMFontRenderer {
                     if glyph.page == page {
                         batch.add_rect_scaled_tinted(offset_x, y + (glyph.yoffset as f32 * constants.font_scale).floor(), color,
                                                      constants.font_scale, constants.font_scale,
-                                                     &Rect::<usize>::new_size(
-                                                         glyph.x as usize, glyph.y as usize,
-                                                         glyph.width as usize, glyph.height as usize,
+                                                     &Rect::new_size(
+                                                         glyph.x as u16, glyph.y as u16,
+                                                         glyph.width as u16, glyph.height as u16,
                                                      ));
                     }
 

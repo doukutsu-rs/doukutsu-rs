@@ -109,7 +109,7 @@ pub struct NPC {
     pub action_counter: u16,
     pub action_counter2: u16,
     pub anim_counter: u16,
-    pub anim_rect: Rect<usize>,
+    pub anim_rect: Rect<u16>,
 }
 
 static PARTICLE_NPCS: [u16; 10] = [1, 4, 73, 84, 86, 87, 108, 129, 199, 355];

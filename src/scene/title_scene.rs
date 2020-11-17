@@ -37,26 +37,26 @@ impl TitleScene {
         let offset = (self.tick % 640) as isize;
 
         batch.add_rect(((state.canvas_size.0 - 320.0) / 2.0).floor(), 0.0,
-                       &Rect::<usize>::new_size(0, 0, 320, 88));
+                       &Rect::new_size(0, 0, 320, 88));
 
         for x in ((-offset / 2)..(state.canvas_size.0 as isize)).step_by(320) {
             batch.add_rect(x as f32, 88.0,
-                           &Rect::<usize>::new_size(0, 88, 320, 35));
+                           &Rect::new_size(0, 88, 320, 35));
         }
 
         for x in ((-offset % 320)..(state.canvas_size.0 as isize)).step_by(320) {
             batch.add_rect(x as f32, 123.0,
-                           &Rect::<usize>::new_size(0, 123, 320, 23));
+                           &Rect::new_size(0, 123, 320, 23));
         }
 
         for x in ((-offset * 2)..(state.canvas_size.0 as isize)).step_by(320) {
             batch.add_rect(x as f32, 146.0,
-                           &Rect::<usize>::new_size(0, 146, 320, 30));
+                           &Rect::new_size(0, 146, 320, 30));
         }
 
         for x in ((-offset * 4)..(state.canvas_size.0 as isize)).step_by(320) {
             batch.add_rect(x as f32, 176.0,
-                           &Rect::<usize>::new_size(0, 176, 320, 64));
+                           &Rect::new_size(0, 176, 320, 64));
         }
 
         batch.draw(ctx)?;
@@ -90,21 +90,25 @@ impl Scene for TitleScene {
             self.main_menu.push_entry(MenuEntry::Active("Options".to_string()));
             self.main_menu.push_entry(MenuEntry::Disabled("Editor".to_string()));
             self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
-            self.main_menu.height = self.main_menu.entries.len() * 14 + 6;
+            self.main_menu.height = self.main_menu.entries.len() as u16 * 14 + 6;
 
             self.option_menu.push_entry(MenuEntry::Toggle("Original timing (50TPS)".to_string(), state.timing_mode == TimingMode::_50Hz));
             self.option_menu.push_entry(MenuEntry::Toggle("Lighting effects".to_string(), state.settings.shader_effects));
+            if state.constants.supports_og_textures {
+                self.option_menu.push_entry(MenuEntry::Toggle("Original textures".to_string(), state.settings.original_textures));
+            } else {
+                self.option_menu.push_entry(MenuEntry::Disabled("Original textures".to_string()));
+            }
+
             if state.constants.is_cs_plus {
-                self.option_menu.push_entry(MenuEntry::Toggle("Freeware textures".to_string(), state.settings.original_textures));
                 self.option_menu.push_entry(MenuEntry::Toggle("Seasonal textures".to_string(), state.settings.seasonal_textures));
             } else {
-                self.option_menu.push_entry(MenuEntry::Disabled("Freeware textures".to_string()));
                 self.option_menu.push_entry(MenuEntry::Disabled("Seasonal textures".to_string()));
             }
             self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
             self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));
             self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
-            self.option_menu.height = self.option_menu.entries.len() * 14 + 6;
+            self.option_menu.height = self.option_menu.entries.len() as u16 * 14 + 6;
         }
 
         self.main_menu.x = ((state.canvas_size.0 - self.main_menu.width as f32) / 2.0).floor() as isize;
