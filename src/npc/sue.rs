@@ -1,12 +1,13 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 
-use crate::common::Direction;
 use ggez::GameResult;
+use num_traits::clamp;
+
+use crate::common::Direction;
 use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
-use num_traits::clamp;
 
 impl NPC {
     pub fn tick_n042_sue(&mut self, state: &mut SharedGameState, player: &Player, map: &BTreeMap<u16, RefCell<NPC>>) -> GameResult {
@@ -198,7 +199,7 @@ impl NPC {
                     self.anim_counter = 0;
 
                     self.anim_num += 1;
-                    if self.anim_num > 5{
+                    if self.anim_num > 5 {
                         self.anim_num = 2;
                     }
                 }
@@ -227,6 +228,63 @@ impl NPC {
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 13 };
         self.anim_rect = state.constants.npc.n042_sue[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n092_sue_at_pc(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.action_counter = 0;
+                    self.anim_counter = 0;
+
+                    self.x -= 4 * 0x200;
+                    self.y += 16 * 0x200;
+                }
+
+                self.anim_counter += 1;
+                if self.anim_counter > 2 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 1 {
+                        self.anim_num = 0;
+                    }
+                }
+
+                if state.game_rng.range(0..80) == 1 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+
+                if state.game_rng.range(0..120) == 10 {
+                    self.action_num = 3;
+                    self.action_counter = 0;
+                    self.anim_num = 2;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+
+                if self.action_counter > 40 {
+                    self.action_num = 3;
+                    self.action_counter = 0;
+                    self.anim_num = 2;
+                }
+            }
+            3 => {
+                self.action_counter += 1;
+                if self.action_counter > 80 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            _ => {}
+        }
+
+        self.anim_rect = state.constants.npc.n092_sue_at_pc[self.anim_num as usize];
 
         Ok(())
     }

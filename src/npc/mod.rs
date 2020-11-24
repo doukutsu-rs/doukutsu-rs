@@ -26,6 +26,7 @@ use crate::str;
 
 pub mod balrog;
 pub mod boss;
+pub mod chaco;
 pub mod characters;
 pub mod egg_corridor;
 pub mod first_cave;
@@ -241,6 +242,8 @@ impl GameEntity<(&mut Player, &BTreeMap<u16, RefCell<NPC>>, &mut Stage)> for NPC
             88 => self.tick_n088_igor_boss(state, player),
             89 => self.tick_n089_igor_dead(state, player),
             91 => self.tick_n091_mimiga_cage(state),
+            92 => self.tick_n092_sue_at_pc(state),
+            93 => self.tick_n093_chaco(state, player),
             94 => self.tick_n094_kulala(state, player),
             95 => self.tick_n095_jelly(state),
             96 => self.tick_n096_fan_left(state, player),
@@ -389,7 +392,6 @@ impl PhysicalEntity for NPC {
 
 pub struct NPCMap {
     ids: HashSet<u16>,
-    /// Do not iterate over this directly outside render pipeline.
     pub npcs: BTreeMap<u16, RefCell<NPC>>,
     /// NPCMap but for bosses and of static size.
     pub boss_map: BossNPC,
@@ -509,18 +511,6 @@ impl NPCMap {
     }
 
     pub fn garbage_collect(&mut self) {
-        // let dead_npcs = self.npcs.iter().(|(&id, npc_cell)| {
-        //     if !npc_cell.borrow().cond.alive() {
-        //         Some(id)
-        //     } else {
-        //         None
-        //     }
-        // }).collect_vec();
-        //
-        // for npc_id in dead_npcs.iter() {
-        //     self.npcs.remove(npc_id);
-        // }
-
         for npc_cell in self.npcs.values_mut() {
             let mut npc = npc_cell.borrow();
 

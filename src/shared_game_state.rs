@@ -7,6 +7,7 @@ use gfx::{self, *};
 use ggez::{Context, filesystem, GameResult, graphics};
 use ggez::filesystem::OpenOptions;
 use ggez::graphics::{Canvas, Shader};
+use num_traits::clamp;
 
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
@@ -45,6 +46,14 @@ impl TimingMode {
             TimingMode::_50Hz => { 1000.0 / 50.0 }
             TimingMode::_60Hz => { 1000.0 / 60.0 }
             TimingMode::FrameSynchronized => { 0.0 }
+        }
+    }
+
+    pub fn get_tps(self) -> usize {
+        match self {
+            TimingMode::_50Hz => { 50 }
+            TimingMode::_60Hz => { 60 }
+            TimingMode::FrameSynchronized => { 0 }
         }
     }
 }
@@ -361,12 +370,16 @@ impl SharedGameState {
     }
 
     pub fn set_speed(&mut self, value: f64) {
-        self.settings.speed = value;
+        self.settings.speed = clamp(value, 0.1, 3.0);
         self.frame_time = 0.0;
 
         if let Err(err) = self.sound_manager.set_speed(value as f32) {
             log::error!("Error while sending a message to sound manager: {}", err);
         }
+    }
+
+    pub fn current_tps(&self) -> f64 {
+        self.timing_mode.get_tps() as f64 * self.settings.speed
     }
 
     pub fn shutdown(&mut self) {

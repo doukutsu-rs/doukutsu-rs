@@ -36,6 +36,7 @@ mod bullet;
 mod caret;
 mod common;
 mod components;
+mod difficulty_modifier;
 mod encoding;
 mod engine_constants;
 mod entity;

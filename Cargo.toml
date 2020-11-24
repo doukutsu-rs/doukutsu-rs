@@ -57,9 +57,9 @@ gfx_core = "0.9"
 gfx_device_gl = {git = "https://github.com/doukutsu-rs/gfx.git", branch = "pre-ll"}
 ggez = {git = "https://github.com/doukutsu-rs/ggez.git", rev = "aad56b0d173ca9f4aeb28599075b5af49ab9214e"}
 glutin = {git = "https://github.com/doukutsu-rs/glutin.git", branch = "android-support"}
-imgui = {git = "https://github.com/JMS55/imgui-rs.git"}
-imgui-gfx-renderer = {git = "https://github.com/JMS55/imgui-rs.git"}
-imgui-winit-support = {git = "https://github.com/JMS55/imgui-rs.git", default-features = false, features = ["winit-23"]}
+imgui = {git = "https://github.com/Gekkio/imgui-rs.git", rev = "a990a538b66cb67dba3a072bf299b6a51c001447"}
+imgui-gfx-renderer = {git = "https://github.com/Gekkio/imgui-rs.git", rev = "a990a538b66cb67dba3a072bf299b6a51c001447"}
+imgui-winit-support = {git = "https://github.com/Gekkio/imgui-rs.git", default-features = false, features = ["winit-23"], rev = "a990a538b66cb67dba3a072bf299b6a51c001447"}
 image = {version = "0.22", default-features = false, features = ["png_codec", "pnm", "bmp"]}
 itertools = "0.9.0"
 lazy_static = "1.4.0"
