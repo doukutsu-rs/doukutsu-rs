@@ -1337,11 +1337,11 @@ impl GameScene {
     }
 
     fn draw_debug_outlines(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        for npc in self.npc_map.npcs.values().map(|n| n.borrow()) {
+        for npc in self.npc_map.npcs.values().map(|n| n.borrow()).filter(|n| n.cond.alive()) {
             self.draw_debug_npc(npc.deref(), state, ctx)?;
         }
 
-        for boss in self.npc_map.boss_map.parts.iter() {
+        for boss in self.npc_map.boss_map.parts.iter().filter(|n| n.cond.alive()) {
             self.draw_debug_npc(boss, state, ctx)?;
         }
 
