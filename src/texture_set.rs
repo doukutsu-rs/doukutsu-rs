@@ -17,6 +17,8 @@ use crate::engine_constants::EngineConstants;
 use crate::shared_game_state::{Season, Settings};
 use crate::str;
 
+pub static mut g_mag: f32 = 1.0;
+
 pub struct SizedBatch {
     pub batch: SpriteBatch,
     width: usize,
@@ -76,9 +78,14 @@ impl SizedBatch {
         self.add_rect_scaled(x, y, self.scale_x, self.scale_y, rect)
     }
 
-    pub fn add_rect_scaled(&mut self, x: f32, y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
+    pub fn add_rect_scaled(&mut self, mut x: f32, mut y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
         if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
             return;
+        }
+
+        unsafe {
+            x = (x * g_mag).floor() / g_mag;
+            y = (y * g_mag).floor() / g_mag;
         }
 
         let param = DrawParam::new()
