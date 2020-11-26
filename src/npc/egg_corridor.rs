@@ -607,7 +607,7 @@ impl NPC {
         } else {
             self.action_counter2 += 1;
             if (self.action_counter2 % 8) == 0 && abs(self.x - player.x) < 160 * 0x200 {
-                let angle = ((player.y - self.y) as f64 / (player.x - self.x) as f64).atan()
+                let angle = ((self.y - player.y) as f64 / (self.x - player.x) as f64).atan()
                     + (state.game_rng.range(-6..6) as u8) as f64 * CDEG_RAD;
 
                 let mut npc = NPCMap::create_npc(84, &state.npc_table);
@@ -618,6 +618,7 @@ impl NPC {
                 npc.vel_y = (angle.sin() * 1024.0) as isize;
 
                 state.new_npcs.push(npc);
+                state.sound_manager.play_sfx(39);
             }
 
             if self.action_counter2 > 8 {

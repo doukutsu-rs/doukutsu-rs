@@ -5,7 +5,7 @@ use ggez::GameResult;
 use num_traits::clamp;
 
 use crate::caret::CaretType;
-use crate::common::Direction;
+use crate::common::{CDEG_RAD, Direction};
 use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
@@ -607,6 +607,194 @@ impl NPC {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
 
         self.anim_rect = state.constants.npc.n019_balrog_bust_in[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n033_balrog_bouncing_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.flags.hit_left_wall() || self.flags.hit_right_wall() {
+            self.cond.set_alive(false);
+            state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
+        } else if self.flags.hit_bottom_wall() {
+            self.vel_y = -2 * 0x200;
+        }
+
+        self.vel_y += 0x2a;
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        self.anim_counter += 1;
+        if self.anim_counter > 2 {
+            self.anim_counter = 0;
+
+            self.anim_num += 1;
+            if self.anim_num > 1 {
+                self.anim_num = 0;
+            }
+        }
+
+        self.anim_rect = state.constants.npc.n033_balrog_bouncing_projectile[self.anim_num as usize];
+
+        self.action_counter += 1;
+        if self.action_counter > 250 {
+            self.cond.set_alive(false);
+            state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n036_balrog_hover(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 12 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                    self.vel_x2 = 3;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 16 {
+                    self.vel_x2 -= 1;
+                    self.action_counter = 0;
+
+                    let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64)
+                        + state.game_rng.range(-16..16) as f64 * CDEG_RAD;
+
+                    let mut npc = NPCMap::create_npc(11, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.vel_x = (angle.cos() * -512.0) as isize;
+                    npc.vel_y = (angle.sin() * -512.0) as isize;
+                    npc.x = self.x;
+                    npc.y = self.y + 4 * 0x200;
+
+                    state.new_npcs.push(npc);
+                    state.sound_manager.play_sfx(39);
+
+                    if self.vel_x2 == 0 {
+                        self.action_num = 3;
+                        self.action_counter = 0;
+                    }
+                }
+            }
+            3 => {
+                self.action_counter += 1;
+                if self.action_counter > 3 {
+                    self.action_num = 4;
+                    self.action_counter = 0;
+                    self.anim_num = 3;
+
+                    self.vel_x = (player.x - self.x) / 100;
+                    self.vel_y = -3 * 0x200;
+                }
+            }
+            4 => {
+                if self.vel_y > -0x200 {
+                    if self.life > 60 {
+                        self.action_num = 5;
+                        self.action_counter = 0;
+                        self.anim_num = 4;
+                        self.anim_counter = 0;
+                        self.target_y = self.y;
+                    } else {
+                        self.action_num = 6;
+                    }
+                }
+            }
+            5 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 1 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 5 {
+                        self.anim_num = 4;
+                        state.sound_manager.play_sfx(47);
+                    }
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 100 {
+                    self.action_num = 6;
+                    self.anim_num = 3;
+                }
+
+                self.vel_y += ((self.target_y - self.y).signum() | 1) * 0x40;
+                self.vel_y = clamp(self.vel_y, -0x200, 0x200);
+            }
+            6 => {
+                if self.y + 16 * 0x200 < player.y {
+                    self.damage = 10;
+                } else {
+                    self.damage = 0;
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    self.action_num = 7;
+                    self.action_counter = 0;
+                    self.anim_num = 2;
+                    self.damage = 0;
+
+                    state.sound_manager.play_sfx(25);
+                    state.sound_manager.play_sfx(26);
+                    state.quake_counter = 30;
+
+                    let mut npc_smoke = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc_proj = NPCMap::create_npc(33, &state.npc_table);
+                    for _ in 0..8 {
+                        npc_smoke.cond.set_alive(true);
+                        npc_smoke.direction = Direction::Left;
+                        npc_smoke.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc_smoke.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc_smoke.vel_x = state.game_rng.range(-0x155..0x155) as isize;
+                        npc_smoke.vel_y = state.game_rng.range(-0x600..0) as isize;
+
+                        npc_proj.cond.set_alive(true);
+                        npc_proj.direction = Direction::Left;
+                        npc_proj.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc_proj.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc_proj.vel_x = state.game_rng.range(-0x400..0x400) as isize;
+                        npc_proj.vel_y = state.game_rng.range(-0x400..0) as isize;
+
+                        state.new_npcs.push(npc_smoke);
+                        state.new_npcs.push(npc_proj);
+                    }
+                }
+            }
+            7 => {
+                self.vel_x = 0;
+
+                self.action_counter += 1;
+                if self.action_counter > 3 {
+                    self.action_num = 1;
+                    self.action_counter = 0;
+                }
+            }
+            _ => {}
+        }
+
+        if self.action_num != 5 {
+            self.vel_y += 0x33;
+            self.direction = if self.x < player.x { Direction::Right } else { Direction::Left };
+        }
+
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
+
+        self.anim_rect = state.constants.npc.n036_balrog_hover[self.anim_num as usize + dir_offset];
 
         Ok(())
     }

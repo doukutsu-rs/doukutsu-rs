@@ -841,6 +841,106 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n105_hey_bubble_low(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.action_counter += 1;
+
+        if self.action_counter < 5 {
+            self.y -= 0x200
+        } else if self.action_counter > 30 {
+            self.cond.set_alive(false);
+        }
+
+        self.anim_rect = state.constants.npc.n105_hey_bubble_low[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n106_hey_bubble_high(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            let mut npc = NPCMap::create_npc(105, &state.npc_table);
+            npc.cond.set_alive(true);
+            npc.x = self.x;
+            npc.y = self.y - 8 * 0x200;
+
+            state.new_npcs.push(npc);
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n114_press(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.y -= 4 * 0x200;
+                }
+
+                if !self.flags.hit_bottom_wall() {
+                    self.action_num = 10;
+                    self.anim_num = 1;
+                    self.anim_counter = 0;
+                }
+            }
+            10 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 2{
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 2 {
+                        self.anim_num = 2;
+                    }
+                }
+
+                if player.y > self.y {
+                    self.npc_flags.set_solid_hard(false);
+                    self.damage = 127;
+                } else {
+                    self.npc_flags.set_solid_hard(true);
+                    self.damage = 0;
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    if self.anim_num > 1 {
+                        let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                        for _ in 0..4 {
+                            npc.cond.set_alive(true);
+                            npc.x = self.x;
+                            npc.y = self.y;
+                            npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
+                            npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+
+                            state.new_npcs.push(npc);
+                        }
+
+                        state.quake_counter = 10;
+                        state.sound_manager.play_sfx(26);
+                    }
+
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.damage = 0;
+                    self.npc_flags.set_solid_hard(true);
+                }
+            }
+            _ => {}
+        }
+
+        self.vel_y += 0x20;
+
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.y += self.vel_y;
+
+        self.anim_rect = state.constants.npc.n114_press[self.anim_num as usize];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n149_horizontal_moving_block(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
         match self.action_num {
             0 => {

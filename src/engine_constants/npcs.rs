@@ -311,8 +311,8 @@ pub struct NPCConsts {
     #[serde(default = "default_n102_malco_computer_wave")]
     pub n102_malco_computer_wave: [Rect<u16>; 4],
 
-    #[serde(default = "default_n103_manaan_projectile")]
-    pub n103_manaan_projectile: [Rect<u16>; 6],
+    #[serde(default = "default_n103_mannan_projectile")]
+    pub n103_mannan_projectile: [Rect<u16>; 6],
 
     #[serde(default = "default_n104_frog")]
     pub n104_frog: [Rect<u16>; 6],
@@ -322,14 +322,14 @@ pub struct NPCConsts {
 
     // pub n106_hey_bubble_high: () // Defined in code
 
-    #[serde(default = "default_n107_malco_powered_on")]
-    pub n107_malco_powered_on: [Rect<u16>; 10],
+    #[serde(default = "default_n107_malco_broken")]
+    pub n107_malco_broken: [Rect<u16>; 10],
 
     #[serde(default = "default_n108_balfrog_projectile")]
     pub n108_balfrog_projectile: [Rect<u16>; 3],
 
-    #[serde(default = "default_n109_malco_broken")]
-    pub n109_malco_broken: [Rect<u16>; 4],
+    #[serde(default = "default_n109_malco_powered_on")]
+    pub n109_malco_powered_on: [Rect<u16>; 4],
 
     #[serde(default = "default_n110_puchi")]
     pub n110_puchi: [Rect<u16>; 6],
@@ -2243,7 +2243,7 @@ fn default_n102_malco_computer_wave() -> [Rect<u16>; 4] {
     ]
 }
 
-fn default_n103_manaan_projectile() -> [Rect<u16>; 6] {
+fn default_n103_mannan_projectile() -> [Rect<u16>; 6] {
     [
         Rect { left: 192, top: 96, right: 208, bottom: 120 },
         Rect { left: 208, top: 96, right: 224, bottom: 120 },
@@ -2272,7 +2272,7 @@ fn default_n105_hey_bubble_low() -> [Rect<u16>; 2] {
     ]
 }
 
-fn default_n107_malco_powered_on() -> [Rect<u16>; 10] {
+fn default_n107_malco_broken() -> [Rect<u16>; 10] {
     [
         Rect { left: 144, top: 0, right: 160, bottom: 24 },
         Rect { left: 160, top: 0, right: 176, bottom: 24 },
@@ -2295,7 +2295,7 @@ fn default_n108_balfrog_projectile() -> [Rect<u16>; 3] {
     ]
 }
 
-fn default_n109_malco_broken() -> [Rect<u16>; 4] {
+fn default_n109_malco_powered_on() -> [Rect<u16>; 4] {
     [
         Rect { left: 240, top: 0, right: 256, bottom: 24 },
         Rect { left: 256, top: 0, right: 272, bottom: 24 },

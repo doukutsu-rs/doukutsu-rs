@@ -1398,45 +1398,6 @@ impl Scene for GameScene {
         Ok(())
     }
 
-    fn draw_tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        self.frame.prev_x = self.frame.x;
-        self.frame.prev_y = self.frame.y;
-        self.player.prev_x = self.player.x;
-        self.player.prev_y = self.player.y;
-
-        for npc_cell in self.npc_map.npcs.values() {
-            let mut npc = npc_cell.borrow_mut();
-
-            if npc.cond.alive() {
-                npc.prev_x = npc.x;
-                npc.prev_y = npc.y;
-            }
-        }
-
-        for npc in self.npc_map.boss_map.parts.iter_mut() {
-            if npc.cond.alive() {
-                npc.prev_x = npc.x;
-                npc.prev_y = npc.y;
-            }
-        }
-
-        for bullet in self.bullet_manager.bullets.iter_mut() {
-            if bullet.cond.alive() {
-                bullet.prev_x = bullet.x;
-                bullet.prev_y = bullet.y;
-            }
-        }
-
-        for caret in state.carets.iter_mut() {
-            if caret.cond.alive() {
-                caret.prev_x = caret.x;
-                caret.prev_y = caret.y;
-            }
-        }
-
-        Ok(())
-    }
-
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         state.update_key_trigger();
 
@@ -1478,6 +1439,45 @@ impl Scene for GameScene {
 
         TextScriptVM::run(state, self, ctx)?;
         self.tick = self.tick.wrapping_add(1);
+        Ok(())
+    }
+
+    fn draw_tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        self.frame.prev_x = self.frame.x;
+        self.frame.prev_y = self.frame.y;
+        self.player.prev_x = self.player.x;
+        self.player.prev_y = self.player.y;
+
+        for npc_cell in self.npc_map.npcs.values() {
+            let mut npc = npc_cell.borrow_mut();
+
+            if npc.cond.alive() {
+                npc.prev_x = npc.x;
+                npc.prev_y = npc.y;
+            }
+        }
+
+        for npc in self.npc_map.boss_map.parts.iter_mut() {
+            if npc.cond.alive() {
+                npc.prev_x = npc.x;
+                npc.prev_y = npc.y;
+            }
+        }
+
+        for bullet in self.bullet_manager.bullets.iter_mut() {
+            if bullet.cond.alive() {
+                bullet.prev_x = bullet.x;
+                bullet.prev_y = bullet.y;
+            }
+        }
+
+        for caret in state.carets.iter_mut() {
+            if caret.cond.alive() {
+                caret.prev_x = caret.x;
+                caret.prev_y = caret.y;
+            }
+        }
+
         Ok(())
     }
 
