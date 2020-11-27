@@ -112,7 +112,7 @@ impl NPC {
                     self.anim_num = 0;
                     self.damage = 2;
 
-                    state.sound_manager.play_sfx(23);
+                    state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
                 }
             }
@@ -126,7 +126,7 @@ impl NPC {
             }
         } else {
             self.vel_x = clamp(self.vel_x + if self.x < player.x { 0x20 } else { -0x20 }, -0x200, 0x200);
-            self.vel_y = clamp(self.vel_x + if self.y > self.target_y { -0x10 } else { 0x10 }, -0x200, 0x200);
+            self.vel_y = clamp(self.vel_y + if self.y > self.target_y { -0x10 } else { 0x10 }, -0x200, 0x200);
         }
 
         self.x += self.vel_x;
@@ -295,22 +295,22 @@ impl NPC {
                     self.anim_num = 2;
                     self.vel_x /= 2;
                     self.damage = 3;
-                }
+                } else {
+                    if self.action_counter % 4 == 1 {
+                        state.sound_manager.play_sfx(110);
+                    }
 
-                if self.action_counter % 4 == 1 {
-                    state.sound_manager.play_sfx(110);
-                }
+                    if self.flags.hit_bottom_wall() {
+                        self.vel_y = -0x200;
+                    }
 
-                if self.flags.hit_bottom_wall() {
-                    self.vel_y = -0x200;
-                }
-
-                self.anim_counter += 1;
-                if self.anim_counter > 0 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-                    if self.anim_num > 5 {
-                        self.anim_num = 3;
+                    self.anim_counter += 1;
+                    if self.anim_counter > 0 {
+                        self.anim_counter = 0;
+                        self.anim_num += 1;
+                        if self.anim_num > 5 {
+                            self.anim_num = 3;
+                        }
                     }
                 }
             }
@@ -335,7 +335,7 @@ impl NPC {
             }
         } else {
             self.vel_x = clamp(self.vel_x + if self.x < player.x { 0x20 } else { -0x20 }, -0x200, 0x200);
-            self.vel_y = clamp(self.vel_x + if self.y > self.target_y { -0x10 } else { 0x10 }, -0x200, 0x200);
+            self.vel_y = clamp(self.vel_y + if self.y > self.target_y { -0x10 } else { 0x10 }, -0x200, 0x200);
         }
 
         self.x += self.vel_x;
