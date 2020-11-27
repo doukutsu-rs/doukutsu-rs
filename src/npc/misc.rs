@@ -1175,6 +1175,17 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n194_broken_blue_robot(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.y += 4 * 0x200;
+        }
+
+        self.anim_rect = state.constants.npc.n194_broken_blue_robot;
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n199_wind_particles(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;

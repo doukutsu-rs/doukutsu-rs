@@ -1152,7 +1152,7 @@ impl GameScene {
             }
             UpdateTarget::NPC(npc_id) => {
                 if let Some(npc_cell) = self.npc_map.npcs.get(&npc_id) {
-                    let mut npc = npc_cell.borrow();
+                    let npc = npc_cell.borrow();
 
                     if npc.cond.alive() {
                         self.frame.target_x = npc.x;
@@ -1391,8 +1391,10 @@ impl Scene for GameScene {
         }
 
         self.npc_map.boss_map.boss_type = self.stage.data.boss_no as u16;
-        self.frame.target_x = self.player.x;
-        self.frame.target_y = self.player.y;
+        self.player.target_x = self.player.x;
+        self.player.target_y = self.player.y;
+        self.frame.target_x = self.player.target_x;
+        self.frame.target_y = self.player.target_y;
         self.frame.immediate_update(state, &self.stage);
 
         Ok(())
@@ -1488,7 +1490,8 @@ impl Scene for GameScene {
         if state.settings.shader_effects
             && self.stage.data.background_type != BackgroundType::Black
             && self.stage.data.background_type != BackgroundType::Outside
-            && self.stage.data.background_type != BackgroundType::OutsideWind {
+            && self.stage.data.background_type != BackgroundType::OutsideWind
+            && self.stage.data.background.name() != "bkBlack" {
             self.draw_light_map(state, ctx)?;
         }
 
@@ -1515,7 +1518,8 @@ impl Scene for GameScene {
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;
         if state.settings.shader_effects
-            && self.stage.data.background_type == BackgroundType::Black {
+            && (self.stage.data.background_type == BackgroundType::Black
+            || self.stage.data.background.name() == "bkBlack") {
             self.draw_light_map(state, ctx)?;
         }
 

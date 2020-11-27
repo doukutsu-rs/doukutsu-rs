@@ -92,6 +92,10 @@ impl Background {
         }
     }
 
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     pub fn filename(&self) -> String {
         self.name.to_owned()
     }

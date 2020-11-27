@@ -21,9 +21,9 @@ pub enum ControlMode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
-/// Cave Story+ player skins
 pub enum PlayerAppearance {
     Quote = 0,
+    /// Cave Story+ player skins
     YellowQuote,
     HumanQuote,
     HalloweenQuote,
@@ -124,7 +124,7 @@ impl Player {
     }
 
     pub fn get_texture_offset(&self) -> u16 {
-        self.appearance as u16 * 64 + if self.equip.has_mimiga_mask() { 32 } else { 0 }
+        (self.appearance as u16 % 6) * 64 + if self.equip.has_mimiga_mask() { 32 } else { 0 }
     }
 
     fn tick_normal(&mut self, state: &mut SharedGameState) -> GameResult {

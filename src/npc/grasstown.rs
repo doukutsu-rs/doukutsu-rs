@@ -1,8 +1,10 @@
 use ggez::GameResult;
 use num_traits::abs;
 use num_traits::clamp;
+use winit::event::VirtualKeyCode::Caret;
 
-use crate::common::Direction;
+use crate::caret::CaretType;
+use crate::common::{Direction, Rect};
 use crate::npc::{NPC, NPCMap};
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
@@ -412,7 +414,7 @@ impl NPC {
                     }
                 }
 
-                self.direction = if player.x < self.x { Direction::Left} else {Direction::Right};
+                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
 
                 self.vel_x += (player.x - self.x).signum() * 0x10;
                 self.vel_y += (self.target_y - self.y).signum() * 0x10;
@@ -1249,6 +1251,110 @@ impl NPC {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
 
         self.anim_rect = state.constants.npc.n110_puchi[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n192_scooter(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 => {
+                self.action_num = 1;
+                self.display_bounds = Rect {
+                    left: 16 * 0x200,
+                    top: 8 * 0x200,
+                    right: 16 * 0x200,
+                    bottom: 8 * 0x200,
+                };
+            }
+            10 => {
+                self.action_num = 11;
+                self.anim_num = 1;
+                self.y -= 5 * 0x200;
+                self.display_bounds.top = 16 * 0x200;
+                self.display_bounds.bottom = 16 * 0x200
+            }
+            20 | 21 => {
+                if self.action_num == 20 {
+                    self.action_num = 21;
+                    self.action_counter = 1;
+                    self.target_x = self.x;
+                    self.target_y = self.y;
+                }
+
+                self.x = self.target_x + state.game_rng.range(-1..1) as isize * 0x200;
+                self.y = self.target_y + state.game_rng.range(-1..1) as isize * 0x200;
+
+                self.action_counter += 1;
+                if self.action_counter > 30 {
+                    self.action_num = 30;
+                }
+            }
+            30 | 31 => {
+                if self.action_num == 30 {
+                    self.action_num = 31;
+                    self.action_counter = 1;
+                    self.vel_x = -4 * 0x200;
+                    self.x = self.target_x;
+                    self.y = self.target_y;
+
+                    state.sound_manager.play_sfx(44);
+                }
+
+                self.vel_x += 0x20;
+                self.x += self.vel_x;
+                self.y = self.target_y + state.game_rng.range(-1..1) as isize * 0x200;
+                self.action_counter += 1;
+
+                if self.action_counter > 10 {
+                    self.direction = Direction::Right;
+                }
+
+                if self.action_counter > 200 {
+                    self.action_num = 40;
+                }
+            }
+            40 | 41 => {
+                if self.action_num == 40 {
+                    self.action_num = 41;
+                    self.action_counter = 2;
+                    self.direction = Direction::Left;
+                    self.y -= 48 * 0x200;
+                    self.vel_x = -8 * 0x200;
+                }
+
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+
+                self.action_counter += 2;
+
+                if self.action_counter > 1200 {
+                    self.cond.set_alive(false);
+                }
+            }
+            _ => {}
+        }
+
+        if self.action_counter % 4 == 0 && self.action_num >= 20 {
+            state.sound_manager.play_sfx(34);
+            state.create_caret(self.x + self.direction.vector_x() * 10 * 0x200,
+                               self.y + 10 * 0x200,
+                               CaretType::Exhaust, self.direction.opposite());
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
+        self.anim_rect = state.constants.npc.n192_scooter[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n193_broken_scooter(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.x += 24 * 0x200;
+        }
+
+        self.anim_rect = state.constants.npc.n193_broken_scooter;
 
         Ok(())
     }
