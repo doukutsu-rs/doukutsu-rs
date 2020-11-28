@@ -79,6 +79,14 @@ impl PhysicalEntity for Player {
     fn is_player(&self) -> bool {
         true
     }
+
+    fn player_left_pressed(&self) -> bool {
+        self.controller.move_left()
+    }
+
+    fn player_right_pressed(&self) -> bool {
+        self.controller.move_right()
+    }
 }
 
 impl Player {

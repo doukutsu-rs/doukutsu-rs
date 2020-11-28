@@ -561,7 +561,10 @@ impl TextScriptVM {
                         if remaining > 1 {
                             let ticks = if state.textscript_vm.flags.fast() {
                                 0
-                            } else if state.key_state.jump() || state.key_state.fire() {
+                            } else if game_scene.player1.controller.jump()
+                                || game_scene.player1.controller.shoot()
+                                || game_scene.player2.controller.jump()
+                                || game_scene.player2.controller.shoot() {
                                 1
                             } else {
                                 4
@@ -593,13 +596,16 @@ impl TextScriptVM {
                         break;
                     }
 
-                    if state.key_trigger.left() || state.key_trigger.right() {
+                    if game_scene.player1.controller.trigger_left()
+                        || game_scene.player1.controller.trigger_right()
+                        || game_scene.player2.controller.trigger_left()
+                        || game_scene.player2.controller.trigger_right() {
                         state.sound_manager.play_sfx(1);
                         state.textscript_vm.state = TextScriptExecutionState::WaitConfirmation(event, ip, no_event, 0, !selection);
                         break;
                     }
 
-                    if state.key_trigger.jump() {
+                    if game_scene.player1.controller.trigger_jump() || game_scene.player2.controller.trigger_jump() {
                         state.sound_manager.play_sfx(18);
                         match selection {
                             ConfirmSelection::Yes => {
@@ -614,13 +620,16 @@ impl TextScriptVM {
                     break;
                 }
                 TextScriptExecutionState::WaitStanding(event, ip) => {
-                    if game_scene.player.flags.hit_bottom_wall() {
+                    if game_scene.player1.flags.hit_bottom_wall() {
                         state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
                     }
                     break;
                 }
                 TextScriptExecutionState::WaitInput(event, ip) => {
-                    if state.key_trigger.jump() || state.key_trigger.fire() {
+                    if game_scene.player1.controller.trigger_jump()
+                        || game_scene.player1.controller.trigger_shoot()
+                        || game_scene.player2.controller.trigger_jump()
+                        || game_scene.player2.controller.trigger_shoot() {
                         state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
                     }
                     break;
@@ -694,7 +703,7 @@ impl TextScriptVM {
                         state.textscript_vm.flags.set_background_visible(false);
                         state.textscript_vm.stack.clear();
 
-                        game_scene.player.cond.set_interacted(false);
+                        game_scene.player1.cond.set_interacted(false);
                         game_scene.frame.update_target = UpdateTarget::Player;
 
                         exec_state = TextScriptExecutionState::Ended;
@@ -702,7 +711,7 @@ impl TextScriptVM {
                     OpCode::SLP => {
                         state.textscript_vm.set_mode(ScriptMode::StageSelect);
 
-                        let event_num = if let Some(slot) = state.teleporter_slots.get(game_scene.current_teleport_slot as usize) {
+                        let event_num = if let Some(slot) = state.teleporter_slots.get(game_scene.stage_select.current_teleport_slot as usize) {
                             1000 + slot.0
                         } else {
                             1000
@@ -726,7 +735,7 @@ impl TextScriptVM {
                         state.control_flags.set_tick_world(false);
                         state.control_flags.set_control_enabled(false);
 
-                        game_scene.player.shock_counter = 0;
+                        game_scene.player1.shock_counter = 0;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -734,8 +743,8 @@ impl TextScriptVM {
                         state.control_flags.set_tick_world(true);
                         state.control_flags.set_control_enabled(false);
 
-                        game_scene.player.up = false;
-                        game_scene.player.shock_counter = 0;
+                        game_scene.player1.up = false;
+                        game_scene.player1.shock_counter = 0;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -748,7 +757,7 @@ impl TextScriptVM {
                     OpCode::MYD => {
                         let new_direction = read_cur_varint(&mut cursor)? as usize;
                         if let Some(direction) = Direction::from_int(new_direction) {
-                            game_scene.player.direction = direction;
+                            game_scene.player1.direction = direction;
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -756,14 +765,14 @@ impl TextScriptVM {
                     OpCode::MYB => {
                         let new_direction = read_cur_varint(&mut cursor)? as usize;
 
-                        game_scene.player.vel_y = -0x200;
+                        game_scene.player1.vel_y = -0x200;
 
                         if let Some(direction) = Direction::from_int_facing(new_direction) {
                             match direction {
-                                Direction::Left => game_scene.player.vel_x = 0x200,
-                                Direction::Up => game_scene.player.vel_y = -0x200,
-                                Direction::Right => game_scene.player.vel_x = -0x200,
-                                Direction::Bottom => game_scene.player.vel_y = 0x200,
+                                Direction::Left => game_scene.player1.vel_x = 0x200,
+                                Direction::Up => game_scene.player1.vel_y = -0x200,
+                                Direction::Right => game_scene.player1.vel_x = -0x200,
+                                Direction::Bottom => game_scene.player1.vel_y = 0x200,
                                 Direction::FacingPlayer => {
                                     // todo npc direction dependent bump
                                 }
@@ -773,12 +782,12 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::SMC => {
-                        game_scene.player.cond.set_hidden(false);
+                        game_scene.player1.cond.set_hidden(false);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::HMC => {
-                        game_scene.player.cond.set_hidden(true);
+                        game_scene.player1.cond.set_hidden(true);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -823,7 +832,7 @@ impl TextScriptVM {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
-                        if game_scene.inventory.has_item(item_id) {
+                        if game_scene.inventory_player1.has_item(item_id) {
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -834,7 +843,7 @@ impl TextScriptVM {
                         let amount = read_cur_varint(&mut cursor)? as u16;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
-                        if game_scene.inventory.has_item_amount(item_id, Ordering::Equal, amount) {
+                        if game_scene.inventory_player1.has_item_amount(item_id, Ordering::Equal, amount) {
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -845,7 +854,7 @@ impl TextScriptVM {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
                         let weapon_type: Option<WeaponType> = FromPrimitive::from_u8(weapon);
 
-                        if weapon_type.is_some() && game_scene.inventory.has_weapon(weapon_type.unwrap()) {
+                        if weapon_type.is_some() && game_scene.inventory_player1.has_weapon(weapon_type.unwrap()) {
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -893,7 +902,7 @@ impl TextScriptVM {
                         }
                     }
                     OpCode::MM0 => {
-                        game_scene.player.vel_x = 0;
+                        game_scene.player1.vel_x = 0;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -925,8 +934,8 @@ impl TextScriptVM {
                     }
                     OpCode::MLp => {
                         let life = read_cur_varint(&mut cursor)? as u16;
-                        game_scene.player.life += life;
-                        game_scene.player.max_life += life;
+                        game_scene.player1.life += life;
+                        game_scene.player1.max_life += life;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -999,12 +1008,12 @@ impl TextScriptVM {
 
                         let mut new_scene = GameScene::new(state, ctx, map_id)?;
                         new_scene.intro_mode = game_scene.intro_mode;
-                        new_scene.inventory = game_scene.inventory.clone();
-                        new_scene.player = game_scene.player.clone();
-                        new_scene.player.vel_x = 0;
-                        new_scene.player.vel_y = 0;
-                        new_scene.player.x = pos_x;
-                        new_scene.player.y = pos_y;
+                        new_scene.inventory_player1 = game_scene.inventory_player1.clone();
+                        new_scene.player1 = game_scene.player1.clone();
+                        new_scene.player1.vel_x = 0;
+                        new_scene.player1.vel_y = 0;
+                        new_scene.player1.x = pos_x;
+                        new_scene.player1.y = pos_y;
 
                         state.control_flags.set_tick_world(true);
                         state.textscript_vm.flags.0 = 0;
@@ -1024,10 +1033,10 @@ impl TextScriptVM {
                         let pos_x = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
                         let pos_y = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
 
-                        game_scene.player.vel_x = 0;
-                        game_scene.player.vel_y = 0;
-                        game_scene.player.x = pos_x;
-                        game_scene.player.y = pos_y;
+                        game_scene.player1.vel_x = 0;
+                        game_scene.player1.vel_y = 0;
+                        game_scene.player1.x = pos_x;
+                        game_scene.player1.y = pos_y;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1036,7 +1045,7 @@ impl TextScriptVM {
 
                         let mode: Option<ControlMode> = FromPrimitive::from_u8(control_mode);
                         if let Some(mode) = mode {
-                            game_scene.player.control_mode = mode;
+                            game_scene.player1.control_mode = mode;
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1177,7 +1186,7 @@ impl TextScriptVM {
                                 npc.tsc_direction = tsc_direction as u16;
 
                                 if direction == Direction::FacingPlayer {
-                                    npc.direction = if game_scene.player.x < npc.x {
+                                    npc.direction = if game_scene.player1.x < npc.x {
                                         Direction::Right
                                     } else {
                                         Direction::Left
@@ -1234,7 +1243,7 @@ impl TextScriptVM {
                                 npc.tsc_direction = tsc_direction as u16;
 
                                 if direction == Direction::FacingPlayer {
-                                    npc.direction = if game_scene.player.x < npc.x {
+                                    npc.direction = if game_scene.player1.x < npc.x {
                                         Direction::Right
                                     } else {
                                         Direction::Left
@@ -1265,7 +1274,7 @@ impl TextScriptVM {
                                 npc.tsc_direction = tsc_direction as u16;
 
                                 if direction == Direction::FacingPlayer {
-                                    npc.direction = if game_scene.player.x < npc.x {
+                                    npc.direction = if game_scene.player1.x < npc.x {
                                         Direction::Right
                                     } else {
                                         Direction::Left
@@ -1294,7 +1303,7 @@ impl TextScriptVM {
                         npc.tsc_direction = tsc_direction as u16;
 
                         if direction == Direction::FacingPlayer {
-                            npc.direction = if game_scene.player.x < npc.x {
+                            npc.direction = if game_scene.player1.x < npc.x {
                                 Direction::Right
                             } else {
                                 Direction::Left
@@ -1310,15 +1319,15 @@ impl TextScriptVM {
                     OpCode::LIp => {
                         let life = read_cur_varint(&mut cursor)? as u16;
 
-                        game_scene.player.life = clamp(game_scene.player.life + life, 0, game_scene.player.max_life);
+                        game_scene.player1.life = clamp(game_scene.player1.life + life, 0, game_scene.player1.max_life);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::ITp => {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
 
-                        if !game_scene.inventory.has_item(item_id) {
-                            game_scene.inventory.add_item(item_id);
+                        if !game_scene.inventory_player1.has_item(item_id) {
+                            game_scene.inventory_player1.add_item(item_id);
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1327,8 +1336,8 @@ impl TextScriptVM {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
                         let amount = read_cur_varint(&mut cursor)? as u16;
 
-                        if game_scene.inventory.has_item_amount(item_id, Ordering::Less, amount) {
-                            game_scene.inventory.add_item(item_id);
+                        if game_scene.inventory_player1.has_item_amount(item_id, Ordering::Less, amount) {
+                            game_scene.inventory_player1.add_item(item_id);
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1336,7 +1345,7 @@ impl TextScriptVM {
                     OpCode::ITm => {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
 
-                        game_scene.inventory.consume_item(item_id);
+                        game_scene.inventory_player1.consume_item(item_id);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1346,7 +1355,7 @@ impl TextScriptVM {
                         let weapon_type: Option<WeaponType> = FromPrimitive::from_u8(weapon_id);
 
                         if let Some(wtype) = weapon_type {
-                            game_scene.inventory.add_weapon(wtype, max_ammo);
+                            game_scene.inventory_player1.add_weapon(wtype, max_ammo);
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1356,32 +1365,32 @@ impl TextScriptVM {
                         let weapon_type: Option<WeaponType> = FromPrimitive::from_u8(weapon_id);
 
                         if let Some(wtype) = weapon_type {
-                            game_scene.inventory.remove_weapon(wtype);
+                            game_scene.inventory_player1.remove_weapon(wtype);
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::AEp => {
-                        game_scene.inventory.refill_all_ammo();
+                        game_scene.inventory_player1.refill_all_ammo();
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::ZAM => {
-                        game_scene.inventory.reset_all_weapon_xp();
+                        game_scene.inventory_player1.reset_all_weapon_xp();
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::EQp => {
                         let mask = read_cur_varint(&mut cursor)? as u16;
 
-                        game_scene.player.equip.0 |= mask;
+                        game_scene.player1.equip.0 |= mask;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::EQm => {
                         let mask = read_cur_varint(&mut cursor)? as u16;
 
-                        game_scene.player.equip.0 &= !mask;
+                        game_scene.player1.equip.0 &= !mask;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1455,7 +1464,7 @@ impl TextScriptVM {
 
         if tick_npc != 0 {
             if let Some(npc) = game_scene.npc_map.npcs.get(&tick_npc) {
-                npc.borrow_mut().tick(state, (&mut game_scene.player, &game_scene.npc_map.npcs, &mut game_scene.stage))?;
+                npc.borrow_mut().tick(state, (&mut game_scene.player1, &game_scene.npc_map.npcs, &mut game_scene.stage))?;
             }
         }
 

@@ -4,7 +4,7 @@ use std::io::{BufReader, Read, Seek, SeekFrom};
 use ggez;
 use ggez::{Context, GameError, GameResult, graphics};
 use ggez::filesystem;
-use ggez::graphics::{Color, Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh, Rect, mint};
+use ggez::graphics::{Color, Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh, mint, Rect};
 use ggez::graphics::spritebatch::SpriteBatch;
 use ggez::nalgebra::{Point2, Vector2};
 use image::RgbaImage;
@@ -14,7 +14,8 @@ use log::info;
 use crate::common;
 use crate::common::FILE_TYPES;
 use crate::engine_constants::EngineConstants;
-use crate::shared_game_state::{Season, Settings};
+use crate::settings::Settings;
+use crate::shared_game_state::Season;
 use crate::str;
 
 pub static mut g_mag: f32 = 1.0;

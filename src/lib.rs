@@ -8,7 +8,7 @@ use std::{env, mem};
 use std::path;
 use std::time::Instant;
 
-use ggez::{Context, ContextBuilder, filesystem, GameError, GameResult};
+use ggez::{Context, ContextBuilder, GameError, GameResult};
 use ggez::conf::{Backend, WindowMode, WindowSetup};
 use ggez::event::{KeyCode, KeyMods};
 use ggez::filesystem::mount_vfs;
@@ -20,7 +20,7 @@ use ggez::mint::ColumnMatrix4;
 use ggez::nalgebra::Vector2;
 use log::*;
 use pretty_env_logger::env_logger::Env;
-use winit::event::{ElementState, Event, KeyboardInput, TouchPhase, WindowEvent};
+use winit::event::{ElementState, Event, KeyboardInput, WindowEvent};
 use winit::event_loop::ControlFlow;
 
 use crate::builtin_fs::BuiltinFS;
@@ -42,6 +42,7 @@ mod engine_constants;
 mod entity;
 mod frame;
 mod inventory;
+mod input;
 mod live_debugger;
 mod macros;
 mod map;
@@ -49,16 +50,16 @@ mod menu;
 mod npc;
 mod physics;
 mod player;
-mod player_hit;
 mod profile;
 mod rng;
 mod scene;
+mod settings;
+mod shaders;
 mod shared_game_state;
 mod stage;
 mod sound;
 mod text_script;
 mod texture_set;
-mod touch_controls;
 mod ui;
 mod weapon;
 
@@ -165,14 +166,6 @@ impl Game {
         // todo: proper keymaps?
         let state = &mut self.state;
         match key_code {
-            KeyCode::Left => { state.key_state.set_left(true) }
-            KeyCode::Right => { state.key_state.set_right(true) }
-            KeyCode::Up => { state.key_state.set_up(true) }
-            KeyCode::Down => { state.key_state.set_down(true) }
-            KeyCode::Z => { state.key_state.set_jump(true) }
-            KeyCode::X => { state.key_state.set_fire(true) }
-            KeyCode::A => { state.key_state.set_weapon_prev(true) }
-            KeyCode::S => { state.key_state.set_weapon_next(true) }
             KeyCode::F7 => { state.set_speed(1.0) }
             KeyCode::F8 => {
                 if state.settings.speed > 0.2 {
@@ -191,21 +184,8 @@ impl Game {
         }
     }
 
-
     fn key_up_event(&mut self, key_code: KeyCode, _key_mod: KeyMods) {
-        let state = &mut self.state;
-
-        match key_code {
-            KeyCode::Left => { state.key_state.set_left(false) }
-            KeyCode::Right => { state.key_state.set_right(false) }
-            KeyCode::Up => { state.key_state.set_up(false) }
-            KeyCode::Down => { state.key_state.set_down(false) }
-            KeyCode::Z => { state.key_state.set_jump(false) }
-            KeyCode::X => { state.key_state.set_fire(false) }
-            KeyCode::A => { state.key_state.set_weapon_prev(false) }
-            KeyCode::S => { state.key_state.set_weapon_next(false) }
-            _ => {}
-        }
+        //
     }
 }
 
@@ -385,7 +365,7 @@ pub fn init() -> GameResult {
                     }
                     WindowEvent::Touch(touch) => {
                         if let Some(game) = &mut game {
-                            game.state.touch_controls.process_winit_event(game.state.scale, &mut game.state.key_state, touch);
+                            game.state.touch_controls.process_winit_event(game.state.scale, touch);
                         }
                     }
                     WindowEvent::KeyboardInput {

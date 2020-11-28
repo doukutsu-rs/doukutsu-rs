@@ -5,6 +5,7 @@ use crate::common::Rect;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
+use crate::input::combined_menu_controller::CombinedMenuController;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
@@ -17,6 +18,7 @@ enum CurrentMenu {
 
 pub struct TitleScene {
     tick: usize,
+    controller: CombinedMenuController,
     current_menu: CurrentMenu,
     main_menu: Menu,
     option_menu: Menu,
@@ -26,6 +28,7 @@ impl TitleScene {
     pub fn new() -> Self {
         Self {
             tick: 0,
+            controller: CombinedMenuController::new(),
             current_menu: CurrentMenu::MainMenu,
             main_menu: Menu::new(0, 0, 100, 1 * 14 + 6),
             option_menu: Menu::new(0, 0, 180, 1 * 14 + 6),
@@ -82,34 +85,41 @@ static COPYRIGHT_NICALIS_SWITCH: &str = "@2017 NICALIS INC.";
 static DISCORD_LINK: &str = "https://discord.gg/fbRsNNB";
 
 impl Scene for TitleScene {
-    fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if self.tick == 0 {
-            state.sound_manager.play_song(24, &state.constants, ctx)?;
-            self.main_menu.push_entry(MenuEntry::Active("New game".to_string()));
-            self.main_menu.push_entry(MenuEntry::Active("Load game".to_string()));
-            self.main_menu.push_entry(MenuEntry::Active("Options".to_string()));
-            self.main_menu.push_entry(MenuEntry::Disabled("Editor".to_string()));
-            self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
-            self.main_menu.height = self.main_menu.entries.len() as u16 * 14 + 6;
+    fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        self.controller.add(state.settings.create_player1_controller());
+        self.controller.add(state.settings.create_player2_controller());
 
-            self.option_menu.push_entry(MenuEntry::Toggle("Original timing (50TPS)".to_string(), state.timing_mode == TimingMode::_50Hz));
-            self.option_menu.push_entry(MenuEntry::Toggle("Lighting effects".to_string(), state.settings.shader_effects));
-            if state.constants.supports_og_textures {
-                self.option_menu.push_entry(MenuEntry::Toggle("Original textures".to_string(), state.settings.original_textures));
-            } else {
-                self.option_menu.push_entry(MenuEntry::Disabled("Original textures".to_string()));
-            }
+        state.sound_manager.play_song(24, &state.constants, ctx)?;
+        self.main_menu.push_entry(MenuEntry::Active("New game".to_string()));
+        self.main_menu.push_entry(MenuEntry::Active("Load game".to_string()));
+        self.main_menu.push_entry(MenuEntry::Active("Options".to_string()));
+        self.main_menu.push_entry(MenuEntry::Disabled("Editor".to_string()));
+        self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
+        self.main_menu.height = self.main_menu.entries.len() as u16 * 14 + 6;
 
-            if state.constants.is_cs_plus {
-                self.option_menu.push_entry(MenuEntry::Toggle("Seasonal textures".to_string(), state.settings.seasonal_textures));
-            } else {
-                self.option_menu.push_entry(MenuEntry::Disabled("Seasonal textures".to_string()));
-            }
-            self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
-            self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));
-            self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
-            self.option_menu.height = self.option_menu.entries.len() as u16 * 14 + 6;
+        self.option_menu.push_entry(MenuEntry::Toggle("Original timing (50TPS)".to_string(), state.timing_mode == TimingMode::_50Hz));
+        self.option_menu.push_entry(MenuEntry::Toggle("Lighting effects".to_string(), state.settings.shader_effects));
+        if state.constants.supports_og_textures {
+            self.option_menu.push_entry(MenuEntry::Toggle("Original textures".to_string(), state.settings.original_textures));
+        } else {
+            self.option_menu.push_entry(MenuEntry::Disabled("Original textures".to_string()));
         }
+
+        if state.constants.is_cs_plus {
+            self.option_menu.push_entry(MenuEntry::Toggle("Seasonal textures".to_string(), state.settings.seasonal_textures));
+        } else {
+            self.option_menu.push_entry(MenuEntry::Disabled("Seasonal textures".to_string()));
+        }
+        self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
+        self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));
+        self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
+        self.option_menu.height = self.option_menu.entries.len() as u16 * 14 + 6;
+
+        Ok(())
+    }
+
+    fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        self.controller.update(state, ctx)?;
 
         self.main_menu.x = ((state.canvas_size.0 - self.main_menu.width as f32) / 2.0).floor() as isize;
         self.main_menu.y = ((state.canvas_size.1 + 70.0 - self.main_menu.height as f32) / 2.0).floor() as isize;
@@ -119,7 +129,7 @@ impl Scene for TitleScene {
 
         match self.current_menu {
             CurrentMenu::MainMenu => {
-                match self.main_menu.tick(state) {
+                match self.main_menu.tick(&mut self.controller, state) {
                     MenuSelectionResult::Selected(0, _) => {
                         state.reset();
                         state.sound_manager.play_song(0, &state.constants, ctx)?;
@@ -141,7 +151,7 @@ impl Scene for TitleScene {
                 }
             }
             CurrentMenu::OptionMenu => {
-                match self.option_menu.tick(state) {
+                match self.option_menu.tick(&mut self.controller, state) {
                     MenuSelectionResult::Selected(0, toggle) => {
                         if let MenuEntry::Toggle(_, value) = toggle {
                             match state.timing_mode {

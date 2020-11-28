@@ -1,6 +1,7 @@
 use crate::common::Rect;
 use ggez::{Context, GameResult};
 use crate::shared_game_state::SharedGameState;
+use crate::input::combined_menu_controller::CombinedMenuController;
 
 pub enum MenuEntry {
     Active(String),
@@ -177,18 +178,18 @@ impl Menu {
         Ok(())
     }
 
-    pub fn tick(&mut self, state: &mut SharedGameState) -> MenuSelectionResult {
-        state.update_key_trigger();
+    pub fn tick(&mut self, controller: &mut CombinedMenuController, state: &mut SharedGameState) -> MenuSelectionResult {
+        controller.update_trigger();
 
-        if state.key_trigger.fire() {
+        if controller.trigger_back() {
             state.sound_manager.play_sfx(5);
             return MenuSelectionResult::Canceled;
         }
 
-        if state.key_trigger.up() || state.key_trigger.down() && !self.entries.is_empty() {
+        if (controller.trigger_up() || controller.trigger_down()) && !self.entries.is_empty() {
             state.sound_manager.play_sfx(1);
             loop {
-                if state.key_trigger.down() {
+                if controller.trigger_down() {
                     self.selected += 1;
                     if self.selected == self.entries.len() {
                         self.selected = 0;
@@ -212,7 +213,7 @@ impl Menu {
             }
         }
 
-        if state.key_trigger.jump() && !self.entries.is_empty() {
+        if controller.trigger_ok() && !self.entries.is_empty() {
             if let Some(entry) = self.entries.get_mut(self.selected) {
                 match entry {
                     MenuEntry::Active(_) | MenuEntry::Toggle(_, _) => {

@@ -10,6 +10,7 @@ use crate::bullet::BulletManager;
 use crate::caret::CaretType;
 use crate::common::{Direction, FadeDirection, FadeState, fix9_scale, interpolate_fix9_scale, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
+use crate::components::stage_select::StageSelect;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
 use crate::inventory::{Inventory, TakeExperienceResult};
@@ -30,13 +31,15 @@ pub struct GameScene {
     pub tick: usize,
     pub stage: Stage,
     pub boss_life_bar: BossLifeBar,
+    pub stage_select: StageSelect,
     pub frame: Frame,
-    pub player: Player,
-    pub inventory: Inventory,
+    pub player1: Player,
+    pub player2: Player,
+    pub inventory_player1: Inventory,
+    pub inventory_player2: Inventory,
     pub stage_id: usize,
     pub npc_map: NPCMap,
     pub bullet_manager: BulletManager,
-    pub current_teleport_slot: u8,
     pub intro_mode: bool,
     water_visible: bool,
     tex_background_name: String,
@@ -44,7 +47,6 @@ pub struct GameScene {
     life_bar: u16,
     life_bar_counter: u16,
     map_name_counter: u16,
-    stage_select_text_y_pos: usize,
     weapon_x_pos: isize,
 }
 
@@ -77,9 +79,12 @@ impl GameScene {
         Ok(Self {
             tick: 0,
             stage,
-            player: Player::new(state),
-            inventory: Inventory::new(),
+            player1: Player::new(state),
+            player2: Player::new(state),
+            inventory_player1: Inventory::new(),
+            inventory_player2: Inventory::new(),
             boss_life_bar: BossLifeBar::new(),
+            stage_select: StageSelect::new(),
             frame: Frame {
                 x: 0,
                 y: 0,
@@ -93,7 +98,6 @@ impl GameScene {
             stage_id: id,
             npc_map: NPCMap::new(),
             bullet_manager: BulletManager::new(),
-            current_teleport_slot: 0,
             intro_mode: false,
             water_visible: true,
             tex_background_name,
@@ -101,7 +105,6 @@ impl GameScene {
             life_bar: 0,
             life_bar_counter: 0,
             map_name_counter: 0,
-            stage_select_text_y_pos: 54,
             weapon_x_pos: 16,
         })
     }
@@ -127,8 +130,8 @@ impl GameScene {
     fn draw_hud(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         // none
         let weap_x = self.weapon_x_pos as f32;
-        let (ammo, max_ammo) = self.inventory.get_current_ammo();
-        let (xp, max_xp, max_level) = self.inventory.get_current_max_exp(&state.constants);
+        let (ammo, max_ammo) = self.inventory_player1.get_current_ammo();
+        let (xp, max_xp, max_level) = self.inventory_player1.get_current_max_exp(&state.constants);
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
 
         if max_ammo == 0 {
@@ -159,20 +162,20 @@ impl GameScene {
                            &Rect::new_size(0, 80, bar_width, 8));
         }
 
-        if self.player.max_life != 0 {
+        if self.player1.max_life != 0 {
             // life box
             batch.add_rect(16.0, 40.0,
                            &Rect::new_size(0, 40, 64, 8));
             // yellow bar
             batch.add_rect(40.0, 40.0,
-                           &Rect::new_size(0, 32, (self.life_bar * 40) / self.player.max_life, 8));
+                           &Rect::new_size(0, 32, (self.life_bar * 40) / self.player1.max_life, 8));
             // life
             batch.add_rect(40.0, 40.0,
-                           &Rect::new_size(0, 24, (self.player.life * 40) / self.player.max_life, 8));
+                           &Rect::new_size(0, 24, (self.player1.life * 40) / self.player1.max_life, 8));
         }
 
-        if self.player.air_counter > 0 {
-            let rect = if self.player.air % 30 > 10 {
+        if self.player1.air_counter > 0 {
+            let rect = if self.player1.air % 30 > 10 {
                 Rect::new_size(112, 72, 32, 8)
             } else {
                 Rect::new_size(112, 80, 32, 8)
@@ -185,9 +188,9 @@ impl GameScene {
         batch.draw(ctx)?;
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ArmsImage")?;
 
-        let weapon_count = self.inventory.get_weapon_count();
+        let weapon_count = self.inventory_player1.get_weapon_count();
         if weapon_count != 0 {
-            let current_weapon = self.inventory.get_current_weapon_idx() as isize;
+            let current_weapon = self.inventory_player1.get_current_weapon_idx() as isize;
             let mut rect = Rect::new(0, 0, 0, 16);
 
             for a in 0..weapon_count {
@@ -205,7 +208,7 @@ impl GameScene {
                     pos_x -= 48.0;
                 }
 
-                if let Some(weapon) = self.inventory.get_weapon(a) {
+                if let Some(weapon) = self.inventory_player1.get_weapon(a) {
                     rect.left = weapon.wtype as u16 * 16;
                     rect.right = rect.left + 16;
                     batch.add_rect(pos_x, 16.0, &rect);
@@ -215,17 +218,17 @@ impl GameScene {
 
         batch.draw(ctx)?;
 
-        if self.player.air_counter > 0 && self.player.air_counter % 6 < 4 {
+        if self.player1.air_counter > 0 && self.player1.air_counter % 6 < 4 {
             self.draw_number((state.canvas_size.0 / 2.0).floor() + 8.0,
                              (state.canvas_size.1 / 2.0).floor(),
-                             (self.player.air / 10) as usize, Alignment::Left, state, ctx)?;
+                             (self.player1.air / 10) as usize, Alignment::Left, state, ctx)?;
         }
 
         if max_ammo != 0 {
             self.draw_number(weap_x + 64.0, 16.0, ammo as usize, Alignment::Right, state, ctx)?;
             self.draw_number(weap_x + 64.0, 24.0, max_ammo as usize, Alignment::Right, state, ctx)?;
         }
-        self.draw_number(weap_x + 24.0, 32.0, self.inventory.get_current_level() as usize, Alignment::Right, state, ctx)?;
+        self.draw_number(weap_x + 24.0, 32.0, self.inventory_player1.get_current_level() as usize, Alignment::Right, state, ctx)?;
         self.draw_number(40.0, 40.0, self.life_bar as usize, Alignment::Right, state, ctx)?;
 
         Ok(())
@@ -614,9 +617,9 @@ impl GameScene {
             let scale = state.scale;
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
 
-            if !self.player.cond.hidden() && self.inventory.get_current_weapon().is_some() {
-                self.draw_light(fix9_scale(self.player.x - self.frame.x, scale),
-                                fix9_scale(self.player.y - self.frame.y, scale),
+            if !self.player1.cond.hidden() && self.inventory_player1.get_current_weapon().is_some() {
+                self.draw_light(fix9_scale(self.player1.x - self.frame.x, scale),
+                                fix9_scale(self.player1.y - self.frame.y, scale),
                                 4.0, (140, 140, 140), batch);
             }
 
@@ -943,7 +946,7 @@ impl GameScene {
                             // todo show damage
                         }
 
-                        if self.player.cond.alive() && npc.npc_flags.event_when_killed() {
+                        if self.player1.cond.alive() && npc.npc_flags.event_when_killed() {
                             state.control_flags.set_tick_world(true);
                             state.control_flags.set_interactions_disabled(true);
                             state.textscript_vm.start_script(npc.event_num);
@@ -1030,7 +1033,7 @@ impl GameScene {
                     if npc.life == 0 {
                         npc.life = npc.id;
 
-                        if self.player.cond.alive() && npc.npc_flags.event_when_killed() {
+                        if self.player1.cond.alive() && npc.npc_flags.event_when_killed() {
                             state.control_flags.set_tick_world(true);
                             state.control_flags.set_interactions_disabled(true);
                             state.textscript_vm.start_script(npc.event_num);
@@ -1078,51 +1081,48 @@ impl GameScene {
         }
 
         if !dead_npcs.is_empty() {
-            let missile = self.inventory.has_weapon(WeaponType::MissileLauncher)
-                | self.inventory.has_weapon(WeaponType::SuperMissileLauncher);
-            self.npc_map.process_dead_npcs(&dead_npcs, missile, &self.player, state);
+            let missile = self.inventory_player1.has_weapon(WeaponType::MissileLauncher)
+                || self.inventory_player1.has_weapon(WeaponType::SuperMissileLauncher);
+            self.npc_map.process_dead_npcs(&dead_npcs, missile, &self.player1, state);
             self.npc_map.garbage_collect();
         }
     }
 
     fn tick_world(&mut self, state: &mut SharedGameState) -> GameResult {
-        self.stage_select_text_y_pos = 54;
-        self.current_teleport_slot = 0;
-
-        self.player.current_weapon = {
-            if let Some(weapon) = self.inventory.get_current_weapon_mut() {
+        self.player1.current_weapon = {
+            if let Some(weapon) = self.inventory_player1.get_current_weapon_mut() {
                 weapon.wtype as u8
             } else {
                 0
             }
         };
-        self.player.tick(state, ())?;
+        self.player1.tick(state, ())?;
 
-        if self.player.damage > 0 {
-            let xp_loss = self.player.damage * if self.player.equip.has_arms_barrier() { 1 } else { 2 };
-            match self.inventory.take_xp(xp_loss, state) {
-                TakeExperienceResult::LevelDown if self.player.life > 0 => {
-                    state.create_caret(self.player.x, self.player.y, CaretType::LevelUp, Direction::Right);
+        if self.player1.damage > 0 {
+            let xp_loss = self.player1.damage * if self.player1.equip.has_arms_barrier() { 1 } else { 2 };
+            match self.inventory_player1.take_xp(xp_loss, state) {
+                TakeExperienceResult::LevelDown if self.player1.life > 0 => {
+                    state.create_caret(self.player1.x, self.player1.y, CaretType::LevelUp, Direction::Right);
                 }
                 _ => {}
             }
 
-            self.player.damage = 0;
+            self.player1.damage = 0;
         }
 
         for npc_cell in self.npc_map.npcs.values() {
             let mut npc = npc_cell.borrow_mut();
 
             if npc.cond.alive() {
-                npc.tick(state, (&mut self.player, &self.npc_map.npcs, &mut self.stage))?;
+                npc.tick(state, (&mut self.player1, &self.npc_map.npcs, &mut self.stage))?;
             }
         }
-        self.npc_map.boss_map.tick(state, (&mut self.player, &self.npc_map.npcs, &mut self.stage))?;
-        self.npc_map.process_npc_changes(&self.player, state);
+        self.npc_map.boss_map.tick(state, (&mut self.player1, &self.npc_map.npcs, &mut self.stage))?;
+        self.npc_map.process_npc_changes(&self.player1, state);
         self.npc_map.garbage_collect();
 
-        self.player.tick_map_collisions(state, &mut self.stage);
-        self.player.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory);
+        self.player1.tick_map_collisions(state, &mut self.stage);
+        self.player1.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory_player1);
 
         for npc_cell in self.npc_map.npcs.values() {
             let mut npc = npc_cell.borrow_mut();
@@ -1136,19 +1136,19 @@ impl GameScene {
                 npc.tick_map_collisions(state, &mut self.stage);
             }
         }
-        self.npc_map.process_npc_changes(&self.player, state);
+        self.npc_map.process_npc_changes(&self.player1, state);
         self.npc_map.garbage_collect();
 
         self.tick_npc_bullet_collissions(state);
-        self.npc_map.process_npc_changes(&self.player, state);
+        self.npc_map.process_npc_changes(&self.player1, state);
 
-        self.bullet_manager.tick_bullets(state, &self.player, &mut self.stage);
+        self.bullet_manager.tick_bullets(state, &self.player1, &mut self.stage);
         state.tick_carets();
 
         match self.frame.update_target {
             UpdateTarget::Player => {
-                self.frame.target_x = self.player.target_x;
-                self.frame.target_y = self.player.target_y;
+                self.frame.target_x = self.player1.target_x;
+                self.frame.target_y = self.player1.target_y;
             }
             UpdateTarget::NPC(npc_id) => {
                 if let Some(npc_cell) = self.npc_map.npcs.get(&npc_id) {
@@ -1172,28 +1172,28 @@ impl GameScene {
         self.frame.update(state, &self.stage);
 
         if state.control_flags.control_enabled() {
-            if let Some(weapon) = self.inventory.get_current_weapon_mut() {
-                weapon.shoot_bullet(&self.player, &mut self.bullet_manager, state);
+            if let Some(weapon) = self.inventory_player1.get_current_weapon_mut() {
+                weapon.shoot_bullet(&self.player1, &mut self.bullet_manager, state);
             }
 
-            if state.key_trigger.weapon_next() {
+            if self.player1.controller.trigger_next_weapon() {
                 state.sound_manager.play_sfx(4);
-                self.inventory.next_weapon();
+                self.inventory_player1.next_weapon();
                 self.weapon_x_pos = 32;
             }
 
-            if state.key_trigger.weapon_prev() {
+            if self.player1.controller.trigger_prev_weapon() {
                 state.sound_manager.play_sfx(4);
-                self.inventory.prev_weapon();
+                self.inventory_player1.prev_weapon();
                 self.weapon_x_pos = 0;
             }
 
             // update health bar
-            if self.life_bar < self.player.life as u16 {
-                self.life_bar = self.player.life as u16;
+            if self.life_bar < self.player1.life as u16 {
+                self.life_bar = self.player1.life as u16;
             }
 
-            if self.life_bar > self.player.life as u16 {
+            if self.life_bar > self.player1.life as u16 {
                 self.life_bar_counter += 1;
                 if self.life_bar_counter > 30 {
                     self.life_bar -= 1;
@@ -1204,88 +1204,6 @@ impl GameScene {
 
             self.boss_life_bar.tick(state, &self.npc_map)?;
         }
-
-        Ok(())
-    }
-
-    fn tick_stage_select(&mut self, state: &mut SharedGameState) -> GameResult {
-        let slot_count = state.teleporter_slots.iter()
-            .filter(|&&(index, _event_num)| index != 0)
-            .count();
-
-        if self.stage_select_text_y_pos > 46 {
-            self.stage_select_text_y_pos -= 1;
-        }
-
-        if state.key_trigger.left() {
-            if self.current_teleport_slot == 0 {
-                self.current_teleport_slot = slot_count.saturating_sub(1) as u8;
-            } else {
-                self.current_teleport_slot -= 1;
-            }
-        } else if state.key_trigger.right() {
-            if self.current_teleport_slot == slot_count.saturating_sub(1) as u8 {
-                self.current_teleport_slot = 0;
-            } else {
-                self.current_teleport_slot += 1;
-            }
-        }
-
-        if state.key_trigger.left() || state.key_trigger.right() {
-            state.sound_manager.play_sfx(1);
-            if let Some(&(index, _event_num)) = state.teleporter_slots.get(self.current_teleport_slot as usize) {
-                state.textscript_vm.start_script(1000 + index);
-            } else {
-                state.textscript_vm.start_script(1000);
-            }
-        }
-
-        if state.key_trigger.jump() | state.key_trigger.fire() {
-            state.textscript_vm.set_mode(ScriptMode::Map);
-            state.control_flags.set_tick_world(true);
-            state.control_flags.set_control_enabled(true);
-            state.control_flags.set_interactions_disabled(false);
-
-            if state.key_trigger.jump() {
-                if let Some(&(_index, event_num)) = state.teleporter_slots.get(self.current_teleport_slot as usize) {
-                    state.textscript_vm.start_script(event_num);
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    fn draw_stage_select(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "StageImage")?;
-
-        let slot_count = state.teleporter_slots.iter()
-            .filter(|&&(index, _event_num)| index != 0)
-            .count();
-        let slot_offset = ((state.canvas_size.0 - 40.0 * slot_count as f32) / 2.0).floor();
-        let mut slot_rect = Rect::new(0, 0, 0, 0);
-
-        for i in 0..slot_count {
-            let index = state.teleporter_slots[i].0;
-
-            slot_rect.left = 32 * (index as u16 % 8);
-            slot_rect.top = 16 * (index as u16 / 8);
-            slot_rect.right = slot_rect.left + 32;
-            slot_rect.bottom = slot_rect.top + 16;
-
-            batch.add_rect(slot_offset + i as f32 * 40.0, 64.0, &slot_rect);
-        }
-
-        batch.draw(ctx)?;
-
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
-
-        batch.add_rect(128.0, self.stage_select_text_y_pos as f32, &state.constants.textscript.stage_select_text);
-        if slot_count > 0 {
-            batch.add_rect(slot_offset + self.current_teleport_slot as f32 * 40.0, 64.0, &state.constants.textscript.cursor[self.tick / 2 % 2]);
-        }
-
-        batch.draw(ctx)?;
 
         Ok(())
     }
@@ -1351,14 +1269,17 @@ impl GameScene {
 
 impl Scene for GameScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let seed = (self.player.max_life as i32)
-            .wrapping_add(self.player.x as i32)
-            .wrapping_add(self.player.y as i32)
+        let seed = (self.player1.max_life as i32)
+            .wrapping_add(self.player1.x as i32)
+            .wrapping_add(self.player1.y as i32)
             .wrapping_add(self.stage_id as i32)
             .wrapping_mul(7);
         state.game_rng = RNG::new(seed);
         state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.base_path, &state.constants, ctx)?);
         state.textscript_vm.suspend = false;
+
+        self.player1.controller = state.settings.create_player1_controller();
+        self.player2.controller = state.settings.create_player2_controller();
 
         let npcs = self.stage.load_npcs(&state.base_path, ctx)?;
         for npc_data in npcs.iter() {
@@ -1384,32 +1305,33 @@ impl Scene for GameScene {
 
         if state.constants.is_cs_plus {
             match state.season {
-                Season::Halloween => self.player.appearance = PlayerAppearance::HalloweenQuote,
-                Season::Christmas => self.player.appearance = PlayerAppearance::ReindeerQuote,
+                Season::Halloween => self.player1.appearance = PlayerAppearance::HalloweenQuote,
+                Season::Christmas => self.player1.appearance = PlayerAppearance::ReindeerQuote,
                 _ => {}
             }
         }
 
         self.npc_map.boss_map.boss_type = self.stage.data.boss_no as u16;
-        self.player.target_x = self.player.x;
-        self.player.target_y = self.player.y;
-        self.frame.target_x = self.player.target_x;
-        self.frame.target_y = self.player.target_y;
+        self.player1.target_x = self.player1.x;
+        self.player1.target_y = self.player1.y;
+        self.frame.target_x = self.player1.target_x;
+        self.frame.target_y = self.player1.target_y;
         self.frame.immediate_update(state, &self.stage);
 
         Ok(())
     }
 
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        state.update_key_trigger();
+        self.player1.controller.update(state, ctx)?;
+        self.player1.controller.update_trigger();
 
-        if self.intro_mode && (state.key_trigger.jump() || self.tick >= 500) {
+        if self.intro_mode && (self.player1.controller.trigger_menu_ok() || self.tick >= 500) {
             state.next_scene = Some(Box::new(TitleScene::new()));
         }
 
         match state.textscript_vm.mode {
             ScriptMode::Map if state.control_flags.tick_world() => self.tick_world(state)?,
-            ScriptMode::StageSelect => self.tick_stage_select(state)?,
+            ScriptMode::StageSelect => self.stage_select.tick(state, (&self.player1, &self.player2))?,
             _ => {}
         }
 
@@ -1447,8 +1369,8 @@ impl Scene for GameScene {
     fn draw_tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.frame.prev_x = self.frame.x;
         self.frame.prev_y = self.frame.y;
-        self.player.prev_x = self.player.x;
-        self.player.prev_y = self.player.y;
+        self.player1.prev_x = self.player1.x;
+        self.player1.prev_y = self.player1.y;
 
         for npc_cell in self.npc_map.npcs.values() {
             let mut npc = npc_cell.borrow_mut();
@@ -1509,7 +1431,7 @@ impl Scene for GameScene {
             npc.draw(state, ctx, &self.frame)?;
         }
         self.draw_bullets(state, ctx)?;
-        self.player.draw(state, ctx, &self.frame)?;
+        self.player1.draw(state, ctx, &self.frame)?;
         if state.settings.shader_effects && self.water_visible {
             self.draw_water(state, ctx)?;
         }
@@ -1534,7 +1456,7 @@ impl Scene for GameScene {
         }
 
         if state.textscript_vm.mode == ScriptMode::StageSelect {
-            self.draw_stage_select(state, ctx)?;
+            self.stage_select.draw(state, ctx, &self.frame)?;
         }
 
         self.draw_fade(state, ctx)?;

@@ -64,10 +64,10 @@ impl LiveDebugger {
             .build(ui, || {
                 ui.text(format!(
                     "Player position: ({:.1},{:.1}), velocity: ({:.1},{:.1})",
-                    game_scene.player.x as f32 / 512.0,
-                    game_scene.player.y as f32 / 512.0,
-                    game_scene.player.vel_x as f32 / 512.0,
-                    game_scene.player.vel_y as f32 / 512.0,
+                    game_scene.player1.x as f32 / 512.0,
+                    game_scene.player1.y as f32 / 512.0,
+                    game_scene.player1.vel_x as f32 / 512.0,
+                    game_scene.player1.vel_y as f32 / 512.0,
                 ));
 
                 ui.text(format!(
@@ -77,7 +77,7 @@ impl LiveDebugger {
                 ));
 
                 ui.text(format!(
-                    "Booster fuel: {}", game_scene.player.booster_fuel
+                    "Booster fuel: {}", game_scene.player1.booster_fuel
                 ));
 
 
@@ -139,13 +139,13 @@ impl LiveDebugger {
                     if ui.button(im_str!("Load"), [0.0, 0.0]) {
                         match GameScene::new(state, ctx, self.selected_stage as usize) {
                             Ok(mut scene) => {
-                                scene.inventory = game_scene.inventory.clone();
-                                scene.player = game_scene.player.clone();
-                                scene.player.x = (scene.stage.map.width / 2 * 16 * 0x200) as isize;
-                                scene.player.y = (scene.stage.map.height / 2 * 16 * 0x200) as isize;
+                                scene.inventory_player1 = game_scene.inventory_player1.clone();
+                                scene.player1 = game_scene.player1.clone();
+                                scene.player1.x = (scene.stage.map.width / 2 * 16 * 0x200) as isize;
+                                scene.player1.y = (scene.stage.map.height / 2 * 16 * 0x200) as isize;
 
-                                if scene.player.life == 0 {
-                                    scene.player.life = scene.player.max_life;
+                                if scene.player1.life == 0 {
+                                    scene.player1.life = scene.player1.max_life;
                                 }
 
                                 state.next_scene = Some(Box::new(scene));
@@ -252,19 +252,19 @@ impl LiveDebugger {
                     }
 
                     if CollapsingHeader::new(im_str!("Player condition flags")).default_open(false).build(&ui) {
-                        cond_flags(&ui, &mut game_scene.player.cond);
+                        cond_flags(&ui, &mut game_scene.player1.cond);
                     }
 
                     if CollapsingHeader::new(im_str!("Player equipment")).default_open(false).build(&ui) {
-                        ui.checkbox_flags(im_str!("Booster 0.8"), &mut game_scene.player.equip.0, 1);
-                        ui.checkbox_flags(im_str!("Map System"), &mut game_scene.player.equip.0, 2);
-                        ui.checkbox_flags(im_str!("Arms Barrier"), &mut game_scene.player.equip.0, 4);
-                        ui.checkbox_flags(im_str!("Turbocharge"), &mut game_scene.player.equip.0, 8);
-                        ui.checkbox_flags(im_str!("Air Tank"), &mut game_scene.player.equip.0, 16);
-                        ui.checkbox_flags(im_str!("Booster 2.0"), &mut game_scene.player.equip.0, 32);
-                        ui.checkbox_flags(im_str!("Mimiga Mask"), &mut game_scene.player.equip.0, 64);
-                        ui.checkbox_flags(im_str!("Whimsical Star"), &mut game_scene.player.equip.0, 128);
-                        ui.checkbox_flags(im_str!("Nikumaru Counter"), &mut game_scene.player.equip.0, 256);
+                        ui.checkbox_flags(im_str!("Booster 0.8"), &mut game_scene.player1.equip.0, 1);
+                        ui.checkbox_flags(im_str!("Map System"), &mut game_scene.player1.equip.0, 2);
+                        ui.checkbox_flags(im_str!("Arms Barrier"), &mut game_scene.player1.equip.0, 4);
+                        ui.checkbox_flags(im_str!("Turbocharge"), &mut game_scene.player1.equip.0, 8);
+                        ui.checkbox_flags(im_str!("Air Tank"), &mut game_scene.player1.equip.0, 16);
+                        ui.checkbox_flags(im_str!("Booster 2.0"), &mut game_scene.player1.equip.0, 32);
+                        ui.checkbox_flags(im_str!("Mimiga Mask"), &mut game_scene.player1.equip.0, 64);
+                        ui.checkbox_flags(im_str!("Whimsical Star"), &mut game_scene.player1.equip.0, 128);
+                        ui.checkbox_flags(im_str!("Nikumaru Counter"), &mut game_scene.player1.equip.0, 256);
                     }
                 });
         }

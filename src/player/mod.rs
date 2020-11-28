@@ -1,16 +1,19 @@
 use std::clone::Clone;
 
+use ggez::{Context, GameResult};
 use num_derive::FromPrimitive;
 use num_traits::clamp;
-use num_traits::FromPrimitive;
 
 use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Equipment, Flag, interpolate_fix9_scale, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
-use ggez::{Context, GameResult};
+use crate::input::dummy_player_controller::DummyPlayerController;
+use crate::input::player_controller::PlayerController;
 use crate::npc::NPCMap;
 use crate::shared_game_state::SharedGameState;
+
+mod player_hit;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
 #[repr(u8)]
@@ -29,6 +32,19 @@ pub enum PlayerAppearance {
     HalloweenQuote,
     ReindeerQuote,
     Curly,
+}
+
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub enum TargetPlayer {
+    Player1,
+    Player2,
+}
+
+impl TargetPlayer {
+    #[inline]
+    pub fn index(self) -> usize {
+        self as usize
+    }
 }
 
 #[derive(Clone)]
@@ -61,6 +77,7 @@ pub struct Player {
     pub air_counter: u16,
     pub air: u16,
     pub appearance: PlayerAppearance,
+    pub controller: Box<dyn PlayerController>,
     weapon_offset_y: i8,
     index_x: isize,
     index_y: isize,
@@ -113,6 +130,7 @@ impl Player {
             air_counter: 0,
             air: 0,
             appearance: PlayerAppearance::Quote,
+            controller: Box::new(DummyPlayerController::new()),
             bubble: 0,
             damage_counter: 0,
             damage_taken: 0,
@@ -181,23 +199,33 @@ impl Player {
             }
 
             if state.control_flags.control_enabled() {
-                if state.key_trigger.only_down() && state.key_state.only_down() && !self.cond.interacted() && !state.control_flags.interactions_disabled() {
+                let trigger_only_down = self.controller.trigger_down()
+                    && !self.controller.trigger_up()
+                    && !self.controller.trigger_left()
+                    && !self.controller.trigger_right();
+
+                let only_down = self.controller.move_down()
+                    && !self.controller.move_up()
+                    && !self.controller.move_left()
+                    && !self.controller.move_right();
+
+                if trigger_only_down && only_down && !self.cond.interacted() && !state.control_flags.interactions_disabled() {
                     self.cond.set_interacted(true);
                     self.question = true;
                 } else {
-                    if state.key_state.left() && self.vel_x > -physics.max_dash {
+                    if self.controller.move_left() && self.vel_x > -physics.max_dash {
                         self.vel_x -= physics.dash_ground;
                     }
 
-                    if state.key_state.right() && self.vel_x < physics.max_dash {
+                    if self.controller.move_right() && self.vel_x < physics.max_dash {
                         self.vel_x += physics.dash_ground;
                     }
 
-                    if state.key_state.left() {
+                    if self.controller.move_left() {
                         self.direction = Direction::Left;
                     }
 
-                    if state.key_state.right() {
+                    if self.controller.move_right() {
                         self.direction = Direction::Right;
                     }
                 }
@@ -221,7 +249,7 @@ impl Player {
             }
         } else { // air movement
             if state.control_flags.control_enabled() {
-                if state.key_trigger.jump() && self.booster_fuel != 0 {
+                if self.controller.trigger_jump() && self.booster_fuel != 0 {
                     if self.equip.has_booster_0_8() {
                         self.booster_switch = 1;
 
@@ -229,19 +257,19 @@ impl Player {
                             self.vel_y /= 2;
                         }
                     } else if state.settings.infinite_booster || self.equip.has_booster_2_0() {
-                        if state.key_state.up() {
+                        if self.controller.move_up() {
                             self.booster_switch = 2;
                             self.vel_x = 0;
                             self.vel_y = state.constants.booster.b2_0_up;
-                        } else if state.key_state.left() {
+                        } else if self.controller.move_left() {
                             self.booster_switch = 1;
                             self.vel_x = state.constants.booster.b2_0_left;
                             self.vel_y = 0;
-                        } else if state.key_state.right() {
+                        } else if self.controller.move_right() {
                             self.booster_switch = 1;
                             self.vel_x = state.constants.booster.b2_0_right;
                             self.vel_y = 0;
-                        } else if state.key_state.down() {
+                        } else if self.controller.move_down() {
                             self.booster_switch = 3;
                             self.vel_x = 0;
                             self.vel_y = state.constants.booster.b2_0_down;
@@ -253,25 +281,25 @@ impl Player {
                     }
                 }
 
-                if state.key_state.left() && self.vel_x > -physics.max_dash {
+                if self.controller.move_left() && self.vel_x > -physics.max_dash {
                     self.vel_x -= physics.dash_air;
                 }
 
-                if state.key_state.right() && self.vel_x < physics.max_dash {
+                if self.controller.move_right() && self.vel_x < physics.max_dash {
                     self.vel_x += physics.dash_air;
                 }
 
-                if state.key_state.left() {
+                if self.controller.look_left() {
                     self.direction = Direction::Left;
                 }
 
-                if state.key_state.right() {
+                if self.controller.look_right() {
                     self.direction = Direction::Right;
                 }
             }
 
             if (state.settings.infinite_booster || self.equip.has_booster_2_0()) && self.booster_switch != 0
-                && (!state.key_state.jump() || self.booster_fuel == 0) {
+                && (!self.controller.jump() || self.booster_fuel == 0) {
                 match self.booster_switch {
                     1 => { self.vel_x /= 2 }
                     2 => { self.vel_y /= 2 }
@@ -279,24 +307,31 @@ impl Player {
                 }
             }
 
-            if self.booster_fuel == 0 || !state.key_state.jump() {
+            if self.booster_fuel == 0 || !self.controller.jump() {
                 self.booster_switch = 0;
             }
         }
 
         // jumping
         if state.control_flags.control_enabled() {
-            self.up = state.key_state.up();
-            self.down = state.key_state.down() && !self.flags.hit_bottom_wall();
+            self.up = self.controller.move_up();
+            self.down = self.controller.move_down() && !self.flags.hit_bottom_wall();
 
-            if state.key_trigger.jump() && (self.flags.hit_bottom_wall() || self.flags.hit_right_slope() || self.flags.hit_left_slope()) && !self.flags.force_up() {
+            if self.controller.trigger_jump() && (self.flags.hit_bottom_wall()
+                || self.flags.hit_right_slope()
+                || self.flags.hit_left_slope())
+                && !self.flags.force_up() {
                 self.vel_y = -physics.jump;
                 state.sound_manager.play_sfx(15);
             }
         }
 
         // stop interacting when moved
-        if state.control_flags.control_enabled() && (state.key_state.left() || state.key_state.right() || state.key_state.up() || state.key_state.jump() || state.key_state.fire()) {
+        if state.control_flags.control_enabled() && (self.controller.move_left()
+            || self.controller.move_right()
+            || self.controller.move_up()
+            || self.controller.jump()
+            || self.controller.shoot()) {
             self.cond.set_interacted(false);
         }
 
@@ -334,7 +369,7 @@ impl Player {
                         self.vel_x += 0x20; // 0.1fix9
                     }
 
-                    if state.key_trigger.jump() || self.booster_fuel % 3 == 1 {
+                    if self.controller.trigger_jump() || self.booster_fuel % 3 == 1 {
                         if self.direction == Direction::Left || self.direction == Direction::Right {
                             state.create_caret(self.x + 0x400, self.y + 0x400, CaretType::Exhaust, self.direction.opposite());
                         }
@@ -344,12 +379,12 @@ impl Player {
                 2 => {
                     self.vel_y -= 0x20;
 
-                    if state.key_trigger.jump() || self.booster_fuel % 3 == 1 {
+                    if self.controller.trigger_jump() || self.booster_fuel % 3 == 1 {
                         state.create_caret(self.x, self.y + 6 * 0x200, CaretType::Exhaust, Direction::Bottom);
                         state.sound_manager.play_sfx(113);
                     }
                 }
-                3 if state.key_trigger.jump() || self.booster_fuel % 3 == 1 => {
+                3 if self.controller.trigger_jump() || self.booster_fuel % 3 == 1 => {
                     state.create_caret(self.x, self.y + 6 * 0x200, CaretType::Exhaust, Direction::Up);
                     state.sound_manager.play_sfx(113);
                 }
@@ -369,13 +404,13 @@ impl Player {
             if self.flags.hit_top_wall() {
                 self.vel_y = 0x200; // 1.0fix9
             }
-        } else if self.vel_y < 0 && state.control_flags.control_enabled() && state.key_state.jump() {
+        } else if self.vel_y < 0 && state.control_flags.control_enabled() && self.controller.jump() {
             self.vel_y += physics.gravity_air;
         } else {
             self.vel_y += physics.gravity_ground;
         }
 
-        if !state.control_flags.control_enabled() || !state.key_trigger.jump() {
+        if !state.control_flags.control_enabled() || !self.controller.trigger_jump() {
             if self.flags.hit_right_slope() && self.vel_x < 0 {
                 self.vel_y = -self.vel_x;
             }
@@ -442,12 +477,12 @@ impl Player {
         // camera
         self.index_x = clamp(self.index_x + self.direction.vector_x() * 0x200, -0x8000, 0x8000);
 
-        if state.control_flags.control_enabled() && state.key_state.up() {
+        if state.control_flags.control_enabled() && self.controller.move_up() {
             self.index_y -= 0x200; // 1.0fix9
             if self.index_y < -0x8000 { // -64.0fix9
                 self.index_y = -0x8000;
             }
-        } else if state.control_flags.control_enabled() && state.key_state.down() {
+        } else if state.control_flags.control_enabled() && self.controller.move_down() {
             self.index_y += 0x200; // 1.0fix9
             if self.index_y > 0x8000 { // -64.0fix9
                 self.index_y = 0x8000;
@@ -487,7 +522,7 @@ impl Player {
         if self.flags.hit_bottom_wall() {
             if self.cond.interacted() {
                 self.anim_num = 11;
-            } else if state.control_flags.control_enabled() && state.key_state.up() && (state.key_state.left() || state.key_state.right()) {
+            } else if state.control_flags.control_enabled() && self.controller.move_up() && (self.controller.move_left() || self.controller.move_right()) {
                 self.cond.set_fallen(true);
 
                 self.anim_counter += 1;
@@ -503,7 +538,7 @@ impl Player {
                 if self.anim_num > 9 || self.anim_num < 6 {
                     self.anim_num = 6;
                 }
-            } else if state.control_flags.control_enabled() && (state.key_state.left() || state.key_state.right()) {
+            } else if state.control_flags.control_enabled() && (self.controller.move_left() || self.controller.move_right()) {
                 self.cond.set_fallen(true);
 
                 self.anim_counter += 1;
@@ -519,7 +554,7 @@ impl Player {
                 if self.anim_num > 4 || self.anim_num < 1 {
                     self.anim_num = 1;
                 }
-            } else if state.control_flags.control_enabled() && state.key_state.up() {
+            } else if state.control_flags.control_enabled() && self.controller.move_up() {
                 if self.cond.fallen() {
                     state.sound_manager.play_sfx(24);
                 }
@@ -534,9 +569,9 @@ impl Player {
                 self.cond.set_fallen(false);
                 self.anim_num = 0;
             }
-        } else if state.key_state.up() {
+        } else if self.controller.look_up() {
             self.anim_num = 6;
-        } else if state.key_state.down() {
+        } else if self.controller.look_down() {
             self.anim_num = 10;
         } else {
             self.anim_num = if self.vel_y > 0 { 1 } else { 3 };

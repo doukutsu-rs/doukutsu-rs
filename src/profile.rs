@@ -53,14 +53,14 @@ impl GameProfile {
 
         state.sound_manager.play_song(self.current_song as usize, &state.constants, ctx);
 
-        game_scene.inventory.current_weapon = self.current_weapon as u16;
-        game_scene.inventory.current_item = self.current_item as u16;
+        game_scene.inventory_player1.current_weapon = self.current_weapon as u16;
+        game_scene.inventory_player1.current_item = self.current_item as u16;
         for weapon in self.weapon_data.iter() {
             if weapon.weapon_id == 0 { continue; }
             let weapon_type: Option<WeaponType> = FromPrimitive::from_u8(weapon.weapon_id as u8);
 
             if let Some(wtype) = weapon_type {
-                let w = game_scene.inventory.add_weapon(wtype, weapon.max_ammo as u16);
+                let w = game_scene.inventory_player1.add_weapon(wtype, weapon.max_ammo as u16);
                 w.ammo = weapon.ammo as u16;
                 w.level = match weapon.level {
                     2 => { WeaponLevel::Level2 }
@@ -74,7 +74,7 @@ impl GameProfile {
         for item in self.items.iter().copied() {
             if item == 0 { break; }
 
-            game_scene.inventory.add_item(item as u16);
+            game_scene.inventory_player1.add_item(item as u16);
         }
 
         for slot in self.teleporter_slots.iter() {
@@ -94,32 +94,32 @@ impl GameProfile {
             if flags & 0b10000000 != 0 { state.game_flags.set(idx * 8 + 7, true); }
         }
 
-        game_scene.player.equip.0 = self.equipment as u16;
-        game_scene.player.cond.0 = 0x80;
+        game_scene.player1.equip.0 = self.equipment as u16;
+        game_scene.player1.cond.0 = 0x80;
 
-        game_scene.player.x = self.pos_x as isize;
-        game_scene.player.y = self.pos_y as isize;
+        game_scene.player1.x = self.pos_x as isize;
+        game_scene.player1.y = self.pos_y as isize;
 
-        game_scene.player.control_mode = if self.control_mode == 1 { ControlMode::IronHead } else { ControlMode::Normal };
-        game_scene.player.direction = self.direction;
-        game_scene.player.life = self.life;
-        game_scene.player.max_life = self.max_life;
-        game_scene.player.stars = clamp(self.stars, 0, 3) as u8;
+        game_scene.player1.control_mode = if self.control_mode == 1 { ControlMode::IronHead } else { ControlMode::Normal };
+        game_scene.player1.direction = self.direction;
+        game_scene.player1.life = self.life;
+        game_scene.player1.max_life = self.max_life;
+        game_scene.player1.stars = clamp(self.stars, 0, 3) as u8;
     }
 
     pub fn dump(state: &mut SharedGameState, game_scene: &mut GameScene) -> GameProfile {
         let current_map = game_scene.stage_id as u32;
         let current_song = state.sound_manager.current_song() as u32;
-        let pos_x = game_scene.player.x as i32;
-        let pos_y = game_scene.player.y as i32;
-        let direction = game_scene.player.direction;
-        let max_life = game_scene.player.max_life;
-        let stars = game_scene.player.stars as u16;
-        let life = game_scene.player.life;
-        let current_weapon = game_scene.inventory.current_weapon as u32;
-        let current_item = game_scene.inventory.current_item as u32;
-        let equipment = game_scene.player.equip.0 as u32;
-        let control_mode = game_scene.player.control_mode as u32;
+        let pos_x = game_scene.player1.x as i32;
+        let pos_y = game_scene.player1.y as i32;
+        let direction = game_scene.player1.direction;
+        let max_life = game_scene.player1.max_life;
+        let stars = game_scene.player1.stars as u16;
+        let life = game_scene.player1.life;
+        let current_weapon = game_scene.inventory_player1.current_weapon as u32;
+        let current_item = game_scene.inventory_player1.current_item as u32;
+        let equipment = game_scene.player1.equip.0 as u32;
+        let control_mode = game_scene.player1.control_mode as u32;
         let counter = 0; // TODO
         let mut weapon_data = [
             WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
@@ -144,7 +144,7 @@ impl GameProfile {
         ];
 
         for (idx, weap) in weapon_data.iter_mut().enumerate() {
-            if let Some(weapon) = game_scene.inventory.get_weapon(idx) {
+            if let Some(weapon) = game_scene.inventory_player1.get_weapon(idx) {
                 weap.weapon_id = weapon.wtype as u32;
                 weap.level = weapon.level as u32;
                 weap.exp = weapon.experience as u32;
@@ -154,7 +154,7 @@ impl GameProfile {
         }
 
         for (idx, item) in items.iter_mut().enumerate() {
-            if let Some(sitem) = game_scene.inventory.get_item_idx(idx) {
+            if let Some(sitem) = game_scene.inventory_player1.get_item_idx(idx) {
                 *item = sitem.0 as u32;
             }
         }

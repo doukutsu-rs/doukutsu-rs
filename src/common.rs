@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 
 use num_traits::{AsPrimitive, Num};
-use num_traits::real::Real;
 use serde::{Deserialize, Serialize};
 
 use crate::bitfield;
@@ -80,22 +79,6 @@ bitfield! {
   pub drs_dont_remove, set_drs_dont_remove: 13;
   pub drs_boss, set_drs_boss: 14;
   pub drs_destroyed, set_drs_destroyed: 15;
-}
-
-bitfield! {
-  #[derive(Clone, Copy)]
-  pub struct KeyState(u16);
-  impl Debug;
-
-  pub left, set_left: 0;
-  pub right, set_right: 1;
-  pub up, set_up: 2;
-  pub down, set_down: 3;
-  pub map, set_map: 4;
-  pub jump, set_jump: 5;
-  pub fire, set_fire: 6;
-  pub weapon_next, set_weapon_next: 7;
-  pub weapon_prev, set_weapon_prev: 8;
 }
 
 bitfield! {

@@ -37,6 +37,8 @@ pub trait PhysicalEntity {
     fn direction(&self) -> Direction;
     fn is_player(&self) -> bool;
     fn ignore_tile_44(&self) -> bool { true }
+    fn player_left_pressed(&self) -> bool { false }
+    fn player_right_pressed(&self) -> bool { false }
 
     fn judge_hit_block(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
         let bounds_x = if self.is_player() { 5 } else { 8 };
@@ -53,7 +55,7 @@ pub trait PhysicalEntity {
                     self.set_vel_x(-0x180);
                 }
 
-                if !state.key_state.left() && self.vel_x() < 0 {
+                if !self.player_left_pressed() && self.vel_x() < 0 {
                     self.set_vel_x(0);
                 }
             }
@@ -73,7 +75,7 @@ pub trait PhysicalEntity {
                     self.set_vel_x(0x180);
                 }
 
-                if !state.key_state.right() && self.vel_x() > 0 {
+                if !self.player_right_pressed() && self.vel_x() > 0 {
                     self.set_vel_x(0);
                 }
             }

@@ -52,7 +52,7 @@ impl BossLifeBar {
 }
 
 impl GameEntity<&NPCMap> for BossLifeBar {
-    fn tick(&mut self, state: &mut SharedGameState, npc_map: &NPCMap) -> GameResult<()> {
+    fn tick(&mut self, _state: &mut SharedGameState, npc_map: &NPCMap) -> GameResult<()> {
         match self.target {
             BossLifeTarget::NPC(npc_id) => {
                 if let Some(npc_cell) = npc_map.npcs.get(&npc_id) {

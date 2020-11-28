@@ -1,5 +1,6 @@
 use std::cell::Cell;
 
+/// Deterministic XorShift-based random number generator
 pub struct RNG(Cell<(u64, u64, u64, u64)>);
 
 #[inline]
@@ -46,6 +47,14 @@ impl RNG {
     #[inline]
     pub fn next_u32(&self) -> u32 {
         self.next_u64() as u32
+    }
+
+    pub fn dump_state(&self) -> (u64, u64, u64, u64) {
+        self.0.get()
+    }
+
+    pub fn load_state(&mut self, saved_state: (u64, u64, u64, u64)) {
+        self.0.replace(saved_state);
     }
 
     pub fn range(&self, range: std::ops::Range<i32>) -> i32 {

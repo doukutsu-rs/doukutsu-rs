@@ -5,7 +5,7 @@ use std::io::ErrorKind;
 use std::io::SeekFrom;
 use std::path::{Component, Path, PathBuf};
 
-use ggez::{GameError, GameResult};
+use ggez::GameResult;
 use ggez::GameError::FilesystemError;
 use ggez::vfs::{OpenOptions, VFile, VFS, VMetadata};
 

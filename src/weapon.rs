@@ -85,7 +85,7 @@ impl Weapon {
     }
 
     fn shoot_bullet_snake(&mut self, player: &Player, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
-        if state.key_trigger.fire() && bullet_manager.count_bullets_multi([1, 2, 3]) < 4 {
+        if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi([1, 2, 3]) < 4 {
             let btype = match self.level {
                 WeaponLevel::Level1 => { 1 }
                 WeaponLevel::Level2 => { 2 }
@@ -141,7 +141,7 @@ impl Weapon {
     }
 
     fn shoot_bullet_polar_star(&mut self, player: &Player, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
-        if state.key_trigger.fire() && bullet_manager.count_bullets_multi([4, 5, 6]) < 2 {
+        if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi([4, 5, 6]) < 2 {
             let btype = match self.level {
                 WeaponLevel::Level1 => { 4 }
                 WeaponLevel::Level2 => { 5 }
@@ -203,7 +203,7 @@ impl Weapon {
 
     fn shoot_bullet_fireball(&mut self, player: &Player, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
         let max_bullets = self.level as usize + 1;
-        if state.key_trigger.fire() && bullet_manager.count_bullets_multi([7, 8, 9]) < max_bullets {
+        if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi([7, 8, 9]) < max_bullets {
             let btype = match self.level {
                 WeaponLevel::Level1 => { 7 }
                 WeaponLevel::Level2 => { 8 }

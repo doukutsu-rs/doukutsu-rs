@@ -1,8 +1,9 @@
-use winit::event::TouchPhase;
-use crate::texture_set::TextureSet;
 use ggez::{Context, GameResult};
-use crate::common::{KeyState, Rect};
+use winit::event::TouchPhase;
+
+use crate::common::Rect;
 use crate::engine_constants::EngineConstants;
+use crate::texture_set::TextureSet;
 
 struct TouchPoint {
     id: u64,
@@ -20,8 +21,8 @@ impl TouchControls {
             points: Vec::with_capacity(8),
         }
     }
-    
-    pub fn process_winit_event(&mut self, scale: f32, key_state: &mut KeyState, touch: winit::event::Touch) {
+
+    pub fn process_winit_event(&mut self, scale: f32, touch: winit::event::Touch) {
         match touch.phase {
             TouchPhase::Started | TouchPhase::Moved => {
                 if let Some(point) = self.points.iter_mut().find(|p| p.id == touch.id) {
@@ -31,7 +32,7 @@ impl TouchControls {
                     self.points.push(TouchPoint {
                         id: touch.id,
                         position: (touch.location.x, touch.location.y),
-                        last_position: (0.0, 0.0)
+                        last_position: (0.0, 0.0),
                     });
                 }
             }

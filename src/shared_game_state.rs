@@ -3,27 +3,28 @@ use std::time::Instant;
 
 use bitvec::vec::BitVec;
 use chrono::{Datelike, Local};
-use gfx::{self, *};
 use ggez::{Context, filesystem, GameResult, graphics};
 use ggez::filesystem::OpenOptions;
-use ggez::graphics::{Canvas, Shader};
+use ggez::graphics::Canvas;
 use num_traits::clamp;
 
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
-use crate::common::{ControlFlags, Direction, FadeState, KeyState};
+use crate::common::{ControlFlags, Direction, FadeState};
 use crate::engine_constants::EngineConstants;
+use crate::input::touch_controls::TouchControls;
 use crate::npc::{NPC, NPCTable};
 use crate::profile::GameProfile;
 use crate::rng::RNG;
 use crate::scene::game_scene::GameScene;
 use crate::scene::Scene;
+use crate::settings::Settings;
+use crate::shaders::Shaders;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
-use crate::texture_set::{TextureSet, g_mag};
-use crate::touch_controls::TouchControls;
+use crate::texture_set::{g_mag, TextureSet};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -80,51 +81,6 @@ impl Season {
     }
 }
 
-pub struct Settings {
-    pub god_mode: bool,
-    pub infinite_booster: bool,
-    pub speed: f64,
-    pub seasonal_textures: bool,
-    pub original_textures: bool,
-    pub shader_effects: bool,
-    pub motion_interpolation: bool,
-    pub debug_outlines: bool,
-    pub touch_controls: bool,
-}
-
-gfx_defines! {
-    constant WaterShaderParams {
-        resolution: [f32; 2] = "u_Resolution",
-        t: f32 = "u_Tick",
-    }
-}
-
-pub struct Shaders {
-    pub water_shader: Shader<WaterShaderParams>,
-    pub water_shader_params: WaterShaderParams,
-}
-
-impl Shaders {
-    pub fn new(ctx: &mut Context) -> GameResult<Shaders> {
-        let water_shader_params = WaterShaderParams {
-            t: 0.0,
-            resolution: [0.0, 0.0],
-        };
-
-        Ok(Shaders {
-            water_shader: Shader::new(
-                ctx,
-                "/builtin/shaders/basic_150.vert.glsl",
-                "/builtin/shaders/water_150.frag.glsl",
-                water_shader_params,
-                "WaterShaderParams",
-                None,
-            )?,
-            water_shader_params,
-        })
-    }
-}
-
 pub struct SharedGameState {
     pub timing_mode: TimingMode,
     pub control_flags: ControlFlags,
@@ -137,8 +93,6 @@ pub struct SharedGameState {
     pub quake_counter: u16,
     pub teleporter_slots: Vec<(u16, u16)>,
     pub carets: Vec<Caret>,
-    pub key_state: KeyState,
-    pub key_trigger: KeyState,
     pub touch_controls: TouchControls,
     pub base_path: String,
     pub npc_table: NPCTable,
@@ -162,7 +116,6 @@ pub struct SharedGameState {
     pub sound_manager: SoundManager,
     pub settings: Settings,
     pub shutdown: bool,
-    key_old: u16,
 }
 
 impl SharedGameState {
@@ -175,7 +128,7 @@ impl SharedGameState {
 
         let mut constants = EngineConstants::defaults();
         let mut base_path = "/";
-        let settings = SharedGameState::load_settings(ctx)?;
+        let settings = Settings::load(ctx)?;
 
         if filesystem::exists(ctx, "/base/Nicalis.bmp") {
             info!("Cave Story+ (PC) data files detected.");
@@ -213,8 +166,6 @@ impl SharedGameState {
             quake_counter: 0,
             teleporter_slots: Vec::with_capacity(8),
             carets: Vec::with_capacity(32),
-            key_state: KeyState(0),
-            key_trigger: KeyState(0),
             touch_controls: TouchControls::new(),
             base_path: str!(base_path),
             npc_table: NPCTable::new(),
@@ -238,21 +189,6 @@ impl SharedGameState {
             sound_manager: SoundManager::new(ctx)?,
             settings,
             shutdown: false,
-            key_old: 0,
-        })
-    }
-
-    fn load_settings(ctx: &mut Context) -> GameResult<Settings> {
-        Ok(Settings {
-            god_mode: false,
-            infinite_booster: false,
-            speed: 1.0,
-            seasonal_textures: true,
-            original_textures: false,
-            shader_effects: true,
-            motion_interpolation: true,
-            debug_outlines: false,
-            touch_controls: cfg!(target_os = "android"),
         })
     }
 
@@ -268,8 +204,8 @@ impl SharedGameState {
 
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
         let mut next_scene = GameScene::new(self, ctx, 13)?;
-        next_scene.player.x = 10 * 16 * 0x200;
-        next_scene.player.y = 8 * 16 * 0x200;
+        next_scene.player1.x = 10 * 16 * 0x200;
+        next_scene.player1.y = 8 * 16 * 0x200;
         self.fade_state = FadeState::Hidden;
         self.textscript_vm.state = TextScriptExecutionState::Running(200, 0);
 
@@ -280,9 +216,9 @@ impl SharedGameState {
 
     pub fn start_intro(&mut self, ctx: &mut Context) -> GameResult {
         let mut next_scene = GameScene::new(self, ctx, 72)?;
-        next_scene.player.cond.set_hidden(true);
-        next_scene.player.x = 3 * 16 * 0x200;
-        next_scene.player.y = 3 * 16 * 0x200;
+        next_scene.player1.cond.set_hidden(true);
+        next_scene.player1.x = 3 * 16 * 0x200;
+        next_scene.player1.y = 3 * 16 * 0x200;
         next_scene.intro_mode = true;
         self.fade_state = FadeState::Hidden;
         self.textscript_vm.state = TextScriptExecutionState::Running(100, 0);
@@ -334,9 +270,6 @@ impl SharedGameState {
         self.teleporter_slots.clear();
         self.quake_counter = 0;
         self.carets.clear();
-        self.key_state.0 = 0;
-        self.key_trigger.0 = 0;
-        self.key_old = 0;
         self.new_npcs.clear();
         self.textscript_vm.set_mode(ScriptMode::Map);
         self.textscript_vm.suspend = true;
@@ -351,13 +284,6 @@ impl SharedGameState {
         graphics::set_screen_coordinates(ctx, graphics::Rect::new(0.0, 0.0, self.screen_size.0, self.screen_size.1))?;
 
         Ok(())
-    }
-
-    pub fn update_key_trigger(&mut self) {
-        let mut trigger = self.key_state.0 ^ self.key_old;
-        trigger &= self.key_state.0;
-        self.key_old = self.key_state.0;
-        self.key_trigger = KeyState(trigger);
     }
 
     pub fn tick_carets(&mut self) {
