@@ -22,7 +22,7 @@ use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::frame::UpdateTarget;
 use crate::npc::NPCMap;
-use crate::player::ControlMode;
+use crate::player::{ControlMode, TargetPlayer};
 use crate::profile::GameProfile;
 use crate::scene::game_scene::GameScene;
 use crate::scene::title_scene::TitleScene;
@@ -267,7 +267,8 @@ pub enum OpCode {
     // ---- Cave Story+ (Switch) specific opcodes ----
     /// <HM2, HMC for player 2
     HM2,
-    /// <2MVxxxx, looks like MOV for player 2, purpose of xxxx operand is still unknown
+    /// <2MVxxxx, Move player 2, operand is either direction (for 0000-0003),
+    /// or event number/npc id/anything else?
     #[strum(serialize = "2MV")]
     S2MV,
     /// <INJxxxx:yyyy:zzzz, Jumps to event zzzz if amount of item xxxx equals yyyy
@@ -282,9 +283,9 @@ pub enum OpCode {
     PSH,
     /// <POP, Restores text script state from stack and resumes previous event.
     POP,
-    /// <KE2, Seen in ArmsItem.tsc, unknown purpose, related to puppies
+    /// <KEY related to player 2?
     KE2,
-    /// <FR2, likely related to <KE2, seen at end of events using it
+    /// <FRE related to player 2?
     FR2,
 
     // ---- Custom opcodes, for use by modders ----
@@ -364,6 +365,8 @@ pub struct TextScriptVM {
     pub stack: Vec<TextScriptExecutionState>,
     pub flags: TextScriptFlags,
     pub mode: ScriptMode,
+    /// The player who triggered the event.
+    pub trigger_player: TargetPlayer,
     /// Toggle for non-strict TSC parsing because English versions of CS+ (both AG and Nicalis release)
     /// modified the events carelessly and since original Pixel's engine hasn't enforced constraints
     /// while parsing no one noticed them.
@@ -446,16 +449,17 @@ impl TextScriptVM {
             },
             state: TextScriptExecutionState::Ended,
             stack: Vec::with_capacity(6),
+            flags: TextScriptFlags(0),
+            mode: ScriptMode::Map,
+            trigger_player: TargetPlayer::Player1,
             strict_mode: false,
             suspend: true,
-            flags: TextScriptFlags(0),
-            item: 0,
             face: 0,
+            item: 0,
             current_line: TextScriptLine::Line1,
             line_1: Vec::with_capacity(24),
             line_2: Vec::with_capacity(24),
             line_3: Vec::with_capacity(24),
-            mode: ScriptMode::Map,
         }
     }
 
@@ -704,6 +708,7 @@ impl TextScriptVM {
                         state.textscript_vm.stack.clear();
 
                         game_scene.player1.cond.set_interacted(false);
+                        game_scene.player2.cond.set_interacted(false);
                         game_scene.frame.update_target = UpdateTarget::Player;
 
                         exec_state = TextScriptExecutionState::Ended;
@@ -758,7 +763,11 @@ impl TextScriptVM {
                         let new_direction = read_cur_varint(&mut cursor)? as usize;
                         if let Some(direction) = Direction::from_int(new_direction) {
                             game_scene.player1.direction = direction;
+                            game_scene.player2.direction = direction;
                         }
+
+                        game_scene.player1.vel_x = 0;
+                        game_scene.player2.vel_x = 0;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -766,13 +775,26 @@ impl TextScriptVM {
                         let new_direction = read_cur_varint(&mut cursor)? as usize;
 
                         game_scene.player1.vel_y = -0x200;
+                        game_scene.player2.vel_y = -0x200;
 
                         if let Some(direction) = Direction::from_int_facing(new_direction) {
                             match direction {
-                                Direction::Left => game_scene.player1.vel_x = 0x200,
-                                Direction::Up => game_scene.player1.vel_y = -0x200,
-                                Direction::Right => game_scene.player1.vel_x = -0x200,
-                                Direction::Bottom => game_scene.player1.vel_y = 0x200,
+                                Direction::Left => {
+                                    game_scene.player1.vel_x = 0x200;
+                                    game_scene.player2.vel_x = 0x200;
+                                },
+                                Direction::Up => {
+                                    game_scene.player1.vel_y = -0x200;
+                                    game_scene.player2.vel_y = -0x200;
+                                },
+                                Direction::Right => {
+                                    game_scene.player1.vel_x = -0x200;
+                                    game_scene.player2.vel_x = -0x200;
+                                },
+                                Direction::Bottom => {
+                                    game_scene.player1.vel_y = 0x200;
+                                    game_scene.player2.vel_y = 0x200;
+                                },
                                 Direction::FacingPlayer => {
                                     // todo npc direction dependent bump
                                 }
@@ -936,6 +958,8 @@ impl TextScriptVM {
                         let life = read_cur_varint(&mut cursor)? as u16;
                         game_scene.player1.life += life;
                         game_scene.player1.max_life += life;
+                        game_scene.player2.life += life;
+                        game_scene.player2.max_life += life;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1009,11 +1033,17 @@ impl TextScriptVM {
                         let mut new_scene = GameScene::new(state, ctx, map_id)?;
                         new_scene.intro_mode = game_scene.intro_mode;
                         new_scene.inventory_player1 = game_scene.inventory_player1.clone();
+                        new_scene.inventory_player2 = game_scene.inventory_player2.clone();
                         new_scene.player1 = game_scene.player1.clone();
                         new_scene.player1.vel_x = 0;
                         new_scene.player1.vel_y = 0;
                         new_scene.player1.x = pos_x;
                         new_scene.player1.y = pos_y;
+                        new_scene.player2 = game_scene.player2.clone();
+                        new_scene.player2.vel_x = 0;
+                        new_scene.player2.vel_y = 0;
+                        new_scene.player2.x = pos_x;
+                        new_scene.player2.y = pos_y;
 
                         state.control_flags.set_tick_world(true);
                         state.textscript_vm.flags.0 = 0;
@@ -1037,6 +1067,24 @@ impl TextScriptVM {
                         game_scene.player1.vel_y = 0;
                         game_scene.player1.x = pos_x;
                         game_scene.player1.y = pos_y;
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::S2MV => {
+                        let param = read_cur_varint(&mut cursor)? as usize;
+
+                        match param {
+                            0 | 1 => {
+                                game_scene.player2.vel_x = 0;
+                                game_scene.player2.vel_y = 0;
+                                game_scene.player2.x = game_scene.player1.x
+                                    + if param == 0 { -16 * 0x200 } else { 16 * 0x200 };
+                                game_scene.player2.y = game_scene.player1.y;
+                            }
+                            _ => {
+                                log::warn!("stub: <2MV unknown param");
+                            }
+                        }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1428,7 +1476,7 @@ impl TextScriptVM {
                     // One operand codes
                     OpCode::NUM | OpCode::MPp | OpCode::SKm | OpCode::SKp |
                     OpCode::UNJ | OpCode::MPJ | OpCode::XX1 | OpCode::SIL |
-                    OpCode::SSS | OpCode::ACH | OpCode::S2MV => {
+                    OpCode::SSS | OpCode::ACH => {
                         let par_a = read_cur_varint(&mut cursor)?;
 
                         log::warn!("unimplemented opcode: {:?} {}", op, par_a);

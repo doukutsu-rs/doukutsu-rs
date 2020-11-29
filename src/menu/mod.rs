@@ -179,8 +179,6 @@ impl Menu {
     }
 
     pub fn tick(&mut self, controller: &mut CombinedMenuController, state: &mut SharedGameState) -> MenuSelectionResult {
-        controller.update_trigger();
-
         if controller.trigger_back() {
             state.sound_manager.play_sfx(5);
             return MenuSelectionResult::Canceled;
