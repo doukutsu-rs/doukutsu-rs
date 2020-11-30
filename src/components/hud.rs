@@ -12,6 +12,7 @@ pub struct HUD {
     pub alignment: Alignment,
     pub weapon_x_pos: usize,
     pub visible: bool,
+    pub has_player2: bool,
     ammo: u16,
     max_ammo: u16,
     xp: u16,
@@ -35,6 +36,7 @@ impl HUD {
             alignment,
             weapon_x_pos: 16,
             visible: false,
+            has_player2: false,
             ammo: 0,
             max_ammo: 0,
             xp: 0,
@@ -114,6 +116,14 @@ impl GameEntity<(&Player, &Inventory)> for HUD {
             Alignment::Left => (0.0, 0.0, 0.0),
             Alignment::Right => (state.canvas_size.0 - 112.0, state.canvas_size.0 - 48.0, state.canvas_size.0 - 104.0),
         };
+        let air_offset = if self.has_player2 {
+            50.0 * match self.alignment {
+                Alignment::Left => -1.0,
+                Alignment::Right => 1.0,
+            }
+        } else {
+            0.0
+        };
 
         if self.max_ammo == 0 {
             batch.add_rect(bar_offset + weap_x + 48.0, 16.0,
@@ -165,7 +175,7 @@ impl GameEntity<(&Player, &Inventory)> for HUD {
                 Rect::new_size(112, 80, 32, 8)
             };
 
-            batch.add_rect((state.canvas_size.0 / 2.0).floor() - 40.0,
+            batch.add_rect((state.canvas_size.0 / 2.0).floor() - 40.0 + air_offset,
                            (state.canvas_size.1 / 2.0).floor(), &rect);
         }
 
@@ -203,7 +213,7 @@ impl GameEntity<(&Player, &Inventory)> for HUD {
         batch.draw(ctx)?;
 
         if self.air_counter > 0 && self.air_counter % 6 < 4 {
-            draw_number((state.canvas_size.0 / 2.0).floor() + 8.0,
+            draw_number((state.canvas_size.0 / 2.0).floor() + 8.0 + air_offset,
                         (state.canvas_size.1 / 2.0).floor(),
                         (self.air / 10) as usize, Alignment::Left, state, ctx)?;
         }

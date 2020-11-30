@@ -74,7 +74,9 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n010_balrog_shooting(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n010_balrog_shooting(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -201,11 +203,13 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n012_balrog_cutscene(&mut self, state: &mut SharedGameState, player: &Player, map: &BTreeMap<u16, RefCell<NPC>>, stage: &mut Stage) -> GameResult {
+    pub(crate) fn tick_n012_balrog_cutscene(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], map: &BTreeMap<u16, RefCell<NPC>>, stage: &mut Stage) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
                     if self.direction == Direction::FacingPlayer {
+                        let player = self.get_closest_player_mut(players);
+
                         if self.x <= player.x {
                             self.direction = Direction::Right;
                         } else {
@@ -233,6 +237,8 @@ impl NPC {
             10 | 11 => {
                 if self.action_num == 10 {
                     if self.direction == Direction::FacingPlayer {
+                        let player = self.get_closest_player_mut(players);
+
                         if self.x <= player.x {
                             self.direction = Direction::Right;
                         } else {
@@ -269,6 +275,8 @@ impl NPC {
             20 | 21 => {
                 if self.action_num == 20 {
                     if self.direction == Direction::FacingPlayer {
+                        let player = self.get_closest_player_mut(players);
+
                         if self.x <= player.x {
                             self.direction = Direction::Right;
                         } else {
@@ -332,6 +340,8 @@ impl NPC {
             40 | 41 => {
                 if self.action_num == 40 {
                     if self.direction == Direction::FacingPlayer {
+                        let player = self.get_closest_player_mut(players);
+
                         if self.x <= player.x {
                             self.direction = Direction::Right;
                         } else {
@@ -354,6 +364,8 @@ impl NPC {
             42 | 43 => {
                 if self.action_num == 42 {
                     if self.direction == Direction::FacingPlayer {
+                        let player = self.get_closest_player_mut(players);
+
                         if self.x <= player.x {
                             self.direction = Direction::Right;
                         } else {
@@ -645,7 +657,9 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n036_balrog_hover(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n036_balrog_hover(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -799,7 +813,9 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n068_balrog_running(&mut self, state: &mut SharedGameState, player: &mut Player) -> GameResult {
+    pub(crate) fn tick_n068_balrog_running(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {

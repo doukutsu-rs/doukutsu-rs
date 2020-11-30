@@ -7,12 +7,14 @@ use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
-    pub(crate) fn tick_n029_cthulhu(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n029_cthulhu(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.anim_num = 0;
             self.anim_counter = 0;
         }
+
+        let player = self.get_closest_player_mut(players);
 
         if abs(self.x - player.x) < 48 * 0x200 && self.y - 48 * 0x200 < player.y && self.y + 16 * 0x200 > player.y {
             self.anim_num = 1;

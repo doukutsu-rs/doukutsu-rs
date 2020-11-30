@@ -92,6 +92,7 @@ bitfield! {
   pub credits_running, set_credits_running: 3; // 0x08
 
   // engine specific flags
+  pub friendly_fire, set_friendly_fire: 14;
   pub wind, set_wind: 15;
 }
 

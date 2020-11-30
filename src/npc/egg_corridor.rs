@@ -95,7 +95,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n005_green_critter(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n005_green_critter(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -104,6 +104,8 @@ impl NPC {
                     self.anim_num = 0;
                     self.anim_rect = state.constants.npc.n005_green_critter[self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
                 }
+
+                let player = self.get_closest_player_mut(players);
 
                 if self.x > player.x {
                     self.direction = Direction::Left;
@@ -307,9 +309,10 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n007_basil(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n007_basil(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 => {
+                let player = self.get_closest_player_mut(players);
                 self.x = player.x;
 
                 if self.direction == Direction::Left {
@@ -321,6 +324,7 @@ impl NPC {
             1 => {
                 self.vel_x -= 0x40;
 
+                let player = self.get_closest_player_mut(players);
                 if self.x < (player.x - 192 * 0x200) {
                     self.action_num = 2;
                 }
@@ -333,6 +337,7 @@ impl NPC {
             2 => {
                 self.vel_x += 0x40;
 
+                let player = self.get_closest_player_mut(players);
                 if self.x > (player.x + 192 * 0x200) {
                     self.action_num = 1;
                 }
@@ -368,9 +373,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n008_blue_beetle(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n008_blue_beetle(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 => {
+                let player = self.get_closest_player_mut(players);
+
                 if player.x < self.x + 16 * 0x200 && player.x > self.x - 16 * 0x200 {
                     self.npc_flags.set_shootable(true);
                     self.vel_y = -0x100;
@@ -401,6 +408,8 @@ impl NPC {
                 }
             }
             1 => {
+                let player = self.get_closest_player_mut(players);
+
                 if self.x > player.x {
                     self.direction = Direction::Left;
                     self.vel_x -= 0x10;
@@ -535,7 +544,9 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n058_basu(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n058_basu(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
         match self.action_num {
             0 => {
                 if player.x < self.x + 16 * 0x200 && player.x > self.x - 16 * 0x200 {

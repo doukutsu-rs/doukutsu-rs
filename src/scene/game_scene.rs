@@ -18,7 +18,7 @@ use crate::frame::{Frame, UpdateTarget};
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::npc::{NPC, NPCMap};
 use crate::physics::PhysicalEntity;
-use crate::player::{Player, PlayerAppearance};
+use crate::player::{Player, PlayerAppearance, TargetPlayer};
 use crate::rng::RNG;
 use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
@@ -962,8 +962,18 @@ impl GameScene {
     }
 
     fn tick_world(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.hud_player1.has_player2 = !self.player2.cond.hidden();
+        self.hud_player2.has_player2 = self.hud_player1.has_player2;
+
         self.player1.current_weapon = {
             if let Some(weapon) = self.inventory_player1.get_current_weapon_mut() {
+                weapon.wtype as u8
+            } else {
+                0
+            }
+        };
+        self.player2.current_weapon = {
+            if let Some(weapon) = self.inventory_player2.get_current_weapon_mut() {
                 weapon.wtype as u8
             } else {
                 0
@@ -996,11 +1006,13 @@ impl GameScene {
             self.player2.damage = 0;
         }
 
-        for npc_cell in self.npc_map.npcs.values() {
-            let mut npc = npc_cell.borrow_mut();
+        {
+            for npc_cell in self.npc_map.npcs.values() {
+                let mut npc = npc_cell.borrow_mut();
 
-            if npc.cond.alive() {
-                npc.tick(state, (&mut self.player1, &self.npc_map.npcs, &mut self.stage))?;
+                if npc.cond.alive() {
+                    npc.tick(state, ([&mut self.player1, &mut self.player2], &self.npc_map.npcs, &mut self.stage))?;
+                }
             }
         }
         self.npc_map.boss_map.tick(state, (&mut self.player1, &self.npc_map.npcs, &mut self.stage))?;
@@ -1008,10 +1020,10 @@ impl GameScene {
         self.npc_map.garbage_collect();
 
         self.player1.tick_map_collisions(state, &mut self.stage);
-        self.player1.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory_player1);
+        self.player1.tick_npc_collisions(TargetPlayer::Player1, state, &mut self.npc_map, &mut self.inventory_player1);
 
         self.player2.tick_map_collisions(state, &mut self.stage);
-        self.player2.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory_player2);
+        self.player2.tick_npc_collisions(TargetPlayer::Player2, state, &mut self.npc_map, &mut self.inventory_player2);
 
         for npc_cell in self.npc_map.npcs.values() {
             let mut npc = npc_cell.borrow_mut();
@@ -1036,8 +1048,13 @@ impl GameScene {
 
         match self.frame.update_target {
             UpdateTarget::Player => {
-                self.frame.target_x = self.player1.target_x;
-                self.frame.target_y = self.player1.target_y;
+                if !self.player2.cond.hidden() {
+                    self.frame.target_x = (self.player1.target_x + self.player2.target_x) / 2;
+                    self.frame.target_y = (self.player1.target_y + self.player2.target_y) / 2;
+                } else {
+                    self.frame.target_x = self.player1.target_x;
+                    self.frame.target_y = self.player1.target_y;
+                }
             }
             UpdateTarget::NPC(npc_id) => {
                 if let Some(npc_cell) = self.npc_map.npcs.get(&npc_id) {

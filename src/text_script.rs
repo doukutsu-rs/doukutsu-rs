@@ -366,7 +366,7 @@ pub struct TextScriptVM {
     pub flags: TextScriptFlags,
     pub mode: ScriptMode,
     /// The player who triggered the event.
-    pub trigger_player: TargetPlayer,
+    pub executor_player: TargetPlayer,
     /// Toggle for non-strict TSC parsing because English versions of CS+ (both AG and Nicalis release)
     /// modified the events carelessly and since original Pixel's engine hasn't enforced constraints
     /// while parsing no one noticed them.
@@ -451,7 +451,7 @@ impl TextScriptVM {
             stack: Vec::with_capacity(6),
             flags: TextScriptFlags(0),
             mode: ScriptMode::Map,
-            trigger_player: TargetPlayer::Player1,
+            executor_player: TargetPlayer::Player1,
             strict_mode: false,
             suspend: true,
             face: 0,
@@ -805,11 +805,13 @@ impl TextScriptVM {
                     }
                     OpCode::SMC => {
                         game_scene.player1.cond.set_hidden(false);
+                        game_scene.player2.cond.set_hidden(false);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::HMC => {
                         game_scene.player1.cond.set_hidden(true);
+                        game_scene.player2.cond.set_hidden(true);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1063,23 +1065,29 @@ impl TextScriptVM {
                         let pos_x = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
                         let pos_y = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
 
-                        game_scene.player1.vel_x = 0;
-                        game_scene.player1.vel_y = 0;
-                        game_scene.player1.x = pos_x;
-                        game_scene.player1.y = pos_y;
+                        for player in [&mut game_scene.player1, &mut game_scene.player2].iter_mut() {
+                            player.vel_x = 0;
+                            player.vel_y = 0;
+                            player.x = pos_x;
+                            player.y = pos_y;
+                        }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::S2MV => {
                         let param = read_cur_varint(&mut cursor)? as usize;
 
+                        let (executor, partner) = match state.textscript_vm.executor_player {
+                            TargetPlayer::Player1 => (&game_scene.player1, &mut game_scene.player2),
+                            TargetPlayer::Player2 => (&game_scene.player2, &mut game_scene.player1),
+                        };
+
                         match param {
                             0 | 1 => {
-                                game_scene.player2.vel_x = 0;
-                                game_scene.player2.vel_y = 0;
-                                game_scene.player2.x = game_scene.player1.x
-                                    + if param == 0 { -16 * 0x200 } else { 16 * 0x200 };
-                                game_scene.player2.y = game_scene.player1.y;
+                                partner.vel_x = 0;
+                                partner.vel_y = 0;
+                                partner.x = executor.x + if param == 0 { -16 * 0x200 } else { 16 * 0x200 };
+                                partner.y = executor.y;
                             }
                             _ => {
                                 log::warn!("stub: <2MV unknown param");
@@ -1368,6 +1376,7 @@ impl TextScriptVM {
                         let life = read_cur_varint(&mut cursor)? as u16;
 
                         game_scene.player1.life = clamp(game_scene.player1.life + life, 0, game_scene.player1.max_life);
+                        game_scene.player2.life = clamp(game_scene.player2.life + life, 0, game_scene.player2.max_life);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1376,6 +1385,10 @@ impl TextScriptVM {
 
                         if !game_scene.inventory_player1.has_item(item_id) {
                             game_scene.inventory_player1.add_item(item_id);
+                        }
+
+                        if !game_scene.inventory_player2.has_item(item_id) {
+                            game_scene.inventory_player2.add_item(item_id);
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1388,12 +1401,17 @@ impl TextScriptVM {
                             game_scene.inventory_player1.add_item(item_id);
                         }
 
+                        if game_scene.inventory_player2.has_item_amount(item_id, Ordering::Less, amount) {
+                            game_scene.inventory_player2.add_item(item_id);
+                        }
+
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::ITm => {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
 
                         game_scene.inventory_player1.consume_item(item_id);
+                        game_scene.inventory_player2.consume_item(item_id);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1404,6 +1422,7 @@ impl TextScriptVM {
 
                         if let Some(wtype) = weapon_type {
                             game_scene.inventory_player1.add_weapon(wtype, max_ammo);
+                            game_scene.inventory_player2.add_weapon(wtype, max_ammo);
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1414,17 +1433,20 @@ impl TextScriptVM {
 
                         if let Some(wtype) = weapon_type {
                             game_scene.inventory_player1.remove_weapon(wtype);
+                            game_scene.inventory_player2.remove_weapon(wtype);
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::AEp => {
                         game_scene.inventory_player1.refill_all_ammo();
+                        game_scene.inventory_player2.refill_all_ammo();
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::ZAM => {
                         game_scene.inventory_player1.reset_all_weapon_xp();
+                        game_scene.inventory_player2.reset_all_weapon_xp();
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1512,7 +1534,7 @@ impl TextScriptVM {
 
         if tick_npc != 0 {
             if let Some(npc) = game_scene.npc_map.npcs.get(&tick_npc) {
-                npc.borrow_mut().tick(state, (&mut game_scene.player1, &game_scene.npc_map.npcs, &mut game_scene.stage))?;
+                npc.borrow_mut().tick(state, ([&mut game_scene.player1, &mut game_scene.player2], &game_scene.npc_map.npcs, &mut game_scene.stage))?;
             }
         }
 
