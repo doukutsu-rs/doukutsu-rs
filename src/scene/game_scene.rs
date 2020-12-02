@@ -59,8 +59,10 @@ pub enum TileLayer {
     Snack,
 }
 
-static FACE_TEX: &str = "Face";
-static SWITCH_FACE_TEX: [&str; 4] = ["Face1", "Face2", "Face3", "Face4"];
+const FACE_TEX: &str = "Face";
+const SWITCH_FACE_TEX: [&str; 4] = ["Face1", "Face2", "Face3", "Face4"];
+const P2_LEFT_TEXT: &str = "< P2";
+const P2_RIGHT_TEXT: &str = "P2 >";
 
 impl GameScene {
     pub fn new(state: &mut SharedGameState, ctx: &mut Context, id: usize) -> GameResult<Self> {
@@ -1051,6 +1053,12 @@ impl GameScene {
                 if !self.player2.cond.hidden() {
                     self.frame.target_x = (self.player1.target_x + self.player2.target_x) / 2;
                     self.frame.target_y = (self.player1.target_y + self.player2.target_y) / 2;
+
+                    let up = if self.player1.up { 0x10000 } else { 0x8000 };
+                    let down = if self.player1.down { 0x10000 } else { 0x8000 };
+
+                    self.frame.target_x = clamp(self.frame.target_x, self.player1.x - 0x8000, self.player1.x + 0x8000);
+                    self.frame.target_y = clamp(self.frame.target_y, self.player1.y - down, self.player1.y + up);
                 } else {
                     self.frame.target_x = self.player1.target_x;
                     self.frame.target_y = self.player1.target_y;
@@ -1366,6 +1374,30 @@ impl Scene for GameScene {
             self.hud_player1.draw(state, ctx, &self.frame)?;
             self.hud_player2.draw(state, ctx, &self.frame)?;
             self.boss_life_bar.draw(state, ctx, &self.frame)?;
+
+            if !self.player2.cond.hidden() {
+                let y = interpolate_fix9_scale(self.player2.prev_y - self.frame.prev_y, self.player2.y - self.frame.y, state.frame_time);
+
+                if self.player2.x + 8 * 0x200 < self.frame.x {
+                    state.font.draw_colored_text(P2_LEFT_TEXT.chars(),
+                                                 9.0, y + 1.0,
+                                                 (0, 0, 100), &state.constants, &mut state.texture_set, ctx)?;
+
+                    state.font.draw_colored_text(P2_LEFT_TEXT.chars(),
+                                                 8.0, y,
+                                                 (64, 64, 255), &state.constants, &mut state.texture_set, ctx)?;
+                } else if self.player2.x - 8 * 0x200 > self.frame.x + state.canvas_size.0 as isize * 0x200 {
+                    let width = state.font.text_width(P2_RIGHT_TEXT.chars(), &state.constants);
+
+                    state.font.draw_colored_text(P2_RIGHT_TEXT.chars(),
+                                                 state.canvas_size.0 - width - 8.0 + 1.0, y + 1.0,
+                                                 (0, 0, 100), &state.constants, &mut state.texture_set, ctx)?;
+
+                    state.font.draw_colored_text(P2_RIGHT_TEXT.chars(),
+                                                 state.canvas_size.0 - width - 8.0, y,
+                                                 (64, 64, 255), &state.constants, &mut state.texture_set, ctx)?;
+                }
+            }
         }
 
         if state.textscript_vm.mode == ScriptMode::StageSelect {
