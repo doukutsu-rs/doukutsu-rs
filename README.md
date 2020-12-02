@@ -66,7 +66,7 @@ Because methods used to extract game data from cartridge vary, you have to find 
   - [x] First Cave
   - [x] Mimiga Village
   - [x] Egg Corridor
-  - [ ] Grasstown (~90% done)
+  - [x] Grasstown
   - [ ] Sand Zone (~10% done)
   - [ ] Labirynth (~10% done)
   - [ ] Outer Wall
@@ -101,6 +101,7 @@ Because methods used to extract game data from cartridge vary, you have to find 
     - [ ] Wind Fortress (~40%)
     - [ ] Boss Run
     - [x] Seasonal graphics
+    - [ ] Co-op gameplay (~70%)
     - [ ] Remastered soundtrack
 
 *(tbd)*
