@@ -49,6 +49,10 @@ impl BMFontRenderer {
         })
     }
 
+    pub fn line_height(&self, constants: &EngineConstants) -> f32 {
+        self.font.line_height as f32 * constants.font_scale
+    }
+
     pub fn text_width<I: Iterator<Item=char>>(&self, iter: I, constants: &EngineConstants) -> f32 {
         let mut offset_x = 0.0;
 

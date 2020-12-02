@@ -5,6 +5,7 @@ use ggez::graphics::{BlendMode, Color, Drawable, DrawParam, FilterMode, mint};
 use ggez::graphics::spritebatch::SpriteBatch;
 use ggez::nalgebra::{clamp, Vector2};
 use log::info;
+use num_traits::abs;
 
 use crate::bullet::BulletManager;
 use crate::caret::CaretType;
@@ -1050,15 +1051,14 @@ impl GameScene {
 
         match self.frame.update_target {
             UpdateTarget::Player => {
-                if !self.player2.cond.hidden() {
+                if !self.player2.cond.hidden()
+                    && abs(self.player1.target_x - self.player2.x) < 200 * 0x200
+                    && abs(self.player1.target_y - self.player2.y) < 160 * 0x200 {
                     self.frame.target_x = (self.player1.target_x + self.player2.target_x) / 2;
                     self.frame.target_y = (self.player1.target_y + self.player2.target_y) / 2;
 
-                    let up = if self.player1.up { 0x10000 } else { 0x8000 };
-                    let down = if self.player1.down { 0x10000 } else { 0x8000 };
-
                     self.frame.target_x = clamp(self.frame.target_x, self.player1.x - 0x8000, self.player1.x + 0x8000);
-                    self.frame.target_y = clamp(self.frame.target_y, self.player1.y - down, self.player1.y + up);
+                    self.frame.target_y = clamp(self.frame.target_y, self.player1.y, self.player1.y);
                 } else {
                     self.frame.target_x = self.player1.target_x;
                     self.frame.target_y = self.player1.target_y;
@@ -1377,25 +1377,26 @@ impl Scene for GameScene {
 
             if !self.player2.cond.hidden() {
                 let y = interpolate_fix9_scale(self.player2.prev_y - self.frame.prev_y, self.player2.y - self.frame.y, state.frame_time);
+                let y = clamp(y, 8.0, state.canvas_size.1 - 8.0 - state.font.line_height(&state.constants));
 
                 if self.player2.x + 8 * 0x200 < self.frame.x {
                     state.font.draw_colored_text(P2_LEFT_TEXT.chars(),
                                                  9.0, y + 1.0,
-                                                 (0, 0, 100), &state.constants, &mut state.texture_set, ctx)?;
+                                                 (0, 0, 130), &state.constants, &mut state.texture_set, ctx)?;
 
                     state.font.draw_colored_text(P2_LEFT_TEXT.chars(),
                                                  8.0, y,
-                                                 (64, 64, 255), &state.constants, &mut state.texture_set, ctx)?;
+                                                 (96, 96, 255), &state.constants, &mut state.texture_set, ctx)?;
                 } else if self.player2.x - 8 * 0x200 > self.frame.x + state.canvas_size.0 as isize * 0x200 {
                     let width = state.font.text_width(P2_RIGHT_TEXT.chars(), &state.constants);
 
                     state.font.draw_colored_text(P2_RIGHT_TEXT.chars(),
                                                  state.canvas_size.0 - width - 8.0 + 1.0, y + 1.0,
-                                                 (0, 0, 100), &state.constants, &mut state.texture_set, ctx)?;
+                                                 (0, 0, 130), &state.constants, &mut state.texture_set, ctx)?;
 
                     state.font.draw_colored_text(P2_RIGHT_TEXT.chars(),
                                                  state.canvas_size.0 - width - 8.0, y,
-                                                 (64, 64, 255), &state.constants, &mut state.texture_set, ctx)?;
+                                                 (96, 96, 255), &state.constants, &mut state.texture_set, ctx)?;
                 }
             }
         }

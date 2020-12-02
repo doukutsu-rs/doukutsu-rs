@@ -477,12 +477,12 @@ impl Player {
         // camera
         self.index_x = clamp(self.index_x + self.direction.vector_x() * 0x200, -0x8000, 0x8000);
 
-        if state.control_flags.control_enabled() && self.controller.move_up() {
+        if state.control_flags.control_enabled() && self.controller.look_up() {
             self.index_y -= 0x200; // 1.0fix9
             if self.index_y < -0x8000 { // -64.0fix9
                 self.index_y = -0x8000;
             }
-        } else if state.control_flags.control_enabled() && self.controller.move_down() {
+        } else if state.control_flags.control_enabled() && self.controller.look_down() {
             self.index_y += 0x200; // 1.0fix9
             if self.index_y > 0x8000 { // -64.0fix9
                 self.index_y = 0x8000;
