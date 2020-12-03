@@ -692,8 +692,8 @@ impl NPC {
                 }
 
                 {
-                    let player = self.get_closest_player_mut(players);
-                    if abs(player.x - self.x) < 480 * 0x200 && abs(player.y - self.y) < 240 * 0x200
+                    let i = self.get_closest_player_idx_mut(&players);
+                    if abs(players[i].x - self.x) < 480 * 0x200 && abs(players[i].y - self.y) < 240 * 0x200
                         && state.game_rng.range(0..5) == 1 {
                         let mut particle = NPCMap::create_npc(199, &state.npc_table);
                         particle.cond.set_alive(true);
@@ -745,8 +745,8 @@ impl NPC {
                 }
 
                 {
-                    let player = self.get_closest_player_mut(players);
-                    if abs(player.x - self.x) < 480 * 0x200 && abs(player.y - self.y) < 240 * 0x200
+                    let i = self.get_closest_player_idx_mut(&players);
+                    if abs(players[i].x - self.x) < 480 * 0x200 && abs(players[i].y - self.y) < 240 * 0x200
                         && state.game_rng.range(0..5) == 1 {
                         let mut particle = NPCMap::create_npc(199, &state.npc_table);
                         particle.cond.set_alive(true);
@@ -797,8 +797,8 @@ impl NPC {
                 }
 
                 {
-                    let player = self.get_closest_player_mut(players);
-                    if abs(player.x - self.x) < 480 * 0x200 && abs(player.y - self.y) < 240 * 0x200
+                    let i = self.get_closest_player_idx_mut(&players);
+                    if abs(players[i].x - self.x) < 480 * 0x200 && abs(players[i].y - self.y) < 240 * 0x200
                         && state.game_rng.range(0..5) == 1 {
                         let mut particle = NPCMap::create_npc(199, &state.npc_table);
                         particle.cond.set_alive(true);
@@ -846,8 +846,8 @@ impl NPC {
                 }
 
                 {
-                    let player = self.get_closest_player_mut(players);
-                    if abs(player.x - self.x) < 480 * 0x200 && abs(player.y - self.y) < 240 * 0x200
+                    let i = self.get_closest_player_idx_mut(&players);
+                    if abs(players[i].x - self.x) < 480 * 0x200 && abs(players[i].y - self.y) < 240 * 0x200
                         && state.game_rng.range(0..5) == 1 {
                         let mut particle = NPCMap::create_npc(199, &state.npc_table);
                         particle.cond.set_alive(true);
