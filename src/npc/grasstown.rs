@@ -504,7 +504,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n094_kulala(&mut self, state: &SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n094_kulala(&mut self, state: &SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 => {
                 self.anim_num = 4;
@@ -587,6 +587,8 @@ impl NPC {
 
                 self.vel_x += self.direction.vector_x() * 0x80;
             } else {
+                let player = self.get_closest_player_mut(players);
+
                 self.vel_x2 = 50;
                 self.direction = if self.x > player.x {
                     Direction::Left

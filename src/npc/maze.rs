@@ -1,7 +1,7 @@
+use ggez::GameResult;
 use num_traits::{abs, clamp};
 
 use crate::common::Direction;
-use ggez::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
@@ -14,7 +14,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n361_gaudi_dashing(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n361_gaudi_dashing(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -23,6 +23,7 @@ impl NPC {
                     self.action_num = 1;
                 }
 
+                let player = self.get_closest_player_mut(players);
                 if (self.direction == Direction::Right && player.x > self.x + 272 * 0x200 && player.x < self.x + 288 * 0x200)
                     || (self.direction == Direction::Left && player.x < self.x - 272 * 0x200 && player.x > self.x - 288 * 0x200) {
                     self.action_num = 10;
@@ -37,6 +38,7 @@ impl NPC {
                     self.damage = 5;
                 }
 
+                let player = self.get_closest_player_mut(players);
                 if self.x > player.x {
                     self.direction = Direction::Left;
                 } else {

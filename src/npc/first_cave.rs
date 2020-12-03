@@ -7,15 +7,14 @@ use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
-    pub(crate) fn tick_n059_eye_door(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
-        self.npc_flags.set_event_when_touched(true);
-
+    pub(crate) fn tick_n059_eye_door(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
                     self.action_num = 1;
                 }
 
+                let player = self.get_closest_player_mut(players);
                 if self.x - (64 * 0x200) < player.x
                     && self.x + (64 * 0x200) > player.x
                     && self.y - (64 * 0x200) < player.y
@@ -36,6 +35,7 @@ impl NPC {
                 }
             }
             3 => {
+                let player = self.get_closest_player_mut(players);
                 if !(self.x - (64 * 0x200) < player.x
                     && self.x + (64 * 0x200) > player.x
                     && self.y - (64 * 0x200) < player.y
@@ -67,7 +67,7 @@ impl NPC {
     }
 
 
-    pub(crate) fn tick_n064_first_cave_critter(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n064_first_cave_critter(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -77,6 +77,7 @@ impl NPC {
                     self.anim_rect = state.constants.npc.n064_first_cave_critter[self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
                 }
 
+                let player = self.get_closest_player_mut(players);
                 if self.x > player.x {
                     self.direction = Direction::Left;
                 } else {
@@ -180,7 +181,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n065_first_cave_bat(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n065_first_cave_bat(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -199,6 +200,7 @@ impl NPC {
                 }
             }
             2 => {
+                let player = self.get_closest_player_mut(players);
                 if self.x > player.x {
                     self.direction = Direction::Left;
                 } else {

@@ -1,9 +1,9 @@
 use std::cmp::Ordering;
 
+use ggez::GameResult;
 use num_traits::{abs, clamp};
 
 use crate::common::Direction;
-use ggez::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
@@ -154,7 +154,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n075_kanpachi(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n075_kanpachi(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.anim_num = 0;
@@ -162,6 +162,7 @@ impl NPC {
         }
 
         if self.action_num == 1 {
+            let player = self.get_closest_player_mut(players);
             if (self.x - (48 * 0x200) < player.x) && (self.x + (48 * 0x200) > player.x)
                 && (self.y - (48 * 0x200) < player.y) && (self.y + (48 * 0x200) > player.y) {
                 self.anim_num = 1;
@@ -471,7 +472,7 @@ impl NPC {
             self.y += 16 * 0x200;
             self.anim_rect = state.constants.npc.n091_mimiga_cage;
         }
-        
+
         Ok(())
     }
 }

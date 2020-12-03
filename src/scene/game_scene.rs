@@ -1052,10 +1052,10 @@ impl GameScene {
         match self.frame.update_target {
             UpdateTarget::Player => {
                 if !self.player2.cond.hidden()
-                    && abs(self.player1.target_x - self.player2.x) < 200 * 0x200
-                    && abs(self.player1.target_y - self.player2.y) < 160 * 0x200 {
-                    self.frame.target_x = (self.player1.target_x + self.player2.target_x) / 2;
-                    self.frame.target_y = (self.player1.target_y + self.player2.target_y) / 2;
+                    && abs(self.player1.x - self.player2.x) < 240 * 0x200
+                    && abs(self.player1.y - self.player2.y) < 200 * 0x200 {
+                    self.frame.target_x = (self.player1.target_x * 2 + self.player2.target_x) / 3;
+                    self.frame.target_y = (self.player1.target_y * 2 + self.player2.target_y) / 3;
 
                     self.frame.target_x = clamp(self.frame.target_x, self.player1.x - 0x8000, self.player1.x + 0x8000);
                     self.frame.target_y = clamp(self.frame.target_y, self.player1.y, self.player1.y);
