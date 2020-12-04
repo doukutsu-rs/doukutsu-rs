@@ -24,7 +24,6 @@ impl StageSelect {
 
     pub fn reset(&mut self) {
         self.stage_select_text_y_pos = 54;
-        self.current_teleport_slot = 0;
         self.tick = 0;
     }
 }
@@ -34,6 +33,10 @@ impl GameEntity<(&Player, &Player)> for StageSelect {
         let slot_count = state.teleporter_slots.iter()
             .filter(|&&(index, _event_num)| index != 0)
             .count();
+
+        if slot_count <= self.current_teleport_slot as usize {
+            self.current_teleport_slot = 0;
+        }
 
         if self.stage_select_text_y_pos > 46 {
             self.stage_select_text_y_pos -= 1;
