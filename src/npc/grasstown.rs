@@ -757,7 +757,7 @@ impl NPC {
 
     pub(crate) fn tick_n103_mannan_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
-            self.action_num == 1;
+            self.action_num = 1;
         }
 
         self.vel_x += self.direction.vector_x() * 0x20;
