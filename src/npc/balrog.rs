@@ -813,9 +813,8 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n068_balrog_running(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
-        let player = self.get_closest_player_mut(players);
-
+    /// note: vel_y2 stores currently caught player
+    pub(crate) fn tick_n068_balrog_running(&mut self, state: &mut SharedGameState, mut players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -823,6 +822,7 @@ impl NPC {
                     self.anim_num = 0;
                     self.action_counter = 30;
 
+                    let player = self.get_closest_player_mut(players);
                     if self.x > player.x {
                         self.direction = Direction::Left;
                     } else {
@@ -861,12 +861,14 @@ impl NPC {
 
                 self.vel_x += 0x10 * self.direction.vector_x(); // 0.03125fix9
 
-                if self.action_counter >= 8 && (player.x - self.x).abs() < 12 * 0x200 // 12.0fix9
-                    && self.y - 12 * 0x200 < player.y && self.y + 8 * 0x200 > player.y { // 12.0fix9 / 8.0fix9
+                let pi = self.get_closest_player_idx_mut(&players);
+                if self.action_counter >= 8 && (players[pi].x - self.x).abs() < 12 * 0x200 // 12.0fix9
+                    && self.y - 12 * 0x200 < players[pi].y && self.y + 8 * 0x200 > players[pi].y { // 12.0fix9 / 8.0fix9
                     self.action_num = 10;
                     self.anim_num = 5;
-                    player.cond.set_hidden(true);
-                    player.damage(2, state);
+                    self.vel_y2 = pi as isize;
+                    players[pi].cond.set_hidden(true);
+                    players[pi].damage(2, state);
                 } else {
                     self.action_counter += 1;
 
@@ -888,12 +890,14 @@ impl NPC {
                     state.sound_manager.play_sfx(26);
                 }
 
-                if self.action_counter >= 8 && (player.x - self.x).abs() < 12 * 0x200
-                    && self.y - 12 * 0x200 < player.y && self.y + 8 * 0x200 > player.y {
+                let pi = self.get_closest_player_idx_mut(&players);
+                if self.action_counter >= 8 && (players[pi].x - self.x).abs() < 12 * 0x200
+                    && self.y - 12 * 0x200 < players[pi].y && self.y + 8 * 0x200 > players[pi].y {
                     self.action_num = 10;
                     self.anim_num = 5;
-                    player.cond.set_hidden(true);
-                    player.damage(2, state);
+                    self.vel_y2 = pi as isize;
+                    players[pi].cond.set_hidden(true);
+                    players[pi].damage(2, state);
                 }
             }
             9 => {
@@ -904,6 +908,7 @@ impl NPC {
                 }
             }
             10 => {
+                let player = &mut players[self.vel_y2 as usize];
                 player.x = self.x;
                 player.y = self.y;
 
@@ -917,6 +922,7 @@ impl NPC {
                 }
             }
             11 => {
+                let player = &mut players[self.vel_y2 as usize];
                 player.x = self.x;
                 player.y = self.y;
 
@@ -937,6 +943,7 @@ impl NPC {
             }
             20 | 21 => {
                 if self.action_num == 20 {
+                    let player = &mut players[self.vel_y2 as usize];
                     state.sound_manager.play_sfx(25);
                     player.cond.set_hidden(false);
 
