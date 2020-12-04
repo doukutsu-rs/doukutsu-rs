@@ -1,7 +1,7 @@
 use num_traits::clamp;
 
 use crate::caret::CaretType;
-use crate::common::{Condition, Direction, Flag, Rect};
+use crate::common::{BulletFlag, Condition, Direction, Flag, Rect};
 use crate::engine_constants::{BulletData, EngineConstants};
 use crate::npc::NPCMap;
 use crate::physics::{OFF_X, OFF_Y, PhysicalEntity};
@@ -61,7 +61,7 @@ pub struct Bullet {
     pub lifetime: u16,
     pub damage: u16,
     pub cond: Condition,
-    pub weapon_flags: Flag,
+    pub weapon_flags: BulletFlag,
     pub flags: Flag,
     pub direction: Direction,
     pub anim_rect: Rect<u16>,
@@ -83,7 +83,7 @@ impl Bullet {
                 damage: 0,
                 life: 0,
                 lifetime: 0,
-                flags: Flag(0),
+                flags: BulletFlag(0),
                 enemy_hit_width: 0,
                 enemy_hit_height: 0,
                 block_hit_width: 0,
@@ -160,7 +160,6 @@ impl Bullet {
         }
 
         self.anim_num = (self.anim_num + 1) % 3;
-
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
 
@@ -397,7 +396,7 @@ impl Bullet {
         let block_y = (y * 16 + 8) * 0x200;
 
         for (i, &attr) in hit_attribs.iter().enumerate() {
-            if self.weapon_flags.snack_destroy() {
+            if self.weapon_flags.flag_x40() {
                 hits[i] = attr == 0x41 || attr == 0x61;
             } else {
                 hits[i] = attr == 0x41 || attr == 0x43 || attr == 0x61;
@@ -468,15 +467,15 @@ impl Bullet {
             self.flags.set_hit_bottom_wall(true);
         }
 
-        if self.weapon_flags.hit_bottom_wall() {
+        if self.weapon_flags.flag_x08() {
             if self.flags.hit_left_wall() {
                 self.x = block_x + self.hit_bounds.right as isize;
             } else if self.flags.hit_right_wall() {
-                self.x = block_x + self.hit_bounds.left as isize;
-            } else if self.flags.hit_left_wall() {
-                self.x = block_x + self.hit_bounds.right as isize;
-            } else if self.flags.hit_right_wall() {
-                self.x = block_x + self.hit_bounds.left as isize;
+                self.x = block_x - self.hit_bounds.left as isize;
+            } else if self.flags.hit_top_wall() {
+                self.y = block_y + self.hit_bounds.bottom as isize;
+            } else if self.flags.hit_bottom_wall() {
+                self.y = block_y - self.hit_bounds.top as isize;
             }
         } else if self.flags.hit_left_wall() || self.flags.hit_top_wall()
             || self.flags.hit_right_wall() || self.flags.hit_bottom_wall() {
@@ -566,14 +565,14 @@ impl PhysicalEntity for Bullet {
     }
 
     fn tick_map_collisions(&mut self, state: &mut SharedGameState, stage: &mut Stage) {
+        self.flags().0 = 0;
+        if self.weapon_flags.flag_x04() { // ???
+            return;
+        }
+
         let x = clamp(self.x() / 16 / 0x200, 0, stage.map.width as isize);
         let y = clamp(self.y() / 16 / 0x200, 0, stage.map.height as isize);
         let mut hit_attribs = [0u8; 4];
-
-        self.flags().0 = 0;
-        if self.weapon_flags.hit_right_wall() { // ???
-            return;
-        }
 
         for (idx, (&ox, &oy)) in OFF_X.iter().zip(OFF_Y.iter()).enumerate() {
             if idx == 4 || !self.cond.alive() {
@@ -589,10 +588,12 @@ impl PhysicalEntity for Bullet {
                     self.judge_hit_block(state, x + ox, y + oy);
                 }
                 0x43 => {
+                    let old_hit = self.flags;
+                    self.flags.0 = 0;
                     self.judge_hit_block(state, x + ox, y + oy);
 
-                    if self.flags.0 != 0 && (self.weapon_flags.hit_left_slope() || self.weapon_flags.snack_destroy()) {
-                        if !self.weapon_flags.snack_destroy() {
+                    if self.flags.weapon_hit_block() && (self.weapon_flags.flag_x20() || self.weapon_flags.flag_x40()) {
+                        if !self.weapon_flags.flag_x40() {
                             self.cond.set_alive(false);
                         }
 
@@ -616,6 +617,8 @@ impl PhysicalEntity for Bullet {
                             *tile = tile.wrapping_sub(1);
                         }
                     }
+
+                    self.flags.0 |= old_hit.0;
                 }
                 // Slopes
                 0x50 | 0x70 => {

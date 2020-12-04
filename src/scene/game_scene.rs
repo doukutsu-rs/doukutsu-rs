@@ -860,7 +860,7 @@ impl GameScene {
                             // todo show damage
                         }
                     }
-                } else if !bullet.weapon_flags.hit_right_slope()
+                } else if !bullet.weapon_flags.flag_x10()
                     && bullet.btype != 13 && bullet.btype != 14 && bullet.btype != 15
                     && bullet.btype != 28 && bullet.btype != 29 && bullet.btype != 30 {
                     state.create_caret((bullet.x + npc.x) / 2, (bullet.y + npc.y) / 2, CaretType::ProjectileDissipation, Direction::Right);
@@ -957,7 +957,7 @@ impl GameScene {
                     }
                 } else if [13, 14, 15, 28, 29, 30].contains(&bullet.btype) {
                     bullet.life = bullet.life.saturating_sub(1);
-                } else if !bullet.weapon_flags.hit_right_slope() {
+                } else if !bullet.weapon_flags.flag_x10() {
                     state.create_caret(bullet.x, bullet.y, CaretType::ProjectileDissipation, Direction::Right);
                     state.sound_manager.play_sfx(31);
                     bullet.life = 0;
