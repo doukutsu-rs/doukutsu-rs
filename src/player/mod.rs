@@ -107,7 +107,7 @@ impl Player {
             prev_y: 0,
             life: constants.my_char.life,
             max_life: constants.my_char.max_life,
-            cond: Condition(0x80),
+            cond: Condition(0),
             flags: Flag(0),
             equip: Equipment(0),
             direction: Direction::Right,

@@ -60,7 +60,7 @@ impl LiveDebugger {
             .resizable(false)
             .collapsed(true, Condition::FirstUseEver)
             .position([5.0, 5.0], Condition::FirstUseEver)
-            .size([380.0, 170.0], Condition::FirstUseEver)
+            .size([400.0, 170.0], Condition::FirstUseEver)
             .build(ui, || {
                 ui.text(format!(
                     "Player position: ({:.1},{:.1}), velocity: ({:.1},{:.1})",
@@ -113,6 +113,15 @@ impl LiveDebugger {
                 ui.same_line(0.0);
                 if ui.button(im_str!("Flags"), [0.0, 0.0]) {
                     self.flags_visible = !self.flags_visible;
+                }
+
+                ui.same_line(0.0);
+                if game_scene.player2.cond.alive() {
+                    if ui.button(im_str!("Drop Player 2"), [0.0, 0.0]) {
+                        game_scene.drop_player2();
+                    }
+                } else if ui.button(im_str!("Add Player 2"), [0.0, 0.0]) {
+                    game_scene.add_player2();
                 }
             });
 

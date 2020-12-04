@@ -204,6 +204,7 @@ impl SharedGameState {
 
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
         let mut next_scene = GameScene::new(self, ctx, 13)?;
+        next_scene.player1.cond.set_alive(true);
         next_scene.player1.x = 10 * 16 * 0x200;
         next_scene.player1.y = 8 * 16 * 0x200;
         self.fade_state = FadeState::Hidden;

@@ -110,6 +110,20 @@ impl GameScene {
         self.map_name_counter = ticks;
     }
 
+    pub fn add_player2(&mut self) {
+        self.player2.cond.set_alive(true);
+        self.player2.cond.set_hidden(self.player1.cond.hidden());
+        self.player2.appearance = PlayerAppearance::YellowQuote;
+        self.player2.x = self.player1.x;
+        self.player2.y = self.player1.y;
+        self.player2.vel_x = self.player1.vel_x;
+        self.player2.vel_y = self.player1.vel_y;
+    }
+
+    pub fn drop_player2(&mut self) {
+        self.player2.cond.set_alive(false);
+    }
+
     fn draw_background(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_background_name)?;
         let scale = state.scale;
@@ -965,6 +979,8 @@ impl GameScene {
     }
 
     fn tick_world(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.hud_player1.visible = self.player1.cond.alive();
+        self.hud_player2.visible = self.player2.cond.alive();
         self.hud_player1.has_player2 = !self.player2.cond.hidden();
         self.hud_player2.has_player2 = self.hud_player1.has_player2;
 
@@ -1051,7 +1067,7 @@ impl GameScene {
 
         match self.frame.update_target {
             UpdateTarget::Player => {
-                if !self.player2.cond.hidden()
+                if self.player2.cond.alive() && !self.player2.cond.hidden()
                     && abs(self.player1.x - self.player2.x) < 240 * 0x200
                     && abs(self.player1.y - self.player2.y) < 200 * 0x200 {
                     self.frame.target_x = (self.player1.target_x * 2 + self.player2.target_x) / 3;
@@ -1094,28 +1110,32 @@ impl GameScene {
                 weapon.shoot_bullet(&self.player2, &mut self.bullet_manager, state);
             }
 
-            if self.player1.controller.trigger_next_weapon() {
-                state.sound_manager.play_sfx(4);
-                self.inventory_player1.next_weapon();
-                self.hud_player1.weapon_x_pos = 32;
+            if self.player1.cond.alive() {
+                if self.player1.controller.trigger_next_weapon() {
+                    state.sound_manager.play_sfx(4);
+                    self.inventory_player1.next_weapon();
+                    self.hud_player1.weapon_x_pos = 32;
+                }
+
+                if self.player1.controller.trigger_prev_weapon() {
+                    state.sound_manager.play_sfx(4);
+                    self.inventory_player1.prev_weapon();
+                    self.hud_player1.weapon_x_pos = 0;
+                }
             }
 
-            if self.player1.controller.trigger_prev_weapon() {
-                state.sound_manager.play_sfx(4);
-                self.inventory_player1.prev_weapon();
-                self.hud_player1.weapon_x_pos = 0;
-            }
+            if self.player2.cond.alive() {
+                if self.player2.controller.trigger_next_weapon() {
+                    state.sound_manager.play_sfx(4);
+                    self.inventory_player2.next_weapon();
+                    self.hud_player2.weapon_x_pos = 32;
+                }
 
-            if self.player2.controller.trigger_next_weapon() {
-                state.sound_manager.play_sfx(4);
-                self.inventory_player2.next_weapon();
-                self.hud_player2.weapon_x_pos = 32;
-            }
-
-            if self.player2.controller.trigger_prev_weapon() {
-                state.sound_manager.play_sfx(4);
-                self.inventory_player2.prev_weapon();
-                self.hud_player2.weapon_x_pos = 0;
+                if self.player2.controller.trigger_prev_weapon() {
+                    state.sound_manager.play_sfx(4);
+                    self.inventory_player2.prev_weapon();
+                    self.hud_player2.weapon_x_pos = 0;
+                }
             }
 
             self.hud_player1.tick(state, (&self.player1, &self.inventory_player1))?;
@@ -1229,15 +1249,12 @@ impl Scene for GameScene {
             }
         }
 
-        self.hud_player1.visible = true;
-        self.hud_player2.visible = true;
         self.npc_map.boss_map.boss_type = self.stage.data.boss_no as u16;
         self.player1.target_x = self.player1.x;
         self.player1.target_y = self.player1.y;
         self.frame.target_x = self.player1.target_x;
         self.frame.target_y = self.player1.target_y;
         self.frame.immediate_update(state, &self.stage);
-        self.player2.appearance = PlayerAppearance::YellowQuote;
 
         Ok(())
     }
@@ -1375,7 +1392,7 @@ impl Scene for GameScene {
             self.hud_player2.draw(state, ctx, &self.frame)?;
             self.boss_life_bar.draw(state, ctx, &self.frame)?;
 
-            if !self.player2.cond.hidden() {
+            if self.player2.cond.alive() && !self.player2.cond.hidden() {
                 let y = interpolate_fix9_scale(self.player2.prev_y - self.frame.prev_y, self.player2.y - self.frame.y, state.frame_time);
                 let y = clamp(y, 8.0, state.canvas_size.1 - 8.0 - state.font.line_height(&state.constants));
 

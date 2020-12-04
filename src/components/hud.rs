@@ -108,6 +108,10 @@ impl GameEntity<(&Player, &Inventory)> for HUD {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
+        if !self.visible {
+            return Ok(());
+        }
+
         // none
         let weap_x = self.weapon_x_pos as f32;
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
