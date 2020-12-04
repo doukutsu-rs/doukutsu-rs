@@ -9,9 +9,11 @@ environment:
     - channel: stable
       target: x86_64-pc-windows-msvc
       target_name: win64
+      job_name: windows-x64
     - channel: stable
       target: i686-pc-windows-msvc
       target_name: win32
+      job_name: windows-x32
 
 install:
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
