@@ -31,7 +31,7 @@ cache:
 #  - cargo build --verbose --all
 #  - cargo test --verbose --all --no-fail-fast
 
-build:
+build_script:
   - cargo build --release --bin doukutsu-rs
   - mkdir release
   - copy target\release\doukutsu-rs.exe release
