@@ -18,14 +18,15 @@ install:
   - rustup-init -yv --default-toolchain %channel% --default-host %target%
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - rustup update
+  - rustup default %channel%
   - rustc -vV
   - cargo -vV
 
 cache:
-  - '%USERPROFILE%\.cache\sccache -> rust-toolchain,.appveyor.yml'
-  - '%USERPROFILE%\.cargo -> rust-toolchain,.appveyor.yml'
-  - '%USERPROFILE%\.rustup -> rust-toolchain,.appveyor.yml'
-  - 'target -> rust-toolchain,.appveyor.yml'
+  - '%USERPROFILE%\.cache\sccache -> .appveyor.yml'
+  - '%USERPROFILE%\.cargo -> .appveyor.yml'
+  - '%USERPROFILE%\.rustup -> .appveyor.yml'
+  - 'target -> .appveyor.yml'
 
 #test_script:
 #  - cargo build --verbose --all
