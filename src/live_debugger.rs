@@ -91,6 +91,7 @@ impl LiveDebugger {
                     speed = 1.0
                 }
 
+                #[allow(clippy::float_cmp)]
                 if state.settings.speed != speed {
                     state.set_speed(speed);
                 }
@@ -140,12 +141,22 @@ impl LiveDebugger {
                         match GameScene::new(state, ctx, self.selected_stage as usize) {
                             Ok(mut scene) => {
                                 scene.inventory_player1 = game_scene.inventory_player1.clone();
+                                scene.inventory_player2 = game_scene.inventory_player2.clone();
+
                                 scene.player1 = game_scene.player1.clone();
                                 scene.player1.x = (scene.stage.map.width / 2 * 16 * 0x200) as isize;
                                 scene.player1.y = (scene.stage.map.height / 2 * 16 * 0x200) as isize;
 
                                 if scene.player1.life == 0 {
                                     scene.player1.life = scene.player1.max_life;
+                                }
+
+                                scene.player2 = game_scene.player2.clone();
+                                scene.player2.x = (scene.stage.map.width / 2 * 16 * 0x200) as isize;
+                                scene.player2.y = (scene.stage.map.height / 2 * 16 * 0x200) as isize;
+
+                                if scene.player2.life == 0 {
+                                    scene.player2.life = scene.player1.max_life;
                                 }
 
                                 state.next_scene = Some(Box::new(scene));
