@@ -40,5 +40,5 @@ build_script:
   - appveyor DownloadFile https://github.com/doukutsu-rs/game-data/archive/master.zip -FileName ../game-data.zip
   - 7z x ../game-data.zip
   - rename game-data-master data
-  - 7z a ../doukutsu-rs_%APPVEYOR_BUILD_VERSION%_%target_name%.zip *
-  - appveyor PushArtifact ../doukutsu-rs_%APPVEYOR_BUILD_VERSION%_%target_name%.zip *
+  - 7z a ../doukutsu-rs_%target_name%.zip *
+  - appveyor PushArtifact ../doukutsu-rs_%target_name%.zip
