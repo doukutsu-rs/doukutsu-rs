@@ -7,7 +7,7 @@ use num_traits::abs;
 use crate::common::Direction;
 
 impl NPC {
-    pub(crate) fn tick_n040_santa(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n040_santa(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 =>{
                 if self.action_num == 0 {
@@ -22,6 +22,7 @@ impl NPC {
                     self.anim_num = 1;
                 }
 
+                let player = self.get_closest_player_mut(players);
                 if abs(self.x - player.x) < 32 * 0x200
                     && self.y - 32 * 0x200 < player.y && self.y + 16 * 0x200 > player.y {
                     self.direction = if self.x > player.x {

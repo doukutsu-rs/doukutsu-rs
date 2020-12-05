@@ -1,9 +1,9 @@
 use std::cmp::Ordering;
 
+use ggez::GameResult;
 use num_traits::{abs, clamp};
 
 use crate::common::Direction;
-use ggez::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
@@ -154,7 +154,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n075_kanpachi(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n075_kanpachi(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.anim_num = 0;
@@ -162,6 +162,7 @@ impl NPC {
         }
 
         if self.action_num == 1 {
+            let player = self.get_closest_player_mut(players);
             if (self.x - (48 * 0x200) < player.x) && (self.x + (48 * 0x200) > player.x)
                 && (self.y - (48 * 0x200) < player.y) && (self.y + (48 * 0x200) > player.y) {
                 self.anim_num = 1;
@@ -209,7 +210,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n079_mahin(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n079_mahin(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -224,6 +225,7 @@ impl NPC {
                     self.anim_num = 1;
                 }
 
+                let player = self.get_closest_player_mut(players);
                 if (self.x - (32 * 0x200) < player.x) && (self.x + (32 * 0x200) > player.x)
                     && (self.y - (32 * 0x200) < player.y) && (self.y + (16 * 0x200) > player.y) {
                     if self.x > player.x {
@@ -258,7 +260,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n080_gravekeeper(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n080_gravekeeper(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -270,6 +272,7 @@ impl NPC {
 
                 self.anim_num = 0;
 
+                let player = self.get_closest_player_mut(players);
                 if abs(player.x - self.x) < 128 * 0x200
                     && self.y - 48 * 0x200 < player.y && self.y + 32 * 0x200 > player.y {
                     self.anim_counter = 0;
@@ -295,6 +298,7 @@ impl NPC {
                     }
                 }
 
+                let player = self.get_closest_player_mut(players);
                 if abs(player.x - self.x) < 16 * 0x200 {
                     self.hit_bounds.left = 18 * 0x200;
                     self.action_counter = 0;
@@ -356,7 +360,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n081_giant_pignon(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n081_giant_pignon(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
 
         match self.action_num {
@@ -441,6 +445,7 @@ impl NPC {
         }
 
         if self.shock > 0 && [1, 2, 4].contains(&self.action_num) {
+            let player = self.get_closest_player_mut(players);
             self.vel_x = if self.x < player.x { 0x100 } else { -0x100 };
             self.vel_y = -0x200;
             self.anim_num = 5;
@@ -467,7 +472,7 @@ impl NPC {
             self.y += 16 * 0x200;
             self.anim_rect = state.constants.npc.n091_mimiga_cage;
         }
-        
+
         Ok(())
     }
 }

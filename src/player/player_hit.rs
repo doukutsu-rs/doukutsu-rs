@@ -7,7 +7,7 @@ use crate::common::{Condition, Direction, Flag, Rect};
 use crate::inventory::{AddExperienceResult, Inventory};
 use crate::npc::{NPC, NPCMap};
 use crate::physics::PhysicalEntity;
-use crate::player::{ControlMode, Player};
+use crate::player::{ControlMode, Player, TargetPlayer};
 use crate::shared_game_state::SharedGameState;
 
 impl PhysicalEntity for Player {
@@ -236,7 +236,7 @@ impl Player {
         flags
     }
 
-    fn tick_npc_collision(&mut self, state: &mut SharedGameState, npc: &mut NPC, inventory: &mut Inventory) {
+    fn tick_npc_collision(&mut self, id: TargetPlayer, state: &mut SharedGameState, npc: &mut NPC, inventory: &mut Inventory) {
         let flags: Flag;
 
         if npc.npc_flags.solid_soft() {
@@ -289,6 +289,7 @@ impl Player {
         if npc.npc_flags.interactable() && !state.control_flags.interactions_disabled() && flags.0 != 0 && self.cond.interacted() {
             state.control_flags.set_tick_world(true);
             state.control_flags.set_interactions_disabled(true);
+            state.textscript_vm.executor_player = id;
             state.textscript_vm.start_script(npc.event_num);
             self.cond.set_interacted(false);
             self.vel_x = 0;
@@ -298,6 +299,7 @@ impl Player {
         if npc.npc_flags.event_when_touched() && !state.control_flags.interactions_disabled() && flags.0 != 0 {
             state.control_flags.set_tick_world(true);
             state.control_flags.set_interactions_disabled(true);
+            state.textscript_vm.executor_player = id;
             state.textscript_vm.start_script(npc.event_num);
         }
 
@@ -315,17 +317,17 @@ impl Player {
         }
     }
 
-    pub fn tick_npc_collisions(&mut self, state: &mut SharedGameState, npc_map: &mut NPCMap, inventory: &mut Inventory) {
+    pub fn tick_npc_collisions(&mut self, id: TargetPlayer, state: &mut SharedGameState, npc_map: &mut NPCMap, inventory: &mut Inventory) {
         for npc_cell in npc_map.npcs.values() {
             let mut npc = npc_cell.borrow_mut();
             if !npc.cond.alive() { continue; }
 
-            self.tick_npc_collision(state, npc.borrow_mut(), inventory);
+            self.tick_npc_collision(id, state, npc.borrow_mut(), inventory);
         }
 
         for boss_npc in npc_map.boss_map.parts.iter_mut() {
             if boss_npc.cond.alive() {
-                self.tick_npc_collision(state, boss_npc, inventory);
+                self.tick_npc_collision(id, state, boss_npc, inventory);
             }
         }
 

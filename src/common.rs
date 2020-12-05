@@ -92,7 +92,22 @@ bitfield! {
   pub credits_running, set_credits_running: 3; // 0x08
 
   // engine specific flags
+  pub friendly_fire, set_friendly_fire: 14;
   pub wind, set_wind: 15;
+}
+
+bitfield! {
+  #[derive(Clone, Copy)]
+  pub struct BulletFlag(u16);
+  impl Debug;
+  pub flag_x01, set_flag_x01: 0; // 0x01
+  pub flag_x02, set_flag_x02: 1; // 0x02
+  pub flag_x04, set_flag_x04: 2; // 0x04
+  pub flag_x08, set_flag_x08: 3; // 0x08
+  pub flag_x10, set_flag_x10: 4; // 0x10
+  pub flag_x20, set_flag_x20: 5; // 0x20
+  pub flag_x40, set_flag_x40: 6; // 0x40
+  pub flag_x80, set_flag_x80: 7; // 0x80
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

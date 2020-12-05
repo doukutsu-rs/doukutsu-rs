@@ -10,7 +10,9 @@ use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
-    pub(crate) fn tick_n024_power_critter(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n024_power_critter(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -140,7 +142,9 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n026_bat_flying(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n026_bat_flying(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -215,7 +219,9 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n028_flying_critter(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n028_flying_critter(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -349,7 +355,9 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n031_bat_hanging(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n031_bat_hanging(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -496,7 +504,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n094_kulala(&mut self, state: &SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n094_kulala(&mut self, state: &SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 => {
                 self.anim_num = 4;
@@ -579,6 +587,8 @@ impl NPC {
 
                 self.vel_x += self.direction.vector_x() * 0x80;
             } else {
+                let player = self.get_closest_player_mut(players);
+
                 self.vel_x2 = 50;
                 self.direction = if self.x > player.x {
                     Direction::Left
@@ -747,7 +757,7 @@ impl NPC {
 
     pub(crate) fn tick_n103_mannan_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
-            self.action_num == 1;
+            self.action_num = 1;
         }
 
         self.vel_x += self.direction.vector_x() * 0x20;
@@ -779,7 +789,9 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n104_frog(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n104_frog(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -1068,7 +1080,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n109_malco_powered_on(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n109_malco_powered_on(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -1087,6 +1099,8 @@ impl NPC {
                     self.action_counter = 0;
                     self.anim_num = 1;
                 }
+
+                let player = self.get_closest_player_mut(players);
 
                 if abs(self.x - player.x) < 32 * 0x200
                     && self.y - 32 * 0x200 < player.y
@@ -1134,7 +1148,9 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n110_puchi(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n110_puchi(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
         match self.action_num {
             0 => {
                 self.action_num = 1;

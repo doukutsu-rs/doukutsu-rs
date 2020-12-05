@@ -3,7 +3,7 @@ use num_derive::FromPrimitive;
 use crate::bullet::BulletManager;
 use crate::caret::CaretType;
 use crate::common::Direction;
-use crate::player::Player;
+use crate::player::{Player, TargetPlayer};
 use crate::shared_game_state::SharedGameState;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, FromPrimitive)]
@@ -84,8 +84,8 @@ impl Weapon {
         false
     }
 
-    fn shoot_bullet_snake(&mut self, player: &Player, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
-        if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi([1, 2, 3]) < 4 {
+    fn shoot_bullet_snake(&mut self, player: &Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
+        if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi([1, 2, 3], player_id) < 4 {
             let btype = match self.level {
                 WeaponLevel::Level1 => { 1 }
                 WeaponLevel::Level2 => { 2 }
@@ -101,11 +101,11 @@ impl Weapon {
             if player.up {
                 match player.direction {
                     Direction::Left => {
-                        bullet_manager.create_bullet(player.x - 3 * 0x200, player.y - 10 * 0x200, btype, Direction::Up, &state.constants);
+                        bullet_manager.create_bullet(player.x - 3 * 0x200, player.y - 10 * 0x200, btype, player_id, Direction::Up, &state.constants);
                         state.create_caret(player.x - 3 * 0x200, player.y - 10 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     Direction::Right => {
-                        bullet_manager.create_bullet(player.x + 3 * 0x200, player.y - 10 * 0x200, btype, Direction::Up, &state.constants);
+                        bullet_manager.create_bullet(player.x + 3 * 0x200, player.y - 10 * 0x200, btype, player_id, Direction::Up, &state.constants);
                         state.create_caret(player.x + 3 * 0x200, player.y - 10 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     _ => {}
@@ -113,11 +113,11 @@ impl Weapon {
             } else if player.down {
                 match player.direction {
                     Direction::Left => {
-                        bullet_manager.create_bullet(player.x - 3 * 0x200, player.y + 10 * 0x200, btype, Direction::Bottom, &state.constants);
+                        bullet_manager.create_bullet(player.x - 3 * 0x200, player.y + 10 * 0x200, btype, player_id, Direction::Bottom, &state.constants);
                         state.create_caret(player.x - 3 * 0x200, player.y + 10 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     Direction::Right => {
-                        bullet_manager.create_bullet(player.x + 3 * 0x200, player.y + 10 * 0x200, btype, Direction::Bottom, &state.constants);
+                        bullet_manager.create_bullet(player.x + 3 * 0x200, player.y + 10 * 0x200, btype, player_id, Direction::Bottom, &state.constants);
                         state.create_caret(player.x + 3 * 0x200, player.y + 10 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     _ => {}
@@ -125,11 +125,11 @@ impl Weapon {
             } else {
                 match player.direction {
                     Direction::Left => {
-                        bullet_manager.create_bullet(player.x - 6 * 0x200, player.y + 2 * 0x200, btype, Direction::Left, &state.constants);
+                        bullet_manager.create_bullet(player.x - 6 * 0x200, player.y + 2 * 0x200, btype, player_id, Direction::Left, &state.constants);
                         state.create_caret(player.x - 12 * 0x200, player.y + 2 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     Direction::Right => {
-                        bullet_manager.create_bullet(player.x + 6 * 0x200, player.y + 2 * 0x200, btype, Direction::Right, &state.constants);
+                        bullet_manager.create_bullet(player.x + 6 * 0x200, player.y + 2 * 0x200, btype, player_id, Direction::Right, &state.constants);
                         state.create_caret(player.x + 12 * 0x200, player.y + 2 * 0x200, CaretType::Shoot, Direction::Right);
                     }
                     _ => {}
@@ -140,8 +140,8 @@ impl Weapon {
         }
     }
 
-    fn shoot_bullet_polar_star(&mut self, player: &Player, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
-        if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi([4, 5, 6]) < 2 {
+    fn shoot_bullet_polar_star(&mut self, player: &Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
+        if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi([4, 5, 6], player_id) < 2 {
             let btype = match self.level {
                 WeaponLevel::Level1 => { 4 }
                 WeaponLevel::Level2 => { 5 }
@@ -157,11 +157,11 @@ impl Weapon {
             if player.up {
                 match player.direction {
                     Direction::Left => {
-                        bullet_manager.create_bullet(player.x - 0x200, player.y - 8 * 0x200, btype, Direction::Up, &state.constants);
+                        bullet_manager.create_bullet(player.x - 0x200, player.y - 8 * 0x200, btype, player_id, Direction::Up, &state.constants);
                         state.create_caret(player.x - 0x200, player.y - 8 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     Direction::Right => {
-                        bullet_manager.create_bullet(player.x + 0x200, player.y - 8 * 0x200, btype, Direction::Up, &state.constants);
+                        bullet_manager.create_bullet(player.x + 0x200, player.y - 8 * 0x200, btype, player_id, Direction::Up, &state.constants);
                         state.create_caret(player.x + 0x200, player.y - 8 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     _ => {}
@@ -169,11 +169,11 @@ impl Weapon {
             } else if player.down {
                 match player.direction {
                     Direction::Left => {
-                        bullet_manager.create_bullet(player.x - 0x200, player.y + 8 * 0x200, btype, Direction::Bottom, &state.constants);
+                        bullet_manager.create_bullet(player.x - 0x200, player.y + 8 * 0x200, btype, player_id, Direction::Bottom, &state.constants);
                         state.create_caret(player.x - 0x200, player.y + 8 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     Direction::Right => {
-                        bullet_manager.create_bullet(player.x + 0x200, player.y + 8 * 0x200, btype, Direction::Bottom, &state.constants);
+                        bullet_manager.create_bullet(player.x + 0x200, player.y + 8 * 0x200, btype, player_id, Direction::Bottom, &state.constants);
                         state.create_caret(player.x + 0x200, player.y + 8 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     _ => {}
@@ -181,11 +181,11 @@ impl Weapon {
             } else {
                 match player.direction {
                     Direction::Left => {
-                        bullet_manager.create_bullet(player.x - 6 * 0x200, player.y + 3 * 0x200, btype, Direction::Left, &state.constants);
+                        bullet_manager.create_bullet(player.x - 6 * 0x200, player.y + 3 * 0x200, btype, player_id, Direction::Left, &state.constants);
                         state.create_caret(player.x - 6 * 0x200, player.y + 3 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     Direction::Right => {
-                        bullet_manager.create_bullet(player.x + 6 * 0x200, player.y + 3 * 0x200, btype, Direction::Right, &state.constants);
+                        bullet_manager.create_bullet(player.x + 6 * 0x200, player.y + 3 * 0x200, btype, player_id, Direction::Right, &state.constants);
                         state.create_caret(player.x + 6 * 0x200, player.y + 3 * 0x200, CaretType::Shoot, Direction::Right);
                     }
                     _ => {}
@@ -201,9 +201,9 @@ impl Weapon {
     }
 
 
-    fn shoot_bullet_fireball(&mut self, player: &Player, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
+    fn shoot_bullet_fireball(&mut self, player: &Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
         let max_bullets = self.level as usize + 1;
-        if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi([7, 8, 9]) < max_bullets {
+        if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi([7, 8, 9], player_id) < max_bullets {
             let btype = match self.level {
                 WeaponLevel::Level1 => { 7 }
                 WeaponLevel::Level2 => { 8 }
@@ -219,11 +219,11 @@ impl Weapon {
             if player.up {
                 match player.direction {
                     Direction::Left => {
-                        bullet_manager.create_bullet(player.x - 4 * 0x200, player.y - 8 * 0x200, btype, Direction::Up, &state.constants);
+                        bullet_manager.create_bullet(player.x - 4 * 0x200, player.y - 8 * 0x200, btype, player_id, Direction::Up, &state.constants);
                         state.create_caret(player.x - 4 * 0x200, player.y - 8 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     Direction::Right => {
-                        bullet_manager.create_bullet(player.x + 4 * 0x200, player.y - 8 * 0x200, btype, Direction::Up, &state.constants);
+                        bullet_manager.create_bullet(player.x + 4 * 0x200, player.y - 8 * 0x200, btype, player_id, Direction::Up, &state.constants);
                         state.create_caret(player.x + 4 * 0x200, player.y - 8 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     _ => {}
@@ -231,11 +231,11 @@ impl Weapon {
             } else if player.down {
                 match player.direction {
                     Direction::Left => {
-                        bullet_manager.create_bullet(player.x - 4 * 0x200, player.y + 8 * 0x200, btype, Direction::Bottom, &state.constants);
+                        bullet_manager.create_bullet(player.x - 4 * 0x200, player.y + 8 * 0x200, btype, player_id, Direction::Bottom, &state.constants);
                         state.create_caret(player.x - 4 * 0x200, player.y + 8 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     Direction::Right => {
-                        bullet_manager.create_bullet(player.x + 4 * 0x200, player.y + 8 * 0x200, btype, Direction::Bottom, &state.constants);
+                        bullet_manager.create_bullet(player.x + 4 * 0x200, player.y + 8 * 0x200, btype, player_id, Direction::Bottom, &state.constants);
                         state.create_caret(player.x + 4 * 0x200, player.y + 8 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     _ => {}
@@ -243,11 +243,11 @@ impl Weapon {
             } else {
                 match player.direction {
                     Direction::Left => {
-                        bullet_manager.create_bullet(player.x - 6 * 0x200, player.y + 2 * 0x200, btype, Direction::Left, &state.constants);
+                        bullet_manager.create_bullet(player.x - 6 * 0x200, player.y + 2 * 0x200, btype, player_id, Direction::Left, &state.constants);
                         state.create_caret(player.x - 12 * 0x200, player.y + 2 * 0x200, CaretType::Shoot, Direction::Left);
                     }
                     Direction::Right => {
-                        bullet_manager.create_bullet(player.x + 6 * 0x200, player.y + 2 * 0x200, btype, Direction::Right, &state.constants);
+                        bullet_manager.create_bullet(player.x + 6 * 0x200, player.y + 2 * 0x200, btype, player_id, Direction::Right, &state.constants);
                         state.create_caret(player.x + 12 * 0x200, player.y + 2 * 0x200, CaretType::Shoot, Direction::Right);
                     }
                     _ => {}
@@ -258,16 +258,16 @@ impl Weapon {
         }
     }
 
-    pub fn shoot_bullet(&mut self, player: &Player, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
-        if player.cond.hidden() {
+    pub fn shoot_bullet(&mut self, player: &Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
+        if !player.cond.alive() || player.cond.hidden() {
             return;
         }
 
         match self.wtype {
             WeaponType::None => {}
-            WeaponType::Snake => self.shoot_bullet_snake(player, bullet_manager, state),
-            WeaponType::PolarStar => self.shoot_bullet_polar_star(player, bullet_manager, state),
-            WeaponType::Fireball => self.shoot_bullet_fireball(player, bullet_manager, state),
+            WeaponType::Snake => self.shoot_bullet_snake(player, player_id, bullet_manager, state),
+            WeaponType::PolarStar => self.shoot_bullet_polar_star(player, player_id, bullet_manager, state),
+            WeaponType::Fireball => self.shoot_bullet_fireball(player, player_id, bullet_manager, state),
             WeaponType::MachineGun => {}
             WeaponType::MissileLauncher => {}
             WeaponType::Bubbler => {}

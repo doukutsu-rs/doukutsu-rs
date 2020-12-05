@@ -5,18 +5,21 @@ use ggez::graphics::{BlendMode, Color, Drawable, DrawParam, FilterMode, mint};
 use ggez::graphics::spritebatch::SpriteBatch;
 use ggez::nalgebra::{clamp, Vector2};
 use log::info;
+use num_traits::abs;
 
 use crate::bullet::BulletManager;
 use crate::caret::CaretType;
 use crate::common::{Direction, FadeDirection, FadeState, fix9_scale, interpolate_fix9_scale, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
+use crate::components::draw_common::{Alignment, draw_number};
+use crate::components::hud::HUD;
 use crate::components::stage_select::StageSelect;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::npc::{NPC, NPCMap};
 use crate::physics::PhysicalEntity;
-use crate::player::{Player, PlayerAppearance};
+use crate::player::{Player, PlayerAppearance, TargetPlayer};
 use crate::rng::RNG;
 use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
@@ -32,6 +35,8 @@ pub struct GameScene {
     pub stage: Stage,
     pub boss_life_bar: BossLifeBar,
     pub stage_select: StageSelect,
+    pub hud_player1: HUD,
+    pub hud_player2: HUD,
     pub frame: Frame,
     pub player1: Player,
     pub player2: Player,
@@ -44,10 +49,7 @@ pub struct GameScene {
     water_visible: bool,
     tex_background_name: String,
     tex_tileset_name: String,
-    life_bar: u16,
-    life_bar_counter: u16,
     map_name_counter: u16,
-    weapon_x_pos: isize,
 }
 
 #[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
@@ -58,14 +60,10 @@ pub enum TileLayer {
     Snack,
 }
 
-#[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
-pub enum Alignment {
-    Left,
-    Right,
-}
-
-static FACE_TEX: &str = "Face";
-static SWITCH_FACE_TEX: [&str; 4] = ["Face1", "Face2", "Face3", "Face4"];
+const FACE_TEX: &str = "Face";
+const SWITCH_FACE_TEX: [&str; 4] = ["Face1", "Face2", "Face3", "Face4"];
+const P2_LEFT_TEXT: &str = "< P2";
+const P2_RIGHT_TEXT: &str = "P2 >";
 
 impl GameScene {
     pub fn new(state: &mut SharedGameState, ctx: &mut Context, id: usize) -> GameResult<Self> {
@@ -85,6 +83,8 @@ impl GameScene {
             inventory_player2: Inventory::new(),
             boss_life_bar: BossLifeBar::new(),
             stage_select: StageSelect::new(),
+            hud_player1: HUD::new(Alignment::Left),
+            hud_player2: HUD::new(Alignment::Right),
             frame: Frame {
                 x: 0,
                 y: 0,
@@ -102,10 +102,7 @@ impl GameScene {
             water_visible: true,
             tex_background_name,
             tex_tileset_name,
-            life_bar: 0,
-            life_bar_counter: 0,
             map_name_counter: 0,
-            weapon_x_pos: 16,
         })
     }
 
@@ -113,125 +110,18 @@ impl GameScene {
         self.map_name_counter = ticks;
     }
 
-    fn draw_number(&self, x: f32, y: f32, val: usize, align: Alignment, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
-        let n = val.to_string();
-        let align_offset = if align == Alignment::Right { n.len() as f32 * 8.0 } else { 0.0 };
-
-        for (offset, chr) in n.chars().enumerate() {
-            let idx = chr as u16 - '0' as u16;
-            batch.add_rect(x - align_offset + offset as f32 * 8.0, y, &Rect::new_size(idx * 8, 56, 8, 8));
-        }
-
-        batch.draw(ctx)?;
-        Ok(())
+    pub fn add_player2(&mut self) {
+        self.player2.cond.set_alive(true);
+        self.player2.cond.set_hidden(self.player1.cond.hidden());
+        self.player2.appearance = PlayerAppearance::YellowQuote;
+        self.player2.x = self.player1.x;
+        self.player2.y = self.player1.y;
+        self.player2.vel_x = self.player1.vel_x;
+        self.player2.vel_y = self.player1.vel_y;
     }
 
-    fn draw_hud(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        // none
-        let weap_x = self.weapon_x_pos as f32;
-        let (ammo, max_ammo) = self.inventory_player1.get_current_ammo();
-        let (xp, max_xp, max_level) = self.inventory_player1.get_current_max_exp(&state.constants);
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
-
-        if max_ammo == 0 {
-            batch.add_rect(weap_x + 48.0, 16.0,
-                           &Rect::new_size(80, 48, 16, 8));
-            batch.add_rect(weap_x + 48.0, 24.0,
-                           &Rect::new_size(80, 48, 16, 8));
-        }
-
-        // per
-        batch.add_rect(weap_x + 32.0, 24.0,
-                       &Rect::new_size(72, 48, 8, 8));
-        // lv
-        batch.add_rect(weap_x, 32.0,
-                       &Rect::new_size(80, 80, 16, 8));
-        // xp box
-        batch.add_rect(weap_x + 24.0, 32.0,
-                       &Rect::new_size(0, 72, 40, 8));
-
-        if max_level {
-            batch.add_rect(weap_x + 24.0, 32.0,
-                           &Rect::new_size(40, 72, 40, 8));
-        } else if max_xp > 0 {
-            // xp bar
-            let bar_width = (xp as f32 / max_xp as f32 * 40.0) as u16;
-
-            batch.add_rect(weap_x + 24.0, 32.0,
-                           &Rect::new_size(0, 80, bar_width, 8));
-        }
-
-        if self.player1.max_life != 0 {
-            // life box
-            batch.add_rect(16.0, 40.0,
-                           &Rect::new_size(0, 40, 64, 8));
-            // yellow bar
-            batch.add_rect(40.0, 40.0,
-                           &Rect::new_size(0, 32, (self.life_bar * 40) / self.player1.max_life, 8));
-            // life
-            batch.add_rect(40.0, 40.0,
-                           &Rect::new_size(0, 24, (self.player1.life * 40) / self.player1.max_life, 8));
-        }
-
-        if self.player1.air_counter > 0 {
-            let rect = if self.player1.air % 30 > 10 {
-                Rect::new_size(112, 72, 32, 8)
-            } else {
-                Rect::new_size(112, 80, 32, 8)
-            };
-
-            batch.add_rect((state.canvas_size.0 / 2.0).floor() - 40.0,
-                           (state.canvas_size.1 / 2.0).floor(), &rect);
-        }
-
-        batch.draw(ctx)?;
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ArmsImage")?;
-
-        let weapon_count = self.inventory_player1.get_weapon_count();
-        if weapon_count != 0 {
-            let current_weapon = self.inventory_player1.get_current_weapon_idx() as isize;
-            let mut rect = Rect::new(0, 0, 0, 16);
-
-            for a in 0..weapon_count {
-                let mut pos_x = ((a as isize - current_weapon) as f32 * 16.0) + weap_x;
-
-                if pos_x < 8.0 {
-                    pos_x += 48.0 + weapon_count as f32 * 16.0;
-                } else if pos_x >= 24.0 {
-                    pos_x += 48.0;
-                }
-
-                if pos_x >= 72.0 + ((weapon_count - 1) as f32 * 16.0) {
-                    pos_x -= 48.0 + weapon_count as f32 * 16.0;
-                } else if pos_x < 72.0 && pos_x >= 24.0 {
-                    pos_x -= 48.0;
-                }
-
-                if let Some(weapon) = self.inventory_player1.get_weapon(a) {
-                    rect.left = weapon.wtype as u16 * 16;
-                    rect.right = rect.left + 16;
-                    batch.add_rect(pos_x, 16.0, &rect);
-                }
-            }
-        }
-
-        batch.draw(ctx)?;
-
-        if self.player1.air_counter > 0 && self.player1.air_counter % 6 < 4 {
-            self.draw_number((state.canvas_size.0 / 2.0).floor() + 8.0,
-                             (state.canvas_size.1 / 2.0).floor(),
-                             (self.player1.air / 10) as usize, Alignment::Left, state, ctx)?;
-        }
-
-        if max_ammo != 0 {
-            self.draw_number(weap_x + 64.0, 16.0, ammo as usize, Alignment::Right, state, ctx)?;
-            self.draw_number(weap_x + 64.0, 24.0, max_ammo as usize, Alignment::Right, state, ctx)?;
-        }
-        self.draw_number(weap_x + 24.0, 32.0, self.inventory_player1.get_current_level() as usize, Alignment::Right, state, ctx)?;
-        self.draw_number(40.0, 40.0, self.life_bar as usize, Alignment::Right, state, ctx)?;
-
-        Ok(())
+    pub fn drop_player2(&mut self) {
+        self.player2.cond.set_alive(false);
     }
 
     fn draw_background(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -970,7 +860,7 @@ impl GameScene {
                             // todo show damage
                         }
                     }
-                } else if !bullet.weapon_flags.hit_right_slope()
+                } else if !bullet.weapon_flags.flag_x10()
                     && bullet.btype != 13 && bullet.btype != 14 && bullet.btype != 15
                     && bullet.btype != 28 && bullet.btype != 29 && bullet.btype != 30 {
                     state.create_caret((bullet.x + npc.x) / 2, (bullet.y + npc.y) / 2, CaretType::ProjectileDissipation, Direction::Right);
@@ -1067,7 +957,7 @@ impl GameScene {
                     }
                 } else if [13, 14, 15, 28, 29, 30].contains(&bullet.btype) {
                     bullet.life = bullet.life.saturating_sub(1);
-                } else if !bullet.weapon_flags.hit_right_slope() {
+                } else if !bullet.weapon_flags.flag_x10() {
                     state.create_caret(bullet.x, bullet.y, CaretType::ProjectileDissipation, Direction::Right);
                     state.sound_manager.play_sfx(31);
                     bullet.life = 0;
@@ -1089,6 +979,11 @@ impl GameScene {
     }
 
     fn tick_world(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.hud_player1.visible = self.player1.cond.alive();
+        self.hud_player2.visible = self.player2.cond.alive();
+        self.hud_player1.has_player2 = self.player2.cond.alive() && !self.player2.cond.hidden();
+        self.hud_player2.has_player2 = self.player1.cond.alive() && !self.player1.cond.hidden();
+
         self.player1.current_weapon = {
             if let Some(weapon) = self.inventory_player1.get_current_weapon_mut() {
                 weapon.wtype as u8
@@ -1096,7 +991,15 @@ impl GameScene {
                 0
             }
         };
+        self.player2.current_weapon = {
+            if let Some(weapon) = self.inventory_player2.get_current_weapon_mut() {
+                weapon.wtype as u8
+            } else {
+                0
+            }
+        };
         self.player1.tick(state, ())?;
+        self.player2.tick(state, ())?;
 
         if self.player1.damage > 0 {
             let xp_loss = self.player1.damage * if self.player1.equip.has_arms_barrier() { 1 } else { 2 };
@@ -1110,11 +1013,25 @@ impl GameScene {
             self.player1.damage = 0;
         }
 
-        for npc_cell in self.npc_map.npcs.values() {
-            let mut npc = npc_cell.borrow_mut();
+        if self.player2.damage > 0 {
+            let xp_loss = self.player2.damage * if self.player2.equip.has_arms_barrier() { 1 } else { 2 };
+            match self.inventory_player2.take_xp(xp_loss, state) {
+                TakeExperienceResult::LevelDown if self.player2.life > 0 => {
+                    state.create_caret(self.player2.x, self.player2.y, CaretType::LevelUp, Direction::Right);
+                }
+                _ => {}
+            }
 
-            if npc.cond.alive() {
-                npc.tick(state, (&mut self.player1, &self.npc_map.npcs, &mut self.stage))?;
+            self.player2.damage = 0;
+        }
+
+        {
+            for npc_cell in self.npc_map.npcs.values() {
+                let mut npc = npc_cell.borrow_mut();
+
+                if npc.cond.alive() {
+                    npc.tick(state, ([&mut self.player1, &mut self.player2], &self.npc_map.npcs, &mut self.stage))?;
+                }
             }
         }
         self.npc_map.boss_map.tick(state, (&mut self.player1, &self.npc_map.npcs, &mut self.stage))?;
@@ -1122,7 +1039,10 @@ impl GameScene {
         self.npc_map.garbage_collect();
 
         self.player1.tick_map_collisions(state, &mut self.stage);
-        self.player1.tick_npc_collisions(state, &mut self.npc_map, &mut self.inventory_player1);
+        self.player1.tick_npc_collisions(TargetPlayer::Player1, state, &mut self.npc_map, &mut self.inventory_player1);
+
+        self.player2.tick_map_collisions(state, &mut self.stage);
+        self.player2.tick_npc_collisions(TargetPlayer::Player2, state, &mut self.npc_map, &mut self.inventory_player2);
 
         for npc_cell in self.npc_map.npcs.values() {
             let mut npc = npc_cell.borrow_mut();
@@ -1142,13 +1062,23 @@ impl GameScene {
         self.tick_npc_bullet_collissions(state);
         self.npc_map.process_npc_changes(&self.player1, state);
 
-        self.bullet_manager.tick_bullets(state, &self.player1, &mut self.stage);
+        self.bullet_manager.tick_bullets(state, [&self.player1, &self.player2], &mut self.stage);
         state.tick_carets();
 
         match self.frame.update_target {
             UpdateTarget::Player => {
-                self.frame.target_x = self.player1.target_x;
-                self.frame.target_y = self.player1.target_y;
+                if self.player2.cond.alive() && !self.player2.cond.hidden()
+                    && abs(self.player1.x - self.player2.x) < 240 * 0x200
+                    && abs(self.player1.y - self.player2.y) < 200 * 0x200 {
+                    self.frame.target_x = (self.player1.target_x * 2 + self.player2.target_x) / 3;
+                    self.frame.target_y = (self.player1.target_y * 2 + self.player2.target_y) / 3;
+
+                    self.frame.target_x = clamp(self.frame.target_x, self.player1.x - 0x8000, self.player1.x + 0x8000);
+                    self.frame.target_y = clamp(self.frame.target_y, self.player1.y, self.player1.y);
+                } else {
+                    self.frame.target_x = self.player1.target_x;
+                    self.frame.target_y = self.player1.target_y;
+                }
             }
             UpdateTarget::NPC(npc_id) => {
                 if let Some(npc_cell) = self.npc_map.npcs.get(&npc_id) {
@@ -1173,35 +1103,43 @@ impl GameScene {
 
         if state.control_flags.control_enabled() {
             if let Some(weapon) = self.inventory_player1.get_current_weapon_mut() {
-                weapon.shoot_bullet(&self.player1, &mut self.bullet_manager, state);
+                weapon.shoot_bullet(&self.player1, TargetPlayer::Player1, &mut self.bullet_manager, state);
             }
 
-            if self.player1.controller.trigger_next_weapon() {
-                state.sound_manager.play_sfx(4);
-                self.inventory_player1.next_weapon();
-                self.weapon_x_pos = 32;
+            if let Some(weapon) = self.inventory_player2.get_current_weapon_mut() {
+                weapon.shoot_bullet(&self.player2, TargetPlayer::Player2, &mut self.bullet_manager, state);
             }
 
-            if self.player1.controller.trigger_prev_weapon() {
-                state.sound_manager.play_sfx(4);
-                self.inventory_player1.prev_weapon();
-                self.weapon_x_pos = 0;
-            }
-
-            // update health bar
-            if self.life_bar < self.player1.life as u16 {
-                self.life_bar = self.player1.life as u16;
-            }
-
-            if self.life_bar > self.player1.life as u16 {
-                self.life_bar_counter += 1;
-                if self.life_bar_counter > 30 {
-                    self.life_bar -= 1;
+            if self.player1.cond.alive() {
+                if self.player1.controller.trigger_next_weapon() {
+                    state.sound_manager.play_sfx(4);
+                    self.inventory_player1.next_weapon();
+                    self.hud_player1.weapon_x_pos = 32;
                 }
-            } else {
-                self.life_bar_counter = 0;
+
+                if self.player1.controller.trigger_prev_weapon() {
+                    state.sound_manager.play_sfx(4);
+                    self.inventory_player1.prev_weapon();
+                    self.hud_player1.weapon_x_pos = 0;
+                }
             }
 
+            if self.player2.cond.alive() {
+                if self.player2.controller.trigger_next_weapon() {
+                    state.sound_manager.play_sfx(4);
+                    self.inventory_player2.next_weapon();
+                    self.hud_player2.weapon_x_pos = 32;
+                }
+
+                if self.player2.controller.trigger_prev_weapon() {
+                    state.sound_manager.play_sfx(4);
+                    self.inventory_player2.prev_weapon();
+                    self.hud_player2.weapon_x_pos = 0;
+                }
+            }
+
+            self.hud_player1.tick(state, (&self.player1, &self.inventory_player1))?;
+            self.hud_player2.tick(state, (&self.player2, &self.inventory_player2))?;
             self.boss_life_bar.tick(state, &self.npc_map)?;
         }
 
@@ -1324,6 +1262,8 @@ impl Scene for GameScene {
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.player1.controller.update(state, ctx)?;
         self.player1.controller.update_trigger();
+        self.player2.controller.update(state, ctx)?;
+        self.player2.controller.update_trigger();
 
         if self.intro_mode && (self.player1.controller.trigger_menu_ok() || self.tick >= 500) {
             state.next_scene = Some(Box::new(TitleScene::new()));
@@ -1337,12 +1277,6 @@ impl Scene for GameScene {
 
         if self.map_name_counter > 0 {
             self.map_name_counter -= 1;
-        }
-
-        if self.weapon_x_pos > 16 {
-            self.weapon_x_pos -= 2;
-        } else if self.weapon_x_pos < 16 {
-            self.weapon_x_pos += 2;
         }
 
         match state.fade_state {
@@ -1371,6 +1305,8 @@ impl Scene for GameScene {
         self.frame.prev_y = self.frame.y;
         self.player1.prev_x = self.player1.x;
         self.player1.prev_y = self.player1.y;
+        self.player2.prev_x = self.player2.x;
+        self.player2.prev_y = self.player2.y;
 
         for npc_cell in self.npc_map.npcs.values() {
             let mut npc = npc_cell.borrow_mut();
@@ -1431,6 +1367,7 @@ impl Scene for GameScene {
             npc.draw(state, ctx, &self.frame)?;
         }
         self.draw_bullets(state, ctx)?;
+        self.player2.draw(state, ctx, &self.frame)?;
         self.player1.draw(state, ctx, &self.frame)?;
         if state.settings.shader_effects && self.water_visible {
             self.draw_water(state, ctx)?;
@@ -1451,8 +1388,34 @@ impl Scene for GameScene {
         self.draw_black_bars(state, ctx)?;
 
         if state.control_flags.control_enabled() {
-            self.draw_hud(state, ctx)?;
+            self.hud_player1.draw(state, ctx, &self.frame)?;
+            self.hud_player2.draw(state, ctx, &self.frame)?;
             self.boss_life_bar.draw(state, ctx, &self.frame)?;
+
+            if self.player2.cond.alive() && !self.player2.cond.hidden() {
+                let y = interpolate_fix9_scale(self.player2.prev_y - self.frame.prev_y, self.player2.y - self.frame.y, state.frame_time);
+                let y = clamp(y, 8.0, state.canvas_size.1 - 8.0 - state.font.line_height(&state.constants));
+
+                if self.player2.x + 8 * 0x200 < self.frame.x {
+                    state.font.draw_colored_text(P2_LEFT_TEXT.chars(),
+                                                 9.0, y + 1.0,
+                                                 (0, 0, 130), &state.constants, &mut state.texture_set, ctx)?;
+
+                    state.font.draw_colored_text(P2_LEFT_TEXT.chars(),
+                                                 8.0, y,
+                                                 (96, 96, 255), &state.constants, &mut state.texture_set, ctx)?;
+                } else if self.player2.x - 8 * 0x200 > self.frame.x + state.canvas_size.0 as isize * 0x200 {
+                    let width = state.font.text_width(P2_RIGHT_TEXT.chars(), &state.constants);
+
+                    state.font.draw_colored_text(P2_RIGHT_TEXT.chars(),
+                                                 state.canvas_size.0 - width - 8.0 + 1.0, y + 1.0,
+                                                 (0, 0, 130), &state.constants, &mut state.texture_set, ctx)?;
+
+                    state.font.draw_colored_text(P2_RIGHT_TEXT.chars(),
+                                                 state.canvas_size.0 - width - 8.0, y,
+                                                 (96, 96, 255), &state.constants, &mut state.texture_set, ctx)?;
+                }
+            }
         }
 
         if state.textscript_vm.mode == ScriptMode::StageSelect {
@@ -1479,7 +1442,7 @@ impl Scene for GameScene {
             self.draw_debug_outlines(state, ctx)?;
         }
 
-        self.draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
+        draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
         Ok(())
     }
 

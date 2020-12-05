@@ -115,11 +115,15 @@ impl Scene for TitleScene {
         self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
         self.option_menu.height = self.option_menu.entries.len() as u16 * 14 + 6;
 
+        self.controller.update(state, ctx)?;
+        self.controller.update_trigger();
+
         Ok(())
     }
 
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.controller.update(state, ctx)?;
+        self.controller.update_trigger();
 
         self.main_menu.x = ((state.canvas_size.0 - self.main_menu.width as f32) / 2.0).floor() as isize;
         self.main_menu.y = ((state.canvas_size.1 + 70.0 - self.main_menu.height as f32) / 2.0).floor() as isize;

@@ -87,7 +87,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n088_igor_boss(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n088_igor_boss(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -112,6 +112,7 @@ impl NPC {
                 }
             }
             2 | 3 => {
+                let player = self.get_closest_player_mut(players);
                 if self.action_num == 2 {
                     self.action_num = 3;
                     self.action_counter = 0;
@@ -226,6 +227,7 @@ impl NPC {
                     self.action_num = 10;
                     self.action_counter = 0;
 
+                    let player = self.get_closest_player_mut(players);
                     self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
                 }
 
@@ -273,12 +275,13 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n089_igor_dead(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n089_igor_dead(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
                     self.action_num = 1;
 
+                    let player = self.get_closest_player_mut(players);
                     self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
 
                     let mut npc = NPCMap::create_npc(4, &state.npc_table);

@@ -1,10 +1,11 @@
 use num_traits::clamp;
 
 use crate::caret::CaretType;
-use crate::common::{Condition, Direction, Flag, Rect};
+use crate::common::{BulletFlag, Condition, Direction, Flag, Rect};
 use crate::engine_constants::{BulletData, EngineConstants};
 use crate::npc::NPCMap;
 use crate::physics::{OFF_X, OFF_Y, PhysicalEntity};
+use crate::player::TargetPlayer;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
@@ -20,30 +21,30 @@ impl BulletManager {
         }
     }
 
-    pub fn create_bullet(&mut self, x: isize, y: isize, btype: u16, direction: Direction, constants: &EngineConstants) {
-        self.bullets.push(Bullet::new(x, y, btype, direction, constants));
+    pub fn create_bullet(&mut self, x: isize, y: isize, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) {
+        self.bullets.push(Bullet::new(x, y, btype, owner, direction, constants));
     }
 
-    pub fn tick_bullets(&mut self, state: &mut SharedGameState, player: &dyn PhysicalEntity, stage: &mut Stage) {
+    pub fn tick_bullets(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2], stage: &mut Stage) {
         for bullet in self.bullets.iter_mut() {
             if bullet.life < 1 {
                 bullet.cond.set_alive(false);
                 continue;
             }
 
-            bullet.tick(state, player);
+            bullet.tick(state, players);
             bullet.tick_map_collisions(state, stage);
         }
 
         self.bullets.retain(|b| !b.is_dead());
     }
 
-    pub fn count_bullets(&self, btype: u16) -> usize {
-        self.bullets.iter().filter(|b| b.btype == btype).count()
+    pub fn count_bullets(&self, btype: u16, player_id: TargetPlayer) -> usize {
+        self.bullets.iter().filter(|b| b.owner == player_id && b.btype == btype).count()
     }
 
-    pub fn count_bullets_multi(&self, btypes: [u16; 3]) -> usize {
-        self.bullets.iter().filter(|b| btypes.contains(&b.btype)).count()
+    pub fn count_bullets_multi(&self, btypes: [u16; 3], player_id: TargetPlayer) -> usize {
+        self.bullets.iter().filter(|b| b.owner == player_id && btypes.contains(&b.btype)).count()
     }
 }
 
@@ -60,8 +61,9 @@ pub struct Bullet {
     pub life: u16,
     pub lifetime: u16,
     pub damage: u16,
+    pub owner: TargetPlayer,
     pub cond: Condition,
-    pub weapon_flags: Flag,
+    pub weapon_flags: BulletFlag,
     pub flags: Flag,
     pub direction: Direction,
     pub anim_rect: Rect<u16>,
@@ -76,14 +78,14 @@ pub struct Bullet {
 }
 
 impl Bullet {
-    pub fn new(x: isize, y: isize, btype: u16, direction: Direction, constants: &EngineConstants) -> Bullet {
+    pub fn new(x: isize, y: isize, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) -> Bullet {
         let bullet = constants.weapon.bullet_table
             .get(btype as usize)
             .unwrap_or_else(|| &BulletData {
                 damage: 0,
                 life: 0,
                 lifetime: 0,
-                flags: Flag(0),
+                flags: BulletFlag(0),
                 enemy_hit_width: 0,
                 enemy_hit_height: 0,
                 block_hit_width: 0,
@@ -104,6 +106,7 @@ impl Bullet {
             life: bullet.life as u16,
             lifetime: bullet.lifetime,
             damage: bullet.damage as u16,
+            owner,
             cond: Condition(0x80),
             weapon_flags: bullet.flags,
             flags: Flag(0),
@@ -160,7 +163,6 @@ impl Bullet {
         }
 
         self.anim_num = (self.anim_num + 1) % 3;
-
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
 
@@ -247,7 +249,7 @@ impl Bullet {
         }
     }
 
-    fn tick_fireball(&mut self, state: &mut SharedGameState, player: &dyn PhysicalEntity) {
+    fn tick_fireball(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2]) {
         self.action_counter += 1;
         if self.action_counter > self.lifetime {
             self.cond.set_alive(false);
@@ -285,7 +287,7 @@ impl Bullet {
                     self.vel_x = 0x400;
                 }
                 Direction::Up => {
-                    self.vel_x = player.vel_x();
+                    self.vel_x = players[self.owner.index()].vel_x();
 
                     self.direction = if self.vel_x < 0 {
                         Direction::Left
@@ -293,7 +295,7 @@ impl Bullet {
                         Direction::Right
                     };
 
-                    self.vel_x += if player.direction() == Direction::Left {
+                    self.vel_x += if players[self.owner.index()].direction() == Direction::Left {
                         -0x80
                     } else {
                         0x80
@@ -302,7 +304,7 @@ impl Bullet {
                     self.vel_y = -0x5ff;
                 }
                 Direction::Bottom => {
-                    self.vel_x = player.vel_x();
+                    self.vel_x = players[self.owner.index()].vel_x();
 
                     self.direction = if self.vel_x < 0 {
                         Direction::Left
@@ -366,7 +368,7 @@ impl Bullet {
         }
     }
 
-    pub fn tick(&mut self, state: &mut SharedGameState, player: &dyn PhysicalEntity) {
+    pub fn tick(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2]) {
         if self.lifetime == 0 {
             self.cond.set_alive(false);
             return;
@@ -375,16 +377,15 @@ impl Bullet {
         match self.btype {
             1 => self.tick_snake_1(state),
             4 | 5 | 6 => self.tick_polar_star(state),
-            7 | 8 | 9 => self.tick_fireball(state, player),
+            7 | 8 | 9 => self.tick_fireball(state, players),
             _ => self.cond.set_alive(false),
         }
     }
 
     pub fn vanish(&mut self, state: &mut SharedGameState) {
-        if self.btype != 37 && self.btype != 38 && self.btype != 39 {
-            state.sound_manager.play_sfx(28);
-        } else {
-            state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Up);
+        match self.btype {
+            37 | 38 | 39 => state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Up),
+            _ => state.sound_manager.play_sfx(28),
         }
 
         self.cond.set_alive(false);
@@ -397,7 +398,7 @@ impl Bullet {
         let block_y = (y * 16 + 8) * 0x200;
 
         for (i, &attr) in hit_attribs.iter().enumerate() {
-            if self.weapon_flags.snack_destroy() {
+            if self.weapon_flags.flag_x40() {
                 hits[i] = attr == 0x41 || attr == 0x61;
             } else {
                 hits[i] = attr == 0x41 || attr == 0x43 || attr == 0x61;
@@ -468,15 +469,15 @@ impl Bullet {
             self.flags.set_hit_bottom_wall(true);
         }
 
-        if self.weapon_flags.hit_bottom_wall() {
+        if self.weapon_flags.flag_x08() {
             if self.flags.hit_left_wall() {
                 self.x = block_x + self.hit_bounds.right as isize;
             } else if self.flags.hit_right_wall() {
-                self.x = block_x + self.hit_bounds.left as isize;
-            } else if self.flags.hit_left_wall() {
-                self.x = block_x + self.hit_bounds.right as isize;
-            } else if self.flags.hit_right_wall() {
-                self.x = block_x + self.hit_bounds.left as isize;
+                self.x = block_x - self.hit_bounds.left as isize;
+            } else if self.flags.hit_top_wall() {
+                self.y = block_y + self.hit_bounds.bottom as isize;
+            } else if self.flags.hit_bottom_wall() {
+                self.y = block_y - self.hit_bounds.top as isize;
             }
         } else if self.flags.hit_left_wall() || self.flags.hit_top_wall()
             || self.flags.hit_right_wall() || self.flags.hit_bottom_wall() {
@@ -555,7 +556,7 @@ impl PhysicalEntity for Bullet {
         false
     }
 
-    fn judge_hit_block(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
+    fn judge_hit_block(&mut self, _state: &mut SharedGameState, x: isize, y: isize) {
         if (self.x - self.hit_bounds.left as isize) < (x * 16 + 8) * 0x200
             && (self.x + self.hit_bounds.right as isize) > (x * 16 - 8) * 0x200
             && (self.y - self.hit_bounds.top as isize) < (y * 16 + 8) * 0x200
@@ -566,14 +567,14 @@ impl PhysicalEntity for Bullet {
     }
 
     fn tick_map_collisions(&mut self, state: &mut SharedGameState, stage: &mut Stage) {
+        self.flags().0 = 0;
+        if self.weapon_flags.flag_x04() { // ???
+            return;
+        }
+
         let x = clamp(self.x() / 16 / 0x200, 0, stage.map.width as isize);
         let y = clamp(self.y() / 16 / 0x200, 0, stage.map.height as isize);
         let mut hit_attribs = [0u8; 4];
-
-        self.flags().0 = 0;
-        if self.weapon_flags.hit_right_wall() { // ???
-            return;
-        }
 
         for (idx, (&ox, &oy)) in OFF_X.iter().zip(OFF_Y.iter()).enumerate() {
             if idx == 4 || !self.cond.alive() {
@@ -589,10 +590,12 @@ impl PhysicalEntity for Bullet {
                     self.judge_hit_block(state, x + ox, y + oy);
                 }
                 0x43 => {
+                    let old_hit = self.flags;
+                    self.flags.0 = 0;
                     self.judge_hit_block(state, x + ox, y + oy);
 
-                    if self.flags.0 != 0 && (self.weapon_flags.hit_left_slope() || self.weapon_flags.snack_destroy()) {
-                        if !self.weapon_flags.snack_destroy() {
+                    if self.flags.weapon_hit_block() && (self.weapon_flags.flag_x20() || self.weapon_flags.flag_x40()) {
+                        if !self.weapon_flags.flag_x40() {
                             self.cond.set_alive(false);
                         }
 
@@ -616,6 +619,8 @@ impl PhysicalEntity for Bullet {
                             *tile = tile.wrapping_sub(1);
                         }
                     }
+
+                    self.flags.0 |= old_hit.0;
                 }
                 // Slopes
                 0x50 | 0x70 => {

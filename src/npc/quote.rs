@@ -5,7 +5,7 @@ use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
-    pub fn tick_n111_quote_teleport_out(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub fn tick_n111_quote_teleport_out(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -58,10 +58,9 @@ impl NPC {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
         self.anim_rect = state.constants.npc.n111_quote_teleport_out[self.anim_num as usize + dir_offset];
 
-        if player.equip.has_mimiga_mask() {
-            self.anim_rect.top += 32;
-            self.anim_rect.bottom += 32;
-        }
+        let offset = players[state.textscript_vm.executor_player.index()].get_texture_offset();
+        self.anim_rect.top += offset;
+        self.anim_rect.bottom += offset;
 
         if self.action_num == 4 {
             self.anim_rect.bottom = self.anim_rect.top + self.action_counter / 4;
@@ -74,7 +73,7 @@ impl NPC {
         Ok(())
     }
 
-    pub fn tick_n112_quote_teleport_in(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub fn tick_n112_quote_teleport_in(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -116,10 +115,9 @@ impl NPC {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
         self.anim_rect = state.constants.npc.n111_quote_teleport_out[self.anim_num as usize + dir_offset];
 
-        if player.equip.has_mimiga_mask() {
-            self.anim_rect.top += 32;
-            self.anim_rect.bottom += 32;
-        }
+        let offset = players[state.textscript_vm.executor_player.index()].get_texture_offset();
+        self.anim_rect.top += offset;
+        self.anim_rect.bottom += offset;
 
         if self.action_num == 1 {
             self.anim_rect.bottom = self.anim_rect.top + self.action_counter / 4;
@@ -132,13 +130,14 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n150_quote(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n150_quote(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
                 self.anim_num = 0;
 
                 if self.tsc_direction > 10 {
+                    let player = &players[state.textscript_vm.executor_player.index()];
                     self.x = player.x;
                     self.y = player.y;
 
@@ -278,10 +277,9 @@ impl NPC {
             self.anim_rect.bottom = self.anim_rect.top + self.action_counter / 4;
         }
 
-        if player.equip.has_mimiga_mask() {
-            self.anim_rect.top += 32;
-            self.anim_rect.bottom += 32;
-        }
+        let offset = players[state.textscript_vm.executor_player.index()].get_texture_offset();
+        self.anim_rect.top += offset;
+        self.anim_rect.bottom += offset;
 
         Ok(())
     }

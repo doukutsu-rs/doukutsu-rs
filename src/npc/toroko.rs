@@ -7,7 +7,7 @@ use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
-    pub(crate) fn tick_n060_toroko(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
+    pub(crate) fn tick_n060_toroko(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -23,6 +23,7 @@ impl NPC {
                     self.anim_num = 1;
                 }
 
+                let player = self.get_closest_player_mut(players);
                 if (self.x - (16 * 0x200) < player.x) && (self.x + (16 * 0x200) > player.x)
                     && (self.y - (16 * 0x200) < player.y) && (self.y + (16 * 0x200) > player.y) {
                     if self.x > player.x {

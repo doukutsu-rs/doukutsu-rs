@@ -10,7 +10,7 @@ use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
-    pub fn tick_n042_sue(&mut self, state: &mut SharedGameState, player: &Player, map: &BTreeMap<u16, RefCell<NPC>>) -> GameResult {
+    pub fn tick_n042_sue(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], map: &BTreeMap<u16, RefCell<NPC>>) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -182,6 +182,7 @@ impl NPC {
 
                 self.vel_x = self.direction.vector_x() * 0x400;
 
+                let player = self.get_closest_player_mut(players);
                 if self.x < player.x - 8 * 0x200 {
                     self.direction = Direction::Right;
                     self.action_num = 0;

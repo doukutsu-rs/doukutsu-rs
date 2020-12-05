@@ -2,11 +2,11 @@ use case_insensitive_hashmap::CaseInsensitiveHashMap;
 use log::info;
 
 use crate::case_insensitive_hashmap;
-use crate::common::{Flag, Rect};
+use crate::common::{BulletFlag, Flag, Rect};
+use crate::engine_constants::npcs::NPCConsts;
 use crate::player::ControlMode;
 use crate::str;
 use crate::text_script::TextScriptEncoding;
-use crate::engine_constants::npcs::NPCConsts;
 
 mod npcs;
 
@@ -59,6 +59,7 @@ pub struct CaretConsts {
     pub drowned_quote_right_rect: Rect<u16>,
     pub level_up_rects: Vec<Rect<u16>>,
     pub level_down_rects: Vec<Rect<u16>>,
+    pub hurt_particles_rects: Vec<Rect<u16>>,
     pub explosion_rects: Vec<Rect<u16>>,
     pub little_particles_rects: Vec<Rect<u16>>,
     pub exhaust_rects: Vec<Rect<u16>>,
@@ -81,6 +82,7 @@ impl Clone for CaretConsts {
             drowned_quote_right_rect: self.drowned_quote_right_rect,
             level_up_rects: self.level_up_rects.clone(),
             level_down_rects: self.level_down_rects.clone(),
+            hurt_particles_rects: self.hurt_particles_rects.clone(),
             explosion_rects: self.explosion_rects.clone(),
             little_particles_rects: self.little_particles_rects.clone(),
             exhaust_rects: self.exhaust_rects.clone(),
@@ -96,7 +98,7 @@ pub struct BulletData {
     pub damage: u8,
     pub life: u8,
     pub lifetime: u16,
-    pub flags: Flag,
+    pub flags: BulletFlag,
     pub enemy_hit_width: u16,
     pub enemy_hit_height: u16,
     pub block_hit_width: u16,
@@ -383,6 +385,15 @@ impl EngineConstants {
                     Rect { left: 0, top: 96, right: 56, bottom: 112 },
                     Rect { left: 0, top: 112, right: 56, bottom: 128 },
                 ],
+                hurt_particles_rects: vec![
+                    Rect { left: 56, top: 8, right: 64, bottom: 16 },
+                    Rect { left: 64, top: 8, right: 72, bottom: 16 },
+                    Rect { left: 72, top: 8, right: 80, bottom: 16 },
+                    Rect { left: 80, top: 8, right: 88, bottom: 16 },
+                    Rect { left: 88, top: 8, right: 96, bottom: 16 },
+                    Rect { left: 96, top: 8, right: 104, bottom: 16 },
+                    Rect { left: 104, top: 8, right: 112, bottom: 16 },
+                ],
                 explosion_rects: vec![
                     Rect { left: 112, top: 0, right: 144, bottom: 32 },
                     Rect { left: 144, top: 0, right: 176, bottom: 32 },
@@ -410,71 +421,71 @@ impl EngineConstants {
             weapon: WeaponConsts {
                 bullet_table: vec![
                     // Null
-                    BulletData { damage: 0, life: 0, lifetime: 0, flags: Flag(0), enemy_hit_width: 0, enemy_hit_height: 0, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 0, life: 0, lifetime: 0, flags: BulletFlag(0), enemy_hit_width: 0, enemy_hit_height: 0, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
                     // Snake
-                    BulletData { damage: 4, life: 1, lifetime: 20, flags: Flag(36), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 6, life: 1, lifetime: 23, flags: Flag(36), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 8, life: 1, lifetime: 30, flags: Flag(36), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 4, life: 1, lifetime: 20, flags: BulletFlag(36), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 6, life: 1, lifetime: 23, flags: BulletFlag(36), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 8, life: 1, lifetime: 30, flags: BulletFlag(36), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
                     // Polar Star
-                    BulletData { damage: 1, life: 1, lifetime: 8, flags: Flag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 2, life: 1, lifetime: 12, flags: Flag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 4, life: 1, lifetime: 16, flags: Flag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 1, life: 1, lifetime: 8, flags: BulletFlag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 2, life: 1, lifetime: 12, flags: BulletFlag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 4, life: 1, lifetime: 16, flags: BulletFlag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
                     // Fireball
-                    BulletData { damage: 2, life: 2, lifetime: 100, flags: Flag(8), enemy_hit_width: 8, enemy_hit_height: 16, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 3, life: 2, lifetime: 100, flags: Flag(8), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 3, life: 2, lifetime: 100, flags: Flag(8), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 2, life: 2, lifetime: 100, flags: BulletFlag(8), enemy_hit_width: 8, enemy_hit_height: 16, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 3, life: 2, lifetime: 100, flags: BulletFlag(8), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 3, life: 2, lifetime: 100, flags: BulletFlag(8), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
                     // Machine Gun
-                    BulletData { damage: 2, life: 1, lifetime: 20, flags: Flag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 4, life: 1, lifetime: 20, flags: Flag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 6, life: 1, lifetime: 20, flags: Flag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 2, life: 1, lifetime: 20, flags: BulletFlag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 4, life: 1, lifetime: 20, flags: BulletFlag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 6, life: 1, lifetime: 20, flags: BulletFlag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
                     // Missile Launcher
-                    BulletData { damage: 0, life: 10, lifetime: 50, flags: Flag(40), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 0, life: 10, lifetime: 70, flags: Flag(40), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 4, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 0, life: 10, lifetime: 90, flags: Flag(40), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 0, life: 10, lifetime: 50, flags: BulletFlag(40), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 0, life: 10, lifetime: 70, flags: BulletFlag(40), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 4, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 0, life: 10, lifetime: 90, flags: BulletFlag(40), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
                     // Missile Launcher explosion
-                    BulletData { damage: 1, life: 100, lifetime: 100, flags: Flag(20), enemy_hit_width: 16, enemy_hit_height: 16, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
-                    BulletData { damage: 1, life: 100, lifetime: 100, flags: Flag(20), enemy_hit_width: 16, enemy_hit_height: 16, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
-                    BulletData { damage: 1, life: 100, lifetime: 100, flags: Flag(20), enemy_hit_width: 16, enemy_hit_height: 16, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 1, life: 100, lifetime: 100, flags: BulletFlag(20), enemy_hit_width: 16, enemy_hit_height: 16, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 1, life: 100, lifetime: 100, flags: BulletFlag(20), enemy_hit_width: 16, enemy_hit_height: 16, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 1, life: 100, lifetime: 100, flags: BulletFlag(20), enemy_hit_width: 16, enemy_hit_height: 16, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
                     // Bubbler
-                    BulletData { damage: 1, life: 1, lifetime: 20, flags: Flag(8), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
-                    BulletData { damage: 2, life: 1, lifetime: 20, flags: Flag(8), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
-                    BulletData { damage: 2, life: 1, lifetime: 20, flags: Flag(8), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 4, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    BulletData { damage: 1, life: 1, lifetime: 20, flags: BulletFlag(8), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    BulletData { damage: 2, life: 1, lifetime: 20, flags: BulletFlag(8), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    BulletData { damage: 2, life: 1, lifetime: 20, flags: BulletFlag(8), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 4, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
                     // Bubbler level 3 thorns
-                    BulletData { damage: 3, life: 1, lifetime: 32, flags: Flag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    BulletData { damage: 3, life: 1, lifetime: 32, flags: BulletFlag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
                     // Blade slashes
-                    BulletData { damage: 0, life: 100, lifetime: 0, flags: Flag(36), enemy_hit_width: 8, enemy_hit_height: 8, block_hit_width: 8, block_hit_height: 8, display_bounds: Rect { left: 12, top: 12, right: 12, bottom: 12 } },
+                    BulletData { damage: 0, life: 100, lifetime: 0, flags: BulletFlag(36), enemy_hit_width: 8, enemy_hit_height: 8, block_hit_width: 8, block_hit_height: 8, display_bounds: Rect { left: 12, top: 12, right: 12, bottom: 12 } },
                     // Falling spike
-                    BulletData { damage: 127, life: 1, lifetime: 2, flags: Flag(4), enemy_hit_width: 8, enemy_hit_height: 4, block_hit_width: 8, block_hit_height: 4, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 127, life: 1, lifetime: 2, flags: BulletFlag(4), enemy_hit_width: 8, enemy_hit_height: 4, block_hit_width: 8, block_hit_height: 4, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
                     // Blade
-                    BulletData { damage: 15, life: 1, lifetime: 30, flags: Flag(36), enemy_hit_width: 8, enemy_hit_height: 8, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 6, life: 3, lifetime: 18, flags: Flag(36), enemy_hit_width: 10, enemy_hit_height: 10, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 12, top: 12, right: 12, bottom: 12 } },
-                    BulletData { damage: 1, life: 100, lifetime: 30, flags: Flag(36), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 4, block_hit_height: 4, display_bounds: Rect { left: 12, top: 12, right: 12, bottom: 12 } },
+                    BulletData { damage: 15, life: 1, lifetime: 30, flags: BulletFlag(36), enemy_hit_width: 8, enemy_hit_height: 8, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 6, life: 3, lifetime: 18, flags: BulletFlag(36), enemy_hit_width: 10, enemy_hit_height: 10, block_hit_width: 4, block_hit_height: 2, display_bounds: Rect { left: 12, top: 12, right: 12, bottom: 12 } },
+                    BulletData { damage: 1, life: 100, lifetime: 30, flags: BulletFlag(36), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 4, block_hit_height: 4, display_bounds: Rect { left: 12, top: 12, right: 12, bottom: 12 } },
                     // Super Missile Launcher
-                    BulletData { damage: 0, life: 10, lifetime: 30, flags: Flag(40), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 0, life: 10, lifetime: 40, flags: Flag(40), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 4, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 0, life: 10, lifetime: 40, flags: Flag(40), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 0, life: 10, lifetime: 30, flags: BulletFlag(40), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 0, life: 10, lifetime: 40, flags: BulletFlag(40), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 4, block_hit_height: 4, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 0, life: 10, lifetime: 40, flags: BulletFlag(40), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
                     // Super Missile Launcher explosion
-                    BulletData { damage: 2, life: 100, lifetime: 100, flags: Flag(20), enemy_hit_width: 12, enemy_hit_height: 12, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
-                    BulletData { damage: 2, life: 100, lifetime: 100, flags: Flag(20), enemy_hit_width: 12, enemy_hit_height: 12, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
-                    BulletData { damage: 2, life: 100, lifetime: 100, flags: Flag(20), enemy_hit_width: 12, enemy_hit_height: 12, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 2, life: 100, lifetime: 100, flags: BulletFlag(20), enemy_hit_width: 12, enemy_hit_height: 12, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 2, life: 100, lifetime: 100, flags: BulletFlag(20), enemy_hit_width: 12, enemy_hit_height: 12, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 2, life: 100, lifetime: 100, flags: BulletFlag(20), enemy_hit_width: 12, enemy_hit_height: 12, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
                     // Nemesis
-                    BulletData { damage: 4, life: 4, lifetime: 20, flags: Flag(32), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 24, bottom: 8 } },
-                    BulletData { damage: 4, life: 2, lifetime: 20, flags: Flag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 24, bottom: 8 } },
-                    BulletData { damage: 1, life: 1, lifetime: 20, flags: Flag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 24, bottom: 8 } },
+                    BulletData { damage: 4, life: 4, lifetime: 20, flags: BulletFlag(32), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 24, bottom: 8 } },
+                    BulletData { damage: 4, life: 2, lifetime: 20, flags: BulletFlag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 24, bottom: 8 } },
+                    BulletData { damage: 1, life: 1, lifetime: 20, flags: BulletFlag(32), enemy_hit_width: 2, enemy_hit_height: 2, block_hit_width: 2, block_hit_height: 2, display_bounds: Rect { left: 8, top: 8, right: 24, bottom: 8 } },
                     // Spur
-                    BulletData { damage: 4, life: 4, lifetime: 30, flags: Flag(64), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 8, life: 8, lifetime: 30, flags: Flag(64), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
-                    BulletData { damage: 12, life: 12, lifetime: 30, flags: Flag(64), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 4, life: 4, lifetime: 30, flags: BulletFlag(64), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 8, life: 8, lifetime: 30, flags: BulletFlag(64), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
+                    BulletData { damage: 12, life: 12, lifetime: 30, flags: BulletFlag(64), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 8, bottom: 8 } },
                     // Spur trail
-                    BulletData { damage: 3, life: 100, lifetime: 30, flags: Flag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
-                    BulletData { damage: 6, life: 100, lifetime: 30, flags: Flag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
-                    BulletData { damage: 11, life: 100, lifetime: 30, flags: Flag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    BulletData { damage: 3, life: 100, lifetime: 30, flags: BulletFlag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    BulletData { damage: 6, life: 100, lifetime: 30, flags: BulletFlag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
+                    BulletData { damage: 11, life: 100, lifetime: 30, flags: BulletFlag(32), enemy_hit_width: 6, enemy_hit_height: 6, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 4, top: 4, right: 4, bottom: 4 } },
                     // Curly's Nemesis
-                    BulletData { damage: 4, life: 4, lifetime: 20, flags: Flag(32), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 24, bottom: 8 } },
+                    BulletData { damage: 4, life: 4, lifetime: 20, flags: BulletFlag(32), enemy_hit_width: 4, enemy_hit_height: 4, block_hit_width: 3, block_hit_height: 3, display_bounds: Rect { left: 8, top: 8, right: 24, bottom: 8 } },
                     // EnemyClear?
-                    BulletData { damage: 0, life: 4, lifetime: 4, flags: Flag(4), enemy_hit_width: 0, enemy_hit_height: 0, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
+                    BulletData { damage: 0, life: 4, lifetime: 4, flags: BulletFlag(4), enemy_hit_width: 0, enemy_hit_height: 0, block_hit_width: 0, block_hit_height: 0, display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 } },
                     // Whimsical Star
-                    BulletData { damage: 1, life: 1, lifetime: 1, flags: Flag(36), enemy_hit_width: 1, enemy_hit_height: 1, block_hit_width: 1, block_hit_height: 1, display_bounds: Rect { left: 1, top: 1, right: 1, bottom: 1 } },
+                    BulletData { damage: 1, life: 1, lifetime: 1, flags: BulletFlag(36), enemy_hit_width: 1, enemy_hit_height: 1, block_hit_width: 1, block_hit_height: 1, display_bounds: Rect { left: 1, top: 1, right: 1, bottom: 1 } },
                 ],
                 bullet_rects: BulletRects {
                     b001_snake_l1: [

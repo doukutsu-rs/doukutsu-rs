@@ -95,7 +95,6 @@ impl GameProfile {
         }
 
         game_scene.player1.equip.0 = self.equipment as u16;
-        game_scene.player1.cond.0 = 0x80;
 
         game_scene.player1.x = self.pos_x as isize;
         game_scene.player1.y = self.pos_y as isize;
@@ -105,6 +104,11 @@ impl GameProfile {
         game_scene.player1.life = self.life;
         game_scene.player1.max_life = self.max_life;
         game_scene.player1.stars = clamp(self.stars, 0, 3) as u8;
+
+        game_scene.player2 = game_scene.player1.clone();
+        game_scene.inventory_player2 = game_scene.inventory_player1.clone();
+
+        game_scene.player1.cond.0 = 0x80;
     }
 
     pub fn dump(state: &mut SharedGameState, game_scene: &mut GameScene) -> GameProfile {
