@@ -1062,7 +1062,7 @@ impl GameScene {
         self.tick_npc_bullet_collissions(state);
         self.npc_map.process_npc_changes(&self.player1, state);
 
-        self.bullet_manager.tick_bullets(state, &self.player1, &mut self.stage);
+        self.bullet_manager.tick_bullets(state, [&self.player1, &self.player2], &mut self.stage);
         state.tick_carets();
 
         match self.frame.update_target {
@@ -1103,11 +1103,11 @@ impl GameScene {
 
         if state.control_flags.control_enabled() {
             if let Some(weapon) = self.inventory_player1.get_current_weapon_mut() {
-                weapon.shoot_bullet(&self.player1, &mut self.bullet_manager, state);
+                weapon.shoot_bullet(&self.player1, TargetPlayer::Player1, &mut self.bullet_manager, state);
             }
 
             if let Some(weapon) = self.inventory_player2.get_current_weapon_mut() {
-                weapon.shoot_bullet(&self.player2, &mut self.bullet_manager, state);
+                weapon.shoot_bullet(&self.player2, TargetPlayer::Player2, &mut self.bullet_manager, state);
             }
 
             if self.player1.cond.alive() {

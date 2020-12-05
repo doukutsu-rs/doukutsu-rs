@@ -5,6 +5,7 @@ use crate::common::{BulletFlag, Condition, Direction, Flag, Rect};
 use crate::engine_constants::{BulletData, EngineConstants};
 use crate::npc::NPCMap;
 use crate::physics::{OFF_X, OFF_Y, PhysicalEntity};
+use crate::player::TargetPlayer;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
@@ -20,30 +21,30 @@ impl BulletManager {
         }
     }
 
-    pub fn create_bullet(&mut self, x: isize, y: isize, btype: u16, direction: Direction, constants: &EngineConstants) {
-        self.bullets.push(Bullet::new(x, y, btype, direction, constants));
+    pub fn create_bullet(&mut self, x: isize, y: isize, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) {
+        self.bullets.push(Bullet::new(x, y, btype, owner, direction, constants));
     }
 
-    pub fn tick_bullets(&mut self, state: &mut SharedGameState, player: &dyn PhysicalEntity, stage: &mut Stage) {
+    pub fn tick_bullets(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2], stage: &mut Stage) {
         for bullet in self.bullets.iter_mut() {
             if bullet.life < 1 {
                 bullet.cond.set_alive(false);
                 continue;
             }
 
-            bullet.tick(state, player);
+            bullet.tick(state, players);
             bullet.tick_map_collisions(state, stage);
         }
 
         self.bullets.retain(|b| !b.is_dead());
     }
 
-    pub fn count_bullets(&self, btype: u16) -> usize {
-        self.bullets.iter().filter(|b| b.btype == btype).count()
+    pub fn count_bullets(&self, btype: u16, player_id: TargetPlayer) -> usize {
+        self.bullets.iter().filter(|b| b.owner == player_id && b.btype == btype).count()
     }
 
-    pub fn count_bullets_multi(&self, btypes: [u16; 3]) -> usize {
-        self.bullets.iter().filter(|b| btypes.contains(&b.btype)).count()
+    pub fn count_bullets_multi(&self, btypes: [u16; 3], player_id: TargetPlayer) -> usize {
+        self.bullets.iter().filter(|b| b.owner == player_id && btypes.contains(&b.btype)).count()
     }
 }
 
@@ -60,6 +61,7 @@ pub struct Bullet {
     pub life: u16,
     pub lifetime: u16,
     pub damage: u16,
+    pub owner: TargetPlayer,
     pub cond: Condition,
     pub weapon_flags: BulletFlag,
     pub flags: Flag,
@@ -76,7 +78,7 @@ pub struct Bullet {
 }
 
 impl Bullet {
-    pub fn new(x: isize, y: isize, btype: u16, direction: Direction, constants: &EngineConstants) -> Bullet {
+    pub fn new(x: isize, y: isize, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) -> Bullet {
         let bullet = constants.weapon.bullet_table
             .get(btype as usize)
             .unwrap_or_else(|| &BulletData {
@@ -104,6 +106,7 @@ impl Bullet {
             life: bullet.life as u16,
             lifetime: bullet.lifetime,
             damage: bullet.damage as u16,
+            owner,
             cond: Condition(0x80),
             weapon_flags: bullet.flags,
             flags: Flag(0),
@@ -246,7 +249,7 @@ impl Bullet {
         }
     }
 
-    fn tick_fireball(&mut self, state: &mut SharedGameState, player: &dyn PhysicalEntity) {
+    fn tick_fireball(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2]) {
         self.action_counter += 1;
         if self.action_counter > self.lifetime {
             self.cond.set_alive(false);
@@ -284,7 +287,7 @@ impl Bullet {
                     self.vel_x = 0x400;
                 }
                 Direction::Up => {
-                    self.vel_x = player.vel_x();
+                    self.vel_x = players[self.owner.index()].vel_x();
 
                     self.direction = if self.vel_x < 0 {
                         Direction::Left
@@ -292,7 +295,7 @@ impl Bullet {
                         Direction::Right
                     };
 
-                    self.vel_x += if player.direction() == Direction::Left {
+                    self.vel_x += if players[self.owner.index()].direction() == Direction::Left {
                         -0x80
                     } else {
                         0x80
@@ -301,7 +304,7 @@ impl Bullet {
                     self.vel_y = -0x5ff;
                 }
                 Direction::Bottom => {
-                    self.vel_x = player.vel_x();
+                    self.vel_x = players[self.owner.index()].vel_x();
 
                     self.direction = if self.vel_x < 0 {
                         Direction::Left
@@ -365,7 +368,7 @@ impl Bullet {
         }
     }
 
-    pub fn tick(&mut self, state: &mut SharedGameState, player: &dyn PhysicalEntity) {
+    pub fn tick(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2]) {
         if self.lifetime == 0 {
             self.cond.set_alive(false);
             return;
@@ -374,16 +377,15 @@ impl Bullet {
         match self.btype {
             1 => self.tick_snake_1(state),
             4 | 5 | 6 => self.tick_polar_star(state),
-            7 | 8 | 9 => self.tick_fireball(state, player),
+            7 | 8 | 9 => self.tick_fireball(state, players),
             _ => self.cond.set_alive(false),
         }
     }
 
     pub fn vanish(&mut self, state: &mut SharedGameState) {
-        if self.btype != 37 && self.btype != 38 && self.btype != 39 {
-            state.sound_manager.play_sfx(28);
-        } else {
-            state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Up);
+        match self.btype {
+            37 | 38 | 39 => state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Up),
+            _ => state.sound_manager.play_sfx(28),
         }
 
         self.cond.set_alive(false);
@@ -554,7 +556,7 @@ impl PhysicalEntity for Bullet {
         false
     }
 
-    fn judge_hit_block(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
+    fn judge_hit_block(&mut self, _state: &mut SharedGameState, x: isize, y: isize) {
         if (self.x - self.hit_bounds.left as isize) < (x * 16 + 8) * 0x200
             && (self.x + self.hit_bounds.right as isize) > (x * 16 - 8) * 0x200
             && (self.y - self.hit_bounds.top as isize) < (y * 16 + 8) * 0x200
