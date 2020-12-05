@@ -981,8 +981,8 @@ impl GameScene {
     fn tick_world(&mut self, state: &mut SharedGameState) -> GameResult {
         self.hud_player1.visible = self.player1.cond.alive();
         self.hud_player2.visible = self.player2.cond.alive();
-        self.hud_player1.has_player2 = !self.player2.cond.hidden();
-        self.hud_player2.has_player2 = self.hud_player1.has_player2;
+        self.hud_player1.has_player2 = self.player2.cond.alive() && !self.player2.cond.hidden();
+        self.hud_player2.has_player2 = self.player1.cond.alive() && !self.player1.cond.hidden();
 
         self.player1.current_weapon = {
             if let Some(weapon) = self.inventory_player1.get_current_weapon_mut() {
