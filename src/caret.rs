@@ -1,7 +1,7 @@
 use std::fs::read_to_string;
 
 use crate::bitfield;
-use crate::common::{Condition, Direction, Rect};
+use crate::common::{Condition, Direction, Rect, CDEG_RAD};
 use crate::engine_constants::EngineConstants;
 use crate::rng::RNG;
 
@@ -40,6 +40,7 @@ pub struct Caret {
     pub cond: Condition,
     pub direction: Direction,
     pub anim_rect: Rect<u16>,
+    action_num: u16,
     anim_num: u16,
     anim_counter: u16,
 }
@@ -61,6 +62,7 @@ impl Caret {
             cond: Condition(0x80),
             direction: direct,
             anim_rect: Rect::new(0, 0, 0, 0),
+            action_num: 0,
             anim_num: 0,
             anim_counter: 0,
         }
@@ -233,7 +235,31 @@ impl Caret {
                     _ => {}
                 }
             }
-            CaretType::HurtParticles => {}
+            CaretType::HurtParticles => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    let angle = rng.range(0..255) as f64 * CDEG_RAD;
+                    self.vel_x = (angle.cos() * 1024.0) as isize;
+                    self.vel_y = (angle.sin() * 1024.0) as isize;
+                }
+
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+
+                if self.anim_counter == 0 {
+                    self.anim_rect = constants.caret.hurt_particles_rects[self.anim_num as usize];
+                }
+
+                self.anim_counter += 1;
+                if self.anim_counter > 2 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+
+                    if self.anim_num >= constants.caret.hurt_particles_rects.len() as u16 {
+                        self.cond.set_alive(false);
+                    }
+                }
+            }
             CaretType::Explosion => {
                 if self.anim_counter == 0 {
                     self.anim_rect = constants.caret.explosion_rects[self.anim_num as usize];

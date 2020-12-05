@@ -2,11 +2,11 @@ use case_insensitive_hashmap::CaseInsensitiveHashMap;
 use log::info;
 
 use crate::case_insensitive_hashmap;
-use crate::common::{Flag, Rect, BulletFlag};
+use crate::common::{BulletFlag, Flag, Rect};
+use crate::engine_constants::npcs::NPCConsts;
 use crate::player::ControlMode;
 use crate::str;
 use crate::text_script::TextScriptEncoding;
-use crate::engine_constants::npcs::NPCConsts;
 
 mod npcs;
 
@@ -59,6 +59,7 @@ pub struct CaretConsts {
     pub drowned_quote_right_rect: Rect<u16>,
     pub level_up_rects: Vec<Rect<u16>>,
     pub level_down_rects: Vec<Rect<u16>>,
+    pub hurt_particles_rects: Vec<Rect<u16>>,
     pub explosion_rects: Vec<Rect<u16>>,
     pub little_particles_rects: Vec<Rect<u16>>,
     pub exhaust_rects: Vec<Rect<u16>>,
@@ -81,6 +82,7 @@ impl Clone for CaretConsts {
             drowned_quote_right_rect: self.drowned_quote_right_rect,
             level_up_rects: self.level_up_rects.clone(),
             level_down_rects: self.level_down_rects.clone(),
+            hurt_particles_rects: self.hurt_particles_rects.clone(),
             explosion_rects: self.explosion_rects.clone(),
             little_particles_rects: self.little_particles_rects.clone(),
             exhaust_rects: self.exhaust_rects.clone(),
@@ -382,6 +384,15 @@ impl EngineConstants {
                 level_down_rects: vec![
                     Rect { left: 0, top: 96, right: 56, bottom: 112 },
                     Rect { left: 0, top: 112, right: 56, bottom: 128 },
+                ],
+                hurt_particles_rects: vec![
+                    Rect { left: 56, top: 8, right: 64, bottom: 16 },
+                    Rect { left: 64, top: 8, right: 72, bottom: 16 },
+                    Rect { left: 72, top: 8, right: 80, bottom: 16 },
+                    Rect { left: 80, top: 8, right: 88, bottom: 16 },
+                    Rect { left: 88, top: 8, right: 96, bottom: 16 },
+                    Rect { left: 96, top: 8, right: 104, bottom: 16 },
+                    Rect { left: 104, top: 8, right: 112, bottom: 16 },
                 ],
                 explosion_rects: vec![
                     Rect { left: 112, top: 0, right: 144, bottom: 32 },
