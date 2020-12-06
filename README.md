@@ -67,7 +67,7 @@ Because methods used to extract game data from cartridge vary, you have to find 
   - [x] Mimiga Village
   - [x] Egg Corridor
   - [x] Grasstown
-  - [ ] Sand Zone (~10% done)
+  - [ ] Sand Zone (~30% done)
   - [ ] Labirynth (~10% done)
   - [ ] Outer Wall
   - [ ] Plantation
@@ -97,11 +97,11 @@ Because methods used to extract game data from cartridge vary, you have to find 
   - [ ] Cave Story+
     - [x] Base mod
     - [ ] Mod loading
-    - [ ] Curly Story
+    - [x] Curly Story
     - [ ] Wind Fortress (~40%)
     - [ ] Boss Run
     - [x] Seasonal graphics
-    - [ ] Co-op gameplay (~70%)
+    - [x] Co-op gameplay
     - [ ] Remastered soundtrack
 
 *(tbd)*
