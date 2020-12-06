@@ -24,15 +24,24 @@ bitfield! {
   pub struct Flag(u32);
   impl Debug;
 
-  pub hit_left_wall, set_hit_left_wall: 0; // 0x01
-  pub hit_top_wall, set_hit_top_wall: 1; // 0x02
-  pub hit_right_wall, set_hit_right_wall: 2; // 0x04
-  pub hit_bottom_wall, set_hit_bottom_wall: 3; // 0x08
-  pub hit_right_slope, set_hit_right_slope: 4; // 0x10
-  pub hit_left_slope, set_hit_left_slope: 5; // 0x20
-  pub snack_destroy, set_snack_destroy: 6; // 0x40
-  pub flag_x80, set_flag_x80: 7; // 0x80
-  pub in_water, set_in_water: 8; // 0x100
+  /// Set if left wall was hit. (corresponds to flag & 0x01)
+  pub hit_left_wall, set_hit_left_wall: 0;
+  /// Set if top wall was hit. (corresponds to flag & 0x02)
+  pub hit_top_wall, set_hit_top_wall: 1;
+  /// Set if right wall was hit. (corresponds to flag & 0x04)
+  pub hit_right_wall, set_hit_right_wall: 2;
+  /// Set if bottom wall was hit. (corresponds to flag & 0x08)
+  pub hit_bottom_wall, set_hit_bottom_wall: 3;
+  /// Set if entity stays on right slope. (corresponds to flag & 0x10)
+  pub hit_right_slope, set_hit_right_slope: 4;
+  /// Set if entity stays on left slope. (corresponds to flag & 0x20)
+  pub hit_left_slope, set_hit_left_slope: 5;
+  /// Unknown purpose (corresponds to flag & 0x40)
+  pub flag_x40, set_flag_x40: 6;
+  /// Unknown purpose (corresponds to flag & 0x80)
+  pub flag_x80, set_flag_x80: 7;
+  /// Set if entity is in water. (corresponds to flag & 0x100)
+  pub in_water, set_in_water: 8;
   pub weapon_hit_block, set_weapon_hit_block: 9; // 0x200
   pub hit_by_spike, set_hit_by_spike: 10; // 0x400
   pub water_splash_facing_right, set_water_splash_facing_right: 11; // 0x800
