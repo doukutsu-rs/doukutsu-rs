@@ -318,6 +318,10 @@ impl Player {
     }
 
     pub fn tick_npc_collisions(&mut self, id: TargetPlayer, state: &mut SharedGameState, npc_map: &mut NPCMap, inventory: &mut Inventory) {
+        if !self.cond.alive() {
+            return;
+        }
+
         for npc_cell in npc_map.npcs.values() {
             let mut npc = npc_cell.borrow_mut();
             if !npc.cond.alive() { continue; }
