@@ -1,5 +1,5 @@
 [package]
-authors = ["Alula <julekonopinska@gmail.com>"]
+authors = ["Alula"]
 edition = "2018"
 name = "doukutsu-rs"
 version = "0.1.0"
