@@ -976,6 +976,41 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n125_hidden_item(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.life < 990 {
+            self.cond.set_drs_destroyed(true);
+            match self.direction {
+                /// hidden heart
+                Direction::Left => {
+                    let mut npc = NPCMap::create_npc(87, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.x;
+                    npc.y = self.y;
+                    npc.direction = Direction::Right;
+                    state.new_npcs.push(npc);
+                }
+                /// hidden missile
+                Direction::Right => {
+                    let mut npc = NPCMap::create_npc(86, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.x;
+                    npc.y = self.y;
+                    npc.direction = Direction::Right;
+                    state.new_npcs.push(npc);
+                }
+                _ => {}
+            }
+        }
+
+        match self.direction {
+            Direction::Left => self.anim_rect = state.constants.npc.n125_hidden_item[0],
+            Direction::Right => self.anim_rect = state.constants.npc.n125_hidden_item[1],
+            _ => {}
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n149_horizontal_moving_block(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 => {
@@ -1261,6 +1296,21 @@ impl NPC {
         if self.action_num == 0 {
             self.action_num = 1;
             self.anim_rect = state.constants.npc.n211_small_spikes[self.event_num as usize % 4];
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n234_red_flowers_picked(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.y += 16 * 0x200;
+
+            match self.direction {
+                Direction::Left => self.anim_rect = state.constants.npc.n234_red_flowers_picked[0],
+                Direction::Right => self.anim_rect = state.constants.npc.n234_red_flowers_picked[1],
+                _ => self.anim_rect = state.constants.npc.n234_red_flowers_picked[1],
+            }
         }
 
         Ok(())

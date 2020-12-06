@@ -331,11 +331,41 @@ impl NPC {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
-        if self.direction == Direction::Left {
-            self.anim_rect = state.constants.npc.n074_jack[self.anim_num as usize];
-        } else {
-            self.anim_rect = state.constants.npc.n074_jack[self.anim_num as usize + 6];
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
+
+        self.anim_rect = state.constants.npc.n074_jack[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n151_blue_robot_standing(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0{
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+
+                if self.rng.range(0..100) == 0 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 16 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            _ =>{}
         }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
+        self.anim_rect = state.constants.npc.n151_blue_robot_standing[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
