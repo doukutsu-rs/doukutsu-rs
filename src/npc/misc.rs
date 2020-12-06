@@ -48,13 +48,13 @@ impl NPC {
     pub(crate) fn tick_n004_smoke(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
-            self.anim_num = state.game_rng.range(0..4) as u16;
-            self.anim_counter = state.game_rng.range(0..3) as u16;
+            self.anim_num = self.rng.range(0..4) as u16;
+            self.anim_counter = self.rng.range(0..3) as u16;
 
             if self.direction == Direction::Left || self.direction == Direction::Up {
-                let angle = state.game_rng.range(0..31415) as f32 / 5000.0;
-                self.vel_x = (angle.cos() * state.game_rng.range(0x200..0x5ff) as f32) as isize;
-                self.vel_y = (angle.sin() * state.game_rng.range(0x200..0x5ff) as f32) as isize;
+                let angle = self.rng.range(0..31415) as f32 / 5000.0;
+                self.vel_x = (angle.cos() * self.rng.range(0x200..0x5ff) as f32) as isize;
+                self.vel_y = (angle.sin() * self.rng.range(0x200..0x5ff) as f32) as isize;
             }
         } else {
             self.vel_x = (self.vel_x * 20) / 21;
@@ -147,10 +147,10 @@ impl NPC {
                         for _ in 0..4 {
                             npc.cond.set_alive(true);
                             npc.direction = Direction::Left;
-                            npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
-                            npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
-                            npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                            npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                            npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
+                            npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
+                            npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                            npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                             state.new_npcs.push(npc);
                         }
@@ -160,7 +160,7 @@ impl NPC {
                 }
 
                 self.anim_num = 0;
-                if state.game_rng.range(0..30) == 0 {
+                if self.rng.range(0..30) == 0 {
                     self.action_num = 2;
                 }
             }
@@ -228,7 +228,7 @@ impl NPC {
 
         match self.action_num {
             1 => {
-                let rand = state.game_rng.range(0..30);
+                let rand = self.rng.range(0..30);
 
                 if rand < 10 {
                     self.action_num = 2;
@@ -238,7 +238,7 @@ impl NPC {
                     self.action_num = 4;
                 }
 
-                self.action_counter = state.game_rng.range(0x10..0x40) as u16;
+                self.action_counter = self.rng.range(0x10..0x40) as u16;
                 self.anim_counter = 0;
             }
             2 => {
@@ -308,8 +308,8 @@ impl NPC {
                     npc.direction = Direction::Left;
                     npc.x = self.x;
                     npc.y = self.y;
-                    npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                    npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                    npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                    npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                     state.new_npcs.push(npc);
                 }
@@ -406,7 +406,7 @@ impl NPC {
                     self.action_num = 1;
                     self.anim_counter = 0;
 
-                    if state.game_rng.range(0..120) == 10 {
+                    if self.rng.range(0..120) == 10 {
                         self.action_num = 2;
                         self.action_counter = 8;
                         self.anim_rect = state.constants.npc.n030_hermit_gunsmith[1];
@@ -572,13 +572,13 @@ impl NPC {
                 droplet.direction = Direction::Left;
                 droplet.x = self.x;
                 droplet.y = self.y;
-                droplet.vel_x = 2 * state.game_rng.range(-0x200..0x200) as isize;
-                droplet.vel_y = 3 * state.game_rng.range(-0x200..0x80) as isize;
+                droplet.vel_x = 2 * self.rng.range(-0x200..0x200) as isize;
+                droplet.vel_y = 3 * self.rng.range(-0x200..0x80) as isize;
                 state.new_npcs.push(droplet);
 
                 if self.action_counter % 2 == 0 {
-                    droplet.vel_x = 2 * state.game_rng.range(-0x200..0x200) as isize;
-                    droplet.vel_y = 3 * state.game_rng.range(-0x200..0x80) as isize;
+                    droplet.vel_x = 2 * self.rng.range(-0x200..0x200) as isize;
+                    droplet.vel_y = 3 * self.rng.range(-0x200..0x80) as isize;
                     state.new_npcs.push(droplet);
                 }
             }
@@ -590,7 +590,7 @@ impl NPC {
     pub(crate) fn tick_n073_water_droplet(&mut self, state: &mut SharedGameState, stage: &Stage) -> GameResult {
         self.vel_y += 0x20;
 
-        self.anim_rect = state.constants.npc.n073_water_droplet[state.game_rng.range(0..4) as usize];
+        self.anim_rect = state.constants.npc.n073_water_droplet[self.rng.range(0..4) as usize];
 
         if self.vel_y > 0x5ff {
             self.vel_y = 0x5ff;
@@ -694,12 +694,12 @@ impl NPC {
                 {
                     let i = self.get_closest_player_idx_mut(&players);
                     if abs(players[i].x - self.x) < 480 * 0x200 && abs(players[i].y - self.y) < 240 * 0x200
-                        && state.game_rng.range(0..5) == 1 {
+                        && self.rng.range(0..5) == 1 {
                         let mut particle = NPCMap::create_npc(199, &state.npc_table);
                         particle.cond.set_alive(true);
                         particle.direction = Direction::Left;
                         particle.x = self.x;
-                        particle.y = self.y + (state.game_rng.range(-8..8) * 0x200) as isize;
+                        particle.y = self.y + (self.rng.range(-8..8) * 0x200) as isize;
                         state.new_npcs.push(particle);
                     }
                 }
@@ -747,11 +747,11 @@ impl NPC {
                 {
                     let i = self.get_closest_player_idx_mut(&players);
                     if abs(players[i].x - self.x) < 480 * 0x200 && abs(players[i].y - self.y) < 240 * 0x200
-                        && state.game_rng.range(0..5) == 1 {
+                        && self.rng.range(0..5) == 1 {
                         let mut particle = NPCMap::create_npc(199, &state.npc_table);
                         particle.cond.set_alive(true);
                         particle.direction = Direction::Up;
-                        particle.x = self.x + (state.game_rng.range(-8..8) * 0x200) as isize;
+                        particle.x = self.x + (self.rng.range(-8..8) * 0x200) as isize;
                         particle.y = self.y;
                         state.new_npcs.push(particle);
                     }
@@ -799,12 +799,12 @@ impl NPC {
                 {
                     let i = self.get_closest_player_idx_mut(&players);
                     if abs(players[i].x - self.x) < 480 * 0x200 && abs(players[i].y - self.y) < 240 * 0x200
-                        && state.game_rng.range(0..5) == 1 {
+                        && self.rng.range(0..5) == 1 {
                         let mut particle = NPCMap::create_npc(199, &state.npc_table);
                         particle.cond.set_alive(true);
                         particle.direction = Direction::Right;
                         particle.x = self.x;
-                        particle.y = self.y + (state.game_rng.range(-8..8) * 0x200) as isize;
+                        particle.y = self.y + (self.rng.range(-8..8) * 0x200) as isize;
                         state.new_npcs.push(particle);
                     }
                 }
@@ -848,11 +848,11 @@ impl NPC {
                 {
                     let i = self.get_closest_player_idx_mut(&players);
                     if abs(players[i].x - self.x) < 480 * 0x200 && abs(players[i].y - self.y) < 240 * 0x200
-                        && state.game_rng.range(0..5) == 1 {
+                        && self.rng.range(0..5) == 1 {
                         let mut particle = NPCMap::create_npc(199, &state.npc_table);
                         particle.cond.set_alive(true);
                         particle.direction = Direction::Bottom;
-                        particle.x = self.x + (state.game_rng.range(-8..8) * 0x200) as isize;
+                        particle.x = self.x + (self.rng.range(-8..8) * 0x200) as isize;
                         particle.y = self.y;
                         state.new_npcs.push(particle);
                     }
@@ -944,8 +944,8 @@ impl NPC {
                             npc.cond.set_alive(true);
                             npc.x = self.x;
                             npc.y = self.y;
-                            npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                            npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                            npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                            npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                             state.new_npcs.push(npc);
                         }
@@ -1014,10 +1014,10 @@ impl NPC {
                     for _ in 0..3 {
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
-                        npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                        npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                         state.new_npcs.push(npc);
                     }
@@ -1063,10 +1063,10 @@ impl NPC {
                     for _ in 0..3 {
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
-                        npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                        npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                         state.new_npcs.push(npc);
                     }
@@ -1135,10 +1135,10 @@ impl NPC {
                     for _ in 0..3 {
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
-                        npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                        npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                         state.new_npcs.push(npc);
                     }
@@ -1184,10 +1184,10 @@ impl NPC {
                     for _ in 0..3 {
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
-                        npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                        npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                         state.new_npcs.push(npc);
                     }
@@ -1232,9 +1232,9 @@ impl NPC {
     pub(crate) fn tick_n199_wind_particles(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
-            self.anim_num = state.game_rng.range(0..2) as u16;
-            self.vel_x = self.direction.vector_x() * (state.game_rng.range(4..8) * 0x200 / 2) as isize;
-            self.vel_y = self.direction.vector_y() * (state.game_rng.range(4..8) * 0x200 / 2) as isize;
+            self.anim_num = self.rng.range(0..2) as u16;
+            self.vel_x = self.direction.vector_x() * (self.rng.range(4..8) * 0x200 / 2) as isize;
+            self.vel_y = self.direction.vector_y() * (self.rng.range(4..8) * 0x200 / 2) as isize;
         }
 
         self.anim_counter += 1;

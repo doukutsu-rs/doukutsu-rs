@@ -203,10 +203,10 @@ impl NPC {
                     for _ in 0..4 {
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
-                        npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                        npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                         state.new_npcs.push(npc);
                     }
@@ -233,7 +233,7 @@ impl NPC {
 
                 self.action_counter += 1;
                 if self.action_counter > 100 && self.action_counter % 6 == 1 {
-                    let deg = (if self.direction == Direction::Left { 0x88 } else { 0xf8 } + state.game_rng.range(-16..16)) as f64 * CDEG_RAD;
+                    let deg = (if self.direction == Direction::Left { 0x88 } else { 0xf8 } + self.rng.range(-16..16)) as f64 * CDEG_RAD;
                     let vel_x = (deg.cos() * 1536.0) as isize;
                     let vel_y = (deg.sin() * 1536.0) as isize;
 
@@ -289,10 +289,10 @@ impl NPC {
                     for _ in 0..8 {
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
-                        npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                        npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                         state.new_npcs.push(npc);
                     }
@@ -309,10 +309,10 @@ impl NPC {
 
                     npc.cond.set_alive(true);
                     npc.direction = Direction::Left;
-                    npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
-                    npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
-                    npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                    npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                    npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
+                    npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
+                    npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                    npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                     state.new_npcs.push(npc);
                 }
@@ -349,10 +349,10 @@ impl NPC {
 
                     npc.cond.set_alive(true);
                     npc.direction = Direction::Left;
-                    npc.x = self.x + state.game_rng.range(-12..12) as isize * 0x200;
-                    npc.y = self.y + state.game_rng.range(-12..12) as isize * 0x200;
-                    npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                    npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                    npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
+                    npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
+                    npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                    npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                     state.new_npcs.push(npc);
                 }

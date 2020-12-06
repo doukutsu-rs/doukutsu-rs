@@ -619,7 +619,7 @@ impl NPC {
             self.action_counter2 += 1;
             if (self.action_counter2 % 8) == 0 && abs(self.x - player.x) < 160 * 0x200 {
                 let angle = ((self.y - player.y) as f64 / (self.x - player.x) as f64).atan()
-                    + (state.game_rng.range(-6..6) as u8) as f64 * CDEG_RAD;
+                    + (self.rng.range(-6..6) as u8) as f64 * CDEG_RAD;
 
                 let mut npc = NPCMap::create_npc(84, &state.npc_table);
                 npc.cond.set_alive(true);

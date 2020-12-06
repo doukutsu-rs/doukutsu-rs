@@ -164,8 +164,8 @@ impl NPC {
                     npc.direction = Direction::Left;
                     npc.x = self.x;
                     npc.y = self.y;
-                    npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                    npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                    npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                    npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                     state.new_npcs.push(npc);
                 }
@@ -213,8 +213,8 @@ impl NPC {
                 }
 
                 self.target_y += 0x100;
-                self.x = self.target_x + state.game_rng.range(-1..1) as isize * 0x200;
-                self.y = self.target_y + state.game_rng.range(-1..1) as isize * 0x200;
+                self.x = self.target_x + self.rng.range(-1..1) as isize * 0x200;
+                self.y = self.target_y + self.rng.range(-1..1) as isize * 0x200;
             }
             70 | 71 => {
                 if self.action_num == 70 {

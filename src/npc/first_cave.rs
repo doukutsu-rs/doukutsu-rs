@@ -189,7 +189,7 @@ impl NPC {
                     self.target_y = self.y;
 
                     self.action_num = 1;
-                    self.action_counter = state.game_rng.range(0..50) as u16;
+                    self.action_counter = self.rng.range(0..50) as u16;
                 }
 
                 self.action_counter += 1;

@@ -98,14 +98,7 @@ impl NPC {
                         state.sound_manager.play_sfx(110);
                     }
 
-                    self.anim_counter += 1;
-                    if self.anim_counter > 0 {
-                        self.anim_counter = 0;
-                        self.anim_num += 1;
-                        if self.anim_num > 5 {
-                            self.anim_num = 3;
-                        }
-                    }
+                    self.animate(0, 3, 5);
                 }
             }
             5 => {
@@ -148,11 +141,11 @@ impl NPC {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    let angle = state.game_rng.range(0..0xff);
+                    let angle = self.rng.range(0..0xff);
                     self.vel_x = ((angle as f64 * 1.40625).cos() * 512.0) as isize;
                     self.target_x = self.x + ((angle as f64 * 1.40625 + std::f64::consts::FRAC_2_PI).cos() * 8.0 * 512.0) as isize;
 
-                    let angle = state.game_rng.range(0..0xff);
+                    let angle = self.rng.range(0..0xff);
                     self.vel_y = ((angle as f64 * 1.40625).sin() * 512.0) as isize;
                     self.target_y = self.y + ((angle as f64 * 1.40625 + std::f64::consts::FRAC_2_PI).sin() * 8.0 * 512.0) as isize;
 
@@ -203,14 +196,7 @@ impl NPC {
         if self.action_num == 3 {
             self.anim_num = 3;
         } else {
-            self.anim_counter += 1;
-            if self.anim_counter > 1 {
-                self.anim_counter = 0;
-                self.anim_num += 1;
-                if self.anim_num > 2 {
-                    self.anim_num = 0;
-                }
-            }
+            self.animate(1, 0, 2);
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
@@ -312,14 +298,7 @@ impl NPC {
                         self.vel_y = -0x200;
                     }
 
-                    self.anim_counter += 1;
-                    if self.anim_counter > 0 {
-                        self.anim_counter = 0;
-                        self.anim_num += 1;
-                        if self.anim_num > 5 {
-                            self.anim_num = 3;
-                        }
-                    }
+                    self.animate(0, 3, 5);
                 }
             }
             5 => {
@@ -364,7 +343,7 @@ impl NPC {
                     self.action_num = 1;
                 }
 
-                if state.game_rng.range(0..120) == 10 {
+                if self.rng.range(0..120) == 10 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 1;
@@ -413,15 +392,7 @@ impl NPC {
                 }
             }
             5 => {
-                self.anim_counter += 1;
-                if self.anim_counter > 1 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-                    if self.anim_num > 4 {
-                        self.anim_num = 2;
-                    }
-                }
-
+                self.animate(1, 2, 4);
                 self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
 
                 self.vel_x += (player.x - self.x).signum() * 0x10;
@@ -620,7 +591,7 @@ impl NPC {
             0 | 1 | 10 => {
                 if self.action_num == 0 {
                     self.action_num = 1;
-                    self.action_counter = state.game_rng.range(0..50) as u16;
+                    self.action_counter = self.rng.range(0..50) as u16;
                     self.target_x = self.x;
                     self.target_y = self.y;
 
@@ -721,15 +692,7 @@ impl NPC {
     }
 
     pub(crate) fn tick_n101_malco_screen(&mut self, state: &mut SharedGameState) -> GameResult {
-        self.anim_counter += 1;
-        if self.anim_counter > 3 {
-            self.anim_counter = 0;
-            self.anim_num += 1;
-            if self.anim_num > 2 {
-                self.anim_num = 0;
-            }
-        }
-
+        self.animate(3, 0, 2);
         self.anim_rect = state.constants.npc.n101_malco_screen[self.anim_num as usize];
 
         Ok(())
@@ -741,15 +704,7 @@ impl NPC {
             self.y += 8 * 0x200;
         }
 
-        self.anim_counter += 1;
-        if self.anim_counter > 0 {
-            self.anim_counter = 0;
-            self.anim_num += 1;
-            if self.anim_num > 3 {
-                self.anim_num = 0;
-            }
-        }
-
+        self.animate(0, 0, 3);
         self.anim_rect = state.constants.npc.n102_malco_computer_wave[self.anim_num as usize];
 
         Ok(())
@@ -762,14 +717,7 @@ impl NPC {
 
         self.vel_x += self.direction.vector_x() * 0x20;
 
-        self.anim_counter += 1;
-        if self.anim_counter > 0 {
-            self.anim_counter = 0;
-            self.anim_num += 1;
-            if self.anim_num > 2 {
-                self.anim_num = 0;
-            }
-        }
+        self.animate(0, 0, 2);
 
         self.x += self.vel_x;
 
@@ -800,7 +748,7 @@ impl NPC {
                 self.vel_y = 0;
 
                 if self.tsc_direction == 4 {
-                    self.direction = if (state.game_rng.next() & 1) == 0 { Direction::Left } else { Direction::Right };
+                    self.direction = if (self.rng.next_u16() & 1) == 0 { Direction::Left } else { Direction::Right };
                     self.tsc_direction = self.direction as u16;
                     self.action_num = 3;
                     self.anim_num = 2;
@@ -811,7 +759,7 @@ impl NPC {
 
                 self.action_counter += 1;
 
-                if state.game_rng.range(0..50) == 1 {
+                if self.rng.range(0..50) == 1 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 0;
@@ -821,7 +769,7 @@ impl NPC {
             1 => {
                 self.action_counter += 1;
 
-                if state.game_rng.range(0..50) == 1 {
+                if self.rng.range(0..50) == 1 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 0;
@@ -830,15 +778,7 @@ impl NPC {
             }
             2 => {
                 self.action_counter += 1;
-                self.anim_counter += 1;
-
-                if self.anim_counter > 2 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-                    if self.anim_num > 1 {
-                        self.anim_num = 0;
-                    }
-                }
+                self.animate(2, 0, 1);
 
                 if self.action_counter > 18 {
                     self.action_num = 1;
@@ -884,7 +824,7 @@ impl NPC {
             && ((self.shock > 0)
             || (abs(self.x - player.x) < 160 * 0x200
             && abs(self.y - player.y) < 64 * 0x200)
-            && state.game_rng.range(0..50) == 2) {
+            && self.rng.range(0..50) == 2) {
             self.direction = if self.x >= player.x {
                 Direction::Left
             } else {
@@ -931,8 +871,8 @@ impl NPC {
                         npc.cond.set_alive(true);
                         npc.x = self.x;
                         npc.y = self.y;
-                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                         state.new_npcs.push(npc);
                     }
@@ -996,8 +936,8 @@ impl NPC {
                         npc.cond.set_alive(true);
                         npc.x = self.x;
                         npc.y = self.y;
-                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                         state.new_npcs.push(npc);
                     }
@@ -1036,8 +976,8 @@ impl NPC {
                         npc.cond.set_alive(true);
                         npc.x = self.x;
                         npc.y = self.y;
-                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                         state.new_npcs.push(npc);
                     }
@@ -1059,14 +999,7 @@ impl NPC {
                     self.anim_counter = 0;
                 }
 
-                self.anim_counter += 1;
-                if self.anim_counter > 4 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-                    if self.anim_num > 9 {
-                        self.anim_num = 6;
-                    }
-                }
+                self.animate(4, 6, 9);
             }
             110 => {
                 self.cond.set_drs_destroyed(true);
@@ -1094,7 +1027,7 @@ impl NPC {
                     self.action_counter = 0;
                 }
 
-                if state.game_rng.range(0..120) == 10 {
+                if self.rng.range(0..120) == 10 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 1;
@@ -1125,8 +1058,8 @@ impl NPC {
                     npc.direction = Direction::Left;
                     npc.x = self.x;
                     npc.y = self.y;
-                    npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                    npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                    npc.vel_x = self.rng.range(-0x155..0x155) as isize;
+                    npc.vel_y = self.rng.range(-0x600..0) as isize;
 
                     state.new_npcs.push(npc);
                 }
@@ -1159,7 +1092,7 @@ impl NPC {
                 self.vel_y = 0;
 
                 if self.tsc_direction == 4 {
-                    self.direction = if (state.game_rng.next() & 1) == 0 { Direction::Left } else { Direction::Right };
+                    self.direction = if (self.rng.next_u16() & 1) == 0 { Direction::Left } else { Direction::Right };
                     self.tsc_direction = self.direction as u16;
                     self.action_num = 3;
                     self.anim_num = 2;
@@ -1170,7 +1103,7 @@ impl NPC {
 
                 self.action_counter += 1;
 
-                if state.game_rng.range(0..50) == 1 {
+                if self.rng.range(0..50) == 1 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 0;
@@ -1180,7 +1113,7 @@ impl NPC {
             1 => {
                 self.action_counter += 1;
 
-                if state.game_rng.range(0..50) == 1 {
+                if self.rng.range(0..50) == 1 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 0;
@@ -1189,15 +1122,8 @@ impl NPC {
             }
             2 => {
                 self.action_counter += 1;
-                self.anim_counter += 1;
 
-                if self.anim_counter > 2 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-                    if self.anim_num > 1 {
-                        self.anim_num = 0;
-                    }
-                }
+                self.animate(2, 0, 1);
 
                 if self.action_counter > 18 {
                     self.action_num = 1;
@@ -1243,7 +1169,7 @@ impl NPC {
             && ((self.shock > 0)
             || (abs(self.x - player.x) < 160 * 0x200
             && abs(self.y - player.y) < 64 * 0x200)
-            && state.game_rng.range(0..50) == 2) {
+            && self.rng.range(0..50) == 2) {
             self.direction = if self.x >= player.x {
                 Direction::Left
             } else {
@@ -1297,8 +1223,8 @@ impl NPC {
                     self.target_y = self.y;
                 }
 
-                self.x = self.target_x + state.game_rng.range(-1..1) as isize * 0x200;
-                self.y = self.target_y + state.game_rng.range(-1..1) as isize * 0x200;
+                self.x = self.target_x + self.rng.range(-1..1) as isize * 0x200;
+                self.y = self.target_y + self.rng.range(-1..1) as isize * 0x200;
 
                 self.action_counter += 1;
                 if self.action_counter > 30 {
@@ -1318,7 +1244,7 @@ impl NPC {
 
                 self.vel_x += 0x20;
                 self.x += self.vel_x;
-                self.y = self.target_y + state.game_rng.range(-1..1) as isize * 0x200;
+                self.y = self.target_y + self.rng.range(-1..1) as isize * 0x200;
                 self.action_counter += 1;
 
                 if self.action_counter > 10 {

@@ -23,7 +23,7 @@ impl NPC {
                     self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
                 }
 
-                if state.game_rng.range(0..100) == 1 {
+                if self.rng.range(0..100) == 1 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 1;
@@ -32,7 +32,7 @@ impl NPC {
                 }
 
 
-                if state.game_rng.range(0..150) == 1 {
+                if self.rng.range(0..150) == 1 {
                     self.action_num = 3;
                     self.action_counter = 50;
                     self.anim_num = 0;
@@ -185,7 +185,7 @@ impl NPC {
 
         match self.action_num {
             1 => {
-                if state.game_rng.range(0..120) == 10 {
+                if self.rng.range(0..120) == 10 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 1;
@@ -219,7 +219,7 @@ impl NPC {
             }
             2 => {
                 self.anim_num = 0;
-                if state.game_rng.range(0..120) == 10 {
+                if self.rng.range(0..120) == 10 {
                     self.action_num = 3;
                     self.action_counter = 0;
                     self.anim_num = 1;
@@ -374,7 +374,7 @@ impl NPC {
                     self.anim_rect = state.constants.npc.n081_giant_pignon[self.anim_num as usize + dir_offset];
                 }
 
-                if state.game_rng.range(0..100) == 1 {
+                if self.rng.range(0..100) == 1 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 1;
@@ -383,7 +383,7 @@ impl NPC {
                 }
 
 
-                if state.game_rng.range(0..150) == 1 {
+                if self.rng.range(0..150) == 1 {
                     self.action_num = 3;
                     self.action_counter = 50;
                     self.anim_num = 0;

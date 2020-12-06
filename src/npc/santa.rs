@@ -16,7 +16,7 @@ impl NPC {
                     self.anim_counter = 0;
                 }
 
-                if state.game_rng.range(0..120) == 0 {
+                if self.rng.range(0..120) == 0 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 1;

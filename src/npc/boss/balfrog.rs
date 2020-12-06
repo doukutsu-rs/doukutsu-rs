@@ -77,10 +77,10 @@ impl BossNPC {
                 for _ in 0..8 {
                     npc.cond.set_alive(true);
                     npc.direction = Direction::Left;
-                    npc.x = self.parts[0].x + state.game_rng.range(-12..12) as isize * 0x200;
-                    npc.y = self.parts[0].y + state.game_rng.range(-12..12) as isize * 0x200;
-                    npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                    npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                    npc.x = self.parts[0].x + self.parts[0].rng.range(-12..12) as isize * 0x200;
+                    npc.y = self.parts[0].y + self.parts[0].rng.range(-12..12) as isize * 0x200;
+                    npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as isize;
+                    npc.vel_y = self.parts[0].rng.range(-0x600..0) as isize;
 
                     state.new_npcs.push(npc);
                 }
@@ -164,8 +164,8 @@ impl BossNPC {
 
                     let mut npc = NPCMap::create_npc(110, &state.npc_table);
                     npc.cond.set_alive(true);
-                    npc.x = state.game_rng.range(4..16) as isize * 16 * 0x200;
-                    npc.y = state.game_rng.range(0..4) as isize * 16 * 0x200;
+                    npc.x = self.parts[0].rng.range(4..16) as isize * 16 * 0x200;
+                    npc.y = self.parts[0].rng.range(0..4) as isize * 16 * 0x200;
                     npc.direction = Direction::FacingPlayer;
 
                     state.new_npcs.push(npc);
@@ -175,10 +175,10 @@ impl BossNPC {
                     for _ in 0..4 {
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
-                        npc.x = self.parts[0].x + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.parts[0].y + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                        npc.x = self.parts[0].x + self.parts[0].rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.parts[0].y + self.parts[0].rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = self.parts[0].rng.range(-0x600..0) as isize;
 
                         state.new_npcs.push(npc);
                     }
@@ -239,7 +239,7 @@ impl BossNPC {
                     let py = self.parts[0].y - 8 * 0x200 - player.y;
 
                     let deg = f64::atan2(py as f64, px as f64)
-                        + state.game_rng.range(-16..16) as f64 * CDEG_RAD;
+                        + self.parts[0].rng.range(-16..16) as f64 * CDEG_RAD;
                     // todo rand
 
                     let mut npc = NPCMap::create_npc(108, &state.npc_table);
@@ -322,8 +322,8 @@ impl BossNPC {
                     let mut npc = NPCMap::create_npc(104, &state.npc_table);
                     for _ in 0..2 {
                         npc.cond.set_alive(true);
-                        npc.x = state.game_rng.range(4..16) as isize * 16 * 0x200;
-                        npc.y = state.game_rng.range(0..4) as isize * 16 * 0x200;
+                        npc.x = self.parts[0].rng.range(4..16) as isize * 16 * 0x200;
+                        npc.y = self.parts[0].rng.range(0..4) as isize * 16 * 0x200;
                         npc.direction = Direction::FacingPlayer;
 
                         state.new_npcs.push(npc);
@@ -332,8 +332,8 @@ impl BossNPC {
                     let mut npc = NPCMap::create_npc(110, &state.npc_table);
                     for _ in 0..6 {
                         npc.cond.set_alive(true);
-                        npc.x = state.game_rng.range(4..16) as isize * 16 * 0x200;
-                        npc.y = state.game_rng.range(0..4) as isize * 16 * 0x200;
+                        npc.x = self.parts[0].rng.range(4..16) as isize * 16 * 0x200;
+                        npc.y = self.parts[0].rng.range(0..4) as isize * 16 * 0x200;
                         npc.direction = Direction::FacingPlayer;
 
                         state.new_npcs.push(npc);
@@ -342,10 +342,10 @@ impl BossNPC {
                     let mut npc = NPCMap::create_npc(4, &state.npc_table);
                     for _ in 0..8 {
                         npc.cond.set_alive(true);
-                        npc.x = self.parts[0].x + state.game_rng.range(-12..12) as isize * 0x200;
+                        npc.x = self.parts[0].x + self.parts[0].rng.range(-12..12) as isize * 0x200;
                         npc.y = self.parts[0].y + self.parts[0].hit_bounds.bottom as isize;
-                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                        npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = self.parts[0].rng.range(-0x600..0) as isize;
                         npc.direction = Direction::Left;
 
                         state.new_npcs.push(npc);
@@ -380,10 +380,10 @@ impl BossNPC {
                     let mut npc = NPCMap::create_npc(4, &state.npc_table);
                     for _ in 0..8 {
                         npc.cond.set_alive(true);
-                        npc.x = self.parts[0].x + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.parts[0].y + state.game_rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                        npc.x = self.parts[0].x + self.parts[0].rng.range(-12..12) as isize * 0x200;
+                        npc.y = self.parts[0].y + self.parts[0].rng.range(-12..12) as isize * 0x200;
+                        npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as isize;
+                        npc.vel_y = self.parts[0].rng.range(-0x600..0) as isize;
                         npc.direction = Direction::Left;
                         state.new_npcs.push(npc);
                     }
@@ -393,10 +393,10 @@ impl BossNPC {
                 if (self.parts[0].action_counter % 5) == 0 {
                     let mut npc = NPCMap::create_npc(4, &state.npc_table);
                     npc.cond.set_alive(true);
-                    npc.x = self.parts[0].x + state.game_rng.range(-12..12) as isize * 0x200;
-                    npc.y = self.parts[0].y + state.game_rng.range(-12..12) as isize * 0x200;
-                    npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                    npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                    npc.x = self.parts[0].x + self.parts[0].rng.range(-12..12) as isize * 0x200;
+                    npc.y = self.parts[0].y + self.parts[0].rng.range(-12..12) as isize * 0x200;
+                    npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as isize;
+                    npc.vel_y = self.parts[0].rng.range(-0x600..0) as isize;
                     npc.direction = Direction::Left;
                     state.new_npcs.push(npc);
                 }
@@ -435,10 +435,10 @@ impl BossNPC {
                 if (self.parts[0].action_counter % 9) == 0 {
                     let mut npc = NPCMap::create_npc(4, &state.npc_table);
                     npc.cond.set_alive(true);
-                    npc.x = self.parts[0].x + state.game_rng.range(-12..12) as isize * 0x200;
-                    npc.y = self.parts[0].y + state.game_rng.range(-12..12) as isize * 0x200;
-                    npc.vel_x = state.game_rng.range(-0x155..0x155) as isize;
-                    npc.vel_y = state.game_rng.range(-0x600..0) as isize;
+                    npc.x = self.parts[0].x + self.parts[0].rng.range(-12..12) as isize * 0x200;
+                    npc.y = self.parts[0].y + self.parts[0].rng.range(-12..12) as isize * 0x200;
+                    npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as isize;
+                    npc.vel_y = self.parts[0].rng.range(-0x600..0) as isize;
                     npc.direction = Direction::Left;
                     state.new_npcs.push(npc);
                 }

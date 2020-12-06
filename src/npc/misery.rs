@@ -104,7 +104,7 @@ impl NPC {
                     state.sound_manager.play_sfx(29);
                 }
 
-                self.x = self.target_x + state.game_rng.range(-1..1) as isize * 0x200;
+                self.x = self.target_x + self.rng.range(-1..1) as isize * 0x200;
 
                 self.action_counter += 1;
                 if self.action_counter >= 32 {
@@ -240,7 +240,7 @@ impl NPC {
                     self.anim_num = 2;
                 }
 
-                if state.game_rng.range(0..120) == 10 {
+                if self.rng.range(0..120) == 10 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 3;
@@ -354,7 +354,7 @@ impl NPC {
                     npc.x = self.x + 8 * 0x200;
                     npc.y = self.y - 8 * 0x200;
                     npc.vel_x = 0x600;
-                    npc.vel_y = state.game_rng.range(-0x200..0) as isize;
+                    npc.vel_y = self.rng.range(-0x200..0) as isize;
                     npc.cond.set_alive(true);
 
                     state.new_npcs.push(npc);
@@ -376,7 +376,7 @@ impl NPC {
                 self.anim_counter -= 1;
                 self.anim_num = 1;
             } else {
-                if state.game_rng.range(0..100) == 1 {
+                if self.rng.range(0..100) == 1 {
                     self.anim_counter = 30;
                 }
 
@@ -391,7 +391,7 @@ impl NPC {
                 self.action_counter -= 1;
                 self.anim_num = 3;
             } else {
-                if state.game_rng.range(0..100) == 1 {
+                if self.rng.range(0..100) == 1 {
                     self.anim_counter = 30;
                 }
 

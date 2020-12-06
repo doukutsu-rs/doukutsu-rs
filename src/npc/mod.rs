@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 use std::io;
 use std::io::Cursor;
-use std::ops::DerefMut;
 
 use bitvec::vec::BitVec;
 use byteorder::{LE, ReadBytesExt};
@@ -20,11 +19,13 @@ use crate::map::NPCData;
 use crate::npc::boss::BossNPC;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
+use crate::rng::Xoroshiro32PlusPlus;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 use crate::str;
 
 pub mod balrog;
+pub mod booster;
 pub mod boss;
 pub mod chaco;
 pub mod characters;
@@ -112,6 +113,7 @@ pub struct NPC {
     pub action_counter2: u16,
     pub anim_counter: u16,
     pub anim_rect: Rect<u16>,
+    pub rng: Xoroshiro32PlusPlus,
 }
 
 static PARTICLE_NPCS: [u16; 11] = [1, 4, 11, 73, 84, 86, 87, 108, 129, 199, 355];
@@ -160,6 +162,7 @@ impl NPC {
             action_counter2: 0,
             anim_counter: 0,
             anim_rect: Rect { left: 0, top: 0, right: 0, bottom: 0 },
+            rng: Xoroshiro32PlusPlus::new(0),
         }
     }
 }
@@ -472,6 +475,11 @@ impl NPCMap {
             action_counter2: 0,
             anim_counter: 0,
             anim_rect: Rect::new(0, 0, 0, 0),
+            rng: Xoroshiro32PlusPlus::new((data.id as u32)
+                .wrapping_sub(data.npc_type as u32)
+                .wrapping_add(data.flag_num as u32)
+                .wrapping_mul(214013)
+                .wrapping_add(2531011) >> 5),
         };
 
         let cell = RefCell::new(npc);
@@ -524,6 +532,7 @@ impl NPCMap {
             action_counter2: 0,
             anim_counter: 0,
             anim_rect: Rect::new(0, 0, 0, 0),
+            rng: Xoroshiro32PlusPlus::new(0),
         }
     }
 
@@ -699,6 +708,12 @@ impl NPCMap {
                         Direction::Left
                     };
                 }
+
+                npc.rng = Xoroshiro32PlusPlus::new((npc.id as u32)
+                    .wrapping_sub(npc.npc_type as u32)
+                    .wrapping_add(npc.flag_num as u32)
+                    .wrapping_mul(214013)
+                    .wrapping_add(2531011) >> 5);
 
                 self.ids.insert(id);
                 self.npcs.insert(id, RefCell::new(*npc));
