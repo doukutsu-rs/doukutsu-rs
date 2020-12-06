@@ -5,6 +5,7 @@ use ggez::{Context, GameResult};
 gfx_defines! {
     constant WaterShaderParams {
         resolution: [f32; 2] = "u_Resolution",
+        frame_pos: [f32; 2] = "u_FramePos",
         t: f32 = "u_Tick",
     }
 }
@@ -19,6 +20,7 @@ impl Shaders {
         let water_shader_params = WaterShaderParams {
             t: 0.0,
             resolution: [0.0, 0.0],
+            frame_pos: [0.0, 0.0],
         };
 
         Ok(Shaders {

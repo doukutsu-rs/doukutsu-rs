@@ -649,8 +649,11 @@ impl GameScene {
     }
 
     fn draw_water(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time, state.scale);
+
         {
             state.shaders.water_shader_params.resolution = [state.canvas_size.0, state.canvas_size.1];
+            state.shaders.water_shader_params.frame_pos = [frame_x, frame_y];
             state.shaders.water_shader_params.t = self.tick as f32;
             let _lock = graphics::use_shader(ctx, &state.shaders.water_shader);
             state.shaders.water_shader.send(ctx, state.shaders.water_shader_params)?;
@@ -665,8 +668,6 @@ impl GameScene {
 
         // cheap, clones a reference underneath
         let mut tmp_batch = SpriteBatch::new(state.tmp_canvas.image().clone());
-
-        let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time, state.scale);
 
         let tile_start_x = clamp(self.frame.x / 0x200 / 16, 0, self.stage.map.width as isize) as usize;
         let tile_start_y = clamp(self.frame.y / 0x200 / 16, 0, self.stage.map.height as isize) as usize;

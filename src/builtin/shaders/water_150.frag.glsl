@@ -11,16 +11,18 @@ layout (std140) uniform Globals {
 
 layout (std140) uniform WaterShaderParams {
     vec2 u_Resolution;
+    vec2 u_FramePos;
     float u_Tick;
 };
 
 void main() {
     vec2 wave = v_Uv;
-    wave.x += sin(v_Uv.x * 40.0 + u_Tick / 20.0) * (sin(u_Tick / 10.0) * 0.01);
-    wave.y -= cos(v_Uv.y * 20.0 + u_Tick / 5.0) * (sin(u_Tick / 20.0) * 0.01);
+    wave.x += sin((-u_FramePos.y / u_Resolution.y + v_Uv.x * 16.0) + u_Tick / 20.0) * 2.0 / u_Resolution.x;
+    wave.y -= cos((-u_FramePos.x / u_Resolution.x + v_Uv.y * 16.0) + u_Tick / 5.0) * 2.0 / u_Resolution.y;
     float off = 0.4 / u_Resolution.y;
     vec4 color = texture(t_Texture, wave);
     color.r = texture(t_Texture, wave + off).r;
     color.b = texture(t_Texture, wave - off).b;
-    Target0 = vec4(0.7, 0.8, 1.2, 1.0) * color * v_Color;
+
+    Target0 = (vec4(0.4, 0.6, 0.8, 1.0) * 0.3) + (color * v_Color * 0.7);
 }
