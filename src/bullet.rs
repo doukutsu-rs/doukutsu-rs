@@ -605,7 +605,7 @@ impl PhysicalEntity for Bullet {
                         let mut npc = NPCMap::create_npc(4, &state.npc_table);
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
-                        npc.x = (x * 16 + 8) * 0x200;sta
+                        npc.x = (x * 16 + 8) * 0x200;
                         npc.y = (y * 16 + 8) * 0x200;
 
                         for _ in 0..4 {
