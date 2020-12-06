@@ -1,9 +1,15 @@
 use std::cmp::Ordering;
+use std::fmt;
 
+use ggez::GameError;
+use ggez::GameError::InvalidValue;
 use num_traits::{AsPrimitive, Num};
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::de::{SeqAccess, Visitor};
+use serde::ser::SerializeTupleStruct;
 
 use crate::bitfield;
+use crate::macros::fmt::Formatter;
 
 /// Multiply cave story degrees (0-255, which corresponds to 0°-360°) with this to get
 /// respective value in radians.
@@ -217,7 +223,7 @@ impl Direction {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy)]
 pub struct Rect<T: Num + PartialOrd + Copy = isize> {
     pub left: T,
     pub top: T,
@@ -278,6 +284,63 @@ impl<T: Num + PartialOrd + Copy + AsPrimitive<f32>> Into<ggez::graphics::Rect> f
                                   self.height().as_())
     }
 }
+
+impl<T: Num + PartialOrd + Copy + Serialize> Serialize for Rect<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+    {
+        let mut state = serializer.serialize_tuple_struct("Rect", 4)?;
+        state.serialize_field(&self.left)?;
+        state.serialize_field(&self.top)?;
+        state.serialize_field(&self.right)?;
+        state.serialize_field(&self.bottom)?;
+        state.end()
+    }
+}
+macro_rules! rect_deserialze {
+    ($num_type: ident) => {
+        impl<'de> Deserialize<'de> for Rect<$num_type> {
+            fn deserialize<D>(deserializer: D) -> Result<Rect<$num_type>, D::Error>
+                where
+                    D: Deserializer<'de>,
+            {
+                struct RectVisitor;
+
+                impl<'de> Visitor<'de> for RectVisitor {
+                    type Value = Rect<$num_type>;
+
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        formatter.write_str("Expected Rect structure.")
+                    }
+
+                    fn visit_seq<V>(self, mut seq: V) -> Result<Self::Value, V::Error>
+                        where
+                            V: SeqAccess<'de>
+                    {
+                        let invalid_length = || {
+                            de::Error::invalid_length(0, &self)
+                        };
+
+                        let left = seq.next_element()?.ok_or_else(invalid_length)?;
+                        let top = seq.next_element()?.ok_or_else(invalid_length)?;
+                        let right = seq.next_element()?.ok_or_else(invalid_length)?;
+                        let bottom = seq.next_element()?.ok_or_else(invalid_length)?;
+
+                        Ok(Rect { left, top, right, bottom })
+                    }
+                }
+
+                deserializer.deserialize_tuple_struct("Rect", 4, RectVisitor)
+            }
+        }
+    };
+}
+
+rect_deserialze!(u8);
+rect_deserialze!(u16);
+rect_deserialze!(isize);
+rect_deserialze!(usize);
 
 #[inline(always)]
 pub fn fix9_scale(val: isize, scale: f32) -> f32 {
