@@ -35,6 +35,7 @@ cache:
 #  - cargo test --verbose --all --no-fail-fast
 
 build_script:
+  - set DRS_BUILD_VERSION_OVERRIDE=%APPVEYOR_BUILD_VERSION%
   - cargo build --release --bin doukutsu-rs
   - mkdir release
   - copy target\release\doukutsu-rs.exe release

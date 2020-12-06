@@ -1,7 +1,7 @@
 use ggez::{Context, GameResult, graphics};
 use ggez::graphics::Color;
 
-use crate::common::Rect;
+use crate::common::{Rect, VERSION_BANNER};
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
@@ -75,7 +75,6 @@ impl TitleScene {
     }
 }
 
-static ENGINE_VERSION: &str = "doukutsu-rs 0.1.0";
 // asset copyright for freeware version
 static COPYRIGHT_PIXEL: &str = "2004.12  Studio Pixel";
 // asset copyright for Nicalis
@@ -235,7 +234,7 @@ impl Scene for TitleScene {
             batch.draw(ctx)?;
         }
 
-        self.draw_text_centered(ENGINE_VERSION, state.canvas_size.1 - 15.0, state, ctx)?;
+        self.draw_text_centered(VERSION_BANNER.as_str(), state.canvas_size.1 - 15.0, state, ctx)?;
 
         if state.constants.is_switch {
             self.draw_text_centered(COPYRIGHT_NICALIS_SWITCH, state.canvas_size.1 - 30.0, state, ctx)?;

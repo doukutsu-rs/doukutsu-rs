@@ -163,7 +163,6 @@ impl Game {
     fn key_down_event(&mut self, key_code: KeyCode, _key_mod: KeyMods, repeat: bool) {
         if repeat { return; }
 
-        // todo: proper keymaps?
         let state = &mut self.state;
         match key_code {
             KeyCode::F7 => { state.set_speed(1.0) }
