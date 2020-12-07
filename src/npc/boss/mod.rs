@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 
 use ggez::{Context, GameResult};
 
+use crate::bullet::BulletManager;
 use crate::common::{Direction, interpolate_fix9_scale};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
@@ -36,6 +37,13 @@ impl BossNPC {
             part
         }; 16];
         parts[0].cond.set_alive(true);
+        for (i, part) in parts.iter_mut().enumerate() {
+            part.rng.load_state((i
+                .wrapping_add(398564)
+                .wrapping_mul(0x4985327)
+                .rotate_right(7)
+                .wrapping_sub(0x851356489) & 0xffffffff) as u32);
+        }
 
         BossNPC {
             boss_type: 0,
@@ -46,15 +54,15 @@ impl BossNPC {
     }
 }
 
-impl GameEntity<(&mut Player, &BTreeMap<u16, RefCell<NPC>>, &mut Stage)> for BossNPC {
-    fn tick(&mut self, state: &mut SharedGameState, (player, map, stage): (&mut Player, &BTreeMap<u16, RefCell<NPC>>, &mut Stage)) -> GameResult {
+impl GameEntity<([&mut Player; 2], &BTreeMap<u16, RefCell<NPC>>, &mut Stage, &BulletManager)> for BossNPC {
+    fn tick(&mut self, state: &mut SharedGameState, (players, map, stage, bullet_manager): ([&mut Player; 2], &BTreeMap<u16, RefCell<NPC>>, &mut Stage, &BulletManager)) -> GameResult {
         if !self.parts[0].cond.alive() {
             return Ok(());
         }
 
         match self.boss_type {
-            1 => self.tick_b01_omega(),
-            2 => self.tick_b02_balfrog(state, player),
+            1 => self.tick_b01_omega(state, players, map, bullet_manager),
+            2 => self.tick_b02_balfrog(state, players),
             3 => self.tick_b03_monster_x(),
             4 => self.tick_b04_core(),
             5 => self.tick_b05_ironhead(),

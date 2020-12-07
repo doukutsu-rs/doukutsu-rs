@@ -1065,6 +1065,9 @@ pub struct NPCConsts {
     #[serde(default = "default_n361_gaudi_dashing")]
     pub n361_gaudi_dashing: [Rect<u16>; 4],
 
+    #[serde(default = "default_b01_omega")]
+    pub b01_omega: [Rect<u16>; 10],
+
     #[serde(default = "default_b02_balfrog")]
     pub b02_balfrog: [Rect<u16>; 18],
 
@@ -4745,6 +4748,21 @@ fn default_n361_gaudi_dashing() -> [Rect<u16>; 4] {
         Rect { left: 72, top: 48, right: 96, bottom: 72 },
         Rect { left: 48, top: 72, right: 72, bottom: 96 },
         Rect { left: 72, top: 72, right: 96, bottom: 96 },
+    ]
+}
+
+fn default_b01_omega() -> [Rect<u16>; 10] {
+    [
+        Rect { left: 0, top: 0, right: 80, bottom: 56 },
+        Rect { left: 80, top: 0, right: 160, bottom: 56 },
+        Rect { left: 160, top: 0, right: 240, bottom: 56 },
+        Rect { left: 80, top: 0, right: 160, bottom: 56 },
+        Rect { left: 80, top: 56, right: 104, bottom: 72 },
+        Rect { left: 104, top: 56, right: 128, bottom: 72 },
+        Rect { left: 0, top: 56, right: 40, bottom: 88 },
+        Rect { left: 40, top: 56, right: 80, bottom: 88 },
+        Rect { left: 0, top: 88, right: 40, bottom: 120 },
+        Rect { left: 40, top: 88, right: 80, bottom: 120 },
     ]
 }
 

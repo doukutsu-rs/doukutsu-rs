@@ -99,8 +99,8 @@ impl GameEntity<&NPCMap> for BossLifeBar {
         let mut rect_prev_bar = Rect::new_size(0, 32, 232, 8);
         let mut rect_life_bar = Rect::new_size(0, 24, 232, 8);
 
-        rect_prev_bar.right = ((self.prev_life as u16 * bar_length) / self.max_life as u16).min(bar_length);
-        rect_life_bar.right = ((self.life as u16 * bar_length) / self.max_life as u16).min(bar_length);
+        rect_prev_bar.right = ((self.prev_life as u32 * bar_length) / self.max_life as u32).min(bar_length) as u16;
+        rect_life_bar.right = ((self.life as u32 * bar_length) / self.max_life as u32).min(bar_length) as u16;
 
         batch.add_rect(((state.canvas_size.0 - box_length as f32) / 2.0).floor(),
                         state.canvas_size.1 - 20.0, &box_rect1);

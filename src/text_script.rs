@@ -782,19 +782,19 @@ impl TextScriptVM {
                                 Direction::Left => {
                                     game_scene.player1.vel_x = 0x200;
                                     game_scene.player2.vel_x = 0x200;
-                                },
+                                }
                                 Direction::Up => {
                                     game_scene.player1.vel_y = -0x200;
                                     game_scene.player2.vel_y = -0x200;
-                                },
+                                }
                                 Direction::Right => {
                                     game_scene.player1.vel_x = -0x200;
                                     game_scene.player2.vel_x = -0x200;
-                                },
+                                }
                                 Direction::Bottom => {
                                     game_scene.player1.vel_y = 0x200;
                                     game_scene.player2.vel_y = 0x200;
-                                },
+                                }
                                 Direction::FacingPlayer => {
                                     // todo npc direction dependent bump
                                 }
@@ -1534,7 +1534,7 @@ impl TextScriptVM {
 
         if tick_npc != 0 {
             if let Some(npc) = game_scene.npc_map.npcs.get(&tick_npc) {
-                npc.borrow_mut().tick(state, ([&mut game_scene.player1, &mut game_scene.player2], &game_scene.npc_map.npcs, &mut game_scene.stage))?;
+                npc.borrow_mut().tick(state, ([&mut game_scene.player1, &mut game_scene.player2], &game_scene.npc_map.npcs, &mut game_scene.stage, &game_scene.bullet_manager))?;
             }
         }
 

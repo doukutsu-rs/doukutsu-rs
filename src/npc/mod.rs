@@ -23,6 +23,7 @@ use crate::rng::Xoroshiro32PlusPlus;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 use crate::str;
+use crate::bullet::BulletManager;
 
 pub mod balrog;
 pub mod booster;
@@ -116,7 +117,7 @@ pub struct NPC {
     pub rng: Xoroshiro32PlusPlus,
 }
 
-static PARTICLE_NPCS: [u16; 12] = [1, 4, 11, 45, 73, 84, 86, 87, 108, 129, 199, 355];
+static PARTICLE_NPCS: [u16; 13] = [1, 4, 11, 45, 48, 73, 84, 86, 87, 108, 129, 199, 355];
 
 impl NPC {
     pub fn get_start_index(&self) -> u16 {
@@ -167,8 +168,8 @@ impl NPC {
     }
 }
 
-impl GameEntity<([&mut Player; 2], &BTreeMap<u16, RefCell<NPC>>, &mut Stage)> for NPC {
-    fn tick(&mut self, state: &mut SharedGameState, (players, map, stage): ([&mut Player; 2], &BTreeMap<u16, RefCell<NPC>>, &mut Stage)) -> GameResult {
+impl GameEntity<([&mut Player; 2], &BTreeMap<u16, RefCell<NPC>>, &mut Stage, &BulletManager)> for NPC {
+    fn tick(&mut self, state: &mut SharedGameState, (players, map, stage, bullet_manager): ([&mut Player; 2], &BTreeMap<u16, RefCell<NPC>>, &mut Stage, &BulletManager)) -> GameResult {
         match self.npc_type {
             0 => self.tick_n000_null(),
             1 => self.tick_n001_experience(state),
@@ -218,6 +219,7 @@ impl GameEntity<([&mut Player; 2], &BTreeMap<u16, RefCell<NPC>>, &mut Stage)> fo
             45 => self.tick_n045_baby(state),
             46 => self.tick_n046_hv_trigger(players),
             47 => self.tick_n047_sandcroc(state, players),
+            48 => self.tick_n048_omega_projectiles(state),
             52 => self.tick_n052_sitting_blue_robot(state),
             55 => self.tick_n055_kazuma(state),
             58 => self.tick_n058_basu(state, players),

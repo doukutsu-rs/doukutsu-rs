@@ -43,6 +43,10 @@ impl BulletManager {
         self.bullets.iter().filter(|b| b.owner == player_id && b.btype == btype).count()
     }
 
+    pub fn count_bullets_all(&self, btype: u16) -> usize {
+        self.bullets.iter().filter(|b| b.btype == btype).count()
+    }
+
     pub fn count_bullets_multi(&self, btypes: [u16; 3], player_id: TargetPlayer) -> usize {
         self.bullets.iter().filter(|b| b.owner == player_id && btypes.contains(&b.btype)).count()
     }

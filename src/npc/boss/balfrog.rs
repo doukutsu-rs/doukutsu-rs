@@ -33,7 +33,7 @@ impl NPC {
 }
 
 impl BossNPC {
-    pub(crate) fn tick_b02_balfrog(&mut self, state: &mut SharedGameState, player: &Player) {
+    pub(crate) fn tick_b02_balfrog(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) {
         match self.parts[0].action_num {
             0 => {
                 self.hurt_sound[0] = 52;
@@ -152,6 +152,7 @@ impl BossNPC {
                     self.parts[0].display_bounds.top = 48 * 0x200;
                     self.parts[0].display_bounds.bottom = 16 * 0x200;
 
+                    let player = self.parts[0].get_closest_player_mut(players);
                     if self.parts[0].direction == Direction::Left && self.parts[0].x < player.x {
                         self.parts[0].direction = Direction::Right;
                         self.parts[0].action_num = 110;
@@ -235,6 +236,7 @@ impl BossNPC {
                     self.parts[0].action_counter = 0;
                     self.parts[0].vel_x2 = self.parts[0].vel_x2.saturating_sub(1);
 
+                    let player = self.parts[0].get_closest_player_mut(players);
                     let px = self.parts[0].x + self.parts[0].direction.vector_x() * 2 * 16 * 0x200 - player.x;
                     let py = self.parts[0].y - 8 * 0x200 - player.y;
 
@@ -351,6 +353,7 @@ impl BossNPC {
                         state.new_npcs.push(npc);
                     }
 
+                    let player = self.parts[0].get_closest_player_mut(players);
                     if self.parts[0].direction == Direction::Left && self.parts[0].x < player.x {
                         self.parts[0].action_num = 110;
                         self.parts[0].direction = Direction::Right;

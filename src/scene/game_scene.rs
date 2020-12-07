@@ -1031,11 +1031,11 @@ impl GameScene {
                 let mut npc = npc_cell.borrow_mut();
 
                 if npc.cond.alive() {
-                    npc.tick(state, ([&mut self.player1, &mut self.player2], &self.npc_map.npcs, &mut self.stage))?;
+                    npc.tick(state, ([&mut self.player1, &mut self.player2], &self.npc_map.npcs, &mut self.stage, &self.bullet_manager))?;
                 }
             }
         }
-        self.npc_map.boss_map.tick(state, (&mut self.player1, &self.npc_map.npcs, &mut self.stage))?;
+        self.npc_map.boss_map.tick(state, ([&mut self.player1, &mut self.player2], &self.npc_map.npcs, &mut self.stage, &self.bullet_manager))?;
         self.npc_map.process_npc_changes(&self.player1, state);
         self.npc_map.garbage_collect();
 
