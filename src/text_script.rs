@@ -265,10 +265,12 @@ pub enum OpCode {
     ACH,
 
     // ---- Cave Story+ (Switch) specific opcodes ----
-    /// <HM2, HMC for player 2
+    /// <HM2, HMC for non-executor player.
     HM2,
-    /// <2MVxxxx, Move player 2, operand is either direction (for 0000-0003),
-    /// or event number/npc id/anything else?
+    /// <2MVxxxx, Put another player near the player who executed the event.
+    /// 0000 - puts player on left side of executor player
+    /// 0001 - puts player on right side of executor player
+    /// other values - Unknown purpose for now
     #[strum(serialize = "2MV")]
     S2MV,
     /// <INJxxxx:yyyy:zzzz, Jumps to event zzzz if amount of item xxxx equals yyyy
