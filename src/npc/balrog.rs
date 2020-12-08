@@ -266,7 +266,7 @@ impl NPC {
                     self.vel_x = 0;
                 }
 
-                if self.vel_y < 0 {
+                if self.y < 0 {
                     self.npc_type = 0;
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
@@ -508,6 +508,7 @@ impl NPC {
                     }
                 }
 
+                println!("y: {}", self.y as f64 / 512.0);
                 if self.y < -32 * 0x200 {
                     self.npc_type = 0;
                     state.quake_counter = 30;
