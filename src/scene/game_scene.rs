@@ -1301,7 +1301,7 @@ impl Scene for GameScene {
         Ok(())
     }
 
-    fn draw_tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+    fn draw_tick(&mut self, state: &mut SharedGameState) -> GameResult {
         self.frame.prev_x = self.frame.x;
         self.frame.prev_y = self.frame.y;
         self.player1.prev_x = self.player1.x;

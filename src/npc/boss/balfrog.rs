@@ -242,7 +242,6 @@ impl BossNPC {
 
                     let deg = f64::atan2(py as f64, px as f64)
                         + self.parts[0].rng.range(-16..16) as f64 * CDEG_RAD;
-                    // todo rand
 
                     let mut npc = NPCMap::create_npc(108, &state.npc_table);
                     npc.cond.set_alive(true);

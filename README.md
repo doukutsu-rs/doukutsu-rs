@@ -61,14 +61,19 @@ Because methods used to extract game data from cartridge vary, you have to find 
   - [x] PixTone SFX
 - [ ] NPCs/entities
   - [x] Initial implementation
-  - [ ] Miscellaneous entities (~30% done)
-  - [ ] Bosses (~20% done)
+  - [ ] Miscellaneous entities (~40% done)
+  - [ ] Bosses (~30% done)
+    - [x] Omega
+    - [x] Balfrog
+    - [x] Monster X
   - [x] First Cave
   - [x] Mimiga Village
   - [x] Egg Corridor
   - [x] Grasstown
-  - [ ] Sand Zone (~30% done)
+  - [ ] Sand Zone (~50% done)
   - [ ] Labirynth (~10% done)
+  - [x] Waterway
+  - [ ] Egg Corridor? (~20% done)
   - [ ] Outer Wall
   - [ ] Plantation
   - [ ] Last Cave

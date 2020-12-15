@@ -115,7 +115,7 @@ impl Game {
                     }
 
                     if self.loops != 0 {
-                        scene.draw_tick(&mut self.state, ctx)?;
+                        scene.draw_tick(&mut self.state)?;
                         self.last_tick = last_tick;
                     }
 

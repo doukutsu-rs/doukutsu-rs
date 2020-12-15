@@ -4,7 +4,7 @@ use std::io::{BufReader, Read, Seek, SeekFrom};
 use ggez;
 use ggez::{Context, GameError, GameResult, graphics};
 use ggez::filesystem;
-use ggez::graphics::{Color, Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh, mint, Rect};
+use ggez::graphics::{Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh, mint, Rect};
 use ggez::graphics::spritebatch::SpriteBatch;
 use ggez::nalgebra::{Point2, Vector2};
 use image::RgbaImage;
@@ -171,20 +171,6 @@ impl TextureSet {
             reader.seek(SeekFrom::Start(0))?;
 
             let image = image::load(BufReader::new(reader), image::guess_format(&buf)?)?;
-            let mut rgba = image.to_rgba();
-            if image.color().channel_count() != 4 {
-                TextureSet::make_transparent(&mut rgba);
-            }
-            rgba
-        };
-        let (width, height) = img.dimensions();
-
-        Image::from_rgba8(ctx, width as u16, height as u16, img.as_ref())
-    }
-
-    fn load_image_from_buf(&self, ctx: &mut Context, buf: &[u8]) -> GameResult<Image> {
-        let img = {
-            let image = image::load_from_memory(buf)?;
             let mut rgba = image.to_rgba();
             if image.color().channel_count() != 4 {
                 TextureSet::make_transparent(&mut rgba);

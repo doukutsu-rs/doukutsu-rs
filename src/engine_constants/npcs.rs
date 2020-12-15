@@ -1071,6 +1071,8 @@ pub struct NPCConsts {
     #[serde(default = "default_b02_balfrog")]
     pub b02_balfrog: [Rect<u16>; 18],
 
+    #[serde(default = "default_b03_monster_x")]
+    pub b03_monster_x: [Rect<u16>; 29],
 }
 
 fn default_n001_experience() -> [Rect<u16>; 6] {
@@ -4786,5 +4788,39 @@ fn default_b02_balfrog() -> [Rect<u16>; 18] {
         Rect { left: 200, top: 24, right: 240, bottom: 48 },
         Rect { left: 80, top: 24, right: 120, bottom: 48 },
         Rect { left: 120, top: 24, right: 160, bottom: 48 },
+    ]
+}
+
+fn default_b03_monster_x() -> [Rect<u16>; 29] {
+    [
+        Rect { left: 216, top: 0, right: 320, bottom: 48 }, // face
+        Rect { left: 216, top: 48, right: 320, bottom: 96 },
+        Rect { left: 216, top: 144, right: 320, bottom: 192 },
+        Rect { left: 0, top: 0, right: 72, bottom: 32 }, // tracks up
+        Rect { left: 0, top: 32, right: 72, bottom: 64 },
+        Rect { left: 72, top: 0, right: 144, bottom: 32 },
+        Rect { left: 144, top: 0, right: 216, bottom: 32 },
+        Rect { left: 72, top: 32, right: 144, bottom: 64 },
+        Rect { left: 144, top: 32, right: 216, bottom: 64 },
+        Rect { left: 0, top: 64, right: 72, bottom: 96 }, // tracks down
+        Rect { left: 0, top: 96, right: 72, bottom: 128 },
+        Rect { left: 72, top: 64, right: 144, bottom: 96 },
+        Rect { left: 144, top: 64, right: 216, bottom: 96 },
+        Rect { left: 72, top: 96, right: 144, bottom: 128 },
+        Rect { left: 144, top: 96, right: 216, bottom: 128 },
+        Rect { left: 0, top: 128, right: 72, bottom: 160 }, // frame
+        Rect { left: 72, top: 128, right: 144, bottom: 160 },
+        Rect { left: 0, top: 160, right: 72, bottom: 192 },
+        Rect { left: 72, top: 160, right: 144, bottom: 192 },
+        Rect { left: 216, top: 96, right: 264, bottom: 144 }, // shield left
+        Rect { left: 264, top: 96, right: 312, bottom: 144 }, // shield right
+        Rect { left: 0, top: 192, right: 16, bottom: 208 }, // part 4
+        Rect { left: 16, top: 192, right: 32, bottom: 208 },
+        Rect { left: 32, top: 192, right: 48, bottom: 208 },
+        Rect { left: 48, top: 192, right: 64, bottom: 208 },
+        Rect { left: 0, top: 208, right: 16, bottom: 224 },
+        Rect { left: 16, top: 208, right: 32, bottom: 224 },
+        Rect { left: 32, top: 208, right: 48, bottom: 224 },
+        Rect { left: 48, top: 208, right: 64, bottom: 224 },
     ]
 }

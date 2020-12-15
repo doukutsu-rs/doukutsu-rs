@@ -24,9 +24,9 @@ pub mod undead_core;
 
 pub struct BossNPC {
     pub boss_type: u16,
-    pub parts: [NPC; 16],
-    pub hurt_sound: [u8; 16],
-    pub death_sound: [u8; 16],
+    pub parts: [NPC; 20],
+    pub hurt_sound: [u8; 20],
+    pub death_sound: [u8; 20],
 }
 
 impl BossNPC {
@@ -35,7 +35,7 @@ impl BossNPC {
             let mut part = NPC::empty();
             part.cond.set_drs_boss(true);
             part
-        }; 16];
+        }; 20];
         parts[0].cond.set_alive(true);
         for (i, part) in parts.iter_mut().enumerate() {
             part.rng.load_state((i
@@ -48,8 +48,8 @@ impl BossNPC {
         BossNPC {
             boss_type: 0,
             parts,
-            hurt_sound: [0; 16],
-            death_sound: [0; 16],
+            hurt_sound: [0; 20],
+            death_sound: [0; 20],
         }
     }
 }
@@ -63,7 +63,7 @@ impl GameEntity<([&mut Player; 2], &BTreeMap<u16, RefCell<NPC>>, &mut Stage, &Bu
         match self.boss_type {
             1 => self.tick_b01_omega(state, players, map, bullet_manager),
             2 => self.tick_b02_balfrog(state, players),
-            3 => self.tick_b03_monster_x(),
+            3 => self.tick_b03_monster_x(state, players, map),
             4 => self.tick_b04_core(),
             5 => self.tick_b05_ironhead(),
             6 => self.tick_b06_twins(),
@@ -83,7 +83,7 @@ impl GameEntity<([&mut Player; 2], &BTreeMap<u16, RefCell<NPC>>, &mut Stage, &Bu
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, state.npc_table.tex_npc2_name.as_str())?;
 
-        for npc in self.parts.iter() {
+        for npc in self.parts.iter().rev() {
             if !npc.cond.alive() || npc.cond.hidden() {
                 continue;
             }

@@ -13,9 +13,8 @@ use crate::shared_game_state::SharedGameState;
 
 impl NPC {
     pub(crate) fn tick_n048_omega_projectiles(&mut self, state: &mut SharedGameState) -> GameResult {
-        if self.flags.hit_left_wall() && self.vel_x < 0 {
-            self.vel_x = -self.vel_x;
-        } else if self.flags.hit_right_wall() && self.vel_x > 0 {
+        if (self.flags.hit_left_wall() && self.vel_x < 0)
+            || (self.flags.hit_right_wall() && self.vel_x > 0) {
             self.vel_x = -self.vel_x;
         } else if self.flags.hit_bottom_wall() {
             self.action_counter2 += 1;
@@ -202,7 +201,7 @@ impl BossNPC {
                     state.sound_manager.play_sfx(39);
                 }
 
-                if self.parts[0].action_counter == 200 || bullet_manager.count_bullets_all(6) > 0 {
+                if self.parts[0].action_counter == 200 || bullet_manager.count_bullets_type_idx_all(6) > 0 {
                     self.parts[0].action_num = 70;
                     self.parts[0].anim_counter = 0;
 
@@ -275,7 +274,7 @@ impl BossNPC {
             }
             120 => {
                 self.parts[0].action_counter += 1;
-                if self.parts[0].action_counter == 50 || bullet_manager.count_bullets_all(6) > 0 {
+                if self.parts[0].action_counter == 50 || bullet_manager.count_bullets_type_idx_all(6) > 0 {
                     self.parts[0].action_num = 130;
                     self.parts[0].action_counter = 0;
                     self.parts[0].anim_counter = 0;
