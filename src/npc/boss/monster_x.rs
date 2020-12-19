@@ -447,7 +447,7 @@ impl BossNPC {
                     }
 
                     for npc_cell in npc_map.values() {
-                        let npc = npc_cell.borrow_mut();
+                        let mut npc = npc_cell.borrow_mut();
                         if npc.cond.alive() && npc.npc_type == 158 {
                             npc.cond.set_alive(false);
                         }
