@@ -110,7 +110,7 @@ impl Inventory {
         self.weapons.get(idx)
     }
 
-    pub fn get_weapon_type_mut(&mut self, wtype: WeaponType) -> Option<&mut Weapon> {
+    pub fn get_weapon_by_type_mut(&mut self, wtype: WeaponType) -> Option<&mut Weapon> {
         self.weapons.iter_mut().find(|weapon| weapon.wtype == wtype)
     }
 
