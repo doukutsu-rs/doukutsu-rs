@@ -67,10 +67,10 @@ impl BMFontRenderer {
 
 
     pub fn draw_text<I: Iterator<Item=char>>(&self, iter: I, x: f32, y: f32, constants: &EngineConstants, texture_set: &mut TextureSet, ctx: &mut Context) -> GameResult {
-        self.draw_colored_text(iter, x, y, (255, 255, 255), constants, texture_set, ctx)
+        self.draw_colored_text(iter, x, y, (255, 255, 255, 255), constants, texture_set, ctx)
     }
 
-    pub fn draw_colored_text<I: Iterator<Item=char>>(&self, iter: I, x: f32, y: f32, color: (u8, u8, u8),
+    pub fn draw_colored_text<I: Iterator<Item=char>>(&self, iter: I, x: f32, y: f32, color: (u8, u8, u8, u8),
                                                      constants: &EngineConstants, texture_set: &mut TextureSet, ctx: &mut Context) -> GameResult {
         if self.pages.len() == 1 {
             let batch = texture_set.get_or_load_batch(ctx, constants, self.pages.get(0).unwrap())?;

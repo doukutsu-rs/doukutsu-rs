@@ -14,7 +14,7 @@ impl DummyPlayerController {
 }
 
 impl PlayerController for DummyPlayerController {
-    fn update(&mut self, _state: &SharedGameState, _ctx: &mut Context) -> GameResult {
+    fn update(&mut self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult {
         Ok(())
     }
 

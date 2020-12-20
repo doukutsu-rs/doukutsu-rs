@@ -1,12 +1,19 @@
-use crate::common::Rect;
 use ggez::{Context, GameResult};
-use crate::shared_game_state::SharedGameState;
+
+use crate::common::Rect;
 use crate::input::combined_menu_controller::CombinedMenuController;
+use crate::shared_game_state::SharedGameState;
 
 pub enum MenuEntry {
     Active(String),
     Disabled(String),
     Toggle(String, bool),
+}
+
+impl MenuEntry {
+    pub fn height(&self) -> f64 {
+        14.0
+    }
 }
 
 pub enum MenuSelectionResult<'a> {
@@ -160,7 +167,7 @@ impl Menu {
                     state.font.draw_text(name.chars(), self.x as f32 + 20.0, y, &state.constants, &mut state.texture_set, ctx)?;
                 }
                 MenuEntry::Disabled(name) => {
-                    state.font.draw_colored_text(name.chars(), self.x as f32 + 20.0, y, (0xa0, 0xa0, 0xff), &state.constants, &mut state.texture_set, ctx)?;
+                    state.font.draw_colored_text(name.chars(), self.x as f32 + 20.0, y, (0xa0, 0xa0, 0xff, 0xff), &state.constants, &mut state.texture_set, ctx)?;
                 }
                 MenuEntry::Toggle(name, value) => {
                     let value_text = if *value { "ON" } else { "OFF" };
@@ -172,7 +179,7 @@ impl Menu {
                 }
             }
 
-            y += 14.0;
+            y += entry.height() as f32;
         }
 
         Ok(())
@@ -211,15 +218,23 @@ impl Menu {
             }
         }
 
-        if controller.trigger_ok() && !self.entries.is_empty() {
-            if let Some(entry) = self.entries.get_mut(self.selected) {
-                match entry {
-                    MenuEntry::Active(_) | MenuEntry::Toggle(_, _) => {
-                        state.sound_manager.play_sfx(18);
-                        return MenuSelectionResult::Selected(self.selected, entry);
-                    }
-                    _ => {}
+        let mut y = self.y as f32 + 6.0;
+        for (idx, entry) in self.entries.iter_mut().enumerate() {
+            let entry_bounds = Rect::new_size(self.x, y as isize, self.width as isize, entry.height() as isize);
+            y += entry.height() as f32;
+
+            if !((controller.trigger_ok() && self.selected == idx)
+                || state.touch_controls.consume_click_in(entry_bounds)) {
+                continue;
+            }
+
+            match entry {
+                MenuEntry::Active(_) | MenuEntry::Toggle(_, _) => {
+                    self.selected = idx;
+                    state.sound_manager.play_sfx(18);
+                    return MenuSelectionResult::Selected(idx, entry);
                 }
+                _ => {}
             }
         }
 

@@ -14,7 +14,7 @@ min_sdk_version = 26
 build_targets = ["aarch64-linux-android"]
 package_name = "io.github.doukutsu_rs.android"
 apk_label = "doukutsu-rs"
-opengles_version = [2, 0]
+opengles_version = [3, 1]
 fullscreen = true
 orientation = "sensorLandscape"
 permission = [
@@ -55,11 +55,11 @@ directories = "2"
 gfx = "0.18"
 gfx_core = "0.9"
 gfx_device_gl = {git = "https://github.com/doukutsu-rs/gfx.git", branch = "pre-ll"}
-ggez = {git = "https://github.com/doukutsu-rs/ggez.git", rev = "aad56b0d173ca9f4aeb28599075b5af49ab9214e"}
-glutin = {git = "https://github.com/doukutsu-rs/glutin.git", branch = "android-support"}
-imgui = {git = "https://github.com/Gekkio/imgui-rs.git", rev = "a990a538b66cb67dba3a072bf299b6a51c001447"}
-imgui-gfx-renderer = {git = "https://github.com/Gekkio/imgui-rs.git", rev = "a990a538b66cb67dba3a072bf299b6a51c001447"}
-imgui-winit-support = {git = "https://github.com/Gekkio/imgui-rs.git", default-features = false, features = ["winit-23"], rev = "a990a538b66cb67dba3a072bf299b6a51c001447"}
+ggez = {git = "https://github.com/doukutsu-rs/ggez.git", rev = "43631b0401271d4bc8fe4a5afba8aad63976dba1"}
+glutin = {git = "https://github.com/doukutsu-rs/glutin.git", branch = "master"}
+imgui = {git = "https://github.com/Gekkio/imgui-rs.git", rev = "7e2293bde67f869750ab0e649fbfbd842fb0c785"}
+imgui-gfx-renderer = {git = "https://github.com/Gekkio/imgui-rs.git", rev = "7e2293bde67f869750ab0e649fbfbd842fb0c785"}
+imgui-winit-support = {git = "https://github.com/Gekkio/imgui-rs.git", default-features = false, features = ["winit-23"], rev = "7e2293bde67f869750ab0e649fbfbd842fb0c785"}
 image = {version = "0.22", default-features = false, features = ["png_codec", "pnm", "bmp"]}
 itertools = "0.9.0"
 lazy_static = "1.4.0"
@@ -77,9 +77,9 @@ strum_macros = "0.18.0"
 # remove and replace when drain_filter is in stable
 vec_mut_scan = "0.3.0"
 webbrowser = "0.5.5"
-winit = {version = "0.23.0", features = ["serde"]}
+winit = {version = "0.24.0", features = ["serde"]}
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk = "0.2.0"
-ndk-glue = "0.2.0"
+ndk = "0.2"
+ndk-glue = "0.2"
 jni = "0.17"

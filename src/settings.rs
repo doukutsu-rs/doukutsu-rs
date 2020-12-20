@@ -5,6 +5,7 @@ use winit::event::VirtualKeyCode;
 use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
 use crate::player::TargetPlayer;
+use crate::input::touch_player_controller::TouchPlayerController;
 
 #[derive(Serialize, Deserialize)]
 pub struct Settings {
@@ -31,6 +32,10 @@ impl Settings {
     }
 
     pub fn create_player1_controller(&self) -> Box<dyn PlayerController> {
+        if self.touch_controls {
+            return Box::new(TouchPlayerController::new());
+        }
+
         Box::new(KeyboardController::new(TargetPlayer::Player1))
     }
 

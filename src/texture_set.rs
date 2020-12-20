@@ -79,6 +79,11 @@ impl SizedBatch {
         self.add_rect_scaled(x, y, self.scale_x, self.scale_y, rect)
     }
 
+    #[inline(always)]
+    pub fn add_rect_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8, u8), rect: &common::Rect<u16>) {
+        self.add_rect_scaled_tinted(x, y, color, self.scale_x, self.scale_y, rect)
+    }
+
     pub fn add_rect_scaled(&mut self, mut x: f32, mut y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
         if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
             return;
@@ -100,7 +105,7 @@ impl SizedBatch {
         self.batch.add(param);
     }
 
-    pub fn add_rect_scaled_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8), scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
+    pub fn add_rect_scaled_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8, u8), scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
         if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
             return;
         }

@@ -707,7 +707,7 @@ impl EngineConstants {
                 "Title" => (320, 48),
             },
             textscript: TextScriptConsts {
-                encoding: TextScriptEncoding::ShiftJIS,
+                encoding: TextScriptEncoding::UTF8,
                 encrypted: true,
                 animated_face_pics: false,
                 textbox_rect_top: Rect { left: 0, top: 0, right: 244, bottom: 8 },
@@ -741,7 +741,7 @@ impl EngineConstants {
             },
             font_path: "builtin/builtin_font.fnt".to_string(),
             font_scale: 1.0,
-            font_space_offset: -3.0,
+            font_space_offset: 0.0,
             organya_paths: vec![
                 str!("/org/"), // NXEngine
                 str!("/base/Org/"), // CS+

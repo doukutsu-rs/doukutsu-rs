@@ -148,7 +148,7 @@ impl Game {
         if let Some(scene) = self.scene.as_mut() {
             scene.draw(&mut self.state, ctx)?;
             if self.state.settings.touch_controls {
-                self.state.touch_controls.draw(&self.state.constants, &mut self.state.texture_set, ctx)?;
+                self.state.touch_controls.draw(self.state.canvas_size, &self.state.constants, &mut self.state.texture_set, ctx)?;
             }
 
             graphics::set_transform(ctx, self.def_matrix);
@@ -244,6 +244,13 @@ pub fn android_main() {
     init().unwrap();
 }
 
+#[cfg(target_os = "android")]
+static BACKENDS: [Backend; 2] = [
+    Backend::OpenGLES { major: 3, minor: 0 },
+    Backend::OpenGLES { major: 2, minor: 0 }
+];
+
+#[cfg(not(target_os = "android"))]
 static BACKENDS: [Backend; 4] = [
     Backend::OpenGL { major: 3, minor: 2 },
     Backend::OpenGLES { major: 3, minor: 2 },
@@ -263,10 +270,15 @@ fn init_ctx<P: Into<path::PathBuf> + Clone>(event_loop: &winit::event_loop::Even
             .backend(*backend)
             .build(event_loop);
 
-        if let Ok(mut ctx) = ctx {
-            mount_vfs(&mut ctx, Box::new(BuiltinFS::new()));
+        match ctx {
+            Ok(mut ctx) => {
+                mount_vfs(&mut ctx, Box::new(BuiltinFS::new()));
 
-            return Ok(ctx);
+                return Ok(ctx);
+            }
+            Err(err) => {
+                log::warn!("Failed to create backend using config {:?}: {}", backend, err);
+            }
         }
     }
 

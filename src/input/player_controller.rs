@@ -3,7 +3,7 @@ use ggez::{Context, GameResult};
 use crate::shared_game_state::SharedGameState;
 
 pub trait PlayerController: PlayerControllerClone {
-    fn update(&mut self, state: &SharedGameState, ctx: &mut Context) -> GameResult;
+    fn update(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult;
 
     fn update_trigger(&mut self);
 

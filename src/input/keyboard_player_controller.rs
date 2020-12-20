@@ -23,7 +23,7 @@ bitfield! {
   pub next_weapon, set_next_weapon: 8;
   pub prev_weapon, set_prev_weapon: 9;
   pub escape, set_escape: 10;
-  pub enter, set_enter: 10;
+  pub enter, set_enter: 11;
 }
 
 #[derive(Clone)]
@@ -46,7 +46,7 @@ impl KeyboardController {
 }
 
 impl PlayerController for KeyboardController {
-    fn update(&mut self, state: &SharedGameState, ctx: &mut Context) -> GameResult {
+    fn update(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let keymap = match self.target {
             TargetPlayer::Player1 => &state.settings.player1_key_map,
             TargetPlayer::Player2 => &state.settings.player2_key_map,

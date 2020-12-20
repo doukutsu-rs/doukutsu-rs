@@ -56,8 +56,8 @@ impl HUD {
     }
 }
 
-impl GameEntity<(&Player, &Inventory)> for HUD {
-    fn tick(&mut self, state: &mut SharedGameState, (player, inventory): (&Player, &Inventory)) -> GameResult {
+impl GameEntity<(&Player, &mut Inventory)> for HUD {
+    fn tick(&mut self, state: &mut SharedGameState, (player, inventory): (&Player, &mut Inventory)) -> GameResult {
         let (ammo, max_ammo) = inventory.get_current_ammo();
         let (xp, max_xp, max_level) = inventory.get_current_max_exp(&state.constants);
 
@@ -102,6 +102,56 @@ impl GameEntity<(&Player, &Inventory)> for HUD {
             self.weapon_x_pos -= 2;
         } else if self.weapon_x_pos < 16 {
             self.weapon_x_pos += 2;
+        }
+
+        if player.cond.alive() {
+            if player.controller.trigger_next_weapon() {
+                state.sound_manager.play_sfx(4);
+                inventory.next_weapon();
+                self.weapon_x_pos = 32;
+            }
+
+            if player.controller.trigger_prev_weapon() {
+                state.sound_manager.play_sfx(4);
+                inventory.prev_weapon();
+                self.weapon_x_pos = 0;
+            }
+        }
+
+        // touch handler
+        if state.settings.touch_controls && self.weapon_count != 0 {
+            let mut rect = Rect::new(0, 0, 0, 16);
+            let weapon_offset = match self.alignment {
+                Alignment::Left => 0,
+                Alignment::Right => (state.canvas_size.0 - 104.0) as isize,
+            };
+
+            for a in 0..self.weapon_count {
+                let mut pos_x = ((a as isize - self.current_weapon) * 16) + self.weapon_x_pos as isize;
+
+                if pos_x < 8 {
+                    pos_x += 48 + self.weapon_count as isize * 16;
+                } else if pos_x >= 24 {
+                    pos_x += 48;
+                }
+
+                if pos_x >= 72 + ((self.weapon_count as isize - 1) * 16) {
+                    pos_x -= 48 + self.weapon_count as isize * 16;
+                } else if pos_x < 72 && pos_x >= 24 {
+                    pos_x -= 48;
+                }
+
+                let wtype = unsafe { *self.weapon_types.get_unchecked(a) };
+                if wtype != 0 {
+                    rect = Rect::new_size(pos_x + weapon_offset - 4, 16 - 4, 24, 24);
+
+                    if state.touch_controls.consume_click_in(rect) {
+                        state.sound_manager.play_sfx(4);
+                        inventory.current_weapon = a as u16;
+                        self.weapon_x_pos = 32;
+                    }
+                }
+            }
         }
 
         Ok(())

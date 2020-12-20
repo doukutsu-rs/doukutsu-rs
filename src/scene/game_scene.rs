@@ -29,6 +29,7 @@ use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState,
 use crate::texture_set::SizedBatch;
 use crate::ui::Components;
 use crate::weapon::WeaponType;
+use crate::input::touch_controls::TouchControlType;
 
 pub struct GameScene {
     pub tick: usize,
@@ -492,7 +493,7 @@ impl GameScene {
     }
 
     fn draw_light(&self, x: f32, y: f32, size: f32, color: (u8, u8, u8), batch: &mut SizedBatch) {
-        batch.add_rect_scaled_tinted(x - size * 32.0, y - size * 32.0, color,
+        batch.add_rect_scaled_tinted(x - size * 32.0, y - size * 32.0, (color.0, color.1, color.2, 255),
                                      size,
                                      size,
                                      &Rect::new(0, 0, 64, 64))
@@ -1111,36 +1112,8 @@ impl GameScene {
                 weapon.shoot_bullet(&self.player2, TargetPlayer::Player2, &mut self.bullet_manager, state);
             }
 
-            if self.player1.cond.alive() {
-                if self.player1.controller.trigger_next_weapon() {
-                    state.sound_manager.play_sfx(4);
-                    self.inventory_player1.next_weapon();
-                    self.hud_player1.weapon_x_pos = 32;
-                }
-
-                if self.player1.controller.trigger_prev_weapon() {
-                    state.sound_manager.play_sfx(4);
-                    self.inventory_player1.prev_weapon();
-                    self.hud_player1.weapon_x_pos = 0;
-                }
-            }
-
-            if self.player2.cond.alive() {
-                if self.player2.controller.trigger_next_weapon() {
-                    state.sound_manager.play_sfx(4);
-                    self.inventory_player2.next_weapon();
-                    self.hud_player2.weapon_x_pos = 32;
-                }
-
-                if self.player2.controller.trigger_prev_weapon() {
-                    state.sound_manager.play_sfx(4);
-                    self.inventory_player2.prev_weapon();
-                    self.hud_player2.weapon_x_pos = 0;
-                }
-            }
-
-            self.hud_player1.tick(state, (&self.player1, &self.inventory_player1))?;
-            self.hud_player2.tick(state, (&self.player2, &self.inventory_player2))?;
+            self.hud_player1.tick(state, (&self.player1, &mut self.inventory_player1))?;
+            self.hud_player2.tick(state, (&self.player2, &mut self.inventory_player2))?;
             self.boss_life_bar.tick(state, &self.npc_map)?;
         }
 
@@ -1187,7 +1160,7 @@ impl GameScene {
 
         let text = format!("{}:{}:{}", npc.id, npc.npc_type, npc.action_num);
         state.font.draw_colored_text(text.chars(), ((npc.x - self.frame.x) / 0x200) as f32, ((npc.y - self.frame.y) / 0x200) as f32,
-                                     ((npc.id & 0xf0) as u8, (npc.cond.0 >> 8) as u8, (npc.id & 0x0f << 4) as u8),
+                                     ((npc.id & 0xf0) as u8, (npc.cond.0 >> 8) as u8, (npc.id & 0x0f << 4) as u8, 255),
                                      &state.constants, &mut state.texture_set, ctx)?;
 
         Ok(())
@@ -1265,6 +1238,16 @@ impl Scene for GameScene {
         self.player1.controller.update_trigger();
         self.player2.controller.update(state, ctx)?;
         self.player2.controller.update_trigger();
+
+        state.touch_controls.control_type = if state.control_flags.control_enabled() {
+            TouchControlType::Controls
+        } else {
+            TouchControlType::Dialog
+        };
+        
+        if state.settings.touch_controls {
+            state.touch_controls.interact_icon = false;
+        }
 
         if self.intro_mode && (self.player1.controller.trigger_menu_ok() || self.tick >= 500) {
             state.next_scene = Some(Box::new(TitleScene::new()));
@@ -1400,21 +1383,21 @@ impl Scene for GameScene {
                 if self.player2.x + 8 * 0x200 < self.frame.x {
                     state.font.draw_colored_text(P2_LEFT_TEXT.chars(),
                                                  9.0, y + 1.0,
-                                                 (0, 0, 130), &state.constants, &mut state.texture_set, ctx)?;
+                                                 (0, 0, 130, 255), &state.constants, &mut state.texture_set, ctx)?;
 
                     state.font.draw_colored_text(P2_LEFT_TEXT.chars(),
                                                  8.0, y,
-                                                 (96, 96, 255), &state.constants, &mut state.texture_set, ctx)?;
+                                                 (96, 96, 255, 255), &state.constants, &mut state.texture_set, ctx)?;
                 } else if self.player2.x - 8 * 0x200 > self.frame.x + state.canvas_size.0 as isize * 0x200 {
                     let width = state.font.text_width(P2_RIGHT_TEXT.chars(), &state.constants);
 
                     state.font.draw_colored_text(P2_RIGHT_TEXT.chars(),
                                                  state.canvas_size.0 - width - 8.0 + 1.0, y + 1.0,
-                                                 (0, 0, 130), &state.constants, &mut state.texture_set, ctx)?;
+                                                 (0, 0, 130, 255), &state.constants, &mut state.texture_set, ctx)?;
 
                     state.font.draw_colored_text(P2_RIGHT_TEXT.chars(),
                                                  state.canvas_size.0 - width - 8.0, y,
-                                                 (96, 96, 255), &state.constants, &mut state.texture_set, ctx)?;
+                                                 (96, 96, 255, 255), &state.constants, &mut state.texture_set, ctx)?;
                 }
             }
         }

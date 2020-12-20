@@ -197,8 +197,9 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
     org_engine.set_sample_rate(sample_rate as usize);
     org_engine.loops = usize::MAX;
 
-    let mut bgm_buf = vec![0x8080; 441];
-    let mut pxt_buf = vec![0x8000; 441];
+    let buf_size = sample_rate as usize * 30 / 1000;
+    let mut bgm_buf = vec![0x8080; buf_size];
+    let mut pxt_buf = vec![0x8000; buf_size];
     let mut bgm_index = 0;
     let mut pxt_index = 0;
     let mut frames = org_engine.render_to(&mut bgm_buf);

@@ -286,6 +286,11 @@ impl Player {
             }
         }
 
+        if state.settings.touch_controls && npc.npc_flags.interactable() && flags.0 != 0 {
+            // todo make it less hacky
+            state.touch_controls.interact_icon = true;
+        }
+
         if npc.npc_flags.interactable() && !state.control_flags.interactions_disabled() && flags.0 != 0 && self.cond.interacted() {
             state.control_flags.set_tick_world(true);
             state.control_flags.set_interactions_disabled(true);

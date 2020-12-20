@@ -26,8 +26,8 @@ impl Shaders {
         Ok(Shaders {
             water_shader: Shader::new(
                 ctx,
-                "/builtin/shaders/basic_150.vert.glsl",
-                "/builtin/shaders/water_150.frag.glsl",
+                "/builtin/shaders/basic_es300.vert.glsl",
+                "/builtin/shaders/water_es300.frag.glsl",
                 water_shader_params,
                 "WaterShaderParams",
                 None,

@@ -6,6 +6,7 @@ use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
 use crate::input::combined_menu_controller::CombinedMenuController;
+use crate::input::touch_controls::TouchControlType;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
@@ -121,6 +122,7 @@ impl Scene for TitleScene {
     }
 
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        state.touch_controls.control_type = TouchControlType::None;
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
 
