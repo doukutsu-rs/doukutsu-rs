@@ -37,12 +37,14 @@ impl BossNPC {
             part
         }; 20];
         parts[0].cond.set_alive(true);
+
         for (i, part) in parts.iter_mut().enumerate() {
-            part.rng.load_state((i
-                .wrapping_add(398564)
-                .wrapping_mul(0x4985327)
-                .rotate_right(7)
-                .wrapping_sub(0x851356489) & 0xffffffff) as u32);
+            part.rng.load_state(((i as u32)
+                .wrapping_add(3271284409)
+                .rotate_left(5)
+                .wrapping_mul(3815776271)
+                .rotate_right(9)
+                .wrapping_sub(2626817629) & 0xffffffff) as u32);
         }
 
         BossNPC {
