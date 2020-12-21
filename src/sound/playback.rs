@@ -73,12 +73,13 @@ impl PlaybackEngine {
             }
         }
 
-        for (inst, buf) in song.tracks[8..].iter().zip(buffers[128..].iter_mut()) {
+        for (idx, (track, buf)) in song.tracks[8..].iter().zip(buffers[128..].iter_mut()).enumerate() {
             *buf =
                 MaybeUninit::new(
                     RenderBuffer::new(
                         // FIXME: *frustrated screaming*
-                        samples.samples[inst.inst.inst as usize].clone()
+                        //samples.samples[track.inst.inst as usize].clone()
+                        samples.samples[idx].clone()
                     )
                 );
         }

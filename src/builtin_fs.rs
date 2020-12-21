@@ -110,7 +110,7 @@ impl BuiltinFS {
                     FSNode::File("builtin_font.fnt", include_bytes!("builtin/builtin_font.fnt")),
                     FSNode::File("builtin_font_0.png", include_bytes!("builtin/builtin_font_0.png")),
                     FSNode::File("builtin_font_1.png", include_bytes!("builtin/builtin_font_1.png")),
-                    FSNode::File("pixtone.pcm", include_bytes!("builtin/pixtone.pcm")),
+                    FSNode::File("organya-wavetable-doukutsu.bin", include_bytes!("builtin/organya-wavetable-doukutsu.bin")),
                     FSNode::File("touch.png", include_bytes!("builtin/touch.png")),
                     FSNode::Directory("shaders", vec![
                         FSNode::File("basic_150.vert.glsl", include_bytes!("builtin/shaders/basic_150.vert.glsl")),

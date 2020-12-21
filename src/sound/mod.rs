@@ -83,7 +83,7 @@ impl SoundManager {
         let device = host.default_output_device().ok_or_else(|| AudioError(str!("Error initializing audio device.")))?;
         let config = device.default_output_config()?;
 
-        let bnk = wave_bank::SoundBank::load_from(filesystem::open(ctx, "/builtin/pixtone.pcm")?)?;
+        let bnk = wave_bank::SoundBank::load_from(filesystem::open(ctx, "/builtin/organya-wavetable-doukutsu.bin")?)?;
 
         std::thread::spawn(move || {
             if let Err(err) = match config.sample_format() {
@@ -197,7 +197,7 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
     org_engine.set_sample_rate(sample_rate as usize);
     org_engine.loops = usize::MAX;
 
-    let buf_size = sample_rate as usize * 30 / 1000;
+    let buf_size = sample_rate as usize * 15 / 1000;
     let mut bgm_buf = vec![0x8080; buf_size];
     let mut pxt_buf = vec![0x8000; buf_size];
     let mut bgm_index = 0;
