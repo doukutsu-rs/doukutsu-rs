@@ -103,7 +103,7 @@ impl SoundManager {
     }
 
     pub fn play_sfx(&mut self, id: u8) {
-        self.tx.send(PlaybackMessage::PlaySample(id));
+        let _ = self.tx.send(PlaybackMessage::PlaySample(id));
     }
 
     pub fn play_song(&mut self, song_id: usize, constants: &EngineConstants, ctx: &mut Context) -> GameResult {
@@ -197,7 +197,7 @@ fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank,
     org_engine.set_sample_rate(sample_rate as usize);
     org_engine.loops = usize::MAX;
 
-    let buf_size = sample_rate as usize * 15 / 1000;
+    let buf_size = sample_rate as usize * 10 / 1000;
     let mut bgm_buf = vec![0x8080; buf_size];
     let mut pxt_buf = vec![0x8000; buf_size];
     let mut bgm_index = 0;

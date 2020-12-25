@@ -4,7 +4,6 @@ use crate::sound::organya::Song as Organya;
 use crate::sound::stuff::*;
 use crate::sound::wav::*;
 use crate::sound::wave_bank::SoundBank;
-use num_traits::real::Real;
 
 pub struct PlaybackEngine {
     song: Organya,
@@ -73,7 +72,7 @@ impl PlaybackEngine {
             }
         }
 
-        for (idx, (track, buf)) in song.tracks[8..].iter().zip(buffers[128..].iter_mut()).enumerate() {
+        for (idx, (_track, buf)) in song.tracks[8..].iter().zip(buffers[128..].iter_mut()).enumerate() {
             *buf =
                 MaybeUninit::new(
                     RenderBuffer::new(
@@ -145,8 +144,8 @@ impl PlaybackEngine {
             }
         }
 
-        for (inst, buf) in song.tracks[8..].iter().zip(self.track_buffers[128..].iter_mut()) {
-            *buf = RenderBuffer::new(samples.samples[inst.inst.inst as usize].clone());
+        for (idx, (_track, buf)) in song.tracks[8..].iter().zip(self.track_buffers[128..].iter_mut()).enumerate() {
+            *buf = RenderBuffer::new(samples.samples[idx].clone());
         }
 
         self.song = song;
