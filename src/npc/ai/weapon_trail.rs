@@ -1,7 +1,5 @@
 use ggez::GameResult;
-use num_traits::{abs, clamp};
 
-use crate::common::Direction;
 use crate::npc::NPC;
 use crate::shared_game_state::SharedGameState;
 

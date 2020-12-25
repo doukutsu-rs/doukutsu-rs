@@ -1,5 +1,3 @@
-use std::io::Cursor;
-
 use ggez::{Context, GameResult};
 
 use crate::common::Rect;

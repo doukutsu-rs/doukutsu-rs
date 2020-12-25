@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use ggez::{Context, GameResult, graphics, timer};
 use ggez::graphics::{BlendMode, Color, Drawable, DrawParam, FilterMode, mint};
 use ggez::graphics::spritebatch::SpriteBatch;
@@ -16,11 +14,14 @@ use crate::components::hud::HUD;
 use crate::components::stage_select::StageSelect;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
+use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
-use crate::npc::{NPC, NPCMap};
+use crate::npc::boss::BossNPC;
+use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::physics::PhysicalEntity;
 use crate::player::{Player, PlayerAppearance, TargetPlayer};
-use crate::rng::RNG;
+use crate::rng::XorShift;
 use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::{Season, SharedGameState};
@@ -29,7 +30,6 @@ use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState,
 use crate::texture_set::SizedBatch;
 use crate::ui::Components;
 use crate::weapon::WeaponType;
-use crate::input::touch_controls::TouchControlType;
 
 pub struct GameScene {
     pub tick: usize,
@@ -44,7 +44,8 @@ pub struct GameScene {
     pub inventory_player1: Inventory,
     pub inventory_player2: Inventory,
     pub stage_id: usize,
-    pub npc_map: NPCMap,
+    pub npc_list: NPCList,
+    pub boss: BossNPC,
     pub bullet_manager: BulletManager,
     pub intro_mode: bool,
     water_visible: bool,
@@ -97,7 +98,8 @@ impl GameScene {
                 wait: 16,
             },
             stage_id: id,
-            npc_map: NPCMap::new(),
+            npc_list: NPCList::new(),
+            boss: BossNPC::new(),
             bullet_manager: BulletManager::new(),
             intro_mode: false,
             water_visible: true,
@@ -366,7 +368,7 @@ impl GameScene {
         Ok(())
     }
 
-    fn draw_black_bars(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+    fn draw_black_bars(&self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult {
         Ok(())
     }
 
@@ -531,10 +533,8 @@ impl GameScene {
                 }
             }
 
-            for npc_cell in self.npc_map.npcs.values() {
-                let npc = npc_cell.borrow();
-
-                if !npc.cond.alive() || npc.cond.hidden() || (npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as isize * 0x200)
+            for npc in self.npc_list.iter_alive() {
+                if npc.cond.hidden() || (npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as isize * 0x200)
                     || npc.x > (self.frame.x + 128 * 0x200 + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
                     && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as isize * 0x200)
                     || npc.y > (self.frame.y + 128 * 0x200 + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200)) {
@@ -790,19 +790,7 @@ impl GameScene {
     }
 
     fn tick_npc_bullet_collissions(&mut self, state: &mut SharedGameState) {
-        let mut dead_npcs = Vec::new();
-
-        for npc_cell in self.npc_map.npcs.values() {
-            let mut npc = npc_cell.borrow_mut();
-
-            if npc.cond.drs_destroyed() {
-                dead_npcs.push(npc.id);
-            }
-
-            if !npc.cond.alive() {
-                continue;
-            }
-
+        for npc in self.npc_list.iter_alive() {
             if npc.npc_flags.shootable() && npc.npc_flags.interactable() {
                 continue;
             }
@@ -812,21 +800,7 @@ impl GameScene {
                     continue;
                 }
 
-                let hit = (
-                    npc.npc_flags.shootable()
-                        && (npc.x - npc.hit_bounds.right as isize) < (bullet.x + bullet.enemy_hit_width as isize)
-                        && (npc.x + npc.hit_bounds.right as isize) > (bullet.x - bullet.enemy_hit_width as isize)
-                        && (npc.y - npc.hit_bounds.top as isize) < (bullet.y + bullet.enemy_hit_height as isize)
-                        && (npc.y + npc.hit_bounds.bottom as isize) > (bullet.y - bullet.enemy_hit_height as isize)
-                ) || (
-                    npc.npc_flags.invulnerable()
-                        && (npc.x - npc.hit_bounds.right as isize) < (bullet.x + bullet.hit_bounds.right as isize)
-                        && (npc.x + npc.hit_bounds.right as isize) > (bullet.x - bullet.hit_bounds.left as isize)
-                        && (npc.y - npc.hit_bounds.top as isize) < (bullet.y + bullet.hit_bounds.bottom as isize)
-                        && (npc.y + npc.hit_bounds.bottom as isize) > (bullet.y - bullet.hit_bounds.top as isize)
-                );
-
-                if !hit {
+                if !npc.collides_with_bullet(bullet) {
                     continue;
                 }
 
@@ -876,17 +850,19 @@ impl GameScene {
                 }
             }
 
-            if npc.cond.explode_die() && !npc.cond.drs_destroyed() {
-                dead_npcs.push(npc.id);
-            }
+            if npc.cond.explode_die() {
+                let can_drop_missile = [&self.inventory_player1, &self.inventory_player2]
+                    .iter()
+                    .any(|inv| inv.has_weapon(WeaponType::MissileLauncher) ||
+                        inv.has_weapon(WeaponType::SuperMissileLauncher));
 
-            npc.cond.set_drs_destroyed(false);
+                self.npc_list.kill_npc(npc.id as usize, true, can_drop_missile, state);
+            }
         }
 
-        for i in 0..self.npc_map.boss_map.parts.len() {
+        for i in 0..self.boss.parts.len() {
             let mut idx = i;
-            let (mut destroy_x, mut destroy_y, mut destroy_radius, mut destroy_count) = (0, 0, 0, 0);
-            let mut npc = unsafe { self.npc_map.boss_map.parts.get_unchecked_mut(i) };
+            let mut npc = unsafe { self.boss.parts.get_unchecked_mut(i) };
             if !npc.cond.alive() {
                 continue;
             }
@@ -917,7 +893,7 @@ impl GameScene {
                 if npc.npc_flags.shootable() {
                     if npc.cond.damage_boss() {
                         idx = 0;
-                        npc = unsafe { self.npc_map.boss_map.parts.get_unchecked_mut(0) };
+                        npc = unsafe { self.boss.parts.get_unchecked_mut(0) };
                     }
 
                     npc.life = npc.life.saturating_sub(bullet.damage);
@@ -930,13 +906,11 @@ impl GameScene {
                             state.control_flags.set_interactions_disabled(true);
                             state.textscript_vm.start_script(npc.event_num);
                         } else {
-                            state.sound_manager.play_sfx(self.npc_map.boss_map.death_sound[idx]);
+                            state.sound_manager.play_sfx(self.boss.death_sound[idx]);
 
-                            destroy_x = npc.x;
-                            destroy_y = npc.y;
-                            destroy_radius = npc.display_bounds.right;
-                            destroy_count = 4usize * (2usize).pow((npc.size as u32).saturating_sub(1));
+                            let destroy_count = 4usize * (2usize).pow((npc.size as u32).saturating_sub(1));
 
+                            self.npc_list.create_death_smoke(npc.x, npc.y, npc.display_bounds.right, destroy_count, state, &npc.rng);
                             npc.cond.set_alive(false);
                         }
                     } else {
@@ -944,12 +918,12 @@ impl GameScene {
                             for _ in 0..3 {
                                 state.create_caret(bullet.x, bullet.y, CaretType::HurtParticles, Direction::Left);
                             }
-                            state.sound_manager.play_sfx(self.npc_map.boss_map.hurt_sound[idx]);
+                            state.sound_manager.play_sfx(self.boss.hurt_sound[idx]);
                         }
 
                         npc.shock = 8;
 
-                        npc = unsafe { self.npc_map.boss_map.parts.get_unchecked_mut(0) };
+                        npc = unsafe { self.boss.parts.get_unchecked_mut(0) };
                         npc.shock = 8;
                     }
 
@@ -966,17 +940,6 @@ impl GameScene {
                     continue;
                 }
             }
-
-            if destroy_count != 0 {
-                self.npc_map.create_death_effect(destroy_x, destroy_y, destroy_radius, destroy_count, state);
-            }
-        }
-
-        if !dead_npcs.is_empty() {
-            let missile = self.inventory_player1.has_weapon(WeaponType::MissileLauncher)
-                || self.inventory_player1.has_weapon(WeaponType::SuperMissileLauncher);
-            self.npc_map.process_dead_npcs(&dead_npcs, missile, &self.player1, state);
-            self.npc_map.garbage_collect();
         }
     }
 
@@ -1000,8 +963,8 @@ impl GameScene {
                 0
             }
         };
-        self.player1.tick(state, ())?;
-        self.player2.tick(state, ())?;
+        self.player1.tick(state, &self.npc_list)?;
+        self.player2.tick(state, &self.npc_list)?;
 
         if self.player1.damage > 0 {
             let xp_loss = self.player1.damage * if self.player1.equip.has_arms_barrier() { 1 } else { 2 };
@@ -1027,44 +990,32 @@ impl GameScene {
             self.player2.damage = 0;
         }
 
-        {
-            for npc_cell in self.npc_map.npcs.values() {
-                let mut npc = npc_cell.borrow_mut();
 
-                if npc.cond.alive() {
-                    npc.tick(state, ([&mut self.player1, &mut self.player2], &self.npc_map.npcs, &mut self.stage, &self.bullet_manager))?;
-                }
+        for npc in self.npc_list.iter_alive() {
+            npc.tick(state, ([&mut self.player1, &mut self.player2], &self.npc_list, &mut self.stage, &self.bullet_manager))?;
+        }
+        self.boss.tick(state, ([&mut self.player1, &mut self.player2], &self.npc_list, &mut self.stage, &self.bullet_manager))?;
+
+        self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+        self.player1.tick_npc_collisions(TargetPlayer::Player1, state, &self.npc_list, &mut self.boss, &mut self.inventory_player1);
+
+        self.player2.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+        self.player2.tick_npc_collisions(TargetPlayer::Player2, state, &self.npc_list, &mut self.boss, &mut self.inventory_player2);
+
+        for npc in self.npc_list.iter_alive() {
+            if !npc.npc_flags.ignore_solidity() {
+                npc.tick_map_collisions(state, &self.npc_list, &mut self.stage);
             }
         }
-        self.npc_map.boss_map.tick(state, ([&mut self.player1, &mut self.player2], &self.npc_map.npcs, &mut self.stage, &self.bullet_manager))?;
-        self.npc_map.process_npc_changes(&self.player1, state);
-        self.npc_map.garbage_collect();
-
-        self.player1.tick_map_collisions(state, &mut self.stage);
-        self.player1.tick_npc_collisions(TargetPlayer::Player1, state, &mut self.npc_map, &mut self.inventory_player1);
-
-        self.player2.tick_map_collisions(state, &mut self.stage);
-        self.player2.tick_npc_collisions(TargetPlayer::Player2, state, &mut self.npc_map, &mut self.inventory_player2);
-
-        for npc_cell in self.npc_map.npcs.values() {
-            let mut npc = npc_cell.borrow_mut();
-
+        for npc in self.boss.parts.iter_mut() {
             if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
-                npc.tick_map_collisions(state, &mut self.stage);
+                npc.tick_map_collisions(state, &self.npc_list, &mut self.stage);
             }
         }
-        for npc in self.npc_map.boss_map.parts.iter_mut() {
-            if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
-                npc.tick_map_collisions(state, &mut self.stage);
-            }
-        }
-        self.npc_map.process_npc_changes(&self.player1, state);
-        self.npc_map.garbage_collect();
 
         self.tick_npc_bullet_collissions(state);
-        self.npc_map.process_npc_changes(&self.player1, state);
 
-        self.bullet_manager.tick_bullets(state, [&self.player1, &self.player2], &mut self.stage);
+        self.bullet_manager.tick_bullets(state, [&self.player1, &self.player2], &self.npc_list, &mut self.stage);
         state.tick_carets();
 
         match self.frame.update_target {
@@ -1083,9 +1034,7 @@ impl GameScene {
                 }
             }
             UpdateTarget::NPC(npc_id) => {
-                if let Some(npc_cell) = self.npc_map.npcs.get(&npc_id) {
-                    let npc = npc_cell.borrow();
-
+                if let Some(npc) = self.npc_list.get_npc(npc_id as usize) {
                     if npc.cond.alive() {
                         self.frame.target_x = npc.x;
                         self.frame.target_y = npc.y;
@@ -1093,7 +1042,7 @@ impl GameScene {
                 }
             }
             UpdateTarget::Boss(boss_id) => {
-                if let Some(boss) = self.npc_map.boss_map.parts.get(boss_id as usize) {
+                if let Some(boss) = self.boss.parts.get(boss_id as usize) {
                     if boss.cond.alive() {
                         self.frame.target_x = boss.x;
                         self.frame.target_y = boss.y;
@@ -1114,7 +1063,7 @@ impl GameScene {
 
             self.hud_player1.tick(state, (&self.player1, &mut self.inventory_player1))?;
             self.hud_player2.tick(state, (&self.player2, &mut self.inventory_player2))?;
-            self.boss_life_bar.tick(state, &self.npc_map)?;
+            self.boss_life_bar.tick(state, (&self.npc_list, &self.boss))?;
         }
 
         Ok(())
@@ -1167,11 +1116,11 @@ impl GameScene {
     }
 
     fn draw_debug_outlines(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        for npc in self.npc_map.npcs.values().map(|n| n.borrow()).filter(|n| n.cond.alive()) {
-            self.draw_debug_npc(npc.deref(), state, ctx)?;
+        for npc in self.npc_list.iter_alive() {
+            self.draw_debug_npc(npc, state, ctx)?;
         }
 
-        for boss in self.npc_map.boss_map.parts.iter().filter(|n| n.cond.alive()) {
+        for boss in self.boss.parts.iter().filter(|n| n.cond.alive()) {
             self.draw_debug_npc(boss, state, ctx)?;
         }
 
@@ -1185,8 +1134,8 @@ impl Scene for GameScene {
             .wrapping_add(self.player1.x as i32)
             .wrapping_add(self.player1.y as i32)
             .wrapping_add(self.stage_id as i32)
-            .wrapping_mul(7);
-        state.game_rng = RNG::new(seed);
+            .rotate_right(7);
+        state.game_rng = XorShift::new(seed);
         state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.base_path, &state.constants, ctx)?);
         state.textscript_vm.suspend = false;
 
@@ -1197,7 +1146,7 @@ impl Scene for GameScene {
         for npc_data in npcs.iter() {
             log::info!("creating npc: {:?}", npc_data);
 
-            let npc = self.npc_map.create_npc_from_data(&state.npc_table, npc_data);
+            let mut npc = NPC::create_from_data(npc_data, &state.npc_table);
             if npc.npc_flags.appear_when_flag_set() {
                 if let Some(true) = state.game_flags.get(npc_data.flag_num as usize) {
                     npc.cond.set_alive(true);
@@ -1209,6 +1158,8 @@ impl Scene for GameScene {
             } else {
                 npc.cond.set_alive(true);
             }
+
+            self.npc_list.spawn_at_slot(npc_data.id, npc)?;
         }
 
         state.npc_table.tileset_name = self.tex_tileset_name.to_owned();
@@ -1223,7 +1174,7 @@ impl Scene for GameScene {
             }
         }
 
-        self.npc_map.boss_map.boss_type = self.stage.data.boss_no as u16;
+        self.boss.boss_type = self.stage.data.boss_no as u16;
         self.player1.target_x = self.player1.x;
         self.player1.target_y = self.player1.y;
         self.frame.target_x = self.player1.target_x;
@@ -1244,7 +1195,7 @@ impl Scene for GameScene {
         } else {
             TouchControlType::Dialog
         };
-        
+
         if state.settings.touch_controls {
             state.touch_controls.interact_icon = false;
         }
@@ -1292,16 +1243,12 @@ impl Scene for GameScene {
         self.player2.prev_x = self.player2.x;
         self.player2.prev_y = self.player2.y;
 
-        for npc_cell in self.npc_map.npcs.values() {
-            let mut npc = npc_cell.borrow_mut();
-
-            if npc.cond.alive() {
-                npc.prev_x = npc.x;
-                npc.prev_y = npc.y;
-            }
+        for npc in self.npc_list.iter_alive() {
+            npc.prev_x = npc.x;
+            npc.prev_y = npc.y;
         }
 
-        for npc in self.npc_map.boss_map.parts.iter_mut() {
+        for npc in self.boss.parts.iter_mut() {
             if npc.cond.alive() {
                 npc.prev_x = npc.x;
                 npc.prev_y = npc.y;
@@ -1337,10 +1284,8 @@ impl Scene for GameScene {
             self.draw_light_map(state, ctx)?;
         }
 
-        self.npc_map.boss_map.draw(state, ctx, &self.frame)?;
-        for npc_cell in self.npc_map.npcs.values() {
-            let npc = npc_cell.borrow();
-
+        self.boss.draw(state, ctx, &self.frame)?;
+        for npc in self.npc_list.iter_alive() {
             if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as isize * 0x200)
                 || npc.x > (self.frame.x + 128 * 0x200 + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
                 && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as isize * 0x200)

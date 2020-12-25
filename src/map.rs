@@ -1,10 +1,9 @@
 use std::io;
-use std::io::{Error, ErrorKind};
 
 use byteorder::{LE, ReadBytesExt};
-
 use ggez::GameError::ResourceLoadError;
 use ggez::GameResult;
+
 use crate::str;
 
 static SUPPORTED_PXM_VERSIONS: [u8; 1] = [0x10];

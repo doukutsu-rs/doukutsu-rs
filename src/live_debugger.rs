@@ -1,7 +1,5 @@
-use std::ops::Deref;
-
 use ggez::{Context, GameResult};
-use imgui::{CollapsingHeader, Condition, im_str, ImStr, ImString, Slider, Window, WindowFlags};
+use imgui::{CollapsingHeader, Condition, im_str, ImStr, ImString, Slider, Window};
 use itertools::Itertools;
 
 use crate::scene::game_scene::GameScene;
@@ -71,9 +69,10 @@ impl LiveDebugger {
                 ));
 
                 ui.text(format!(
-                    "NPC Count: {}/{}",
-                    game_scene.npc_map.npcs.values().filter(|n| n.borrow().cond.alive()).count(),
-                    game_scene.npc_map.npcs.len(),
+                    "NPC Count: {}/{}/{}",
+                    game_scene.npc_list.iter_alive().count(),
+                    game_scene.npc_list.current_capacity(),
+                    game_scene.npc_list.max_capacity(),
                 ));
 
                 ui.text(format!(

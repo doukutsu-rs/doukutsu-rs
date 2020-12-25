@@ -1,36 +1,25 @@
-use std::cell::RefCell;
-use std::collections::BTreeMap;
-
 use ggez::GameResult;
 use num_traits::clamp;
 
 use crate::common::Direction;
-use crate::npc::{NPC, NPCMap};
+use crate::npc::list::NPCList;
+use crate::npc::NPC;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
-    pub(crate) fn tick_n066_misery_bubble(&mut self, state: &mut SharedGameState, map: &BTreeMap<u16, RefCell<NPC>>) -> GameResult {
+    pub(crate) fn tick_n066_misery_bubble(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    for (&id, npc_cell) in map.iter() {
-                        if self.id == id { continue; }
+                    if let Some(npc) = npc_list.iter().find(|npc| npc.event_num == 1000) {
+                        self.action_counter2 = npc.id;
+                        self.target_x = npc.x;
+                        self.target_y = npc.y;
 
-                        let npc = npc_cell.borrow();
-
-                        if npc.event_num == 1000 {
-                            self.action_counter2 = npc.id;
-                            self.target_x = npc.x;
-                            self.target_y = npc.y;
-
-                            let angle = ((self.y - self.target_y) as f64 / (self.x - self.target_x) as f64).atan();
-                            self.vel_x = (angle.cos() * 1024.0) as isize; // 2.0fix9
-                            self.vel_y = (angle.sin() * 1024.0) as isize;
-
-                            log::info!("bubble toss: {:#x} {:#x}", self.vel_x, self.vel_y);
-
-                            break;
-                        }
+                        let angle = ((self.y - self.target_y) as f64 / (self.x - self.target_x) as f64).atan();
+                        self.vel_x = (angle.cos() * 1024.0) as isize; // 2.0fix9
+                        self.vel_y = (angle.sin() * 1024.0) as isize;
                     }
 
                     if self.action_counter2 == 0 {
@@ -41,23 +30,15 @@ impl NPC {
                     self.action_num = 1;
                 }
 
-                self.anim_counter += 1;
-                if self.anim_counter > 1 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-
-                    if self.anim_num > 1 {
-                        self.anim_num = 0;
-                    }
-                }
+                self.animate(1, 0, 1);
 
                 if (self.x - self.target_x).abs() < 3 * 0x200 && (self.y - self.target_y).abs() < 3 * 0x200 {
                     self.action_num = 2;
                     self.anim_num = 2;
                     state.sound_manager.play_sfx(21);
 
-                    if let Some(npc) = map.get(&self.action_counter2) {
-                        npc.borrow_mut().cond.set_alive(false);
+                    if let Some(npc) = npc_list.get_npc(self.action_counter2 as usize) {
+                        npc.cond.set_alive(false);
                     }
                 }
             }
@@ -72,14 +53,7 @@ impl NPC {
                     self.cond.set_alive(false);
                 }
 
-                self.anim_counter += 1;
-                if self.anim_counter > 3 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-                    if self.anim_num > 3 {
-                        self.anim_num = 2;
-                    }
-                }
+                self.animate(3, 2, 3);
             }
             _ => {}
         }
@@ -92,7 +66,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n067_misery_floating(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n067_misery_floating(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -156,12 +130,12 @@ impl NPC {
                 self.action_counter += 1;
                 if self.action_counter == 30 {
                     state.sound_manager.play_sfx(21);
-                    let mut npc = NPCMap::create_npc(66, &state.npc_table);
+                    let mut npc = NPC::create(66, &state.npc_table);
+                    npc.cond.set_alive(true);
                     npc.x = self.x;
                     npc.y = self.y - 16 * 0x200;
-                    npc.cond.set_alive(true);
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0, npc);
                 }
 
                 if self.action_counter == 50 {
@@ -215,10 +189,23 @@ impl NPC {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
-        match self.action_num {
-            11 => {}
-            14 => {}
-            _ => {}
+        if self.action_num == 11 || self.action_num == 14 {
+            let (frame1, frame2) = match self.action_num {
+                11 => (0, 1),
+                14 => (2, 3),
+                _ => unreachable!(),
+            };
+
+            if self.anim_counter > 0 {
+                self.anim_counter -= 1;
+                self.anim_num = frame2;
+            } else {
+                if self.rng.range(0..100) == 1 {
+                    self.anim_counter = 30;
+                }
+
+                self.anim_num = frame1;
+            }
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 8 };
@@ -232,7 +219,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n082_misery_standing(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n082_misery_standing(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -264,12 +251,12 @@ impl NPC {
                 if self.action_counter == 30 {
                     state.sound_manager.play_sfx(21);
 
-                    let mut npc = NPCMap::create_npc(66, &state.npc_table);
+                    let mut npc = NPC::create(66, &state.npc_table);
                     npc.x = self.x;
                     npc.y = self.y - 16 * 0x200;
                     npc.cond.set_alive(true);
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0, npc);
                 }
 
                 if self.action_counter == 50 {
@@ -350,14 +337,14 @@ impl NPC {
                 if self.action_counter == 30 || self.action_counter == 40 || self.action_counter == 50 {
                     state.sound_manager.play_sfx(33);
 
-                    let mut npc = NPCMap::create_npc(11, &state.npc_table);
+                    let mut npc = NPC::create(11, &state.npc_table);
                     npc.x = self.x + 8 * 0x200;
                     npc.y = self.y - 8 * 0x200;
                     npc.vel_x = 0x600;
                     npc.vel_y = self.rng.range(-0x200..0) as isize;
                     npc.cond.set_alive(true);
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc);
                 }
             }
             50 => {

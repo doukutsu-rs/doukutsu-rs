@@ -95,9 +95,7 @@ bitfield! {
   pub alive, set_alive: 7; // 0x80
 
   // engine specific flags
-  pub drs_dont_remove, set_drs_dont_remove: 13;
-  pub drs_boss, set_drs_boss: 14;
-  pub drs_destroyed, set_drs_destroyed: 15;
+  pub drs_boss, set_drs_boss: 15;
 }
 
 bitfield! {

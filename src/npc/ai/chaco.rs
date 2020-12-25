@@ -4,6 +4,7 @@ use crate::caret::CaretType;
 use crate::common::Direction;
 use crate::npc::NPC;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
@@ -43,15 +44,7 @@ impl NPC {
                     self.anim_counter = 0;
                 }
 
-                self.anim_counter += 1;
-                if self.anim_counter > 4 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-
-                    if self.anim_num > 5 {
-                        self.anim_num = 2;
-                    }
-                }
+                self.animate(4, 2, 5);
 
                 self.x += self.direction.vector_x() * 0x200;
             }

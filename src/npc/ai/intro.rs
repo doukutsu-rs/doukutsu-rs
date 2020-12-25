@@ -1,7 +1,9 @@
+use ggez::GameResult;
+
 use crate::caret::CaretType;
 use crate::common::Direction;
-use ggez::GameResult;
 use crate::npc::NPC;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
@@ -44,14 +46,7 @@ impl NPC {
                     self.anim_counter = 0;
                 }
 
-                self.anim_counter += 1;
-                if self.anim_counter > 10 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-                    if self.anim_num > 5 {
-                        self.anim_num = 2;
-                    }
-                }
+                self.animate(10, 2, 5);
 
                 self.x += 0x100;
             }

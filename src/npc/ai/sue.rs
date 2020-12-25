@@ -1,16 +1,15 @@
-use std::cell::RefCell;
-use std::collections::BTreeMap;
-
 use ggez::GameResult;
 use num_traits::clamp;
 
 use crate::common::Direction;
-use crate::npc::{NPC, NPCMap};
+use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
-    pub fn tick_n042_sue(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], map: &BTreeMap<u16, RefCell<NPC>>) -> GameResult {
+    pub fn tick_n042_sue(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -113,17 +112,12 @@ impl NPC {
                     self.vel_y = 0;
                     self.action_num = 14;
 
-                    if let Some(parent_id) = map.iter()
-                        .filter(|(&id, _)| id != self.id)
-                        .find_map(|(id, npc_cell)|
-                            if npc_cell.borrow().event_num == 501 { Some(*id) } else { None }) {
-                        self.parent_id = parent_id;
-                    }
+                    self.parent_id = npc_list.iter_alive()
+                        .find_map(|npc| if npc.event_num == 501 { Some(npc.id) } else { None })
+                        .unwrap_or(0);
                 }
 
-                if let Some(npc_cell) = map.get(&self.parent_id) {
-                    let npc = npc_cell.borrow();
-
+                if let Some(npc) = self.get_parent_ref_mut(npc_list) {
                     self.direction = npc.direction.opposite();
                     self.x = npc.x + npc.direction.vector_x() * 6 * 0x200;
                     self.y = npc.y + 4 * 0x200;
@@ -139,15 +133,15 @@ impl NPC {
                     self.vel_x = 0;
                     self.anim_num = 0;
 
-                    let mut npc = NPCMap::create_npc(257, &state.npc_table);
+                    let mut npc = NPC::create(257, &state.npc_table);
                     npc.x = self.x + 128 * 0x200;
                     npc.y = self.y;
                     npc.direction = Direction::Left;
                     npc.cond.set_alive(true);
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0, npc.clone());
 
                     npc.direction = Direction::Right;
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x80, npc);
                 }
 
                 state.npc_super_pos = (

@@ -1,9 +1,12 @@
-use crate::caret::CaretType;
-use crate::common::{Direction, Rect, CDEG_RAD};
 use ggez::GameResult;
-use crate::npc::{NPC, NPCMap};
+
+use crate::caret::CaretType;
+use crate::common::{CDEG_RAD, Direction, Rect};
+use crate::npc::NPC;
 use crate::npc::boss::BossNPC;
+use crate::npc::list::NPCList;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
@@ -33,7 +36,7 @@ impl NPC {
 }
 
 impl BossNPC {
-    pub(crate) fn tick_b02_balfrog(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) {
+    pub(crate) fn tick_b02_balfrog(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) {
         match self.parts[0].action_num {
             0 => {
                 self.hurt_sound[0] = 52;
@@ -72,7 +75,7 @@ impl BossNPC {
                 self.parts[2].cond.set_alive(true);
                 self.parts[2].damage = 5;
 
-                let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                let mut npc = NPC::create(4, &state.npc_table);
 
                 for _ in 0..8 {
                     npc.cond.set_alive(true);
@@ -82,7 +85,7 @@ impl BossNPC {
                     npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as isize;
                     npc.vel_y = self.parts[0].rng.range(-0x600..0) as isize;
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc.clone());
                 }
             }
             20 | 21 => {
@@ -163,15 +166,15 @@ impl BossNPC {
                         self.parts[0].action_num = 110;
                     }
 
-                    let mut npc = NPCMap::create_npc(110, &state.npc_table);
+                    let mut npc = NPC::create(110, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].rng.range(4..16) as isize * 16 * 0x200;
                     npc.y = self.parts[0].rng.range(0..4) as isize * 16 * 0x200;
                     npc.direction = Direction::FacingPlayer;
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x80, npc);
 
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
 
                     for _ in 0..4 {
                         npc.cond.set_alive(true);
@@ -181,7 +184,7 @@ impl BossNPC {
                         npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as isize;
                         npc.vel_y = self.parts[0].rng.range(-0x600..0) as isize;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
 
                     state.quake_counter = 30;
@@ -243,14 +246,14 @@ impl BossNPC {
                     let deg = f64::atan2(py as f64, px as f64)
                         + self.parts[0].rng.range(-16..16) as f64 * CDEG_RAD;
 
-                    let mut npc = NPCMap::create_npc(108, &state.npc_table);
+                    let mut npc = NPC::create(108, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].x + self.parts[0].direction.vector_x() * 2 * 16 * 0x200;
                     npc.y = self.parts[0].y - 8 * 0x200;
                     npc.vel_x = (deg.cos() * -512.0) as isize;
                     npc.vel_y = (deg.sin() * -512.0) as isize;
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc);
 
                     state.sound_manager.play_sfx(39);
 
@@ -320,27 +323,27 @@ impl BossNPC {
                     self.parts[0].display_bounds.top = 48 * 0x200;
                     self.parts[0].display_bounds.bottom = 16 * 0x200;
 
-                    let mut npc = NPCMap::create_npc(104, &state.npc_table);
+                    let mut npc = NPC::create(104, &state.npc_table);
                     for _ in 0..2 {
                         npc.cond.set_alive(true);
                         npc.x = self.parts[0].rng.range(4..16) as isize * 16 * 0x200;
                         npc.y = self.parts[0].rng.range(0..4) as isize * 16 * 0x200;
                         npc.direction = Direction::FacingPlayer;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x80, npc.clone());
                     }
 
-                    let mut npc = NPCMap::create_npc(110, &state.npc_table);
+                    let mut npc = NPC::create(110, &state.npc_table);
                     for _ in 0..6 {
                         npc.cond.set_alive(true);
                         npc.x = self.parts[0].rng.range(4..16) as isize * 16 * 0x200;
                         npc.y = self.parts[0].rng.range(0..4) as isize * 16 * 0x200;
                         npc.direction = Direction::FacingPlayer;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x80, npc.clone());
                     }
 
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
                     for _ in 0..8 {
                         npc.cond.set_alive(true);
                         npc.x = self.parts[0].x + self.parts[0].rng.range(-12..12) as isize * 0x200;
@@ -349,7 +352,7 @@ impl BossNPC {
                         npc.vel_y = self.parts[0].rng.range(-0x600..0) as isize;
                         npc.direction = Direction::Left;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
 
                     let player = self.parts[0].get_closest_player_mut(players);
@@ -379,7 +382,7 @@ impl BossNPC {
 
                     state.sound_manager.play_sfx(72);
 
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
                     for _ in 0..8 {
                         npc.cond.set_alive(true);
                         npc.x = self.parts[0].x + self.parts[0].rng.range(-12..12) as isize * 0x200;
@@ -387,20 +390,20 @@ impl BossNPC {
                         npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as isize;
                         npc.vel_y = self.parts[0].rng.range(-0x600..0) as isize;
                         npc.direction = Direction::Left;
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
                 }
 
                 self.parts[0].action_counter += 1;
                 if (self.parts[0].action_counter % 5) == 0 {
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].x + self.parts[0].rng.range(-12..12) as isize * 0x200;
                     npc.y = self.parts[0].y + self.parts[0].rng.range(-12..12) as isize * 0x200;
                     npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as isize;
                     npc.vel_y = self.parts[0].rng.range(-0x600..0) as isize;
                     npc.direction = Direction::Left;
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc);
                 }
 
                 self.parts[0].x += if (self.parts[0].action_counter / 2 % 2) != 0 {
@@ -435,14 +438,14 @@ impl BossNPC {
                 }
 
                 if (self.parts[0].action_counter % 9) == 0 {
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].x + self.parts[0].rng.range(-12..12) as isize * 0x200;
                     npc.y = self.parts[0].y + self.parts[0].rng.range(-12..12) as isize * 0x200;
                     npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as isize;
                     npc.vel_y = self.parts[0].rng.range(-0x600..0) as isize;
                     npc.direction = Direction::Left;
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc);
                 }
 
                 if self.parts[0].action_counter > 150 {
@@ -543,7 +546,7 @@ impl BossNPC {
                 self.parts[2].x = self.parts[0].x;
                 self.parts[2].y = self.parts[0].y;
             }
-            _ => { }
+            _ => {}
         }
     }
 }

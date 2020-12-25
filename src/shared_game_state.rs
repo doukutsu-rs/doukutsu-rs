@@ -13,9 +13,9 @@ use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState};
 use crate::engine_constants::EngineConstants;
 use crate::input::touch_controls::TouchControls;
-use crate::npc::{NPC, NPCTable};
+use crate::npc::NPCTable;
 use crate::profile::GameProfile;
-use crate::rng::RNG;
+use crate::rng::XorShift;
 use crate::scene::game_scene::GameScene;
 use crate::scene::Scene;
 use crate::settings::Settings;
@@ -24,7 +24,7 @@ use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
-use crate::texture_set::{g_mag, TextureSet};
+use crate::texture_set::{G_MAG, TextureSet};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -87,9 +87,9 @@ pub struct SharedGameState {
     pub game_flags: BitVec,
     pub fade_state: FadeState,
     /// RNG used by game state, using it for anything else might cause unintended side effects and break replays.
-    pub game_rng: RNG,
+    pub game_rng: XorShift,
     /// RNG used by graphics effects that aren't dependent on game's state.
-    pub effect_rng: RNG,
+    pub effect_rng: XorShift,
     pub quake_counter: u16,
     pub teleporter_slots: Vec<(u16, u16)>,
     pub carets: Vec<Caret>,
@@ -98,7 +98,6 @@ pub struct SharedGameState {
     pub npc_table: NPCTable,
     pub npc_super_pos: (isize, isize),
     pub stages: Vec<StageData>,
-    pub new_npcs: Vec<NPC>,
     pub frame_time: f64,
     pub scale: f32,
     pub shaders: Shaders,
@@ -122,7 +121,7 @@ impl SharedGameState {
     pub fn new(ctx: &mut Context) -> GameResult<SharedGameState> {
         let screen_size = graphics::drawable_size(ctx);
         let scale = screen_size.1.div(235.0).floor().max(1.0);
-        unsafe { g_mag = scale };
+        unsafe { G_MAG = scale };
 
         let canvas_size = (screen_size.0 / scale, screen_size.1 / scale);
 
@@ -161,8 +160,8 @@ impl SharedGameState {
             control_flags: ControlFlags(0),
             game_flags: bitvec::bitvec![0; 8000],
             fade_state: FadeState::Hidden,
-            game_rng: RNG::new(0),
-            effect_rng: RNG::new(Instant::now().elapsed().as_nanos() as i32),
+            game_rng: XorShift::new(0),
+            effect_rng: XorShift::new(Instant::now().elapsed().as_nanos() as i32),
             quake_counter: 0,
             teleporter_slots: Vec::with_capacity(8),
             carets: Vec::with_capacity(32),
@@ -171,7 +170,6 @@ impl SharedGameState {
             npc_table: NPCTable::new(),
             npc_super_pos: (0, 0),
             stages: Vec::with_capacity(96),
-            new_npcs: Vec::with_capacity(8),
             frame_time: 0.0,
             scale,
             shaders: Shaders::new(ctx)?,
@@ -267,11 +265,10 @@ impl SharedGameState {
         self.control_flags.0 = 0;
         self.game_flags = bitvec::bitvec![0; 8000];
         self.fade_state = FadeState::Hidden;
-        self.game_rng = RNG::new(0);
+        self.game_rng = XorShift::new(0);
         self.teleporter_slots.clear();
         self.quake_counter = 0;
         self.carets.clear();
-        self.new_npcs.clear();
         self.textscript_vm.set_mode(ScriptMode::Map);
         self.textscript_vm.suspend = true;
     }
@@ -280,7 +277,7 @@ impl SharedGameState {
         self.screen_size = graphics::drawable_size(ctx);
         self.scale = self.screen_size.1.div(240.0).floor().max(1.0);
         self.canvas_size = (self.screen_size.0 / self.scale, self.screen_size.1 / self.scale);
-        unsafe { g_mag = self.scale };
+        unsafe { G_MAG = self.scale };
 
         graphics::set_screen_coordinates(ctx, graphics::Rect::new(0.0, 0.0, self.screen_size.0, self.screen_size.1))?;
 

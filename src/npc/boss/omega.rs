@@ -1,14 +1,13 @@
-use std::cell::RefCell;
-use std::collections::BTreeMap;
-
 use ggez::GameResult;
 
 use crate::bullet::BulletManager;
 use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
-use crate::npc::{NPC, NPCMap};
 use crate::npc::boss::BossNPC;
+use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
@@ -21,7 +20,7 @@ impl NPC {
             if self.action_counter2 <= 2 && self.direction != Direction::Right {
                 self.vel_y = -0x100;
             } else {
-                self.cond.set_drs_destroyed(true);
+                self.vanish(state);
                 state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
             }
         }
@@ -52,7 +51,7 @@ impl NPC {
 }
 
 impl BossNPC {
-    pub(crate) fn tick_b01_omega(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_map: &BTreeMap<u16, RefCell<NPC>>, bullet_manager: &BulletManager) {
+    pub(crate) fn tick_b01_omega(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList, bullet_manager: &BulletManager) {
         match self.parts[0].action_num {
             0 => {
                 self.parts[0].cond.set_alive(true);
@@ -113,7 +112,6 @@ impl BossNPC {
                     bottom: 8 * 0x200,
                 };
                 self.hurt_sound[3] = 52;
-
 
                 self.parts[4].cond.set_alive(true);
                 self.parts[4].display_bounds = self.parts[3].display_bounds;
@@ -185,7 +183,7 @@ impl BossNPC {
             60 => {
                 self.parts[0].action_counter += 1;
                 if self.parts[0].action_counter % 3 == 0 && (20..80).contains(&self.parts[0].action_counter) {
-                    let mut npc = NPCMap::create_npc(48, &state.npc_table);
+                    let mut npc = NPC::create(48, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].x;
                     npc.y = self.parts[0].y - 16 * 0x200;
@@ -197,7 +195,7 @@ impl BossNPC {
                         Direction::Right
                     };
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc);
                     state.sound_manager.play_sfx(39);
                 }
 
@@ -283,7 +281,7 @@ impl BossNPC {
                 }
 
                 if self.parts[0].action_counter <= 29 && self.parts[0].action_counter % 5 == 0 {
-                    let mut npc = NPCMap::create_npc(48, &state.npc_table);
+                    let mut npc = NPC::create(48, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].x;
                     npc.y = self.parts[0].y - 16 * 0x200;
@@ -291,7 +289,7 @@ impl BossNPC {
                     npc.vel_y = -0x333;
                     npc.direction = Direction::Left;
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc);
                     state.sound_manager.play_sfx(39);
                 }
             }
@@ -355,11 +353,11 @@ impl BossNPC {
                 let dest_x = self.parts[0].x + self.parts[0].rng.range(-0x30..0x30) as isize * 0x200;
                 let dest_y = self.parts[0].y + self.parts[0].rng.range(-0x30..0x18) as isize * 0x200;
 
-                let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                let mut npc = NPC::create(4, &state.npc_table);
                 npc.cond.set_alive(true);
                 npc.x = dest_x;
                 npc.y = dest_y;
-                state.new_npcs.push(npc);
+                let _ = npc_list.spawn(0x100, npc);
                 state.create_caret(dest_x, dest_y, CaretType::Explosion, Direction::Left);
 
                 if self.parts[0].action_counter > 100 {
@@ -457,9 +455,8 @@ impl BossNPC {
             self.parts[0].damage = 0;
             self.parts[5].damage = 5;
 
-            for npc_cell in npc_map.values() {
-                let mut npc = npc_cell.borrow_mut();
-                if npc.cond.alive() && npc.npc_type == 48 {
+            for npc in npc_list.iter_alive() {
+                if npc.npc_type == 48 {
                     npc.cond.set_alive(false);
                 }
             }

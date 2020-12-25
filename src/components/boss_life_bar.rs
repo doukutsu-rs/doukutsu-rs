@@ -1,9 +1,11 @@
+use ggez::{Context, GameResult};
+
+use crate::common::Rect;
 use crate::entity::GameEntity;
 use crate::frame::Frame;
-use ggez::{Context, GameResult};
-use crate::npc::NPCMap;
+use crate::npc::boss::BossNPC;
+use crate::npc::list::NPCList;
 use crate::shared_game_state::SharedGameState;
-use crate::common::Rect;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -32,10 +34,8 @@ impl BossLifeBar {
         }
     }
 
-    pub fn set_npc_target(&mut self, npc_id: u16, npc_map: &NPCMap) {
-        if let Some(npc_cell) = npc_map.npcs.get(&npc_id) {
-            let npc = npc_cell.borrow();
-
+    pub fn set_npc_target(&mut self, npc_id: u16, npc_list: &NPCList) {
+        if let Some(npc) = npc_list.get_npc(npc_id as usize) {
             self.target = BossLifeTarget::NPC(npc.id);
             self.life = npc.life;
             self.max_life = self.life;
@@ -43,26 +43,24 @@ impl BossLifeBar {
         }
     }
 
-    pub fn set_boss_target(&mut self, npc_map: &NPCMap) {
+    pub fn set_boss_target(&mut self, boss: &BossNPC) {
         self.target = BossLifeTarget::Boss;
-        self.life = npc_map.boss_map.parts[0].life;
+        self.life = boss.parts[0].life;
         self.max_life = self.life;
         self.prev_life = self.life;
     }
 }
 
-impl GameEntity<&NPCMap> for BossLifeBar {
-    fn tick(&mut self, _state: &mut SharedGameState, npc_map: &NPCMap) -> GameResult<()> {
+impl GameEntity<(&NPCList, &BossNPC)> for BossLifeBar {
+    fn tick(&mut self, _state: &mut SharedGameState, (npc_list, boss): (&NPCList, &BossNPC)) -> GameResult<> {
         match self.target {
             BossLifeTarget::NPC(npc_id) => {
-                if let Some(npc_cell) = npc_map.npcs.get(&npc_id) {
-                    let npc = npc_cell.borrow();
-
+                if let Some(npc) = npc_list.get_npc(npc_id as usize) {
                     self.life = npc.life;
                 }
             }
             BossLifeTarget::Boss => {
-                self.life = npc_map.boss_map.parts[0].life;
+                self.life = boss.parts[0].life;
             }
             _ => {
                 return Ok(());
@@ -103,7 +101,7 @@ impl GameEntity<&NPCMap> for BossLifeBar {
         rect_life_bar.right = ((self.life as u32 * bar_length) / self.max_life as u32).min(bar_length) as u16;
 
         batch.add_rect(((state.canvas_size.0 - box_length as f32) / 2.0).floor(),
-                        state.canvas_size.1 - 20.0, &box_rect1);
+                       state.canvas_size.1 - 20.0, &box_rect1);
         batch.add_rect(((state.canvas_size.0 - box_length as f32) / 2.0).floor(),
                        state.canvas_size.1 - 12.0, &box_rect2);
         batch.add_rect(((state.canvas_size.0 - box_length as f32) / 2.0).floor(),

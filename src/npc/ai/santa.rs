@@ -1,15 +1,16 @@
 use ggez::GameResult;
-
-use crate::npc::NPC;
-use crate::shared_game_state::SharedGameState;
-use crate::player::Player;
 use num_traits::abs;
+
 use crate::common::Direction;
+use crate::npc::NPC;
+use crate::player::Player;
+use crate::rng::RNG;
+use crate::shared_game_state::SharedGameState;
 
 impl NPC {
     pub(crate) fn tick_n040_santa(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
-            0 | 1 =>{
+            0 | 1 => {
                 if self.action_num == 0 {
                     self.action_num = 1;
                     self.anim_num = 0;
@@ -42,7 +43,7 @@ impl NPC {
             3 | 4 => {
                 if self.action_num == 3 {
                     self.action_num = 4;
-                    self.anim_num =2;
+                    self.anim_num = 2;
                     self.anim_counter = 0;
                 }
 

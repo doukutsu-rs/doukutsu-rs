@@ -1,9 +1,10 @@
-use num_traits::{clamp, abs};
+use ggez::GameResult;
+use num_traits::{abs, clamp};
 
 use crate::common::Direction;
-use ggez::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
@@ -341,7 +342,7 @@ impl NPC {
     pub(crate) fn tick_n151_blue_robot_standing(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
             0 | 1 => {
-                if self.action_num == 0{
+                if self.action_num == 0 {
                     self.action_num = 1;
                     self.anim_num = 0;
                     self.anim_counter = 0;
@@ -360,7 +361,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ =>{}
+            _ => {}
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };

@@ -1,14 +1,24 @@
 use std::cell::Cell;
+use std::ops::Range;
+
+pub trait RNG {
+    fn next(&self) -> i32;
+
+    fn range(&self, range: Range<i32>) -> i32 {
+        range.start.wrapping_add((self.next() >> 2) % (range.end.wrapping_sub(range.start).wrapping_add(1)))
+    }
+}
 
 /// Deterministic XorShift-based random number generator
-pub struct RNG(Cell<(u64, u64, u64, u64)>);
+pub struct XorShift(Cell<(u64, u64, u64, u64)>);
 
-impl RNG {
+impl XorShift {
     pub fn new(seed: i32) -> Self {
-        Self(Cell::new((seed as u64,
-                        (seed as u64).wrapping_add(0x9e3779b97f4a7c15),
-                        (seed as u64).wrapping_add(0xbdd3944475a73cf0),
-                        0
+        Self(Cell::new((
+            seed as u64,
+            (seed as u64).wrapping_add(0x9e3779b97f4a7c15),
+            (seed as u64).wrapping_add(0xbdd3944475a73cf0),
+            0
         )))
     }
 
@@ -30,11 +40,6 @@ impl RNG {
     }
 
     #[inline]
-    pub fn next(&self) -> i32 {
-        self.next_u64() as i32
-    }
-
-    #[inline]
     pub fn next_u32(&self) -> u32 {
         self.next_u64() as u32
     }
@@ -46,44 +51,55 @@ impl RNG {
     pub fn load_state(&mut self, saved_state: (u64, u64, u64, u64)) {
         self.0.replace(saved_state);
     }
+}
 
-    pub fn range(&self, range: std::ops::Range<i32>) -> i32 {
-        range.start.wrapping_add((self.next_u32() >> 2) as i32 % (range.end.wrapping_sub(range.start).wrapping_add(1)))
+impl RNG for XorShift {
+    #[inline]
+    fn next(&self) -> i32 {
+        self.next_u64() as i32
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-pub struct Xoroshiro32PlusPlus(u16, u16);
+#[derive(Debug, Clone)]
+pub struct Xoroshiro32PlusPlus(Cell<(u16, u16)>);
 
 impl Xoroshiro32PlusPlus {
     pub fn new(seed: u32) -> Xoroshiro32PlusPlus {
-        Xoroshiro32PlusPlus(
+        Xoroshiro32PlusPlus(Cell::new((
             (seed & 0xffff) as u16,
             (seed >> 16 & 0xffff) as u16
-        )
+        )))
     }
 
-    pub fn next_u16(&mut self) -> u16 {
-        let mut result = (self.0.wrapping_add(self.1)).rotate_left(9).wrapping_add(self.0);
+    pub fn next_u16(&self) -> u16 {
+        let mut state = self.0.get();
+        let mut result = (state.0.wrapping_add(state.1)).rotate_left(9).wrapping_add(state.0);
 
-        self.1 ^= self.0;
-        self.0 = self.0.rotate_left(13) ^ self.1 ^ (self.1 << 5);
-        self.1 = self.1.rotate_left(10);
+        state.1 ^= state.0;
+        state.0 = state.0.rotate_left(13) ^ state.1 ^ (state.1 << 5);
+        state.1 = state.1.rotate_left(10);
+
+        self.0.replace(state);
 
         result
     }
 
     pub fn dump_state(&self) -> u32 {
-        (self.0 as u32) | (self.1 as u32) << 16
+        let state = self.0.get();
+
+        (state.0 as u32) | (state.1 as u32) << 16
     }
 
     pub fn load_state(&mut self, state: u32) {
-        self.0 = (state & 0xffff) as u16;
-        self.1 = ((state >> 16) & 0xffff) as u16;
+        self.0.replace((
+            (state & 0xffff) as u16,
+            ((state >> 16) & 0xffff) as u16
+        ));
     }
+}
 
-    pub fn range(&mut self, range: std::ops::Range<i32>) -> i32 {
-        let num = ((self.next_u16() as u32) << 16 | self.next_u16() as u32) >> 2;
-        range.start.wrapping_add(num as i32 % (range.end.wrapping_sub(range.start).wrapping_add(1)))
+impl RNG for Xoroshiro32PlusPlus {
+    fn next(&self) -> i32 {
+        (((self.next_u16() as u32) << 16 | self.next_u16() as u32) >> 2) as i32
     }
 }

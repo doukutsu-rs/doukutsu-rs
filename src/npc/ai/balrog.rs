@@ -1,18 +1,17 @@
-use std::cell::RefCell;
-use std::collections::BTreeMap;
-
 use ggez::GameResult;
 use num_traits::clamp;
 
 use crate::caret::CaretType;
 use crate::common::{CDEG_RAD, Direction};
-use crate::npc::{NPC, NPCMap};
+use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
 impl NPC {
-    pub(crate) fn tick_n009_balrog_falling_in(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n009_balrog_falling_in(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -30,17 +29,17 @@ impl NPC {
                 }
 
                 if self.flags.hit_bottom_wall() {
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.direction = Direction::Left;
 
                     for _ in 0..3 {
-                        npc.cond.set_alive(true);
-                        npc.direction = Direction::Left;
                         npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
                         npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
                         npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                         npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
 
                     self.action_num = 2;
@@ -74,7 +73,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n010_balrog_shooting(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n010_balrog_shooting(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
         match self.action_num {
@@ -97,7 +96,7 @@ impl NPC {
                     self.action_counter2 -= 1;
                     self.action_counter = 0;
 
-                    let mut npc = NPCMap::create_npc(11, &state.npc_table);
+                    let mut npc = NPC::create(11, &state.npc_table);
 
                     npc.cond.set_alive(true);
                     npc.x = self.x;
@@ -108,7 +107,7 @@ impl NPC {
                     npc.vel_x = (angle.cos() * 512.0) as isize; // 1.0fix9
                     npc.vel_y = (angle.sin() * 512.0) as isize;
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc);
 
                     state.sound_manager.play_sfx(39);
 
@@ -203,7 +202,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n012_balrog_cutscene(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], map: &BTreeMap<u16, RefCell<NPC>>, stage: &mut Stage) -> GameResult {
+    pub(crate) fn tick_n012_balrog_cutscene(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList, stage: &mut Stage) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -289,7 +288,7 @@ impl NPC {
                     self.action_counter = 0;
                     self.action_counter2 = 0;
 
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
 
                     for _ in 0..3 {
                         npc.cond.set_alive(true);
@@ -299,7 +298,7 @@ impl NPC {
                         npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                         npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
 
                     state.sound_manager.play_sfx(72);
@@ -461,22 +460,18 @@ impl NPC {
                     self.vel_y = -4 * 0x200;
                     self.npc_flags.set_ignore_solidity(true);
 
-                    for (&id, npc_cell) in map.iter() {
-                        if id == self.id { continue; } // prevent second mutable borrow of currently ticked npc
-
-                        let mut npc = npc_cell.borrow_mut();
-                        if npc.npc_type == 150 || npc.npc_type == 117 {
-                            npc.cond.set_alive(false);
-                        }
+                    for npc in npc_list.iter_alive()
+                        .filter(|npc| npc.npc_type == 117 || npc.npc_type == 150) {
+                        npc.cond.set_alive(false)
                     }
 
-                    let mut npc = NPCMap::create_npc(355, &state.npc_table);
+                    let mut npc = NPC::create(355, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.parent_id = self.id;
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc.clone());
                     npc.direction = Direction::Up;
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc);
                 }
             }
             102 => {
@@ -487,24 +482,24 @@ impl NPC {
                     state.sound_manager.play_sfx(44);
                     state.quake_counter = 10;
 
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = x as isize * 16 * 0x200;
                     npc.y = y as isize * 16 * 0x200;
 
-                    state.new_npcs.push(npc);
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc.clone());
+                    let _ = npc_list.spawn(0x100, npc.clone());
 
                     if x > 0 && stage.change_tile(x - 1, y, 0) {
                         npc.x = (x - 1) as isize * 16 * 0x200;
-                        state.new_npcs.push(npc);
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
 
                     if x < stage.map.width && stage.change_tile(x + 1, y, 0) {
                         npc.x = (x + 1) as isize * 16 * 0x200;
-                        state.new_npcs.push(npc);
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
+                        let _ = npc_list.spawn(0x100, npc);
                     }
                 }
 
@@ -518,7 +513,7 @@ impl NPC {
         }
 
         if self.target_x != 0 && self.rng.range(0..10) == 0 {
-            let mut npc = NPCMap::create_npc(4, &state.npc_table);
+            let mut npc = NPC::create(4, &state.npc_table);
             npc.cond.set_alive(true);
             npc.direction = Direction::Left;
             npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
@@ -526,7 +521,7 @@ impl NPC {
             npc.vel_x = self.rng.range(-0x155..0x155) as isize;
             npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-            state.new_npcs.push(npc);
+            let _ = npc_list.spawn(0x100, npc);
         }
 
         if self.vel_y > 0x5ff {
@@ -550,20 +545,21 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n019_balrog_bust_in(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n019_balrog_bust_in(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.direction = Direction::Left;
+
                     for _ in 0..16 {
-                        npc.cond.set_alive(true);
-                        npc.direction = Direction::Left;
                         npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
                         npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
                         npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                         npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
 
                     state.sound_manager.play_sfx(12);
@@ -658,7 +654,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n036_balrog_hover(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n036_balrog_hover(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
         match self.action_num {
@@ -684,14 +680,14 @@ impl NPC {
                     let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64)
                         + self.rng.range(-16..16) as f64 * CDEG_RAD;
 
-                    let mut npc = NPCMap::create_npc(11, &state.npc_table);
+                    let mut npc = NPC::create(11, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.vel_x = (angle.cos() * -512.0) as isize;
                     npc.vel_y = (angle.sin() * -512.0) as isize;
                     npc.x = self.x;
                     npc.y = self.y + 4 * 0x200;
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc);
                     state.sound_manager.play_sfx(39);
 
                     if self.vel_x2 == 0 {
@@ -761,25 +757,27 @@ impl NPC {
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
 
-                    let mut npc_smoke = NPCMap::create_npc(4, &state.npc_table);
-                    let mut npc_proj = NPCMap::create_npc(33, &state.npc_table);
+                    let mut npc_smoke = NPC::create(4, &state.npc_table);
+                    npc_smoke.cond.set_alive(true);
+                    npc_smoke.direction = Direction::Left;
+
+                    let mut npc_proj = NPC::create(33, &state.npc_table);
+                    npc_proj.cond.set_alive(true);
+                    npc_proj.direction = Direction::Left;
+
                     for _ in 0..8 {
-                        npc_smoke.cond.set_alive(true);
-                        npc_smoke.direction = Direction::Left;
                         npc_smoke.x = self.x + self.rng.range(-12..12) as isize * 0x200;
                         npc_smoke.y = self.y + self.rng.range(-12..12) as isize * 0x200;
                         npc_smoke.vel_x = self.rng.range(-0x155..0x155) as isize;
                         npc_smoke.vel_y = self.rng.range(-0x600..0) as isize;
+                        let _ = npc_list.spawn(0x100, npc_smoke.clone());
 
-                        npc_proj.cond.set_alive(true);
-                        npc_proj.direction = Direction::Left;
                         npc_proj.x = self.x + self.rng.range(-12..12) as isize * 0x200;
                         npc_proj.y = self.y + self.rng.range(-12..12) as isize * 0x200;
                         npc_proj.vel_x = self.rng.range(-0x400..0x400) as isize;
                         npc_proj.vel_y = self.rng.range(-0x400..0) as isize;
 
-                        state.new_npcs.push(npc_smoke);
-                        state.new_npcs.push(npc_proj);
+                        let _ = npc_list.spawn(0x100, npc_proj.clone());
                     }
                 }
             }
@@ -815,7 +813,7 @@ impl NPC {
     }
 
     /// note: vel_y2 stores currently caught player
-    pub(crate) fn tick_n068_balrog_running(&mut self, state: &mut SharedGameState, mut players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n068_balrog_running(&mut self, state: &mut SharedGameState, mut players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -869,7 +867,7 @@ impl NPC {
                     self.anim_num = 5;
                     self.vel_y2 = pi as isize;
                     players[pi].cond.set_hidden(true);
-                    players[pi].damage(2, state);
+                    players[pi].damage(2, state, npc_list);
                 } else {
                     self.action_counter += 1;
 
@@ -898,7 +896,7 @@ impl NPC {
                     self.anim_num = 5;
                     self.vel_y2 = pi as isize;
                     players[pi].cond.set_hidden(true);
-                    players[pi].damage(2, state);
+                    players[pi].damage(2, state, npc_list);
                 }
             }
             9 => {

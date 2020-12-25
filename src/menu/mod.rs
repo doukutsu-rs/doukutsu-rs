@@ -56,8 +56,8 @@ impl Menu {
     pub fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
 
-        let mut rect = Rect::new(0, 0, 0, 0);
-        let mut rect2 = Rect::new(0, 0, 0, 0);
+        let mut rect;
+        let mut rect2;
 
         rect = state.constants.title.menu_left_top;
         batch.add_rect(self.x as f32 - rect.width() as f32, self.y as f32 - rect.height() as f32, &rect);

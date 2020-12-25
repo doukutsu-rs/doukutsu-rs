@@ -1,14 +1,13 @@
-use std::cell::RefCell;
-use std::collections::BTreeMap;
-
 use ggez::GameResult;
 use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
 use crate::common::{CDEG_RAD, Direction, Rect};
-use crate::npc::{NPC, NPCMap};
 use crate::npc::boss::BossNPC;
+use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
@@ -72,7 +71,7 @@ impl NPC {
 }
 
 impl BossNPC {
-    pub(crate) fn tick_b03_monster_x(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_map: &BTreeMap<u16, RefCell<NPC>>) {
+    pub(crate) fn tick_b03_monster_x(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) {
         match self.parts[0].action_num {
             0 => {
                 self.parts[0].life = 1;
@@ -109,7 +108,7 @@ impl BossNPC {
                 };
                 self.parts[1].npc_flags.set_ignore_solidity(true);
 
-                self.parts[2] = self.parts[1];
+                self.parts[2] = self.parts[1].clone();
                 self.parts[2].direction = Direction::Right;
 
                 self.parts[3].cond.set_alive(true);
@@ -132,11 +131,11 @@ impl BossNPC {
                 self.hurt_sound[3] = 54;
                 self.death_sound[3] = 71;
 
-                self.parts[4] = self.parts[3];
+                self.parts[4] = self.parts[3].clone();
                 self.parts[3].target_x = 1;
 
-                self.parts[5] = self.parts[3];
-                self.parts[6] = self.parts[3];
+                self.parts[5] = self.parts[3].clone();
+                self.parts[6] = self.parts[3].clone();
                 self.parts[5].target_x = 2;
                 self.parts[6].target_x = 3;
                 self.parts[5].life = 100;
@@ -185,10 +184,10 @@ impl BossNPC {
                 self.parts[9].npc_flags.set_invulnerable(true);
                 self.parts[9].npc_flags.set_solid_soft(true);
 
-                self.parts[10] = self.parts[9];
+                self.parts[10] = self.parts[9].clone();
                 self.parts[10].x = self.parts[0].x + 64 * 0x200;
 
-                self.parts[11] = self.parts[9];
+                self.parts[11] = self.parts[9].clone();
                 self.parts[11].x = self.parts[0].x - 64 * 0x200;
                 self.parts[11].y = self.parts[0].y + 56 * 0x200;
                 self.parts[11].direction = Direction::Bottom;
@@ -197,10 +196,10 @@ impl BossNPC {
                 self.parts[11].hit_bounds.top = 16 * 0x200;
                 self.parts[11].hit_bounds.bottom = 8 * 0x200;
 
-                self.parts[12] = self.parts[11];
+                self.parts[12] = self.parts[11].clone();
                 self.parts[12].x = self.parts[0].x + 64 * 0x200;
 
-                self.parts[13] = self.parts[9];
+                self.parts[13] = self.parts[9].clone();
                 self.parts[13].display_bounds = Rect {
                     left: 30 * 0x200,
                     top: 16 * 0x200,
@@ -212,23 +211,27 @@ impl BossNPC {
                 self.parts[13].npc_flags.0 = 0;
                 self.parts[13].npc_flags.set_ignore_solidity(true);
 
-                self.parts[14] = self.parts[13];
+                self.parts[14] = self.parts[13].clone();
                 self.parts[14].action_counter2 = 10;
                 self.parts[14].anim_num = 1;
                 self.parts[14].display_bounds.left = 42 * 0x200;
                 self.parts[14].display_bounds.right = 30 * 0x200;
 
-                self.parts[15] = self.parts[13];
+                self.parts[15] = self.parts[13].clone();
                 self.parts[15].action_counter2 = 11;
                 self.parts[15].anim_num = 2;
                 self.parts[15].display_bounds.top = 16 * 0x200;
                 self.parts[15].display_bounds.bottom = 16 * 0x200;
 
-                self.parts[16] = self.parts[15];
+                self.parts[16] = self.parts[15].clone();
                 self.parts[16].action_counter2 = 12;
                 self.parts[16].anim_num = 3;
                 self.parts[16].display_bounds.left = 42 * 0x200;
                 self.parts[16].display_bounds.right = 30 * 0x200;
+
+                for npc in self.parts.iter_mut() {
+                    npc.init_rng();
+                }
             }
             10 | 11 => {
                 if self.parts[0].action_num == 10 {
@@ -424,11 +427,11 @@ impl BossNPC {
                     state.sound_manager.play_sfx(52);
                 }
 
-                let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                let mut npc = NPC::create(4, &state.npc_table);
                 npc.cond.set_alive(true);
                 npc.x = self.parts[0].x + self.parts[0].rng.range(-72..72) as isize * 0x200;
                 npc.y = self.parts[0].y + self.parts[0].rng.range(-64..64) as isize * 0x200;
-                state.new_npcs.push(npc);
+                let _ = npc_list.spawn(0x100, npc);
 
                 if self.parts[0].action_counter > 100 {
                     self.parts[0].action_num = 1001;
@@ -446,19 +449,18 @@ impl BossNPC {
                         part.cond.set_alive(false);
                     }
 
-                    for npc_cell in npc_map.values() {
-                        let mut npc = npc_cell.borrow_mut();
-                        if npc.cond.alive() && npc.npc_type == 158 {
+                    for npc in npc_list.iter_alive() {
+                        if npc.npc_type == 158 {
                             npc.cond.set_alive(false);
                         }
                     }
 
-                    let mut npc = NPCMap::create_npc(159, &state.npc_table);
+                    let mut npc = NPC::create(159, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].x;
                     npc.y = self.parts[1].y - 24 * 0x200;
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0, npc);
                 }
             }
             _ => {}
@@ -472,18 +474,18 @@ impl BossNPC {
         self.parts[0].x += (((self.parts[9].x + self.parts[10].x + self.parts[11].x + self.parts[12].x) / 4) - self.parts[0].x) / 16;
         self.tick_b03_monster_x_face(7, state);
 
-        self.tick_b03_monster_x_frame(13, state);
-        self.tick_b03_monster_x_frame(14, state);
-        self.tick_b03_monster_x_frame(15, state);
-        self.tick_b03_monster_x_frame(16, state);
+        self.tick_b03_monster_x_frame(13, state, npc_list);
+        self.tick_b03_monster_x_frame(14, state, npc_list);
+        self.tick_b03_monster_x_frame(15, state, npc_list);
+        self.tick_b03_monster_x_frame(16, state, npc_list);
 
         self.tick_b03_monster_x_shield(1, state);
         self.tick_b03_monster_x_shield(2, state);
 
-        if self.parts[3].cond.alive() { self.tick_b03_monster_x_eye(3, state, &players); }
-        if self.parts[4].cond.alive() { self.tick_b03_monster_x_eye(4, state, &players); }
-        if self.parts[5].cond.alive() { self.tick_b03_monster_x_eye(5, state, &players); }
-        if self.parts[6].cond.alive() { self.tick_b03_monster_x_eye(6, state, &players); }
+        if self.parts[3].cond.alive() { self.tick_b03_monster_x_eye(3, state, &players, npc_list); }
+        if self.parts[4].cond.alive() { self.tick_b03_monster_x_eye(4, state, &players, npc_list); }
+        if self.parts[5].cond.alive() { self.tick_b03_monster_x_eye(5, state, &players, npc_list); }
+        if self.parts[6].cond.alive() { self.tick_b03_monster_x_eye(6, state, &players, npc_list); }
 
         if self.parts[0].life == 0 && self.parts[0].action_num < 1000 {
             self.parts[0].action_num = 1000;
@@ -657,7 +659,7 @@ impl BossNPC {
         self.parts[i].anim_rect = state.constants.npc.b03_monster_x[self.parts[i].anim_num as usize + dir_offset];
     }
 
-    fn tick_b03_monster_x_frame(&mut self, i: usize, state: &mut SharedGameState) {
+    fn tick_b03_monster_x_frame(&mut self, i: usize, state: &mut SharedGameState, npc_list: &NPCList) {
         match self.parts[i].action_num {
             10 | 11 => {
                 if self.parts[i].action_num == 10 {
@@ -671,7 +673,7 @@ impl BossNPC {
                     self.parts[i].action_counter = 120;
                     state.sound_manager.play_sfx(39);
 
-                    let mut npc = NPCMap::create_npc(158, &state.npc_table);
+                    let mut npc = NPC::create(158, &state.npc_table);
                     npc.cond.set_alive(true);
 
                     match self.parts[i].anim_num {
@@ -698,7 +700,7 @@ impl BossNPC {
                         _ => {}
                     }
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc);
                 }
             }
             _ => {}
@@ -773,7 +775,7 @@ impl BossNPC {
         self.parts[i].anim_rect = state.constants.npc.b03_monster_x[dir_offset];
     }
 
-    fn tick_b03_monster_x_eye(&mut self, i: usize, state: &mut SharedGameState, players: &[&mut Player; 2]) {
+    fn tick_b03_monster_x_eye(&mut self, i: usize, state: &mut SharedGameState, players: &[&mut Player; 2], npc_list: &NPCList) {
         match self.parts[i].action_num {
             0 => {
                 self.parts[i].npc_flags.set_shootable(false);
@@ -799,14 +801,14 @@ impl BossNPC {
                     let deg = f64::atan2(py as f64, px as f64)
                         + self.parts[i].rng.range(-2..2) as f64 * CDEG_RAD;
 
-                    let mut npc = NPCMap::create_npc(156, &state.npc_table);
+                    let mut npc = NPC::create(156, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.parts[i].x;
                     npc.y = self.parts[i].y;
                     npc.vel_x = (deg.cos() * -1536.0) as isize;
                     npc.vel_y = (deg.sin() * -1536.0) as isize;
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc);
 
                     state.sound_manager.play_sfx(39);
                     self.parts[i].action_counter = 40;

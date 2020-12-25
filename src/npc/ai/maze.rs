@@ -1,11 +1,12 @@
 use ggez::GameResult;
-use num_traits::{abs, clamp};
+use num_traits::clamp;
 
+use crate::caret::CaretType;
 use crate::common::Direction;
+use crate::npc::list::NPCList;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
-use crate::caret::CaretType;
 
 impl NPC {
     pub(crate) fn tick_n154_gaudi_dead(&mut self, state: &mut SharedGameState) -> GameResult {
@@ -31,7 +32,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n361_gaudi_dashing(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n361_gaudi_dashing(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -101,7 +102,7 @@ impl NPC {
         }
 
         if self.life <= 985 {
-            self.cond.set_drs_destroyed(true);
+            npc_list.create_death_smoke(self.x, self.y, 0, 2, state, &self.rng);
             self.npc_type = 154;
             self.action_num = 0;
         }

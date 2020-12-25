@@ -1,11 +1,13 @@
-use std::borrow::{Borrow, BorrowMut};
+use std::borrow::Borrow;
 
 use num_traits::abs;
 
 use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Flag, Rect};
 use crate::inventory::{AddExperienceResult, Inventory};
-use crate::npc::{NPC, NPCMap};
+use crate::npc::boss::BossNPC;
+use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::physics::PhysicalEntity;
 use crate::player::{ControlMode, Player, TargetPlayer};
 use crate::shared_game_state::SharedGameState;
@@ -236,7 +238,7 @@ impl Player {
         flags
     }
 
-    fn tick_npc_collision(&mut self, id: TargetPlayer, state: &mut SharedGameState, npc: &mut NPC, inventory: &mut Inventory) {
+    fn tick_npc_collision(&mut self, id: TargetPlayer, state: &mut SharedGameState, npc: &mut NPC, npc_list: &NPCList, inventory: &mut Inventory) {
         let flags: Flag;
 
         if npc.npc_flags.solid_soft() {
@@ -314,29 +316,26 @@ impl Player {
                     || flags.hit_right_wall() && npc.vel_x < 0
                     || flags.hit_top_wall() && npc.vel_y > 0
                     || flags.hit_bottom_wall() && npc.vel_y < 0 {
-                    self.damage(npc.damage as isize, state);
+                    self.damage(npc.damage as isize, state, npc_list);
                 }
             } else if flags.0 != 0 && npc.damage != 0 && !state.control_flags.interactions_disabled() {
-                self.damage(npc.damage as isize, state);
+                self.damage(npc.damage as isize, state, npc_list);
             }
         }
     }
 
-    pub fn tick_npc_collisions(&mut self, id: TargetPlayer, state: &mut SharedGameState, npc_map: &mut NPCMap, inventory: &mut Inventory) {
+    pub fn tick_npc_collisions(&mut self, id: TargetPlayer, state: &mut SharedGameState, npc_list: &NPCList, boss: &mut BossNPC, inventory: &mut Inventory) {
         if !self.cond.alive() {
             return;
         }
 
-        for npc_cell in npc_map.npcs.values() {
-            let mut npc = npc_cell.borrow_mut();
-            if !npc.cond.alive() { continue; }
-
-            self.tick_npc_collision(id, state, npc.borrow_mut(), inventory);
+        for npc in npc_list.iter_alive() {
+            self.tick_npc_collision(id, state, npc, npc_list, inventory);
         }
 
-        for boss_npc in npc_map.boss_map.parts.iter_mut() {
+        for boss_npc in boss.parts.iter_mut() {
             if boss_npc.cond.alive() {
-                self.tick_npc_collision(id, state, boss_npc, inventory);
+                self.tick_npc_collision(id, state, boss_npc, npc_list, inventory);
             }
         }
 

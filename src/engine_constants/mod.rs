@@ -2,7 +2,7 @@ use case_insensitive_hashmap::CaseInsensitiveHashMap;
 use log::info;
 
 use crate::case_insensitive_hashmap;
-use crate::common::{BulletFlag, Flag, Rect};
+use crate::common::{BulletFlag, Rect};
 use crate::engine_constants::npcs::NPCConsts;
 use crate::player::ControlMode;
 use crate::str;

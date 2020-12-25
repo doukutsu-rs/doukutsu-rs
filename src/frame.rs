@@ -1,7 +1,7 @@
-use crate::player::Player;
+use crate::common::{fix9_scale, interpolate_fix9_scale};
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
-use crate::common::{interpolate_fix9_scale, fix9_scale};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]

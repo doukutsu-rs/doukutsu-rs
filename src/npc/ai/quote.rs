@@ -1,7 +1,10 @@
-use crate::common::Direction;
 use ggez::GameResult;
-use crate::npc::{NPC, NPCMap};
+
+use crate::common::Direction;
+use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
@@ -130,7 +133,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n150_quote(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n150_quote(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -157,17 +160,17 @@ impl NPC {
 
                 state.sound_manager.play_sfx(71);
 
-                let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                let mut npc = NPC::create(4, &state.npc_table);
+                npc.cond.set_alive(true);
+                npc.direction = Direction::Left;
+                npc.x = self.x;
+                npc.y = self.y;
 
                 for _ in 0..4 {
-                    npc.cond.set_alive(true);
-                    npc.direction = Direction::Left;
-                    npc.x = self.x;
-                    npc.y = self.y;
                     npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                     npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc.clone());
                 }
             }
             11 => {

@@ -18,7 +18,7 @@ use crate::settings::Settings;
 use crate::shared_game_state::Season;
 use crate::str;
 
-pub static mut g_mag: f32 = 1.0;
+pub static mut G_MAG: f32 = 1.0;
 
 pub struct SizedBatch {
     pub batch: SpriteBatch,
@@ -90,8 +90,8 @@ impl SizedBatch {
         }
 
         unsafe {
-            x = (x * g_mag).floor() / g_mag;
-            y = (y * g_mag).floor() / g_mag;
+            x = (x * G_MAG).floor() / G_MAG;
+            y = (y * G_MAG).floor() / G_MAG;
         }
 
         let param = DrawParam::new()

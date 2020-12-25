@@ -3,8 +3,10 @@ use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
 use crate::common::{CDEG_RAD, Direction, Rect};
-use crate::npc::{NPC, NPCMap};
+use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
@@ -302,9 +304,7 @@ impl NPC {
             _ => {}
         }
 
-        if self.anim_counter == 1 {
-            self.anim_rect = state.constants.npc.n006_green_beetle[self.anim_num as usize + if self.direction == Direction::Right { 5 } else { 0 }];
-        }
+        self.anim_rect = state.constants.npc.n006_green_beetle[self.anim_num as usize + if self.direction == Direction::Right { 5 } else { 0 }];
 
         Ok(())
     }
@@ -544,7 +544,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n058_basu(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n058_basu(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
         match self.action_num {
@@ -591,6 +591,9 @@ impl NPC {
 
                 self.vel_y += ((self.target_y - self.y).signum() | 1) * 0x08;
 
+                self.vel_x = clamp(self.vel_x, -0x2ff, 0x2ff);
+                self.vel_y = clamp(self.vel_y, -0x100, 0x100);
+
                 if self.shock > 0 {
                     self.x += self.vel_x / 2;
                     self.y += self.vel_y / 2;
@@ -618,17 +621,17 @@ impl NPC {
         } else {
             self.action_counter2 += 1;
             if (self.action_counter2 % 8) == 0 && abs(self.x - player.x) < 160 * 0x200 {
-                let angle = ((self.y - player.y) as f64 / (self.x - player.x) as f64).atan()
-                    + (self.rng.range(-6..6) as u8) as f64 * CDEG_RAD;
+                let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64)
+                    + self.rng.range(-6..6) as f64 * CDEG_RAD;
 
-                let mut npc = NPCMap::create_npc(84, &state.npc_table);
+                let mut npc = NPC::create(84, &state.npc_table);
                 npc.cond.set_alive(true);
                 npc.x = self.x;
                 npc.y = self.y;
-                npc.vel_x = (angle.cos() * 1024.0) as isize;
-                npc.vel_y = (angle.sin() * 1024.0) as isize;
+                npc.vel_x = (angle.cos() * -1024.0) as isize;
+                npc.vel_y = (angle.sin() * -1024.0) as isize;
 
-                state.new_npcs.push(npc);
+                let _ = npc_list.spawn(0x100, npc);
                 state.sound_manager.play_sfx(39);
             }
 

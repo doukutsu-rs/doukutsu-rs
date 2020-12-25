@@ -1,9 +1,10 @@
 use ggez::GameResult;
-use num_traits::{abs, clamp};
+use num_traits::clamp;
 
 use crate::common::Direction;
 use crate::npc::NPC;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {

@@ -1,6 +1,3 @@
-use std::fs::read_to_string;
-
-use crate::bitfield;
 use crate::common::{CDEG_RAD, Condition, Direction, Rect};
 use crate::engine_constants::EngineConstants;
 use crate::rng::RNG;
@@ -68,7 +65,7 @@ impl Caret {
         }
     }
 
-    pub fn tick(&mut self, rng: &RNG, constants: &EngineConstants) {
+    pub fn tick(&mut self, rng: &dyn RNG, constants: &EngineConstants) {
         match self.ctype {
             CaretType::None => {}
             CaretType::Bubble => {}
@@ -177,7 +174,7 @@ impl Caret {
                     Direction::Up => self.y -= 0x400,
                     Direction::Right => self.x += 0x400,
                     Direction::Bottom => self.y += 0x400,
-                    Direction::FacingPlayer => {},
+                    Direction::FacingPlayer => {}
                 }
             }
             CaretType::DrownedQuote => {

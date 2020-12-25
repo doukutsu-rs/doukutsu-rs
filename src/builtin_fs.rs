@@ -31,7 +31,7 @@ impl io::Seek for BuiltinFile {
 }
 
 impl io::Write for BuiltinFile {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+    fn write(&mut self, _buf: &[u8]) -> io::Result<usize> {
         Err(io::Error::new(ErrorKind::PermissionDenied, "Built-in file system is read-only."))
     }
 

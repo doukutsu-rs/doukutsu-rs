@@ -1,5 +1,4 @@
-use std::cell::RefCell;
-use std::collections::BTreeMap;
+use std::mem::MaybeUninit;
 
 use ggez::{Context, GameResult};
 
@@ -7,6 +6,7 @@ use crate::bullet::BulletManager;
 use crate::common::{Direction, interpolate_fix9_scale};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
+use crate::npc::list::NPCList;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
@@ -31,11 +31,17 @@ pub struct BossNPC {
 
 impl BossNPC {
     pub fn new() -> BossNPC {
-        let mut parts = [{
-            let mut part = NPC::empty();
-            part.cond.set_drs_boss(true);
-            part
-        }; 20];
+        let mut parts = unsafe {
+            let mut parts_uninit: [NPC; 20] = MaybeUninit::uninit().assume_init();
+
+            for part in parts_uninit.iter_mut() {
+                *part = NPC::empty();
+                part.cond.set_drs_boss(true);
+            }
+
+            parts_uninit
+        };
+
         parts[0].cond.set_alive(true);
 
         for (i, part) in parts.iter_mut().enumerate() {
@@ -56,16 +62,16 @@ impl BossNPC {
     }
 }
 
-impl GameEntity<([&mut Player; 2], &BTreeMap<u16, RefCell<NPC>>, &mut Stage, &BulletManager)> for BossNPC {
-    fn tick(&mut self, state: &mut SharedGameState, (players, map, stage, bullet_manager): ([&mut Player; 2], &BTreeMap<u16, RefCell<NPC>>, &mut Stage, &BulletManager)) -> GameResult {
+impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for BossNPC {
+    fn tick(&mut self, state: &mut SharedGameState, (players, npc_list, _stage, bullet_manager): ([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)) -> GameResult {
         if !self.parts[0].cond.alive() {
             return Ok(());
         }
 
         match self.boss_type {
-            1 => self.tick_b01_omega(state, players, map, bullet_manager),
-            2 => self.tick_b02_balfrog(state, players),
-            3 => self.tick_b03_monster_x(state, players, map),
+            1 => self.tick_b01_omega(state, players, npc_list, bullet_manager),
+            2 => self.tick_b02_balfrog(state, players, npc_list),
+            3 => self.tick_b03_monster_x(state, players, npc_list),
             4 => self.tick_b04_core(),
             5 => self.tick_b05_ironhead(),
             6 => self.tick_b06_twins(),

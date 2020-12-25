@@ -10,8 +10,10 @@ use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::input::dummy_player_controller::DummyPlayerController;
 use crate::input::player_controller::PlayerController;
-use crate::npc::NPCMap;
+use crate::npc::NPC;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
+use crate::npc::list::NPCList;
 
 mod player_hit;
 
@@ -145,7 +147,7 @@ impl Player {
         (self.appearance as u16 % 6) * 64 + if self.equip.has_mimiga_mask() { 32 } else { 0 }
     }
 
-    fn tick_normal(&mut self, state: &mut SharedGameState) -> GameResult {
+    fn tick_normal(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if !state.control_flags.interactions_disabled() && state.control_flags.control_enabled() {
             if self.equip.has_air_tank() {
                 self.air = 1000;
@@ -440,13 +442,13 @@ impl Player {
             let horizontal_splash = self.vel_x > 0x200 || self.vel_x < -0x200;
 
             if vertical_splash || horizontal_splash {
-                let mut droplet = NPCMap::create_npc(73, &state.npc_table);
+                let mut droplet = NPC::create(73, &state.npc_table);
+                droplet.cond.set_alive(true);
+                droplet.y = self.y;
+                droplet.direction = if self.flags.water_splash_facing_right() { Direction::Right } else { Direction::Left };
 
                 for _ in 0..7 {
-                    droplet.cond.set_alive(true);
-                    droplet.direction = if self.flags.water_splash_facing_right() { Direction::Right } else { Direction::Left };
                     droplet.x = self.x + (state.game_rng.range(-8..8) * 0x200) as isize;
-                    droplet.y = self.y;
                     droplet.vel_x = if vertical_splash {
                         (self.vel_x + state.game_rng.range(-0x200..0x200) as isize) - (self.vel_x / 2)
                     } else if horizontal_splash {
@@ -456,7 +458,7 @@ impl Player {
                     };
                     droplet.vel_y = state.game_rng.range(-0x200..0x80) as isize;
 
-                    state.new_npcs.push(droplet);
+                    let _ = npc_list.spawn(0x100, droplet.clone());
                 }
 
                 state.sound_manager.play_sfx(56);
@@ -471,7 +473,7 @@ impl Player {
 
         // spike damage
         if self.flags.hit_by_spike() {
-            self.damage(10, state);
+            self.damage(10, state, npc_list);
         }
 
         // camera
@@ -509,7 +511,7 @@ impl Player {
         Ok(())
     }
 
-    fn tick_ironhead(&mut self, state: &mut SharedGameState) -> GameResult {
+    fn tick_ironhead(&mut self, _state: &mut SharedGameState) -> GameResult {
         // todo ironhead boss controls
         Ok(())
     }
@@ -614,7 +616,7 @@ impl Player {
         self.anim_rect.bottom += offset;
     }
 
-    pub fn damage(&mut self, hp: isize, state: &mut SharedGameState) {
+    pub fn damage(&mut self, hp: isize, state: &mut SharedGameState, npc_list: &NPCList) {
         if state.settings.god_mode || self.shock_counter > 0 {
             return;
         }
@@ -643,20 +645,20 @@ impl Player {
             state.textscript_vm.start_script(40);
 
             state.create_caret(self.x, self.y, CaretType::Explosion, Direction::Left);
-            let mut npc = NPCMap::create_npc(4, &state.npc_table);
+            let mut npc = NPC::create(4, &state.npc_table);
             npc.cond.set_alive(true);
             for _ in 0..0x40 {
                 npc.x = self.x + state.game_rng.range(-10..10) as isize * 0x200;
                 npc.y = self.y + state.game_rng.range(-10..10) as isize * 0x200;
 
-                state.new_npcs.push(npc);
+                let _ = npc_list.spawn(0x100, npc.clone());
             }
         }
     }
 }
 
-impl GameEntity<()> for Player {
-    fn tick(&mut self, state: &mut SharedGameState, _cust: ()) -> GameResult {
+impl GameEntity<&NPCList> for Player {
+    fn tick(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if !self.cond.alive() {
             return Ok(());
         }
@@ -668,13 +670,13 @@ impl GameEntity<()> for Player {
         if self.shock_counter != 0 {
             self.shock_counter -= 1;
         } else if self.damage_taken != 0 {
-            // SetValueView(&self.x, &self.y, self.exp_count); // todo: damage popup
+            // todo: damage popup
             self.damage_taken = 0;
         }
 
         // todo: add additional control modes like NXEngine has such as noclip?
         match self.control_mode {
-            ControlMode::Normal => self.tick_normal(state)?,
+            ControlMode::Normal => self.tick_normal(state, npc_list)?,
             ControlMode::IronHead => self.tick_ironhead(state)?,
         }
 

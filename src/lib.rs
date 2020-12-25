@@ -68,7 +68,6 @@ struct Game {
     state: SharedGameState,
     ui: UI,
     def_matrix: ColumnMatrix4<f32>,
-    last_time: Instant,
     start_time: Instant,
     last_tick: u128,
     next_tick: u128,
@@ -82,7 +81,6 @@ impl Game {
             ui: UI::new(ctx)?,
             def_matrix: DrawParam::new().to_matrix(),
             state: SharedGameState::new(ctx)?,
-            last_time: Instant::now(),
             start_time: Instant::now(),
             last_tick: 0,
             next_tick: 0,
@@ -183,7 +181,7 @@ impl Game {
         }
     }
 
-    fn key_up_event(&mut self, key_code: KeyCode, _key_mod: KeyMods) {
+    fn key_up_event(&mut self, _key_code: KeyCode, _key_mod: KeyMods) {
         //
     }
 }
@@ -260,7 +258,7 @@ static BACKENDS: [Backend; 4] = [
 
 fn init_ctx<P: Into<path::PathBuf> + Clone>(event_loop: &winit::event_loop::EventLoopWindowTarget<()>, resource_dir: P) -> GameResult<Context> {
     for backend in BACKENDS.iter() {
-        let mut ctx = ContextBuilder::new("doukutsu-rs")
+        let ctx = ContextBuilder::new("doukutsu-rs")
             .window_setup(WindowSetup::default().title("Cave Story ~ Doukutsu Monogatari (doukutsu-rs)"))
             .window_mode(WindowMode::default()
                 .resizable(true)
@@ -304,7 +302,7 @@ pub fn init() -> GameResult {
     info!("Initializing engine...");
 
     let event_loop = winit::event_loop::EventLoop::new();
-    let mut context: Option<Context> = None;
+    let mut context: Option<Context>;
     let mut game: Option<Game> = None;
 
     #[cfg(target_os = "android")]
@@ -341,6 +339,7 @@ pub fn init() -> GameResult {
                 if context.is_none() {
                     context = Some(init_ctx(target, resource_dir.clone()).unwrap());
                 }
+                let _ = target;
 
                 if let Some(game) = &mut game {
                     game.loops = 0;
@@ -365,8 +364,6 @@ pub fn init() -> GameResult {
                     }
                     WindowEvent::Resized(_) => {
                         if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
-                            let (w, h) = graphics::drawable_size(ctx);
-
                             game.state.tmp_canvas = Canvas::with_window_size(ctx).unwrap();
                             game.state.game_canvas = Canvas::with_window_size(ctx).unwrap();
                             game.state.lightmap_canvas = Canvas::with_window_size(ctx).unwrap();

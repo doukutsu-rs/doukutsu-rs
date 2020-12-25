@@ -2,12 +2,14 @@ use ggez::GameResult;
 use num_traits::{abs, clamp};
 
 use crate::common::Direction;
-use crate::npc::{NPC, NPCMap};
+use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
-    pub(crate) fn tick_n044_polish(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n044_polish(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 self.anim_num = 0;
@@ -109,15 +111,15 @@ impl NPC {
         }
 
         if self.life <= 100 {
-            self.cond.set_drs_destroyed(true);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 8, state, &self.rng);
             state.sound_manager.play_sfx(25);
 
-            let mut npc = NPCMap::create_npc(45, &state.npc_table);
+            let mut npc = NPC::create(45, &state.npc_table);
             npc.cond.set_alive(true);
             npc.x = self.x;
             npc.y = self.y;
             for _ in 0..9 {
-                state.new_npcs.push(npc);
+                let _ = npc_list.spawn(0x100, npc.clone());
             }
         }
 
@@ -283,10 +285,16 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n049_skullhead(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        let parent = self.get_parent_ref_mut(npc_list);
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n124_sunstone(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
             0 | 1 => {
-                if self.action_num ==0 {
+                if self.action_num == 0 {
                     self.action_num = 1;
                     self.x += 8 * 0x200;
                     self.y += 8 * 0x200;
@@ -312,12 +320,12 @@ impl NPC {
                     Direction::FacingPlayer => {}
                 }
 
-                state.quake_counter= 20;
+                state.quake_counter = 20;
                 if self.action_counter % 8 == 0 {
                     state.sound_manager.play_sfx(26);
                 }
             }
-            _ =>{}
+            _ => {}
         }
 
         self.anim_rect = state.constants.npc.n124_sunstone[self.anim_num as usize];

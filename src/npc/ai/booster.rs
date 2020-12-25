@@ -1,8 +1,9 @@
 use ggez::GameResult;
 
-use crate::npc::NPC;
-use crate::shared_game_state::SharedGameState;
 use crate::common::Direction;
+use crate::npc::NPC;
+use crate::rng::RNG;
+use crate::shared_game_state::SharedGameState;
 
 impl NPC {
     pub(crate) fn tick_n113_professor_booster(&mut self, state: &mut SharedGameState) -> GameResult {

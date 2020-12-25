@@ -17,8 +17,6 @@ use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
 
 mod types {
-    pub type Device = gfx_device_gl::Device;
-    pub type Factory = gfx_device_gl::Factory;
     pub type Resources = gfx_device_gl::Resources;
 }
 

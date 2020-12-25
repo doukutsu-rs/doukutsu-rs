@@ -120,7 +120,7 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
 
         // touch handler
         if state.settings.touch_controls && self.weapon_count != 0 {
-            let mut rect = Rect::new(0, 0, 0, 16);
+            let mut rect;
             let weapon_offset = match self.alignment {
                 Alignment::Left => 0,
                 Alignment::Right => (state.canvas_size.0 - 104.0) as isize,
@@ -157,7 +157,7 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
         Ok(())
     }
 
-    fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
+    fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, _frame: &Frame) -> GameResult {
         if !self.visible {
             return Ok(());
         }

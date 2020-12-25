@@ -51,7 +51,7 @@ impl GameProfile {
         state.control_flags.set_tick_world(true);
         state.control_flags.set_control_enabled(true);
 
-        state.sound_manager.play_song(self.current_song as usize, &state.constants, ctx);
+        let _ = state.sound_manager.play_song(self.current_song as usize, &state.constants, ctx);
 
         game_scene.inventory_player1.current_weapon = self.current_weapon as u16;
         game_scene.inventory_player1.current_item = self.current_item as u16;
@@ -238,8 +238,8 @@ impl GameProfile {
             data.write_u32::<LE>(slot.event_num)?;
         }
 
-        let mut something = [0u8; 0x80];
-        data.write(&something);
+        let something = [0u8; 0x80];
+        data.write(&something)?;
 
         data.write_u32::<BE>(0x464c4147)?;
         data.write(&self.flags)?;

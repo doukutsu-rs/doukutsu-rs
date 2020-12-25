@@ -1,11 +1,12 @@
 use ggez::GameResult;
 use num_traits::{abs, clamp};
-use num_traits::real::Real;
 
 use crate::caret::CaretType;
 use crate::common::Direction;
-use crate::npc::{NPC, NPCMap};
+use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
@@ -132,7 +133,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n015_chest_closed(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n015_chest_closed(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -142,17 +143,16 @@ impl NPC {
                     if self.direction == Direction::Right {
                         self.vel_y = -0x200;
 
-                        let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                        let mut npc = NPC::create(4, &state.npc_table);
+                        npc.cond.set_alive(true);
 
                         for _ in 0..4 {
-                            npc.cond.set_alive(true);
-                            npc.direction = Direction::Left;
                             npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
                             npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
                             npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                             npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                            state.new_npcs.push(npc);
+                            let _ = npc_list.spawn(0x100, npc.clone());
                         }
                     }
 
@@ -291,7 +291,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n018_door(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n018_door(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 => {
                 match self.direction {
@@ -301,17 +301,16 @@ impl NPC {
                 }
             }
             1 => {
-                for _ in 0..4 {
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                let mut npc = NPC::create(4, &state.npc_table);
 
-                    npc.cond.set_alive(true);
-                    npc.direction = Direction::Left;
-                    npc.x = self.x;
-                    npc.y = self.y;
+                npc.cond.set_alive(true);
+                npc.x = self.x;
+                npc.y = self.y;
+                for _ in 0..4 {
                     npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                     npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc.clone());
                 }
 
                 self.action_num = 0;
@@ -557,7 +556,7 @@ impl NPC {
     }
 
 
-    pub(crate) fn tick_n072_sprinkler(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n072_sprinkler(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         if self.direction == Direction::Left {
             self.anim_counter = (self.anim_counter + 1) % 4;
             self.anim_num = self.anim_counter / 2;
@@ -567,19 +566,19 @@ impl NPC {
             if self.anim_num % 2 == 0 && (player.x - self.x).abs() < 480 * 0x200 {
                 self.action_counter = self.action_counter.wrapping_add(1);
 
-                let mut droplet = NPCMap::create_npc(73, &state.npc_table);
+                let mut droplet = NPC::create(73, &state.npc_table);
                 droplet.cond.set_alive(true);
                 droplet.direction = Direction::Left;
                 droplet.x = self.x;
                 droplet.y = self.y;
                 droplet.vel_x = 2 * self.rng.range(-0x200..0x200) as isize;
                 droplet.vel_y = 3 * self.rng.range(-0x200..0x80) as isize;
-                state.new_npcs.push(droplet);
+                let _ = npc_list.spawn(0x100, droplet.clone());
 
                 if self.action_counter % 2 == 0 {
                     droplet.vel_x = 2 * self.rng.range(-0x200..0x200) as isize;
                     droplet.vel_y = 3 * self.rng.range(-0x200..0x80) as isize;
-                    state.new_npcs.push(droplet);
+                    let _ = npc_list.spawn(0x100, droplet);
                 }
             }
         }
@@ -672,7 +671,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n096_fan_left(&mut self, state: &mut SharedGameState, mut players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n096_fan_left(&mut self, state: &mut SharedGameState, mut players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 && self.direction == Direction::Right {
@@ -695,12 +694,12 @@ impl NPC {
                     let i = self.get_closest_player_idx_mut(&players);
                     if abs(players[i].x - self.x) < 480 * 0x200 && abs(players[i].y - self.y) < 240 * 0x200
                         && self.rng.range(0..5) == 1 {
-                        let mut particle = NPCMap::create_npc(199, &state.npc_table);
+                        let mut particle = NPC::create(199, &state.npc_table);
                         particle.cond.set_alive(true);
                         particle.direction = Direction::Left;
                         particle.x = self.x;
                         particle.y = self.y + (self.rng.range(-8..8) * 0x200) as isize;
-                        state.new_npcs.push(particle);
+                        let _ = npc_list.spawn(0x100, particle);
                     }
                 }
 
@@ -725,7 +724,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n097_fan_up(&mut self, state: &mut SharedGameState, mut players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n097_fan_up(&mut self, state: &mut SharedGameState, mut players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 && self.direction == Direction::Right {
@@ -748,12 +747,12 @@ impl NPC {
                     let i = self.get_closest_player_idx_mut(&players);
                     if abs(players[i].x - self.x) < 480 * 0x200 && abs(players[i].y - self.y) < 240 * 0x200
                         && self.rng.range(0..5) == 1 {
-                        let mut particle = NPCMap::create_npc(199, &state.npc_table);
+                        let mut particle = NPC::create(199, &state.npc_table);
                         particle.cond.set_alive(true);
                         particle.direction = Direction::Up;
                         particle.x = self.x + (self.rng.range(-8..8) * 0x200) as isize;
                         particle.y = self.y;
-                        state.new_npcs.push(particle);
+                        let _ = npc_list.spawn(0x100, particle);
                     }
                 }
 
@@ -777,7 +776,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n098_fan_right(&mut self, state: &mut SharedGameState, mut players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n098_fan_right(&mut self, state: &mut SharedGameState, mut players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 && self.direction == Direction::Right {
@@ -800,12 +799,12 @@ impl NPC {
                     let i = self.get_closest_player_idx_mut(&players);
                     if abs(players[i].x - self.x) < 480 * 0x200 && abs(players[i].y - self.y) < 240 * 0x200
                         && self.rng.range(0..5) == 1 {
-                        let mut particle = NPCMap::create_npc(199, &state.npc_table);
+                        let mut particle = NPC::create(199, &state.npc_table);
                         particle.cond.set_alive(true);
                         particle.direction = Direction::Right;
                         particle.x = self.x;
                         particle.y = self.y + (self.rng.range(-8..8) * 0x200) as isize;
-                        state.new_npcs.push(particle);
+                        let _ = npc_list.spawn(0x100, particle);
                     }
                 }
 
@@ -826,7 +825,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n099_fan_down(&mut self, state: &mut SharedGameState, mut players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n099_fan_down(&mut self, state: &mut SharedGameState, mut players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 && self.direction == Direction::Right {
@@ -849,12 +848,12 @@ impl NPC {
                     let i = self.get_closest_player_idx_mut(&players);
                     if abs(players[i].x - self.x) < 480 * 0x200 && abs(players[i].y - self.y) < 240 * 0x200
                         && self.rng.range(0..5) == 1 {
-                        let mut particle = NPCMap::create_npc(199, &state.npc_table);
+                        let mut particle = NPC::create(199, &state.npc_table);
                         particle.cond.set_alive(true);
                         particle.direction = Direction::Bottom;
                         particle.x = self.x + (self.rng.range(-8..8) * 0x200) as isize;
                         particle.y = self.y;
-                        state.new_npcs.push(particle);
+                        let _ = npc_list.spawn(0x100, particle);
                     }
                 }
 
@@ -888,22 +887,22 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n106_hey_bubble_high(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n106_hey_bubble_high(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
 
-            let mut npc = NPCMap::create_npc(105, &state.npc_table);
+            let mut npc = NPC::create(105, &state.npc_table);
             npc.cond.set_alive(true);
             npc.x = self.x;
             npc.y = self.y - 8 * 0x200;
 
-            state.new_npcs.push(npc);
+            let _ = npc_list.spawn(0x180, npc);
         }
 
         Ok(())
     }
 
-    pub(crate) fn tick_n114_press(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n114_press(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -939,15 +938,16 @@ impl NPC {
 
                 if self.flags.hit_bottom_wall() {
                     if self.anim_num > 1 {
-                        let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                        let mut npc = NPC::create(4, &state.npc_table);
+                        npc.cond.set_alive(true);
+                        npc.x = self.x;
+                        npc.y = self.y;
+
                         for _ in 0..4 {
-                            npc.cond.set_alive(true);
-                            npc.x = self.x;
-                            npc.y = self.y;
                             npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                             npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                            state.new_npcs.push(npc);
+                            let _ = npc_list.spawn(0x100, npc.clone());
                         }
 
                         state.quake_counter = 10;
@@ -976,27 +976,30 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n125_hidden_item(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n125_hidden_item(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.life < 990 {
-            self.cond.set_drs_destroyed(true);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 8, state, &self.rng);
+            self.cond.set_alive(false);
+            state.sound_manager.play_sfx(70);
+
             match self.direction {
-                /// hidden heart
+                // hidden heart
                 Direction::Left => {
-                    let mut npc = NPCMap::create_npc(87, &state.npc_table);
+                    let mut npc = NPC::create(87, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.x;
                     npc.y = self.y;
                     npc.direction = Direction::Right;
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0, npc);
                 }
-                /// hidden missile
+                // hidden missile
                 Direction::Right => {
-                    let mut npc = NPCMap::create_npc(86, &state.npc_table);
+                    let mut npc = NPC::create(86, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.x;
                     npc.y = self.y;
                     npc.direction = Direction::Right;
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0, npc);
                 }
                 _ => {}
             }
@@ -1011,7 +1014,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n149_horizontal_moving_block(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n149_horizontal_moving_block(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 => {
                 self.x += 8 * 0x200;
@@ -1045,16 +1048,15 @@ impl NPC {
                     state.quake_counter = 10;
                     state.sound_manager.play_sfx(26);
 
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
                     for _ in 0..3 {
-                        npc.cond.set_alive(true);
-                        npc.direction = Direction::Left;
                         npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
                         npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
                         npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                         npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
                 } else {
                     let player = self.get_closest_player_mut(players);
@@ -1094,16 +1096,15 @@ impl NPC {
                     state.quake_counter = 10;
                     state.sound_manager.play_sfx(26);
 
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
                     for _ in 0..3 {
-                        npc.cond.set_alive(true);
-                        npc.direction = Direction::Left;
                         npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
                         npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
                         npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                         npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
                 } else {
                     let player = self.get_closest_player_mut(players);
@@ -1132,7 +1133,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n157_vertical_moving_block(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n157_vertical_moving_block(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 => {
                 self.x += 8 * 0x200;
@@ -1166,16 +1167,15 @@ impl NPC {
                     state.quake_counter = 10;
                     state.sound_manager.play_sfx(26);
 
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
                     for _ in 0..3 {
-                        npc.cond.set_alive(true);
-                        npc.direction = Direction::Left;
                         npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
                         npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
                         npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                         npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
                 } else {
                     let player = self.get_closest_player_mut(players);
@@ -1215,16 +1215,15 @@ impl NPC {
                     state.quake_counter = 10;
                     state.sound_manager.play_sfx(26);
 
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
                     for _ in 0..3 {
-                        npc.cond.set_alive(true);
-                        npc.direction = Direction::Left;
                         npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
                         npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
                         npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                         npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
                 } else {
                     let player = self.get_closest_player_mut(players);

@@ -1,12 +1,12 @@
 use ggez::GameResult;
 use num_traits::abs;
 use num_traits::clamp;
-use winit::event::VirtualKeyCode::Caret;
 
 use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
-use crate::npc::{NPC, NPCMap};
+use crate::npc::{NPC, NPCList};
 use crate::player::Player;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
@@ -422,7 +422,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n035_mannan(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n035_mannan(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.action_num <= 2 && self.life < 90 {
             self.action_num = 3;
             self.action_counter = 0;
@@ -430,9 +430,10 @@ impl NPC {
             self.damage = 0;
             self.npc_flags.set_shootable(false);
 
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 8, state, &self.rng);
+            self.create_xp_drop(state, npc_list);
+
             state.sound_manager.play_sfx(71);
-            self.cond.set_drs_dont_remove(true);
-            self.cond.set_drs_destroyed(true);
         }
 
         if self.action_num == 2 {
@@ -460,12 +461,13 @@ impl NPC {
             self.action_counter = 0;
             self.anim_num = 1;
 
-            let mut npc = NPCMap::create_npc(103, &state.npc_table);
+            let mut npc = NPC::create(103, &state.npc_table);
             npc.cond.set_alive(true);
             npc.x = self.x + self.direction.vector_x() * 8 * 0x200;
             npc.y = self.y + 8 * 0x200;
             npc.direction = self.direction;
-            state.new_npcs.push(npc);
+
+            let _ = npc_list.spawn(0x100, npc);
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
@@ -851,7 +853,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n107_malco_broken(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n107_malco_broken(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -866,15 +868,15 @@ impl NPC {
                     self.action_counter = 0;
                     self.anim_counter = 0;
 
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.x;
+                    npc.y = self.y;
                     for _ in 0..4 {
-                        npc.cond.set_alive(true);
-                        npc.x = self.x;
-                        npc.y = self.y;
                         npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                         npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
                 }
 
@@ -931,15 +933,15 @@ impl NPC {
                     self.anim_num = 2;
                     state.sound_manager.play_sfx(12);
 
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.x;
+                    npc.y = self.y;
                     for _ in 0..8 {
-                        npc.cond.set_alive(true);
-                        npc.x = self.x;
-                        npc.y = self.y;
                         npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                         npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
                 }
 
@@ -971,15 +973,15 @@ impl NPC {
                     self.action_num = 20;
                     state.sound_manager.play_sfx(12);
 
-                    let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.x;
+                    npc.y = self.y;
                     for _ in 0..4 {
-                        npc.cond.set_alive(true);
-                        npc.x = self.x;
-                        npc.y = self.y;
                         npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                         npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                        state.new_npcs.push(npc);
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
                 }
             }
@@ -1002,7 +1004,7 @@ impl NPC {
                 self.animate(4, 6, 9);
             }
             110 => {
-                self.cond.set_drs_destroyed(true);
+                npc_list.create_death_smoke(self.x, self.y, 16 * 0x200, 16, state, &self.rng);
                 self.cond.set_alive(false);
             }
             _ => {}
@@ -1013,7 +1015,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n109_malco_powered_on(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n109_malco_powered_on(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -1052,16 +1054,15 @@ impl NPC {
                 self.action_num = 0;
                 state.sound_manager.play_sfx(12);
 
-                let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                let mut npc = NPC::create(4, &state.npc_table);
+                npc.cond.set_alive(true);
+                npc.x = self.x;
+                npc.y = self.y;
                 for _ in 0..8 {
-                    npc.cond.set_alive(true);
-                    npc.direction = Direction::Left;
-                    npc.x = self.x;
-                    npc.y = self.y;
                     npc.vel_x = self.rng.range(-0x155..0x155) as isize;
                     npc.vel_y = self.rng.range(-0x600..0) as isize;
 
-                    state.new_npcs.push(npc);
+                    let _ = npc_list.spawn(0x100, npc.clone());
                 }
             }
             _ => {}

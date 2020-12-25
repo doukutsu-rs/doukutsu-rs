@@ -26,7 +26,7 @@ impl BMFontRenderer {
         let mut pages = Vec::new();
 
         println!("stem: {:?}", stem);
-        let (zeros, ext, format) = FILE_TYPES
+        let (zeros, _, _) = FILE_TYPES
             .iter()
             .map(|ext| (1, ext, format!("{}_0{}", stem.to_string_lossy(), ext)))
             .find(|(_, _, path)| filesystem::exists(ctx, &path))

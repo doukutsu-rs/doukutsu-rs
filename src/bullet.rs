@@ -3,9 +3,11 @@ use num_traits::clamp;
 use crate::caret::CaretType;
 use crate::common::{BulletFlag, Condition, Direction, Flag, Rect};
 use crate::engine_constants::{BulletData, EngineConstants};
-use crate::npc::NPCMap;
+use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::physics::{OFF_X, OFF_Y, PhysicalEntity};
 use crate::player::TargetPlayer;
+use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
@@ -25,15 +27,15 @@ impl BulletManager {
         self.bullets.push(Bullet::new(x, y, btype, owner, direction, constants));
     }
 
-    pub fn tick_bullets(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2], stage: &mut Stage) {
+    pub fn tick_bullets(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2], npc_list: &NPCList, stage: &mut Stage) {
         for bullet in self.bullets.iter_mut() {
             if bullet.life < 1 {
                 bullet.cond.set_alive(false);
                 continue;
             }
 
-            bullet.tick(state, players);
-            bullet.tick_map_collisions(state, stage);
+            bullet.tick(state, players, npc_list);
+            bullet.tick_map_collisions(state, npc_list, stage);
         }
 
         self.bullets.retain(|b| !b.is_dead());
@@ -253,7 +255,7 @@ impl Bullet {
         }
     }
 
-    fn tick_fireball(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2]) {
+    fn tick_fireball(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2], npc_list: &NPCList) {
         self.action_counter += 1;
         if self.action_counter > self.lifetime {
             self.cond.set_alive(false);
@@ -361,18 +363,18 @@ impl Bullet {
 
             self.anim_rect = state.constants.weapon.bullet_rects.b008_009_fireball_l2_3[self.anim_num as usize + dir_offset];
 
-            let mut npc = NPCMap::create_npc(129, &state.npc_table);
+            let mut npc = NPC::create(129, &state.npc_table);
             npc.cond.set_alive(true);
             npc.x = self.x;
             npc.y = self.y;
             npc.vel_y = -0x200;
             npc.action_counter2 = if self.btype == 9 { self.anim_num + 3 } else { self.anim_num };
 
-            state.new_npcs.push(npc);
+            let _ = npc_list.spawn(0x100, npc);
         }
     }
 
-    pub fn tick(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2]) {
+    pub fn tick(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2], npc_list: &NPCList) {
         if self.lifetime == 0 {
             self.cond.set_alive(false);
             return;
@@ -381,7 +383,7 @@ impl Bullet {
         match self.btype {
             1 => self.tick_snake_1(state),
             4 | 5 | 6 => self.tick_polar_star(state),
-            7 | 8 | 9 => self.tick_fireball(state, players),
+            7 | 8 | 9 => self.tick_fireball(state, players, npc_list),
             _ => self.cond.set_alive(false),
         }
     }
@@ -570,7 +572,7 @@ impl PhysicalEntity for Bullet {
         }
     }
 
-    fn tick_map_collisions(&mut self, state: &mut SharedGameState, stage: &mut Stage) {
+    fn tick_map_collisions(&mut self, state: &mut SharedGameState, npc_list: &NPCList, stage: &mut Stage) {
         self.flags().0 = 0;
         if self.weapon_flags.flag_x04() { // ???
             return;
@@ -606,7 +608,7 @@ impl PhysicalEntity for Bullet {
                         state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
                         state.sound_manager.play_sfx(12);
 
-                        let mut npc = NPCMap::create_npc(4, &state.npc_table);
+                        let mut npc = NPC::create(4, &state.npc_table);
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
                         npc.x = (x * 16 + 8) * 0x200;
@@ -616,7 +618,7 @@ impl PhysicalEntity for Bullet {
                             npc.vel_x = state.game_rng.range(-0x200..0x200) as isize;
                             npc.vel_y = state.game_rng.range(-0x200..0x200) as isize;
 
-                            state.new_npcs.push(npc);
+                            let _ = npc_list.spawn(0x100, npc.clone());
                         }
 
                         if let Some(tile) = stage.map.tiles.get_mut(stage.map.width * (y + oy) as usize + (x + ox) as usize) {

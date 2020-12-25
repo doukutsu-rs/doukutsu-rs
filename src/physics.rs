@@ -4,6 +4,7 @@ use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Flag, Rect};
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
+use crate::npc::list::NPCList;
 
 //      -1  0  1  2
 //    +------------
@@ -353,7 +354,7 @@ pub trait PhysicalEntity {
         }
     }
 
-    fn tick_map_collisions(&mut self, state: &mut SharedGameState, stage: &mut Stage) {
+    fn tick_map_collisions(&mut self, state: &mut SharedGameState, _npc_list: &NPCList, stage: &mut Stage) {
         let hit_rect_size = clamp(self.hit_rect_size(), 1, 4);
         let hit_rect_size = hit_rect_size * hit_rect_size;
 
