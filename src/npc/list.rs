@@ -1,4 +1,4 @@
-use std::cell::{RefCell, UnsafeCell};
+use std::cell::{Cell, UnsafeCell};
 use std::mem::MaybeUninit;
 
 use ggez::{GameError, GameResult};
@@ -13,7 +13,7 @@ const NPC_LIST_MAX_CAP: usize = 512;
 pub struct NPCList {
     // UnsafeCell lets us break the pointer aliasing rules without undefined behavior.
     npcs: UnsafeCell<Box<[NPC; NPC_LIST_MAX_CAP]>>,
-    max_npc: RefCell<u16>,
+    max_npc: Cell<u16>,
 }
 
 #[allow(dead_code)]
@@ -29,7 +29,7 @@ impl NPCList {
 
                 parts_uninit
             })),
-            max_npc: RefCell::new(0),
+            max_npc: Cell::new(0),
         };
 
         unsafe {
@@ -63,7 +63,7 @@ impl NPCList {
 
                 *npc_ref = npc;
 
-                if *self.max_npc.borrow() <= id {
+                if self.max_npc.get() <= id {
                     self.max_npc.replace(id + 1);
                 }
 
@@ -95,7 +95,7 @@ impl NPCList {
             *npc_ref = npc;
         }
 
-        if *self.max_npc.borrow() <= id {
+        if self.max_npc.get() <= id {
             self.max_npc.replace(id + 1);
         }
 
@@ -131,7 +131,7 @@ impl NPCList {
 
     /// Returns current capacity of this NPC list.
     pub fn current_capacity(&self) -> u16 {
-        *self.max_npc.borrow()
+        self.max_npc.get()
     }
 
     /// Returns maximum capacity of this NPC list.
@@ -166,7 +166,7 @@ impl<'a> Iterator for NPCListMutableIterator<'a> {
     type Item = &'a mut NPC;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index >= *self.map.max_npc.borrow() {
+        if self.index >= self.map.max_npc.get() {
             return None;
         }
 
@@ -196,7 +196,7 @@ impl<'a> Iterator for NPCListMutableAliveIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.index >= *self.map.max_npc.borrow() {
+            if self.index >= self.map.max_npc.get() {
                 return None;
             }
 
