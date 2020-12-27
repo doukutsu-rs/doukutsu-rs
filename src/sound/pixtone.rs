@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
+use lazy_static::lazy_static;
 use num_traits::clamp;
 use vec_mut_scan::VecMutScan;
-
-use lazy_static::lazy_static;
 
 use crate::sound::pixtone_sfx::PIXTONE_TABLE;
 use crate::sound::stuff::cubic_interp;
@@ -81,29 +80,34 @@ pub struct Envelope {
 
 impl Envelope {
     pub fn evaluate(&self, i: i32) -> i32 {
-        let (next_time, next_val) = {
-            if i < self.time_c {
-                (self.time_c, self.value_c)
-            } else if i < self.time_b {
-                (self.time_b, self.value_b)
-            } else if i < self.time_a {
-                (self.time_a, self.value_a)
-            } else {
-                (256, 0)
-            }
-        };
+        let (mut next_time, mut next_val) = (256, 0);
+        let (mut prev_time, mut prev_val) = (0, self.initial);
 
-        let (prev_time, prev_val) = {
-            if i >= self.time_a {
-                (self.time_a, self.value_a)
-            } else if i >= self.time_b {
-                (self.time_b, self.value_b)
-            } else if i >= self.time_c {
-                (self.time_c, self.value_c)
-            } else {
-                (0, self.initial)
-            }
-        };
+        if i < self.time_c {
+            next_time = self.time_c;
+            next_val = self.value_c;
+        }
+        if i < self.time_b {
+            next_time = self.time_b;
+            next_val = self.value_b;
+        }
+        if i < self.time_a {
+            next_time = self.time_a;
+            next_val = self.value_a;
+        }
+
+        if i >= self.time_a {
+            prev_time = self.time_a;
+            prev_val = self.value_a;
+        }
+        if i >= self.time_b {
+            prev_time = self.time_b;
+            prev_val = self.value_b;
+        }
+        if i >= self.time_c {
+            prev_time = self.time_c;
+            prev_val = self.value_c;
+        }
 
         if next_time <= prev_time {
             return prev_val;
@@ -180,39 +184,26 @@ impl PixToneParameters {
         for channel in self.channels.iter() {
             if !channel.enabled { continue; }
 
-            fn s(p: f32, i: usize, length: u32) -> f32 {
-                256.0 * p * i as f32 / length as f32
-            }
-
             let mut phase = channel.carrier.offset as f32;
             let delta = 256.0 * channel.carrier.pitch as f32 / channel.length as f32;
             let carrier_wave = channel.carrier.get_waveform();
             let frequency_wave = channel.frequency.get_waveform();
             let amplitude_wave = channel.amplitude.get_waveform();
-            let mut last_wave = 0;
 
             for (i, result) in samples.iter_mut().enumerate() {
-                if i >= channel.length as usize {
-                    if i == channel.length as usize {
-                        last_wave = *result;
-                    } else if i == (channel.length as usize + 100) {
-                        break;
-                    }
-
-                    let fac = (i - channel.length as usize) as i16 / 2 + 1;
-
-                    last_wave /= fac;
-                    *result = last_wave;
-                    continue;
-                } else {
-                    let carrier = carrier_wave[0xff & phase as usize] as i32 * channel.carrier.level;
-                    let freq = frequency_wave[0xff & (channel.frequency.offset as f32 + s(channel.frequency.pitch, i, channel.length)) as usize] as i32 * channel.frequency.level;
-                    let amp = amplitude_wave[0xff & (channel.amplitude.offset as f32 + s(channel.amplitude.pitch, i, channel.length)) as usize] as i32 * channel.amplitude.level;
-
-                    *result = clamp((*result as i32) + (carrier * (amp + 4096) / 4096 * channel.envelope.evaluate(s(1.0, i, channel.length) as i32) / 4096) * 192, -32767, 32767) as i16;
-
-                    phase += delta * (1.0 + (freq as f32 / (if freq < 0 { 8192.0 } else { 2048.0 })));
+                if i == channel.length as usize {
+                    break;
                 }
+
+                let s = |p: f32| -> f32 { 256.0 * p * i as f32 / channel.length as f32 };
+
+                let carrier = carrier_wave[0xff & phase as usize] as i32 * channel.carrier.level;
+                let freq = frequency_wave[0xff & (channel.frequency.offset as f32 + s(channel.frequency.pitch)) as usize] as i32 * channel.frequency.level;
+                let amp = amplitude_wave[0xff & (channel.amplitude.offset as f32 + s(channel.amplitude.pitch)) as usize] as i32 * channel.amplitude.level;
+
+                *result = clamp((*result as i32) + (carrier * (amp + 4096) / 4096 * channel.envelope.evaluate(s(1.0) as i32) / 4096) * 256, -32767, 32767) as i16;
+
+                phase += delta * (1.0 + (freq as f32 / (if freq < 0 { 8192.0 } else { 2048.0 })));
             }
         }
 
