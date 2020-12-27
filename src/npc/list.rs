@@ -11,8 +11,9 @@ const NPC_LIST_MAX_CAP: usize = 512;
 /// A data structure for storing an NPC list for current stage.
 /// Provides multiple mutable references to NPC objects with internal sanity checks and lifetime bounds.
 pub struct NPCList {
-    // UnsafeCell lets us break the pointer aliasing rules without undefined behavior.
-    npcs: UnsafeCell<Box<[NPC; NPC_LIST_MAX_CAP]>>,
+    // UnsafeCell is required because we do mutable aliasing (ik, discouraged), prevents Rust/LLVM
+    // from theoretically performing some optimizations that might break the code.
+    npcs: Box<UnsafeCell<[NPC; NPC_LIST_MAX_CAP]>>,
     max_npc: Cell<u16>,
 }
 
@@ -20,7 +21,7 @@ pub struct NPCList {
 impl NPCList {
     pub fn new() -> NPCList {
         let map = NPCList {
-            npcs: UnsafeCell::new(Box::new(unsafe {
+            npcs: Box::new(UnsafeCell::new(unsafe {
                 let mut parts_uninit: [NPC; NPC_LIST_MAX_CAP] = MaybeUninit::uninit().assume_init();
 
                 for part in parts_uninit.iter_mut() {
