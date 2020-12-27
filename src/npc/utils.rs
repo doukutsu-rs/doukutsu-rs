@@ -263,7 +263,7 @@ impl NPCList {
                         heart_pick.y = npc.y;
                         heart_pick.exp = if npc.exp > 6 { 6 } else { 2 };
 
-                        let _ = self.spawn(0x100, heart_pick.clone());
+                        let _ = self.spawn(0x100, heart_pick);
                     }
                     1 if can_drop_missile => {
                         let mut missile_pick = NPC::create(86, &state.npc_table);
@@ -273,7 +273,7 @@ impl NPCList {
                         missile_pick.y = npc.y;
                         missile_pick.exp = if npc.exp > 6 { 3 } else { 1 };
 
-                        let _ = self.spawn(0x100, missile_pick.clone());
+                        let _ = self.spawn(0x100, missile_pick);
                     }
                     _ => {
                         npc.create_xp_drop(state, self);

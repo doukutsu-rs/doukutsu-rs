@@ -113,6 +113,7 @@ impl NPC {
         if self.life <= 100 {
             npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 8, state, &self.rng);
             state.sound_manager.play_sfx(25);
+            self.cond.set_alive(false);
 
             let mut npc = NPC::create(45, &state.npc_table);
             npc.cond.set_alive(true);
