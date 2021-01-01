@@ -51,14 +51,14 @@ impl TargetPlayer {
 
 #[derive(Clone)]
 pub struct Player {
-    pub x: isize,
-    pub y: isize,
-    pub vel_x: isize,
-    pub vel_y: isize,
-    pub target_x: isize,
-    pub target_y: isize,
-    pub prev_x: isize,
-    pub prev_y: isize,
+    pub x: i32,
+    pub y: i32,
+    pub vel_x: i32,
+    pub vel_y: i32,
+    pub target_x: i32,
+    pub target_y: i32,
+    pub prev_x: i32,
+    pub prev_y: i32,
     pub life: u16,
     pub max_life: u16,
     pub cond: Condition,
@@ -69,7 +69,7 @@ pub struct Player {
     pub hit_bounds: Rect<usize>,
     pub control_mode: ControlMode,
     pub question: bool,
-    pub booster_fuel: usize,
+    pub booster_fuel: u32,
     pub up: bool,
     pub down: bool,
     pub shock_counter: u8,
@@ -81,8 +81,8 @@ pub struct Player {
     pub appearance: PlayerAppearance,
     pub controller: Box<dyn PlayerController>,
     weapon_offset_y: i8,
-    index_x: isize,
-    index_y: isize,
+    index_x: i32,
+    index_y: i32,
     splash: bool,
     booster_switch: u8,
     bubble: u8,
@@ -193,7 +193,7 @@ impl Player {
             self.booster_switch = 0;
 
             if state.settings.infinite_booster {
-                self.booster_fuel = usize::MAX;
+                self.booster_fuel = u32::MAX;
             } else if self.equip.has_booster_0_8() || self.equip.has_booster_2_0() {
                 self.booster_fuel = state.constants.booster.fuel;
             } else {
@@ -398,7 +398,7 @@ impl Player {
             self.vel_y -= 0x20;
 
             if self.booster_fuel % 3 == 0 {
-                state.create_caret(self.x, self.y + self.hit_bounds.bottom as isize / 2, CaretType::Exhaust, Direction::Bottom);
+                state.create_caret(self.x, self.y + self.hit_bounds.bottom as i32 / 2, CaretType::Exhaust, Direction::Bottom);
                 state.sound_manager.play_sfx(113);
             }
 
@@ -448,15 +448,15 @@ impl Player {
                 droplet.direction = if self.flags.water_splash_facing_right() { Direction::Right } else { Direction::Left };
 
                 for _ in 0..7 {
-                    droplet.x = self.x + (state.game_rng.range(-8..8) * 0x200) as isize;
+                    droplet.x = self.x + (state.game_rng.range(-8..8) * 0x200) as i32;
                     droplet.vel_x = if vertical_splash {
-                        (self.vel_x + state.game_rng.range(-0x200..0x200) as isize) - (self.vel_x / 2)
+                        (self.vel_x + state.game_rng.range(-0x200..0x200) as i32) - (self.vel_x / 2)
                     } else if horizontal_splash {
-                        self.vel_x + state.game_rng.range(-0x200..0x200) as isize
+                        self.vel_x + state.game_rng.range(-0x200..0x200) as i32
                     } else {
-                        0 as isize
+                        0 as i32
                     };
-                    droplet.vel_y = state.game_rng.range(-0x200..0x80) as isize;
+                    droplet.vel_y = state.game_rng.range(-0x200..0x80) as i32;
 
                     let _ = npc_list.spawn(0x100, droplet.clone());
                 }
@@ -616,7 +616,7 @@ impl Player {
         self.anim_rect.bottom += offset;
     }
 
-    pub fn damage(&mut self, hp: isize, state: &mut SharedGameState, npc_list: &NPCList) {
+    pub fn damage(&mut self, hp: i32, state: &mut SharedGameState, npc_list: &NPCList) {
         if state.settings.god_mode || self.shock_counter > 0 {
             return;
         }
@@ -648,8 +648,8 @@ impl Player {
             let mut npc = NPC::create(4, &state.npc_table);
             npc.cond.set_alive(true);
             for _ in 0..0x40 {
-                npc.x = self.x + state.game_rng.range(-10..10) as isize * 0x200;
-                npc.y = self.y + state.game_rng.range(-10..10) as isize * 0x200;
+                npc.x = self.x + state.game_rng.range(-10..10) as i32 * 0x200;
+                npc.y = self.y + state.game_rng.range(-10..10) as i32 * 0x200;
 
                 let _ = npc_list.spawn(0x100, npc.clone());
             }
@@ -694,11 +694,11 @@ impl GameEntity<&NPCList> for Player {
         {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
             batch.add_rect(
-                interpolate_fix9_scale(self.prev_x - self.display_bounds.left as isize - frame.prev_x,
-                                       self.x - self.display_bounds.left as isize - frame.x,
+                interpolate_fix9_scale(self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
+                                       self.x - self.display_bounds.left as i32 - frame.x,
                                        state.frame_time),
-                interpolate_fix9_scale(self.prev_y - self.display_bounds.left as isize - frame.prev_y,
-                                       self.y - self.display_bounds.left as isize - frame.y,
+                interpolate_fix9_scale(self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
+                                       self.y - self.display_bounds.left as i32 - frame.y,
                                        state.frame_time),
                 &self.anim_rect,
             );
@@ -710,22 +710,22 @@ impl GameEntity<&NPCList> for Player {
             match self.direction {
                 Direction::Left => {
                     batch.add_rect(
-                        interpolate_fix9_scale(self.prev_x - self.display_bounds.left as isize - frame.prev_x,
-                                               self.x - self.display_bounds.left as isize - frame.x,
+                        interpolate_fix9_scale(self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
+                                               self.x - self.display_bounds.left as i32 - frame.x,
                                                state.frame_time) - 8.0,
-                        interpolate_fix9_scale(self.prev_y - self.display_bounds.left as isize - frame.prev_y,
-                                               self.y - self.display_bounds.left as isize - frame.y,
+                        interpolate_fix9_scale(self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
+                                               self.y - self.display_bounds.left as i32 - frame.y,
                                                state.frame_time) + self.weapon_offset_y as f32,
                         &self.weapon_rect,
                     );
                 }
                 Direction::Right => {
                     batch.add_rect(
-                        interpolate_fix9_scale(self.prev_x - self.display_bounds.left as isize - frame.prev_x,
-                                               self.x - self.display_bounds.left as isize - frame.x,
+                        interpolate_fix9_scale(self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
+                                               self.x - self.display_bounds.left as i32 - frame.x,
                                                state.frame_time),
-                        interpolate_fix9_scale(self.prev_y - self.display_bounds.left as isize - frame.prev_y,
-                                               self.y - self.display_bounds.left as isize - frame.y,
+                        interpolate_fix9_scale(self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
+                                               self.y - self.display_bounds.left as i32 - frame.y,
                                                state.frame_time) + self.weapon_offset_y as f32,
                         &self.weapon_rect,
                     );

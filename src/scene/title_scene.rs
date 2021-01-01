@@ -13,6 +13,8 @@ use crate::input::touch_controls::TouchControlType;
 enum CurrentMenu {
     MainMenu,
     OptionMenu,
+    SaveSelectMenu,
+    ChallengesMenu,
     StartGame,
     LoadGame,
 }
@@ -23,6 +25,7 @@ pub struct TitleScene {
     current_menu: CurrentMenu,
     main_menu: Menu,
     option_menu: Menu,
+    save_select_menu: Menu,
 }
 
 impl TitleScene {
@@ -31,8 +34,9 @@ impl TitleScene {
             tick: 0,
             controller: CombinedMenuController::new(),
             current_menu: CurrentMenu::MainMenu,
-            main_menu: Menu::new(0, 0, 100, 1 * 14 + 6),
-            option_menu: Menu::new(0, 0, 180, 1 * 14 + 6),
+            main_menu: Menu::new(0, 0, 100, 0),
+            option_menu: Menu::new(0, 0, 180, 0),
+            save_select_menu: Menu::new(0, 0, 200, 0),
         }
     }
 
@@ -93,9 +97,12 @@ impl Scene for TitleScene {
         self.main_menu.push_entry(MenuEntry::Active("New game".to_string()));
         self.main_menu.push_entry(MenuEntry::Active("Load game".to_string()));
         self.main_menu.push_entry(MenuEntry::Active("Options".to_string()));
-        self.main_menu.push_entry(MenuEntry::Disabled("Editor".to_string()));
+        if cfg!(feature = "editor") {
+            self.main_menu.push_entry(MenuEntry::Active("Editor".to_string()));
+        } else {
+            self.main_menu.push_entry(MenuEntry::Hidden);
+        }
         self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
-        self.main_menu.height = self.main_menu.entries.len() as u16 * 14 + 6;
 
         self.option_menu.push_entry(MenuEntry::Toggle("Original timing (50TPS)".to_string(), state.timing_mode == TimingMode::_50Hz));
         self.option_menu.push_entry(MenuEntry::Toggle("Lighting effects".to_string(), state.settings.shader_effects));
@@ -113,7 +120,12 @@ impl Scene for TitleScene {
         self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
         self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));
         self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
-        self.option_menu.height = self.option_menu.entries.len() as u16 * 14 + 6;
+
+        self.save_select_menu.push_entry(MenuEntry::NewSave);
+        self.save_select_menu.push_entry(MenuEntry::NewSave);
+        self.save_select_menu.push_entry(MenuEntry::NewSave);
+        self.save_select_menu.push_entry(MenuEntry::Active("Delete a save".to_string()));
+        self.save_select_menu.push_entry(MenuEntry::Active("Back".to_string()));
 
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
@@ -126,9 +138,11 @@ impl Scene for TitleScene {
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
 
+        self.main_menu.update_height();
         self.main_menu.x = ((state.canvas_size.0 - self.main_menu.width as f32) / 2.0).floor() as isize;
         self.main_menu.y = ((state.canvas_size.1 + 70.0 - self.main_menu.height as f32) / 2.0).floor() as isize;
 
+        self.option_menu.update_height();
         self.option_menu.x = ((state.canvas_size.0 - self.option_menu.width as f32) / 2.0).floor() as isize;
         self.option_menu.y = ((state.canvas_size.1 + 70.0 - self.option_menu.height as f32) / 2.0).floor() as isize;
 
@@ -212,6 +226,7 @@ impl Scene for TitleScene {
                     state.load_or_start_game(ctx)?;
                 }
             }
+            _ => {}
         }
 
         self.tick += 1;

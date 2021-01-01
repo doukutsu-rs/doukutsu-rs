@@ -53,22 +53,22 @@ bitfield! {
 pub struct NPC {
     pub id: u16,
     pub npc_type: u16,
-    pub x: isize,
-    pub y: isize,
+    pub x: i32,
+    pub y: i32,
     /// X velocity, affected by physics code
-    pub vel_x: isize,
+    pub vel_x: i32,
     /// Y velocity, affected by physics code
-    pub vel_y: isize,
+    pub vel_y: i32,
     /// X velocity, unaffected by physics code
-    pub vel_x2: isize,
+    pub vel_x2: i32,
     /// Y velocity, unaffected by physics code
-    pub vel_y2: isize,
-    pub target_x: isize,
-    pub target_y: isize,
+    pub vel_y2: i32,
+    pub target_x: i32,
+    pub target_y: i32,
     /// Previous X position, used by frame interpolator
-    pub prev_x: isize,
+    pub prev_x: i32,
     /// Previous Y position, used by frame interpolator
-    pub prev_y: isize,
+    pub prev_y: i32,
     pub exp: u16,
     pub size: u8,
     pub shock: u16,
@@ -276,7 +276,6 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
             298 => self.tick_n298_intro_doctor(state),
             299 => self.tick_n299_intro_balrog_misery(state),
             300 => self.tick_n300_intro_demon_crown(state),
-            361 => self.tick_n361_gaudi_dashing(state, players, npc_list),
             _ => Ok(()),
         }?;
 
@@ -302,17 +301,17 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
 
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, state.npc_table.get_texture_name(self.npc_type))?;
 
-        let off_x = if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right } as isize;
+        let off_x = if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right } as i32;
         let shock = if self.shock > 0 {
-            (2 * ((self.shock as isize / 2) % 2) - 1) as f32
+            (2 * ((self.shock as i32 / 2) % 2) - 1) as f32
         } else { 0.0 };
 
         batch.add_rect(
             interpolate_fix9_scale(self.prev_x - off_x - frame.prev_x,
                                    self.x - off_x - frame.x,
                                    state.frame_time) + shock,
-            interpolate_fix9_scale(self.prev_y - self.display_bounds.top as isize - frame.prev_y,
-                                   self.y - self.display_bounds.top as isize - frame.y,
+            interpolate_fix9_scale(self.prev_y - self.display_bounds.top as i32 - frame.prev_y,
+                                   self.y - self.display_bounds.top as i32 - frame.y,
                                    state.frame_time),
             &self.anim_rect,
         );
@@ -324,16 +323,16 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
 
 impl PhysicalEntity for NPC {
     #[inline(always)]
-    fn x(&self) -> isize { self.x }
+    fn x(&self) -> i32 { self.x }
 
     #[inline(always)]
-    fn y(&self) -> isize { self.y }
+    fn y(&self) -> i32 { self.y }
 
     #[inline(always)]
-    fn vel_x(&self) -> isize { self.vel_x }
+    fn vel_x(&self) -> i32 { self.vel_x }
 
     #[inline(always)]
-    fn vel_y(&self) -> isize { self.vel_y }
+    fn vel_y(&self) -> i32 { self.vel_y }
 
     #[inline(always)]
     fn hit_rect_size(&self) -> usize {
@@ -345,10 +344,10 @@ impl PhysicalEntity for NPC {
     }
 
     #[inline(always)]
-    fn offset_x(&self) -> isize { if self.size >= 3 && !self.cond.drs_boss() { -0x1000 } else { 0 } }
+    fn offset_x(&self) -> i32 { if self.size >= 3 && !self.cond.drs_boss() { -0x1000 } else { 0 } }
 
     #[inline(always)]
-    fn offset_y(&self) -> isize { if self.size >= 3 && !self.cond.drs_boss() { -0x1000 } else { 0 } }
+    fn offset_y(&self) -> i32 { if self.size >= 3 && !self.cond.drs_boss() { -0x1000 } else { 0 } }
 
     #[inline(always)]
     fn hit_bounds(&self) -> &Rect<usize> {
@@ -356,22 +355,22 @@ impl PhysicalEntity for NPC {
     }
 
     #[inline(always)]
-    fn set_x(&mut self, x: isize) {
+    fn set_x(&mut self, x: i32) {
         self.x = x;
     }
 
     #[inline(always)]
-    fn set_y(&mut self, y: isize) {
+    fn set_y(&mut self, y: i32) {
         self.y = y;
     }
 
     #[inline(always)]
-    fn set_vel_x(&mut self, vel_x: isize) {
+    fn set_vel_x(&mut self, vel_x: i32) {
         self.vel_x = vel_x;
     }
 
     #[inline(always)]
-    fn set_vel_y(&mut self, vel_y: isize) {
+    fn set_vel_y(&mut self, vel_y: i32) {
         self.vel_y = vel_y;
     }
 

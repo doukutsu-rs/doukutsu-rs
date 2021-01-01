@@ -628,8 +628,8 @@ impl NPC {
                 npc.cond.set_alive(true);
                 npc.x = self.x;
                 npc.y = self.y;
-                npc.vel_x = (angle.cos() * -1024.0) as isize;
-                npc.vel_y = (angle.sin() * -1024.0) as isize;
+                npc.vel_x = (angle.cos() * -1024.0) as i32;
+                npc.vel_y = (angle.sin() * -1024.0) as i32;
 
                 let _ = npc_list.spawn(0x100, npc);
                 state.sound_manager.play_sfx(39);

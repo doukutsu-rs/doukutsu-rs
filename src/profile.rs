@@ -96,8 +96,8 @@ impl GameProfile {
 
         game_scene.player1.equip.0 = self.equipment as u16;
 
-        game_scene.player1.x = self.pos_x as isize;
-        game_scene.player1.y = self.pos_y as isize;
+        game_scene.player1.x = self.pos_x;
+        game_scene.player1.y = self.pos_y;
 
         game_scene.player1.control_mode = if self.control_mode == 1 { ControlMode::IronHead } else { ControlMode::Normal };
         game_scene.player1.direction = self.direction;

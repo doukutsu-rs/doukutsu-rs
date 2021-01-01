@@ -4,15 +4,31 @@ use crate::common::Rect;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::shared_game_state::SharedGameState;
 
+pub struct MenuSaveInfo {
+
+}
+
 pub enum MenuEntry {
+    Hidden,
     Active(String),
     Disabled(String),
     Toggle(String, bool),
+    Options(String, usize, Vec<String>),
+    SaveData(MenuSaveInfo),
+    NewSave,
 }
 
 impl MenuEntry {
     pub fn height(&self) -> f64 {
-        14.0
+        match self {
+            MenuEntry::Hidden => 0.0,
+            MenuEntry::Active(_) => 14.0,
+            MenuEntry::Disabled(_) => 14.0,
+            MenuEntry::Toggle(_, _) => 14.0,
+            MenuEntry::Options(_, _, _) => 14.0,
+            MenuEntry::SaveData(_) => 30.0,
+            MenuEntry::NewSave => 30.0,
+        }
     }
 }
 
@@ -29,6 +45,7 @@ pub struct Menu {
     pub height: u16,
     pub selected: usize,
     pub entries: Vec<MenuEntry>,
+    entry_y: u16,
     anim_num: u16,
     anim_wait: u16,
 }
@@ -43,6 +60,7 @@ impl Menu {
             width,
             height,
             selected: 0,
+            entry_y: 0,
             anim_num: 0,
             anim_wait: 0,
             entries: Vec::new(),
@@ -51,6 +69,16 @@ impl Menu {
 
     pub fn push_entry(&mut self, entry: MenuEntry) {
         self.entries.push(entry);
+    }
+
+    pub fn update_height(&mut self) {
+        let mut height = 6.0;
+
+        for entry in self.entries.iter() {
+            height += entry.height();
+        }
+
+        self.height = height.max(6.0) as u16;
     }
 
     pub fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -155,7 +183,7 @@ impl Menu {
         rect.bottom = rect.top + 16;
 
         batch.add_rect(self.x as f32,
-                       self.y as f32 + 2.0 + (self.selected as f32 * 14.0),
+                       self.y as f32 + 2.0 + self.entry_y as f32,
                        &rect);
 
         batch.draw(ctx)?;
@@ -177,6 +205,8 @@ impl Menu {
 
                     state.font.draw_text(value_text.chars(), self.x as f32 + self.width as f32 - val_text_len, y, &state.constants, &mut state.texture_set, ctx)?;
                 }
+                MenuEntry::Hidden => {}
+                _ => {}
             }
 
             y += entry.height() as f32;
@@ -216,6 +246,14 @@ impl Menu {
                     break;
                 }
             }
+        }
+
+        if !self.entries.is_empty() {
+            self.entry_y = self.entries[0..(self.selected)]
+                .iter()
+                .map(|e| e.height())
+                .sum::<f64>()
+                .max(0.0) as u16;
         }
 
         let mut y = self.y as f32 + 6.0;

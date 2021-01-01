@@ -18,8 +18,8 @@ impl NPC {
                         self.target_y = npc.y;
 
                         let angle = ((self.y - self.target_y) as f64 / (self.x - self.target_x) as f64).atan();
-                        self.vel_x = (angle.cos() * 1024.0) as isize; // 2.0fix9
-                        self.vel_y = (angle.sin() * 1024.0) as isize;
+                        self.vel_x = (angle.cos() * 1024.0) as i32; // 2.0fix9
+                        self.vel_y = (angle.sin() * 1024.0) as i32;
                     }
 
                     if self.action_counter2 == 0 {
@@ -78,7 +78,7 @@ impl NPC {
                     state.sound_manager.play_sfx(29);
                 }
 
-                self.x = self.target_x + self.rng.range(-1..1) as isize * 0x200;
+                self.x = self.target_x + self.rng.range(-1..1) as i32 * 0x200;
 
                 self.action_counter += 1;
                 if self.action_counter >= 32 {
@@ -341,7 +341,7 @@ impl NPC {
                     npc.x = self.x + 8 * 0x200;
                     npc.y = self.y - 8 * 0x200;
                     npc.vel_x = 0x600;
-                    npc.vel_y = self.rng.range(-0x200..0) as isize;
+                    npc.vel_y = self.rng.range(-0x200..0) as i32;
                     npc.cond.set_alive(true);
 
                     let _ = npc_list.spawn(0x100, npc);

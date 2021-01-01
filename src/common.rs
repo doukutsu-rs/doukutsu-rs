@@ -213,7 +213,7 @@ impl Direction {
         }
     }
 
-    pub fn vector_x(&self) -> isize {
+    pub fn vector_x(&self) -> i32 {
         match self {
             Direction::Left => { -1 }
             Direction::Up => { 0 }
@@ -223,7 +223,7 @@ impl Direction {
         }
     }
 
-    pub fn vector_y(&self) -> isize {
+    pub fn vector_y(&self) -> i32 {
         match self {
             Direction::Left => { 0 }
             Direction::Up => { -1 }
@@ -350,11 +350,12 @@ macro_rules! rect_deserialze {
 
 rect_deserialze!(u8);
 rect_deserialze!(u16);
+rect_deserialze!(i32);
 rect_deserialze!(isize);
 rect_deserialze!(usize);
 
 #[inline(always)]
-pub fn fix9_scale(val: isize, scale: f32) -> f32 {
+pub fn fix9_scale(val: i32, scale: f32) -> f32 {
     (val as f64 * scale as f64 / 512.0).floor() as f32 / scale
 }
 
@@ -363,11 +364,10 @@ fn lerp_f64(v1: f64, v2: f64, t: f64) -> f64 {
     v1 * (1.0 - t.fract()) + v2 * t.fract()
 }
 
-pub fn interpolate_fix9_scale(old_val: isize, val: isize, frame_delta: f64) -> f32 {
+pub fn interpolate_fix9_scale(old_val: i32, val: i32, frame_delta: f64) -> f32 {
     if (frame_delta - 1.0).abs() < 0.001 {
         return (val / 0x200) as f32;
     }
 
     (lerp_f64(old_val as f64, val as f64, frame_delta) / 512.0) as f32
-    //((lerp_f64(old_val as f64, val as f64, frame_delta) * scale as f64 / 512.0).floor() / (scale as f64)) as f32
 }

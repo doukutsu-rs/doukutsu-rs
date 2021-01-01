@@ -12,24 +12,24 @@ mod npcs;
 
 #[derive(Debug, Copy, Clone)]
 pub struct PhysicsConsts {
-    pub max_dash: isize,
-    pub max_move: isize,
-    pub gravity_ground: isize,
-    pub gravity_air: isize,
-    pub dash_ground: isize,
-    pub dash_air: isize,
-    pub resist: isize,
-    pub jump: isize,
+    pub max_dash: i32,
+    pub max_move: i32,
+    pub gravity_ground: i32,
+    pub gravity_air: i32,
+    pub dash_ground: i32,
+    pub dash_air: i32,
+    pub resist: i32,
+    pub jump: i32,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct BoosterConsts {
-    pub fuel: usize,
-    pub b2_0_up: isize,
-    pub b2_0_up_nokey: isize,
-    pub b2_0_down: isize,
-    pub b2_0_left: isize,
-    pub b2_0_right: isize,
+    pub fuel: u32,
+    pub b2_0_up: i32,
+    pub b2_0_up_nokey: i32,
+    pub b2_0_down: i32,
+    pub b2_0_left: i32,
+    pub b2_0_right: i32,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -47,7 +47,7 @@ pub struct MyCharConsts {
 
 #[derive(Debug)]
 pub struct CaretConsts {
-    pub offsets: [(isize, isize); 18],
+    pub offsets: [(i32, i32); 18],
     pub bubble_left_rects: Vec<Rect<u16>>,
     pub bubble_right_rects: Vec<Rect<u16>>,
     pub projectile_dissipation_left_rects: Vec<Rect<u16>>,
@@ -707,7 +707,7 @@ impl EngineConstants {
                 "Title" => (320, 48),
             },
             textscript: TextScriptConsts {
-                encoding: TextScriptEncoding::UTF8,
+                encoding: TextScriptEncoding::ShiftJIS,
                 encrypted: true,
                 animated_face_pics: false,
                 textbox_rect_top: Rect { left: 0, top: 0, right: 244, bottom: 8 },

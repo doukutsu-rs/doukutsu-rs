@@ -204,10 +204,10 @@ impl NPC {
                     npc.cond.set_alive(true);
 
                     for _ in 0..4 {
-                        npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = self.rng.range(-0x600..0) as isize;
+                        npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                        npc.vel_y = self.rng.range(-0x600..0) as i32;
 
                         let _ = npc_list.spawn(0x100, npc.clone());
                     }
@@ -235,8 +235,8 @@ impl NPC {
                 self.action_counter += 1;
                 if self.action_counter > 100 && self.action_counter % 6 == 1 {
                     let deg = (if self.direction == Direction::Left { 0x88 } else { 0xf8 } + self.rng.range(-16..16)) as f64 * CDEG_RAD;
-                    let vel_x = (deg.cos() * 1536.0) as isize;
-                    let vel_y = (deg.sin() * 1536.0) as isize;
+                    let vel_x = (deg.cos() * 1536.0) as i32;
+                    let vel_y = (deg.sin() * 1536.0) as i32;
 
                     let mut npc = NPC::create(11, &state.npc_table);
 
@@ -289,10 +289,10 @@ impl NPC {
                     npc.cond.set_alive(true);
 
                     for _ in 0..8 {
-                        npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = self.rng.range(-0x600..0) as isize;
+                        npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                        npc.vel_y = self.rng.range(-0x600..0) as i32;
 
                         let _ = npc_list.spawn(0x100, npc.clone());
                     }
@@ -309,10 +309,10 @@ impl NPC {
 
                     npc.cond.set_alive(true);
                     npc.direction = Direction::Left;
-                    npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
-                    npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
-                    npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-                    npc.vel_y = self.rng.range(-0x600..0) as isize;
+                    npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                    npc.vel_y = self.rng.range(-0x600..0) as i32;
 
                     let _ = npc_list.spawn(0x100, npc);
                 }
@@ -349,10 +349,10 @@ impl NPC {
 
                     npc.cond.set_alive(true);
                     npc.direction = Direction::Left;
-                    npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
-                    npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
-                    npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-                    npc.vel_y = self.rng.range(-0x600..0) as isize;
+                    npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                    npc.vel_y = self.rng.range(-0x600..0) as i32;
 
                     let _ = npc_list.spawn(0x100, npc);
                 }

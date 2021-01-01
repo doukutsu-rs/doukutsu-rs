@@ -32,7 +32,7 @@ use crate::ui::Components;
 use crate::weapon::WeaponType;
 
 pub struct GameScene {
-    pub tick: usize,
+    pub tick: u32,
     pub stage: Stage,
     pub boss_life_bar: BossLifeBar,
     pub stage_select: StageSelect,
@@ -180,9 +180,9 @@ impl GameScene {
             BackgroundType::OutsideWind | BackgroundType::Outside => {
                 graphics::clear(ctx, Color::from_rgb(0, 0, 0));
 
-                let offset = (self.tick % 640) as isize;
+                let offset = (self.tick % 640) as i32;
 
-                for x in (0..(state.canvas_size.0 as isize)).step_by(200) {
+                for x in (0..(state.canvas_size.0 as i32)).step_by(200) {
                     batch.add_rect(x as f32, 0.0,
                                    &Rect::new_size(0, 0, 200, 88));
                 }
@@ -190,22 +190,22 @@ impl GameScene {
                 batch.add_rect(state.canvas_size.0 - 320.0, 0.0,
                                &Rect::new_size(0, 0, 320, 88));
 
-                for x in ((-offset / 2)..(state.canvas_size.0 as isize)).step_by(320) {
+                for x in ((-offset / 2)..(state.canvas_size.0 as i32)).step_by(320) {
                     batch.add_rect(x as f32, 88.0,
                                    &Rect::new_size(0, 88, 320, 35));
                 }
 
-                for x in ((-offset % 320)..(state.canvas_size.0 as isize)).step_by(320) {
+                for x in ((-offset % 320)..(state.canvas_size.0 as i32)).step_by(320) {
                     batch.add_rect(x as f32, 123.0,
                                    &Rect::new_size(0, 123, 320, 23));
                 }
 
-                for x in ((-offset * 2)..(state.canvas_size.0 as isize)).step_by(320) {
+                for x in ((-offset * 2)..(state.canvas_size.0 as i32)).step_by(320) {
                     batch.add_rect(x as f32, 146.0,
                                    &Rect::new_size(0, 146, 320, 30));
                 }
 
-                for x in ((-offset * 4)..(state.canvas_size.0 as isize)).step_by(320) {
+                for x in ((-offset * 4)..(state.canvas_size.0 as i32)).step_by(320) {
                     batch.add_rect(x as f32, 176.0,
                                    &Rect::new_size(0, 176, 320, 64));
                 }
@@ -219,36 +219,36 @@ impl GameScene {
 
     fn draw_bullets(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Bullet")?;
-        let mut x: isize;
-        let mut y: isize;
-        let mut prev_x: isize;
-        let mut prev_y: isize;
+        let mut x: i32;
+        let mut y: i32;
+        let mut prev_x: i32;
+        let mut prev_y: i32;
 
         for bullet in self.bullet_manager.bullets.iter() {
             match bullet.direction {
                 Direction::Left => {
-                    x = bullet.x - bullet.display_bounds.left as isize;
-                    y = bullet.y - bullet.display_bounds.top as isize;
-                    prev_x = bullet.prev_x - bullet.display_bounds.left as isize;
-                    prev_y = bullet.prev_y - bullet.display_bounds.top as isize;
+                    x = bullet.x - bullet.display_bounds.left as i32;
+                    y = bullet.y - bullet.display_bounds.top as i32;
+                    prev_x = bullet.prev_x - bullet.display_bounds.left as i32;
+                    prev_y = bullet.prev_y - bullet.display_bounds.top as i32;
                 }
                 Direction::Up => {
-                    x = bullet.x - bullet.display_bounds.top as isize;
-                    y = bullet.y - bullet.display_bounds.left as isize;
-                    prev_x = bullet.prev_x - bullet.display_bounds.top as isize;
-                    prev_y = bullet.prev_y - bullet.display_bounds.left as isize;
+                    x = bullet.x - bullet.display_bounds.top as i32;
+                    y = bullet.y - bullet.display_bounds.left as i32;
+                    prev_x = bullet.prev_x - bullet.display_bounds.top as i32;
+                    prev_y = bullet.prev_y - bullet.display_bounds.left as i32;
                 }
                 Direction::Right => {
-                    x = bullet.x - bullet.display_bounds.right as isize;
-                    y = bullet.y - bullet.display_bounds.top as isize;
-                    prev_x = bullet.prev_x - bullet.display_bounds.right as isize;
-                    prev_y = bullet.prev_y - bullet.display_bounds.top as isize;
+                    x = bullet.x - bullet.display_bounds.right as i32;
+                    y = bullet.y - bullet.display_bounds.top as i32;
+                    prev_x = bullet.prev_x - bullet.display_bounds.right as i32;
+                    prev_y = bullet.prev_y - bullet.display_bounds.top as i32;
                 }
                 Direction::Bottom => {
-                    x = bullet.x - bullet.display_bounds.top as isize;
-                    y = bullet.y - bullet.display_bounds.right as isize;
-                    prev_x = bullet.prev_x - bullet.display_bounds.top as isize;
-                    prev_y = bullet.prev_y - bullet.display_bounds.right as isize;
+                    x = bullet.x - bullet.display_bounds.top as i32;
+                    y = bullet.y - bullet.display_bounds.right as i32;
+                    prev_x = bullet.prev_x - bullet.display_bounds.top as i32;
+                    prev_y = bullet.prev_y - bullet.display_bounds.right as i32;
                 }
                 Direction::FacingPlayer => unreachable!(),
             }
@@ -297,14 +297,14 @@ impl GameScene {
                     FadeDirection::Left | FadeDirection::Right => {
                         let mut frame = tick;
 
-                        for x in (0..(state.canvas_size.0 as isize + 16)).step_by(16) {
+                        for x in (0..(state.canvas_size.0 as i32 + 16)).step_by(16) {
                             if frame > 15 { frame = 15; } else { frame += 1; }
 
                             if frame >= 0 {
                                 rect.left = frame as u16 * 16;
                                 rect.right = rect.left + 16;
 
-                                for y in (0..(state.canvas_size.1 as isize + 16)).step_by(16) {
+                                for y in (0..(state.canvas_size.1 as i32 + 16)).step_by(16) {
                                     if direction == FadeDirection::Left {
                                         batch.add_rect(state.canvas_size.0 - x as f32, y as f32, &rect);
                                     } else {
@@ -317,14 +317,14 @@ impl GameScene {
                     FadeDirection::Up | FadeDirection::Down => {
                         let mut frame = tick;
 
-                        for y in (0..(state.canvas_size.1 as isize + 16)).step_by(16) {
+                        for y in (0..(state.canvas_size.1 as i32 + 16)).step_by(16) {
                             if frame > 15 { frame = 15; } else { frame += 1; }
 
                             if frame >= 0 {
                                 rect.left = frame as u16 * 16;
                                 rect.right = rect.left + 16;
 
-                                for x in (0..(state.canvas_size.0 as isize + 16)).step_by(16) {
+                                for x in (0..(state.canvas_size.0 as i32 + 16)).step_by(16) {
                                     if direction == FadeDirection::Down {
                                         batch.add_rect(x as f32, y as f32, &rect);
                                     } else {
@@ -335,8 +335,8 @@ impl GameScene {
                         }
                     }
                     FadeDirection::Center => {
-                        let center_x = (state.canvas_size.0 / 2.0 - 8.0) as isize;
-                        let center_y = (state.canvas_size.1 / 2.0 - 8.0) as isize;
+                        let center_x = (state.canvas_size.0 / 2.0 - 8.0) as i32;
+                        let center_y = (state.canvas_size.1 / 2.0 - 8.0) as i32;
                         let mut start_frame = tick;
 
                         for x in (0..(center_x + 16)).step_by(16) {
@@ -534,10 +534,10 @@ impl GameScene {
             }
 
             for npc in self.npc_list.iter_alive() {
-                if npc.cond.hidden() || (npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as isize * 0x200)
-                    || npc.x > (self.frame.x + 128 * 0x200 + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
-                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as isize * 0x200)
-                    || npc.y > (self.frame.y + 128 * 0x200 + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200)) {
+                if npc.cond.hidden() || (npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
+                    || npc.x > (self.frame.x + 128 * 0x200 + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
+                    || npc.y > (self.frame.y + 128 * 0x200 + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)) {
                     continue;
                 }
 
@@ -670,10 +670,10 @@ impl GameScene {
         // cheap, clones a reference underneath
         let mut tmp_batch = SpriteBatch::new(state.tmp_canvas.image().clone());
 
-        let tile_start_x = clamp(self.frame.x / 0x200 / 16, 0, self.stage.map.width as isize) as usize;
-        let tile_start_y = clamp(self.frame.y / 0x200 / 16, 0, self.stage.map.height as isize) as usize;
-        let tile_end_x = clamp((self.frame.x / 0x200 + 8 + state.canvas_size.0 as isize) / 16 + 1, 0, self.stage.map.width as isize) as usize;
-        let tile_end_y = clamp((self.frame.y / 0x200 + 8 + state.canvas_size.1 as isize) / 16 + 1, 0, self.stage.map.height as isize) as usize;
+        let tile_start_x = clamp(self.frame.x / 0x200 / 16, 0, self.stage.map.width as i32) as usize;
+        let tile_start_y = clamp(self.frame.y / 0x200 / 16, 0, self.stage.map.height as i32) as usize;
+        let tile_end_x = clamp((self.frame.x / 0x200 + 8 + state.canvas_size.0 as i32) / 16 + 1, 0, self.stage.map.width as i32) as usize;
+        let tile_end_y = clamp((self.frame.y / 0x200 + 8 + state.canvas_size.1 as i32) / 16 + 1, 0, self.stage.map.height as i32) as usize;
         let mut rect = Rect {
             left: 0.0,
             top: 0.0,
@@ -683,12 +683,14 @@ impl GameScene {
 
         for y in tile_start_y..tile_end_y {
             for x in tile_start_x..tile_end_x {
-                let tile = self.stage.map.attrib[*self.stage.map.tiles
-                    .get((y * self.stage.map.width) + x)
-                    .unwrap() as usize];
-                let tile_above = self.stage.map.attrib[*self.stage.map.tiles
-                    .get((y.saturating_sub(1) * self.stage.map.width) + x)
-                    .unwrap() as usize];
+                let tile = unsafe {
+                    self.stage.map.attrib[*self.stage.map.tiles
+                        .get_unchecked((y * self.stage.map.width as usize) + x) as usize]
+                };
+                let tile_above = unsafe {
+                    self.stage.map.attrib[*self.stage.map.tiles
+                        .get_unchecked((y.saturating_sub(1) * self.stage.map.width as usize) + x) as usize]
+                };
 
                 if !self.is_water(tile) {
                     continue;
@@ -733,10 +735,10 @@ impl GameScene {
         let mut rect = Rect::new(0, 0, 16, 16);
         let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time, state.scale);
 
-        let tile_start_x = clamp(self.frame.x / 0x200 / 16, 0, self.stage.map.width as isize) as usize;
-        let tile_start_y = clamp(self.frame.y / 0x200 / 16, 0, self.stage.map.height as isize) as usize;
-        let tile_end_x = clamp((self.frame.x / 0x200 + 8 + state.canvas_size.0 as isize) / 16 + 1, 0, self.stage.map.width as isize) as usize;
-        let tile_end_y = clamp((self.frame.y / 0x200 + 8 + state.canvas_size.1 as isize) / 16 + 1, 0, self.stage.map.height as isize) as usize;
+        let tile_start_x = clamp(frame_x as i32 / 16, 0, self.stage.map.width as i32) as usize;
+        let tile_start_y = clamp(frame_y as i32 / 16, 0, self.stage.map.height as i32) as usize;
+        let tile_end_x = clamp((frame_x as i32 + 8 + state.canvas_size.0 as i32) / 16 + 1, 0, self.stage.map.width as i32) as usize;
+        let tile_end_y = clamp((frame_y as i32 + 8 + state.canvas_size.1 as i32) / 16 + 1, 0, self.stage.map.height as i32) as usize;
 
         if layer == TileLayer::Snack {
             rect = state.constants.world.snack_rect;
@@ -745,7 +747,7 @@ impl GameScene {
         for y in tile_start_y..tile_end_y {
             for x in tile_start_x..tile_end_x {
                 let tile = *self.stage.map.tiles
-                    .get((y * self.stage.map.width) + x)
+                    .get((y * self.stage.map.width as usize) + x)
                     .unwrap();
 
                 match layer {
@@ -874,16 +876,16 @@ impl GameScene {
 
                 let hit = (
                     npc.npc_flags.shootable()
-                        && (npc.x - npc.hit_bounds.right as isize) < (bullet.x + bullet.enemy_hit_width as isize)
-                        && (npc.x + npc.hit_bounds.right as isize) > (bullet.x - bullet.enemy_hit_width as isize)
-                        && (npc.y - npc.hit_bounds.top as isize) < (bullet.y + bullet.enemy_hit_height as isize)
-                        && (npc.y + npc.hit_bounds.bottom as isize) > (bullet.y - bullet.enemy_hit_height as isize)
+                        && (npc.x - npc.hit_bounds.right as i32) < (bullet.x + bullet.enemy_hit_width as i32)
+                        && (npc.x + npc.hit_bounds.right as i32) > (bullet.x - bullet.enemy_hit_width as i32)
+                        && (npc.y - npc.hit_bounds.top as i32) < (bullet.y + bullet.enemy_hit_height as i32)
+                        && (npc.y + npc.hit_bounds.bottom as i32) > (bullet.y - bullet.enemy_hit_height as i32)
                 ) || (
                     npc.npc_flags.invulnerable()
-                        && (npc.x - npc.hit_bounds.right as isize) < (bullet.x + bullet.hit_bounds.right as isize)
-                        && (npc.x + npc.hit_bounds.right as isize) > (bullet.x - bullet.hit_bounds.left as isize)
-                        && (npc.y - npc.hit_bounds.top as isize) < (bullet.y + bullet.hit_bounds.bottom as isize)
-                        && (npc.y + npc.hit_bounds.bottom as isize) > (bullet.y - bullet.hit_bounds.top as isize)
+                        && (npc.x - npc.hit_bounds.right as i32) < (bullet.x + bullet.hit_bounds.right as i32)
+                        && (npc.x + npc.hit_bounds.right as i32) > (bullet.x - bullet.hit_bounds.left as i32)
+                        && (npc.y - npc.hit_bounds.top as i32) < (bullet.y + bullet.hit_bounds.bottom as i32)
+                        && (npc.y + npc.hit_bounds.bottom as i32) > (bullet.y - bullet.hit_bounds.top as i32)
                 );
 
                 if !hit {
@@ -1070,10 +1072,10 @@ impl GameScene {
     }
 
     fn draw_debug_npc(&self, npc: &NPC, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if npc.x < (self.frame.x - 128 - npc.display_bounds.width() as isize * 0x200)
-            || npc.x > (self.frame.x + 128 + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
-            && npc.y < (self.frame.y - 128 - npc.display_bounds.height() as isize * 0x200)
-            || npc.y > (self.frame.y + 128 + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
+        if npc.x < (self.frame.x - 128 - npc.display_bounds.width() as i32 * 0x200)
+            || npc.x > (self.frame.x + 128 + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+            && npc.y < (self.frame.y - 128 - npc.display_bounds.height() as i32 * 0x200)
+            || npc.y > (self.frame.y + 128 + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200) {
             return Ok(());
         }
 
@@ -1231,6 +1233,10 @@ impl Scene for GameScene {
         }
 
         TextScriptVM::run(state, self, ctx)?;
+
+        #[cfg(feature = "scripting")]
+            state.lua.scene_tick(self);
+
         self.tick = self.tick.wrapping_add(1);
         Ok(())
     }
@@ -1286,10 +1292,10 @@ impl Scene for GameScene {
 
         self.boss.draw(state, ctx, &self.frame)?;
         for npc in self.npc_list.iter_alive() {
-            if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as isize * 0x200)
-                || npc.x > (self.frame.x + 128 * 0x200 + (state.canvas_size.0 as isize + npc.display_bounds.width() as isize) * 0x200)
-                && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as isize * 0x200)
-                || npc.y > (self.frame.y + 128 * 0x200 + (state.canvas_size.1 as isize + npc.display_bounds.height() as isize) * 0x200) {
+            if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
+                || npc.x > (self.frame.x + 128 * 0x200 + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+                && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
+                || npc.y > (self.frame.y + 128 * 0x200 + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200) {
                 continue;
             }
 
@@ -1333,7 +1339,7 @@ impl Scene for GameScene {
                     state.font.draw_colored_text(P2_LEFT_TEXT.chars(),
                                                  8.0, y,
                                                  (96, 96, 255, 255), &state.constants, &mut state.texture_set, ctx)?;
-                } else if self.player2.x - 8 * 0x200 > self.frame.x + state.canvas_size.0 as isize * 0x200 {
+                } else if self.player2.x - 8 * 0x200 > self.frame.x + state.canvas_size.0 as i32 * 0x200 {
                     let width = state.font.text_width(P2_RIGHT_TEXT.chars(), &state.constants);
 
                     state.font.draw_colored_text(P2_RIGHT_TEXT.chars(),

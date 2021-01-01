@@ -12,8 +12,8 @@ impl NPC {
             if self.action_num == 0 {
                 self.action_num = 1;
 
-                self.vel_x = self.rng.range(-0x80..0x80) as isize;
-                self.vel_y = self.rng.range(-0x7f..0x100) as isize;
+                self.vel_x = self.rng.range(-0x80..0x80) as i32;
+                self.vel_y = self.rng.range(-0x7f..0x100) as i32;
             }
 
             self.vel_x -= 0x8;
@@ -43,8 +43,8 @@ impl NPC {
                 self.action_num = 1;
                 self.anim_num = self.rng.range(0..4) as u16;
 
-                self.vel_x = self.rng.range(-0x200..0x200) as isize;
-                self.vel_y = self.rng.range(-0x400..0) as isize;
+                self.vel_x = self.rng.range(-0x200..0x200) as i32;
+                self.vel_y = self.rng.range(-0x400..0) as i32;
 
                 self.direction = if self.rng.range(0..1) != 0 {
                     Direction::Left
@@ -162,8 +162,8 @@ impl NPC {
         if state.control_flags.wind() {
             if self.action_num == 0 {
                 self.action_num = 1;
-                self.vel_x = self.rng.range(0x7f..0x100) as isize;
-                self.vel_y = self.rng.range(-0x20..0x20) as isize;
+                self.vel_x = self.rng.range(0x7f..0x100) as i32;
+                self.vel_y = self.rng.range(-0x20..0x20) as i32;
             }
 
             self.vel_x -= 0x08;
@@ -230,8 +230,8 @@ impl NPC {
         if state.control_flags.wind() {
             if self.action_num == 0 {
                 self.action_num = 1;
-                self.vel_x = self.rng.range(0x7f..0x100) as isize;
-                self.vel_y = self.rng.range(-0x20..0x20) as isize;
+                self.vel_x = self.rng.range(0x7f..0x100) as i32;
+                self.vel_y = self.rng.range(-0x20..0x20) as i32;
             }
 
             self.vel_x -= 0x08;

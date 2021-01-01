@@ -4,6 +4,7 @@ use itertools::Itertools;
 
 use crate::scene::game_scene::GameScene;
 use crate::shared_game_state::SharedGameState;
+use crate::text_script::TextScriptExecutionState;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
@@ -95,7 +96,7 @@ impl LiveDebugger {
                     state.set_speed(speed);
                 }
 
-                if ui.button(im_str!("Map Selector"), [0.0, 0.0]) {
+                if ui.button(im_str!("Maps"), [0.0, 0.0]) {
                     self.map_selector_visible = !self.map_selector_visible;
                 }
 
@@ -105,14 +106,20 @@ impl LiveDebugger {
                 }
 
                 ui.same_line(0.0);
-                if ui.button(im_str!("Hacks"), [0.0, 0.0]) {
-                    self.hacks_visible = !self.hacks_visible;
-                }
-
-                ui.same_line(0.0);
                 if ui.button(im_str!("Flags"), [0.0, 0.0]) {
                     self.flags_visible = !self.flags_visible;
                 }
+
+                #[cfg(feature = "scripting")]
+                    {
+                        ui.same_line(0.0);
+                        if ui.button(im_str!("Reload Scripts"), [0.0, 0.0]) {
+                            if let Err(err) = state.lua.reload_scripts(ctx) {
+                                log::error!("Error reloading scripts: {:?}", err);
+                                self.error = Some(ImString::new(err.to_string()));
+                            }
+                        }
+                    }
 
                 ui.same_line(0.0);
                 if game_scene.player2.cond.alive() {
@@ -152,21 +159,23 @@ impl LiveDebugger {
                                 scene.inventory_player2 = game_scene.inventory_player2.clone();
 
                                 scene.player1 = game_scene.player1.clone();
-                                scene.player1.x = (scene.stage.map.width / 2 * 16 * 0x200) as isize;
-                                scene.player1.y = (scene.stage.map.height / 2 * 16 * 0x200) as isize;
+                                scene.player1.x = scene.stage.map.width as i32 / 2 * 16 * 0x200;
+                                scene.player1.y = scene.stage.map.height as i32 / 2 * 16 * 0x200;
 
                                 if scene.player1.life == 0 {
                                     scene.player1.life = scene.player1.max_life;
                                 }
 
                                 scene.player2 = game_scene.player2.clone();
-                                scene.player2.x = (scene.stage.map.width / 2 * 16 * 0x200) as isize;
-                                scene.player2.y = (scene.stage.map.height / 2 * 16 * 0x200) as isize;
+                                scene.player2.x = scene.stage.map.width as i32 / 2 * 16 * 0x200;
+                                scene.player2.y = scene.stage.map.height as i32 / 2 * 16 * 0x200;
 
                                 if scene.player2.life == 0 {
                                     scene.player2.life = scene.player1.max_life;
                                 }
 
+                                state.textscript_vm.suspend = true;
+                                state.textscript_vm.state = TextScriptExecutionState::Running(94, 0);
                                 state.next_scene = Some(Box::new(scene));
                             }
                             Err(e) => {

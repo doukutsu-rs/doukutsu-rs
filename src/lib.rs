@@ -1,10 +1,14 @@
 #[macro_use]
 extern crate log;
+#[cfg_attr(feature = "scripting", macro_use)]
+#[cfg(feature = "scripting")]
+extern crate lua_ffi;
 extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 
 use std::{env, mem};
+use std::cell::UnsafeCell;
 use std::path;
 use std::time::Instant;
 
@@ -53,6 +57,8 @@ mod player;
 mod profile;
 mod rng;
 mod scene;
+#[cfg(feature = "scripting")]
+mod scripting;
 mod settings;
 mod shaders;
 mod shared_game_state;
@@ -65,7 +71,7 @@ mod weapon;
 
 struct Game {
     scene: Option<Box<dyn Scene>>,
-    state: SharedGameState,
+    state: UnsafeCell<SharedGameState>,
     ui: UI,
     def_matrix: ColumnMatrix4<f32>,
     start_time: Instant,
@@ -80,7 +86,7 @@ impl Game {
             scene: None,
             ui: UI::new(ctx)?,
             def_matrix: DrawParam::new().to_matrix(),
-            state: SharedGameState::new(ctx)?,
+            state: UnsafeCell::new(SharedGameState::new(ctx)?),
             start_time: Instant::now(),
             last_tick: 0,
             next_tick: 0,
@@ -92,15 +98,17 @@ impl Game {
 
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         if let Some(scene) = self.scene.as_mut() {
-            match self.state.timing_mode {
+            let state_ref = unsafe { &mut *self.state.get() };
+
+            match state_ref.timing_mode {
                 TimingMode::_50Hz | TimingMode::_60Hz => {
                     let last_tick = self.next_tick;
 
                     while self.start_time.elapsed().as_nanos() >= self.next_tick && self.loops < 10 {
-                        if (self.state.settings.speed - 1.0).abs() < 0.01 {
-                            self.next_tick += self.state.timing_mode.get_delta() as u128;
+                        if (state_ref.settings.speed - 1.0).abs() < 0.01 {
+                            self.next_tick += state_ref.timing_mode.get_delta() as u128;
                         } else {
-                            self.next_tick += (self.state.timing_mode.get_delta() as f64 / self.state.settings.speed) as u128;
+                            self.next_tick += (state_ref.timing_mode.get_delta() as f64 / state_ref.settings.speed) as u128;
                         }
                         self.loops += 1;
                     }
@@ -108,21 +116,21 @@ impl Game {
                     if self.loops == 10 {
                         log::warn!("Frame skip is way too high, a long system lag occurred?");
                         self.last_tick = self.start_time.elapsed().as_nanos();
-                        self.next_tick = self.last_tick + (self.state.timing_mode.get_delta() as f64 / self.state.settings.speed) as u128;
+                        self.next_tick = self.last_tick + (state_ref.timing_mode.get_delta() as f64 / state_ref.settings.speed) as u128;
                         self.loops = 0;
                     }
 
                     if self.loops != 0 {
-                        scene.draw_tick(&mut self.state)?;
+                        scene.draw_tick(state_ref)?;
                         self.last_tick = last_tick;
                     }
 
                     for _ in 0..self.loops {
-                        scene.tick(&mut self.state, ctx)?;
+                        scene.tick(state_ref, ctx)?;
                     }
                 }
                 TimingMode::FrameSynchronized => {
-                    scene.tick(&mut self.state, ctx)?;
+                    scene.tick(state_ref, ctx)?;
                 }
             }
         }
@@ -130,28 +138,30 @@ impl Game {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        if self.state.timing_mode != TimingMode::FrameSynchronized {
+        let state_ref = unsafe { &mut *self.state.get() };
+
+        if state_ref.timing_mode != TimingMode::FrameSynchronized {
             let n1 = (self.start_time.elapsed().as_nanos() - self.last_tick) as f64;
             let n2 = (self.next_tick - self.last_tick) as f64;
-            self.state.frame_time = n1 / n2;
+            state_ref.frame_time = n1 / n2;
         }
         self.loops = 0;
 
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
         graphics::set_transform(ctx, DrawParam::new()
-            .scale(Vector2::new(self.state.scale, self.state.scale))
+            .scale(Vector2::new(state_ref.scale, state_ref.scale))
             .to_matrix());
         graphics::apply_transformations(ctx)?;
 
         if let Some(scene) = self.scene.as_mut() {
-            scene.draw(&mut self.state, ctx)?;
-            if self.state.settings.touch_controls {
-                self.state.touch_controls.draw(self.state.canvas_size, &self.state.constants, &mut self.state.texture_set, ctx)?;
+            scene.draw(state_ref, ctx)?;
+            if state_ref.settings.touch_controls {
+                state_ref.touch_controls.draw(state_ref.canvas_size, &state_ref.constants, &mut state_ref.texture_set, ctx)?;
             }
 
             graphics::set_transform(ctx, self.def_matrix);
             graphics::apply_transformations(ctx)?;
-            self.ui.draw(&mut self.state, ctx, scene)?;
+            self.ui.draw(state_ref, ctx, scene)?;
         }
 
         graphics::present(ctx)?;
@@ -161,7 +171,7 @@ impl Game {
     fn key_down_event(&mut self, key_code: KeyCode, _key_mod: KeyMods, repeat: bool) {
         if repeat { return; }
 
-        let state = &mut self.state;
+        let state = unsafe { &mut *self.state.get() };
         match key_code {
             KeyCode::F7 => { state.set_speed(1.0) }
             KeyCode::F8 => {
@@ -328,8 +338,19 @@ pub fn init() -> GameResult {
                 game.ui.handle_events(ctx, &event);
             } else {
                 let mut new_game = Game::new(ctx).unwrap();
-                new_game.state.next_scene = Some(Box::new(LoadingScene::new()));
+                let state_ref = unsafe { &mut *new_game.state.get() };
+                state_ref.next_scene = Some(Box::new(LoadingScene::new()));
                 game = Some(new_game);
+
+                #[cfg(feature = "scripting")]
+                    {
+                        unsafe {
+                            let game_ref = game.as_mut().unwrap();
+                            let state_ref = game_ref.state.get();
+
+                            (&mut *state_ref).lua.update_refs(game_ref.state.get(), ctx as *mut Context);
+                        }
+                    }
             }
         }
 
@@ -358,22 +379,26 @@ pub fn init() -> GameResult {
                 match event {
                     WindowEvent::CloseRequested => {
                         if let Some(game) = &mut game {
-                            game.state.shutdown();
+                            let state_ref = unsafe { &mut *game.state.get() };
+                            state_ref.shutdown();
                         }
                         *flow = ControlFlow::Exit;
                     }
                     WindowEvent::Resized(_) => {
                         if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
-                            game.state.tmp_canvas = Canvas::with_window_size(ctx).unwrap();
-                            game.state.game_canvas = Canvas::with_window_size(ctx).unwrap();
-                            game.state.lightmap_canvas = Canvas::with_window_size(ctx).unwrap();
-                            game.state.handle_resize(ctx).unwrap();
+                            let state_ref = unsafe { &mut *game.state.get() };
+
+                            state_ref.tmp_canvas = Canvas::with_window_size(ctx).unwrap();
+                            state_ref.game_canvas = Canvas::with_window_size(ctx).unwrap();
+                            state_ref.lightmap_canvas = Canvas::with_window_size(ctx).unwrap();
+                            state_ref.handle_resize(ctx).unwrap();
                             graphics::window(ctx).update_gfx(&mut game.ui.main_color, &mut game.ui.main_depth);
                         }
                     }
                     WindowEvent::Touch(touch) => {
                         if let Some(game) = &mut game {
-                            game.state.touch_controls.process_winit_event(game.state.scale, touch);
+                            let state_ref = unsafe { &mut *game.state.get() };
+                            state_ref.touch_controls.process_winit_event(state_ref.scale, touch);
                         }
                     }
                     WindowEvent::KeyboardInput {
@@ -420,19 +445,21 @@ pub fn init() -> GameResult {
                         }
                     window(ctx).window().request_redraw();
 
-                    if game.state.shutdown {
+                    let state_ref = unsafe { &mut *game.state.get() };
+
+                    if state_ref.shutdown {
                         log::info!("Shutting down...");
                         *flow = ControlFlow::Exit;
                         return;
                     }
 
-                    if game.state.next_scene.is_some() {
-                        mem::swap(&mut game.scene, &mut game.state.next_scene);
-                        game.state.next_scene = None;
+                    if state_ref.next_scene.is_some() {
+                        mem::swap(&mut game.scene, &mut state_ref.next_scene);
+                        state_ref.next_scene = None;
 
-                        game.scene.as_mut().unwrap().init(&mut game.state, ctx).unwrap();
+                        game.scene.as_mut().unwrap().init(state_ref, ctx).unwrap();
                         game.loops = 0;
-                        game.state.frame_time = 0.0;
+                        state_ref.frame_time = 0.0;
                     }
                 }
             }

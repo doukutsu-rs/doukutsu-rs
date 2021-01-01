@@ -142,12 +142,12 @@ impl NPC {
             0 | 1 => {
                 if self.action_num == 0 {
                     let angle = self.rng.range(0..0xff);
-                    self.vel_x = ((angle as f64 * 1.40625).cos() * 512.0) as isize;
-                    self.target_x = self.x + ((angle as f64 * 1.40625 + std::f64::consts::FRAC_2_PI).cos() * 8.0 * 512.0) as isize;
+                    self.vel_x = ((angle as f64 * 1.40625).cos() * 512.0) as i32;
+                    self.target_x = self.x + ((angle as f64 * 1.40625 + std::f64::consts::FRAC_2_PI).cos() * 8.0 * 512.0) as i32;
 
                     let angle = self.rng.range(0..0xff);
-                    self.vel_y = ((angle as f64 * 1.40625).sin() * 512.0) as isize;
-                    self.target_y = self.y + ((angle as f64 * 1.40625 + std::f64::consts::FRAC_2_PI).sin() * 8.0 * 512.0) as isize;
+                    self.vel_y = ((angle as f64 * 1.40625).sin() * 512.0) as i32;
+                    self.target_y = self.y + ((angle as f64 * 1.40625 + std::f64::consts::FRAC_2_PI).sin() * 8.0 * 512.0) as i32;
 
                     self.action_num = 1;
                     self.action_counter2 = 120;
@@ -873,8 +873,8 @@ impl NPC {
                     npc.x = self.x;
                     npc.y = self.y;
                     for _ in 0..4 {
-                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = self.rng.range(-0x600..0) as isize;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                        npc.vel_y = self.rng.range(-0x600..0) as i32;
 
                         let _ = npc_list.spawn(0x100, npc.clone());
                     }
@@ -938,8 +938,8 @@ impl NPC {
                     npc.x = self.x;
                     npc.y = self.y;
                     for _ in 0..8 {
-                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = self.rng.range(-0x600..0) as isize;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                        npc.vel_y = self.rng.range(-0x600..0) as i32;
 
                         let _ = npc_list.spawn(0x100, npc.clone());
                     }
@@ -978,8 +978,8 @@ impl NPC {
                     npc.x = self.x;
                     npc.y = self.y;
                     for _ in 0..4 {
-                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = self.rng.range(-0x600..0) as isize;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                        npc.vel_y = self.rng.range(-0x600..0) as i32;
 
                         let _ = npc_list.spawn(0x100, npc.clone());
                     }
@@ -1059,8 +1059,8 @@ impl NPC {
                 npc.x = self.x;
                 npc.y = self.y;
                 for _ in 0..8 {
-                    npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-                    npc.vel_y = self.rng.range(-0x600..0) as isize;
+                    npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                    npc.vel_y = self.rng.range(-0x600..0) as i32;
 
                     let _ = npc_list.spawn(0x100, npc.clone());
                 }
@@ -1224,8 +1224,8 @@ impl NPC {
                     self.target_y = self.y;
                 }
 
-                self.x = self.target_x + self.rng.range(-1..1) as isize * 0x200;
-                self.y = self.target_y + self.rng.range(-1..1) as isize * 0x200;
+                self.x = self.target_x + self.rng.range(-1..1) as i32 * 0x200;
+                self.y = self.target_y + self.rng.range(-1..1) as i32 * 0x200;
 
                 self.action_counter += 1;
                 if self.action_counter > 30 {
@@ -1245,7 +1245,7 @@ impl NPC {
 
                 self.vel_x += 0x20;
                 self.x += self.vel_x;
-                self.y = self.target_y + self.rng.range(-1..1) as isize * 0x200;
+                self.y = self.target_y + self.rng.range(-1..1) as i32 * 0x200;
                 self.action_counter += 1;
 
                 if self.action_counter > 10 {

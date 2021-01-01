@@ -167,8 +167,8 @@ impl NPC {
                 npc.y = self.y;
 
                 for _ in 0..4 {
-                    npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-                    npc.vel_y = self.rng.range(-0x600..0) as isize;
+                    npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                    npc.vel_y = self.rng.range(-0x600..0) as i32;
 
                     let _ = npc_list.spawn(0x100, npc.clone());
                 }
@@ -216,8 +216,8 @@ impl NPC {
                 }
 
                 self.target_y += 0x100;
-                self.x = self.target_x + self.rng.range(-1..1) as isize * 0x200;
-                self.y = self.target_y + self.rng.range(-1..1) as isize * 0x200;
+                self.x = self.target_x + self.rng.range(-1..1) as i32 * 0x200;
+                self.y = self.target_y + self.rng.range(-1..1) as i32 * 0x200;
             }
             70 | 71 => {
                 if self.action_num == 70 {
@@ -227,7 +227,7 @@ impl NPC {
                     self.anim_counter = 0;
                 }
 
-                self.x += (self.direction.vector_x() as isize | 1) * 0x100;
+                self.x += (self.direction.vector_x() as i32 | 1) * 0x100;
 
                 self.anim_counter += 1;
                 if self.anim_counter > 8 {

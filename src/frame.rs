@@ -12,14 +12,14 @@ pub enum UpdateTarget {
 }
 
 pub struct Frame {
-    pub x: isize,
-    pub y: isize,
-    pub prev_x: isize,
-    pub prev_y: isize,
+    pub x: i32,
+    pub y: i32,
+    pub prev_x: i32,
+    pub prev_y: i32,
     pub update_target: UpdateTarget,
-    pub target_x: isize,
-    pub target_y: isize,
-    pub wait: isize,
+    pub target_x: i32,
+    pub target_y: i32,
+    pub wait: i32,
 }
 
 impl Frame {
@@ -35,31 +35,31 @@ impl Frame {
     }
 
     pub fn immediate_update(&mut self, state: &mut SharedGameState, stage: &Stage) {
-        if (stage.map.width - 1) * 16 < state.canvas_size.0 as usize {
-            self.x = -(((state.canvas_size.0 as isize - ((stage.map.width - 1) * 16) as isize) * 0x200) / 2);
+        if (stage.map.width as usize).saturating_sub(1) * 16 < state.canvas_size.0 as usize {
+            self.x = -(((state.canvas_size.0 as i32 - ((stage.map.width - 1) * 16) as i32) * 0x200) / 2);
         } else {
-            self.x = self.target_x - (state.canvas_size.0 as isize * 0x200 / 2);
+            self.x = self.target_x - (state.canvas_size.0 as i32 * 0x200 / 2);
 
             if self.x < 0 {
                 self.x = 0;
             }
 
-            let max_x = (((stage.map.width as isize - 1) * 16) - state.canvas_size.0 as isize) * 0x200;
+            let max_x = (((stage.map.width as i32 - 1) * 16) - state.canvas_size.0 as i32) * 0x200;
             if self.x > max_x {
                 self.x = max_x;
             }
         }
 
-        if (stage.map.height - 1) * 16 < state.canvas_size.1 as usize {
-            self.y = -(((state.canvas_size.1 as isize - ((stage.map.height - 1) * 16) as isize) * 0x200) / 2);
+        if (stage.map.height as usize).saturating_sub(1) * 16 < state.canvas_size.1 as usize {
+            self.y = -(((state.canvas_size.1 as i32 - ((stage.map.height - 1) * 16) as i32) * 0x200) / 2);
         } else {
-            self.y = self.target_y - (state.canvas_size.1 as isize * 0x200 / 2);
+            self.y = self.target_y - (state.canvas_size.1 as i32 * 0x200 / 2);
 
             if self.y < 0 {
                 self.y = 0;
             }
 
-            let max_y = (((stage.map.height as isize - 1) * 16) - state.canvas_size.1 as isize) * 0x200;
+            let max_y = (((stage.map.height as i32 - 1) * 16) - state.canvas_size.1 as i32) * 0x200;
             if self.y > max_y {
                 self.y = max_y;
             }
@@ -70,31 +70,31 @@ impl Frame {
     }
 
     pub fn update(&mut self, state: &mut SharedGameState, stage: &Stage) {
-        if (stage.map.width - 1) * 16 < state.canvas_size.0 as usize {
-            self.x = -(((state.canvas_size.0 as isize - ((stage.map.width - 1) * 16) as isize) * 0x200) / 2);
+        if (stage.map.width as usize).saturating_sub(1) * 16 < state.canvas_size.0 as usize {
+            self.x = -(((state.canvas_size.0 as i32 - ((stage.map.width - 1) * 16) as i32) * 0x200) / 2);
         } else {
-            self.x += (self.target_x - (state.canvas_size.0 as isize * 0x200 / 2) - self.x) / self.wait;
+            self.x += (self.target_x - (state.canvas_size.0 as i32 * 0x200 / 2) - self.x) / self.wait;
 
             if self.x < 0 {
                 self.x = 0;
             }
 
-            let max_x = (((stage.map.width as isize - 1) * 16) - state.canvas_size.0 as isize) * 0x200;
+            let max_x = (((stage.map.width as i32 - 1) * 16) - state.canvas_size.0 as i32) * 0x200;
             if self.x > max_x {
                 self.x = max_x;
             }
         }
 
-        if (stage.map.height - 1) * 16 < state.canvas_size.1 as usize {
-            self.y = -(((state.canvas_size.1 as isize - ((stage.map.height - 1) * 16) as isize) * 0x200) / 2);
+        if (stage.map.height as usize).saturating_sub(1) * 16 < state.canvas_size.1 as usize {
+            self.y = -(((state.canvas_size.1 as i32 - ((stage.map.height - 1) * 16) as i32) * 0x200) / 2);
         } else {
-            self.y += (self.target_y - (state.canvas_size.1 as isize * 0x200 / 2) - self.y) / self.wait;
+            self.y += (self.target_y - (state.canvas_size.1 as i32 * 0x200 / 2) - self.y) / self.wait;
 
             if self.y < 0 {
                 self.y = 0;
             }
 
-            let max_y = (((stage.map.height as isize - 1) * 16) - state.canvas_size.1 as isize) * 0x200;
+            let max_y = (((stage.map.height as i32 - 1) * 16) - state.canvas_size.1 as i32) * 0x200;
             if self.y > max_y {
                 self.y = max_y;
             }
@@ -103,8 +103,8 @@ impl Frame {
         if state.quake_counter > 0 {
             state.quake_counter -= 1;
 
-            self.x += state.effect_rng.range(-0x300..0x300) as isize;
-            self.y += state.effect_rng.range(-0x300..0x300) as isize;
+            self.x += state.effect_rng.range(-0x300..0x300) as i32;
+            self.y += state.effect_rng.range(-0x300..0x300) as i32;
         }
     }
 }

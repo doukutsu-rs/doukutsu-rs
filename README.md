@@ -14,9 +14,9 @@ A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust]
 
 This repository does not contain any copyrighted files. 
 
-For better user experience, pre-built binaries are distributed with slightly modified freeware game files. 
+For better user experience, pre-built binaries are distributed with slightly modified freeware game files.
 
-*doukutsu-rs* should work fine with [CSE2-Enhanced](https://github.com/Clownacy/CSE2) or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) data files.
+*doukutsu-rs* should work fine with pre-extracted and tweaked data files from [this repository](https://github.com/doukutsu-rs/game-data), [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) extracted freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) data files.
 
 Vanilla Cave Story does not work yet because some important data files have been embedded inside the executable. and we don't have a loader/extractor implemented yet.
 
@@ -25,30 +25,20 @@ Vanilla Cave Story does not work yet because some important data files have been
 **Freeware**
 
 - https://github.com/doukutsu-rs/game-data - Freeware game data distributed with CI builds, based on those two below.
-- https://github.com/Clownacy/CSE2/archive/enhanced.zip - copy `game_english/data` from archive to the runtime directory (place you run the executable from, usually project root)
+- ~~https://github.com/Clownacy/CSE2/archive/enhanced.zip - copy `game_english/data` from archive to the runtime directory (place you run the executable from, usually project root)~~
 - https://github.com/nxengine/nxengine-evo/releases/download/v2.6.4/NXEngine-v2.6.4-Win32.zip - copy `NXEngine-evo-2.6.4-xxx/data` from the archive to runtime directory
 
 **Cave Story+**
 
-- PC release - (Tested only with Steam version, both Windows and Linux builds) Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
-- Switch release - **Not supported or actively tested.** Some of release-specific opcodes have been implemented (no code 
-decompilation was involved, just pure data file analysis), so you should be able to play it without any major issues. 
-Because methods used to extract game data from cartridge vary, you have to find that out on your own.
+- PC release (Steam) - (Tested only with Steam version, both Windows and Linux builds) Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
+- PC release (EGS) - (Untested, but the game is essentially the same as Steam release) Same thing as with Steam version.
+- Switch release - (Tested once, no guarantee to work) You need a hacked Switch and physical release. Google should help you.
 
 #### Gameplay support roadmap
 
 - [x] Checkmarked things = fully implemented
 - [ ] Unmarked things = partially or not implemented yet.
 
-- [x] Rendering
-  - [x] Backdrops
-  - [x] Tilemap
-  - [x] Player and it's animations
-  - [x] Carets
-  - [x] Bullets
-  - [x] NPCs
-  - [x] Text
-  - [x] HUD
 - [ ] Text scripts (TSC)
   - [x] Initial implementation
   - [x] Full implementation of gameplay opcodes
@@ -79,9 +69,6 @@ Because methods used to extract game data from cartridge vary, you have to find 
   - [ ] Last Cave
   - [ ] Balcony
   - [ ] Hell
-  - [ ] Cave Story+ specific NPCs
-    - [x] Dashing Gaudis (361)
-    - [ ] ??? (362)
 - [ ] Weapons
   - [x] Leveling / XP system
   - [x] Initial implementation
@@ -99,15 +86,14 @@ Because methods used to extract game data from cartridge vary, you have to find 
 - [ ] Support for different game editions
   - [ ] Vanilla
   - [x] Modified vanilla
-  - [ ] Cave Story+
+  - [ ] Cave Story+ (PC/Switch)
     - [x] Base mod
     - [ ] Mod loading
     - [x] Curly Story
-    - [ ] Wind Fortress (~40%)
+    - [ ] Wind Fortress
     - [ ] Boss Run
     - [x] Seasonal graphics
     - [x] Co-op gameplay
-    - [ ] Remastered soundtrack
 
 *(tbd)*
 
@@ -120,14 +106,6 @@ Because methods used to extract game data from cartridge vary, you have to find 
 **Cave Story+ data files:**
 
 ![CS+ with enhanced graphics](https://i.imgur.com/YaPAs70.png)
-
-#### Legal note
-
-This project includes reverse engineered implementations of NPC and game physics algorithms, derived from freeware Cave Story and PC Cave Story+ executables.
-
-Since the game's (non-existent, even for CS+) EULA does not prohibit reverse engineering, 
-[according to Secion 103(f)](https://www.law.cornell.edu/uscode/text/17/1201) we could legally revese engineer those parts 
-to achieve interoperability.   
 
 #### Credits
 

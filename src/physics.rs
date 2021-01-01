@@ -12,25 +12,25 @@ use crate::npc::list::NPCList;
 //  0 | 11  1  2  5
 //  1 | 12  3  4  6
 //  2 | 13  8  9  7
-pub const OFF_X: [isize; 16] = [0, 1, 0, 1, 2, 2, 2, 0, 1, -1, -1, -1, -1, 0, 1, 2];
-pub const OFF_Y: [isize; 16] = [0, 0, 1, 1, 0, 1, 2, 2, 2, -1, 0, 1, 2, -1, -1, -1];
+pub const OFF_X: [i32; 16] = [0, 1, 0, 1, 2, 2, 2, 0, 1, -1, -1, -1, -1, 0, 1, 2];
+pub const OFF_Y: [i32; 16] = [0, 0, 1, 1, 0, 1, 2, 2, 2, -1, 0, 1, 2, -1, -1, -1];
 
 pub trait PhysicalEntity {
-    fn x(&self) -> isize;
-    fn y(&self) -> isize;
-    fn vel_x(&self) -> isize;
-    fn vel_y(&self) -> isize;
+    fn x(&self) -> i32;
+    fn y(&self) -> i32;
+    fn vel_x(&self) -> i32;
+    fn vel_y(&self) -> i32;
 
     fn hit_rect_size(&self) -> usize;
-    fn offset_x(&self) -> isize { 0 }
-    fn offset_y(&self) -> isize { 0 }
+    fn offset_x(&self) -> i32 { 0 }
+    fn offset_y(&self) -> i32 { 0 }
 
     fn hit_bounds(&self) -> &Rect<usize>;
 
-    fn set_x(&mut self, x: isize);
-    fn set_y(&mut self, y: isize);
-    fn set_vel_x(&mut self, x: isize);
-    fn set_vel_y(&mut self, y: isize);
+    fn set_x(&mut self, x: i32);
+    fn set_y(&mut self, y: i32);
+    fn set_vel_x(&mut self, x: i32);
+    fn set_vel_y(&mut self, y: i32);
 
     fn cond(&mut self) -> &mut Condition;
     fn flags(&mut self) -> &mut Flag;
@@ -41,15 +41,15 @@ pub trait PhysicalEntity {
     fn player_left_pressed(&self) -> bool { false }
     fn player_right_pressed(&self) -> bool { false }
 
-    fn judge_hit_block(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
+    fn judge_hit_block(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
         let bounds_x = if self.is_player() { 5 } else { 8 };
         let bounds_y = if self.is_player() { 4 } else { 5 };
         // left wall
-        if (self.y() - self.hit_bounds().top as isize) < (y * 16 + bounds_y) * 0x200
-            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 - bounds_y) * 0x200
-            && (self.x() - self.hit_bounds().right as isize) < (x * 16 + 8) * 0x200
-            && (self.x() - self.hit_bounds().right as isize) > x * 16 * 0x200 {
-            self.set_x(((x * 16 + 8) * 0x200) + self.hit_bounds().right as isize);
+        if (self.y() - self.hit_bounds().top as i32) < (y * 16 + bounds_y) * 0x200
+            && (self.y() + self.hit_bounds().bottom as i32) > (y * 16 - bounds_y) * 0x200
+            && (self.x() - self.hit_bounds().right as i32) < (x * 16 + 8) * 0x200
+            && (self.x() - self.hit_bounds().right as i32) > x * 16 * 0x200 {
+            self.set_x(((x * 16 + 8) * 0x200) + self.hit_bounds().right as i32);
 
             if self.is_player() {
                 if self.vel_x() < -0x180 {
@@ -65,11 +65,11 @@ pub trait PhysicalEntity {
         }
 
         // right wall
-        if (self.y() - self.hit_bounds().top as isize) < (y * 16 + bounds_y) * 0x200
-            && self.y() + self.hit_bounds().bottom as isize > (y * 16 - bounds_y) * 0x200
-            && (self.x() + self.hit_bounds().right as isize) > (x * 16 - 8) * 0x200
-            && (self.x() + self.hit_bounds().right as isize) < x * 16 * 0x200 {
-            self.set_x(((x * 16 - 8) * 0x200) - self.hit_bounds().right as isize);
+        if (self.y() - self.hit_bounds().top as i32) < (y * 16 + bounds_y) * 0x200
+            && self.y() + self.hit_bounds().bottom as i32 > (y * 16 - bounds_y) * 0x200
+            && (self.x() + self.hit_bounds().right as i32) > (x * 16 - 8) * 0x200
+            && (self.x() + self.hit_bounds().right as i32) < x * 16 * 0x200 {
+            self.set_x(((x * 16 - 8) * 0x200) - self.hit_bounds().right as i32);
 
             if self.is_player() {
                 if self.vel_x() > 0x180 {
@@ -85,17 +85,17 @@ pub trait PhysicalEntity {
         }
 
         // ceiling
-        if (self.x() - self.hit_bounds().right as isize) < (x * 16 + bounds_x) * 0x200
-            && (self.x() + self.hit_bounds().right as isize) > (x * 16 - bounds_x) * 0x200
-            && (self.y() - self.hit_bounds().top as isize) < (y * 16 + 8) * 0x200
-            && (self.y() - self.hit_bounds().top as isize) > y * 16 * 0x200 {
-            self.set_y(((y * 16 + 8) * 0x200) + self.hit_bounds().top as isize);
+        if (self.x() - self.hit_bounds().right as i32) < (x * 16 + bounds_x) * 0x200
+            && (self.x() + self.hit_bounds().right as i32) > (x * 16 - bounds_x) * 0x200
+            && (self.y() - self.hit_bounds().top as i32) < (y * 16 + 8) * 0x200
+            && (self.y() - self.hit_bounds().top as i32) > y * 16 * 0x200 {
+            self.set_y(((y * 16 + 8) * 0x200) + self.hit_bounds().top as i32);
 
             if self.is_player() {
                 if !self.cond().hidden() && self.vel_y() < -0x200 {
                     state.sound_manager.play_sfx(3);
-                    state.create_caret(self.x(), self.y() - self.hit_bounds().top as isize, CaretType::LittleParticles, Direction::Left);
-                    state.create_caret(self.x(), self.y() - self.hit_bounds().top as isize, CaretType::LittleParticles, Direction::Left);
+                    state.create_caret(self.x(), self.y() - self.hit_bounds().top as i32, CaretType::LittleParticles, Direction::Left);
+                    state.create_caret(self.x(), self.y() - self.hit_bounds().top as i32, CaretType::LittleParticles, Direction::Left);
                 }
 
                 if self.vel_y() < 0 {
@@ -109,11 +109,11 @@ pub trait PhysicalEntity {
         }
 
         // floor
-        if ((self.x() - self.hit_bounds().right as isize) < (x * 16 + bounds_x) * 0x200)
-            && ((self.x() + self.hit_bounds().right as isize) > (x * 16 - bounds_x) * 0x200)
-            && ((self.y() + self.hit_bounds().bottom as isize) > ((y * 16 - 8) * 0x200))
-            && ((self.y() + self.hit_bounds().bottom as isize) < (y * 16 * 0x200)) {
-            self.set_y(((y * 16 - 8) * 0x200) - self.hit_bounds().bottom as isize);
+        if ((self.x() - self.hit_bounds().right as i32) < (x * 16 + bounds_x) * 0x200)
+            && ((self.x() + self.hit_bounds().right as i32) > (x * 16 - bounds_x) * 0x200)
+            && ((self.y() + self.hit_bounds().bottom as i32) > ((y * 16 - 8) * 0x200))
+            && ((self.y() + self.hit_bounds().bottom as i32) < (y * 16 * 0x200)) {
+            self.set_y(((y * 16 - 8) * 0x200) - self.hit_bounds().bottom as i32);
 
             if self.is_player() {
                 if self.vel_y() > 0x400 {
@@ -132,17 +132,17 @@ pub trait PhysicalEntity {
     }
 
     // upper left slope (bigger half)
-    fn judge_hit_triangle_a(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
+    fn judge_hit_triangle_a(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
         if self.x() < (x * 16 + 8) * 0x200
             && self.x() > (x * 16 - 8) * 0x200
-            && (self.y() - self.hit_bounds().top as isize) < (y * 16 * 0x200) - (self.x() - x * 16 * 0x200) / 2 + 0x800
-            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 - 8) * 0x200 {
-            self.set_y((y * 16 * 0x200) - ((self.x() - x * 16 * 0x200) / 2) + 0x800 + self.hit_bounds().top as isize);
+            && (self.y() - self.hit_bounds().top as i32) < (y * 16 * 0x200) - (self.x() - x * 16 * 0x200) / 2 + 0x800
+            && (self.y() + self.hit_bounds().bottom as i32) > (y * 16 - 8) * 0x200 {
+            self.set_y((y * 16 * 0x200) - ((self.x() - x * 16 * 0x200) / 2) + 0x800 + self.hit_bounds().top as i32);
 
             if self.is_player() && !self.cond().hidden() && self.vel_y() < -0x200 {
                 state.sound_manager.play_sfx(3);
-                state.create_caret(self.x(), self.y() - self.hit_bounds().top as isize, CaretType::LittleParticles, Direction::Left);
-                state.create_caret(self.x(), self.y() - self.hit_bounds().top as isize, CaretType::LittleParticles, Direction::Left);
+                state.create_caret(self.x(), self.y() - self.hit_bounds().top as i32, CaretType::LittleParticles, Direction::Left);
+                state.create_caret(self.x(), self.y() - self.hit_bounds().top as i32, CaretType::LittleParticles, Direction::Left);
             }
 
             if self.vel_y() < 0 {
@@ -154,17 +154,17 @@ pub trait PhysicalEntity {
     }
 
     // upper left slope (smaller half)
-    fn judge_hit_triangle_b(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
+    fn judge_hit_triangle_b(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
         if self.x() < (x * 16 + 8) * 0x200
             && self.x() > (x * 16 - 8) * 0x200
-            && (self.y() - self.hit_bounds().top as isize) < (y * 16 * 0x200) - (self.x() - x * 16 * 0x200) / 2 - 0x800
-            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 - 8) * 0x200 {
-            self.set_y((y * 16 * 0x200) - ((self.x() - x * 16 * 0x200) / 2) - 0x800 + self.hit_bounds().top as isize);
+            && (self.y() - self.hit_bounds().top as i32) < (y * 16 * 0x200) - (self.x() - x * 16 * 0x200) / 2 - 0x800
+            && (self.y() + self.hit_bounds().bottom as i32) > (y * 16 - 8) * 0x200 {
+            self.set_y((y * 16 * 0x200) - ((self.x() - x * 16 * 0x200) / 2) - 0x800 + self.hit_bounds().top as i32);
 
             if self.is_player() && !self.cond().hidden() && self.vel_y() < -0x200 {
                 state.sound_manager.play_sfx(3);
-                state.create_caret(self.x(), self.y() - self.hit_bounds().top as isize, CaretType::LittleParticles, Direction::Left);
-                state.create_caret(self.x(), self.y() - self.hit_bounds().top as isize, CaretType::LittleParticles, Direction::Left);
+                state.create_caret(self.x(), self.y() - self.hit_bounds().top as i32, CaretType::LittleParticles, Direction::Left);
+                state.create_caret(self.x(), self.y() - self.hit_bounds().top as i32, CaretType::LittleParticles, Direction::Left);
             }
 
             if self.vel_y() < 0 {
@@ -176,17 +176,17 @@ pub trait PhysicalEntity {
     }
 
     // upper right slope (smaller half)
-    fn judge_hit_triangle_c(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
+    fn judge_hit_triangle_c(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
         if self.x() < (x * 16 + 8) * 0x200
             && self.x() > (x * 16 - 8) * 0x200
-            && (self.y() - self.hit_bounds().top as isize) < (y * 16 * 0x200) + (self.x() - x * 16 * 0x200) / 2 - 0x800
-            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 - 8) * 0x200 {
-            self.set_y((y * 16 * 0x200) + ((self.x() - x * 16 * 0x200) / 2) - 0x800 + self.hit_bounds().top as isize);
+            && (self.y() - self.hit_bounds().top as i32) < (y * 16 * 0x200) + (self.x() - x * 16 * 0x200) / 2 - 0x800
+            && (self.y() + self.hit_bounds().bottom as i32) > (y * 16 - 8) * 0x200 {
+            self.set_y((y * 16 * 0x200) + ((self.x() - x * 16 * 0x200) / 2) - 0x800 + self.hit_bounds().top as i32);
 
             if self.is_player() && !self.cond().hidden() && self.vel_y() < -0x200 {
                 state.sound_manager.play_sfx(3);
-                state.create_caret(self.x(), self.y() - self.hit_bounds().top as isize, CaretType::LittleParticles, Direction::Left);
-                state.create_caret(self.x(), self.y() - self.hit_bounds().top as isize, CaretType::LittleParticles, Direction::Left);
+                state.create_caret(self.x(), self.y() - self.hit_bounds().top as i32, CaretType::LittleParticles, Direction::Left);
+                state.create_caret(self.x(), self.y() - self.hit_bounds().top as i32, CaretType::LittleParticles, Direction::Left);
             }
 
             if self.vel_y() < 0 {
@@ -198,17 +198,17 @@ pub trait PhysicalEntity {
     }
 
     // upper right slope (bigger half)
-    fn judge_hit_triangle_d(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
+    fn judge_hit_triangle_d(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
         if (self.x() < (x * 16 + 8) * 0x200)
             && (self.x() > (x * 16 - 8) * 0x200)
-            && (self.y() - self.hit_bounds().top as isize) < (y * 16 * 0x200) + (self.x() - x * 16 * 0x200) / 2 + 0x800
-            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 - 8) * 0x200 {
-            self.set_y((y * 16 * 0x200) + ((self.x() - x * 16 * 0x200) / 2) + 0x800 + self.hit_bounds().top as isize);
+            && (self.y() - self.hit_bounds().top as i32) < (y * 16 * 0x200) + (self.x() - x * 16 * 0x200) / 2 + 0x800
+            && (self.y() + self.hit_bounds().bottom as i32) > (y * 16 - 8) * 0x200 {
+            self.set_y((y * 16 * 0x200) + ((self.x() - x * 16 * 0x200) / 2) + 0x800 + self.hit_bounds().top as i32);
 
             if self.is_player() && !self.cond().hidden() && self.vel_y() < -0x200 {
                 state.sound_manager.play_sfx(3);
-                state.create_caret(self.x(), self.y() - self.hit_bounds().top as isize, CaretType::LittleParticles, Direction::Left);
-                state.create_caret(self.x(), self.y() - self.hit_bounds().top as isize, CaretType::LittleParticles, Direction::Left);
+                state.create_caret(self.x(), self.y() - self.hit_bounds().top as i32, CaretType::LittleParticles, Direction::Left);
+                state.create_caret(self.x(), self.y() - self.hit_bounds().top as i32, CaretType::LittleParticles, Direction::Left);
             }
 
             if self.vel_y() < 0 {
@@ -220,14 +220,14 @@ pub trait PhysicalEntity {
     }
 
     // lower left half (bigger)
-    fn judge_hit_triangle_e(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
+    fn judge_hit_triangle_e(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
         self.flags().set_hit_left_bigger_half(true);
 
         if (self.x() < (x * 16 + 8) * 0x200)
             && (self.x() > (x * 16 - 8) * 0x200)
-            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 * 0x200) + (self.x() - x * 16 * 0x200) / 2 - 0x800
-            && (self.y() - self.hit_bounds().top as isize) < (y * 16 + 8) * 0x200 {
-            self.set_y((y * 16 * 0x200) + ((self.x() - x * 16 * 0x200) / 2) - 0x800 - self.hit_bounds().bottom as isize);
+            && (self.y() + self.hit_bounds().bottom as i32) > (y * 16 * 0x200) + (self.x() - x * 16 * 0x200) / 2 - 0x800
+            && (self.y() - self.hit_bounds().top as i32) < (y * 16 + 8) * 0x200 {
+            self.set_y((y * 16 * 0x200) + ((self.x() - x * 16 * 0x200) / 2) - 0x800 - self.hit_bounds().bottom as i32);
 
             if self.is_player() && self.vel_y() > 0x400 {
                 state.sound_manager.play_sfx(23);
@@ -243,14 +243,14 @@ pub trait PhysicalEntity {
     }
 
     // lower left half (smaller)
-    fn judge_hit_triangle_f(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
+    fn judge_hit_triangle_f(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
         self.flags().set_hit_left_smaller_half(true);
 
         if (self.x() < (x * 16 + 8) * 0x200)
             && (self.x() > (x * 16 - 8) * 0x200)
-            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 * 0x200) + (self.x() - x * 16 * 0x200) / 2 + 0x800
-            && (self.y() - self.hit_bounds().top as isize) < (y * 16 + 8) * 0x200 {
-            self.set_y((y * 16 * 0x200) + ((self.x() - x * 16 * 0x200) / 2) + 0x800 - self.hit_bounds().bottom as isize);
+            && (self.y() + self.hit_bounds().bottom as i32) > (y * 16 * 0x200) + (self.x() - x * 16 * 0x200) / 2 + 0x800
+            && (self.y() - self.hit_bounds().top as i32) < (y * 16 + 8) * 0x200 {
+            self.set_y((y * 16 * 0x200) + ((self.x() - x * 16 * 0x200) / 2) + 0x800 - self.hit_bounds().bottom as i32);
 
             if self.is_player() && self.vel_y() > 0x400 {
                 state.sound_manager.play_sfx(23);
@@ -266,14 +266,14 @@ pub trait PhysicalEntity {
     }
 
     // lower right half (smaller)
-    fn judge_hit_triangle_g(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
+    fn judge_hit_triangle_g(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
         self.flags().set_hit_right_smaller_half(true);
 
         if (self.x() < (x * 16 + 8) * 0x200)
             && (self.x() > (x * 16 - 8) * 0x200)
-            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 * 0x200) - (self.x() - x * 16 * 0x200) / 2 + 0x800
-            && (self.y() - self.hit_bounds().top as isize) < (y * 16 + 8) * 0x200 {
-            self.set_y((y * 16 * 0x200) - ((self.x() - x * 16 * 0x200) / 2) + 0x800 - self.hit_bounds().bottom as isize);
+            && (self.y() + self.hit_bounds().bottom as i32) > (y * 16 * 0x200) - (self.x() - x * 16 * 0x200) / 2 + 0x800
+            && (self.y() - self.hit_bounds().top as i32) < (y * 16 + 8) * 0x200 {
+            self.set_y((y * 16 * 0x200) - ((self.x() - x * 16 * 0x200) / 2) + 0x800 - self.hit_bounds().bottom as i32);
 
             if self.is_player() && self.vel_y() > 0x400 {
                 state.sound_manager.play_sfx(23);
@@ -289,14 +289,14 @@ pub trait PhysicalEntity {
     }
 
     // lower right half (bigger)
-    fn judge_hit_triangle_h(&mut self, state: &mut SharedGameState, x: isize, y: isize) {
+    fn judge_hit_triangle_h(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
         self.flags().set_hit_right_bigger_half(true);
 
         if (self.x() < (x * 16 + 8) * 0x200)
             && (self.x() > (x * 16 - 8) * 0x200)
-            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 * 0x200) - (self.x() - x * 16 * 0x200) / 2 - 0x800
-            && (self.y() - self.hit_bounds().top as isize) < (y * 16 + 8) * 0x200 {
-            self.set_y((y * 16 * 0x200) - ((self.x() - x * 16 * 0x200) / 2) - 0x800 - self.hit_bounds().bottom as isize);
+            && (self.y() + self.hit_bounds().bottom as i32) > (y * 16 * 0x200) - (self.x() - x * 16 * 0x200) / 2 - 0x800
+            && (self.y() - self.hit_bounds().top as i32) < (y * 16 + 8) * 0x200 {
+            self.set_y((y * 16 * 0x200) - ((self.x() - x * 16 * 0x200) / 2) - 0x800 - self.hit_bounds().bottom as i32);
 
             if self.is_player() && self.vel_y() > 0x400 {
                 state.sound_manager.play_sfx(23);
@@ -311,19 +311,19 @@ pub trait PhysicalEntity {
         }
     }
 
-    fn judge_hit_water(&mut self, x: isize, y: isize) {
+    fn judge_hit_water(&mut self, x: i32, y: i32) {
         let bounds_x = if self.is_player() { 5 } else { 6 };
         let bounds_up = if self.is_player() { 5 } else { 6 };
         let bounds_down = if self.is_player() { 0 } else { 6 };
-        if (self.x() - self.hit_bounds().right as isize) < (x * 16 + bounds_x) * 0x200
-            && (self.x() + self.hit_bounds().right as isize) > (x * 16 - bounds_x) * 0x200
-            && (self.y() - self.hit_bounds().top as isize) < (y * 16 + bounds_up) * 0x200
-            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 - bounds_down) * 0x200 {
+        if (self.x() - self.hit_bounds().right as i32) < (x * 16 + bounds_x) * 0x200
+            && (self.x() + self.hit_bounds().right as i32) > (x * 16 - bounds_x) * 0x200
+            && (self.y() - self.hit_bounds().top as i32) < (y * 16 + bounds_up) * 0x200
+            && (self.y() + self.hit_bounds().bottom as i32) > (y * 16 - bounds_down) * 0x200 {
             self.flags().set_in_water(true);
         }
     }
 
-    fn judge_hit_spike(&mut self, x: isize, y: isize, water: bool) {
+    fn judge_hit_spike(&mut self, x: i32, y: i32, water: bool) {
         if (self.x() - 0x800) < (x * 16 + 4) * 0x200
             && (self.x() + 0x800) > (x * 16 - 4) * 0x200
             && (self.y() - 0x800) < (y * 16 + 3) * 0x200
@@ -335,11 +335,11 @@ pub trait PhysicalEntity {
         }
     }
 
-    fn judge_hit_force(&mut self, x: isize, y: isize, direction: Direction, water: bool) {
-        if (self.x() - self.hit_bounds().left as isize) < (x * 16 + 6) * 0x200
-            && (self.x() + self.hit_bounds().right as isize) > (x * 16 - 6) * 0x200
-            && (self.y() - self.hit_bounds().top as isize) < (y * 16 + 6) * 0x200
-            && (self.y() + self.hit_bounds().bottom as isize) > (y * 16 - 6) * 0x200 {
+    fn judge_hit_force(&mut self, x: i32, y: i32, direction: Direction, water: bool) {
+        if (self.x() - self.hit_bounds().left as i32) < (x * 16 + 6) * 0x200
+            && (self.x() + self.hit_bounds().right as i32) > (x * 16 - 6) * 0x200
+            && (self.y() - self.hit_bounds().top as i32) < (y * 16 + 6) * 0x200
+            && (self.y() + self.hit_bounds().bottom as i32) > (y * 16 - 6) * 0x200 {
             match direction {
                 Direction::Left => self.flags().set_force_left(true),
                 Direction::Up => self.flags().set_force_up(true),

@@ -18,6 +18,8 @@ use crate::profile::GameProfile;
 use crate::rng::XorShift;
 use crate::scene::game_scene::GameScene;
 use crate::scene::Scene;
+#[cfg(feature = "scripting")]
+use crate::scripting::LuaScriptingState;
 use crate::settings::Settings;
 use crate::shaders::Shaders;
 use crate::sound::SoundManager;
@@ -96,7 +98,7 @@ pub struct SharedGameState {
     pub touch_controls: TouchControls,
     pub base_path: String,
     pub npc_table: NPCTable,
-    pub npc_super_pos: (isize, isize),
+    pub npc_super_pos: (i32, i32),
     pub stages: Vec<StageData>,
     pub frame_time: f64,
     pub scale: f32,
@@ -112,6 +114,8 @@ pub struct SharedGameState {
     pub constants: EngineConstants,
     pub font: BMFontRenderer,
     pub texture_set: TextureSet,
+    #[cfg(feature = "scripting")]
+    pub lua: LuaScriptingState,
     pub sound_manager: SoundManager,
     pub settings: Settings,
     pub shutdown: bool,
@@ -184,6 +188,8 @@ impl SharedGameState {
             constants,
             font,
             texture_set,
+            #[cfg(feature = "scripting")]
+            lua: LuaScriptingState::new(),
             sound_manager: SoundManager::new(ctx)?,
             settings,
             shutdown: false,
@@ -208,6 +214,9 @@ impl SharedGameState {
         self.fade_state = FadeState::Hidden;
         self.textscript_vm.state = TextScriptExecutionState::Running(200, 0);
 
+        #[cfg(feature = "scripting")]
+            self.lua.reload_scripts(ctx)?;
+
         self.next_scene = Some(Box::new(next_scene));
 
         Ok(())
@@ -221,6 +230,9 @@ impl SharedGameState {
         next_scene.intro_mode = true;
         self.fade_state = FadeState::Hidden;
         self.textscript_vm.state = TextScriptExecutionState::Running(100, 0);
+
+        #[cfg(feature = "scripting")]
+            self.lua.reload_scripts(ctx)?;
 
         self.next_scene = Some(Box::new(next_scene));
 
@@ -246,6 +258,9 @@ impl SharedGameState {
                     let mut next_scene = GameScene::new(self, ctx, profile.current_map as usize)?;
 
                     profile.apply(self, &mut next_scene, ctx);
+
+                    #[cfg(feature = "scripting")]
+                        self.lua.reload_scripts(ctx)?;
 
                     self.next_scene = Some(Box::new(next_scene));
                     return Ok(());
@@ -292,7 +307,7 @@ impl SharedGameState {
         self.carets.retain(|c| !c.is_dead());
     }
 
-    pub fn create_caret(&mut self, x: isize, y: isize, ctype: CaretType, direct: Direction) {
+    pub fn create_caret(&mut self, x: i32, y: i32, ctype: CaretType, direct: Direction) {
         self.carets.push(Caret::new(x, y, ctype, direct, &self.constants));
     }
 

@@ -26,14 +26,14 @@ pub enum CaretType {
 
 pub struct Caret {
     pub ctype: CaretType,
-    pub x: isize,
-    pub y: isize,
-    pub vel_x: isize,
-    pub vel_y: isize,
-    pub offset_x: isize,
-    pub offset_y: isize,
-    pub prev_x: isize,
-    pub prev_y: isize,
+    pub x: i32,
+    pub y: i32,
+    pub vel_x: i32,
+    pub vel_y: i32,
+    pub offset_x: i32,
+    pub offset_y: i32,
+    pub prev_x: i32,
+    pub prev_y: i32,
     pub cond: Condition,
     pub direction: Direction,
     pub anim_rect: Rect<u16>,
@@ -43,7 +43,7 @@ pub struct Caret {
 }
 
 impl Caret {
-    pub fn new(x: isize, y: isize, ctype: CaretType, direct: Direction, constants: &EngineConstants) -> Caret {
+    pub fn new(x: i32, y: i32, ctype: CaretType, direct: Direction, constants: &EngineConstants) -> Caret {
         let (offset_x, offset_y) = constants.caret.offsets[ctype as usize];
 
         Caret {
@@ -236,8 +236,8 @@ impl Caret {
                 if self.action_num == 0 {
                     self.action_num = 1;
                     let angle = rng.range(0..255) as f64 * CDEG_RAD;
-                    self.vel_x = (angle.cos() * 1024.0) as isize;
-                    self.vel_y = (angle.sin() * 1024.0) as isize;
+                    self.vel_x = (angle.cos() * 1024.0) as i32;
+                    self.vel_y = (angle.sin() * 1024.0) as i32;
                 }
 
                 self.x += self.vel_x;
@@ -276,11 +276,11 @@ impl Caret {
                 if self.anim_num == 0 {
                     match self.direction {
                         Direction::Left => {
-                            self.vel_x = rng.range(-0x600..0x600) as isize; // -3.0fix9..3.0fix9
-                            self.vel_y = rng.range(-0x200..0x200) as isize; // -1.0fix9..1.0fix9
+                            self.vel_x = rng.range(-0x600..0x600) as i32; // -3.0fix9..3.0fix9
+                            self.vel_y = rng.range(-0x200..0x200) as i32; // -1.0fix9..1.0fix9
                         }
                         Direction::Up => {
-                            self.vel_y = rng.range(-3..-1) as isize * 0x200;
+                            self.vel_y = rng.range(-3..-1) as i32 * 0x200;
                         }
                         _ => {}
                     }

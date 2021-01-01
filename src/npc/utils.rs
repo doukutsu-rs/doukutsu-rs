@@ -82,8 +82,8 @@ impl NPC {
         NPC {
             id: data.id,
             npc_type: data.npc_type,
-            x: data.x as isize * 16 * 0x200,
-            y: data.y as isize * 16 * 0x200,
+            x: data.x as i32 * 16 * 0x200,
+            y: data.y as i32 * 16 * 0x200,
             vel_x: 0,
             vel_y: 0,
             vel_x2: 0,
@@ -172,16 +172,16 @@ impl NPC {
     pub fn collides_with_bullet(&self, bullet: &Bullet) -> bool {
         (
             self.npc_flags.shootable()
-                && (self.x - self.hit_bounds.right as isize) < (bullet.x + bullet.enemy_hit_width as isize)
-                && (self.x + self.hit_bounds.right as isize) > (bullet.x - bullet.enemy_hit_width as isize)
-                && (self.y - self.hit_bounds.top as isize) < (bullet.y + bullet.enemy_hit_height as isize)
-                && (self.y + self.hit_bounds.bottom as isize) > (bullet.y - bullet.enemy_hit_height as isize)
+                && (self.x - self.hit_bounds.right as i32) < (bullet.x + bullet.enemy_hit_width as i32)
+                && (self.x + self.hit_bounds.right as i32) > (bullet.x - bullet.enemy_hit_width as i32)
+                && (self.y - self.hit_bounds.top as i32) < (bullet.y + bullet.enemy_hit_height as i32)
+                && (self.y + self.hit_bounds.bottom as i32) > (bullet.y - bullet.enemy_hit_height as i32)
         ) || (
             self.npc_flags.invulnerable()
-                && (self.x - self.hit_bounds.right as isize) < (bullet.x + bullet.hit_bounds.right as isize)
-                && (self.x + self.hit_bounds.right as isize) > (bullet.x - bullet.hit_bounds.left as isize)
-                && (self.y - self.hit_bounds.top as isize) < (bullet.y + bullet.hit_bounds.bottom as isize)
-                && (self.y + self.hit_bounds.bottom as isize) > (bullet.y - bullet.hit_bounds.top as isize)
+                && (self.x - self.hit_bounds.right as i32) < (bullet.x + bullet.hit_bounds.right as i32)
+                && (self.x + self.hit_bounds.right as i32) > (bullet.x - bullet.hit_bounds.left as i32)
+                && (self.y - self.hit_bounds.top as i32) < (bullet.y + bullet.hit_bounds.bottom as i32)
+                && (self.y + self.hit_bounds.bottom as i32) > (bullet.y - bullet.hit_bounds.top as i32)
         )
     }
 
@@ -323,18 +323,18 @@ impl NPCList {
 
     /// Creates NPC death smoke diffusing in random directions.
     #[inline]
-    pub fn create_death_smoke(&self, x: isize, y: isize, radius: usize, amount: usize, state: &mut SharedGameState, rng: &dyn RNG) {
+    pub fn create_death_smoke(&self, x: i32, y: i32, radius: usize, amount: usize, state: &mut SharedGameState, rng: &dyn RNG) {
         self.create_death_smoke_common(x, y, radius, amount, Direction::Left, state, rng)
     }
 
     /// Creates NPC death smoke diffusing upwards.
     #[inline]
-    pub fn create_death_smoke_up(&self, x: isize, y: isize, radius: usize, amount: usize, state: &mut SharedGameState, rng: &dyn RNG) {
+    pub fn create_death_smoke_up(&self, x: i32, y: i32, radius: usize, amount: usize, state: &mut SharedGameState, rng: &dyn RNG) {
         self.create_death_smoke_common(x, y, radius, amount, Direction::Up, state, rng)
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn create_death_smoke_common(&self, x: isize, y: isize, radius: usize, amount: usize, direction: Direction, state: &mut SharedGameState, rng: &dyn RNG) {
+    fn create_death_smoke_common(&self, x: i32, y: i32, radius: usize, amount: usize, direction: Direction, state: &mut SharedGameState, rng: &dyn RNG) {
         let radius = (radius / 0x200) as i32;
 
         let mut npc = NPC::create(4, &state.npc_table);
@@ -342,8 +342,8 @@ impl NPCList {
         npc.direction = direction;
 
         for _ in 0..amount {
-            let off_x = rng.range(-radius..radius) as isize * 0x200;
-            let off_y = rng.range(-radius..radius) as isize * 0x200;
+            let off_x = rng.range(-radius..radius) as i32 * 0x200;
+            let off_y = rng.range(-radius..radius) as i32 * 0x200;
 
             npc.x = x + off_x;
             npc.y = y + off_y;

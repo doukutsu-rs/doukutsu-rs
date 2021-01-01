@@ -153,14 +153,14 @@ impl NPC {
         if self.action_num == 0 {
             self.action_num = 2;
             self.vel_x = if self.rng.next_u16() & 1 != 0 {
-                self.rng.range(-0x200..-0x100) as isize
+                self.rng.range(-0x200..-0x100) as i32
             } else {
-                self.rng.range(0x100..0x200) as isize
+                self.rng.range(0x100..0x200) as i32
             };
             self.vel_y = if self.rng.next_u16() & 1 != 0 {
-                self.rng.range(-0x200..-0x100) as isize
+                self.rng.range(-0x200..-0x100) as i32
             } else {
-                self.rng.range(0x100..0x200) as isize
+                self.rng.range(0x100..0x200) as i32
             };
             self.vel_x2 = self.vel_x;
             self.vel_y2 = self.vel_y;

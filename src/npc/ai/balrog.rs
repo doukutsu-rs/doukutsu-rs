@@ -34,10 +34,10 @@ impl NPC {
                     npc.direction = Direction::Left;
 
                     for _ in 0..3 {
-                        npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = self.rng.range(-0x600..0) as isize;
+                        npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                        npc.vel_y = self.rng.range(-0x600..0) as i32;
 
                         let _ = npc_list.spawn(0x100, npc.clone());
                     }
@@ -104,8 +104,8 @@ impl NPC {
 
                     let mut angle = ((self.y + 4 * 0x200 - player.y) as f64 / (self.x - player.y) as f64).atan();
                     angle += self.rng.range(-16..16) as f64 * std::f64::consts::FRAC_PI_8;
-                    npc.vel_x = (angle.cos() * 512.0) as isize; // 1.0fix9
-                    npc.vel_y = (angle.sin() * 512.0) as isize;
+                    npc.vel_x = (angle.cos() * 512.0) as i32; // 1.0fix9
+                    npc.vel_y = (angle.sin() * 512.0) as i32;
 
                     let _ = npc_list.spawn(0x100, npc);
 
@@ -293,10 +293,10 @@ impl NPC {
                     for _ in 0..3 {
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
-                        npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = self.rng.range(-0x600..0) as isize;
+                        npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                        npc.vel_y = self.rng.range(-0x600..0) as i32;
 
                         let _ = npc_list.spawn(0x100, npc.clone());
                     }
@@ -475,8 +475,8 @@ impl NPC {
                 }
             }
             102 => {
-                let x = clamp(self.x / (16 * 0x200), 0, stage.map.width as isize) as usize;
-                let y = clamp(self.y / (16 * 0x200), 0, stage.map.height as isize) as usize;
+                let x = clamp(self.x / (16 * 0x200), 0, stage.map.width as i32) as usize;
+                let y = clamp(self.y / (16 * 0x200), 0, stage.map.height as i32) as usize;
 
                 if y <= 34 && stage.change_tile(x, y, 0) {
                     state.sound_manager.play_sfx(44);
@@ -484,20 +484,20 @@ impl NPC {
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
-                    npc.x = x as isize * 16 * 0x200;
-                    npc.y = y as isize * 16 * 0x200;
+                    npc.x = x as i32 * 16 * 0x200;
+                    npc.y = y as i32 * 16 * 0x200;
 
                     let _ = npc_list.spawn(0x100, npc.clone());
                     let _ = npc_list.spawn(0x100, npc.clone());
 
                     if x > 0 && stage.change_tile(x - 1, y, 0) {
-                        npc.x = (x - 1) as isize * 16 * 0x200;
+                        npc.x = (x - 1) as i32 * 16 * 0x200;
                         let _ = npc_list.spawn(0x100, npc.clone());
                         let _ = npc_list.spawn(0x100, npc.clone());
                     }
 
-                    if x < stage.map.width && stage.change_tile(x + 1, y, 0) {
-                        npc.x = (x + 1) as isize * 16 * 0x200;
+                    if x < stage.map.width as usize && stage.change_tile(x + 1, y, 0) {
+                        npc.x = (x + 1) as i32 * 16 * 0x200;
                         let _ = npc_list.spawn(0x100, npc.clone());
                         let _ = npc_list.spawn(0x100, npc);
                     }
@@ -516,10 +516,10 @@ impl NPC {
             let mut npc = NPC::create(4, &state.npc_table);
             npc.cond.set_alive(true);
             npc.direction = Direction::Left;
-            npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
-            npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
-            npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-            npc.vel_y = self.rng.range(-0x600..0) as isize;
+            npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+            npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+            npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+            npc.vel_y = self.rng.range(-0x600..0) as i32;
 
             let _ = npc_list.spawn(0x100, npc);
         }
@@ -554,10 +554,10 @@ impl NPC {
                     npc.direction = Direction::Left;
 
                     for _ in 0..16 {
-                        npc.x = self.x + self.rng.range(-12..12) as isize * 0x200;
-                        npc.y = self.y + self.rng.range(-12..12) as isize * 0x200;
-                        npc.vel_x = self.rng.range(-0x155..0x155) as isize;
-                        npc.vel_y = self.rng.range(-0x600..0) as isize;
+                        npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                        npc.vel_y = self.rng.range(-0x600..0) as i32;
 
                         let _ = npc_list.spawn(0x100, npc.clone());
                     }
@@ -682,8 +682,8 @@ impl NPC {
 
                     let mut npc = NPC::create(11, &state.npc_table);
                     npc.cond.set_alive(true);
-                    npc.vel_x = (angle.cos() * -512.0) as isize;
-                    npc.vel_y = (angle.sin() * -512.0) as isize;
+                    npc.vel_x = (angle.cos() * -512.0) as i32;
+                    npc.vel_y = (angle.sin() * -512.0) as i32;
                     npc.x = self.x;
                     npc.y = self.y + 4 * 0x200;
 
@@ -766,16 +766,16 @@ impl NPC {
                     npc_proj.direction = Direction::Left;
 
                     for _ in 0..8 {
-                        npc_smoke.x = self.x + self.rng.range(-12..12) as isize * 0x200;
-                        npc_smoke.y = self.y + self.rng.range(-12..12) as isize * 0x200;
-                        npc_smoke.vel_x = self.rng.range(-0x155..0x155) as isize;
-                        npc_smoke.vel_y = self.rng.range(-0x600..0) as isize;
+                        npc_smoke.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                        npc_smoke.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                        npc_smoke.vel_x = self.rng.range(-0x155..0x155) as i32;
+                        npc_smoke.vel_y = self.rng.range(-0x600..0) as i32;
                         let _ = npc_list.spawn(0x100, npc_smoke.clone());
 
-                        npc_proj.x = self.x + self.rng.range(-12..12) as isize * 0x200;
-                        npc_proj.y = self.y + self.rng.range(-12..12) as isize * 0x200;
-                        npc_proj.vel_x = self.rng.range(-0x400..0x400) as isize;
-                        npc_proj.vel_y = self.rng.range(-0x400..0) as isize;
+                        npc_proj.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                        npc_proj.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                        npc_proj.vel_x = self.rng.range(-0x400..0x400) as i32;
+                        npc_proj.vel_y = self.rng.range(-0x400..0) as i32;
 
                         let _ = npc_list.spawn(0x100, npc_proj.clone());
                     }
@@ -865,7 +865,7 @@ impl NPC {
                     && self.y - 12 * 0x200 < players[pi].y && self.y + 8 * 0x200 > players[pi].y { // 12.0fix9 / 8.0fix9
                     self.action_num = 10;
                     self.anim_num = 5;
-                    self.vel_y2 = pi as isize;
+                    self.vel_y2 = pi as i32;
                     players[pi].cond.set_hidden(true);
                     players[pi].damage(2, state, npc_list);
                 } else {
@@ -894,7 +894,7 @@ impl NPC {
                     && self.y - 12 * 0x200 < players[pi].y && self.y + 8 * 0x200 > players[pi].y {
                     self.action_num = 10;
                     self.anim_num = 5;
-                    self.vel_y2 = pi as isize;
+                    self.vel_y2 = pi as i32;
                     players[pi].cond.set_hidden(true);
                     players[pi].damage(2, state, npc_list);
                 }

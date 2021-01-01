@@ -23,7 +23,7 @@ impl BulletManager {
         }
     }
 
-    pub fn create_bullet(&mut self, x: isize, y: isize, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) {
+    pub fn create_bullet(&mut self, x: i32, y: i32, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) {
         self.bullets.push(Bullet::new(x, y, btype, owner, direction, constants));
     }
 
@@ -56,14 +56,14 @@ impl BulletManager {
 
 pub struct Bullet {
     pub btype: u16,
-    pub x: isize,
-    pub y: isize,
-    pub vel_x: isize,
-    pub vel_y: isize,
-    pub target_x: isize,
-    pub target_y: isize,
-    pub prev_x: isize,
-    pub prev_y: isize,
+    pub x: i32,
+    pub y: i32,
+    pub vel_x: i32,
+    pub vel_y: i32,
+    pub target_x: i32,
+    pub target_y: i32,
+    pub prev_x: i32,
+    pub prev_y: i32,
     pub life: u16,
     pub lifetime: u16,
     pub damage: u16,
@@ -84,7 +84,7 @@ pub struct Bullet {
 }
 
 impl Bullet {
-    pub fn new(x: isize, y: isize, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) -> Bullet {
+    pub fn new(x: i32, y: i32, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) -> Bullet {
         let bullet = constants.weapon.bullet_table
             .get(btype as usize)
             .unwrap_or_else(|| &BulletData {
@@ -398,7 +398,7 @@ impl Bullet {
         state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Right);
     }
 
-    fn judge_hit_block_destroy(&mut self, x: isize, y: isize, hit_attribs: &[u8; 4], state: &mut SharedGameState) {
+    fn judge_hit_block_destroy(&mut self, x: i32, y: i32, hit_attribs: &[u8; 4], state: &mut SharedGameState) {
         let mut hits = [false; 4];
         let block_x = (x * 16 + 8) * 0x200;
         let block_y = (y * 16 + 8) * 0x200;
@@ -413,77 +413,77 @@ impl Bullet {
 
         // left wall
         if hits[0] && hits[2] {
-            if (self.x - self.hit_bounds.left as isize) < block_x {
+            if (self.x - self.hit_bounds.left as i32) < block_x {
                 self.flags.set_hit_left_wall(true);
             }
         } else if hits[0] && !hits[2] {
-            if (self.x - self.hit_bounds.left as isize) < block_x
-                && (self.y - self.hit_bounds.top as isize) < block_y - (3 * 0x200) {
+            if (self.x - self.hit_bounds.left as i32) < block_x
+                && (self.y - self.hit_bounds.top as i32) < block_y - (3 * 0x200) {
                 self.flags.set_hit_left_wall(true);
             }
         } else if !hits[0] && hits[2]
-            && (self.x - self.hit_bounds.left as isize) < block_x
-            && (self.y + self.hit_bounds.top as isize) > block_y + (3 * 0x200) {
+            && (self.x - self.hit_bounds.left as i32) < block_x
+            && (self.y + self.hit_bounds.top as i32) > block_y + (3 * 0x200) {
             self.flags.set_hit_left_wall(true);
         }
 
         // right wall
         if hits[1] && hits[3] {
-            if (self.x + self.hit_bounds.right as isize) > block_x {
+            if (self.x + self.hit_bounds.right as i32) > block_x {
                 self.flags.set_hit_right_wall(true);
             }
         } else if hits[1] && !hits[3] {
-            if (self.x + self.hit_bounds.right as isize) > block_x
-                && (self.y - self.hit_bounds.top as isize) < block_y - (3 * 0x200) {
+            if (self.x + self.hit_bounds.right as i32) > block_x
+                && (self.y - self.hit_bounds.top as i32) < block_y - (3 * 0x200) {
                 self.flags.set_hit_right_wall(true);
             }
         } else if !hits[1] && hits[3]
-            && (self.x + self.hit_bounds.right as isize) > block_x
-            && (self.y + self.hit_bounds.top as isize) > block_y + (3 * 0x200) {
+            && (self.x + self.hit_bounds.right as i32) > block_x
+            && (self.y + self.hit_bounds.top as i32) > block_y + (3 * 0x200) {
             self.flags.set_hit_right_wall(true);
         }
 
         // ceiling
         if hits[0] && hits[1] {
-            if (self.y - self.hit_bounds.top as isize) < block_y {
+            if (self.y - self.hit_bounds.top as i32) < block_y {
                 self.flags.set_hit_top_wall(true);
             }
         } else if hits[0] && !hits[1] {
-            if (self.x - self.hit_bounds.left as isize) < block_x - (3 * 0x200)
-                && (self.y - self.hit_bounds.top as isize) < block_y {
+            if (self.x - self.hit_bounds.left as i32) < block_x - (3 * 0x200)
+                && (self.y - self.hit_bounds.top as i32) < block_y {
                 self.flags.set_hit_top_wall(true);
             }
         } else if !hits[0] && hits[1]
-            && (self.x + self.hit_bounds.right as isize) > block_x + (3 * 0x200)
-            && (self.y - self.hit_bounds.top as isize) < block_y {
+            && (self.x + self.hit_bounds.right as i32) > block_x + (3 * 0x200)
+            && (self.y - self.hit_bounds.top as i32) < block_y {
             self.flags.set_hit_top_wall(true);
         }
 
         // ground
         if hits[2] && hits[3] {
-            if (self.y + self.hit_bounds.bottom as isize) > block_y {
+            if (self.y + self.hit_bounds.bottom as i32) > block_y {
                 self.flags.set_hit_bottom_wall(true);
             }
         } else if hits[2] && !hits[3] {
-            if (self.x - self.hit_bounds.left as isize) < block_x - (3 * 0x200)
-                && (self.y + self.hit_bounds.bottom as isize) > block_y {
+            if (self.x - self.hit_bounds.left as i32) < block_x - (3 * 0x200)
+                && (self.y + self.hit_bounds.bottom as i32) > block_y {
                 self.flags.set_hit_bottom_wall(true);
             }
         } else if !hits[2] && hits[3]
-            && (self.x + self.hit_bounds.right as isize) > block_x + (3 * 0x200)
-            && (self.y + self.hit_bounds.bottom as isize) > block_y {
+            && (self.x + self.hit_bounds.right as i32) > block_x + (3 * 0x200)
+            && (self.y + self.hit_bounds.bottom as i32) > block_y {
             self.flags.set_hit_bottom_wall(true);
         }
 
         if self.weapon_flags.flag_x08() {
             if self.flags.hit_left_wall() {
-                self.x = block_x + self.hit_bounds.right as isize;
+                self.x = block_x + self.hit_bounds.right as i32;
             } else if self.flags.hit_right_wall() {
-                self.x = block_x - self.hit_bounds.left as isize;
+                self.x = block_x - self.hit_bounds.left as i32;
             } else if self.flags.hit_top_wall() {
-                self.y = block_y + self.hit_bounds.bottom as isize;
+                self.y = block_y + self.hit_bounds.bottom as i32;
             } else if self.flags.hit_bottom_wall() {
-                self.y = block_y - self.hit_bounds.top as isize;
+                self.y = block_y - self.hit_bounds.top as i32;
             }
         } else if self.flags.hit_left_wall() || self.flags.hit_top_wall()
             || self.flags.hit_right_wall() || self.flags.hit_bottom_wall() {
@@ -494,22 +494,22 @@ impl Bullet {
 
 impl PhysicalEntity for Bullet {
     #[inline(always)]
-    fn x(&self) -> isize {
+    fn x(&self) -> i32 {
         self.x
     }
 
     #[inline(always)]
-    fn y(&self) -> isize {
+    fn y(&self) -> i32 {
         self.y
     }
 
     #[inline(always)]
-    fn vel_x(&self) -> isize {
+    fn vel_x(&self) -> i32 {
         self.vel_x
     }
 
     #[inline(always)]
-    fn vel_y(&self) -> isize {
+    fn vel_y(&self) -> i32 {
         self.vel_y
     }
 
@@ -523,22 +523,22 @@ impl PhysicalEntity for Bullet {
     }
 
     #[inline(always)]
-    fn set_x(&mut self, x: isize) {
+    fn set_x(&mut self, x: i32) {
         self.x = x;
     }
 
     #[inline(always)]
-    fn set_y(&mut self, y: isize) {
+    fn set_y(&mut self, y: i32) {
         self.y = y;
     }
 
     #[inline(always)]
-    fn set_vel_x(&mut self, vel_x: isize) {
+    fn set_vel_x(&mut self, vel_x: i32) {
         self.vel_x = vel_x;
     }
 
     #[inline(always)]
-    fn set_vel_y(&mut self, vel_y: isize) {
+    fn set_vel_y(&mut self, vel_y: i32) {
         self.vel_y = vel_y;
     }
 
@@ -562,11 +562,11 @@ impl PhysicalEntity for Bullet {
         false
     }
 
-    fn judge_hit_block(&mut self, _state: &mut SharedGameState, x: isize, y: isize) {
-        if (self.x - self.hit_bounds.left as isize) < (x * 16 + 8) * 0x200
-            && (self.x + self.hit_bounds.right as isize) > (x * 16 - 8) * 0x200
-            && (self.y - self.hit_bounds.top as isize) < (y * 16 + 8) * 0x200
-            && (self.y + self.hit_bounds.bottom as isize) > (y * 16 - 8) * 0x200
+    fn judge_hit_block(&mut self, _state: &mut SharedGameState, x: i32, y: i32) {
+        if (self.x - self.hit_bounds.left as i32) < (x * 16 + 8) * 0x200
+            && (self.x + self.hit_bounds.right as i32) > (x * 16 - 8) * 0x200
+            && (self.y - self.hit_bounds.top as i32) < (y * 16 + 8) * 0x200
+            && (self.y + self.hit_bounds.bottom as i32) > (y * 16 - 8) * 0x200
         {
             self.flags.set_weapon_hit_block(true);
         }
@@ -578,8 +578,8 @@ impl PhysicalEntity for Bullet {
             return;
         }
 
-        let x = clamp(self.x() / 16 / 0x200, 0, stage.map.width as isize);
-        let y = clamp(self.y() / 16 / 0x200, 0, stage.map.height as isize);
+        let x = clamp(self.x() / 16 / 0x200, 0, stage.map.width as i32);
+        let y = clamp(self.y() / 16 / 0x200, 0, stage.map.height as i32);
         let mut hit_attribs = [0u8; 4];
 
         for (idx, (&ox, &oy)) in OFF_X.iter().zip(OFF_Y.iter()).enumerate() {
@@ -615,13 +615,13 @@ impl PhysicalEntity for Bullet {
                         npc.y = (y * 16 + 8) * 0x200;
 
                         for _ in 0..4 {
-                            npc.vel_x = state.game_rng.range(-0x200..0x200) as isize;
-                            npc.vel_y = state.game_rng.range(-0x200..0x200) as isize;
+                            npc.vel_x = state.game_rng.range(-0x200..0x200) as i32;
+                            npc.vel_y = state.game_rng.range(-0x200..0x200) as i32;
 
                             let _ = npc_list.spawn(0x100, npc.clone());
                         }
 
-                        if let Some(tile) = stage.map.tiles.get_mut(stage.map.width * (y + oy) as usize + (x + ox) as usize) {
+                        if let Some(tile) = stage.map.tiles.get_mut(stage.map.width as usize * (y + oy) as usize + (x + ox) as usize) {
                             *tile = tile.wrapping_sub(1);
                         }
                     }

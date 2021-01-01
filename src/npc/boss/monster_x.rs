@@ -27,8 +27,8 @@ impl NPC {
                 }
 
                 let radians = self.action_counter2 as f64 * CDEG_RAD;
-                self.vel_x = 2 * (radians.cos() * 512.0) as isize;
-                self.vel_y = 2 * (radians.sin() * 512.0) as isize;
+                self.vel_x = 2 * (radians.cos() * 512.0) as i32;
+                self.vel_y = 2 * (radians.sin() * 512.0) as i32;
                 self.x += self.vel_x;
                 self.y += self.vel_y;
 
@@ -391,13 +391,13 @@ impl BossNPC {
                 if self.parts[0].action_num == 600 {
                     self.parts[0].action_num = 601;
                     self.parts[0].action_counter = 0;
-                    self.parts[0].vel_y2 = self.parts[0].life as isize;
+                    self.parts[0].vel_y2 = self.parts[0].life as i32;
                     self.parts[1].action_num = 30;
                     self.parts[2].action_num = 30;
                 }
 
                 self.parts[0].action_counter += 1;
-                if (self.parts[0].life as isize) < self.parts[0].vel_y2.saturating_sub(200)
+                if (self.parts[0].life as i32) < self.parts[0].vel_y2.saturating_sub(200)
                     || self.parts[0].action_counter > 300 {
                     self.parts[0].action_num = 602;
                     self.parts[0].action_counter = 0;
@@ -429,8 +429,8 @@ impl BossNPC {
 
                 let mut npc = NPC::create(4, &state.npc_table);
                 npc.cond.set_alive(true);
-                npc.x = self.parts[0].x + self.parts[0].rng.range(-72..72) as isize * 0x200;
-                npc.y = self.parts[0].y + self.parts[0].rng.range(-64..64) as isize * 0x200;
+                npc.x = self.parts[0].x + self.parts[0].rng.range(-72..72) as i32 * 0x200;
+                npc.y = self.parts[0].y + self.parts[0].rng.range(-64..64) as i32 * 0x200;
                 let _ = npc_list.spawn(0x100, npc);
 
                 if self.parts[0].action_counter > 100 {
@@ -805,8 +805,8 @@ impl BossNPC {
                     npc.cond.set_alive(true);
                     npc.x = self.parts[i].x;
                     npc.y = self.parts[i].y;
-                    npc.vel_x = (deg.cos() * -1536.0) as isize;
-                    npc.vel_y = (deg.sin() * -1536.0) as isize;
+                    npc.vel_x = (deg.cos() * -1536.0) as i32;
+                    npc.vel_y = (deg.sin() * -1536.0) as i32;
 
                     let _ = npc_list.spawn(0x100, npc);
 

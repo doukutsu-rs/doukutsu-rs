@@ -187,7 +187,7 @@ impl BossNPC {
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].x;
                     npc.y = self.parts[0].y - 16 * 0x200;
-                    npc.vel_x = self.parts[0].rng.range(-0x100..0x100) as isize;
+                    npc.vel_x = self.parts[0].rng.range(-0x100..0x100) as i32;
                     npc.vel_y = -0x333;
                     npc.direction = if self.parts[0].rng.range(0..9) <= 7 {
                         Direction::Left
@@ -253,7 +253,7 @@ impl BossNPC {
                 if self.parts[0].action_counter == 120 {
                     self.parts[0].action_num = 30;
                     self.parts[0].action_counter = 0;
-                    self.parts[0].x = self.parts[0].target_x + self.parts[0].rng.range(-0x40..0x40) as isize * 0x200;
+                    self.parts[0].x = self.parts[0].target_x + self.parts[0].rng.range(-0x40..0x40) as i32 * 0x200;
                     self.parts[0].y = self.parts[0].target_y;
                 }
             }
@@ -285,7 +285,7 @@ impl BossNPC {
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].x;
                     npc.y = self.parts[0].y - 16 * 0x200;
-                    npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as isize;
+                    npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as i32;
                     npc.vel_y = -0x333;
                     npc.direction = Direction::Left;
 
@@ -350,8 +350,8 @@ impl BossNPC {
                     state.sound_manager.play_sfx(52);
                 }
 
-                let dest_x = self.parts[0].x + self.parts[0].rng.range(-0x30..0x30) as isize * 0x200;
-                let dest_y = self.parts[0].y + self.parts[0].rng.range(-0x30..0x18) as isize * 0x200;
+                let dest_x = self.parts[0].x + self.parts[0].rng.range(-0x30..0x30) as i32 * 0x200;
+                let dest_y = self.parts[0].y + self.parts[0].rng.range(-0x30..0x18) as i32 * 0x200;
 
                 let mut npc = NPC::create(4, &state.npc_table);
                 npc.cond.set_alive(true);

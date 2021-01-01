@@ -949,8 +949,8 @@ impl TextScriptVM {
                         if game_scene.stage.change_tile(pos_x, pos_y, tile_type) {
                             let mut npc = NPC::create(4, &state.npc_table);
                             npc.cond.set_alive(true);
-                            npc.x = pos_x as isize * 16 * 0x200;
-                            npc.y = pos_y as isize * 16 * 0x200;
+                            npc.x = pos_x as i32 * 16 * 0x200;
+                            npc.y = pos_y as i32 * 16 * 0x200;
 
                             game_scene.npc_list.spawn(0x100, npc.clone())?;
                             game_scene.npc_list.spawn(0x100, npc)?;
@@ -1031,8 +1031,8 @@ impl TextScriptVM {
                     OpCode::TRA => {
                         let map_id = read_cur_varint(&mut cursor)? as usize;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
-                        let pos_x = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
-                        let pos_y = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
+                        let pos_x = read_cur_varint(&mut cursor)? as i32 * 16 * 0x200;
+                        let pos_y = read_cur_varint(&mut cursor)? as i32 * 16 * 0x200;
 
                         let mut new_scene = GameScene::new(state, ctx, map_id)?;
                         new_scene.intro_mode = game_scene.intro_mode;
@@ -1064,8 +1064,8 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event_num, 0);
                     }
                     OpCode::MOV => {
-                        let pos_x = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
-                        let pos_y = read_cur_varint(&mut cursor)? as isize * 16 * 0x200;
+                        let pos_x = read_cur_varint(&mut cursor)? as i32 * 16 * 0x200;
+                        let pos_y = read_cur_varint(&mut cursor)? as i32 * 16 * 0x200;
 
                         for player in [&mut game_scene.player1, &mut game_scene.player2].iter_mut() {
                             player.vel_x = 0;
@@ -1177,7 +1177,7 @@ impl TextScriptVM {
                     }
                     OpCode::FOB => {
                         let part_id = read_cur_varint(&mut cursor)? as u16;
-                        let ticks = read_cur_varint(&mut cursor)? as isize;
+                        let ticks = read_cur_varint(&mut cursor)? as i32;
 
                         game_scene.frame.wait = ticks;
                         game_scene.frame.update_target = UpdateTarget::Boss(part_id);
@@ -1185,7 +1185,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::FOM => {
-                        let ticks = read_cur_varint(&mut cursor)? as isize;
+                        let ticks = read_cur_varint(&mut cursor)? as i32;
                         game_scene.frame.wait = ticks;
                         game_scene.frame.update_target = UpdateTarget::Player;
 
@@ -1193,7 +1193,7 @@ impl TextScriptVM {
                     }
                     OpCode::FON => {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
-                        let ticks = read_cur_varint(&mut cursor)? as isize;
+                        let ticks = read_cur_varint(&mut cursor)? as i32;
                         game_scene.frame.wait = ticks;
 
                         for npc in game_scene.npc_list.iter() {
@@ -1312,8 +1312,8 @@ impl TextScriptVM {
                     }
                     OpCode::MNP => {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
-                        let x = read_cur_varint(&mut cursor)? as isize;
-                        let y = read_cur_varint(&mut cursor)? as isize;
+                        let x = read_cur_varint(&mut cursor)? as i32;
+                        let y = read_cur_varint(&mut cursor)? as i32;
                         let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                         let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
@@ -1341,8 +1341,8 @@ impl TextScriptVM {
                     }
                     OpCode::SNP => {
                         let npc_type = read_cur_varint(&mut cursor)? as u16;
-                        let x = read_cur_varint(&mut cursor)? as isize;
-                        let y = read_cur_varint(&mut cursor)? as isize;
+                        let x = read_cur_varint(&mut cursor)? as i32;
+                        let y = read_cur_varint(&mut cursor)? as i32;
                         let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                         let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 

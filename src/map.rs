@@ -10,8 +10,8 @@ static SUPPORTED_PXM_VERSIONS: [u8; 1] = [0x10];
 static SUPPORTED_PXE_VERSIONS: [u8; 2] = [0, 0x10];
 
 pub struct Map {
-    pub width: usize,
-    pub height: usize,
+    pub width: u16,
+    pub height: u16,
     pub tiles: Vec<u8>,
     pub attrib: [u8; 0x100],
 }
@@ -33,9 +33,9 @@ impl Map {
             return Err(ResourceLoadError(format!("Unsupported PXM version: {:#x}", version)));
         }
 
-        let width = map_data.read_u16::<LE>()? as usize;
-        let height = map_data.read_u16::<LE>()? as usize;
-        let mut tiles = vec![0u8; width * height];
+        let width = map_data.read_u16::<LE>()?;
+        let height = map_data.read_u16::<LE>()?;
+        let mut tiles = vec![0u8; (width * height) as usize];
         let mut attrib = [0u8; 0x100];
 
         log::info!("Map size: {}x{}", width, height);
@@ -54,11 +54,11 @@ impl Map {
     }
 
     pub fn get_attribute(&self, x: usize, y: usize) -> u8 {
-        if x >= self.width || y >= self.height {
+        if x >= self.width as usize || y >= self.height as usize {
             return 0;
         }
 
-        self.attrib[*self.tiles.get(self.width * y + x).unwrap_or_else(|| &0u8) as usize]
+        self.attrib[*self.tiles.get(self.width as usize * y + x).unwrap_or_else(|| &0u8) as usize]
     }
 }
 
