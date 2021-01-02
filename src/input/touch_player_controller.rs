@@ -133,6 +133,11 @@ impl PlayerController for TouchPlayerController {
         self.state.shoot()
     }
 
+    fn skip(&self) -> bool {
+        // TODO
+        false
+    }
+
     fn trigger_up(&self) -> bool {
         self.trigger.up()
     }
@@ -163,6 +168,11 @@ impl PlayerController for TouchPlayerController {
 
     fn trigger_shoot(&self) -> bool {
         self.trigger.shoot()
+    }
+
+    fn trigger_skip(&self) -> bool {
+        // TODO
+        false
     }
 
     fn trigger_menu_ok(&self) -> bool {

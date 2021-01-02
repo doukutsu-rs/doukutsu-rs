@@ -52,6 +52,10 @@ impl PlayerController for DummyPlayerController {
         false
     }
 
+    fn skip(&self) -> bool {
+        false
+    }
+
     fn trigger_up(&self) -> bool {
         false
     }
@@ -81,6 +85,10 @@ impl PlayerController for DummyPlayerController {
     }
 
     fn trigger_shoot(&self) -> bool {
+        false
+    }
+
+    fn trigger_skip(&self) -> bool {
         false
     }
 
