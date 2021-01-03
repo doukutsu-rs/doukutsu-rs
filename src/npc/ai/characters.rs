@@ -84,6 +84,12 @@ impl NPC {
             _ => {}
         }
 
+        self.vel_y += 0x20;
+
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
         Ok(())
     }
 
