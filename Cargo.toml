@@ -70,7 +70,7 @@ image = {version = "0.22", default-features = false, features = ["png_codec", "p
 itertools = "0.9.0"
 lazy_static = "1.4.0"
 log = "0.4"
-lua-ffi = {git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "a1e7a62d7f583836b4703cfb8e54a68b79ceee11", optional = true}
+lua-ffi = {git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "1ef3caf772d72068297ddf75df06fd2ef8c1daab", optional = true}
 lru = "0.6.0"
 num-derive = "0.3.2"
 num-traits = "0.2.12"

@@ -564,7 +564,9 @@ impl TextScriptVM {
                         }
 
                         if remaining > 1 {
-                            let ticks = if state.textscript_vm.flags.fast() {
+                            let ticks = if state.textscript_vm.flags.fast()
+                                        || game_scene.player1.controller.skip()
+                                        || game_scene.player2.controller.skip() {
                                 0
                             } else if game_scene.player1.controller.jump()
                                 || game_scene.player1.controller.shoot()
@@ -633,8 +635,10 @@ impl TextScriptVM {
                 TextScriptExecutionState::WaitInput(event, ip) => {
                     if game_scene.player1.controller.trigger_jump()
                         || game_scene.player1.controller.trigger_shoot()
+                        || game_scene.player1.controller.skip()
                         || game_scene.player2.controller.trigger_jump()
-                        || game_scene.player2.controller.trigger_shoot() {
+                        || game_scene.player2.controller.trigger_shoot()
+                        || game_scene.player2.controller.skip() {
                         state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
                     }
                     break;
