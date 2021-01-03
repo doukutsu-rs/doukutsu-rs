@@ -24,6 +24,7 @@ bitfield! {
   pub prev_weapon, set_prev_weapon: 9;
   pub escape, set_escape: 10;
   pub enter, set_enter: 11;
+  pub skip, set_skip: 12;
 }
 
 #[derive(Clone)]
@@ -60,6 +61,7 @@ impl PlayerController for KeyboardController {
         self.state.set_inventory(keyboard::is_key_pressed(ctx, keymap.inventory));
         self.state.set_jump(keyboard::is_key_pressed(ctx, keymap.jump));
         self.state.set_shoot(keyboard::is_key_pressed(ctx, keymap.shoot));
+        self.state.set_skip(keyboard::is_key_pressed(ctx, keymap.skip));
         self.state.set_prev_weapon(keyboard::is_key_pressed(ctx, keymap.prev_weapon));
         self.state.set_next_weapon(keyboard::is_key_pressed(ctx, keymap.next_weapon));
         self.state.set_enter(keyboard::is_key_pressed(ctx, VirtualKeyCode::Return));
@@ -107,6 +109,10 @@ impl PlayerController for KeyboardController {
         self.state.shoot()
     }
 
+    fn skip(&self) -> bool {
+        self.state.skip()
+    }
+
     fn trigger_up(&self) -> bool {
         self.trigger.up()
     }
@@ -137,6 +143,10 @@ impl PlayerController for KeyboardController {
 
     fn trigger_shoot(&self) -> bool {
         self.trigger.shoot()
+    }
+
+    fn trigger_skip(&self) -> bool {
+        self.trigger.skip()
     }
 
     fn trigger_menu_ok(&self) -> bool {

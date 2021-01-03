@@ -72,6 +72,7 @@ pub struct PlayerKeyMap {
     pub next_weapon: VirtualKeyCode,
     pub jump: VirtualKeyCode,
     pub shoot: VirtualKeyCode,
+    pub skip: VirtualKeyCode,
     pub inventory: VirtualKeyCode,
     pub map: VirtualKeyCode,
 }
@@ -86,6 +87,7 @@ fn p1_default_keymap() -> PlayerKeyMap {
         next_weapon: VirtualKeyCode::S,
         jump: VirtualKeyCode::Z,
         shoot: VirtualKeyCode::X,
+        skip: VirtualKeyCode::LControl,
         inventory: VirtualKeyCode::Q,
         map: VirtualKeyCode::W,
     }
@@ -101,6 +103,7 @@ fn p2_default_keymap() -> PlayerKeyMap {
         next_weapon: VirtualKeyCode::H,
         jump: VirtualKeyCode::B,
         shoot: VirtualKeyCode::N,
+        skip: VirtualKeyCode::RControl,
         inventory: VirtualKeyCode::T,
         map: VirtualKeyCode::Y,
     }
