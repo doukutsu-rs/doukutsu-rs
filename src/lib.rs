@@ -141,13 +141,14 @@ impl Game {
         let state_ref = unsafe { &mut *self.state.get() };
 
         if state_ref.timing_mode != TimingMode::FrameSynchronized {
-            // Even with the non-monotonic Instant mitigation at the start of the event loop,
-            // there's still a theoretical chance of it not working.
-            // This check here should trigger if that happens and makes sure there's no panic from an underflow.
             let mut elapsed = self.start_time.elapsed().as_nanos();
-            if elapsed < self.last_tick {
-                warn!("Elapsed time was less than last tick! elapsed: {}, last tick: {}", elapsed, self.last_tick);
-                elapsed = self.last_tick;
+            #[cfg(target_os = "windows")]
+            {
+                // Even with the non-monotonic Instant mitigation at the start of the event loop, there's still a chance of it not working.
+                // This check here should trigger if that happens and makes sure there's no panic from an underflow.
+                if elapsed < self.last_tick {
+                    elapsed = self.last_tick;
+                }
             }
             let n1 = (elapsed - self.last_tick) as f64;
             let n2 = (self.next_tick - self.last_tick) as f64;
