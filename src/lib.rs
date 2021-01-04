@@ -398,15 +398,18 @@ pub fn init() -> GameResult {
                         }
                         *flow = ControlFlow::Exit;
                     }
-                    WindowEvent::Resized(_) => {
-                        if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
-                            let state_ref = unsafe { &mut *game.state.get() };
+                    WindowEvent::Resized(size) => {
+                        // Minimizing a window on Windows causes this event to get called with a 0x0 size
+                        if size.width != 0 && size.height != 0 {
+                            if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
+                                let state_ref = unsafe { &mut *game.state.get() };
 
-                            state_ref.tmp_canvas = Canvas::with_window_size(ctx).unwrap();
-                            state_ref.game_canvas = Canvas::with_window_size(ctx).unwrap();
-                            state_ref.lightmap_canvas = Canvas::with_window_size(ctx).unwrap();
-                            state_ref.handle_resize(ctx).unwrap();
-                            graphics::window(ctx).update_gfx(&mut game.ui.main_color, &mut game.ui.main_depth);
+                                state_ref.tmp_canvas = Canvas::with_window_size(ctx).unwrap();
+                                state_ref.game_canvas = Canvas::with_window_size(ctx).unwrap();
+                                state_ref.lightmap_canvas = Canvas::with_window_size(ctx).unwrap();
+                                state_ref.handle_resize(ctx).unwrap();
+                                graphics::window(ctx).update_gfx(&mut game.ui.main_color, &mut game.ui.main_depth);
+                            }
                         }
                     }
                     WindowEvent::Touch(touch) => {
