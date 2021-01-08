@@ -99,14 +99,6 @@ impl TouchControls {
     }
 
     pub fn draw(&self, canvas_size: (f32, f32), constants: &EngineConstants, texture_set: &mut TextureSet, ctx: &mut Context) -> GameResult {
-        let batch = texture_set.get_or_load_batch(ctx, constants, "Caret")?;
-        let rect = Rect::new_size(104, 120, 24, 24);
-        for point in self.points.iter() {
-            batch.add_rect(point.position.0 as f32 - 12.0, point.position.1 as f32 - 12.0, &rect);
-        }
-
-        batch.draw(ctx)?;
-
         if self.control_type == TouchControlType::Controls {
             let batch = texture_set.get_or_load_batch(ctx, constants, "builtin/touch")?;
             let color = (255, 255, 255, 160);

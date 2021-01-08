@@ -5,7 +5,7 @@ pub trait RNG {
     fn next(&self) -> i32;
 
     fn range(&self, range: Range<i32>) -> i32 {
-        range.start.wrapping_add((self.next() >> 2) % (range.end.wrapping_sub(range.start).wrapping_add(1)))
+        range.start.saturating_add((self.next() >> 2) % range.len() as i32)
     }
 }
 
