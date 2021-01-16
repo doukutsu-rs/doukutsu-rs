@@ -7,6 +7,7 @@ pub mod first_cave;
 pub mod grasstown;
 pub mod igor;
 pub mod intro;
+pub mod last_cave;
 pub mod maze;
 pub mod mimiga_village;
 pub mod misc;

@@ -275,6 +275,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
             199 => self.tick_n199_wind_particles(state),
             211 => self.tick_n211_small_spikes(state),
             234 => self.tick_n234_red_flowers_picked(state),
+            241 => self.tick_n241_critter_red(state, players),
             298 => self.tick_n298_intro_doctor(state),
             299 => self.tick_n299_intro_balrog_misery(state),
             300 => self.tick_n300_intro_demon_crown(state),

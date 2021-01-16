@@ -66,8 +66,7 @@ impl NPC {
         }
         Ok(())
     }
-
-
+    
     pub(crate) fn tick_n064_first_cave_critter(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 | 1 => {
