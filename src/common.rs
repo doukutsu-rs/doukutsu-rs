@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::fmt;
 
 use lazy_static::lazy_static;
-use num_traits::{AsPrimitive, Num};
+use num_traits::{abs, AsPrimitive, Num};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeTupleStruct;
@@ -361,12 +361,12 @@ pub fn fix9_scale(val: i32, scale: f32) -> f32 {
 
 #[inline(always)]
 fn lerp_f64(v1: f64, v2: f64, t: f64) -> f64 {
-    v1 * (1.0 - t.fract()) + v2 * t.fract()
+    v1 * (1.0 - t) + v2 * t
 }
 
 pub fn interpolate_fix9_scale(old_val: i32, val: i32, frame_delta: f64) -> f32 {
-    if (frame_delta - 1.0).abs() < 0.001 {
-        return (val / 0x200) as f32;
+    if abs(old_val - val) > 8 * 0x200 {
+        return val as f32 / 512.0;
     }
 
     (lerp_f64(old_val as f64, val as f64, frame_delta) / 512.0) as f32

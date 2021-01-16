@@ -26,7 +26,7 @@ use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
-use crate::texture_set::{G_MAG, TextureSet};
+use crate::texture_set::{TextureSet};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -125,7 +125,6 @@ impl SharedGameState {
     pub fn new(ctx: &mut Context) -> GameResult<SharedGameState> {
         let screen_size = graphics::drawable_size(ctx);
         let scale = screen_size.1.div(235.0).floor().max(1.0);
-        unsafe { G_MAG = scale };
 
         let canvas_size = (screen_size.0 / scale, screen_size.1 / scale);
 
@@ -292,7 +291,6 @@ impl SharedGameState {
         self.screen_size = graphics::drawable_size(ctx);
         self.scale = self.screen_size.1.div(240.0).floor().max(1.0);
         self.canvas_size = (self.screen_size.0 / self.scale, self.screen_size.1 / self.scale);
-        unsafe { G_MAG = self.scale };
 
         graphics::set_screen_coordinates(ctx, graphics::Rect::new(0.0, 0.0, self.screen_size.0, self.screen_size.1))?;
 
