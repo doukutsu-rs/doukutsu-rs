@@ -8,7 +8,7 @@ version = "0.1.0"
 crate-type = ["lib", "cdylib"]
 
 [package.metadata.android]
-android_version = 28
+android_version = 29
 target_sdk_version = 28
 min_sdk_version = 26
 build_targets = ["aarch64-linux-android"]
@@ -18,7 +18,6 @@ opengles_version = [3, 1]
 fullscreen = true
 orientation = "sensorLandscape"
 permission = [
-    {name = "android.permission.MANAGE_EXTERNAL_STORAGE"},
     {name = "android.permission.READ_EXTERNAL_STORAGE"},
     {name = "android.permission.WRITE_EXTERNAL_STORAGE"}
 ]
