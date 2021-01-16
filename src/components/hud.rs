@@ -168,7 +168,7 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
 
         let (bar_offset, num_offset, weapon_offset) = match self.alignment {
             Alignment::Left => (0.0, 0.0, 0.0),
-            Alignment::Right => (state.canvas_size.0 - 112.0, state.canvas_size.0 - 48.0, state.canvas_size.0 - 104.0),
+            Alignment::Right => (state.canvas_size.0 - 112.0, state.canvas_size.0 - 48.0, state.canvas_size.0 - 40.0),
         };
         let air_offset = if self.has_player2 {
             50.0 * match self.alignment {
@@ -208,6 +208,9 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
         }
 
         if self.max_life != 0 {
+            let yellow_bar_width = (self.life_bar as f32 / self.max_life as f32 * 39.0) as u16;
+            let bar_width = (self.life as f32 / self.max_life as f32 * 39.0) as u16;
+
             // heart/hp number box
             batch.add_rect(num_offset + 16.0, 40.0,
                            &Rect::new_size(0, 40, 24, 8));
@@ -216,10 +219,10 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
                            &Rect::new_size(24, 40, 40, 8));
             // yellow bar
             batch.add_rect(bar_offset + 40.0, 40.0,
-                           &Rect::new_size(0, 32, (self.life_bar * 40) / self.max_life, 8));
+                           &Rect::new_size(0, 32, yellow_bar_width, 8));
             // life
             batch.add_rect(bar_offset + 40.0, 40.0,
-                           &Rect::new_size(0, 24, (self.life * 40) / self.max_life, 8));
+                           &Rect::new_size(0, 24, bar_width, 8));
         }
 
         if self.air_counter > 0 {
@@ -252,6 +255,10 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
                     pos_x -= 48.0 + self.weapon_count as f32 * 16.0;
                 } else if pos_x < 72.0 && pos_x >= 24.0 {
                     pos_x -= 48.0;
+                }
+
+                if self.alignment == Alignment::Right && pos_x > 32.0 {
+                    pos_x -= 96.0 + self.weapon_count as f32 * 16.0;
                 }
 
                 let wtype = unsafe { *self.weapon_types.get_unchecked(a) };
