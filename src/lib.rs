@@ -141,7 +141,16 @@ impl Game {
         let state_ref = unsafe { &mut *self.state.get() };
 
         if state_ref.timing_mode != TimingMode::FrameSynchronized {
-            let n1 = (self.start_time.elapsed().as_nanos() - self.last_tick) as f64;
+            let mut elapsed = self.start_time.elapsed().as_nanos();
+            #[cfg(target_os = "windows")]
+            {
+                // Even with the non-monotonic Instant mitigation at the start of the event loop, there's still a chance of it not working.
+                // This check here should trigger if that happens and makes sure there's no panic from an underflow.
+                if elapsed < self.last_tick {
+                    elapsed = self.last_tick;
+                }
+            }
+            let n1 = (elapsed - self.last_tick) as f64;
             let n2 = (self.next_tick - self.last_tick) as f64;
             state_ref.frame_time = n1 / n2;
         }
@@ -335,6 +344,12 @@ pub fn init() -> GameResult {
     context = Some(init_ctx(&event_loop, resource_dir.clone())?);
 
     event_loop.run(move |event, target, flow| {
+        #[cfg(target_os = "windows")]
+        {
+            // Windows' system clock implementation isn't monotonic when the process gets switched to another core.
+            // Rust has mitigations for this, but apparently aren't very effective unless Instant is called very often.
+            let _ = Instant::now();
+        }
         if let Some(ctx) = &mut context {
             ctx.process_event(&event);
 
@@ -388,15 +403,18 @@ pub fn init() -> GameResult {
                         }
                         *flow = ControlFlow::Exit;
                     }
-                    WindowEvent::Resized(_) => {
-                        if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
-                            let state_ref = unsafe { &mut *game.state.get() };
+                    WindowEvent::Resized(size) => {
+                        // Minimizing a window on Windows causes this event to get called with a 0x0 size
+                        if size.width != 0 && size.height != 0 {
+                            if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
+                                let state_ref = unsafe { &mut *game.state.get() };
 
-                            state_ref.tmp_canvas = Canvas::with_window_size(ctx).unwrap();
-                            state_ref.game_canvas = Canvas::with_window_size(ctx).unwrap();
-                            state_ref.lightmap_canvas = Canvas::with_window_size(ctx).unwrap();
-                            state_ref.handle_resize(ctx).unwrap();
-                            graphics::window(ctx).update_gfx(&mut game.ui.main_color, &mut game.ui.main_depth);
+                                state_ref.tmp_canvas = Canvas::with_window_size(ctx).unwrap();
+                                state_ref.game_canvas = Canvas::with_window_size(ctx).unwrap();
+                                state_ref.lightmap_canvas = Canvas::with_window_size(ctx).unwrap();
+                                state_ref.handle_resize(ctx).unwrap();
+                                graphics::window(ctx).update_gfx(&mut game.ui.main_color, &mut game.ui.main_depth);
+                            }
                         }
                     }
                     WindowEvent::Touch(touch) => {
