@@ -31,6 +31,7 @@ use crate::builtin_fs::BuiltinFS;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
+use crate::texture_set::G_MAG;
 use crate::ui::UI;
 
 mod bmfont;
@@ -143,17 +144,20 @@ impl Game {
         if state_ref.timing_mode != TimingMode::FrameSynchronized {
             let mut elapsed = self.start_time.elapsed().as_nanos();
             #[cfg(target_os = "windows")]
-            {
-                // Even with the non-monotonic Instant mitigation at the start of the event loop, there's still a chance of it not working.
-                // This check here should trigger if that happens and makes sure there's no panic from an underflow.
-                if elapsed < self.last_tick {
-                    elapsed = self.last_tick;
+                {
+                    // Even with the non-monotonic Instant mitigation at the start of the event loop, there's still a chance of it not working.
+                    // This check here should trigger if that happens and makes sure there's no panic from an underflow.
+                    if elapsed < self.last_tick {
+                        elapsed = self.last_tick;
+                    }
                 }
-            }
             let n1 = (elapsed - self.last_tick) as f64;
             let n2 = (self.next_tick - self.last_tick) as f64;
-            state_ref.frame_time = n1 / n2;
+            state_ref.frame_time = if state_ref.settings.motion_interpolation {
+                n1 / n2
+            } else { 1.0 };
         }
+        unsafe { G_MAG = if state_ref.settings.subpixel_coords { state_ref.scale } else { 1.0 } };
         self.loops = 0;
 
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
@@ -182,6 +186,8 @@ impl Game {
 
         let state = unsafe { &mut *self.state.get() };
         match key_code {
+            KeyCode::F5 => { state.settings.subpixel_coords = !state.settings.subpixel_coords }
+            KeyCode::F6 => { state.settings.motion_interpolation = !state.settings.motion_interpolation }
             KeyCode::F7 => { state.set_speed(1.0) }
             KeyCode::F8 => {
                 if state.settings.speed > 0.2 {
@@ -286,7 +292,7 @@ fn init_ctx<P: Into<path::PathBuf> + Clone>(event_loop: &winit::event_loop::Even
             .window_mode(WindowMode::default()
                 .resizable(true)
                 .min_dimensions(320.0, 240.0)
-                .dimensions(854.0, 480.0))
+                .dimensions(640.0, 480.0))
             .add_resource_path(resource_dir.clone())
             .backend(*backend)
             .build(event_loop);
@@ -345,11 +351,11 @@ pub fn init() -> GameResult {
 
     event_loop.run(move |event, target, flow| {
         #[cfg(target_os = "windows")]
-        {
-            // Windows' system clock implementation isn't monotonic when the process gets switched to another core.
-            // Rust has mitigations for this, but apparently aren't very effective unless Instant is called very often.
-            let _ = Instant::now();
-        }
+            {
+                // Windows' system clock implementation isn't monotonic when the process gets switched to another core.
+                // Rust has mitigations for this, but apparently aren't very effective unless Instant is called very often.
+                let _ = Instant::now();
+            }
         if let Some(ctx) = &mut context {
             ctx.process_event(&event);
 
