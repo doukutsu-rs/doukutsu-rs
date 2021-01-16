@@ -5,7 +5,7 @@ pub trait RNG {
     fn next(&self) -> i32;
 
     fn range(&self, range: Range<i32>) -> i32 {
-        range.start.saturating_add((self.next() >> 2) % range.len() as i32)
+        range.start + ((self.next() & 0x7fffffff) % (range.len() as i32))
     }
 }
 
@@ -100,6 +100,6 @@ impl Xoroshiro32PlusPlus {
 
 impl RNG for Xoroshiro32PlusPlus {
     fn next(&self) -> i32 {
-        (((self.next_u16() as u32) << 16 | self.next_u16() as u32) >> 2) as i32
+        ((self.next_u16() as u32) << 16 | self.next_u16() as u32) as i32
     }
 }
