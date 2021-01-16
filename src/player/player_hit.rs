@@ -4,7 +4,7 @@ use num_traits::abs;
 
 use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Flag, Rect};
-use crate::inventory::{AddExperienceResult, Inventory};
+use crate::inventory::Inventory;
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
@@ -256,18 +256,7 @@ impl Player {
                 // experience pickup
                 1 => {
                     state.sound_manager.play_sfx(14);
-                    match inventory.add_xp(npc.exp, state) {
-                        AddExperienceResult::None => {}
-                        AddExperienceResult::LevelUp => {
-                            state.sound_manager.play_sfx(27);
-                            state.create_caret(self.x, self.y, CaretType::LevelUp, Direction::Left);
-                        }
-                        AddExperienceResult::AddStar => {
-                            if self.equip.has_whimsical_star() && self.stars < 3 {
-                                self.stars += 1;
-                            }
-                        }
-                    }
+                    inventory.add_xp(npc.exp, self, state);
                     npc.cond.set_alive(false);
                 }
                 // missile pickup

@@ -373,6 +373,7 @@ pub struct TextScriptVM {
     /// while parsing no one noticed them.
     pub strict_mode: bool,
     pub suspend: bool,
+    pub numbers: [u16; 4],
     pub face: u16,
     pub item: u16,
     pub current_line: TextScriptLine,
@@ -455,6 +456,7 @@ impl TextScriptVM {
             executor_player: TargetPlayer::Player1,
             strict_mode: false,
             suspend: true,
+            numbers: [0; 4],
             face: 0,
             item: 0,
             current_line: TextScriptLine::Line1,
@@ -565,8 +567,8 @@ impl TextScriptVM {
 
                         if remaining > 1 {
                             let ticks = if state.textscript_vm.flags.fast()
-                                        || game_scene.player1.controller.skip()
-                                        || game_scene.player2.controller.skip() {
+                                || game_scene.player1.controller.skip()
+                                || game_scene.player2.controller.skip() {
                                 0
                             } else if game_scene.player1.controller.jump()
                                 || game_scene.player1.controller.shoot()
@@ -715,7 +717,6 @@ impl TextScriptVM {
 
                         game_scene.player1.cond.set_interacted(false);
                         game_scene.player2.cond.set_interacted(false);
-                        game_scene.frame.update_target = UpdateTarget::Player;
 
                         exec_state = TextScriptExecutionState::Ended;
                     }
@@ -1025,6 +1026,21 @@ impl TextScriptVM {
                         state.sound_manager.play_sfx(5);
 
                         exec_state = TextScriptExecutionState::WaitConfirmation(event, cursor.position() as u32, event_no, 16, ConfirmSelection::Yes);
+                    }
+                    OpCode::NUM => {
+                        let index = read_cur_varint(&mut cursor)? as usize;
+
+                        if let Some(num) = state.textscript_vm.numbers.get(index) {
+                            let mut str = num.to_string().chars().collect_vec();
+
+                            match state.textscript_vm.current_line {
+                                TextScriptLine::Line1 => state.textscript_vm.line_1.append(&mut str),
+                                TextScriptLine::Line2 => state.textscript_vm.line_2.append(&mut str),
+                                TextScriptLine::Line3 => state.textscript_vm.line_3.append(&mut str),
+                            }
+                        }
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::GIT => {
                         let item = read_cur_varint(&mut cursor)? as u16;
@@ -1418,6 +1434,8 @@ impl TextScriptVM {
                         let max_ammo = read_cur_varint(&mut cursor)? as u16;
                         let weapon_type: Option<WeaponType> = FromPrimitive::from_u8(weapon_id);
 
+                        state.textscript_vm.numbers[0] = max_ammo;
+
                         if let Some(wtype) = weapon_type {
                             game_scene.inventory_player1.add_weapon(wtype, max_ammo);
                             game_scene.inventory_player2.add_weapon(wtype, max_ammo);
@@ -1439,6 +1457,20 @@ impl TextScriptVM {
                     OpCode::AEp => {
                         game_scene.inventory_player1.refill_all_ammo();
                         game_scene.inventory_player2.refill_all_ammo();
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::TAM => {
+                        let old_weapon_id = read_cur_varint(&mut cursor)? as u8;
+                        let new_weapon_id = read_cur_varint(&mut cursor)? as u8;
+                        let max_ammo = read_cur_varint(&mut cursor)? as u16;
+                        let old_weapon_type: Option<WeaponType> = FromPrimitive::from_u8(old_weapon_id);
+                        let new_weapon_type: Option<WeaponType> = FromPrimitive::from_u8(new_weapon_id);
+
+                        if let Some(wtype) = new_weapon_type {
+                            game_scene.inventory_player1.trade_weapon(old_weapon_type, wtype, max_ammo);
+                            game_scene.inventory_player2.trade_weapon(old_weapon_type, wtype, max_ammo);
+                        }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1494,7 +1526,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // One operand codes
-                    OpCode::NUM | OpCode::MPp | OpCode::SKm | OpCode::SKp |
+                    OpCode::MPp | OpCode::SKm | OpCode::SKp |
                     OpCode::UNJ | OpCode::MPJ | OpCode::XX1 | OpCode::SIL |
                     OpCode::SSS | OpCode::ACH => {
                         let par_a = read_cur_varint(&mut cursor)?;
@@ -1509,16 +1541,6 @@ impl TextScriptVM {
                         let par_b = read_cur_varint(&mut cursor)?;
 
                         log::warn!("unimplemented opcode: {:?} {} {}", op, par_a, par_b);
-
-                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
-                    }
-                    // Three operand codes
-                    OpCode::TAM => {
-                        let par_a = read_cur_varint(&mut cursor)?;
-                        let par_b = read_cur_varint(&mut cursor)?;
-                        let par_c = read_cur_varint(&mut cursor)?;
-
-                        log::warn!("unimplemented opcode: {:?} {} {} {}", op, par_a, par_b, par_c);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }

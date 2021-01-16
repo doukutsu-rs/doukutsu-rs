@@ -40,45 +40,45 @@ pub static PIXTONE_TABLE: [PixToneParameters; 160] = [
             Channel::disabled(),
         ],
     },
-    PixToneParameters { // fx2 (CS+)
-        channels: [
-            Channel {
-                enabled: true,
-                length: 2000,
-                carrier: Waveform {
-                    waveform_type: 0,
-                    pitch: 92.000000,
-                    level: 32,
-                    offset: 0,
-                },
-                frequency: Waveform {
-                    waveform_type: 0,
-                    pitch: 3.000000,
-                    level: 44,
-                    offset: 0,
-                },
-                amplitude: Waveform {
-                    waveform_type: 0,
-                    pitch: 0.000000,
-                    level: 32,
-                    offset: 0,
-                },
-                envelope: Envelope {
-                    initial: 7,
-                    time_a: 2,
-                    value_a: 18,
-                    time_b: 128,
-                    value_b: 0,
-                    time_c: 255,
-                    value_c: 0,
-                },
-            },
-            Channel::disabled(),
-            Channel::disabled(),
-            Channel::disabled(),
-        ],
-    },
-    /*PixToneParameters { // fx2
+    // PixToneParameters { // fx2 (CS+)
+    //     channels: [
+    //         Channel {
+    //             enabled: true,
+    //             length: 2000,
+    //             carrier: Waveform {
+    //                 waveform_type: 0,
+    //                 pitch: 92.000000,
+    //                 level: 32,
+    //                 offset: 0,
+    //             },
+    //             frequency: Waveform {
+    //                 waveform_type: 0,
+    //                 pitch: 3.000000,
+    //                 level: 44,
+    //                 offset: 0,
+    //             },
+    //             amplitude: Waveform {
+    //                 waveform_type: 0,
+    //                 pitch: 0.000000,
+    //                 level: 32,
+    //                 offset: 0,
+    //             },
+    //             envelope: Envelope {
+    //                 initial: 7,
+    //                 time_a: 2,
+    //                 value_a: 18,
+    //                 time_b: 128,
+    //                 value_b: 0,
+    //                 time_c: 255,
+    //                 value_c: 0,
+    //             },
+    //         },
+    //         Channel::disabled(),
+    //         Channel::disabled(),
+    //         Channel::disabled(),
+    //     ],
+    // },
+    PixToneParameters { // fx2
         channels: [
             Channel {
                 enabled: true,
@@ -115,7 +115,7 @@ pub static PIXTONE_TABLE: [PixToneParameters; 160] = [
             Channel::disabled(),
             Channel::disabled(),
         ],
-    },*/
+    },
     PixToneParameters { // fx3
         channels: [
             Channel {

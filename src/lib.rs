@@ -248,10 +248,10 @@ pub fn android_main() {
 
     request_perms().expect("Failed to attach to the JVM and request storage permissions.");
 
-    env::set_var("CAVESTORY_DATA_DIR", "/storage/emulated/0/doukutsu");
+    env::set_var("CAVESTORY_DATA_DIR", "/sdcard/doukutsu");
 
-    let _ = std::fs::create_dir("/storage/emulated/0/doukutsu/");
-    let _ = std::fs::write("/storage/emulated/0/doukutsu/.nomedia", b"");
+    let _ = std::fs::create_dir("/sdcard/doukutsu/");
+    let _ = std::fs::write("/sdcard/doukutsu/.nomedia", b"");
 
     init().unwrap();
 }

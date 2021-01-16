@@ -3,6 +3,9 @@ use std::cmp::Ordering;
 use crate::engine_constants::EngineConstants;
 use crate::shared_game_state::SharedGameState;
 use crate::weapon::{Weapon, WeaponLevel, WeaponType};
+use crate::player::Player;
+use crate::caret::CaretType;
+use crate::common::Direction;
 
 #[derive(Clone, Copy)]
 /// (id, amount)
@@ -14,13 +17,6 @@ pub struct Inventory {
     pub current_weapon: u16,
     items: Vec<Item>,
     weapons: Vec<Weapon>,
-}
-
-#[derive(Clone, Copy)]
-pub enum AddExperienceResult {
-    None,
-    LevelUp,
-    AddStar,
 }
 
 #[derive(Clone, Copy)]
@@ -102,6 +98,18 @@ impl Inventory {
         self.weapons.iter_mut().find(|w| w.wtype == weapon_id).unwrap()
     }
 
+    pub fn trade_weapon(&mut self, old: Option<WeaponType>, new: WeaponType, max_ammo: u16) {
+        if let Some(wtype) = old {
+            if let Some(weapon) = self.get_weapon_by_type_mut(wtype) {
+                *weapon = Weapon::new(new, WeaponLevel::Level1, 0, max_ammo, max_ammo);
+            } else {
+                self.add_weapon(new, max_ammo);
+            }
+        } else {
+            self.add_weapon(new, max_ammo);
+        }
+    }
+
     pub fn remove_weapon(&mut self, wtype: WeaponType) {
         self.weapons.retain(|weapon| weapon.wtype != wtype);
     }
@@ -151,6 +159,13 @@ impl Inventory {
         }
     }
 
+    pub fn reset_current_weapon_xp(&mut self) {
+        if let Some(weapon) = self.get_current_weapon_mut() {
+            weapon.level = WeaponLevel::Level1;
+            weapon.experience = 0;
+        }
+    }
+
     pub fn take_xp(&mut self, exp: u16, state: &mut SharedGameState) -> TakeExperienceResult {
         let mut result = TakeExperienceResult::None;
 
@@ -182,9 +197,7 @@ impl Inventory {
         result
     }
 
-    pub fn add_xp(&mut self, exp: u16, state: &mut SharedGameState) -> AddExperienceResult {
-        let mut result = AddExperienceResult::None;
-
+    pub fn add_xp(&mut self, exp: u16, player: &mut Player, state: &mut SharedGameState) {
         if let Some(weapon) = self.get_current_weapon_mut() {
             let curr_level_idx = weapon.level as usize - 1;
             let lvl_table = state.constants.weapon.level_table[weapon.wtype as usize];
@@ -194,19 +207,21 @@ impl Inventory {
             if weapon.level == WeaponLevel::Level3 {
                 if weapon.experience > lvl_table[2] {
                     weapon.experience = lvl_table[2];
-                    result = AddExperienceResult::AddStar;
+
+                    if player.equip.has_whimsical_star() && player.stars < 3 {
+                        player.stars += 1;
+                    }
                 }
             } else if weapon.experience > lvl_table[curr_level_idx] {
                 weapon.level = weapon.level.next();
                 weapon.experience = 0;
 
                 if weapon.wtype != WeaponType::Spur {
-                    result = AddExperienceResult::LevelUp;
+                    state.sound_manager.play_sfx(27);
+                    state.create_caret(player.x, player.y, CaretType::LevelUp, Direction::Left);
                 }
             }
         }
-
-        result
     }
 
     /// Get current experience state. Returns a (exp, max exp, max level/exp) tuple.

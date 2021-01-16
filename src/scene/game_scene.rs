@@ -519,7 +519,7 @@ impl GameScene {
             for bullet in self.bullet_manager.bullets.iter() {
                 self.draw_light(fix9_scale(bullet.x - self.frame.x, scale),
                                 fix9_scale(bullet.y - self.frame.y, scale),
-                                0.7, (200, 200, 200), batch);
+                                0.3, (200, 200, 200), batch);
             }
 
             for caret in state.carets.iter() {
@@ -1055,12 +1055,24 @@ impl GameScene {
         self.frame.update(state, &self.stage);
 
         if state.control_flags.control_enabled() {
+            #[allow(clippy::cast_ref_to_mut)]
+            let inventory = unsafe { &mut *(&self.inventory_player1 as *const Inventory as *mut Inventory)}; // fuck off
             if let Some(weapon) = self.inventory_player1.get_current_weapon_mut() {
-                weapon.shoot_bullet(&self.player1, TargetPlayer::Player1, &mut self.bullet_manager, state);
+                weapon.shoot_bullet(&mut self.player1,
+                                    TargetPlayer::Player1,
+                                    inventory,
+                                    &mut self.bullet_manager,
+                                    state);
             }
 
+            #[allow(clippy::cast_ref_to_mut)]
+            let inventory = unsafe { &mut *(&self.inventory_player2 as *const Inventory as *mut Inventory)};
             if let Some(weapon) = self.inventory_player2.get_current_weapon_mut() {
-                weapon.shoot_bullet(&self.player2, TargetPlayer::Player2, &mut self.bullet_manager, state);
+                weapon.shoot_bullet(&mut self.player2,
+                                    TargetPlayer::Player2,
+                                    inventory,
+                                    &mut self.bullet_manager,
+                                    state);
             }
 
             self.hud_player1.tick(state, (&self.player1, &mut self.inventory_player1))?;

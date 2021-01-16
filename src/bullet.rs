@@ -13,13 +13,15 @@ use crate::stage::Stage;
 
 pub struct BulletManager {
     pub bullets: Vec<Bullet>,
+    pub new_bullets: Vec<Bullet>,
 }
 
 impl BulletManager {
     #[allow(clippy::new_without_default)]
     pub fn new() -> BulletManager {
         BulletManager {
-            bullets: Vec::with_capacity(32),
+            bullets: Vec::with_capacity(64),
+            new_bullets: Vec::with_capacity(8),
         }
     }
 
@@ -27,15 +29,27 @@ impl BulletManager {
         self.bullets.push(Bullet::new(x, y, btype, owner, direction, constants));
     }
 
+    pub fn push_bullet(&mut self, bullet: Bullet) {
+        self.bullets.push(bullet);
+    }
+
     pub fn tick_bullets(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2], npc_list: &NPCList, stage: &mut Stage) {
-        for bullet in self.bullets.iter_mut() {
-            if bullet.life < 1 {
-                bullet.cond.set_alive(false);
-                continue;
+        let mut i = 0;
+        while i < self.bullets.len() {
+            {
+                let bullet = unsafe { self.bullets.get_unchecked_mut(i) };
+                i += 1;
+
+                if bullet.life < 1 {
+                    bullet.cond.set_alive(false);
+                    continue;
+                }
+
+                bullet.tick(state, players, npc_list, &mut self.new_bullets);
+                bullet.tick_map_collisions(state, npc_list, stage);
             }
 
-            bullet.tick(state, players, npc_list);
-            bullet.tick_map_collisions(state, npc_list, stage);
+            self.bullets.append(&mut self.new_bullets);
         }
 
         self.bullets.retain(|b| !b.is_dead());
@@ -49,7 +63,7 @@ impl BulletManager {
         self.bullets.iter().filter(|b| (b.btype.saturating_sub(2) / 3) == type_idx).count()
     }
 
-    pub fn count_bullets_multi(&self, btypes: [u16; 3], player_id: TargetPlayer) -> usize {
+    pub fn count_bullets_multi(&self, btypes: &[u16], player_id: TargetPlayer) -> usize {
         self.bullets.iter().filter(|b| b.owner == player_id && btypes.contains(&b.btype)).count()
     }
 }
@@ -168,11 +182,81 @@ impl Bullet {
             self.y += self.vel_y;
         }
 
-        self.anim_num = (self.anim_num + 1) % 3;
+        self.anim_num = (self.anim_num + 1) % 4;
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
 
         self.anim_rect = state.constants.weapon.bullet_rects.b001_snake_l1[self.anim_num as usize + dir_offset];
+    }
+
+    fn tick_snake_2(&mut self, state: &mut SharedGameState, npc_list: &NPCList) {
+        self.action_counter += 1;
+        if self.action_counter > self.lifetime {
+            self.cond.set_alive(false);
+            state.create_caret(self.x, self.y, CaretType::Shoot, Direction::Left);
+            return;
+        }
+
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_num = state.game_rng.range(0..2) as u16;
+
+            match self.direction {
+                Direction::Left => {
+                    self.vel_x = -0x200;
+                    self.vel_y = if self.target_x & 1 == 0 { -0x400 } else { 0x400 };
+                }
+                Direction::Up => {
+                    self.vel_y = -0x200;
+                    self.vel_x = if self.target_x & 1 == 0 { -0x400 } else { 0x400 };
+                }
+                Direction::Right => {
+                    self.vel_x = 0x200;
+                    self.vel_y = if self.target_x & 1 == 0 { -0x400 } else { 0x400 };
+                }
+                Direction::Bottom => {
+                    self.vel_y = 0x200;
+                    self.vel_x = if self.target_x & 1 == 0 { -0x400 } else { 0x400 };
+                }
+                Direction::FacingPlayer => unreachable!(),
+            };
+        } else {
+            match self.direction {
+                Direction::Left => self.vel_x += -0x80,
+                Direction::Up => self.vel_y += -0x80,
+                Direction::Right => self.vel_x += 0x80,
+                Direction::Bottom => self.vel_y += 0x80,
+                Direction::FacingPlayer => unreachable!(),
+            }
+
+            if self.action_counter % 5 == 2 {
+                match self.direction {
+                    Direction::Left | Direction::Right => {
+                        self.vel_y = if self.vel_y < 0 { 0x400 } else { -0x400 };
+                    }
+                    Direction::Up | Direction::Bottom => {
+                        self.vel_x = if self.vel_x < 0 { 0x400 } else { -0x400 };
+                    }
+                    Direction::FacingPlayer => unreachable!(),
+                }
+            }
+
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+        }
+
+        self.anim_num = (self.anim_num + 1) % 3;
+
+        self.anim_rect = state.constants.weapon.bullet_rects.b002_003_snake_l2_3[self.anim_num as usize];
+
+        let mut npc = NPC::create(129, &state.npc_table);
+        npc.cond.set_alive(true);
+        npc.x = self.x;
+        npc.y = self.y;
+        npc.vel_y = -0x200;
+        npc.action_counter2 = if self.btype == 3 { self.anim_num + 3 } else { self.anim_num };
+
+        let _ = npc_list.spawn(0x100, npc);
     }
 
     fn tick_polar_star(&mut self, state: &mut SharedGameState) {
@@ -374,7 +458,134 @@ impl Bullet {
         }
     }
 
-    pub fn tick(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2], npc_list: &NPCList) {
+    fn tick_spur(&mut self, state: &mut SharedGameState, new_bullets: &mut Vec<Bullet>) {
+        self.action_counter += 1;
+        if self.action_counter > self.lifetime {
+            self.cond.set_alive(false);
+            state.create_caret(self.x, self.y, CaretType::Shoot, Direction::Left);
+            return;
+        }
+
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            match self.direction {
+                Direction::Left => self.vel_x = -0x1000,
+                Direction::Up => self.vel_y = -0x1000,
+                Direction::Right => self.vel_x = 0x1000,
+                Direction::Bottom => self.vel_y = 0x1000,
+                Direction::FacingPlayer => unreachable!(),
+            }
+
+            match self.btype {
+                37 => {
+                    match self.direction {
+                        Direction::Left | Direction::Right => self.enemy_hit_height = 0x400,
+                        Direction::Up | Direction::Bottom => self.enemy_hit_width = 0x400,
+                        Direction::FacingPlayer => unreachable!(),
+                    }
+                }
+                38 => {
+                    match self.direction {
+                        Direction::Left | Direction::Right => {
+                            self.enemy_hit_height = 0x800;
+                        }
+                        Direction::Up | Direction::Bottom => {
+                            self.enemy_hit_width = 0x800;
+                        }
+                        Direction::FacingPlayer => unreachable!(),
+                    }
+                }
+                39 => {
+                    // level 3 uses default values
+                }
+                _ => { unreachable!() }
+            }
+        } else {
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+        }
+
+        match self.btype {
+            37 => {
+                if self.direction == Direction::Up || self.direction == Direction::Bottom {
+                    self.anim_num = 1;
+                    self.anim_rect = state.constants.weapon.bullet_rects.b037_spur_l1[1];
+                } else {
+                    self.anim_num = 0;
+                    self.anim_rect = state.constants.weapon.bullet_rects.b037_spur_l1[0];
+                }
+
+                new_bullets.push(Bullet::new(self.x, self.y, 40, self.owner, self.direction, &state.constants));
+            }
+            38 => {
+                if self.direction == Direction::Up || self.direction == Direction::Bottom {
+                    self.anim_num = 1;
+                    self.anim_rect = state.constants.weapon.bullet_rects.b038_spur_l2[1];
+                } else {
+                    self.anim_num = 0;
+                    self.anim_rect = state.constants.weapon.bullet_rects.b038_spur_l2[0];
+                }
+
+                new_bullets.push(Bullet::new(self.x, self.y, 41, self.owner, self.direction, &state.constants));
+            }
+            39 => {
+                if self.direction == Direction::Up || self.direction == Direction::Bottom {
+                    self.anim_num = 1;
+                    self.anim_rect = state.constants.weapon.bullet_rects.b039_spur_l3[1];
+                } else {
+                    self.anim_num = 0;
+                    self.anim_rect = state.constants.weapon.bullet_rects.b039_spur_l3[0];
+                }
+
+                new_bullets.push(Bullet::new(self.x, self.y, 42, self.owner, self.direction, &state.constants));
+            }
+            _ => { unreachable!() }
+        }
+    }
+
+    fn tick_spur_trail(&mut self, state: &mut SharedGameState) {
+        self.action_counter += 1;
+        if self.action_counter > 20 {
+            self.anim_num = self.action_counter.wrapping_sub(20);
+
+            if self.anim_num > 2 {
+                self.cond.set_alive(false);
+                return;
+            }
+        }
+
+        if self.damage != 0 && self.life != 100 {
+            self.damage = 0;
+        }
+
+        match self.btype {
+            40 => {
+                if self.direction == Direction::Up || self.direction == Direction::Bottom {
+                    self.anim_rect = state.constants.weapon.bullet_rects.b040_spur_trail_l1[self.anim_num as usize + 3];
+                } else {
+                    self.anim_rect = state.constants.weapon.bullet_rects.b040_spur_trail_l1[self.anim_num as usize];
+                }
+            }
+            41 => {
+                if self.direction == Direction::Up || self.direction == Direction::Bottom {
+                    self.anim_rect = state.constants.weapon.bullet_rects.b041_spur_trail_l2[self.anim_num as usize + 3];
+                } else {
+                    self.anim_rect = state.constants.weapon.bullet_rects.b041_spur_trail_l2[self.anim_num as usize];
+                }
+            }
+            42 => {
+                if self.direction == Direction::Up || self.direction == Direction::Bottom {
+                    self.anim_rect = state.constants.weapon.bullet_rects.b042_spur_trail_l3[self.anim_num as usize + 3];
+                } else {
+                    self.anim_rect = state.constants.weapon.bullet_rects.b042_spur_trail_l3[self.anim_num as usize];
+                }
+            }
+            _ => { unreachable!() }
+        }
+    }
+
+    pub fn tick(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2], npc_list: &NPCList, new_bullets: &mut Vec<Bullet>) {
         if self.lifetime == 0 {
             self.cond.set_alive(false);
             return;
@@ -382,8 +593,11 @@ impl Bullet {
 
         match self.btype {
             1 => self.tick_snake_1(state),
+            2 | 3 => self.tick_snake_2(state, npc_list),
             4 | 5 | 6 => self.tick_polar_star(state),
             7 | 8 | 9 => self.tick_fireball(state, players, npc_list),
+            37 | 38 | 39 => self.tick_spur(state, new_bullets),
+            40 | 41 | 42 => self.tick_spur_trail(state),
             _ => self.cond.set_alive(false),
         }
     }
