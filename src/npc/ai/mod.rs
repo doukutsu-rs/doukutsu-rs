@@ -12,6 +12,7 @@ pub mod maze;
 pub mod mimiga_village;
 pub mod misc;
 pub mod misery;
+pub mod outer_wall;
 pub mod pickups;
 pub mod quote;
 pub mod sand_zone;

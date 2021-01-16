@@ -273,12 +273,16 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
             193 => self.tick_n193_broken_scooter(state),
             194 => self.tick_n194_broken_blue_robot(state),
             199 => self.tick_n199_wind_particles(state),
+            208 => self.tick_n208_basu_destroyed_egg_corridor(state, players, npc_list),
+            209 => self.tick_n209_basu_projectile_destroyed_egg_corridor(state),
             211 => self.tick_n211_small_spikes(state),
+            215 => self.tick_n215_sandcroc_outer_wall(state, players),
             234 => self.tick_n234_red_flowers_picked(state),
             241 => self.tick_n241_critter_red(state, players),
             298 => self.tick_n298_intro_doctor(state),
             299 => self.tick_n299_intro_balrog_misery(state),
             300 => self.tick_n300_intro_demon_crown(state),
+            359 => self.tick_n359_water_droplet_generator(state, players, npc_list),
             _ => Ok(()),
         }?;
 

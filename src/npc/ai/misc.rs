@@ -1314,4 +1314,21 @@ impl NPC {
 
         Ok(())
     }
+
+    pub(crate) fn tick_n359_water_droplet_generator(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+        if abs(player.x - self.x) < 320 * 0x200
+            && player.y < self.y + 320 * 0x200
+            && player.y > self.y - 160 * 0x200
+            && self.rng.range(0..100) == 2 {
+            let mut npc = NPC::create(73, &state.npc_table);
+            npc.cond.set_alive(true);
+            npc.x = self.x + self.rng.range(-6..6) * 0x200;
+            npc.y = self.y - 7 * 0x200;
+
+            let _ = npc_list.spawn(0, npc);
+        }
+
+        Ok(())
+    }
 }

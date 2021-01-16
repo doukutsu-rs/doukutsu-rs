@@ -644,6 +644,7 @@ impl EngineConstants {
                 "Npc/NpcHeri" => (320, 128),
                 "Npc/NpcIronH" => (320, 72),
                 "Npc/NpcIsland" => (320, 80),
+                "Npc/NpcKaze" => (320, 240),
                 "Npc/NpcKings" => (96, 48),
                 "Npc/NpcMaze" => (320, 192),
                 "Npc/NpcMiza" => (320, 240),
