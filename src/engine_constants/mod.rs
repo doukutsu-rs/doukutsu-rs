@@ -115,6 +115,13 @@ pub struct BulletRects {
     pub b006_polar_star_l3: [Rect<u16>; 2],
     pub b007_fireball_l1: [Rect<u16>; 8],
     pub b008_009_fireball_l2_3: [Rect<u16>; 6],
+    pub b023_blade_slash: [Rect<u16>; 10],
+    pub b025_blade_l1: [Rect<u16>; 8],
+    pub b026_blade_l2: [Rect<u16>; 8],
+    pub b027_blade_l3: [Rect<u16>; 8],
+    pub b034_nemesis_l1: [Rect<u16>; 8],
+    pub b035_nemesis_l2: [Rect<u16>; 8],
+    pub b036_nemesis_l3: [Rect<u16>; 8],
     pub b037_spur_l1: [Rect<u16>; 2],
     pub b038_spur_l2: [Rect<u16>; 2],
     pub b039_spur_l3: [Rect<u16>; 2],
@@ -532,6 +539,78 @@ impl EngineConstants {
                         Rect { left: 224, top: 16, right: 240, bottom: 32 }, // right
                         Rect { left: 208, top: 16, right: 224, bottom: 32 },
                         Rect { left: 192, top: 16, right: 208, bottom: 32 },
+                    ],
+                    b023_blade_slash: [
+                        Rect { left: 0, top: 64, right: 24, bottom: 88 }, // left
+                        Rect { left: 24, top: 64, right: 48, bottom: 88 },
+                        Rect { left: 48, top: 64, right: 72, bottom: 88 },
+                        Rect { left: 72, top: 64, right: 96, bottom: 88 },
+                        Rect { left: 96, top: 64, right: 120, bottom: 88 },
+                        Rect { left: 0, top: 88, right: 24, bottom: 112 }, // right
+                        Rect { left: 24, top: 88, right: 48, bottom: 112 },
+                        Rect { left: 48, top: 88, right: 72, bottom: 112 },
+                        Rect { left: 72, top: 88, right: 96, bottom: 112 },
+                        Rect { left: 96, top: 88, right: 120, bottom: 112 },
+                    ],
+                    b025_blade_l1: [
+                        Rect { left: 0, top: 48, right: 16, bottom: 64 }, // left
+                        Rect { left: 16, top: 48, right: 32, bottom: 64 },
+                        Rect { left: 32, top: 48, right: 48, bottom: 64 },
+                        Rect { left: 48, top: 48, right: 64, bottom: 64 },
+                        Rect { left: 64, top: 48, right: 80, bottom: 64 }, // other directions
+                        Rect { left: 80, top: 48, right: 96, bottom: 64 },
+                        Rect { left: 96, top: 48, right: 112, bottom: 64 },
+                        Rect { left: 112, top: 48, right: 128, bottom: 64 },
+                    ],
+                    b026_blade_l2: [
+                        Rect { left: 160, top: 48, right: 184, bottom: 72 }, // left
+                        Rect { left: 184, top: 48, right: 208, bottom: 72 },
+                        Rect { left: 208, top: 48, right: 232, bottom: 72 },
+                        Rect { left: 232, top: 48, right: 256, bottom: 72 },
+                        Rect { left: 160, top: 72, right: 184, bottom: 96 }, // other directions
+                        Rect { left: 184, top: 72, right: 208, bottom: 96 },
+                        Rect { left: 208, top: 72, right: 232, bottom: 96 },
+                        Rect { left: 232, top: 72, right: 256, bottom: 96 },
+                    ],
+                    b027_blade_l3: [
+                        Rect { left: 272, top: 0, right: 296, bottom: 24 }, // left
+                        Rect { left: 296, top: 0, right: 320, bottom: 24 },
+                        Rect { left: 272, top: 48, right: 296, bottom: 72 }, // up
+                        Rect { left: 296, top: 0, right: 320, bottom: 24 },
+                        Rect { left: 272, top: 24, right: 296, bottom: 48 }, // right
+                        Rect { left: 296, top: 24, right: 320, bottom: 48 },
+                        Rect { left: 296, top: 48, right: 320, bottom: 72 }, // down
+                        Rect { left: 296, top: 24, right: 320, bottom: 48 },
+                    ],
+                    b034_nemesis_l1: [
+                        Rect { left: 0, top: 112, right: 32, bottom: 128 }, // left
+                        Rect { left: 0, top: 128, right: 32, bottom: 144 },
+                        Rect { left: 32, top: 112, right: 48, bottom: 144 }, // up
+                        Rect { left: 48, top: 112, right: 64, bottom: 144 },
+                        Rect { left: 64, top: 112, right: 96, bottom: 128 }, // right
+                        Rect { left: 64, top: 128, right: 96, bottom: 144 },
+                        Rect { left: 96, top: 112, right: 112, bottom: 144 }, // down
+                        Rect { left: 112, top: 112, right: 128, bottom: 144 },
+                    ],
+                    b035_nemesis_l2: [
+                        Rect { left: 0, top: 240, right: 32, bottom: 256 }, // left
+                        Rect { left: 0, top: 256, right: 32, bottom: 272 },
+                        Rect { left: 32, top: 240, right: 48, bottom: 272 }, // up
+                        Rect { left: 48, top: 240, right: 64, bottom: 272 },
+                        Rect { left: 64, top: 240, right: 96, bottom: 256 }, // right
+                        Rect { left: 64, top: 256, right: 96, bottom: 272 },
+                        Rect { left: 96, top: 240, right: 112, bottom: 272 }, // down
+                        Rect { left: 112, top: 240, right: 128, bottom: 272 },
+                    ],
+                    b036_nemesis_l3: [
+                        Rect { left: 32, top: 112, right: 64, bottom: 128 }, // left
+                        Rect { left: 32, top: 128, right: 64, bottom: 144 },
+                        Rect { left: 64, top: 112, right: 80, bottom: 144 }, // up
+                        Rect { left: 80, top: 112, right: 96, bottom: 144 },
+                        Rect { left: 96, top: 112, right: 128, bottom: 128 }, // right
+                        Rect { left: 96, top: 128, right: 128, bottom: 144 },
+                        Rect { left: 128, top: 112, right: 144, bottom: 144 }, // down
+                        Rect { left: 144, top: 112, right: 160, bottom: 144 },
                     ],
                     b037_spur_l1: [
                         Rect { left: 128, top: 32, right: 144, bottom: 48 }, // horizontal

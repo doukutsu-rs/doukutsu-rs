@@ -1,3 +1,5 @@
+use std::ops::{Add, Sub};
+
 use num_traits::clamp;
 
 use crate::caret::CaretType;
@@ -7,13 +9,14 @@ use crate::npc::list::NPCList;
 use crate::npc::NPC;
 use crate::physics::{OFF_X, OFF_Y, PhysicalEntity};
 use crate::player::TargetPlayer;
-use crate::rng::RNG;
+use crate::rng::{RNG, Xoroshiro32PlusPlus, XorShift};
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
 pub struct BulletManager {
     pub bullets: Vec<Bullet>,
     pub new_bullets: Vec<Bullet>,
+    pub seeder: XorShift,
 }
 
 impl BulletManager {
@@ -22,14 +25,19 @@ impl BulletManager {
         BulletManager {
             bullets: Vec::with_capacity(64),
             new_bullets: Vec::with_capacity(8),
+            seeder: XorShift::new(0x359c482f),
         }
     }
 
     pub fn create_bullet(&mut self, x: i32, y: i32, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) {
-        self.bullets.push(Bullet::new(x, y, btype, owner, direction, constants));
+        let mut bullet = Bullet::new(x, y, btype, owner, direction, constants);
+        bullet.rng = Xoroshiro32PlusPlus::new(self.seeder.next_u32());
+
+        self.bullets.push(bullet);
     }
 
-    pub fn push_bullet(&mut self, bullet: Bullet) {
+    pub fn push_bullet(&mut self, mut bullet: Bullet) {
+        bullet.rng = Xoroshiro32PlusPlus::new(self.seeder.next_u32());
         self.bullets.push(bullet);
     }
 
@@ -47,6 +55,10 @@ impl BulletManager {
 
                 bullet.tick(state, players, npc_list, &mut self.new_bullets);
                 bullet.tick_map_collisions(state, npc_list, stage);
+            }
+
+            for bullet in self.new_bullets.iter_mut() {
+                bullet.rng = Xoroshiro32PlusPlus::new(self.seeder.next_u32());
             }
 
             self.bullets.append(&mut self.new_bullets);
@@ -80,7 +92,9 @@ pub struct Bullet {
     pub prev_y: i32,
     pub life: u16,
     pub lifetime: u16,
-    pub damage: u16,
+    pub damage: i16,
+    pub counter1: u16,
+    pub rng: Xoroshiro32PlusPlus,
     pub owner: TargetPlayer,
     pub cond: Condition,
     pub weapon_flags: BulletFlag,
@@ -125,7 +139,9 @@ impl Bullet {
             prev_y: y,
             life: bullet.life as u16,
             lifetime: bullet.lifetime,
-            damage: bullet.damage as u16,
+            damage: bullet.damage as i16,
+            counter1: 0,
+            rng: Xoroshiro32PlusPlus::new(1),
             owner,
             cond: Condition(0x80),
             weapon_flags: bullet.flags,
@@ -458,6 +474,216 @@ impl Bullet {
         }
     }
 
+    fn tick_blade_slash(&mut self, state: &mut SharedGameState) {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.x += if self.direction == Direction::Left { 0x2000 } else { -0x2000 };
+            self.y -= 0x1800;
+        }
+
+        self.anim_counter += 1;
+        if self.anim_counter > 2 {
+            self.anim_counter = 0;
+            self.anim_num += 1;
+
+            self.damage = if self.anim_num == 1 { 2 } else { 1 };
+            if self.anim_num > 4 {
+                self.cond.set_alive(false);
+                return;
+            }
+        }
+
+        self.x += if self.direction == Direction::Left { -0x400 } else { 0x400 };
+        self.y += 0x400;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 5 };
+
+        self.anim_rect = state.constants.weapon.bullet_rects.b023_blade_slash[self.anim_num as usize + dir_offset];
+    }
+
+    fn tick_blade_1(&mut self, state: &mut SharedGameState) {
+        self.action_counter += 1;
+        if self.action_counter > self.lifetime {
+            self.cond.set_alive(false);
+            state.create_caret(self.x, self.y, CaretType::Shoot, Direction::Left);
+            return;
+        }
+
+        if self.action_counter == 3 {
+            self.weapon_flags.set_flag_x04(false);
+        }
+
+        if self.action_counter % 5 == 1 {
+            state.sound_manager.play_sfx(34);
+        }
+
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            match self.direction {
+                Direction::Left => self.vel_x = -0x800,
+                Direction::Up => self.vel_y = -0x800,
+                Direction::Right => self.vel_x = 0x800,
+                Direction::Bottom => self.vel_y = 0x800,
+                Direction::FacingPlayer => unreachable!(),
+            }
+        } else {
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+        }
+
+        self.anim_counter += 1;
+        if self.anim_counter > 1 {
+            self.anim_counter = 0;
+            self.anim_num += 1;
+            if self.anim_num > 3 {
+                self.anim_num = 0;
+            }
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
+
+        self.anim_rect = state.constants.weapon.bullet_rects.b025_blade_l1[self.anim_num as usize + dir_offset];
+    }
+
+    fn tick_blade_2(&mut self, state: &mut SharedGameState) {
+        self.action_counter += 1;
+        if self.action_counter > self.lifetime {
+            self.cond.set_alive(false);
+            state.create_caret(self.x, self.y, CaretType::Shoot, Direction::Left);
+            return;
+        }
+
+        if self.action_counter == 3 {
+            self.weapon_flags.set_flag_x04(false);
+        }
+
+        if self.action_counter % 7 == 1 {
+            state.sound_manager.play_sfx(106);
+        }
+
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            match self.direction {
+                Direction::Left => self.vel_x = -0x800,
+                Direction::Up => self.vel_y = -0x800,
+                Direction::Right => self.vel_x = 0x800,
+                Direction::Bottom => self.vel_y = 0x800,
+                Direction::FacingPlayer => unreachable!(),
+            }
+        } else {
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+        }
+
+        self.anim_counter += 1;
+        if self.anim_counter > 1 {
+            self.anim_counter = 0;
+            self.anim_num += 1;
+            if self.anim_num > 3 {
+                self.anim_num = 0;
+            }
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
+
+        self.anim_rect = state.constants.weapon.bullet_rects.b026_blade_l2[self.anim_num as usize + dir_offset];
+    }
+
+    fn tick_blade_3(&mut self, state: &mut SharedGameState, new_bullets: &mut Vec<Bullet>) {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.vel_x = 0;
+                    self.vel_y = 0;
+                }
+
+                match self.direction {
+                    Direction::Left => self.vel_x = -0x800,
+                    Direction::Up => self.vel_y = -0x800,
+                    Direction::Right => self.vel_x = 0x800,
+                    Direction::Bottom => self.vel_y = 0x800,
+                    Direction::FacingPlayer => unreachable!(),
+                }
+
+                if self.life != 100 {
+                    self.action_num = 2;
+                    self.anim_num = 1;
+                    self.damage = -1;
+                    self.action_counter = 0;
+                }
+
+                self.action_counter += 1;
+                if self.action_counter % 4 == 1 {
+                    state.sound_manager.play_sfx(106);
+
+                    self.counter1 += 1;
+                    let direction = if self.counter1 % 2 != 0 {
+                        Direction::Left
+                    } else {
+                        Direction::Right
+                    };
+
+                    new_bullets.push(Bullet::new(self.x, self.y, 23, self.owner, direction, &state.constants));
+                }
+
+                self.counter1 += 1;
+                if self.counter1 == 5 {
+                    self.weapon_flags.set_flag_x04(false);
+                }
+
+                if self.counter1 > self.lifetime {
+                    self.cond.set_alive(false);
+                    state.create_caret(self.x, self.y, CaretType::Shoot, Direction::Left);
+                    return;
+                }
+            }
+            2 => {
+                self.vel_x = 0;
+                self.vel_y = 0;
+
+                self.action_counter += 1;
+                if self.rng.range(-1..1) == 0 {
+                    state.sound_manager.play_sfx(106);
+
+                    let x = self.rng.range(-64..64) * 0x200 + self.x;
+                    let y = self.rng.range(-64..64) * 0x200 + self.y;
+                    let direction = if self.rng.range(0..1) != 0 {
+                        Direction::Left
+                    } else {
+                        Direction::Right
+                    };
+
+                    new_bullets.push(Bullet::new(x, y, 23, self.owner, direction, &state.constants));
+                }
+
+                if self.action_counter > 50 {
+                    self.cond.set_alive(false);
+                }
+            }
+            _ => {}
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = match self.direction {
+            Direction::Left => 0,
+            Direction::Up => 2,
+            Direction::Right => 4,
+            Direction::Bottom => 6,
+            _ => unreachable!(),
+        };
+
+        self.anim_rect = state.constants.weapon.bullet_rects.b027_blade_l3[self.anim_num as usize + dir_offset];
+
+        if self.action_counter % 2 != 0 {
+            self.anim_rect = Rect { left: 0, top: 0, right: 0, bottom: 0 };
+        }
+    }
+
     fn tick_spur(&mut self, state: &mut SharedGameState, new_bullets: &mut Vec<Bullet>) {
         self.action_counter += 1;
         if self.action_counter > self.lifetime {
@@ -586,7 +812,7 @@ impl Bullet {
     }
 
     pub fn tick(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2], npc_list: &NPCList, new_bullets: &mut Vec<Bullet>) {
-        if self.lifetime == 0 {
+        if self.life == 0 {
             self.cond.set_alive(false);
             return;
         }
@@ -596,6 +822,10 @@ impl Bullet {
             2 | 3 => self.tick_snake_2(state, npc_list),
             4 | 5 | 6 => self.tick_polar_star(state),
             7 | 8 | 9 => self.tick_fireball(state, players, npc_list),
+            23 => self.tick_blade_slash(state),
+            25 => self.tick_blade_1(state),
+            26 => self.tick_blade_2(state),
+            27 => self.tick_blade_3(state, new_bullets),
             37 | 38 | 39 => self.tick_spur(state, new_bullets),
             40 | 41 | 42 => self.tick_spur_trail(state),
             _ => self.cond.set_alive(false),

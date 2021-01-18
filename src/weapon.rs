@@ -89,7 +89,7 @@ impl Weapon {
         false
     }
 
-    fn shoot_bullet_snake(&mut self, player: &Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
+    fn tick_snake(&mut self, player: &Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
         if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi(&[1, 2, 3], player_id) < 4 {
             let btype = match self.level {
                 WeaponLevel::Level1 => { 1 }
@@ -159,7 +159,7 @@ impl Weapon {
         }
     }
 
-    fn shoot_bullet_polar_star(&mut self, player: &Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
+    fn tick_polar_star(&mut self, player: &Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
         if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi(&[4, 5, 6], player_id) < 2 {
             let btype = match self.level {
                 WeaponLevel::Level1 => { 4 }
@@ -219,8 +219,7 @@ impl Weapon {
         }
     }
 
-
-    fn shoot_bullet_fireball(&mut self, player: &Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
+    fn tick_fireball(&mut self, player: &Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
         let max_bullets = self.level as usize + 1;
         if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi(&[7, 8, 9], player_id) < max_bullets {
             let btype = match self.level {
@@ -277,7 +276,113 @@ impl Weapon {
         }
     }
 
-    fn shoot_bullet_spur(&mut self, player: &mut Player, player_id: TargetPlayer, inventory: &mut Inventory, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
+    fn tick_blade(&mut self, player: &Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
+        if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi(&[25, 26, 27], player_id) == 0 {
+            let btype = match self.level {
+                WeaponLevel::Level1 => { 25 }
+                WeaponLevel::Level2 => { 26 }
+                WeaponLevel::Level3 => { 27 }
+                WeaponLevel::None => { unreachable!() }
+            };
+
+            if player.up {
+                match player.direction {
+                    Direction::Left => {
+                        bullet_manager.create_bullet(player.x - 0x200, player.y + 4 * 0x200, btype, player_id, Direction::Up, &state.constants);
+                    }
+                    Direction::Right => {
+                        bullet_manager.create_bullet(player.x + 0x200, player.y + 4 * 0x200, btype, player_id, Direction::Up, &state.constants);
+                    }
+                    _ => {}
+                }
+            } else if player.down {
+                match player.direction {
+                    Direction::Left => {
+                        bullet_manager.create_bullet(player.x - 0x200, player.y - 6 * 0x200, btype, player_id, Direction::Bottom, &state.constants);
+                    }
+                    Direction::Right => {
+                        bullet_manager.create_bullet(player.x + 0x200, player.y - 6 * 0x200, btype, player_id, Direction::Bottom, &state.constants);
+                    }
+                    _ => {}
+                }
+            } else {
+                match player.direction {
+                    Direction::Left => {
+                        bullet_manager.create_bullet(player.x + 6 * 0x200, player.y - 3 * 0x200, btype, player_id, Direction::Left, &state.constants);
+                    }
+                    Direction::Right => {
+                        bullet_manager.create_bullet(player.x - 6 * 0x200, player.y - 3 * 0x200, btype, player_id, Direction::Right, &state.constants);
+                    }
+                    _ => {}
+                }
+            }
+
+            state.sound_manager.play_sfx(34)
+        }
+    }
+
+    fn tick_nemesis(&mut self, player: &Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
+        if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi(&[34, 35, 36], player_id) < 2 {
+            let btype = match self.level {
+                WeaponLevel::Level1 => { 34 }
+                WeaponLevel::Level2 => { 35 }
+                WeaponLevel::Level3 => { 36 }
+                WeaponLevel::None => { unreachable!() }
+            };
+
+            if !self.consume_ammo(1) {
+                state.sound_manager.play_sfx(37);
+                return;
+            }
+
+            if player.up {
+                match player.direction {
+                    Direction::Left => {
+                        bullet_manager.create_bullet(player.x - 0x200, player.y - 12 * 0x200, btype, player_id, Direction::Up, &state.constants);
+                        state.create_caret(player.x - 0x200, player.y - 8 * 0x200, CaretType::Shoot, Direction::Left);
+                    }
+                    Direction::Right => {
+                        bullet_manager.create_bullet(player.x + 0x200, player.y - 12 * 0x200, btype, player_id, Direction::Up, &state.constants);
+                        state.create_caret(player.x + 0x200, player.y - 8 * 0x200, CaretType::Shoot, Direction::Left);
+                    }
+                    _ => {}
+                }
+            } else if player.down {
+                match player.direction {
+                    Direction::Left => {
+                        bullet_manager.create_bullet(player.x - 0x200, player.y + 12 * 0x200, btype, player_id, Direction::Bottom, &state.constants);
+                        state.create_caret(player.x - 0x200, player.y + 8 * 0x200, CaretType::Shoot, Direction::Left);
+                    }
+                    Direction::Right => {
+                        bullet_manager.create_bullet(player.x + 0x200, player.y + 12 * 0x200, btype, player_id, Direction::Bottom, &state.constants);
+                        state.create_caret(player.x + 0x200, player.y + 8 * 0x200, CaretType::Shoot, Direction::Left);
+                    }
+                    _ => {}
+                }
+            } else {
+                match player.direction {
+                    Direction::Left => {
+                        bullet_manager.create_bullet(player.x - 22 * 0x200, player.y + 3 * 0x200, btype, player_id, Direction::Left, &state.constants);
+                        state.create_caret(player.x - 16 * 0x200, player.y + 3 * 0x200, CaretType::Shoot, Direction::Left);
+                    }
+                    Direction::Right => {
+                        bullet_manager.create_bullet(player.x + 22 * 0x200, player.y + 3 * 0x200, btype, player_id, Direction::Right, &state.constants);
+                        state.create_caret(player.x + 16 * 0x200, player.y + 3 * 0x200, CaretType::Shoot, Direction::Right);
+                    }
+                    _ => {}
+                }
+            }
+
+            match self.level {
+                WeaponLevel::Level1 => state.sound_manager.play_sfx(117),
+                WeaponLevel::Level2 => state.sound_manager.play_sfx(49),
+                WeaponLevel::Level3 => state.sound_manager.play_sfx(60),
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    fn tick_spur(&mut self, player: &mut Player, player_id: TargetPlayer, inventory: &mut Inventory, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
         let mut shoot = false;
         let mut btype = 0;
 
@@ -395,23 +500,23 @@ impl Weapon {
         }
     }
 
-    pub fn shoot_bullet(&mut self, player: &mut Player, player_id: TargetPlayer, inventory: &mut Inventory, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
+    pub fn tick(&mut self, player: &mut Player, player_id: TargetPlayer, inventory: &mut Inventory, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
         if !player.cond.alive() || player.cond.hidden() {
             return;
         }
 
         match self.wtype {
             WeaponType::None => {}
-            WeaponType::Snake => self.shoot_bullet_snake(player, player_id, bullet_manager, state),
-            WeaponType::PolarStar => self.shoot_bullet_polar_star(player, player_id, bullet_manager, state),
-            WeaponType::Fireball => self.shoot_bullet_fireball(player, player_id, bullet_manager, state),
+            WeaponType::Snake => self.tick_snake(player, player_id, bullet_manager, state),
+            WeaponType::PolarStar => self.tick_polar_star(player, player_id, bullet_manager, state),
+            WeaponType::Fireball => self.tick_fireball(player, player_id, bullet_manager, state),
             WeaponType::MachineGun => {}
             WeaponType::MissileLauncher => {}
             WeaponType::Bubbler => {}
-            WeaponType::Blade => {}
+            WeaponType::Blade => self.tick_blade(player, player_id, bullet_manager, state),
             WeaponType::SuperMissileLauncher => {}
-            WeaponType::Nemesis => {}
-            WeaponType::Spur => self.shoot_bullet_spur(player, player_id, inventory, bullet_manager, state),
+            WeaponType::Nemesis => self.tick_nemesis(player, player_id, bullet_manager, state),
+            WeaponType::Spur => self.tick_spur(player, player_id, inventory, bullet_manager, state),
         }
     }
 }
