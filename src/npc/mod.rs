@@ -74,6 +74,7 @@ pub struct NPC {
     pub shock: u16,
     pub life: u16,
     pub damage: u16,
+    pub spritesheet_id: u16,
     pub cond: Condition,
     pub flags: Flag,
     pub npc_flags: NPCFlag,
@@ -95,17 +96,7 @@ pub struct NPC {
     pub rng: Xoroshiro32PlusPlus,
 }
 
-static PARTICLE_NPCS: [u16; 13] = [1, 4, 11, 45, 48, 73, 84, 86, 87, 108, 129, 199, 355];
-
 impl NPC {
-    pub fn get_start_index(&self) -> u16 {
-        if PARTICLE_NPCS.contains(&self.npc_type) {
-            0x100
-        } else {
-            0
-        }
-    }
-
     pub fn empty() -> NPC {
         NPC {
             id: 0,
@@ -125,6 +116,7 @@ impl NPC {
             shock: 0,
             life: 0,
             damage: 0,
+            spritesheet_id: 0,
             cond: Condition(0),
             flags: Flag(0),
             npc_flags: NPCFlag(0),
@@ -235,6 +227,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
             87 => self.tick_n087_heart_pickup(state),
             88 => self.tick_n088_igor_boss(state, players, npc_list),
             89 => self.tick_n089_igor_dead(state, players, npc_list),
+            90 => self.tick_n090_background(state),
             91 => self.tick_n091_mimiga_cage(state),
             92 => self.tick_n092_sue_at_pc(state),
             93 => self.tick_n093_chaco(state, players),
@@ -259,29 +252,55 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
             112 => self.tick_n112_quote_teleport_in(state, players),
             113 => self.tick_n113_professor_booster(state),
             114 => self.tick_n114_press(state, players, npc_list),
+            116 => self.tick_n116_red_petals(state),
+            119 => self.tick_n119_table_chair(state),
+            120 => self.tick_n120_colon_a(state),
             124 => self.tick_n124_sunstone(state),
             125 => self.tick_n125_hidden_item(state, npc_list),
             129 => self.tick_n129_fireball_snake_trail(state),
+            131 => self.tick_n131_puppy_sleeping(state),
+            137 => self.tick_n137_large_door_frame(state),
+            143 => self.tick_n143_jenka_collapsed(state),
             149 => self.tick_n149_horizontal_moving_block(state, players, npc_list),
             150 => self.tick_n150_quote(state, players, npc_list),
             151 => self.tick_n151_blue_robot_standing(state),
+            152 => self.tick_n152_shutter_stuck(),
             154 => self.tick_n154_gaudi_dead(state),
             156 => self.tick_n156_gaudi_projectile(state),
             157 => self.tick_n157_vertical_moving_block(state, players, npc_list),
             158 => self.tick_n158_fish_missile(state, players),
+            166 => self.tick_n166_chaba(state),
             192 => self.tick_n192_scooter(state),
             193 => self.tick_n193_broken_scooter(state),
             194 => self.tick_n194_broken_blue_robot(state),
+            195 => self.tick_n195_grate(state),
             199 => self.tick_n199_wind_particles(state),
+            207 => self.tick_n207_counter_bomb_countdown(state),
             208 => self.tick_n208_basu_destroyed_egg_corridor(state, players, npc_list),
             209 => self.tick_n209_basu_projectile_destroyed_egg_corridor(state),
             211 => self.tick_n211_small_spikes(state),
             215 => self.tick_n215_sandcroc_outer_wall(state, players),
+            216 => self.tick_n216_debug_cat(state),
+            222 => self.tick_n222_prison_bars(state),
+            227 => self.tick_n227_bucket(state),
             234 => self.tick_n234_red_flowers_picked(state),
+            239 => self.tick_n239_cage_bars(state),
             241 => self.tick_n241_critter_red(state, players),
+            249 => self.tick_n249_misery_boss_energy_shot(state),
+            258 => self.tick_n258_mimiga_sleeping(state),
+            292 => self.tick_n292_quake(state),
+            297 => self.tick_n297_sue_dragon_mouth(state, npc_list),
             298 => self.tick_n298_intro_doctor(state),
             299 => self.tick_n299_intro_balrog_misery(state),
             300 => self.tick_n300_intro_demon_crown(state),
+            302 => self.tick_n302_camera_focus_marker(state, players, npc_list),
+            328 => self.tick_n328_human_transform_machine(state),
+            329 => self.tick_n329_laboratory_fan(state),
+            349 => self.tick_n349_statue(state),
+            351 => self.tick_n351_statue_shootable(state, npc_list),
+            352 => self.tick_n352_ending_characters(state, npc_list),
+            355 => self.tick_n355_quote_and_curly_on_balrog(state, npc_list),
+            358 => self.tick_n358_misery_credits(state),
             359 => self.tick_n359_water_droplet_generator(state, players, npc_list),
             _ => Ok(()),
         }?;
@@ -306,7 +325,8 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
             return Ok(());
         }
 
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, state.npc_table.get_texture_name(self.npc_type))?;
+        let texture = state.npc_table.get_texture_name(self.spritesheet_id);
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, texture)?;
 
         let off_x = if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right } as i32;
         let shock = if self.shock > 0 {
@@ -541,28 +561,26 @@ impl NPCTable {
         }
     }
 
-    pub fn get_texture_name(&self, npc_type: u16) -> &str {
-        if let Some(npc) = self.entries.get(npc_type as usize) {
-            match npc.spritesheet_id {
-                2 => &self.tileset_name,
-                6 => "Fade",
-                8 => "ItemImage",
-                11 => "Arms",
-                12 => "ArmsImage",
-                14 => "StageImage",
-                15 => "Loading",
-                16 => "MyChar",
-                17 => "Bullet",
-                19 => "Caret",
-                20 => "Npc/NpcSym",
-                21 => &self.tex_npc1_name,
-                22 => &self.tex_npc2_name,
-                23 => "Npc/NpcRegu",
-                26 => "TextBox",
-                _ => "Npc/Npc0"
-            }
-        } else {
-            "Npc/Npc0"
+    pub fn get_texture_name(&self, spritesheet_id: u16) -> &str {
+        match spritesheet_id {
+            0 => "Title",
+            2 => &self.tileset_name,
+            6 => "Fade",
+            8 => "ItemImage",
+            11 => "Arms",
+            12 => "ArmsImage",
+            14 => "StageImage",
+            15 => "Loading",
+            16 => "MyChar",
+            17 => "Bullet",
+            19 => "Caret",
+            20 => "Npc/NpcSym",
+            21 => &self.tex_npc1_name,
+            22 => &self.tex_npc2_name,
+            23 => "Npc/NpcRegu",
+            26 => "TextBox",
+            27 => "Face",
+            _ => "Npc/Npc0"
         }
     }
 }

@@ -26,10 +26,20 @@ impl NPC {
     pub fn create(npc_type: u16, table: &NPCTable) -> NPC {
         let display_bounds = table.get_display_bounds(npc_type);
         let hit_bounds = table.get_hit_bounds(npc_type);
-        let (size, life, damage, flags, exp) = match table.get_entry(npc_type) {
-            Some(entry) => { (entry.size, entry.life, entry.damage as u16, entry.npc_flags, entry.experience as u16) }
-            None => { (2, 0, 0, NPCFlag(0), 0) }
-        };
+        let (size, life, damage, flags, exp, spritesheet_id) =
+            match table.get_entry(npc_type) {
+                Some(entry) => {
+                    (
+                        entry.size,
+                        entry.life,
+                        entry.damage as u16,
+                        entry.npc_flags,
+                        entry.experience as u16,
+                        entry.spritesheet_id as u16
+                    )
+                }
+                None => { (2, 0, 0, NPCFlag(0), 0, 0) }
+            };
         let npc_flags = NPCFlag(flags.0);
 
         NPC {
@@ -54,6 +64,7 @@ impl NPC {
             size,
             life,
             damage,
+            spritesheet_id,
             cond: Condition(0x00),
             flags: Flag(0),
             direction: if npc_flags.spawn_facing_right() { Direction::Right } else { Direction::Left },
@@ -71,50 +82,17 @@ impl NPC {
     }
 
     pub fn create_from_data(data: &NPCData, table: &NPCTable) -> NPC {
-        let display_bounds = table.get_display_bounds(data.npc_type);
-        let hit_bounds = table.get_hit_bounds(data.npc_type);
-        let (size, life, damage, flags, exp) = match table.get_entry(data.npc_type) {
-            Some(entry) => { (entry.size, entry.life, entry.damage as u16, entry.npc_flags, entry.experience as u16) }
-            None => { (1, 0, 0, NPCFlag(0), 0) }
-        };
-        let npc_flags = NPCFlag(data.flags | flags.0);
+        let mut npc = NPC::create(data.npc_type, table);
 
-        NPC {
-            id: data.id,
-            npc_type: data.npc_type,
-            x: data.x as i32 * 16 * 0x200,
-            y: data.y as i32 * 16 * 0x200,
-            vel_x: 0,
-            vel_y: 0,
-            vel_x2: 0,
-            vel_y2: 0,
-            target_x: 0,
-            target_y: 0,
-            prev_x: 0,
-            prev_y: 0,
-            action_num: 0,
-            anim_num: 0,
-            flag_num: data.flag_num,
-            event_num: data.event_num,
-            shock: 0,
-            exp,
-            size,
-            life,
-            damage,
-            cond: Condition(0x00),
-            flags: Flag(0),
-            direction: if npc_flags.spawn_facing_right() { Direction::Right } else { Direction::Left },
-            tsc_direction: 0,
-            npc_flags,
-            display_bounds,
-            hit_bounds,
-            parent_id: 0,
-            action_counter: 0,
-            action_counter2: 0,
-            anim_counter: 0,
-            anim_rect: Rect::new(0, 0, 0, 0),
-            rng: Xoroshiro32PlusPlus::new(0),
-        }
+        npc.id = data.id;
+        npc.x = data.x as i32 * 16 * 0x200;
+        npc.y = data.y as i32 * 16 * 0x200;
+        npc.flag_num = data.flag_num;
+        npc.event_num = data.event_num;
+        npc.npc_flags = NPCFlag(data.flags | npc.npc_flags.0);
+        npc.direction = if npc.npc_flags.spawn_facing_right() { Direction::Right } else { Direction::Left };
+
+        npc
     }
 
     /// Returns a reference to parent NPC (if present).
@@ -282,7 +260,7 @@ impl NPCList {
             }
 
             state.game_flags.set(npc.flag_num as usize, true);
-            
+
             if npc.npc_flags.show_damage() {
                 // todo show damage
                 if vanish {

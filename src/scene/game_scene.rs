@@ -798,7 +798,7 @@ impl GameScene {
             }
 
             for bullet in self.bullet_manager.bullets.iter_mut() {
-                if !bullet.cond.alive() || bullet.damage < 1 {
+                if !bullet.cond.alive() || bullet.damage < 0 {
                     continue;
                 }
 
@@ -807,7 +807,7 @@ impl GameScene {
                 }
 
                 if npc.npc_flags.shootable() {
-                    npc.life = npc.life.saturating_sub(bullet.damage);
+                    npc.life = clamp((npc.life as i32).saturating_sub(bullet.damage as i32), 0, u16::MAX as i32) as u16;
 
                     if npc.life == 0 {
                         if npc.npc_flags.show_damage() {
@@ -870,7 +870,7 @@ impl GameScene {
             }
 
             for bullet in self.bullet_manager.bullets.iter_mut() {
-                if !bullet.cond.alive() || bullet.damage < 1 {
+                if !bullet.cond.alive() || bullet.damage < 0 {
                     continue;
                 }
 
@@ -898,7 +898,7 @@ impl GameScene {
                         npc = unsafe { self.boss.parts.get_unchecked_mut(0) };
                     }
 
-                    npc.life = npc.life.saturating_sub(bullet.damage);
+                    npc.life = clamp((npc.life as i32).saturating_sub(bullet.damage as i32), 0, u16::MAX as i32) as u16;
 
                     if npc.life == 0 {
                         npc.life = npc.id;
@@ -1056,23 +1056,23 @@ impl GameScene {
 
         if state.control_flags.control_enabled() {
             #[allow(clippy::cast_ref_to_mut)]
-            let inventory = unsafe { &mut *(&self.inventory_player1 as *const Inventory as *mut Inventory)}; // fuck off
+                let inventory = unsafe { &mut *(&self.inventory_player1 as *const Inventory as *mut Inventory) }; // fuck off
             if let Some(weapon) = self.inventory_player1.get_current_weapon_mut() {
-                weapon.shoot_bullet(&mut self.player1,
-                                    TargetPlayer::Player1,
-                                    inventory,
-                                    &mut self.bullet_manager,
-                                    state);
+                weapon.tick(&mut self.player1,
+                            TargetPlayer::Player1,
+                            inventory,
+                            &mut self.bullet_manager,
+                            state);
             }
 
             #[allow(clippy::cast_ref_to_mut)]
-            let inventory = unsafe { &mut *(&self.inventory_player2 as *const Inventory as *mut Inventory)};
+                let inventory = unsafe { &mut *(&self.inventory_player2 as *const Inventory as *mut Inventory) };
             if let Some(weapon) = self.inventory_player2.get_current_weapon_mut() {
-                weapon.shoot_bullet(&mut self.player2,
-                                    TargetPlayer::Player2,
-                                    inventory,
-                                    &mut self.bullet_manager,
-                                    state);
+                weapon.tick(&mut self.player2,
+                            TargetPlayer::Player2,
+                            inventory,
+                            &mut self.bullet_manager,
+                            state);
             }
 
             self.hud_player1.tick(state, (&self.player1, &mut self.inventory_player1))?;

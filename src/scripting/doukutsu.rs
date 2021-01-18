@@ -31,7 +31,7 @@ impl Doukutsu {
             let game_state = &mut (*(*self.ptr).state_ptr);
             let ctx = &mut (*(*self.ptr).ctx_ptr);
 
-            game_state.sound_manager.play_song(index as usize, &game_state.constants, ctx);
+            let _ = game_state.sound_manager.play_song(index as usize, &game_state.constants, ctx);
         }
 
         0

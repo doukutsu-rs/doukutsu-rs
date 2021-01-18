@@ -685,6 +685,37 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n207_counter_bomb_countdown(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = self.tsc_direction;
+                    state.sound_manager.play_sfx(43);
+                }
+
+                self.x += 0x200;
+
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 30 {
+                    self.cond.set_alive(false);
+                }
+            }
+            _ => {}
+        }
+
+        self.anim_rect = state.constants.npc.n207_counter_bomb_countdown[self.anim_num as usize % 5];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n208_basu_destroyed_egg_corridor(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         let player = self.get_closest_player_mut(players);
 

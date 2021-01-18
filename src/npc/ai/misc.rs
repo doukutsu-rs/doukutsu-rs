@@ -2,7 +2,7 @@ use ggez::GameResult;
 use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
-use crate::common::Direction;
+use crate::common::{Direction, Rect};
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
 use crate::player::Player;
@@ -671,6 +671,15 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n090_background(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n090_background;
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n096_fan_left(&mut self, state: &mut SharedGameState, mut players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -976,6 +985,24 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n116_red_petals(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n116_red_petals;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n119_table_chair(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n119_table_chair;
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n125_hidden_item(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.life < 990 {
             npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 8, state, &self.rng);
@@ -1009,6 +1036,15 @@ impl NPC {
             Direction::Left => self.anim_rect = state.constants.npc.n125_hidden_item[0],
             Direction::Right => self.anim_rect = state.constants.npc.n125_hidden_item[1],
             _ => {}
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n137_large_door_frame(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n137_large_door_frame;
         }
 
         Ok(())
@@ -1128,6 +1164,20 @@ impl NPC {
         if self.anim_num != 149 {
             self.anim_num = 149;
             self.anim_rect = state.constants.npc.n149_horizontal_moving_block;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n152_shutter_stuck(&mut self) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            if self.direction == Direction::Right {
+                self.y += 0x2000;
+            }
+
+            self.anim_rect = Rect { left: 0, top: 0, right: 0, bottom: 0 };
         }
 
         Ok(())
@@ -1263,6 +1313,15 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n195_grate(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n195_grate;
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n199_wind_particles(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
@@ -1300,6 +1359,62 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n216_debug_cat(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n216_debug_cat;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n222_prison_bars(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.y -= 0x1000;
+
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n222_prison_bars;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n227_bucket(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n227_bucket;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n229_red_flowers_sprouts(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.y -= 0x2000;
+
+            let anim = if self.direction == Direction::Left { 0 } else { 1 };
+
+            self.anim_rect = state.constants.npc.n229_red_flowers_sprouts[anim];
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n230_red_flowers_blooming(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.x -= 0x2000;
+            self.y -= 0x2000;
+
+            let anim = if self.direction == Direction::Left { 0 } else { 1 };
+
+            self.anim_rect = state.constants.npc.n230_red_flowers_blooming[anim];
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n234_red_flowers_picked(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
@@ -1311,6 +1426,287 @@ impl NPC {
                 _ => self.anim_rect = state.constants.npc.n234_red_flowers_picked[1],
             }
         }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n239_cage_bars(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            if self.direction == Direction::Left {
+                self.x += 0x1000;
+                self.y += 0x2000;
+            } else {
+                self.display_bounds.left = 0x3000;
+                self.display_bounds.top = 0x1000;
+                self.display_bounds.right = 0x3000;
+            }
+        }
+
+        let anim = if self.direction == Direction::Left { 0 } else { 1 };
+
+        self.anim_rect = state.constants.npc.n239_cage_bars[anim];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n258_mimiga_sleeping(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n258_mimiga_sleeping;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n292_quake(&mut self, state: &mut SharedGameState) -> GameResult {
+        state.quake_counter = 10;
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n297_sue_dragon_mouth(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+            self.x = npc.x + 0x2000;
+            self.y = npc.y + 0x1000;
+        }
+
+        self.anim_rect = state.constants.npc.n297_sue_dragon_mouth;
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n302_camera_focus_marker(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
+        let player = &players[state.textscript_vm.executor_player.index()];
+
+        match self.action_num {
+            10 => {
+                self.x = player.x;
+                self.y = player.y - 0x4000;
+            }
+            20 => {
+                match self.direction {
+                    Direction::Left => self.x -= 0x400,
+                    Direction::Up => self.y -= 0x400,
+                    Direction::Right => self.x += 0x400,
+                    Direction::Bottom => self.y += 0x400,
+                    _=>{}
+                }
+            }
+            30 => {
+                self.x = player.x;
+                self.y = player.y + 0xa000;
+            }
+            100 | 101 => {
+                if self.action_num == 100 {
+                    self.action_num = 101;
+
+                    if self.tsc_direction != 0 {
+                        for npc in npc_list.iter_alive() {
+                            if npc.event_num == self.tsc_direction {
+                                self.parent_id = npc.id;
+                                break;
+                            }
+                        }
+
+                        if self.parent_id == 0 {
+                            self.cond.set_alive(false);
+                        }
+                    } else {
+                        // TODO: handle boss
+                    }
+                }
+
+                if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                    self.x = (player.x + npc.x) / 2;
+                    self.y = (player.y + npc.y) / 2;
+                }
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n328_human_transform_machine(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_rect = state.constants.npc.n328_human_transform_machine;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n329_laboratory_fan(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.anim_counter = self.anim_counter.wrapping_add(1);
+        self.anim_rect = state.constants.npc.n329_laboratory_fan[(self.anim_counter as usize / 2) & 1];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n349_statue(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            if self.direction == Direction::Left {
+                self.x += 0x1000;
+            } else if self.direction == Direction::Right {
+                self.y += 0x2000;
+            }
+        }
+
+        self.anim_rect = state.constants.npc.n349_statue;
+
+        Ok(())
+    }
+
+
+    pub(crate) fn tick_n351_statue_shootable(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        match self.action_num {
+            0 => {
+                self.action_num = 1;
+                self.anim_num = self.tsc_direction / 10;
+                self.x += 0x1000;
+                self.y += 0x1800;
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    if let Some(true) = state.game_flags.get(self.flag_num as usize) {
+                        self.action_num = 20;
+                    } else {
+                        self.action_num = 11;
+                        self.npc_flags.set_shootable(true);
+                    }
+                }
+
+                if self.life <= 900 {
+                    let mut npc = NPC::create(351, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.x - 0x1000;
+                    npc.y = self.y - 0x1800;
+                    npc.tsc_direction = 10 * self.anim_num + 40;
+
+                    npc_list.spawn(0, npc);
+                    self.cond.set_explode_die(true);
+                }
+            }
+            20 => {
+                self.anim_num += 4;
+                self.action_num = 1;
+            }
+            _ => {}
+        }
+
+        self.anim_rect = state.constants.npc.n351_statue_shootable[self.anim_num as usize % 9];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n352_ending_characters(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_num = 0;
+            self.action_counter2 = self.tsc_direction / 100;
+            self.tsc_direction %= 100;
+
+            if self.action_counter2 <= 13 && ((1 << self.action_counter2) & 0b11001110000000) != 0 {
+                self.spritesheet_id = 21;
+            }
+
+            if self.action_counter2 <= 12 && ((1 << self.action_counter2) & 0b1001000010100) != 0 {
+                self.display_bounds.top = 0x2000;
+            }
+
+            if self.action_counter2 == 9 {
+                self.display_bounds.left = 0x2800;
+                self.display_bounds.right = 0x2800;
+                self.x -= 0x200;
+            }
+
+            if self.action_counter2 == 0 {
+                let mut npc = NPC::create(145, &state.npc_table);
+                npc.cond.set_alive(true);
+                npc.direction = Direction::Right;
+                npc.parent_id = self.id;
+
+                npc_list.spawn(0x100, npc);
+            }
+        }
+
+        self.vel_y += 0x40;
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        if self.flags.hit_bottom_wall() {
+            self.action_num = 2;
+            self.anim_num = 1;
+            self.vel_y = 0;
+        }
+
+        self.y += self.vel_y;
+
+        self.anim_rect = state.constants.npc.n352_ending_characters[(2 * self.action_counter2 as usize + self.anim_num as usize) % 28];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n355_quote_and_curly_on_balrog(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        if self.action_num == 0 {
+            match self.direction {
+                Direction::Left => {
+                    self.spritesheet_id = 16;
+                    self.anim_num = 0;
+
+                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        self.x = npc.x - 0x1c00;
+                        self.y = npc.y + 0x1400;
+                    }
+                }
+                Direction::Up => {
+                    self.spritesheet_id = 23;
+                    self.anim_num = 1;
+
+                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        self.x = npc.x + 0x1c00;
+                        self.y = npc.y + 0x1400;
+                    }
+                }
+                Direction::Right => {
+                    self.spritesheet_id = 16;
+                    self.anim_num = 2;
+
+                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        self.x = npc.x - 0xe00;
+                        self.y = npc.y - 0x2600;
+                    }
+                }
+                Direction::Bottom => {
+                    self.spritesheet_id = 23;
+                    self.anim_num = 3;
+
+                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        self.x = npc.x + 0x800;
+                        self.y = npc.y - 0x2600;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        self.anim_rect = state.constants.npc.n355_quote_and_curly_on_balrog[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n358_misery_credits(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.animate(6, 0, 1);
+        } else if self.action_num == 10 {
+            self.animate(6, 3, 4);
+        }
+
+        self.anim_rect = state.constants.npc.n358_misery_credits[self.anim_num as usize];
 
         Ok(())
     }

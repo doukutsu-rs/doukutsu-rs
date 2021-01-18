@@ -558,6 +558,14 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n120_colon_a(&mut self, state: &mut SharedGameState) -> GameResult {
+        let anim = if self.direction == Direction::Left { 0 } else { 1 };
+
+        self.anim_rect = state.constants.npc.n120_colon_a[anim];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n124_sunstone(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -596,6 +604,28 @@ impl NPC {
         }
 
         self.anim_rect = state.constants.npc.n124_sunstone[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n131_puppy_sleeping(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.action_counter += 1;
+        if self.action_counter > 100 {
+            self.action_counter = 0;
+            state.create_caret(self.x, self.y, CaretType::Zzz, Direction::Left);
+        }
+
+        let anim = if self.direction == Direction::Left { 0 } else { 1 };
+
+        self.anim_rect = state.constants.npc.n131_puppy_sleeping[anim];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n143_jenka_collapsed(&mut self, state: &mut SharedGameState) -> GameResult {
+        let anim = if self.direction == Direction::Left { 0 } else { 1 };
+
+        self.anim_rect = state.constants.npc.n143_jenka_collapsed[anim];
 
         Ok(())
     }

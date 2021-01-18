@@ -1304,6 +1304,7 @@ impl TextScriptVM {
                                 npc.size = entry.size;
                                 npc.exp = entry.experience as u16;
                                 npc.damage = entry.damage as u16;
+                                npc.spritesheet_id = entry.spritesheet_id as u16;
 
                                 npc.cond.set_alive(true);
                                 npc.action_num = 0;

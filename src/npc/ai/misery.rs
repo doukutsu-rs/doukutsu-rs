@@ -391,5 +391,22 @@ impl NPC {
 
         Ok(())
     }
+
+    pub(crate) fn tick_n249_misery_boss_energy_shot(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.action_counter2 += 1;
+        if self.action_counter2 > 8 {
+            self.cond.set_alive(false);
+        }
+
+        if self.direction == Direction::Left {
+            self.x -= 0x400;
+            self.anim_rect = state.constants.npc.n249_misery_boss_energy_shot[0];
+        } else {
+            self.x += 0x400;
+            self.anim_rect = state.constants.npc.n249_misery_boss_energy_shot[1];
+        }
+
+        Ok(())
+    }
 }
 
