@@ -1,6 +1,7 @@
 use std::clone::Clone;
 
-use ggez::{Context, GameResult};
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use num_derive::FromPrimitive;
 use num_traits::clamp;
 

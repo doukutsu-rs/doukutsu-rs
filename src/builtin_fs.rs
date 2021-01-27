@@ -5,9 +5,9 @@ use std::io::ErrorKind;
 use std::io::SeekFrom;
 use std::path::{Component, Path, PathBuf};
 
-use ggez::GameResult;
-use ggez::GameError::FilesystemError;
-use ggez::vfs::{OpenOptions, VFile, VFS, VMetadata};
+use crate::framework::error::GameError::FilesystemError;
+use crate::framework::error::GameResult;
+use crate::framework::vfs::{OpenOptions, VFile, VMetadata, VFS};
 
 #[derive(Debug)]
 pub struct BuiltinFile(Cursor<&'static [u8]>);
@@ -59,7 +59,7 @@ impl VMetadata for BuiltinMetadata {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum FSNode {
     File(&'static str, &'static [u8]),
     Directory(&'static str, Vec<FSNode>),
@@ -232,7 +232,7 @@ impl VFS for BuiltinFS {
     }
 }
 
-/*#[test]
+#[test]
 fn test_builtin_fs() {
     let fs = BuiltinFS {
         root: vec![
@@ -240,7 +240,7 @@ fn test_builtin_fs() {
             FSNode::Directory("memes", vec![
                 FSNode::File("nothing.txt", &[]),
                 FSNode::Directory("secret stuff", vec![
-                    FSNode::File("passwords.txt", &[b'1', b'2', b'3', b'4', b'5', b'6',]),
+                    FSNode::File("passwords.txt", &b"12345678"),
                 ]),
             ]),
             FSNode::File("test2.txt", &[]),
@@ -252,4 +252,4 @@ fn test_builtin_fs() {
     println!("{:?}", fs.get_node(Path::new("/memes")).unwrap());
     println!("{:?}", fs.get_node(Path::new("/memes/nothing.txt")).unwrap());
     println!("{:?}", fs.get_node(Path::new("/memes/secret stuff/passwords.txt")).unwrap());
-}*/
+}

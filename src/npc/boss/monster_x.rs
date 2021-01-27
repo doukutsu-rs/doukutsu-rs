@@ -1,8 +1,9 @@
-use ggez::GameResult;
 use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
 use crate::common::{CDEG_RAD, Direction, Rect};
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;

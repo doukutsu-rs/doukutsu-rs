@@ -1,4 +1,5 @@
-use ggez::{Context, GameError, GameResult};
+use crate::framework::context::Context;
+use crate::framework::error::{GameResult, GameError};
 
 use crate::common::Rect;
 use crate::scene::Scene;

@@ -1,10 +1,12 @@
 use std::io;
 
 use byteorder::{LE, ReadBytesExt};
-use ggez::GameError::ResourceLoadError;
-use ggez::GameResult;
+
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 
 use crate::str;
+use crate::framework::error::GameError::ResourceLoadError;
 
 static SUPPORTED_PXM_VERSIONS: [u8; 1] = [0x10];
 static SUPPORTED_PXE_VERSIONS: [u8; 2] = [0, 0x10];
@@ -28,7 +30,6 @@ impl Map {
 
         let version = map_data.read_u8()?;
 
-        // It's something Booster's Lab supports but I haven't seen anywhere being used in practice
         if !SUPPORTED_PXM_VERSIONS.contains(&version) {
             return Err(ResourceLoadError(format!("Unsupported PXM version: {:#x}", version)));
         }

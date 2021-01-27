@@ -1,4 +1,5 @@
-use ggez::{Context, GameResult};
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 
 use crate::common::Rect;
 use crate::components::draw_common::{Alignment, draw_number};

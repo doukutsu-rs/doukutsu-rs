@@ -9,8 +9,8 @@ use std::ops::Not;
 use std::str::FromStr;
 
 use byteorder::ReadBytesExt;
-use ggez::{Context, GameResult};
-use ggez::GameError::{InvalidValue, ParseError};
+
+
 use itertools::Itertools;
 use num_derive::FromPrimitive;
 use num_traits::{clamp, FromPrimitive};
@@ -28,6 +28,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
 use crate::weapon::WeaponType;
+use crate::framework::error::GameError::ParseError;
 
 /// Engine's text script VM operation codes.
 #[derive(EnumString, Debug, FromPrimitive, PartialEq)]

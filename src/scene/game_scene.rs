@@ -1,13 +1,9 @@
-use ggez::{Context, GameResult, graphics, timer};
-use ggez::graphics::{BlendMode, Color, Drawable, DrawParam, FilterMode, mint};
-use ggez::graphics::spritebatch::SpriteBatch;
-use ggez::nalgebra::{clamp, Vector2};
 use log::info;
-use num_traits::abs;
+use num_traits::{abs, clamp};
 
 use crate::bullet::BulletManager;
 use crate::caret::CaretType;
-use crate::common::{Direction, FadeDirection, FadeState, fix9_scale, interpolate_fix9_scale, Rect};
+use crate::common::{Direction, FadeDirection, FadeState, fix9_scale, interpolate_fix9_scale, Rect, Color};
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::draw_common::{Alignment, draw_number};
 use crate::components::hud::HUD;
@@ -30,6 +26,10 @@ use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState,
 use crate::texture_set::SizedBatch;
 use crate::ui::Components;
 use crate::weapon::WeaponType;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::graphics;
+use crate::framework::graphics::FilterMode;
 
 pub struct GameScene {
     pub tick: u32,
@@ -502,10 +502,10 @@ impl GameScene {
     }
 
     fn draw_light_map(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        graphics::set_canvas(ctx, Some(&state.lightmap_canvas));
+        /*graphics::set_canvas(ctx, Some(&state.lightmap_canvas));
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
-        graphics::clear(ctx, Color::from_rgb(100, 100, 110));
+        graphics::clear(ctx, Color::from_rgb(100, 100, 110));*/
         {
             let scale = state.scale;
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
@@ -634,94 +634,13 @@ impl GameScene {
             batch.draw_filtered(FilterMode::Linear, ctx)?;
         }
 
-        graphics::set_blend_mode(ctx, BlendMode::Multiply)?;
+        /*graphics::set_blend_mode(ctx, BlendMode::Multiply)?;
         graphics::set_canvas(ctx, Some(&state.game_canvas));
         state.lightmap_canvas.set_filter(FilterMode::Linear);
         state.lightmap_canvas.draw(ctx, DrawParam::new()
             .scale(Vector2::new(1.0 / state.scale, 1.0 / state.scale)))?;
 
-        graphics::set_blend_mode(ctx, BlendMode::Alpha)?;
-
-        Ok(())
-    }
-
-    fn is_water(&self, tile: u8) -> bool {
-        [0x02, 0x04, 0x60, 0x61, 0x62, 0x64, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0xa0, 0xa1, 0xa2, 0xa3].contains(&tile)
-    }
-
-    fn draw_water(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time, state.scale);
-
-        {
-            state.shaders.water_shader_params.resolution = [state.canvas_size.0, state.canvas_size.1];
-            state.shaders.water_shader_params.frame_pos = [frame_x, frame_y];
-            state.shaders.water_shader_params.t = self.tick as f32;
-            let _lock = graphics::use_shader(ctx, &state.shaders.water_shader);
-            state.shaders.water_shader.send(ctx, state.shaders.water_shader_params)?;
-
-            graphics::set_canvas(ctx, Some(&state.tmp_canvas));
-            graphics::clear(ctx, Color::new(0.0, 0.0, 0.0, 1.0));
-            state.game_canvas.draw(ctx, DrawParam::new()
-                .scale(mint::Vector2 { x: 1.0 / state.scale, y: -1.0 / state.scale })
-                .offset(mint::Point2 { x: 0.0, y: -1.0 }))?;
-        }
-        graphics::set_canvas(ctx, Some(&state.game_canvas));
-
-        // cheap, clones a reference underneath
-        let mut tmp_batch = SpriteBatch::new(state.tmp_canvas.image().clone());
-
-        let tile_start_x = clamp(self.frame.x / 0x200 / 16, 0, self.stage.map.width as i32) as usize;
-        let tile_start_y = clamp(self.frame.y / 0x200 / 16, 0, self.stage.map.height as i32) as usize;
-        let tile_end_x = clamp((self.frame.x / 0x200 + 8 + state.canvas_size.0 as i32) / 16 + 1, 0, self.stage.map.width as i32) as usize;
-        let tile_end_y = clamp((self.frame.y / 0x200 + 8 + state.canvas_size.1 as i32) / 16 + 1, 0, self.stage.map.height as i32) as usize;
-        let mut rect = Rect {
-            left: 0.0,
-            top: 0.0,
-            right: 16.0,
-            bottom: 16.0,
-        };
-
-        for y in tile_start_y..tile_end_y {
-            for x in tile_start_x..tile_end_x {
-                let tile = unsafe {
-                    self.stage.map.attrib[*self.stage.map.tiles
-                        .get_unchecked((y * self.stage.map.width as usize) + x) as usize]
-                };
-                let tile_above = unsafe {
-                    self.stage.map.attrib[*self.stage.map.tiles
-                        .get_unchecked((y.saturating_sub(1) * self.stage.map.width as usize) + x) as usize]
-                };
-
-                if !self.is_water(tile) {
-                    continue;
-                }
-
-                rect.left = (x as f32 * 16.0 - 8.0) - frame_x;
-                rect.top = (y as f32 * 16.0 - 8.0) - frame_y;
-                rect.right = rect.left + 16.0;
-                rect.bottom = rect.top + 16.0;
-
-                if tile_above == 0 {
-                    rect.top += 3.0;
-                }
-
-                tmp_batch.add(DrawParam::new()
-                    .src(ggez::graphics::Rect::new(rect.left / state.canvas_size.0,
-                                                   rect.top / state.canvas_size.1,
-                                                   (rect.right - rect.left) / state.canvas_size.0,
-                                                   (rect.bottom - rect.top) / state.canvas_size.1))
-                    .scale(mint::Vector2 {
-                        x: 1.0 / state.scale,
-                        y: 1.0 / state.scale,
-                    })
-                    .dest(mint::Point2 {
-                        x: rect.left,
-                        y: rect.top,
-                    }));
-            }
-        }
-
-        tmp_batch.draw(ctx, DrawParam::new())?;
+        graphics::set_blend_mode(ctx, BlendMode::Alpha)?;*/
 
         Ok(())
     }
@@ -1291,7 +1210,7 @@ impl Scene for GameScene {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        graphics::set_canvas(ctx, Some(&state.game_canvas));
+        //graphics::set_canvas(ctx, Some(&state.game_canvas));
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
         if state.settings.shader_effects
@@ -1316,9 +1235,9 @@ impl Scene for GameScene {
         self.draw_bullets(state, ctx)?;
         self.player2.draw(state, ctx, &self.frame)?;
         self.player1.draw(state, ctx, &self.frame)?;
-        if state.settings.shader_effects && self.water_visible {
+        /*if state.settings.shader_effects && self.water_visible {
             self.draw_water(state, ctx)?;
-        }
+        }*/
 
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
@@ -1329,9 +1248,9 @@ impl Scene for GameScene {
             self.draw_light_map(state, ctx)?;
         }
 
-        graphics::set_canvas(ctx, None);
+        /*graphics::set_canvas(ctx, None);
         state.game_canvas.draw(ctx, DrawParam::new()
-            .scale(Vector2::new(1.0 / state.scale, 1.0 / state.scale)))?;
+            .scale(Vector2::new(1.0 / state.scale, 1.0 / state.scale)))?;*/
         self.draw_black_bars(state, ctx)?;
 
         if state.control_flags.control_enabled() {
@@ -1389,7 +1308,7 @@ impl Scene for GameScene {
             self.draw_debug_outlines(state, ctx)?;
         }
 
-        draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
+        //draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
         Ok(())
     }
 

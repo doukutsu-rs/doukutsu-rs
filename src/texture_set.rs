@@ -1,12 +1,6 @@
 use std::collections::HashMap;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 
-use ggez;
-use ggez::{Context, GameError, GameResult, graphics};
-use ggez::filesystem;
-use ggez::graphics::{Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh, mint, Rect};
-use ggez::graphics::spritebatch::SpriteBatch;
-use ggez::nalgebra::{Point2, Vector2};
 use image::RgbaImage;
 use itertools::Itertools;
 use log::info;
@@ -14,6 +8,10 @@ use log::info;
 use crate::common;
 use crate::common::FILE_TYPES;
 use crate::engine_constants::EngineConstants;
+use crate::framework::context::Context;
+use crate::framework::error::{GameError, GameResult};
+use crate::framework::filesystem;
+use crate::framework::image::Image;
 use crate::settings::Settings;
 use crate::shared_game_state::Season;
 use crate::str;
@@ -21,7 +19,6 @@ use crate::str;
 pub static mut G_MAG: f32 = 1.0;
 
 pub struct SizedBatch {
-    pub batch: SpriteBatch,
     width: usize,
     height: usize,
     real_width: usize,
@@ -63,15 +60,15 @@ impl SizedBatch {
 
     #[inline(always)]
     pub fn clear(&mut self) {
-        self.batch.clear();
+        /*self.batch.clear();*/
     }
 
     pub fn add(&mut self, x: f32, y: f32) {
-        let param = DrawParam::new()
+        /*let param = DrawParam::new()
             .dest(Point2::new(x, y))
             .scale(Vector2::new(self.scale_x, self.scale_y));
 
-        self.batch.add(param);
+        self.batch.add(param);*/
     }
 
     #[inline(always)]
@@ -94,7 +91,7 @@ impl SizedBatch {
             y = (y * G_MAG).floor() / G_MAG;
         }
 
-        let param = DrawParam::new()
+        /*let param = DrawParam::new()
             .src(Rect::new(rect.left as f32 / self.width as f32,
                            rect.top as f32 / self.height as f32,
                            (rect.right - rect.left) as f32 / self.width as f32,
@@ -102,7 +99,7 @@ impl SizedBatch {
             .dest(mint::Point2 { x, y })
             .scale(Vector2::new(scale_x, scale_y));
 
-        self.batch.add(param);
+        self.batch.add(param);*/
     }
 
     pub fn add_rect_scaled_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8, u8), scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
@@ -110,7 +107,7 @@ impl SizedBatch {
             return;
         }
 
-        let param = DrawParam::new()
+        /*let param = DrawParam::new()
             .color(color.into())
             .src(Rect::new(rect.left as f32 / self.width as f32,
                            rect.top as f32 / self.height as f32,
@@ -119,18 +116,19 @@ impl SizedBatch {
             .dest(mint::Point2 { x, y })
             .scale(Vector2::new(scale_x, scale_y));
 
-        self.batch.add(param);
+        self.batch.add(param);*/
     }
 
     #[inline(always)]
     pub fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        self.draw_filtered(FilterMode::Nearest, ctx)
+        //self.draw_filtered(FilterMode::Nearest, ctx)
+        Ok(())
     }
 
     pub fn draw_filtered(&mut self, filter: FilterMode, ctx: &mut Context) -> GameResult {
-        self.batch.set_filter(filter);
+        /*self.batch.set_filter(filter);
         self.batch.draw(ctx, DrawParam::new())?;
-        self.batch.clear();
+        self.batch.clear();*/
         Ok(())
     }
 }
@@ -213,7 +211,6 @@ impl TextureSet {
         let height = (size.h * scale_y) as usize;
 
         Ok(SizedBatch {
-            batch: SpriteBatch::new(image),
             width,
             height,
             scale_x,
@@ -233,14 +230,10 @@ impl TextureSet {
     }
 
     pub fn draw_rect(&self, rect: common::Rect, color: [f32; 4], ctx: &mut Context) -> GameResult {
-        let rect = Mesh::new_rectangle(ctx, DrawMode::fill(), rect.into(), color.into())?;
-        graphics::draw(ctx, &rect, DrawParam::new())?;
         Ok(())
     }
 
     pub fn draw_outline_rect(&self, rect: common::Rect, width: f32, color: [f32; 4], ctx: &mut Context) -> GameResult {
-        let rect = Mesh::new_rectangle(ctx, DrawMode::stroke(width), rect.into(), color.into())?;
-        graphics::draw(ctx, &rect, DrawParam::new())?;
         Ok(())
     }
 }

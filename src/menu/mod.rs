@@ -1,12 +1,11 @@
-use ggez::{Context, GameResult};
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 
 use crate::common::Rect;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::shared_game_state::SharedGameState;
 
-pub struct MenuSaveInfo {
-
-}
+pub struct MenuSaveInfo {}
 
 pub enum MenuEntry {
     Hidden,

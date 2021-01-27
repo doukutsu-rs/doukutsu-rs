@@ -2,7 +2,8 @@ use std::io;
 use std::io::Cursor;
 
 use byteorder::{LE, ReadBytesExt};
-use ggez::{Context, GameResult};
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use num_traits::abs;
 
 use crate::bitfield;

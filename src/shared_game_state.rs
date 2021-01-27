@@ -1,17 +1,17 @@
 use std::ops::Div;
-use std::time::Instant;
 
 use bitvec::vec::BitVec;
 use chrono::{Datelike, Local};
-use ggez::{Context, filesystem, GameResult, graphics};
-use ggez::filesystem::OpenOptions;
-use ggez::graphics::Canvas;
 use num_traits::clamp;
+use num_traits::real::Real;
 
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState};
 use crate::engine_constants::EngineConstants;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::vfs::OpenOptions;
 use crate::input::touch_controls::TouchControls;
 use crate::npc::NPCTable;
 use crate::profile::GameProfile;
@@ -21,12 +21,12 @@ use crate::scene::Scene;
 #[cfg(feature = "scripting")]
 use crate::scripting::LuaScriptingState;
 use crate::settings::Settings;
-use crate::shaders::Shaders;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
-use crate::texture_set::{TextureSet};
+use crate::texture_set::TextureSet;
+use crate::framework::{filesystem, graphics};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -102,10 +102,6 @@ pub struct SharedGameState {
     pub stages: Vec<StageData>,
     pub frame_time: f64,
     pub scale: f32,
-    pub shaders: Shaders,
-    pub tmp_canvas: Canvas,
-    pub game_canvas: Canvas,
-    pub lightmap_canvas: Canvas,
     pub canvas_size: (f32, f32),
     pub screen_size: (f32, f32),
     pub next_scene: Option<Box<dyn Scene>>,
@@ -123,8 +119,8 @@ pub struct SharedGameState {
 
 impl SharedGameState {
     pub fn new(ctx: &mut Context) -> GameResult<SharedGameState> {
-        let screen_size = graphics::drawable_size(ctx);
-        let scale = screen_size.1.div(235.0).floor().max(1.0);
+        let screen_size = (320.0, 240.0);
+        let scale = *screen_size.1.div(230.0).floor().max(&1.0);
 
         let canvas_size = (screen_size.0 / scale, screen_size.1 / scale);
 
@@ -164,7 +160,7 @@ impl SharedGameState {
             game_flags: bitvec::bitvec![0; 8000],
             fade_state: FadeState::Hidden,
             game_rng: XorShift::new(0),
-            effect_rng: XorShift::new(Instant::now().elapsed().as_nanos() as i32),
+            effect_rng: XorShift::new(123),
             quake_counter: 0,
             teleporter_slots: Vec::with_capacity(8),
             carets: Vec::with_capacity(32),
@@ -175,10 +171,6 @@ impl SharedGameState {
             stages: Vec::with_capacity(96),
             frame_time: 0.0,
             scale,
-            shaders: Shaders::new(ctx)?,
-            tmp_canvas: Canvas::with_window_size(ctx)?,
-            game_canvas: Canvas::with_window_size(ctx)?,
-            lightmap_canvas: Canvas::with_window_size(ctx)?,
             screen_size,
             canvas_size,
             next_scene: None,
@@ -289,10 +281,10 @@ impl SharedGameState {
 
     pub fn handle_resize(&mut self, ctx: &mut Context) -> GameResult {
         self.screen_size = graphics::drawable_size(ctx);
-        self.scale = self.screen_size.1.div(240.0).floor().max(1.0);
+        self.scale = self.screen_size.1.div(230.0).floor().max(1.0);
         self.canvas_size = (self.screen_size.0 / self.scale, self.screen_size.1 / self.scale);
 
-        graphics::set_screen_coordinates(ctx, graphics::Rect::new(0.0, 0.0, self.screen_size.0, self.screen_size.1))?;
+        //graphics::set_screen_coordinates(ctx, graphics::Rect::new(0.0, 0.0, self.screen_size.0, self.screen_size.1))?;
 
         Ok(())
     }

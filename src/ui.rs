@@ -2,31 +2,16 @@ use std::time::Instant;
 
 use imgui::{FontConfig, FontSource};
 use imgui::sys::*;
-use imgui_gfx_renderer::{Renderer, Shaders};
-use imgui_gfx_renderer::gfx::format::DepthStencil;
-use imgui_gfx_renderer::gfx::format::Rgba8;
-use imgui_gfx_renderer::gfx::handle::DepthStencilView;
-use imgui_gfx_renderer::gfx::handle::RenderTargetView;
-use imgui_gfx_renderer::gfx::memory::Typed;
-use imgui_winit_support::{HiDpiMode, WinitPlatform};
 
-use ggez::{Context, GameResult, graphics};
-use ggez::GameError::RenderError;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::live_debugger::LiveDebugger;
 use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
 
-mod types {
-    pub type Resources = gfx_device_gl::Resources;
-}
-
 pub struct UI {
     pub imgui: imgui::Context,
-    pub platform: WinitPlatform,
-    pub renderer: Renderer<Rgba8, types::Resources>,
     pub components: Components,
-    pub main_color: RenderTargetView<types::Resources, Rgba8>,
-    pub main_depth: DepthStencilView<types::Resources, DepthStencil>,
     last_frame: Instant,
 }
 
@@ -119,56 +104,18 @@ impl UI {
         colors[ImGuiCol_NavWindowingDimBg as usize] = [0.20, 0.20, 0.20, 0.20];
         colors[ImGuiCol_ModalWindowDimBg as usize] = [0.20, 0.20, 0.20, 0.35];
 
-        let mut platform = WinitPlatform::init(&mut imgui);
-        platform.attach_window(imgui.io_mut(), graphics::window(ctx).window(), HiDpiMode::Rounded);
-
-        let (factory, dev, _, depth, color) = graphics::gfx_objects(ctx);
-        let shaders = {
-            let version = dev.get_info().shading_language;
-            if version.is_embedded {
-                if version.major >= 3 {
-                    Shaders::GlSlEs300
-                } else {
-                    Shaders::GlSlEs100
-                }
-            } else if version.major >= 4 {
-                Shaders::GlSl400
-            } else if version.major >= 3 {
-                if version.minor >= 2 {
-                    Shaders::GlSl150
-                } else {
-                    Shaders::GlSl130
-                }
-            } else {
-                Shaders::GlSl110
-            }
-        };
-        let renderer = Renderer::init(&mut imgui, factory, shaders)
-            .map_err(|e| RenderError(e.to_string()))?;
-
         Ok(Self {
             imgui,
-            platform,
-            renderer,
             components: Components {
                 live_debugger: LiveDebugger::new(),
             },
-            main_color: RenderTargetView::new(color),
-            main_depth: DepthStencilView::new(depth),
             last_frame: Instant::now(),
         })
     }
 
-    pub fn handle_events(&mut self, ctx: &mut Context, event: &winit::event::Event<()>) {
-        self.platform.handle_event(self.imgui.io_mut(), graphics::window(ctx).window(), &event);
-    }
-
     pub fn draw(&mut self, state: &mut SharedGameState, ctx: &mut Context, scene: &mut Box<dyn Scene>) -> GameResult {
-        {
+        /*{
             let io = self.imgui.io_mut();
-            self.platform.prepare_frame(io, graphics::window(ctx).window())
-                .map_err(|e| RenderError(e.to_string()))?;
-
             let now = Instant::now();
             io.update_delta_time(now - self.last_frame);
             self.last_frame = now;
@@ -177,15 +124,7 @@ impl UI {
 
         scene.debug_overlay_draw(&mut self.components, state, ctx, &mut ui)?;
 
-        self.platform.prepare_render(&ui, graphics::window(ctx).window());
-        let draw_data = ui.render();
-        let (factory, dev, encoder, _, _) = graphics::gfx_objects(ctx);
-        self.renderer
-            .render(factory, encoder, &mut self.main_color, draw_data)
-            .map_err(|e| RenderError(e.to_string()))?;
-
-        encoder.flush(dev);
-
+        ui.render();*/
         Ok(())
     }
 }
