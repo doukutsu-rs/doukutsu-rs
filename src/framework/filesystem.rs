@@ -241,6 +241,11 @@ impl Filesystem {
     pub fn mount_vfs(&mut self, vfs: Box<dyn vfs::VFS>) {
         self.vfs.push_back(vfs);
     }
+
+
+    pub fn mount_user_vfs(&mut self, vfs: Box<dyn vfs::VFS>) {
+        self.user_vfs.push_back(vfs);
+    }
 }
 
 /// Opens the given path and returns the resulting `File`
@@ -340,22 +345,6 @@ pub fn read_dir<P: AsRef<path::Path>>(
     ctx.filesystem.read_dir(path)
 }
 
-/// Prints the contents of all data directories.
-/// Useful for debugging.
-pub fn print_all(ctx: &mut Context) {
-    ctx.filesystem.print_all()
-}
-
-/// Outputs the contents of all data directories,
-/// using the "info" log level of the `log` crate.
-/// Useful for debugging.
-///
-/// See the [`logging` example](https://github.com/ggez/ggez/blob/master/examples/eventloop.rs)
-/// for how to collect log information.
-pub fn log_all(ctx: &mut Context) {
-    ctx.filesystem.log_all()
-}
-
 /// Adds the given (absolute) path to the list of directories
 /// it will search to look for resources.
 ///
@@ -370,4 +359,9 @@ pub fn mount(ctx: &mut Context, path: &path::Path, readonly: bool) {
 /// Adds a VFS to the list of resource search locations.
 pub fn mount_vfs(ctx: &mut Context, vfs: Box<dyn vfs::VFS>) {
     ctx.filesystem.mount_vfs(vfs)
+}
+
+/// Adds a VFS to the list of user data search locations.
+pub fn mount_user_vfs(ctx: &mut Context, vfs: Box<dyn vfs::VFS>) {
+    ctx.filesystem.mount_user_vfs(vfs)
 }

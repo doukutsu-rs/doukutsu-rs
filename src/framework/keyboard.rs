@@ -1,6 +1,12 @@
+use std::collections::HashSet;
+
+use serde::{Deserialize, Serialize};
+
+use crate::bitfield;
 use crate::framework::context::Context;
 
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
+#[derive(Serialize, Deserialize)]
 #[repr(u32)]
 pub enum ScanCode {
     /// The '1' key over the letters.
@@ -109,6 +115,8 @@ pub enum ScanCode {
     /// The "Compose" key on Linux.
     Compose,
 
+    NonUsHash,
+    NonUsBackslash,
     Caret,
 
     Numlock,
@@ -141,6 +149,7 @@ pub enum ScanCode {
     Backslash,
     Calculator,
     Capital,
+    Capslock,
     Colon,
     Comma,
     Convert,
@@ -176,6 +185,7 @@ pub enum ScanCode {
     RControl,
     RShift,
     RWin,
+    Scrolllock,
     Semicolon,
     Slash,
     Sleep,
@@ -200,6 +210,136 @@ pub enum ScanCode {
     Cut,
 }
 
-pub fn is_key_pressed(ctx: &mut Context, code: ScanCode) -> bool {
-    false
+bitfield! {
+    /// Bitflags describing the state of keyboard modifiers, such as `Control` or `Shift`.
+    #[derive(Debug, Copy, Clone)]
+    pub struct KeyMods(u8);
+
+    /// No modifiers; equivalent to `KeyMods::default()` and
+    /// [`KeyMods::empty()`](struct.KeyMods.html#method.empty).
+    /// Left or right Shift key.
+    pub shift, set_shift: 0;
+    /// Left or right Control key.
+    pub ctrl, set_ctrl: 1;
+    /// Left or right Alt key.
+    pub alt, set_alt: 2;
+    /// Left or right Win/Cmd/equivalent key.
+    pub win, set_win: 3;
+}
+
+#[derive(Clone, Debug)]
+pub struct KeyboardContext {
+    active_modifiers: KeyMods,
+    pressed_keys_set: HashSet<ScanCode>,
+    last_pressed: Option<ScanCode>,
+    current_pressed: Option<ScanCode>,
+}
+
+impl KeyboardContext {
+    pub(crate) fn new() -> Self {
+        Self {
+            active_modifiers: KeyMods(0),
+            pressed_keys_set: HashSet::with_capacity(256),
+            last_pressed: None,
+            current_pressed: None,
+        }
+    }
+
+    pub(crate) fn set_key(&mut self, key: ScanCode, pressed: bool) {
+        if pressed {
+            let _ = self.pressed_keys_set.insert(key);
+            self.last_pressed = self.current_pressed;
+            self.current_pressed = Some(key);
+        } else {
+            let _ = self.pressed_keys_set.remove(&key);
+            self.current_pressed = None;
+        }
+
+        self.set_key_modifier(key, pressed);
+    }
+
+    /// Take a modifier key code and alter our state.
+    ///
+    /// Double check that this edge handling is necessary;
+    /// winit sounds like it should do this for us,
+    /// see https://docs.rs/winit/0.18.0/winit/struct.KeyboardInput.html#structfield.modifiers
+    ///
+    /// ...more specifically, we should refactor all this to consistant-ify events a bit and
+    /// make winit do more of the work.
+    /// But to quote Scott Pilgrim, "This is... this is... Booooooring."
+    fn set_key_modifier(&mut self, key: ScanCode, pressed: bool) {
+        if pressed {
+            match key {
+                ScanCode::LShift | ScanCode::RShift => self.active_modifiers.set_shift(true),
+                ScanCode::LControl | ScanCode::RControl => self.active_modifiers.set_ctrl(true),
+                ScanCode::LAlt | ScanCode::RAlt => self.active_modifiers.set_alt(true),
+                ScanCode::LWin | ScanCode::RWin => self.active_modifiers.set_win(true),
+                _ => (),
+            }
+        } else {
+            match key {
+                ScanCode::LShift | ScanCode::RShift => self.active_modifiers.set_shift(false),
+                ScanCode::LControl | ScanCode::RControl => self.active_modifiers.set_ctrl(false),
+                ScanCode::LAlt | ScanCode::RAlt => self.active_modifiers.set_alt(false),
+                ScanCode::LWin | ScanCode::RWin => self.active_modifiers.set_win(false),
+                _ => (),
+            }
+        }
+    }
+
+    pub(crate) fn set_modifiers(&mut self, keymods: KeyMods) {
+        self.active_modifiers = keymods;
+    }
+
+    pub(crate) fn is_key_pressed(&self, key: ScanCode) -> bool {
+        self.pressed_keys_set.contains(&key)
+    }
+
+    pub(crate) fn is_key_repeated(&self) -> bool {
+        if self.last_pressed.is_some() {
+            self.last_pressed == self.current_pressed
+        } else {
+            false
+        }
+    }
+
+    pub(crate) fn pressed_keys(&self) -> &HashSet<ScanCode> {
+        &self.pressed_keys_set
+    }
+
+    pub(crate) fn active_mods(&self) -> KeyMods {
+        self.active_modifiers
+    }
+}
+
+impl Default for KeyboardContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Checks if a key is currently pressed down.
+pub fn is_key_pressed(ctx: &Context, key: ScanCode) -> bool {
+    ctx.keyboard_context.is_key_pressed(key)
+}
+
+/// Checks if the last keystroke sent by the system is repeated,
+/// like when a key is held down for a period of time.
+pub fn is_key_repeated(ctx: &Context) -> bool {
+    ctx.keyboard_context.is_key_repeated()
+}
+
+/// Returns a reference to the set of currently pressed keys.
+pub fn pressed_keys(ctx: &Context) -> &HashSet<ScanCode> {
+    ctx.keyboard_context.pressed_keys()
+}
+
+/// Checks if keyboard modifier (or several) is active.
+pub fn is_mod_active(ctx: &Context, keymods: KeyMods) -> bool {
+    (ctx.keyboard_context.active_mods().0 & keymods.0) != 0
+}
+
+/// Returns currently active keyboard modifiers.
+pub fn active_mods(ctx: &Context) -> KeyMods {
+    ctx.keyboard_context.active_mods()
 }

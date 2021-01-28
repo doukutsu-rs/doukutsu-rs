@@ -235,6 +235,22 @@ impl Direction {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub struct Point<T: Num + PartialOrd + Copy = isize> {
+    pub x: T,
+    pub y: T,
+}
+
+impl<T: Num + PartialOrd + Copy> Point<T> {
+    #[inline(always)]
+    pub fn new(x: T, y: T) -> Point<T> {
+        Point {
+            x,
+            y,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct Rect<T: Num + PartialOrd + Copy = isize> {
     pub left: T,
     pub top: T,
@@ -243,6 +259,7 @@ pub struct Rect<T: Num + PartialOrd + Copy = isize> {
 }
 
 impl<T: Num + PartialOrd + Copy> Rect<T> {
+    #[inline(always)]
     pub fn new(left: T, top: T, right: T, bottom: T) -> Rect<T> {
         Rect {
             left,
@@ -252,6 +269,7 @@ impl<T: Num + PartialOrd + Copy> Rect<T> {
         }
     }
 
+    #[inline(always)]
     pub fn new_size(x: T, y: T, width: T, height: T) -> Rect<T> {
         Rect {
             left: x,
@@ -260,6 +278,7 @@ impl<T: Num + PartialOrd + Copy> Rect<T> {
             bottom: y.add(height),
         }
     }
+
     pub fn width(&self) -> T {
         if let Some(Ordering::Greater) = self.left.partial_cmp(&self.right) {
             self.left.sub(self.right)
@@ -392,30 +411,30 @@ impl Color {
     }
 
     /// Create a new `Color` from four `u8`'s in the range `[0-255]`
-    pub const fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Color {
+    pub fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color::from((r, g, b, a))
     }
 
     /// Create a new `Color` from three u8's in the range `[0-255]`,
     /// with the alpha component fixed to 255 (opaque)
-    pub const fn from_rgb(r: u8, g: u8, b: u8) -> Color {
+    pub fn from_rgb(r: u8, g: u8, b: u8) -> Color {
         Color::from((r, g, b))
     }
 
     /// Return a tuple of four `u8`'s in the range `[0-255]` with the `Color`'s
     /// components.
-    pub const fn to_rgba(self) -> (u8, u8, u8, u8) {
+    pub fn to_rgba(self) -> (u8, u8, u8, u8) {
         self.into()
     }
 
     /// Return a tuple of three `u8`'s in the range `[0-255]` with the `Color`'s
     /// components.
-    pub const fn to_rgb(self) -> (u8, u8, u8) {
+    pub fn to_rgb(self) -> (u8, u8, u8) {
         self.into()
     }
 
     /// Convert a packed `u32` containing `0xRRGGBBAA` into a `Color`
-    pub const fn from_rgba_u32(c: u32) -> Color {
+    pub fn from_rgba_u32(c: u32) -> Color {
         let c = c.to_be_bytes();
 
         Color::from((c[0], c[1], c[2], c[3]))
@@ -423,21 +442,21 @@ impl Color {
 
     /// Convert a packed `u32` containing `0x00RRGGBB` into a `Color`.
     /// This lets you do things like `Color::from_rgb_u32(0xCD09AA)` easily if you want.
-    pub const fn from_rgb_u32(c: u32) -> Color {
+    pub fn from_rgb_u32(c: u32) -> Color {
         let c = c.to_be_bytes();
 
         Color::from((c[1], c[2], c[3]))
     }
 
     /// Convert a `Color` into a packed `u32`, containing `0xRRGGBBAA` as bytes.
-    pub const fn to_rgba_u32(self) -> u32 {
+    pub fn to_rgba_u32(self) -> u32 {
         let (r, g, b, a): (u8, u8, u8, u8) = self.into();
 
         u32::from_be_bytes([r, g, b, a])
     }
 
     /// Convert a `Color` into a packed `u32`, containing `0x00RRGGBB` as bytes.
-    pub const fn to_rgb_u32(self) -> u32 {
+    pub fn to_rgb_u32(self) -> u32 {
         let (r, g, b, _a): (u8, u8, u8, u8) = self.into();
 
         u32::from_be_bytes([0, r, g, b])

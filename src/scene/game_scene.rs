@@ -298,10 +298,10 @@ impl GameScene {
                         let mut frame = tick;
 
                         for x in (0..(state.canvas_size.0 as i32 + 16)).step_by(16) {
-                            if frame > 15 { frame = 15; } else { frame += 1; }
+                            if frame >= 15 { frame = 15; } else { frame += 1; }
 
                             if frame >= 0 {
-                                rect.left = frame as u16 * 16;
+                                rect.left = frame.abs() as u16 * 16;
                                 rect.right = rect.left + 16;
 
                                 for y in (0..(state.canvas_size.1 as i32 + 16)).step_by(16) {
@@ -318,10 +318,10 @@ impl GameScene {
                         let mut frame = tick;
 
                         for y in (0..(state.canvas_size.1 as i32 + 16)).step_by(16) {
-                            if frame > 15 { frame = 15; } else { frame += 1; }
+                            if frame >= 15 { frame = 15; } else { frame += 1; }
 
                             if frame >= 0 {
-                                rect.left = frame as u16 * 16;
+                                rect.left = frame.abs() as u16 * 16;
                                 rect.right = rect.left + 16;
 
                                 for x in (0..(state.canvas_size.0 as i32 + 16)).step_by(16) {
@@ -339,20 +339,20 @@ impl GameScene {
                         let center_y = (state.canvas_size.1 / 2.0 - 8.0) as i32;
                         let mut start_frame = tick;
 
-                        for x in (0..(center_x + 16)).step_by(16) {
+                        for x in 0..(center_x / 16 + 2) {
                             let mut frame = start_frame;
 
-                            for y in (0..(center_y + 16)).step_by(16) {
-                                if frame > 15 { frame = 15; } else { frame += 1; }
+                            for y in 0..(center_y / 16 + 1) {
+                                if frame >= 15 { frame = 15; } else { frame += 1; }
 
                                 if frame >= 0 {
-                                    rect.left = frame as u16 * 16;
+                                    rect.left = frame.abs() as u16 * 16;
                                     rect.right = rect.left + 16;
 
-                                    batch.add_rect((center_x - x) as f32, (center_y + y) as f32, &rect);
-                                    batch.add_rect((center_x - x) as f32, (center_y - y) as f32, &rect);
-                                    batch.add_rect((center_x + x) as f32, (center_y + y) as f32, &rect);
-                                    batch.add_rect((center_x + x) as f32, (center_y - y) as f32, &rect);
+                                    batch.add_rect((center_x - x * 16) as f32, (center_y + y * 16) as f32, &rect);
+                                    batch.add_rect((center_x - x * 16) as f32, (center_y - y * 16) as f32, &rect);
+                                    batch.add_rect((center_x + x * 16) as f32, (center_y + y * 16) as f32, &rect);
+                                    batch.add_rect((center_x + x * 16) as f32, (center_y - y * 16) as f32, &rect);
                                 }
                             }
 
@@ -1213,13 +1213,13 @@ impl Scene for GameScene {
         //graphics::set_canvas(ctx, Some(&state.game_canvas));
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
-        if state.settings.shader_effects
+        /*if state.settings.shader_effects
             && self.stage.data.background_type != BackgroundType::Black
             && self.stage.data.background_type != BackgroundType::Outside
             && self.stage.data.background_type != BackgroundType::OutsideWind
             && self.stage.data.background.name() != "bkBlack" {
             self.draw_light_map(state, ctx)?;
-        }
+        }*/
 
         self.boss.draw(state, ctx, &self.frame)?;
         for npc in self.npc_list.iter_alive() {
@@ -1242,11 +1242,11 @@ impl Scene for GameScene {
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;
-        if state.settings.shader_effects
+        /*if state.settings.shader_effects
             && (self.stage.data.background_type == BackgroundType::Black
             || self.stage.data.background.name() == "bkBlack") {
             self.draw_light_map(state, ctx)?;
-        }
+        }*/
 
         /*graphics::set_canvas(ctx, None);
         state.game_canvas.draw(ctx, DrawParam::new()

@@ -119,11 +119,6 @@ pub struct SharedGameState {
 
 impl SharedGameState {
     pub fn new(ctx: &mut Context) -> GameResult<SharedGameState> {
-        let screen_size = (320.0, 240.0);
-        let scale = *screen_size.1.div(230.0).floor().max(&1.0);
-
-        let canvas_size = (screen_size.0 / scale, screen_size.1 / scale);
-
         let mut constants = EngineConstants::defaults();
         let mut base_path = "/";
         let settings = Settings::load(ctx)?;
@@ -170,9 +165,9 @@ impl SharedGameState {
             npc_super_pos: (0, 0),
             stages: Vec::with_capacity(96),
             frame_time: 0.0,
-            scale,
-            screen_size,
-            canvas_size,
+            scale: 2.0,
+            screen_size: (640.0, 480.0),
+            canvas_size: (320.0, 240.0),
             next_scene: None,
             textscript_vm: TextScriptVM::new(),
             season,
@@ -280,11 +275,9 @@ impl SharedGameState {
     }
 
     pub fn handle_resize(&mut self, ctx: &mut Context) -> GameResult {
-        self.screen_size = graphics::drawable_size(ctx);
+        self.screen_size = graphics::screen_size(ctx);
         self.scale = self.screen_size.1.div(230.0).floor().max(1.0);
         self.canvas_size = (self.screen_size.0 / self.scale, self.screen_size.1 / self.scale);
-
-        //graphics::set_screen_coordinates(ctx, graphics::Rect::new(0.0, 0.0, self.screen_size.0, self.screen_size.1))?;
 
         Ok(())
     }

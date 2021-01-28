@@ -28,7 +28,6 @@ impl BMFontRenderer {
         let font = BMFont::load_from(filesystem::open(ctx, &full_path)?)?;
         let mut pages = Vec::new();
 
-        println!("stem: {:?}", stem);
         let (zeros, _, _) = FILE_TYPES
             .iter()
             .map(|ext| (1, ext, format!("{}_0{}", stem.to_string_lossy(), ext)))
@@ -41,7 +40,6 @@ impl BMFontRenderer {
 
         for i in 0..font.pages {
             let page_path = format!("{}_{:02$}", stem.to_string_lossy(), i, zeros);
-            println!("x: {}", &page_path);
 
             pages.push(page_path);
         }

@@ -9,8 +9,6 @@ use std::ops::Not;
 use std::str::FromStr;
 
 use byteorder::ReadBytesExt;
-
-
 use itertools::Itertools;
 use num_derive::FromPrimitive;
 use num_traits::{clamp, FromPrimitive};
@@ -21,6 +19,9 @@ use crate::encoding::{read_cur_shift_jis, read_cur_wtf8};
 use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::frame::UpdateTarget;
+use crate::framework::context::Context;
+use crate::framework::error::GameError::{InvalidValue, ParseError};
+use crate::framework::error::GameResult;
 use crate::npc::NPC;
 use crate::player::{ControlMode, TargetPlayer};
 use crate::scene::game_scene::GameScene;
@@ -28,7 +29,6 @@ use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
 use crate::weapon::WeaponType;
-use crate::framework::error::GameError::ParseError;
 
 /// Engine's text script VM operation codes.
 #[derive(EnumString, Debug, FromPrimitive, PartialEq)]

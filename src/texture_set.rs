@@ -6,19 +6,22 @@ use itertools::Itertools;
 use log::info;
 
 use crate::common;
-use crate::common::FILE_TYPES;
+use crate::common::{FILE_TYPES, Point, Rect};
 use crate::engine_constants::EngineConstants;
+use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
-use crate::framework::image::Image;
+use crate::framework::graphics::{create_texture, FilterMode};
 use crate::settings::Settings;
 use crate::shared_game_state::Season;
 use crate::str;
 
+pub static mut I_MAG: f32 = 1.0;
 pub static mut G_MAG: f32 = 1.0;
 
 pub struct SizedBatch {
+    batch: Box<dyn BackendTexture>,
     width: usize,
     height: usize,
     real_width: usize,
@@ -60,15 +63,30 @@ impl SizedBatch {
 
     #[inline(always)]
     pub fn clear(&mut self) {
-        /*self.batch.clear();*/
+        self.batch.clear();
     }
 
-    pub fn add(&mut self, x: f32, y: f32) {
-        /*let param = DrawParam::new()
-            .dest(Point2::new(x, y))
-            .scale(Vector2::new(self.scale_x, self.scale_y));
+    pub fn add(&mut self, mut x: f32, mut y: f32) {
+        unsafe {
+            x = (x * G_MAG).floor() / G_MAG;
+            y = (y * G_MAG).floor() / G_MAG;
+        }
+        let mag = unsafe { I_MAG };
 
-        self.batch.add(param);*/
+        self.batch.add(SpriteBatchCommand::DrawRect(
+            Rect {
+                left: 0 as f32,
+                top: 0 as f32,
+                right: self.real_width as f32,
+                bottom: self.real_height as f32,
+            },
+            Rect {
+                left: x * mag,
+                top: y * mag,
+                right: (x + self.width() as f32) * mag,
+                bottom: (y + self.height() as f32) * mag,
+            },
+        ));
     }
 
     #[inline(always)]
@@ -81,7 +99,7 @@ impl SizedBatch {
         self.add_rect_scaled_tinted(x, y, color, self.scale_x, self.scale_y, rect)
     }
 
-    pub fn add_rect_scaled(&mut self, mut x: f32, mut y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
+    pub fn add_rect_scaled(&mut self, mut x: f32, mut y: f32, mut scale_x: f32, mut scale_y: f32, rect: &common::Rect<u16>) {
         if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
             return;
         }
@@ -90,45 +108,61 @@ impl SizedBatch {
             x = (x * G_MAG).floor() / G_MAG;
             y = (y * G_MAG).floor() / G_MAG;
         }
+        let mag = unsafe { I_MAG };
 
-        /*let param = DrawParam::new()
-            .src(Rect::new(rect.left as f32 / self.width as f32,
-                           rect.top as f32 / self.height as f32,
-                           (rect.right - rect.left) as f32 / self.width as f32,
-                           (rect.bottom - rect.top) as f32 / self.height as f32))
-            .dest(mint::Point2 { x, y })
-            .scale(Vector2::new(scale_x, scale_y));
-
-        self.batch.add(param);*/
+        self.batch.add(SpriteBatchCommand::DrawRect(
+            Rect {
+                left: rect.left as f32 / scale_x,
+                top: rect.top as f32 / scale_y,
+                right: rect.right as f32 / scale_x,
+                bottom: rect.bottom as f32 / scale_y,
+            },
+            Rect {
+                left: x * mag,
+                top: y * mag,
+                right: (x + rect.width() as f32) * mag,
+                bottom: (y + rect.height() as f32) * mag,
+            },
+        ));
     }
 
-    pub fn add_rect_scaled_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8, u8), scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
+    pub fn add_rect_scaled_tinted(&mut self, mut x: f32, mut y: f32, color: (u8, u8, u8, u8), mut scale_x: f32, mut scale_y: f32, rect: &common::Rect<u16>) {
         if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
             return;
         }
 
-        /*let param = DrawParam::new()
-            .color(color.into())
-            .src(Rect::new(rect.left as f32 / self.width as f32,
-                           rect.top as f32 / self.height as f32,
-                           (rect.right - rect.left) as f32 / self.width as f32,
-                           (rect.bottom - rect.top) as f32 / self.height as f32))
-            .dest(mint::Point2 { x, y })
-            .scale(Vector2::new(scale_x, scale_y));
+        unsafe {
+            x = (x * G_MAG).floor() / G_MAG;
+            y = (y * G_MAG).floor() / G_MAG;
+        }
+        let mag = unsafe { I_MAG };
 
-        self.batch.add(param);*/
+        self.batch.add(SpriteBatchCommand::DrawRectTinted(
+            Rect {
+                left: rect.left as f32 / scale_x,
+                top: rect.top as f32 / scale_y,
+                right: rect.right as f32 / scale_x,
+                bottom: rect.bottom as f32 / scale_y,
+            },
+            Rect {
+                left: x * mag,
+                top: y * mag,
+                right: (x + rect.width() as f32) * mag,
+                bottom: (y + rect.height() as f32) * mag,
+            },
+            color.into(),
+        ));
     }
 
     #[inline(always)]
     pub fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        //self.draw_filtered(FilterMode::Nearest, ctx)
-        Ok(())
+        self.draw_filtered(FilterMode::Nearest, ctx)
     }
 
     pub fn draw_filtered(&mut self, filter: FilterMode, ctx: &mut Context) -> GameResult {
-        /*self.batch.set_filter(filter);
-        self.batch.draw(ctx, DrawParam::new())?;
-        self.batch.clear();*/
+        ///self.batch.set_filter(filter);
+        self.batch.draw()?;
+        self.batch.clear();
         Ok(())
     }
 }
@@ -166,7 +200,7 @@ impl TextureSet {
         }
     }
 
-    fn load_image(&self, ctx: &mut Context, path: &str) -> GameResult<Image> {
+    fn load_image(&self, ctx: &mut Context, path: &str) -> GameResult<Box<dyn BackendTexture>> {
         let img = {
             let mut buf = [0u8; 8];
             let mut reader = filesystem::open(ctx, path)?;
@@ -182,7 +216,7 @@ impl TextureSet {
         };
         let (width, height) = img.dimensions();
 
-        Image::from_rgba8(ctx, width as u16, height as u16, img.as_ref())
+        create_texture(ctx, width as u16, height as u16, &img)
     }
 
     pub fn load_texture(&self, ctx: &mut Context, constants: &EngineConstants, name: &str) -> GameResult<SizedBatch> {
@@ -197,26 +231,26 @@ impl TextureSet {
 
         info!("Loading texture: {}", path);
 
-        let image = self.load_image(ctx, &path)?;
-        let size = image.dimensions();
+        let batch = self.load_image(ctx, &path)?;
+        let size = batch.dimensions();
 
-        assert_ne!(size.w as isize, 0, "size.w == 0");
-        assert_ne!(size.h as isize, 0, "size.h == 0");
+        assert_ne!(size.0 as isize, 0, "size.width == 0");
+        assert_ne!(size.1 as isize, 0, "size.height == 0");
 
-        let dim = (size.w as usize, size.h as usize);
-        let orig_dimensions = constants.tex_sizes.get(name).unwrap_or_else(|| &dim);
-        let scale_x = orig_dimensions.0 as f32 / size.w;
-        let scale_y = orig_dimensions.0 as f32 / size.w;
-        let width = (size.w * scale_x) as usize;
-        let height = (size.h * scale_y) as usize;
+        let orig_dimensions = constants.tex_sizes.get(name).unwrap_or_else(|| &size);
+        let scale = orig_dimensions.0 as f32 / size.0 as f32;
+        let width = (size.0 as f32 * scale) as usize;
+        let height = (size.1 as f32 * scale) as usize;
+        println!("{} {} {} {}", size.0, size.1, width, height);
 
         Ok(SizedBatch {
+            batch,
             width,
             height,
-            scale_x,
-            scale_y,
-            real_width: size.w as usize,
-            real_height: size.h as usize,
+            scale_x: scale,
+            scale_y: scale,
+            real_width: size.0 as usize,
+            real_height: size.1 as usize,
         })
     }
 

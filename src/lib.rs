@@ -7,21 +7,28 @@ extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 
-use std::env;
+use core::mem;
 use std::cell::UnsafeCell;
+use std::env;
+use std::path::PathBuf;
 use std::time::Instant;
 
+use directories::ProjectDirs;
 use log::*;
 use pretty_env_logger::env_logger::Env;
 
+use crate::builtin_fs::BuiltinFS;
+use crate::framework::backend::init_backend;
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
+use crate::framework::filesystem::{mount_user_vfs, mount_vfs};
 use crate::framework::graphics;
 use crate::framework::keyboard::ScanCode;
+use crate::framework::vfs::PhysicalFS;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
-use crate::texture_set::G_MAG;
+use crate::texture_set::{G_MAG, I_MAG};
 use crate::ui::UI;
 
 mod bmfont;
@@ -62,7 +69,7 @@ mod texture_set;
 mod ui;
 mod weapon;
 
-struct Game {
+pub struct Game {
     scene: Option<Box<dyn Scene>>,
     state: UnsafeCell<SharedGameState>,
     ui: UI,
@@ -147,7 +154,10 @@ impl Game {
                 n1 / n2
             } else { 1.0 };
         }
-        unsafe { G_MAG = if state_ref.settings.subpixel_coords { state_ref.scale } else { 1.0 } };
+        unsafe {
+            G_MAG = if state_ref.settings.subpixel_coords { state_ref.scale } else { 1.0 };
+            I_MAG = state_ref.scale;
+        }
         self.loops = 0;
 
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
@@ -259,18 +269,35 @@ pub fn init() -> GameResult {
     pretty_env_logger::env_logger::from_env(Env::default().default_filter_or("info"))
         .init();
 
-    let mut resource_dir = env::current_exe()?;
-
-    // Ditch the filename (if any)
-    if resource_dir.file_name().is_some() {
-        let _ = resource_dir.pop();
-    }
-    resource_dir.push("data");
+    let resource_dir = if let Ok(data_dir) = env::var("CAVESTORY_DATA_DIR") {
+        PathBuf::from(data_dir)
+    } else {
+        let mut resource_dir = env::current_exe()?;
+        if resource_dir.file_name().is_some() {
+            let _ = resource_dir.pop();
+        }
+        resource_dir.push("data");
+        resource_dir
+    };
 
     info!("Resource directory: {:?}", resource_dir);
     info!("Initializing engine...");
 
-    let mut context: Context = Context::new();
+    let mut context = Context::new();
+    mount_vfs(&mut context, Box::new(BuiltinFS::new()));
+    mount_vfs(&mut context, Box::new(PhysicalFS::new(&resource_dir, true)));
+
+
+    #[cfg(not(target_os = "android"))]
+        let project_dirs = match ProjectDirs::from("", "", "doukutsu-rs") {
+        Some(dirs) => dirs,
+        None => {
+            return Err(GameError::FilesystemError(String::from(
+                "No valid home directory path could be retrieved.",
+            )));
+        }
+    };
+    mount_user_vfs(&mut context, Box::new(PhysicalFS::new(project_dirs.data_local_dir(), false)));
 
     #[cfg(target_os = "android")]
         {
@@ -284,4 +311,39 @@ pub fn init() -> GameResult {
                 }
             }
         }
+
+    let mut game = Game::new(&mut context)?;
+    let state_ref = unsafe { &mut *game.state.get() };
+    #[cfg(feature = "scripting")]
+        {
+            unsafe {
+                state_ref.lua.update_refs(game.state.get(), &mut context as *mut Context);
+            }
+        }
+
+    state_ref.next_scene = Some(Box::new(LoadingScene::new()));
+    context.run(&mut game);
+
+    /*    loop {
+            game.update(&mut context)?;
+
+            if state_ref.shutdown {
+                log::info!("Shutting down...");
+                break;
+            }
+
+            if state_ref.next_scene.is_some() {
+                mem::swap(&mut game.scene, &mut state_ref.next_scene);
+                state_ref.next_scene = None;
+
+                game.scene.as_mut().unwrap().init(state_ref, &mut context).unwrap();
+                game.loops = 0;
+                state_ref.frame_time = 0.0;
+            }
+
+            std::thread::sleep(std::time::Duration::from_millis(10));
+            game.draw(&mut context)?;
+        }*/
+
+    Ok(())
 }

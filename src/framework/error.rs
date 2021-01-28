@@ -64,9 +64,7 @@ impl fmt::Display for GameError {
 impl Error for GameError {
     fn cause(&self) -> Option<&dyn Error> {
         match *self {
-            GameError::WindowCreationError(ref e) => Some(&**e),
             GameError::IOError(ref e) => Some(&**e),
-            GameError::ShaderProgramError(ref e) => Some(e),
             _ => None,
         }
     }
