@@ -66,7 +66,7 @@ num-derive = "0.3.2"
 num-traits = "0.2.12"
 paste = "1.0.0"
 pretty_env_logger = "0.4.0"
-sdl2 = { version = "0.34.3", optional = true, features = ["unsafe_textures"] }
+sdl2 = { version = "0.34.3", optional = true, features = ["unsafe_textures", "bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_yaml = "0.8"
