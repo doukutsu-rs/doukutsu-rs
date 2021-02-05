@@ -6,13 +6,14 @@ use sdl2::{EventPump, keyboard, pixels, Sdl};
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Scancode;
 use sdl2::pixels::PixelFormatEnum;
-use sdl2::render::{BlendMode, Texture, TextureCreator, WindowCanvas};
+use sdl2::render::{Texture, TextureCreator, WindowCanvas};
 use sdl2::video::WindowContext;
 
 use crate::common::Color;
 use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
+use crate::framework::graphics::BlendMode;
 use crate::framework::keyboard::ScanCode;
 use crate::Game;
 
@@ -46,10 +47,13 @@ struct SDL2EventLoop {
 struct SDL2Context {
     canvas: WindowCanvas,
     texture_creator: TextureCreator<WindowContext>,
+    blend_mode: sdl2::render::BlendMode,
 }
 
 impl SDL2EventLoop {
     pub fn new(sdl: &Sdl) -> GameResult<Box<dyn BackendEventLoop>> {
+        sdl2::hint::set("SDL_HINT_RENDER_DRIVER", "opengles2");
+
         let event_pump = sdl.event_pump().map_err(|e| GameError::WindowError(e))?;
         let video = sdl.video().map_err(|e| GameError::WindowError(e))?;
         let window = video.window("Cave Story (doukutsu-rs)", 640, 480)
@@ -71,6 +75,7 @@ impl SDL2EventLoop {
             refs: Rc::new(RefCell::new(SDL2Context {
                 canvas,
                 texture_creator,
+                blend_mode: sdl2::render::BlendMode::Blend,
             })),
         };
 
@@ -81,6 +86,12 @@ impl SDL2EventLoop {
 impl BackendEventLoop for SDL2EventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
         let state = unsafe { &mut *game.state.get() };
+
+        {
+            let (width, height) = self.refs.borrow().canvas.window().size();
+            ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
+            let _ = state.handle_resize(ctx);
+        }
 
         loop {
             for event in self.event_pump.poll_iter() {
@@ -160,6 +171,14 @@ fn to_sdl(color: Color) -> pixels::Color {
     pixels::Color::RGBA(r, g, b, a)
 }
 
+unsafe fn set_raw_target(renderer: *mut sdl2::sys::SDL_Renderer, raw_texture: *mut sdl2::sys::SDL_Texture) -> GameResult {
+    if sdl2::sys::SDL_SetRenderTarget(renderer, raw_texture) == 0 {
+        Ok(())
+    } else {
+        Err(GameError::RenderError(sdl2::get_error()))
+    }
+}
+
 impl BackendRenderer for SDL2Renderer {
     fn clear(&mut self, color: Color) {
         let mut refs = self.refs.borrow_mut();
@@ -176,6 +195,22 @@ impl BackendRenderer for SDL2Renderer {
         Ok(())
     }
 
+    fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>> {
+        let mut refs = self.refs.borrow_mut();
+
+        let mut texture = refs.texture_creator
+            .create_texture_target(PixelFormatEnum::RGBA32, width as u32, height as u32)
+            .map_err(|e| GameError::RenderError(e.to_string()))?;
+
+        Ok(Box::new(SDL2Texture {
+            refs: self.refs.clone(),
+            texture: Some(texture),
+            width,
+            height,
+            commands: vec![],
+        }))
+    }
+
     fn create_texture(&mut self, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>> {
         let mut refs = self.refs.borrow_mut();
 
@@ -183,7 +218,7 @@ impl BackendRenderer for SDL2Renderer {
             .create_texture_streaming(PixelFormatEnum::RGBA32, width as u32, height as u32)
             .map_err(|e| GameError::RenderError(e.to_string()))?;
 
-        texture.set_blend_mode(BlendMode::Blend);
+        texture.set_blend_mode(sdl2::render::BlendMode::Blend);
         texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
             for y in 0..(height as usize) {
                 for x in 0..(width as usize) {
@@ -198,13 +233,47 @@ impl BackendRenderer for SDL2Renderer {
             }
         }).map_err(|e| GameError::RenderError(e.to_string()))?;
 
-        return Ok(Box::new(SDL2Texture {
+        Ok(Box::new(SDL2Texture {
             refs: self.refs.clone(),
             texture: Some(texture),
             width,
             height,
             commands: vec![],
-        }));
+        }))
+    }
+
+    fn set_blend_mode(&mut self, blend: BlendMode) -> GameResult {
+        let mut refs = self.refs.borrow_mut();
+
+        refs.blend_mode = match blend {
+            BlendMode::Add => sdl2::render::BlendMode::Add,
+            BlendMode::Alpha => sdl2::render::BlendMode::Blend,
+            BlendMode::Multiply => sdl2::render::BlendMode::Mod,
+        };
+
+        Ok(())
+    }
+
+    fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult {
+        let renderer = self.refs.borrow().canvas.raw();
+
+        // todo: horribly unsafe
+        match texture {
+            Some(texture) => unsafe {
+                let sdl2_texture: &Box<SDL2Texture> = std::mem::transmute(texture);
+
+                if let Some(target) = sdl2_texture.texture.as_ref() {
+                    set_raw_target(renderer, target.raw());
+                } else {
+                    set_raw_target(renderer, std::ptr::null_mut());
+                }
+            }
+            None => unsafe {
+                set_raw_target(renderer, std::ptr::null_mut());
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -239,20 +308,22 @@ impl BackendTexture for SDL2Texture {
                         SpriteBatchCommand::DrawRect(src, dest) => {
                             texture.set_color_mod(255, 255, 255);
                             texture.set_alpha_mod(255);
+                            texture.set_blend_mode(refs.blend_mode);
 
                             refs.canvas.copy(texture,
-                                             Some(sdl2::rect::Rect::new(src.left as i32, src.top as i32, src.width() as u32, src.height() as u32)),
-                                             Some(sdl2::rect::Rect::new(dest.left as i32, dest.top as i32, dest.width() as u32, dest.height() as u32)))
+                                             Some(sdl2::rect::Rect::new(src.left.round() as i32, src.top.round() as i32, src.width().round() as u32, src.height().round() as u32)),
+                                             Some(sdl2::rect::Rect::new(dest.left.round() as i32, dest.top.round() as i32, dest.width().round() as u32, dest.height().round() as u32)))
                                 .map_err(|e| GameError::RenderError(e.to_string()))?;
                         }
                         SpriteBatchCommand::DrawRectTinted(src, dest, color) => {
                             let (r, g, b, a) = color.to_rgba();
                             texture.set_color_mod(r, g, b);
                             texture.set_alpha_mod(a);
+                            texture.set_blend_mode(refs.blend_mode);
 
                             refs.canvas.copy(texture,
-                                             Some(sdl2::rect::Rect::new(src.left as i32, src.top as i32, src.width() as u32, src.height() as u32)),
-                                             Some(sdl2::rect::Rect::new(dest.left as i32, dest.top as i32, dest.width() as u32, dest.height() as u32)))
+                                             Some(sdl2::rect::Rect::new(src.left.round() as i32, src.top.round() as i32, src.width().round() as u32, src.height().round() as u32)),
+                                             Some(sdl2::rect::Rect::new(dest.left.round() as i32, dest.top.round() as i32, dest.width().round() as u32, dest.height().round() as u32)))
                                 .map_err(|e| GameError::RenderError(e.to_string()))?;
                         }
                     }

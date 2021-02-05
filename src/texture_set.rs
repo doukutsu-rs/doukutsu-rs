@@ -68,8 +68,8 @@ impl SizedBatch {
 
     pub fn add(&mut self, mut x: f32, mut y: f32) {
         unsafe {
-            x = (x * G_MAG).floor() / G_MAG;
-            y = (y * G_MAG).floor() / G_MAG;
+            x = (x * G_MAG).round() / G_MAG;
+            y = (y * G_MAG).round() / G_MAG;
         }
         let mag = unsafe { I_MAG };
 
@@ -105,23 +105,23 @@ impl SizedBatch {
         }
 
         unsafe {
-            x = (x * G_MAG).floor() / G_MAG;
-            y = (y * G_MAG).floor() / G_MAG;
+            x = (x * G_MAG).round() / G_MAG;
+            y = (y * G_MAG).round() / G_MAG;
         }
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRect(
             Rect {
-                left: rect.left as f32 / scale_x,
-                top: rect.top as f32 / scale_y,
-                right: rect.right as f32 / scale_x,
-                bottom: rect.bottom as f32 / scale_y,
+                left: rect.left as f32,
+                top: rect.top as f32,
+                right: rect.right as f32,
+                bottom: rect.bottom as f32,
             },
             Rect {
-                left: x * mag,
-                top: y * mag,
-                right: (x + rect.width() as f32) * mag,
-                bottom: (y + rect.height() as f32) * mag,
+                left: x * mag * scale_x,
+                top: y * mag * scale_y,
+                right: (x + rect.width() as f32) * mag * scale_x,
+                bottom: (y + rect.height() as f32) * mag * scale_y,
             },
         ));
     }
@@ -139,16 +139,16 @@ impl SizedBatch {
 
         self.batch.add(SpriteBatchCommand::DrawRectTinted(
             Rect {
-                left: rect.left as f32 / scale_x,
-                top: rect.top as f32 / scale_y,
-                right: rect.right as f32 / scale_x,
-                bottom: rect.bottom as f32 / scale_y,
+                left: rect.left as f32,
+                top: rect.top as f32,
+                right: rect.right as f32,
+                bottom: rect.bottom as f32,
             },
             Rect {
                 left: x * mag,
                 top: y * mag,
-                right: (x + rect.width() as f32) * mag,
-                bottom: (y + rect.height() as f32) * mag,
+                right: (x + rect.width() as f32 * scale_x) * mag,
+                bottom: (y + rect.height() as f32 * scale_y) * mag,
             },
             color.into(),
         ));

@@ -41,7 +41,7 @@ opt-level = 1
 
 [features]
 default = ["scripting", "backend-sdl"]
-backend-sdl = ["sdl2"]
+backend-sdl = ["sdl2", "sdl2-sys"]
 backend-gfx = ["winit", "imgui-gfx-renderer", "imgui-winit-support"]
 scripting = ["lua-ffi"]
 editor = []
@@ -66,7 +66,8 @@ num-derive = "0.3.2"
 num-traits = "0.2.12"
 paste = "1.0.0"
 pretty_env_logger = "0.4.0"
-sdl2 = { version = "0.34.3", optional = true, features = ["unsafe_textures", "bundled"] }
+sdl2 = { version = "0.34.3", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
+sdl2-sys = { version = "0.34", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_yaml = "0.8"

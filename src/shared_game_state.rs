@@ -27,6 +27,8 @@ use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
 use crate::framework::{filesystem, graphics};
+use crate::framework::backend::BackendTexture;
+use crate::framework::graphics::{create_texture, set_render_target, create_texture_mutable};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -106,6 +108,7 @@ pub struct SharedGameState {
     pub screen_size: (f32, f32),
     pub next_scene: Option<Box<dyn Scene>>,
     pub textscript_vm: TextScriptVM,
+    pub lightmap_canvas: Option<Box<dyn BackendTexture>>,
     pub season: Season,
     pub constants: EngineConstants,
     pub font: BMFontRenderer,
@@ -170,6 +173,7 @@ impl SharedGameState {
             canvas_size: (320.0, 240.0),
             next_scene: None,
             textscript_vm: TextScriptVM::new(),
+            lightmap_canvas: None,
             season,
             constants,
             font,
@@ -278,6 +282,12 @@ impl SharedGameState {
         self.screen_size = graphics::screen_size(ctx);
         self.scale = self.screen_size.1.div(230.0).floor().max(1.0);
         self.canvas_size = (self.screen_size.0 / self.scale, self.screen_size.1 / self.scale);
+
+        let (width, height) = (self.screen_size.0 as u16, self.screen_size.1 as u16);
+
+        // ensure no texture is bound before destroying them.
+        set_render_target(ctx, None)?;
+        self.lightmap_canvas = Some(create_texture_mutable(ctx, width, height)?);
 
         Ok(())
     }

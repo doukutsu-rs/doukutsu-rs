@@ -2,6 +2,7 @@ use crate::common::{Color, Rect, Point};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::Game;
+use crate::framework::graphics::BlendMode;
 
 pub trait Backend {
     fn create_event_loop(&self) -> GameResult<Box<dyn BackendEventLoop>>;
@@ -18,7 +19,13 @@ pub trait BackendRenderer {
 
     fn present(&mut self) -> GameResult;
 
+    fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>>;
+
     fn create_texture(&mut self, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>>;
+
+    fn set_blend_mode(&mut self, blend: BlendMode) -> GameResult;
+
+    fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult;
 }
 
 pub trait BackendTexture {

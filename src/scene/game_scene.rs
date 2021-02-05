@@ -3,13 +3,18 @@ use num_traits::{abs, clamp};
 
 use crate::bullet::BulletManager;
 use crate::caret::CaretType;
-use crate::common::{Direction, FadeDirection, FadeState, fix9_scale, interpolate_fix9_scale, Rect, Color};
+use crate::common::{Color, Direction, FadeDirection, FadeState, fix9_scale, interpolate_fix9_scale, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::draw_common::{Alignment, draw_number};
 use crate::components::hud::HUD;
 use crate::components::stage_select::StageSelect;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
+use crate::framework::backend::SpriteBatchCommand;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::graphics;
+use crate::framework::graphics::{BlendMode, FilterMode};
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::npc::boss::BossNPC;
@@ -26,10 +31,6 @@ use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState,
 use crate::texture_set::SizedBatch;
 use crate::ui::Components;
 use crate::weapon::WeaponType;
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
-use crate::framework::graphics;
-use crate::framework::graphics::FilterMode;
 
 pub struct GameScene {
     pub tick: u32,
@@ -297,18 +298,18 @@ impl GameScene {
                     FadeDirection::Left | FadeDirection::Right => {
                         let mut frame = tick;
 
-                        for x in (0..(state.canvas_size.0 as i32 + 16)).step_by(16) {
+                        for x in 0..(state.canvas_size.0 as i32 / 16 + 1) {
                             if frame >= 15 { frame = 15; } else { frame += 1; }
 
                             if frame >= 0 {
                                 rect.left = frame.abs() as u16 * 16;
                                 rect.right = rect.left + 16;
 
-                                for y in (0..(state.canvas_size.1 as i32 + 16)).step_by(16) {
+                                for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
                                     if direction == FadeDirection::Left {
-                                        batch.add_rect(state.canvas_size.0 - x as f32, y as f32, &rect);
+                                        batch.add_rect(state.canvas_size.0 - x as f32 * 16.0, y as f32 * 16.0, &rect);
                                     } else {
-                                        batch.add_rect(x as f32, y as f32, &rect);
+                                        batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
                                     }
                                 }
                             }
@@ -317,18 +318,18 @@ impl GameScene {
                     FadeDirection::Up | FadeDirection::Down => {
                         let mut frame = tick;
 
-                        for y in (0..(state.canvas_size.1 as i32 + 16)).step_by(16) {
+                        for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
                             if frame >= 15 { frame = 15; } else { frame += 1; }
 
                             if frame >= 0 {
                                 rect.left = frame.abs() as u16 * 16;
                                 rect.right = rect.left + 16;
 
-                                for x in (0..(state.canvas_size.0 as i32 + 16)).step_by(16) {
+                                for x in 0..(state.canvas_size.0 as i32 / 16 + 1) {
                                     if direction == FadeDirection::Down {
-                                        batch.add_rect(x as f32, y as f32, &rect);
+                                        batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
                                     } else {
-                                        batch.add_rect(x as f32, state.canvas_size.1 - y as f32, &rect);
+                                        batch.add_rect(x as f32 * 16.0, state.canvas_size.1 - y as f32 * 16.0, &rect);
                                     }
                                 }
                             }
@@ -342,7 +343,7 @@ impl GameScene {
                         for x in 0..(center_x / 16 + 2) {
                             let mut frame = start_frame;
 
-                            for y in 0..(center_y / 16 + 1) {
+                            for y in 0..(center_y / 16 + 2) {
                                 if frame >= 15 { frame = 15; } else { frame += 1; }
 
                                 if frame >= 0 {
@@ -502,10 +503,17 @@ impl GameScene {
     }
 
     fn draw_light_map(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        /*graphics::set_canvas(ctx, Some(&state.lightmap_canvas));
+        let canvas = state.lightmap_canvas.as_mut();
+        if let None = canvas {
+            return Ok(());
+        }
+
+        let canvas = canvas.unwrap();
+
+        graphics::set_render_target(ctx, Some(canvas));
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
-        graphics::clear(ctx, Color::from_rgb(100, 100, 110));*/
+        graphics::clear(ctx, Color::from_rgb(100, 100, 110));
         {
             let scale = state.scale;
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
@@ -547,9 +555,9 @@ impl GameScene {
                                         fix9_scale(npc.y - self.frame.y, scale),
                                         0.4, (255, 255, 0), batch);
                     }
-                    4 | 7 => self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
-                                             fix9_scale(npc.y - self.frame.y, scale),
-                                             1.0, (100, 100, 100), batch),
+                    7 => self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                         fix9_scale(npc.y - self.frame.y, scale),
+                                         1.0, (100, 100, 100), batch),
                     17 if npc.anim_num == 0 => {
                         self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
                                         fix9_scale(npc.y - self.frame.y, scale),
@@ -584,13 +592,6 @@ impl GameScene {
                                         fix9_scale(npc.y - self.frame.y, scale),
                                         3.5, (130 + flicker, 40 + flicker, 0), batch);
                     }
-                    66 if npc.action_num == 1 && npc.anim_counter % 2 == 0 =>
-                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
-                                        fix9_scale(npc.y - self.frame.y, scale),
-                                        3.0, (0, 100, 255), batch),
-                    67 => self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
-                                          fix9_scale(npc.y - self.frame.y, scale),
-                                          2.0, (0, 100, 200), batch),
                     70 => {
                         let flicker = 50 + npc.anim_num as u8 * 15;
                         self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
@@ -634,13 +635,15 @@ impl GameScene {
             batch.draw_filtered(FilterMode::Linear, ctx)?;
         }
 
-        /*graphics::set_blend_mode(ctx, BlendMode::Multiply)?;
-        graphics::set_canvas(ctx, Some(&state.game_canvas));
-        state.lightmap_canvas.set_filter(FilterMode::Linear);
-        state.lightmap_canvas.draw(ctx, DrawParam::new()
-            .scale(Vector2::new(1.0 / state.scale, 1.0 / state.scale)))?;
+        graphics::set_blend_mode(ctx, BlendMode::Multiply)?;
+        graphics::set_render_target(ctx, None);
 
-        graphics::set_blend_mode(ctx, BlendMode::Alpha)?;*/
+        let rect = Rect { left: 0.0, top: 0.0, right: state.screen_size.0, bottom: state.screen_size.1 };
+        canvas.clear();
+        canvas.add(SpriteBatchCommand::DrawRect(rect, rect));
+        canvas.draw()?;
+
+        graphics::set_blend_mode(ctx, BlendMode::Alpha)?;
 
         Ok(())
     }
@@ -1213,13 +1216,13 @@ impl Scene for GameScene {
         //graphics::set_canvas(ctx, Some(&state.game_canvas));
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
-        /*if state.settings.shader_effects
+        if state.settings.shader_effects
             && self.stage.data.background_type != BackgroundType::Black
             && self.stage.data.background_type != BackgroundType::Outside
             && self.stage.data.background_type != BackgroundType::OutsideWind
             && self.stage.data.background.name() != "bkBlack" {
             self.draw_light_map(state, ctx)?;
-        }*/
+        }
 
         self.boss.draw(state, ctx, &self.frame)?;
         for npc in self.npc_list.iter_alive() {
@@ -1242,11 +1245,11 @@ impl Scene for GameScene {
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;
-        /*if state.settings.shader_effects
+        if state.settings.shader_effects
             && (self.stage.data.background_type == BackgroundType::Black
             || self.stage.data.background.name() == "bkBlack") {
             self.draw_light_map(state, ctx)?;
-        }*/
+        }
 
         /*graphics::set_canvas(ctx, None);
         state.game_canvas.draw(ctx, DrawParam::new()
