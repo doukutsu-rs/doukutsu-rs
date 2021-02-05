@@ -15,6 +15,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::framework::graphics::{BlendMode, FilterMode};
+use crate::framework::ui::Components;
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::npc::boss::BossNPC;
@@ -29,7 +30,6 @@ use crate::shared_game_state::{Season, SharedGameState};
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::SizedBatch;
-use crate::ui::Components;
 use crate::weapon::WeaponType;
 
 pub struct GameScene {
@@ -636,7 +636,7 @@ impl GameScene {
         }
 
         graphics::set_blend_mode(ctx, BlendMode::Multiply)?;
-        graphics::set_render_target(ctx, None);
+        graphics::set_render_target(ctx, None)?;
 
         let rect = Rect { left: 0.0, top: 0.0, right: state.screen_size.0, bottom: state.screen_size.1 };
         canvas.clear();

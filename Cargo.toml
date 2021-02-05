@@ -41,7 +41,7 @@ opt-level = 1
 
 [features]
 default = ["scripting", "backend-sdl"]
-backend-sdl = ["sdl2", "sdl2-sys"]
+backend-sdl = ["sdl2", "sdl2-sys", "imgui-sdl2"]
 backend-gfx = ["winit", "imgui-gfx-renderer", "imgui-winit-support"]
 scripting = ["lua-ffi"]
 editor = []
@@ -53,9 +53,10 @@ case_insensitive_hashmap = "1.0.0"
 chrono = "0.4"
 cpal = { git = "https://github.com/doukutsu-rs/cpal.git", branch = "android-support" }
 directories = "3"
-imgui = { git = "https://github.com/Gekkio/imgui-rs.git", rev = "7e2293bde67f869750ab0e649fbfbd842fb0c785" }
-imgui-gfx-renderer = { git = "https://github.com/Gekkio/imgui-rs.git", rev = "7e2293bde67f869750ab0e649fbfbd842fb0c785", optional = true }
-imgui-winit-support = { git = "https://github.com/Gekkio/imgui-rs.git", default-features = false, features = ["winit-23"], rev = "7e2293bde67f869750ab0e649fbfbd842fb0c785", optional = true }
+imgui = "0.6.0"
+imgui-gfx-renderer = { version = "0.6.0", optional = true }
+imgui-winit-support = { version = "0.6.0", default-features = false, features = ["winit-23"], optional = true }
+imgui-sdl2 = { version = "0.13.0", optional = true }
 image = { version = "0.22", default-features = false, features = ["png_codec", "pnm", "bmp"] }
 itertools = "0.9.0"
 lazy_static = "1.4.0"
@@ -66,8 +67,8 @@ num-derive = "0.3.2"
 num-traits = "0.2.12"
 paste = "1.0.0"
 pretty_env_logger = "0.4.0"
-sdl2 = { version = "0.34.3", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
-sdl2-sys = { version = "0.34", optional = true }
+sdl2 = { version = "0.34.3", optional = true, features = ["unsafe_textures", "bundled", "gfx"] }
+sdl2-sys = { version = "0.34", optional = true, features = ["bundled", "gfx"] }
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_yaml = "0.8"

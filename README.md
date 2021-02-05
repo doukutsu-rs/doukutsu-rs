@@ -78,10 +78,10 @@ Vanilla Cave Story does not work yet because some important data files have been
   - [ ] Machine Gun
   - [ ] Missile Launcher
   - [ ] Bubbler
-  - [ ] Blade
+  - [x] Blade
   - [ ] Super Missile Launcher
-  - [ ] Nemesis
-  - [ ] Spur
+  - [x] Nemesis
+  - [x] Spur
 - [x] Saving and loading game state
 - [ ] Support for different game editions
   - [ ] Vanilla

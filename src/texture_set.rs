@@ -91,12 +91,12 @@ impl SizedBatch {
 
     #[inline(always)]
     pub fn add_rect(&mut self, x: f32, y: f32, rect: &common::Rect<u16>) {
-        self.add_rect_scaled(x, y, self.scale_x, self.scale_y, rect)
+        self.add_rect_scaled(x, y, 1.0, 1.0, rect)
     }
 
     #[inline(always)]
     pub fn add_rect_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8, u8), rect: &common::Rect<u16>) {
-        self.add_rect_scaled_tinted(x, y, color, self.scale_x, self.scale_y, rect)
+        self.add_rect_scaled_tinted(x, y, color, 1.0, 1.0, rect)
     }
 
     pub fn add_rect_scaled(&mut self, mut x: f32, mut y: f32, mut scale_x: f32, mut scale_y: f32, rect: &common::Rect<u16>) {
@@ -112,16 +112,16 @@ impl SizedBatch {
 
         self.batch.add(SpriteBatchCommand::DrawRect(
             Rect {
-                left: rect.left as f32,
-                top: rect.top as f32,
-                right: rect.right as f32,
-                bottom: rect.bottom as f32,
+                left: rect.left as f32 / self.scale_x,
+                top: rect.top as f32 / self.scale_y,
+                right: rect.right as f32 / self.scale_x,
+                bottom: rect.bottom as f32 / self.scale_y,
             },
             Rect {
-                left: x * mag * scale_x,
-                top: y * mag * scale_y,
-                right: (x + rect.width() as f32) * mag * scale_x,
-                bottom: (y + rect.height() as f32) * mag * scale_y,
+                left: x * mag,
+                top: y * mag,
+                right: (x + rect.width() as f32 * scale_x) * mag,
+                bottom: (y + rect.height() as f32 * scale_y) * mag,
             },
         ));
     }
@@ -160,7 +160,7 @@ impl SizedBatch {
     }
 
     pub fn draw_filtered(&mut self, filter: FilterMode, ctx: &mut Context) -> GameResult {
-        ///self.batch.set_filter(filter);
+        //self.batch.set_filter(filter);
         self.batch.draw()?;
         self.batch.clear();
         Ok(())
@@ -241,7 +241,6 @@ impl TextureSet {
         let scale = orig_dimensions.0 as f32 / size.0 as f32;
         let width = (size.0 as f32 * scale) as usize;
         let height = (size.1 as f32 * scale) as usize;
-        println!("{} {} {} {}", size.0, size.1, width, height);
 
         Ok(SizedBatch {
             batch,

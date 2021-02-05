@@ -25,10 +25,10 @@ install:
   - cargo -vV
 
 cache:
-  - '%USERPROFILE%\.cache\sccache -> .appveyor.yml'
-  - '%USERPROFILE%\.cargo -> .appveyor.yml'
-  - '%USERPROFILE%\.rustup -> .appveyor.yml'
-  - 'target -> .appveyor.yml'
+  - '%USERPROFILE%\.cache\sccache -> Cargo.toml'
+  - '%USERPROFILE%\.cargo -> Cargo.toml'
+  - '%USERPROFILE%\.rustup -> Cargo.toml'
+  - 'target -> Cargo.toml'
 
 #test_script:
 #  - cargo build --verbose --all

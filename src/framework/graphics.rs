@@ -75,3 +75,27 @@ pub fn set_blend_mode(ctx: &mut Context, blend: BlendMode) -> GameResult {
 
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
+
+pub fn imgui_context(ctx: &Context) -> GameResult<&mut imgui::Context> {
+    if let Some(renderer) = ctx.renderer.as_ref() {
+        return renderer.imgui();
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn render_imgui(ctx: &mut Context, draw_data: &imgui::DrawData) -> GameResult {
+    if let Some(renderer) = ctx.renderer.as_mut() {
+        return renderer.render_imgui(draw_data);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn imgui_prepare_frame(ctx: &Context, ui: &imgui::Ui) -> GameResult {
+    if let Some(renderer) = ctx.renderer.as_ref() {
+        return renderer.prepare_frame(ui);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}

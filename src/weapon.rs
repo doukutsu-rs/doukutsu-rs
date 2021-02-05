@@ -443,8 +443,8 @@ impl Weapon {
             WeaponLevel::None => unreachable!(),
         }
 
-        const bullets: [u16; 6] = [44, 45, 46, 47, 48, 49];
-        if bullet_manager.count_bullets_multi(&bullets, player_id) == 0
+        const BULLETS: [u16; 6] = [44, 45, 46, 47, 48, 49];
+        if bullet_manager.count_bullets_multi(&BULLETS, player_id) == 0
             && (player.controller.trigger_shoot() || shoot) {
             if !self.consume_ammo(1) {
                 state.sound_manager.play_sfx(37);

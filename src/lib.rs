@@ -24,12 +24,12 @@ use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem::{mount_user_vfs, mount_vfs};
 use crate::framework::graphics;
 use crate::framework::keyboard::ScanCode;
+use crate::framework::ui::UI;
 use crate::framework::vfs::PhysicalFS;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
 use crate::texture_set::{G_MAG, I_MAG};
-use crate::ui::UI;
 
 mod bmfont;
 mod bmfont_renderer;
@@ -66,7 +66,6 @@ mod stage;
 mod sound;
 mod text_script;
 mod texture_set;
-mod ui;
 mod weapon;
 
 pub struct Game {

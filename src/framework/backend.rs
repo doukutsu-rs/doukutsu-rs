@@ -1,8 +1,10 @@
-use crate::common::{Color, Rect, Point};
+use imgui::DrawData;
+
+use crate::common::{Color, Point, Rect};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::Game;
 use crate::framework::graphics::BlendMode;
+use crate::Game;
 
 pub trait Backend {
     fn create_event_loop(&self) -> GameResult<Box<dyn BackendEventLoop>>;
@@ -26,12 +28,21 @@ pub trait BackendRenderer {
     fn set_blend_mode(&mut self, blend: BlendMode) -> GameResult;
 
     fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult;
+
+    fn imgui(&self) -> GameResult<&mut imgui::Context>;
+
+    fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult;
+
+    fn prepare_frame(&self, ui: &imgui::Ui) -> GameResult;
 }
 
 pub trait BackendTexture {
     fn dimensions(&self) -> (u16, u16);
+
     fn add(&mut self, command: SpriteBatchCommand);
+
     fn clear(&mut self);
+
     fn draw(&mut self) -> GameResult;
 }
 

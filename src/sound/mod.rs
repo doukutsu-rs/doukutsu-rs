@@ -8,7 +8,7 @@ use num_traits::clamp;
 
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
-use crate::framework::error::GameResult;
+use crate::framework::error::{GameResult, GameError};
 use crate::framework::filesystem;
 use crate::sound::organya::Song;
 use crate::sound::pixtone::PixTonePlayback;
@@ -16,6 +16,7 @@ use crate::sound::playback::{PlaybackEngine, SavedPlaybackState};
 use crate::sound::wave_bank::SoundBank;
 use crate::str;
 use crate::framework::error::GameError::{AudioError, ResourceLoadError, InvalidValue};
+use std::io::Error;
 
 mod wave_bank;
 mod organya;
@@ -128,13 +129,19 @@ impl SoundManager {
                 .find(|path| filesystem::exists(ctx, path))
                 .ok_or_else(|| ResourceLoadError(format!("BGM {:?} does not exist.", song_name)))?;
 
-            let org = organya::Song::load_from(filesystem::open(ctx, path)?)?;
-            log::info!("Playing BGM: {}", song_name);
+            match filesystem::open(ctx, path).map(|f| organya::Song::load_from(f)) {
+                Ok(Ok(org)) => {
+                    log::info!("Playing BGM: {} {}", song_id, song_name);
 
-            self.prev_song_id = self.current_song_id;
-            self.current_song_id = song_id;
-            self.tx.send(PlaybackMessage::SaveState)?;
-            self.tx.send(PlaybackMessage::PlaySong(Box::new(org)))?;
+                    self.prev_song_id = self.current_song_id;
+                    self.current_song_id = song_id;
+                    self.tx.send(PlaybackMessage::SaveState)?;
+                    self.tx.send(PlaybackMessage::PlaySong(Box::new(org)))?;
+                }
+                Ok(Err(err)) | Err(err) => {
+                    log::warn!("Failed to load BGM {}: {}", song_id, err);
+                }
+            }
         }
         Ok(())
     }
