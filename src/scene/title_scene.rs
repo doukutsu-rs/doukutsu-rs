@@ -1,12 +1,12 @@
-use ggez::{Context, GameResult, graphics};
-use ggez::graphics::Color;
-
-use crate::common::{Rect, VERSION_BANNER};
+use crate::common::{Rect, VERSION_BANNER, Color};
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::graphics;
+use crate::input::combined_menu_controller::CombinedMenuController;
+use crate::input::touch_controls::TouchControlType;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
-use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::input::touch_controls::TouchControlType;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]

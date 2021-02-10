@@ -1,8 +1,8 @@
-use ggez::{Context, GameResult};
-
 use crate::common::Rect;
 use crate::entity::GameEntity;
 use crate::frame::Frame;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::shared_game_state::SharedGameState;
@@ -52,7 +52,7 @@ impl BossLifeBar {
 }
 
 impl GameEntity<(&NPCList, &BossNPC)> for BossLifeBar {
-    fn tick(&mut self, _state: &mut SharedGameState, (npc_list, boss): (&NPCList, &BossNPC)) -> GameResult<> {
+    fn tick(&mut self, _state: &mut SharedGameState, (npc_list, boss): (&NPCList, &BossNPC)) -> GameResult<()> {
         match self.target {
             BossLifeTarget::NPC(npc_id) => {
                 if let Some(npc) = npc_list.get_npc(npc_id as usize) {

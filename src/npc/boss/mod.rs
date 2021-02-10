@@ -1,11 +1,11 @@
 use std::mem::MaybeUninit;
 
-use ggez::{Context, GameResult};
-
 use crate::bullet::BulletManager;
 use crate::common::{Direction, interpolate_fix9_scale};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
 use crate::player::Player;

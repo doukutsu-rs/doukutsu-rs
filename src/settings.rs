@@ -1,11 +1,12 @@
-use ggez::{Context, GameResult};
 use serde::{Deserialize, Serialize};
-use winit::event::VirtualKeyCode;
 
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::keyboard::ScanCode;
 use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
-use crate::player::TargetPlayer;
 use crate::input::touch_player_controller::TouchPlayerController;
+use crate::player::TargetPlayer;
 
 #[derive(Serialize, Deserialize)]
 pub struct Settings {
@@ -66,47 +67,47 @@ impl Default for Settings {
 
 #[derive(Serialize, Deserialize)]
 pub struct PlayerKeyMap {
-    pub left: VirtualKeyCode,
-    pub up: VirtualKeyCode,
-    pub right: VirtualKeyCode,
-    pub down: VirtualKeyCode,
-    pub prev_weapon: VirtualKeyCode,
-    pub next_weapon: VirtualKeyCode,
-    pub jump: VirtualKeyCode,
-    pub shoot: VirtualKeyCode,
-    pub skip: VirtualKeyCode,
-    pub inventory: VirtualKeyCode,
-    pub map: VirtualKeyCode,
+    pub left: ScanCode,
+    pub up: ScanCode,
+    pub right: ScanCode,
+    pub down: ScanCode,
+    pub prev_weapon: ScanCode,
+    pub next_weapon: ScanCode,
+    pub jump: ScanCode,
+    pub shoot: ScanCode,
+    pub skip: ScanCode,
+    pub inventory: ScanCode,
+    pub map: ScanCode,
 }
 
 fn p1_default_keymap() -> PlayerKeyMap {
     PlayerKeyMap {
-        left: VirtualKeyCode::Left,
-        up: VirtualKeyCode::Up,
-        right: VirtualKeyCode::Right,
-        down: VirtualKeyCode::Down,
-        prev_weapon: VirtualKeyCode::A,
-        next_weapon: VirtualKeyCode::S,
-        jump: VirtualKeyCode::Z,
-        shoot: VirtualKeyCode::X,
-        skip: VirtualKeyCode::LControl,
-        inventory: VirtualKeyCode::Q,
-        map: VirtualKeyCode::W,
+        left: ScanCode::Left,
+        up: ScanCode::Up,
+        right: ScanCode::Right,
+        down: ScanCode::Down,
+        prev_weapon: ScanCode::A,
+        next_weapon: ScanCode::S,
+        jump: ScanCode::Z,
+        shoot: ScanCode::X,
+        skip: ScanCode::LControl,
+        inventory: ScanCode::Q,
+        map: ScanCode::W,
     }
 }
 
 fn p2_default_keymap() -> PlayerKeyMap {
     PlayerKeyMap {
-        left: VirtualKeyCode::Comma,
-        up: VirtualKeyCode::L,
-        right: VirtualKeyCode::Slash,
-        down: VirtualKeyCode::Period,
-        prev_weapon: VirtualKeyCode::G,
-        next_weapon: VirtualKeyCode::H,
-        jump: VirtualKeyCode::B,
-        shoot: VirtualKeyCode::N,
-        skip: VirtualKeyCode::RControl,
-        inventory: VirtualKeyCode::T,
-        map: VirtualKeyCode::Y,
+        left: ScanCode::Comma,
+        up: ScanCode::L,
+        right: ScanCode::Slash,
+        down: ScanCode::Period,
+        prev_weapon: ScanCode::G,
+        next_weapon: ScanCode::H,
+        jump: ScanCode::B,
+        shoot: ScanCode::N,
+        skip: ScanCode::U,
+        inventory: ScanCode::T,
+        map: ScanCode::Y,
     }
 }

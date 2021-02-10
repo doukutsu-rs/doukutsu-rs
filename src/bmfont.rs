@@ -3,8 +3,9 @@ use std::io;
 
 use byteorder::{LE, ReadBytesExt};
 
-use ggez::GameError::ResourceLoadError;
-use ggez::GameResult;
+use crate::framework::context::Context;
+use crate::framework::error::GameError::ResourceLoadError;
+use crate::framework::error::GameResult;
 use crate::str;
 
 #[derive(Debug)]

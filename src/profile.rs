@@ -4,13 +4,15 @@ use byteorder::{BE, LE, ReadBytesExt, WriteBytesExt};
 use num_traits::{clamp, FromPrimitive};
 
 use crate::common::{Direction, FadeState};
-use ggez::{Context, GameResult};
-use ggez::GameError::ResourceLoadError;
+
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::player::ControlMode;
 use crate::scene::game_scene::GameScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
 use crate::weapon::{WeaponLevel, WeaponType};
+use crate::framework::error::GameError::ResourceLoadError;
 
 pub struct WeaponData {
     pub weapon_id: u32,

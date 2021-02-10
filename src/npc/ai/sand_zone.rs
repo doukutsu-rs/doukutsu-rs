@@ -1,4 +1,5 @@
-use ggez::GameResult;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
@@ -288,7 +289,7 @@ impl NPC {
     }
 
     pub(crate) fn tick_n049_skullhead(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
-        let mut parent = self.get_parent_ref_mut(npc_list);
+        let parent = self.get_parent_ref_mut(npc_list);
 
         if self.action_num > 9 && parent.as_ref().map(|n| n.npc_type == 3).unwrap_or(false) {
             self.action_num = 3;

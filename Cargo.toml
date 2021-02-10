@@ -4,8 +4,8 @@ edition = "2018"
 name = "doukutsu-rs"
 version = "0.1.0"
 
-[lib]
-crate-type = ["lib", "cdylib"]
+#[lib]
+#crate-type = ["lib", "cdylib"]
 
 [package.metadata.android]
 android_version = 29
@@ -18,12 +18,12 @@ opengles_version = [3, 1]
 fullscreen = true
 orientation = "sensorLandscape"
 permission = [
-    {name = "android.permission.READ_EXTERNAL_STORAGE"},
-    {name = "android.permission.WRITE_EXTERNAL_STORAGE"}
+    { name = "android.permission.READ_EXTERNAL_STORAGE" },
+    { name = "android.permission.WRITE_EXTERNAL_STORAGE" }
 ]
 application_metadatas = [
-    {name = "android:hardwareAccelerated", value = "true"},
-    {name = "android:requestLegacyExternalStorage", value = "true"}
+    { name = "android:hardwareAccelerated", value = "true" },
+    { name = "android:requestLegacyExternalStorage", value = "true" }
 ]
 
 [profile.release]
@@ -40,42 +40,34 @@ opt-level = 1
 opt-level = 1
 
 [features]
-default = ["scripting"]
+default = ["scripting", "backend-sdl"]
+backend-sdl = ["sdl2"]
+backend-gfx = ["winit", "imgui-gfx-renderer", "imgui-winit-support"]
 scripting = ["lua-ffi"]
 editor = []
 
 [dependencies]
-#cpal = {path = "./3rdparty/cpal"}
-#gfx_device_gl = {path = "./3rdparty/gfx/src/backend/gl"}
-#ggez = {path = "./3rdparty/ggez"}
-#glutin = {path = "./3rdparty/glutin/glutin"}
-#lua-ffi = {path = "./3rdparty/luajit-rs", optional = true}
-
 bitvec = "0.17.4"
 byteorder = "1.3"
 case_insensitive_hashmap = "1.0.0"
 chrono = "0.4"
-cpal = {git = "https://github.com/doukutsu-rs/cpal.git", branch = "android-support"}
-directories = "2"
-gfx = "0.18"
-gfx_core = "0.9"
-gfx_device_gl = {git = "https://github.com/doukutsu-rs/gfx.git", branch = "pre-ll"}
-ggez = {git = "https://github.com/doukutsu-rs/ggez.git", rev = "43631b0401271d4bc8fe4a5afba8aad63976dba1"}
-glutin = {git = "https://github.com/doukutsu-rs/glutin.git", branch = "master"}
-imgui = {git = "https://github.com/Gekkio/imgui-rs.git", rev = "7e2293bde67f869750ab0e649fbfbd842fb0c785"}
-imgui-gfx-renderer = {git = "https://github.com/Gekkio/imgui-rs.git", rev = "7e2293bde67f869750ab0e649fbfbd842fb0c785"}
-imgui-winit-support = {git = "https://github.com/Gekkio/imgui-rs.git", default-features = false, features = ["winit-23"], rev = "7e2293bde67f869750ab0e649fbfbd842fb0c785"}
-image = {version = "0.22", default-features = false, features = ["png_codec", "pnm", "bmp"]}
+cpal = { git = "https://github.com/doukutsu-rs/cpal.git", branch = "android-support" }
+directories = "3"
+imgui = "0.7.0"
+imgui-gfx-renderer = { version = "0.7.0", optional = true }
+imgui-winit-support = { version = "0.7.0", default-features = false, features = ["winit-23"], optional = true }
+image = { version = "0.22", default-features = false, features = ["png_codec", "pnm", "bmp"] }
 itertools = "0.9.0"
 lazy_static = "1.4.0"
 log = "0.4"
-lua-ffi = {git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "1ef3caf772d72068297ddf75df06fd2ef8c1daab", optional = true}
+lua-ffi = { git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "1ef3caf772d72068297ddf75df06fd2ef8c1daab", optional = true }
 lru = "0.6.0"
 num-derive = "0.3.2"
 num-traits = "0.2.12"
 paste = "1.0.0"
 pretty_env_logger = "0.4.0"
-serde = {version = "1", features = ["derive"]}
+sdl2 = { version = "0.34", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
+serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_yaml = "0.8"
 strum = "0.18.0"
@@ -83,7 +75,10 @@ strum_macros = "0.18.0"
 # remove and replace when drain_filter is in stable
 vec_mut_scan = "0.3.0"
 webbrowser = "0.5.5"
-winit = {version = "0.24.0", features = ["serde"]}
+winit = { version = "0.24.0", features = ["serde"], optional = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = { version = "0.3", features = ["winuser"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 ndk = "0.2"

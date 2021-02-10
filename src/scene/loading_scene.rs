@@ -1,5 +1,6 @@
-use ggez::{Context, filesystem, GameResult};
-
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::filesystem;
 use crate::npc::NPCTable;
 use crate::scene::no_data_scene::NoDataScene;
 use crate::scene::Scene;

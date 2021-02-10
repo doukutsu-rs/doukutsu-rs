@@ -9,8 +9,6 @@ use std::ops::Not;
 use std::str::FromStr;
 
 use byteorder::ReadBytesExt;
-use ggez::{Context, GameResult};
-use ggez::GameError::{InvalidValue, ParseError};
 use itertools::Itertools;
 use num_derive::FromPrimitive;
 use num_traits::{clamp, FromPrimitive};
@@ -21,6 +19,9 @@ use crate::encoding::{read_cur_shift_jis, read_cur_wtf8};
 use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::frame::UpdateTarget;
+use crate::framework::context::Context;
+use crate::framework::error::GameError::{InvalidValue, ParseError};
+use crate::framework::error::GameResult;
 use crate::npc::NPC;
 use crate::player::{ControlMode, TargetPlayer};
 use crate::scene::game_scene::GameScene;
@@ -1750,6 +1751,7 @@ impl TextScript {
         }
     }
 
+    #[allow(unused)]
     fn read_varint<I: Iterator<Item=u8>>(iter: &mut I) -> GameResult<i32> {
         let mut result = 0u32;
 

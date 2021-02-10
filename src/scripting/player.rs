@@ -12,6 +12,7 @@ pub struct LuaPlayer {
     inv_ptr: *mut Inventory,
 }
 
+#[allow(unused)]
 impl LuaPlayer {
     fn check_ref(&self, state: &mut State) -> bool {
         if !self.valid_reference {

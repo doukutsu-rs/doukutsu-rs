@@ -384,7 +384,7 @@ impl Weapon {
 
     fn tick_spur(&mut self, player: &mut Player, player_id: TargetPlayer, inventory: &mut Inventory, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
         let mut shoot = false;
-        let mut btype = 0;
+        let mut btype;
 
         if player.controller.shoot() {
             inventory.add_xp(if player.equip.has_turbocharge() { 3 } else { 2 }, player, state);
@@ -443,8 +443,8 @@ impl Weapon {
             WeaponLevel::None => unreachable!(),
         }
 
-        const bullets: [u16; 6] = [44, 45, 46, 47, 48, 49];
-        if bullet_manager.count_bullets_multi(&bullets, player_id) == 0
+        const BULLETS: [u16; 6] = [44, 45, 46, 47, 48, 49];
+        if bullet_manager.count_bullets_multi(&BULLETS, player_id) == 0
             && (player.controller.trigger_shoot() || shoot) {
             if !self.consume_ammo(1) {
                 state.sound_manager.play_sfx(37);

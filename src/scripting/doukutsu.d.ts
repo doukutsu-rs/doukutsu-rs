@@ -14,9 +14,24 @@ declare interface DoukutsuScene {
     tick(): number;
 
     /**
-     * Returns player at specified index.
+     * Returns a list of players connected to current game.
      */
-    player(index: number): DoukutsuPlayer | null;
+    onlinePlayers(): DoukutsuPlayer[];
+
+    /**
+     * Returns a list of players on current map.
+     */
+    mapPlayers(): DoukutsuPlayer[];
+
+    /**
+     * Returns the id of local player.
+     */
+    localPlayerId(): number;
+
+    /**
+     * Returns player with specified id.
+     */
+    player(id: number): DoukutsuPlayer | null;
 };
 
 declare namespace doukutsu {
