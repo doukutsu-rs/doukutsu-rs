@@ -434,13 +434,14 @@ impl GameScene {
             };
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex_name)?;
 
-            // switch version uses +1000 face offset to display a flipped version
+            // switch version uses 1xxx flag to show a flipped version of face
             let flip = state.textscript_vm.face > 1000;
+            // x1xx flag shows a talking animation
+            let talking = (state.textscript_vm.face % 1000) > 100;
             let face_num = state.textscript_vm.face % 100;
-            let (scale_x, scale_y) = batch.scale();
 
-            batch.add_rect_scaled(left_pos + 14.0 + if flip { 48.0 } else { 0.0 }, top_pos + 8.0,
-                                  scale_x * if flip { -1.0 } else { 1.0 }, scale_y,
+            batch.add_rect_flip(left_pos + 14.0, top_pos + 8.0,
+                                    flip, false,
                                   &Rect::new_size(
                                       (face_num as u16 % 6) * 48,
                                       (face_num as u16 / 6) * 48,

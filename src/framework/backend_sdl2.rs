@@ -3,22 +3,23 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use imgui::{DrawCmd, DrawData, ImString, TextureId, Ui};
 use imgui::internal::RawWrapper;
-use sdl2::{EventPump, keyboard, pixels, Sdl};
+use imgui::{ConfigFlags, DrawCmd, DrawData, ImString, Key, MouseCursor, TextureId, Ui};
 use sdl2::event::{Event, WindowEvent};
-use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::keyboard::Scancode;
+use sdl2::mouse::{Cursor, SystemCursor};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Texture, TextureCreator, WindowCanvas};
-use sdl2::surface::Surface;
 use sdl2::video::WindowContext;
+use sdl2::{keyboard, pixels, EventPump, Sdl};
 
 use crate::common::Color;
-use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
+use crate::framework::backend::{
+    Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand,
+};
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
-use crate::framework::graphics::{BlendMode, imgui_context};
+use crate::framework::graphics::{imgui_context, BlendMode};
 use crate::framework::keyboard::ScanCode;
 use crate::framework::ui::init_imgui;
 use crate::Game;
@@ -31,9 +32,7 @@ impl SDL2Backend {
     pub fn new() -> GameResult<Box<dyn Backend>> {
         let context = sdl2::init().map_err(|e| GameError::WindowError(e))?;
 
-        let backend = SDL2Backend {
-            context,
-        };
+        let backend = SDL2Backend { context };
 
         Ok(Box::new(backend))
     }
@@ -62,13 +61,15 @@ impl SDL2EventLoop {
 
         let event_pump = sdl.event_pump().map_err(|e| GameError::WindowError(e))?;
         let video = sdl.video().map_err(|e| GameError::WindowError(e))?;
-        let window = video.window("Cave Story (doukutsu-rs)", 640, 480)
+        let window = video
+            .window("Cave Story (doukutsu-rs)", 640, 480)
             .position_centered()
             .resizable()
             .build()
             .map_err(|e| GameError::WindowError(e.to_string()))?;
 
-        let canvas = window.into_canvas()
+        let canvas = window
+            .into_canvas()
             .accelerated()
             .present_vsync()
             .build()
@@ -96,7 +97,10 @@ impl BackendEventLoop for SDL2EventLoop {
         let (imgui, imgui_sdl2) = unsafe {
             let renderer: &Box<SDL2Renderer> = std::mem::transmute(ctx.renderer.as_ref().unwrap());
 
-            (&mut *renderer.imgui.as_ptr(), &mut *renderer.imgui_event.as_ptr())
+            (
+                &mut *renderer.imgui.as_ptr(),
+                &mut *renderer.imgui_event.as_ptr(),
+            )
         };
 
         {
@@ -115,27 +119,30 @@ impl BackendEventLoop for SDL2EventLoop {
                     Event::Quit { .. } => {
                         state.shutdown();
                     }
-                    Event::Window { win_event, .. } => {
-                        match win_event {
-                            WindowEvent::Shown => {}
-                            WindowEvent::Hidden => {}
-                            WindowEvent::SizeChanged(width, height) => {
-                                ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
+                    Event::Window { win_event, .. } => match win_event {
+                        WindowEvent::Shown => {}
+                        WindowEvent::Hidden => {}
+                        WindowEvent::SizeChanged(width, height) => {
+                            ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
 
-                                if let Some(renderer) = ctx.renderer.as_ref() {
-                                    if let Ok(imgui) = renderer.imgui() {
-                                        imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
-                                    }
+                            if let Some(renderer) = ctx.renderer.as_ref() {
+                                if let Ok(imgui) = renderer.imgui() {
+                                    imgui.io_mut().display_size =
+                                        [ctx.screen_size.0, ctx.screen_size.1];
                                 }
-                                state.handle_resize(ctx);
                             }
-                            _ => {}
+                            state.handle_resize(ctx);
                         }
-                    }
-                    Event::KeyDown { scancode, repeat, .. } => {
+                        _ => {}
+                    },
+                    Event::KeyDown {
+                        scancode, repeat, ..
+                    } => {
                         if let Some(scancode) = scancode {
                             if let Some(drs_scan) = conv_scancode(scancode) {
-                                game.key_down_event(drs_scan, repeat);
+                                if !repeat {
+                                    state.process_debug_keys(drs_scan);
+                                }
                                 ctx.keyboard_context.set_key(drs_scan, true);
                             }
                         }
@@ -167,7 +174,11 @@ impl BackendEventLoop for SDL2EventLoop {
                 state.frame_time = 0.0;
             }
 
-            imgui_sdl2.prepare_frame(imgui.io_mut(), self.refs.borrow().canvas.window(), &self.event_pump.mouse_state());
+            imgui_sdl2.prepare_frame(
+                imgui.io_mut(),
+                self.refs.borrow().canvas.window(),
+                &self.event_pump.mouse_state(),
+            );
             game.draw(ctx).unwrap();
         }
     }
@@ -180,7 +191,7 @@ impl BackendEventLoop for SDL2EventLoop {
 struct SDL2Renderer {
     refs: Rc<RefCell<SDL2Context>>,
     imgui: Rc<RefCell<imgui::Context>>,
-    imgui_event: Rc<RefCell<imgui_sdl2::ImguiSdl2>>,
+    imgui_event: Rc<RefCell<ImguiSdl2>>,
     imgui_textures: HashMap<TextureId, SDL2Texture>,
 }
 
@@ -192,42 +203,49 @@ impl SDL2Renderer {
 
         imgui.set_renderer_name(ImString::new("SDL2Renderer"));
         {
-            let mut refs = refs.clone();
+            let refs = refs.clone();
             let mut fonts = imgui.fonts();
             let id = fonts.tex_id;
             let font_tex = fonts.build_rgba32_texture();
 
-            let mut texture = refs.borrow_mut().texture_creator
+            let mut texture = refs
+                .borrow_mut()
+                .texture_creator
                 .create_texture_streaming(PixelFormatEnum::RGBA32, font_tex.width, font_tex.height)
                 .map_err(|e| GameError::RenderError(e.to_string()))?;
 
             texture.set_blend_mode(sdl2::render::BlendMode::Blend);
-            texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-                for y in 0..(font_tex.height as usize) {
-                    for x in 0..(font_tex.width as usize) {
-                        let offset = y * pitch + x * 4;
-                        let data_offset = (y * font_tex.width as usize + x) * 4;
+            texture
+                .with_lock(None, |buffer: &mut [u8], pitch: usize| {
+                    for y in 0..(font_tex.height as usize) {
+                        for x in 0..(font_tex.width as usize) {
+                            let offset = y * pitch + x * 4;
+                            let data_offset = (y * font_tex.width as usize + x) * 4;
 
-                        buffer[offset] = font_tex.data[data_offset];
-                        buffer[offset + 1] = font_tex.data[data_offset + 1];
-                        buffer[offset + 2] = font_tex.data[data_offset + 2];
-                        buffer[offset + 3] = font_tex.data[data_offset + 3];
+                            buffer[offset] = font_tex.data[data_offset];
+                            buffer[offset + 1] = font_tex.data[data_offset + 1];
+                            buffer[offset + 2] = font_tex.data[data_offset + 2];
+                            buffer[offset + 3] = font_tex.data[data_offset + 3];
+                        }
                     }
-                }
-            }).map_err(|e| GameError::RenderError(e.to_string()))?;
+                })
+                .map_err(|e| GameError::RenderError(e.to_string()))?;
 
-            imgui_textures.insert(id, SDL2Texture {
-                refs: refs.clone(),
-                texture: Some(texture),
-                width: font_tex.width as u16,
-                height: font_tex.height as u16,
-                commands: vec![],
-            });
+            imgui_textures.insert(
+                id,
+                SDL2Texture {
+                    refs: refs.clone(),
+                    texture: Some(texture),
+                    width: font_tex.width as u16,
+                    height: font_tex.height as u16,
+                    commands: vec![],
+                },
+            );
         }
 
         let imgui_sdl2 = unsafe {
             let refs = &mut *refs.as_ptr();
-            imgui_sdl2::ImguiSdl2::new(&mut imgui, refs.canvas.window())
+            ImguiSdl2::new(&mut imgui, refs.canvas.window())
         };
 
         Ok(Box::new(SDL2Renderer {
@@ -244,7 +262,10 @@ fn to_sdl(color: Color) -> pixels::Color {
     pixels::Color::RGBA(r, g, b, a)
 }
 
-unsafe fn set_raw_target(renderer: *mut sdl2::sys::SDL_Renderer, raw_texture: *mut sdl2::sys::SDL_Texture) -> GameResult {
+unsafe fn set_raw_target(
+    renderer: *mut sdl2::sys::SDL_Renderer,
+    raw_texture: *mut sdl2::sys::SDL_Texture,
+) -> GameResult {
     if sdl2::sys::SDL_SetRenderTarget(renderer, raw_texture) == 0 {
         Ok(())
     } else {
@@ -253,11 +274,23 @@ unsafe fn set_raw_target(renderer: *mut sdl2::sys::SDL_Renderer, raw_texture: *m
 }
 
 fn min3(x: f32, y: f32, z: f32) -> f32 {
-    if x < y && x < z { x } else if y < z { y } else { z }
+    if x < y && x < z {
+        x
+    } else if y < z {
+        y
+    } else {
+        z
+    }
 }
 
 fn max3(x: f32, y: f32, z: f32) -> f32 {
-    if x > y && x > z { x } else if y > z { y } else { z }
+    if x > y && x > z {
+        x
+    } else if y > z {
+        y
+    } else {
+        z
+    }
 }
 
 impl BackendRenderer for SDL2Renderer {
@@ -276,10 +309,15 @@ impl BackendRenderer for SDL2Renderer {
         Ok(())
     }
 
-    fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>> {
-        let mut refs = self.refs.borrow_mut();
+    fn create_texture_mutable(
+        &mut self,
+        width: u16,
+        height: u16,
+    ) -> GameResult<Box<dyn BackendTexture>> {
+        let refs = self.refs.borrow_mut();
 
-        let mut texture = refs.texture_creator
+        let texture = refs
+            .texture_creator
             .create_texture_target(PixelFormatEnum::RGBA32, width as u32, height as u32)
             .map_err(|e| GameError::RenderError(e.to_string()))?;
 
@@ -292,27 +330,35 @@ impl BackendRenderer for SDL2Renderer {
         }))
     }
 
-    fn create_texture(&mut self, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>> {
-        let mut refs = self.refs.borrow_mut();
+    fn create_texture(
+        &mut self,
+        width: u16,
+        height: u16,
+        data: &[u8],
+    ) -> GameResult<Box<dyn BackendTexture>> {
+        let refs = self.refs.borrow_mut();
 
-        let mut texture = refs.texture_creator
+        let mut texture = refs
+            .texture_creator
             .create_texture_streaming(PixelFormatEnum::RGBA32, width as u32, height as u32)
             .map_err(|e| GameError::RenderError(e.to_string()))?;
 
         texture.set_blend_mode(sdl2::render::BlendMode::Blend);
-        texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-            for y in 0..(height as usize) {
-                for x in 0..(width as usize) {
-                    let offset = y * pitch + x * 4;
-                    let data_offset = (y * width as usize + x) * 4;
+        texture
+            .with_lock(None, |buffer: &mut [u8], pitch: usize| {
+                for y in 0..(height as usize) {
+                    for x in 0..(width as usize) {
+                        let offset = y * pitch + x * 4;
+                        let data_offset = (y * width as usize + x) * 4;
 
-                    buffer[offset] = data[data_offset];
-                    buffer[offset + 1] = data[data_offset + 1];
-                    buffer[offset + 2] = data[data_offset + 2];
-                    buffer[offset + 3] = data[data_offset + 3];
+                        buffer[offset] = data[data_offset];
+                        buffer[offset + 1] = data[data_offset + 1];
+                        buffer[offset + 2] = data[data_offset + 2];
+                        buffer[offset + 3] = data[data_offset + 3];
+                    }
                 }
-            }
-        }).map_err(|e| GameError::RenderError(e.to_string()))?;
+            })
+            .map_err(|e| GameError::RenderError(e.to_string()))?;
 
         Ok(Box::new(SDL2Texture {
             refs: self.refs.clone(),
@@ -344,23 +390,21 @@ impl BackendRenderer for SDL2Renderer {
                 let sdl2_texture: &Box<SDL2Texture> = std::mem::transmute(texture);
 
                 if let Some(target) = sdl2_texture.texture.as_ref() {
-                    set_raw_target(renderer, target.raw());
+                    set_raw_target(renderer, target.raw())?;
                 } else {
-                    set_raw_target(renderer, std::ptr::null_mut());
+                    set_raw_target(renderer, std::ptr::null_mut())?;
                 }
-            }
+            },
             None => unsafe {
-                set_raw_target(renderer, std::ptr::null_mut());
-            }
+                set_raw_target(renderer, std::ptr::null_mut())?;
+            },
         }
 
         Ok(())
     }
 
     fn imgui(&self) -> GameResult<&mut imgui::Context> {
-        unsafe {
-            Ok(&mut *self.imgui.as_ptr())
-        }
+        unsafe { Ok(&mut *self.imgui.as_ptr()) }
     }
 
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult {
@@ -391,9 +435,12 @@ impl BackendRenderer for SDL2Renderer {
                                 continue;
                             }
 
-                            let v1 = draw_list.vtx_buffer()[cmd_params.vtx_offset + idx_buffer[cmd_params.idx_offset + i] as usize];
-                            let v2 = draw_list.vtx_buffer()[cmd_params.vtx_offset + idx_buffer[cmd_params.idx_offset + i + 1] as usize];
-                            let v3 = draw_list.vtx_buffer()[cmd_params.vtx_offset + idx_buffer[cmd_params.idx_offset + i + 2] as usize];
+                            let v1 = draw_list.vtx_buffer()[cmd_params.vtx_offset
+                                + idx_buffer[cmd_params.idx_offset + i] as usize];
+                            let v2 = draw_list.vtx_buffer()[cmd_params.vtx_offset
+                                + idx_buffer[cmd_params.idx_offset + i + 1] as usize];
+                            let v3 = draw_list.vtx_buffer()[cmd_params.vtx_offset
+                                + idx_buffer[cmd_params.idx_offset + i + 2] as usize];
 
                             vert_x[0] = (v1.pos[0] - 0.5) as i16;
                             vert_y[0] = (v1.pos[1] - 0.5) as i16;
@@ -404,27 +451,30 @@ impl BackendRenderer for SDL2Renderer {
 
                             #[allow(clippy::float_cmp)]
                             if i < count - 3 {
-                                let v4 = draw_list.vtx_buffer()[cmd_params.vtx_offset + idx_buffer[cmd_params.idx_offset + i + 3] as usize];
-                                let v5 = draw_list.vtx_buffer()[cmd_params.vtx_offset + idx_buffer[cmd_params.idx_offset + i + 4] as usize];
-                                let v6 = draw_list.vtx_buffer()[cmd_params.vtx_offset + idx_buffer[cmd_params.idx_offset + i + 5] as usize];
+                                let v4 = draw_list.vtx_buffer()[cmd_params.vtx_offset
+                                    + idx_buffer[cmd_params.idx_offset + i + 3] as usize];
+                                let v5 = draw_list.vtx_buffer()[cmd_params.vtx_offset
+                                    + idx_buffer[cmd_params.idx_offset + i + 4] as usize];
+                                let v6 = draw_list.vtx_buffer()[cmd_params.vtx_offset
+                                    + idx_buffer[cmd_params.idx_offset + i + 5] as usize];
 
                                 min[0] = min3(v1.pos[0], v2.pos[0], v3.pos[0]);
                                 min[1] = min3(v1.pos[1], v2.pos[1], v3.pos[1]);
                                 max[0] = max3(v1.pos[0], v2.pos[0], v3.pos[0]);
                                 max[1] = max3(v1.pos[1], v2.pos[1], v3.pos[1]);
 
-                                is_rect = (v1.pos[0] == min[0] || v1.pos[0] == max[0]) &&
-                                    (v1.pos[1] == min[1] || v1.pos[1] == max[1]) &&
-                                    (v2.pos[0] == min[0] || v2.pos[0] == max[0]) &&
-                                    (v2.pos[1] == min[1] || v2.pos[1] == max[1]) &&
-                                    (v3.pos[0] == min[0] || v3.pos[0] == max[0]) &&
-                                    (v3.pos[1] == min[1] || v3.pos[1] == max[1]) &&
-                                    (v4.pos[0] == min[0] || v4.pos[0] == max[0]) &&
-                                    (v4.pos[1] == min[1] || v4.pos[1] == max[1]) &&
-                                    (v5.pos[0] == min[0] || v5.pos[0] == max[0]) &&
-                                    (v5.pos[1] == min[1] || v5.pos[1] == max[1]) &&
-                                    (v6.pos[0] == min[0] || v6.pos[0] == max[0]) &&
-                                    (v6.pos[1] == min[1] || v6.pos[1] == max[1]);
+                                is_rect = (v1.pos[0] == min[0] || v1.pos[0] == max[0])
+                                    && (v1.pos[1] == min[1] || v1.pos[1] == max[1])
+                                    && (v2.pos[0] == min[0] || v2.pos[0] == max[0])
+                                    && (v2.pos[1] == min[1] || v2.pos[1] == max[1])
+                                    && (v3.pos[0] == min[0] || v3.pos[0] == max[0])
+                                    && (v3.pos[1] == min[1] || v3.pos[1] == max[1])
+                                    && (v4.pos[0] == min[0] || v4.pos[0] == max[0])
+                                    && (v4.pos[1] == min[1] || v4.pos[1] == max[1])
+                                    && (v5.pos[0] == min[0] || v5.pos[0] == max[0])
+                                    && (v5.pos[1] == min[1] || v5.pos[1] == max[1])
+                                    && (v6.pos[0] == min[0] || v6.pos[0] == max[0])
+                                    && (v6.pos[1] == min[1] || v6.pos[1] == max[1]);
 
                                 if is_rect {
                                     tex_pos[0] = min3(v1.uv[0], v2.uv[0], v3.uv[0]);
@@ -434,35 +484,40 @@ impl BackendRenderer for SDL2Renderer {
                                 }
                             }
 
-                            if let Some(surf) = self.imgui_textures.get_mut(&cmd_params.texture_id) {
-                                unsafe {
-                                    if is_rect {
-                                        let src = sdl2::rect::Rect::new((tex_pos[0] * surf.width as f32) as i32,
-                                                                        (tex_pos[1] * surf.height as f32) as i32,
-                                                                        ((tex_pos[2] - tex_pos[0]) * surf.width as f32) as u32,
-                                                                        ((tex_pos[3] - tex_pos[1]) * surf.height as f32) as u32);
-                                        let dest = sdl2::rect::Rect::new(min[0] as i32,
-                                                                         min[1] as i32,
-                                                                         (max[0] - min[0]) as u32,
-                                                                         (max[1] - min[1]) as u32);
+                            if let Some(surf) = self.imgui_textures.get_mut(&cmd_params.texture_id)
+                            {
+                                if is_rect {
+                                    let src = sdl2::rect::Rect::new(
+                                        (tex_pos[0] * surf.width as f32) as i32,
+                                        (tex_pos[1] * surf.height as f32) as i32,
+                                        ((tex_pos[2] - tex_pos[0]) * surf.width as f32) as u32,
+                                        ((tex_pos[3] - tex_pos[1]) * surf.height as f32) as u32,
+                                    );
+                                    let dest = sdl2::rect::Rect::new(
+                                        min[0] as i32,
+                                        min[1] as i32,
+                                        (max[0] - min[0]) as u32,
+                                        (max[1] - min[1]) as u32,
+                                    );
 
-                                        let tex = surf.texture.as_mut().unwrap();
-                                        tex.set_color_mod(v1.col[0], v1.col[1], v1.col[2]);
-                                        tex.set_alpha_mod(v1.col[3]);
+                                    let tex = surf.texture.as_mut().unwrap();
+                                    tex.set_color_mod(v1.col[0], v1.col[1], v1.col[2]);
+                                    tex.set_alpha_mod(v1.col[3]);
 
-                                        refs.canvas.copy(tex, src, dest);
-                                    } else {
-                                        sdl2::sys::gfx::primitives::filledPolygonRGBA(
-                                            refs.canvas.raw(),
-                                            vert_x.as_ptr(),
-                                            vert_y.as_ptr(),
-                                            3,
-                                            v1.col[0],
-                                            v1.col[1],
-                                            v1.col[2],
-                                            v1.col[3],
-                                        );
-                                    }
+                                    refs.canvas
+                                        .copy(tex, src, dest)
+                                        .map_err(|e| GameError::RenderError(e.to_string()))?;
+                                } else {
+                                    /*sdl2::sys::gfx::primitives::filledPolygonRGBA(
+                                        refs.canvas.raw(),
+                                        vert_x.as_ptr(),
+                                        vert_y.as_ptr(),
+                                        3,
+                                        v1.col[0],
+                                        v1.col[1],
+                                        v1.col[2],
+                                        v1.col[3],
+                                    );*/
                                 }
                             }
                         }
@@ -472,7 +527,7 @@ impl BackendRenderer for SDL2Renderer {
                     DrawCmd::ResetRenderState => {}
                     DrawCmd::RawCallback { callback, raw_cmd } => unsafe {
                         callback(draw_list.raw(), raw_cmd)
-                    }
+                    },
                 }
             }
         }
@@ -480,7 +535,7 @@ impl BackendRenderer for SDL2Renderer {
         Ok(())
     }
 
-    fn prepare_frame<'ui>(&self, ui: &Ui<'ui>) -> GameResult {
+    fn prepare_frame<'ui>(&self, _ui: &Ui<'ui>) -> GameResult {
         Ok(())
     }
 }
@@ -520,9 +575,22 @@ impl BackendTexture for SDL2Texture {
                             texture.set_alpha_mod(255);
                             texture.set_blend_mode(refs.blend_mode);
 
-                            refs.canvas.copy(texture,
-                                             Some(sdl2::rect::Rect::new(src.left.round() as i32, src.top.round() as i32, src.width().round() as u32, src.height().round() as u32)),
-                                             Some(sdl2::rect::Rect::new(dest.left.round() as i32, dest.top.round() as i32, dest.width().round() as u32, dest.height().round() as u32)))
+                            refs.canvas
+                                .copy(
+                                    texture,
+                                    Some(sdl2::rect::Rect::new(
+                                        src.left.round() as i32,
+                                        src.top.round() as i32,
+                                        src.width().round() as u32,
+                                        src.height().round() as u32,
+                                    )),
+                                    Some(sdl2::rect::Rect::new(
+                                        dest.left.round() as i32,
+                                        dest.top.round() as i32,
+                                        dest.width().round() as u32,
+                                        dest.height().round() as u32,
+                                    )),
+                                )
                                 .map_err(|e| GameError::RenderError(e.to_string()))?;
                         }
                         SpriteBatchCommand::DrawRectTinted(src, dest, color) => {
@@ -531,9 +599,49 @@ impl BackendTexture for SDL2Texture {
                             texture.set_alpha_mod(a);
                             texture.set_blend_mode(refs.blend_mode);
 
-                            refs.canvas.copy(texture,
-                                             Some(sdl2::rect::Rect::new(src.left.round() as i32, src.top.round() as i32, src.width().round() as u32, src.height().round() as u32)),
-                                             Some(sdl2::rect::Rect::new(dest.left.round() as i32, dest.top.round() as i32, dest.width().round() as u32, dest.height().round() as u32)))
+                            refs.canvas
+                                .copy(
+                                    texture,
+                                    Some(sdl2::rect::Rect::new(
+                                        src.left.round() as i32,
+                                        src.top.round() as i32,
+                                        src.width().round() as u32,
+                                        src.height().round() as u32,
+                                    )),
+                                    Some(sdl2::rect::Rect::new(
+                                        dest.left.round() as i32,
+                                        dest.top.round() as i32,
+                                        dest.width().round() as u32,
+                                        dest.height().round() as u32,
+                                    )),
+                                )
+                                .map_err(|e| GameError::RenderError(e.to_string()))?;
+                        }
+                        SpriteBatchCommand::DrawRectFlip(src, dest, flip_x, flip_y) => {
+                            texture.set_color_mod(255, 255, 255);
+                            texture.set_alpha_mod(255);
+                            texture.set_blend_mode(refs.blend_mode);
+
+                            refs.canvas
+                                .copy_ex(
+                                    texture,
+                                    Some(sdl2::rect::Rect::new(
+                                        src.left.round() as i32,
+                                        src.top.round() as i32,
+                                        src.width().round() as u32,
+                                        src.height().round() as u32,
+                                    )),
+                                    Some(sdl2::rect::Rect::new(
+                                        dest.left.round() as i32,
+                                        dest.top.round() as i32,
+                                        dest.width().round() as u32,
+                                        dest.height().round() as u32,
+                                    )),
+                                    0.0,
+                                    None,
+                                    *flip_x,
+                                    *flip_y,
+                                )
                                 .map_err(|e| GameError::RenderError(e.to_string()))?;
                         }
                     }
@@ -551,7 +659,9 @@ impl Drop for SDL2Texture {
         mem::swap(&mut self.texture, &mut texture_opt);
 
         if let Some(texture) = texture_opt {
-            unsafe { texture.destroy(); }
+            unsafe {
+                texture.destroy();
+            }
         }
     }
 }
@@ -697,5 +807,221 @@ fn conv_scancode(code: keyboard::Scancode) -> Option<ScanCode> {
         Scancode::Calculator => Some(ScanCode::Calculator),
         Scancode::Sleep => Some(ScanCode::Sleep),
         _ => None,
+    }
+}
+
+// based on imgui-sdl2 crate
+pub struct ImguiSdl2 {
+    mouse_press: [bool; 5],
+    ignore_mouse: bool,
+    ignore_keyboard: bool,
+    cursor: Option<MouseCursor>,
+    sdl_cursor: Option<Cursor>,
+}
+
+struct Sdl2ClipboardBackend(sdl2::clipboard::ClipboardUtil);
+
+impl imgui::ClipboardBackend for Sdl2ClipboardBackend {
+    fn get(&mut self) -> Option<imgui::ImString> {
+        if !self.0.has_clipboard_text() {
+            return None;
+        }
+
+        self.0.clipboard_text().ok().map(imgui::ImString::new)
+    }
+
+    fn set(&mut self, value: &imgui::ImStr) {
+        let _ = self.0.set_clipboard_text(value.to_str());
+    }
+}
+
+impl ImguiSdl2 {
+    pub fn new(imgui: &mut imgui::Context, window: &sdl2::video::Window) -> Self {
+        let clipboard_util = window.subsystem().clipboard();
+        imgui.set_clipboard_backend(Box::new(Sdl2ClipboardBackend(clipboard_util)));
+
+        imgui.io_mut().key_map[Key::Tab as usize] = Scancode::Tab as u32;
+        imgui.io_mut().key_map[Key::LeftArrow as usize] = Scancode::Left as u32;
+        imgui.io_mut().key_map[Key::RightArrow as usize] = Scancode::Right as u32;
+        imgui.io_mut().key_map[Key::UpArrow as usize] = Scancode::Up as u32;
+        imgui.io_mut().key_map[Key::DownArrow as usize] = Scancode::Down as u32;
+        imgui.io_mut().key_map[Key::PageUp as usize] = Scancode::PageUp as u32;
+        imgui.io_mut().key_map[Key::PageDown as usize] = Scancode::PageDown as u32;
+        imgui.io_mut().key_map[Key::Home as usize] = Scancode::Home as u32;
+        imgui.io_mut().key_map[Key::End as usize] = Scancode::End as u32;
+        imgui.io_mut().key_map[Key::Delete as usize] = Scancode::Delete as u32;
+        imgui.io_mut().key_map[Key::Backspace as usize] = Scancode::Backspace as u32;
+        imgui.io_mut().key_map[Key::Enter as usize] = Scancode::Return as u32;
+        imgui.io_mut().key_map[Key::Escape as usize] = Scancode::Escape as u32;
+        imgui.io_mut().key_map[Key::Space as usize] = Scancode::Space as u32;
+        imgui.io_mut().key_map[Key::A as usize] = Scancode::A as u32;
+        imgui.io_mut().key_map[Key::C as usize] = Scancode::C as u32;
+        imgui.io_mut().key_map[Key::V as usize] = Scancode::V as u32;
+        imgui.io_mut().key_map[Key::X as usize] = Scancode::X as u32;
+        imgui.io_mut().key_map[Key::Y as usize] = Scancode::Y as u32;
+        imgui.io_mut().key_map[Key::Z as usize] = Scancode::Z as u32;
+
+        Self {
+            mouse_press: [false; 5],
+            ignore_keyboard: false,
+            ignore_mouse: false,
+            cursor: None,
+            sdl_cursor: None,
+        }
+    }
+
+    pub fn ignore_event(&self, event: &Event) -> bool {
+        match *event {
+            Event::KeyDown { .. }
+            | Event::KeyUp { .. }
+            | Event::TextEditing { .. }
+            | Event::TextInput { .. } => self.ignore_keyboard,
+            Event::MouseMotion { .. }
+            | Event::MouseButtonDown { .. }
+            | Event::MouseButtonUp { .. }
+            | Event::MouseWheel { .. }
+            | Event::FingerDown { .. }
+            | Event::FingerUp { .. }
+            | Event::FingerMotion { .. }
+            | Event::DollarGesture { .. }
+            | Event::DollarRecord { .. }
+            | Event::MultiGesture { .. } => self.ignore_mouse,
+            _ => false,
+        }
+    }
+
+    pub fn handle_event(&mut self, imgui: &mut imgui::Context, event: &Event) {
+        use sdl2::keyboard;
+        use sdl2::mouse::MouseButton;
+
+        fn set_mod(imgui: &mut imgui::Context, keymod: keyboard::Mod) {
+            let ctrl = keymod.intersects(keyboard::Mod::RCTRLMOD | keyboard::Mod::LCTRLMOD);
+            let alt = keymod.intersects(keyboard::Mod::RALTMOD | keyboard::Mod::LALTMOD);
+            let shift = keymod.intersects(keyboard::Mod::RSHIFTMOD | keyboard::Mod::LSHIFTMOD);
+            let super_ = keymod.intersects(keyboard::Mod::RGUIMOD | keyboard::Mod::LGUIMOD);
+
+            imgui.io_mut().key_ctrl = ctrl;
+            imgui.io_mut().key_alt = alt;
+            imgui.io_mut().key_shift = shift;
+            imgui.io_mut().key_super = super_;
+        }
+
+        match *event {
+            Event::MouseWheel { y, .. } => {
+                imgui.io_mut().mouse_wheel = y as f32;
+            }
+            Event::MouseButtonDown { mouse_btn, .. } => {
+                if mouse_btn != MouseButton::Unknown {
+                    let index = match mouse_btn {
+                        MouseButton::Left => 0,
+                        MouseButton::Right => 1,
+                        MouseButton::Middle => 2,
+                        MouseButton::X1 => 3,
+                        MouseButton::X2 => 4,
+                        MouseButton::Unknown => unreachable!(),
+                    };
+                    self.mouse_press[index] = true;
+                }
+            }
+            Event::TextInput { ref text, .. } => {
+                for chr in text.chars() {
+                    imgui.io_mut().add_input_character(chr);
+                }
+            }
+            Event::KeyDown {
+                scancode, keymod, ..
+            } => {
+                set_mod(imgui, keymod);
+                if let Some(scancode) = scancode {
+                    imgui.io_mut().keys_down[scancode as usize] = true;
+                }
+            }
+            Event::KeyUp {
+                scancode, keymod, ..
+            } => {
+                set_mod(imgui, keymod);
+                if let Some(scancode) = scancode {
+                    imgui.io_mut().keys_down[scancode as usize] = false;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    pub fn prepare_frame(
+        &mut self,
+        io: &mut imgui::Io,
+        window: &sdl2::video::Window,
+        mouse_state: &sdl2::mouse::MouseState,
+    ) {
+        let mouse_util = window.subsystem().sdl().mouse();
+
+        let (win_w, win_h) = window.size();
+        let (draw_w, draw_h) = window.drawable_size();
+
+        io.display_size = [win_w as f32, win_h as f32];
+        io.display_framebuffer_scale = [
+            (draw_w as f32) / (win_w as f32),
+            (draw_h as f32) / (win_h as f32),
+        ];
+
+        // Merging the mousedown events we received into the current state prevents us from missing
+        // clicks that happen faster than a frame
+        io.mouse_down = [
+            self.mouse_press[0] || mouse_state.left(),
+            self.mouse_press[1] || mouse_state.right(),
+            self.mouse_press[2] || mouse_state.middle(),
+            self.mouse_press[3] || mouse_state.x1(),
+            self.mouse_press[4] || mouse_state.x2(),
+        ];
+        self.mouse_press = [false; 5];
+
+        let any_mouse_down = io.mouse_down.iter().any(|&b| b);
+        mouse_util.capture(any_mouse_down);
+
+        io.mouse_pos = [mouse_state.x() as f32, mouse_state.y() as f32];
+
+        self.ignore_keyboard = io.want_capture_keyboard;
+        self.ignore_mouse = io.want_capture_mouse;
+    }
+
+    pub fn prepare_render(&mut self, ui: &imgui::Ui, window: &sdl2::video::Window) {
+        let io = ui.io();
+        if !io
+            .config_flags
+            .contains(ConfigFlags::NO_MOUSE_CURSOR_CHANGE)
+        {
+            let mouse_util = window.subsystem().sdl().mouse();
+
+            match ui.mouse_cursor() {
+                Some(mouse_cursor) if !io.mouse_draw_cursor => {
+                    mouse_util.show_cursor(true);
+
+                    let sdl_cursor = match mouse_cursor {
+                        MouseCursor::Arrow => SystemCursor::Arrow,
+                        MouseCursor::TextInput => SystemCursor::IBeam,
+                        MouseCursor::ResizeAll => SystemCursor::SizeAll,
+                        MouseCursor::ResizeNS => SystemCursor::SizeNS,
+                        MouseCursor::ResizeEW => SystemCursor::SizeWE,
+                        MouseCursor::ResizeNESW => SystemCursor::SizeNESW,
+                        MouseCursor::ResizeNWSE => SystemCursor::SizeNWSE,
+                        MouseCursor::Hand => SystemCursor::Hand,
+                        MouseCursor::NotAllowed => SystemCursor::No,
+                    };
+
+                    if self.cursor != Some(mouse_cursor) {
+                        let sdl_cursor = Cursor::from_system(sdl_cursor).unwrap();
+                        sdl_cursor.set();
+                        self.cursor = Some(mouse_cursor);
+                        self.sdl_cursor = Some(sdl_cursor);
+                    }
+                }
+                _ => {
+                    self.cursor = None;
+                    self.sdl_cursor = None;
+                    mouse_util.show_cursor(false);
+                }
+            }
+        }
     }
 }

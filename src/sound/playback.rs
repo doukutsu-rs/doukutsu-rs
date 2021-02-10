@@ -166,6 +166,7 @@ impl PlaybackEngine {
         self.play_pos = position;
     }
 
+    #[allow(unused)]
     pub fn get_total_samples(&self) -> u32 {
         let ticks_intro = self.song.time.loop_range.start;
         let ticks_loop = self.song.time.loop_range.end - self.song.time.loop_range.start;

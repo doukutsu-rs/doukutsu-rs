@@ -138,7 +138,7 @@ impl Game {
         let state_ref = unsafe { &mut *self.state.get() };
 
         if state_ref.timing_mode != TimingMode::FrameSynchronized {
-            let mut elapsed = self.start_time.elapsed().as_nanos();
+            let elapsed = self.start_time.elapsed().as_nanos();
             #[cfg(target_os = "windows")]
                 {
                     // Even with the non-monotonic Instant mitigation at the start of the event loop, there's still a chance of it not working.
@@ -176,31 +176,6 @@ impl Game {
 
         graphics::present(ctx)?;
         Ok(())
-    }
-
-    fn key_down_event(&mut self, key_code: ScanCode, repeat: bool) {
-        if repeat { return; }
-
-        let state = unsafe { &mut *self.state.get() };
-        match key_code {
-            ScanCode::F5 => { state.settings.subpixel_coords = !state.settings.subpixel_coords }
-            ScanCode::F6 => { state.settings.motion_interpolation = !state.settings.motion_interpolation }
-            ScanCode::F7 => { state.set_speed(1.0) }
-            ScanCode::F8 => {
-                if state.settings.speed > 0.2 {
-                    state.set_speed(state.settings.speed - 0.1);
-                }
-            }
-            ScanCode::F9 => {
-                if state.settings.speed < 3.0 {
-                    state.set_speed(state.settings.speed + 0.1);
-                }
-            }
-            ScanCode::F10 => { state.settings.debug_outlines = !state.settings.debug_outlines }
-            ScanCode::F11 => { state.settings.god_mode = !state.settings.god_mode }
-            ScanCode::F12 => { state.settings.infinite_booster = !state.settings.infinite_booster }
-            _ => {}
-        }
     }
 }
 
@@ -321,28 +296,7 @@ pub fn init() -> GameResult {
         }
 
     state_ref.next_scene = Some(Box::new(LoadingScene::new()));
-    context.run(&mut game);
-
-    /*    loop {
-            game.update(&mut context)?;
-
-            if state_ref.shutdown {
-                log::info!("Shutting down...");
-                break;
-            }
-
-            if state_ref.next_scene.is_some() {
-                mem::swap(&mut game.scene, &mut state_ref.next_scene);
-                state_ref.next_scene = None;
-
-                game.scene.as_mut().unwrap().init(state_ref, &mut context).unwrap();
-                game.loops = 0;
-                state_ref.frame_time = 0.0;
-            }
-
-            std::thread::sleep(std::time::Duration::from_millis(10));
-            game.draw(&mut context)?;
-        }*/
+    context.run(&mut game)?;
 
     Ok(())
 }

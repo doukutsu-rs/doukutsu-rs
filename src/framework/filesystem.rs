@@ -71,7 +71,7 @@ impl Filesystem {
         // Set up VFS to merge resource path, root path, and zip path.
         let overlay = vfs::OverlayFS::new();
         // User data VFS.
-        let mut user_overlay = vfs::OverlayFS::new();
+        let user_overlay = vfs::OverlayFS::new();
 
         Filesystem {
             vfs: overlay,

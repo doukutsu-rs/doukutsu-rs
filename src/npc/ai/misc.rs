@@ -1587,7 +1587,7 @@ impl NPC {
                     npc.y = self.y - 0x1800;
                     npc.tsc_direction = 10 * self.anim_num + 40;
 
-                    npc_list.spawn(0, npc);
+                    let _ = npc_list.spawn(0, npc);
                     self.cond.set_explode_die(true);
                 }
             }
@@ -1630,7 +1630,7 @@ impl NPC {
                 npc.direction = Direction::Right;
                 npc.parent_id = self.id;
 
-                npc_list.spawn(0x100, npc);
+                let _ = npc_list.spawn(0x100, npc);
             }
         }
 

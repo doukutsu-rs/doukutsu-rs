@@ -1,4 +1,4 @@
-use crate::framework::backend::{Backend, init_backend, BackendRenderer};
+use crate::framework::backend::{init_backend, BackendRenderer};
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::Filesystem;
 use crate::Game;

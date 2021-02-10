@@ -28,7 +28,8 @@ use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
 use crate::framework::{filesystem, graphics};
 use crate::framework::backend::BackendTexture;
-use crate::framework::graphics::{create_texture, set_render_target, create_texture_mutable};
+use crate::framework::graphics::{set_render_target, create_texture_mutable};
+use crate::framework::keyboard::ScanCode;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -103,6 +104,7 @@ pub struct SharedGameState {
     pub npc_super_pos: (i32, i32),
     pub stages: Vec<StageData>,
     pub frame_time: f64,
+    pub debugger: bool,
     pub scale: f32,
     pub canvas_size: (f32, f32),
     pub screen_size: (f32, f32),
@@ -117,7 +119,7 @@ pub struct SharedGameState {
     pub lua: LuaScriptingState,
     pub sound_manager: SoundManager,
     pub settings: Settings,
-    pub shutdown: bool,
+    pub shutdown: bool
 }
 
 impl SharedGameState {
@@ -168,6 +170,7 @@ impl SharedGameState {
             npc_super_pos: (0, 0),
             stages: Vec::with_capacity(96),
             frame_time: 0.0,
+            debugger: false,
             scale: 2.0,
             screen_size: (640.0, 480.0),
             canvas_size: (320.0, 240.0),
@@ -184,6 +187,28 @@ impl SharedGameState {
             settings,
             shutdown: false,
         })
+    }
+
+    pub fn process_debug_keys(&mut self, key_code: ScanCode) {
+        match key_code {
+            ScanCode::F3 => { self.settings.god_mode = !self.settings.god_mode }
+            ScanCode::F4 => { self.settings.infinite_booster = !self.settings.infinite_booster }
+            ScanCode::F5 => { self.settings.subpixel_coords = !self.settings.subpixel_coords }
+            ScanCode::F6 => { self.settings.motion_interpolation = !self.settings.motion_interpolation }
+            ScanCode::F7 => { self.set_speed(1.0) }
+            ScanCode::F8 => {
+                if self.settings.speed > 0.2 {
+                    self.set_speed(self.settings.speed - 0.1);
+                }
+            }
+            ScanCode::F9 => {
+                if self.settings.speed < 3.0 {
+                    self.set_speed(self.settings.speed + 0.1);
+                }
+            }
+            ScanCode::F10 => { self.settings.debug_outlines = !self.settings.debug_outlines }
+            _ => {}
+        }
     }
 
     pub fn reload_textures(&mut self) {
@@ -307,10 +332,6 @@ impl SharedGameState {
     pub fn set_speed(&mut self, value: f64) {
         self.settings.speed = clamp(value, 0.1, 3.0);
         self.frame_time = 0.0;
-
-        if let Err(err) = self.sound_manager.set_speed(value as f32) {
-            log::error!("Error while sending a message to sound manager: {}", err);
-        }
     }
 
     pub fn current_tps(&self) -> f64 {

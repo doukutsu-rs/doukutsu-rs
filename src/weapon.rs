@@ -384,7 +384,7 @@ impl Weapon {
 
     fn tick_spur(&mut self, player: &mut Player, player_id: TargetPlayer, inventory: &mut Inventory, bullet_manager: &mut BulletManager, state: &mut SharedGameState) {
         let mut shoot = false;
-        let mut btype = 0;
+        let mut btype;
 
         if player.controller.shoot() {
             inventory.add_xp(if player.equip.has_turbocharge() { 3 } else { 2 }, player, state);

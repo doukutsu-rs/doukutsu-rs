@@ -6,7 +6,7 @@ use itertools::Itertools;
 use log::info;
 
 use crate::common;
-use crate::common::{FILE_TYPES, Point, Rect};
+use crate::common::{FILE_TYPES, Rect};
 use crate::engine_constants::EngineConstants;
 use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
@@ -94,12 +94,40 @@ impl SizedBatch {
         self.add_rect_scaled(x, y, 1.0, 1.0, rect)
     }
 
+    pub fn add_rect_flip(&mut self, mut x: f32, mut y: f32, flip_x: bool, flip_y: bool, rect: &common::Rect<u16>) {
+        if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
+            return;
+        }
+
+        unsafe {
+            x = (x * G_MAG).round() / G_MAG;
+            y = (y * G_MAG).round() / G_MAG;
+        }
+        let mag = unsafe { I_MAG };
+
+        self.batch.add(SpriteBatchCommand::DrawRectFlip(
+            Rect {
+                left: rect.left as f32 / self.scale_x,
+                top: rect.top as f32 / self.scale_y,
+                right: rect.right as f32 / self.scale_x,
+                bottom: rect.bottom as f32 / self.scale_y,
+            },
+            Rect {
+                left: x * mag,
+                top: y * mag,
+                right: (x + rect.width() as f32) * mag,
+                bottom: (y + rect.height() as f32) * mag,
+            },
+            flip_x, flip_y
+        ));
+    }
+
     #[inline(always)]
     pub fn add_rect_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8, u8), rect: &common::Rect<u16>) {
         self.add_rect_scaled_tinted(x, y, color, 1.0, 1.0, rect)
     }
 
-    pub fn add_rect_scaled(&mut self, mut x: f32, mut y: f32, mut scale_x: f32, mut scale_y: f32, rect: &common::Rect<u16>) {
+    pub fn add_rect_scaled(&mut self, mut x: f32, mut y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
         if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
             return;
         }
@@ -126,7 +154,7 @@ impl SizedBatch {
         ));
     }
 
-    pub fn add_rect_scaled_tinted(&mut self, mut x: f32, mut y: f32, color: (u8, u8, u8, u8), mut scale_x: f32, mut scale_y: f32, rect: &common::Rect<u16>) {
+    pub fn add_rect_scaled_tinted(&mut self, mut x: f32, mut y: f32, color: (u8, u8, u8, u8), scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
         if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
             return;
         }

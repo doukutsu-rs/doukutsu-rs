@@ -1751,6 +1751,7 @@ impl TextScript {
         }
     }
 
+    #[allow(unused)]
     fn read_varint<I: Iterator<Item=u8>>(iter: &mut I) -> GameResult<i32> {
         let mut result = 0u32;
 

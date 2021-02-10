@@ -8,7 +8,7 @@ use num_traits::clamp;
 
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
-use crate::framework::error::{GameResult, GameError};
+use crate::framework::error::{GameResult};
 use crate::framework::filesystem;
 use crate::sound::organya::Song;
 use crate::sound::pixtone::PixTonePlayback;
@@ -16,7 +16,6 @@ use crate::sound::playback::{PlaybackEngine, SavedPlaybackState};
 use crate::sound::wave_bank::SoundBank;
 use crate::str;
 use crate::framework::error::GameError::{AudioError, ResourceLoadError, InvalidValue};
-use std::io::Error;
 
 mod wave_bank;
 mod organya;
