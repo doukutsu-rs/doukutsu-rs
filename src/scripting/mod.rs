@@ -1,14 +1,18 @@
-use std::io::{Read, Seek};
+use std::io::Read;
 use std::ptr::null_mut;
 
-use ggez::{Context, filesystem, GameError, GameResult};
-use ggez::filesystem::File;
-use lua_ffi::{c_int, LuaFunction, LuaObject, State, ThreadStatus};
-use lua_ffi::ffi::lua_pushcfunction;
+
+use crate::framework::context::Context;
+use crate::framework::error::{GameResult, GameError};
+
+
+use lua_ffi::{c_int, State, ThreadStatus};
 
 use crate::scene::game_scene::GameScene;
 use crate::scripting::doukutsu::Doukutsu;
 use crate::shared_game_state::SharedGameState;
+use crate::framework::filesystem::File;
+use crate::framework::filesystem;
 
 mod doukutsu;
 mod player;
@@ -112,7 +116,7 @@ impl LuaScriptingState {
 
         if filesystem::exists(ctx, "/scripts/") {
             let mut script_count = 0;
-            let mut files = filesystem::read_dir(ctx, "/scripts/")?
+            let files = filesystem::read_dir(ctx, "/scripts/")?
                 .filter(|f| f.to_string_lossy().to_lowercase().ends_with(".lua"));
 
             for file in files {

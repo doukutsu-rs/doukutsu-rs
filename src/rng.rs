@@ -73,7 +73,7 @@ impl Xoroshiro32PlusPlus {
 
     pub fn next_u16(&self) -> u16 {
         let mut state = self.0.get();
-        let mut result = (state.0.wrapping_add(state.1)).rotate_left(9).wrapping_add(state.0);
+        let result = (state.0.wrapping_add(state.1)).rotate_left(9).wrapping_add(state.0);
 
         state.1 ^= state.0;
         state.0 = state.0.rotate_left(13) ^ state.1 ^ (state.1 << 5);

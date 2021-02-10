@@ -1,17 +1,17 @@
 use std::ops::Div;
-use std::time::Instant;
 
 use bitvec::vec::BitVec;
 use chrono::{Datelike, Local};
-use ggez::{Context, filesystem, GameResult, graphics};
-use ggez::filesystem::OpenOptions;
-use ggez::graphics::Canvas;
 use num_traits::clamp;
+use num_traits::real::Real;
 
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState};
 use crate::engine_constants::EngineConstants;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::vfs::OpenOptions;
 use crate::input::touch_controls::TouchControls;
 use crate::npc::NPCTable;
 use crate::profile::GameProfile;
@@ -21,12 +21,15 @@ use crate::scene::Scene;
 #[cfg(feature = "scripting")]
 use crate::scripting::LuaScriptingState;
 use crate::settings::Settings;
-use crate::shaders::Shaders;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
-use crate::texture_set::{TextureSet};
+use crate::texture_set::TextureSet;
+use crate::framework::{filesystem, graphics};
+use crate::framework::backend::BackendTexture;
+use crate::framework::graphics::{set_render_target, create_texture_mutable};
+use crate::framework::keyboard::ScanCode;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -101,15 +104,13 @@ pub struct SharedGameState {
     pub npc_super_pos: (i32, i32),
     pub stages: Vec<StageData>,
     pub frame_time: f64,
+    pub debugger: bool,
     pub scale: f32,
-    pub shaders: Shaders,
-    pub tmp_canvas: Canvas,
-    pub game_canvas: Canvas,
-    pub lightmap_canvas: Canvas,
     pub canvas_size: (f32, f32),
     pub screen_size: (f32, f32),
     pub next_scene: Option<Box<dyn Scene>>,
     pub textscript_vm: TextScriptVM,
+    pub lightmap_canvas: Option<Box<dyn BackendTexture>>,
     pub season: Season,
     pub constants: EngineConstants,
     pub font: BMFontRenderer,
@@ -118,16 +119,11 @@ pub struct SharedGameState {
     pub lua: LuaScriptingState,
     pub sound_manager: SoundManager,
     pub settings: Settings,
-    pub shutdown: bool,
+    pub shutdown: bool
 }
 
 impl SharedGameState {
     pub fn new(ctx: &mut Context) -> GameResult<SharedGameState> {
-        let screen_size = graphics::drawable_size(ctx);
-        let scale = screen_size.1.div(235.0).floor().max(1.0);
-
-        let canvas_size = (screen_size.0 / scale, screen_size.1 / scale);
-
         let mut constants = EngineConstants::defaults();
         let mut base_path = "/";
         let settings = Settings::load(ctx)?;
@@ -164,7 +160,7 @@ impl SharedGameState {
             game_flags: bitvec::bitvec![0; 8000],
             fade_state: FadeState::Hidden,
             game_rng: XorShift::new(0),
-            effect_rng: XorShift::new(Instant::now().elapsed().as_nanos() as i32),
+            effect_rng: XorShift::new(123),
             quake_counter: 0,
             teleporter_slots: Vec::with_capacity(8),
             carets: Vec::with_capacity(32),
@@ -174,15 +170,13 @@ impl SharedGameState {
             npc_super_pos: (0, 0),
             stages: Vec::with_capacity(96),
             frame_time: 0.0,
-            scale,
-            shaders: Shaders::new(ctx)?,
-            tmp_canvas: Canvas::with_window_size(ctx)?,
-            game_canvas: Canvas::with_window_size(ctx)?,
-            lightmap_canvas: Canvas::with_window_size(ctx)?,
-            screen_size,
-            canvas_size,
+            debugger: false,
+            scale: 2.0,
+            screen_size: (640.0, 480.0),
+            canvas_size: (320.0, 240.0),
             next_scene: None,
             textscript_vm: TextScriptVM::new(),
+            lightmap_canvas: None,
             season,
             constants,
             font,
@@ -193,6 +187,28 @@ impl SharedGameState {
             settings,
             shutdown: false,
         })
+    }
+
+    pub fn process_debug_keys(&mut self, key_code: ScanCode) {
+        match key_code {
+            ScanCode::F3 => { self.settings.god_mode = !self.settings.god_mode }
+            ScanCode::F4 => { self.settings.infinite_booster = !self.settings.infinite_booster }
+            ScanCode::F5 => { self.settings.subpixel_coords = !self.settings.subpixel_coords }
+            ScanCode::F6 => { self.settings.motion_interpolation = !self.settings.motion_interpolation }
+            ScanCode::F7 => { self.set_speed(1.0) }
+            ScanCode::F8 => {
+                if self.settings.speed > 0.2 {
+                    self.set_speed(self.settings.speed - 0.1);
+                }
+            }
+            ScanCode::F9 => {
+                if self.settings.speed < 3.0 {
+                    self.set_speed(self.settings.speed + 0.1);
+                }
+            }
+            ScanCode::F10 => { self.settings.debug_outlines = !self.settings.debug_outlines }
+            _ => {}
+        }
     }
 
     pub fn reload_textures(&mut self) {
@@ -288,11 +304,15 @@ impl SharedGameState {
     }
 
     pub fn handle_resize(&mut self, ctx: &mut Context) -> GameResult {
-        self.screen_size = graphics::drawable_size(ctx);
-        self.scale = self.screen_size.1.div(240.0).floor().max(1.0);
+        self.screen_size = graphics::screen_size(ctx);
+        self.scale = self.screen_size.1.div(230.0).floor().max(1.0);
         self.canvas_size = (self.screen_size.0 / self.scale, self.screen_size.1 / self.scale);
 
-        graphics::set_screen_coordinates(ctx, graphics::Rect::new(0.0, 0.0, self.screen_size.0, self.screen_size.1))?;
+        let (width, height) = (self.screen_size.0 as u16, self.screen_size.1 as u16);
+
+        // ensure no texture is bound before destroying them.
+        set_render_target(ctx, None)?;
+        self.lightmap_canvas = Some(create_texture_mutable(ctx, width, height)?);
 
         Ok(())
     }
@@ -312,10 +332,6 @@ impl SharedGameState {
     pub fn set_speed(&mut self, value: f64) {
         self.settings.speed = clamp(value, 0.1, 3.0);
         self.frame_time = 0.0;
-
-        if let Err(err) = self.sound_manager.set_speed(value as f32) {
-            log::error!("Error while sending a message to sound manager: {}", err);
-        }
     }
 
     pub fn current_tps(&self) -> f64 {

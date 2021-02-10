@@ -1,4 +1,5 @@
-use ggez::GameResult;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 
 use crate::common::Direction;
 use crate::npc::list::NPCList;

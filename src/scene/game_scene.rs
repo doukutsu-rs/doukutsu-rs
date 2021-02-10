@@ -1,19 +1,21 @@
-use ggez::{Context, GameResult, graphics, timer};
-use ggez::graphics::{BlendMode, Color, Drawable, DrawParam, FilterMode, mint};
-use ggez::graphics::spritebatch::SpriteBatch;
-use ggez::nalgebra::{clamp, Vector2};
 use log::info;
-use num_traits::abs;
+use num_traits::{abs, clamp};
 
 use crate::bullet::BulletManager;
 use crate::caret::CaretType;
-use crate::common::{Direction, FadeDirection, FadeState, fix9_scale, interpolate_fix9_scale, Rect};
+use crate::common::{Color, Direction, FadeDirection, FadeState, fix9_scale, interpolate_fix9_scale, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::draw_common::{Alignment, draw_number};
 use crate::components::hud::HUD;
 use crate::components::stage_select::StageSelect;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
+use crate::framework::backend::SpriteBatchCommand;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::graphics;
+use crate::framework::graphics::{BlendMode, FilterMode};
+use crate::framework::ui::Components;
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::npc::boss::BossNPC;
@@ -28,7 +30,6 @@ use crate::shared_game_state::{Season, SharedGameState};
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::SizedBatch;
-use crate::ui::Components;
 use crate::weapon::WeaponType;
 
 pub struct GameScene {
@@ -297,18 +298,18 @@ impl GameScene {
                     FadeDirection::Left | FadeDirection::Right => {
                         let mut frame = tick;
 
-                        for x in (0..(state.canvas_size.0 as i32 + 16)).step_by(16) {
-                            if frame > 15 { frame = 15; } else { frame += 1; }
+                        for x in 0..(state.canvas_size.0 as i32 / 16 + 1) {
+                            if frame >= 15 { frame = 15; } else { frame += 1; }
 
                             if frame >= 0 {
-                                rect.left = frame as u16 * 16;
+                                rect.left = frame.abs() as u16 * 16;
                                 rect.right = rect.left + 16;
 
-                                for y in (0..(state.canvas_size.1 as i32 + 16)).step_by(16) {
+                                for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
                                     if direction == FadeDirection::Left {
-                                        batch.add_rect(state.canvas_size.0 - x as f32, y as f32, &rect);
+                                        batch.add_rect(state.canvas_size.0 - x as f32 * 16.0, y as f32 * 16.0, &rect);
                                     } else {
-                                        batch.add_rect(x as f32, y as f32, &rect);
+                                        batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
                                     }
                                 }
                             }
@@ -317,18 +318,18 @@ impl GameScene {
                     FadeDirection::Up | FadeDirection::Down => {
                         let mut frame = tick;
 
-                        for y in (0..(state.canvas_size.1 as i32 + 16)).step_by(16) {
-                            if frame > 15 { frame = 15; } else { frame += 1; }
+                        for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
+                            if frame >= 15 { frame = 15; } else { frame += 1; }
 
                             if frame >= 0 {
-                                rect.left = frame as u16 * 16;
+                                rect.left = frame.abs() as u16 * 16;
                                 rect.right = rect.left + 16;
 
-                                for x in (0..(state.canvas_size.0 as i32 + 16)).step_by(16) {
+                                for x in 0..(state.canvas_size.0 as i32 / 16 + 1) {
                                     if direction == FadeDirection::Down {
-                                        batch.add_rect(x as f32, y as f32, &rect);
+                                        batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
                                     } else {
-                                        batch.add_rect(x as f32, state.canvas_size.1 - y as f32, &rect);
+                                        batch.add_rect(x as f32 * 16.0, state.canvas_size.1 - y as f32 * 16.0, &rect);
                                     }
                                 }
                             }
@@ -339,20 +340,20 @@ impl GameScene {
                         let center_y = (state.canvas_size.1 / 2.0 - 8.0) as i32;
                         let mut start_frame = tick;
 
-                        for x in (0..(center_x + 16)).step_by(16) {
+                        for x in 0..(center_x / 16 + 2) {
                             let mut frame = start_frame;
 
-                            for y in (0..(center_y + 16)).step_by(16) {
-                                if frame > 15 { frame = 15; } else { frame += 1; }
+                            for y in 0..(center_y / 16 + 2) {
+                                if frame >= 15 { frame = 15; } else { frame += 1; }
 
                                 if frame >= 0 {
-                                    rect.left = frame as u16 * 16;
+                                    rect.left = frame.abs() as u16 * 16;
                                     rect.right = rect.left + 16;
 
-                                    batch.add_rect((center_x - x) as f32, (center_y + y) as f32, &rect);
-                                    batch.add_rect((center_x - x) as f32, (center_y - y) as f32, &rect);
-                                    batch.add_rect((center_x + x) as f32, (center_y + y) as f32, &rect);
-                                    batch.add_rect((center_x + x) as f32, (center_y - y) as f32, &rect);
+                                    batch.add_rect((center_x - x * 16) as f32, (center_y + y * 16) as f32, &rect);
+                                    batch.add_rect((center_x - x * 16) as f32, (center_y - y * 16) as f32, &rect);
+                                    batch.add_rect((center_x + x * 16) as f32, (center_y + y * 16) as f32, &rect);
+                                    batch.add_rect((center_x + x * 16) as f32, (center_y - y * 16) as f32, &rect);
                                 }
                             }
 
@@ -433,13 +434,14 @@ impl GameScene {
             };
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex_name)?;
 
-            // switch version uses +1000 face offset to display a flipped version
+            // switch version uses 1xxx flag to show a flipped version of face
             let flip = state.textscript_vm.face > 1000;
+            // x1xx flag shows a talking animation
+            let talking = (state.textscript_vm.face % 1000) > 100;
             let face_num = state.textscript_vm.face % 100;
-            let (scale_x, scale_y) = batch.scale();
 
-            batch.add_rect_scaled(left_pos + 14.0 + if flip { 48.0 } else { 0.0 }, top_pos + 8.0,
-                                  scale_x * if flip { -1.0 } else { 1.0 }, scale_y,
+            batch.add_rect_flip(left_pos + 14.0, top_pos + 8.0,
+                                    flip, false,
                                   &Rect::new_size(
                                       (face_num as u16 % 6) * 48,
                                       (face_num as u16 / 6) * 48,
@@ -502,7 +504,14 @@ impl GameScene {
     }
 
     fn draw_light_map(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        graphics::set_canvas(ctx, Some(&state.lightmap_canvas));
+        let canvas = state.lightmap_canvas.as_mut();
+        if let None = canvas {
+            return Ok(());
+        }
+
+        let canvas = canvas.unwrap();
+
+        graphics::set_render_target(ctx, Some(canvas));
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
         graphics::clear(ctx, Color::from_rgb(100, 100, 110));
@@ -547,9 +556,9 @@ impl GameScene {
                                         fix9_scale(npc.y - self.frame.y, scale),
                                         0.4, (255, 255, 0), batch);
                     }
-                    4 | 7 => self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
-                                             fix9_scale(npc.y - self.frame.y, scale),
-                                             1.0, (100, 100, 100), batch),
+                    7 => self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
+                                         fix9_scale(npc.y - self.frame.y, scale),
+                                         1.0, (100, 100, 100), batch),
                     17 if npc.anim_num == 0 => {
                         self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
                                         fix9_scale(npc.y - self.frame.y, scale),
@@ -584,13 +593,6 @@ impl GameScene {
                                         fix9_scale(npc.y - self.frame.y, scale),
                                         3.5, (130 + flicker, 40 + flicker, 0), batch);
                     }
-                    66 if npc.action_num == 1 && npc.anim_counter % 2 == 0 =>
-                        self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
-                                        fix9_scale(npc.y - self.frame.y, scale),
-                                        3.0, (0, 100, 255), batch),
-                    67 => self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
-                                          fix9_scale(npc.y - self.frame.y, scale),
-                                          2.0, (0, 100, 200), batch),
                     70 => {
                         let flicker = 50 + npc.anim_num as u8 * 15;
                         self.draw_light(fix9_scale(npc.x - self.frame.x, scale),
@@ -635,93 +637,14 @@ impl GameScene {
         }
 
         graphics::set_blend_mode(ctx, BlendMode::Multiply)?;
-        graphics::set_canvas(ctx, Some(&state.game_canvas));
-        state.lightmap_canvas.set_filter(FilterMode::Linear);
-        state.lightmap_canvas.draw(ctx, DrawParam::new()
-            .scale(Vector2::new(1.0 / state.scale, 1.0 / state.scale)))?;
+        graphics::set_render_target(ctx, None)?;
+
+        let rect = Rect { left: 0.0, top: 0.0, right: state.screen_size.0, bottom: state.screen_size.1 };
+        canvas.clear();
+        canvas.add(SpriteBatchCommand::DrawRect(rect, rect));
+        canvas.draw()?;
 
         graphics::set_blend_mode(ctx, BlendMode::Alpha)?;
-
-        Ok(())
-    }
-
-    fn is_water(&self, tile: u8) -> bool {
-        [0x02, 0x04, 0x60, 0x61, 0x62, 0x64, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0xa0, 0xa1, 0xa2, 0xa3].contains(&tile)
-    }
-
-    fn draw_water(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time, state.scale);
-
-        {
-            state.shaders.water_shader_params.resolution = [state.canvas_size.0, state.canvas_size.1];
-            state.shaders.water_shader_params.frame_pos = [frame_x, frame_y];
-            state.shaders.water_shader_params.t = self.tick as f32;
-            let _lock = graphics::use_shader(ctx, &state.shaders.water_shader);
-            state.shaders.water_shader.send(ctx, state.shaders.water_shader_params)?;
-
-            graphics::set_canvas(ctx, Some(&state.tmp_canvas));
-            graphics::clear(ctx, Color::new(0.0, 0.0, 0.0, 1.0));
-            state.game_canvas.draw(ctx, DrawParam::new()
-                .scale(mint::Vector2 { x: 1.0 / state.scale, y: -1.0 / state.scale })
-                .offset(mint::Point2 { x: 0.0, y: -1.0 }))?;
-        }
-        graphics::set_canvas(ctx, Some(&state.game_canvas));
-
-        // cheap, clones a reference underneath
-        let mut tmp_batch = SpriteBatch::new(state.tmp_canvas.image().clone());
-
-        let tile_start_x = clamp(self.frame.x / 0x200 / 16, 0, self.stage.map.width as i32) as usize;
-        let tile_start_y = clamp(self.frame.y / 0x200 / 16, 0, self.stage.map.height as i32) as usize;
-        let tile_end_x = clamp((self.frame.x / 0x200 + 8 + state.canvas_size.0 as i32) / 16 + 1, 0, self.stage.map.width as i32) as usize;
-        let tile_end_y = clamp((self.frame.y / 0x200 + 8 + state.canvas_size.1 as i32) / 16 + 1, 0, self.stage.map.height as i32) as usize;
-        let mut rect = Rect {
-            left: 0.0,
-            top: 0.0,
-            right: 16.0,
-            bottom: 16.0,
-        };
-
-        for y in tile_start_y..tile_end_y {
-            for x in tile_start_x..tile_end_x {
-                let tile = unsafe {
-                    self.stage.map.attrib[*self.stage.map.tiles
-                        .get_unchecked((y * self.stage.map.width as usize) + x) as usize]
-                };
-                let tile_above = unsafe {
-                    self.stage.map.attrib[*self.stage.map.tiles
-                        .get_unchecked((y.saturating_sub(1) * self.stage.map.width as usize) + x) as usize]
-                };
-
-                if !self.is_water(tile) {
-                    continue;
-                }
-
-                rect.left = (x as f32 * 16.0 - 8.0) - frame_x;
-                rect.top = (y as f32 * 16.0 - 8.0) - frame_y;
-                rect.right = rect.left + 16.0;
-                rect.bottom = rect.top + 16.0;
-
-                if tile_above == 0 {
-                    rect.top += 3.0;
-                }
-
-                tmp_batch.add(DrawParam::new()
-                    .src(ggez::graphics::Rect::new(rect.left / state.canvas_size.0,
-                                                   rect.top / state.canvas_size.1,
-                                                   (rect.right - rect.left) / state.canvas_size.0,
-                                                   (rect.bottom - rect.top) / state.canvas_size.1))
-                    .scale(mint::Vector2 {
-                        x: 1.0 / state.scale,
-                        y: 1.0 / state.scale,
-                    })
-                    .dest(mint::Point2 {
-                        x: rect.left,
-                        y: rect.top,
-                    }));
-            }
-        }
-
-        tmp_batch.draw(ctx, DrawParam::new())?;
 
         Ok(())
     }
@@ -1291,7 +1214,7 @@ impl Scene for GameScene {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        graphics::set_canvas(ctx, Some(&state.game_canvas));
+        //graphics::set_canvas(ctx, Some(&state.game_canvas));
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
         if state.settings.shader_effects
@@ -1316,9 +1239,9 @@ impl Scene for GameScene {
         self.draw_bullets(state, ctx)?;
         self.player2.draw(state, ctx, &self.frame)?;
         self.player1.draw(state, ctx, &self.frame)?;
-        if state.settings.shader_effects && self.water_visible {
+        /*if state.settings.shader_effects && self.water_visible {
             self.draw_water(state, ctx)?;
-        }
+        }*/
 
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
@@ -1329,9 +1252,9 @@ impl Scene for GameScene {
             self.draw_light_map(state, ctx)?;
         }
 
-        graphics::set_canvas(ctx, None);
+        /*graphics::set_canvas(ctx, None);
         state.game_canvas.draw(ctx, DrawParam::new()
-            .scale(Vector2::new(1.0 / state.scale, 1.0 / state.scale)))?;
+            .scale(Vector2::new(1.0 / state.scale, 1.0 / state.scale)))?;*/
         self.draw_black_bars(state, ctx)?;
 
         if state.control_flags.control_enabled() {
@@ -1389,7 +1312,7 @@ impl Scene for GameScene {
             self.draw_debug_outlines(state, ctx)?;
         }
 
-        draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
+        //draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
         Ok(())
     }
 

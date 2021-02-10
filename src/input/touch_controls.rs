@@ -1,5 +1,5 @@
-use ggez::{Context, GameResult};
-use winit::event::TouchPhase;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 
 use crate::common::Rect;
 use crate::engine_constants::EngineConstants;
@@ -39,6 +39,7 @@ impl TouchControls {
         }
     }
 
+    /*
     pub fn process_winit_event(&mut self, scale: f32, touch: winit::event::Touch) {
         match touch.phase {
             TouchPhase::Started | TouchPhase::Moved => {
@@ -66,7 +67,7 @@ impl TouchControls {
                 self.clicks.retain(|p| p.id != touch.id);
             }
         }
-    }
+    }*/
 
     pub fn point_in(&self, bounds: Rect) -> Option<u64> {
         for point in self.points.iter() {

@@ -1,4 +1,4 @@
-use ggez::GameResult;
+
 
 use crate::bullet::BulletManager;
 use crate::caret::CaretType;
@@ -9,6 +9,8 @@ use crate::npc::NPC;
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 
 impl NPC {
     pub(crate) fn tick_n048_omega_projectiles(&mut self, state: &mut SharedGameState) -> GameResult {

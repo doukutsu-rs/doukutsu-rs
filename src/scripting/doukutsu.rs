@@ -1,14 +1,13 @@
 use lua_ffi::ffi::luaL_Reg;
 use lua_ffi::{LuaObject, State, c_int};
 
-use crate::scene::game_scene::GameScene;
 use crate::scripting::LuaScriptingState;
-use crate::shared_game_state::SharedGameState;
 
 pub struct Doukutsu {
     pub ptr: *mut LuaScriptingState,
 }
 
+#[allow(unused)]
 impl Doukutsu {
     pub fn new(ptr: *mut LuaScriptingState) -> Doukutsu {
         Doukutsu {

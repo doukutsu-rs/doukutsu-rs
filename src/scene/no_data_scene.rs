@@ -1,4 +1,5 @@
-use ggez::{Context, GameError, GameResult};
+use crate::framework::context::Context;
+use crate::framework::error::{GameResult, GameError};
 
 use crate::common::Rect;
 use crate::scene::Scene;
@@ -18,11 +19,11 @@ impl NoDataScene {
     }
 }
 
+#[cfg(target_os = "android")]
 static REL_URL: &str = "https://github.com/doukutsu-rs/game-data/releases";
 
 impl Scene for NoDataScene {
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-
         #[cfg(target_os = "android")]
             {
                 if !self.flag {

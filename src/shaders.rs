@@ -1,6 +1,7 @@
 use gfx::{self, *};
-use ggez::graphics::Shader;
-use ggez::{Context, GameResult};
+
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 
 gfx_defines! {
     constant WaterShaderParams {
@@ -11,7 +12,7 @@ gfx_defines! {
 }
 
 pub struct Shaders {
-    pub water_shader: Shader<WaterShaderParams>,
+    //pub water_shader: Shader<WaterShaderParams>,
     pub water_shader_params: WaterShaderParams,
 }
 
@@ -24,14 +25,14 @@ impl Shaders {
         };
 
         Ok(Shaders {
-            water_shader: Shader::new(
+            /*water_shader: Shader::new(
                 ctx,
                 "/builtin/shaders/basic_es300.vert.glsl",
                 "/builtin/shaders/water_es300.frag.glsl",
                 water_shader_params,
                 "WaterShaderParams",
                 None,
-            )?,
+            )?,*/
             water_shader_params,
         })
     }

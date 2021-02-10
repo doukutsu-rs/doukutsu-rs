@@ -216,7 +216,7 @@ pub struct EngineConstants {
     pub world: WorldConsts,
     pub npc: NPCConsts,
     pub weapon: WeaponConsts,
-    pub tex_sizes: CaseInsensitiveHashMap<(usize, usize)>,
+    pub tex_sizes: CaseInsensitiveHashMap<(u16, u16)>,
     pub textscript: TextScriptConsts,
     pub title: TitleConsts,
     pub font_path: String,

@@ -1,6 +1,6 @@
 use std::mem::MaybeUninit;
 
-use crate::sound::organya::Song as Organya;
+use crate::sound::organya::{Song as Organya, Version};
 use crate::sound::stuff::*;
 use crate::sound::wav::*;
 use crate::sound::wave_bank::SoundBank;
@@ -144,8 +144,12 @@ impl PlaybackEngine {
             }
         }
 
-        for (idx, (_track, buf)) in song.tracks[8..].iter().zip(self.track_buffers[128..].iter_mut()).enumerate() {
-            *buf = RenderBuffer::new(samples.samples[idx].clone());
+        for (idx, (track, buf)) in song.tracks[8..].iter().zip(self.track_buffers[128..].iter_mut()).enumerate() {
+            if self.song.version == Version::Extended {
+                *buf = RenderBuffer::new(samples.samples[track.inst.inst as usize].clone());
+            } else {
+                *buf = RenderBuffer::new(samples.samples[idx].clone());
+            }
         }
 
         self.song = song;
@@ -162,6 +166,7 @@ impl PlaybackEngine {
         self.play_pos = position;
     }
 
+    #[allow(unused)]
     pub fn get_total_samples(&self) -> u32 {
         let ticks_intro = self.song.time.loop_range.start;
         let ticks_loop = self.song.time.loop_range.end - self.song.time.loop_range.start;

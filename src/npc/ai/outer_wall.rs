@@ -1,8 +1,10 @@
-use crate::npc::NPC;
-use crate::shared_game_state::SharedGameState;
-use crate::player::Player;
-use ggez::GameResult;
 use num_traits::abs;
+
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::npc::NPC;
+use crate::player::Player;
+use crate::shared_game_state::SharedGameState;
 
 impl NPC {
     pub(crate) fn tick_n215_sandcroc_outer_wall(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {

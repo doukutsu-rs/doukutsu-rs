@@ -1,11 +1,11 @@
-use ggez::{Context, GameResult};
-use ggez::input::keyboard;
-use winit::event::VirtualKeyCode;
-
 use crate::bitfield;
 use crate::input::player_controller::PlayerController;
 use crate::player::TargetPlayer;
 use crate::shared_game_state::SharedGameState;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::keyboard;
+use crate::framework::keyboard::ScanCode;
 
 bitfield! {
   #[derive(Clone, Copy)]
@@ -64,8 +64,8 @@ impl PlayerController for KeyboardController {
         self.state.set_skip(keyboard::is_key_pressed(ctx, keymap.skip));
         self.state.set_prev_weapon(keyboard::is_key_pressed(ctx, keymap.prev_weapon));
         self.state.set_next_weapon(keyboard::is_key_pressed(ctx, keymap.next_weapon));
-        self.state.set_enter(keyboard::is_key_pressed(ctx, VirtualKeyCode::Return));
-        self.state.set_escape(keyboard::is_key_pressed(ctx, VirtualKeyCode::Escape));
+        self.state.set_enter(keyboard::is_key_pressed(ctx, ScanCode::Return));
+        self.state.set_escape(keyboard::is_key_pressed(ctx, ScanCode::Escape));
 
         Ok(())
     }

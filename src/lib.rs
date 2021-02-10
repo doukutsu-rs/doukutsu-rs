@@ -7,32 +7,29 @@ extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 
-use std::{env, mem};
+use core::mem;
 use std::cell::UnsafeCell;
-use std::path;
+use std::env;
+use std::path::PathBuf;
 use std::time::Instant;
 
-use ggez::{Context, ContextBuilder, GameError, GameResult};
-use ggez::conf::{Backend, WindowMode, WindowSetup};
-use ggez::event::{KeyCode, KeyMods};
-use ggez::filesystem::mount_vfs;
-use ggez::graphics;
-use ggez::graphics::{Canvas, DrawParam, window};
-use ggez::graphics::glutin_ext::WindowUpdateExt;
-use ggez::input::keyboard;
-use ggez::mint::ColumnMatrix4;
-use ggez::nalgebra::Vector2;
+use directories::ProjectDirs;
 use log::*;
 use pretty_env_logger::env_logger::Env;
-use winit::event::{ElementState, Event, KeyboardInput, WindowEvent};
-use winit::event_loop::ControlFlow;
 
 use crate::builtin_fs::BuiltinFS;
+use crate::framework::backend::init_backend;
+use crate::framework::context::Context;
+use crate::framework::error::{GameError, GameResult};
+use crate::framework::filesystem::{mount_user_vfs, mount_vfs};
+use crate::framework::graphics;
+use crate::framework::keyboard::ScanCode;
+use crate::framework::ui::UI;
+use crate::framework::vfs::PhysicalFS;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TimingMode};
-use crate::texture_set::G_MAG;
-use crate::ui::UI;
+use crate::texture_set::{G_MAG, I_MAG};
 
 mod bmfont;
 mod bmfont_renderer;
@@ -46,6 +43,7 @@ mod encoding;
 mod engine_constants;
 mod entity;
 mod frame;
+mod framework;
 mod inventory;
 mod input;
 mod live_debugger;
@@ -61,20 +59,19 @@ mod scene;
 #[cfg(feature = "scripting")]
 mod scripting;
 mod settings;
+#[cfg(feature = "backend-gfx")]
 mod shaders;
 mod shared_game_state;
 mod stage;
 mod sound;
 mod text_script;
 mod texture_set;
-mod ui;
 mod weapon;
 
-struct Game {
+pub struct Game {
     scene: Option<Box<dyn Scene>>,
     state: UnsafeCell<SharedGameState>,
     ui: UI,
-    def_matrix: ColumnMatrix4<f32>,
     start_time: Instant,
     last_tick: u128,
     next_tick: u128,
@@ -86,7 +83,6 @@ impl Game {
         let s = Game {
             scene: None,
             ui: UI::new(ctx)?,
-            def_matrix: DrawParam::new().to_matrix(),
             state: UnsafeCell::new(SharedGameState::new(ctx)?),
             start_time: Instant::now(),
             last_tick: 0,
@@ -157,14 +153,16 @@ impl Game {
                 n1 / n2
             } else { 1.0 };
         }
-        unsafe { G_MAG = if state_ref.settings.subpixel_coords { state_ref.scale } else { 1.0 } };
+        unsafe {
+            G_MAG = if state_ref.settings.subpixel_coords { state_ref.scale } else { 1.0 };
+            I_MAG = state_ref.scale;
+        }
         self.loops = 0;
 
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
-        graphics::set_transform(ctx, DrawParam::new()
-            .scale(Vector2::new(state_ref.scale, state_ref.scale))
-            .to_matrix());
-        graphics::apply_transformations(ctx)?;
+        /*graphics::set_projection(ctx, DrawParam::new()
+            .scale(Vec2::new(state_ref.scale, state_ref.scale))
+            .to_matrix());*/
 
         if let Some(scene) = self.scene.as_mut() {
             scene.draw(state_ref, ctx)?;
@@ -172,42 +170,12 @@ impl Game {
                 state_ref.touch_controls.draw(state_ref.canvas_size, &state_ref.constants, &mut state_ref.texture_set, ctx)?;
             }
 
-            graphics::set_transform(ctx, self.def_matrix);
-            graphics::apply_transformations(ctx)?;
+            //graphics::set_projection(ctx, self.def_matrix);
             self.ui.draw(state_ref, ctx, scene)?;
         }
 
         graphics::present(ctx)?;
         Ok(())
-    }
-
-    fn key_down_event(&mut self, key_code: KeyCode, _key_mod: KeyMods, repeat: bool) {
-        if repeat { return; }
-
-        let state = unsafe { &mut *self.state.get() };
-        match key_code {
-            KeyCode::F5 => { state.settings.subpixel_coords = !state.settings.subpixel_coords }
-            KeyCode::F6 => { state.settings.motion_interpolation = !state.settings.motion_interpolation }
-            KeyCode::F7 => { state.set_speed(1.0) }
-            KeyCode::F8 => {
-                if state.settings.speed > 0.2 {
-                    state.set_speed(state.settings.speed - 0.1);
-                }
-            }
-            KeyCode::F9 => {
-                if state.settings.speed < 3.0 {
-                    state.set_speed(state.settings.speed + 0.1);
-                }
-            }
-            KeyCode::F10 => { state.settings.debug_outlines = !state.settings.debug_outlines }
-            KeyCode::F11 => { state.settings.god_mode = !state.settings.god_mode }
-            KeyCode::F12 => { state.settings.infinite_booster = !state.settings.infinite_booster }
-            _ => {}
-        }
-    }
-
-    fn key_up_event(&mut self, _key_code: KeyCode, _key_mod: KeyMods) {
-        //
     }
 }
 
@@ -271,68 +239,39 @@ pub fn android_main() {
     init().unwrap();
 }
 
-#[cfg(target_os = "android")]
-static BACKENDS: [Backend; 2] = [
-    Backend::OpenGLES { major: 3, minor: 0 },
-    Backend::OpenGLES { major: 2, minor: 0 }
-];
-
-#[cfg(not(target_os = "android"))]
-static BACKENDS: [Backend; 4] = [
-    Backend::OpenGL { major: 3, minor: 2 },
-    Backend::OpenGLES { major: 3, minor: 2 },
-    Backend::OpenGLES { major: 3, minor: 0 },
-    Backend::OpenGLES { major: 2, minor: 0 }
-];
-
-fn init_ctx<P: Into<path::PathBuf> + Clone>(event_loop: &winit::event_loop::EventLoopWindowTarget<()>, resource_dir: P) -> GameResult<Context> {
-    for backend in BACKENDS.iter() {
-        let ctx = ContextBuilder::new("doukutsu-rs")
-            .window_setup(WindowSetup::default().title("Cave Story ~ Doukutsu Monogatari (doukutsu-rs)"))
-            .window_mode(WindowMode::default()
-                .resizable(true)
-                .min_dimensions(320.0, 240.0)
-                .dimensions(640.0, 480.0))
-            .add_resource_path(resource_dir.clone())
-            .backend(*backend)
-            .build(event_loop);
-
-        match ctx {
-            Ok(mut ctx) => {
-                mount_vfs(&mut ctx, Box::new(BuiltinFS::new()));
-
-                return Ok(ctx);
-            }
-            Err(err) => {
-                log::warn!("Failed to create backend using config {:?}: {}", backend, err);
-            }
-        }
-    }
-
-    Err(GameError::EventLoopError("Failed to initialize OpenGL backend. Perhaps the driver is outdated?".to_string()))
-}
-
 pub fn init() -> GameResult {
     pretty_env_logger::env_logger::from_env(Env::default().default_filter_or("info"))
-        .filter(Some("gfx_device_gl::factory"), LevelFilter::Warn)
         .init();
 
     let resource_dir = if let Ok(data_dir) = env::var("CAVESTORY_DATA_DIR") {
-        path::PathBuf::from(data_dir)
-    } else if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
-        let mut path = path::PathBuf::from(manifest_dir);
-        path.push("data");
-        path
+        PathBuf::from(data_dir)
     } else {
-        path::PathBuf::from("data")
+        let mut resource_dir = env::current_exe()?;
+        if resource_dir.file_name().is_some() {
+            let _ = resource_dir.pop();
+        }
+        resource_dir.push("data");
+        resource_dir
     };
 
     info!("Resource directory: {:?}", resource_dir);
     info!("Initializing engine...");
 
-    let event_loop = winit::event_loop::EventLoop::new();
-    let mut context: Option<Context>;
-    let mut game: Option<Game> = None;
+    let mut context = Context::new();
+    mount_vfs(&mut context, Box::new(BuiltinFS::new()));
+    mount_vfs(&mut context, Box::new(PhysicalFS::new(&resource_dir, true)));
+
+
+    #[cfg(not(target_os = "android"))]
+        let project_dirs = match ProjectDirs::from("", "", "doukutsu-rs") {
+        Some(dirs) => dirs,
+        None => {
+            return Err(GameError::FilesystemError(String::from(
+                "No valid home directory path could be retrieved.",
+            )));
+        }
+    };
+    mount_user_vfs(&mut context, Box::new(PhysicalFS::new(project_dirs.data_local_dir(), false)));
 
     #[cfg(target_os = "android")]
         {
@@ -347,151 +286,17 @@ pub fn init() -> GameResult {
             }
         }
 
-    context = Some(init_ctx(&event_loop, resource_dir.clone())?);
-
-    event_loop.run(move |event, target, flow| {
-        #[cfg(target_os = "windows")]
-            {
-                // Windows' system clock implementation isn't monotonic when the process gets switched to another core.
-                // Rust has mitigations for this, but apparently aren't very effective unless Instant is called very often.
-                let _ = Instant::now();
-            }
-        if let Some(ctx) = &mut context {
-            ctx.process_event(&event);
-
-            if let Some(game) = &mut game {
-                game.ui.handle_events(ctx, &event);
-            } else {
-                let mut new_game = Game::new(ctx).unwrap();
-                let state_ref = unsafe { &mut *new_game.state.get() };
-                state_ref.next_scene = Some(Box::new(LoadingScene::new()));
-                game = Some(new_game);
-
-                #[cfg(feature = "scripting")]
-                    {
-                        unsafe {
-                            let game_ref = game.as_mut().unwrap();
-                            let state_ref = game_ref.state.get();
-
-                            (&mut *state_ref).lua.update_refs(game_ref.state.get(), ctx as *mut Context);
-                        }
-                    }
+    let mut game = Game::new(&mut context)?;
+    let state_ref = unsafe { &mut *game.state.get() };
+    #[cfg(feature = "scripting")]
+        {
+            unsafe {
+                state_ref.lua.update_refs(game.state.get(), &mut context as *mut Context);
             }
         }
 
-        match event {
-            Event::Resumed => {
-                #[cfg(target_os = "android")]
-                if context.is_none() {
-                    context = Some(init_ctx(target, resource_dir.clone()).unwrap());
-                }
-                let _ = target;
+    state_ref.next_scene = Some(Box::new(LoadingScene::new()));
+    context.run(&mut game)?;
 
-                if let Some(game) = &mut game {
-                    game.loops = 0;
-                }
-            }
-            Event::Suspended => {
-                #[cfg(target_os = "android")]
-                    {
-                        context = None;
-                    }
-                if let Some(game) = &mut game {
-                    game.loops = 0;
-                }
-            }
-            Event::WindowEvent { event, .. } => {
-                match event {
-                    WindowEvent::CloseRequested => {
-                        if let Some(game) = &mut game {
-                            let state_ref = unsafe { &mut *game.state.get() };
-                            state_ref.shutdown();
-                        }
-                        *flow = ControlFlow::Exit;
-                    }
-                    WindowEvent::Resized(size) => {
-                        // Minimizing a window on Windows causes this event to get called with a 0x0 size
-                        if size.width != 0 && size.height != 0 {
-                            if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
-                                let state_ref = unsafe { &mut *game.state.get() };
-
-                                state_ref.tmp_canvas = Canvas::with_window_size(ctx).unwrap();
-                                state_ref.game_canvas = Canvas::with_window_size(ctx).unwrap();
-                                state_ref.lightmap_canvas = Canvas::with_window_size(ctx).unwrap();
-                                state_ref.handle_resize(ctx).unwrap();
-                                graphics::window(ctx).update_gfx(&mut game.ui.main_color, &mut game.ui.main_depth);
-                            }
-                        }
-                    }
-                    WindowEvent::Touch(touch) => {
-                        if let Some(game) = &mut game {
-                            let state_ref = unsafe { &mut *game.state.get() };
-                            state_ref.touch_controls.process_winit_event(state_ref.scale, touch);
-                        }
-                    }
-                    WindowEvent::KeyboardInput {
-                        input:
-                        KeyboardInput {
-                            state: el_state,
-                            virtual_keycode: Some(keycode),
-                            modifiers,
-                            ..
-                        },
-                        ..
-                    } => {
-                        if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
-                            match el_state {
-                                ElementState::Pressed => {
-                                    let repeat = keyboard::is_key_repeated(ctx);
-                                    game.key_down_event(keycode, modifiers.into(), repeat);
-                                }
-                                ElementState::Released => {
-                                    game.key_up_event(keycode, modifiers.into());
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            Event::RedrawRequested(win) => {
-                if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
-                    if win == window(ctx).window().id() {
-                        ctx.timer_context.tick();
-                        game.draw(ctx).unwrap();
-                    }
-                }
-            }
-            Event::MainEventsCleared => {
-                if let (Some(ctx), Some(game)) = (&mut context, &mut game) {
-                    game.update(ctx).unwrap();
-
-                    #[cfg(target_os = "android")]
-                        {
-                            ctx.timer_context.tick();
-                            game.draw(ctx).unwrap(); // redraw request is unimplemented on shitdroid
-                        }
-                    window(ctx).window().request_redraw();
-
-                    let state_ref = unsafe { &mut *game.state.get() };
-
-                    if state_ref.shutdown {
-                        log::info!("Shutting down...");
-                        *flow = ControlFlow::Exit;
-                        return;
-                    }
-
-                    if state_ref.next_scene.is_some() {
-                        mem::swap(&mut game.scene, &mut state_ref.next_scene);
-                        state_ref.next_scene = None;
-
-                        game.scene.as_mut().unwrap().init(state_ref, ctx).unwrap();
-                        game.loops = 0;
-                        state_ref.frame_time = 0.0;
-                    }
-                }
-            }
-            _ => {}
-        }
-    })
+    Ok(())
 }

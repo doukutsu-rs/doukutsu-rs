@@ -2,7 +2,8 @@ use std::io;
 use std::io::Cursor;
 
 use byteorder::{LE, ReadBytesExt};
-use ggez::{Context, GameResult};
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use num_traits::abs;
 
 use crate::bitfield;
@@ -283,6 +284,8 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
             216 => self.tick_n216_debug_cat(state),
             222 => self.tick_n222_prison_bars(state),
             227 => self.tick_n227_bucket(state),
+            229 => self.tick_n229_red_flowers_sprouts(state),
+            230 => self.tick_n230_red_flowers_blooming(state),
             234 => self.tick_n234_red_flowers_picked(state),
             239 => self.tick_n239_cage_bars(state),
             241 => self.tick_n241_critter_red(state, players),

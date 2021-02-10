@@ -4,10 +4,13 @@ use std::path::PathBuf;
 use crate::bmfont::BMFont;
 use crate::common::{FILE_TYPES, Rect};
 use crate::engine_constants::EngineConstants;
-use ggez::{Context, filesystem, GameResult};
-use ggez::GameError::ResourceLoadError;
+
 use crate::str;
 use crate::texture_set::TextureSet;
+use crate::framework::error::GameError::ResourceLoadError;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::filesystem;
 
 pub struct BMFontRenderer {
     font: BMFont,
@@ -25,7 +28,6 @@ impl BMFontRenderer {
         let font = BMFont::load_from(filesystem::open(ctx, &full_path)?)?;
         let mut pages = Vec::new();
 
-        println!("stem: {:?}", stem);
         let (zeros, _, _) = FILE_TYPES
             .iter()
             .map(|ext| (1, ext, format!("{}_0{}", stem.to_string_lossy(), ext)))
@@ -38,7 +40,6 @@ impl BMFontRenderer {
 
         for i in 0..font.pages {
             let page_path = format!("{}_{:02$}", stem.to_string_lossy(), i, zeros);
-            println!("x: {}", &page_path);
 
             pages.push(page_path);
         }
