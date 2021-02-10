@@ -3,7 +3,6 @@ use std::cmp::Ordering;
 use num_traits::{abs, clamp};
 
 use crate::common::Direction;
-use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;

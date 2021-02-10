@@ -1085,11 +1085,11 @@ impl Scene for GameScene {
 
             let mut npc = NPC::create_from_data(npc_data, &state.npc_table);
             if npc.npc_flags.appear_when_flag_set() {
-                if let Some(true) = state.game_flags.get(npc_data.flag_num as usize) {
+                if state.get_flag(npc_data.flag_num as usize) {
                     npc.cond.set_alive(true);
                 }
             } else if npc.npc_flags.hide_unless_flag_set() {
-                if let Some(false) = state.game_flags.get(npc_data.flag_num as usize) {
+                if !state.get_flag(npc_data.flag_num as usize) {
                     npc.cond.set_alive(true);
                 }
             } else {

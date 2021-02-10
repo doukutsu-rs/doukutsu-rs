@@ -854,7 +854,7 @@ impl TextScriptVM {
                     OpCode::FLJ => {
                         let flag_num = read_cur_varint(&mut cursor)? as usize;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
-                        if let Some(true) = state.game_flags.get(flag_num) {
+                        if state.get_flag(flag_num) {
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);

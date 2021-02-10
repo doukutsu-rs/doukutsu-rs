@@ -1,10 +1,6 @@
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
-use num_traits::clamp;
-
 use crate::caret::CaretType;
 use crate::common::Direction;
-use crate::npc::list::NPCList;
+use crate::framework::error::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::rng::RNG;
@@ -54,7 +50,11 @@ impl NPC {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
-        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+        let dir_offset = if self.direction == Direction::Left {
+            0
+        } else {
+            3
+        };
         self.anim_rect = state.constants.npc.n154_gaudi_dead[self.anim_num as usize + dir_offset];
 
         Ok(())
@@ -63,7 +63,12 @@ impl NPC {
     pub(crate) fn tick_n156_gaudi_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_counter > 300 || (self.flags.0 & 0xff) != 0 {
             self.cond.set_alive(false);
-            state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
+            state.create_caret(
+                self.x,
+                self.y,
+                CaretType::ProjectileDissipation,
+                Direction::Left,
+            );
         }
 
         self.x += self.vel_x;
@@ -101,13 +106,16 @@ impl NPC {
             _ => {}
         }
 
-
         self.anim_rect = state.constants.npc.n166_chaba[self.anim_num as usize];
 
         Ok(())
     }
 
-    pub(crate) fn tick_n173_gaudi_armored(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n173_gaudi_armored(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
         Ok(())

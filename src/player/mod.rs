@@ -157,7 +157,7 @@ impl Player {
                 self.air_counter = 60;
                 if self.air > 0 {
                     self.air -= 1;
-                } else if let Some(true) = state.game_flags.get(4000) {
+                } else if state.get_flag(4000) {
                     state.textscript_vm.start_script(1100);
                 } else {
                     self.cond.set_hidden(true);
@@ -692,20 +692,6 @@ impl GameEntity<&NPCList> for Player {
             return Ok(());
         }
 
-        {
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
-            batch.add_rect(
-                interpolate_fix9_scale(self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
-                                       self.x - self.display_bounds.left as i32 - frame.x,
-                                       state.frame_time),
-                interpolate_fix9_scale(self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
-                                       self.y - self.display_bounds.left as i32 - frame.y,
-                                       state.frame_time),
-                &self.anim_rect,
-            );
-            batch.draw(ctx)?;
-        }
-
         if self.current_weapon != 0 {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Arms")?;
             match self.direction {
@@ -734,6 +720,20 @@ impl GameEntity<&NPCList> for Player {
                 _ => {}
             }
 
+            batch.draw(ctx)?;
+        }
+
+        {
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
+            batch.add_rect(
+                interpolate_fix9_scale(self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
+                                       self.x - self.display_bounds.left as i32 - frame.x,
+                                       state.frame_time),
+                interpolate_fix9_scale(self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
+                                       self.y - self.display_bounds.left as i32 - frame.y,
+                                       state.frame_time),
+                &self.anim_rect,
+            );
             batch.draw(ctx)?;
         }
 

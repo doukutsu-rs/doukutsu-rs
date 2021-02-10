@@ -1,13 +1,15 @@
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
-
 use crate::common::Direction;
+use crate::framework::error::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
-    pub(crate) fn tick_n241_critter_red(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n241_critter_red(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -31,7 +33,8 @@ impl NPC {
                     && self.x - (144 * 0x200) < player.x
                     && self.x + (144 * 0x200) > player.x
                     && self.y - (96 * 0x200) < player.y
-                    && self.y + (96 * 0x200) > player.y {
+                    && self.y + (96 * 0x200) > player.y
+                {
                     self.anim_num = 1;
                 } else {
                     if self.action_counter < 8 {
@@ -53,7 +56,8 @@ impl NPC {
                     && self.x - (96 * 0x200) < player.x
                     && self.x + (96 * 0x200) > player.x
                     && self.y - (80 * 0x200) < player.y
-                    && self.y + (80 * 0x200) > player.y {
+                    && self.y + (80 * 0x200) > player.y
+                {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 0;
@@ -96,8 +100,11 @@ impl NPC {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
-
-        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+        let dir_offset = if self.direction == Direction::Left {
+            0
+        } else {
+            3
+        };
 
         self.anim_rect = state.constants.npc.n241_critter_red[self.anim_num as usize + dir_offset];
 

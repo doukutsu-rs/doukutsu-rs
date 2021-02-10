@@ -9,9 +9,13 @@ use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState};
 use crate::engine_constants::EngineConstants;
+use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::framework::graphics::{create_texture_mutable, set_render_target};
+use crate::framework::keyboard::ScanCode;
 use crate::framework::vfs::OpenOptions;
+use crate::framework::{filesystem, graphics};
 use crate::input::touch_controls::TouchControls;
 use crate::npc::NPCTable;
 use crate::profile::GameProfile;
@@ -26,10 +30,6 @@ use crate::stage::StageData;
 use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
-use crate::framework::{filesystem, graphics};
-use crate::framework::backend::BackendTexture;
-use crate::framework::graphics::{set_render_target, create_texture_mutable};
-use crate::framework::keyboard::ScanCode;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -41,29 +41,28 @@ pub enum TimingMode {
 impl TimingMode {
     pub fn get_delta(self) -> usize {
         match self {
-            TimingMode::_50Hz => { 1000000000 / 50 }
-            TimingMode::_60Hz => { 1000000000 / 60 }
-            TimingMode::FrameSynchronized => { 0 }
+            TimingMode::_50Hz => 1000000000 / 50,
+            TimingMode::_60Hz => 1000000000 / 60,
+            TimingMode::FrameSynchronized => 0,
         }
     }
 
     pub fn get_delta_millis(self) -> f64 {
         match self {
-            TimingMode::_50Hz => { 1000.0 / 50.0 }
-            TimingMode::_60Hz => { 1000.0 / 60.0 }
-            TimingMode::FrameSynchronized => { 0.0 }
+            TimingMode::_50Hz => 1000.0 / 50.0,
+            TimingMode::_60Hz => 1000.0 / 60.0,
+            TimingMode::FrameSynchronized => 0.0,
         }
     }
 
     pub fn get_tps(self) -> usize {
         match self {
-            TimingMode::_50Hz => { 50 }
-            TimingMode::_60Hz => { 60 }
-            TimingMode::FrameSynchronized => { 0 }
+            TimingMode::_50Hz => 50,
+            TimingMode::_60Hz => 60,
+            TimingMode::FrameSynchronized => 0,
         }
     }
 }
-
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum Season {
@@ -119,7 +118,7 @@ pub struct SharedGameState {
     pub lua: LuaScriptingState,
     pub sound_manager: SoundManager,
     pub settings: Settings,
-    pub shutdown: bool
+    pub shutdown: bool,
 }
 
 impl SharedGameState {
@@ -191,11 +190,13 @@ impl SharedGameState {
 
     pub fn process_debug_keys(&mut self, key_code: ScanCode) {
         match key_code {
-            ScanCode::F3 => { self.settings.god_mode = !self.settings.god_mode }
-            ScanCode::F4 => { self.settings.infinite_booster = !self.settings.infinite_booster }
-            ScanCode::F5 => { self.settings.subpixel_coords = !self.settings.subpixel_coords }
-            ScanCode::F6 => { self.settings.motion_interpolation = !self.settings.motion_interpolation }
-            ScanCode::F7 => { self.set_speed(1.0) }
+            ScanCode::F3 => self.settings.god_mode = !self.settings.god_mode,
+            ScanCode::F4 => self.settings.infinite_booster = !self.settings.infinite_booster,
+            ScanCode::F5 => self.settings.subpixel_coords = !self.settings.subpixel_coords,
+            ScanCode::F6 => {
+                self.settings.motion_interpolation = !self.settings.motion_interpolation
+            }
+            ScanCode::F7 => self.set_speed(1.0),
             ScanCode::F8 => {
                 if self.settings.speed > 0.2 {
                     self.set_speed(self.settings.speed - 0.1);
@@ -206,7 +207,7 @@ impl SharedGameState {
                     self.set_speed(self.settings.speed + 0.1);
                 }
             }
-            ScanCode::F10 => { self.settings.debug_outlines = !self.settings.debug_outlines }
+            ScanCode::F10 => self.settings.debug_outlines = !self.settings.debug_outlines,
             _ => {}
         }
     }
@@ -230,7 +231,7 @@ impl SharedGameState {
         self.textscript_vm.state = TextScriptExecutionState::Running(200, 0);
 
         #[cfg(feature = "scripting")]
-            self.lua.reload_scripts(ctx)?;
+        self.lua.reload_scripts(ctx)?;
 
         self.next_scene = Some(Box::new(next_scene));
 
@@ -247,7 +248,7 @@ impl SharedGameState {
         self.textscript_vm.state = TextScriptExecutionState::Running(100, 0);
 
         #[cfg(feature = "scripting")]
-            self.lua.reload_scripts(ctx)?;
+        self.lua.reload_scripts(ctx)?;
 
         self.next_scene = Some(Box::new(next_scene));
 
@@ -255,7 +256,11 @@ impl SharedGameState {
     }
 
     pub fn save_game(&mut self, game_scene: &mut GameScene, ctx: &mut Context) -> GameResult {
-        if let Ok(data) = filesystem::open_options(ctx, "/Profile.dat", OpenOptions::new().write(true).create(true)) {
+        if let Ok(data) = filesystem::open_options(
+            ctx,
+            "/Profile.dat",
+            OpenOptions::new().write(true).create(true),
+        ) {
             let profile = GameProfile::dump(self, game_scene);
             profile.write_save(data)?;
         } else {
@@ -275,7 +280,7 @@ impl SharedGameState {
                     profile.apply(self, &mut next_scene, ctx);
 
                     #[cfg(feature = "scripting")]
-                        self.lua.reload_scripts(ctx)?;
+                    self.lua.reload_scripts(ctx)?;
 
                     self.next_scene = Some(Box::new(next_scene));
                     return Ok(());
@@ -306,7 +311,10 @@ impl SharedGameState {
     pub fn handle_resize(&mut self, ctx: &mut Context) -> GameResult {
         self.screen_size = graphics::screen_size(ctx);
         self.scale = self.screen_size.1.div(230.0).floor().max(1.0);
-        self.canvas_size = (self.screen_size.0 / self.scale, self.screen_size.1 / self.scale);
+        self.canvas_size = (
+            self.screen_size.0 / self.scale,
+            self.screen_size.1 / self.scale,
+        );
 
         let (width, height) = (self.screen_size.0 as u16, self.screen_size.1 as u16);
 
@@ -326,7 +334,8 @@ impl SharedGameState {
     }
 
     pub fn create_caret(&mut self, x: i32, y: i32, ctype: CaretType, direct: Direction) {
-        self.carets.push(Caret::new(x, y, ctype, direct, &self.constants));
+        self.carets
+            .push(Caret::new(x, y, ctype, direct, &self.constants));
     }
 
     pub fn set_speed(&mut self, value: f64) {
@@ -340,5 +349,21 @@ impl SharedGameState {
 
     pub fn shutdown(&mut self) {
         self.shutdown = true;
+    }
+
+    pub fn set_flag(&mut self, id: usize, value: bool) {
+        if id < self.game_flags.len() {
+            self.game_flags.set(id, value);
+        } else {
+            log::warn!("Attempted to set an out-of-bounds flag {}:", id);
+        }
+    }
+
+    pub fn get_flag(&self, id: usize) -> bool {
+        if let Some(flag) = self.game_flags.get(id) {
+            *flag
+        } else {
+            false
+        }
     }
 }

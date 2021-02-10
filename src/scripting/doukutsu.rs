@@ -36,11 +36,11 @@ impl Doukutsu {
         0
     }
 
-    unsafe fn lua_flag(&self, state: &mut State) -> c_int {
+    unsafe fn lua_get_flag(&self, state: &mut State) -> c_int {
         if let Some(index) = state.to_int(2) {
             let game_state = &mut (*(*self.ptr).state_ptr);
 
-            state.push(*game_state.game_flags.get(index.max(0) as usize).unwrap_or(&false));
+            state.push(game_state.get_flag(index.max(0) as usize));
         } else {
             state.push_nil();
         }
@@ -58,6 +58,7 @@ impl LuaObject for Doukutsu {
         vec![
             lua_method!("play_sfx", Doukutsu, Doukutsu::lua_play_sfx),
             lua_method!("play_song", Doukutsu, Doukutsu::lua_play_song),
+            lua_method!("get_flag", Doukutsu, Doukutsu::lua_get_flag),
         ]
     }
 }

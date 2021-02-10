@@ -40,25 +40,27 @@ opt-level = 1
 opt-level = 1
 
 [features]
-default = ["scripting", "backend-sdl"]
+default = ["scripting", "backend-sdl", "ogg-playback"]
+ogg-playback = ["lewton"]
 backend-sdl = ["sdl2"]
 backend-gfx = ["winit", "imgui-gfx-renderer", "imgui-winit-support"]
 scripting = ["lua-ffi"]
 editor = []
 
 [dependencies]
-bitvec = "0.17.4"
-byteorder = "1.3"
+bitvec = "0.20"
+byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
 chrono = "0.4"
-cpal = { git = "https://github.com/doukutsu-rs/cpal.git", branch = "android-support" }
+cpal = "0.13"
 directories = "3"
 imgui = "0.7.0"
 imgui-gfx-renderer = { version = "0.7.0", optional = true }
-imgui-winit-support = { version = "0.7.0", default-features = false, features = ["winit-23"], optional = true }
-image = { version = "0.22", default-features = false, features = ["png_codec", "pnm", "bmp"] }
-itertools = "0.9.0"
+imgui-winit-support = { version = "0.7.0", default-features = false, features = ["winit-24"], optional = true }
+image = { version = "0.23", default-features = false, features = ["png", "bmp"] }
+itertools = "0.10"
 lazy_static = "1.4.0"
+lewton = { version = "0.10.2", optional = true }
 log = "0.4"
 lua-ffi = { git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "1ef3caf772d72068297ddf75df06fd2ef8c1daab", optional = true }
 lru = "0.6.0"
@@ -70,17 +72,17 @@ sdl2 = { version = "0.34", optional = true, features = ["unsafe_textures", "bund
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_yaml = "0.8"
-strum = "0.18.0"
-strum_macros = "0.18.0"
+strum = "0.20"
+strum_macros = "0.20"
 # remove and replace when drain_filter is in stable
-vec_mut_scan = "0.3.0"
+vec_mut_scan = "0.4"
 webbrowser = "0.5.5"
-winit = { version = "0.24.0", features = ["serde"], optional = true }
+winit = { version = "0.24", features = ["serde"], optional = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3", features = ["winuser"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk = "0.2"
-ndk-glue = "0.2"
-jni = "0.17"
+ndk = "0.3"
+ndk-glue = "0.3"
+jni = "0.19"

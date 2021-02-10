@@ -174,7 +174,7 @@ impl GameProfile {
 
         let mut bidx = 0;
         let mut flags = [0u8; 1000];
-        for bits in state.game_flags.as_slice() {
+        for bits in state.game_flags.as_raw_slice() {
             let bytes = bits.to_le_bytes();
             for b in bytes.iter() {
                 if let Some(out) = flags.get_mut(bidx) {

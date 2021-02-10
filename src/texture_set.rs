@@ -187,7 +187,7 @@ impl SizedBatch {
         self.draw_filtered(FilterMode::Nearest, ctx)
     }
 
-    pub fn draw_filtered(&mut self, filter: FilterMode, ctx: &mut Context) -> GameResult {
+    pub fn draw_filtered(&mut self, _filter: FilterMode, _ctx: &mut Context) -> GameResult {
         //self.batch.set_filter(filter);
         self.batch.draw()?;
         self.batch.clear();
@@ -236,7 +236,7 @@ impl TextureSet {
             reader.seek(SeekFrom::Start(0))?;
 
             let image = image::load(BufReader::new(reader), image::guess_format(&buf)?)?;
-            let mut rgba = image.to_rgba();
+            let mut rgba = image.to_rgba8();
             if image.color().channel_count() != 4 {
                 TextureSet::make_transparent(&mut rgba);
             }
