@@ -27,7 +27,6 @@ install:
 cache:
   - '%USERPROFILE%\.cache\sccache -> Cargo.toml'
   - '%USERPROFILE%\.cargo -> Cargo.toml'
-  - '%USERPROFILE%\.rustup -> Cargo.toml'
   - 'target -> Cargo.toml'
 
 #test_script:
