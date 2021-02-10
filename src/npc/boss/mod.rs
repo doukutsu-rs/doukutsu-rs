@@ -76,7 +76,8 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for Bo
             5 => self.tick_b05_ironhead(),
             6 => self.tick_b06_twins(),
             7 => self.tick_b07_undead_core(),
-            8 => self.tick_b09_ballos(),
+            8 => self.tick_b08_press(),
+            9 => self.tick_b09_ballos(),
             _ => {}
         }
 

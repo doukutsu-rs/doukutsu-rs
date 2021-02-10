@@ -6,7 +6,7 @@
 
 A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/).
 
-**The project is still incomplete and not fully playable yet.**
+**The project is still incomplete and not fully playable yet.** [Click here to see the current status of the project](https://github.com/doukutsu-rs/doukutsu-rs/issues/10).
 
 [Join the Discord server](https://discord.gg/fbRsNNB)
 
@@ -33,69 +33,6 @@ Vanilla Cave Story does not work yet because some important data files have been
 - PC release (Steam) - (Tested only with Steam version, both Windows and Linux builds) Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
 - PC release (EGS) - (Untested, but the game is essentially the same as Steam release) Same thing as with Steam version.
 - Switch release - (Tested once, no guarantee to work) You need a hacked Switch and physical release. Google should help you.
-
-#### Gameplay support roadmap
-
-- [x] Checkmarked things = fully implemented
-- [ ] Unmarked things = partially or not implemented yet.
-
-- [ ] Text scripts (TSC)
-  - [x] Initial implementation
-  - [x] Full implementation of gameplay opcodes
-  - [x] Shift-JIS encoding support
-  - [ ] Credits opcodes
-- [ ] Audio
-  - [x] Organya BGM playback
-  - [x] Text script bindings
-  - [ ] CS+ style .ogg BGM playback
-  - [x] PixTone SFX
-- [ ] NPCs/entities
-  - [x] Initial implementation
-  - [ ] Miscellaneous entities (~40% done)
-  - [ ] Bosses (~30% done)
-    - [x] Omega
-    - [x] Balfrog
-    - [x] Monster X
-  - [x] First Cave
-  - [x] Mimiga Village
-  - [x] Egg Corridor
-  - [x] Grasstown
-  - [ ] Sand Zone (~50% done)
-  - [ ] Labirynth (~10% done)
-  - [x] Waterway
-  - [ ] Egg Corridor? (~20% done)
-  - [ ] Outer Wall
-  - [ ] Plantation
-  - [ ] Last Cave
-  - [ ] Balcony
-  - [ ] Hell
-- [ ] Weapons
-  - [x] Leveling / XP system
-  - [x] Initial implementation
-  - [x] Snake
-  - [x] Polar Star
-  - [x] Fireball
-  - [ ] Machine Gun
-  - [ ] Missile Launcher
-  - [ ] Bubbler
-  - [ ] Blade
-  - [ ] Super Missile Launcher
-  - [ ] Nemesis
-  - [ ] Spur
-- [x] Saving and loading game state
-- [ ] Support for different game editions
-  - [ ] Vanilla
-  - [x] Modified vanilla
-  - [ ] Cave Story+ (PC/Switch)
-    - [x] Base mod
-    - [ ] Mod loading
-    - [x] Curly Story
-    - [ ] Wind Fortress
-    - [ ] Boss Run
-    - [x] Seasonal graphics
-    - [x] Co-op gameplay
-
-*(tbd)*
 
 #### Mandatory screenshots
 
