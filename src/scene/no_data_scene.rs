@@ -24,7 +24,6 @@ static REL_URL: &str = "https://github.com/doukutsu-rs/game-data/releases";
 
 impl Scene for NoDataScene {
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-
         #[cfg(target_os = "android")]
             {
                 if !self.flag {

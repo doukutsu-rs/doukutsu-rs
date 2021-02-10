@@ -138,7 +138,7 @@ impl Game {
         let state_ref = unsafe { &mut *self.state.get() };
 
         if state_ref.timing_mode != TimingMode::FrameSynchronized {
-            let elapsed = self.start_time.elapsed().as_nanos();
+            let mut elapsed = self.start_time.elapsed().as_nanos();
             #[cfg(target_os = "windows")]
                 {
                     // Even with the non-monotonic Instant mitigation at the start of the event loop, there's still a chance of it not working.
