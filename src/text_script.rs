@@ -351,7 +351,7 @@ pub enum TextScriptExecutionState {
     Running(u16, u32),
     Msg(u16, u32, u32, u8),
     WaitTicks(u16, u32, u16),
-    WaitInput(u16, u32),
+    WaitInput(u16, u32, u16),
     WaitStanding(u16, u32),
     WaitConfirmation(u16, u32, u16, u8, ConfirmSelection),
     WaitFade(u16, u32),
@@ -380,6 +380,7 @@ pub struct TextScriptVM {
     pub line_1: Vec<char>,
     pub line_2: Vec<char>,
     pub line_3: Vec<char>,
+    prev_char: char,
 }
 
 impl Default for TextScriptVM {
@@ -463,6 +464,7 @@ impl TextScriptVM {
             line_1: Vec::with_capacity(24),
             line_2: Vec::with_capacity(24),
             line_3: Vec::with_capacity(24),
+            prev_char: '\x00',
         }
     }
 
@@ -560,13 +562,33 @@ impl TextScriptVM {
                             }
                             '\r' => {}
                             _ if state.textscript_vm.current_line == TextScriptLine::Line1 => {
+                                state.textscript_vm.prev_char = chr;
                                 state.textscript_vm.line_1.push(chr);
+
+                                let text_len = state.font.text_width(state.textscript_vm.line_1.iter().copied(), &state.constants);
+                                if text_len >= 284.0 {
+                                    state.textscript_vm.current_line = TextScriptLine::Line2;
+                                }
                             }
                             _ if state.textscript_vm.current_line == TextScriptLine::Line2 => {
+                                state.textscript_vm.prev_char = chr;
                                 state.textscript_vm.line_2.push(chr);
+
+                                let text_len = state.font.text_width(state.textscript_vm.line_2.iter().copied(), &state.constants);
+                                if text_len >= 284.0 {
+                                    state.textscript_vm.current_line = TextScriptLine::Line3;
+                                }
                             }
                             _ if state.textscript_vm.current_line == TextScriptLine::Line3 => {
+                                state.textscript_vm.prev_char = chr;
                                 state.textscript_vm.line_3.push(chr);
+
+                                let text_len = state.font.text_width(state.textscript_vm.line_3.iter().copied(), &state.constants);
+                                if text_len >= 284.0 {
+                                    state.textscript_vm.line_1.clear();
+                                    state.textscript_vm.line_1.append(&mut state.textscript_vm.line_2);
+                                    state.textscript_vm.line_2.append(&mut state.textscript_vm.line_3);
+                                }
                             }
                             _ => {}
                         }
@@ -647,7 +669,9 @@ impl TextScriptVM {
                     }
                     break;
                 }
-                TextScriptExecutionState::WaitInput(event, ip) => {
+                TextScriptExecutionState::WaitInput(event, ip, blink) => {
+                    state.textscript_vm.state = TextScriptExecutionState::WaitInput(event, ip, (blink + 1) % 20);
+
                     if game_scene.player1.controller.trigger_jump()
                         || game_scene.player1.controller.trigger_shoot()
                         || game_scene.player1.controller.skip()
@@ -714,6 +738,7 @@ impl TextScriptVM {
                     OpCode::_STR => {
                         let mut len = read_cur_varint(&mut cursor)? as u32;
                         if state.textscript_vm.flags.render() {
+                            state.textscript_vm.prev_char = '\x00';
                             exec_state = TextScriptExecutionState::Msg(event, cursor.position() as u32, len, 4);
                         } else {
                             while len > 0 {
@@ -853,7 +878,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::WaitStanding(event, cursor.position() as u32);
                     }
                     OpCode::NOD => {
-                        exec_state = TextScriptExecutionState::WaitInput(event, cursor.position() as u32);
+                        exec_state = TextScriptExecutionState::WaitInput(event, cursor.position() as u32, 0);
                     }
                     OpCode::FLp | OpCode::FLm => {
                         let flag_num = read_cur_varint(&mut cursor)? as usize;
