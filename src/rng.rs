@@ -5,7 +5,7 @@ pub trait RNG {
     fn next(&self) -> i32;
 
     fn range(&self, range: Range<i32>) -> i32 {
-        range.start + ((self.next() & 0x7fffffff) % (range.len() as i32))
+        range.start + ((self.next() & 0x7fffffff) % (range.len() as i32 + 1))
     }
 }
 
