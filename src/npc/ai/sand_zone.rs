@@ -1,9 +1,9 @@
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
 use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
-use crate::common::{CDEG_RAD, Direction};
+use crate::common::{Direction, CDEG_RAD};
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
 use crate::player::Player;
@@ -288,7 +288,12 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n049_skullhead(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n049_skullhead(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
         let parent = self.get_parent_ref_mut(npc_list);
 
         if self.action_num > 9 && parent.as_ref().map(|n| n.npc_type == 3).unwrap_or(false) {
@@ -344,8 +349,7 @@ impl NPC {
                 if self.vel_y2 >= 50 {
                     let player = self.get_closest_player_mut(players);
 
-                    if abs(self.x - player.x) < 0x10000
-                        && abs(self.y - player.y) < 0xc000 {
+                    if abs(self.x - player.x) < 0x10000 && abs(self.y - player.y) < 0xc000 {
                         self.action_num = 11;
                         self.action_counter = 0;
                         self.anim_num = 2;
@@ -397,7 +401,6 @@ impl NPC {
 
         self.x += self.vel_x;
         self.y += self.vel_y;
-
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
 
@@ -476,7 +479,12 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n051_crow_and_skullhead(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n051_crow_and_skullhead(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
         match self.action_num {
@@ -555,6 +563,127 @@ impl NPC {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 5 };
 
         self.anim_rect = state.constants.npc.n051_crow_and_skullhead[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n053_skullstep_leg(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        let parent = self.get_parent_ref_mut(npc_list);
+        if parent.is_none() || parent.as_ref().unwrap().npc_type == 3 {
+            self.vanish(state);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 4, state, &self.rng);
+            return Ok(());
+        }
+
+        let parent = parent.unwrap();
+
+        let angle = self.vel_x + parent.vel_y2;
+
+        if self.action_num < 2 {
+            if self.action_num == 0 {
+                self.action_num = 1;
+                self.action_counter2 = 10;
+            }
+
+            if self.direction == Direction::Left && self.flags.hit_left_slope() {
+                parent.y -= 0x400;
+                parent.vel_y -= 0x100;
+            }
+
+            if self.direction == Direction::Right && self.flags.hit_right_slope() {
+                parent.y -= 0x400;
+                parent.vel_y -= 0x100;
+            }
+
+            if self.flags.hit_bottom_wall() {
+                parent.y -= 0x400;
+                parent.vel_y -= 0x100;
+                parent.vel_x += parent.direction.vector_x() * 0x80;
+            }
+
+            self.x = parent.x + (self.action_counter2 as f64 * (angle as f64 * CDEG_RAD).cos() * 512.0) as i32;
+            self.y = parent.y + (self.action_counter2 as f64 * (angle as f64 * CDEG_RAD).sin() * 512.0) as i32;
+        }
+
+        self.direction = parent.direction;
+        self.anim_num = if angle < 0x14 || angle > 0x6c { 1 } else { 0 };
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
+        self.anim_rect = state.constants.npc.n053_skullstep_leg[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n054_skullstep(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 1;
+
+                    let mut leg = NPC::create(53, &state.npc_table);
+                    leg.cond.set_alive(true);
+                    leg.direction = self.direction;
+                    leg.parent_id = self.id;
+
+                    npc_list.spawn(256, leg.clone());
+
+                    leg.vel_x = 0x80;
+                    npc_list.spawn(0, leg);
+                }
+
+                self.vel_y2 += self.direction.vector_x() * 6;
+
+                if self.flags.hit_bottom_wall() {
+                    self.vel_x = self.vel_x * 3 / 4;
+                    self.action_counter += 1;
+                    if self.action_counter > 60 {
+                        self.action_num = 2;
+                        self.action_counter = 0;
+                    }
+                } else {
+                    self.action_counter = 0;
+                }
+
+                if self.direction == Direction::Left && self.flags.hit_left_wall() {
+                    self.action_counter2 += 1;
+                    if self.action_counter2 > 8 {
+                        self.direction = Direction::Right;
+                        self.vel_x = -self.vel_x;
+                    }
+                } else if self.direction == Direction::Right && self.flags.hit_right_wall() {
+                    self.action_counter2 += 1;
+                    if self.action_counter2 > 8 {
+                        self.direction = Direction::Left;
+                        self.vel_x = -self.vel_x;
+                    }
+                } else {
+                    self.action_counter2 = 0;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                self.shock += self.action_counter & 0xff;
+                if self.action_counter > 50 {
+                    state.sound_manager.play_sfx(25);
+                    self.vanish(state);
+                    npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 8, state, &self.rng);
+                }
+            }
+            _ => {}
+        }
+
+        self.vel_y += 0x80;
+        self.vel_x = clamp(self.vel_x, -0x2ff, 0x2ff);
+        self.vel_y = clamp(self.vel_y, -0x2ff, 0x2ff);
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+
+        self.anim_rect = state.constants.npc.n054_skullstep[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
