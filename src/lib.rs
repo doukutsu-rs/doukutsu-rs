@@ -7,7 +7,6 @@ extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 
-use core::mem;
 use std::cell::UnsafeCell;
 use std::env;
 use std::path::PathBuf;
@@ -337,11 +336,9 @@ pub fn init() -> GameResult {
     let state_ref = unsafe { &mut *game.state.get() };
     #[cfg(feature = "scripting")]
     {
-        unsafe {
-            state_ref
-                .lua
-                .update_refs(game.state.get(), &mut context as *mut Context);
-        }
+        state_ref
+            .lua
+            .update_refs(game.state.get(), &mut context as *mut Context);
     }
 
     state_ref.next_scene = Some(Box::new(LoadingScene::new()));

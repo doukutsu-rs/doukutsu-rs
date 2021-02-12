@@ -9,13 +9,13 @@
 //! as a trait object, and its path abstraction is not the most
 //! convenient.
 
-
 use std::collections::VecDeque;
 use std::fmt::{self, Debug};
 use std::fs;
-use std::io::{Read, Seek, Write, BufRead};
+use std::io::{BufRead, Read, Seek, Write};
 use std::path::{self, Path, PathBuf};
-use crate::framework::error::{GameResult, GameError};
+
+use crate::framework::error::{GameError, GameResult};
 
 fn convenient_path_to_str(path: &path::Path) -> GameResult<&str> {
     path.to_str().ok_or_else(|| {
@@ -25,9 +25,9 @@ fn convenient_path_to_str(path: &path::Path) -> GameResult<&str> {
 }
 
 /// Virtual file
-pub trait VFile: Read + Write + Seek + Debug {}
+pub trait VFile: Read + Write + Seek + Debug + Send + Sync {}
 
-impl<T> VFile for T where T: Read + Write + Seek + Debug {}
+impl<T> VFile for T where T: Read + Write + Seek + Debug + Send + Sync {}
 
 /// Options for opening files
 ///
@@ -132,7 +132,7 @@ pub trait VFS: Debug {
     fn metadata(&self, path: &Path) -> GameResult<Box<dyn VMetadata>>;
 
     /// Retrieve all file and directory entries in the given directory.
-    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item=GameResult<PathBuf>>>>;
+    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item = GameResult<PathBuf>>>>;
 
     /// Retrieve the actual location of the VFS root, if available.
     fn to_path_buf(&self) -> Option<PathBuf>;
@@ -268,9 +268,9 @@ impl VFS for PhysicalFS {
     fn open_options(&self, path: &Path, open_options: OpenOptions) -> GameResult<Box<dyn VFile>> {
         if self.readonly
             && (open_options.write
-            || open_options.create
-            || open_options.append
-            || open_options.truncate)
+                || open_options.create
+                || open_options.append
+                || open_options.truncate)
         {
             let msg = format!(
                 "Cannot alter file {:?} in root {:?}, filesystem read-only",
@@ -359,7 +359,7 @@ impl VFS for PhysicalFS {
     }
 
     /// Retrieve the path entries in this path
-    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item=GameResult<PathBuf>>>> {
+    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item = GameResult<PathBuf>>>> {
         self.create_root()?;
         let p = self.to_absolute(path)?;
         // This is inconvenient because path() returns the full absolute
@@ -513,7 +513,7 @@ impl VFS for OverlayFS {
     }
 
     /// Retrieve the path entries in this path
-    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item=GameResult<PathBuf>>>> {
+    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item = GameResult<PathBuf>>>> {
         // This is tricky 'cause we have to actually merge iterators together...
         // Doing it the simple and stupid way works though.
         let mut v = Vec::new();

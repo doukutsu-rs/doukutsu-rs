@@ -1,11 +1,34 @@
 declare type EventHandler<T> = (this: void, param: T) => void;
 
+/**
+ * Represents a
+ */
 declare interface DoukutsuPlayer {
+    /**
+     * The ID of player.
+     */
+    id(): number;
+
+    /**
+     * Current position of player in X axis (as floating point, not internal fixed point representation).
+     */
     x(): number;
+
+    /**
+     * Current position of player in Y axis (as floating point, not internal fixed point representation).
+     */
     y(): number;
+
+    /**
+     * Current velocity of player in X axis (as floating point, not internal fixed point representation).
+     */
     velX(): number;
+
+    /**
+     * Current velocity of player in Y axis (as floating point, not internal fixed point representation).
+     */
     velY(): number;
-};
+}
 
 declare interface DoukutsuScene {
     /**
@@ -32,7 +55,7 @@ declare interface DoukutsuScene {
      * Returns player with specified id.
      */
     player(id: number): DoukutsuPlayer | null;
-};
+}
 
 declare namespace doukutsu {
     /**
@@ -49,4 +72,4 @@ declare namespace doukutsu {
     function on(event: "tick", handler: EventHandler<DoukutsuScene>): EventHandler<DoukutsuScene>;
 
     function on<T>(event: string, handler: EventHandler<T>): EventHandler<T>;
-};
+}

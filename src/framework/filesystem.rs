@@ -6,10 +6,11 @@ use std::path;
 use std::path::PathBuf;
 
 use directories::ProjectDirs;
-use crate::framework::vfs;
-use crate::framework::vfs::{VFS, OpenOptions};
-use crate::framework::error::{GameResult, GameError};
+
 use crate::framework::context::Context;
+use crate::framework::error::{GameError, GameResult};
+use crate::framework::vfs;
+use crate::framework::vfs::{OpenOptions, VFS};
 
 /// A structure that contains the filesystem state and cache.
 #[derive(Debug)]
@@ -24,6 +25,8 @@ pub enum File {
     /// A wrapper for a VFile trait object.
     VfsFile(Box<dyn vfs::VFile>),
 }
+
+unsafe impl Send for File {}
 
 impl fmt::Debug for File {
     // Make this more useful?
@@ -81,13 +84,13 @@ impl Filesystem {
 
     /// Opens the given `path` and returns the resulting `File`
     /// in read-only mode.
-    pub(crate) fn open<P: AsRef<path::Path>>(&mut self, path: P) -> GameResult<File> {
+    pub(crate) fn open<P: AsRef<path::Path>>(&self, path: P) -> GameResult<File> {
         self.vfs.open(path.as_ref()).map(|f| File::VfsFile(f))
     }
 
     /// Opens the given `path` from user directory and returns the resulting `File`
     /// in read-only mode.
-    pub(crate) fn user_open<P: AsRef<path::Path>>(&mut self, path: P) -> GameResult<File> {
+    pub(crate) fn user_open<P: AsRef<path::Path>>(&self, path: P) -> GameResult<File> {
         self.user_vfs.open(path.as_ref()).map(|f| File::VfsFile(f))
     }
 
@@ -95,44 +98,36 @@ impl Filesystem {
     /// [`filesystem::OpenOptions`](struct.OpenOptions.html).
     /// Note that even if you open a file read-write, it can only
     /// write to files in the "user" directory.
-    pub(crate) fn open_options<P: AsRef<path::Path>>(
-        &mut self,
-        path: P,
-        options: OpenOptions,
-    ) -> GameResult<File> {
+    pub(crate) fn open_options<P: AsRef<path::Path>>(&self, path: P, options: OpenOptions) -> GameResult<File> {
         self.user_vfs
             .open_options(path.as_ref(), options)
             .map(|f| File::VfsFile(f))
             .map_err(|e| {
-                GameError::ResourceLoadError(format!(
-                    "Tried to open {:?} but got error: {:?}",
-                    path.as_ref(),
-                    e
-                ))
+                GameError::ResourceLoadError(format!("Tried to open {:?} but got error: {:?}", path.as_ref(), e))
             })
     }
 
     /// Creates a new file in the user directory and opens it
     /// to be written to, truncating it if it already exists.
-    pub(crate) fn user_create<P: AsRef<path::Path>>(&mut self, path: P) -> GameResult<File> {
+    pub(crate) fn user_create<P: AsRef<path::Path>>(&self, path: P) -> GameResult<File> {
         self.user_vfs.create(path.as_ref()).map(|f| File::VfsFile(f))
     }
 
     /// Create an empty directory in the user dir
     /// with the given name.  Any parents to that directory
     /// that do not exist will be created.
-    pub(crate) fn user_create_dir<P: AsRef<path::Path>>(&mut self, path: P) -> GameResult<()> {
+    pub(crate) fn user_create_dir<P: AsRef<path::Path>>(&self, path: P) -> GameResult<()> {
         self.user_vfs.mkdir(path.as_ref())
     }
 
     /// Deletes the specified file in the user dir.
-    pub(crate) fn user_delete<P: AsRef<path::Path>>(&mut self, path: P) -> GameResult<()> {
+    pub(crate) fn user_delete<P: AsRef<path::Path>>(&self, path: P) -> GameResult<()> {
         self.user_vfs.rm(path.as_ref())
     }
 
     /// Deletes the specified directory in the user dir,
     /// and all its contents!
-    pub(crate) fn user_delete_dir<P: AsRef<path::Path>>(&mut self, path: P) -> GameResult<()> {
+    pub(crate) fn user_delete_dir<P: AsRef<path::Path>>(&self, path: P) -> GameResult<()> {
         self.user_vfs.rmrf(path.as_ref())
     }
 
@@ -156,10 +151,7 @@ impl Filesystem {
 
     /// Check whether a path points at a file.
     pub(crate) fn is_file<P: AsRef<path::Path>>(&self, path: P) -> bool {
-        self.vfs
-            .metadata(path.as_ref())
-            .map(|m| m.is_file())
-            .unwrap_or(false)
+        self.vfs.metadata(path.as_ref()).map(|m| m.is_file()).unwrap_or(false)
     }
 
     /// Check whether a path points at a directory.
@@ -172,10 +164,7 @@ impl Filesystem {
 
     /// Check whether a path points at a directory.
     pub(crate) fn is_dir<P: AsRef<path::Path>>(&self, path: P) -> bool {
-        self.vfs
-            .metadata(path.as_ref())
-            .map(|m| m.is_dir())
-            .unwrap_or(false)
+        self.vfs.metadata(path.as_ref()).map(|m| m.is_dir()).unwrap_or(false)
     }
 
     /// Returns a list of all files and directories in the user directory,
@@ -183,12 +172,13 @@ impl Filesystem {
     ///
     /// Lists the base directory if an empty path is given.
     pub(crate) fn user_read_dir<P: AsRef<path::Path>>(
-        &mut self,
+        &self,
         path: P,
-    ) -> GameResult<Box<dyn Iterator<Item=path::PathBuf>>> {
-        let itr = self.user_vfs.read_dir(path.as_ref())?.map(|fname| {
-            fname.expect("Could not read file in read_dir()?  Should never happen, I hope!")
-        });
+    ) -> GameResult<Box<dyn Iterator<Item = path::PathBuf>>> {
+        let itr = self
+            .user_vfs
+            .read_dir(path.as_ref())?
+            .map(|fname| fname.expect("Could not read file in read_dir()?  Should never happen, I hope!"));
         Ok(Box::new(itr))
     }
 
@@ -197,16 +187,17 @@ impl Filesystem {
     ///
     /// Lists the base directory if an empty path is given.
     pub(crate) fn read_dir<P: AsRef<path::Path>>(
-        &mut self,
+        &self,
         path: P,
-    ) -> GameResult<Box<dyn Iterator<Item=path::PathBuf>>> {
-        let itr = self.vfs.read_dir(path.as_ref())?.map(|fname| {
-            fname.expect("Could not read file in read_dir()?  Should never happen, I hope!")
-        });
+    ) -> GameResult<Box<dyn Iterator<Item = path::PathBuf>>> {
+        let itr = self
+            .vfs
+            .read_dir(path.as_ref())?
+            .map(|fname| fname.expect("Could not read file in read_dir()?  Should never happen, I hope!"));
         Ok(Box::new(itr))
     }
 
-    fn write_to_string(&mut self) -> String {
+    fn write_to_string(&self) -> String {
         use std::fmt::Write;
         let mut s = String::new();
         for vfs in self.vfs.roots() {
@@ -214,8 +205,7 @@ impl Filesystem {
             match vfs.read_dir(path::Path::new("/")) {
                 Ok(files) => {
                     for itm in files {
-                        write!(s, "  {:?}", itm)
-                            .expect("Could not write to string; should never happen?");
+                        write!(s, "  {:?}", itm).expect("Could not write to string; should never happen?");
                     }
                 }
                 Err(e) => write!(s, " Could not read source: {:?}", e)
@@ -242,7 +232,6 @@ impl Filesystem {
         self.vfs.push_back(vfs);
     }
 
-
     pub fn mount_user_vfs(&mut self, vfs: Box<dyn vfs::VFS>) {
         self.user_vfs.push_back(vfs);
     }
@@ -250,46 +239,42 @@ impl Filesystem {
 
 /// Opens the given path and returns the resulting `File`
 /// in read-only mode.
-pub fn open<P: AsRef<path::Path>>(ctx: &mut Context, path: P) -> GameResult<File> {
+pub fn open<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult<File> {
     ctx.filesystem.open(path)
 }
 
 /// Opens the given path in the user directory and returns the resulting `File`
 /// in read-only mode.
-pub fn user_open<P: AsRef<path::Path>>(ctx: &mut Context, path: P) -> GameResult<File> {
+pub fn user_open<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult<File> {
     ctx.filesystem.user_open(path)
 }
 
 /// Opens a file in the user directory with the given `filesystem::OpenOptions`.
-pub fn open_options<P: AsRef<path::Path>>(
-    ctx: &mut Context,
-    path: P,
-    options: OpenOptions,
-) -> GameResult<File> {
+pub fn open_options<P: AsRef<path::Path>>(ctx: &Context, path: P, options: OpenOptions) -> GameResult<File> {
     ctx.filesystem.open_options(path, options)
 }
 
 /// Creates a new file in the user directory and opens it
 /// to be written to, truncating it if it already exists.
-pub fn user_create<P: AsRef<path::Path>>(ctx: &mut Context, path: P) -> GameResult<File> {
+pub fn user_create<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult<File> {
     ctx.filesystem.user_create(path)
 }
 
 /// Create an empty directory in the user dir
 /// with the given name.  Any parents to that directory
 /// that do not exist will be created.
-pub fn user_create_dir<P: AsRef<path::Path>>(ctx: &mut Context, path: P) -> GameResult {
+pub fn user_create_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult {
     ctx.filesystem.user_create_dir(path.as_ref())
 }
 
 /// Deletes the specified file in the user dir.
-pub fn user_delete<P: AsRef<path::Path>>(ctx: &mut Context, path: P) -> GameResult {
+pub fn user_delete<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult {
     ctx.filesystem.user_delete(path.as_ref())
 }
 
 /// Deletes the specified directory in the user dir,
 /// and all its contents!
-pub fn user_delete_dir<P: AsRef<path::Path>>(ctx: &mut Context, path: P) -> GameResult {
+pub fn user_delete_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult {
     ctx.filesystem.user_delete_dir(path.as_ref())
 }
 
@@ -313,9 +298,9 @@ pub fn user_is_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> bool {
 ///
 /// Lists the base directory if an empty path is given.
 pub fn user_read_dir<P: AsRef<path::Path>>(
-    ctx: &mut Context,
+    ctx: &Context,
     path: P,
-) -> GameResult<Box<dyn Iterator<Item=path::PathBuf>>> {
+) -> GameResult<Box<dyn Iterator<Item = path::PathBuf>>> {
     ctx.filesystem.user_read_dir(path)
 }
 
@@ -338,10 +323,7 @@ pub fn is_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> bool {
 /// in no particular order.
 ///
 /// Lists the base directory if an empty path is given.
-pub fn read_dir<P: AsRef<path::Path>>(
-    ctx: &mut Context,
-    path: P,
-) -> GameResult<Box<dyn Iterator<Item=path::PathBuf>>> {
+pub fn read_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult<Box<dyn Iterator<Item = path::PathBuf>>> {
     ctx.filesystem.read_dir(path)
 }
 

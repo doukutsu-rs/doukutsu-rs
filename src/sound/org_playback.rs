@@ -5,11 +5,19 @@ use crate::sound::stuff::*;
 use crate::sound::wav::*;
 use crate::sound::wave_bank::SoundBank;
 
-pub struct PlaybackEngine {
+pub(crate) struct OrgPlaybackEngine {
     song: Organya,
     lengths: [u8; 8],
     swaps: [usize; 8],
     keys: [u8; 8],
+    /// Octave 0 Track 0 Swap 0
+    /// Octave 0 Track 1 Swap 0
+    /// ...
+    /// Octave 1 Track 0 Swap 0
+    /// ...
+    /// Octave 0 Track 0 Swap 1
+    /// octave * 8 + track + swap
+    /// 128..136: Drum Tracks
     track_buffers: [RenderBuffer; 136],
     output_format: WavFormat,
     play_pos: i32,
@@ -18,74 +26,32 @@ pub struct PlaybackEngine {
     pub loops: usize,
 }
 
-pub struct SavedPlaybackState {
+pub struct SavedOrganyaPlaybackState {
     song: Organya,
     play_pos: i32,
 }
 
-impl Clone for SavedPlaybackState {
-    fn clone(&self) -> SavedPlaybackState {
-        SavedPlaybackState {
+impl Clone for SavedOrganyaPlaybackState {
+    fn clone(&self) -> SavedOrganyaPlaybackState {
+        SavedOrganyaPlaybackState {
             song: self.song.clone(),
             play_pos: self.play_pos,
         }
     }
 }
 
-impl PlaybackEngine {
-    pub fn new(song: Organya, samples: &SoundBank) -> Self {
+impl OrgPlaybackEngine {
+    pub fn new(samples: &SoundBank) -> Self {
+        let mut buffers: [MaybeUninit<RenderBuffer>; 136] = unsafe { MaybeUninit::uninit().assume_init() };
 
-        // Octave 0 Track 0 Swap 0
-        // Octave 0 Track 1 Swap 0
-        // ...
-        // Octave 1 Track 0 Swap 0
-        // ...
-        // Octave 0 Track 0 Swap 1
-        // octave * 8 + track + swap
-        // 128..136: Drum Tracks
-        let mut buffers: [MaybeUninit<RenderBuffer>; 136] = unsafe {
-            MaybeUninit::uninit().assume_init()
-        };
-
-        // track
-        for i in 0..8 {
-            let sound_index = song.tracks[i].inst.inst as usize;
-
-            // WAVE100 uses 8-bit signed audio, but wav audio wants 8-bit unsigned.
-            // On 2s complement system, we can simply flip the top bit
-            // No need to cast to u8 here because the sound bank data is one big &[u8].
-            let sound = samples.get_wave(sound_index)
-                .iter()
-                .map(|&x| x ^ 128)
-                .collect();
-
-            let format = WavFormat { channels: 1, sample_rate: 22050, bit_depth: 8 };
-
-            let rbuf = RenderBuffer::new_organya(WavSample { format, data: sound });
-
-            // octave
-            for j in 0..8 {
-                // swap
-                for &k in &[0, 64] {
-                    buffers[i + (j * 8) + k] = MaybeUninit::new(rbuf.clone());
-                }
-            }
+        for buffer in buffers.iter_mut() {
+            *buffer = MaybeUninit::new(RenderBuffer::empty());
         }
 
-        for (idx, (_track, buf)) in song.tracks[8..].iter().zip(buffers[128..].iter_mut()).enumerate() {
-            *buf =
-                MaybeUninit::new(
-                    RenderBuffer::new(
-                        // FIXME: *frustrated screaming*
-                        //samples.samples[track.inst.inst as usize].clone()
-                        samples.samples[idx].clone()
-                    )
-                );
-        }
-
+        let song = Organya::empty();
         let frames_per_tick = (44100 / 1000) * song.time.wait as usize;
 
-        PlaybackEngine {
+        OrgPlaybackEngine {
             song,
             lengths: [0; 8],
             swaps: [0; 8],
@@ -104,7 +70,8 @@ impl PlaybackEngine {
     }
 
     pub fn set_sample_rate(&mut self, sample_rate: usize) {
-        self.frames_this_tick = (self.frames_this_tick as f32 * (self.output_format.sample_rate as f32 / sample_rate as f32)) as usize;
+        self.frames_this_tick =
+            (self.frames_this_tick as f32 * (self.output_format.sample_rate as f32 / sample_rate as f32)) as usize;
         self.output_format.sample_rate = sample_rate as u32;
         self.frames_per_tick = (sample_rate / 1000) * self.song.time.wait as usize;
 
@@ -113,14 +80,14 @@ impl PlaybackEngine {
         }
     }
 
-    pub fn get_state(&self) -> SavedPlaybackState {
-        SavedPlaybackState {
+    pub fn get_state(&self) -> SavedOrganyaPlaybackState {
+        SavedOrganyaPlaybackState {
             song: self.song.clone(),
             play_pos: self.play_pos,
         }
     }
 
-    pub fn set_state(&mut self, state: SavedPlaybackState, samples: &SoundBank) {
+    pub fn set_state(&mut self, state: SavedOrganyaPlaybackState, samples: &SoundBank) {
         self.start_song(state.song, samples);
         self.play_pos = state.play_pos;
     }
@@ -128,12 +95,13 @@ impl PlaybackEngine {
     pub fn start_song(&mut self, song: Organya, samples: &SoundBank) {
         for i in 0..8 {
             let sound_index = song.tracks[i].inst.inst as usize;
-            let sound = samples.get_wave(sound_index)
-                .iter()
-                .map(|&x| x ^ 128)
-                .collect();
+            let sound = samples.get_wave(sound_index).iter().map(|&x| x ^ 128).collect();
 
-            let format = WavFormat { channels: 1, sample_rate: 22050, bit_depth: 8 };
+            let format = WavFormat {
+                channels: 1,
+                sample_rate: 22050,
+                bit_depth: 8,
+            };
 
             let rbuf = RenderBuffer::new_organya(WavSample { format, data: sound });
 
@@ -144,7 +112,11 @@ impl PlaybackEngine {
             }
         }
 
-        for (idx, (track, buf)) in song.tracks[8..].iter().zip(self.track_buffers[128..].iter_mut()).enumerate() {
+        for (idx, (track, buf)) in song.tracks[8..]
+            .iter()
+            .zip(self.track_buffers[128..].iter_mut())
+            .enumerate()
+        {
             if self.song.version == Version::Extended {
                 *buf = RenderBuffer::new(samples.samples[track.inst.inst as usize].clone());
             } else {
@@ -156,14 +128,23 @@ impl PlaybackEngine {
         self.play_pos = 0;
         self.frames_per_tick = (self.output_format.sample_rate as usize / 1000) * self.song.time.wait as usize;
         self.frames_this_tick = 0;
-        for i in self.lengths.iter_mut() { *i = 0 };
-        for i in self.swaps.iter_mut() { *i = 0 };
-        for i in self.keys.iter_mut() { *i = 255 };
+        for i in self.lengths.iter_mut() {
+            *i = 0
+        }
+        for i in self.swaps.iter_mut() {
+            *i = 0
+        }
+        for i in self.keys.iter_mut() {
+            *i = 255
+        }
     }
 
-    #[allow(unused)]
     pub fn set_position(&mut self, position: i32) {
         self.play_pos = position;
+    }
+
+    pub fn rewind(&mut self) {
+        self.set_position(0);
     }
 
     #[allow(unused)]
@@ -177,12 +158,12 @@ impl PlaybackEngine {
 
     fn update_play_state(&mut self) {
         for track in 0..8 {
-            if let Some(note) =
-            self.song.tracks[track].notes.iter().find(|x| x.pos == self.play_pos) {
+            if let Some(note) = self.song.tracks[track].notes.iter().find(|x| x.pos == self.play_pos) {
                 // New note
                 //eprintln!("{:?}", &self.keys);
                 if note.key != 255 {
-                    if self.keys[track] == 255 { // New
+                    if self.keys[track] == 255 {
+                        // New
                         let octave = (note.key / 12) * 8;
                         let j = octave as usize + track + self.swaps[track];
                         for k in 0..16 {
@@ -194,13 +175,15 @@ impl PlaybackEngine {
 
                             let l = p_oct as usize * 8 + track + swap;
                             self.track_buffers[l].set_frequency(freq as u32);
-                            self.track_buffers[l].organya_select_octave(p_oct as usize, self.song.tracks[track].inst.pipi != 0);
+                            self.track_buffers[l]
+                                .organya_select_octave(p_oct as usize, self.song.tracks[track].inst.pipi != 0);
                         }
                         self.track_buffers[j].looping = true;
                         self.track_buffers[j].playing = true;
                         // last playing key
                         self.keys[track] = note.key;
-                    } else if self.keys[track] == note.key { // Same
+                    } else if self.keys[track] == note.key {
+                        // Same
                         //assert!(self.lengths[track] == 0);
                         let octave = (self.keys[track] / 12) * 8;
                         let j = octave as usize + track + self.swaps[track];
@@ -210,10 +193,12 @@ impl PlaybackEngine {
                         self.swaps[track] += 64;
                         self.swaps[track] %= 128;
                         let j = octave as usize + track + self.swaps[track];
-                        self.track_buffers[j].organya_select_octave(note.key as usize / 12, self.song.tracks[track].inst.pipi != 0);
+                        self.track_buffers[j]
+                            .organya_select_octave(note.key as usize / 12, self.song.tracks[track].inst.pipi != 0);
                         self.track_buffers[j].looping = true;
                         self.track_buffers[j].playing = true;
-                    } else { // change
+                    } else {
+                        // change
                         let octave = (self.keys[track] / 12) * 8;
                         let j = octave as usize + track + self.swaps[track];
                         if self.song.tracks[track].inst.pipi == 0 {
@@ -231,7 +216,8 @@ impl PlaybackEngine {
                             let freq = org_key_to_freq(key + p_oct * 12, self.song.tracks[track].inst.freq as i16);
                             let l = p_oct as usize * 8 + track + swap;
                             self.track_buffers[l].set_frequency(freq as u32);
-                            self.track_buffers[l].organya_select_octave(p_oct as usize, self.song.tracks[track].inst.pipi != 0);
+                            self.track_buffers[l]
+                                .organya_select_octave(p_oct as usize, self.song.tracks[track].inst.pipi != 0);
                         }
                         self.track_buffers[j].looping = true;
                         self.track_buffers[j].playing = true;
@@ -278,9 +264,7 @@ impl PlaybackEngine {
 
             // start a new note
             // note (hah) that drums are unaffected by length and pi values. This is the only case we have to handle.
-            if let Some(note) =
-            notes.iter().find(|x| x.pos == self.play_pos) {
-
+            if let Some(note) = notes.iter().find(|x| x.pos == self.play_pos) {
                 // FIXME: Add constants for dummy values
                 if note.key != 255 {
                     let freq = org_key_to_drum_freq(note.key);
@@ -344,13 +328,12 @@ pub fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
 
             let vol = centibel_to_scale(buf.volume);
 
-            let (pan_l, pan_r) =
-                match buf.pan.signum() {
-                    0 => (1.0, 1.0),
-                    1 => (centibel_to_scale(-buf.pan), 1.0),
-                    -1 => (1.0, centibel_to_scale(buf.pan)),
-                    _ => unsafe { std::hint::unreachable_unchecked() }
-                };
+            let (pan_l, pan_r) = match buf.pan.signum() {
+                0 => (1.0, 1.0),
+                1 => (centibel_to_scale(-buf.pan), 1.0),
+                -1 => (1.0, centibel_to_scale(buf.pan)),
+                _ => unsafe { std::hint::unreachable_unchecked() },
+            };
 
             fn clamp<T: Ord>(v: T, limit: T) -> T {
                 if v > limit {
@@ -361,7 +344,6 @@ pub fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
             }
 
             #[allow(unused_variables)]
-
             for frame in dst.iter_mut() {
                 let pos = buf.position as usize + buf.base_pos;
                 // -1..1
@@ -379,7 +361,7 @@ pub fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
                 //let s = s1 + (s2 - s1) * r1; // Linear interp
                 //let s = s1 * (1.0 - r2) + s2 * r2; // Cosine interp
                 let s = cubic_interp(s1, s2, s4, s3, r1); // Cubic interp
-                // Ideally we want sinc/lanczos interpolation, since that's what DirectSound appears to use.
+                                                          // Ideally we want sinc/lanczos interpolation, since that's what DirectSound appears to use.
 
                 // -128..128
                 let sl = s * pan_l * vol * 128.0;
@@ -450,6 +432,28 @@ impl RenderBuffer {
         }
     }
 
+    pub fn empty() -> RenderBuffer {
+        RenderBuffer {
+            position: 0.0,
+            frequency: 22050,
+            volume: 0,
+            pan: 0,
+            len: 0,
+            sample: WavSample {
+                format: WavFormat {
+                    channels: 2,
+                    sample_rate: 22050,
+                    bit_depth: 16,
+                },
+                data: vec![],
+            },
+            playing: false,
+            looping: false,
+            base_pos: 0,
+            nloops: -1,
+        }
+    }
+
     pub fn new_organya(mut sample: WavSample) -> RenderBuffer {
         let wave = sample.data.clone();
         sample.data.clear();
@@ -473,10 +477,7 @@ impl RenderBuffer {
 
     #[inline]
     pub fn organya_select_octave(&mut self, octave: usize, pipi: bool) {
-        const OFFS: &[usize] = &[0x000, 0x100,
-            0x200, 0x280,
-            0x300, 0x340,
-            0x360, 0x370];
+        const OFFS: &[usize] = &[0x000, 0x100, 0x200, 0x280, 0x300, 0x340, 0x360, 0x370];
         const LENS: &[usize] = &[256_usize, 256, 128, 128, 64, 32, 16, 8];
         self.base_pos = OFFS[octave];
         self.len = LENS[octave];

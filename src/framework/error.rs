@@ -93,6 +93,13 @@ impl From<std::string::FromUtf8Error> for GameError {
     }
 }
 
+impl From<serde_yaml::Error> for GameError {
+    fn from(e: serde_yaml::Error) -> Self {
+        let errstr = format!("Yaml error: {:?}", e);
+        GameError::ParseError(errstr)
+    }
+}
+
 #[cfg(target_os = "android")]
 impl From<jni::errors::Error> for GameError {
     fn from(e: jni::errors::Error) -> GameError {

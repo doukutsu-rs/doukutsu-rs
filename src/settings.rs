@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
+use serde_yaml::Error;
 
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::framework::filesystem::{user_create, user_open};
 use crate::framework::keyboard::ScanCode;
 use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
@@ -16,9 +18,12 @@ pub struct Settings {
     pub subpixel_coords: bool,
     pub motion_interpolation: bool,
     pub touch_controls: bool,
+    pub soundtrack: String,
+    #[serde(default = "p1_default_keymap")]
     pub player1_key_map: PlayerKeyMap,
+    #[serde(default = "p2_default_keymap")]
     pub player2_key_map: PlayerKeyMap,
-    #[serde(skip)]
+    #[serde(skip, default = "default_speed")]
     pub speed: f64,
     #[serde(skip)]
     pub god_mode: bool,
@@ -28,9 +33,26 @@ pub struct Settings {
     pub debug_outlines: bool,
 }
 
+fn default_speed() -> f64 {
+    1.0
+}
+
 impl Settings {
-    pub fn load(_ctx: &mut Context) -> GameResult<Settings> {
+    pub fn load(ctx: &Context) -> GameResult<Settings> {
+        if let Ok(file) = user_open(ctx, "/settings.yml") {
+            match serde_yaml::from_reader::<_, Settings>(file) {
+                Ok(settings) => return Ok(settings),
+                Err(err) => log::warn!("Failed to deserialize settings: {}", err),
+            }
+        }
+
         Ok(Settings::default())
+    }
+
+    pub fn save(&self, ctx: &Context) -> GameResult {
+        let file = user_create(ctx, "/settings.yml")?;
+        serde_yaml::to_writer(file, self)?;
+        Ok(())
     }
 
     pub fn create_player1_controller(&self) -> Box<dyn PlayerController> {
@@ -55,6 +77,7 @@ impl Default for Settings {
             subpixel_coords: true,
             motion_interpolation: true,
             touch_controls: cfg!(target_os = "android"),
+            soundtrack: "".to_string(),
             player1_key_map: p1_default_keymap(),
             player2_key_map: p2_default_keymap(),
             speed: 1.0,
@@ -90,7 +113,7 @@ fn p1_default_keymap() -> PlayerKeyMap {
         next_weapon: ScanCode::S,
         jump: ScanCode::Z,
         shoot: ScanCode::X,
-        skip: ScanCode::LControl,
+        skip: ScanCode::E,
         inventory: ScanCode::Q,
         map: ScanCode::W,
     }
