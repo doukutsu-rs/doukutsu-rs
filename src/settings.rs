@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_yaml::Error;
 
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
