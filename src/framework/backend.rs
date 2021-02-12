@@ -29,6 +29,10 @@ pub trait BackendRenderer {
 
     fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult;
 
+    fn draw_rect(&mut self, rect: Rect, color: Color) -> GameResult;
+
+    fn draw_outline_rect(&mut self, rect: Rect, line_width: usize, color: Color) -> GameResult;
+
     fn imgui(&self) -> GameResult<&mut imgui::Context>;
 
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult;

@@ -289,12 +289,4 @@ impl TextureSet {
 
         Ok(self.tex_map.get_mut(name).unwrap())
     }
-
-    pub fn draw_rect(&self, rect: common::Rect, color: [f32; 4], ctx: &mut Context) -> GameResult {
-        Ok(())
-    }
-
-    pub fn draw_outline_rect(&self, rect: common::Rect, width: f32, color: [f32; 4], ctx: &mut Context) -> GameResult {
-        Ok(())
-    }
 }

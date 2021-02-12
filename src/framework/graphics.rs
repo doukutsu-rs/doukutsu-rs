@@ -1,4 +1,4 @@
-use crate::common::Color;
+use crate::common::{Color, Rect};
 use crate::framework::context::Context;
 use crate::framework::error::{GameResult, GameError};
 use crate::framework::backend::BackendTexture;
@@ -74,6 +74,22 @@ pub fn set_blend_mode(ctx: &mut Context, blend: BlendMode) -> GameResult {
     }
 
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn draw_rect(ctx: &mut Context, rect: Rect, color: Color) -> GameResult {
+    if let Some(renderer) = ctx.renderer.as_mut() {
+        return renderer.draw_rect(rect, color);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn draw_outline_rect(ctx: &mut Context, rect: Rect, line_width: usize, color: Color) -> GameResult {
+    if let Some(renderer) = ctx.renderer.as_mut() {
+        return renderer.draw_outline_rect(rect, line_width, color);
+    }
+
+    Ok(())
 }
 
 pub fn imgui_context(ctx: &Context) -> GameResult<&mut imgui::Context> {
