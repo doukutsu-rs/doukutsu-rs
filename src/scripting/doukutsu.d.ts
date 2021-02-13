@@ -69,6 +69,25 @@ declare namespace doukutsu {
      */
     function playMusic(id: number): void;
 
+    /**
+     * Sets an implementation-defined game setting.
+     * @param name
+     * @param value
+     */
+    function setSetting(name: string, value: any): void;
+
+    /**
+     * Registers an event handler called after all scripts are loaded.
+     * @param event event name
+     * @param handler event handler procedure
+     */
+    function on(event: "init", handler: EventHandler<void>): EventHandler<void>;
+
+    /**
+     * Registers an event handler called on each tick.
+     * @param event event name
+     * @param handler event handler procedure
+     */
     function on(event: "tick", handler: EventHandler<DoukutsuScene>): EventHandler<DoukutsuScene>;
 
     function on<T>(event: string, handler: EventHandler<T>): EventHandler<T>;
