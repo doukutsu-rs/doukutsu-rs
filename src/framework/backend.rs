@@ -51,7 +51,13 @@ pub trait BackendTexture {
 }
 
 pub fn init_backend() -> GameResult<Box<dyn Backend>> {
-    crate::framework::backend_sdl2::SDL2Backend::new()
+    #[cfg(feature = "backend_sdl")]
+        {
+            return crate::framework::backend_sdl2::SDL2Backend::new()
+        }
+
+    log::warn!("No backend compiled in, using null backend instead.");
+    crate::framework::backend_null::NullBackend::new()
 }
 
 pub enum SpriteBatchCommand {

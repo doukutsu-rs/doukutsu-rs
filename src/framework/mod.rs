@@ -1,4 +1,5 @@
 pub mod backend;
+#[cfg(feature = "backend_sdl2")]
 pub mod backend_sdl2;
 pub mod backend_null;
 pub mod context;
