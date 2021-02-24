@@ -60,6 +60,14 @@ pub fn screen_size(ctx: &mut Context) -> (f32, f32) {
     ctx.screen_size
 }
 
+pub fn screen_insets(ctx: &mut Context) -> (f32, f32, f32, f32) {
+    ctx.screen_insets
+}
+
+pub fn screen_insets_scaled(ctx: &mut Context, scale: f32) -> (f32, f32, f32, f32) {
+    (ctx.screen_insets.0 / scale, ctx.screen_insets.1 / scale, ctx.screen_insets.2 / scale, ctx.screen_insets.3 / scale)
+}
+
 pub fn set_render_target(ctx: &mut Context, texture: Option<&Box<dyn BackendTexture>>) -> GameResult {
     if let Some(renderer) = ctx.renderer.as_mut() {
         return renderer.set_render_target(texture);
@@ -108,9 +116,9 @@ pub fn render_imgui(ctx: &mut Context, draw_data: &imgui::DrawData) -> GameResul
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
 
-pub fn imgui_prepare_frame(ctx: &Context, ui: &imgui::Ui) -> GameResult {
-    if let Some(renderer) = ctx.renderer.as_ref() {
-        return renderer.prepare_frame(ui);
+pub fn prepare_draw(ctx: &mut Context) -> GameResult {
+    if let Some(renderer) = ctx.renderer.as_mut() {
+        return renderer.prepare_draw(ctx.screen_size.0, ctx.screen_size.1);
     }
 
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))

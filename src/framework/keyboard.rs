@@ -165,6 +165,7 @@ pub enum ScanCode {
     Mail,
     MediaSelect,
     MediaStop,
+    Menu,
     Minus,
     Mute,
     MyComputer,

@@ -182,7 +182,7 @@ impl Scene for TitleScene {
                             TimingMode::_60Hz => state.timing_mode = TimingMode::_50Hz,
                             _ => {}
                         }
-                        state.settings.save(ctx);
+                        let _ = state.settings.save(ctx);
 
                         *value = state.timing_mode == TimingMode::_50Hz;
                     }
@@ -190,7 +190,7 @@ impl Scene for TitleScene {
                 MenuSelectionResult::Selected(1, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.shader_effects = !state.settings.shader_effects;
-                        state.settings.save(ctx);
+                        let _ = state.settings.save(ctx);
 
                         *value = state.settings.shader_effects;
                     }
@@ -199,7 +199,7 @@ impl Scene for TitleScene {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.original_textures = !state.settings.original_textures;
                         state.reload_textures();
-                        state.settings.save(ctx);
+                        let _ = state.settings.save(ctx);
 
                         *value = state.settings.original_textures;
                     }
@@ -208,7 +208,7 @@ impl Scene for TitleScene {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.seasonal_textures = !state.settings.seasonal_textures;
                         state.reload_textures();
-                        state.settings.save(ctx);
+                        let _ = state.settings.save(ctx);
 
                         *value = state.settings.seasonal_textures;
                     }

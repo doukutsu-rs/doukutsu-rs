@@ -526,9 +526,29 @@ where
         },
         err_fn,
     )?;
+
     stream.play()?;
 
+    let mut saved_state = true;
     loop {
         std::thread::sleep(Duration::from_millis(10));
+
+        {
+            let mutex = crate::GAME_SUSPENDED.lock().unwrap();
+            let state = *mutex;
+            if saved_state != state {
+                saved_state = state;
+
+                if state {
+                    if let Err(e) = stream.pause() {
+                        log::error!("Failed to pause the stream: {}", e);
+                    }
+                } else {
+                    if let Err(e) = stream.play() {
+                        log::error!("Failed to unpause the stream: {}", e);
+                    }
+                }
+            }
+        }
     }
 }

@@ -21,6 +21,10 @@ pub trait BackendRenderer {
 
     fn present(&mut self) -> GameResult;
 
+    fn prepare_draw(&mut self, width: f32, height: f32) -> GameResult {
+        Ok(())
+    }
+
     fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>>;
 
     fn create_texture(&mut self, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>>;
@@ -36,8 +40,6 @@ pub trait BackendRenderer {
     fn imgui(&self) -> GameResult<&mut imgui::Context>;
 
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult;
-
-    fn prepare_frame(&self, ui: &imgui::Ui) -> GameResult;
 }
 
 pub trait BackendTexture {
@@ -51,10 +53,20 @@ pub trait BackendTexture {
 }
 
 pub fn init_backend() -> GameResult<Box<dyn Backend>> {
-    #[cfg(feature = "backend_sdl")]
-        {
-            return crate::framework::backend_sdl2::SDL2Backend::new()
-        }
+    #[cfg(all(feature = "backend-glutin"))]
+    {
+        return crate::framework::backend_opengl::GlutinBackend::new();
+    }
+
+    #[cfg(feature = "backend-sokol")]
+    {
+        return crate::framework::backend_sokol::SokolBackend::new();
+    }
+
+    #[cfg(feature = "backend-sdl")]
+    {
+        return crate::framework::backend_sdl2::SDL2Backend::new();
+    }
 
     log::warn!("No backend compiled in, using null backend instead.");
     crate::framework::backend_null::NullBackend::new()

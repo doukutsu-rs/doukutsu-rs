@@ -45,6 +45,7 @@ impl LoadingScene {
 
 impl Scene for LoadingScene {
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        println!("**TICK**");
         // deferred to let the loading image draw
         if self.tick == 1 {
             if let Err(err) = self.load_stuff(state, ctx) {
@@ -66,6 +67,8 @@ impl Scene for LoadingScene {
                 batch.draw(ctx)?;
             }
             Err(err) => {
+                log::error!("Failed to load game data: {}", err);
+
                 state.next_scene = Some(Box::new(NoDataScene::new(err)));
             }
         }

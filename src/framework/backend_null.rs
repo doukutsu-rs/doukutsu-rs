@@ -29,6 +29,9 @@ impl BackendEventLoop for NullEventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
         let state_ref = unsafe { &mut *game.state.get() };
 
+        ctx.screen_size = (640.0, 480.0);
+        state_ref.handle_resize(ctx).unwrap();
+
         loop {
             game.update(ctx).unwrap();
             if state_ref.shutdown {
@@ -116,10 +119,6 @@ impl BackendRenderer for NullRenderer {
     }
 
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult {
-        Ok(())
-    }
-
-    fn prepare_frame<'ui>(&self, ui: &Ui<'ui>) -> GameResult {
         Ok(())
     }
 }

@@ -1,7 +1,13 @@
 pub mod backend;
-#[cfg(feature = "backend_sdl2")]
-pub mod backend_sdl2;
 pub mod backend_null;
+#[cfg(feature = "backend-glutin")]
+pub mod backend_opengl;
+#[cfg(feature = "backend-glutin")]
+mod gl;
+#[cfg(feature = "backend-sdl")]
+pub mod backend_sdl2;
+#[cfg(feature = "backend-sokol")]
+pub mod backend_sokol;
 pub mod context;
 pub mod error;
 pub mod filesystem;

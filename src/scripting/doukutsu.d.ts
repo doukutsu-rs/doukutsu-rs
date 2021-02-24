@@ -1,7 +1,7 @@
 declare type EventHandler<T> = (this: void, param: T) => void;
 
 /**
- * Represents a
+ * Represents an in-game player.
  */
 declare interface DoukutsuPlayer {
     /**
@@ -28,28 +28,40 @@ declare interface DoukutsuPlayer {
      * Current velocity of player in Y axis (as floating point, not internal fixed point representation).
      */
     velY(): number;
+
+    /**
+     * Sets the position of player in X axis (as floating point, not internal fixed point representation).
+     */
+    setX(value: number): void;
+
+    /**
+     * Sets the position of player in Y axis (as floating point, not internal fixed point representation).
+     */
+    setY(value: number): void;
+
+    /**
+     * Sets the velocity of player in X axis (as floating point, not internal fixed point representation).
+     */
+    setVelX(value: number): void;
+
+    /**
+     * Sets the velocity of player in Y axis (as floating point, not internal fixed point representation).
+     */
+    setVelY(value: number): void;
+
+
 }
 
-declare interface DoukutsuScene {
+declare interface DoukutsuStage {
     /**
-     * Returns the tick of current scene.
+     * Returns the tick of current stage.
      */
     tick(): number;
 
     /**
-     * Returns a list of players connected to current game.
-     */
-    onlinePlayers(): DoukutsuPlayer[];
-
-    /**
      * Returns a list of players on current map.
      */
-    mapPlayers(): DoukutsuPlayer[];
-
-    /**
-     * Returns the id of local player.
-     */
-    localPlayerId(): number;
+    players(): DoukutsuPlayer[];
 
     /**
      * Returns player with specified id.
@@ -70,6 +82,22 @@ declare namespace doukutsu {
     function playMusic(id: number): void;
 
     /**
+     * Returns the value of a certain TSC flag.
+     * @param id the flag number
+     */
+    function getFlag(id: number): boolean;
+
+    /**
+     * Returns a list of players connected to current game.
+     */
+    function onlinePlayers(): DoukutsuPlayer[];
+
+    /**
+     * Returns the id of local player.
+     */
+    function localPlayerId(): number;
+
+    /**
      * Sets an implementation-defined game setting.
      * @param name
      * @param value
@@ -88,7 +116,7 @@ declare namespace doukutsu {
      * @param event event name
      * @param handler event handler procedure
      */
-    function on(event: "tick", handler: EventHandler<DoukutsuScene>): EventHandler<DoukutsuScene>;
+    function on(event: "tick", handler: EventHandler<DoukutsuStage>): EventHandler<DoukutsuStage>;
 
     function on<T>(event: string, handler: EventHandler<T>): EventHandler<T>;
 }

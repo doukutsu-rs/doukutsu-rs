@@ -1,10 +1,10 @@
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
-
 use crate::common::Rect;
-use crate::components::draw_common::{Alignment, draw_number};
+use crate::components::draw_common::{draw_number, Alignment};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::graphics::screen_insets_scaled;
 use crate::inventory::Inventory;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
@@ -78,11 +78,7 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
         self.current_level = inventory.get_current_level() as usize;
 
         for (a, slot) in self.weapon_types.iter_mut().enumerate() {
-            *slot = if let Some(weapon) = inventory.get_weapon(a) {
-                weapon.wtype as u8
-            } else {
-                0
-            };
+            *slot = if let Some(weapon) = inventory.get_weapon(a) { weapon.wtype as u8 } else { 0 };
         }
 
         // update health bar
@@ -163,13 +159,19 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
             return Ok(());
         }
 
+        let (left, top, right, bottom) = screen_insets_scaled(ctx, state.scale);
+
         // none
         let weap_x = self.weapon_x_pos as f32;
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
 
         let (bar_offset, num_offset, weapon_offset) = match self.alignment {
-            Alignment::Left => (0.0, 0.0, 0.0),
-            Alignment::Right => (state.canvas_size.0 - 112.0, state.canvas_size.0 - 48.0, state.canvas_size.0 - 40.0),
+            Alignment::Left => (left, left, left),
+            Alignment::Right => (
+                state.canvas_size.0 - 112.0 - right,
+                state.canvas_size.0 - 48.0 - right,
+                state.canvas_size.0 - 40.0 - right,
+            ),
         };
         let air_offset = if self.has_player2 {
             50.0 * match self.alignment {
@@ -181,31 +183,24 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
         };
 
         if self.max_ammo == 0 {
-            batch.add_rect(bar_offset + weap_x + 48.0, 16.0,
-                           &Rect::new_size(80, 48, 16, 8));
-            batch.add_rect(bar_offset + weap_x + 48.0, 24.0,
-                           &Rect::new_size(80, 48, 16, 8));
+            batch.add_rect(bar_offset + weap_x + 48.0, 16.0 + top, &Rect::new_size(80, 48, 16, 8));
+            batch.add_rect(bar_offset + weap_x + 48.0, 24.0 + top, &Rect::new_size(80, 48, 16, 8));
         }
 
         // per
-        batch.add_rect(bar_offset + weap_x + 32.0, 24.0,
-                       &Rect::new_size(72, 48, 8, 8));
+        batch.add_rect(bar_offset + weap_x + 32.0, 24.0 + top, &Rect::new_size(72, 48, 8, 8));
         // lv
-        batch.add_rect(num_offset + weap_x, 32.0,
-                       &Rect::new_size(80, 80, 16, 8));
+        batch.add_rect(num_offset + weap_x, 32.0 + top, &Rect::new_size(80, 80, 16, 8));
         // xp box
-        batch.add_rect(bar_offset + weap_x + 24.0, 32.0,
-                       &Rect::new_size(0, 72, 40, 8));
+        batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(0, 72, 40, 8));
 
         if self.max_level {
-            batch.add_rect(bar_offset + weap_x + 24.0, 32.0,
-                           &Rect::new_size(40, 72, 40, 8));
+            batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(40, 72, 40, 8));
         } else if self.max_xp > 0 {
             // xp bar
             let bar_width = (self.xp as f32 / self.max_xp as f32 * 40.0) as u16;
 
-            batch.add_rect(bar_offset + weap_x + 24.0, 32.0,
-                           &Rect::new_size(0, 80, bar_width, 8));
+            batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(0, 80, bar_width, 8));
         }
 
         if self.max_life != 0 {
@@ -213,28 +208,23 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
             let bar_width = (self.life as f32 / self.max_life as f32 * 39.0) as u16;
 
             // heart/hp number box
-            batch.add_rect(num_offset + 16.0, 40.0,
-                           &Rect::new_size(0, 40, 24, 8));
+            batch.add_rect(num_offset + 16.0, 40.0 + top, &Rect::new_size(0, 40, 24, 8));
             // life box
-            batch.add_rect(bar_offset + 40.0, 40.0,
-                           &Rect::new_size(24, 40, 40, 8));
+            batch.add_rect(bar_offset + 40.0, 40.0 + top, &Rect::new_size(24, 40, 40, 8));
             // yellow bar
-            batch.add_rect(bar_offset + 40.0, 40.0,
-                           &Rect::new_size(0, 32, yellow_bar_width, 8));
+            batch.add_rect(bar_offset + 40.0, 40.0 + top, &Rect::new_size(0, 32, yellow_bar_width, 8));
             // life
-            batch.add_rect(bar_offset + 40.0, 40.0,
-                           &Rect::new_size(0, 24, bar_width, 8));
+            batch.add_rect(bar_offset + 40.0, 40.0 + top, &Rect::new_size(0, 24, bar_width, 8));
         }
 
         if self.air_counter > 0 {
-            let rect = if self.air % 30 > 10 {
-                Rect::new_size(112, 72, 32, 8)
-            } else {
-                Rect::new_size(112, 80, 32, 8)
-            };
+            let rect = if self.air % 30 > 10 { Rect::new_size(112, 72, 32, 8) } else { Rect::new_size(112, 80, 32, 8) };
 
-            batch.add_rect((state.canvas_size.0 / 2.0).floor() - 40.0 + air_offset,
-                           (state.canvas_size.1 / 2.0).floor(), &rect);
+            batch.add_rect(
+                left + ((state.canvas_size.0 - left - right) / 2.0).floor() - 40.0 + air_offset,
+                top + ((state.canvas_size.1 - top - bottom) / 2.0).floor(),
+                &rect,
+            );
         }
 
         batch.draw(ctx)?;
@@ -267,7 +257,7 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
                 if wtype != 0 {
                     rect.left = wtype as u16 * 16;
                     rect.right = rect.left + 16;
-                    batch.add_rect(pos_x + weapon_offset, 16.0, &rect);
+                    batch.add_rect(pos_x + weapon_offset, 16.0 + top, &rect);
                 }
             }
         }
@@ -275,17 +265,22 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
         batch.draw(ctx)?;
 
         if self.air_counter > 0 && self.air_counter % 6 < 4 {
-            draw_number((state.canvas_size.0 / 2.0).floor() + 8.0 + air_offset,
-                        (state.canvas_size.1 / 2.0).floor(),
-                        (self.air / 10) as usize, Alignment::Left, state, ctx)?;
+            draw_number(
+                left + ((state.canvas_size.0 - left - right) / 2.0).floor() + 8.0 + air_offset,
+                top + ((state.canvas_size.1 - top - bottom) / 2.0).floor(),
+                (self.air / 10) as usize,
+                Alignment::Left,
+                state,
+                ctx,
+            )?;
         }
 
         if self.max_ammo != 0 {
-            draw_number(num_offset + weap_x + 64.0, 16.0, self.ammo as usize, Alignment::Right, state, ctx)?;
-            draw_number(num_offset + weap_x + 64.0, 24.0, self.max_ammo as usize, Alignment::Right, state, ctx)?;
+            draw_number(num_offset + weap_x + 64.0, 16.0 + top, self.ammo as usize, Alignment::Right, state, ctx)?;
+            draw_number(num_offset + weap_x + 64.0, 24.0 + top, self.max_ammo as usize, Alignment::Right, state, ctx)?;
         }
-        draw_number(num_offset + weap_x + 24.0, 32.0, self.current_level, Alignment::Right, state, ctx)?;
-        draw_number(num_offset + 40.0, 40.0, self.life_bar as usize, Alignment::Right, state, ctx)?;
+        draw_number(num_offset + weap_x + 24.0, 32.0 + top, self.current_level, Alignment::Right, state, ctx)?;
+        draw_number(num_offset + 40.0, 40.0 + top, self.life_bar as usize, Alignment::Right, state, ctx)?;
 
         Ok(())
     }

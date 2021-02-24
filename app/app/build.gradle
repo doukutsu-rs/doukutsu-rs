@@ -1,0 +1,99 @@
+plugins {
+    id 'com.android.application'
+    id 'com.github.willir.rust.cargo-ndk-android'
+}
+
+android {
+    compileSdkVersion 30
+    buildToolsVersion "30.0.3"
+    //ndkVersion "21.3.6528147"
+
+    defaultConfig {
+        applicationId "io.github.doukutsu_rs"
+        minSdkVersion 24
+        targetSdkVersion 30
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters 'x86', 'arm64-v8a'
+        }
+
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_STL=c++_shared"
+            }
+        }
+
+        def documentsAuthorityValue = applicationId + ".documents"
+
+        manifestPlaceholders =
+                [documentsAuthority: documentsAuthorityValue]
+
+        buildConfigField "String",
+                "DOCUMENTS_AUTHORITY",
+                "\"${documentsAuthorityValue}\""
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    buildFeatures {
+        viewBinding true
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.android.support:support-annotations:28.0.0'
+}
+
+println("cargo target: ${project.buildDir.getAbsolutePath()}/rust-target")
+
+cargoNdk {
+    targets = [
+            "x86",
+            "arm64"
+    ]
+    librariesNames = ["libdoukutsu_rs.so"]
+    //targetDirectory = "${project.buildDir.getAbsolutePath()}/rust-target"
+    module = "../"
+    extraCargoEnv = ["ANDROID_NDK_HOME": android.ndkDirectory]
+    extraCargoBuildArguments = ["--no-default-features", "--features", "backend-glutin ogg-playback scripting"]
+    verbose = true
+
+    buildTypes {
+        release {
+            buildType = "release"
+        }
+        debug {
+            buildType = "debug"
+        }
+    }
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name == 'javaPreCompileDebug') {
+        task.dependsOn 'buildCargoNdkDebug'
+    }
+
+    if (task.name == 'javaPreCompileRelease') {
+        task.dependsOn 'buildCargoNdkRelease'
+    }
+}

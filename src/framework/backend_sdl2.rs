@@ -564,13 +564,7 @@ impl BackendRenderer for SDL2Renderer {
 
         Ok(())
     }
-
-    fn prepare_frame<'ui>(&self, _ui: &Ui<'ui>) -> GameResult {
-        Ok(())
-    }
 }
-
-impl SDL2Renderer {}
 
 struct SDL2Texture {
     refs: Rc<RefCell<SDL2Context>>,

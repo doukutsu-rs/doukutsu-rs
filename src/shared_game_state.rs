@@ -222,6 +222,10 @@ impl SharedGameState {
         self.texture_set = texture_set;
     }
 
+    pub fn graphics_reset(&mut self) {
+        self.reload_textures();
+    }
+
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
         let mut next_scene = GameScene::new(self, ctx, 13)?;
         next_scene.player1.cond.set_alive(true);
