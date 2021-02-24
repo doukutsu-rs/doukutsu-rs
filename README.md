@@ -48,5 +48,6 @@ Vanilla Cave Story does not work yet because some important data files have been
 
 - Studio Pixel/Nicalis for Cave Story 
 - [Cave Story Tribute Site](https://cavestory.org) - has lots of useful resources related to the game. 
-- [CSE2](https://github.com/Clownacy/CSE2) - widescreen fixes, more readable reference for game logic, mutual help in various things.
+- [CSE2](https://github.com/Clownacy/CSE2) - widescreen fixes, mutual help in various things.
 - [LunarLambda for organism](https://gitdab.com/LunarLambda/organism) - which is being used by us as `.org` playback engine.
+- [@uselesscalcium](https://twitter.com/uselesscalcium) - Android port icon artwork
