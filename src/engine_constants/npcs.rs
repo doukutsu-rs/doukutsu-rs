@@ -2520,12 +2520,12 @@ fn default_n126_puppy_running() -> [Rect<u16>; 12] {
 
 fn default_n127_machine_gun_trail_l2() -> [Rect<u16>; 6] {
     [
-        Rect { left: 112, top: 48, right: 128, bottom: 64 },
-        Rect { left: 112, top: 64, right: 128, bottom: 80 },
-        Rect { left: 112, top: 80, right: 128, bottom: 96 },
         Rect { left: 64, top: 80, right: 80, bottom: 96 },
         Rect { left: 80, top: 80, right: 96, bottom: 96 },
         Rect { left: 96, top: 80, right: 112, bottom: 96 },
+        Rect { left: 112, top: 48, right: 128, bottom: 64 },
+        Rect { left: 112, top: 64, right: 128, bottom: 80 },
+        Rect { left: 112, top: 80, right: 128, bottom: 96 },
     ]
 }
 

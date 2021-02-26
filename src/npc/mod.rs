@@ -260,6 +260,8 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
             120 => self.tick_n120_colon_a(state),
             124 => self.tick_n124_sunstone(state),
             125 => self.tick_n125_hidden_item(state, npc_list),
+            127 => self.tick_n127_machine_gun_trail_l2(state),
+            128 => self.tick_n128_machine_gun_trail_l3(state),
             129 => self.tick_n129_fireball_snake_trail(state),
             131 => self.tick_n131_puppy_sleeping(state),
             137 => self.tick_n137_large_door_frame(state),

@@ -116,6 +116,12 @@ pub struct BulletRects {
     pub b006_polar_star_l3: [Rect<u16>; 2],
     pub b007_fireball_l1: [Rect<u16>; 8],
     pub b008_009_fireball_l2_3: [Rect<u16>; 6],
+    pub b010_machine_gun_l1: [Rect<u16>; 4],
+    pub b011_machine_gun_l2: [Rect<u16>; 4],
+    pub b012_machine_gun_l3: [Rect<u16>; 4],
+    pub b013_missile_l1: [Rect<u16>; 4],
+    pub b014_missile_l2: [Rect<u16>; 4],
+    pub b015_missile_l3: [Rect<u16>; 4],
     pub b023_blade_slash: [Rect<u16>; 10],
     pub b025_blade_l1: [Rect<u16>; 8],
     pub b026_blade_l2: [Rect<u16>; 8],
@@ -1001,6 +1007,43 @@ impl EngineConstants {
                         Rect { left: 224, top: 16, right: 240, bottom: 32 }, // right
                         Rect { left: 208, top: 16, right: 224, bottom: 32 },
                         Rect { left: 192, top: 16, right: 208, bottom: 32 },
+                    ],
+                    b010_machine_gun_l1: [
+                        Rect { left: 64, top: 0, right: 80, bottom: 16 },
+                        Rect { left: 80, top: 0, right: 96, bottom: 16 },
+                        Rect { left: 96, top: 0, right: 112, bottom: 16 },
+                        Rect { left: 112, top: 0, right: 128, bottom: 16 },
+                    ],
+                    b011_machine_gun_l2: [
+
+                Rect { left: 64, top: 16, right: 80, bottom: 32 },
+                Rect { left: 80, top: 16, right: 96, bottom: 32 },
+                Rect { left: 96, top: 16, right: 112, bottom: 32 },
+                Rect { left: 112, top: 16, right: 128, bottom: 32 },
+                    ],
+                    b012_machine_gun_l3: [
+
+                        Rect { left: 64, top: 32, right: 80, bottom: 48 },
+                        Rect { left: 80, top: 32, right: 96, bottom: 48 },
+                        Rect { left: 96, top: 32, right: 112, bottom: 48 },
+                        Rect { left: 112, top: 32, right: 128, bottom: 48 },
+                    ],
+                    b013_missile_l1: [
+                        Rect { left: 0, top: 0, right: 16, bottom: 16 },
+                        Rect { left: 16, top: 0, right: 32, bottom: 16 },
+                        Rect { left: 32, top: 0, right: 48, bottom: 16 },
+                        Rect { left: 48, top: 0, right: 64, bottom: 16 },
+                    ],
+                    b014_missile_l2: [
+                        Rect { left: 0, top: 16, right: 16, bottom: 32 },
+                        Rect { left: 16, top: 16, right: 32, bottom: 32 },
+                        Rect { left: 32, top: 16, right: 48, bottom: 32 },
+                        Rect { left: 48, top: 16, right: 64, bottom: 32 },],
+                    b015_missile_l3: [
+                        Rect { left: 0, top: 32, right: 16, bottom: 48 },
+                        Rect { left: 16, top: 32, right: 32, bottom: 48 },
+                        Rect { left: 32, top: 32, right: 48, bottom: 48 },
+                        Rect { left: 48, top: 32, right: 64, bottom: 48 },
                     ],
                     b023_blade_slash: [
                         Rect { left: 0, top: 64, right: 24, bottom: 88 }, // left

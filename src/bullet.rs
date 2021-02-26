@@ -7,9 +7,9 @@ use crate::common::{BulletFlag, Condition, Direction, Flag, Rect};
 use crate::engine_constants::{BulletData, EngineConstants};
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
-use crate::physics::{OFF_X, OFF_Y, PhysicalEntity};
+use crate::physics::{PhysicalEntity, OFF_X, OFF_Y};
 use crate::player::TargetPlayer;
-use crate::rng::{RNG, Xoroshiro32PlusPlus, XorShift};
+use crate::rng::{XorShift, Xoroshiro32PlusPlus, RNG};
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
@@ -29,7 +29,15 @@ impl BulletManager {
         }
     }
 
-    pub fn create_bullet(&mut self, x: i32, y: i32, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) {
+    pub fn create_bullet(
+        &mut self,
+        x: i32,
+        y: i32,
+        btype: u16,
+        owner: TargetPlayer,
+        direction: Direction,
+        constants: &EngineConstants,
+    ) {
         let mut bullet = Bullet::new(x, y, btype, owner, direction, constants);
         bullet.rng = Xoroshiro32PlusPlus::new(self.seeder.next_u32());
 
@@ -41,7 +49,13 @@ impl BulletManager {
         self.bullets.push(bullet);
     }
 
-    pub fn tick_bullets(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2], npc_list: &NPCList, stage: &mut Stage) {
+    pub fn tick_bullets(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&dyn PhysicalEntity; 2],
+        npc_list: &NPCList,
+        stage: &mut Stage,
+    ) {
         let mut i = 0;
         while i < self.bullets.len() {
             {
@@ -112,20 +126,25 @@ pub struct Bullet {
 }
 
 impl Bullet {
-    pub fn new(x: i32, y: i32, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) -> Bullet {
-        let bullet = constants.weapon.bullet_table
-            .get(btype as usize)
-            .unwrap_or_else(|| &BulletData {
-                damage: 0,
-                life: 0,
-                lifetime: 0,
-                flags: BulletFlag(0),
-                enemy_hit_width: 0,
-                enemy_hit_height: 0,
-                block_hit_width: 0,
-                block_hit_height: 0,
-                display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 },
-            });
+    pub fn new(
+        x: i32,
+        y: i32,
+        btype: u16,
+        owner: TargetPlayer,
+        direction: Direction,
+        constants: &EngineConstants,
+    ) -> Bullet {
+        let bullet = constants.weapon.bullet_table.get(btype as usize).unwrap_or_else(|| &BulletData {
+            damage: 0,
+            life: 0,
+            lifetime: 0,
+            flags: BulletFlag(0),
+            enemy_hit_width: 0,
+            enemy_hit_height: 0,
+            block_hit_width: 0,
+            block_hit_height: 0,
+            display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 },
+        });
 
         Bullet {
             btype,
@@ -295,28 +314,26 @@ impl Bullet {
             }
 
             match self.btype {
-                4 => {
-                    match self.direction {
-                        Direction::Left | Direction::Right => self.enemy_hit_height = 0x400,
-                        Direction::Up | Direction::Bottom => self.enemy_hit_width = 0x400,
-                        Direction::FacingPlayer => unreachable!(),
+                4 => match self.direction {
+                    Direction::Left | Direction::Right => self.enemy_hit_height = 0x400,
+                    Direction::Up | Direction::Bottom => self.enemy_hit_width = 0x400,
+                    Direction::FacingPlayer => unreachable!(),
+                },
+                5 => match self.direction {
+                    Direction::Left | Direction::Right => {
+                        self.enemy_hit_height = 0x800;
                     }
-                }
-                5 => {
-                    match self.direction {
-                        Direction::Left | Direction::Right => {
-                            self.enemy_hit_height = 0x800;
-                        }
-                        Direction::Up | Direction::Bottom => {
-                            self.enemy_hit_width = 0x800;
-                        }
-                        Direction::FacingPlayer => unreachable!(),
+                    Direction::Up | Direction::Bottom => {
+                        self.enemy_hit_width = 0x800;
                     }
-                }
+                    Direction::FacingPlayer => unreachable!(),
+                },
                 6 => {
                     // level 3 uses default values
                 }
-                _ => { unreachable!() }
+                _ => {
+                    unreachable!()
+                }
             }
         } else {
             self.x += self.vel_x;
@@ -351,7 +368,9 @@ impl Bullet {
                     self.anim_rect = state.constants.weapon.bullet_rects.b006_polar_star_l3[0];
                 }
             }
-            _ => { unreachable!() }
+            _ => {
+                unreachable!()
+            }
         }
     }
 
@@ -364,7 +383,8 @@ impl Bullet {
         }
 
         if (self.flags.hit_left_wall() && self.flags.hit_right_wall())
-            || (self.flags.hit_top_wall() && self.flags.hit_bottom_wall()) {
+            || (self.flags.hit_top_wall() && self.flags.hit_bottom_wall())
+        {
             self.cond.set_alive(false);
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
             state.sound_manager.play_sfx(28);
@@ -395,28 +415,16 @@ impl Bullet {
                 Direction::Up => {
                     self.vel_x = players[self.owner.index()].vel_x();
 
-                    self.direction = if self.vel_x < 0 {
-                        Direction::Left
-                    } else {
-                        Direction::Right
-                    };
+                    self.direction = if self.vel_x < 0 { Direction::Left } else { Direction::Right };
 
-                    self.vel_x += if players[self.owner.index()].direction() == Direction::Left {
-                        -0x80
-                    } else {
-                        0x80
-                    };
+                    self.vel_x += if players[self.owner.index()].direction() == Direction::Left { -0x80 } else { 0x80 };
 
                     self.vel_y = -0x5ff;
                 }
                 Direction::Bottom => {
                     self.vel_x = players[self.owner.index()].vel_x();
 
-                    self.direction = if self.vel_x < 0 {
-                        Direction::Left
-                    } else {
-                        Direction::Right
-                    };
+                    self.direction = if self.vel_x < 0 { Direction::Left } else { Direction::Right };
 
                     self.vel_y = 0x5ff;
                 }
@@ -446,7 +454,8 @@ impl Bullet {
 
         self.anim_num += 1;
 
-        if self.btype == 7 { // level 1
+        if self.btype == 7 {
+            // level 1
             if self.anim_num > 3 {
                 self.anim_num = 0;
             }
@@ -461,7 +470,8 @@ impl Bullet {
 
             let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
 
-            self.anim_rect = state.constants.weapon.bullet_rects.b008_009_fireball_l2_3[self.anim_num as usize + dir_offset];
+            self.anim_rect =
+                state.constants.weapon.bullet_rects.b008_009_fireball_l2_3[self.anim_num as usize + dir_offset];
 
             let mut npc = NPC::create(129, &state.npc_table);
             npc.cond.set_alive(true);
@@ -471,6 +481,88 @@ impl Bullet {
             npc.action_counter2 = if self.btype == 9 { self.anim_num + 3 } else { self.anim_num };
 
             let _ = npc_list.spawn(0x100, npc);
+        }
+    }
+
+    fn tick_machine_gun(&mut self, state: &mut SharedGameState, npc_list: &NPCList) {
+        self.action_counter += 1;
+        if self.action_counter > self.lifetime {
+            self.cond.set_alive(false);
+            state.create_caret(self.x, self.y, CaretType::Shoot, Direction::Left);
+            return;
+        }
+
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            match self.direction {
+                Direction::Left => {
+                    self.vel_x = -0x1000;
+                    self.vel_y = self.rng.range(-0xaa..0xaa);
+                }
+                Direction::Up => {
+                    self.vel_y = -0x1000;
+                    self.vel_x = self.rng.range(-0xaa..0xaa);
+                }
+                Direction::Right => {
+                    self.vel_x = 0x1000;
+                    self.vel_y = self.rng.range(-0xaa..0xaa);
+                }
+                Direction::Bottom => {
+                    self.vel_y = 0x1000;
+                    self.vel_x = self.rng.range(-0xaa..0xaa);
+                }
+                Direction::FacingPlayer => unreachable!(),
+            }
+        } else {
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+
+            match self.btype {
+                11 => {
+                    let mut npc = NPC::create(127, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.x;
+                    npc.y = self.y;
+
+                    match self.direction {
+                        Direction::Left | Direction::Right => {
+                            npc.direction = Direction::Left;
+                        }
+                        Direction::Bottom | Direction::Up => {
+                            npc.direction = Direction::Up;
+                        }
+                        _ => {}
+                    }
+
+                    let _ = npc_list.spawn(256, npc);
+                }
+                12 => {
+                    let mut npc = NPC::create(128, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.x;
+                    npc.y = self.y;
+                    npc.direction = self.direction;
+
+                    let _ = npc_list.spawn(256, npc);
+                }
+                _ => {}
+            }
+        }
+
+        match self.btype {
+            10 => {
+                self.anim_rect = state.constants.weapon.bullet_rects.b010_machine_gun_l1[self.direction as usize];
+            }
+            11 => {
+                self.anim_rect = state.constants.weapon.bullet_rects.b011_machine_gun_l2[self.direction as usize];
+            }
+            12 => {
+                self.anim_rect = state.constants.weapon.bullet_rects.b012_machine_gun_l3[self.direction as usize];
+            }
+            _ => {
+                unreachable!()
+            }
         }
     }
 
@@ -620,11 +712,7 @@ impl Bullet {
                     state.sound_manager.play_sfx(106);
 
                     self.counter1 += 1;
-                    let direction = if self.counter1 % 2 != 0 {
-                        Direction::Left
-                    } else {
-                        Direction::Right
-                    };
+                    let direction = if self.counter1 % 2 != 0 { Direction::Left } else { Direction::Right };
 
                     new_bullets.push(Bullet::new(self.x, self.y, 23, self.owner, direction, &state.constants));
                 }
@@ -650,11 +738,7 @@ impl Bullet {
 
                     let x = self.rng.range(-64..64) * 0x200 + self.x;
                     let y = self.rng.range(-64..64) * 0x200 + self.y;
-                    let direction = if self.rng.range(0..1) != 0 {
-                        Direction::Left
-                    } else {
-                        Direction::Right
-                    };
+                    let direction = if self.rng.range(0..1) != 0 { Direction::Left } else { Direction::Right };
 
                     new_bullets.push(Bullet::new(x, y, 23, self.owner, direction, &state.constants));
                 }
@@ -704,28 +788,26 @@ impl Bullet {
             }
 
             match self.btype {
-                37 => {
-                    match self.direction {
-                        Direction::Left | Direction::Right => self.enemy_hit_height = 0x400,
-                        Direction::Up | Direction::Bottom => self.enemy_hit_width = 0x400,
-                        Direction::FacingPlayer => unreachable!(),
+                37 => match self.direction {
+                    Direction::Left | Direction::Right => self.enemy_hit_height = 0x400,
+                    Direction::Up | Direction::Bottom => self.enemy_hit_width = 0x400,
+                    Direction::FacingPlayer => unreachable!(),
+                },
+                38 => match self.direction {
+                    Direction::Left | Direction::Right => {
+                        self.enemy_hit_height = 0x800;
                     }
-                }
-                38 => {
-                    match self.direction {
-                        Direction::Left | Direction::Right => {
-                            self.enemy_hit_height = 0x800;
-                        }
-                        Direction::Up | Direction::Bottom => {
-                            self.enemy_hit_width = 0x800;
-                        }
-                        Direction::FacingPlayer => unreachable!(),
+                    Direction::Up | Direction::Bottom => {
+                        self.enemy_hit_width = 0x800;
                     }
-                }
+                    Direction::FacingPlayer => unreachable!(),
+                },
                 39 => {
                     // level 3 uses default values
                 }
-                _ => { unreachable!() }
+                _ => {
+                    unreachable!()
+                }
             }
         } else {
             self.x += self.vel_x;
@@ -766,7 +848,9 @@ impl Bullet {
 
                 new_bullets.push(Bullet::new(self.x, self.y, 42, self.owner, self.direction, &state.constants));
             }
-            _ => { unreachable!() }
+            _ => {
+                unreachable!()
+            }
         }
     }
 
@@ -807,11 +891,19 @@ impl Bullet {
                     self.anim_rect = state.constants.weapon.bullet_rects.b042_spur_trail_l3[self.anim_num as usize];
                 }
             }
-            _ => { unreachable!() }
+            _ => {
+                unreachable!()
+            }
         }
     }
 
-    pub fn tick(&mut self, state: &mut SharedGameState, players: [&dyn PhysicalEntity; 2], npc_list: &NPCList, new_bullets: &mut Vec<Bullet>) {
+    pub fn tick(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&dyn PhysicalEntity; 2],
+        npc_list: &NPCList,
+        new_bullets: &mut Vec<Bullet>,
+    ) {
         if self.life == 0 {
             self.cond.set_alive(false);
             return;
@@ -822,6 +914,7 @@ impl Bullet {
             2 | 3 => self.tick_snake_2(state, npc_list),
             4 | 5 | 6 => self.tick_polar_star(state),
             7 | 8 | 9 => self.tick_fireball(state, players, npc_list),
+            10 | 11 | 12 => self.tick_machine_gun(state, npc_list),
             23 => self.tick_blade_slash(state),
             25 => self.tick_blade_1(state),
             26 => self.tick_blade_2(state),
@@ -862,12 +955,15 @@ impl Bullet {
             }
         } else if hits[0] && !hits[2] {
             if (self.x - self.hit_bounds.left as i32) < block_x
-                && (self.y - self.hit_bounds.top as i32) < block_y - (3 * 0x200) {
+                && (self.y - self.hit_bounds.top as i32) < block_y - (3 * 0x200)
+            {
                 self.flags.set_hit_left_wall(true);
             }
-        } else if !hits[0] && hits[2]
+        } else if !hits[0]
+            && hits[2]
             && (self.x - self.hit_bounds.left as i32) < block_x
-            && (self.y + self.hit_bounds.top as i32) > block_y + (3 * 0x200) {
+            && (self.y + self.hit_bounds.top as i32) > block_y + (3 * 0x200)
+        {
             self.flags.set_hit_left_wall(true);
         }
 
@@ -878,12 +974,15 @@ impl Bullet {
             }
         } else if hits[1] && !hits[3] {
             if (self.x + self.hit_bounds.right as i32) > block_x
-                && (self.y - self.hit_bounds.top as i32) < block_y - (3 * 0x200) {
+                && (self.y - self.hit_bounds.top as i32) < block_y - (3 * 0x200)
+            {
                 self.flags.set_hit_right_wall(true);
             }
-        } else if !hits[1] && hits[3]
+        } else if !hits[1]
+            && hits[3]
             && (self.x + self.hit_bounds.right as i32) > block_x
-            && (self.y + self.hit_bounds.top as i32) > block_y + (3 * 0x200) {
+            && (self.y + self.hit_bounds.top as i32) > block_y + (3 * 0x200)
+        {
             self.flags.set_hit_right_wall(true);
         }
 
@@ -894,12 +993,15 @@ impl Bullet {
             }
         } else if hits[0] && !hits[1] {
             if (self.x - self.hit_bounds.left as i32) < block_x - (3 * 0x200)
-                && (self.y - self.hit_bounds.top as i32) < block_y {
+                && (self.y - self.hit_bounds.top as i32) < block_y
+            {
                 self.flags.set_hit_top_wall(true);
             }
-        } else if !hits[0] && hits[1]
+        } else if !hits[0]
+            && hits[1]
             && (self.x + self.hit_bounds.right as i32) > block_x + (3 * 0x200)
-            && (self.y - self.hit_bounds.top as i32) < block_y {
+            && (self.y - self.hit_bounds.top as i32) < block_y
+        {
             self.flags.set_hit_top_wall(true);
         }
 
@@ -910,12 +1012,15 @@ impl Bullet {
             }
         } else if hits[2] && !hits[3] {
             if (self.x - self.hit_bounds.left as i32) < block_x - (3 * 0x200)
-                && (self.y + self.hit_bounds.bottom as i32) > block_y {
+                && (self.y + self.hit_bounds.bottom as i32) > block_y
+            {
                 self.flags.set_hit_bottom_wall(true);
             }
-        } else if !hits[2] && hits[3]
+        } else if !hits[2]
+            && hits[3]
             && (self.x + self.hit_bounds.right as i32) > block_x + (3 * 0x200)
-            && (self.y + self.hit_bounds.bottom as i32) > block_y {
+            && (self.y + self.hit_bounds.bottom as i32) > block_y
+        {
             self.flags.set_hit_bottom_wall(true);
         }
 
@@ -929,8 +1034,11 @@ impl Bullet {
             } else if self.flags.hit_bottom_wall() {
                 self.y = block_y - self.hit_bounds.top as i32;
             }
-        } else if self.flags.hit_left_wall() || self.flags.hit_top_wall()
-            || self.flags.hit_right_wall() || self.flags.hit_bottom_wall() {
+        } else if self.flags.hit_left_wall()
+            || self.flags.hit_top_wall()
+            || self.flags.hit_right_wall()
+            || self.flags.hit_bottom_wall()
+        {
             self.vanish(state);
         }
     }
@@ -1018,7 +1126,8 @@ impl PhysicalEntity for Bullet {
 
     fn tick_map_collisions(&mut self, state: &mut SharedGameState, npc_list: &NPCList, stage: &mut Stage) {
         self.flags().0 = 0;
-        if self.weapon_flags.flag_x04() { // ???
+        if self.weapon_flags.flag_x04() {
+            // ???
             return;
         }
 
@@ -1065,7 +1174,9 @@ impl PhysicalEntity for Bullet {
                             let _ = npc_list.spawn(0x100, npc.clone());
                         }
 
-                        if let Some(tile) = stage.map.tiles.get_mut(stage.map.width as usize * (y + oy) as usize + (x + ox) as usize) {
+                        if let Some(tile) =
+                            stage.map.tiles.get_mut(stage.map.width as usize * (y + oy) as usize + (x + ox) as usize)
+                        {
                             *tile = tile.wrapping_sub(1);
                         }
                     }
