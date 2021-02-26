@@ -209,6 +209,7 @@ pub enum ScanCode {
     Copy,
     Paste,
     Cut,
+    Back,
 }
 
 bitfield! {

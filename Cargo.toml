@@ -38,6 +38,7 @@ case_insensitive_hashmap = "1.0.0"
 chrono = "0.4"
 cpal = { git = "https://github.com/doukutsu-rs/cpal.git", rev = "e027550be0b93b7e2912c7de28a4944a7d04e070" }
 directories = "3"
+funty = "=1.1.0" # https://github.com/bitvecto-rs/bitvec/issues/105
 glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "a34ee3c99b3c999b638ca2bae53cf96df2b94c04", optional = true }
 imgui = "0.7.0"
 image = { version = "0.23", default-features = false, features = ["png", "bmp"] }

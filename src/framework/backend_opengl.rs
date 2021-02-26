@@ -4,12 +4,11 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use glutin::event::{Event, TouchPhase, WindowEvent};
+use glutin::event::{Event, TouchPhase, WindowEvent, ElementState, VirtualKeyCode};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
 use glutin::{Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, WindowedContext};
 use imgui::{DrawCmd, DrawCmdParams, DrawData, DrawIdx, DrawVert};
-use jni::sys::jintArray;
 
 use gl::types::*;
 
@@ -17,11 +16,12 @@ use crate::common::{Color, Rect};
 use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
 use crate::framework::error::GameError::RenderError;
-use crate::framework::error::{GameError, GameResult};
+use crate::framework::error::GameResult;
 use crate::framework::gl;
 use crate::framework::graphics::BlendMode;
 use crate::input::touch_controls::TouchPoint;
 use crate::{Game, GAME_SUSPENDED};
+use crate::framework::keyboard::ScanCode;
 
 pub struct GlutinBackend;
 
@@ -217,6 +217,20 @@ impl BackendEventLoop for GlutinEventLoop {
                         }
                     }
                 }
+                Event::WindowEvent { event: WindowEvent::KeyboardInput { input, .. }, window_id }
+                    if window_id == window.window().id() => {
+
+                    if let Some(keycode) = input.virtual_keycode {
+                        if let Some(drs_scan) = conv_keycode(keycode) {
+                            let key_state = match input.state {
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
+                            };
+
+                            ctx.keyboard_context.set_key(drs_scan, key_state);
+                        }
+                    }
+                }
                 Event::RedrawRequested(id) if id == window.window().id() => {
                     {
                         let mutex = GAME_SUSPENDED.lock().unwrap();
@@ -235,7 +249,7 @@ impl BackendEventLoop for GlutinEventLoop {
                     }
 
                     #[cfg(target_os = "android")]
-                        request_android_redraw();
+                    request_android_redraw();
                 }
                 Event::MainEventsCleared => {
                     if state_ref.shutdown {
@@ -291,6 +305,7 @@ impl BackendEventLoop for GlutinEventLoop {
             imgui: UnsafeCell::new(imgui),
             imgui_data: ImguiData::new(),
             context_active: Arc::new(RefCell::new(true)),
+            def_matrix: [[0.0; 4]; 4],
         }))
     }
 }
@@ -299,6 +314,7 @@ pub struct GlutinTexture {
     width: u16,
     height: u16,
     texture_id: u32,
+    framebuffer_id: u32,
     locs: Locs,
     vbo: GLuint,
     vertices: Vec<VertexData>,
@@ -517,8 +533,12 @@ impl Drop for GlutinTexture {
         if *self.context_active.as_ref().borrow() {
             unsafe {
                 if let Some(gl) = GL_PROC.as_ref() {
-                    let texture_id = &self.texture_id;
-                    gl.gl.DeleteTextures(1, texture_id as *const _);
+                    if self.texture_id != 0 {
+                        let texture_id = &self.texture_id;
+                        gl.gl.DeleteTextures(1, texture_id as *const _);
+                    }
+
+                    if self.framebuffer_id != 0 {}
                 }
             }
         }
@@ -702,6 +722,7 @@ pub struct GlutinRenderer {
     imgui: UnsafeCell<imgui::Context>,
     imgui_data: ImguiData,
     context_active: Arc<RefCell<bool>>,
+    def_matrix: [[f32; 4]; 4],
 }
 
 pub struct Gl {
@@ -808,7 +829,7 @@ impl BackendRenderer for GlutinRenderer {
 
                 gl.gl.Viewport(0, 0, width as _, height as _);
 
-                let matrix = [
+                self.def_matrix = [
                     [2.0 / width, 0.0, 0.0, 0.0],
                     [0.0, 2.0 / -height, 0.0, 0.0],
                     [0.0, 0.0, -1.0, 0.0],
@@ -819,7 +840,7 @@ impl BackendRenderer for GlutinRenderer {
                 gl.gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
                 gl.gl.UseProgram(self.imgui_data.program);
                 gl.gl.Uniform1i(self.imgui_data.locs.texture, 0);
-                gl.gl.UniformMatrix4fv(self.imgui_data.locs.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+                gl.gl.UniformMatrix4fv(self.imgui_data.locs.proj_mtx, 1, gl::FALSE, self.def_matrix.as_ptr() as _);
             }
 
             Ok(())
@@ -829,15 +850,56 @@ impl BackendRenderer for GlutinRenderer {
     }
 
     fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>> {
-        Ok(Box::new(GlutinTexture {
-            texture_id: 0,
-            width,
-            height,
-            vertices: Vec::new(),
-            locs: self.imgui_data.locs,
-            vbo: self.imgui_data.vbo,
-            context_active: self.context_active.clone(),
-        }))
+        if let Some((_, gl)) = self.get_context() {
+            unsafe {
+                let data = vec![0u8; width as usize * height as usize * 4];
+                let current_texture_id = return_param(|x| gl.gl.GetIntegerv(gl::TEXTURE_BINDING_2D, x)) as u32;
+                let texture_id = return_param(|x| gl.gl.GenTextures(1, x));
+
+                gl.gl.BindTexture(gl::TEXTURE_2D, texture_id);
+                gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as _);
+                gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as _);
+
+                gl.gl.TexImage2D(
+                    gl::TEXTURE_2D,
+                    0,
+                    gl::RGBA as _,
+                    width as _,
+                    height as _,
+                    0,
+                    gl::RGBA,
+                    gl::UNSIGNED_BYTE,
+                    data.as_ptr() as _,
+                );
+
+                gl.gl.BindTexture(gl::TEXTURE_2D, current_texture_id);
+
+                let framebuffer_id = return_param(|x| gl.gl.GenFramebuffers(1, x));
+
+                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, framebuffer_id);
+                gl.gl.FramebufferTexture2D(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D, texture_id, 0);
+                let draw_buffers = [gl::COLOR_ATTACHMENT0];
+                gl.gl.DrawBuffers(1, draw_buffers.as_ptr() as _);
+
+                gl.gl.Viewport(0, 0, width as _, height as _);
+                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
+
+                // todo error checking: glCheckFramebufferStatus()
+
+                Ok(Box::new(GlutinTexture {
+                    texture_id,
+                    framebuffer_id,
+                    width,
+                    height,
+                    vertices: Vec::new(),
+                    locs: self.imgui_data.locs,
+                    vbo: self.imgui_data.vbo,
+                    context_active: self.context_active.clone(),
+                }))
+            }
+        } else {
+            Err(RenderError("No OpenGL context available!".to_string()))
+        }
     }
 
     fn create_texture(&mut self, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>> {
@@ -865,6 +927,7 @@ impl BackendRenderer for GlutinRenderer {
 
                 Ok(Box::new(GlutinTexture {
                     texture_id,
+                    framebuffer_id: 0,
                     width,
                     height,
                     vertices: Vec::new(),
@@ -902,7 +965,30 @@ impl BackendRenderer for GlutinRenderer {
     }
 
     fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult {
-        Ok(())
+        if let Some((_, gl)) = self.get_context() {
+            unsafe {
+                if let Some(texture) = texture {
+                    let gl_texture: &Box<GlutinTexture> = std::mem::transmute(texture);
+
+                    let matrix = [
+                        [2.0 / (gl_texture.width as f32), 0.0, 0.0, 0.0],
+                        [0.0, 2.0 / (gl_texture.height as f32), 0.0, 0.0],
+                        [0.0, 0.0, -1.0, 0.0],
+                        [-1.0, -1.0, 0.0, 1.0],
+                    ];
+                    gl.gl.UniformMatrix4fv(self.imgui_data.locs.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+
+                    gl.gl.BindFramebuffer(gl::FRAMEBUFFER, gl_texture.framebuffer_id);
+                } else {
+                    gl.gl.UniformMatrix4fv(self.imgui_data.locs.proj_mtx, 1, gl::FALSE, self.def_matrix.as_ptr() as _);
+                    gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
+                }
+            }
+
+            Ok(())
+        } else {
+            Err(RenderError("No OpenGL context available!".to_string()))
+        }
     }
 
     fn draw_rect(&mut self, rect: Rect<isize>, color: Color) -> GameResult {
@@ -1117,5 +1203,173 @@ impl BackendRenderer for GlutinRenderer {
 impl Drop for GlutinRenderer {
     fn drop(&mut self) {
         *self.context_active.as_ref().borrow_mut() = false;
+    }
+}
+
+fn conv_keycode(code: VirtualKeyCode) -> Option<ScanCode> {
+    match code {
+        VirtualKeyCode::Key1 => Some(ScanCode::Key1),
+        VirtualKeyCode::Key2 => Some(ScanCode::Key2),
+        VirtualKeyCode::Key3 => Some(ScanCode::Key3),
+        VirtualKeyCode::Key4 => Some(ScanCode::Key4),
+        VirtualKeyCode::Key5 => Some(ScanCode::Key5),
+        VirtualKeyCode::Key6 => Some(ScanCode::Key6),
+        VirtualKeyCode::Key7 => Some(ScanCode::Key7),
+        VirtualKeyCode::Key8 => Some(ScanCode::Key8),
+        VirtualKeyCode::Key9 => Some(ScanCode::Key9),
+        VirtualKeyCode::Key0 => Some(ScanCode::Key0),
+        VirtualKeyCode::A => Some(ScanCode::A),
+        VirtualKeyCode::B => Some(ScanCode::B),
+        VirtualKeyCode::C => Some(ScanCode::C),
+        VirtualKeyCode::D => Some(ScanCode::D),
+        VirtualKeyCode::E => Some(ScanCode::E),
+        VirtualKeyCode::F => Some(ScanCode::F),
+        VirtualKeyCode::G => Some(ScanCode::G),
+        VirtualKeyCode::H => Some(ScanCode::H),
+        VirtualKeyCode::I => Some(ScanCode::I),
+        VirtualKeyCode::J => Some(ScanCode::J),
+        VirtualKeyCode::K => Some(ScanCode::K),
+        VirtualKeyCode::L => Some(ScanCode::L),
+        VirtualKeyCode::M => Some(ScanCode::M),
+        VirtualKeyCode::N => Some(ScanCode::N),
+        VirtualKeyCode::O => Some(ScanCode::O),
+        VirtualKeyCode::P => Some(ScanCode::P),
+        VirtualKeyCode::Q => Some(ScanCode::Q),
+        VirtualKeyCode::R => Some(ScanCode::R),
+        VirtualKeyCode::S => Some(ScanCode::S),
+        VirtualKeyCode::T => Some(ScanCode::T),
+        VirtualKeyCode::U => Some(ScanCode::U),
+        VirtualKeyCode::V => Some(ScanCode::V),
+        VirtualKeyCode::W => Some(ScanCode::W),
+        VirtualKeyCode::X => Some(ScanCode::X),
+        VirtualKeyCode::Y => Some(ScanCode::Y),
+        VirtualKeyCode::Z => Some(ScanCode::Z),
+        VirtualKeyCode::Escape => Some(ScanCode::Escape),
+        VirtualKeyCode::F1 => Some(ScanCode::F1),
+        VirtualKeyCode::F2 => Some(ScanCode::F2),
+        VirtualKeyCode::F3 => Some(ScanCode::F3),
+        VirtualKeyCode::F4 => Some(ScanCode::F4),
+        VirtualKeyCode::F5 => Some(ScanCode::F5),
+        VirtualKeyCode::F6 => Some(ScanCode::F6),
+        VirtualKeyCode::F7 => Some(ScanCode::F7),
+        VirtualKeyCode::F8 => Some(ScanCode::F8),
+        VirtualKeyCode::F9 => Some(ScanCode::F9),
+        VirtualKeyCode::F10 => Some(ScanCode::F10),
+        VirtualKeyCode::F11 => Some(ScanCode::F11),
+        VirtualKeyCode::F12 => Some(ScanCode::F12),
+        VirtualKeyCode::F13 => Some(ScanCode::F13),
+        VirtualKeyCode::F14 => Some(ScanCode::F14),
+        VirtualKeyCode::F15 => Some(ScanCode::F15),
+        VirtualKeyCode::F16 => Some(ScanCode::F16),
+        VirtualKeyCode::F17 => Some(ScanCode::F17),
+        VirtualKeyCode::F18 => Some(ScanCode::F18),
+        VirtualKeyCode::F19 => Some(ScanCode::F19),
+        VirtualKeyCode::F20 => Some(ScanCode::F20),
+        VirtualKeyCode::F21 => Some(ScanCode::F21),
+        VirtualKeyCode::F22 => Some(ScanCode::F22),
+        VirtualKeyCode::F23 => Some(ScanCode::F23),
+        VirtualKeyCode::F24 => Some(ScanCode::F24),
+        VirtualKeyCode::Snapshot => Some(ScanCode::Snapshot),
+        VirtualKeyCode::Scroll => Some(ScanCode::Scroll),
+        VirtualKeyCode::Pause => Some(ScanCode::Pause),
+        VirtualKeyCode::Insert => Some(ScanCode::Insert),
+        VirtualKeyCode::Home => Some(ScanCode::Home),
+        VirtualKeyCode::Delete => Some(ScanCode::Delete),
+        VirtualKeyCode::End => Some(ScanCode::End),
+        VirtualKeyCode::PageDown => Some(ScanCode::PageDown),
+        VirtualKeyCode::PageUp => Some(ScanCode::PageUp),
+        VirtualKeyCode::Left => Some(ScanCode::Left),
+        VirtualKeyCode::Up => Some(ScanCode::Up),
+        VirtualKeyCode::Right => Some(ScanCode::Right),
+        VirtualKeyCode::Down => Some(ScanCode::Down),
+        VirtualKeyCode::Back => Some(ScanCode::Back),
+        VirtualKeyCode::Return => Some(ScanCode::Return),
+        VirtualKeyCode::Space => Some(ScanCode::Space),
+        VirtualKeyCode::Compose => Some(ScanCode::Compose),
+        VirtualKeyCode::Caret => Some(ScanCode::Caret),
+        VirtualKeyCode::Numlock => Some(ScanCode::Numlock),
+        VirtualKeyCode::Numpad0 => Some(ScanCode::Numpad0),
+        VirtualKeyCode::Numpad1 => Some(ScanCode::Numpad1),
+        VirtualKeyCode::Numpad2 => Some(ScanCode::Numpad2),
+        VirtualKeyCode::Numpad3 => Some(ScanCode::Numpad3),
+        VirtualKeyCode::Numpad4 => Some(ScanCode::Numpad4),
+        VirtualKeyCode::Numpad5 => Some(ScanCode::Numpad5),
+        VirtualKeyCode::Numpad6 => Some(ScanCode::Numpad6),
+        VirtualKeyCode::Numpad7 => Some(ScanCode::Numpad7),
+        VirtualKeyCode::Numpad8 => Some(ScanCode::Numpad8),
+        VirtualKeyCode::Numpad9 => Some(ScanCode::Numpad9),
+        VirtualKeyCode::NumpadAdd => Some(ScanCode::NumpadAdd),
+        VirtualKeyCode::NumpadDivide => Some(ScanCode::NumpadDivide),
+        VirtualKeyCode::NumpadDecimal => Some(ScanCode::NumpadDecimal),
+        VirtualKeyCode::NumpadComma => Some(ScanCode::NumpadComma),
+        VirtualKeyCode::NumpadEnter => Some(ScanCode::NumpadEnter),
+        VirtualKeyCode::NumpadEquals => Some(ScanCode::NumpadEquals),
+        VirtualKeyCode::NumpadMultiply => Some(ScanCode::NumpadMultiply),
+        VirtualKeyCode::NumpadSubtract => Some(ScanCode::NumpadSubtract),
+        VirtualKeyCode::AbntC1 => Some(ScanCode::AbntC1),
+        VirtualKeyCode::AbntC2 => Some(ScanCode::AbntC2),
+        VirtualKeyCode::Apostrophe => Some(ScanCode::Apostrophe),
+        VirtualKeyCode::Apps => Some(ScanCode::Apps),
+        VirtualKeyCode::Asterisk => Some(ScanCode::Asterisk),
+        VirtualKeyCode::At => Some(ScanCode::At),
+        VirtualKeyCode::Ax => Some(ScanCode::Ax),
+        VirtualKeyCode::Backslash => Some(ScanCode::Backslash),
+        VirtualKeyCode::Calculator => Some(ScanCode::Calculator),
+        VirtualKeyCode::Capital => Some(ScanCode::Capital),
+        VirtualKeyCode::Colon => Some(ScanCode::Colon),
+        VirtualKeyCode::Comma => Some(ScanCode::Comma),
+        VirtualKeyCode::Convert => Some(ScanCode::Convert),
+        VirtualKeyCode::Equals => Some(ScanCode::Equals),
+        VirtualKeyCode::Grave => Some(ScanCode::Grave),
+        VirtualKeyCode::Kana => Some(ScanCode::Kana),
+        VirtualKeyCode::Kanji => Some(ScanCode::Kanji),
+        VirtualKeyCode::LAlt => Some(ScanCode::LAlt),
+        VirtualKeyCode::LBracket => Some(ScanCode::LBracket),
+        VirtualKeyCode::LControl => Some(ScanCode::LControl),
+        VirtualKeyCode::LShift => Some(ScanCode::LShift),
+        VirtualKeyCode::LWin => Some(ScanCode::LWin),
+        VirtualKeyCode::Mail => Some(ScanCode::Mail),
+        VirtualKeyCode::MediaSelect => Some(ScanCode::MediaSelect),
+        VirtualKeyCode::MediaStop => Some(ScanCode::MediaStop),
+        VirtualKeyCode::Minus => Some(ScanCode::Minus),
+        VirtualKeyCode::Mute => Some(ScanCode::Mute),
+        VirtualKeyCode::MyComputer => Some(ScanCode::MyComputer),
+        VirtualKeyCode::NavigateForward => Some(ScanCode::NavigateForward),
+        VirtualKeyCode::NavigateBackward => Some(ScanCode::NavigateBackward),
+        VirtualKeyCode::NextTrack => Some(ScanCode::NextTrack),
+        VirtualKeyCode::NoConvert => Some(ScanCode::NoConvert),
+        VirtualKeyCode::OEM102 => Some(ScanCode::OEM102),
+        VirtualKeyCode::Period => Some(ScanCode::Period),
+        VirtualKeyCode::PlayPause => Some(ScanCode::PlayPause),
+        VirtualKeyCode::Plus => Some(ScanCode::Plus),
+        VirtualKeyCode::Power => Some(ScanCode::Power),
+        VirtualKeyCode::PrevTrack => Some(ScanCode::PrevTrack),
+        VirtualKeyCode::RAlt => Some(ScanCode::RAlt),
+        VirtualKeyCode::RBracket => Some(ScanCode::RBracket),
+        VirtualKeyCode::RControl => Some(ScanCode::RControl),
+        VirtualKeyCode::RShift => Some(ScanCode::RShift),
+        VirtualKeyCode::RWin => Some(ScanCode::RWin),
+        VirtualKeyCode::Semicolon => Some(ScanCode::Semicolon),
+        VirtualKeyCode::Slash => Some(ScanCode::Slash),
+        VirtualKeyCode::Sleep => Some(ScanCode::Sleep),
+        VirtualKeyCode::Stop => Some(ScanCode::Stop),
+        VirtualKeyCode::Sysrq => Some(ScanCode::Sysrq),
+        VirtualKeyCode::Tab => Some(ScanCode::Tab),
+        VirtualKeyCode::Underline => Some(ScanCode::Underline),
+        VirtualKeyCode::Unlabeled => Some(ScanCode::Unlabeled),
+        VirtualKeyCode::VolumeDown => Some(ScanCode::VolumeDown),
+        VirtualKeyCode::VolumeUp => Some(ScanCode::VolumeUp),
+        VirtualKeyCode::Wake => Some(ScanCode::Wake),
+        VirtualKeyCode::WebBack => Some(ScanCode::WebBack),
+        VirtualKeyCode::WebFavorites => Some(ScanCode::WebFavorites),
+        VirtualKeyCode::WebForward => Some(ScanCode::WebForward),
+        VirtualKeyCode::WebHome => Some(ScanCode::WebHome),
+        VirtualKeyCode::WebRefresh => Some(ScanCode::WebRefresh),
+        VirtualKeyCode::WebSearch => Some(ScanCode::WebSearch),
+        VirtualKeyCode::WebStop => Some(ScanCode::WebStop),
+        VirtualKeyCode::Yen => Some(ScanCode::Yen),
+        VirtualKeyCode::Copy => Some(ScanCode::Copy),
+        VirtualKeyCode::Paste => Some(ScanCode::Paste),
+        VirtualKeyCode::Cut => Some(ScanCode::Cut),
     }
 }

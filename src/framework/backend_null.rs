@@ -3,10 +3,9 @@ use crate::framework::error::GameResult;
 use crate::framework::context::Context;
 use crate::Game;
 use crate::common::{Rect, Color};
-use imgui::{Ui, DrawData};
+use imgui::{DrawData};
 use crate::framework::graphics::BlendMode;
 use std::cell::RefCell;
-use std::ops::DerefMut;
 use std::mem;
 
 pub struct NullBackend;
