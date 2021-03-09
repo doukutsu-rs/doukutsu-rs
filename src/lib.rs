@@ -15,7 +15,6 @@ use std::time::Instant;
 
 use directories::ProjectDirs;
 use lazy_static::lazy_static;
-use log::*;
 use pretty_env_logger::env_logger::Env;
 
 use crate::builtin_fs::BuiltinFS;
@@ -33,7 +32,6 @@ use crate::texture_set::{G_MAG, I_MAG};
 mod bmfont;
 mod bmfont_renderer;
 mod builtin_fs;
-mod bullet;
 mod caret;
 mod common;
 mod components;
@@ -209,8 +207,8 @@ pub fn init() -> GameResult {
     };
 
     #[cfg(not(target_os = "android"))]
-    info!("Resource directory: {:?}", resource_dir);
-    info!("Initializing engine...");
+    log::info!("Resource directory: {:?}", resource_dir);
+    log::info!("Initializing engine...");
 
     let mut context = Context::new();
     mount_vfs(&mut context, Box::new(BuiltinFS::new()));

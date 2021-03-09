@@ -1,7 +1,7 @@
 use log::info;
 use num_traits::{abs, clamp};
 
-use crate::bullet::BulletManager;
+use crate::weapon::bullet::BulletManager;
 use crate::caret::CaretType;
 use crate::common::{fix9_scale, interpolate_fix9_scale, Color, Direction, FadeDirection, FadeState, Rect};
 use crate::components::boss_life_bar::BossLifeBar;

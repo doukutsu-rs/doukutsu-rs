@@ -122,10 +122,17 @@ pub struct BulletRects {
     pub b013_missile_l1: [Rect<u16>; 4],
     pub b014_missile_l2: [Rect<u16>; 4],
     pub b015_missile_l3: [Rect<u16>; 4],
+    pub b019_bubble_l1: [Rect<u16>; 4],
+    pub b020_bubble_l2: [Rect<u16>; 4],
+    pub b021_bubble_l3: [Rect<u16>; 4],
+    pub b022_bubble_spines: [Rect<u16>; 6],
     pub b023_blade_slash: [Rect<u16>; 10],
     pub b025_blade_l1: [Rect<u16>; 8],
     pub b026_blade_l2: [Rect<u16>; 8],
     pub b027_blade_l3: [Rect<u16>; 8],
+    pub b028_super_missile_l1: [Rect<u16>; 4],
+    pub b029_super_missile_l2: [Rect<u16>; 4],
+    pub b030_super_missile_l3: [Rect<u16>; 4],
     pub b034_nemesis_l1: [Rect<u16>; 8],
     pub b035_nemesis_l2: [Rect<u16>; 8],
     pub b036_nemesis_l3: [Rect<u16>; 8],
@@ -1015,14 +1022,12 @@ impl EngineConstants {
                         Rect { left: 112, top: 0, right: 128, bottom: 16 },
                     ],
                     b011_machine_gun_l2: [
-
-                Rect { left: 64, top: 16, right: 80, bottom: 32 },
-                Rect { left: 80, top: 16, right: 96, bottom: 32 },
-                Rect { left: 96, top: 16, right: 112, bottom: 32 },
-                Rect { left: 112, top: 16, right: 128, bottom: 32 },
+                        Rect { left: 64, top: 16, right: 80, bottom: 32 },
+                        Rect { left: 80, top: 16, right: 96, bottom: 32 },
+                        Rect { left: 96, top: 16, right: 112, bottom: 32 },
+                        Rect { left: 112, top: 16, right: 128, bottom: 32 },
                     ],
                     b012_machine_gun_l3: [
-
                         Rect { left: 64, top: 32, right: 80, bottom: 48 },
                         Rect { left: 80, top: 32, right: 96, bottom: 48 },
                         Rect { left: 96, top: 32, right: 112, bottom: 48 },
@@ -1038,12 +1043,39 @@ impl EngineConstants {
                         Rect { left: 0, top: 16, right: 16, bottom: 32 },
                         Rect { left: 16, top: 16, right: 32, bottom: 32 },
                         Rect { left: 32, top: 16, right: 48, bottom: 32 },
-                        Rect { left: 48, top: 16, right: 64, bottom: 32 },],
+                        Rect { left: 48, top: 16, right: 64, bottom: 32 },
+                    ],
                     b015_missile_l3: [
                         Rect { left: 0, top: 32, right: 16, bottom: 48 },
                         Rect { left: 16, top: 32, right: 32, bottom: 48 },
                         Rect { left: 32, top: 32, right: 48, bottom: 48 },
                         Rect { left: 48, top: 32, right: 64, bottom: 48 },
+                    ],
+                    b019_bubble_l1: [
+                        Rect { left: 192, top: 0, right: 200, bottom: 8 },
+                        Rect { left: 200, top: 0, right: 208, bottom: 8 },
+                        Rect { left: 208, top: 0, right: 216, bottom: 8 },
+                        Rect { left: 216, top: 0, right: 224, bottom: 8 },
+                    ],
+                    b020_bubble_l2: [
+                        Rect { left: 192, top: 8, right: 200, bottom: 16 },
+                        Rect { left: 200, top: 8, right: 208, bottom: 16 },
+                        Rect { left: 208, top: 8, right: 216, bottom: 16 },
+                        Rect { left: 216, top: 8, right: 224, bottom: 16 },
+                    ],
+                    b021_bubble_l3: [
+                        Rect { left: 240, top: 16, right: 248, bottom: 24 },
+                        Rect { left: 248, top: 16, right: 256, bottom: 24 },
+                        Rect { left: 240, top: 24, right: 248, bottom: 32 },
+                        Rect { left: 248, top: 24, right: 256, bottom: 32 },
+                    ],
+                    b022_bubble_spines: [
+                        Rect { left: 224, top: 0, right: 232, bottom: 8 },
+                        Rect { left: 232, top: 0, right: 240, bottom: 8 },
+                        Rect { left: 224, top: 0, right: 232, bottom: 8 },
+                        Rect { left: 232, top: 0, right: 240, bottom: 8 },
+                        Rect { left: 224, top: 8, right: 232, bottom: 16 },
+                        Rect { left: 232, top: 8, right: 240, bottom: 16 },
                     ],
                     b023_blade_slash: [
                         Rect { left: 0, top: 64, right: 24, bottom: 88 }, // left
@@ -1087,6 +1119,24 @@ impl EngineConstants {
                         Rect { left: 296, top: 48, right: 320, bottom: 72 }, // down
                         Rect { left: 296, top: 24, right: 320, bottom: 48 },
                     ],
+                    b028_super_missile_l1: [
+                        Rect { left: 120, top: 96, right: 136, bottom: 112 },
+                        Rect { left: 136, top: 96, right: 152, bottom: 112 },
+                        Rect { left: 152, top: 96, right: 168, bottom: 112 },
+                        Rect { left: 168, top: 96, right: 184, bottom: 112 },
+                    ],
+                    b029_super_missile_l2: [
+                        Rect { left: 184, top: 96, right: 200, bottom: 112 },
+                        Rect { left: 200, top: 96, right: 216, bottom: 112 },
+                        Rect { left: 216, top: 96, right: 232, bottom: 112 },
+                        Rect { left: 232, top: 96, right: 248, bottom: 112 },
+                    ],
+                    b030_super_missile_l3: [
+                        Rect { left: 120, top: 96, right: 136, bottom: 112 },
+                        Rect { left: 136, top: 96, right: 152, bottom: 112 },
+                        Rect { left: 152, top: 96, right: 168, bottom: 112 },
+                        Rect { left: 168, top: 96, right: 184, bottom: 112 },
+                    ],
                     b034_nemesis_l1: [
                         Rect { left: 0, top: 112, right: 32, bottom: 128 }, // left
                         Rect { left: 0, top: 128, right: 32, bottom: 144 },
@@ -1098,24 +1148,24 @@ impl EngineConstants {
                         Rect { left: 112, top: 112, right: 128, bottom: 144 },
                     ],
                     b035_nemesis_l2: [
-                        Rect { left: 0, top: 240, right: 32, bottom: 256 }, // left
-                        Rect { left: 0, top: 256, right: 32, bottom: 272 },
-                        Rect { left: 32, top: 240, right: 48, bottom: 272 }, // up
-                        Rect { left: 48, top: 240, right: 64, bottom: 272 },
-                        Rect { left: 64, top: 240, right: 96, bottom: 256 }, // right
-                        Rect { left: 64, top: 256, right: 96, bottom: 272 },
-                        Rect { left: 96, top: 240, right: 112, bottom: 272 }, // down
-                        Rect { left: 112, top: 240, right: 128, bottom: 272 },
+                        Rect { left: 128, top: 112, right: 160, bottom: 128 }, // left
+                        Rect { left: 128, top: 128, right: 160, bottom: 144 },
+                        Rect { left: 160, top: 112, right: 176, bottom: 144 }, // up
+                        Rect { left: 176, top: 112, right: 192, bottom: 144 },
+                        Rect { left: 192, top: 112, right: 224, bottom: 128 }, // right
+                        Rect { left: 192, top: 128, right: 224, bottom: 144 },
+                        Rect { left: 224, top: 112, right: 240, bottom: 144 }, // down
+                        Rect { left: 240, top: 112, right: 256, bottom: 144 },
                     ],
                     b036_nemesis_l3: [
-                        Rect { left: 32, top: 112, right: 64, bottom: 128 }, // left
-                        Rect { left: 32, top: 128, right: 64, bottom: 144 },
-                        Rect { left: 64, top: 112, right: 80, bottom: 144 }, // up
-                        Rect { left: 80, top: 112, right: 96, bottom: 144 },
-                        Rect { left: 96, top: 112, right: 128, bottom: 128 }, // right
-                        Rect { left: 96, top: 128, right: 128, bottom: 144 },
-                        Rect { left: 128, top: 112, right: 144, bottom: 144 }, // down
-                        Rect { left: 144, top: 112, right: 160, bottom: 144 },
+                        Rect { left: 0, top: 144, right: 32, bottom: 160 }, // left
+                        Rect { left: 0, top: 160, right: 32, bottom: 176 },
+                        Rect { left: 32, top: 144, right: 48, bottom: 176 }, // up
+                        Rect { left: 48, top: 144, right: 64, bottom: 176 },
+                        Rect { left: 64, top: 144, right: 96, bottom: 160 }, // right
+                        Rect { left: 64, top: 160, right: 96, bottom: 176 },
+                        Rect { left: 96, top: 144, right: 112, bottom: 176 }, // down
+                        Rect { left: 112, top: 144, right: 128, bottom: 176 },
                     ],
                     b037_spur_l1: [
                         Rect { left: 128, top: 32, right: 144, bottom: 48 }, // horizontal

@@ -2,7 +2,7 @@
 
 use num_traits::abs;
 
-use crate::bullet::Bullet;
+use crate::weapon::bullet::Bullet;
 use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Flag, Rect};
 use crate::map::NPCData;

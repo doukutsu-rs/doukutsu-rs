@@ -321,7 +321,7 @@ pub struct GlutinTexture {
     context_active: Arc<RefCell<bool>>,
 }
 
-#[repr(C)]
+// #[repr(C)] // since we determine field offset dynamically, doesn't really matter
 #[derive(Copy, Clone)]
 struct VertexData {
     position: (f32, f32),

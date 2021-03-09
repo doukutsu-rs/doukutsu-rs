@@ -1,6 +1,6 @@
 
 
-use crate::bullet::BulletManager;
+use crate::weapon::bullet::BulletManager;
 use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
 use crate::npc::boss::BossNPC;

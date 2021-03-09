@@ -1,20 +1,20 @@
 use std::clone::Clone;
 
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
 use num_derive::FromPrimitive;
 use num_traits::clamp;
 
 use crate::caret::CaretType;
-use crate::common::{Condition, Direction, Equipment, Flag, interpolate_fix9_scale, Rect};
+use crate::common::{interpolate_fix9_scale, Condition, Direction, Equipment, Flag, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::input::dummy_player_controller::DummyPlayerController;
 use crate::input::player_controller::PlayerController;
+use crate::npc::list::NPCList;
 use crate::npc::NPC;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
-use crate::npc::list::NPCList;
 
 mod player_hit;
 
@@ -82,8 +82,8 @@ pub struct Player {
     pub appearance: PlayerAppearance,
     pub controller: Box<dyn PlayerController>,
     weapon_offset_y: i8,
-    index_x: i32,
-    index_y: i32,
+    camera_target_x: i32,
+    camera_target_y: i32,
     splash: bool,
     booster_switch: u8,
     bubble: u8,
@@ -119,8 +119,8 @@ impl Player {
             control_mode: constants.my_char.control_mode,
             question: false,
             booster_fuel: 0,
-            index_x: 0,
-            index_y: 0,
+            camera_target_x: 0,
+            camera_target_y: 0,
             splash: false,
             up: false,
             down: false,
@@ -177,11 +177,7 @@ impl Player {
             return Ok(());
         }
 
-        let physics = if self.flags.in_water() {
-            state.constants.my_char.water_physics
-        } else {
-            state.constants.my_char.air_physics
-        };
+        let physics = if self.flags.in_water() { state.constants.my_char.water_physics } else { state.constants.my_char.air_physics };
 
         self.question = false;
 
@@ -202,15 +198,10 @@ impl Player {
             }
 
             if state.control_flags.control_enabled() {
-                let trigger_only_down = self.controller.trigger_down()
-                    && !self.controller.trigger_up()
-                    && !self.controller.trigger_left()
-                    && !self.controller.trigger_right();
+                let trigger_only_down =
+                    self.controller.trigger_down() && !self.controller.trigger_up() && !self.controller.trigger_left() && !self.controller.trigger_right();
 
-                let only_down = self.controller.move_down()
-                    && !self.controller.move_up()
-                    && !self.controller.move_left()
-                    && !self.controller.move_right();
+                let only_down = self.controller.move_down() && !self.controller.move_up() && !self.controller.move_left() && !self.controller.move_right();
 
                 if trigger_only_down && only_down && !self.cond.interacted() && !state.control_flags.interactions_disabled() {
                     self.cond.set_interacted(true);
@@ -250,13 +241,15 @@ impl Player {
                     }
                 }
             }
-        } else { // air movement
+        } else {
+            // air movement
             if state.control_flags.control_enabled() {
                 if self.controller.trigger_jump() && self.booster_fuel != 0 {
                     if self.equip.has_booster_0_8() {
                         self.booster_switch = 1;
 
-                        if self.vel_y > 0x100 { // 0.5fix9
+                        if self.vel_y > 0x100 {
+                            // 0.5fix9
                             self.vel_y /= 2;
                         }
                     } else if state.settings.infinite_booster || self.equip.has_booster_2_0() {
@@ -301,11 +294,13 @@ impl Player {
                 }
             }
 
-            if (state.settings.infinite_booster || self.equip.has_booster_2_0()) && self.booster_switch != 0
-                && (!self.controller.jump() || self.booster_fuel == 0) {
+            if (state.settings.infinite_booster || self.equip.has_booster_2_0())
+                && self.booster_switch != 0
+                && (!self.controller.jump() || self.booster_fuel == 0)
+            {
                 match self.booster_switch {
-                    1 => { self.vel_x /= 2 }
-                    2 => { self.vel_y /= 2 }
+                    1 => self.vel_x /= 2,
+                    2 => self.vel_y /= 2,
                     _ => {}
                 }
             }
@@ -320,21 +315,19 @@ impl Player {
             self.up = self.controller.move_up();
             self.down = self.controller.move_down() && !self.flags.hit_bottom_wall();
 
-            if self.controller.trigger_jump() && (self.flags.hit_bottom_wall()
-                || self.flags.hit_right_slope()
-                || self.flags.hit_left_slope())
-                && !self.flags.force_up() {
+            if self.controller.trigger_jump()
+                && (self.flags.hit_bottom_wall() || self.flags.hit_right_slope() || self.flags.hit_left_slope())
+                && !self.flags.force_up()
+            {
                 self.vel_y = -physics.jump;
                 state.sound_manager.play_sfx(15);
             }
         }
 
         // stop interacting when moved
-        if state.control_flags.control_enabled() && (self.controller.move_left()
-            || self.controller.move_right()
-            || self.controller.move_up()
-            || self.controller.jump()
-            || self.controller.shoot()) {
+        if state.control_flags.control_enabled()
+            && (self.controller.move_left() || self.controller.move_right() || self.controller.move_up() || self.controller.jump() || self.controller.shoot())
+        {
             self.cond.set_interacted(false);
         }
 
@@ -424,7 +417,8 @@ impl Player {
 
             if (self.flags.hit_bottom_wall() && self.flags.hit_right_bigger_half() && self.vel_x < 0)
                 || (self.flags.hit_bottom_wall() && self.flags.hit_left_bigger_half() && self.vel_x > 0)
-                || (self.flags.hit_bottom_wall() && self.flags.hit_left_smaller_half() && self.flags.hit_right_smaller_half()) {
+                || (self.flags.hit_bottom_wall() && self.flags.hit_left_smaller_half() && self.flags.hit_right_smaller_half())
+            {
                 self.vel_y = 0x400; // 2.0fix9
             }
         }
@@ -450,14 +444,13 @@ impl Player {
 
                 for _ in 0..7 {
                     droplet.x = self.x + (state.game_rng.range(-8..8) * 0x200) as i32;
-                    droplet.vel_x = if vertical_splash {
-                        (self.vel_x + state.game_rng.range(-0x200..0x200) as i32) - (self.vel_x / 2)
-                    } else if horizontal_splash {
-                        self.vel_x + state.game_rng.range(-0x200..0x200) as i32
-                    } else {
-                        0 as i32
+
+                    droplet.vel_x = self.vel_x + state.game_rng.range(-0x200..0x200);
+                    droplet.vel_y = match () {
+                        _ if vertical_splash => state.game_rng.range(-0x200..0x80) - (self.vel_y / 2),
+                        _ if horizontal_splash => state.game_rng.range(-0x200..0x80),
+                        _ => 0,
                     };
-                    droplet.vel_y = state.game_rng.range(-0x200..0x80) as i32;
 
                     let _ = npc_list.spawn(0x100, droplet.clone());
                 }
@@ -478,30 +471,34 @@ impl Player {
         }
 
         // camera
-        self.index_x = clamp(self.index_x + self.direction.vector_x() * 0x200, -0x8000, 0x8000);
+        self.camera_target_x = clamp(self.camera_target_x + self.direction.vector_x() * 0x200, -0x8000, 0x8000);
 
         if state.control_flags.control_enabled() && self.controller.look_up() {
-            self.index_y -= 0x200; // 1.0fix9
-            if self.index_y < -0x8000 { // -64.0fix9
-                self.index_y = -0x8000;
+            self.camera_target_y -= 0x200; // 1.0fix9
+            if self.camera_target_y < -0x8000 {
+                // -64.0fix9
+                self.camera_target_y = -0x8000;
             }
         } else if state.control_flags.control_enabled() && self.controller.look_down() {
-            self.index_y += 0x200; // 1.0fix9
-            if self.index_y > 0x8000 { // -64.0fix9
-                self.index_y = 0x8000;
+            self.camera_target_y += 0x200; // 1.0fix9
+            if self.camera_target_y > 0x8000 {
+                // -64.0fix9
+                self.camera_target_y = 0x8000;
             }
         } else {
-            if self.index_y > 0x200 { // 1.0fix9
-                self.index_y -= 0x200;
+            if self.camera_target_y > 0x200 {
+                // 1.0fix9
+                self.camera_target_y -= 0x200;
             }
 
-            if self.index_y < -0x200 { // 1.0fix9
-                self.index_y += 0x200;
+            if self.camera_target_y < -0x200 {
+                // 1.0fix9
+                self.camera_target_y += 0x200;
             }
         }
 
-        self.target_x = self.x + self.index_x;
-        self.target_y = self.y + self.index_y;
+        self.target_x = self.x + self.camera_target_x;
+        self.target_y = self.y + self.camera_target_y;
 
         if self.vel_x > physics.resist || self.vel_x < -physics.resist {
             self.x += self.vel_x;
@@ -687,7 +684,7 @@ impl GameEntity<&NPCList> for Player {
         Ok(())
     }
 
-    fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult<> {
+    fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
         if !self.cond.alive() || self.cond.hidden() || (self.shock_counter / 2 % 2 != 0) {
             return Ok(());
         }
@@ -697,23 +694,31 @@ impl GameEntity<&NPCList> for Player {
             match self.direction {
                 Direction::Left => {
                     batch.add_rect(
-                        interpolate_fix9_scale(self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
-                                               self.x - self.display_bounds.left as i32 - frame.x,
-                                               state.frame_time) - 8.0,
-                        interpolate_fix9_scale(self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
-                                               self.y - self.display_bounds.left as i32 - frame.y,
-                                               state.frame_time) + self.weapon_offset_y as f32,
+                        interpolate_fix9_scale(
+                            self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
+                            self.x - self.display_bounds.left as i32 - frame.x,
+                            state.frame_time,
+                        ) - 8.0,
+                        interpolate_fix9_scale(
+                            self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
+                            self.y - self.display_bounds.left as i32 - frame.y,
+                            state.frame_time,
+                        ) + self.weapon_offset_y as f32,
                         &self.weapon_rect,
                     );
                 }
                 Direction::Right => {
                     batch.add_rect(
-                        interpolate_fix9_scale(self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
-                                               self.x - self.display_bounds.left as i32 - frame.x,
-                                               state.frame_time),
-                        interpolate_fix9_scale(self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
-                                               self.y - self.display_bounds.left as i32 - frame.y,
-                                               state.frame_time) + self.weapon_offset_y as f32,
+                        interpolate_fix9_scale(
+                            self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
+                            self.x - self.display_bounds.left as i32 - frame.x,
+                            state.frame_time,
+                        ),
+                        interpolate_fix9_scale(
+                            self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
+                            self.y - self.display_bounds.left as i32 - frame.y,
+                            state.frame_time,
+                        ) + self.weapon_offset_y as f32,
                         &self.weapon_rect,
                     );
                 }
@@ -726,12 +731,16 @@ impl GameEntity<&NPCList> for Player {
         {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
             batch.add_rect(
-                interpolate_fix9_scale(self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
-                                       self.x - self.display_bounds.left as i32 - frame.x,
-                                       state.frame_time),
-                interpolate_fix9_scale(self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
-                                       self.y - self.display_bounds.left as i32 - frame.y,
-                                       state.frame_time),
+                interpolate_fix9_scale(
+                    self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
+                    self.x - self.display_bounds.left as i32 - frame.x,
+                    state.frame_time,
+                ),
+                interpolate_fix9_scale(
+                    self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
+                    self.y - self.display_bounds.left as i32 - frame.y,
+                    state.frame_time,
+                ),
                 &self.anim_rect,
             );
             batch.draw(ctx)?;

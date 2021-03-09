@@ -55,6 +55,12 @@ bitfield! {
   pub hit_right_bigger_half, set_hit_right_bigger_half: 19; // 0x80000
 }
 
+impl Flag {
+    pub fn hit_anything(&self) -> bool {
+        (self.0 & 0x2ff) != 0
+    }
+}
+
 bitfield! {
   #[derive(Clone, Copy)]
   pub struct Equipment(u16);

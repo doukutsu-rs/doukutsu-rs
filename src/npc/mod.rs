@@ -7,7 +7,7 @@ use crate::framework::error::GameResult;
 use num_traits::abs;
 
 use crate::bitfield;
-use crate::bullet::BulletManager;
+use crate::weapon::bullet::BulletManager;
 use crate::common::{Condition, interpolate_fix9_scale, Rect};
 use crate::common::Direction;
 use crate::common::Flag;

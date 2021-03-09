@@ -1,6 +1,6 @@
 use std::mem::MaybeUninit;
 
-use crate::bullet::BulletManager;
+use crate::weapon::bullet::BulletManager;
 use crate::common::{Direction, interpolate_fix9_scale};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
