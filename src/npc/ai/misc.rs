@@ -72,6 +72,7 @@ impl NPC {
 
             if self.anim_num > 7 {
                 self.cond.set_alive(false);
+                return Ok(());
             }
         }
 
