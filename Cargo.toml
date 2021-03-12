@@ -21,12 +21,13 @@ opt-level = 1
 opt-level = 1
 
 [features]
-default = ["scripting", "backend-sdl", "ogg-playback"]
+default = ["scripting", "backend-sdl", "ogg-playback", "netplay"]
 ogg-playback = ["lewton"]
 backend-sdl = ["sdl2"]
 #backend-sokol = ["sokol"]
 backend-glutin = ["winit", "glutin"]
 scripting = ["lua-ffi"]
+netplay = []
 editor = []
 
 [dependencies]
