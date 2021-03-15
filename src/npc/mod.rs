@@ -140,7 +140,7 @@ impl NPC {
 }
 
 impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NPC {
-    fn tick(&mut self, state: &mut SharedGameState, (players, npc_list, stage, _bullet_manager): ([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)) -> GameResult {
+    fn tick(&mut self, state: &mut SharedGameState, (players, npc_list, stage, bullet_manager): ([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)) -> GameResult {
         match self.npc_type {
             0 => self.tick_n000_null(),
             1 => self.tick_n001_experience(state),
@@ -256,6 +256,8 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
             113 => self.tick_n113_professor_booster(state),
             114 => self.tick_n114_press(state, players, npc_list),
             116 => self.tick_n116_red_petals(state),
+            117 => self.tick_n117_curly(state, players, npc_list),
+            118 => self.tick_n118_curly_boss(state, players, npc_list, bullet_manager),
             119 => self.tick_n119_table_chair(state),
             120 => self.tick_n120_colon_a(state),
             124 => self.tick_n124_sunstone(state),

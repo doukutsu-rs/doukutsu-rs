@@ -362,8 +362,6 @@ impl NPC {
     }
 
     pub(crate) fn tick_n081_giant_pignon(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
-        let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
-
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -371,25 +369,22 @@ impl NPC {
                     self.anim_num = 0;
                     self.anim_counter = 0;
                     self.vel_x = 0;
-
-                    self.anim_rect = state.constants.npc.n081_giant_pignon[self.anim_num as usize + dir_offset];
                 }
 
                 if self.rng.range(0..100) == 1 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 1;
+                } else {
+                    if self.rng.range(0..150) == 1 {
+                        self.direction = self.direction.opposite();
+                    }
 
-                    self.anim_rect = state.constants.npc.n081_giant_pignon[self.anim_num as usize + dir_offset];
-                }
-
-
-                if self.rng.range(0..150) == 1 {
-                    self.action_num = 3;
-                    self.action_counter = 50;
-                    self.anim_num = 0;
-
-                    self.anim_rect = state.constants.npc.n081_giant_pignon[self.anim_num as usize + dir_offset];
+                    if self.rng.range(0..150) == 1 {
+                        self.action_num = 3;
+                        self.action_counter = 50;
+                        self.anim_num = 0;
+                    }
                 }
             }
             2 => {
@@ -397,8 +392,6 @@ impl NPC {
                 if self.action_counter > 8 {
                     self.action_num = 1;
                     self.anim_num = 0;
-
-                    self.anim_rect = state.constants.npc.n081_giant_pignon[self.anim_num as usize + dir_offset];
                 }
             }
             3 | 4 => {
@@ -406,8 +399,6 @@ impl NPC {
                     self.action_num = 4;
                     self.anim_num = 2;
                     self.anim_counter = 0;
-
-                    self.anim_rect = state.constants.npc.n081_giant_pignon[self.anim_num as usize + dir_offset];
                 }
 
                 if self.action_counter > 0 {
@@ -416,16 +407,7 @@ impl NPC {
                     self.action_num = 0;
                 }
 
-                self.anim_counter += 1;
-                if self.anim_counter > 2 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-                    if self.anim_num > 4 {
-                        self.anim_num = 2;
-                    }
-
-                    self.anim_rect = state.constants.npc.n081_giant_pignon[self.anim_num as usize + dir_offset];
-                }
+                self.animate(2, 2, 4);
 
                 if self.flags.hit_left_wall() {
                     self.direction = Direction::Right;
@@ -435,7 +417,7 @@ impl NPC {
                     self.direction = Direction::Left;
                 }
 
-                self.vel_x = self.direction.vector_x() * 0x100; // 0.5fix9
+                self.vel_x = self.direction.vector_x() * 0x100;
             }
             5 => {
                 if self.flags.hit_bottom_wall() {
@@ -451,8 +433,6 @@ impl NPC {
             self.vel_y = -0x200;
             self.anim_num = 5;
             self.action_num = 5;
-
-            self.anim_rect = state.constants.npc.n081_giant_pignon[self.anim_num as usize + dir_offset];
         }
 
         self.vel_y += 0x40;
@@ -463,6 +443,10 @@ impl NPC {
 
         self.x += self.vel_x;
         self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
+
+        self.anim_rect = state.constants.npc.n081_giant_pignon[self.anim_num as usize + dir_offset];
 
         Ok(())
     }

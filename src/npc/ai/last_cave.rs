@@ -100,11 +100,7 @@ impl NPC {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
-        let dir_offset = if self.direction == Direction::Left {
-            0
-        } else {
-            3
-        };
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
 
         self.anim_rect = state.constants.npc.n241_critter_red[self.anim_num as usize + dir_offset];
 
