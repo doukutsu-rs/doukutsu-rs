@@ -1,9 +1,8 @@
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
-
 use imgui::{CollapsingHeader, Condition, im_str, ImStr, ImString, Slider, Window};
 use itertools::Itertools;
 
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::scene::game_scene::GameScene;
 use crate::shared_game_state::SharedGameState;
 use crate::text_script::TextScriptExecutionState;
@@ -22,6 +21,7 @@ pub struct LiveDebugger {
     events_visible: bool,
     hacks_visible: bool,
     flags_visible: bool,
+    npc_inspector_visible: bool,
     last_stage_id: usize,
     stages: Vec<ImString>,
     selected_stage: i32,
@@ -39,6 +39,7 @@ impl LiveDebugger {
             events_visible: false,
             hacks_visible: false,
             flags_visible: false,
+            npc_inspector_visible: false,
             last_stage_id: usize::MAX,
             stages: Vec::new(),
             selected_stage: -1,
@@ -123,13 +124,17 @@ impl LiveDebugger {
                         }
                     }
 
-                ui.same_line(0.0);
                 if game_scene.player2.cond.alive() {
                     if ui.button(im_str!("Drop Player 2"), [0.0, 0.0]) {
                         game_scene.drop_player2();
                     }
                 } else if ui.button(im_str!("Add Player 2"), [0.0, 0.0]) {
                     game_scene.add_player2();
+                }
+                ui.same_line(0.0);
+
+                if ui.button(im_str!("NPC Inspector"), [0.0, 0.0]) {
+                    self.npc_inspector_visible = !self.npc_inspector_visible;
                 }
             });
 
@@ -295,6 +300,47 @@ impl LiveDebugger {
                         ui.checkbox_flags(im_str!("Mimiga Mask"), &mut game_scene.player1.equip.0, 64);
                         ui.checkbox_flags(im_str!("Whimsical Star"), &mut game_scene.player1.equip.0, 128);
                         ui.checkbox_flags(im_str!("Nikumaru Counter"), &mut game_scene.player1.equip.0, 256);
+                    }
+                });
+        }
+
+        if self.npc_inspector_visible {
+            Window::new(im_str!("NPC Inspector"))
+                .position([80.0, 80.0], Condition::FirstUseEver)
+                .size([280.0, 300.0], Condition::FirstUseEver)
+                .scrollable(true)
+                .always_vertical_scrollbar(true)
+                .build(ui, || {
+                    for npc in game_scene.npc_list.iter_alive() {
+                        if CollapsingHeader::new(&ImString::from(format!("id={} type={}", npc.id, npc.npc_type))).default_open(false).build(&ui) {
+                            let mut position = [npc.x as f32 / 512.0, npc.y as f32 / 512.0];
+                            ui.input_float2(im_str!("Position:"), &mut position)
+                                .build();
+
+                            npc.x = (position[0] * 512.0) as i32;
+                            npc.y = (position[1] * 512.0) as i32;
+
+                            let content = &ImString::from(
+                                format!("\
+                                    Velocity: ({:.1},{:.1})\n\
+                                    Vel2/State2: ({:.1},{:.1} / {} {})\n\
+                                    Animation: frame={}, counter={}\n\
+                                    Action: num={}, counter={}, counter2={}\n\
+                                    Health: {}, Experience drop: {}\n\
+                                    Event ID: {}, Flag ID: {}\n\
+                                    Parent: {}, Shock: {}, Size: {}",
+                                    npc.vel_x as f32 / 512.0, npc.vel_y as f32 / 512.0,
+                                    npc.vel_x2 as f32 / 512.0, npc.vel_y2 as f32 / 512.0, npc.vel_x2, npc.vel_y2,
+                                    npc.anim_num, npc.anim_counter,
+                                    npc.action_num, npc.action_counter, npc.action_counter2,
+                                    npc.life, npc.exp,
+                                    npc.event_num, npc.flag_num,
+                                    npc.parent_id, npc.shock, npc.size
+                            ));
+                            ui.text_wrapped(content);
+
+                            cond_flags(&ui, &mut npc.cond);
+                        }
                     }
                 });
         }
