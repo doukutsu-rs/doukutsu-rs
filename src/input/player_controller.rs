@@ -26,6 +26,12 @@ pub trait PlayerController: PlayerControllerClone {
     /// True if "next weapon" button is down.
     fn next_weapon(&self) -> bool;
 
+    /// True if "map" button is down.
+    fn map(&self) -> bool;
+
+    /// True if "inventory" button is down.
+    fn inventory(&self) -> bool;
+
     /// True if "jump" button is down.
     fn jump(&self) -> bool;
 
@@ -46,6 +52,10 @@ pub trait PlayerController: PlayerControllerClone {
     fn trigger_prev_weapon(&self) -> bool;
 
     fn trigger_next_weapon(&self) -> bool;
+
+    fn trigger_map(&self) -> bool;
+
+    fn trigger_inventory(&self) -> bool;
 
     fn trigger_jump(&self) -> bool;
 

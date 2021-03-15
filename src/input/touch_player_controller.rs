@@ -241,6 +241,14 @@ impl PlayerController for TouchPlayerController {
         self.state.next_weapon()
     }
 
+    fn map(&self) -> bool {
+        self.state.map()
+    }
+
+    fn inventory(&self) -> bool {
+        self.state.inventory()
+    }
+
     fn jump(&self) -> bool {
         self.state.jump()
     }
@@ -276,6 +284,14 @@ impl PlayerController for TouchPlayerController {
 
     fn trigger_next_weapon(&self) -> bool {
         self.trigger.next_weapon()
+    }
+
+    fn trigger_map(&self) -> bool {
+        self.trigger.map()
+    }
+
+    fn trigger_inventory(&self) -> bool {
+        self.trigger.inventory()
     }
 
     fn trigger_jump(&self) -> bool {

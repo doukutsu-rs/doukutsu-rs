@@ -44,6 +44,14 @@ impl PlayerController for DummyPlayerController {
         false
     }
 
+    fn map(&self) -> bool {
+        false
+    }
+
+    fn inventory(&self) -> bool {
+        false
+    }
+
     fn jump(&self) -> bool {
         false
     }
@@ -77,6 +85,14 @@ impl PlayerController for DummyPlayerController {
     }
 
     fn trigger_next_weapon(&self) -> bool {
+        false
+    }
+
+    fn trigger_map(&self) -> bool {
+        false
+    }
+
+    fn trigger_inventory(&self) -> bool {
         false
     }
 
