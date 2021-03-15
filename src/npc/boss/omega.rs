@@ -1,21 +1,19 @@
-
-
-use crate::weapon::bullet::BulletManager;
 use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
+use crate::components::flash::Flash;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
+use crate::weapon::bullet::BulletManager;
 
 impl NPC {
     pub(crate) fn tick_n048_omega_projectiles(&mut self, state: &mut SharedGameState) -> GameResult {
-        if (self.flags.hit_left_wall() && self.vel_x < 0)
-            || (self.flags.hit_right_wall() && self.vel_x > 0) {
+        if (self.flags.hit_left_wall() && self.vel_x < 0) || (self.flags.hit_right_wall() && self.vel_x > 0) {
             self.vel_x = -self.vel_x;
         } else if self.flags.hit_bottom_wall() {
             self.action_counter2 += 1;
@@ -53,7 +51,14 @@ impl NPC {
 }
 
 impl BossNPC {
-    pub(crate) fn tick_b01_omega(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList, bullet_manager: &BulletManager) {
+    pub(crate) fn tick_b01_omega(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+        bullet_manager: &BulletManager,
+        flash: &mut Flash,
+    ) {
         match self.parts[0].action_num {
             0 => {
                 self.parts[0].cond.set_alive(true);
@@ -68,26 +73,14 @@ impl BossNPC {
                 self.parts[0].y = 16 * 16 * 0x200;
                 self.parts[0].target_x = self.parts[0].x;
                 self.parts[0].target_y = self.parts[0].y;
-                self.parts[0].display_bounds = Rect {
-                    left: 40 * 0x200,
-                    top: 40 * 0x200,
-                    right: 40 * 0x200,
-                    bottom: 16 * 0x200,
-                };
-                self.parts[0].hit_bounds = Rect {
-                    left: 8 * 0x200,
-                    top: 24 * 0x200,
-                    right: 8 * 0x200,
-                    bottom: 16 * 0x200,
-                };
+                self.parts[0].display_bounds =
+                    Rect { left: 40 * 0x200, top: 40 * 0x200, right: 40 * 0x200, bottom: 16 * 0x200 };
+                self.parts[0].hit_bounds =
+                    Rect { left: 8 * 0x200, top: 24 * 0x200, right: 8 * 0x200, bottom: 16 * 0x200 };
 
                 self.parts[1].cond.set_alive(true);
-                self.parts[1].display_bounds = Rect {
-                    left: 12 * 0x200,
-                    top: 8 * 0x200,
-                    right: 12 * 0x200,
-                    bottom: 8 * 0x200,
-                };
+                self.parts[1].display_bounds =
+                    Rect { left: 12 * 0x200, top: 8 * 0x200, right: 12 * 0x200, bottom: 8 * 0x200 };
                 self.parts[1].npc_flags.set_ignore_solidity(true);
                 self.parts[1].direction = Direction::Left;
 
@@ -101,18 +94,10 @@ impl BossNPC {
                 self.parts[3].direction = Direction::Left;
                 self.parts[3].x = self.parts[0].x + 16 * 0x200;
                 self.parts[3].y = self.parts[0].y;
-                self.parts[3].display_bounds = Rect {
-                    left: 24 * 0x200,
-                    top: 16 * 0x200,
-                    right: 16 * 0x200,
-                    bottom: 16 * 0x200,
-                };
-                self.parts[3].hit_bounds = Rect {
-                    left: 8 * 0x200,
-                    top: 8 * 0x200,
-                    right: 8 * 0x200,
-                    bottom: 8 * 0x200,
-                };
+                self.parts[3].display_bounds =
+                    Rect { left: 24 * 0x200, top: 16 * 0x200, right: 16 * 0x200, bottom: 16 * 0x200 };
+                self.parts[3].hit_bounds =
+                    Rect { left: 8 * 0x200, top: 8 * 0x200, right: 8 * 0x200, bottom: 8 * 0x200 };
                 self.hurt_sound[3] = 52;
 
                 self.parts[4].cond.set_alive(true);
@@ -191,11 +176,7 @@ impl BossNPC {
                     npc.y = self.parts[0].y - 16 * 0x200;
                     npc.vel_x = self.parts[0].rng.range(-0x100..0x100) as i32;
                     npc.vel_y = -0x333;
-                    npc.direction = if self.parts[0].rng.range(0..9) <= 7 {
-                        Direction::Left
-                    } else {
-                        Direction::Right
-                    };
+                    npc.direction = if self.parts[0].rng.range(0..9) <= 7 { Direction::Left } else { Direction::Right };
 
                     let _ = npc_list.spawn(0x100, npc);
                     state.sound_manager.play_sfx(39);
@@ -264,12 +245,13 @@ impl BossNPC {
                 if self.parts[0].anim_counter > 2 {
                     self.parts[0].anim_counter = 0;
                     self.parts[0].anim_num += 1;
-                    if self.parts[0].anim_num == 3 {
-                        self.parts[0].action_num = 120;
-                        self.parts[0].action_counter = 0;
-                        self.parts[0].hit_bounds.left = 16 * 0x200;
-                        self.parts[0].hit_bounds.right = 16 * 0x200;
-                    }
+                }
+
+                if self.parts[0].anim_num == 3 {
+                    self.parts[0].action_num = 120;
+                    self.parts[0].action_counter = 0;
+                    self.parts[0].hit_bounds.left = 16 * 0x200;
+                    self.parts[0].hit_bounds.right = 16 * 0x200;
                 }
             }
             120 => {
@@ -282,7 +264,7 @@ impl BossNPC {
                     state.sound_manager.play_sfx(102);
                 }
 
-                if self.parts[0].action_counter <= 29 && self.parts[0].action_counter % 5 == 0 {
+                if self.parts[0].action_counter < 30 && self.parts[0].action_counter % 5 == 0 {
                     let mut npc = NPC::create(48, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].x;
@@ -300,30 +282,33 @@ impl BossNPC {
                 if self.parts[0].anim_counter > 2 {
                     self.parts[0].anim_counter = 0;
                     self.parts[0].anim_num -= 1;
+                }
 
-                    match self.parts[0].anim_num {
-                        1 => self.parts[0].damage = 20,
-                        0 => {
-                            self.parts[0].action_num = 140;
-                            self.parts[0].npc_flags.set_shootable(true);
-                            self.parts[0].hit_bounds.left = 16 * 0x200;
-                            self.parts[0].hit_bounds.right = 16 * 0x200;
-                            let player = self.parts[0].get_closest_player_mut(players);
-                            self.parts[0].vel_x = (player.x - self.parts[0].x).signum() * 0x100;
-                            self.parts[0].damage = 0;
-                            self.parts[0].hit_bounds.top = 36 * 0x200;
-                        }
-                        _ => {}
+                match self.parts[0].anim_num {
+                    0 => {
+                        self.parts[0].action_num = 140;
+                        self.parts[0].npc_flags.set_shootable(true);
+                        self.parts[0].hit_bounds.left = 16 * 0x200;
+                        self.parts[0].hit_bounds.right = 16 * 0x200;
+                        let player = self.parts[0].get_closest_player_mut(players);
+                        self.parts[0].vel_x = (player.x - self.parts[0].x).signum() * 0x100;
+                        self.parts[0].vel_y = -0x5ff;
+                        self.parts[0].damage = 0;
+                        self.parts[5].hit_bounds.top = 0x4800;
+
+                        state.sound_manager.play_sfx(12);
+                        state.sound_manager.play_sfx(25);
+                        state.sound_manager.play_sfx(102);
                     }
+                    1 => {
+                        self.parts[0].damage = 20;
+                    }
+                    _ => {}
                 }
             }
             140 => {
                 let player = self.parts[5].get_closest_player_mut(players);
-                self.parts[5].damage = if player.flags.hit_bottom_wall() && self.parts[0].vel_y > 0 {
-                    20
-                } else {
-                    0
-                };
+                self.parts[5].damage = if player.flags.hit_bottom_wall() && self.parts[0].vel_y > 0 { 20 } else { 0 };
                 self.parts[0].vel_y += 0x24;
                 if self.parts[0].vel_y > 0x5ff {
                     self.parts[0].vel_y = 0x5ff;
@@ -352,20 +337,15 @@ impl BossNPC {
                     state.sound_manager.play_sfx(52);
                 }
 
-                let dest_x = self.parts[0].x + self.parts[0].rng.range(-0x30..0x30) as i32 * 0x200;
-                let dest_y = self.parts[0].y + self.parts[0].rng.range(-0x30..0x18) as i32 * 0x200;
+                let dest_x = self.parts[0].x + self.parts[0].rng.range(-0x30..0x30) * 0x200;
+                let dest_y = self.parts[0].y + self.parts[0].rng.range(-0x30..0x18) * 0x200;
 
-                let mut npc = NPC::create(4, &state.npc_table);
-                npc.cond.set_alive(true);
-                npc.x = dest_x;
-                npc.y = dest_y;
-                let _ = npc_list.spawn(0x100, npc);
-                state.create_caret(dest_x, dest_y, CaretType::Explosion, Direction::Left);
+                npc_list.create_death_smoke(dest_x, dest_y, 1, 1, state, &self.parts[0].rng);
 
                 if self.parts[0].action_counter > 100 {
                     self.parts[0].action_num = 160;
                     self.parts[0].action_counter = 0;
-                    // todo flash
+                    flash.set_cross(self.parts[0].x, self.parts[0].y);
                     state.sound_manager.play_sfx(35);
                 }
             }
@@ -397,30 +377,27 @@ impl BossNPC {
                     self.parts[i].y = self.parts[0].y;
 
                     match i {
-                        3 => self.parts[i].x = self.parts[0].x - 16 * 0x200,
-                        4 => self.parts[i].x = self.parts[0].x + 16 * 0x200,
+                        3 => self.parts[i].x = self.parts[0].x - 0x2000,
+                        4 => self.parts[i].x = self.parts[0].x + 0x2000,
                         _ => {}
                     }
                 }
                 3 => {
-                    self.parts[i].target_y = self.parts[0].y + 24 * 0x200;
+                    self.parts[i].target_y = self.parts[0].y + 0x3000;
 
                     match i {
-                        3 => self.parts[i].x = self.parts[0].x - 16 * 0x200,
-                        4 => self.parts[i].x = self.parts[0].x + 16 * 0x200,
+                        3 => self.parts[i].x = self.parts[0].x - 0x2000,
+                        4 => self.parts[i].x = self.parts[0].x + 0x2000,
                         _ => {}
                     }
 
-                    self.parts[i].y += (self.parts[0].target_y - self.parts[0].y) / 2;
+                    self.parts[i].y += (self.parts[i].target_y - self.parts[i].y) / 2;
                 }
                 _ => {}
             }
 
-            if self.parts[i].flags.hit_bottom_wall() || self.parts[i].y <= self.parts[i].target_y {
-                self.parts[i].anim_num = 0;
-            } else {
-                self.parts[i].anim_num = 1;
-            }
+            self.parts[i].anim_num =
+                if !self.parts[i].flags.hit_bottom_wall() && self.parts[i].y > self.parts[i].target_y { 1 } else { 0 };
 
             let dir_offset = if self.parts[i].direction == Direction::Left { 0 } else { 2 };
 
@@ -429,7 +406,7 @@ impl BossNPC {
 
         for &i in [1, 2].iter() {
             self.parts[i].x = self.parts[0].x + self.parts[i].direction.vector_x() * 16 * 0x200;
-            self.parts[i].y = (self.parts[0].y + self.parts[i + 2].y - 8 * 0x200) / 2;
+            self.parts[i].y = (self.parts[0].y + self.parts[i + 2].y - 0x1000) / 2;
 
             let dir_offset = if self.parts[i].direction == Direction::Left { 0 } else { 1 };
 
@@ -440,12 +417,8 @@ impl BossNPC {
             self.parts[5].action_num = 1;
             self.parts[5].npc_flags.set_solid_soft(true);
             self.parts[5].npc_flags.set_ignore_solidity(true);
-            self.parts[5].hit_bounds = Rect {
-                left: 20 * 0x200,
-                top: 36 * 0x200,
-                right: 20 * 0x200,
-                bottom: 16 * 0x200,
-            };
+            self.parts[5].hit_bounds =
+                Rect { left: 20 * 0x200, top: 36 * 0x200, right: 20 * 0x200, bottom: 16 * 0x200 };
         }
 
         self.parts[5].x = self.parts[0].x;
