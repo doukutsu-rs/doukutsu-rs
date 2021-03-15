@@ -1544,6 +1544,11 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
+                    OpCode::FLA => {
+                        game_scene.flash.set_blink();
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     OpCode::INI => {
                         exec_state = TextScriptExecutionState::Reset;
                     }
@@ -1572,7 +1577,6 @@ impl TextScriptVM {
                     | OpCode::KE2
                     | OpCode::CRE
                     | OpCode::CSS
-                    | OpCode::FLA
                     | OpCode::MLP
                     | OpCode::SPS
                     | OpCode::FR2

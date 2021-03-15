@@ -1,11 +1,11 @@
 use log::info;
 use num_traits::{abs, clamp};
 
-use crate::weapon::bullet::BulletManager;
 use crate::caret::CaretType;
 use crate::common::{fix9_scale, interpolate_fix9_scale, Color, Direction, FadeDirection, FadeState, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::draw_common::{draw_number, Alignment};
+use crate::components::flash::Flash;
 use crate::components::hud::HUD;
 use crate::components::stage_select::StageSelect;
 use crate::entity::GameEntity;
@@ -30,6 +30,7 @@ use crate::shared_game_state::{Season, SharedGameState};
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM};
 use crate::texture_set::SizedBatch;
+use crate::weapon::bullet::BulletManager;
 use crate::weapon::WeaponType;
 
 pub struct GameScene {
@@ -37,6 +38,7 @@ pub struct GameScene {
     pub stage: Stage,
     pub boss_life_bar: BossLifeBar,
     pub stage_select: StageSelect,
+    pub flash: Flash,
     pub hud_player1: HUD,
     pub hud_player2: HUD,
     pub frame: Frame,
@@ -86,6 +88,7 @@ impl GameScene {
             inventory_player2: Inventory::new(),
             boss_life_bar: BossLifeBar::new(),
             stage_select: StageSelect::new(),
+            flash: Flash::new(),
             hud_player1: HUD::new(Alignment::Left),
             hud_player2: HUD::new(Alignment::Right),
             frame: Frame {
@@ -1104,7 +1107,13 @@ impl GameScene {
         }
         self.boss.tick(
             state,
-            ([&mut self.player1, &mut self.player2], &self.npc_list, &mut self.stage, &self.bullet_manager),
+            (
+                [&mut self.player1, &mut self.player2],
+                &self.npc_list,
+                &mut self.stage,
+                &self.bullet_manager,
+                &mut self.flash,
+            ),
         )?;
 
         self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
@@ -1365,12 +1374,15 @@ impl Scene for GameScene {
             _ => {}
         }
 
+        self.flash.tick(state, ())?;
         TextScriptVM::run(state, self, ctx)?;
 
         #[cfg(feature = "scripting")]
         state.lua.scene_tick(self);
 
-        self.tick = self.tick.wrapping_add(1);
+        if state.control_flags.control_enabled() {
+            self.tick = self.tick.wrapping_add(1);
+        }
         Ok(())
     }
 
@@ -1458,6 +1470,7 @@ impl Scene for GameScene {
         {
             self.draw_light_map(state, ctx)?;
         }
+        self.flash.draw(state, ctx, &self.frame)?;
 
         /*graphics::set_canvas(ctx, None);
         state.game_canvas.draw(ctx, DrawParam::new()
