@@ -42,7 +42,7 @@ pub trait PhysicalEntity {
     fn player_right_pressed(&self) -> bool { false }
 
     fn judge_hit_block(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
-        let bounds_x = if self.is_player() { 5 } else { 8 };
+        let bounds_x = if self.is_player() { 5 } else { 5 };
         let bounds_y = if self.is_player() { 4 } else { 5 };
         // left wall
         if (self.y() - self.hit_bounds().top as i32) < (y * 16 + bounds_y) * 0x200
@@ -358,8 +358,8 @@ pub trait PhysicalEntity {
         let hit_rect_size = clamp(self.hit_rect_size(), 1, 4);
         let hit_rect_size = hit_rect_size * hit_rect_size;
 
-        let x = (self.x() + self.offset_x()) / (16 * 0x200);
-        let y = (self.y() + self.offset_y()) / (16 * 0x200);
+        let x = (self.x() + self.offset_x()) / (0x2000);
+        let y = (self.y() + self.offset_y()) / (0x2000);
 
         self.flags().0 = 0;
         for (idx, (&ox, &oy)) in OFF_X.iter().zip(OFF_Y.iter()).enumerate() {
