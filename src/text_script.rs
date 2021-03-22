@@ -626,8 +626,10 @@ impl TextScriptVM {
                 TextScriptExecutionState::WaitTicks(event, ip, ticks) => {
                     if ticks == 0 {
                         state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
-                    } else {
+                    } else if ticks != 9999 {
                         state.textscript_vm.state = TextScriptExecutionState::WaitTicks(event, ip, ticks - 1);
+                        break;
+                    } else {
                         break;
                     }
                 }
@@ -891,7 +893,10 @@ impl TextScriptVM {
 
                         if flag_to >= flag_from {
                             for flag in flag_from..=flag_to {
-                                state.game_flags.set(flag, false);
+                                if state.get_flag(flag) {
+                                    state.game_flags.set(flag, false);
+                                    break;
+                                }
                             }
                         }
 

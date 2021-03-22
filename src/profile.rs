@@ -1,18 +1,17 @@
 use std::io;
 
-use byteorder::{BE, LE, ReadBytesExt, WriteBytesExt};
+use byteorder::{ReadBytesExt, WriteBytesExt, BE, LE};
 use num_traits::{clamp, FromPrimitive};
 
 use crate::common::{Direction, FadeState};
-
 use crate::framework::context::Context;
+use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::GameResult;
 use crate::player::ControlMode;
 use crate::scene::game_scene::GameScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
 use crate::weapon::{WeaponLevel, WeaponType};
-use crate::framework::error::GameError::ResourceLoadError;
 
 pub struct WeaponData {
     pub weapon_id: u32,
@@ -58,42 +57,67 @@ impl GameProfile {
         game_scene.inventory_player1.current_weapon = self.current_weapon as u16;
         game_scene.inventory_player1.current_item = self.current_item as u16;
         for weapon in self.weapon_data.iter() {
-            if weapon.weapon_id == 0 { continue; }
+            if weapon.weapon_id == 0 {
+                continue;
+            }
             let weapon_type: Option<WeaponType> = FromPrimitive::from_u8(weapon.weapon_id as u8);
 
             if let Some(wtype) = weapon_type {
-                let w = game_scene.inventory_player1.add_weapon(wtype, weapon.max_ammo as u16);
-                w.ammo = weapon.ammo as u16;
-                w.level = match weapon.level {
-                    2 => { WeaponLevel::Level2 }
-                    3 => { WeaponLevel::Level3 }
-                    _ => { WeaponLevel::Level1 }
-                };
-                w.experience = weapon.exp as u16;
+                let w = game_scene.inventory_player1.add_weapon_data(
+                    wtype,
+                    weapon.ammo as u16,
+                    weapon.max_ammo as u16,
+                    weapon.exp as u16,
+                    match weapon.level {
+                        2 => WeaponLevel::Level2,
+                        3 => WeaponLevel::Level3,
+                        _ => WeaponLevel::Level1,
+                    },
+                );
             }
         }
 
         for item in self.items.iter().copied() {
-            if item == 0 { break; }
+            if item == 0 {
+                break;
+            }
 
             game_scene.inventory_player1.add_item(item as u16);
         }
 
         for slot in self.teleporter_slots.iter() {
-            if slot.event_num == 0 { break; }
+            if slot.event_num == 0 {
+                break;
+            }
 
             state.teleporter_slots.push((slot.index as u16, slot.event_num as u16));
         }
 
         for (idx, &flags) in self.flags.iter().enumerate() {
-            if flags & 0b00000001 != 0 { state.game_flags.set(idx * 8, true); }
-            if flags & 0b00000010 != 0 { state.game_flags.set(idx * 8 + 1, true); }
-            if flags & 0b00000100 != 0 { state.game_flags.set(idx * 8 + 2, true); }
-            if flags & 0b00001000 != 0 { state.game_flags.set(idx * 8 + 3, true); }
-            if flags & 0b00010000 != 0 { state.game_flags.set(idx * 8 + 4, true); }
-            if flags & 0b00100000 != 0 { state.game_flags.set(idx * 8 + 5, true); }
-            if flags & 0b01000000 != 0 { state.game_flags.set(idx * 8 + 6, true); }
-            if flags & 0b10000000 != 0 { state.game_flags.set(idx * 8 + 7, true); }
+            if flags & 0b00000001 != 0 {
+                state.game_flags.set(idx * 8, true);
+            }
+            if flags & 0b00000010 != 0 {
+                state.game_flags.set(idx * 8 + 1, true);
+            }
+            if flags & 0b00000100 != 0 {
+                state.game_flags.set(idx * 8 + 2, true);
+            }
+            if flags & 0b00001000 != 0 {
+                state.game_flags.set(idx * 8 + 3, true);
+            }
+            if flags & 0b00010000 != 0 {
+                state.game_flags.set(idx * 8 + 4, true);
+            }
+            if flags & 0b00100000 != 0 {
+                state.game_flags.set(idx * 8 + 5, true);
+            }
+            if flags & 0b01000000 != 0 {
+                state.game_flags.set(idx * 8 + 6, true);
+            }
+            if flags & 0b10000000 != 0 {
+                state.game_flags.set(idx * 8 + 7, true);
+            }
         }
 
         game_scene.player1.equip.0 = self.equipment as u16;
@@ -101,7 +125,8 @@ impl GameProfile {
         game_scene.player1.x = self.pos_x;
         game_scene.player1.y = self.pos_y;
 
-        game_scene.player1.control_mode = if self.control_mode == 1 { ControlMode::IronHead } else { ControlMode::Normal };
+        game_scene.player1.control_mode =
+            if self.control_mode == 1 { ControlMode::IronHead } else { ControlMode::Normal };
         game_scene.player1.direction = self.direction;
         game_scene.player1.life = self.life;
         game_scene.player1.max_life = self.max_life;

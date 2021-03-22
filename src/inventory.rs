@@ -84,24 +84,46 @@ impl Inventory {
         result
     }
 
-    pub fn add_weapon(&mut self, weapon_id: WeaponType, max_ammo: u16) -> &mut Weapon {
+    pub fn add_weapon_data(&mut self, weapon_id: WeaponType, ammo: u16, max_ammo: u16, experience: u16, level: WeaponLevel) {
+        let weapon = Weapon::new(
+            weapon_id,
+            level,
+            experience,
+            ammo,
+            max_ammo,
+        );
+
         if !self.has_weapon(weapon_id) {
+            self.weapons.push(weapon);
+        } else {
+            let w = self.get_weapon_by_type_mut(weapon_id);
+            if let Some(w) = w {
+                *w = weapon
+            }
+        }
+    }
+
+    pub fn add_weapon(&mut self, weapon_id: WeaponType, ammo: u16) {
+        let w = self.get_weapon_by_type_mut(weapon_id);
+        if let Some(w) = w {
+            w.ammo += ammo;
+            w.max_ammo += ammo;
+        } else {
             self.weapons.push(Weapon::new(
                 weapon_id,
                 WeaponLevel::Level1,
                 0,
-                max_ammo,
-                max_ammo,
+                ammo,
+                ammo,
             ));
         }
-
-        self.weapons.iter_mut().find(|w| w.wtype == weapon_id).unwrap()
     }
 
     pub fn trade_weapon(&mut self, old: Option<WeaponType>, new: WeaponType, max_ammo: u16) {
         if let Some(wtype) = old {
             if let Some(weapon) = self.get_weapon_by_type_mut(wtype) {
-                *weapon = Weapon::new(new, WeaponLevel::Level1, 0, max_ammo, max_ammo);
+                let ammo = if max_ammo == 0 { weapon.max_ammo } else { max_ammo };
+                *weapon = Weapon::new(new, WeaponLevel::Level1, 0, ammo, ammo);
             } else {
                 self.add_weapon(new, max_ammo);
             }
