@@ -43,8 +43,9 @@ pub struct MyCharConsts {
     pub control_mode: ControlMode,
     pub air_physics: PhysicsConsts,
     pub water_physics: PhysicsConsts,
-    pub animations_left: [Rect<u16>; 12],
-    pub animations_right: [Rect<u16>; 12],
+    pub frames_left: [Rect<u16>; 12],
+    pub frames_right: [Rect<u16>; 12],
+    pub frames_bubble: [Rect<u16>; 2],
 }
 
 #[derive(Debug)]
@@ -297,7 +298,7 @@ impl EngineConstants {
                     resist: 0x19,
                     jump: 0x280,
                 },
-                animations_left: [
+                frames_left: [
                     Rect { left: 0, top: 0, right: 16, bottom: 16 },
                     Rect { left: 16, top: 0, right: 32, bottom: 16 },
                     Rect { left: 0, top: 0, right: 16, bottom: 16 },
@@ -311,7 +312,7 @@ impl EngineConstants {
                     Rect { left: 96, top: 0, right: 112, bottom: 16 },
                     Rect { left: 112, top: 0, right: 128, bottom: 16 },
                 ],
-                animations_right: [
+                frames_right: [
                     Rect { left: 0, top: 16, right: 16, bottom: 32 },
                     Rect { left: 16, top: 16, right: 32, bottom: 32 },
                     Rect { left: 0, top: 16, right: 16, bottom: 32 },
@@ -324,6 +325,10 @@ impl EngineConstants {
                     Rect { left: 48, top: 16, right: 64, bottom: 32 },
                     Rect { left: 96, top: 16, right: 112, bottom: 32 },
                     Rect { left: 112, top: 16, right: 128, bottom: 32 },
+                ],
+                frames_bubble: [
+                    Rect { left: 56, top: 96, right: 80, bottom: 120 },
+                    Rect { left: 80, top: 96, right: 104, bottom: 120 },
                 ],
             },
             booster: BoosterConsts {
@@ -1327,6 +1332,7 @@ impl EngineConstants {
                 "Stage/PrtFall" => (256, 128),
                 "Stage/PrtGard" => (256, 97),
                 "Stage/PrtHell" => (256, 240),
+                "Stage/PrtHellStatue" => (256, 256),
                 "Stage/PrtJail" => (256, 128),
                 "Stage/PrtLabo" => (128, 64),
                 "Stage/PrtMaze" => (256, 160),
