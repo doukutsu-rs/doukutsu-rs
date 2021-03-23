@@ -4,7 +4,7 @@ use num_derive::FromPrimitive;
 use num_traits::clamp;
 
 use crate::caret::CaretType;
-use crate::common::{interpolate_fix9_scale, Condition, Direction, Equipment, Flag, Rect};
+use crate::common::{Condition, Direction, Equipment, Flag, interpolate_fix9_scale, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
@@ -13,8 +13,8 @@ use crate::input::dummy_player_controller::DummyPlayerController;
 use crate::input::player_controller::PlayerController;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
-use crate::player::skin::basic::BasicPlayerSkin;
 use crate::player::skin::{PlayerAnimationState, PlayerAppearanceState, PlayerSkin};
+use crate::player::skin::basic::BasicPlayerSkin;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
@@ -550,7 +550,8 @@ impl Player {
         if self.flags.hit_bottom_wall() {
             if self.cond.interacted() {
                 self.skin.set_state(PlayerAnimationState::Examining);
-                self.anim_num = 11;
+                self.anim_num = 0;
+                self.anim_counter = 0;
             } else if state.control_flags.control_enabled()
                 && self.controller.move_up()
                 && (self.controller.move_left() || self.controller.move_right())
@@ -597,7 +598,8 @@ impl Player {
 
                 self.cond.set_fallen(false);
                 self.skin.set_state(PlayerAnimationState::LookingUp);
-                self.anim_num = 5;
+                self.anim_num = 0;
+                self.anim_counter = 0;
             } else {
                 if self.cond.fallen() {
                     state.sound_manager.play_sfx(24);
@@ -606,20 +608,24 @@ impl Player {
                 self.cond.set_fallen(false);
                 self.skin.set_state(PlayerAnimationState::Idle);
                 self.anim_num = 0;
+                self.anim_counter = 0;
             }
         } else if self.controller.look_up() {
             self.skin.set_state(PlayerAnimationState::FallingLookingUp);
-            self.anim_num = 6;
+            self.anim_num = 0;
+            self.anim_counter = 0;
         } else if self.controller.look_down() {
             self.skin.set_state(PlayerAnimationState::FallingLookingDown);
-            self.anim_num = 10;
+            self.anim_num = 0;
+            self.anim_counter = 0;
         } else {
             self.skin.set_state(if self.vel_y > 0 {
                 PlayerAnimationState::Jumping
             } else {
                 PlayerAnimationState::Falling
             });
-            self.anim_num = if self.vel_y > 0 { 1 } else { 3 };
+            self.anim_num = 0;
+            self.anim_counter = 0;
         }
 
         self.weapon_offset_y = 0;
@@ -628,16 +634,9 @@ impl Player {
         self.weapon_rect.right = self.weapon_rect.left + 24;
         self.weapon_rect.bottom = self.weapon_rect.top + 16;
 
-        match self.direction {
-            Direction::Left => {
-                self.anim_rect = state.constants.my_char.frames_left[self.anim_num as usize];
-            }
-            Direction::Right => {
-                self.weapon_rect.top += 16;
-                self.weapon_rect.bottom += 16;
-                self.anim_rect = state.constants.my_char.frames_right[self.anim_num as usize];
-            }
-            _ => {}
+        if self.direction == Direction::Right {
+            self.weapon_rect.top += 16;
+            self.weapon_rect.bottom += 16;
         }
 
         if self.up {

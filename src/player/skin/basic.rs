@@ -31,12 +31,12 @@ impl PlayerSkin for BasicPlayerSkin {
             PlayerAnimationState::Walking => {
                 const WALK_INDEXES: [u16; 4] = [1, 0, 2, 0];
 
-                WALK_INDEXES[(self.tick as usize / 4) % 4]
+                WALK_INDEXES[(tick as usize / 5) % 4]
             }
             PlayerAnimationState::WalkingUp => {
                 const WALK_UP_INDEXES: [u16; 4] = [4, 3, 5, 3];
 
-                WALK_UP_INDEXES[(self.tick as usize / 4) % 4]
+                WALK_UP_INDEXES[(tick as usize / 5) % 4]
             }
             PlayerAnimationState::LookingUp => 3,
             PlayerAnimationState::Examining => 7,
@@ -64,7 +64,9 @@ impl PlayerSkin for BasicPlayerSkin {
     }
 
     fn tick(&mut self) {
-        self.tick = self.tick.wrapping_add(1);
+        if self.state == PlayerAnimationState::Walking || self.state == PlayerAnimationState::WalkingUp {
+            self.tick = self.tick.wrapping_add(1);
+        }
     }
 
     fn set_state(&mut self, state: PlayerAnimationState) {
