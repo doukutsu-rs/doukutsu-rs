@@ -1,17 +1,21 @@
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
 use num_traits::abs;
 use num_traits::clamp;
 
 use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
-use crate::npc::{NPC, NPCList};
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::npc::{NPCList, NPC};
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 impl NPC {
-    pub(crate) fn tick_n024_power_critter(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n024_power_critter(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
         match self.action_num {
@@ -23,7 +27,9 @@ impl NPC {
 
                 if self.action_counter >= 8
                     && abs(self.x - player.x) < (128 * 0x200)
-                    && self.y - 128 * 0x200 < player.y && self.y + 48 * 0x200 > player.y {
+                    && self.y - 128 * 0x200 < player.y
+                    && self.y + 48 * 0x200 > player.y
+                {
                     if self.x > player.x {
                         self.direction = Direction::Left;
                     } else {
@@ -48,7 +54,8 @@ impl NPC {
                 if self.action_counter >= 8
                     && abs(self.x - player.x) < 96 * 0x200
                     && self.y - 96 * 0x200 < player.y
-                    && self.y + 48 * 0x200 > player.y {
+                    && self.y + 48 * 0x200 > player.y
+                {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 0;
@@ -87,9 +94,9 @@ impl NPC {
 
                 self.action_counter += 1;
 
-                if (self.flags.hit_left_wall()
-                    || self.flags.hit_right_wall()
-                    || self.flags.hit_top_wall()) || self.action_counter > 100 {
+                if (self.flags.hit_left_wall() || self.flags.hit_right_wall() || self.flags.hit_top_wall())
+                    || self.action_counter > 100
+                {
                     self.action_num = 5;
                     self.anim_num = 2;
                     self.vel_x /= 2;
@@ -136,7 +143,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n026_bat_flying(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n026_bat_flying(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
         match self.action_num {
@@ -144,11 +155,13 @@ impl NPC {
                 if self.action_num == 0 {
                     let angle = self.rng.range(0..0xff);
                     self.vel_x = ((angle as f64 * 1.40625).cos() * 512.0) as i32;
-                    self.target_x = self.x + ((angle as f64 * 1.40625 + std::f64::consts::FRAC_2_PI).cos() * 8.0 * 512.0) as i32;
+                    self.target_x =
+                        self.x + ((angle as f64 * 1.40625 + std::f64::consts::FRAC_2_PI).cos() * 8.0 * 512.0) as i32;
 
                     let angle = self.rng.range(0..0xff);
                     self.vel_y = ((angle as f64 * 1.40625).sin() * 512.0) as i32;
-                    self.target_y = self.y + ((angle as f64 * 1.40625 + std::f64::consts::FRAC_2_PI).sin() * 8.0 * 512.0) as i32;
+                    self.target_y =
+                        self.y + ((angle as f64 * 1.40625 + std::f64::consts::FRAC_2_PI).sin() * 8.0 * 512.0) as i32;
 
                     self.action_num = 1;
                     self.action_counter2 = 120;
@@ -165,9 +178,7 @@ impl NPC {
 
                 if self.action_counter2 < 120 {
                     self.action_counter2 += 1;
-                } else if abs(self.x - player.x) < 8 * 0x200
-                    && self.y < player.y
-                    && self.y + 96 * 0x200 > player.y {
+                } else if abs(self.x - player.x) < 8 * 0x200 && self.y < player.y && self.y + 96 * 0x200 > player.y {
                     self.vel_x /= 2;
                     self.vel_y = 0;
                     self.action_num = 3;
@@ -206,7 +217,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n028_flying_critter(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n028_flying_critter(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
         match self.action_num {
@@ -219,7 +234,8 @@ impl NPC {
                 if self.action_counter >= 8
                     && abs(self.x - player.x) < 96 * 0x200
                     && self.y - 128 * 0x200 < player.y
-                    && self.y + 48 * 0x200 > player.y {
+                    && self.y + 48 * 0x200 > player.y
+                {
                     if self.x > player.x {
                         self.direction = Direction::Left;
                     } else {
@@ -244,7 +260,8 @@ impl NPC {
                 if self.action_counter >= 8
                     && abs(self.x - player.x) < 96 * 0x200
                     && self.y - 96 * 0x200 < player.y
-                    && self.y + 48 * 0x200 > player.y {
+                    && self.y + 48 * 0x200 > player.y
+                {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 0;
@@ -283,9 +300,9 @@ impl NPC {
 
                 self.action_counter += 1;
 
-                if (self.flags.hit_left_wall()
-                    || self.flags.hit_right_wall()
-                    || self.flags.hit_top_wall()) || self.action_counter > 100 {
+                if (self.flags.hit_left_wall() || self.flags.hit_right_wall() || self.flags.hit_top_wall())
+                    || self.action_counter > 100
+                {
                     self.action_num = 5;
                     self.anim_num = 2;
                     self.vel_x /= 2;
@@ -335,7 +352,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n031_bat_hanging(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n031_bat_hanging(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
         match self.action_num {
@@ -350,9 +371,8 @@ impl NPC {
                     self.anim_num = 1;
                 }
 
-                if abs(self.x - player.x) < 8 * 0x200
-                    && self.y - 8 * 0x200 < player.y
-                    && self.y + 96 * 0x200 > player.y {
+                if abs(self.x - player.x) < 8 * 0x200 && self.y - 8 * 0x200 < player.y && self.y + 96 * 0x200 > player.y
+                {
                     self.action_num = 3;
                     self.anim_num = 0;
                 }
@@ -564,11 +584,7 @@ impl NPC {
                 let player = self.get_closest_player_mut(players);
 
                 self.vel_x2 = 50;
-                self.direction = if self.x > player.x {
-                    Direction::Left
-                } else {
-                    Direction::Right
-                };
+                self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
             }
 
             self.vel_y += 0x10;
@@ -823,16 +839,14 @@ impl NPC {
             _ => {}
         }
 
-        if self.action_num <= 9 && self.action_num != 3 && self.action_counter > 10
+        if self.action_num <= 9
+            && self.action_num != 3
+            && self.action_counter > 10
             && ((self.shock > 0)
-            || (abs(self.x - player.x) < 160 * 0x200
-            && abs(self.y - player.y) < 64 * 0x200)
-            && self.rng.range(0..50) == 2) {
-            self.direction = if self.x >= player.x {
-                Direction::Left
-            } else {
-                Direction::Right
-            };
+                || (abs(self.x - player.x) < 160 * 0x200 && abs(self.y - player.y) < 64 * 0x200)
+                    && self.rng.range(0..50) == 2)
+        {
+            self.direction = if self.x >= player.x { Direction::Left } else { Direction::Right };
             self.action_num = 10;
             self.anim_num = 2;
             self.vel_x = self.direction.vector_x() * 0x200;
@@ -1016,7 +1030,12 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n109_malco_powered_on(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n109_malco_powered_on(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -1040,7 +1059,8 @@ impl NPC {
 
                 if abs(self.x - player.x) < 32 * 0x200
                     && self.y - 32 * 0x200 < player.y
-                    && self.y + 16 * 0x200 > player.y {
+                    && self.y + 16 * 0x200 > player.y
+                {
                     self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
                 }
             }
@@ -1167,16 +1187,14 @@ impl NPC {
             _ => {}
         }
 
-        if self.action_num <= 9 && self.action_num != 3 && self.action_counter > 10
+        if self.action_num <= 9
+            && self.action_num != 3
+            && self.action_counter > 10
             && ((self.shock > 0)
-            || (abs(self.x - player.x) < 160 * 0x200
-            && abs(self.y - player.y) < 64 * 0x200)
-            && self.rng.range(0..50) == 2) {
-            self.direction = if self.x >= player.x {
-                Direction::Left
-            } else {
-                Direction::Right
-            };
+                || (abs(self.x - player.x) < 160 * 0x200 && abs(self.y - player.y) < 64 * 0x200)
+                    && self.rng.range(0..50) == 2)
+        {
+            self.direction = if self.x >= player.x { Direction::Left } else { Direction::Right };
             self.action_num = 10;
             self.anim_num = 2;
             self.vel_x = self.direction.vector_x() * 0x100;
@@ -1199,16 +1217,147 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n115_ravil(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.action_counter = 0;
+                    self.action_counter2 = 0;
+                    self.vel_x = 0;
+                }
+
+                let player = self.get_closest_player_mut(players);
+                if self.shock != 0
+                    || (player.x < self.x + 0xc000
+                        && player.x > self.x - 0xc000
+                        && player.y < self.y + 0x4000
+                        && player.y > self.y - 0xc000)
+                {
+                    self.action_num = 10;
+                }
+            }
+            10 => {
+                let player = self.get_closest_player_mut(players);
+
+                self.anim_num = 1;
+                self.direction = if self.x >= player.x { Direction::Left } else { Direction::Right };
+
+                self.action_counter += 1;
+                if self.action_counter > 20 {
+                    self.action_num = 20;
+                    self.action_counter = 0;
+                }
+            }
+            20 => {
+                self.damage = 0;
+                self.vel_x = 0;
+
+                self.anim_counter += 1;
+                if self.anim_counter > 2 {
+                    self.anim_num += 1;
+                    self.anim_counter = 0;
+                    if self.anim_num > 2 {
+                        let player = self.get_closest_player_mut(players);
+
+                        self.direction = if self.x >= player.x { Direction::Left } else { Direction::Right };
+
+                        self.vel_x = self.direction.vector_x() * 0x200;
+                        self.action_counter2 += 1;
+                        self.action_num = 21;
+                        self.vel_y = -0x400;
+
+                        if self.action_counter2 > 2 {
+                            self.action_counter2 = 0;
+                            self.anim_num = 4;
+                            self.vel_x *= 2;
+                            self.damage = 5;
+
+                            state.sound_manager.play_sfx(102);
+                        } else {
+                            state.sound_manager.play_sfx(30);
+                        }
+                    }
+                }
+            }
+            21 => {
+                if self.flags.hit_bottom_wall() {
+                    self.action_num = 20;
+                    self.anim_num = 1;
+                    self.anim_counter = 0;
+                    self.damage = 0;
+
+                    let player = self.get_closest_player_mut(players);
+                    if player.x > self.x + 0x12000
+                        && player.x < self.x - 0x12000
+                        && player.y > self.y + 0x6000
+                        && player.y < self.y - 0x12000
+                    {
+                        self.action_num = 0;
+                    }
+                }
+            }
+            30 => {
+                let mut npc = NPC::create(4, &state.npc_table);
+                for _ in 0..8 {
+                    npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                    npc.vel_y = self.rng.range(-0x600..0) as i32;
+
+                    let _ = npc_list.spawn(0x100, npc.clone());
+                }
+
+                self.anim_num = 0;
+                self.action_num = 0;
+            }
+            50 | 51 => {
+                if self.action_num == 50 {
+                    self.action_num = 51;
+                    self.anim_num = 4;
+                    self.damage = 0;
+                    self.vel_y = -0x200;
+
+                    self.npc_flags.set_shootable(false);
+                    self.npc_flags.set_solid_soft(false);
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    self.action_num = 52;
+                    self.anim_num = 5;
+                    self.vel_x = 0;
+                    state.sound_manager.play_sfx(23);
+                }
+            }
+            _ => {}
+        }
+
+        self.vel_y += if self.action_num <= 50 { 0x40 } else { 0x20 };
+
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
+
+        self.anim_rect = state.constants.npc.n115_ravil[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n192_scooter(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
-                self.display_bounds = Rect {
-                    left: 16 * 0x200,
-                    top: 8 * 0x200,
-                    right: 16 * 0x200,
-                    bottom: 8 * 0x200,
-                };
+                self.display_bounds = Rect { left: 16 * 0x200, top: 8 * 0x200, right: 16 * 0x200, bottom: 8 * 0x200 };
             }
             10 => {
                 self.action_num = 11;
@@ -1280,9 +1429,12 @@ impl NPC {
 
         if self.action_counter % 4 == 0 && self.action_num >= 20 {
             state.sound_manager.play_sfx(34);
-            state.create_caret(self.x + self.direction.vector_x() * 10 * 0x200,
-                               self.y + 10 * 0x200,
-                               CaretType::Exhaust, self.direction.opposite());
+            state.create_caret(
+                self.x + self.direction.vector_x() * 10 * 0x200,
+                self.y + 10 * 0x200,
+                CaretType::Exhaust,
+                self.direction.opposite(),
+            );
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };

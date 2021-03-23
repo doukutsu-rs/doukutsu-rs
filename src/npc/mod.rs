@@ -257,6 +257,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
             112 => self.tick_n112_quote_teleport_in(state, players),
             113 => self.tick_n113_professor_booster(state),
             114 => self.tick_n114_press(state, players, npc_list),
+            115 => self.tick_n115_ravil(state, players, npc_list),
             116 => self.tick_n116_red_petals(state),
             117 => self.tick_n117_curly(state, players, npc_list),
             118 => self.tick_n118_curly_boss(state, players, npc_list, bullet_manager),
