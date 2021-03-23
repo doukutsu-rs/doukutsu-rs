@@ -51,6 +51,9 @@ impl NPC {
                     self.hit_bounds.bottom = 16 * 0x200;
                     self.x -= 16 * 0x200;
                     self.y += 8 * 0x200;
+                    // interpolation glitch fix
+                    self.prev_x = self.x;
+                    self.prev_y = self.y;
                 }
 
                 self.action_counter += 1;
