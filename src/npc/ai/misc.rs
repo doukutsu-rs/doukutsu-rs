@@ -134,11 +134,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n015_chest_closed(
-        &mut self,
-        state: &mut SharedGameState,
-        npc_list: &NPCList,
-    ) -> GameResult {
+    pub(crate) fn tick_n015_chest_closed(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -296,11 +292,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n018_door(
-        &mut self,
-        state: &mut SharedGameState,
-        npc_list: &NPCList,
-    ) -> GameResult {
+    pub(crate) fn tick_n018_door(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 => match self.direction {
                 Direction::Left => self.anim_rect = state.constants.npc.n018_door[0],
@@ -362,24 +354,21 @@ impl NPC {
 
     pub(crate) fn tick_n022_teleporter(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
-            0 if self.anim_counter == 0 => {
-                self.anim_counter = 1;
-                self.anim_rect = state.constants.npc.n022_teleporter[0];
+            0 => {
+                self.anim_num = 0;
             }
             1 => {
                 self.anim_num = (self.anim_num + 1) & 1;
-                self.anim_rect = state.constants.npc.n022_teleporter[self.anim_num as usize];
             }
             _ => {}
         }
 
+        self.anim_rect = state.constants.npc.n022_teleporter[self.anim_num as usize];
+
         Ok(())
     }
 
-    pub(crate) fn tick_n023_teleporter_lights(
-        &mut self,
-        state: &mut SharedGameState,
-    ) -> GameResult {
+    pub(crate) fn tick_n023_teleporter_lights(&mut self, state: &mut SharedGameState) -> GameResult {
         self.anim_counter += 1;
         if self.anim_counter > 1 {
             self.anim_counter = 0;
@@ -599,11 +588,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n073_water_droplet(
-        &mut self,
-        state: &mut SharedGameState,
-        stage: &Stage,
-    ) -> GameResult {
+    pub(crate) fn tick_n073_water_droplet(&mut self, state: &mut SharedGameState, stage: &Stage) -> GameResult {
         self.vel_y += 0x20;
 
         self.anim_rect = state.constants.npc.n073_water_droplet[self.rng.range(0..4) as usize];
@@ -666,19 +651,13 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n085_terminal(
-        &mut self,
-        state: &mut SharedGameState,
-        players: [&mut Player; 2],
-    ) -> GameResult {
+    pub(crate) fn tick_n085_terminal(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
         match self.action_num {
             0 => {
                 self.anim_num = 0;
                 let player = self.get_closest_player_mut(players);
 
-                if abs(player.x - self.x) < 8 * 0x200
-                    && player.y < self.y + 8 * 0x200
-                    && player.y > self.y - 16 * 0x200
+                if abs(player.x - self.x) < 8 * 0x200 && player.y < self.y + 8 * 0x200 && player.y > self.y - 16 * 0x200
                 {
                     state.sound_manager.play_sfx(43);
                     self.action_num = 1;
@@ -693,11 +672,7 @@ impl NPC {
             _ => {}
         }
 
-        let dir_offset = if self.direction == Direction::Left {
-            0
-        } else {
-            3
-        };
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
         self.anim_rect = state.constants.npc.n085_terminal[self.anim_num as usize + dir_offset];
 
         Ok(())
@@ -756,10 +731,7 @@ impl NPC {
                         continue;
                     }
 
-                    if abs(player.y - self.y) < 8 * 0x200
-                        && player.x < self.x
-                        && player.x > self.x - 96 * 0x200
-                    {
+                    if abs(player.y - self.y) < 8 * 0x200 && player.x < self.x && player.x > self.x - 96 * 0x200 {
                         player.vel_x -= 0x88;
                         player.cond.set_increase_acceleration(true);
                     }
@@ -819,10 +791,7 @@ impl NPC {
                         continue;
                     }
 
-                    if abs(player.x - self.x) < 8 * 0x200
-                        && player.y < self.y
-                        && player.y > self.y - 96 * 0x200
-                    {
+                    if abs(player.x - self.x) < 8 * 0x200 && player.y < self.y && player.y > self.y - 96 * 0x200 {
                         player.vel_y -= 0x88;
                     }
                 }
@@ -877,10 +846,7 @@ impl NPC {
                 }
 
                 for player in players.iter_mut() {
-                    if abs(player.y - self.y) < 8 * 0x200
-                        && player.x > self.x
-                        && player.x < self.x + 96 * 0x200
-                    {
+                    if abs(player.y - self.y) < 8 * 0x200 && player.x > self.x && player.x < self.x + 96 * 0x200 {
                         player.vel_x += 0x88;
                         player.cond.set_increase_acceleration(true);
                     }
@@ -936,10 +902,7 @@ impl NPC {
                 }
 
                 for player in players.iter_mut() {
-                    if abs(player.x - self.x) < 8 * 0x200
-                        && player.y > self.y
-                        && player.y < self.y + 96 * 0x200
-                    {
+                    if abs(player.x - self.x) < 8 * 0x200 && player.y > self.y && player.y < self.y + 96 * 0x200 {
                         player.vel_y -= 0x88;
                     }
                 }
@@ -968,11 +931,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n106_hey_bubble_high(
-        &mut self,
-        state: &mut SharedGameState,
-        npc_list: &NPCList,
-    ) -> GameResult {
+    pub(crate) fn tick_n106_hey_bubble_high(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
 
@@ -1084,20 +1043,9 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n125_hidden_item(
-        &mut self,
-        state: &mut SharedGameState,
-        npc_list: &NPCList,
-    ) -> GameResult {
+    pub(crate) fn tick_n125_hidden_item(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.life < 990 {
-            npc_list.create_death_smoke(
-                self.x,
-                self.y,
-                self.display_bounds.right,
-                8,
-                state,
-                &self.rng,
-            );
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 8, state, &self.rng);
             self.cond.set_alive(false);
             state.sound_manager.play_sfx(70);
 
@@ -1155,11 +1103,7 @@ impl NPC {
                 self.npc_flags.set_solid_hard(true);
                 self.vel_x = 0;
                 self.vel_y = 0;
-                self.action_num = if self.direction == Direction::Right {
-                    20
-                } else {
-                    10
-                };
+                self.action_num = if self.direction == Direction::Right { 20 } else { 10 };
             }
             10 => {
                 self.npc_flags.set_rear_and_top_not_hurt(false);
@@ -1284,12 +1228,7 @@ impl NPC {
                 self.y += 0x2000;
             }
 
-            self.anim_rect = Rect {
-                left: 0,
-                top: 0,
-                right: 0,
-                bottom: 0,
-            };
+            self.anim_rect = Rect { left: 0, top: 0, right: 0, bottom: 0 };
         }
 
         Ok(())
@@ -1308,11 +1247,7 @@ impl NPC {
                 self.npc_flags.set_solid_hard(true);
                 self.vel_x = 0;
                 self.vel_y = 0;
-                self.action_num = if self.direction == Direction::Right {
-                    20
-                } else {
-                    10
-                };
+                self.action_num = if self.direction == Direction::Right { 20 } else { 10 };
             }
             10 => {
                 self.npc_flags.set_rear_and_top_not_hurt(false);
@@ -1429,10 +1364,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n194_broken_blue_robot(
-        &mut self,
-        state: &mut SharedGameState,
-    ) -> GameResult {
+    pub(crate) fn tick_n194_broken_blue_robot(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.y += 4 * 0x200;
@@ -1518,19 +1450,12 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n229_red_flowers_sprouts(
-        &mut self,
-        state: &mut SharedGameState,
-    ) -> GameResult {
+    pub(crate) fn tick_n229_red_flowers_sprouts(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.y -= 0x2000;
 
-            let anim = if self.direction == Direction::Left {
-                0
-            } else {
-                1
-            };
+            let anim = if self.direction == Direction::Left { 0 } else { 1 };
 
             self.anim_rect = state.constants.npc.n229_red_flowers_sprouts[anim];
         }
@@ -1538,20 +1463,13 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n230_red_flowers_blooming(
-        &mut self,
-        state: &mut SharedGameState,
-    ) -> GameResult {
+    pub(crate) fn tick_n230_red_flowers_blooming(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.x -= 0x2000;
             self.y -= 0x2000;
 
-            let anim = if self.direction == Direction::Left {
-                0
-            } else {
-                1
-            };
+            let anim = if self.direction == Direction::Left { 0 } else { 1 };
 
             self.anim_rect = state.constants.npc.n230_red_flowers_blooming[anim];
         }
@@ -1559,10 +1477,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n234_red_flowers_picked(
-        &mut self,
-        state: &mut SharedGameState,
-    ) -> GameResult {
+    pub(crate) fn tick_n234_red_flowers_picked(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.y += 16 * 0x200;
@@ -1590,11 +1505,7 @@ impl NPC {
             }
         }
 
-        let anim = if self.direction == Direction::Left {
-            0
-        } else {
-            1
-        };
+        let anim = if self.direction == Direction::Left { 0 } else { 1 };
 
         self.anim_rect = state.constants.npc.n239_cage_bars[anim];
 
@@ -1616,11 +1527,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n297_sue_dragon_mouth(
-        &mut self,
-        state: &mut SharedGameState,
-        npc_list: &NPCList,
-    ) -> GameResult {
+    pub(crate) fn tick_n297_sue_dragon_mouth(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if let Some(npc) = self.get_parent_ref_mut(npc_list) {
             self.x = npc.x + 0x2000;
             self.y = npc.y + 0x1000;
@@ -1686,10 +1593,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n328_human_transform_machine(
-        &mut self,
-        state: &mut SharedGameState,
-    ) -> GameResult {
+    pub(crate) fn tick_n328_human_transform_machine(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.anim_rect = state.constants.npc.n328_human_transform_machine;
@@ -1700,8 +1604,7 @@ impl NPC {
 
     pub(crate) fn tick_n329_laboratory_fan(&mut self, state: &mut SharedGameState) -> GameResult {
         self.anim_counter = self.anim_counter.wrapping_add(1);
-        self.anim_rect =
-            state.constants.npc.n329_laboratory_fan[(self.anim_counter as usize / 2) & 1];
+        self.anim_rect = state.constants.npc.n329_laboratory_fan[(self.anim_counter as usize / 2) & 1];
 
         Ok(())
     }
@@ -1722,11 +1625,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n351_statue_shootable(
-        &mut self,
-        state: &mut SharedGameState,
-        npc_list: &NPCList,
-    ) -> GameResult {
+    pub(crate) fn tick_n351_statue_shootable(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;

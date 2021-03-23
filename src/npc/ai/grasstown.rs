@@ -1430,7 +1430,7 @@ impl NPC {
         if self.action_counter % 4 == 0 && self.action_num >= 20 {
             state.sound_manager.play_sfx(34);
             state.create_caret(
-                self.x + self.direction.vector_x() * 10 * 0x200,
+                self.x + self.direction.opposite().vector_x() * 10 * 0x200,
                 self.y + 10 * 0x200,
                 CaretType::Exhaust,
                 self.direction.opposite(),
