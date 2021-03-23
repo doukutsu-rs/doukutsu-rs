@@ -52,6 +52,26 @@ impl CombinedMenuController {
         false
     }
 
+    pub fn trigger_left(&self) -> bool {
+        for cont in self.controllers.iter() {
+            if cont.trigger_left() {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn trigger_right(&self) -> bool {
+        for cont in self.controllers.iter() {
+            if cont.trigger_right() {
+                return true;
+            }
+        }
+
+        false
+    }
+
     pub fn trigger_ok(&self) -> bool {
         for cont in self.controllers.iter() {
             if cont.trigger_menu_ok() {

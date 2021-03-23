@@ -1,7 +1,6 @@
+use crate::common::Rect;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-
-use crate::common::Rect;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::shared_game_state::SharedGameState;
 
@@ -35,6 +34,8 @@ pub enum MenuSelectionResult<'a> {
     None,
     Canceled,
     Selected(usize, &'a mut MenuEntry),
+    Left(usize, &'a mut MenuEntry),
+    Right(usize, &'a mut MenuEntry),
 }
 
 pub struct Menu {
@@ -53,17 +54,7 @@ static QUOTE_FRAMES: [u16; 4] = [0, 1, 0, 2];
 
 impl Menu {
     pub fn new(x: isize, y: isize, width: u16, height: u16) -> Menu {
-        Menu {
-            x,
-            y,
-            width,
-            height,
-            selected: 0,
-            entry_y: 0,
-            anim_num: 0,
-            anim_wait: 0,
-            entries: Vec::new(),
-        }
+        Menu { x, y, width, height, selected: 0, entry_y: 0, anim_num: 0, anim_wait: 0, entries: Vec::new() }
     }
 
     pub fn push_entry(&mut self, entry: MenuEntry) {
@@ -181,9 +172,7 @@ impl Menu {
         rect.right = rect.left + 16;
         rect.bottom = rect.top + 16;
 
-        batch.add_rect(self.x as f32,
-                       self.y as f32 + 2.0 + self.entry_y as f32,
-                       &rect);
+        batch.add_rect(self.x as f32, self.y as f32 + 2.0 + self.entry_y as f32, &rect);
 
         batch.draw(ctx)?;
 
@@ -191,18 +180,47 @@ impl Menu {
         for entry in self.entries.iter() {
             match entry {
                 MenuEntry::Active(name) => {
-                    state.font.draw_text(name.chars(), self.x as f32 + 20.0, y, &state.constants, &mut state.texture_set, ctx)?;
+                    state.font.draw_text(
+                        name.chars(),
+                        self.x as f32 + 20.0,
+                        y,
+                        &state.constants,
+                        &mut state.texture_set,
+                        ctx,
+                    )?;
                 }
                 MenuEntry::Disabled(name) => {
-                    state.font.draw_colored_text(name.chars(), self.x as f32 + 20.0, y, (0xa0, 0xa0, 0xff, 0xff), &state.constants, &mut state.texture_set, ctx)?;
+                    state.font.draw_colored_text(
+                        name.chars(),
+                        self.x as f32 + 20.0,
+                        y,
+                        (0xa0, 0xa0, 0xff, 0xff),
+                        &state.constants,
+                        &mut state.texture_set,
+                        ctx,
+                    )?;
                 }
                 MenuEntry::Toggle(name, value) => {
                     let value_text = if *value { "ON" } else { "OFF" };
                     let val_text_len = state.font.text_width(value_text.chars(), &state.constants);
 
-                    state.font.draw_text(name.chars(), self.x as f32 + 20.0, y, &state.constants, &mut state.texture_set, ctx)?;
+                    state.font.draw_text(
+                        name.chars(),
+                        self.x as f32 + 20.0,
+                        y,
+                        &state.constants,
+                        &mut state.texture_set,
+                        ctx,
+                    )?;
 
-                    state.font.draw_text(value_text.chars(), self.x as f32 + self.width as f32 - val_text_len, y, &state.constants, &mut state.texture_set, ctx)?;
+                    state.font.draw_text(
+                        value_text.chars(),
+                        self.x as f32 + self.width as f32 - val_text_len,
+                        y,
+                        &state.constants,
+                        &mut state.texture_set,
+                        ctx,
+                    )?;
                 }
                 MenuEntry::Hidden => {}
                 _ => {}
@@ -214,7 +232,11 @@ impl Menu {
         Ok(())
     }
 
-    pub fn tick(&mut self, controller: &mut CombinedMenuController, state: &mut SharedGameState) -> MenuSelectionResult {
+    pub fn tick(
+        &mut self,
+        controller: &mut CombinedMenuController,
+        state: &mut SharedGameState,
+    ) -> MenuSelectionResult {
         if controller.trigger_back() {
             state.sound_manager.play_sfx(5);
             return MenuSelectionResult::Canceled;
@@ -237,8 +259,12 @@ impl Menu {
 
                 if let Some(entry) = self.entries.get(self.selected) {
                     match entry {
-                        MenuEntry::Active(_) => { break; }
-                        MenuEntry::Toggle(_, _) => { break; }
+                        MenuEntry::Active(_) => {
+                            break;
+                        }
+                        MenuEntry::Toggle(_, _) => {
+                            break;
+                        }
                         _ => {}
                     }
                 } else {
@@ -248,11 +274,7 @@ impl Menu {
         }
 
         if !self.entries.is_empty() {
-            self.entry_y = self.entries[0..(self.selected)]
-                .iter()
-                .map(|e| e.height())
-                .sum::<f64>()
-                .max(0.0) as u16;
+            self.entry_y = self.entries[0..(self.selected)].iter().map(|e| e.height()).sum::<f64>().max(0.0) as u16;
         }
 
         let mut y = self.y as f32 + 6.0;
@@ -260,16 +282,21 @@ impl Menu {
             let entry_bounds = Rect::new_size(self.x, y as isize, self.width as isize, entry.height() as isize);
             y += entry.height() as f32;
 
-            if !((controller.trigger_ok() && self.selected == idx)
-                || state.touch_controls.consume_click_in(entry_bounds)) {
-                continue;
-            }
-
             match entry {
-                MenuEntry::Active(_) | MenuEntry::Toggle(_, _) => {
-                    self.selected = idx;
+                MenuEntry::Active(_) | MenuEntry::Toggle(_, _)
+                    if (self.selected == idx && controller.trigger_ok())
+                        || state.touch_controls.consume_click_in(entry_bounds) =>
+                {
                     state.sound_manager.play_sfx(18);
                     return MenuSelectionResult::Selected(idx, entry);
+                }
+                MenuEntry::Options(_, _, _) if controller.trigger_left() => {
+                    state.sound_manager.play_sfx(1);
+                    return MenuSelectionResult::Left(self.selected, entry);
+                }
+                MenuEntry::Options(_, _, _) if controller.trigger_right() => {
+                    state.sound_manager.play_sfx(1);
+                    return MenuSelectionResult::Right(self.selected, entry);
                 }
                 _ => {}
             }
