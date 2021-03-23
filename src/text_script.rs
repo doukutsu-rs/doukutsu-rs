@@ -731,7 +731,6 @@ impl TextScriptVM {
                 FromPrimitive::from_i32(read_cur_varint(&mut cursor).unwrap_or_else(|_| OpCode::END as i32));
 
             if let Some(op) = op_maybe {
-                log::info!("opcode: {:?}", op);
                 match op {
                     OpCode::_NOP => {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
