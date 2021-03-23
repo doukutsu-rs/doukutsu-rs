@@ -8,6 +8,7 @@ use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 use crate::weapon::bullet::BulletManager;
+use crate::caret::CaretType;
 
 impl NPC {
     pub(crate) fn tick_n117_curly(
@@ -268,6 +269,55 @@ impl NPC {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 9 };
 
         self.anim_rect = state.constants.npc.n118_curly_boss[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n123_curly_boss_bullet(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            state.create_caret(self.x, self.y, CaretType::Shoot, Direction::Left);
+            state.sound_manager.play_sfx(32);
+
+            match self.direction {
+                Direction::Left => {
+                    self.vel_x = -0x1000;
+                    self.vel_y = self.rng.range(-0x80..0x80);
+                }
+                Direction::Up => {
+                    self.vel_x = self.rng.range(-0x80..0x80);
+                    self.vel_y = -0x1000;
+                }
+                Direction::Right => {
+                    self.vel_x = 0x1000;
+                    self.vel_y = self.rng.range(-0x80..0x80);
+                }
+                Direction::Bottom => {
+                    self.vel_x = self.rng.range(-0x80..0x80);
+                    self.vel_y = 0x1000;
+                }
+                Direction::FacingPlayer => unreachable!(),
+            }
+
+            self.anim_rect = state.constants.npc.n123_curly_boss_bullet[self.direction as usize];
+        }
+
+        if match self.direction {
+            Direction::Left if self.flags.hit_left_wall() => true,
+            Direction::Right if self.flags.hit_right_wall() => true,
+            Direction::Up if self.flags.hit_top_wall() => true,
+            Direction::Bottom if self.flags.hit_bottom_wall() => true,
+            _ => false,
+        } {
+            state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Right);
+            state.sound_manager.play_sfx(28);
+            self.cond.set_alive(false);
+
+            return Ok(());
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
 
         Ok(())
     }

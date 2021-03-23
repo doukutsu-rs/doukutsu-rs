@@ -688,10 +688,212 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n056_tan_beetle(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
+        match self.action_num {
+            0 => {
+                self.action_num = if self.direction == Direction::Left { 1 } else { 3 };
+            }
+            1 => {
+                self.vel_x -= 0x10;
+                if self.vel_x < -0x400 {
+                    self.vel_x = -0x400;
+                }
+
+                self.x += if self.shock != 0 { self.vel_x / 2 } else { self.vel_x };
+
+                self.animate(1, 1, 2);
+
+                if self.flags.hit_left_wall() {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                    self.vel_x = 0;
+                    self.direction = Direction::Right;
+                }
+            }
+            2 => {
+                let player = self.get_closest_player_mut(players);
+                if self.x < player.x && self.x > player.x - 0x20000 && (self.y - player.y).abs() < 0x1000 {
+                    self.action_num = 3;
+                    self.anim_num = 1;
+                    self.anim_counter = 0;
+                }
+            }
+            3 => {
+                self.vel_x += 0x10;
+                if self.vel_x > 0x400 {
+                    self.vel_x = 0x400;
+                }
+
+                self.x += if self.shock != 0 { self.vel_x / 2 } else { self.vel_x };
+
+                self.animate(1, 1, 2);
+
+                if self.flags.hit_right_wall() {
+                    self.action_num = 4;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                    self.vel_x = 0;
+                    self.direction = Direction::Left;
+                }
+            }
+            4 => {
+                let player = self.get_closest_player_mut(players);
+                if self.x > player.x && self.x < player.x + 0x20000 && (self.y - player.y).abs() < 0x1000 {
+                    self.action_num = 1;
+                    self.anim_num = 1;
+                    self.anim_counter = 0;
+                }
+            }
+            _ => {}
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+
+        self.anim_rect = state.constants.npc.n056_tan_beetle[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n057_crow(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = self.rng.range(0..1) as u16;
+                    self.anim_counter = self.rng.range(0..4) as u16;
+                    self.action_counter2 = 120;
+
+                    let mut angle = self.rng.range(0..255);
+
+                    self.vel_x = ((angle as f64 * CDEG_RAD).cos() * -512.0) as i32;
+                    angle += 0x40;
+                    self.target_x = self.x + 8 * ((angle as f64 * CDEG_RAD).cos() * -512.0) as i32;
+                    self.vel_y = ((angle as f64 * CDEG_RAD).sin() * -512.0) as i32;
+                    angle += 0x40;
+                    self.target_y = self.y + 8 * ((angle as f64 * CDEG_RAD).sin() * -512.0) as i32;
+                }
+
+                let player = self.get_closest_player_mut(players);
+
+                self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
+
+                self.vel_x += ((self.target_x - self.x).signum() * 0x10).clamp(-0x200, 0x200);
+                self.vel_y += ((self.target_y - self.y).signum() * 0x10).clamp(-0x200, 0x200);
+
+                if self.shock != 0 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+
+                    self.vel_x = self.direction.opposite().vector_x() * 0x200;
+                    self.vel_y = 0;
+                }
+            }
+            2 => {
+                let player = self.get_closest_player_mut(players);
+
+                self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
+                self.vel_x += if self.y <= player.y + 0x4000 {
+                    (player.x - self.x).signum() * 0x10
+                } else {
+                    (self.x - player.x).signum() * 0x10
+                };
+
+                self.vel_y += (player.y - self.y).signum() * 0x10;
+
+                if self.shock > 0 {
+                    self.vel_x = 0;
+                    self.vel_y += 0x20;
+                }
+
+                if self.vel_x < 0 && self.flags.hit_left_wall() {
+                    self.vel_x = 0x200;
+                }
+
+                if self.vel_x > 0 && self.flags.hit_right_wall() {
+                    self.vel_x = -0x200;
+                }
+
+                if self.vel_y < 0 && self.flags.hit_top_wall() {
+                    self.vel_y = 0x200;
+                }
+
+                if self.vel_y > 0 && self.flags.hit_bottom_wall() {
+                    self.vel_y = -0x200;
+                }
+
+                self.vel_x = clamp(self.vel_x, -0x5ff, 0x5ff);
+                self.vel_y = clamp(self.vel_y, -0x5ff, 0x5ff);
+            }
+            _ => {}
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        if self.shock > 0 {
+            self.anim_num = 4;
+        } else {
+            self.animate(1, 0, 1);
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 5 };
+
+        self.anim_rect = state.constants.npc.n057_crow[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n120_colon_a(&mut self, state: &mut SharedGameState) -> GameResult {
         let anim = if self.direction == Direction::Left { 0 } else { 1 };
 
         self.anim_rect = state.constants.npc.n120_colon_a[anim];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n121_colon_b(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.direction != Direction::Left {
+            self.anim_rect = state.constants.npc.n121_colon_b[2];
+
+            self.action_counter += 1;
+            if self.action_counter > 100 {
+                self.action_counter = 0;
+                state.create_caret(self.x, self.y, CaretType::Zzz, Direction::Left);
+            }
+
+            return Ok(());
+        }
+
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+
+                if self.rng.range(0..120) == 10 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            _ => {}
+        }
+
+        self.anim_rect = state.constants.npc.n121_colon_b[self.anim_num as usize];
 
         Ok(())
     }
@@ -738,6 +940,105 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n126_puppy_running(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+
+                if self.rng.range(0..120) == 10 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+
+                let player = self.get_closest_player_ref(&players);
+
+                if (self.x - player.x).abs() < 0xc000 && self.y - 0x4000 < player.y && self.y + 0x2000 > player.y {
+                    self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
+                }
+
+                if (self.x - player.x).abs() < 0x4000 && self.y - 0x4000 < player.y && self.y + 0x2000 > player.y {
+                    self.action_num = 10;
+                    self.direction = if self.x > player.x { Direction::Right } else { Direction::Left };
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.anim_num = 4;
+                    self.anim_counter = 0;
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    self.animate(2, 4, 5);
+                } else {
+                    self.anim_num = 5;
+                    self.anim_counter =0;
+                }
+
+                if self.vel_x < 0 && self.flags.hit_left_wall() {
+                    self.vel_x /= -2;
+                    self.direction = Direction::Right;
+                }
+
+                if self.vel_x > 0 && self.flags.hit_right_wall() {
+                    self.vel_x /= -2;
+                    self.direction = Direction::Left;
+                }
+
+                self.vel_x += self.direction.vector_x() * 0x40;
+
+                // what the hell pixel?
+                if self.vel_x > 0x5ff {
+                    self.vel_x = 0x400;
+                }
+
+                if self.vel_x < -0x5ff {
+                    self.vel_x = -0x400;
+                }
+            }
+            _ => {}
+        }
+
+        // why
+        self.npc_flags.set_interactable(false);
+        for player in players.iter() {
+            if player.controller.trigger_down() {
+                self.npc_flags.set_interactable(true);
+            }
+        }
+
+        self.vel_y += 0x40;
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
+
+        self.anim_rect = state.constants.npc.n126_puppy_running[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n131_puppy_sleeping(&mut self, state: &mut SharedGameState) -> GameResult {
         self.action_counter += 1;
         if self.action_counter > 100 {
@@ -748,6 +1049,153 @@ impl NPC {
         let anim = if self.direction == Direction::Left { 0 } else { 1 };
 
         self.anim_rect = state.constants.npc.n131_puppy_sleeping[anim];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n132_puppy_barking(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+
+                if self.rng.range(0..120) == 10 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+
+                let player = self.get_closest_player_mut(players);
+                if (self.x - player.x).abs() < 0x8000 && (self.y - player.y).abs() < 0x2000 {
+                    self.animate(4, 2, 4);
+
+                    if self.anim_num == 4 && self.anim_counter == 0 {
+                        state.sound_manager.play_sfx(105);
+                    }
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+
+                if self.rng.range(0..120) == 10 {
+                    self.action_num = 12;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            12 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 11;
+                    self.anim_num = 0;
+                }
+            }
+            100 => {
+                self.action_num = 101;
+                self.action_counter2 = 0;
+            }
+            101 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 4 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 4 {
+                        if self.action_counter2 > 2 {
+                            self.anim_num = 0;
+                            self.action_counter2 = 0;
+                        } else {
+                            self.anim_num = 2;
+                            self.action_counter2 += 1;
+                        }
+                    }
+                }
+
+                if self.anim_num == 4 && self.anim_counter == 0 {
+                    state.sound_manager.play_sfx(105);
+                }
+            }
+            _ => {}
+        }
+
+        self.vel_y += 0x40;
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 5 };
+
+        self.anim_rect = state.constants.npc.n132_puppy_barking[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n136_puppy_carried(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+
+                    self.npc_flags.set_interactable(false);
+                }
+
+                if self.rng.range(0..120) == 10 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            _ => {}
+        }
+
+        // todo dog stacking?
+        let player_index = 0;
+        let player = &players[player_index];
+
+        self.direction = player.direction;
+        self.y = player.y - 0x1400;
+        self.x = player.x + 0x800 * self.direction.opposite().vector_x();
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
+        self.anim_rect = state.constants.npc.n136_puppy_carried[self.anim_num as usize + dir_offset];
+
+        if (player.anim_num & 1) != 0 {
+            self.anim_rect.top += 1;
+        }
 
         Ok(())
     }

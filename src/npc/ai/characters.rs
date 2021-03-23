@@ -91,6 +91,8 @@ impl NPC {
             self.vel_y = 0x5ff;
         }
 
+        self.y += self.vel_y;
+
         Ok(())
     }
 

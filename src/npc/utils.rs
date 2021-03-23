@@ -146,6 +146,13 @@ impl NPC {
         players[idx]
     }
 
+    /// Returns a reference to closest player.
+    pub fn get_closest_player_ref<'a, 'b: 'a>(&self, players: &'a [&'a mut Player; 2]) -> &'b &'a mut Player {
+        let idx = self.get_closest_player_idx_mut(&players);
+
+        &players[idx]
+    }
+
     /// Returns true if the [NPC] collides with a [Bullet].
     pub fn collides_with_bullet(&self, bullet: &Bullet) -> bool {
         (
