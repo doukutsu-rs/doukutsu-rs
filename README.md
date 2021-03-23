@@ -47,6 +47,8 @@ Vanilla Cave Story does not work yet because some important data files have been
 #### Credits
 
 - Studio Pixel/Nicalis for Cave Story 
+- [ggez](https://github.com/ggez/ggez) - we took few bits from it while moving away to SDL2.
+- [@ClayHanson_](https://twitter.com/ClayHanson_) - for letting us use his .pxchar skin format from Cave Story Multiplayer mod. 
 - [Cave Story Tribute Site](https://cavestory.org) - has lots of useful resources related to the game. 
 - [CSE2](https://github.com/Clownacy/CSE2) - widescreen fixes, mutual help in various things.
 - [LunarLambda for organism](https://gitdab.com/LunarLambda/organism) - which is being used by us as `.org` playback engine.
