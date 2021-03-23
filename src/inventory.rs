@@ -3,9 +3,10 @@ use std::cmp::Ordering;
 use crate::engine_constants::EngineConstants;
 use crate::shared_game_state::SharedGameState;
 use crate::weapon::{Weapon, WeaponLevel, WeaponType};
-use crate::player::Player;
+use crate::player::{Player, TargetPlayer};
 use crate::caret::CaretType;
 use crate::common::Direction;
+use crate::weapon::bullet::BulletManager;
 
 #[derive(Clone, Copy)]
 /// (id, amount)
@@ -183,8 +184,7 @@ impl Inventory {
 
     pub fn reset_current_weapon_xp(&mut self) {
         if let Some(weapon) = self.get_current_weapon_mut() {
-            weapon.level = WeaponLevel::Level1;
-            weapon.experience = 0;
+            weapon.reset_xp();
         }
     }
 
@@ -221,43 +221,14 @@ impl Inventory {
 
     pub fn add_xp(&mut self, exp: u16, player: &mut Player, state: &mut SharedGameState) {
         if let Some(weapon) = self.get_current_weapon_mut() {
-            let curr_level_idx = weapon.level as usize - 1;
-            let lvl_table = state.constants.weapon.level_table[weapon.wtype as usize];
-
-            weapon.experience += exp;
-
-            if weapon.level == WeaponLevel::Level3 {
-                if weapon.experience > lvl_table[2] {
-                    weapon.experience = lvl_table[2];
-
-                    if player.equip.has_whimsical_star() && player.stars < 3 {
-                        player.stars += 1;
-                    }
-                }
-            } else if weapon.experience > lvl_table[curr_level_idx] {
-                weapon.level = weapon.level.next();
-                weapon.experience = 0;
-
-                if weapon.wtype != WeaponType::Spur {
-                    state.sound_manager.play_sfx(27);
-                    state.create_caret(player.x, player.y, CaretType::LevelUp, Direction::Left);
-                }
-            }
+            weapon.add_xp(exp, player, state);
         }
     }
 
     /// Get current experience state. Returns a (exp, max exp, max level/exp) tuple.
     pub fn get_current_max_exp(&self, constants: &EngineConstants) -> (u16, u16, bool) {
         if let Some(weapon) = self.weapons.get(self.current_weapon as usize) {
-            if weapon.level == WeaponLevel::None {
-                return (0, 0, false);
-            }
-
-            let level_idx = weapon.level as usize - 1;
-            let max_exp = constants.weapon.level_table[weapon.wtype as usize][level_idx];
-            let max = weapon.level == WeaponLevel::Level3 && weapon.experience == max_exp;
-
-            (weapon.experience, max_exp, max)
+            weapon.get_max_exp(constants)
         } else {
             (0, 0, false)
         }
@@ -290,6 +261,12 @@ impl Inventory {
 
     pub fn has_weapon(&self, wtype: WeaponType) -> bool {
         self.weapons.iter().any(|weapon| weapon.wtype == wtype)
+    }
+
+    pub fn tick_weapons(&mut self, state: &mut SharedGameState, player: &mut Player, player_id: TargetPlayer, bullet_manager: &mut BulletManager) {
+        if let Some(weapon) = self.get_current_weapon_mut() {
+            weapon.tick(state, player, player_id, bullet_manager);
+        }
     }
 }
 

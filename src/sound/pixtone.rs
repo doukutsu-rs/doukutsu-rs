@@ -17,28 +17,15 @@ lazy_static! {
         let mut random = [0i8; 0x100];
 
         let ref_data = include_bytes!("pixtone_ref.dat");
+
         unsafe {
-            sine.copy_from_slice(&*(&ref_data[0..0x100] as *const [u8] as *const [i8]));
-            triangle.copy_from_slice(&*(&ref_data[0x100..0x200] as *const [u8] as *const [i8]));
-            saw_up.copy_from_slice(&*(&ref_data[0x200..0x300] as *const [u8] as *const [i8]));
-            saw_down.copy_from_slice(&*(&ref_data[0x300..0x400] as *const [u8] as *const [i8]));
-            square.copy_from_slice(&*(&ref_data[0x400..0x500] as *const [u8] as *const [i8]));
-            random.copy_from_slice(&*(&ref_data[0x500..0x600] as *const [u8] as *const [i8]));
+            sine.copy_from_slice(std::mem::transmute(&ref_data[0..0x100]));
+            triangle.copy_from_slice(std::mem::transmute(&ref_data[0x100..0x200]));
+            saw_up.copy_from_slice(std::mem::transmute(&ref_data[0x200..0x300]));
+            saw_down.copy_from_slice(std::mem::transmute(&ref_data[0x300..0x400]));
+            square.copy_from_slice(std::mem::transmute(&ref_data[0x400..0x500]));
+            random.copy_from_slice(std::mem::transmute(&ref_data[0x500..0x600]));
         }
-
-        // todo i can't get this shit right
-/*
-        let mut seed = 0i32;
-
-        for i in 0..255 {
-            seed = seed.wrapping_mul(214013).wrapping_add(2531011);
-            sine[i] = (64.0 * (i as f64 * std::f64::consts::PI).sin()) as i8;
-            triangle[i] = (if (0x40i32.wrapping_add(i as i32)) & 0x80 != 0 { 0x80i32.wrapping_sub(i as i32) } else { i as i32 }) as i8;
-            saw_up[i] = (-0x40i32).wrapping_add(i as i32 / 2) as i8;
-            saw_down[i] = (0x40i32.wrapping_sub(i as i32 / 2)) as i8;
-            square[i] = (0x40i32.wrapping_sub(i as i32 & 0x80)) as i8;
-            random[i] = (seed >> 16) as i8 / 2;
-        }*/
 
         [sine, triangle, saw_up, saw_down, square, random]
     };

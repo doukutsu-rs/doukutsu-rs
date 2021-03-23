@@ -2,10 +2,10 @@ use num_derive::FromPrimitive;
 
 use crate::caret::CaretType;
 use crate::common::Direction;
-use crate::inventory::Inventory;
+use crate::engine_constants::EngineConstants;
 use crate::player::{Player, TargetPlayer};
 use crate::shared_game_state::SharedGameState;
-use crate::weapon::bullet::{Bullet, BulletManager};
+use crate::weapon::bullet::BulletManager;
 
 mod blade;
 mod bubbler;
@@ -101,13 +101,54 @@ impl Weapon {
         }
     }
 
+    pub fn get_max_exp(&self, constants: &EngineConstants) -> (u16, u16, bool) {
+        if self.level == WeaponLevel::None {
+            return (0, 0, false);
+        }
+
+        let level_idx = self.level as usize - 1;
+        let max_exp = constants.weapon.level_table[self.wtype as usize][level_idx];
+        let max = self.level == WeaponLevel::Level3 && self.experience == max_exp;
+
+        (self.experience, max_exp, max)
+    }
+
+    pub fn add_xp(&mut self, exp: u16, player: &mut Player, state: &mut SharedGameState) {
+        let curr_level_idx = self.level as usize - 1;
+        let lvl_table = state.constants.weapon.level_table[self.wtype as usize];
+
+        self.experience = self.experience.saturating_add(exp);
+
+        if self.level == WeaponLevel::Level3 {
+            if self.experience > lvl_table[2] {
+                self.experience = lvl_table[2];
+
+                if player.equip.has_whimsical_star() && player.stars < 3 {
+                    player.stars += 1;
+                }
+            }
+        } else if self.experience > lvl_table[curr_level_idx] {
+            self.level = self.level.next();
+            self.experience = 0;
+
+            if self.wtype != WeaponType::Spur {
+                state.sound_manager.play_sfx(27);
+                state.create_caret(player.x, player.y, CaretType::LevelUp, Direction::Left);
+            }
+        }
+    }
+
+    pub fn reset_xp(&mut self) {
+        self.level = WeaponLevel::Level1;
+        self.experience = 0;
+    }
+
     pub fn tick(
         &mut self,
+        state: &mut SharedGameState,
         player: &mut Player,
         player_id: TargetPlayer,
-        inventory: &mut Inventory,
         bullet_manager: &mut BulletManager,
-        state: &mut SharedGameState,
     ) {
         if !player.cond.alive() || player.cond.hidden() {
             return;
@@ -124,9 +165,11 @@ impl Weapon {
             WeaponType::MissileLauncher => self.tick_missile_launcher(player, player_id, bullet_manager, state),
             WeaponType::Bubbler => self.tick_bubbler(player, player_id, bullet_manager, state),
             WeaponType::Blade => self.tick_blade(player, player_id, bullet_manager, state),
-            WeaponType::SuperMissileLauncher => self.tick_super_missile_launcher(player, player_id, bullet_manager, state),
+            WeaponType::SuperMissileLauncher => {
+                self.tick_super_missile_launcher(player, player_id, bullet_manager, state)
+            }
             WeaponType::Nemesis => self.tick_nemesis(player, player_id, bullet_manager, state),
-            WeaponType::Spur => self.tick_spur(player, player_id, inventory, bullet_manager, state),
+            WeaponType::Spur => self.tick_spur(player, player_id, bullet_manager, state),
         }
     }
 }

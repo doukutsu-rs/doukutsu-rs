@@ -32,6 +32,7 @@ use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState,
 use crate::texture_set::SizedBatch;
 use crate::weapon::bullet::BulletManager;
 use crate::weapon::WeaponType;
+use crate::components::inventory::InventoryUI;
 
 pub struct GameScene {
     pub tick: u32,
@@ -39,6 +40,7 @@ pub struct GameScene {
     pub boss_life_bar: BossLifeBar,
     pub stage_select: StageSelect,
     pub flash: Flash,
+    pub inventory_ui: InventoryUI,
     pub hud_player1: HUD,
     pub hud_player2: HUD,
     pub frame: Frame,
@@ -89,6 +91,7 @@ impl GameScene {
             boss_life_bar: BossLifeBar::new(),
             stage_select: StageSelect::new(),
             flash: Flash::new(),
+            inventory_ui: InventoryUI::new(),
             hud_player1: HUD::new(Alignment::Left),
             hud_player2: HUD::new(Alignment::Right),
             frame: Frame {
@@ -1186,21 +1189,16 @@ impl GameScene {
         self.frame.update(state, &self.stage);
 
         if state.control_flags.control_enabled() {
-            #[allow(clippy::cast_ref_to_mut)]
-            let inventory = unsafe { &mut *(&self.inventory_player1 as *const Inventory as *mut Inventory) }; // fuck off
-            if let Some(weapon) = self.inventory_player1.get_current_weapon_mut() {
-                weapon.tick(&mut self.player1, TargetPlayer::Player1, inventory, &mut self.bullet_manager, state);
-            }
-
-            #[allow(clippy::cast_ref_to_mut)]
-            let inventory = unsafe { &mut *(&self.inventory_player2 as *const Inventory as *mut Inventory) };
-            if let Some(weapon) = self.inventory_player2.get_current_weapon_mut() {
-                weapon.tick(&mut self.player2, TargetPlayer::Player2, inventory, &mut self.bullet_manager, state);
-            }
+            self.inventory_player1.tick_weapons(state, &mut self.player1, TargetPlayer::Player1, &mut self.bullet_manager);
+            self.inventory_player2.tick_weapons(state, &mut self.player2, TargetPlayer::Player2, &mut self.bullet_manager);
 
             self.hud_player1.tick(state, (&self.player1, &mut self.inventory_player1))?;
             self.hud_player2.tick(state, (&self.player2, &mut self.inventory_player2))?;
             self.boss_life_bar.tick(state, (&self.npc_list, &self.boss))?;
+
+            if self.player1.controller.trigger_inventory() {
+                state.textscript_vm.set_mode(ScriptMode::Inventory);
+            }
         }
 
         Ok(())
@@ -1356,6 +1354,7 @@ impl Scene for GameScene {
         match state.textscript_vm.mode {
             ScriptMode::Map if state.control_flags.tick_world() => self.tick_world(state)?,
             ScriptMode::StageSelect => self.stage_select.tick(state, (&self.player1, &self.player2))?,
+            ScriptMode::Inventory => self.inventory_ui.tick(state, &mut self.inventory_player1)?,
             _ => {}
         }
 
