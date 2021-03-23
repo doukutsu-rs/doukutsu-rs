@@ -13,6 +13,8 @@ use crate::input::dummy_player_controller::DummyPlayerController;
 use crate::input::player_controller::PlayerController;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
+use crate::player::skin::basic::BasicPlayerSkin;
+use crate::player::skin::{PlayerAnimationState, PlayerAppearanceState, PlayerSkin};
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
@@ -24,18 +26,6 @@ pub mod skin;
 pub enum ControlMode {
     Normal = 0,
     IronHead,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum PlayerAppearance {
-    Quote = 0,
-    /// Cave Story+ player skins
-    YellowQuote,
-    HumanQuote,
-    HalloweenQuote,
-    ReindeerQuote,
-    Curly,
 }
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -80,7 +70,7 @@ pub struct Player {
     pub damage: u16,
     pub air_counter: u16,
     pub air: u16,
-    pub appearance: PlayerAppearance,
+    pub skin: Box<dyn PlayerSkin>,
     pub controller: Box<dyn PlayerController>,
     weapon_offset_y: i8,
     camera_target_x: i32,
@@ -134,7 +124,7 @@ impl Player {
             damage: 0,
             air_counter: 0,
             air: 0,
-            appearance: PlayerAppearance::Quote,
+            skin: Box::new(BasicPlayerSkin::new("MyChar".to_string())),
             controller: Box::new(DummyPlayerController::new()),
             damage_counter: 0,
             damage_taken: 0,
@@ -146,7 +136,11 @@ impl Player {
     }
 
     pub fn get_texture_offset(&self) -> u16 {
-        (self.appearance as u16 % 6) * 64 + if self.equip.has_mimiga_mask() { 32 } else { 0 }
+        if self.equip.has_mimiga_mask() {
+            32
+        } else {
+            0
+        }
     }
 
     fn tick_normal(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
@@ -555,12 +549,14 @@ impl Player {
 
         if self.flags.hit_bottom_wall() {
             if self.cond.interacted() {
+                self.skin.set_state(PlayerAnimationState::Examining);
                 self.anim_num = 11;
             } else if state.control_flags.control_enabled()
                 && self.controller.move_up()
                 && (self.controller.move_left() || self.controller.move_right())
             {
                 self.cond.set_fallen(true);
+                self.skin.set_state(PlayerAnimationState::WalkingUp);
 
                 self.anim_counter += 1;
                 if self.anim_counter > 4 {
@@ -579,6 +575,7 @@ impl Player {
                 && (self.controller.move_left() || self.controller.move_right())
             {
                 self.cond.set_fallen(true);
+                self.skin.set_state(PlayerAnimationState::Walking);
 
                 self.anim_counter += 1;
                 if self.anim_counter > 4 {
@@ -599,6 +596,7 @@ impl Player {
                 }
 
                 self.cond.set_fallen(false);
+                self.skin.set_state(PlayerAnimationState::LookingUp);
                 self.anim_num = 5;
             } else {
                 if self.cond.fallen() {
@@ -606,13 +604,21 @@ impl Player {
                 }
 
                 self.cond.set_fallen(false);
+                self.skin.set_state(PlayerAnimationState::Idle);
                 self.anim_num = 0;
             }
         } else if self.controller.look_up() {
+            self.skin.set_state(PlayerAnimationState::FallingLookingUp);
             self.anim_num = 6;
         } else if self.controller.look_down() {
+            self.skin.set_state(PlayerAnimationState::FallingLookingDown);
             self.anim_num = 10;
         } else {
+            self.skin.set_state(if self.vel_y > 0 {
+                PlayerAnimationState::Jumping
+            } else {
+                PlayerAnimationState::Falling
+            });
             self.anim_num = if self.vel_y > 0 { 1 } else { 3 };
         }
 
@@ -648,9 +654,15 @@ impl Player {
             self.weapon_rect.top += 1;
         }
 
-        let offset = self.get_texture_offset();
-        self.anim_rect.top += offset;
-        self.anim_rect.bottom += offset;
+        self.skin.tick();
+        self.skin.set_direction(self.direction);
+        self.skin.set_appearance(if self.equip.has_mimiga_mask() {
+            PlayerAppearanceState::MimigaMask
+        } else {
+            PlayerAppearanceState::Default
+        });
+        self.anim_rect = self.skin.animation_frame();
+
         self.tick = self.tick.wrapping_add(1);
     }
 
@@ -733,42 +745,44 @@ impl GameEntity<&NPCList> for Player {
         if state.constants.is_switch {
             let dog_amount = (3000..=3005).filter(|id| state.get_flag(*id as usize)).count();
 
-            let vec_x = self.direction.vector_x() * 0x800;
-            let vec_y = 0x1400;
+            if dog_amount > 0 {
+                let vec_x = self.direction.vector_x() * 0x800;
+                let vec_y = 0x1400;
 
-            if let Some(entry) = state.npc_table.get_entry(136) {
-                let sprite = state.npc_table.get_texture_name(entry.spritesheet_id as u16);
-                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, sprite)?;
+                if let Some(entry) = state.npc_table.get_entry(136) {
+                    let sprite = state.npc_table.get_texture_name(entry.spritesheet_id as u16);
+                    let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, sprite)?;
 
-                let (off_x, frame_id) = if self.direction == Direction::Left {
-                    (entry.display_bounds.right as i32 * 0x200, 0)
-                } else {
-                    (entry.display_bounds.left as i32 * 0x200, 2)
-                };
-                let off_y = entry.display_bounds.top as i32 * 0x200;
+                    let (off_x, frame_id) = if self.direction == Direction::Left {
+                        (entry.display_bounds.right as i32 * 0x200, 0)
+                    } else {
+                        (entry.display_bounds.left as i32 * 0x200, 2)
+                    };
+                    let off_y = entry.display_bounds.top as i32 * 0x200;
 
-                for i in 1..=(dog_amount as i32) {
-                    batch.add_rect(
-                        interpolate_fix9_scale(
-                            self.prev_x - frame.prev_x - off_x - vec_x * i,
-                            self.x - frame.x - off_x - vec_x * i,
-                            state.frame_time,
-                        ),
-                        interpolate_fix9_scale(
-                            self.prev_y - frame.prev_y - off_y - vec_y * i,
-                            self.y - frame.y - off_y - vec_y * i,
-                            state.frame_time,
-                        ),
-                        &state.constants.npc.n136_puppy_carried[frame_id],
-                    );
+                    for i in 1..=(dog_amount as i32) {
+                        batch.add_rect(
+                            interpolate_fix9_scale(
+                                self.prev_x - frame.prev_x - off_x - vec_x * i,
+                                self.x - frame.x - off_x - vec_x * i,
+                                state.frame_time,
+                            ),
+                            interpolate_fix9_scale(
+                                self.prev_y - frame.prev_y - off_y - vec_y * i,
+                                self.y - frame.y - off_y - vec_y * i,
+                                state.frame_time,
+                            ),
+                            &state.constants.npc.n136_puppy_carried[frame_id],
+                        );
+                    }
+
+                    batch.draw(ctx)?;
                 }
-
-                batch.draw(ctx)?;
             }
         }
 
         if self.shock_counter / 2 % 2 != 0 {
-            return Ok(())
+            return Ok(());
         }
 
         if self.current_weapon != 0 {
@@ -791,7 +805,8 @@ impl GameEntity<&NPCList> for Player {
         }
 
         {
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
+            let batch =
+                state.texture_set.get_or_load_batch(ctx, &state.constants, self.skin.get_skin_texture_name())?;
             batch.add_rect(
                 interpolate_fix9_scale(
                     self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
