@@ -240,7 +240,7 @@ fn test_builtin_fs() {
             FSNode::Directory("memes", vec![
                 FSNode::File("nothing.txt", &[]),
                 FSNode::Directory("secret stuff", vec![
-                    FSNode::File("passwords.txt", &b"12345678"),
+                    FSNode::File("passwords.txt", b"12345678"),
                 ]),
             ]),
             FSNode::File("test2.txt", &[]),

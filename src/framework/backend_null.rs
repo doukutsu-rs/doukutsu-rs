@@ -44,8 +44,9 @@ impl BackendEventLoop for NullEventLoop {
                 game.loops = 0;
                 state_ref.frame_time = 0.0;
             }
-            std::thread::sleep(std::time::Duration::from_millis(10));
-            game.draw(ctx).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(5));
+
+            //game.draw(ctx).unwrap();
         }
     }
 
