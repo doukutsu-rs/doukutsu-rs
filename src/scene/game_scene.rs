@@ -2,9 +2,9 @@ use log::info;
 use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
-use crate::common::{fix9_scale, interpolate_fix9_scale, Color, Direction, FadeDirection, FadeState, Rect};
+use crate::common::{Color, Direction, FadeDirection, FadeState, fix9_scale, interpolate_fix9_scale, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
-use crate::components::draw_common::{draw_number, Alignment};
+use crate::components::draw_common::{Alignment, draw_number};
 use crate::components::flash::Flash;
 use crate::components::hud::HUD;
 use crate::components::stage_select::StageSelect;
@@ -14,7 +14,7 @@ use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
-use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
+use crate::framework::graphics::{BlendMode, draw_rect, FilterMode};
 use crate::framework::ui::Components;
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
@@ -22,10 +22,10 @@ use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
 use crate::physics::PhysicalEntity;
-use crate::player::{Player, PlayerAppearance, TargetPlayer};
+use crate::player::{Player, TargetPlayer};
 use crate::rng::XorShift;
-use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
+use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::{Season, SharedGameState};
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM};
@@ -120,7 +120,6 @@ impl GameScene {
     pub fn add_player2(&mut self) {
         self.player2.cond.set_alive(true);
         self.player2.cond.set_hidden(self.player1.cond.hidden());
-        self.player2.appearance = PlayerAppearance::YellowQuote;
         self.player2.x = self.player1.x;
         self.player2.y = self.player1.y;
         self.player2.vel_x = self.player1.vel_x;
@@ -1117,6 +1116,8 @@ impl GameScene {
         )?;
 
         self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+        self.player2.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+
         self.player1.tick_npc_collisions(
             TargetPlayer::Player1,
             state,
@@ -1124,8 +1125,6 @@ impl GameScene {
             &mut self.boss,
             &mut self.inventory_player1,
         );
-
-        self.player2.tick_map_collisions(state, &self.npc_list, &mut self.stage);
         self.player2.tick_npc_collisions(
             TargetPlayer::Player2,
             state,
@@ -1313,13 +1312,13 @@ impl Scene for GameScene {
         state.npc_table.tex_npc1_name = ["Npc/", &self.stage.data.npc1.filename()].join("");
         state.npc_table.tex_npc2_name = ["Npc/", &self.stage.data.npc2.filename()].join("");
 
-        if state.constants.is_cs_plus {
+        /*if state.constants.is_cs_plus {
             match state.season {
                 Season::Halloween => self.player1.appearance = PlayerAppearance::HalloweenQuote,
                 Season::Christmas => self.player1.appearance = PlayerAppearance::ReindeerQuote,
                 _ => {}
             }
-        }
+        }*/
 
         self.boss.boss_type = self.stage.data.boss_no as u16;
         self.player1.target_x = self.player1.x;
@@ -1344,8 +1343,14 @@ impl Scene for GameScene {
             state.touch_controls.interact_icon = false;
         }
 
-        if self.intro_mode && (self.player1.controller.trigger_menu_ok() || self.tick >= 500) {
-            state.next_scene = Some(Box::new(TitleScene::new()));
+        if self.intro_mode {
+            if let TextScriptExecutionState::WaitTicks(_, _, 9999) = state.textscript_vm.state {
+                state.next_scene = Some(Box::new(TitleScene::new()));
+            }
+
+            if self.player1.controller.trigger_menu_ok() {
+                state.next_scene = Some(Box::new(TitleScene::new()));
+            }
         }
 
         match state.textscript_vm.mode {

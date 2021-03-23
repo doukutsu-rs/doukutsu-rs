@@ -84,10 +84,6 @@ impl TitleScene {
 
 // asset copyright for freeware version
 static COPYRIGHT_PIXEL: &str = "2004.12  Studio Pixel";
-// asset copyright for Nicalis
-static COPYRIGHT_NICALIS: &str = "@2011 NICALIS INC.";
-static COPYRIGHT_NICALIS_SWITCH: &str = "@2017 NICALIS INC.";
-
 static DISCORD_LINK: &str = "https://discord.gg/fbRsNNB";
 
 impl Scene for TitleScene {
@@ -261,14 +257,7 @@ impl Scene for TitleScene {
         }
 
         self.draw_text_centered(VERSION_BANNER.as_str(), state.canvas_size.1 - 15.0, state, ctx)?;
-
-        if state.constants.is_switch {
-            self.draw_text_centered(COPYRIGHT_NICALIS_SWITCH, state.canvas_size.1 - 30.0, state, ctx)?;
-        } else if state.constants.is_cs_plus {
-            self.draw_text_centered(COPYRIGHT_NICALIS, state.canvas_size.1 - 30.0, state, ctx)?;
-        } else {
-            self.draw_text_centered(COPYRIGHT_PIXEL, state.canvas_size.1 - 30.0, state, ctx)?;
-        }
+        self.draw_text_centered(COPYRIGHT_PIXEL, state.canvas_size.1 - 30.0, state, ctx)?;
 
         match self.current_menu {
             CurrentMenu::MainMenu => {
