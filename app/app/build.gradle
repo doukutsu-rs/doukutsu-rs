@@ -71,7 +71,7 @@ cargoNdk {
             "x86",
             "arm64"
     ]
-    librariesNames = ["libdoukutsu_rs.so"]
+    librariesNames = ["libdrsembedded.so"]
     //targetDirectory = "${project.buildDir.getAbsolutePath()}/rust-target"
     module = "../"
     extraCargoEnv = ["ANDROID_NDK_HOME": android.ndkDirectory]

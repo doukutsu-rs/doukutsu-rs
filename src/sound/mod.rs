@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use cpal::Sample;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+#[cfg(feature = "ogg-playback")]
 use lewton::inside_ogg::OggStreamReader;
 use num_traits::clamp;
 
@@ -14,6 +15,7 @@ use crate::framework::error::GameError::{AudioError, InvalidValue};
 use crate::framework::filesystem;
 use crate::framework::filesystem::File;
 use crate::settings::Settings;
+#[cfg(feature = "ogg-playback")]
 use crate::sound::ogg_playback::{OggPlaybackEngine, SavedOggPlaybackState};
 use crate::sound::org_playback::{OrgPlaybackEngine, SavedOrganyaPlaybackState};
 use crate::sound::organya::Song;
@@ -21,6 +23,7 @@ use crate::sound::pixtone::PixTonePlayback;
 use crate::sound::wave_bank::SoundBank;
 use crate::str;
 
+#[cfg(feature = "ogg-playback")]
 mod ogg_playback;
 mod org_playback;
 mod organya;
@@ -38,7 +41,9 @@ pub struct SoundManager {
 
 enum SongFormat {
     Organya,
+    #[cfg(feature = "ogg-playback")]
     OggSinglePart,
+    #[cfg(feature = "ogg-playback")]
     OggMultiPart,
 }
 
@@ -93,7 +98,9 @@ impl SoundManager {
 
             let songs_paths = paths.iter().map(|prefix| {
                 [
+                        #[cfg(feature = "ogg-playback")]
                     (SongFormat::OggMultiPart, vec![format!("{}{}_intro.ogg", prefix, song_name), format!("{}{}_loop.ogg", prefix, song_name)]),
+                        #[cfg(feature = "ogg-playback")]
                     (SongFormat::OggSinglePart, vec![format!("{}{}.ogg", prefix, song_name)]),
                     (SongFormat::Organya, vec![format!("{}{}.org", prefix, song_name)]),
                 ]
@@ -122,6 +129,7 @@ impl SoundManager {
                                 }
                             }
                         }
+                        #[cfg(feature = "ogg-playback")]
                         SongFormat::OggSinglePart => {
                             // we're sure that there's one element
                             let path = unsafe { paths.get_unchecked(0) };
@@ -142,6 +150,7 @@ impl SoundManager {
                                 }
                             }
                         }
+                        #[cfg(feature = "ogg-playback")]
                         SongFormat::OggMultiPart => {
                             // we're sure that there are two elements
                             let path_intro = unsafe { paths.get_unchecked(0) };
@@ -205,7 +214,9 @@ impl SoundManager {
 enum PlaybackMessage {
     Stop,
     PlayOrganyaSong(Box<Song>),
+    #[cfg(feature = "ogg-playback")]
     PlayOggSongSinglePart(Box<OggStreamReader<File>>),
+    #[cfg(feature = "ogg-playback")]
     PlayOggSongMultiPart(Box<OggStreamReader<File>>, Box<OggStreamReader<File>>),
     PlaySample(u8),
     SetSpeed(f32),
@@ -217,12 +228,14 @@ enum PlaybackMessage {
 enum PlaybackState {
     Stopped,
     PlayingOrg,
+    #[cfg(feature = "ogg-playback")]
     PlayingOgg,
 }
 
 enum PlaybackStateType {
     None,
     Organya(SavedOrganyaPlaybackState),
+    #[cfg(feature = "ogg-playback")]
     Ogg(SavedOggPlaybackState),
 }
 
@@ -236,14 +249,18 @@ where
     let mut saved_state: PlaybackStateType = PlaybackStateType::None;
     let mut speed = 1.0;
     let mut org_engine = OrgPlaybackEngine::new(&bank);
+    #[cfg(feature = "ogg-playback")]
     let mut ogg_engine = OggPlaybackEngine::new();
     let mut pixtone = PixTonePlayback::new();
     pixtone.create_samples();
 
     log::info!("Audio format: {} {}", sample_rate, channels);
     org_engine.set_sample_rate(sample_rate as usize);
-    org_engine.loops = usize::MAX;
-    ogg_engine.set_sample_rate(sample_rate as usize);
+    #[cfg(feature = "ogg-playback")]
+        {
+            org_engine.loops = usize::MAX;
+            ogg_engine.set_sample_rate(sample_rate as usize);
+        }
 
     let buf_size = sample_rate as usize * 10 / 1000;
     let mut bgm_buf = vec![0x8080; buf_size * 2];
@@ -275,6 +292,7 @@ where
 
                         state = PlaybackState::PlayingOrg;
                     }
+                    #[cfg(feature = "ogg-playback")]
                     Ok(PlaybackMessage::PlayOggSongSinglePart(data)) => {
                         if state == PlaybackState::Stopped {
                             saved_state = PlaybackStateType::None;
@@ -290,6 +308,7 @@ where
 
                         state = PlaybackState::PlayingOgg;
                     }
+                    #[cfg(feature = "ogg-playback")]
                     Ok(PlaybackMessage::PlayOggSongMultiPart(data_intro, data_loop)) => {
                         if state == PlaybackState::Stopped {
                             saved_state = PlaybackStateType::None;
@@ -318,6 +337,7 @@ where
                     Ok(PlaybackMessage::SetSpeed(new_speed)) => {
                         assert!(new_speed > 0.0);
                         speed = new_speed;
+                        #[cfg(feature = "ogg-playback")]
                         ogg_engine.set_sample_rate((sample_rate / new_speed) as usize);
                         org_engine.set_sample_rate((sample_rate / new_speed) as usize);
                     }
@@ -325,6 +345,7 @@ where
                         saved_state = match state {
                             PlaybackState::Stopped => PlaybackStateType::None,
                             PlaybackState::PlayingOrg => PlaybackStateType::Organya(org_engine.get_state()),
+                            #[cfg(feature = "ogg-playback")]
                             PlaybackState::PlayingOgg => PlaybackStateType::Ogg(ogg_engine.get_state()),
                         };
                     }
@@ -349,6 +370,7 @@ where
 
                                 state = PlaybackState::PlayingOrg;
                             }
+                            #[cfg(feature = "ogg-playback")]
                             PlaybackStateType::Ogg(playback_state) => {
                                 ogg_engine.set_state(playback_state);
 
@@ -383,6 +405,7 @@ where
                                 bgm_index += 1;
                                 ((sample & 0xff) << 8, sample & 0xff00)
                             }
+                            #[cfg(feature = "ogg-playback")]
                             PlaybackState::PlayingOgg => {
                                 let samples = (bgm_buf[bgm_index], bgm_buf[bgm_index + 1]);
                                 bgm_index += 2;
@@ -402,6 +425,7 @@ where
                                 let sample = bgm_buf[0];
                                 ((sample & 0xff) << 8, sample & 0xff00)
                             }
+                            #[cfg(feature = "ogg-playback")]
                             PlaybackState::PlayingOgg => {
                                 samples = ogg_engine.render_to(&mut bgm_buf);
                                 bgm_index = 2;

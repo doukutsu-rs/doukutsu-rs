@@ -57,14 +57,23 @@ impl GlutinEventLoop {
         let mut refs = unsafe { &mut *self.refs.get() };
 
         if refs.is_none() {
-            let window = WindowBuilder::new();
+            let mut window = WindowBuilder::new();
             let windowed_context = ContextBuilder::new()
                 .with_gl(GlRequest::Specific(Api::OpenGlEs, (2, 0)))
                 .with_gl_profile(GlProfile::Core)
                 .with_gl_debug_flag(false)
                 .with_pixel_format(24, 8)
-                .with_vsync(true)
-                .build_windowed(window, event_loop)
+                .with_vsync(true);
+
+            #[cfg(target_os = "windows")]
+                {
+                    use glutin::platform::windows::WindowBuilderExtWindows;
+                    window = window.with_drag_and_drop(false);
+                }
+
+            window = window.with_title("doukutsu-rs");
+
+            let windowed_context = windowed_context.build_windowed(window, event_loop)
                 .unwrap();
 
             let windowed_context = unsafe { windowed_context.make_current().unwrap() };

@@ -185,12 +185,6 @@ impl Game {
     }
 }
 
-#[cfg(target_os = "android")]
-#[cfg_attr(target_os = "android", ndk_glue::main())]
-pub fn android_main() {
-    init().unwrap();
-}
-
 pub fn init() -> GameResult {
     pretty_env_logger::env_logger::from_env(Env::default().default_filter_or("info"))
         //.filter(Some("ndk_glue"), LevelFilter::Trace)

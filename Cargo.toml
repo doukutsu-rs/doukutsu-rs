@@ -5,7 +5,23 @@ name = "doukutsu-rs"
 version = "0.1.0"
 
 [lib]
-crate-type = ["lib", "cdylib"]
+#crate-type = ["lib", "cdylib"]
+crate-type = ["lib"]
+
+[[bin]]
+name = "doukutsu-rs"
+path = "src/main.rs"
+test = false
+bench = false
+required-features = ["exe"]
+
+[[example]]
+name = "drsandroid"
+path = "src/main_android.rs"
+crate-type = ["cdylib"]
+test = false
+bench = false
+required-features = ["android"]
 
 [profile.release]
 lto = 'thin'
@@ -21,14 +37,16 @@ opt-level = 1
 opt-level = 1
 
 [features]
-default = ["scripting", "backend-sdl", "ogg-playback", "netplay"]
+default = ["scripting", "backend-sdl", "ogg-playback", "netplay", "exe"]
 ogg-playback = ["lewton"]
-backend-sdl = ["sdl2"]
+backend-sdl = ["sdl2", "sdl2-sys"]
 #backend-sokol = ["sokol"]
 backend-glutin = ["winit", "glutin"]
 scripting = ["lua-ffi"]
 netplay = []
 editor = []
+exe = []
+android = []
 
 [dependencies]
 #cpal = { path = "./3rdparty/cpal" }
@@ -53,7 +71,8 @@ num-derive = "0.3.2"
 num-traits = "0.2.12"
 paste = "1.0.0"
 pretty_env_logger = "0.4.0"
-sdl2 = { version = "0.34", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
+sdl2 = { version = "=0.34.2", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
+sdl2-sys = { version = "=0.34.2", optional = true, features = ["bundled", "static-link"] }
 #sokol = { git = "https://github.com/doukutsu-rs/sokol-rs.git", rev = "", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"

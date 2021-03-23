@@ -627,10 +627,10 @@ impl NPC {
                     leg.direction = self.direction;
                     leg.parent_id = self.id;
 
-                    npc_list.spawn(256, leg.clone());
+                    let _ = npc_list.spawn(256, leg.clone());
 
                     leg.vel_x = 0x80;
-                    npc_list.spawn(0, leg);
+                    let _ = npc_list.spawn(0, leg);
                 }
 
                 self.vel_y2 += self.direction.vector_x() * 6;

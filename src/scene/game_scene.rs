@@ -598,7 +598,7 @@ impl GameScene {
 
         let canvas = canvas.unwrap();
 
-        graphics::set_render_target(ctx, Some(canvas));
+        graphics::set_render_target(ctx, Some(canvas))?;
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
         graphics::clear(ctx, Color::from_rgb(100, 100, 110));
