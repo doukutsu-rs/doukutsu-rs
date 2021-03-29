@@ -43,6 +43,8 @@ mod frame;
 mod framework;
 mod input;
 mod inventory;
+#[cfg(feature = "hooks")]
+mod hooks;
 mod live_debugger;
 mod macros;
 mod map;

@@ -75,6 +75,7 @@ impl NPC {
             parent_id: 0,
             action_counter: 0,
             action_counter2: 0,
+            action_counter3: 0,
             anim_counter: 0,
             anim_rect: Rect::new(0, 0, 0, 0),
             rng: Xoroshiro32PlusPlus::new(0),
@@ -231,9 +232,9 @@ impl NPCList {
             }
 
             match npc.size {
-                1 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right, 3, state, &npc.rng); }
-                2 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right, 7, state, &npc.rng); }
-                3 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right, 12, state, &npc.rng); }
+                1 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 3, state, &npc.rng); }
+                2 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 7, state, &npc.rng); }
+                3 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 12, state, &npc.rng); }
                 _ => {}
             };
 
@@ -297,9 +298,9 @@ impl NPCList {
                 state.game_flags.set(npc.flag_num as usize, true);
 
                 match npc.size {
-                    1 => self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right, 3, state, &npc.rng),
-                    2 => self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right, 7, state, &npc.rng),
-                    3 => self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right, 12, state, &npc.rng),
+                    1 => self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 3, state, &npc.rng),
+                    2 => self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 7, state, &npc.rng),
+                    3 => self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 12, state, &npc.rng),
                     _ => {}
                 };
             }

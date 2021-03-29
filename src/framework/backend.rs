@@ -1,6 +1,6 @@
 use imgui::DrawData;
 
-use crate::common::{Color, Point, Rect};
+use crate::common::{Color, Rect};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::BlendMode;
@@ -21,7 +21,7 @@ pub trait BackendRenderer {
 
     fn present(&mut self) -> GameResult;
 
-    fn prepare_draw(&mut self, width: f32, height: f32) -> GameResult {
+    fn prepare_draw(&mut self, _width: f32, _height: f32) -> GameResult {
         Ok(())
     }
 

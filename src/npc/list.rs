@@ -1,7 +1,6 @@
 use std::cell::{Cell, UnsafeCell};
 use std::mem::MaybeUninit;
 
-use crate::framework::context::Context;
 use crate::framework::error::{GameResult, GameError};
 
 use crate::npc::NPC;

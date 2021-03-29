@@ -1,5 +1,4 @@
 use crate::common::{CDEG_RAD, Direction};
-use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;

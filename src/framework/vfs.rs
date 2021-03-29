@@ -12,7 +12,7 @@
 use std::collections::VecDeque;
 use std::fmt::{self, Debug};
 use std::fs;
-use std::io::{BufRead, Read, Seek, Write};
+use std::io::{Read, Seek, Write};
 use std::path::{self, Path, PathBuf};
 
 use crate::framework::error::{GameError, GameResult};

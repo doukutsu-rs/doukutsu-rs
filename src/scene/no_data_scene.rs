@@ -1,11 +1,11 @@
 use crate::framework::context::Context;
 use crate::framework::error::{GameResult, GameError};
 
-use crate::common::Rect;
 use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
 
 pub struct NoDataScene {
+    #[cfg(target_os = "android")]
     flag: bool,
     err: String,
 }
@@ -13,6 +13,7 @@ pub struct NoDataScene {
 impl NoDataScene {
     pub fn new(err: GameError) -> Self {
         Self {
+            #[cfg(target_os = "android")]
             flag: false,
             err: err.to_string(),
         }
@@ -23,9 +24,12 @@ impl NoDataScene {
 static REL_URL: &str = "https://github.com/doukutsu-rs/game-data/releases";
 
 impl Scene for NoDataScene {
+    #[allow(unused)]
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         #[cfg(target_os = "android")]
             {
+                use crate::common::Rect;
+
                 if !self.flag {
                     self.flag = true;
                     let _ = std::fs::create_dir("/sdcard/doukutsu/");

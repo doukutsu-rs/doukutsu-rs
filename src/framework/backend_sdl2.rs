@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use imgui::internal::RawWrapper;
-use imgui::{ConfigFlags, DrawCmd, DrawData, ImString, Key, MouseCursor, TextureId, Ui};
+use imgui::{ConfigFlags, DrawCmd, DrawData, ImString, Key, MouseCursor, TextureId};
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Scancode;
 use sdl2::mouse::{Cursor, SystemCursor};
@@ -17,7 +17,7 @@ use crate::common::{Color, Rect};
 use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
-use crate::framework::graphics::{imgui_context, BlendMode};
+use crate::framework::graphics::{BlendMode};
 use crate::framework::keyboard::ScanCode;
 use crate::framework::ui::init_imgui;
 use crate::Game;
@@ -121,7 +121,7 @@ impl BackendEventLoop for SDL2EventLoop {
                                     imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
                                 }
                             }
-                            state.handle_resize(ctx);
+                            state.handle_resize(ctx).unwrap();
                         }
                         _ => {}
                     },
@@ -858,7 +858,6 @@ impl ImguiSdl2 {
     }
 
     pub fn handle_event(&mut self, imgui: &mut imgui::Context, event: &Event) {
-        use sdl2::keyboard;
         use sdl2::mouse::MouseButton;
 
         fn set_mod(imgui: &mut imgui::Context, keymod: keyboard::Mod) {

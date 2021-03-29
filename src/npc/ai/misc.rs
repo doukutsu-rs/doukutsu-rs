@@ -1045,7 +1045,7 @@ impl NPC {
 
     pub(crate) fn tick_n125_hidden_item(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.life < 990 {
-            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 8, state, &self.rng);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
             self.cond.set_alive(false);
             state.sound_manager.play_sfx(70);
 

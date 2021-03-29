@@ -25,7 +25,7 @@ pub trait PhysicalEntity {
     fn offset_x(&self) -> i32 { 0 }
     fn offset_y(&self) -> i32 { 0 }
 
-    fn hit_bounds(&self) -> &Rect<usize>;
+    fn hit_bounds(&self) -> &Rect<u32>;
 
     fn set_x(&mut self, x: i32);
     fn set_y(&mut self, y: i32);

@@ -18,7 +18,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters 'x86', 'arm64-v8a'
+            abiFilters 'x86', 'arm64-v8a', 'armeabi-v7a'
         }
 
         externalNativeBuild {
@@ -69,13 +69,14 @@ println("cargo target: ${project.buildDir.getAbsolutePath()}/rust-target")
 cargoNdk {
     targets = [
             "x86",
+            "arm",
             "arm64"
     ]
-    librariesNames = ["libdrsembedded.so"]
+    librariesNames = ["libdrsandroid.so"]
     //targetDirectory = "${project.buildDir.getAbsolutePath()}/rust-target"
-    module = "../"
+    module = "../drsandroid/"
     extraCargoEnv = ["ANDROID_NDK_HOME": android.ndkDirectory]
-    extraCargoBuildArguments = ["--no-default-features", "--features", "backend-glutin ogg-playback scripting"]
+    extraCargoBuildArguments = []
     verbose = true
 
     buildTypes {

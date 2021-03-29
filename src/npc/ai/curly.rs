@@ -49,7 +49,7 @@ impl NPC {
             5 => {
                 self.action_num = 6;
                 self.anim_num = 5;
-                npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 8, state, &self.rng);
+                npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
             }
             6 => {
                 self.anim_num = 5;

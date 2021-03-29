@@ -1,12 +1,12 @@
 use log::info;
-use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
 use crate::common::{Color, Direction, FadeDirection, FadeState, fix9_scale, interpolate_fix9_scale, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
-use crate::components::draw_common::{Alignment, draw_number};
+use crate::components::draw_common::{Alignment};
 use crate::components::flash::Flash;
 use crate::components::hud::HUD;
+use crate::components::inventory::InventoryUI;
 use crate::components::stage_select::StageSelect;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
@@ -26,13 +26,12 @@ use crate::player::{Player, TargetPlayer};
 use crate::rng::XorShift;
 use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
-use crate::shared_game_state::{Season, SharedGameState};
+use crate::shared_game_state::{SharedGameState};
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM};
 use crate::texture_set::SizedBatch;
 use crate::weapon::bullet::BulletManager;
 use crate::weapon::WeaponType;
-use crate::components::inventory::InventoryUI;
 
 pub struct GameScene {
     pub tick: u32,
@@ -53,7 +52,6 @@ pub struct GameScene {
     pub boss: BossNPC,
     pub bullet_manager: BulletManager,
     pub intro_mode: bool,
-    water_visible: bool,
     tex_background_name: String,
     tex_tileset_name: String,
     map_name_counter: u16,
@@ -109,7 +107,6 @@ impl GameScene {
             boss: BossNPC::new(),
             bullet_manager: BulletManager::new(),
             intro_mode: false,
-            water_visible: true,
             tex_background_name,
             tex_tileset_name,
             map_name_counter: 0,
@@ -471,7 +468,7 @@ impl GameScene {
             // switch version uses 1xxx flag to show a flipped version of face
             let flip = state.textscript_vm.face > 1000;
             // x1xx flag shows a talking animation
-            let talking = (state.textscript_vm.face % 1000) > 100;
+            let _talking = (state.textscript_vm.face % 1000) > 100;
             let face_num = state.textscript_vm.face % 100;
 
             batch.add_rect_flip(
@@ -827,12 +824,12 @@ impl GameScene {
         let mut rect = Rect::new(0, 0, 16, 16);
         let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time, state.scale);
 
-        let tile_start_x = clamp(frame_x as i32 / 16, 0, self.stage.map.width as i32) as usize;
-        let tile_start_y = clamp(frame_y as i32 / 16, 0, self.stage.map.height as i32) as usize;
+        let tile_start_x = (frame_x as i32 / 16).clamp(0, self.stage.map.width as i32) as usize;
+        let tile_start_y = (frame_y as i32 / 16).clamp(0, self.stage.map.height as i32) as usize;
         let tile_end_x =
-            clamp((frame_x as i32 + 8 + state.canvas_size.0 as i32) / 16 + 1, 0, self.stage.map.width as i32) as usize;
+            ((frame_x as i32 + 8 + state.canvas_size.0 as i32) / 16 + 1).clamp(0, self.stage.map.width as i32) as usize;
         let tile_end_y =
-            clamp((frame_y as i32 + 8 + state.canvas_size.1 as i32) / 16 + 1, 0, self.stage.map.height as i32) as usize;
+            ((frame_y as i32 + 8 + state.canvas_size.1 as i32) / 16 + 1).clamp(0, self.stage.map.height as i32) as usize;
 
         if layer == TileLayer::Snack {
             rect = state.constants.world.snack_rect;
@@ -898,7 +895,7 @@ impl GameScene {
                 }
 
                 if npc.npc_flags.shootable() {
-                    npc.life = clamp((npc.life as i32).saturating_sub(bullet.damage as i32), 0, u16::MAX as i32) as u16;
+                    npc.life = (npc.life as i32).saturating_sub(bullet.damage as i32).clamp(0, u16::MAX as i32) as u16;
 
                     if npc.life == 0 {
                         if npc.npc_flags.show_damage() {
@@ -1000,7 +997,7 @@ impl GameScene {
                         npc = unsafe { self.boss.parts.get_unchecked_mut(0) };
                     }
 
-                    npc.life = clamp((npc.life as i32).saturating_sub(bullet.damage as i32), 0, u16::MAX as i32) as u16;
+                    npc.life = (npc.life as i32).saturating_sub(bullet.damage as i32).clamp(0, u16::MAX as i32) as u16;
 
                     if npc.life == 0 {
                         npc.life = npc.id;
@@ -1017,7 +1014,7 @@ impl GameScene {
                             self.npc_list.create_death_smoke(
                                 npc.x,
                                 npc.y,
-                                npc.display_bounds.right,
+                                npc.display_bounds.right as usize,
                                 destroy_count,
                                 state,
                                 &npc.rng,
@@ -1156,14 +1153,14 @@ impl GameScene {
             UpdateTarget::Player => {
                 if self.player2.cond.alive()
                     && !self.player2.cond.hidden()
-                    && abs(self.player1.x - self.player2.x) < 240 * 0x200
-                    && abs(self.player1.y - self.player2.y) < 200 * 0x200
+                    && (self.player1.x - self.player2.x).abs() < 240 * 0x200
+                    && (self.player1.y - self.player2.y).abs() < 200 * 0x200
                 {
                     self.frame.target_x = (self.player1.target_x * 2 + self.player2.target_x) / 3;
                     self.frame.target_y = (self.player1.target_y * 2 + self.player2.target_y) / 3;
 
-                    self.frame.target_x = clamp(self.frame.target_x, self.player1.x - 0x8000, self.player1.x + 0x8000);
-                    self.frame.target_y = clamp(self.frame.target_y, self.player1.y, self.player1.y);
+                    self.frame.target_x = self.frame.target_x.clamp(self.player1.x - 0x8000, self.player1.x + 0x8000);
+                    self.frame.target_y = self.frame.target_y.clamp(self.player1.y, self.player1.y);
                 } else {
                     self.frame.target_x = self.player1.target_x;
                     self.frame.target_y = self.player1.target_y;
@@ -1189,8 +1186,18 @@ impl GameScene {
         self.frame.update(state, &self.stage);
 
         if state.control_flags.control_enabled() {
-            self.inventory_player1.tick_weapons(state, &mut self.player1, TargetPlayer::Player1, &mut self.bullet_manager);
-            self.inventory_player2.tick_weapons(state, &mut self.player2, TargetPlayer::Player2, &mut self.bullet_manager);
+            self.inventory_player1.tick_weapons(
+                state,
+                &mut self.player1,
+                TargetPlayer::Player1,
+                &mut self.bullet_manager,
+            );
+            self.inventory_player2.tick_weapons(
+                state,
+                &mut self.player2,
+                TargetPlayer::Player2,
+                &mut self.bullet_manager,
+            );
 
             self.hud_player1.tick(state, (&self.player1, &mut self.inventory_player1))?;
             self.hud_player2.tick(state, (&self.player2, &mut self.inventory_player2))?;
@@ -1214,7 +1221,7 @@ impl GameScene {
         }
 
         {
-            let hit_rect_size = clamp(npc.hit_rect_size(), 1, 4);
+            let hit_rect_size = npc.hit_rect_size().clamp(1, 4);
             let hit_rect_size = hit_rect_size * hit_rect_size;
 
             let x = (npc.x + npc.offset_x()) / (16 * 0x200);
@@ -1246,10 +1253,11 @@ impl GameScene {
         }
 
         let text = format!("{}:{}:{}", npc.id, npc.npc_type, npc.action_num);
-        state.font.draw_colored_text(
+        state.font.draw_colored_text_scaled(
             text.chars(),
             ((npc.x - self.frame.x) / 0x200) as f32,
             ((npc.y - self.frame.y) / 0x200) as f32,
+            0.5,
             ((npc.id & 0xf0) as u8, (npc.cond.0 >> 8) as u8, (npc.id & 0x0f << 4) as u8, 255),
             &state.constants,
             &mut state.texture_set,
@@ -1354,7 +1362,7 @@ impl Scene for GameScene {
         match state.textscript_vm.mode {
             ScriptMode::Map if state.control_flags.tick_world() => self.tick_world(state)?,
             ScriptMode::StageSelect => self.stage_select.tick(state, (&self.player1, &self.player2))?,
-            ScriptMode::Inventory => self.inventory_ui.tick(state, &mut self.inventory_player1)?,
+            ScriptMode::Inventory => self.inventory_ui.tick(state, (&mut self.player1, &mut self.inventory_player1))?,
             _ => {}
         }
 
@@ -1481,67 +1489,68 @@ impl Scene for GameScene {
             .scale(Vector2::new(1.0 / state.scale, 1.0 / state.scale)))?;*/
         self.draw_black_bars(state, ctx)?;
 
-        if state.control_flags.control_enabled() {
-            self.hud_player1.draw(state, ctx, &self.frame)?;
-            self.hud_player2.draw(state, ctx, &self.frame)?;
-            self.boss_life_bar.draw(state, ctx, &self.frame)?;
+        match state.textscript_vm.mode {
+            ScriptMode::Map if state.control_flags.control_enabled() => {
+                self.hud_player1.draw(state, ctx, &self.frame)?;
+                self.hud_player2.draw(state, ctx, &self.frame)?;
+                self.boss_life_bar.draw(state, ctx, &self.frame)?;
 
-            if self.player2.cond.alive() && !self.player2.cond.hidden() {
-                let y = interpolate_fix9_scale(
-                    self.player2.prev_y - self.frame.prev_y,
-                    self.player2.y - self.frame.y,
-                    state.frame_time,
-                );
-                let y = clamp(y, 8.0, state.canvas_size.1 - 8.0 - state.font.line_height(&state.constants));
+                if self.player2.cond.alive() && !self.player2.cond.hidden() {
+                    let y = interpolate_fix9_scale(
+                        self.player2.prev_y - self.frame.prev_y,
+                        self.player2.y - self.frame.y,
+                        state.frame_time,
+                    );
+                    let y = y.clamp(8.0, state.canvas_size.1 - 8.0 - state.font.line_height(&state.constants));
 
-                if self.player2.x + 8 * 0x200 < self.frame.x {
-                    state.font.draw_colored_text(
-                        P2_LEFT_TEXT.chars(),
-                        9.0,
-                        y + 1.0,
-                        (0, 0, 130, 255),
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    if self.player2.x + 8 * 0x200 < self.frame.x {
+                        state.font.draw_colored_text(
+                            P2_LEFT_TEXT.chars(),
+                            9.0,
+                            y + 1.0,
+                            (0, 0, 130, 255),
+                            &state.constants,
+                            &mut state.texture_set,
+                            ctx,
+                        )?;
 
-                    state.font.draw_colored_text(
-                        P2_LEFT_TEXT.chars(),
-                        8.0,
-                        y,
-                        (96, 96, 255, 255),
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
-                } else if self.player2.x - 8 * 0x200 > self.frame.x + state.canvas_size.0 as i32 * 0x200 {
-                    let width = state.font.text_width(P2_RIGHT_TEXT.chars(), &state.constants);
+                        state.font.draw_colored_text(
+                            P2_LEFT_TEXT.chars(),
+                            8.0,
+                            y,
+                            (96, 96, 255, 255),
+                            &state.constants,
+                            &mut state.texture_set,
+                            ctx,
+                        )?;
+                    } else if self.player2.x - 8 * 0x200 > self.frame.x + state.canvas_size.0 as i32 * 0x200 {
+                        let width = state.font.text_width(P2_RIGHT_TEXT.chars(), &state.constants);
 
-                    state.font.draw_colored_text(
-                        P2_RIGHT_TEXT.chars(),
-                        state.canvas_size.0 - width - 8.0 + 1.0,
-                        y + 1.0,
-                        (0, 0, 130, 255),
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                        state.font.draw_colored_text(
+                            P2_RIGHT_TEXT.chars(),
+                            state.canvas_size.0 - width - 8.0 + 1.0,
+                            y + 1.0,
+                            (0, 0, 130, 255),
+                            &state.constants,
+                            &mut state.texture_set,
+                            ctx,
+                        )?;
 
-                    state.font.draw_colored_text(
-                        P2_RIGHT_TEXT.chars(),
-                        state.canvas_size.0 - width - 8.0,
-                        y,
-                        (96, 96, 255, 255),
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                        state.font.draw_colored_text(
+                            P2_RIGHT_TEXT.chars(),
+                            state.canvas_size.0 - width - 8.0,
+                            y,
+                            (96, 96, 255, 255),
+                            &state.constants,
+                            &mut state.texture_set,
+                            ctx,
+                        )?;
+                    }
                 }
             }
-        }
-
-        if state.textscript_vm.mode == ScriptMode::StageSelect {
-            self.stage_select.draw(state, ctx, &self.frame)?;
+            ScriptMode::StageSelect => self.stage_select.draw(state, ctx, &self.frame)?,
+            ScriptMode::Inventory => self.inventory_ui.draw(state, ctx, &self.frame)?,
+            _ => {}
         }
 
         self.draw_fade(state, ctx)?;

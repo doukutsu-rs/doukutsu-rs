@@ -1,11 +1,7 @@
-use std::env;
 use std::fmt;
 use std::io;
 use std::io::SeekFrom;
 use std::path;
-use std::path::PathBuf;
-
-use directories::ProjectDirs;
 
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};

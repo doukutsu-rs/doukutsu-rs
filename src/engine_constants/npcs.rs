@@ -3,8 +3,6 @@ use serde::{Deserialize, Serialize};
 use crate::common::Rect;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-
-// 360/369 (97.56%) NPCs defined
 pub struct NPCConsts {
     // pub n000_null: () // Defined in code
 
@@ -1061,9 +1059,6 @@ pub struct NPCConsts {
 
     #[serde(default = "default_n360_credits_thank_you")]
     pub n360_credits_thank_you: Rect<u16>,
-
-    #[serde(default = "default_n361_gaudi_dashing")]
-    pub n361_gaudi_dashing: [Rect<u16>; 4],
 
     #[serde(default = "default_b01_omega")]
     pub b01_omega: [Rect<u16>; 10],
@@ -4742,15 +4737,6 @@ fn default_n358_misery_credits() -> [Rect<u16>; 5] {
 
 fn default_n360_credits_thank_you() -> Rect<u16> {
     Rect { left: 0, top: 176, right: 48, bottom: 184 }
-}
-
-fn default_n361_gaudi_dashing() -> [Rect<u16>; 4] {
-    [
-        Rect { left: 48, top: 48, right: 72, bottom: 72 },
-        Rect { left: 72, top: 48, right: 96, bottom: 72 },
-        Rect { left: 48, top: 72, right: 72, bottom: 96 },
-        Rect { left: 72, top: 72, right: 96, bottom: 96 },
-    ]
 }
 
 fn default_b01_omega() -> [Rect<u16>; 10] {

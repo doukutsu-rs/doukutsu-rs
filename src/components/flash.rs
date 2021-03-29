@@ -37,7 +37,7 @@ impl Flash {
 }
 
 impl GameEntity<()> for Flash {
-    fn tick(&mut self, state: &mut SharedGameState, _custom: ()) -> GameResult<()> {
+    fn tick(&mut self, _state: &mut SharedGameState, _custom: ()) -> GameResult<()> {
         match self.state {
             FlashState::None => {}
             FlashState::Cross(x, y, tick) => {

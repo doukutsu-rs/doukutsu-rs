@@ -3,7 +3,6 @@ use crate::common::Direction;
 use crate::player::{Player, TargetPlayer};
 use crate::shared_game_state::SharedGameState;
 use crate::weapon::bullet::BulletManager;
-use crate::weapon::WeaponLevel::Level1;
 use crate::weapon::{Weapon, WeaponLevel};
 
 impl Weapon {

@@ -66,7 +66,7 @@ impl BackendTexture for NullTexture {
         (self.0, self.1)
     }
 
-    fn add(&mut self, command: SpriteBatchCommand) {
+    fn add(&mut self, _command: SpriteBatchCommand) {
 
     }
 
@@ -82,7 +82,7 @@ impl BackendTexture for NullTexture {
 pub struct NullRenderer(RefCell<imgui::Context>);
 
 impl BackendRenderer for NullRenderer {
-    fn clear(&mut self, color: Color) {
+    fn clear(&mut self, _color: Color) {
 
     }
 
@@ -94,23 +94,23 @@ impl BackendRenderer for NullRenderer {
         Ok(Box::new(NullTexture(width, height)))
     }
 
-    fn create_texture(&mut self, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>> {
+    fn create_texture(&mut self, width: u16, height: u16, _data: &[u8]) -> GameResult<Box<dyn BackendTexture>> {
         Ok(Box::new(NullTexture(width, height)))
     }
 
-    fn set_blend_mode(&mut self, blend: BlendMode) -> GameResult {
+    fn set_blend_mode(&mut self, _blend: BlendMode) -> GameResult {
         Ok(())
     }
 
-    fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult {
+    fn set_render_target(&mut self, _texture: Option<&Box<dyn BackendTexture>>) -> GameResult {
         Ok(())
     }
 
-    fn draw_rect(&mut self, rect: Rect<isize>, color: Color) -> GameResult {
+    fn draw_rect(&mut self, _rect: Rect<isize>, _color: Color) -> GameResult {
         Ok(())
     }
 
-    fn draw_outline_rect(&mut self, rect: Rect<isize>, line_width: usize, color: Color) -> GameResult {
+    fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Color) -> GameResult {
         Ok(())
     }
 
@@ -118,7 +118,7 @@ impl BackendRenderer for NullRenderer {
         unsafe { Ok(&mut *self.0.as_ptr()) }
     }
 
-    fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult {
+    fn render_imgui(&mut self, _draw_data: &DrawData) -> GameResult {
         Ok(())
     }
 }

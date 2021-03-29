@@ -1,5 +1,3 @@
-use std::ops::{Add, Sub};
-
 use num_traits::clamp;
 
 use crate::caret::CaretType;
@@ -105,8 +103,8 @@ pub struct Bullet {
     pub anim_counter: u16,
     pub action_num: u16,
     pub action_counter: u16,
-    pub hit_bounds: Rect<usize>,
-    pub display_bounds: Rect<usize>,
+    pub hit_bounds: Rect<u32>,
+    pub display_bounds: Rect<u32>,
 }
 
 impl Bullet {
@@ -152,16 +150,16 @@ impl Bullet {
             action_num: 0,
             action_counter: 0,
             display_bounds: Rect::new(
-                bullet.display_bounds.left as usize * 0x200,
-                bullet.display_bounds.top as usize * 0x200,
-                bullet.display_bounds.right as usize * 0x200,
-                bullet.display_bounds.bottom as usize * 0x200,
+                bullet.display_bounds.left as u32 * 0x200,
+                bullet.display_bounds.top as u32 * 0x200,
+                bullet.display_bounds.right as u32 * 0x200,
+                bullet.display_bounds.bottom as u32 * 0x200,
             ),
             hit_bounds: Rect::new(
-                bullet.block_hit_width as usize * 0x200,
-                bullet.block_hit_height as usize * 0x200,
-                bullet.block_hit_width as usize * 0x200,
-                bullet.block_hit_height as usize * 0x200,
+                bullet.block_hit_width as u32 * 0x200,
+                bullet.block_hit_height as u32 * 0x200,
+                bullet.block_hit_width as u32 * 0x200,
+                bullet.block_hit_height as u32 * 0x200,
             ),
         }
     }
@@ -1515,7 +1513,7 @@ impl PhysicalEntity for Bullet {
     }
 
     #[inline(always)]
-    fn hit_bounds(&self) -> &Rect<usize> {
+    fn hit_bounds(&self) -> &Rect<u32> {
         &self.hit_bounds
     }
 

@@ -29,7 +29,7 @@
             android:screenOrientation="sensorLandscape"
             android:launchMode="standard"
             android:configChanges="orientation|keyboardHidden|screenSize">
-            <meta-data android:name="android.app.lib_name" android:value="doukutsu_rs" />
+            <meta-data android:name="android.app.lib_name" android:value="drsandroid" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

@@ -2,7 +2,6 @@ use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
 use crate::common::{Direction, CDEG_RAD};
-use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
@@ -113,7 +112,7 @@ impl NPC {
         }
 
         if self.life <= 100 {
-            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 8, state, &self.rng);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
             state.sound_manager.play_sfx(25);
             self.cond.set_alive(false);
 
@@ -571,7 +570,7 @@ impl NPC {
         let parent = self.get_parent_ref_mut(npc_list);
         if parent.is_none() || parent.as_ref().unwrap().npc_type == 3 {
             self.vanish(state);
-            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 4, state, &self.rng);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 4, state, &self.rng);
             return Ok(());
         }
 
@@ -668,7 +667,7 @@ impl NPC {
                 if self.action_counter > 50 {
                     state.sound_manager.play_sfx(25);
                     self.vanish(state);
-                    npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 8, state, &self.rng);
+                    npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
                 }
             }
             _ => {}

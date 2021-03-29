@@ -19,7 +19,6 @@ pub enum ScriptType {
 pub struct LiveDebugger {
     map_selector_visible: bool,
     events_visible: bool,
-    hacks_visible: bool,
     flags_visible: bool,
     npc_inspector_visible: bool,
     last_stage_id: usize,
@@ -37,7 +36,6 @@ impl LiveDebugger {
         Self {
             map_selector_visible: false,
             events_visible: false,
-            hacks_visible: false,
             flags_visible: false,
             npc_inspector_visible: false,
             last_stage_id: usize::MAX,

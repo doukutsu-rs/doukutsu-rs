@@ -206,6 +206,7 @@ pub struct PixTonePlayback {
     pub playback_state: Vec<PlaybackState>,
 }
 
+#[allow(unused)]
 impl PixTonePlayback {
     pub fn new() -> PixTonePlayback {
         PixTonePlayback {

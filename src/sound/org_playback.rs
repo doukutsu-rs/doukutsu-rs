@@ -41,7 +41,7 @@ impl Clone for SavedOrganyaPlaybackState {
 }
 
 impl OrgPlaybackEngine {
-    pub fn new(samples: &SoundBank) -> Self {
+    pub fn new() -> Self {
         let mut buffers: [MaybeUninit<RenderBuffer>; 136] = unsafe { MaybeUninit::uninit().assume_init() };
 
         for buffer in buffers.iter_mut() {

@@ -38,7 +38,7 @@ impl PhysicalEntity for Player {
     }
 
     #[inline(always)]
-    fn hit_bounds(&self) -> &Rect<usize> {
+    fn hit_bounds(&self) -> &Rect<u32> {
         &self.hit_bounds
     }
 

@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::fmt;
 
 use lazy_static::lazy_static;
-use num_traits::{abs, AsPrimitive, Num};
+use num_traits::{abs, Num};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeTupleStruct;
@@ -21,6 +21,7 @@ lazy_static! {
 
 bitfield! {
   #[derive(Clone, Copy)]
+  #[repr(C)]
   pub struct Flag(u32);
   impl Debug;
 
@@ -63,6 +64,7 @@ impl Flag {
 
 bitfield! {
   #[derive(Clone, Copy)]
+  #[repr(C)]
   pub struct Equipment(u16);
   impl Debug;
 
@@ -88,6 +90,7 @@ bitfield! {
 
 bitfield! {
   #[derive(Clone, Copy)]
+  #[repr(C)]
   pub struct Condition(u16);
   impl Debug;
 
@@ -106,6 +109,7 @@ bitfield! {
 
 bitfield! {
   #[derive(Clone, Copy, Serialize, Deserialize)]
+  #[repr(C)]
   pub struct ControlFlags(u16);
   impl Debug;
 
@@ -121,6 +125,7 @@ bitfield! {
 
 bitfield! {
   #[derive(Clone, Copy)]
+  #[repr(C)]
   pub struct BulletFlag(u16);
   impl Debug;
   pub flag_x01, set_flag_x01: 0; // 0x01
@@ -257,6 +262,7 @@ impl<T: Num + PartialOrd + Copy> Point<T> {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[repr(C)]
 pub struct Rect<T: Num + PartialOrd + Copy = isize> {
     pub left: T,
     pub top: T,

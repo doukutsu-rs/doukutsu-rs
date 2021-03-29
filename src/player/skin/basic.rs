@@ -49,7 +49,7 @@ impl PlayerSkin for BasicPlayerSkin {
             PlayerAnimationState::FallingUpsideDown => 10,
         };
 
-        let y_offset = if self.direction == Direction::Left { 0 } else { 16 }
+        let y_offset = if direction == Direction::Left { 0 } else { 16 }
             + match self.appearance {
                 PlayerAppearanceState::Default => 0,
                 PlayerAppearanceState::MimigaMask => 32,

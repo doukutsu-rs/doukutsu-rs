@@ -39,7 +39,9 @@ impl OggPlaybackEngine {
         }
     }
 
-    pub fn set_sample_rate(&mut self, sample_rate: usize) {}
+    pub fn set_sample_rate(&mut self, sample_rate: usize) {
+        self.output_format.sample_rate = sample_rate as u32;
+    }
 
     pub fn get_state(&self) -> SavedOggPlaybackState {
         SavedOggPlaybackState {
@@ -120,13 +122,13 @@ impl OggPlaybackEngine {
                 let mut buf = match music.read_dec_packet_itl() {
                     Ok(Some(buf)) => buf,
                     Ok(None) => {
-                        if let Err(e) = music.seek_absgp_pg(0) {
+                        if let Err(_) = music.seek_absgp_pg(0) {
                             vec![0, 1000]
                         } else {
                             return;
                         }
                     }
-                    Err(e) => {
+                    Err(_) => {
                         vec![0, 1000]
                     }
                 };
@@ -145,11 +147,11 @@ impl OggPlaybackEngine {
         }
     }
 
-    fn resample_buffer(&self, mut data: Vec<i16>, sample_rate: u32, channels: u8) -> Vec<i16> {
+    fn resample_buffer(&self, mut data: Vec<i16>, sample_rate: u32, _channels: u8) -> Vec<i16> {
         if sample_rate != self.output_format.sample_rate {
             let mut tmp_data = Vec::new();
             let mut pos = 0.0;
-            let mut phase = sample_rate as f32 / self.output_format.sample_rate as f32;
+            let phase = sample_rate as f32 / self.output_format.sample_rate as f32;
 
             loop {
                 if pos >= data.len() as f32 {

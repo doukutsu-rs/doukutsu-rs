@@ -3,7 +3,6 @@ use num_traits::{abs, clamp};
 use crate::caret::CaretType;
 use crate::common::{Direction, Rect, CDEG_RAD};
 use crate::components::flash::Flash;
-use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;

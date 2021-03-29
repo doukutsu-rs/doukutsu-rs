@@ -51,6 +51,7 @@ bitfield! {
 
 /// Represents an NPC object.
 #[derive(Debug, Clone)]
+#[repr(C)]
 pub struct NPC {
     pub id: u16,
     pub npc_type: u16,
@@ -83,8 +84,6 @@ pub struct NPC {
     /// Raw direction value set by TSC because some NPCs have it set outside 0-4 range,
     /// breaking the direction type.
     pub tsc_direction: u16,
-    pub display_bounds: Rect<usize>,
-    pub hit_bounds: Rect<usize>,
     pub parent_id: u16,
     pub action_num: u16,
     pub anim_num: u16,
@@ -92,8 +91,11 @@ pub struct NPC {
     pub event_num: u16,
     pub action_counter: u16,
     pub action_counter2: u16,
+    pub action_counter3: u16,
     pub anim_counter: u16,
     pub anim_rect: Rect<u16>,
+    pub display_bounds: Rect<u32>,
+    pub hit_bounds: Rect<u32>,
     pub rng: Xoroshiro32PlusPlus,
 }
 
@@ -132,6 +134,7 @@ impl NPC {
             event_num: 0,
             action_counter: 0,
             action_counter2: 0,
+            action_counter3: 0,
             anim_counter: 0,
             anim_rect: Rect { left: 0, top: 0, right: 0, bottom: 0 },
             rng: Xoroshiro32PlusPlus::new(0),
@@ -319,7 +322,13 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
             355 => self.tick_n355_quote_and_curly_on_balrog(state, npc_list),
             358 => self.tick_n358_misery_credits(state),
             359 => self.tick_n359_water_droplet_generator(state, players, npc_list),
-            _ => Ok(()),
+            _ => {
+                #[cfg(feature = "hooks")]
+                    {
+                        crate::hooks::run_npc_hook(self, state, players, npc_list, stage, bullet_manager);
+                    }
+                Ok(())
+            },
         }?;
 
         if self.shock > 0 {
@@ -394,7 +403,7 @@ impl PhysicalEntity for NPC {
     fn offset_y(&self) -> i32 { if self.size >= 3 && !self.cond.drs_boss() { -0x1000 } else { 0 } }
 
     #[inline(always)]
-    fn hit_bounds(&self) -> &Rect<usize> {
+    fn hit_bounds(&self) -> &Rect<u32> {
         &self.hit_bounds
     }
 
@@ -552,26 +561,26 @@ impl NPCTable {
         self.entries.get(npc_type as usize)
     }
 
-    pub fn get_display_bounds(&self, npc_type: u16) -> Rect<usize> {
+    pub fn get_display_bounds(&self, npc_type: u16) -> Rect<u32> {
         if let Some(npc) = self.entries.get(npc_type as usize) {
             Rect {
-                left: npc.display_bounds.left as usize * 0x200,
-                top: npc.display_bounds.top as usize * 0x200,
-                right: npc.display_bounds.right as usize * 0x200,
-                bottom: npc.display_bounds.bottom as usize * 0x200,
+                left: npc.display_bounds.left as u32 * 0x200,
+                top: npc.display_bounds.top as u32 * 0x200,
+                right: npc.display_bounds.right as u32 * 0x200,
+                bottom: npc.display_bounds.bottom as u32 * 0x200,
             }
         } else {
             Rect { left: 0, top: 0, right: 0, bottom: 0 }
         }
     }
 
-    pub fn get_hit_bounds(&self, npc_type: u16) -> Rect<usize> {
+    pub fn get_hit_bounds(&self, npc_type: u16) -> Rect<u32> {
         if let Some(npc) = self.entries.get(npc_type as usize) {
             Rect {
-                left: npc.hit_bounds.left as usize * 0x200,
-                top: npc.hit_bounds.top as usize * 0x200,
-                right: npc.hit_bounds.right as usize * 0x200,
-                bottom: npc.hit_bounds.bottom as usize * 0x200,
+                left: npc.hit_bounds.left as u32 * 0x200,
+                top: npc.hit_bounds.top as u32 * 0x200,
+                right: npc.hit_bounds.right as u32 * 0x200,
+                bottom: npc.hit_bounds.bottom as u32 * 0x200,
             }
         } else {
             Rect { left: 0, top: 0, right: 0, bottom: 0 }

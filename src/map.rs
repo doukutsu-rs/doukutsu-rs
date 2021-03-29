@@ -2,7 +2,6 @@ use std::io;
 
 use byteorder::{LE, ReadBytesExt};
 
-use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 
 use crate::str;

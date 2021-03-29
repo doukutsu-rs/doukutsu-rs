@@ -15,26 +15,12 @@ test = false
 bench = false
 required-features = ["exe"]
 
-[[example]]
-name = "drsandroid"
-path = "src/main_android.rs"
-crate-type = ["cdylib"]
-test = false
-bench = false
-required-features = ["android"]
-
 [profile.release]
 lto = 'thin'
 panic = 'abort'
 
 [profile.dev.package."*"]
 opt-level = 3
-
-[profile.dev.build-override]
-opt-level = 1
-
-[profile.release.build-override]
-opt-level = 1
 
 [features]
 default = ["scripting", "backend-sdl", "ogg-playback", "netplay", "exe"]
@@ -45,6 +31,7 @@ backend-glutin = ["winit", "glutin"]
 scripting = ["lua-ffi"]
 netplay = []
 editor = []
+hooks = ["libc"]
 exe = []
 android = []
 
@@ -64,6 +51,7 @@ image = { version = "0.23", default-features = false, features = ["png", "bmp"] 
 itertools = "0.10"
 lazy_static = "1.4.0"
 lewton = { version = "0.10.2", optional = true }
+libc = { version = "0.2", optional = true }
 log = "0.4"
 lua-ffi = { git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "1ef3caf772d72068297ddf75df06fd2ef8c1daab", optional = true }
 lru = "0.6.0"

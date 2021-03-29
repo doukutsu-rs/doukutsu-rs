@@ -128,7 +128,7 @@ impl SizedBatch {
     }
 
     pub fn add_rect_scaled(&mut self, mut x: f32, mut y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
-        if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
+        if (rect.right.saturating_sub(rect.left)) == 0 || (rect.bottom.saturating_sub(rect.top)) == 0 {
             return;
         }
 

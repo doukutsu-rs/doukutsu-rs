@@ -248,7 +248,7 @@ where
     let mut state = PlaybackState::Stopped;
     let mut saved_state: PlaybackStateType = PlaybackStateType::None;
     let mut speed = 1.0;
-    let mut org_engine = OrgPlaybackEngine::new(&bank);
+    let mut org_engine = OrgPlaybackEngine::new();
     #[cfg(feature = "ogg-playback")]
     let mut ogg_engine = OggPlaybackEngine::new();
     let mut pixtone = PixTonePlayback::new();

@@ -2,20 +2,20 @@ use std::ops::Div;
 
 use bitvec::vec::BitVec;
 use chrono::{Datelike, Local};
-use num_traits::clamp;
-use num_traits::real::Real;
 
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState};
 use crate::engine_constants::EngineConstants;
+use crate::framework::{filesystem, graphics};
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{create_texture_mutable, set_render_target};
 use crate::framework::keyboard::ScanCode;
 use crate::framework::vfs::OpenOptions;
-use crate::framework::{filesystem, graphics};
+#[cfg(feature = "hooks")]
+use crate::hooks::init_hooks;
 use crate::input::touch_controls::TouchControls;
 use crate::npc::NPCTable;
 use crate::profile::GameProfile;
@@ -153,6 +153,9 @@ impl SharedGameState {
 
         println!("lookup path: {:#?}", texture_set.paths);
 
+        #[cfg(feature = "hooks")]
+        init_hooks();
+
         Ok(SharedGameState {
             timing_mode: TimingMode::_50Hz,
             control_flags: ControlFlags(0),
@@ -193,9 +196,7 @@ impl SharedGameState {
             ScanCode::F3 => self.settings.god_mode = !self.settings.god_mode,
             ScanCode::F4 => self.settings.infinite_booster = !self.settings.infinite_booster,
             ScanCode::F5 => self.settings.subpixel_coords = !self.settings.subpixel_coords,
-            ScanCode::F6 => {
-                self.settings.motion_interpolation = !self.settings.motion_interpolation
-            }
+            ScanCode::F6 => self.settings.motion_interpolation = !self.settings.motion_interpolation,
             ScanCode::F7 => self.set_speed(1.0),
             ScanCode::F8 => {
                 if self.settings.speed > 0.2 {
@@ -260,11 +261,7 @@ impl SharedGameState {
     }
 
     pub fn save_game(&mut self, game_scene: &mut GameScene, ctx: &mut Context) -> GameResult {
-        if let Ok(data) = filesystem::open_options(
-            ctx,
-            "/Profile.dat",
-            OpenOptions::new().write(true).create(true),
-        ) {
+        if let Ok(data) = filesystem::open_options(ctx, "/Profile.dat", OpenOptions::new().write(true).create(true)) {
             let profile = GameProfile::dump(self, game_scene);
             profile.write_save(data)?;
         } else {
@@ -315,10 +312,7 @@ impl SharedGameState {
     pub fn handle_resize(&mut self, ctx: &mut Context) -> GameResult {
         self.screen_size = graphics::screen_size(ctx);
         self.scale = self.screen_size.1.div(230.0).floor().max(1.0);
-        self.canvas_size = (
-            self.screen_size.0 / self.scale,
-            self.screen_size.1 / self.scale,
-        );
+        self.canvas_size = (self.screen_size.0 / self.scale, self.screen_size.1 / self.scale);
 
         let (width, height) = (self.screen_size.0 as u16, self.screen_size.1 as u16);
 
@@ -338,12 +332,11 @@ impl SharedGameState {
     }
 
     pub fn create_caret(&mut self, x: i32, y: i32, ctype: CaretType, direct: Direction) {
-        self.carets
-            .push(Caret::new(x, y, ctype, direct, &self.constants));
+        self.carets.push(Caret::new(x, y, ctype, direct, &self.constants));
     }
 
     pub fn set_speed(&mut self, value: f64) {
-        self.settings.speed = clamp(value, 0.1, 3.0);
+        self.settings.speed = value.clamp(0.1, 3.0);
         self.frame_time = 0.0;
     }
 

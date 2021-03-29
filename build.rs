@@ -1,6 +1,4 @@
 use std::env;
-use std::fs::File;
-use std::path::PathBuf;
 
 // #[cfg(feature = "generate-gl")]
 // use gl_generator::{Api, Fallbacks, Profile, Registry};

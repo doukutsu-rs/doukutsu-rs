@@ -4,8 +4,6 @@ use crate::engine_constants::EngineConstants;
 use crate::shared_game_state::SharedGameState;
 use crate::weapon::{Weapon, WeaponLevel, WeaponType};
 use crate::player::{Player, TargetPlayer};
-use crate::caret::CaretType;
-use crate::common::Direction;
 use crate::weapon::bullet::BulletManager;
 
 #[derive(Clone, Copy)]

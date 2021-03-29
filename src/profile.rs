@@ -63,7 +63,7 @@ impl GameProfile {
             let weapon_type: Option<WeaponType> = FromPrimitive::from_u8(weapon.weapon_id as u8);
 
             if let Some(wtype) = weapon_type {
-                let w = game_scene.inventory_player1.add_weapon_data(
+                game_scene.inventory_player1.add_weapon_data(
                     wtype,
                     weapon.ammo as u16,
                     weapon.max_ammo as u16,

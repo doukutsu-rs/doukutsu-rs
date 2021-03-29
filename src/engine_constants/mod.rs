@@ -36,8 +36,8 @@ pub struct BoosterConsts {
 
 #[derive(Debug, Copy, Clone)]
 pub struct MyCharConsts {
-    pub display_bounds: Rect<usize>,
-    pub hit_bounds: Rect<usize>,
+    pub display_bounds: Rect<u32>,
+    pub hit_bounds: Rect<u32>,
     pub life: u16,
     pub max_life: u16,
     pub control_mode: ControlMode,

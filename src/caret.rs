@@ -24,6 +24,32 @@ pub enum CaretType {
     PushJumpKey,
 }
 
+impl CaretType {
+    pub fn from_int(id: usize) -> Option<CaretType> {
+        match id {
+            0 => Some(CaretType::None),
+            1 => Some(CaretType::Bubble),
+            2 => Some(CaretType::ProjectileDissipation),
+            3 => Some(CaretType::Shoot),
+            4 => Some(CaretType::SnakeAfterimage),
+            5 => Some(CaretType::Zzz),
+            6 => Some(CaretType::SnakeAfterimage2),
+            7 => Some(CaretType::Exhaust),
+            8 => Some(CaretType::DrownedQuote),
+            9 => Some(CaretType::QuestionMark),
+            10 => Some(CaretType::LevelUp),
+            11 => Some(CaretType::HurtParticles),
+            12 => Some(CaretType::Explosion),
+            13 => Some(CaretType::LittleParticles),
+            14 => Some(CaretType::Unknown),
+            15 => Some(CaretType::SmallProjectileDissipation),
+            16 => Some(CaretType::Empty),
+            17 => Some(CaretType::PushJumpKey),
+            _ => None,
+        }
+    }
+}
+
 pub struct Caret {
     pub ctype: CaretType,
     pub x: i32,

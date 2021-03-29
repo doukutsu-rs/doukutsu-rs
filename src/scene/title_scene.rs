@@ -10,6 +10,7 @@ use crate::shared_game_state::{SharedGameState, TimingMode};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
+#[allow(unused)]
 enum CurrentMenu {
     MainMenu,
     OptionMenu,

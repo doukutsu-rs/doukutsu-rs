@@ -1,6 +1,4 @@
-use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use num_traits::clamp;
 
 use crate::common::Direction;
 use crate::npc::list::NPCList;
@@ -213,7 +211,7 @@ impl NPC {
         if self.action_num != 14 {
             self.vel_y += 0x40;
 
-            self.vel_x = clamp(self.vel_x, -0x400, 0x400);
+            self.vel_x = self.vel_x.clamp(-0x400, 0x400);
             if self.vel_y > 0x5ff {
                 self.vel_y = 0x5ff;
             }

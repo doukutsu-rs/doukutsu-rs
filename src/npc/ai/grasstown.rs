@@ -3,7 +3,6 @@ use num_traits::clamp;
 
 use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
-use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::npc::{NPCList, NPC};
 use crate::player::Player;
@@ -451,7 +450,7 @@ impl NPC {
             self.damage = 0;
             self.npc_flags.set_shootable(false);
 
-            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right, 8, state, &self.rng);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
             self.create_xp_drop(state, npc_list);
 
             state.sound_manager.play_sfx(71);
