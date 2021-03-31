@@ -171,11 +171,11 @@ impl OrgPlaybackEngine {
                             let p_oct = k % 8;
 
                             //let freq = org_key_to_freq(key + p_oct * 12, self.song.tracks[track].inst.freq as i16);
-                            let freq = 2.0f32.pow((note.key as f32 + self.song.tracks[track].inst.freq as f32 / 1000.0 + 155.376) / 12.0);
+                            let freq = 2.0f32.pow((note.key as f32 + self.song.tracks[track].inst.freq as f32 / 1000.0 + 155.0) / 12.0);
 
                             let l = p_oct as usize * 8 + track + swap;
                             self.track_buffers[l].set_frequency(freq as u32);
-                            self.track_buffers[l].organya_select_octave(0, self.song.tracks[track].inst.pipi != 0);
+                            self.track_buffers[l].organya_select_octave(0, false);
                             //self.track_buffers[l]
                             //    .organya_select_octave(p_oct as usize, self.song.tracks[track].inst.pipi != 0);
                         }
@@ -194,7 +194,9 @@ impl OrgPlaybackEngine {
                         //self.swaps[track] += 64;
                         //self.swaps[track] %= 128;
                         let j = octave as usize + track + self.swaps[track];
-                        self.track_buffers[j].organya_select_octave(0, self.song.tracks[track].inst.pipi != 0);
+                        let freq = 2.0f32.pow((note.key as f32 + self.song.tracks[track].inst.freq as f32 / 1000.0 + 155.0) / 12.0) / 3.0;
+                        self.track_buffers[j].set_frequency(freq as u32);
+                        self.track_buffers[j].organya_select_octave(2, false);
                         //self.track_buffers[j]
                         //    .organya_select_octave(note.key as usize / 12, self.song.tracks[track].inst.pipi != 0);
                         self.track_buffers[j].looping = true;
@@ -216,10 +218,10 @@ impl OrgPlaybackEngine {
                             let p_oct = k % 8;
 
                             //let freq = org_key_to_freq(key + p_oct * 12, self.song.tracks[track].inst.freq as i16);
-                            let freq = 2.0f32.pow((note.key as f32 + self.song.tracks[track].inst.freq as f32 / 1000.0 + 155.376) / 12.0);
+                            let freq = 2.0f32.pow((note.key as f32 + self.song.tracks[track].inst.freq as f32 / 1000.0 + 155.0) / 12.0);
                             let l = p_oct as usize * 8 + track + swap;
                             self.track_buffers[l].set_frequency(freq as u32);
-                            self.track_buffers[l].organya_select_octave(0, self.song.tracks[track].inst.pipi != 0);
+                            self.track_buffers[l].organya_select_octave(0, false);
                             //self.track_buffers[l]
                             //    .organya_select_octave(p_oct as usize, self.song.tracks[track].inst.pipi != 0);
                         }
@@ -348,8 +350,15 @@ pub fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
                 }
             }
 
+            let mut last_frame: u16 = 0;
+
             #[allow(unused_variables)]
-            for frame in dst.iter_mut() {
+            for (idx, frame) in dst.iter_mut().enumerate() {
+                if idx % 2 == 1 {
+                    *frame = last_frame;
+                    continue;
+                }
+
                 let pos = buf.position as usize + buf.base_pos;
                 // -1..1
                 let s1 = (buf.sample.data[pos] as f32 - 128.0) / 128.0;
@@ -362,7 +371,7 @@ pub fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
                 let r1 = buf.position.fract() as f32;
                 let r2 = (1.0 - f32::cos(r1 * PI)) / 2.0;
 
-                //let s = s1; // No interp
+                // let s = s1; // No interp
                 let s = s1 + (s2 - s1) * r1; // Linear interp
                 //let s = s1 * (1.0 - r2) + s2 * r2; // Cosine interp
                 //let s = cubic_interp(s1, s2, s4, s3, r1); // Cubic interp
@@ -396,7 +405,8 @@ pub fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
                 l = xl.saturating_add(sl as i8) as u8 ^ 128;
                 r = xr.saturating_add(sr as i8) as u8 ^ 128;
 
-                *frame = u16::from_le_bytes([l, r]);
+                last_frame = u16::from_le_bytes([l, r]);
+                *frame = last_frame;
             }
         }
     }
