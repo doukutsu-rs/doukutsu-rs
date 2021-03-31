@@ -61,7 +61,7 @@ impl SDL2EventLoop {
         let event_pump = sdl.event_pump().map_err(|e| GameError::WindowError(e))?;
         let video = sdl.video().map_err(|e| GameError::WindowError(e))?;
         let window =
-            video.window("Cave Story (doukutsu-rs)", 640, 480).position_centered().resizable().build().map_err(|e| GameError::WindowError(e.to_string()))?;
+            video.window("NXEngine-RS", 640, 480).position_centered().resizable().build().map_err(|e| GameError::WindowError(e.to_string()))?;
 
         let canvas = window.into_canvas().accelerated().present_vsync().build().map_err(|e| GameError::RenderError(e.to_string()))?;
 
@@ -365,6 +365,7 @@ impl BackendRenderer for SDL2Renderer {
         let (r, g, b, a) = color.to_rgba();
 
         refs.canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
+        refs.canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
         refs.canvas
             .fill_rect(sdl2::rect::Rect::new(rect.left as i32, rect.top as i32, rect.width() as u32, rect.height() as u32))
             .map_err(|e| GameError::RenderError(e.to_string()))?;
@@ -378,6 +379,7 @@ impl BackendRenderer for SDL2Renderer {
         let (r, g, b, a) = color.to_rgba();
 
         refs.canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
+        refs.canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
 
         match line_width {
             0 => {} // no-op

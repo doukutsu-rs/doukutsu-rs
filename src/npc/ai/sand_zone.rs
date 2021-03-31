@@ -1,7 +1,7 @@
 use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
-use crate::common::{Direction, CDEG_RAD};
+use crate::common::{CDEG_RAD, Direction};
 use crate::framework::error::GameResult;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
@@ -667,7 +667,14 @@ impl NPC {
                 if self.action_counter > 50 {
                     state.sound_manager.play_sfx(25);
                     self.vanish(state);
-                    npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
+                    npc_list.create_death_smoke(
+                        self.x,
+                        self.y,
+                        self.display_bounds.right as usize,
+                        8,
+                        state,
+                        &self.rng,
+                    );
                 }
             }
             _ => {}
@@ -897,6 +904,68 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n122_colon_enraged(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+
+                if self.rng.range(0..120) == 10 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+
+                let player = self.get_closest_player_mut(players);
+                if (self.x - player.x).abs() < 0x4000 && self.y - 0x4000 < player.y && self.y + 0x2000 > player.y {
+                    if self.x <= player.x {
+                        Direction::Right
+                    } else {
+                        Direction::Left
+                    };
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.action_counter = self.rng.range(0..50) as u16;
+                    self.anim_num = 0;
+                    self.life = 1000;
+                    self.damage = 0;
+                }
+
+                if self.action_counter > 0 {
+                    self.action_counter -= 1;
+                } else {
+                    self.action_num = 13;
+                }
+            }
+            13 | 14 => {
+                if self.action_num == 13 {
+                    self.action_num = 14;
+                    self.action_counter = self.rng.range(0..50) as u16;
+                }
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n124_sunstone(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -987,7 +1056,7 @@ impl NPC {
                     self.animate(2, 4, 5);
                 } else {
                     self.anim_num = 5;
-                    self.anim_counter =0;
+                    self.anim_counter = 0;
                 }
 
                 if self.vel_x < 0 && self.flags.hit_left_wall() {
@@ -1029,7 +1098,6 @@ impl NPC {
 
         self.x += self.vel_x;
         self.y += self.vel_y;
-
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
 

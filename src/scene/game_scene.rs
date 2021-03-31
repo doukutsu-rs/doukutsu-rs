@@ -591,17 +591,19 @@ impl GameScene {
     }
 
     fn draw_light_map(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let canvas = state.lightmap_canvas.as_mut();
-        if let None = canvas {
-            return Ok(());
-        }
+        //let canvas = state.lightmap_canvas.as_mut();
+        // if let None = canvas {
+        //     return Ok(());
+        // }
 
-        let canvas = canvas.unwrap();
+        // let canvas = canvas.unwrap();
 
-        graphics::set_render_target(ctx, Some(canvas))?;
-        graphics::set_blend_mode(ctx, BlendMode::Add)?;
+        //graphics::set_render_target(ctx, Some(canvas))?;
+        //graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
-        graphics::clear(ctx, Color::from_rgb(100, 100, 110));
+        //graphics::clear(ctx, Color::from_rgb(100, 100, 110));
+        graphics::draw_rect(ctx, Rect::new(0, 0, state.screen_size.0 as isize + 1, state.screen_size.1 as isize + 1), Color::from_rgba(0, 0, 0, 150))?;
+
         {
             let scale = state.scale;
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
@@ -802,15 +804,15 @@ impl GameScene {
             batch.draw_filtered(FilterMode::Linear, ctx)?;
         }
 
-        graphics::set_blend_mode(ctx, BlendMode::Multiply)?;
-        graphics::set_render_target(ctx, None)?;
+        //graphics::set_blend_mode(ctx, BlendMode::Multiply)?;
+        //graphics::set_render_target(ctx, None)?;
 
-        let rect = Rect { left: 0.0, top: 0.0, right: state.screen_size.0, bottom: state.screen_size.1 };
+        /*let rect = Rect { left: 0.0, top: 0.0, right: state.screen_size.0, bottom: state.screen_size.1 };
         canvas.clear();
         canvas.add(SpriteBatchCommand::DrawRect(rect, rect));
         canvas.draw()?;
 
-        graphics::set_blend_mode(ctx, BlendMode::Alpha)?;
+        graphics::set_blend_mode(ctx, BlendMode::Alpha)?;*/
 
         Ok(())
     }
@@ -1439,12 +1441,7 @@ impl Scene for GameScene {
         //graphics::set_canvas(ctx, Some(&state.game_canvas));
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
-        if state.settings.shader_effects
-            && self.stage.data.background_type != BackgroundType::Black
-            && self.stage.data.background_type != BackgroundType::Outside
-            && self.stage.data.background_type != BackgroundType::OutsideWind
-            && self.stage.data.background.name() != "bkBlack"
-        {
+        if state.settings.shader_effects {
             self.draw_light_map(state, ctx)?;
         }
 
@@ -1469,19 +1466,11 @@ impl Scene for GameScene {
         self.draw_bullets(state, ctx)?;
         self.player2.draw(state, ctx, &self.frame)?;
         self.player1.draw(state, ctx, &self.frame)?;
-        /*if state.settings.shader_effects && self.water_visible {
-            self.draw_water(state, ctx)?;
-        }*/
 
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;
-        if state.settings.shader_effects
-            && (self.stage.data.background_type == BackgroundType::Black
-                || self.stage.data.background.name() == "bkBlack")
-        {
-            self.draw_light_map(state, ctx)?;
-        }
+
         self.flash.draw(state, ctx, &self.frame)?;
 
         /*graphics::set_canvas(ctx, None);
@@ -1586,7 +1575,7 @@ impl Scene for GameScene {
         ctx: &mut Context,
         ui: &mut imgui::Ui,
     ) -> GameResult {
-        components.live_debugger.run_ingame(self, state, ctx, ui)?;
+        //components.live_debugger.run_ingame(self, state, ctx, ui)?;
         Ok(())
     }
 }
