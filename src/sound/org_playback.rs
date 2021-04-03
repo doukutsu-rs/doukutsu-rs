@@ -4,7 +4,6 @@ use crate::sound::organya::{Song as Organya, Version};
 use crate::sound::stuff::*;
 use crate::sound::wav::*;
 use crate::sound::wave_bank::SoundBank;
-use num_traits::Pow;
 
 pub(crate) struct OrgPlaybackEngine {
     song: Organya,
@@ -118,9 +117,11 @@ impl OrgPlaybackEngine {
             .zip(self.track_buffers[128..].iter_mut())
             .enumerate()
         {
-            static MAP: [usize; 12] = [0, 0, 1, 0, 4, 2, 3, 0, 5, 0, 0, 0];
-
-            *buf = RenderBuffer::new(samples.samples[MAP[track.inst.inst as usize]].clone());
+            if self.song.version == Version::Extended {
+                *buf = RenderBuffer::new(samples.samples[track.inst.inst as usize].clone());
+            } else {
+                *buf = RenderBuffer::new(samples.samples[idx].clone());
+            }
         }
 
         self.song = song;
@@ -170,14 +171,12 @@ impl OrgPlaybackEngine {
                             let key = note.key % 12;
                             let p_oct = k % 8;
 
-                            //let freq = org_key_to_freq(key + p_oct * 12, self.song.tracks[track].inst.freq as i16);
-                            let freq = 2.0f32.pow((note.key as f32 + self.song.tracks[track].inst.freq as f32 / 1000.0 + 155.0) / 12.0);
+                            let freq = org_key_to_freq(key + p_oct * 12, self.song.tracks[track].inst.freq as i16);
 
                             let l = p_oct as usize * 8 + track + swap;
                             self.track_buffers[l].set_frequency(freq as u32);
-                            self.track_buffers[l].organya_select_octave(0, false);
-                            //self.track_buffers[l]
-                            //    .organya_select_octave(p_oct as usize, self.song.tracks[track].inst.pipi != 0);
+                            self.track_buffers[l]
+                                .organya_select_octave(p_oct as usize, self.song.tracks[track].inst.pipi != 0);
                         }
                         self.track_buffers[j].looping = true;
                         self.track_buffers[j].playing = true;
@@ -191,14 +190,11 @@ impl OrgPlaybackEngine {
                         if self.song.tracks[track].inst.pipi == 0 {
                             self.track_buffers[j].looping = false;
                         }
-                        //self.swaps[track] += 64;
-                        //self.swaps[track] %= 128;
+                        self.swaps[track] += 64;
+                        self.swaps[track] %= 128;
                         let j = octave as usize + track + self.swaps[track];
-                        let freq = 2.0f32.pow((note.key as f32 + self.song.tracks[track].inst.freq as f32 / 1000.0 + 155.0) / 12.0) / 3.0;
-                        self.track_buffers[j].set_frequency(freq as u32);
-                        self.track_buffers[j].organya_select_octave(2, false);
-                        //self.track_buffers[j]
-                        //    .organya_select_octave(note.key as usize / 12, self.song.tracks[track].inst.pipi != 0);
+                        self.track_buffers[j]
+                            .organya_select_octave(note.key as usize / 12, self.song.tracks[track].inst.pipi != 0);
                         self.track_buffers[j].looping = true;
                         self.track_buffers[j].playing = true;
                     } else {
@@ -208,8 +204,8 @@ impl OrgPlaybackEngine {
                         if self.song.tracks[track].inst.pipi == 0 {
                             self.track_buffers[j].looping = false;
                         }
-                        //self.swaps[track] += 64;
-                        //self.swaps[track] %= 128;
+                        self.swaps[track] += 64;
+                        self.swaps[track] %= 128;
                         let octave = (note.key / 12) * 8;
                         let j = octave as usize + track + self.swaps[track];
                         for k in 0..16 {
@@ -217,13 +213,11 @@ impl OrgPlaybackEngine {
                             let key = note.key % 12;
                             let p_oct = k % 8;
 
-                            //let freq = org_key_to_freq(key + p_oct * 12, self.song.tracks[track].inst.freq as i16);
-                            let freq = 2.0f32.pow((note.key as f32 + self.song.tracks[track].inst.freq as f32 / 1000.0 + 155.0) / 12.0);
+                            let freq = org_key_to_freq(key + p_oct * 12, self.song.tracks[track].inst.freq as i16);
                             let l = p_oct as usize * 8 + track + swap;
                             self.track_buffers[l].set_frequency(freq as u32);
-                            self.track_buffers[l].organya_select_octave(0, false);
-                            //self.track_buffers[l]
-                            //    .organya_select_octave(p_oct as usize, self.song.tracks[track].inst.pipi != 0);
+                            self.track_buffers[l]
+                                .organya_select_octave(p_oct as usize, self.song.tracks[track].inst.pipi != 0);
                         }
                         self.track_buffers[j].looping = true;
                         self.track_buffers[j].playing = true;
@@ -273,8 +267,7 @@ impl OrgPlaybackEngine {
             if let Some(note) = notes.iter().find(|x| x.pos == self.play_pos) {
                 // FIXME: Add constants for dummy values
                 if note.key != 255 {
-                    //let freq = org_key_to_drum_freq(note.key);
-                    let freq = note.key as f32 * (22050.0 / 32.5);
+                    let freq = org_key_to_drum_freq(note.key);
                     self.track_buffers[j].set_frequency(freq as u32);
                     self.track_buffers[j].set_position(0);
                     self.track_buffers[j].playing = true;
@@ -350,15 +343,8 @@ pub fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
                 }
             }
 
-            let mut last_frame: u16 = 0;
-
             #[allow(unused_variables)]
-            for (idx, frame) in dst.iter_mut().enumerate() {
-                if idx % 2 == 1 {
-                    *frame = last_frame;
-                    continue;
-                }
-
+            for frame in dst.iter_mut() {
                 let pos = buf.position as usize + buf.base_pos;
                 // -1..1
                 let s1 = (buf.sample.data[pos] as f32 - 128.0) / 128.0;
@@ -371,10 +357,10 @@ pub fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
                 let r1 = buf.position.fract() as f32;
                 let r2 = (1.0 - f32::cos(r1 * PI)) / 2.0;
 
-                // let s = s1; // No interp
-                let s = s1 + (s2 - s1) * r1; // Linear interp
+                //let s = s1; // No interp
+                //let s = s1 + (s2 - s1) * r1; // Linear interp
                 //let s = s1 * (1.0 - r2) + s2 * r2; // Cosine interp
-                //let s = cubic_interp(s1, s2, s4, s3, r1); // Cubic interp
+                let s = cubic_interp(s1, s2, s4, s3, r1); // Cubic interp
                                                           // Ideally we want sinc/lanczos interpolation, since that's what DirectSound appears to use.
 
                 // -128..128
@@ -405,8 +391,7 @@ pub fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
                 l = xl.saturating_add(sl as i8) as u8 ^ 128;
                 r = xr.saturating_add(sr as i8) as u8 ^ 128;
 
-                last_frame = u16::from_le_bytes([l, r]);
-                *frame = last_frame;
+                *frame = u16::from_le_bytes([l, r]);
             }
         }
     }

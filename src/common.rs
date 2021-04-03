@@ -15,7 +15,7 @@ pub const CDEG_RAD: f64 = std::f64::consts::PI / 128.0;
 lazy_static! {
     pub static ref VERSION_BANNER: String = {
         let version = option_env!("DRS_BUILD_VERSION_OVERRIDE").unwrap_or(env!("CARGO_PKG_VERSION"));
-        format!("NXEngine-RS {}", version)
+        format!("doukutsu-rs {}", version)
     };
 }
 

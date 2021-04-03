@@ -277,7 +277,7 @@ impl EngineConstants {
             supports_og_textures: false,
             my_char: MyCharConsts {
                 display_bounds: Rect { left: 8 * 0x200, top: 8 * 0x200, right: 8 * 0x200, bottom: 8 * 0x200 },
-                hit_bounds: Rect { left: 8 * 0x200, top: 8 * 0x200, right: 8 * 0x200, bottom: 8 * 0x200 },
+                hit_bounds: Rect { left: 5 * 0x200, top: 8 * 0x200, right: 5 * 0x200, bottom: 8 * 0x200 },
                 life: 3,
                 max_life: 3,
                 control_mode: ControlMode::Normal,

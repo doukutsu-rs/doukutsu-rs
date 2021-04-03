@@ -17,7 +17,7 @@ fn main() {
         if let Err(e) = result {
             let title: LPCWSTR = OsStr::new("Error!")
                 .encode_wide().chain(Some(0)).collect::<Vec<u16>>().as_ptr();
-            let message: LPCWSTR = OsStr::new(format!("Whoops, nxengine-rs crashed: {}", e).as_str())
+            let message: LPCWSTR = OsStr::new(format!("Whoops, doukutsu-rs crashed: {}", e).as_str())
                 .encode_wide().chain(Some(0)).collect::<Vec<u16>>().as_ptr();
             MessageBoxW(null_mut(),
                         message,
