@@ -82,6 +82,10 @@ impl BackendTexture for NullTexture {
 pub struct NullRenderer(RefCell<imgui::Context>);
 
 impl BackendRenderer for NullRenderer {
+    fn renderer_name(&self) -> String {
+        "Null".to_owned()
+    }
+
     fn clear(&mut self, _color: Color) {
 
     }

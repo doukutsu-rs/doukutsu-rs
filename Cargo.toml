@@ -23,11 +23,12 @@ panic = 'abort'
 opt-level = 3
 
 [features]
-default = ["scripting", "backend-sdl", "ogg-playback", "netplay", "exe"]
+default = ["scripting", "backend-sdl", "render-opengl", "ogg-playback", "exe"]
 ogg-playback = ["lewton"]
 backend-sdl = ["sdl2", "sdl2-sys"]
 #backend-sokol = ["sokol"]
-backend-glutin = ["winit", "glutin"]
+backend-glutin = ["winit", "glutin", "render-opengl"]
+render-opengl = []
 scripting = ["lua-ffi"]
 netplay = []
 editor = []
@@ -45,7 +46,7 @@ chrono = "0.4"
 cpal = { git = "https://github.com/doukutsu-rs/cpal.git", rev = "e027550be0b93b7e2912c7de28a4944a7d04e070" }
 directories = "3"
 funty = "=1.1.0" # https://github.com/bitvecto-rs/bitvec/issues/105
-glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "a34ee3c99b3c999b638ca2bae53cf96df2b94c04", optional = true }
+glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "a34ee3c99b3c999b638ca2bae53cf96df2b94c04", optional = true, default_features = false, features = ["x11"] }
 imgui = "0.7.0"
 image = { version = "0.23", default-features = false, features = ["png", "bmp"] }
 itertools = "0.10"
@@ -54,7 +55,6 @@ lewton = { version = "0.10.2", optional = true }
 libc = { version = "0.2", optional = true }
 log = "0.4"
 lua-ffi = { git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "1ef3caf772d72068297ddf75df06fd2ef8c1daab", optional = true }
-lru = "0.6.0"
 num-derive = "0.3.2"
 num-traits = "0.2.12"
 paste = "1.0.0"
@@ -70,7 +70,7 @@ strum_macros = "0.20"
 # remove and replace when drain_filter is in stable
 vec_mut_scan = "0.4"
 webbrowser = "0.5.5"
-winit = { version = "0.24", optional = true }
+winit = { version = "0.24", optional = true, default_features = false, features = ["x11"] }
 
 #[build-dependencies]
 #gl_generator = { version = "0.14.0", optional = true }

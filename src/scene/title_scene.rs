@@ -121,8 +121,8 @@ impl Scene for TitleScene {
         } else {
             self.option_menu.push_entry(MenuEntry::Disabled("Seasonal textures".to_string()));
         }
-        self.option_menu.push_entry(MenuEntry::Active("Join our Discord".to_string()));
-        self.option_menu.push_entry(MenuEntry::Disabled(DISCORD_LINK.to_owned()));
+        self.option_menu.push_entry(MenuEntry::Active(DISCORD_LINK.to_owned()));
+        self.option_menu.push_entry(MenuEntry::Disabled(["Renderer: ", &ctx.renderer.as_ref().unwrap().renderer_name()].join("")));
         self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
 
         self.save_select_menu.push_entry(MenuEntry::NewSave);

@@ -17,6 +17,8 @@ pub trait BackendEventLoop {
 }
 
 pub trait BackendRenderer {
+    fn renderer_name(&self) -> String;
+
     fn clear(&mut self, color: Color);
 
     fn present(&mut self) -> GameResult;
@@ -55,7 +57,7 @@ pub trait BackendTexture {
 pub fn init_backend() -> GameResult<Box<dyn Backend>> {
     #[cfg(all(feature = "backend-glutin"))]
     {
-        return crate::framework::backend_opengl::GlutinBackend::new();
+        return crate::framework::backend_glutin::GlutinBackend::new();
     }
 
     #[cfg(feature = "backend-sokol")]
