@@ -209,6 +209,7 @@ impl SharedGameState {
                 }
             }
             ScanCode::F10 => self.settings.debug_outlines = !self.settings.debug_outlines,
+            ScanCode::F12 => self.debugger = !self.debugger,
             _ => {}
         }
     }

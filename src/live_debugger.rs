@@ -56,6 +56,10 @@ impl LiveDebugger {
             self.selected_event = -1;
         }
 
+        if !state.debugger {
+            return Ok(());
+        }
+
         Window::new(im_str!("Debugger"))
             .resizable(false)
             .collapsed(true, Condition::FirstUseEver)
