@@ -1,5 +1,5 @@
 use crate::caret::CaretType;
-use crate::common::Direction;
+use crate::common::{Direction, Rect};
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
 use crate::player::Player;
@@ -21,6 +21,7 @@ pub struct Callbacks {
     get_map_data: unsafe extern "C" fn(ctx: *mut CtxData) -> MapData,
     get_player_info: unsafe extern "C" fn(ctx: *mut CtxData) -> PlayerInfo,
     update_player_info: unsafe extern "C" fn(ctx: *mut CtxData, player_info: *const PlayerInfo),
+    delete_npc_by_type: unsafe extern "C" fn(ctx: *mut CtxData, id: u16, smoke: bool),
     destroy_npc: unsafe extern "C" fn(ctx: *mut CtxData, npc: *mut NPC),
     vanish_npc: unsafe extern "C" fn(ctx: *mut CtxData, npc: *mut NPC),
     create_npc: unsafe extern "C" fn(
@@ -45,12 +46,14 @@ pub struct PlayerInfo {
     vel_x: i32,
     vel_y: i32,
     flags: u32,
+    equip: u16,
     anim_num: u16,
     cond: u16,
     shock: u8,
     direct: u8,
     up: bool,
     down: bool,
+    hit: Rect<u32>
 }
 
 #[repr(C)]
@@ -185,12 +188,14 @@ pub fn run_npc_hook(
                 vel_x: player.vel_x,
                 vel_y: player.vel_y,
                 flags: player.flags.0,
+                equip: player.equip.0,
                 anim_num: player.anim_num,
                 cond: player.cond.0,
                 shock: player.shock_counter,
                 direct: player.direction as u8,
                 up: player.up,
-                down: player.down
+                down: player.down,
+                hit: player.hit_bounds,
             }
         }
 
@@ -203,6 +208,7 @@ pub fn run_npc_hook(
             player.vel_x = player_info.vel_x;
             player.vel_y = player_info.vel_y;
             player.flags.0 = player_info.flags;
+            player.equip.0 = player_info.equip;
             player.cond.0 = player_info.cond;
             player.direction = Direction::from_int(player_info.direct as usize).unwrap_or(Direction::Left);
         }
@@ -237,6 +243,10 @@ pub fn run_npc_hook(
             (*ctx).3.get_npc(npc_id as usize).unwrap() as *mut NPC
         }
 
+        unsafe extern "C" fn delete_npc_by_type(ctx: *mut CtxData, id: u16, smoke: bool) {
+            (*ctx).3.kill_npcs_by_type(id, smoke, (*ctx).1);
+        }
+
         unsafe extern "C" fn destroy_npc(ctx: *mut CtxData, npc: *mut NPC) {
             let npc = &mut (*npc);
 
@@ -262,6 +272,7 @@ pub fn run_npc_hook(
             get_map_data,
             get_player_info,
             update_player_info,
+            delete_npc_by_type,
             destroy_npc,
             vanish_npc,
             create_npc,

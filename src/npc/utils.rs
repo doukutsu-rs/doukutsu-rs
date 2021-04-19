@@ -224,6 +224,27 @@ impl NPCList {
         self.iter_alive().any(|npc| npc.event_num == event_num)
     }
 
+    /// Deletes NPCs with specified type.
+    pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState) {
+        for npc in self.iter_alive().filter(|n| n.npc_type == npc_type) {
+            state.game_flags.set(npc.flag_num as usize, true);
+            npc.cond.set_alive(false);
+
+            if smoke {
+                if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
+                    state.sound_manager.play_sfx(table_entry.death_sound);
+                }
+
+                match npc.size {
+                    1 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 3, state, &npc.rng); }
+                    2 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 7, state, &npc.rng); }
+                    3 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 12, state, &npc.rng); }
+                    _ => {}
+                };
+            }
+        }
+    }
+
     /// Called once NPC is killed, creates smoke and drops.
     pub fn kill_npc(&self, id: usize, vanish: bool, can_drop_missile: bool, state: &mut SharedGameState) {
         if let Some(npc) = self.get_npc(id) {
