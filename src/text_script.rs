@@ -1736,10 +1736,11 @@ impl TextScript {
     ) -> GameResult<Vec<u8>> {
         let mut bytecode = Vec::new();
         let mut char_buf = Vec::with_capacity(16);
+        let mut allow_next_event = false;
 
         while let Some(&chr) = iter.peek() {
             match chr {
-                b'#' => {
+                b'#' if allow_next_event => {
                     if !char_buf.is_empty() {
                         TextScript::put_string(&mut char_buf, &mut bytecode, encoding);
                     }
@@ -1749,6 +1750,7 @@ impl TextScript {
                     break;
                 }
                 b'<' => {
+                    allow_next_event = false;
                     if !char_buf.is_empty() {
                         TextScript::put_string(&mut char_buf, &mut bytecode, encoding);
                     }
@@ -1766,7 +1768,14 @@ impl TextScript {
                 b'\r' => {
                     iter.next();
                 }
+                b'\n' => {
+                    allow_next_event = true;
+                    char_buf.push(chr);
+
+                    iter.next();
+                }
                 _ => {
+                    allow_next_event = false;
                     char_buf.push(chr);
 
                     iter.next();
