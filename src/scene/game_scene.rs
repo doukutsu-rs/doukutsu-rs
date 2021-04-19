@@ -3,7 +3,7 @@ use log::info;
 use crate::caret::CaretType;
 use crate::common::{Color, Direction, FadeDirection, FadeState, fix9_scale, interpolate_fix9_scale, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
-use crate::components::draw_common::{Alignment};
+use crate::components::draw_common::Alignment;
 use crate::components::flash::Flash;
 use crate::components::hud::HUD;
 use crate::components::inventory::InventoryUI;
@@ -26,12 +26,13 @@ use crate::player::{Player, TargetPlayer};
 use crate::rng::XorShift;
 use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
-use crate::shared_game_state::{SharedGameState};
+use crate::shared_game_state::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM};
 use crate::texture_set::SizedBatch;
 use crate::weapon::bullet::BulletManager;
-use crate::weapon::WeaponType;
+use crate::weapon::{WeaponType, Weapon};
+use std::ops::Range;
 
 pub struct GameScene {
     pub tick: u32,
@@ -590,6 +591,97 @@ impl GameScene {
         )
     }
 
+    fn draw_light_raycast(&self, world_point_x: i32, world_point_y: i32, (br, bg, bb): (u8, u8, u8), att: u8, angle: Range<i32>, batch: &mut SizedBatch) {
+        let px = world_point_x as f32 / 512.0;
+        let py = world_point_y as f32 / 512.0;
+
+        let fx2 = self.frame.x as f32 / 512.0;
+        let fy2 = self.frame.y as f32 / 512.0;
+
+        'ray: for deg in angle {
+            let d = deg as f32 * (std::f32::consts::PI / 180.0);
+            let dx = d.cos() * -5.0;
+            let dy = d.sin() * -5.0;
+            let mut x = px;
+            let mut y = py;
+            let mut r = br;
+            let mut g = bg;
+            let mut b = bb;
+
+            for i in 0..25 {
+                x += dx;
+                y += dy;
+
+                const ARR: [(i32, i32); 4] = [(0, 0), (0, 1), (1, 0), (1, 1)];
+                for (ox, oy) in ARR.iter() {
+                    let bx = x as i32 / 16 + *ox;
+                    let by = y as i32 / 16 + *oy;
+
+                    let tile = self.stage.map.attrib[self.stage.tile_at(bx as usize, by as usize) as usize];
+
+                    if ((tile == 0x62 || tile == 0x41 || tile == 0x43 || tile == 0x46)
+                        && x >= (bx * 16 - 8) as f32
+                        && x <= (bx * 16 + 8) as f32
+                        && y >= (by * 16 - 8) as f32
+                        && y <= (by * 16 + 8) as f32) ||
+                        ((tile == 0x50 || tile == 0x70)
+                            && x >= (bx * 16 - 8) as f32
+                            && x <= (bx * 16 + 8) as f32
+                            && y <= ((by as f32 * 16.0) - (x - bx as f32 * 16.0) / 2.0 + 4.0)
+                            && y >= (by * 16 - 8) as f32) ||
+                        ((tile == 0x51 || tile == 0x71)
+                            && x >= (bx * 16 - 8) as f32
+                            && x <= (bx * 16 + 8) as f32
+                            && y <= ((by as f32 * 16.0) - (x - bx as f32 * 16.0) / 2.0 - 4.0)
+                            && y >= (by * 16 - 8) as f32) ||
+                        ((tile == 0x52 || tile == 0x72)
+                            && x >= (bx * 16 - 8) as f32
+                            && x <= (bx * 16 + 8) as f32
+                            && y <= ((by as f32 * 16.0) + (x - bx as f32 * 16.0) / 2.0 - 4.0)
+                            && y >= (by * 16 - 8) as f32) ||
+                        ((tile == 0x53 || tile == 0x73)
+                            && x >= (bx * 16 - 8) as f32
+                            && x <= (bx * 16 + 8) as f32
+                            && y <= ((by as f32 * 16.0) + (x - bx as f32 * 16.0) / 2.0 + 4.0)
+                            && y >= (by * 16 - 8) as f32) ||
+                        ((tile == 0x54 || tile == 0x74)
+                            && x >= (bx * 16 - 8) as f32
+                            && x <= (bx * 16 + 8) as f32
+                            && y >= ((by as f32 * 16.0) + (x - bx as f32 * 16.0) / 2.0 - 4.0)
+                            && y <= (by * 16 + 8) as f32) ||
+                        ((tile == 0x55 || tile == 0x75)
+                            && x >= (bx * 16 - 8) as f32
+                            && x <= (bx * 16 + 8) as f32
+                            && y >= ((by as f32 * 16.0) + (x - bx as f32 * 16.0) / 2.0 + 4.0)
+                            && y <= (by * 16 + 8) as f32) ||
+                        ((tile == 0x56 || tile == 0x76)
+                            && x >= (bx * 16 - 8) as f32
+                            && x <= (bx * 16 + 8) as f32
+                            && y >= ((by as f32 * 16.0) - (x - bx as f32 * 16.0) / 2.0 + 4.0)
+                            && y <= (by * 16 + 8) as f32) ||
+                        ((tile == 0x57 || tile == 0x77)
+                            && x >= (bx * 16 - 8) as f32
+                            && x <= (bx * 16 + 8) as f32
+                            && y >= ((by as f32 * 16.0) - (x - bx as f32 * 16.0) / 2.0 - 4.0)
+                            && y <= (by * 16 + 8) as f32)
+                    {
+                        continue 'ray;
+                    }
+                }
+
+                r = r.saturating_sub(att);
+                g = g.saturating_sub(att);
+                b = b.saturating_sub(att);
+
+                if r == 0 && g == 0 && b == 0 {
+                    continue 'ray;
+                }
+
+                self.draw_light(x - fx2, y - fy2, 0.12 + i as f32 / 75.0, (r, g, b), batch);
+            }
+        }
+    }
+
     fn draw_light_map(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let canvas = state.lightmap_canvas.as_mut();
         if let None = canvas {
@@ -606,14 +698,24 @@ impl GameScene {
             let scale = state.scale;
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
 
-            if !self.player1.cond.hidden() && self.inventory_player1.get_current_weapon().is_some() {
-                self.draw_light(
-                    fix9_scale(self.player1.x - self.frame.x, scale),
-                    fix9_scale(self.player1.y - self.frame.y, scale),
-                    4.0,
-                    (140, 140, 140),
-                    batch,
-                );
+            for (player, inv) in [(&self.player1, &self.inventory_player1), (&self.player2, &self.inventory_player2)].iter() {
+                if player.cond.alive() && !player.cond.hidden() && inv.get_current_weapon().is_some() {
+                    let range = match () {
+                        _ if player.up => 60..120,
+                        _ if player.down => 240..300,
+                        _ if player.direction == Direction::Left => -30..30,
+                        _ if player.direction == Direction::Right => 150..210,
+                        _ => 0..1,
+                    };
+
+                    let (color, att) = match inv.get_current_weapon() {
+                        Some(Weapon { wtype: WeaponType::Fireball, .. }) => ((200u8, 70u8, 10u8), 6),
+                        Some(Weapon { wtype: WeaponType::Spur, .. }) => ((170u8, 170u8, 200u8), 7),
+                        _ => ((150u8, 150u8, 150u8), 7),
+                    };
+
+                    self.draw_light_raycast(player.x, player.y, color, att, range, batch);
+                }
             }
 
             for bullet in self.bullet_manager.bullets.iter() {
@@ -667,6 +769,13 @@ impl GameScene {
                             batch,
                         );
                     }
+                    4 if npc.direction == Direction::Up => self.draw_light(
+                        fix9_scale(npc.x - self.frame.x, scale),
+                        fix9_scale(npc.y - self.frame.y, scale),
+                        1.0,
+                        (200, 100, 0),
+                        batch,
+                    ),
                     7 => self.draw_light(
                         fix9_scale(npc.x - self.frame.x, scale),
                         fix9_scale(npc.y - self.frame.y, scale),
@@ -828,8 +937,8 @@ impl GameScene {
         let tile_start_y = (frame_y as i32 / 16).clamp(0, self.stage.map.height as i32) as usize;
         let tile_end_x =
             ((frame_x as i32 + 8 + state.canvas_size.0 as i32) / 16 + 1).clamp(0, self.stage.map.width as i32) as usize;
-        let tile_end_y =
-            ((frame_y as i32 + 8 + state.canvas_size.1 as i32) / 16 + 1).clamp(0, self.stage.map.height as i32) as usize;
+        let tile_end_y = ((frame_y as i32 + 8 + state.canvas_size.1 as i32) / 16 + 1)
+            .clamp(0, self.stage.map.height as i32) as usize;
 
         if layer == TileLayer::Snack {
             rect = state.constants.world.snack_rect;
