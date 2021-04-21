@@ -20,14 +20,14 @@ impl NPC {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    self.y += 3 * 0x200;
+                    self.y += 0x600;
                     self.action_num = 1;
                 }
 
                 if self.action_counter >= 8
-                    && abs(self.x - player.x) < (128 * 0x200)
-                    && self.y - 128 * 0x200 < player.y
-                    && self.y + 48 * 0x200 > player.y
+                    && abs(self.x - player.x) < 0x10000
+                    && self.y - 0x10000 < player.y
+                    && self.y + 0x6000 > player.y
                 {
                     if self.x > player.x {
                         self.direction = Direction::Left;
@@ -51,9 +51,9 @@ impl NPC {
                 }
 
                 if self.action_counter >= 8
-                    && abs(self.x - player.x) < 96 * 0x200
-                    && self.y - 96 * 0x200 < player.y
-                    && self.y + 48 * 0x200 > player.y
+                    && abs(self.x - player.x) < 0xC000
+                    && self.y - 0xC000 < player.y
+                    && self.y + 0x6000 > player.y
                 {
                     self.action_num = 2;
                     self.action_counter = 0;
@@ -124,7 +124,7 @@ impl NPC {
         }
 
         if self.action_num != 4 {
-            self.vel_y += 0x40;
+            self.vel_y += 0x20;
             if self.vel_y > 0x5ff {
                 self.vel_y = 0x5ff;
             }
