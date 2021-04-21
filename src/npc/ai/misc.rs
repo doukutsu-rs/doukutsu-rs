@@ -157,28 +157,18 @@ impl NPC {
                         }
                     }
 
-                    self.anim_rect = state.constants.npc.n015_closed_chest[0];
                 }
 
                 self.anim_num = 0;
-                if self.rng.range(0..30) == 0 {
+                if self.rng.range(0..30) == 10 {
                     self.action_num = 2;
                 }
             }
             2 => {
-                if self.anim_counter == 0 {
-                    self.anim_rect = state.constants.npc.n015_closed_chest[self.anim_num as usize];
-                }
-
-                self.anim_counter += 1;
-                if self.anim_counter > 1 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-
-                    if self.anim_num > 2 {
-                        self.anim_num = 0;
-                        self.action_num = 1;
-                    }
+                self.animate(1, 0, 3);
+                if self.anim_num > 2 {
+                    self.anim_num = 0;
+                    self.action_num = 1;
                 }
             }
             _ => {}
@@ -190,6 +180,8 @@ impl NPC {
         }
 
         self.y += self.vel_y;
+
+        self.anim_rect = state.constants.npc.n015_closed_chest[self.anim_num as usize];
 
         Ok(())
     }
