@@ -741,7 +741,7 @@ impl NPC {
         }
 
         if self.anim_counter == 0 {
-            self.anim_rect = state.constants.npc.n098_fan_right[self.anim_num as usize];
+            self.anim_rect = state.constants.npc.n096_fan_left[self.anim_num as usize];
         }
 
         Ok(())
