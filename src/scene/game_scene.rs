@@ -1470,8 +1470,8 @@ impl Scene for GameScene {
 
         match state.textscript_vm.mode {
             ScriptMode::Map if state.control_flags.tick_world() => self.tick_world(state)?,
-            ScriptMode::StageSelect => self.stage_select.tick(state, (&self.player1, &self.player2))?,
-            ScriptMode::Inventory => self.inventory_ui.tick(state, (&mut self.player1, &mut self.inventory_player1))?,
+            ScriptMode::StageSelect => self.stage_select.tick(state, (ctx, &self.player1, &self.player2))?,
+            ScriptMode::Inventory => self.inventory_ui.tick(state, (ctx, &mut self.player1, &mut self.inventory_player1))?,
             _ => {}
         }
 

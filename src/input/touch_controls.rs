@@ -83,7 +83,7 @@ impl TouchControls {
             let batch = texture_set.get_or_load_batch(ctx, constants, "builtin/touch")?;
             let color = (255, 255, 255, 160);
 
-            let (left, _, right, bottom) = screen_insets_scaled(ctx, scale);
+            let (left, top, right, bottom) = screen_insets_scaled(ctx, scale);
 
             for x in 0..3 {
                 for y in 0..3 {
@@ -115,6 +115,13 @@ impl TouchControls {
                 canvas_size.1 - (4.0 + 48.0) * 2.0 + 8.0 - bottom,
                 color,
                 &Rect::new_size(3 * 32, 0, 32, 32),
+            );
+
+            batch.add_rect_tinted(
+                canvas_size.0 - (4.0 + 48.0) + 8.0 - right,
+                4.0 + 8.0 + top,
+                color,
+                &Rect::new_size(0, 3 * 32, 32, 32),
             );
 
             batch.draw(ctx)?;

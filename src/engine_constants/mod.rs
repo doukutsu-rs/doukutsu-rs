@@ -180,6 +180,8 @@ pub struct TextScriptConsts {
     pub inventory_rect_top: Rect<u16>,
     pub inventory_rect_middle: Rect<u16>,
     pub inventory_rect_bottom: Rect<u16>,
+    pub inventory_text_arms: Rect<u16>,
+    pub inventory_text_item: Rect<u16>,
     pub get_item_top_left: Rect<u16>,
     pub get_item_bottom_left: Rect<u16>,
     pub get_item_top_right: Rect<u16>,
@@ -187,6 +189,9 @@ pub struct TextScriptConsts {
     pub get_item_bottom_right: Rect<u16>,
     pub stage_select_text: Rect<u16>,
     pub cursor: [Rect<u16>; 2],
+    pub cursor_inventory_weapon: [Rect<u16>; 2],
+    pub cursor_inventory_item: [Rect<u16>; 2],
+    pub inventory_item_count_x: u8,
 }
 
 #[derive(Debug)]
@@ -1362,6 +1367,8 @@ impl EngineConstants {
                 inventory_rect_top: Rect { left: 0, top: 0, right: 244, bottom: 8 },
                 inventory_rect_middle: Rect { left: 0, top: 8, right: 244, bottom: 16 },
                 inventory_rect_bottom: Rect { left: 0, top: 16, right: 244, bottom: 24 },
+                inventory_text_arms: Rect { left: 80, top: 48, right: 144, bottom: 56 },
+                inventory_text_item: Rect { left: 80, top: 56, right: 144, bottom: 64 },
                 get_item_top_left: Rect { left: 0, top: 0, right: 72, bottom: 16 },
                 get_item_bottom_left: Rect { left: 0, top: 8, right: 72, bottom: 24 },
                 get_item_top_right: Rect { left: 240, top: 0, right: 244, bottom: 8 },
@@ -1372,6 +1379,15 @@ impl EngineConstants {
                     Rect { left: 80, top: 88, right: 112, bottom: 104 },
                     Rect { left: 80, top: 104, right: 112, bottom: 120 },
                 ],
+                cursor_inventory_weapon: [
+                    Rect { left: 0, top: 88, right: 40, bottom: 128 },
+                    Rect { left: 40, top: 88, right: 80, bottom: 128 },
+                ],
+                cursor_inventory_item: [
+                    Rect { left: 80, top: 88, right: 112, bottom: 104 },
+                    Rect { left: 80, top: 104, right: 112, bottom: 120 },
+                ],
+                inventory_item_count_x: 6,
             },
             title: TitleConsts {
                 intro_text: "Studio Pixel presents".to_string(),

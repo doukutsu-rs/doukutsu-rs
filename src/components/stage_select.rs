@@ -32,8 +32,8 @@ impl StageSelect {
     }
 }
 
-impl GameEntity<(&Player, &Player)> for StageSelect {
-    fn tick(&mut self, state: &mut SharedGameState, (player1, player2): (&Player, &Player)) -> GameResult {
+impl GameEntity<(&mut Context, &Player, &Player)> for StageSelect {
+    fn tick(&mut self, state: &mut SharedGameState, (ctx, player1, player2): (&mut Context, &Player, &Player)) -> GameResult {
         state.touch_controls.control_type = TouchControlType::None;
 
         let slot_count = state.teleporter_slots.iter()
@@ -97,8 +97,8 @@ impl GameEntity<(&Player, &Player)> for StageSelect {
                 }
             }
 
-
-            slot_rect = Rect::new_size(state.canvas_size.0 as isize - 34, 8, 26, 26);
+            let (_, off_top, off_right, _) = crate::framework::graphics::screen_insets_scaled(ctx, state.scale);
+            slot_rect = Rect::new_size(state.canvas_size.0 as isize - 34 - off_right as isize, 8 + off_top as isize, 26, 26);
 
             if state.touch_controls.consume_click_in(slot_rect) {
                 state.sound_manager.play_sfx(5);
@@ -157,10 +157,12 @@ impl GameEntity<(&Player, &Player)> for StageSelect {
         batch.draw(ctx)?;
 
         if state.settings.touch_controls {
+            let (_, off_top, off_right, _) = crate::framework::graphics::screen_insets_scaled(ctx, state.scale);
+
             let close_rect = Rect { left: 110, top: 110, right: 128, bottom: 128 };
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/touch")?;
 
-            batch.add_rect(state.canvas_size.0 - 30.0, 12.0, &close_rect);
+            batch.add_rect(state.canvas_size.0 - off_right - 30.0, 12.0 + off_top, &close_rect);
             batch.draw(ctx)?;
         }
 

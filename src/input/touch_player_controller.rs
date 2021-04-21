@@ -58,9 +58,10 @@ impl PlayerController for TouchPlayerController {
                 }
             }
             TouchControlType::Controls => {
-                let (left, _, right, bottom) = screen_insets_scaled(ctx, state.scale);
+                let (left, top, right, bottom) = screen_insets_scaled(ctx, state.scale);
 
                 let left = 4 + left as isize;
+                let top = 4 + bottom as isize;
                 let bottom = 4 + bottom as isize;
                 let right = 4 + right as isize;
 
@@ -178,6 +179,19 @@ impl PlayerController for TouchPlayerController {
                             .touch_controls
                             .point_in(Rect::new_size(48 * 2 + left, state.canvas_size.1 as isize - 48 - bottom, 48, 48))
                             .is_some(),
+                );
+
+                self.state.set_inventory(
+                    self.state.inventory()
+                        || state
+                        .touch_controls
+                        .point_in(Rect::new_size(
+                            state.canvas_size.0 as isize - 48 - right,
+                            top,
+                            48,
+                            48,
+                        ))
+                        .is_some(),
                 );
 
                 self.state.set_jump(
