@@ -14,7 +14,7 @@ use num_derive::FromPrimitive;
 use num_traits::{clamp, FromPrimitive};
 
 use crate::bitfield;
-use crate::common::{Direction, FadeDirection, FadeState};
+use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::encoding::{read_cur_shift_jis, read_cur_wtf8};
 use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
@@ -22,6 +22,7 @@ use crate::frame::UpdateTarget;
 use crate::framework::context::Context;
 use crate::framework::error::GameError::{InvalidValue, ParseError};
 use crate::framework::error::GameResult;
+use crate::input::touch_controls::TouchControlType;
 use crate::npc::NPC;
 use crate::player::{ControlMode, TargetPlayer};
 use crate::scene::game_scene::GameScene;
@@ -542,6 +543,10 @@ impl TextScriptVM {
                         break;
                     }
 
+                    if !state.control_flags.control_enabled() {
+                        state.touch_controls.control_type = TouchControlType::Dialog;
+                    }
+
                     if let Some(bytecode) = state.textscript_vm.scripts.find_script(state.textscript_vm.mode, event) {
                         let mut cursor = Cursor::new(bytecode);
                         cursor.seek(SeekFrom::Start(ip as u64))?;
@@ -565,7 +570,8 @@ impl TextScriptVM {
                                 state.textscript_vm.prev_char = chr;
                                 state.textscript_vm.line_1.push(chr);
 
-                                let text_len = state.font.text_width(state.textscript_vm.line_1.iter().copied(), &state.constants);
+                                let text_len =
+                                    state.font.text_width(state.textscript_vm.line_1.iter().copied(), &state.constants);
                                 if text_len >= 284.0 {
                                     state.textscript_vm.current_line = TextScriptLine::Line2;
                                 }
@@ -574,7 +580,8 @@ impl TextScriptVM {
                                 state.textscript_vm.prev_char = chr;
                                 state.textscript_vm.line_2.push(chr);
 
-                                let text_len = state.font.text_width(state.textscript_vm.line_2.iter().copied(), &state.constants);
+                                let text_len =
+                                    state.font.text_width(state.textscript_vm.line_2.iter().copied(), &state.constants);
                                 if text_len >= 284.0 {
                                     state.textscript_vm.current_line = TextScriptLine::Line3;
                                 }
@@ -583,7 +590,8 @@ impl TextScriptVM {
                                 state.textscript_vm.prev_char = chr;
                                 state.textscript_vm.line_3.push(chr);
 
-                                let text_len = state.font.text_width(state.textscript_vm.line_3.iter().copied(), &state.constants);
+                                let text_len =
+                                    state.font.text_width(state.textscript_vm.line_3.iter().copied(), &state.constants);
                                 if text_len >= 284.0 {
                                     state.textscript_vm.line_1.clear();
                                     state.textscript_vm.line_1.append(&mut state.textscript_vm.line_2);
@@ -640,6 +648,48 @@ impl TextScriptVM {
                         break;
                     }
 
+                    let mut confirm =
+                        game_scene.player1.controller.trigger_jump() || game_scene.player2.controller.trigger_jump();
+
+                    if state.settings.touch_controls && !state.control_flags.control_enabled() {
+                        state.touch_controls.control_type = TouchControlType::None;
+
+                        let (off_left, _, off_right, off_bottom) =
+                            crate::framework::graphics::screen_insets_scaled(ctx, state.scale);
+                        let box_x = ((state.canvas_size.0 - off_left - off_right) / 2.0) as isize + 51;
+                        let box_y = (state.canvas_size.1 - off_bottom - 96.0) as isize;
+
+                        if state.touch_controls.consume_click_in(Rect::new_size(box_x, box_y, 40, 20)) {
+                            match selection {
+                                ConfirmSelection::Yes => confirm = true,
+                                ConfirmSelection::No => {
+                                    state.sound_manager.play_sfx(1);
+                                    state.textscript_vm.state = TextScriptExecutionState::WaitConfirmation(
+                                        event,
+                                        ip,
+                                        no_event,
+                                        0,
+                                        ConfirmSelection::Yes,
+                                    );
+                                }
+                            }
+                        } else if state.touch_controls.consume_click_in(Rect::new_size(box_x + 41, box_y, 40, 20)) {
+                            match selection {
+                                ConfirmSelection::Yes => {
+                                    state.sound_manager.play_sfx(1);
+                                    state.textscript_vm.state = TextScriptExecutionState::WaitConfirmation(
+                                        event,
+                                        ip,
+                                        no_event,
+                                        0,
+                                        ConfirmSelection::No,
+                                    );
+                                }
+                                ConfirmSelection::No => confirm = true,
+                            }
+                        }
+                    }
+
                     if game_scene.player1.controller.trigger_left()
                         || game_scene.player1.controller.trigger_right()
                         || game_scene.player2.controller.trigger_left()
@@ -651,7 +701,7 @@ impl TextScriptVM {
                         break;
                     }
 
-                    if game_scene.player1.controller.trigger_jump() || game_scene.player2.controller.trigger_jump() {
+                    if confirm {
                         state.sound_manager.play_sfx(18);
                         match selection {
                             ConfirmSelection::Yes => {
@@ -673,6 +723,10 @@ impl TextScriptVM {
                 }
                 TextScriptExecutionState::WaitInput(event, ip, blink) => {
                     state.textscript_vm.state = TextScriptExecutionState::WaitInput(event, ip, (blink + 1) % 20);
+
+                    if !state.control_flags.control_enabled() {
+                        state.touch_controls.control_type = TouchControlType::Dialog;
+                    }
 
                     if game_scene.player1.controller.trigger_jump()
                         || game_scene.player1.controller.trigger_shoot()

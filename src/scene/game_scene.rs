@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use log::info;
 
 use crate::caret::CaretType;
@@ -30,9 +32,8 @@ use crate::shared_game_state::SharedGameState;
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM};
 use crate::texture_set::SizedBatch;
+use crate::weapon::{Weapon, WeaponType};
 use crate::weapon::bullet::BulletManager;
-use crate::weapon::{WeaponType, Weapon};
-use std::ops::Range;
 
 pub struct GameScene {
     pub tick: u32,
@@ -389,8 +390,11 @@ impl GameScene {
             return Ok(());
         }
 
-        let top_pos = if state.textscript_vm.flags.position_top() { 32.0 } else { state.canvas_size.1 as f32 - 66.0 };
-        let left_pos = (state.canvas_size.0 / 2.0 - 122.0).floor();
+        let (off_left, off_top, off_right, off_bottom) = crate::framework::graphics::screen_insets_scaled(ctx, state.scale);
+
+        let center = ((state.canvas_size.0 - off_left - off_right) / 2.0).floor();
+        let top_pos = if state.textscript_vm.flags.position_top() { 32.0 + off_top } else { state.canvas_size.1 as f32 - off_bottom - 66.0 };
+        let left_pos = off_left + center - 122.0;
 
         {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
@@ -404,46 +408,46 @@ impl GameScene {
 
             if state.textscript_vm.item != 0 {
                 batch.add_rect(
-                    (state.canvas_size.0 / 2.0 - 40.0).floor(),
-                    state.canvas_size.1 - 112.0,
+                    center - 40.0,
+                    state.canvas_size.1 - off_bottom - 112.0,
                     &state.constants.textscript.get_item_top_left,
                 );
                 batch.add_rect(
-                    (state.canvas_size.0 / 2.0 - 40.0).floor(),
-                    state.canvas_size.1 - 96.0,
+                    center - 40.0,
+                    state.canvas_size.1 - off_bottom - 96.0,
                     &state.constants.textscript.get_item_bottom_left,
                 );
                 batch.add_rect(
-                    (state.canvas_size.0 / 2.0 + 32.0).floor(),
-                    state.canvas_size.1 - 112.0,
+                    center + 32.0,
+                    state.canvas_size.1 - off_bottom - 112.0,
                     &state.constants.textscript.get_item_top_right,
                 );
                 batch.add_rect(
-                    (state.canvas_size.0 / 2.0 + 32.0).floor(),
-                    state.canvas_size.1 - 104.0,
+                    center + 32.0,
+                    state.canvas_size.1  - off_bottom- 104.0,
                     &state.constants.textscript.get_item_right,
                 );
                 batch.add_rect(
-                    (state.canvas_size.0 / 2.0 + 32.0).floor(),
-                    state.canvas_size.1 - 96.0,
+                    center + 32.0,
+                    state.canvas_size.1 - off_bottom - 96.0,
                     &state.constants.textscript.get_item_right,
                 );
                 batch.add_rect(
-                    (state.canvas_size.0 / 2.0 + 32.0).floor(),
-                    state.canvas_size.1 - 88.0,
+                    center + 32.0,
+                    state.canvas_size.1 - off_bottom - 88.0,
                     &state.constants.textscript.get_item_bottom_right,
                 );
             }
 
             if let TextScriptExecutionState::WaitConfirmation(_, _, _, wait, selection) = state.textscript_vm.state {
                 let pos_y = if wait > 14 {
-                    state.canvas_size.1 - 96.0 - (wait as f32 - 2.0) * 4.0
+                    state.canvas_size.1 - off_bottom - 96.0 - (wait as f32 + 2.0) * 4.0
                 } else {
-                    state.canvas_size.1 - 96.0
+                    state.canvas_size.1 - off_bottom - 96.0
                 };
 
                 batch.add_rect(
-                    (state.canvas_size.0 / 2.0 + 56.0).floor(),
+                    center + 56.0,
                     pos_y,
                     &state.constants.textscript.textbox_rect_yes_no,
                 );
@@ -452,7 +456,7 @@ impl GameScene {
                     let pos_x = if selection == ConfirmSelection::No { 41.0 } else { 0.0 };
 
                     batch.add_rect(
-                        (state.canvas_size.0 / 2.0 + 51.0).floor() + pos_x,
+                        center + 51.0 + pos_x,
                         state.canvas_size.1 - 86.0,
                         &state.constants.textscript.textbox_rect_cursor,
                     );
@@ -495,7 +499,7 @@ impl GameScene {
                 rect.bottom = rect.top + 16;
 
                 let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ArmsImage")?;
-                batch.add_rect((state.canvas_size.0 / 2.0 - 12.0).floor(), state.canvas_size.1 - 104.0, &rect);
+                batch.add_rect((center - 12.0).floor(), state.canvas_size.1 - off_bottom - 104.0, &rect);
                 batch.draw(ctx)?;
             } else {
                 let item_id = state.textscript_vm.item as u16 - 1000;
@@ -506,7 +510,7 @@ impl GameScene {
                 rect.bottom = rect.top + 16;
 
                 let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ItemImage")?;
-                batch.add_rect((state.canvas_size.0 / 2.0 - 20.0).floor(), state.canvas_size.1 - 104.0, &rect);
+                batch.add_rect((center - 20.0).floor(), state.canvas_size.1 - off_bottom - 104.0, &rect);
                 batch.draw(ctx)?;
             }
         }
@@ -1452,7 +1456,7 @@ impl Scene for GameScene {
         self.player2.controller.update_trigger();
 
         state.touch_controls.control_type =
-            if state.control_flags.control_enabled() { TouchControlType::Controls } else { TouchControlType::Dialog };
+            if state.control_flags.control_enabled() { TouchControlType::Controls } else { TouchControlType::None };
 
         if state.settings.touch_controls {
             state.touch_controls.interact_icon = false;

@@ -58,19 +58,30 @@ public class MainActivity extends NativeActivity {
     }
 
     private void updateCutouts() {
+        this.displayInsets[0] = 0;
+        this.displayInsets[1] = 0;
+        this.displayInsets[2] = 0;
+        this.displayInsets[3] = 0;
+
+        WindowInsets insets = getWindow().getDecorView().getRootWindowInsets();
+
+        if (insets != null) {
+            this.displayInsets[0] = Math.max(this.displayInsets[0], insets.getStableInsetLeft());
+            this.displayInsets[1] = Math.max(this.displayInsets[1], insets.getStableInsetTop());
+            this.displayInsets[2] = Math.max(this.displayInsets[2], insets.getStableInsetRight());
+            this.displayInsets[3] = Math.max(this.displayInsets[3], insets.getStableInsetBottom());
+        }
+
         if (SDK_INT >= Build.VERSION_CODES.P) {
-            WindowInsets insets = getWindow().getDecorView().getRootWindowInsets();
+            android.view.DisplayCutout cutout = insets.getDisplayCutout();
 
-            if (insets != null) {
-                android.view.DisplayCutout cutout = insets.getDisplayCutout();
-
-                if (cutout != null) {
-                    this.displayInsets[0] = cutout.getSafeInsetLeft();
-                    this.displayInsets[1] = cutout.getSafeInsetTop();
-                    this.displayInsets[2] = cutout.getSafeInsetRight();
-                    this.displayInsets[3] = cutout.getSafeInsetBottom();
-                }
+            if (cutout != null) {
+                this.displayInsets[0] = Math.max(this.displayInsets[0], cutout.getSafeInsetLeft());
+                this.displayInsets[1] = Math.max(this.displayInsets[0], cutout.getSafeInsetTop());
+                this.displayInsets[2] = Math.max(this.displayInsets[0], cutout.getSafeInsetRight());
+                this.displayInsets[3] = Math.max(this.displayInsets[0], cutout.getSafeInsetBottom());
             }
+
         }
     }
 }
