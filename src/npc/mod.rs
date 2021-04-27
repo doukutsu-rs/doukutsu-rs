@@ -49,6 +49,14 @@ bitfield! {
   pub show_damage, set_show_damage: 15; // 0x8000
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialOrd, PartialEq)]
+#[repr(u8)]
+pub enum NPCLayer {
+    Background = 0,
+    Middleground = 1,
+    Foreground = 2,
+}
+
 /// Represents an NPC object.
 #[derive(Debug, Clone)]
 #[repr(C)]
@@ -72,6 +80,7 @@ pub struct NPC {
     /// Previous Y position, used by frame interpolator
     pub prev_y: i32,
     pub exp: u16,
+    pub layer: NPCLayer,
     pub size: u8,
     pub shock: u16,
     pub life: u16,
@@ -115,6 +124,7 @@ impl NPC {
             prev_x: 0,
             prev_y: 0,
             exp: 0,
+            layer: NPCLayer::Middleground,
             size: 0,
             shock: 0,
             life: 0,
@@ -139,6 +149,14 @@ impl NPC {
             anim_rect: Rect { left: 0, top: 0, right: 0, bottom: 0 },
             rng: Xoroshiro32PlusPlus::new(0),
         }
+    }
+
+    pub fn draw_if_layer(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame, layer: NPCLayer) -> GameResult {
+        if self.layer == layer {
+            self.draw(state, ctx, frame)?
+        }
+
+        Ok(())
     }
 }
 

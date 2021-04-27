@@ -4,7 +4,7 @@ use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
 use crate::framework::error::GameResult;
 use crate::npc::list::NPCList;
-use crate::npc::NPC;
+use crate::npc::{NPC, NPCLayer};
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
@@ -495,6 +495,7 @@ impl NPC {
     pub(crate) fn tick_n041_busted_door(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
+            self.layer = NPCLayer::Background;
             self.anim_rect = state.constants.npc.n041_busted_door;
             self.y -= 16 * 0x200;
         }

@@ -22,7 +22,7 @@ use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
-use crate::npc::NPC;
+use crate::npc::{NPC, NPCLayer};
 use crate::physics::PhysicalEntity;
 use crate::player::{Player, TargetPlayer};
 use crate::rng::XorShift;
@@ -208,6 +208,28 @@ impl GameScene {
         }
 
         batch.draw(ctx)?;
+
+        Ok(())
+    }
+
+    fn draw_npc_layer(&self,  state: &mut SharedGameState, ctx: &mut Context, layer: NPCLayer) -> GameResult {
+        for npc in self.npc_list.iter_alive() {
+            if npc.layer != layer || npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
+                || npc.x
+                > (self.frame.x
+                + 128 * 0x200
+                + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+                && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
+                || npc.y
+                > (self.frame.y
+                + 128 * 0x200
+                + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
+            {
+                continue;
+            }
+
+            npc.draw(state, ctx, &self.frame)?;
+        }
 
         Ok(())
     }
@@ -1552,6 +1574,7 @@ impl Scene for GameScene {
         //graphics::set_canvas(ctx, Some(&state.game_canvas));
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
+        self.draw_npc_layer(state, ctx, NPCLayer::Background)?;
         if state.settings.shader_effects
             && self.stage.data.background_type != BackgroundType::Black
             && self.stage.data.background_type != BackgroundType::Outside
@@ -1562,23 +1585,7 @@ impl Scene for GameScene {
         }
 
         self.boss.draw(state, ctx, &self.frame)?;
-        for npc in self.npc_list.iter_alive() {
-            if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
-                || npc.x
-                    > (self.frame.x
-                        + 128 * 0x200
-                        + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
-                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
-                || npc.y
-                    > (self.frame.y
-                        + 128 * 0x200
-                        + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
-            {
-                continue;
-            }
-
-            npc.draw(state, ctx, &self.frame)?;
-        }
+        self.draw_npc_layer(state, ctx, NPCLayer::Middleground)?;
         self.draw_bullets(state, ctx)?;
         self.player2.draw(state, ctx, &self.frame)?;
         self.player1.draw(state, ctx, &self.frame)?;

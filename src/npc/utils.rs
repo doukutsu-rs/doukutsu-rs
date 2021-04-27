@@ -6,7 +6,7 @@ use crate::weapon::bullet::Bullet;
 use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Flag, Rect};
 use crate::map::NPCData;
-use crate::npc::{NPC, NPCFlag, NPCTable};
+use crate::npc::{NPC, NPCFlag, NPCTable, NPCLayer};
 use crate::npc::list::NPCList;
 use crate::player::Player;
 use crate::rng::{RNG, Xoroshiro32PlusPlus};
@@ -61,6 +61,7 @@ impl NPC {
             event_num: 0,
             shock: 0,
             exp,
+            layer: NPCLayer::Middleground,
             size,
             life,
             damage,
