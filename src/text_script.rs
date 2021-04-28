@@ -493,11 +493,11 @@ impl TextScriptVM {
 
     pub fn reset(&mut self) {
         self.state = TextScriptExecutionState::Ended;
+        self.flags.0 = 0;
         self.clear_text_box();
     }
 
     pub fn clear_text_box(&mut self) {
-        self.flags.0 = 0;
         self.face = 0;
         self.item = 0;
         self.current_line = TextScriptLine::Line1;
@@ -708,6 +708,7 @@ impl TextScriptVM {
                                 state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
                             }
                             ConfirmSelection::No => {
+                                state.textscript_vm.clear_text_box();
                                 state.textscript_vm.state = TextScriptExecutionState::Running(no_event, 0);
                             }
                         }
@@ -959,6 +960,7 @@ impl TextScriptVM {
                         let flag_num = read_cur_varint(&mut cursor)? as usize;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
                         if state.get_flag(flag_num) {
+                            state.textscript_vm.clear_text_box();
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -969,6 +971,7 @@ impl TextScriptVM {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
                         if game_scene.inventory_player1.has_item(item_id) {
+                            state.textscript_vm.clear_text_box();
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -980,6 +983,7 @@ impl TextScriptVM {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
                         if game_scene.inventory_player1.has_item_amount(item_id, Ordering::Equal, amount) {
+                            state.textscript_vm.clear_text_box();
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -991,6 +995,7 @@ impl TextScriptVM {
                         let weapon_type: Option<WeaponType> = FromPrimitive::from_u8(weapon);
 
                         if weapon_type.is_some() && game_scene.inventory_player1.has_weapon(weapon_type.unwrap()) {
+                            state.textscript_vm.clear_text_box();
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1001,6 +1006,7 @@ impl TextScriptVM {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
                         if game_scene.npc_list.is_alive_by_type(npc_type) {
+                            state.textscript_vm.clear_text_box();
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1011,6 +1017,7 @@ impl TextScriptVM {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
                         if game_scene.npc_list.is_alive_by_event(npc_event_num) {
+                            state.textscript_vm.clear_text_box();
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1019,6 +1026,7 @@ impl TextScriptVM {
                     OpCode::EVE => {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
+                        state.textscript_vm.clear_text_box();
                         exec_state = TextScriptExecutionState::Running(event_num, 0);
                     }
                     OpCode::PSH => {
@@ -1027,6 +1035,7 @@ impl TextScriptVM {
                         let saved_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                         state.textscript_vm.stack.push(saved_state);
 
+                        // TODO: it's a jump but we don't know if it cleans the textbox yet.
                         exec_state = TextScriptExecutionState::Running(event_num, 0);
                     }
                     OpCode::POP => {
@@ -1743,6 +1752,7 @@ impl TextScript {
                     let event_num = TextScript::read_number(&mut iter)? as u16;
                     if iter.peek().is_some() {
                         TextScript::skip_until(b'\n', &mut iter)?;
+                        iter.next();
                     }
                     last_event = event_num;
 
