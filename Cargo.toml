@@ -39,14 +39,15 @@ android = []
 [dependencies]
 #cpal = { path = "./3rdparty/cpal" }
 #glutin = { path = "./3rdparty/glutin/glutin", optional = true }
+#winit = { path = "./3rdparty/winit", optional = true, default_features = false, features = ["x11"] }
 bitvec = "0.20"
 byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
 chrono = "0.4"
-cpal = { git = "https://github.com/doukutsu-rs/cpal.git", rev = "e027550be0b93b7e2912c7de28a4944a7d04e070" }
+cpal = { git = "https://github.com/doukutsu-rs/cpal.git", rev = "4218ff23242834d36bcdcc0c2e3883985c15b5e0" }
 directories = "3"
 funty = "=1.1.0" # https://github.com/bitvecto-rs/bitvec/issues/105
-glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "a34ee3c99b3c999b638ca2bae53cf96df2b94c04", optional = true, default_features = false, features = ["x11"] }
+glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "8dd457b9adb7dbac7ade337246b6356c784272d9", optional = true, default_features = false, features = ["x11"] }
 imgui = "0.7.0"
 image = { version = "0.23", default-features = false, features = ["png", "bmp"] }
 itertools = "0.10"
@@ -61,7 +62,6 @@ paste = "1.0.0"
 pretty_env_logger = "0.4.0"
 sdl2 = { version = "=0.34.2", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 sdl2-sys = { version = "=0.34.2", optional = true, features = ["bundled", "static-link"] }
-#sokol = { git = "https://github.com/doukutsu-rs/sokol-rs.git", rev = "", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_yaml = "0.8"
@@ -70,7 +70,7 @@ strum_macros = "0.20"
 # remove and replace when drain_filter is in stable
 vec_mut_scan = "0.4"
 webbrowser = "0.5.5"
-winit = { version = "0.24", optional = true, default_features = false, features = ["x11"] }
+winit = { git = "https://github.com/alula/winit.git", rev = "6acf76ff192dd8270aaa119b9f35716c03685f9f", optional = true, default_features = false, features = ["x11"] }
 
 #[build-dependencies]
 #gl_generator = { version = "0.14.0", optional = true }
@@ -79,7 +79,7 @@ winit = { version = "0.24", optional = true, default_features = false, features 
 winapi = { version = "0.3", features = ["winuser"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk = "0.2"
-ndk-glue = "0.2"
+ndk = "0.3"
+ndk-glue = "0.3"
 ndk-sys = "0.2"
 jni = "0.19"

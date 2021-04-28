@@ -8,7 +8,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-ndk = "0.2"
-ndk-glue = "0.2"
+ndk = "0.3"
+ndk-glue = "0.3"
 ndk-sys = "0.2"
 doukutsu-rs = { path = "../", default-features = false, features = ["android", "backend-glutin", "ogg-playback", "scripting"] }
