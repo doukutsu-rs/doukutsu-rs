@@ -479,7 +479,7 @@ impl GameScene {
 
                     batch.add_rect(
                         center + 51.0 + pos_x,
-                        state.canvas_size.1 - 86.0,
+                        pos_y + 10.0,
                         &state.constants.textscript.textbox_rect_cursor,
                     );
                 }

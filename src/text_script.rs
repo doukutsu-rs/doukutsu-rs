@@ -657,9 +657,9 @@ impl TextScriptVM {
                         let (off_left, _, off_right, off_bottom) =
                             crate::framework::graphics::screen_insets_scaled(ctx, state.scale);
                         let box_x = ((state.canvas_size.0 - off_left - off_right) / 2.0) as isize + 51;
-                        let box_y = (state.canvas_size.1 - off_bottom - 96.0) as isize;
+                        let box_y = (state.canvas_size.1 - off_bottom - 96.0 - 10.0) as isize;
 
-                        if state.touch_controls.consume_click_in(Rect::new_size(box_x, box_y, 40, 20)) {
+                        if state.touch_controls.consume_click_in(Rect::new_size(box_x, box_y, 40, 40)) {
                             match selection {
                                 ConfirmSelection::Yes => confirm = true,
                                 ConfirmSelection::No => {
@@ -673,7 +673,7 @@ impl TextScriptVM {
                                     );
                                 }
                             }
-                        } else if state.touch_controls.consume_click_in(Rect::new_size(box_x + 41, box_y, 40, 20)) {
+                        } else if state.touch_controls.consume_click_in(Rect::new_size(box_x + 41, box_y, 40, 40)) {
                             match selection {
                                 ConfirmSelection::Yes => {
                                     state.sound_manager.play_sfx(1);
