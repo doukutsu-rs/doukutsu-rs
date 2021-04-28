@@ -1514,6 +1514,8 @@ impl TextScriptVM {
                     OpCode::ITp => {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
 
+                        state.sound_manager.play_sfx(38);
+                        
                         if !game_scene.inventory_player1.has_item(item_id) {
                             game_scene.inventory_player1.add_item(item_id);
                         }
