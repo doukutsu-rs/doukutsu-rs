@@ -222,7 +222,8 @@ impl BossNPC {
             }
             113 => {
                 if self.parts[0].shock != 0 {
-                    if self.parts[0].action_counter2 / 2 % 2 != 0 {
+                    self.parts[0].action_counter2 += 1;
+                    if (self.parts[0].action_counter2 / 2) & 1 != 0 {
                         self.parts[0].anim_num = 4;
                     } else {
                         self.parts[0].anim_num = 3;
@@ -309,9 +310,9 @@ impl BossNPC {
                 if self.parts[0].anim_counter > 4 {
                     self.parts[0].action_num = 124;
                     self.parts[0].anim_num = 5;
-                    self.parts[0].vel_x = -5 * 0x200;
-                    self.parts[0].display_bounds.top = 64 * 0x200;
-                    self.parts[0].display_bounds.bottom = 24 * 0x200;
+                    self.parts[0].vel_y = -0xa00;
+                    self.parts[0].display_bounds.top = 0x8000;
+                    self.parts[0].display_bounds.bottom = 0x3000;
 
                     state.sound_manager.play_sfx(25);
                 }
@@ -320,8 +321,8 @@ impl BossNPC {
                 if self.parts[0].flags.hit_bottom_wall() {
                     self.parts[0].action_num = 100;
                     self.parts[0].anim_num = 1;
-                    self.parts[0].display_bounds.top = 48 * 0x200;
-                    self.parts[0].display_bounds.bottom = 16 * 0x200;
+                    self.parts[0].display_bounds.top = 0x6000;
+                    self.parts[0].display_bounds.bottom = 0x2000;
 
                     let mut npc = NPC::create(104, &state.npc_table);
                     for _ in 0..2 {
@@ -363,7 +364,7 @@ impl BossNPC {
 
                     if self.parts[0].direction == Direction::Right && self.parts[0].x > player.x {
                         self.parts[0].action_num = 110;
-                        self.parts[0].direction = Direction::Right;
+                        self.parts[0].direction = Direction::Left;
                     }
 
                     state.sound_manager.play_sfx(26);
@@ -419,7 +420,7 @@ impl BossNPC {
             }
             132 => {
                 self.parts[0].action_counter += 1;
-                if (self.parts[0].action_counter / 2 % 2) != 0 {
+                if (self.parts[0].action_counter / 2) & 1 != 0 {
                     self.parts[0].anim_num = 6;
                     self.parts[0].display_bounds = Rect {
                         left: 20 * 0x200,
