@@ -185,13 +185,12 @@ impl PlayerController for TouchPlayerController {
                     self.state.inventory()
                         || state
                         .touch_controls
-                        .point_in(Rect::new_size(
+                        .consume_click_in(Rect::new_size(
                             state.canvas_size.0 as isize - 48 - right,
                             top,
                             48,
                             48,
-                        ))
-                        .is_some(),
+                        )),
                 );
 
                 self.state.set_jump(
