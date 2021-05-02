@@ -24,6 +24,7 @@ use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
 use crate::framework::ui::init_imgui;
 use crate::Game;
 use crate::GAME_SUSPENDED;
+use std::time::Duration;
 
 pub struct SDL2Backend {
     context: Sdl,
@@ -176,6 +177,7 @@ impl BackendEventLoop for SDL2EventLoop {
             {
                 let mutex = GAME_SUSPENDED.lock().unwrap();
                 if *mutex {
+                    std::thread::sleep(Duration::from_millis(10));
                     continue;
                 }
             }
