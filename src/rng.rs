@@ -1,5 +1,5 @@
 use std::cell::Cell;
-use std::ops::Range;
+use std::ops::{Range};
 
 pub trait RNG {
     fn next(&self) -> i32;
@@ -10,45 +10,35 @@ pub trait RNG {
 }
 
 /// Deterministic XorShift-based random number generator
-pub struct XorShift(Cell<(u64, u64, u64, u64)>);
+pub struct XorShift(Cell<u64>);
 
 impl XorShift {
     pub fn new(seed: i32) -> Self {
-        Self(Cell::new((
-            seed as u64,
-            (seed as u64).wrapping_add(0x9e3779b97f4a7c15),
-            (seed as u64).wrapping_add(0xbdd3944475a73cf0),
-            0
-        )))
+        Self(Cell::new(seed as u64))
     }
 
-    pub fn next_u64(&self) -> i32 {
+    pub fn next_u64(&self) -> u64 {
         let mut state = self.0.get();
-        let result = state.1.wrapping_mul(5).rotate_left(5).wrapping_mul(9);
-        let t = state.1 << 17;
 
-        state.2 ^= state.0;
-        state.3 ^= state.1;
-        state.1 ^= state.2;
-        state.0 ^= state.3;
-
-        state.2 ^= t;
-        state.3 = state.3.rotate_left(45);
+        state ^= state >> 12;
+        state ^= state << 25;
+        state ^= state >> 27;
 
         self.0.replace(state);
-        result as i32
+
+        state.wrapping_mul(0x2545F4914F6CDD1Du64)
     }
 
     #[inline]
     pub fn next_u32(&self) -> u32 {
-        self.next_u64() as u32
+        (self.next_u64() >> 32) as u32
     }
 
-    pub fn dump_state(&self) -> (u64, u64, u64, u64) {
+    pub fn dump_state(&self) -> u64 {
         self.0.get()
     }
 
-    pub fn load_state(&mut self, saved_state: (u64, u64, u64, u64)) {
+    pub fn load_state(&mut self, saved_state: u64) {
         self.0.replace(saved_state);
     }
 }
@@ -56,7 +46,7 @@ impl XorShift {
 impl RNG for XorShift {
     #[inline]
     fn next(&self) -> i32 {
-        self.next_u64() as i32
+        self.next_u32() as i32
     }
 }
 
