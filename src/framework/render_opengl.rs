@@ -27,6 +27,7 @@ pub struct OpenGLTexture {
     texture_id: u32,
     framebuffer_id: u32,
     locs: Locs,
+    program: GLuint,
     vbo: GLuint,
     vertices: Vec<VertexData>,
     context_active: Arc<RefCell<bool>>,
@@ -187,6 +188,7 @@ impl BackendTexture for OpenGLTexture {
 
                 gl.gl.BindTexture(gl::TEXTURE_2D, self.texture_id);
                 gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.vbo);
+                gl.gl.UseProgram(self.program);
                 gl.gl.EnableVertexAttribArray(self.locs.position);
                 gl.gl.EnableVertexAttribArray(self.locs.uv);
                 gl.gl.EnableVertexAttribArray(self.locs.color);
@@ -347,8 +349,10 @@ struct Locs {
 
 struct ImguiData {
     initialized: bool,
-    program: GLuint,
-    locs: Locs,
+    program_tex: GLuint,
+    program_fill: GLuint,
+    tex_locs: Locs,
+    fill_locs: Locs,
     vbo: GLuint,
     ebo: GLuint,
     font_texture: GLuint,
@@ -359,8 +363,10 @@ impl ImguiData {
     fn new() -> Self {
         ImguiData {
             initialized: false,
-            program: 0,
-            locs: Locs { texture: 0, proj_mtx: 0, position: 0, uv: 0, color: 0 },
+            program_tex: 0,
+            program_fill: 0,
+            tex_locs: Locs { texture: 0, proj_mtx: 0, position: 0, uv: 0, color: 0 },
+            fill_locs: Locs { texture: 0, proj_mtx: 0, position: 0, uv: 0, color: 0 },
             vbo: 0,
             ebo: 0,
             font_texture: 0,
@@ -372,37 +378,61 @@ impl ImguiData {
         self.initialized = true;
 
         let vert_sources = [VERTEX_SHADER_BASIC.as_ptr() as *const GLchar];
-        let frag_sources = [FRAGMENT_SHADER_TEXTURED.as_ptr() as *const GLchar];
+        let frag_sources_tex = [FRAGMENT_SHADER_TEXTURED.as_ptr() as *const GLchar];
+        let frag_sources_fill = [FRAGMENT_SHADER_COLOR.as_ptr() as *const GLchar];
         let vert_sources_len = [VERTEX_SHADER_BASIC.len() as GLint - 1];
-        let frag_sources_len = [FRAGMENT_SHADER_TEXTURED.len() as GLint - 1];
+        let frag_sources_tex_len = [FRAGMENT_SHADER_TEXTURED.len() as GLint - 1];
+        let frag_sources_fill_len = [FRAGMENT_SHADER_COLOR.len() as GLint - 1];
 
         unsafe {
-            self.program = gl.gl.CreateProgram();
+            self.program_tex = gl.gl.CreateProgram();
+            self.program_fill = gl.gl.CreateProgram();
             let vert_shader = gl.gl.CreateShader(gl::VERTEX_SHADER);
-            let frag_shader = gl.gl.CreateShader(gl::FRAGMENT_SHADER);
-            gl.gl.ShaderSource(vert_shader, 1, vert_sources.as_ptr(), vert_sources_len.as_ptr());
-            gl.gl.ShaderSource(frag_shader, 1, frag_sources.as_ptr(), frag_sources_len.as_ptr());
-            gl.gl.CompileShader(vert_shader);
+            let frag_shader_tex = gl.gl.CreateShader(gl::FRAGMENT_SHADER);
+            let frag_shader_fill = gl.gl.CreateShader(gl::FRAGMENT_SHADER);
 
-            gl.gl.CompileShader(frag_shader);
-            gl.gl.AttachShader(self.program, vert_shader);
-            gl.gl.AttachShader(self.program, frag_shader);
-            gl.gl.LinkProgram(self.program);
+            gl.gl.ShaderSource(vert_shader, 1, vert_sources.as_ptr(), vert_sources_len.as_ptr());
+            gl.gl.ShaderSource(frag_shader_tex, 1, frag_sources_tex.as_ptr(), frag_sources_tex_len.as_ptr());
+            gl.gl.ShaderSource(frag_shader_fill, 1, frag_sources_fill.as_ptr(), frag_sources_fill_len.as_ptr());
+
+            gl.gl.CompileShader(vert_shader);
+            gl.gl.CompileShader(frag_shader_tex);
+            gl.gl.CompileShader(frag_shader_fill);
 
             if !check_shader_compile_status(vert_shader, gl) {
                 gl.gl.DeleteShader(vert_shader);
             }
 
-            if !check_shader_compile_status(frag_shader, gl) {
-                gl.gl.DeleteShader(frag_shader);
+            if !check_shader_compile_status(frag_shader_tex, gl) {
+                gl.gl.DeleteShader(frag_shader_tex);
             }
 
-            self.locs = Locs {
-                texture: gl.gl.GetUniformLocation(self.program, b"Texture\0".as_ptr() as _),
-                proj_mtx: gl.gl.GetUniformLocation(self.program, b"ProjMtx\0".as_ptr() as _),
-                position: gl.gl.GetAttribLocation(self.program, b"Position\0".as_ptr() as _) as _,
-                uv: gl.gl.GetAttribLocation(self.program, b"UV\0".as_ptr() as _) as _,
-                color: gl.gl.GetAttribLocation(self.program, b"Color\0".as_ptr() as _) as _,
+            if !check_shader_compile_status(frag_shader_fill, gl) {
+                gl.gl.DeleteShader(frag_shader_fill);
+            }
+
+            gl.gl.AttachShader(self.program_tex, vert_shader);
+            gl.gl.AttachShader(self.program_tex, frag_shader_tex);
+            gl.gl.LinkProgram(self.program_tex);
+
+            gl.gl.AttachShader(self.program_fill, vert_shader);
+            gl.gl.AttachShader(self.program_fill, frag_shader_fill);
+            gl.gl.LinkProgram(self.program_fill);
+
+            self.tex_locs = Locs {
+                texture: gl.gl.GetUniformLocation(self.program_tex, b"Texture\0".as_ptr() as _),
+                proj_mtx: gl.gl.GetUniformLocation(self.program_tex, b"ProjMtx\0".as_ptr() as _),
+                position: gl.gl.GetAttribLocation(self.program_tex, b"Position\0".as_ptr() as _) as _,
+                uv: gl.gl.GetAttribLocation(self.program_tex, b"UV\0".as_ptr() as _) as _,
+                color: gl.gl.GetAttribLocation(self.program_tex, b"Color\0".as_ptr() as _) as _,
+            };
+
+            self.fill_locs = Locs {
+                texture: gl.gl.GetUniformLocation(self.program_fill, b"Texture\0".as_ptr() as _),
+                proj_mtx: gl.gl.GetUniformLocation(self.program_fill, b"ProjMtx\0".as_ptr() as _),
+                position: gl.gl.GetAttribLocation(self.program_fill, b"Position\0".as_ptr() as _) as _,
+                uv: gl.gl.GetAttribLocation(self.program_fill, b"UV\0".as_ptr() as _) as _,
+                color: gl.gl.GetAttribLocation(self.program_fill, b"Color\0".as_ptr() as _) as _,
             };
 
             self.vbo = return_param(|x| gl.gl.GenBuffers(1, x));
@@ -581,9 +611,11 @@ impl BackendRenderer for OpenGLRenderer {
 
                 gl.gl.BindBuffer(gl::ARRAY_BUFFER, 0);
                 gl.gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
-                gl.gl.UseProgram(self.imgui_data.program);
-                gl.gl.Uniform1i(self.imgui_data.locs.texture, 0);
-                gl.gl.UniformMatrix4fv(self.imgui_data.locs.proj_mtx, 1, gl::FALSE, self.def_matrix.as_ptr() as _);
+                gl.gl.UseProgram(self.imgui_data.program_fill);
+                gl.gl.UniformMatrix4fv(self.imgui_data.fill_locs.proj_mtx, 1, gl::FALSE, self.def_matrix.as_ptr() as _);
+                gl.gl.UseProgram(self.imgui_data.program_tex);
+                gl.gl.Uniform1i(self.imgui_data.tex_locs.texture, 0);
+                gl.gl.UniformMatrix4fv(self.imgui_data.tex_locs.proj_mtx, 1, gl::FALSE, self.def_matrix.as_ptr() as _);
             }
 
             Ok(())
@@ -635,7 +667,8 @@ impl BackendRenderer for OpenGLRenderer {
                     width,
                     height,
                     vertices: Vec::new(),
-                    locs: self.imgui_data.locs,
+                    locs: self.imgui_data.tex_locs,
+                    program: self.imgui_data.program_tex,
                     vbo: self.imgui_data.vbo,
                     context_active: self.context_active.clone(),
                 }))
@@ -674,7 +707,8 @@ impl BackendRenderer for OpenGLRenderer {
                     width,
                     height,
                     vertices: Vec::new(),
-                    locs: self.imgui_data.locs,
+                    locs: self.imgui_data.tex_locs,
+                    program: self.imgui_data.program_tex,
                     vbo: self.imgui_data.vbo,
                     context_active: self.context_active.clone(),
                 }))
@@ -719,11 +753,19 @@ impl BackendRenderer for OpenGLRenderer {
                         [0.0, 0.0, -1.0, 0.0],
                         [-1.0, -1.0, 0.0, 1.0],
                     ];
-                    gl.gl.UniformMatrix4fv(self.imgui_data.locs.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+                    gl.gl.UseProgram(self.imgui_data.program_fill);
+                    gl.gl.UniformMatrix4fv(self.imgui_data.fill_locs.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+                    gl.gl.UseProgram(self.imgui_data.program_tex);
+                    gl.gl.Uniform1i(self.imgui_data.tex_locs.texture, 0);
+                    gl.gl.UniformMatrix4fv(self.imgui_data.tex_locs.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
 
                     gl.gl.BindFramebuffer(gl::FRAMEBUFFER, gl_texture.framebuffer_id);
                 } else {
-                    gl.gl.UniformMatrix4fv(self.imgui_data.locs.proj_mtx, 1, gl::FALSE, self.def_matrix.as_ptr() as _);
+                    gl.gl.UseProgram(self.imgui_data.program_fill);
+                    gl.gl.UniformMatrix4fv(self.imgui_data.fill_locs.proj_mtx, 1, gl::FALSE, self.def_matrix.as_ptr() as _);
+                    gl.gl.UseProgram(self.imgui_data.program_tex);
+                    gl.gl.Uniform1i(self.imgui_data.tex_locs.texture, 0);
+                    gl.gl.UniformMatrix4fv(self.imgui_data.tex_locs.proj_mtx, 1, gl::FALSE, self.def_matrix.as_ptr() as _);
                     gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
                 }
             }
@@ -755,13 +797,14 @@ impl BackendRenderer for OpenGLRenderer {
                     gl.gl.BindSampler(0, 0);
                 }
 
+                gl.gl.UseProgram(self.imgui_data.program_fill);
                 gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.imgui_data.vbo);
-                gl.gl.EnableVertexAttribArray(self.imgui_data.locs.position);
-                gl.gl.EnableVertexAttribArray(self.imgui_data.locs.uv);
-                gl.gl.EnableVertexAttribArray(self.imgui_data.locs.color);
+                gl.gl.EnableVertexAttribArray(self.imgui_data.fill_locs.position);
+                gl.gl.EnableVertexAttribArray(self.imgui_data.fill_locs.uv);
+                gl.gl.EnableVertexAttribArray(self.imgui_data.fill_locs.color);
 
                 gl.gl.VertexAttribPointer(
-                    self.imgui_data.locs.position,
+                    self.imgui_data.fill_locs.position,
                     2,
                     gl::FLOAT,
                     gl::FALSE,
@@ -770,7 +813,7 @@ impl BackendRenderer for OpenGLRenderer {
                 );
 
                 gl.gl.VertexAttribPointer(
-                    self.imgui_data.locs.uv,
+                    self.imgui_data.fill_locs.uv,
                     2,
                     gl::FLOAT,
                     gl::FALSE,
@@ -779,7 +822,7 @@ impl BackendRenderer for OpenGLRenderer {
                 );
 
                 gl.gl.VertexAttribPointer(
-                    self.imgui_data.locs.color,
+                    self.imgui_data.fill_locs.color,
                     4,
                     gl::UNSIGNED_BYTE,
                     gl::TRUE,
@@ -842,9 +885,9 @@ impl BackendRenderer for OpenGLRenderer {
                     [0.0, 0.0, -1.0, 0.0],
                     [-1.0, 1.0, 0.0, 1.0],
                 ];
-                gl.gl.UseProgram(self.imgui_data.program);
-                gl.gl.Uniform1i(self.imgui_data.locs.texture, 0);
-                gl.gl.UniformMatrix4fv(self.imgui_data.locs.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+                gl.gl.UseProgram(self.imgui_data.program_tex);
+                gl.gl.Uniform1i(self.imgui_data.tex_locs.texture, 0);
+                gl.gl.UniformMatrix4fv(self.imgui_data.tex_locs.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
 
                 if gl.gl.BindSampler.is_loaded() {
                     gl.gl.BindSampler(0, 0);
@@ -853,12 +896,12 @@ impl BackendRenderer for OpenGLRenderer {
                 // let vao = return_param(|x| gl.gl.GenVertexArrays(1, x));
                 //gl.gl.BindVertexArray(vao);
                 gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.imgui_data.vbo);
-                gl.gl.EnableVertexAttribArray(self.imgui_data.locs.position);
-                gl.gl.EnableVertexAttribArray(self.imgui_data.locs.uv);
-                gl.gl.EnableVertexAttribArray(self.imgui_data.locs.color);
+                gl.gl.EnableVertexAttribArray(self.imgui_data.tex_locs.position);
+                gl.gl.EnableVertexAttribArray(self.imgui_data.tex_locs.uv);
+                gl.gl.EnableVertexAttribArray(self.imgui_data.tex_locs.color);
 
                 gl.gl.VertexAttribPointer(
-                    self.imgui_data.locs.position,
+                    self.imgui_data.tex_locs.position,
                     2,
                     gl::FLOAT,
                     gl::FALSE,
@@ -867,7 +910,7 @@ impl BackendRenderer for OpenGLRenderer {
                 );
 
                 gl.gl.VertexAttribPointer(
-                    self.imgui_data.locs.uv,
+                    self.imgui_data.tex_locs.uv,
                     2,
                     gl::FLOAT,
                     gl::FALSE,
@@ -876,7 +919,7 @@ impl BackendRenderer for OpenGLRenderer {
                 );
 
                 gl.gl.VertexAttribPointer(
-                    self.imgui_data.locs.color,
+                    self.imgui_data.tex_locs.color,
                     4,
                     gl::UNSIGNED_BYTE,
                     gl::TRUE,
