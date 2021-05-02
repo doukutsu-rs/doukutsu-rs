@@ -20,9 +20,9 @@ use crate::framework::graphics::{BlendMode, draw_rect, FilterMode};
 use crate::framework::ui::Components;
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
+use crate::npc::{NPC, NPCLayer};
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
-use crate::npc::{NPC, NPCLayer};
 use crate::physics::PhysicalEntity;
 use crate::player::{Player, TargetPlayer};
 use crate::rng::XorShift;
@@ -57,6 +57,7 @@ pub struct GameScene {
     tex_background_name: String,
     tex_tileset_name: String,
     map_name_counter: u16,
+    skip_counter: u16,
 }
 
 #[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
@@ -71,6 +72,7 @@ const FACE_TEX: &str = "Face";
 const SWITCH_FACE_TEX: [&str; 4] = ["Face1", "Face2", "Face3", "Face4"];
 const P2_LEFT_TEXT: &str = "< P2";
 const P2_RIGHT_TEXT: &str = "P2 >";
+const CUTSCENE_SKIP_WAIT: u16 = 50;
 
 impl GameScene {
     pub fn new(state: &mut SharedGameState, ctx: &mut Context, id: usize) -> GameResult<Self> {
@@ -112,6 +114,7 @@ impl GameScene {
             tex_background_name,
             tex_tileset_name,
             map_name_counter: 0,
+            skip_counter: 0,
         })
     }
 
@@ -212,18 +215,19 @@ impl GameScene {
         Ok(())
     }
 
-    fn draw_npc_layer(&self,  state: &mut SharedGameState, ctx: &mut Context, layer: NPCLayer) -> GameResult {
+    fn draw_npc_layer(&self, state: &mut SharedGameState, ctx: &mut Context, layer: NPCLayer) -> GameResult {
         for npc in self.npc_list.iter_alive() {
-            if npc.layer != layer || npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
+            if npc.layer != layer
+                || npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
                 || npc.x
-                > (self.frame.x
-                + 128 * 0x200
-                + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
-                && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
+                    > (self.frame.x
+                        + 128 * 0x200
+                        + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
                 || npc.y
-                > (self.frame.y
-                + 128 * 0x200
-                + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
+                    > (self.frame.y
+                        + 128 * 0x200
+                        + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
             {
                 continue;
             }
@@ -412,10 +416,15 @@ impl GameScene {
             return Ok(());
         }
 
-        let (off_left, off_top, off_right, off_bottom) = crate::framework::graphics::screen_insets_scaled(ctx, state.scale);
+        let (off_left, off_top, off_right, off_bottom) =
+            crate::framework::graphics::screen_insets_scaled(ctx, state.scale);
 
         let center = ((state.canvas_size.0 - off_left - off_right) / 2.0).floor();
-        let top_pos = if state.textscript_vm.flags.position_top() { 32.0 + off_top } else { state.canvas_size.1 as f32 - off_bottom - 66.0 };
+        let top_pos = if state.textscript_vm.flags.position_top() {
+            32.0 + off_top
+        } else {
+            state.canvas_size.1 as f32 - off_bottom - 66.0
+        };
         let left_pos = off_left + center - 122.0;
 
         {
@@ -446,7 +455,7 @@ impl GameScene {
                 );
                 batch.add_rect(
                     center + 32.0,
-                    state.canvas_size.1  - off_bottom- 104.0,
+                    state.canvas_size.1 - off_bottom - 104.0,
                     &state.constants.textscript.get_item_right,
                 );
                 batch.add_rect(
@@ -468,11 +477,7 @@ impl GameScene {
                     state.canvas_size.1 - off_bottom - 96.0
                 };
 
-                batch.add_rect(
-                    center + 56.0,
-                    pos_y,
-                    &state.constants.textscript.textbox_rect_yes_no,
-                );
+                batch.add_rect(center + 56.0, pos_y, &state.constants.textscript.textbox_rect_yes_no);
 
                 if wait == 0 {
                     let pos_x = if selection == ConfirmSelection::No { 41.0 } else { 0.0 };
@@ -617,7 +622,15 @@ impl GameScene {
         )
     }
 
-    fn draw_light_raycast(&self, world_point_x: i32, world_point_y: i32, (br, bg, bb): (u8, u8, u8), att: u8, angle: Range<i32>, batch: &mut SizedBatch) {
+    fn draw_light_raycast(
+        &self,
+        world_point_x: i32,
+        world_point_y: i32,
+        (br, bg, bb): (u8, u8, u8),
+        att: u8,
+        angle: Range<i32>,
+        batch: &mut SizedBatch,
+    ) {
         let px = world_point_x as f32 / 512.0;
         let py = world_point_y as f32 / 512.0;
 
@@ -649,43 +662,43 @@ impl GameScene {
                         && x >= (bx * 16 - 8) as f32
                         && x <= (bx * 16 + 8) as f32
                         && y >= (by * 16 - 8) as f32
-                        && y <= (by * 16 + 8) as f32) ||
-                        ((tile == 0x50 || tile == 0x70)
+                        && y <= (by * 16 + 8) as f32)
+                        || ((tile == 0x50 || tile == 0x70)
                             && x >= (bx * 16 - 8) as f32
                             && x <= (bx * 16 + 8) as f32
                             && y <= ((by as f32 * 16.0) - (x - bx as f32 * 16.0) / 2.0 + 4.0)
-                            && y >= (by * 16 - 8) as f32) ||
-                        ((tile == 0x51 || tile == 0x71)
+                            && y >= (by * 16 - 8) as f32)
+                        || ((tile == 0x51 || tile == 0x71)
                             && x >= (bx * 16 - 8) as f32
                             && x <= (bx * 16 + 8) as f32
                             && y <= ((by as f32 * 16.0) - (x - bx as f32 * 16.0) / 2.0 - 4.0)
-                            && y >= (by * 16 - 8) as f32) ||
-                        ((tile == 0x52 || tile == 0x72)
+                            && y >= (by * 16 - 8) as f32)
+                        || ((tile == 0x52 || tile == 0x72)
                             && x >= (bx * 16 - 8) as f32
                             && x <= (bx * 16 + 8) as f32
                             && y <= ((by as f32 * 16.0) + (x - bx as f32 * 16.0) / 2.0 - 4.0)
-                            && y >= (by * 16 - 8) as f32) ||
-                        ((tile == 0x53 || tile == 0x73)
+                            && y >= (by * 16 - 8) as f32)
+                        || ((tile == 0x53 || tile == 0x73)
                             && x >= (bx * 16 - 8) as f32
                             && x <= (bx * 16 + 8) as f32
                             && y <= ((by as f32 * 16.0) + (x - bx as f32 * 16.0) / 2.0 + 4.0)
-                            && y >= (by * 16 - 8) as f32) ||
-                        ((tile == 0x54 || tile == 0x74)
+                            && y >= (by * 16 - 8) as f32)
+                        || ((tile == 0x54 || tile == 0x74)
                             && x >= (bx * 16 - 8) as f32
                             && x <= (bx * 16 + 8) as f32
                             && y >= ((by as f32 * 16.0) + (x - bx as f32 * 16.0) / 2.0 - 4.0)
-                            && y <= (by * 16 + 8) as f32) ||
-                        ((tile == 0x55 || tile == 0x75)
+                            && y <= (by * 16 + 8) as f32)
+                        || ((tile == 0x55 || tile == 0x75)
                             && x >= (bx * 16 - 8) as f32
                             && x <= (bx * 16 + 8) as f32
                             && y >= ((by as f32 * 16.0) + (x - bx as f32 * 16.0) / 2.0 + 4.0)
-                            && y <= (by * 16 + 8) as f32) ||
-                        ((tile == 0x56 || tile == 0x76)
+                            && y <= (by * 16 + 8) as f32)
+                        || ((tile == 0x56 || tile == 0x76)
                             && x >= (bx * 16 - 8) as f32
                             && x <= (bx * 16 + 8) as f32
                             && y >= ((by as f32 * 16.0) - (x - bx as f32 * 16.0) / 2.0 + 4.0)
-                            && y <= (by * 16 + 8) as f32) ||
-                        ((tile == 0x57 || tile == 0x77)
+                            && y <= (by * 16 + 8) as f32)
+                        || ((tile == 0x57 || tile == 0x77)
                             && x >= (bx * 16 - 8) as f32
                             && x <= (bx * 16 + 8) as f32
                             && y >= ((by as f32 * 16.0) - (x - bx as f32 * 16.0) / 2.0 - 4.0)
@@ -724,7 +737,9 @@ impl GameScene {
             let scale = state.scale;
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
 
-            for (player, inv) in [(&self.player1, &self.inventory_player1), (&self.player2, &self.inventory_player2)].iter() {
+            for (player, inv) in
+                [(&self.player1, &self.inventory_player1), (&self.player2, &self.inventory_player2)].iter()
+            {
                 if player.cond.alive() && !player.cond.hidden() && inv.get_current_weapon().is_some() {
                     let range = match () {
                         _ if player.up => 60..120,
@@ -1496,42 +1511,73 @@ impl Scene for GameScene {
             }
         }
 
-        match state.textscript_vm.mode {
-            ScriptMode::Map if state.control_flags.tick_world() => self.tick_world(state)?,
-            ScriptMode::StageSelect => self.stage_select.tick(state, (ctx, &self.player1, &self.player2))?,
-            ScriptMode::Inventory => self.inventory_ui.tick(state, (ctx, &mut self.player1, &mut self.inventory_player1))?,
-            _ => {}
+        match state.textscript_vm.state {
+            TextScriptExecutionState::Running(_, _)
+            | TextScriptExecutionState::WaitTicks(_, _, _)
+            | TextScriptExecutionState::WaitInput(_, _, _)
+            | TextScriptExecutionState::Msg(_, _, _, _)
+                if !state.control_flags.control_enabled() && !state.textscript_vm.flags.cutscene_skip() =>
+            {
+                if self.player1.controller.inventory() {
+                    self.skip_counter += 1;
+                    if self.skip_counter >= CUTSCENE_SKIP_WAIT {
+                        state.textscript_vm.flags.set_cutscene_skip(true);
+                    }
+                } else if self.skip_counter > 0 {
+                    self.skip_counter -= 1;
+                }
+            }
+            _ => {
+                self.skip_counter = 0;
+            }
         }
 
-        if self.map_name_counter > 0 {
-            self.map_name_counter -= 1;
+        let mut ticks = 1;
+        if state.textscript_vm.mode == ScriptMode::Map && state.textscript_vm.flags.cutscene_skip() {
+            ticks = 4;
         }
 
-        match state.fade_state {
-            FadeState::FadeOut(tick, direction) if tick < 15 => {
-                state.fade_state = FadeState::FadeOut(tick + 1, direction);
+        for _ in 0..ticks {
+            match state.textscript_vm.mode {
+                ScriptMode::Map if state.control_flags.tick_world() => self.tick_world(state)?,
+                ScriptMode::StageSelect => self.stage_select.tick(state, (ctx, &self.player1, &self.player2))?,
+                ScriptMode::Inventory => {
+                    self.inventory_ui.tick(state, (ctx, &mut self.player1, &mut self.inventory_player1))?
+                }
+                _ => {}
             }
-            FadeState::FadeOut(tick, _) if tick == 15 => {
-                state.fade_state = FadeState::Hidden;
+
+            if self.map_name_counter > 0 {
+                self.map_name_counter -= 1;
             }
-            FadeState::FadeIn(tick, direction) if tick > -15 => {
-                state.fade_state = FadeState::FadeIn(tick - 1, direction);
+
+            match state.fade_state {
+                FadeState::FadeOut(tick, direction) if tick < 15 => {
+                    state.fade_state = FadeState::FadeOut(tick + 1, direction);
+                }
+                FadeState::FadeOut(tick, _) if tick == 15 => {
+                    state.fade_state = FadeState::Hidden;
+                }
+                FadeState::FadeIn(tick, direction) if tick > -15 => {
+                    state.fade_state = FadeState::FadeIn(tick - 1, direction);
+                }
+                FadeState::FadeIn(tick, _) if tick == -15 => {
+                    state.fade_state = FadeState::Visible;
+                }
+                _ => {}
             }
-            FadeState::FadeIn(tick, _) if tick == -15 => {
-                state.fade_state = FadeState::Visible;
+
+            self.flash.tick(state, ())?;
+            TextScriptVM::run(state, self, ctx)?;
+
+            #[cfg(feature = "scripting")]
+            state.lua.scene_tick(self);
+
+            if state.control_flags.control_enabled() {
+                self.tick = self.tick.wrapping_add(1);
             }
-            _ => {}
         }
 
-        self.flash.tick(state, ())?;
-        TextScriptVM::run(state, self, ctx)?;
-
-        #[cfg(feature = "scripting")]
-        state.lua.scene_tick(self);
-
-        if state.control_flags.control_enabled() {
-            self.tick = self.tick.wrapping_add(1);
-        }
         Ok(())
     }
 
@@ -1692,6 +1738,36 @@ impl Scene for GameScene {
         }
 
         self.draw_text_boxes(state, ctx)?;
+        if self.skip_counter > 0 {
+            let text = format!("Hold {:?} to skip the cutscene", state.settings.player1_key_map.inventory);
+            let width = state.font.text_width(text.chars(), &state.constants);
+            let pos_x = state.canvas_size.0 - width - 20.0;
+            let pos_y = 0.0;
+            let line_height = state.font.line_height(&state.constants);
+            let w = (self.skip_counter as f32 / CUTSCENE_SKIP_WAIT as f32) * (width + 20.0) / 2.0;
+            let mut rect = Rect::new_size((pos_x * state.scale) as isize,
+                                          (pos_y * state.scale) as isize,
+                                          ((20.0 + width) * state.scale) as isize,
+                                          ((20.0 + line_height) * state.scale) as isize);
+
+            draw_rect(ctx, rect, Color::from_rgb(0, 0, 32))?;
+
+            rect.right = rect.left + (w * state.scale) as isize;
+            draw_rect(ctx, rect, Color::from_rgb(160, 181, 222))?;
+
+            rect.left = ((state.canvas_size.0 - w) * state.scale) as isize;
+            rect.right = rect.left + (w * state.scale) as isize;
+            draw_rect(ctx, rect, Color::from_rgb(160, 181, 222))?;
+
+            state.font.draw_text_with_shadow(
+                text.chars(),
+                pos_x + 10.0,
+                pos_y + 10.0,
+                &state.constants,
+                &mut state.texture_set,
+                ctx,
+            )?;
+        }
 
         if state.settings.debug_outlines {
             self.draw_debug_outlines(state, ctx)?;

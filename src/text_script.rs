@@ -303,6 +303,7 @@ bitfield! {
   pub fast, set_fast: 4;
   pub position_top, set_position_top: 5;
   pub perma_fast, set_perma_fast: 6;
+  pub cutscene_skip, set_cutscene_skip: 7;
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -604,10 +605,7 @@ impl TextScriptVM {
                         }
 
                         if remaining > 1 {
-                            let ticks = if state.textscript_vm.flags.fast()
-                                || game_scene.player1.controller.skip()
-                                || game_scene.player2.controller.skip()
-                            {
+                            let ticks = if state.textscript_vm.flags.fast() || state.textscript_vm.flags.cutscene_skip() {
                                 0
                             } else if game_scene.player1.controller.jump()
                                 || game_scene.player1.controller.shoot()
@@ -644,6 +642,8 @@ impl TextScriptVM {
                     }
                 }
                 TextScriptExecutionState::WaitConfirmation(event, ip, no_event, wait, selection) => {
+                    state.textscript_vm.flags.set_cutscene_skip(false);
+
                     if wait > 0 {
                         state.textscript_vm.state =
                             TextScriptExecutionState::WaitConfirmation(event, ip, no_event, wait - 1, selection);
@@ -731,12 +731,11 @@ impl TextScriptVM {
                         state.touch_controls.control_type = TouchControlType::Dialog;
                     }
 
-                    if game_scene.player1.controller.trigger_jump()
+                    if state.textscript_vm.flags.cutscene_skip()
+                        || game_scene.player1.controller.trigger_jump()
                         || game_scene.player1.controller.trigger_shoot()
-                        || game_scene.player1.controller.skip()
                         || game_scene.player2.controller.trigger_jump()
                         || game_scene.player2.controller.trigger_shoot()
-                        || game_scene.player2.controller.skip()
                     {
                         state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
                     }
@@ -809,9 +808,11 @@ impl TextScriptVM {
                         }
                     }
                     OpCode::_END => {
+                        state.textscript_vm.flags.set_cutscene_skip(false);
                         exec_state = TextScriptExecutionState::Ended;
                     }
                     OpCode::END => {
+                        state.textscript_vm.flags.set_cutscene_skip(false);
                         state.control_flags.set_tick_world(true);
                         state.control_flags.set_control_enabled(true);
 
@@ -1218,8 +1219,10 @@ impl TextScriptVM {
                         new_scene.player2.x = pos_x;
                         new_scene.player2.y = pos_y;
 
+                        let skip = state.textscript_vm.flags.cutscene_skip();
                         state.control_flags.set_tick_world(true);
                         state.textscript_vm.flags.0 = 0;
+                        state.textscript_vm.flags.set_cutscene_skip(skip);
                         state.textscript_vm.face = 0;
                         state.textscript_vm.item = 0;
                         state.textscript_vm.current_line = TextScriptLine::Line1;
@@ -1269,7 +1272,8 @@ impl TextScriptVM {
 
                                 partner.vel_x = 0;
                                 partner.vel_y = 0;
-                                partner.x = executor.x + if (param % 10) == 1 { distance * 0x200 } else { -distance * 0x200 };
+                                partner.x =
+                                    executor.x + if (param % 10) == 1 { distance * 0x200 } else { -distance * 0x200 };
                                 partner.y = executor.y;
                             }
                         }
@@ -1711,11 +1715,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // One operand codes
-                    OpCode::UNJ
-                    | OpCode::XX1
-                    | OpCode::SIL
-                    | OpCode::SSS
-                    | OpCode::ACH => {
+                    OpCode::UNJ | OpCode::XX1 | OpCode::SIL | OpCode::SSS | OpCode::ACH => {
                         let par_a = read_cur_varint(&mut cursor)?;
 
                         log::warn!("unimplemented opcode: {:?} {}", op, par_a);
@@ -1844,7 +1844,7 @@ impl TextScript {
     ) -> GameResult<Vec<u8>> {
         let mut bytecode = Vec::new();
         let mut char_buf = Vec::with_capacity(16);
-        let mut allow_next_event = false;
+        let mut allow_next_event = true;
 
         while let Some(&chr) = iter.peek() {
             match chr {
