@@ -87,7 +87,7 @@ impl LuaScriptingState {
         }
 
         state.get_global("doukutsu");
-        state.get_field(-1, "_initialize_script");
+        state.get_field(-1, "_initializeScript");
         state.push_value(-3);
 
         let res = state.pcall(1, 0, 0);

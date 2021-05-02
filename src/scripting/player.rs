@@ -126,10 +126,10 @@ impl LuaObject for LuaPlayer {
         vec![
             lua_method!("x", LuaPlayer, LuaPlayer::lua_get_x),
             lua_method!("y", LuaPlayer, LuaPlayer::lua_get_y),
-            lua_method!("vel_x", LuaPlayer, LuaPlayer::lua_get_vel_x),
-            lua_method!("vel_y", LuaPlayer, LuaPlayer::lua_get_vel_y),
-            lua_method!("set_vel_x", LuaPlayer, LuaPlayer::lua_set_vel_x),
-            lua_method!("set_vel_y", LuaPlayer, LuaPlayer::lua_set_vel_y),
+            lua_method!("velX", LuaPlayer, LuaPlayer::lua_get_vel_x),
+            lua_method!("velX", LuaPlayer, LuaPlayer::lua_get_vel_y),
+            lua_method!("setVelX", LuaPlayer, LuaPlayer::lua_set_vel_x),
+            lua_method!("setVelY", LuaPlayer, LuaPlayer::lua_set_vel_y),
         ]
     }
 }

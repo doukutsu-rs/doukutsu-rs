@@ -16,7 +16,7 @@ doukutsu._handlers = setmetatable({
     end,
 })
 
-doukutsu._initialize_script = function(script)
+doukutsu._initializeScript = function(script)
     -- for compatibility with Lua 5.2+, copy-pasted from Lua mailing list
     -- http://lua-users.org/lists/lua-l/2010-06/msg00313.html
     local _setfenv = setfenv or function(f, t)
@@ -45,12 +45,12 @@ doukutsu._initialize_script = function(script)
     script()
 end
 
-doukutsu.play_sfx = function(id)
-    __doukutsu:play_sfx(id)
+doukutsu.playSfx = function(id)
+    __doukutsu:playSfx(id)
 end
 
-doukutsu.play_song = function(id)
-    __doukutsu:play_song(id)
+doukutsu.playSong = function(id)
+    __doukutsu:playSong(id)
 end
 
 doukutsu.on = function(event, handler)
@@ -66,7 +66,7 @@ doukutsu.on = function(event, handler)
     return handler
 end
 
-doukutsu.remove_handler = function(event, handler)
+doukutsu.removeHandler = function(event, handler)
     assert(type(event) == "string", "event type must be a string.")
     assert(type(handler) == "function", "event handler must be a function.")
 
