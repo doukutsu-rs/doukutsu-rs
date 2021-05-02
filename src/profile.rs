@@ -1,6 +1,6 @@
 use std::io;
 
-use byteorder::{ReadBytesExt, WriteBytesExt, BE, LE};
+use byteorder::{BE, LE, ReadBytesExt, WriteBytesExt};
 use num_traits::{clamp, FromPrimitive};
 
 use crate::common::{Direction, FadeState};
@@ -43,6 +43,7 @@ pub struct GameProfile {
     pub weapon_data: [WeaponData; 8],
     pub items: [u32; 32],
     pub teleporter_slots: [TeleporterSlotData; 8],
+    pub map_flags: [u8; 128],
     pub flags: [u8; 1000],
 }
 
@@ -91,6 +92,10 @@ impl GameProfile {
             }
 
             state.teleporter_slots.push((slot.index as u16, slot.event_num as u16));
+        }
+
+        for (idx, &flag) in self.map_flags.iter().enumerate() {
+            state.set_map_flag(idx, flag != 0);
         }
 
         for (idx, &flags) in self.flags.iter().enumerate() {
@@ -197,6 +202,15 @@ impl GameProfile {
             }
         }
 
+        let mut map_flags = [0u8; 128];
+        for (idx, map_flag) in state.map_flags.iter().enumerate() {
+            if let Some(out) = map_flags.get_mut(idx) {
+                *out = if *map_flag { 1 } else { 0 };
+            } else {
+                break;
+            }
+        }
+
         let mut bidx = 0;
         let mut flags = [0u8; 1000];
         for bits in state.game_flags.as_raw_slice() {
@@ -204,6 +218,8 @@ impl GameProfile {
             for b in bytes.iter() {
                 if let Some(out) = flags.get_mut(bidx) {
                     *out = *b;
+                } else {
+                    break;
                 }
                 bidx += 1;
             }
@@ -226,6 +242,7 @@ impl GameProfile {
             weapon_data,
             items,
             teleporter_slots,
+            map_flags,
             flags,
         }
     }
@@ -333,8 +350,8 @@ impl GameProfile {
             slot.event_num = data.read_u32::<LE>()?;
         }
 
-        let mut something = [0u8; 0x80];
-        data.read_exact(&mut something)?;
+        let mut map_flags = [0u8; 0x80];
+        data.read_exact(&mut map_flags)?;
 
         if data.read_u32::<BE>()? != 0x464c4147 {
             return Err(ResourceLoadError(str!("Invalid FLAG signature")));
@@ -360,6 +377,7 @@ impl GameProfile {
             weapon_data,
             items,
             teleporter_slots,
+            map_flags,
             flags,
         })
     }

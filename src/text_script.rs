@@ -974,6 +974,16 @@ impl TextScriptVM {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                         }
                     }
+                    OpCode::MPJ => {
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                        if state.get_map_flag(game_scene.stage_id) {
+                            state.textscript_vm.clear_text_box();
+                            exec_state = TextScriptExecutionState::Running(event_num, 0);
+                        } else {
+                            exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                        }
+                    }
                     OpCode::ITJ => {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
@@ -1090,8 +1100,8 @@ impl TextScriptVM {
                             npc.x = pos_x as i32 * 16 * 0x200;
                             npc.y = pos_y as i32 * 16 * 0x200;
 
-                            game_scene.npc_list.spawn(0x100, npc.clone())?;
-                            game_scene.npc_list.spawn(0x100, npc)?;
+                            let _ = game_scene.npc_list.spawn(0x100, npc.clone());
+                            let _ = game_scene.npc_list.spawn(0x100, npc);
                         }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1269,10 +1279,10 @@ impl TextScriptVM {
                         npc.x = partner.x;
                         npc.y = partner.y;
 
-                        game_scene.npc_list.spawn(0x100, npc.clone())?;
-                        game_scene.npc_list.spawn(0x100, npc.clone())?;
-                        game_scene.npc_list.spawn(0x100, npc.clone())?;
-                        game_scene.npc_list.spawn(0x100, npc)?;
+                        let _ = game_scene.npc_list.spawn(0x100, npc.clone());
+                        let _ = game_scene.npc_list.spawn(0x100, npc.clone());
+                        let _ = game_scene.npc_list.spawn(0x100, npc.clone());
+                        let _ = game_scene.npc_list.spawn(0x100, npc);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1537,7 +1547,7 @@ impl TextScriptVM {
                             npc.direction = direction;
                         }
 
-                        game_scene.npc_list.spawn(0x100, npc)?;
+                        let _ = game_scene.npc_list.spawn(0x100, npc);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1677,6 +1687,13 @@ impl TextScriptVM {
 
                         exec_state = TextScriptExecutionState::LoadProfile;
                     }
+                    OpCode::MPp => {
+                        let stage_id = read_cur_varint(&mut cursor)? as u16;
+
+                        state.set_map_flag(stage_id as usize, true);
+
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
                     // unimplemented opcodes
                     // Zero operands
                     OpCode::CIL
@@ -1694,9 +1711,7 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     // One operand codes
-                    OpCode::MPp
-                    | OpCode::UNJ
-                    | OpCode::MPJ
+                    OpCode::UNJ
                     | OpCode::XX1
                     | OpCode::SIL
                     | OpCode::SSS

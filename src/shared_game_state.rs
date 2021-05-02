@@ -91,6 +91,7 @@ pub struct SharedGameState {
     pub control_flags: ControlFlags,
     pub game_flags: BitVec,
     pub skip_flags: BitVec,
+    pub map_flags: BitVec,
     pub fade_state: FadeState,
     /// RNG used by game state, using it for anything else might cause unintended side effects and break replays.
     pub game_rng: XorShift,
@@ -163,6 +164,7 @@ impl SharedGameState {
             control_flags: ControlFlags(0),
             game_flags: bitvec::bitvec![0; 8000],
             skip_flags: bitvec::bitvec![0; 64],
+            map_flags: bitvec::bitvec![0; 64],
             fade_state: FadeState::Hidden,
             game_rng: XorShift::new(0),
             effect_rng: XorShift::new(123),
@@ -236,6 +238,8 @@ impl SharedGameState {
         next_scene.player1.cond.set_alive(true);
         next_scene.player1.x = 10 * 16 * 0x200;
         next_scene.player1.y = 8 * 16 * 0x200;
+
+        self.reset_map_flags();
         self.fade_state = FadeState::Hidden;
         self.textscript_vm.state = TextScriptExecutionState::Running(200, 0);
 
@@ -253,6 +257,8 @@ impl SharedGameState {
         next_scene.player1.x = 3 * 16 * 0x200;
         next_scene.player1.y = 3 * 16 * 0x200;
         next_scene.intro_mode = true;
+
+        self.reset_map_flags();
         self.fade_state = FadeState::Hidden;
         self.textscript_vm.state = TextScriptExecutionState::Running(100, 0);
 
@@ -382,6 +388,26 @@ impl SharedGameState {
 
     pub fn get_skip_flag(&self, id: usize) -> bool {
         if let Some(flag) = self.skip_flags.get(id) {
+            *flag
+        } else {
+            false
+        }
+    }
+
+    pub fn reset_map_flags(&mut self) {
+        self.map_flags = bitvec::bitvec![0; 128];
+    }
+
+    pub fn set_map_flag(&mut self, id: usize, value: bool) {
+        if id < self.map_flags.len() {
+            self.map_flags.set(id, value);
+        } else {
+            log::warn!("Attempted to set an out-of-bounds map flag {}:", id);
+        }
+    }
+
+    pub fn get_map_flag(&self, id: usize) -> bool {
+        if let Some(flag) = self.map_flags.get(id) {
             *flag
         } else {
             false
