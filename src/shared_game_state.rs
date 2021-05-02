@@ -30,6 +30,7 @@ use crate::stage::StageData;
 use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
+use bitvec::array::BitArray;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -89,6 +90,7 @@ pub struct SharedGameState {
     pub timing_mode: TimingMode,
     pub control_flags: ControlFlags,
     pub game_flags: BitVec,
+    pub skip_flags: BitVec,
     pub fade_state: FadeState,
     /// RNG used by game state, using it for anything else might cause unintended side effects and break replays.
     pub game_rng: XorShift,
@@ -160,6 +162,7 @@ impl SharedGameState {
             timing_mode: TimingMode::_50Hz,
             control_flags: ControlFlags(0),
             game_flags: bitvec::bitvec![0; 8000],
+            skip_flags: bitvec::bitvec![0; 64],
             fade_state: FadeState::Hidden,
             game_rng: XorShift::new(0),
             effect_rng: XorShift::new(123),
@@ -359,6 +362,26 @@ impl SharedGameState {
 
     pub fn get_flag(&self, id: usize) -> bool {
         if let Some(flag) = self.game_flags.get(id) {
+            *flag
+        } else {
+            false
+        }
+    }
+
+    pub fn reset_skip_flags(&mut self) {
+        self.skip_flags = bitvec::bitvec![0; 64];
+    }
+
+    pub fn set_skip_flag(&mut self, id: usize, value: bool) {
+        if id < self.skip_flags.len() {
+            self.skip_flags.set(id, value);
+        } else {
+            log::warn!("Attempted to set an out-of-bounds skip flag {}:", id);
+        }
+    }
+
+    pub fn get_skip_flag(&self, id: usize) -> bool {
+        if let Some(flag) = self.skip_flags.get(id) {
             *flag
         } else {
             false

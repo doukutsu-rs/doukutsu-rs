@@ -222,6 +222,7 @@ impl Scene for TitleScene {
             },
             CurrentMenu::StartGame => {
                 if self.tick == 10 {
+                    state.reset_skip_flags();
                     state.start_new_game(ctx)?;
                 }
             }

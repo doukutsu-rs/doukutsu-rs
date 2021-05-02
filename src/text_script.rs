@@ -262,16 +262,18 @@ pub enum OpCode {
     SSS,
 
     // ---- Cave Story+ specific opcodes ----
-    /// <ACHxxxx, triggers a Steam achievement.
+    /// <ACHxxxx, triggers a Steam achievement. No-op in EGS/Humble Bundle version.
     ACH,
 
     // ---- Cave Story+ (Switch) specific opcodes ----
-    /// <HM2, HMC for non-executor player.
+    /// <HM2, HMC only for executor player.
     HM2,
     /// <2MVxxxx, Put another player near the player who executed the event.
     /// 0000 - puts player on left side of executor player
     /// 0001 - puts player on right side of executor player
-    /// other values - Unknown purpose for now
+    /// 0002-0010 - unused
+    /// 0011.. - the first 3 digits are distance in pixels, the last digit is a flag
+    ///        - if it's 1 put the player on right side of the player, otherwise put it on left
     #[strum(serialize = "2MV")]
     S2MV,
     /// <INJxxxx:yyyy:zzzz, Jumps to event zzzz if amount of item xxxx equals yyyy
@@ -279,7 +281,7 @@ pub enum OpCode {
     /// <I+Nxxxx:yyyy, Adds item xxxx with maximum amount of yyyy
     #[strum(serialize = "I+N")]
     IpN,
-    /// <FF-xxxx:yyyy, Set flags in range xxxx-yyyy to false
+    /// <FF-xxxx:yyyy, Sets first flag in range xxxx-yyyy to false
     #[strum(serialize = "FF-")]
     FFm,
     /// <PSHxxxx, Pushes text script state to stack and starts event xxxx
@@ -757,7 +759,8 @@ impl TextScriptVM {
                     break;
                 }
                 TextScriptExecutionState::Reset => {
-                    state.start_intro(ctx)?;
+                    state.reset();
+                    state.start_new_game(ctx)?;
                     break;
                 }
             }
@@ -937,8 +940,13 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::WaitInput(event, cursor.position() as u32, 0);
                     }
                     OpCode::FLp | OpCode::FLm => {
-                        let flag_num = read_cur_varint(&mut cursor)? as usize;
-                        state.game_flags.set(flag_num, op == OpCode::FLp);
+                        let flag_num = read_cur_varint(&mut cursor)? as u16;
+                        state.set_flag(flag_num as usize, op == OpCode::FLp);
+                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                    }
+                    OpCode::SKp | OpCode::SKm => {
+                        let flag_num = read_cur_varint(&mut cursor)? as u16;
+                        state.set_skip_flag(flag_num as usize, op == OpCode::SKp);
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
                     OpCode::FFm => {
@@ -1023,6 +1031,17 @@ impl TextScriptVM {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                         }
                     }
+                    OpCode::SKJ => {
+                        let flag_id = read_cur_varint(&mut cursor)? as u16;
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                        if state.get_skip_flag(flag_id as usize) {
+                            state.textscript_vm.clear_text_box();
+                            exec_state = TextScriptExecutionState::Running(event_num, 0);
+                        } else {
+                            exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                        }
+                    }
                     OpCode::EVE => {
                         let event_num = read_cur_varint(&mut cursor)? as u16;
 
@@ -1035,7 +1054,7 @@ impl TextScriptVM {
                         let saved_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                         state.textscript_vm.stack.push(saved_state);
 
-                        // TODO: it's a jump but we don't know if it cleans the textbox yet.
+                        state.textscript_vm.clear_text_box();
                         exec_state = TextScriptExecutionState::Running(event_num, 0);
                     }
                     OpCode::POP => {
@@ -1231,10 +1250,29 @@ impl TextScriptVM {
                                 partner.x = executor.x + if param == 0 { -16 * 0x200 } else { 16 * 0x200 };
                                 partner.y = executor.y;
                             }
-                            _ => {
-                                log::warn!("stub: <2MV unknown param");
+                            2..=10 => {
+                                log::warn!("<2MV unknown param");
+                            }
+                            // what the fuck
+                            i => {
+                                let distance = i as i32 / 10;
+
+                                partner.vel_x = 0;
+                                partner.vel_y = 0;
+                                partner.x = executor.x + if (param % 10) == 1 { distance * 0x200 } else { -distance * 0x200 };
+                                partner.y = executor.y;
                             }
                         }
+
+                        let mut npc = NPC::create(4, &state.npc_table);
+                        npc.cond.set_alive(true);
+                        npc.x = partner.x;
+                        npc.y = partner.y;
+
+                        game_scene.npc_list.spawn(0x100, npc.clone())?;
+                        game_scene.npc_list.spawn(0x100, npc.clone())?;
+                        game_scene.npc_list.spawn(0x100, npc.clone())?;
+                        game_scene.npc_list.spawn(0x100, npc)?;
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
@@ -1515,7 +1553,7 @@ impl TextScriptVM {
                         let item_id = read_cur_varint(&mut cursor)? as u16;
 
                         state.sound_manager.play_sfx(38);
-                        
+
                         if !game_scene.inventory_player1.has_item(item_id) {
                             game_scene.inventory_player1.add_item(item_id);
                         }
@@ -1657,8 +1695,6 @@ impl TextScriptVM {
                     }
                     // One operand codes
                     OpCode::MPp
-                    | OpCode::SKm
-                    | OpCode::SKp
                     | OpCode::UNJ
                     | OpCode::MPJ
                     | OpCode::XX1
@@ -1668,15 +1704,6 @@ impl TextScriptVM {
                         let par_a = read_cur_varint(&mut cursor)?;
 
                         log::warn!("unimplemented opcode: {:?} {}", op, par_a);
-
-                        exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
-                    }
-                    // Two operand codes
-                    OpCode::SKJ => {
-                        let par_a = read_cur_varint(&mut cursor)?;
-                        let par_b = read_cur_varint(&mut cursor)?;
-
-                        log::warn!("unimplemented opcode: {:?} {} {}", op, par_a, par_b);
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
