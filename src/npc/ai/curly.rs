@@ -1,5 +1,6 @@
 use num_traits::{abs, clamp};
 
+use crate::caret::CaretType;
 use crate::common::Direction;
 use crate::framework::error::GameResult;
 use crate::npc::list::NPCList;
@@ -8,7 +9,6 @@ use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 use crate::weapon::bullet::BulletManager;
-use crate::caret::CaretType;
 
 impl NPC {
     pub(crate) fn tick_n117_curly(
@@ -318,6 +318,41 @@ impl NPC {
 
         self.x += self.vel_x;
         self.y += self.vel_y;
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n165_curly_collapsed(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.y += 0x1400;
+                }
+
+                let player = self.get_closest_player_mut(players);
+                self.anim_num = if self.direction == Direction::Right {
+                    if player.x > self.x - 0x4000
+                        && player.x < self.x + 0x4000
+                        && player.y > self.y - 0x2000
+                        && player.y < self.y + 0x2000
+                    {
+                        2
+                    } else {
+                        1
+                    }
+                } else {
+                    0
+                };
+            }
+            _ => {}
+        }
+
+        self.anim_rect = state.constants.npc.n165_curly_collapsed[self.anim_num as usize];
 
         Ok(())
     }

@@ -2,9 +2,10 @@ use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
+use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
-use crate::npc::list::NPCList;
 use crate::npc::{NPC, NPCLayer};
+use crate::npc::list::NPCList;
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
@@ -156,7 +157,6 @@ impl NPC {
                             let _ = npc_list.spawn(0x100, npc.clone());
                         }
                     }
-
                 }
 
                 self.anim_num = 0;
@@ -1079,6 +1079,50 @@ impl NPC {
             self.action_num = 1;
             self.anim_rect = state.constants.npc.n137_large_door_frame;
         }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n146_lighting(
+        &mut self,
+        state: &mut SharedGameState,
+        npc_list: &NPCList,
+        flash: &mut Flash,
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    if self.direction == Direction::Right {
+                        flash.set_blink();
+                    }
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 10 {
+                    self.action_num = 2;
+                    state.sound_manager.play_sfx(101);
+                }
+            }
+            2 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 2 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                }
+                if self.anim_num == 2 {
+                    self.damage = 10;
+                }
+                if self.anim_num > 4 {
+                    npc_list.create_death_smoke(self.x, self.y, 4096, 8, state, &self.rng);
+                    self.cond.set_alive(false);
+                    return Ok(());
+                }
+            }
+            _ => {}
+        }
+
+        self.anim_rect = state.constants.npc.n146_lighting[self.anim_num as usize];
 
         Ok(())
     }

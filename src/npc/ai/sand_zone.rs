@@ -8,6 +8,7 @@ use crate::npc::NPC;
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
+use crate::weapon::bullet::BulletManager;
 
 impl NPC {
     pub(crate) fn tick_n044_polish(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
@@ -667,7 +668,14 @@ impl NPC {
                 if self.action_counter > 50 {
                     state.sound_manager.play_sfx(25);
                     self.vanish(state);
-                    npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
+                    npc_list.create_death_smoke(
+                        self.x,
+                        self.y,
+                        self.display_bounds.right as usize,
+                        8,
+                        state,
+                        &self.rng,
+                    );
                 }
             }
             _ => {}
@@ -987,7 +995,7 @@ impl NPC {
                     self.animate(2, 4, 5);
                 } else {
                     self.anim_num = 5;
-                    self.anim_counter =0;
+                    self.anim_counter = 0;
                 }
 
                 if self.vel_x < 0 && self.flags.hit_left_wall() {
@@ -1030,10 +1038,81 @@ impl NPC {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
-
         let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
 
         self.anim_rect = state.constants.npc.n126_puppy_running[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n130_puppy_sitting(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                    self.npc_flags.set_interactable(true);
+                }
+
+                if self.rng.range(0..120) == 10 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+
+                let player = self.get_closest_player_mut(players);
+                if self.x - 0x8000 < player.x
+                    && self.x + 0x8000 > player.x
+                    && self.y - 0x4000 < player.y
+                    && self.y + 0x2000 > player.y
+                {
+                    self.anim_counter += 1;
+                    if self.anim_counter > 3 {
+                        self.anim_counter = 0;
+                        self.anim_num += 1;
+                    }
+
+                    if self.anim_num > 3 {
+                        self.anim_num = 2;
+                    }
+                }
+
+                if self.x - 0xC000 < player.x
+                    && self.x + 0xC000 > player.x
+                    && self.y - 0x4000 < player.y
+                    && self.y + 0x2000 > player.y
+                {
+                    if self.x <= player.x {
+                        self.direction = Direction::Right;
+                    } else {
+                        self.direction = Direction::Left;
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        self.action_counter += 1;
+        if self.action_counter > 8 {
+            self.action_num = 1;
+            self.anim_num = 0;
+        }
+
+        self.vel_y += 0x40;
+        if self.vel_y > 0x5FF {
+            self.vel_y = 0x5FF;
+        }
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let anim = if self.direction == Direction::Left { 0 } else { 4 };
+
+        self.anim_rect = state.constants.npc.n130_puppy_sitting[anim];
 
         Ok(())
     }
@@ -1149,6 +1228,38 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n133_jenka(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+
+                if self.rng.range(0..120) == 10 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            _ => {}
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
+        self.anim_rect = state.constants.npc.n133_jenka[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n136_puppy_carried(
         &mut self,
         state: &mut SharedGameState,
@@ -1196,6 +1307,242 @@ impl NPC {
             self.anim_rect.top += 1;
         }
 
+        Ok(())
+    }
+
+    pub(crate) fn tick_n134_armadillo(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        bullet_manager: &BulletManager,
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 2;
+                    self.npc_flags.set_shootable(false);
+                    self.npc_flags.set_invulnerable(true);
+                }
+
+                let player = self.get_closest_player_mut(players);
+                if player.x > self.x - 0x28000
+                    && player.x < self.x + 0x28000
+                    && player.y > self.y - 0x14000
+                    && player.y < self.y + 0x8000
+                {
+                    self.action_num = 10;
+                    self.npc_flags.set_shootable(true);
+                    self.npc_flags.set_invulnerable(false);
+                }
+            }
+            10 => {
+                self.anim_counter += 1;
+                if self.anim_counter > 4 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                }
+                if (self.anim_num > 1) {
+                    self.anim_num = 0;
+                }
+                if (self.direction == Direction::Left && self.flags.hit_left_wall()) {
+                    self.direction = Direction::Right;
+                }
+                if (self.direction == Direction::Right && self.flags.hit_right_wall()) {
+                    self.direction = Direction::Left;
+                }
+                self.x += self.direction.vector_x() * 0x100;
+
+                if bullet_manager.count_bullets_type_idx_all(6) != 0 {
+                    self.action_num = 20;
+                    self.action_counter = 0;
+                    self.anim_num = 2;
+                    self.npc_flags.set_shootable(false);
+                    self.npc_flags.set_invulnerable(true);
+                }
+            }
+            20 => {
+                self.action_counter += 1;
+                if self.action_counter > 100 {
+                    self.action_num = 10;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                    self.npc_flags.set_shootable(true);
+                    self.npc_flags.set_invulnerable(false);
+                }
+            }
+            _ => {}
+        }
+        self.vel_y += 0x40;
+        if self.vel_y > 0x5FF {
+            self.vel_y = 0x5FF;
+        }
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+
+        self.anim_rect = state.constants.npc.n134_armadillo[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n135_skeleton(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
+        if player.x < self.x - 0x2C000
+            || player.x > self.x + 0x2C000
+            || player.y < self.y - 0x14000
+            || player.y > self.y + 0x8000
+        {
+            self.action_num = 0;
+        }
+
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.vel_x = 0;
+                }
+
+                if player.x > self.x - 0x28000
+                    && player.x < self.x + 0x28000
+                    && player.y > self.y - 0x14000
+                    && player.y < self.y + 0x8000
+                {
+                    self.action_num = 10;
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    self.anim_num = 0;
+                }
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.vel_x = 0;
+                    self.action_num = 11;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 4 && self.flags.hit_bottom_wall() {
+                    self.action_num = 20;
+                    self.anim_num = 1;
+                    self.action_counter2 = 0;
+                    self.vel_y = -0x200 * self.rng.range(1..3);
+
+                    if self.shock != 0 {
+                        self.vel_x = if self.x >= player.x { self.vel_x + 0x100 } else { self.vel_x - 0x100 };
+                    } else {
+                        self.vel_x = if self.x >= player.x { self.vel_x - 0x100 } else { self.vel_x + 0x100 }
+                    }
+                }
+            }
+            20 => {
+                if self.vel_y > 0 && self.action_counter2 == 0 {
+                    self.action_counter2 += 1;
+
+                    let angle = f64::atan2((self.y + 0x800 - player.y) as f64, (self.x - player.x) as f64);
+
+                    let mut npc = NPC::create(50, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.x;
+                    npc.y = self.y;
+                    npc.vel_x = (angle.cos() * -1024.0) as i32;
+                    npc.vel_y = (angle.sin() * -1024.0) as i32;
+
+                    let _ = npc_list.spawn(0x180, npc);
+                    state.sound_manager.play_sfx(39);
+                }
+                if self.flags.hit_bottom_wall() {
+                    self.action_num = 10;
+                    self.anim_num = 0;
+                }
+            }
+            _ => {}
+        }
+
+        if self.action_num > 9 {
+            if self.x <= player.x {
+                self.direction = Direction::Right;
+            } else {
+                self.direction = Direction::Left;
+            }
+        }
+        self.vel_y += 0x33;
+        if self.vel_y > 0x5FF {
+            self.vel_y = 0x5FF;
+        }
+
+        self.vel_x = clamp(self.vel_x, -0x5ff, 0x5ff);
+        self.y += self.vel_y;
+        self.x += self.vel_x;
+
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
+        self.anim_rect = state.constants.npc.n135_skeleton[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n138_large_door(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num != 1 {
+            if self.action_num > 1 {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.anim_num = 1;
+                    self.action_counter = 0;
+                    self.npc_flags.set_ignore_solidity(true);
+                } else if self.action_num != 11 {
+                    return Ok(());
+                }
+
+                self.action_counter += 1;
+                if (self.action_counter & 7) == 0 {
+                    state.sound_manager.play_sfx(26);
+                }
+
+                if self.direction != Direction::Left {
+                    self.x = ((self.action_counter as i32 / 8) * 0x200) + self.target_x;
+                    self.anim_rect.left = 112;
+                    self.anim_rect.top = 112;
+                    self.anim_rect.right = 128;
+                    self.anim_rect.bottom = 136;
+                    self.anim_rect.right -= self.action_counter / 8;
+                } else {
+                    self.anim_rect.left = 96;
+                    self.anim_rect.top = 112;
+                    self.anim_rect.right = 112;
+                    self.anim_rect.bottom = 136;
+                    self.anim_rect.left += self.action_counter / 8;
+                }
+                if self.action_counter == 104 {
+                    self.cond.set_alive(false);
+                }
+            } else if self.action_num == 0 {
+                self.action_num = 1;
+                if self.direction != Direction::Left {
+                    self.anim_rect.left = 112;
+                    self.anim_rect.top = 112;
+                    self.anim_rect.right = 128;
+                    self.anim_rect.bottom = 136;
+                    self.x -= 4096;
+                } else {
+                    self.anim_rect.left = 96;
+                    self.anim_rect.top = 112;
+                    self.anim_rect.right = 112;
+                    self.anim_rect.bottom = 136;
+                    self.x += 4096;
+                }
+                self.target_x = self.x;
+            }
+        }
         Ok(())
     }
 

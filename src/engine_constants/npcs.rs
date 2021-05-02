@@ -457,8 +457,14 @@ pub struct NPCConsts {
 
     // pub n152_shutter_stuck: () // Defined in code
 
+    #[serde(default = "default_n153_gaudi")]
+    pub n153_gaudi: [Rect<u16>; 14],
+
     #[serde(default = "default_n154_gaudi_dead")]
     pub n154_gaudi_dead: [Rect<u16>; 6],
+
+    #[serde(default = "default_n155_gaudi_flying")]
+    pub n155_gaudi_flying: [Rect<u16>; 8],
 
     #[serde(default = "default_n156_gaudi_projectile")]
     pub n156_gaudi_projectile: [Rect<u16>; 3],
@@ -2816,6 +2822,25 @@ fn default_n151_blue_robot_standing() -> [Rect<u16>; 4] {
     ]
 }
 
+fn default_n153_gaudi() -> [Rect<u16>; 14] {
+    [
+        Rect { left: 0, top: 0, right: 24, bottom: 24 }, // 0 0 // left
+        Rect { left: 24, top: 0, right: 48, bottom: 24 }, // 1 1
+        Rect { left: 48, top: 0, right: 72, bottom: 24 }, // 2 2
+        Rect { left: 0, top: 0, right: 24, bottom: 24 }, // 3 3
+        Rect { left: 72, top: 0, right: 96, bottom: 24 }, // 4 4
+        Rect { left: 0, top: 0, right: 24, bottom: 24 }, // 5 5
+        Rect { left: 96, top: 48, right: 120, bottom: 72 }, // 6 20
+        Rect { left: 0, top: 24, right: 24, bottom: 48 }, // 0 0 // right
+        Rect { left: 24, top: 24, right: 48, bottom: 48 }, // 1 1
+        Rect { left: 48, top: 24, right: 72, bottom: 48 }, // 2 2
+        Rect { left: 0, top: 24, right: 24, bottom: 48 }, // 3 3
+        Rect { left: 72, top: 24, right: 96, bottom: 48 }, // 4 4
+        Rect { left: 0, top: 24, right: 24, bottom: 48 }, // 5 5
+        Rect { left: 96, top: 72, right: 120, bottom: 96 }, // 6 20
+    ]
+}
+
 fn default_n154_gaudi_dead() -> [Rect<u16>; 6] {
     [
         Rect { left: 168, top: 24, right: 192, bottom: 48 },
@@ -2824,6 +2849,19 @@ fn default_n154_gaudi_dead() -> [Rect<u16>; 6] {
         Rect { left: 168, top: 0, right: 192, bottom: 24 },
         Rect { left: 192, top: 0, right: 216, bottom: 24 },
         Rect { left: 216, top: 0, right: 240, bottom: 24 },
+    ]
+}
+
+fn default_n155_gaudi_flying() -> [Rect<u16>; 8] {
+    [
+        Rect { left: 0, top: 48, right: 24, bottom: 72 }, // 0 14 // left
+        Rect { left: 24, top: 48, right: 48, bottom: 72 }, // 1 15
+        Rect { left: 288, top: 0, right: 312, bottom: 24 }, // 2 18
+        Rect { left: 24, top: 48, right: 48, bottom: 72 }, // 3 19
+        Rect { left: 0, top: 72, right: 24, bottom: 96 }, // 0 14 // right
+        Rect { left: 24, top: 72, right: 48, bottom: 96 }, // 1 15
+        Rect { left: 288, top: 24, right: 312, bottom: 48 }, // 2 18
+        Rect { left: 24, top: 72, right: 48, bottom: 96 }, // 3 19
     ]
 }
 

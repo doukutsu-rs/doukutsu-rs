@@ -1498,6 +1498,7 @@ impl TextScriptVM {
                                         &game_scene.npc_list,
                                         &mut game_scene.stage,
                                         &game_scene.bullet_manager,
+                                        &mut game_scene.flash,
                                     ),
                                 )?;
                             }

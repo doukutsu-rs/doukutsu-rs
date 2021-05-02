@@ -3,6 +3,7 @@ pub mod booster;
 pub mod chaco;
 pub mod characters;
 pub mod curly;
+pub mod doctor;
 pub mod egg_corridor;
 pub mod first_cave;
 pub mod grasstown;

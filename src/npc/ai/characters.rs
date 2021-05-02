@@ -1,7 +1,8 @@
-use crate::framework::error::GameResult;
 use num_traits::{abs, clamp};
 
 use crate::common::Direction;
+use crate::framework::error::GameResult;
+use crate::npc::list::NPCList;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::rng::RNG;
@@ -138,7 +139,6 @@ impl NPC {
                     self.vel_x = 0x200;
                 }
 
-
                 if self.action_counter != 0 && self.flags.hit_bottom_wall() {
                     self.action_num = 5;
                 }
@@ -197,7 +197,6 @@ impl NPC {
             // todo: 60,61 - leap
             _ => {}
         }
-
 
         if self.action_num < 30 || self.action_num >= 40 {
             self.vel_y += 0x40;
@@ -343,6 +342,33 @@ impl NPC {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
 
         self.anim_rect = state.constants.npc.n074_jack[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n145_king_sword(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        if self.action_num == 0 {
+            let parent = self.get_parent_ref_mut(npc_list);
+            if let Some(parent) = parent {
+                if parent.action_counter2 != 0 {
+                    if parent.direction != Direction::Left {
+                        self.direction = Direction::Left;
+                    } else {
+                        self.direction = Direction::Right;
+                    }
+                } else if parent.direction != Direction::Left {
+                    self.direction = Direction::Right;
+                } else {
+                    self.direction = Direction::Left;
+                }
+                self.x = if self.direction != Direction::Left { parent.x + 5120 } else { parent.x - 5120 };
+                self.y = parent.y;
+            }
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 1 };
+
+        self.anim_rect = state.constants.npc.n145_king_sword[self.anim_num as usize + dir_offset];
 
         Ok(())
     }

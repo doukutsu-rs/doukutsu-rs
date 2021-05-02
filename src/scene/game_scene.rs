@@ -1251,7 +1251,7 @@ impl GameScene {
         for npc in self.npc_list.iter_alive() {
             npc.tick(
                 state,
-                ([&mut self.player1, &mut self.player2], &self.npc_list, &mut self.stage, &self.bullet_manager),
+                ([&mut self.player1, &mut self.player2], &self.npc_list, &mut self.stage, &self.bullet_manager, &mut self.flash),
             )?;
         }
         self.boss.tick(

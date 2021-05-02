@@ -73,6 +73,65 @@ impl NPC {
 
         Ok(())
     }
+
+    pub(crate) fn tick_n159_monster_x_defeated(
+        &mut self,
+        state: &mut SharedGameState,
+        npc_list: &NPCList,
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.direction = Direction::Left;
+
+                    for _ in 0..8 {
+                        npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                        npc.vel_y = self.rng.range(-0x600..0) as i32;
+
+                        let _ = npc_list.spawn(0x100, npc.clone());
+                    }
+                }
+                self.action_counter += 1;
+                if self.action_counter > 50 {
+                    self.action_num = 2;
+                    self.vel_x = -256;
+                }
+                self.x = if ((self.action_counter / 2) & 1) != 0 { self.x + 0x200 } else { self.x - 0x200 }
+            }
+            2 => {
+                self.action_counter += 1;
+                self.vel_y += 0x40;
+                if self.y > 0x50000 {
+                    self.cond.set_alive(false);
+                }
+            }
+            _ => {}
+        }
+
+        self.y += self.vel_y;
+        self.x += self.vel_x;
+
+        self.anim_rect = state.constants.npc.n159_monster_x_defeated;
+
+        if self.action_counter % 8 == 1 {
+            let mut npc = NPC::create(4, &state.npc_table);
+            npc.cond.set_alive(true);
+            npc.direction = Direction::Left;
+
+            npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+            npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+            npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+            npc.vel_y = self.rng.range(-0x600..0) as i32;
+
+            let _ = npc_list.spawn(0x100, npc);
+        }
+        Ok(())
+    }
 }
 
 impl BossNPC {

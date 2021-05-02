@@ -20,6 +20,7 @@ use crate::rng::Xoroshiro32PlusPlus;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 use crate::str;
+use crate::components::flash::Flash;
 
 pub mod ai;
 pub mod boss;
@@ -160,8 +161,8 @@ impl NPC {
     }
 }
 
-impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NPC {
-    fn tick(&mut self, state: &mut SharedGameState, (players, npc_list, stage, bullet_manager): ([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)) -> GameResult {
+impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Flash)> for NPC {
+    fn tick(&mut self, state: &mut SharedGameState, (players, npc_list, stage, bullet_manager, flash): ([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Flash)) -> GameResult {
         match self.npc_type {
             0 => self.tick_n000_null(),
             1 => self.tick_n001_experience(state),
@@ -292,19 +293,42 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager)> for NP
             127 => self.tick_n127_machine_gun_trail_l2(state),
             128 => self.tick_n128_machine_gun_trail_l3(state),
             129 => self.tick_n129_fireball_snake_trail(state),
+            130 => self.tick_n130_puppy_sitting(state, players),
             131 => self.tick_n131_puppy_sleeping(state),
             132 => self.tick_n132_puppy_barking(state, players),
+            133 => self.tick_n133_jenka(state),
+            134 => self.tick_n134_armadillo(state, players, bullet_manager),
+            135 => self.tick_n135_skeleton(state, players, npc_list),
             136 => self.tick_n136_puppy_carried(state, players),
             137 => self.tick_n137_large_door_frame(state),
+            138 => self.tick_n138_large_door(state),
+            139 => self.tick_n139_doctor(state),
+            140 => self.tick_n140_toroko_frenzied(state, players, npc_list, bullet_manager),
+            141 => self.tick_n141_toroko_block_projectile(state, players, npc_list),
+            142 => self.tick_n142_flower_cub(state, players),
             143 => self.tick_n143_jenka_collapsed(state),
+            144 => self.tick_n144_toroko_teleporting_in(state),
+            145 => self.tick_n145_king_sword(state, npc_list),
+            146 => self.tick_n146_lighting(state, npc_list, flash),
+            147 => self.tick_n147_critter_purple(state, players, npc_list),
+            148 => self.tick_n148_critter_purple_projectile(state),
             149 => self.tick_n149_horizontal_moving_block(state, players, npc_list),
             150 => self.tick_n150_quote(state, players, npc_list),
             151 => self.tick_n151_blue_robot_standing(state),
             152 => self.tick_n152_shutter_stuck(),
+            153 => self.tick_n153_gaudi(state, players),
             154 => self.tick_n154_gaudi_dead(state),
+            155 => self.tick_n155_gaudi_flying(state, players, npc_list),
             156 => self.tick_n156_gaudi_projectile(state),
             157 => self.tick_n157_vertical_moving_block(state, players, npc_list),
             158 => self.tick_n158_fish_missile(state, players),
+            159 => self.tick_n159_monster_x_defeated(state, npc_list),
+            160 => self.tick_n160_puu_black(state, players, npc_list),
+            161 => self.tick_n161_puu_black_projectile(state),
+            162 => self.tick_n162_puu_black_dead(state, players, npc_list),
+            163 => self.tick_n163_dr_gero(state),
+            164 => self.tick_n164_nurse_hasumi(state),
+            165 => self.tick_n165_curly_collapsed(state, players),
             166 => self.tick_n166_chaba(state),
             192 => self.tick_n192_scooter(state),
             193 => self.tick_n193_broken_scooter(state),
