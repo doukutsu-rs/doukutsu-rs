@@ -30,9 +30,13 @@ Vanilla Cave Story does not work yet because some important data files have been
 
 **Cave Story+**
 
-- PC release (Steam) - (Tested only with Steam version, both Windows and Linux builds) Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
-- PC release (EGS) - (Untested, but the game is essentially the same as Steam release) Same thing as with Steam version.
-- Switch release - (Tested once, no guarantee to work) You need a hacked Switch and physical release. Google should help you.
+- SDL version (first released in 2011 on Steam)
+  - PC release (Steam) - Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
+  - PC release (Epic Games Store) - Essentially the same thing as with Steam version.
+  - PC release (Humble Bundle) - Essentially the same thing as with Steam version.
+- KAGE version (first released in 2017 on Switch)
+  - PC release - Sadly not there yet but Tyrone mentioned it's coming in 2021.
+  - Switch release - (tested only with eShop version) Extract `data` directory from romfs. Requires a hacked console and a recent and legal copy of the game. If you don't know how, look in Google how to exactly do that because the methods really differ.
 
 #### Mandatory screenshots
 
@@ -50,6 +54,6 @@ Vanilla Cave Story does not work yet because some important data files have been
 - [ggez](https://github.com/ggez/ggez) - we took few bits from it while moving away to SDL2.
 - [@ClayHanson_](https://twitter.com/ClayHanson_) - for letting us use his .pxchar skin format from Cave Story Multiplayer mod. 
 - [Cave Story Tribute Site](https://cavestory.org) - has lots of useful resources related to the game. 
-- [CSE2](https://github.com/Clownacy/CSE2) - widescreen fixes, mutual help in various things.
+- [Clownacy](https://github.com/Clownacy) - widescreen camera code.
 - [LunarLambda for organism](https://gitdab.com/LunarLambda/organism) - which is being used by us as `.org` playback engine.
 - [@uselesscalcium](https://twitter.com/uselesscalcium) - Android port icon artwork
