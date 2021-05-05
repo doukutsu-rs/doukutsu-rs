@@ -99,15 +99,15 @@ impl Player {
             target_y: 0,
             prev_x: 0,
             prev_y: 0,
-            life: constants.my_char.life,
-            max_life: constants.my_char.max_life,
+            life: constants.player.life,
+            max_life: constants.player.max_life,
             cond: Condition(0),
             flags: Flag(0),
             equip: Equipment(0),
             direction: Direction::Right,
-            display_bounds: constants.my_char.display_bounds,
-            hit_bounds: constants.my_char.hit_bounds,
-            control_mode: constants.my_char.control_mode,
+            display_bounds: constants.player.display_bounds,
+            hit_bounds: constants.player.hit_bounds,
+            control_mode: constants.player.control_mode,
             question: false,
             booster_fuel: 0,
             camera_target_x: 0,
@@ -130,7 +130,7 @@ impl Player {
             damage_taken: 0,
             anim_num: 0,
             anim_counter: 0,
-            anim_rect: constants.my_char.frames_right[0],
+            anim_rect: constants.player.frames_right[0],
             weapon_rect: Rect::new(0, 0, 0, 0),
         }
     }
@@ -173,9 +173,9 @@ impl Player {
         }
 
         let physics = if self.flags.in_water() {
-            state.constants.my_char.water_physics
+            state.constants.player.water_physics
         } else {
-            state.constants.my_char.air_physics
+            state.constants.player.air_physics
         };
 
         self.question = false;
@@ -393,12 +393,12 @@ impl Player {
                     self.vel_y -= 0x20;
 
                     if self.controller.trigger_jump() || self.booster_fuel % 3 == 1 {
-                        state.create_caret(self.x, self.y + 6 * 0x200, CaretType::Exhaust, Direction::Bottom);
+                        state.create_caret(self.x, self.y + 0xc00, CaretType::Exhaust, Direction::Bottom);
                         state.sound_manager.play_sfx(113);
                     }
                 }
                 3 if self.controller.trigger_jump() || self.booster_fuel % 3 == 1 => {
-                    state.create_caret(self.x, self.y + 6 * 0x200, CaretType::Exhaust, Direction::Up);
+                    state.create_caret(self.x, self.y + 0xc00, CaretType::Exhaust, Direction::Up);
                     state.sound_manager.play_sfx(113);
                 }
                 _ => {}
@@ -437,11 +437,11 @@ impl Player {
                 self.vel_y = self.vel_x;
             }
 
-            if (self.flags.hit_bottom_wall() && self.flags.hit_right_bigger_half() && self.vel_x < 0)
-                || (self.flags.hit_bottom_wall() && self.flags.hit_left_bigger_half() && self.vel_x > 0)
+            if (self.flags.hit_bottom_wall() && self.flags.hit_right_higher_half() && self.vel_x < 0)
+                || (self.flags.hit_bottom_wall() && self.flags.hit_left_higher_half() && self.vel_x > 0)
                 || (self.flags.hit_bottom_wall()
-                    && self.flags.hit_left_smaller_half()
-                    && self.flags.hit_right_smaller_half())
+                    && self.flags.hit_left_lower_half()
+                    && self.flags.hit_right_lower_half())
             {
                 self.vel_y = 0x400; // 2.0fix9
             }
@@ -453,9 +453,9 @@ impl Player {
                 || self.flags.force_right()
                 || self.flags.force_down())
         {
-            state.constants.my_char.water_physics.max_move
+            state.constants.player.water_physics.max_move
         } else {
-            state.constants.my_char.air_physics.max_move
+            state.constants.player.air_physics.max_move
         };
 
         self.vel_x = clamp(self.vel_x, -max_move, max_move);
@@ -835,7 +835,7 @@ impl GameEntity<&NPCList> for Player {
                     self.y - frame.y - 12 * 0x200,
                     state.frame_time,
                 ),
-                &state.constants.my_char.frames_bubble[(self.tick / 2 % 2) as usize],
+                &state.constants.player.frames_bubble[(self.tick / 2 % 2) as usize],
             );
             batch.draw(ctx)?;
         }

@@ -168,16 +168,16 @@ impl LiveDebugger {
                                 scene.inventory_player2 = game_scene.inventory_player2.clone();
 
                                 scene.player1 = game_scene.player1.clone();
-                                scene.player1.x = scene.stage.map.width as i32 / 2 * 16 * 0x200;
-                                scene.player1.y = scene.stage.map.height as i32 / 2 * 16 * 0x200;
+                                scene.player1.x = scene.stage.map.width as i32 / 2 * 0x2000;
+                                scene.player1.y = scene.stage.map.height as i32 / 2 * 0x2000;
 
                                 if scene.player1.life == 0 {
                                     scene.player1.life = scene.player1.max_life;
                                 }
 
                                 scene.player2 = game_scene.player2.clone();
-                                scene.player2.x = scene.stage.map.width as i32 / 2 * 16 * 0x200;
-                                scene.player2.y = scene.stage.map.height as i32 / 2 * 16 * 0x200;
+                                scene.player2.x = scene.stage.map.width as i32 / 2 * 0x2000;
+                                scene.player2.y = scene.stage.map.height as i32 / 2 * 0x2000;
 
                                 if scene.player2.life == 0 {
                                     scene.player2.life = scene.player1.max_life;

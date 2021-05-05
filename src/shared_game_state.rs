@@ -240,8 +240,8 @@ impl SharedGameState {
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
         let mut next_scene = GameScene::new(self, ctx, 13)?;
         next_scene.player1.cond.set_alive(true);
-        next_scene.player1.x = 10 * 16 * 0x200;
-        next_scene.player1.y = 8 * 16 * 0x200;
+        next_scene.player1.x = 10 * 0x2000;
+        next_scene.player1.y = 8 * 0x2000;
 
         self.reset_map_flags();
         self.fade_state = FadeState::Hidden;
@@ -258,8 +258,8 @@ impl SharedGameState {
     pub fn start_intro(&mut self, ctx: &mut Context) -> GameResult {
         let mut next_scene = GameScene::new(self, ctx, 72)?;
         next_scene.player1.cond.set_hidden(true);
-        next_scene.player1.x = 3 * 16 * 0x200;
-        next_scene.player1.y = 3 * 16 * 0x200;
+        next_scene.player1.x = 3 * 0x2000;
+        next_scene.player1.y = 3 * 0x2000;
         next_scene.intro_mode = true;
 
         self.reset_map_flags();

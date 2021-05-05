@@ -40,20 +40,20 @@ impl BossNPC {
         match self.parts[0].action_num {
             0 => {
                 self.hurt_sound[0] = 52;
-                self.parts[0].x = 6 * 16 * 0x200;
-                self.parts[0].y = 12 * 16 * 0x200;
+                self.parts[0].x = 6 * 0x2000;
+                self.parts[0].y = 12 * 0x2000;
                 self.parts[0].direction = Direction::Right;
                 self.parts[0].display_bounds = Rect {
                     left: 48 * 0x200,
                     top: 48 * 0x200,
                     right: 32 * 0x200,
-                    bottom: 16 * 0x200,
+                    bottom: 0x2000,
                 };
                 self.parts[0].hit_bounds = Rect {
                     left: 24 * 0x200,
-                    top: 16 * 0x200,
+                    top: 0x2000,
                     right: 24 * 0x200,
-                    bottom: 16 * 0x200,
+                    bottom: 0x2000,
                 };
                 self.parts[0].size = 3;
                 self.parts[0].exp = 1;
@@ -131,7 +131,7 @@ impl BossNPC {
                     self.parts[0].action_num = 104;
                     self.parts[0].anim_num = 5;
                     self.parts[0].vel_x = self.parts[0].direction.vector_x() * 0x200;
-                    self.parts[0].vel_y = -2 * 0x200;
+                    self.parts[0].vel_y = -0x400;
                     self.parts[0].display_bounds.top = 64 * 0x200;
                     self.parts[0].display_bounds.bottom = 24 * 0x200;
 
@@ -153,7 +153,7 @@ impl BossNPC {
                     self.parts[0].action_num = 100;
                     self.parts[0].anim_num = 1;
                     self.parts[0].display_bounds.top = 48 * 0x200;
-                    self.parts[0].display_bounds.bottom = 16 * 0x200;
+                    self.parts[0].display_bounds.bottom = 0x2000;
 
                     let player = self.parts[0].get_closest_player_mut(players);
                     if self.parts[0].direction == Direction::Left && self.parts[0].x < player.x {
@@ -168,8 +168,8 @@ impl BossNPC {
 
                     let mut npc = NPC::create(110, &state.npc_table);
                     npc.cond.set_alive(true);
-                    npc.x = self.parts[0].rng.range(4..16) as i32 * 16 * 0x200;
-                    npc.y = self.parts[0].rng.range(0..4) as i32 * 16 * 0x200;
+                    npc.x = self.parts[0].rng.range(4..16) as i32 * 0x2000;
+                    npc.y = self.parts[0].rng.range(0..4) as i32 * 0x2000;
                     npc.direction = Direction::FacingPlayer;
 
                     let _ = npc_list.spawn(0x80, npc);
@@ -241,16 +241,16 @@ impl BossNPC {
                     self.parts[0].vel_x2 = self.parts[0].vel_x2.saturating_sub(1);
 
                     let player = self.parts[0].get_closest_player_mut(players);
-                    let px = self.parts[0].x + self.parts[0].direction.vector_x() * 2 * 16 * 0x200 - player.x;
-                    let py = self.parts[0].y - 8 * 0x200 - player.y;
+                    let px = self.parts[0].x + self.parts[0].direction.vector_x() * 2 * 0x2000 - player.x;
+                    let py = self.parts[0].y - 0x1000 - player.y;
 
                     let deg = f64::atan2(py as f64, px as f64)
                         + self.parts[0].rng.range(-16..16) as f64 * CDEG_RAD;
 
                     let mut npc = NPC::create(108, &state.npc_table);
                     npc.cond.set_alive(true);
-                    npc.x = self.parts[0].x + self.parts[0].direction.vector_x() * 2 * 16 * 0x200;
-                    npc.y = self.parts[0].y - 8 * 0x200;
+                    npc.x = self.parts[0].x + self.parts[0].direction.vector_x() * 2 * 0x2000;
+                    npc.y = self.parts[0].y - 0x1000;
                     npc.vel_x = (deg.cos() * -512.0) as i32;
                     npc.vel_y = (deg.sin() * -512.0) as i32;
 
@@ -327,8 +327,8 @@ impl BossNPC {
                     let mut npc = NPC::create(104, &state.npc_table);
                     for _ in 0..2 {
                         npc.cond.set_alive(true);
-                        npc.x = self.parts[0].rng.range(4..16) as i32 * 16 * 0x200;
-                        npc.y = self.parts[0].rng.range(0..4) as i32 * 16 * 0x200;
+                        npc.x = self.parts[0].rng.range(4..16) as i32 * 0x2000;
+                        npc.y = self.parts[0].rng.range(0..4) as i32 * 0x2000;
                         npc.direction = Direction::FacingPlayer;
 
                         let _ = npc_list.spawn(0x80, npc.clone());
@@ -337,8 +337,8 @@ impl BossNPC {
                     let mut npc = NPC::create(110, &state.npc_table);
                     for _ in 0..6 {
                         npc.cond.set_alive(true);
-                        npc.x = self.parts[0].rng.range(4..16) as i32 * 16 * 0x200;
-                        npc.y = self.parts[0].rng.range(0..4) as i32 * 16 * 0x200;
+                        npc.x = self.parts[0].rng.range(4..16) as i32 * 0x2000;
+                        npc.y = self.parts[0].rng.range(0..4) as i32 * 0x2000;
                         npc.direction = Direction::FacingPlayer;
 
                         let _ = npc_list.spawn(0x80, npc.clone());
@@ -434,7 +434,7 @@ impl BossNPC {
                         left: 48 * 0x200,
                         top: 48 * 0x200,
                         right: 32 * 0x200,
-                        bottom: 16 * 0x200,
+                        bottom: 0x2000,
                     };
                 }
 
@@ -503,10 +503,10 @@ impl BossNPC {
                 self.parts[1].size = 3;
                 self.parts[1].npc_flags.set_invulnerable(true);
                 self.parts[1].hit_bounds = Rect {
-                    left: 16 * 0x200,
-                    top: 16 * 0x200,
-                    right: 16 * 0x200,
-                    bottom: 16 * 0x200,
+                    left: 0x2000,
+                    top: 0x2000,
+                    right: 0x2000,
+                    bottom: 0x2000,
                 };
 
                 self.hurt_sound[2] = 52;
@@ -514,9 +514,9 @@ impl BossNPC {
                 self.parts[2].npc_flags.set_invulnerable(true);
                 self.parts[2].hit_bounds = Rect {
                     left: 24 * 0x200,
-                    top: 16 * 0x200,
+                    top: 0x2000,
                     right: 24 * 0x200,
-                    bottom: 16 * 0x200,
+                    bottom: 0x2000,
                 };
             }
             1 => {
@@ -535,7 +535,7 @@ impl BossNPC {
             }
             3 | 4 => {
                 self.parts[1].x = self.parts[0].x + self.parts[0].direction.vector_x() * 24 * 0x200;
-                self.parts[1].y = self.parts[0].y - 16 * 0x200;
+                self.parts[1].y = self.parts[0].y - 0x2000;
 
                 self.parts[2].x = self.parts[0].x;
                 self.parts[2].y = self.parts[0].y;

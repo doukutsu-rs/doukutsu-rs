@@ -391,8 +391,7 @@ impl Bullet {
 
                     self.direction = if self.vel_x < 0 { Direction::Left } else { Direction::Right };
 
-                    self.vel_x += if players[self.owner.index()].direction() == Direction::Left { -0x80 } else { 0x80 };
-
+                    self.vel_x += players[self.owner.index()].direction().vector_x() * 0x80;
                     self.vel_y = -0x5ff;
                 }
                 Direction::Bottom => {
@@ -822,7 +821,7 @@ impl Bullet {
         }
 
         if self.action_counter == 3 {
-            self.weapon_flags.set_flag_x04(false);
+            self.weapon_flags.set_no_collision_checks(false);
         }
 
         if self.action_counter % 5 == 1 {
@@ -867,7 +866,7 @@ impl Bullet {
         }
 
         if self.action_counter == 3 {
-            self.weapon_flags.set_flag_x04(false);
+            self.weapon_flags.set_no_collision_checks(false);
         }
 
         if self.action_counter % 7 == 1 {
@@ -939,7 +938,7 @@ impl Bullet {
 
                 self.counter1 += 1;
                 if self.counter1 == 5 {
-                    self.weapon_flags.set_flag_x04(false);
+                    self.weapon_flags.set_no_collision_checks(false);
                 }
 
                 if self.counter1 > self.lifetime {
@@ -1398,6 +1397,7 @@ impl Bullet {
 
     pub fn vanish(&mut self, state: &mut SharedGameState) {
         match self.btype {
+            // spur is a special case
             37 | 38 | 39 => state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Up),
             _ => state.sound_manager.play_sfx(28),
         }
@@ -1406,13 +1406,13 @@ impl Bullet {
         state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Right);
     }
 
-    fn judge_hit_block_destroy(&mut self, x: i32, y: i32, hit_attribs: &[u8; 4], state: &mut SharedGameState) {
+    fn test_hit_block_destructible(&mut self, x: i32, y: i32, attributes: &[u8; 4], state: &mut SharedGameState) {
         let mut hits = [false; 4];
         let block_x = (x * 16 + 8) * 0x200;
         let block_y = (y * 16 + 8) * 0x200;
 
-        for (i, &attr) in hit_attribs.iter().enumerate() {
-            if self.weapon_flags.flag_x40() {
+        for (i, &attr) in attributes.iter().enumerate() {
+            if self.weapon_flags.can_destroy_snack() {
                 hits[i] = attr == 0x41 || attr == 0x61;
             } else {
                 hits[i] = attr == 0x41 || attr == 0x43 || attr == 0x61;
@@ -1425,10 +1425,10 @@ impl Bullet {
                 self.flags.set_hit_left_wall(true);
             }
         } else if hits[0] && !hits[2] {
-            if (self.x - self.hit_bounds.left as i32) < block_x && (self.y - self.hit_bounds.top as i32) < block_y - (3 * 0x200) {
+            if (self.x - self.hit_bounds.left as i32) < block_x && (self.y - self.hit_bounds.top as i32) < block_y - (0x600) {
                 self.flags.set_hit_left_wall(true);
             }
-        } else if !hits[0] && hits[2] && (self.x - self.hit_bounds.left as i32) < block_x && (self.y + self.hit_bounds.top as i32) > block_y + (3 * 0x200) {
+        } else if !hits[0] && hits[2] && (self.x - self.hit_bounds.left as i32) < block_x && (self.y + self.hit_bounds.top as i32) > block_y + (0x600) {
             self.flags.set_hit_left_wall(true);
         }
 
@@ -1438,10 +1438,10 @@ impl Bullet {
                 self.flags.set_hit_right_wall(true);
             }
         } else if hits[1] && !hits[3] {
-            if (self.x + self.hit_bounds.right as i32) > block_x && (self.y - self.hit_bounds.top as i32) < block_y - (3 * 0x200) {
+            if (self.x + self.hit_bounds.right as i32) > block_x && (self.y - self.hit_bounds.top as i32) < block_y - (0x600) {
                 self.flags.set_hit_right_wall(true);
             }
-        } else if !hits[1] && hits[3] && (self.x + self.hit_bounds.right as i32) > block_x && (self.y + self.hit_bounds.top as i32) > block_y + (3 * 0x200) {
+        } else if !hits[1] && hits[3] && (self.x + self.hit_bounds.right as i32) > block_x && (self.y + self.hit_bounds.top as i32) > block_y + (0x600) {
             self.flags.set_hit_right_wall(true);
         }
 
@@ -1451,10 +1451,10 @@ impl Bullet {
                 self.flags.set_hit_top_wall(true);
             }
         } else if hits[0] && !hits[1] {
-            if (self.x - self.hit_bounds.left as i32) < block_x - (3 * 0x200) && (self.y - self.hit_bounds.top as i32) < block_y {
+            if (self.x - self.hit_bounds.left as i32) < block_x - (0x600) && (self.y - self.hit_bounds.top as i32) < block_y {
                 self.flags.set_hit_top_wall(true);
             }
-        } else if !hits[0] && hits[1] && (self.x + self.hit_bounds.right as i32) > block_x + (3 * 0x200) && (self.y - self.hit_bounds.top as i32) < block_y {
+        } else if !hits[0] && hits[1] && (self.x + self.hit_bounds.right as i32) > block_x + (0x600) && (self.y - self.hit_bounds.top as i32) < block_y {
             self.flags.set_hit_top_wall(true);
         }
 
@@ -1464,14 +1464,14 @@ impl Bullet {
                 self.flags.set_hit_bottom_wall(true);
             }
         } else if hits[2] && !hits[3] {
-            if (self.x - self.hit_bounds.left as i32) < block_x - (3 * 0x200) && (self.y + self.hit_bounds.bottom as i32) > block_y {
+            if (self.x - self.hit_bounds.left as i32) < block_x - (0x600) && (self.y + self.hit_bounds.bottom as i32) > block_y {
                 self.flags.set_hit_bottom_wall(true);
             }
-        } else if !hits[2] && hits[3] && (self.x + self.hit_bounds.right as i32) > block_x + (3 * 0x200) && (self.y + self.hit_bounds.bottom as i32) > block_y {
+        } else if !hits[2] && hits[3] && (self.x + self.hit_bounds.right as i32) > block_x + (0x600) && (self.y + self.hit_bounds.bottom as i32) > block_y {
             self.flags.set_hit_bottom_wall(true);
         }
 
-        if self.weapon_flags.flag_x08() {
+        if self.weapon_flags.bounce_from_walls() {
             if self.flags.hit_left_wall() {
                 self.x = block_x + self.hit_bounds.right as i32;
             } else if self.flags.hit_right_wall() {
@@ -1557,7 +1557,7 @@ impl PhysicalEntity for Bullet {
         false
     }
 
-    fn judge_hit_block(&mut self, _state: &mut SharedGameState, x: i32, y: i32) {
+    fn test_block_hit(&mut self, _state: &mut SharedGameState, x: i32, y: i32) {
         if (self.x - self.hit_bounds.left as i32) < (x * 16 + 8) * 0x200
             && (self.x + self.hit_bounds.right as i32) > (x * 16 - 8) * 0x200
             && (self.y - self.hit_bounds.top as i32) < (y * 16 + 8) * 0x200
@@ -1569,7 +1569,7 @@ impl PhysicalEntity for Bullet {
 
     fn tick_map_collisions(&mut self, state: &mut SharedGameState, npc_list: &NPCList, stage: &mut Stage) {
         self.flags().0 = 0;
-        if self.weapon_flags.flag_x04() {
+        if self.weapon_flags.no_collision_checks() {
             // ???
             return;
         }
@@ -1589,15 +1589,15 @@ impl PhysicalEntity for Bullet {
             match attrib {
                 // Blocks
                 0x41 | 0x44 | 0x61 | 0x64 => {
-                    self.judge_hit_block(state, x + ox, y + oy);
+                    self.test_block_hit(state, x + ox, y + oy);
                 }
                 0x43 => {
                     let old_hit = self.flags;
                     self.flags.0 = 0;
-                    self.judge_hit_block(state, x + ox, y + oy);
+                    self.test_block_hit(state, x + ox, y + oy);
 
-                    if self.flags.weapon_hit_block() && (self.weapon_flags.flag_x20() || self.weapon_flags.flag_x40()) {
-                        if !self.weapon_flags.flag_x40() {
+                    if self.flags.weapon_hit_block() && (self.weapon_flags.flag_x20() || self.weapon_flags.can_destroy_snack()) {
+                        if !self.weapon_flags.can_destroy_snack() {
                             self.cond.set_alive(false);
                         }
 
@@ -1626,33 +1626,33 @@ impl PhysicalEntity for Bullet {
                 }
                 // Slopes
                 0x50 | 0x70 => {
-                    self.judge_hit_triangle_a(state, x + ox, y + oy);
+                    self.test_hit_upper_left_slope_high(state, x + ox, y + oy);
                 }
                 0x51 | 0x71 => {
-                    self.judge_hit_triangle_b(state, x + ox, y + oy);
+                    self.test_hit_upper_left_slope_low(state, x + ox, y + oy);
                 }
                 0x52 | 0x72 => {
-                    self.judge_hit_triangle_c(state, x + ox, y + oy);
+                    self.test_hit_upper_right_slope_low(state, x + ox, y + oy);
                 }
                 0x53 | 0x73 => {
-                    self.judge_hit_triangle_d(state, x + ox, y + oy);
+                    self.test_hit_upper_right_slope_high(state, x + ox, y + oy);
                 }
                 0x54 | 0x74 => {
-                    self.judge_hit_triangle_e(state, x + ox, y + oy);
+                    self.test_hit_lower_left_slope_high(state, x + ox, y + oy);
                 }
                 0x55 | 0x75 => {
-                    self.judge_hit_triangle_f(state, x + ox, y + oy);
+                    self.test_hit_lower_left_slope_low(state, x + ox, y + oy);
                 }
                 0x56 | 0x76 => {
-                    self.judge_hit_triangle_g(state, x + ox, y + oy);
+                    self.test_hit_lower_right_slope_low(state, x + ox, y + oy);
                 }
                 0x57 | 0x77 => {
-                    self.judge_hit_triangle_h(state, x + ox, y + oy);
+                    self.test_hit_lower_right_slope_high(state, x + ox, y + oy);
                 }
                 _ => {}
             }
         }
 
-        self.judge_hit_block_destroy(x, y, &hit_attribs, state);
+        self.test_hit_block_destructible(x, y, &hit_attribs, state);
     }
 }

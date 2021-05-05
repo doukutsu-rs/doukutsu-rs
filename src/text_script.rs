@@ -1098,8 +1098,8 @@ impl TextScriptVM {
                         if game_scene.stage.change_tile(pos_x, pos_y, tile_type) {
                             let mut npc = NPC::create(4, &state.npc_table);
                             npc.cond.set_alive(true);
-                            npc.x = pos_x as i32 * 16 * 0x200;
-                            npc.y = pos_y as i32 * 16 * 0x200;
+                            npc.x = pos_x as i32 * 0x2000;
+                            npc.y = pos_y as i32 * 0x2000;
 
                             let _ = game_scene.npc_list.spawn(0x100, npc.clone());
                             let _ = game_scene.npc_list.spawn(0x100, npc);
@@ -1201,8 +1201,8 @@ impl TextScriptVM {
                     OpCode::TRA => {
                         let map_id = read_cur_varint(&mut cursor)? as usize;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
-                        let pos_x = read_cur_varint(&mut cursor)? as i32 * 16 * 0x200;
-                        let pos_y = read_cur_varint(&mut cursor)? as i32 * 16 * 0x200;
+                        let pos_x = read_cur_varint(&mut cursor)? as i32 * 0x2000;
+                        let pos_y = read_cur_varint(&mut cursor)? as i32 * 0x2000;
 
                         let mut new_scene = GameScene::new(state, ctx, map_id)?;
                         new_scene.intro_mode = game_scene.intro_mode;
@@ -1236,8 +1236,8 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event_num, 0);
                     }
                     OpCode::MOV => {
-                        let pos_x = read_cur_varint(&mut cursor)? as i32 * 16 * 0x200;
-                        let pos_y = read_cur_varint(&mut cursor)? as i32 * 16 * 0x200;
+                        let pos_x = read_cur_varint(&mut cursor)? as i32 * 0x2000;
+                        let pos_y = read_cur_varint(&mut cursor)? as i32 * 0x2000;
 
                         for player in [&mut game_scene.player1, &mut game_scene.player2].iter_mut() {
                             player.vel_x = 0;
@@ -1260,7 +1260,7 @@ impl TextScriptVM {
                             0 | 1 => {
                                 partner.vel_x = 0;
                                 partner.vel_y = 0;
-                                partner.x = executor.x + if param == 0 { -16 * 0x200 } else { 16 * 0x200 };
+                                partner.x = executor.x + if param == 0 { -0x2000 } else { 0x2000 };
                                 partner.y = executor.y;
                             }
                             2..=10 => {
@@ -1515,8 +1515,8 @@ impl TextScriptVM {
 
                         for npc in game_scene.npc_list.iter_alive() {
                             if npc.event_num == event_num {
-                                npc.x = x * 16 * 0x200;
-                                npc.y = y * 16 * 0x200;
+                                npc.x = x * 0x2000;
+                                npc.y = y * 0x2000;
                                 npc.tsc_direction = tsc_direction as u16;
 
                                 if direction == Direction::FacingPlayer {
@@ -1541,8 +1541,8 @@ impl TextScriptVM {
 
                         let mut npc = NPC::create(npc_type, &state.npc_table);
                         npc.cond.set_alive(true);
-                        npc.x = x * 16 * 0x200;
-                        npc.y = y * 16 * 0x200;
+                        npc.x = x * 0x2000;
+                        npc.y = y * 0x2000;
                         npc.tsc_direction = tsc_direction as u16;
 
                         if direction == Direction::FacingPlayer {

@@ -87,8 +87,8 @@ impl NPC {
         let mut npc = NPC::create(data.npc_type, table);
 
         npc.id = data.id;
-        npc.x = data.x as i32 * 16 * 0x200;
-        npc.y = data.y as i32 * 16 * 0x200;
+        npc.x = data.x as i32 * 0x2000;
+        npc.y = data.y as i32 * 0x2000;
         npc.flag_num = data.flag_num;
         npc.event_num = data.event_num;
         npc.npc_flags = NPCFlag(data.flags | npc.npc_flags.0);

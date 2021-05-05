@@ -11,6 +11,7 @@ use crate::npc::NPC;
 use crate::physics::PhysicalEntity;
 use crate::player::{ControlMode, Player, TargetPlayer};
 use crate::shared_game_state::SharedGameState;
+use crate::weapon::WeaponType;
 
 impl PhysicalEntity for Player {
     #[inline(always)]
@@ -92,11 +93,11 @@ impl PhysicalEntity for Player {
 }
 
 impl Player {
-    fn judge_hit_npc_solid_soft(&mut self, npc: &NPC) -> Flag {
+    fn test_hit_npc_solid_soft(&mut self, npc: &NPC) -> Flag {
         let mut flags = Flag(0);
 
-        if ((self.y - self.hit_bounds.top as i32) < (npc.y + npc.hit_bounds.bottom as i32 - 3 * 0x200))
-            && ((self.y + self.hit_bounds.top as i32) > (npc.y - npc.hit_bounds.bottom as i32 + 3 * 0x200))
+        if ((self.y - self.hit_bounds.top as i32) < (npc.y + npc.hit_bounds.bottom as i32 - 0x600))
+            && ((self.y + self.hit_bounds.top as i32) > (npc.y - npc.hit_bounds.bottom as i32 + 0x600))
             && ((self.x - self.hit_bounds.right as i32) < (npc.x + npc.hit_bounds.right as i32))
             && ((self.x - self.hit_bounds.right as i32) > npc.x) {
             if self.vel_x < 0x200 {
@@ -106,8 +107,8 @@ impl Player {
             flags.set_hit_left_wall(true);
         }
 
-        if ((self.y - self.hit_bounds.top as i32) < (npc.y + npc.hit_bounds.bottom as i32 - 3 * 0x200))
-            && ((self.y + self.hit_bounds.top as i32) > (npc.y - npc.hit_bounds.bottom as i32 + 3 * 0x200))
+        if ((self.y - self.hit_bounds.top as i32) < (npc.y + npc.hit_bounds.bottom as i32 - 0x600))
+            && ((self.y + self.hit_bounds.top as i32) > (npc.y - npc.hit_bounds.bottom as i32 + 0x600))
             && ((self.x + self.hit_bounds.right as i32 - 0x200) > (npc.x - npc.hit_bounds.right as i32))
             && ((self.x + self.hit_bounds.right as i32 - 0x200) < npc.x) {
             if self.vel_x > -0x200 {
@@ -118,8 +119,8 @@ impl Player {
         }
 
 
-        if ((self.x - self.hit_bounds.right as i32) < (npc.x + npc.hit_bounds.right as i32 - 3 * 0x200))
-            && ((self.x + self.hit_bounds.right as i32) > (npc.x - npc.hit_bounds.right as i32 + 3 * 0x200))
+        if ((self.x - self.hit_bounds.right as i32) < (npc.x + npc.hit_bounds.right as i32 - 0x600))
+            && ((self.x + self.hit_bounds.right as i32) > (npc.x - npc.hit_bounds.right as i32 + 0x600))
             && ((self.y - self.hit_bounds.top as i32) < (npc.y + npc.hit_bounds.bottom as i32))
             && ((self.y - self.hit_bounds.top as i32) > npc.y) {
             if self.vel_y < 0 {
@@ -129,10 +130,10 @@ impl Player {
             flags.set_hit_top_wall(true);
         }
 
-        if ((self.x - self.hit_bounds.right as i32) < (npc.x + npc.hit_bounds.right as i32 - 3 * 0x200))
-            && ((self.x + self.hit_bounds.right as i32) > (npc.x - npc.hit_bounds.right as i32 + 3 * 0x200))
-            && ((self.y + self.hit_bounds.bottom as i32 - 0x200) > (npc.y - npc.hit_bounds.top as i32))
-            && ((self.y + self.hit_bounds.bottom as i32 - 0x200) < (npc.y + 3 * 0x200)) {
+        if ((self.x - self.hit_bounds.right as i32) < (npc.x + npc.hit_bounds.right as i32 - 0x600))
+            && ((self.x + self.hit_bounds.right as i32) > (npc.x - npc.hit_bounds.right as i32 + 0x600))
+            && ((self.y + self.hit_bounds.bottom as i32) > (npc.y - npc.hit_bounds.top as i32))
+            && ((self.y + self.hit_bounds.bottom as i32) < (npc.y + 0x600)) {
             if npc.npc_flags.bouncy() {
                 self.vel_y = npc.vel_y - 0x200;
                 flags.set_hit_bottom_wall(true);
@@ -147,7 +148,7 @@ impl Player {
         flags
     }
 
-    fn judge_hit_npc_solid_hard(&mut self, npc: &NPC, state: &mut SharedGameState) -> Flag {
+    fn test_hit_npc_solid_hard(&mut self, npc: &NPC, state: &mut SharedGameState) -> Flag {
         let mut flags = Flag(0);
 
         let fx1 = abs(self.x - npc.x) as f32;
@@ -199,8 +200,8 @@ impl Player {
             }
 
             if (self.y + self.hit_bounds.bottom as i32) > (npc.y - npc.hit_bounds.top as i32)
-                && (self.y + self.hit_bounds.bottom as i32) < (npc.y + 3 * 0x200) {
-                if self.vel_y - npc.vel_y > 2 * 0x200 {
+                && (self.y + self.hit_bounds.bottom as i32) < (npc.y + 0x600) {
+                if self.vel_y - npc.vel_y > 0x400 {
                     state.sound_manager.play_sfx(23);
                 }
 
@@ -211,9 +212,9 @@ impl Player {
                     self.vel_y = npc.vel_y - 0x200;
                     flags.set_hit_bottom_wall(true);
                 } else if !self.flags.hit_bottom_wall() && self.vel_y > npc.vel_y {
+                    self.x += npc.vel_x;
                     self.y = npc.y - npc.hit_bounds.top as i32 - self.hit_bounds.bottom as i32 + 0x200;
                     self.vel_y = npc.vel_y;
-                    self.x += npc.vel_x;
 
                     flags.set_hit_bottom_wall(true);
                 }
@@ -223,15 +224,15 @@ impl Player {
         flags
     }
 
-    fn judge_hit_npc_non_solid(&mut self, npc: &NPC) -> Flag {
+    fn test_hit_npc_non_solid(&mut self, npc: &NPC) -> Flag {
         let mut flags = Flag(0);
         let hit_left = if npc.direction == Direction::Left { npc.hit_bounds.left } else { npc.hit_bounds.right } as i32;
         let hit_right = if npc.direction == Direction::Left { npc.hit_bounds.right } else { npc.hit_bounds.left } as i32;
 
-        if self.x + (2 * 0x200) > npc.x - hit_left
-            && self.x - (2 * 0x200) < npc.x + hit_right
-            && self.y + (2 * 0x200) > npc.y - npc.hit_bounds.top as i32
-            && self.y - (2 * 0x200) < npc.y + npc.hit_bounds.bottom as i32 {
+        if self.x + 0x400 > npc.x - hit_left
+            && self.x - 0x400 < npc.x + hit_right
+            && self.y + 0x400 > npc.y - npc.hit_bounds.top as i32
+            && self.y - 0x400 < npc.y + npc.hit_bounds.bottom as i32 {
             flags.set_hit_left_wall(true);
         }
 
@@ -242,13 +243,13 @@ impl Player {
         let flags: Flag;
 
         if npc.npc_flags.solid_soft() {
-            flags = self.judge_hit_npc_solid_soft(npc.borrow());
+            flags = self.test_hit_npc_solid_soft(npc.borrow());
             self.flags.0 |= flags.0;
         } else if npc.npc_flags.solid_hard() {
-            flags = self.judge_hit_npc_solid_hard(npc.borrow(), state);
+            flags = self.test_hit_npc_solid_hard(npc.borrow(), state);
             self.flags.0 |= flags.0;
         } else {
-            flags = self.judge_hit_npc_non_solid(npc.borrow());
+            flags = self.test_hit_npc_non_solid(npc.borrow());
         }
 
         if !npc.cond.drs_boss() && flags.0 != 0 {
@@ -262,6 +263,12 @@ impl Player {
                 // missile pickup
                 86 => {
                     // todo add bullets
+                    if let Some(weapon) = inventory.get_weapon_by_type_mut(WeaponType::MissileLauncher) {
+                        weapon.refill_ammo(npc.exp);
+                    } else if let Some(weapon) = inventory.get_weapon_by_type_mut(WeaponType::SuperMissileLauncher) {
+                        weapon.refill_ammo(npc.exp);
+                    }
+
                     npc.cond.set_alive(false);
 
                     state.sound_manager.play_sfx(42);
@@ -282,16 +289,6 @@ impl Player {
             state.touch_controls.interact_icon = true;
         }
 
-        if npc.npc_flags.interactable() && !state.control_flags.interactions_disabled() && flags.0 != 0 && self.cond.interacted() {
-            state.control_flags.set_tick_world(true);
-            state.control_flags.set_interactions_disabled(true);
-            state.textscript_vm.executor_player = id;
-            state.textscript_vm.start_script(npc.event_num);
-            self.cond.set_interacted(false);
-            self.vel_x = 0;
-            self.question = false;
-        }
-
         if npc.npc_flags.event_when_touched() && !state.control_flags.interactions_disabled() && flags.0 != 0 {
             state.control_flags.set_tick_world(true);
             state.control_flags.set_interactions_disabled(true);
@@ -310,6 +307,16 @@ impl Player {
             } else if flags.0 != 0 && npc.damage != 0 && !state.control_flags.interactions_disabled() {
                 self.damage(npc.damage as i32, state, npc_list);
             }
+        }
+
+        if npc.npc_flags.interactable() && !state.control_flags.interactions_disabled() && flags.0 != 0 && self.cond.interacted() {
+            state.control_flags.set_tick_world(true);
+            state.control_flags.set_interactions_disabled(true);
+            state.textscript_vm.executor_player = id;
+            state.textscript_vm.start_script(npc.event_num);
+            self.cond.set_interacted(false);
+            self.vel_x = 0;
+            self.question = false;
         }
     }
 

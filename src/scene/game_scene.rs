@@ -1374,8 +1374,8 @@ impl GameScene {
             let hit_rect_size = npc.hit_rect_size().clamp(1, 4);
             let hit_rect_size = hit_rect_size * hit_rect_size;
 
-            let x = (npc.x + npc.offset_x()) / (16 * 0x200);
-            let y = (npc.y + npc.offset_y()) / (16 * 0x200);
+            let x = (npc.x + npc.offset_x()) / (0x2000);
+            let y = (npc.y + npc.offset_y()) / (0x2000);
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Caret")?;
 
             let caret_rect = Rect::new_size(2, 74, 4, 4);
@@ -1671,7 +1671,7 @@ impl Scene for GameScene {
                     );
                     let y = y.clamp(8.0, state.canvas_size.1 - 8.0 - state.font.line_height(&state.constants));
 
-                    if self.player2.x + 8 * 0x200 < self.frame.x {
+                    if self.player2.x + 0x1000 < self.frame.x {
                         state.font.draw_colored_text(
                             P2_LEFT_TEXT.chars(),
                             9.0,
@@ -1691,7 +1691,7 @@ impl Scene for GameScene {
                             &mut state.texture_set,
                             ctx,
                         )?;
-                    } else if self.player2.x - 8 * 0x200 > self.frame.x + state.canvas_size.0 as i32 * 0x200 {
+                    } else if self.player2.x - 0x1000 > self.frame.x + state.canvas_size.0 as i32 * 0x200 {
                         let width = state.font.text_width(P2_RIGHT_TEXT.chars(), &state.constants);
 
                         state.font.draw_colored_text(

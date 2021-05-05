@@ -332,7 +332,7 @@ impl Caret {
                 self.anim_rect = constants.caret.little_particles_rects[self.anim_num as usize / 2 % len];
 
                 if self.direction == Direction::Right {
-                    self.x -= 4 * 0x200;
+                    self.x -= 0x800;
                 }
             }
             CaretType::Unknown => {
