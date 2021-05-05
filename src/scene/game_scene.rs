@@ -1161,7 +1161,7 @@ impl GameScene {
 
                     if npc.life == 0 {
                         if npc.npc_flags.show_damage() {
-                            // todo show damage
+                            npc.popup.add_value(-bullet.damage);
                         }
 
                         if self.player1.cond.alive() && npc.npc_flags.event_when_killed() {
@@ -1190,7 +1190,7 @@ impl GameScene {
                         }
 
                         if npc.npc_flags.show_damage() {
-                            // todo show damage
+                            npc.popup.add_value(-bullet.damage);
                         }
                     }
                 } else if !bullet.weapon_flags.flag_x10()
@@ -1704,18 +1704,26 @@ impl Scene for GameScene {
         self.frame.prev_y = self.frame.y;
         self.player1.prev_x = self.player1.x;
         self.player1.prev_y = self.player1.y;
+        self.player1.popup.prev_x = self.player1.prev_x;
+        self.player1.popup.prev_y = self.player1.prev_y;
         self.player2.prev_x = self.player2.x;
         self.player2.prev_y = self.player2.y;
+        self.player2.popup.prev_x = self.player2.prev_x;
+        self.player2.popup.prev_y = self.player2.prev_y;
 
         for npc in self.npc_list.iter_alive() {
             npc.prev_x = npc.x;
             npc.prev_y = npc.y;
+            npc.popup.prev_x = npc.prev_x;
+            npc.popup.prev_y = npc.prev_y;
         }
 
         for npc in self.boss.parts.iter_mut() {
             if npc.cond.alive() {
                 npc.prev_x = npc.x;
                 npc.prev_y = npc.y;
+                npc.popup.prev_x = npc.prev_x;
+                npc.popup.prev_y = npc.prev_y;
             }
         }
 
@@ -1762,6 +1770,9 @@ impl Scene for GameScene {
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;
         self.draw_tiles(state, ctx, TileLayer::Snack)?;
         self.draw_carets(state, ctx)?;
+        self.player1.popup.draw(state, ctx, &self.frame)?;
+        self.player2.popup.draw(state, ctx, &self.frame)?;
+
         if state.settings.shader_effects
             && (self.stage.data.background_type == BackgroundType::Black
                 || self.stage.data.background.name() == "bkBlack")

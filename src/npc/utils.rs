@@ -11,6 +11,7 @@ use crate::npc::list::NPCList;
 use crate::player::Player;
 use crate::rng::{RNG, Xoroshiro32PlusPlus};
 use crate::shared_game_state::SharedGameState;
+use crate::components::number_popup::NumberPopup;
 
 impl NPC {
     /// Initializes the RNG. Called when the [NPC] is being added to an [NPCList].
@@ -80,6 +81,7 @@ impl NPC {
             anim_counter: 0,
             anim_rect: Rect::new(0, 0, 0, 0),
             rng: Xoroshiro32PlusPlus::new(0),
+            popup: NumberPopup::new(),
         }
     }
 

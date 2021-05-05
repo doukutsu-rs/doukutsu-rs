@@ -21,6 +21,7 @@ use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 use crate::str;
 use crate::components::flash::Flash;
+use crate::components::number_popup::NumberPopup;
 
 pub mod ai;
 pub mod boss;
@@ -107,6 +108,7 @@ pub struct NPC {
     pub display_bounds: Rect<u32>,
     pub hit_bounds: Rect<u32>,
     pub rng: Xoroshiro32PlusPlus,
+    pub popup: NumberPopup,
 }
 
 impl NPC {
@@ -149,6 +151,7 @@ impl NPC {
             anim_counter: 0,
             anim_rect: Rect { left: 0, top: 0, right: 0, bottom: 0 },
             rng: Xoroshiro32PlusPlus::new(0),
+            popup: NumberPopup::new(),
         }
     }
 
@@ -380,6 +383,10 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             },
         }?;
 
+        self.popup.x = self.x;
+        self.popup.y = self.y;
+        self.popup.tick(state, ())?;
+
         if self.shock > 0 {
             self.shock -= 1;
         }
@@ -420,6 +427,8 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             &self.anim_rect,
         );
         batch.draw(ctx)?;
+
+        self.popup.draw(state, ctx, frame)?;
 
         Ok(())
     }

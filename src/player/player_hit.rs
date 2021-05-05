@@ -258,6 +258,13 @@ impl Player {
                 1 => {
                     state.sound_manager.play_sfx(14);
                     inventory.add_xp(npc.exp, self, state);
+
+                    if self.popup.value > 0 {
+                        self.popup.add_value(npc.exp as i16);
+                    } else {
+                        self.popup.set_value(npc.exp as i16);
+                    }
+
                     npc.cond.set_alive(false);
                 }
                 // missile pickup

@@ -17,6 +17,7 @@ use crate::player::skin::{PlayerAnimationState, PlayerAppearanceState, PlayerSki
 use crate::player::skin::basic::BasicPlayerSkin;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
+use crate::components::number_popup::NumberPopup;
 
 mod player_hit;
 pub mod skin;
@@ -72,6 +73,7 @@ pub struct Player {
     pub air: u16,
     pub skin: Box<dyn PlayerSkin>,
     pub controller: Box<dyn PlayerController>,
+    pub popup: NumberPopup,
     weapon_offset_y: i8,
     camera_target_x: i32,
     camera_target_y: i32,
@@ -126,6 +128,7 @@ impl Player {
             air: 0,
             skin: Box::new(BasicPlayerSkin::new("MyChar".to_string())),
             controller: Box::new(DummyPlayerController::new()),
+            popup: NumberPopup::new(),
             damage_counter: 0,
             damage_taken: 0,
             anim_num: 0,
@@ -685,6 +688,11 @@ impl Player {
         }
 
         self.damage = self.damage.saturating_add(hp as u16);
+        if self.popup.value > 0 {
+            self.popup.set_value(-(self.damage as i16));
+        } else {
+            self.popup.add_value(-(self.damage as i16));
+        }
 
         if self.life == 0 {
             state.sound_manager.play_sfx(17);
@@ -728,6 +736,10 @@ impl GameEntity<&NPCList> for Player {
             ControlMode::Normal => self.tick_normal(state, npc_list)?,
             ControlMode::IronHead => self.tick_ironhead(state)?,
         }
+
+        self.popup.x = self.x;
+        self.popup.y = self.y;
+        self.popup.tick(state, ())?;
 
         self.cond.set_increase_acceleration(false);
         self.tick_animation(state);
