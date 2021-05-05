@@ -406,13 +406,15 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             (2 * ((self.shock as i32 / 2) % 2) - 1) as f32
         } else { 0.0 };
 
+        let (frame_x, frame_y) = frame.xy_interpolated(state.frame_time);
+
         batch.add_rect(
-            interpolate_fix9_scale(self.prev_x - off_x - frame.prev_x,
-                                   self.x - off_x - frame.x,
-                                   state.frame_time) + shock,
-            interpolate_fix9_scale(self.prev_y - self.display_bounds.top as i32 - frame.prev_y,
-                                   self.y - self.display_bounds.top as i32 - frame.y,
-                                   state.frame_time),
+            interpolate_fix9_scale(self.prev_x - off_x,
+                                   self.x - off_x,
+                                   state.frame_time) + shock - frame_x,
+            interpolate_fix9_scale(self.prev_y - self.display_bounds.top as i32,
+                                   self.y - self.display_bounds.top as i32,
+                                   state.frame_time) - frame_y,
             &self.anim_rect,
         );
         batch.draw(ctx)?;

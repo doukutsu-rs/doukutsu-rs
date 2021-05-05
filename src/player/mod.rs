@@ -740,6 +740,8 @@ impl GameEntity<&NPCList> for Player {
             return Ok(());
         }
 
+        let (frame_x, frame_y) = frame.xy_interpolated(state.frame_time);
+
         // hack for stacked dogs
         if state.constants.is_switch {
             let dog_amount = (3000..=3005).filter(|id| state.get_flag(*id as usize)).count();
@@ -762,15 +764,15 @@ impl GameEntity<&NPCList> for Player {
                     for i in 1..=(dog_amount as i32) {
                         batch.add_rect(
                             interpolate_fix9_scale(
-                                self.prev_x - frame.prev_x - off_x - vec_x * i,
-                                self.x - frame.x - off_x - vec_x * i,
+                                self.prev_x - off_x - vec_x * i,
+                                self.x - off_x - vec_x * i,
                                 state.frame_time,
-                            ),
+                            ) - frame_x,
                             interpolate_fix9_scale(
-                                self.prev_y - frame.prev_y - off_y - vec_y * i,
-                                self.y - frame.y - off_y - vec_y * i,
+                                self.prev_y - off_y - vec_y * i,
+                                self.y - off_y - vec_y * i,
                                 state.frame_time,
-                            ),
+                            ) - frame_y,
                             &state.constants.npc.n136_puppy_carried[frame_id],
                         );
                     }
@@ -788,15 +790,17 @@ impl GameEntity<&NPCList> for Player {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Arms")?;
             batch.add_rect(
                 interpolate_fix9_scale(
-                    self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
-                    self.x - self.display_bounds.left as i32 - frame.x,
+                    self.prev_x - self.display_bounds.left as i32,
+                    self.x - self.display_bounds.left as i32,
                     state.frame_time,
-                ) + if self.direction == Direction::Left { -8.0 } else { 0.0 },
+                ) + if self.direction == Direction::Left { -8.0 } else { 0.0 }
+                    - frame_x,
                 interpolate_fix9_scale(
-                    self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
-                    self.y - self.display_bounds.left as i32 - frame.y,
+                    self.prev_y - self.display_bounds.left as i32,
+                    self.y - self.display_bounds.left as i32,
                     state.frame_time,
-                ) + self.weapon_offset_y as f32,
+                ) + self.weapon_offset_y as f32
+                    - frame_y,
                 &self.weapon_rect,
             );
 
@@ -808,15 +812,15 @@ impl GameEntity<&NPCList> for Player {
                 state.texture_set.get_or_load_batch(ctx, &state.constants, self.skin.get_skin_texture_name())?;
             batch.add_rect(
                 interpolate_fix9_scale(
-                    self.prev_x - self.display_bounds.left as i32 - frame.prev_x,
-                    self.x - self.display_bounds.left as i32 - frame.x,
+                    self.prev_x - self.display_bounds.left as i32,
+                    self.x - self.display_bounds.left as i32,
                     state.frame_time,
-                ),
+                ) - frame_x,
                 interpolate_fix9_scale(
-                    self.prev_y - self.display_bounds.left as i32 - frame.prev_y,
-                    self.y - self.display_bounds.left as i32 - frame.y,
+                    self.prev_y - self.display_bounds.left as i32,
+                    self.y - self.display_bounds.left as i32,
                     state.frame_time,
-                ),
+                ) - frame_y,
                 &self.anim_rect,
             );
             batch.draw(ctx)?;
@@ -825,16 +829,8 @@ impl GameEntity<&NPCList> for Player {
         if (self.equip.has_air_tank() && self.flags.in_water()) || self.control_mode == ControlMode::IronHead {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Caret")?;
             batch.add_rect(
-                interpolate_fix9_scale(
-                    self.prev_x - frame.prev_x - 12 * 0x200,
-                    self.x - frame.x - 12 * 0x200,
-                    state.frame_time,
-                ),
-                interpolate_fix9_scale(
-                    self.prev_y - frame.prev_y - 12 * 0x200,
-                    self.y - frame.y - 12 * 0x200,
-                    state.frame_time,
-                ),
+                interpolate_fix9_scale(self.prev_x - 12 * 0x200, self.x - 12 * 0x200, state.frame_time) - frame_x,
+                interpolate_fix9_scale(self.prev_y - 12 * 0x200, self.y - 12 * 0x200, state.frame_time) - frame_y,
                 &state.constants.player.frames_bubble[(self.tick / 2 % 2) as usize],
             );
             batch.draw(ctx)?;

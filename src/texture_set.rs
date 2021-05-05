@@ -67,10 +67,10 @@ impl SizedBatch {
     }
 
     pub fn add(&mut self, mut x: f32, mut y: f32) {
-        unsafe {
-            x = (x * G_MAG).round() / G_MAG;
-            y = (y * G_MAG).round() / G_MAG;
-        }
+        /*unsafe {
+            x = (x * G_MAG).floor() / G_MAG;
+            y = (y * G_MAG).floor() / G_MAG;
+        }*/
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRect(
@@ -99,10 +99,10 @@ impl SizedBatch {
             return;
         }
 
-        unsafe {
-            x = (x * G_MAG).round() / G_MAG;
-            y = (y * G_MAG).round() / G_MAG;
-        }
+        /*unsafe {
+            x = (x * G_MAG).floor() / G_MAG;
+            y = (y * G_MAG).floor() / G_MAG;
+        }*/
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRectFlip(
@@ -132,10 +132,10 @@ impl SizedBatch {
             return;
         }
 
-        unsafe {
-            x = (x * G_MAG).round() / G_MAG;
-            y = (y * G_MAG).round() / G_MAG;
-        }
+        /*unsafe {
+            x = (x * G_MAG).floor() / G_MAG;
+            y = (y * G_MAG).floor() / G_MAG;
+        }*/
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRect(
@@ -159,10 +159,10 @@ impl SizedBatch {
             return;
         }
 
-        unsafe {
+        /*unsafe {
             x = (x * G_MAG).floor() / G_MAG;
             y = (y * G_MAG).floor() / G_MAG;
-        }
+        }*/
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRectTinted(

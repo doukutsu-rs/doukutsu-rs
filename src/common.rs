@@ -8,6 +8,7 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeTupleStruct;
 
 use crate::bitfield;
+use crate::texture_set::G_MAG;
 
 /// Multiply cave story degrees (0-255, which corresponds to 0°-360°) with this to get
 /// respective value in radians.
@@ -367,8 +368,11 @@ rect_deserialze!(isize);
 rect_deserialze!(usize);
 
 #[inline(always)]
-pub fn fix9_scale(val: i32, scale: f32) -> f32 {
-    (val as f64 * scale as f64 / 512.0).floor() as f32 / scale
+pub fn fix9_scale(val: i32) -> f32 {
+    unsafe {
+        let mag = G_MAG as f32;
+        (val as f32 * mag / 512.0).floor() / mag
+    }
 }
 
 #[inline(always)]
@@ -376,12 +380,21 @@ fn lerp_f64(v1: f64, v2: f64, t: f64) -> f64 {
     v1 * (1.0 - t) + v2 * t
 }
 
+#[inline(always)]
+fn lerp_f32(v1: f32, v2: f32, t: f32) -> f32 {
+    v1 * (1.0 - t) + v2 * t
+}
+
 pub fn interpolate_fix9_scale(old_val: i32, val: i32, frame_delta: f64) -> f32 {
-    if abs(old_val - val) > 0x1000 {
+    if abs(old_val - val) > 0x1800 {
         return val as f32 / 512.0;
     }
 
-    (lerp_f64(old_val as f64, val as f64, frame_delta) / 512.0) as f32
+    unsafe {
+        let interpolated = lerp_f64(old_val as f64, val as f64, frame_delta) as f32;
+        let mag = G_MAG as f32;
+        (interpolated * mag / 512.0).floor() / mag
+    }
 }
 
 

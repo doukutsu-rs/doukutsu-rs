@@ -65,7 +65,7 @@ impl GameEntity<()> for Flash {
             FlashState::None => {}
             FlashState::Cross(x, y, tick) => {
                 let tick = tick as f32 + state.frame_time as f32;
-                let frame_pos = frame.xy_interpolated(state.frame_time, state.scale);
+                let frame_pos = frame.xy_interpolated(state.frame_time);
 
                 let (cen_x, cen_y) = (
                     (x as f32 / 512.0) - frame_pos.0,

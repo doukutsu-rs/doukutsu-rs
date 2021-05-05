@@ -110,16 +110,16 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             let off_x =
                 if npc.direction == Direction::Left { npc.display_bounds.left } else { npc.display_bounds.right }
                     as i32;
-            let shock = if npc.shock > 0 { (2 * ((npc.shock as i32 / 2) % 2) - 1) as f32 } else { 0.0 };
+            let shock = if npc.shock > 0 { (2 * ((npc.shock as i32 / 2) & 1) - 1) as f32 } else { 0.0 };
+            let (frame_x, frame_y) = frame.xy_interpolated(state.frame_time);
 
             batch.add_rect(
-                interpolate_fix9_scale(npc.prev_x - off_x - frame.prev_x, npc.x - off_x - frame.x, state.frame_time)
-                    + shock,
-                interpolate_fix9_scale(
-                    npc.prev_y - npc.display_bounds.top as i32 - frame.prev_y,
-                    npc.y - npc.display_bounds.top as i32 - frame.y,
-                    state.frame_time,
-                ),
+                interpolate_fix9_scale(npc.prev_x - off_x,
+                                       npc.x - off_x,
+                                       state.frame_time) + shock - frame_x,
+                interpolate_fix9_scale(npc.prev_y - npc.display_bounds.top as i32,
+                                       npc.y - npc.display_bounds.top as i32,
+                                       state.frame_time) - frame_y,
                 &npc.anim_rect,
             );
         }

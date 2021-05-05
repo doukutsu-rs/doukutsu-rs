@@ -23,9 +23,9 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn xy_interpolated(&self, frame_time: f64, scale: f32) -> (f32, f32) {
+    pub fn xy_interpolated(&self, frame_time: f64) -> (f32, f32) {
         if self.prev_x == self.x && self.prev_y == self.y {
-            return (fix9_scale(self.x, scale), fix9_scale(self.y, scale));
+            return (fix9_scale(self.x), fix9_scale(self.y));
         }
 
         let x = interpolate_fix9_scale(self.prev_x, self.x, frame_time);
