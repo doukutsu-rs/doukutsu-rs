@@ -101,7 +101,7 @@ impl NPC {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    self.y += 3 * 0x200;
+                    self.y += 0x600;
                     self.action_num = 1;
                     self.anim_num = 0;
                     self.anim_rect = state.constants.npc.n005_green_critter[self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
@@ -378,7 +378,7 @@ impl NPC {
             0 => {
                 let player = self.get_closest_player_mut(players);
 
-                if player.x < self.x + 16 * 0x200 && player.x > self.x - 16 * 0x200 {
+                if player.x < self.x + 0x2000 && player.x > self.x - 0x2000 {
                     self.npc_flags.set_shootable(true);
                     self.vel_y = -0x100;
                     self.target_y = self.y;
@@ -455,7 +455,7 @@ impl NPC {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    self.x += 8 * 0x200;
+                    self.x += 0x1000;
                     self.action_num = 1;
                     self.anim_num = 0;
                     self.anim_counter = 1;
@@ -549,7 +549,7 @@ impl NPC {
 
         match self.action_num {
             0 => {
-                if player.x < self.x + 16 * 0x200 && player.x > self.x - 16 * 0x200 {
+                if player.x < self.x + 0x2000 && player.x > self.x - 0x2000 {
                     self.target_x = self.x;
                     self.target_y = self.y;
                     self.action_num = 1;
@@ -560,7 +560,7 @@ impl NPC {
                     self.tsc_direction = self.direction as u16;
                     self.npc_flags.set_shootable(true);
 
-                    self.x = player.x + self.direction.vector_x() * 16 * 16 * 0x200;
+                    self.x = player.x + self.direction.vector_x() * 16 * 0x2000;
                     self.vel_x = self.direction.vector_x() * 0x2ff;
                 } else {
                     self.anim_rect = Rect::new(0, 0, 0, 0);
@@ -721,7 +721,7 @@ impl NPC {
 
         match self.action_num {
             0 => {
-                if player.x < self.x + 16 * 0x200 && player.x > self.x - 16 * 0x200 {
+                if player.x < self.x + 0x2000 && player.x > self.x - 0x2000 {
                     self.target_x = self.x;
                     self.target_y = self.y;
                     self.action_num = 1;
@@ -732,7 +732,7 @@ impl NPC {
                     self.tsc_direction = self.direction as u16;
                     self.npc_flags.set_shootable(true);
 
-                    self.x = player.x + self.direction.vector_x() * 16 * 16 * 0x200;
+                    self.x = player.x + self.direction.vector_x() * 16 * 0x2000;
                     self.vel_x = self.direction.vector_x() * 0x2ff;
                 } else {
                     self.anim_rect = Rect::new(0, 0, 0, 0);

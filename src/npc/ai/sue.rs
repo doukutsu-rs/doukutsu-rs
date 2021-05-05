@@ -118,8 +118,8 @@ impl NPC {
 
                 if let Some(npc) = self.get_parent_ref_mut(npc_list) {
                     self.direction = npc.direction.opposite();
-                    self.x = npc.x + npc.direction.vector_x() * 6 * 0x200;
-                    self.y = npc.y + 4 * 0x200;
+                    self.x = npc.x + npc.direction.vector_x() * 0xc00;
+                    self.y = npc.y + 0x800;
 
                     if npc.anim_num == 2 || npc.anim_num == 4 {
                         self.y -= 0x200;
@@ -145,7 +145,7 @@ impl NPC {
 
                 state.npc_super_pos = (
                     self.x - 24 * 0x200,
-                    self.y - 8 * 0x200
+                    self.y - 0x1000
                 );
             }
             17 => {
@@ -154,7 +154,7 @@ impl NPC {
 
                 state.npc_super_pos = (
                     self.x,
-                    self.y - 8 * 0x200
+                    self.y - 0x1000
                 );
             }
             20 | 21 => {
@@ -176,7 +176,7 @@ impl NPC {
                 self.vel_x = self.direction.vector_x() * 0x400;
 
                 let player = self.get_closest_player_mut(players);
-                if self.x < player.x - 8 * 0x200 {
+                if self.x < player.x - 0x1000 {
                     self.direction = Direction::Right;
                     self.action_num = 0;
                 }
@@ -234,8 +234,8 @@ impl NPC {
                     self.action_counter = 0;
                     self.anim_counter = 0;
 
-                    self.x -= 4 * 0x200;
-                    self.y += 16 * 0x200;
+                    self.x -= 0x800;
+                    self.y += 0x2000;
                 }
 
                 self.anim_counter += 1;

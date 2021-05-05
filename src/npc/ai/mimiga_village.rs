@@ -228,7 +228,7 @@ impl NPC {
 
                 let player = self.get_closest_player_mut(players);
                 if (self.x - (32 * 0x200) < player.x) && (self.x + (32 * 0x200) > player.x)
-                    && (self.y - (32 * 0x200) < player.y) && (self.y + (16 * 0x200) > player.y) {
+                    && (self.y - (32 * 0x200) < player.y) && (self.y + (0x2000) > player.y) {
                     if self.x > player.x {
                         self.direction = Direction::Left;
                     } else {
@@ -268,7 +268,7 @@ impl NPC {
                     self.npc_flags.set_shootable(false);
                     self.damage = 0;
                     self.action_num = 1;
-                    self.hit_bounds.left = 4 * 0x200;
+                    self.hit_bounds.left = 0x800;
                 }
 
                 self.anim_num = 0;
@@ -300,7 +300,7 @@ impl NPC {
                 }
 
                 let player = self.get_closest_player_mut(players);
-                if abs(player.x - self.x) < 16 * 0x200 {
+                if abs(player.x - self.x) < 0x2000 {
                     self.hit_bounds.left = 18 * 0x200;
                     self.action_counter = 0;
                     self.action_num = 3;
@@ -454,7 +454,7 @@ impl NPC {
     pub(crate) fn tick_n091_mimiga_cage(&mut self, state: &SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
-            self.y += 16 * 0x200;
+            self.y += 0x2000;
             self.anim_rect = state.constants.npc.n091_mimiga_cage;
         }
 

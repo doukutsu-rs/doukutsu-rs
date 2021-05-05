@@ -18,7 +18,7 @@ impl NPC {
 
         let player = self.get_closest_player_mut(players);
 
-        if abs(self.x - player.x) < 48 * 0x200 && self.y - 48 * 0x200 < player.y && self.y + 16 * 0x200 > player.y {
+        if abs(self.x - player.x) < 48 * 0x200 && self.y - 48 * 0x200 < player.y && self.y + 0x2000 > player.y {
             self.anim_num = 1;
         } else {
             self.anim_num = 0;
@@ -251,8 +251,8 @@ impl NPC {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    self.x -= 4 * 0x200;
-                    self.y += 16 * 0x200;
+                    self.x -= 0x800;
+                    self.y += 0x2000;
                     self.action_num = 1;
                     self.anim_num = 0;
                     self.anim_counter = 0;

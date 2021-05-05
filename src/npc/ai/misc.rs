@@ -17,7 +17,7 @@ impl NPC {
             self.action_num = 1;
 
             if self.direction == Direction::Right {
-                self.y += 16 * 0x200;
+                self.y += 0x2000;
             }
         }
 
@@ -335,7 +335,7 @@ impl NPC {
             self.action_num = 1;
 
             if self.direction == Direction::Right {
-                self.y += 16 * 0x200;
+                self.y += 0x2000;
             }
 
             self.anim_rect = state.constants.npc.n021_chest_open;
@@ -414,7 +414,7 @@ impl NPC {
             if self.action_num == 0 {
                 self.action_num = 1;
                 self.anim_rect = state.constants.npc.n030_hermit_gunsmith[2];
-                self.y += 16 * 0x200;
+                self.y += 0x2000;
             }
 
             self.action_counter += 1;
@@ -497,7 +497,7 @@ impl NPC {
             self.action_num = 1;
             self.layer = NPCLayer::Background;
             self.anim_rect = state.constants.npc.n041_busted_door;
-            self.y -= 16 * 0x200;
+            self.y -= 0x2000;
         }
 
         Ok(())
@@ -506,7 +506,7 @@ impl NPC {
     pub(crate) fn tick_n043_chalkboard(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
-            self.y -= 16 * 0x200;
+            self.y -= 0x2000;
 
             match self.direction {
                 Direction::Left => self.anim_rect = state.constants.npc.n043_chalkboard[0],
@@ -609,7 +609,7 @@ impl NPC {
             self.cond.set_alive(false);
         }
 
-        if self.y > stage.map.height as i32 * 16 * 0x200 {
+        if self.y > stage.map.height as i32 * 0x2000 {
             // out of map
             self.cond.set_alive(false);
         }
@@ -650,7 +650,7 @@ impl NPC {
                 self.anim_num = 0;
                 let player = self.get_closest_player_mut(players);
 
-                if abs(player.x - self.x) < 8 * 0x200 && player.y < self.y + 8 * 0x200 && player.y > self.y - 16 * 0x200
+                if abs(player.x - self.x) < 0x1000 && player.y < self.y + 0x1000 && player.y > self.y - 0x2000
                 {
                     state.sound_manager.play_sfx(43);
                     self.action_num = 1;
@@ -724,7 +724,7 @@ impl NPC {
                         continue;
                     }
 
-                    if abs(player.y - self.y) < 8 * 0x200 && player.x < self.x && player.x > self.x - 96 * 0x200 {
+                    if abs(player.y - self.y) < 0x1000 && player.x < self.x && player.x > self.x - 96 * 0x200 {
                         player.vel_x -= 0x88;
                         player.cond.set_increase_acceleration(true);
                     }
@@ -784,7 +784,7 @@ impl NPC {
                         continue;
                     }
 
-                    if abs(player.x - self.x) < 8 * 0x200 && player.y < self.y && player.y > self.y - 96 * 0x200 {
+                    if abs(player.x - self.x) < 0x1000 && player.y < self.y && player.y > self.y - 96 * 0x200 {
                         player.vel_y -= 0x88;
                     }
                 }
@@ -839,7 +839,7 @@ impl NPC {
                 }
 
                 for player in players.iter_mut() {
-                    if abs(player.y - self.y) < 8 * 0x200 && player.x > self.x && player.x < self.x + 96 * 0x200 {
+                    if abs(player.y - self.y) < 0x1000 && player.x > self.x && player.x < self.x + 96 * 0x200 {
                         player.vel_x += 0x88;
                         player.cond.set_increase_acceleration(true);
                     }
@@ -895,7 +895,7 @@ impl NPC {
                 }
 
                 for player in players.iter_mut() {
-                    if abs(player.x - self.x) < 8 * 0x200 && player.y > self.y && player.y < self.y + 96 * 0x200 {
+                    if abs(player.x - self.x) < 0x1000 && player.y > self.y && player.y < self.y + 96 * 0x200 {
                         player.vel_y -= 0x88;
                     }
                 }
@@ -931,7 +931,7 @@ impl NPC {
             let mut npc = NPC::create(105, &state.npc_table);
             npc.cond.set_alive(true);
             npc.x = self.x;
-            npc.y = self.y - 8 * 0x200;
+            npc.y = self.y - 0x1000;
 
             let _ = npc_list.spawn(0x180, npc);
         }
@@ -949,7 +949,7 @@ impl NPC {
             0 | 1 => {
                 if self.action_num == 0 {
                     self.action_num = 1;
-                    self.y -= 4 * 0x200;
+                    self.y -= 0x800;
                 }
 
                 if !self.flags.hit_bottom_wall() {
@@ -1135,8 +1135,8 @@ impl NPC {
     ) -> GameResult {
         match self.action_num {
             0 => {
-                self.x += 8 * 0x200;
-                self.y += 8 * 0x200;
+                self.x += 0x1000;
+                self.y += 0x1000;
                 self.npc_flags.set_solid_hard(true);
                 self.vel_x = 0;
                 self.vel_y = 0;
@@ -1147,7 +1147,7 @@ impl NPC {
                 self.damage = 0;
                 let player = self.get_closest_player_mut(players);
                 if (player.x < self.x + 25 * 0x200)
-                    && (player.x > self.x - 25 * 16 * 0x200)
+                    && (player.x > self.x - 25 * 0x2000)
                     && (player.y < self.y + 25 * 0x200)
                     && (player.y > self.y - 25 * 0x200)
                 {
@@ -1198,7 +1198,7 @@ impl NPC {
 
                 let player = self.get_closest_player_mut(players);
                 if (player.x > self.x - 25 * 0x200)
-                    && (player.x < self.x + 25 * 16 * 0x200)
+                    && (player.x < self.x + 25 * 0x2000)
                     && (player.y < self.y + 25 * 0x200)
                     && (player.y > self.y - 25 * 0x200)
                 {
@@ -1279,8 +1279,8 @@ impl NPC {
     ) -> GameResult {
         match self.action_num {
             0 => {
-                self.x += 8 * 0x200;
-                self.y += 8 * 0x200;
+                self.x += 0x1000;
+                self.y += 0x1000;
                 self.npc_flags.set_solid_hard(true);
                 self.vel_x = 0;
                 self.vel_y = 0;
@@ -1291,7 +1291,7 @@ impl NPC {
                 self.damage = 0;
                 let player = self.get_closest_player_mut(players);
                 if (player.y < self.y + 25 * 0x200)
-                    && (player.y > self.y - 25 * 16 * 0x200)
+                    && (player.y > self.y - 25 * 0x2000)
                     && (player.x < self.x + 25 * 0x200)
                     && (player.x > self.x - 25 * 0x200)
                 {
@@ -1342,7 +1342,7 @@ impl NPC {
 
                 let player = self.get_closest_player_mut(players);
                 if (player.y > self.y - 25 * 0x200)
-                    && (player.y < self.y + 25 * 16 * 0x200)
+                    && (player.y < self.y + 25 * 0x2000)
                     && (player.x < self.x + 25 * 0x200)
                     && (player.x > self.x - 25 * 0x200)
                 {
@@ -1404,7 +1404,7 @@ impl NPC {
     pub(crate) fn tick_n194_broken_blue_robot(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
-            self.y += 4 * 0x200;
+            self.y += 0x800;
         }
 
         self.anim_rect = state.constants.npc.n194_broken_blue_robot;
@@ -1517,7 +1517,7 @@ impl NPC {
     pub(crate) fn tick_n234_red_flowers_picked(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
-            self.y += 16 * 0x200;
+            self.y += 0x2000;
 
             match self.direction {
                 Direction::Left => self.anim_rect = state.constants.npc.n234_red_flowers_picked[0],

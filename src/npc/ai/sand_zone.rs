@@ -225,13 +225,13 @@ impl NPC {
                 }
 
                 let player = self.get_closest_player_mut(players);
-                if abs(self.x - player.x) < 8 * 0x200 && player.y > self.y && player.y < self.y + 8 * 0x200 {
+                if abs(self.x - player.x) < 0x1000 && player.y > self.y && player.y < self.y + 0x1000 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     state.sound_manager.play_sfx(102);
                 }
 
-                self.x += (player.x - self.x).signum() * 2 * 0x200;
+                self.x += (player.x - self.x).signum() * 0x400;
             }
             2 => {
                 self.anim_counter += 1;
@@ -1051,8 +1051,8 @@ impl NPC {
             0 | 1 => {
                 if self.action_num == 0 {
                     self.action_num = 1;
-                    self.x += 8 * 0x200;
-                    self.y += 8 * 0x200;
+                    self.x += 0x1000;
+                    self.y += 0x1000;
                 }
 
                 self.npc_flags.set_ignore_solidity(false);

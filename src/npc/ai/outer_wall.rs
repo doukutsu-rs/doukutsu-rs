@@ -21,7 +21,7 @@ impl NPC {
                 }
 
                 let player = self.get_closest_player_mut(players);
-                if abs(self.x - player.x) < 12 * 0x200 && player.y > self.y && player.y < self.y + 8 * 0x200 {
+                if abs(self.x - player.x) < 12 * 0x200 && player.y > self.y && player.y < self.y + 0x1000 {
                     self.action_num = 15;
                     self.action_counter = 0;
                 }

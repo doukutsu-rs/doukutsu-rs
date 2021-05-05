@@ -109,9 +109,9 @@ impl NPC {
 
                     npc.cond.set_alive(true);
                     npc.x = self.x;
-                    npc.y = self.y + 4 * 0x200; // 4.0fix9
+                    npc.y = self.y + 0x800; // 4.0fix9
 
-                    let mut angle = ((self.y + 4 * 0x200 - player.y) as f64 / (self.x - player.y) as f64).atan();
+                    let mut angle = ((self.y + 0x800 - player.y) as f64 / (self.x - player.y) as f64).atan();
                     angle += self.rng.range(-16..16) as f64 * std::f64::consts::FRAC_PI_8;
                     npc.vel_x = (angle.cos() * 512.0) as i32; // 1.0fix9
                     npc.vel_y = (angle.sin() * 512.0) as i32;
@@ -132,7 +132,7 @@ impl NPC {
                     self.action_num = 4;
                     self.action_counter = 0;
                     self.vel_x = (player.x - self.x) / 0x64;
-                    self.vel_y = -3 * 0x200;
+                    self.vel_y = -0x600;
                     self.anim_num = 3;
                 }
             }
@@ -141,7 +141,7 @@ impl NPC {
                     self.vel_x = 0;
                 }
 
-                self.damage = if self.y + 16 * 0x200 < player.y { 5 } else { 0 };
+                self.damage = if self.y + 0x2000 < player.y { 5 } else { 0 };
 
                 if self.flags.hit_bottom_wall() {
                     self.action_num = 5;
@@ -271,7 +271,7 @@ impl NPC {
                     self.action_num = 12;
                     self.action_counter = 0;
                     self.anim_num = 3;
-                    self.vel_y = -4 * 0x200;
+                    self.vel_y = -0x800;
                     self.npc_flags.set_ignore_solidity(true);
                 }
             }
@@ -456,7 +456,7 @@ impl NPC {
                     self.action_num = 102;
                     self.action_counter = 0;
                     self.anim_num = 3;
-                    self.vel_y = -4 * 0x200;
+                    self.vel_y = -0x800;
                     self.npc_flags.set_ignore_solidity(true);
 
                     for npc in npc_list.iter_alive().filter(|npc| npc.npc_type == 117 || npc.npc_type == 150) {
@@ -473,8 +473,8 @@ impl NPC {
                 }
             }
             102 => {
-                let x = clamp(self.x / (16 * 0x200), 0, stage.map.width as i32) as usize;
-                let y = clamp(self.y / (16 * 0x200), 0, stage.map.height as i32) as usize;
+                let x = clamp(self.x / (0x2000), 0, stage.map.width as i32) as usize;
+                let y = clamp(self.y / (0x2000), 0, stage.map.height as i32) as usize;
 
                 if y <= 34 && stage.change_tile(x, y, 0) {
                     state.sound_manager.play_sfx(44);
@@ -482,20 +482,20 @@ impl NPC {
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
-                    npc.x = x as i32 * 16 * 0x200;
-                    npc.y = y as i32 * 16 * 0x200;
+                    npc.x = x as i32 * 0x2000;
+                    npc.y = y as i32 * 0x2000;
 
                     let _ = npc_list.spawn(0x100, npc.clone());
                     let _ = npc_list.spawn(0x100, npc.clone());
 
                     if x > 0 && stage.change_tile(x - 1, y, 0) {
-                        npc.x = (x - 1) as i32 * 16 * 0x200;
+                        npc.x = (x - 1) as i32 * 0x2000;
                         let _ = npc_list.spawn(0x100, npc.clone());
                         let _ = npc_list.spawn(0x100, npc.clone());
                     }
 
                     if x < stage.map.width as usize && stage.change_tile(x + 1, y, 0) {
-                        npc.x = (x + 1) as i32 * 16 * 0x200;
+                        npc.x = (x + 1) as i32 * 0x2000;
                         let _ = npc_list.spawn(0x100, npc.clone());
                         let _ = npc_list.spawn(0x100, npc);
                     }
@@ -623,7 +623,7 @@ impl NPC {
             self.cond.set_alive(false);
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
         } else if self.flags.hit_bottom_wall() {
-            self.vel_y = -2 * 0x200;
+            self.vel_y = -0x400;
         }
 
         self.vel_y += 0x2a;
@@ -688,7 +688,7 @@ impl NPC {
                     npc.vel_x = (angle.cos() * -512.0) as i32;
                     npc.vel_y = (angle.sin() * -512.0) as i32;
                     npc.x = self.x;
-                    npc.y = self.y + 4 * 0x200;
+                    npc.y = self.y + 0x800;
 
                     let _ = npc_list.spawn(0x100, npc);
                     state.sound_manager.play_sfx(39);
@@ -707,7 +707,7 @@ impl NPC {
                     self.anim_num = 3;
 
                     self.vel_x = (player.x - self.x) / 100;
-                    self.vel_y = -3 * 0x200;
+                    self.vel_y = -0x600;
                 }
             }
             4 => {
@@ -744,7 +744,7 @@ impl NPC {
                 self.vel_y = clamp(self.vel_y, -0x200, 0x200);
             }
             6 => {
-                if self.y + 16 * 0x200 < player.y {
+                if self.y + 0x2000 < player.y {
                     self.damage = 10;
                 } else {
                     self.damage = 0;
@@ -870,7 +870,7 @@ impl NPC {
 
                 let pi = self.get_closest_player_idx_mut(&players);
                 if self.action_counter >= 8 && (players[pi].x - self.x).abs() < 12 * 0x200 // 12.0fix9
-                    && self.y - 12 * 0x200 < players[pi].y && self.y + 8 * 0x200 > players[pi].y
+                    && self.y - 12 * 0x200 < players[pi].y && self.y + 0x1000 > players[pi].y
                 {
                     // 12.0fix9 / 8.0fix9
                     self.action_num = 10;
@@ -887,7 +887,7 @@ impl NPC {
                     } else if (self.action_counter2 % 3 == 0) && self.action_counter > 25 {
                         self.action_num = 4;
                         self.anim_num = 7;
-                        self.vel_y = -2 * 0x200; // -2.0fix9
+                        self.vel_y = -0x400; // -2.0fix9
                     }
                 }
             }
@@ -903,7 +903,7 @@ impl NPC {
                 if self.action_counter >= 8
                     && (players[pi].x - self.x).abs() < 12 * 0x200
                     && self.y - 12 * 0x200 < players[pi].y
-                    && self.y + 8 * 0x200 > players[pi].y
+                    && self.y + 0x1000 > players[pi].y
                 {
                     self.action_num = 10;
                     self.anim_num = 5;
@@ -962,8 +962,8 @@ impl NPC {
                     self.direction = self.direction.opposite();
 
                     player.direction = self.direction;
-                    player.x += 4 * 0x200 * self.direction.vector_x();
-                    player.y -= 8 * 0x200;
+                    player.x += 0x800 * self.direction.vector_x();
+                    player.y -= 0x1000;
                     player.vel_x = 0x5ff * self.direction.vector_x();
                     player.vel_y = -0x200;
 

@@ -26,10 +26,10 @@ impl NPC {
                 }
 
                 let player = self.get_closest_player_mut(players);
-                if (self.x - (16 * 0x200) < player.x)
-                    && (self.x + (16 * 0x200) > player.x)
-                    && (self.y - (16 * 0x200) < player.y)
-                    && (self.y + (16 * 0x200) > player.y)
+                if (self.x - (0x2000) < player.x)
+                    && (self.x + (0x2000) > player.x)
+                    && (self.y - (0x2000) < player.y)
+                    && (self.y + (0x2000) > player.y)
                 {
                     if self.x > player.x {
                         self.direction = Direction::Left;

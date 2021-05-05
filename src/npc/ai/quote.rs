@@ -13,7 +13,7 @@ impl NPC {
             0 => {
                 self.action_num = 1;
                 self.anim_num = 0;
-                self.y -= 16 * 0x200;
+                self.y -= 0x2000;
             }
             1 => {
                 self.action_counter += 1;
@@ -26,7 +26,7 @@ impl NPC {
             }
             2 => {
                 if self.vel_y > 0 {
-                    self.hit_bounds.bottom = 16 * 0x200;
+                    self.hit_bounds.bottom = 0x2000;
                 }
 
                 if self.flags.hit_bottom_wall() {
@@ -82,8 +82,8 @@ impl NPC {
                 self.action_num = 1;
                 self.anim_num = 0;
                 self.anim_counter = 0;
-                self.x += 16 * 0x200;
-                self.y += 8 * 0x200;
+                self.x += 0x2000;
+                self.y += 0x1000;
 
                 state.sound_manager.play_sfx(29);
             }
@@ -99,7 +99,7 @@ impl NPC {
                 if self.action_counter > 20 {
                     self.action_num = 3;
                     self.anim_num = 1;
-                    self.hit_bounds.bottom = 8 * 0x200;
+                    self.hit_bounds.bottom = 0x1000;
                 }
             }
             3 => {

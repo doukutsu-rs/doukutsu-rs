@@ -177,7 +177,7 @@ impl NPC {
 
                 if self.action_counter2 < 120 {
                     self.action_counter2 += 1;
-                } else if abs(self.x - player.x) < 8 * 0x200 && self.y < player.y && self.y + 96 * 0x200 > player.y {
+                } else if abs(self.x - player.x) < 0x1000 && self.y < player.y && self.y + 96 * 0x200 > player.y {
                     self.vel_x /= 2;
                     self.vel_y = 0;
                     self.action_num = 3;
@@ -226,7 +226,7 @@ impl NPC {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    self.y += 3 * 0x200;
+                    self.y += 0x600;
                     self.action_num = 1;
                 }
 
@@ -370,7 +370,7 @@ impl NPC {
                     self.anim_num = 1;
                 }
 
-                if abs(self.x - player.x) < 8 * 0x200 && self.y - 8 * 0x200 < player.y && self.y + 96 * 0x200 > player.y
+                if abs(self.x - player.x) < 0x1000 && self.y - 0x1000 < player.y && self.y + 96 * 0x200 > player.y
                 {
                     self.action_num = 3;
                     self.anim_num = 0;
@@ -400,7 +400,7 @@ impl NPC {
                 }
 
                 self.action_counter += 1;
-                if self.action_counter >= 20 && (self.flags.hit_bottom_wall() || self.y > player.y - 16 * 0x200) {
+                if self.action_counter >= 20 && (self.flags.hit_bottom_wall() || self.y > player.y - 0x2000) {
                     self.action_num = 5;
                     self.anim_num = 2;
                     self.anim_counter = 0;
@@ -483,8 +483,8 @@ impl NPC {
 
             let mut npc = NPC::create(103, &state.npc_table);
             npc.cond.set_alive(true);
-            npc.x = self.x + self.direction.vector_x() * 8 * 0x200;
-            npc.y = self.y + 8 * 0x200;
+            npc.x = self.x + self.direction.vector_x() * 0x1000;
+            npc.y = self.y + 0x1000;
             npc.direction = self.direction;
 
             let _ = npc_list.spawn(0x100, npc);
@@ -589,7 +589,7 @@ impl NPC {
             self.vel_y += 0x10;
 
             if self.flags.hit_bottom_wall() {
-                self.vel_y = -2 * 0x200;
+                self.vel_y = -0x400;
             }
         }
 
@@ -673,7 +673,7 @@ impl NPC {
 
         self.vel_y += 0x20;
         if self.flags.hit_bottom_wall() {
-            self.vel_y = -2 * 0x200;
+            self.vel_y = -0x400;
         }
 
         self.vel_x = clamp(self.vel_x, -0x100, 0x100);
@@ -696,7 +696,7 @@ impl NPC {
 
     pub(crate) fn tick_n100_grate(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
-            self.y += 16 * 0x200;
+            self.y += 0x2000;
             self.action_num = 1;
 
             self.anim_rect = if self.direction == Direction::Left {
@@ -719,7 +719,7 @@ impl NPC {
     pub(crate) fn tick_n102_malco_computer_wave(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
-            self.y += 8 * 0x200;
+            self.y += 0x1000;
         }
 
         self.animate(0, 0, 3);
@@ -1018,7 +1018,7 @@ impl NPC {
                 self.animate(4, 6, 9);
             }
             110 => {
-                npc_list.create_death_smoke(self.x, self.y, 16 * 0x200, 16, state, &self.rng);
+                npc_list.create_death_smoke(self.x, self.y, 0x2000, 16, state, &self.rng);
                 self.cond.set_alive(false);
             }
             _ => {}
@@ -1058,7 +1058,7 @@ impl NPC {
 
                 if abs(self.x - player.x) < 32 * 0x200
                     && self.y - 32 * 0x200 < player.y
-                    && self.y + 16 * 0x200 > player.y
+                    && self.y + 0x2000 > player.y
                 {
                     self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
                 }
@@ -1356,14 +1356,14 @@ impl NPC {
         match self.action_num {
             0 => {
                 self.action_num = 1;
-                self.display_bounds = Rect { left: 16 * 0x200, top: 8 * 0x200, right: 16 * 0x200, bottom: 8 * 0x200 };
+                self.display_bounds = Rect { left: 0x2000, top: 0x1000, right: 0x2000, bottom: 0x1000 };
             }
             10 => {
                 self.action_num = 11;
                 self.anim_num = 1;
                 self.y -= 5 * 0x200;
-                self.display_bounds.top = 16 * 0x200;
-                self.display_bounds.bottom = 16 * 0x200
+                self.display_bounds.top = 0x2000;
+                self.display_bounds.bottom = 0x2000
             }
             20 | 21 => {
                 if self.action_num == 20 {
@@ -1385,7 +1385,7 @@ impl NPC {
                 if self.action_num == 30 {
                     self.action_num = 31;
                     self.action_counter = 1;
-                    self.vel_x = -4 * 0x200;
+                    self.vel_x = -0x800;
                     self.x = self.target_x;
                     self.y = self.target_y;
 
@@ -1411,7 +1411,7 @@ impl NPC {
                     self.action_counter = 2;
                     self.direction = Direction::Left;
                     self.y -= 48 * 0x200;
-                    self.vel_x = -8 * 0x200;
+                    self.vel_x = -0x1000;
                 }
 
                 self.x += self.vel_x;

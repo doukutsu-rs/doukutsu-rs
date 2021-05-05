@@ -32,7 +32,7 @@ impl NPC {
 
                 self.animate(1, 0, 1);
 
-                if (self.x - self.target_x).abs() < 3 * 0x200 && (self.y - self.target_y).abs() < 3 * 0x200 {
+                if (self.x - self.target_x).abs() < 0x600 && (self.y - self.target_y).abs() < 0x600 {
                     self.action_num = 2;
                     self.anim_num = 2;
                     state.sound_manager.play_sfx(21);
@@ -49,7 +49,7 @@ impl NPC {
                 self.vel_x = clamp(self.vel_x, -0x5ff, 0x5ff);
                 self.vel_y = clamp(self.vel_y, -0x5ff, 0x5ff);
 
-                if self.y < -8 * 0x200 {
+                if self.y < -0x1000 {
                     self.cond.set_alive(false);
                 }
 
@@ -133,7 +133,7 @@ impl NPC {
                     let mut npc = NPC::create(66, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.x;
-                    npc.y = self.y - 16 * 0x200;
+                    npc.y = self.y - 0x2000;
 
                     let _ = npc_list.spawn(0, npc);
                 }
@@ -152,7 +152,7 @@ impl NPC {
 
                 self.vel_y -= 0x20;
 
-                if self.y < -8 * 0x200 {
+                if self.y < -0x1000 {
                     self.cond.set_alive(false);
                 }
             }
@@ -253,7 +253,7 @@ impl NPC {
 
                     let mut npc = NPC::create(66, &state.npc_table);
                     npc.x = self.x;
-                    npc.y = self.y - 16 * 0x200;
+                    npc.y = self.y - 0x2000;
                     npc.cond.set_alive(true);
 
                     let _ = npc_list.spawn(0, npc);
@@ -273,7 +273,7 @@ impl NPC {
 
                 self.vel_y -= 0x20;
 
-                if self.y < -8 * 0x200 {
+                if self.y < -0x1000 {
                     self.cond.set_alive(false);
                 }
             }
@@ -338,8 +338,8 @@ impl NPC {
                     state.sound_manager.play_sfx(33);
 
                     let mut npc = NPC::create(11, &state.npc_table);
-                    npc.x = self.x + 8 * 0x200;
-                    npc.y = self.y - 8 * 0x200;
+                    npc.x = self.x + 0x1000;
+                    npc.y = self.y - 0x1000;
                     npc.vel_x = 0x600;
                     npc.vel_y = self.rng.range(-0x200..0) as i32;
                     npc.cond.set_alive(true);

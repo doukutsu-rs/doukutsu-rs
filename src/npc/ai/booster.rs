@@ -47,9 +47,9 @@ impl NPC {
                     self.action_num = 31;
                     self.anim_num = 0;
                     self.anim_counter = 0;
-                    self.hit_bounds.bottom = 16 * 0x200;
-                    self.x -= 16 * 0x200;
-                    self.y += 8 * 0x200;
+                    self.hit_bounds.bottom = 0x2000;
+                    self.x -= 0x2000;
+                    self.y += 0x1000;
                     // interpolation glitch fix
                     self.prev_x = self.x;
                     self.prev_y = self.y;
@@ -66,7 +66,7 @@ impl NPC {
                 if self.action_counter > 20 {
                     self.action_num = 33;
                     self.anim_num = 1;
-                    self.hit_bounds.bottom = 8 * 0x200;
+                    self.hit_bounds.bottom = 0x1000;
                 }
             }
             33 => {

@@ -186,8 +186,8 @@ impl NPC {
                     self.action_num = 0;
                     self.anim_num = 0;
                     self.damage = 0;
-                    self.hit_bounds.left = 8 * 0x200;
-                    self.hit_bounds.top = 16 * 0x200;
+                    self.hit_bounds.left = 0x1000;
+                    self.hit_bounds.top = 0x2000;
                 }
             }
             7 => {
@@ -242,7 +242,7 @@ impl NPC {
                     npc.cond.set_alive(true);
                     npc.direction = Direction::Left;
                     npc.x = self.x;
-                    npc.y = self.y + 4 * 0x200;
+                    npc.y = self.y + 0x800;
                     npc.vel_x = vel_x;
                     npc.vel_y = vel_y;
 
@@ -334,7 +334,7 @@ impl NPC {
                     self.anim_num = 1;
                     self.display_bounds.left = 12 * 0x200;
                     self.display_bounds.right = 12 * 0x200;
-                    self.display_bounds.top = 8 * 0x200;
+                    self.display_bounds.top = 0x1000;
                 }
 
                 if self.action_counter > 150 {

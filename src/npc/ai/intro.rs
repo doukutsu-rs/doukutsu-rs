@@ -12,7 +12,7 @@ impl NPC {
             0 | 1 => {
                 if self.action_num == 0 {
                     self.action_num = 1;
-                    self.y -= 8 * 0x200;
+                    self.y -= 0x1000;
                 }
 
                 self.anim_num = 0;
@@ -116,14 +116,14 @@ impl NPC {
     pub(crate) fn tick_n300_intro_demon_crown(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
-            self.y += 6 * 0x200;
+            self.y += 0xc00;
             self.anim_rect = state.constants.npc.n300_intro_demon_crown;
         }
 
         self.anim_counter += 1;
         if (self.anim_counter % 8) == 1 {
             state.create_caret(self.x + state.effect_rng.range(-8..8) as i32 * 0x200,
-                               self.y + 8 * 0x200,
+                               self.y + 0x1000,
                                CaretType::LittleParticles, Direction::Up);
         }
 

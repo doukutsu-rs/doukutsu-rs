@@ -71,7 +71,7 @@ impl NPC {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    self.y += 3 * 0x200;
+                    self.y += 0x600;
                     self.action_num = 1;
                     self.anim_num = 0;
                     self.anim_rect = state.constants.npc.n064_first_cave_critter[self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
