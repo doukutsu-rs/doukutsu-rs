@@ -185,7 +185,7 @@ pub struct NPCConsts {
     pub n060_toroko: [Rect<u16>; 16],
 
     #[serde(default = "default_n061_king")]
-    pub n061_king: [Rect<u16>; 20],
+    pub n061_king: [Rect<u16>; 22],
 
     #[serde(default = "default_n062_kazuma_computer")]
     pub n062_kazuma_computer: [Rect<u16>; 3],
@@ -505,8 +505,8 @@ pub struct NPCConsts {
     #[serde(default = "default_n168_boulder")]
     pub n168_boulder: Rect<u16>,
 
-    #[serde(default = "default_n169_missile")]
-    pub n169_missile: [Rect<u16>; 18],
+    #[serde(default = "default_n169_balrog_missile_group")]
+    pub n169_balrog_missile_group: [Rect<u16>; 18],
 
     #[serde(default = "default_n170_balrog_missile")]
     pub n170_balrog_missile: [Rect<u16>; 4],
@@ -1742,7 +1742,7 @@ fn default_n060_toroko() -> [Rect<u16>; 16] {
     ]
 }
 
-fn default_n061_king() -> [Rect<u16>; 20] {
+fn default_n061_king() -> [Rect<u16>; 22] {
     [
         Rect { left: 224, top: 32, right: 240, bottom: 48 },
         Rect { left: 240, top: 32, right: 256, bottom: 48 },
@@ -1754,6 +1754,7 @@ fn default_n061_king() -> [Rect<u16>; 20] {
         Rect { left: 224, top: 32, right: 240, bottom: 48 },
         Rect { left: 272, top: 32, right: 288, bottom: 48 },
         Rect { left: 0, top: 0, right: 0, bottom: 0 },
+        Rect { left: 112, top: 32, right: 128, bottom: 48 },
         Rect { left: 224, top: 48, right: 240, bottom: 64 },
         Rect { left: 240, top: 48, right: 256, bottom: 64 },
         Rect { left: 256, top: 48, right: 272, bottom: 64 },
@@ -1764,6 +1765,7 @@ fn default_n061_king() -> [Rect<u16>; 20] {
         Rect { left: 224, top: 48, right: 240, bottom: 64 },
         Rect { left: 272, top: 48, right: 288, bottom: 64 },
         Rect { left: 0, top: 0, right: 0, bottom: 0 },
+        Rect { left: 112, top: 32, right: 128, bottom: 48 },
     ]
 }
 
@@ -2968,7 +2970,7 @@ fn default_n168_boulder() -> Rect<u16> {
     Rect { left: 264, top: 56, right: 320, bottom: 96 }
 }
 
-fn default_n169_missile() -> [Rect<u16>; 18] {
+fn default_n169_balrog_missile_group() -> [Rect<u16>; 18] {
     [
         Rect { left: 0, top: 0, right: 40, bottom: 24 },
         Rect { left: 0, top: 48, right: 40, bottom: 72 },

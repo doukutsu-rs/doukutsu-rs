@@ -1,7 +1,7 @@
 use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
-use crate::common::{Direction, CDEG_RAD};
+use crate::common::{CDEG_RAD, Direction};
 use crate::framework::error::GameResult;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
@@ -905,6 +905,147 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n122_colon_enraged(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                }
+
+                if self.rng.range(0..120) == 10 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+
+                let player = self.get_closest_player_mut(players);
+
+                if self.x - 0x4000 < player.x
+                    && self.x + 0x4000 > player.x
+                    && self.y - 0x4000 < player.y
+                    && self.y + 0x2000 > player.y
+                {
+                    if self.x <= player.x {
+                        self.direction = Direction::Right;
+                    } else {
+                        self.direction = Direction::Left;
+                    }
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.life = 1000;
+                    self.action_num = 11;
+                    self.action_counter = self.rng.range(0..50) as u16;
+                    self.anim_num = 0;
+                    self.damage = 0;
+                }
+
+                if self.action_counter != 0 {
+                    self.action_counter -= 1;
+                } else {
+                    self.action_num = 13;
+                }
+            }
+            13 | 14 => {
+                if self.action_num == 13 {
+                    self.action_num = 14;
+                    self.action_counter = self.rng.range(0..50) as u16;
+
+                    let player = self.get_closest_player_mut(players);
+
+                    if self.x <= player.x {
+                        self.direction = Direction::Right;
+                    } else {
+                        self.direction = Direction::Left;
+                    }
+                }
+
+                self.animate(2, 2, 5);
+
+                self.vel_x = if self.direction != Direction::Left { self.vel_x + 64 } else { self.vel_x - 64 };
+
+                if self.action_counter != 0 {
+                    self.action_counter -= 1;
+                } else {
+                    self.npc_flags.set_shootable(true);
+                    self.action_num = 15;
+                    self.anim_num = 2;
+                    self.vel_y = -512;
+                    self.damage = 2;
+                }
+            }
+            15 => {
+                if self.flags.hit_bottom_wall() {
+                    self.npc_flags.set_shootable(true);
+                    self.vel_x = 0;
+                    self.action_num = 10;
+                    self.damage = 0;
+                }
+            }
+            20 => {
+                if self.flags.hit_bottom_wall() {
+                    self.vel_x = 0;
+                    self.action_num = 21;
+                    self.damage = 0;
+                    if self.anim_num == 6 {
+                        self.anim_num = 8;
+                    } else {
+                        self.anim_num = 9;
+                    }
+                    self.action_counter = self.rng.range(300..400) as u16;
+                }
+            }
+            21 => {
+                if self.action_counter > 0 {
+                    self.action_counter -= 1;
+                } else {
+                    self.npc_flags.set_shootable(true);
+                    self.life = 1000;
+                    self.action_num = 11;
+                    self.action_counter = self.rng.range(0..50) as u16;
+                    self.anim_num = 0;
+                }
+            }
+            _ => {}
+        }
+        if self.action_num > 10 && self.action_num < 20 && self.life != 1000 {
+            self.action_num = 20;
+            self.vel_y = -512;
+            self.anim_num = self.rng.range(6..7) as u16;
+            self.npc_flags.set_shootable(false);
+        }
+        self.vel_y += 32;
+
+        self.vel_x = self.vel_x.clamp(-0x200, 0x200);
+
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+        self.y += self.vel_y;
+        self.x += self.vel_x;
+
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 10 };
+
+        self.anim_rect = state.constants.npc.n122_colon_enraged[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n124_sunstone(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -1482,7 +1623,6 @@ impl NPC {
         self.vel_x = clamp(self.vel_x, -0x5ff, 0x5ff);
         self.y += self.vel_y;
         self.x += self.vel_x;
-
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
 

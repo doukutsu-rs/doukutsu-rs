@@ -1,5 +1,5 @@
 use crate::caret::CaretType;
-use crate::common::{Direction, CDEG_RAD};
+use crate::common::{CDEG_RAD, Direction};
 use crate::framework::error::GameResult;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
@@ -821,6 +821,7 @@ impl NPC {
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
         self.anim_rect = state.constants.npc.n163_dr_gero[self.anim_num as usize + dir_offset];
 
         Ok(())
@@ -852,7 +853,55 @@ impl NPC {
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
         self.anim_rect = state.constants.npc.n164_nurse_hasumi[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n168_boulder(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 => {
+                self.action_num = 1;
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.action_counter = 0;
+                    self.target_x = self.x;
+                }
+
+                self.action_counter += 1;
+                self.x = self.target_x;
+                if ((self.action_counter / 3) & 1) != 0 {
+                    self.x += 0x200;
+                }
+            }
+            20 | 21 => {
+                if self.action_num == 20 {
+                    self.action_num = 21;
+                    self.action_counter = 0;
+                    self.vel_y = -0x400;
+                    self.vel_x = 0x100;
+                    state.sound_manager.play_sfx(25);
+                }
+
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+
+                if self.action_counter != 0 && self.flags.hit_bottom_wall() {
+                    state.sound_manager.play_sfx(35);
+                    state.quake_counter = 40;
+                    self.action_num = 0;
+                }
+                if self.action_counter == 0 {
+                    self.action_counter += 1;
+                }
+            }
+            _ => {}
+        }
+
+        self.anim_rect = state.constants.npc.n168_boulder;
 
         Ok(())
     }
