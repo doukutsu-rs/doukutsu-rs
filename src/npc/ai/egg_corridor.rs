@@ -475,6 +475,7 @@ impl NPC {
                 } else {
                     self.y -= 0x200;
                 }
+                self.animate(1, 0, 1);
             }
             3 => {
                 self.action_counter += 1;
@@ -491,6 +492,7 @@ impl NPC {
                 } else {
                     self.y -= 0x200;
                 }
+                self.animate(1, 0, 1);
             }
             5 => {
                 self.action_counter += 1;
@@ -507,6 +509,7 @@ impl NPC {
                 } else {
                     self.y += 0x200;
                 }
+                self.animate(1, 0, 1);
             }
             7 => {
                 self.action_counter += 1;
@@ -523,23 +526,12 @@ impl NPC {
                 } else {
                     self.y += 0x200;
                 }
+                self.animate(1, 0, 1);
             }
             _ => {}
         }
 
-        if [2, 4, 6, 8].contains(&self.action_num) {
-            self.anim_counter += 1;
-            if self.anim_counter > 1 {
-                self.anim_num += 1;
-                if self.anim_num > 1 {
-                    self.anim_num = 0;
-                }
-            }
-        }
-
-        if self.anim_counter == 1 {
-            self.anim_rect = state.constants.npc.n025_lift[self.anim_num as usize];
-        }
+        self.anim_rect = state.constants.npc.n025_lift[self.anim_num as usize];
 
         Ok(())
     }

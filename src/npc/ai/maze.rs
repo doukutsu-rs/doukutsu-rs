@@ -1,5 +1,5 @@
 use crate::caret::CaretType;
-use crate::common::{CDEG_RAD, Direction};
+use crate::common::{Direction, CDEG_RAD};
 use crate::framework::error::GameResult;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
@@ -902,6 +902,100 @@ impl NPC {
         }
 
         self.anim_rect = state.constants.npc.n168_boulder;
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n171_fire_whirrr(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.action_counter = self.rng.range(0..50) as u16;
+            self.action_counter3 = 100;
+            self.target_y = self.y;
+        }
+
+        if self.action_num == 1 {
+            if self.action_counter > 0 {
+                self.action_counter -= 1;
+            } else {
+                self.action_num = 10;
+                self.vel_y = 0x200;
+            }
+        }
+
+        self.animate(0, 0, 1);
+
+        self.vel_y = if self.y >= self.target_y { self.vel_y - 0x10 } else { self.vel_y + 0x10 };
+        self.vel_y = self.vel_y.clamp(-0x200, 0x200);
+        self.y += self.vel_y;
+
+        let player = self.get_closest_player_mut(players);
+
+        if self.x <= player.x {
+            self.direction = Direction::Right;
+        } else {
+            self.direction = Direction::Left;
+        }
+
+        if self.direction != Direction::Left {
+            if player.y < self.y + 0xA000
+                && player.y > self.y - 0xA000
+                && player.x < self.x + 0x14000
+                && player.x > self.x
+            {
+                self.action_counter3 += 1;
+            }
+        } else if player.y < self.y + 0xA000
+            && player.y > self.y - 0xA000
+            && player.x < self.x
+            && player.x > self.x - 0x14000
+        {
+            self.action_counter3 += 1;
+        }
+
+        if self.action_counter3 > 120 {
+            self.action_counter3 = 0;
+            state.npc_curly_counter = self.rng.range(80..100) as u16;
+            state.npc_curly_target = (self.x, self.y);
+
+            let mut npc = NPC::create(172, &state.npc_table);
+            npc.cond.set_alive(true);
+            npc.x = self.x;
+            npc.y = self.y;
+            npc.direction = self.direction;
+
+            let _ = npc_list.spawn(0x100, npc);
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
+        self.anim_rect = state.constants.npc.n171_fire_whirrr[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n172_fire_whirrr_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            // pixel what?
+            self.action_num = 1;
+        }
+
+        if self.action_num == 1 {
+            self.animate(1, 0, 2);
+            self.x += self.direction.vector_x() * 0x200;
+
+            if self.flags.hit_left_wall() || self.flags.hit_right_wall() {
+                state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
+                self.vanish(state);
+            }
+        }
+
+        self.anim_rect = state.constants.npc.n172_fire_whirrr_projectile[self.anim_num as usize];
 
         Ok(())
     }

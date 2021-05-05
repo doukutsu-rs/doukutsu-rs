@@ -505,8 +505,8 @@ pub struct NPCConsts {
     #[serde(default = "default_n168_boulder")]
     pub n168_boulder: Rect<u16>,
 
-    #[serde(default = "default_n169_balrog_missile_group")]
-    pub n169_balrog_missile_group: [Rect<u16>; 18],
+    #[serde(default = "default_n169_balrog_shooting_missiles")]
+    pub n169_balrog_shooting_missiles: [Rect<u16>; 18],
 
     #[serde(default = "default_n170_balrog_missile")]
     pub n170_balrog_missile: [Rect<u16>; 4],
@@ -2970,7 +2970,7 @@ fn default_n168_boulder() -> Rect<u16> {
     Rect { left: 264, top: 56, right: 320, bottom: 96 }
 }
 
-fn default_n169_balrog_missile_group() -> [Rect<u16>; 18] {
+fn default_n169_balrog_shooting_missiles() -> [Rect<u16>; 18] {
     [
         Rect { left: 0, top: 0, right: 40, bottom: 24 },
         Rect { left: 0, top: 48, right: 40, bottom: 72 },

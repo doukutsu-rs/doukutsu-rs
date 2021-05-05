@@ -997,7 +997,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n169_balrog_missile_group(
+    pub(crate) fn tick_n169_balrog_shooting_missiles(
         &mut self,
         state: &mut SharedGameState,
         mut players: [&mut Player; 2],
@@ -1205,8 +1205,14 @@ impl NPC {
         if self.vel_y > 0x5FF {
             self.vel_y = 0x5FF;
         }
+
         self.x += self.vel_x;
         self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 9 };
+
+        self.anim_rect = state.constants.npc.n169_balrog_shooting_missiles[self.anim_num as usize + dir_offset];
+
 
         Ok(())
     }
@@ -1268,6 +1274,10 @@ impl NPC {
 
         self.x += self.vel_x;
         self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
+        self.anim_rect = state.constants.npc.n170_balrog_missile[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
