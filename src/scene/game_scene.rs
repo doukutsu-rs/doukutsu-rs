@@ -141,7 +141,7 @@ impl GameScene {
         let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time);
 
         match self.stage.data.background_type {
-            BackgroundType::Stationary => {
+            BackgroundType::TiledStatic => {
                 graphics::clear(ctx, Color::from_rgb(0, 0, 0));
 
                 let count_x = state.canvas_size.0 as usize / batch.width() + 1;
@@ -153,10 +153,10 @@ impl GameScene {
                     }
                 }
             }
-            BackgroundType::MoveDistant | BackgroundType::MoveNear => {
+            BackgroundType::TiledParallax | BackgroundType::Tiled | BackgroundType::Waterway => {
                 graphics::clear(ctx, Color::from_rgb(0, 0, 0));
 
-                let (off_x, off_y) = if self.stage.data.background_type == BackgroundType::MoveNear {
+                let (off_x, off_y) = if self.stage.data.background_type == BackgroundType::Tiled {
                     (frame_x % (batch.width() as f32), frame_y % (batch.height() as f32))
                 } else {
                     (
@@ -180,8 +180,8 @@ impl GameScene {
             BackgroundType::Black => {
                 graphics::clear(ctx, Color::from_rgb(0, 0, 32));
             }
-            BackgroundType::Autoscroll => {}
-            BackgroundType::OutsideWind | BackgroundType::Outside => {
+            BackgroundType::Scrolling => {}
+            BackgroundType::OutsideWind | BackgroundType::Outside | BackgroundType::OutsideUnknown => {
                 graphics::clear(ctx, Color::from_rgb(0, 0, 0));
 
                 let offset = (self.tick % 640) as i32;

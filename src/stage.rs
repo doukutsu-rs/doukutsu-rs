@@ -8,11 +8,11 @@ use log::info;
 use crate::encoding::read_cur_shift_jis;
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
+use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::map::{Map, NPCData};
 use crate::text_script::TextScript;
-use crate::framework::error::GameError::ResourceLoadError;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct NpcType {
@@ -21,24 +21,19 @@ pub struct NpcType {
 
 impl Clone for NpcType {
     fn clone(&self) -> Self {
-        Self {
-            name: self.name.clone(),
-        }
+        Self { name: self.name.clone() }
     }
 }
 
 impl NpcType {
     pub fn new(name: &str) -> Self {
-        Self {
-            name: name.to_owned(),
-        }
+        Self { name: name.to_owned() }
     }
 
     pub fn filename(&self) -> String {
         ["Npc", &self.name].join("")
     }
 }
-
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Tileset {
@@ -47,17 +42,13 @@ pub struct Tileset {
 
 impl Clone for Tileset {
     fn clone(&self) -> Self {
-        Self {
-            name: self.name.clone(),
-        }
+        Self { name: self.name.clone() }
     }
 }
 
 impl Tileset {
     pub fn new(name: &str) -> Self {
-        Self {
-            name: name.to_owned(),
-        }
+        Self { name: name.to_owned() }
     }
 
     pub fn filename(&self) -> String {
@@ -81,17 +72,13 @@ pub struct Background {
 
 impl Clone for Background {
     fn clone(&self) -> Self {
-        Self {
-            name: self.name.clone(),
-        }
+        Self { name: self.name.clone() }
     }
 }
 
 impl Background {
     pub fn new(name: &str) -> Self {
-        Self {
-            name: name.to_owned(),
-        }
+        Self { name: name.to_owned() }
     }
 
     pub fn name(&self) -> &str {
@@ -103,31 +90,42 @@ impl Background {
     }
 }
 
-
 #[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum BackgroundType {
-    Stationary,
-    MoveDistant,
-    MoveNear,
+    TiledStatic,
+    TiledParallax,
+    Tiled,
+    /// Used in Core room, renders water in front of tilemap which also affects player's physics.
     Water,
     Black,
-    Autoscroll,
+    /// Used in Ironhead fight. Affects physics of XP/heart/missile drops.
+    Scrolling,
+    /// Same as Outside, except it affects physics of XP/heart/missile drops.
     OutsideWind,
     Outside,
+    /// Present in CS+KAGE, Seems to be a clone of Outside, isn't used anywhere and has unknown purpose
+    OutsideUnknown,
+    /// Used by CS+KAGE in waterway, it's just TiledParallax with bkCircle2 drawn behind water
+    Waterway,
 }
 
 impl BackgroundType {
     pub fn new(id: usize) -> Self {
         match id {
-            0 => { Self::Stationary }
-            1 => { Self::MoveDistant }
-            2 => { Self::MoveNear }
-            3 => { Self::Water }
-            4 => { Self::Black }
-            5 => { Self::Autoscroll }
-            6 => { Self::OutsideWind }
-            7 => { Self::Outside }
-            _ => { Self::Black }
+            0 => Self::TiledStatic,
+            1 => Self::TiledParallax,
+            2 => Self::Tiled,
+            3 => Self::Water,
+            4 => Self::Black,
+            5 => Self::Scrolling,
+            6 => Self::OutsideWind,
+            7 => Self::Outside,
+            8 => Self::OutsideUnknown,
+            9 => Self::Waterway,
+            _ => {
+                log::warn!("Unknown background type: {}", id);
+                Self::Black
+            }
         }
     }
 }
@@ -160,25 +158,32 @@ impl Clone for StageData {
 }
 
 const NXENGINE_BACKDROPS: [&str; 15] = [
-    "bk0", "bkBlue", "bkGreen", "bkBlack", "bkGard", "bkMaze",
-    "bkGray", "bkRed", "bkWater", "bkMoon", "bkFog", "bkFall",
-    "bkLight", "bkSunset", "bkHellish"
+    "bk0",
+    "bkBlue",
+    "bkGreen",
+    "bkBlack",
+    "bkGard",
+    "bkMaze",
+    "bkGray",
+    "bkRed",
+    "bkWater",
+    "bkMoon",
+    "bkFog",
+    "bkFall",
+    "bkLight",
+    "bkSunset",
+    "bkHellish",
 ];
 
 const NXENGINE_TILESETS: [&str; 22] = [
-    "0", "Pens", "Eggs", "EggX", "EggIn", "Store", "Weed",
-    "Barr", "Maze", "Sand", "Mimi", "Cave", "River",
-    "Gard", "Almond", "Oside", "Cent", "Jail", "White",
-    "Fall", "Hell", "Labo"
+    "0", "Pens", "Eggs", "EggX", "EggIn", "Store", "Weed", "Barr", "Maze", "Sand", "Mimi", "Cave", "River", "Gard",
+    "Almond", "Oside", "Cent", "Jail", "White", "Fall", "Hell", "Labo",
 ];
 
 const NXENGINE_NPCS: [&str; 34] = [
-    "Guest", "0", "Eggs1", "Ravil", "Weed", "Maze",
-    "Sand", "Omg", "Cemet", "Bllg", "Plant", "Frog",
-    "Curly", "Stream", "IronH", "Toro", "X", "Dark",
-    "Almo1", "Eggs2", "TwinD", "Moon", "Cent", "Heri",
-    "Red", "Miza", "Dr", "Almo2", "Kings", "Hell",
-    "Press", "Priest", "Ballos", "Island"
+    "Guest", "0", "Eggs1", "Ravil", "Weed", "Maze", "Sand", "Omg", "Cemet", "Bllg", "Plant", "Frog", "Curly", "Stream",
+    "IronH", "Toro", "X", "Dark", "Almo1", "Eggs2", "TwinD", "Moon", "Cent", "Heri", "Red", "Miza", "Dr", "Almo2",
+    "Kings", "Hell", "Press", "Priest", "Ballos", "Island",
 ];
 
 fn zero_index(s: &[u8]) -> usize {
@@ -324,7 +329,9 @@ impl StageData {
             fh.read_to_end(&mut data)?;
 
             if data.len() < count as usize * 0x74 {
-                return Err(ResourceLoadError("Specified stage table size is bigger than actual number of entries.".to_string()));
+                return Err(ResourceLoadError(
+                    "Specified stage table size is bigger than actual number of entries.".to_string(),
+                ));
             }
 
             let mut f = Cursor::new(data);
@@ -344,7 +351,6 @@ impl StageData {
                 f.read_exact(&mut npc2_buf)?;
                 let boss_no = f.read_u8()? as usize;
                 f.read_exact(&mut name_buf)?;
-
 
                 let tileset = from_shift_jis(&ts_buf[0..zero_index(&ts_buf)]);
                 let map = from_shift_jis(&map_buf[0..zero_index(&map_buf)]);
@@ -381,7 +387,9 @@ impl StageData {
             fh.read_to_end(&mut data)?;
 
             if data.len() < count * 0x49 {
-                return Err(ResourceLoadError("Specified stage table size is bigger than actual number of entries.".to_string()));
+                return Err(ResourceLoadError(
+                    "Specified stage table size is bigger than actual number of entries.".to_string(),
+                ));
             }
 
             let mut f = Cursor::new(data);
@@ -401,10 +409,12 @@ impl StageData {
 
                 let map = from_utf8(&map_buf)
                     .map_err(|_| ResourceLoadError("UTF-8 error in map field".to_string()))?
-                    .trim_matches('\0').to_owned();
+                    .trim_matches('\0')
+                    .to_owned();
                 let name = from_utf8(&name_buf)
                     .map_err(|_| ResourceLoadError("UTF-8 error in name field".to_string()))?
-                    .trim_matches('\0').to_owned();
+                    .trim_matches('\0')
+                    .to_owned();
 
                 let stage = StageData {
                     name: name.clone(),
@@ -438,15 +448,17 @@ impl Stage {
 
         let map = Map::load_from(map_file, attrib_file)?;
 
-        let stage = Self {
-            map,
-            data: data.clone(),
-        };
+        let stage = Self { map, data: data.clone() };
 
         Ok(stage)
     }
 
-    pub fn load_text_script(&self, root: &str, constants: &EngineConstants, ctx: &mut Context) -> GameResult<TextScript> {
+    pub fn load_text_script(
+        &self,
+        root: &str,
+        constants: &EngineConstants,
+        ctx: &mut Context,
+    ) -> GameResult<TextScript> {
         let tsc_file = filesystem::open(ctx, [root, "Stage/", &self.data.map, ".tsc"].join(""))?;
         let text_script = TextScript::load_from(tsc_file, constants)?;
 
