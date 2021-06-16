@@ -1476,6 +1476,10 @@ impl GameScene {
             }
         }
 
+        if self.map_name_counter > 0 {
+            self.map_name_counter -= 1;
+        }
+
         Ok(())
     }
 
@@ -1665,10 +1669,6 @@ impl Scene for GameScene {
                 _ => {}
             }
 
-            if self.map_name_counter > 0 {
-                self.map_name_counter -= 1;
-            }
-
             match state.fade_state {
                 FadeState::FadeOut(tick, direction) if tick < 15 => {
                     state.fade_state = FadeState::FadeOut(tick + 1, direction);
@@ -1851,12 +1851,12 @@ impl Scene for GameScene {
         }
 
         self.draw_fade(state, ctx)?;
-        if self.map_name_counter > 0 {
+        if state.textscript_vm.mode == ScriptMode::Map && self.map_name_counter > 0 {
             let map_name =
                 if self.intro_mode { state.constants.title.intro_text.chars() } else { self.stage.data.name.chars() };
             let width = state.font.text_width(map_name.clone(), &state.constants);
 
-            state.font.draw_text(
+            state.font.draw_text_with_shadow(
                 map_name,
                 ((state.canvas_size.0 - width) / 2.0).floor(),
                 80.0,
