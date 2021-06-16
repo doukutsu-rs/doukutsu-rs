@@ -105,6 +105,7 @@ bitfield! {
   pub alive, set_alive: 7; // 0x80
 
   // engine specific flags
+  pub drs_novanish, set_drs_novanish: 14;
   pub drs_boss, set_drs_boss: 15;
 }
 

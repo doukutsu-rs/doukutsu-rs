@@ -1222,7 +1222,7 @@ impl GameScene {
                     inv.has_weapon(WeaponType::MissileLauncher) || inv.has_weapon(WeaponType::SuperMissileLauncher)
                 });
 
-                self.npc_list.kill_npc(npc.id as usize, true, can_drop_missile, state);
+                self.npc_list.kill_npc(npc.id as usize, !npc.cond.drs_novanish(), can_drop_missile, state);
             }
         }
 

@@ -582,8 +582,8 @@ pub struct NPCConsts {
     #[serde(default = "default_n194_broken_blue_robot")]
     pub n194_broken_blue_robot: Rect<u16>,
 
-    #[serde(default = "default_n195_grate")]
-    pub n195_grate: Rect<u16>,
+    #[serde(default = "default_n195_background_grate")]
+    pub n195_background_grate: Rect<u16>,
 
     #[serde(default = "default_n196_ironhead_motion_wall")]
     pub n196_ironhead_motion_wall: [Rect<u16>; 2],
@@ -3207,7 +3207,7 @@ fn default_n194_broken_blue_robot() -> Rect<u16> {
     Rect { left: 192, top: 120, right: 224, bottom: 128 }
 }
 
-fn default_n195_grate() -> Rect<u16> {
+fn default_n195_background_grate() -> Rect<u16> {
     Rect { left: 112, top: 64, right: 128, bottom: 80 }
 }
 

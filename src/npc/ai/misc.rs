@@ -1412,10 +1412,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n195_grate(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n195_background_grate(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
+            self.layer = NPCLayer::Background;
             self.action_num = 1;
-            self.anim_rect = state.constants.npc.n195_grate;
+            self.anim_rect = state.constants.npc.n195_background_grate;
         }
 
         Ok(())

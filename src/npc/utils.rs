@@ -298,6 +298,9 @@ impl NPCList {
                 if vanish {
                     npc.vanish(state);
                 }
+
+                npc.cond.set_explode_die(false);
+                npc.cond.set_drs_novanish(false);
             } else {
                 npc.cond.set_alive(false);
             }
