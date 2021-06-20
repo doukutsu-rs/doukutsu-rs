@@ -1,17 +1,18 @@
+use std::io;
 use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use std::time::Duration;
 
-use cpal::Sample;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::Sample;
 #[cfg(feature = "ogg-playback")]
 use lewton::inside_ogg::OggStreamReader;
 use num_traits::clamp;
 
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
-use crate::framework::error::{GameError, GameResult};
 use crate::framework::error::GameError::{AudioError, InvalidValue};
+use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
 use crate::framework::filesystem::File;
 use crate::settings::Settings;
@@ -19,15 +20,17 @@ use crate::settings::Settings;
 use crate::sound::ogg_playback::{OggPlaybackEngine, SavedOggPlaybackState};
 use crate::sound::org_playback::{OrgPlaybackEngine, SavedOrganyaPlaybackState};
 use crate::sound::organya::Song;
-use crate::sound::pixtone::PixTonePlayback;
+use crate::sound::pixtone::{PixToneParameters, PixTonePlayback};
 use crate::sound::wave_bank::SoundBank;
 use crate::str;
+use std::io::{BufReader, BufRead, Lines};
+use std::str::FromStr;
 
 #[cfg(feature = "ogg-playback")]
 mod ogg_playback;
 mod org_playback;
 mod organya;
-mod pixtone;
+pub mod pixtone;
 mod pixtone_sfx;
 mod stuff;
 mod wav;
@@ -52,7 +55,8 @@ impl SoundManager {
         let (tx, rx): (Sender<PlaybackMessage>, Receiver<PlaybackMessage>) = mpsc::channel();
 
         let host = cpal::default_host();
-        let device = host.default_output_device().ok_or_else(|| AudioError(str!("Error initializing audio device.")))?;
+        let device =
+            host.default_output_device().ok_or_else(|| AudioError(str!("Error initializing audio device.")))?;
         let config = device.default_output_config()?;
 
         let bnk = wave_bank::SoundBank::load_from(filesystem::open(ctx, "/builtin/organya-wavetable-doukutsu.bin")?)?;
@@ -70,11 +74,17 @@ impl SoundManager {
         Ok(SoundManager { tx: tx.clone(), prev_song_id: 0, current_song_id: 0 })
     }
 
-    pub fn play_sfx(&mut self, id: u8) {
+    pub fn play_sfx(&self, id: u8) {
         let _ = self.tx.send(PlaybackMessage::PlaySample(id));
     }
 
-    pub fn play_song(&mut self, song_id: usize, constants: &EngineConstants, settings: &Settings, ctx: &mut Context) -> GameResult {
+    pub fn play_song(
+        &mut self,
+        song_id: usize,
+        constants: &EngineConstants,
+        settings: &Settings,
+        ctx: &mut Context,
+    ) -> GameResult {
         if self.current_song_id == song_id {
             return Ok(());
         }
@@ -98,16 +108,21 @@ impl SoundManager {
 
             let songs_paths = paths.iter().map(|prefix| {
                 [
-                        #[cfg(feature = "ogg-playback")]
-                    (SongFormat::OggMultiPart, vec![format!("{}{}_intro.ogg", prefix, song_name), format!("{}{}_loop.ogg", prefix, song_name)]),
-                        #[cfg(feature = "ogg-playback")]
+                    #[cfg(feature = "ogg-playback")]
+                    (
+                        SongFormat::OggMultiPart,
+                        vec![format!("{}{}_intro.ogg", prefix, song_name), format!("{}{}_loop.ogg", prefix, song_name)],
+                    ),
+                    #[cfg(feature = "ogg-playback")]
                     (SongFormat::OggSinglePart, vec![format!("{}{}.ogg", prefix, song_name)]),
                     (SongFormat::Organya, vec![format!("{}{}.org", prefix, song_name)]),
                 ]
             });
 
             for songs in songs_paths {
-                for (format, paths) in songs.iter().filter(|(_, paths)| paths.iter().all(|path| filesystem::exists(ctx, path))) {
+                for (format, paths) in
+                    songs.iter().filter(|(_, paths)| paths.iter().all(|path| filesystem::exists(ctx, path)))
+                {
                     match format {
                         SongFormat::Organya => {
                             // we're sure that there's one element
@@ -134,7 +149,9 @@ impl SoundManager {
                             // we're sure that there's one element
                             let path = unsafe { paths.get_unchecked(0) };
 
-                            match filesystem::open(ctx, path).map(|f| OggStreamReader::new(f).map_err(|e| GameError::ResourceLoadError(e.to_string()))) {
+                            match filesystem::open(ctx, path).map(|f| {
+                                OggStreamReader::new(f).map_err(|e| GameError::ResourceLoadError(e.to_string()))
+                            }) {
                                 Ok(Ok(song)) => {
                                     log::info!("Playing single part Ogg BGM: {} {}", song_id, path);
 
@@ -157,16 +174,28 @@ impl SoundManager {
                             let path_loop = unsafe { paths.get_unchecked(1) };
 
                             match (
-                                filesystem::open(ctx, path_intro).map(|f| OggStreamReader::new(f).map_err(|e| GameError::ResourceLoadError(e.to_string()))),
-                                filesystem::open(ctx, path_loop).map(|f| OggStreamReader::new(f).map_err(|e| GameError::ResourceLoadError(e.to_string()))),
+                                filesystem::open(ctx, path_intro).map(|f| {
+                                    OggStreamReader::new(f).map_err(|e| GameError::ResourceLoadError(e.to_string()))
+                                }),
+                                filesystem::open(ctx, path_loop).map(|f| {
+                                    OggStreamReader::new(f).map_err(|e| GameError::ResourceLoadError(e.to_string()))
+                                }),
                             ) {
                                 (Ok(Ok(song_intro)), Ok(Ok(song_loop))) => {
-                                    log::info!("Playing multi part Ogg BGM: {} {} + {}", song_id, path_intro, path_loop);
+                                    log::info!(
+                                        "Playing multi part Ogg BGM: {} {} + {}",
+                                        song_id,
+                                        path_intro,
+                                        path_loop
+                                    );
 
                                     self.prev_song_id = self.current_song_id;
                                     self.current_song_id = song_id;
                                     self.tx.send(PlaybackMessage::SaveState)?;
-                                    self.tx.send(PlaybackMessage::PlayOggSongMultiPart(Box::new(song_intro), Box::new(song_loop)))?;
+                                    self.tx.send(PlaybackMessage::PlayOggSongMultiPart(
+                                        Box::new(song_intro),
+                                        Box::new(song_loop),
+                                    ))?;
 
                                     return Ok(());
                                 }
@@ -197,7 +226,7 @@ impl SoundManager {
         Ok(())
     }
 
-    pub fn set_speed(&mut self, speed: f32) -> GameResult {
+    pub fn set_speed(&self, speed: f32) -> GameResult {
         if speed <= 0.0 {
             return Err(InvalidValue(str!("Speed must be bigger than 0.0!")));
         }
@@ -208,6 +237,72 @@ impl SoundManager {
 
     pub fn current_song(&self) -> usize {
         self.current_song_id
+    }
+
+    pub fn set_sample_params_from_file<R: io::Read>(&self, id: u8, data: R) -> GameResult {
+        let mut reader = BufReader::new(data).lines();
+        let mut params = PixToneParameters::empty();
+
+        fn next_string<T: FromStr, R: io::Read>(reader: &mut Lines<BufReader<R>>) -> GameResult<T> {
+            loop {
+                if let Some(Ok(str)) = reader.next() {
+                    let str = str.trim();
+                    if str == "" || str.starts_with("#") {
+                        continue;
+                    }
+
+                    let mut splits = str.split(":");
+
+                    let _ = splits.next();
+                    if let Some(str) = splits.next() {
+                        println!("{}", str);
+                        return str.trim().parse::<T>().map_err(|_| GameError::ParseError("failed to parse the value as specified type.".to_string()))
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            return Err(GameError::ParseError("unexpected end.".to_string()))
+        };
+
+        for channel in params.channels.iter_mut() {
+            channel.enabled = next_string::<u8, R>(&mut reader)? != 0;
+            channel.length = next_string::<u32, R>(&mut reader)?;
+
+            channel.carrier.waveform_type = next_string::<u8, R>(&mut reader)?;
+            channel.carrier.pitch = next_string::<f32, R>(&mut reader)?;
+            channel.carrier.level = next_string::<i32, R>(&mut reader)?;
+            channel.carrier.offset = next_string::<i32, R>(&mut reader)?;
+
+            channel.frequency.waveform_type = next_string::<u8, R>(&mut reader)?;
+            channel.frequency.pitch = next_string::<f32, R>(&mut reader)?;
+            channel.frequency.level = next_string::<i32, R>(&mut reader)?;
+            channel.frequency.offset = next_string::<i32, R>(&mut reader)?;
+
+            channel.amplitude.waveform_type = next_string::<u8, R>(&mut reader)?;
+            channel.amplitude.pitch = next_string::<f32, R>(&mut reader)?;
+            channel.amplitude.level = next_string::<i32, R>(&mut reader)?;
+            channel.amplitude.offset = next_string::<i32, R>(&mut reader)?;
+
+            channel.envelope.initial = next_string::<i32, R>(&mut reader)?;
+            channel.envelope.time_a = next_string::<i32, R>(&mut reader)?;
+            channel.envelope.value_a = next_string::<i32, R>(&mut reader)?;
+            channel.envelope.time_b = next_string::<i32, R>(&mut reader)?;
+            channel.envelope.value_b = next_string::<i32, R>(&mut reader)?;
+            channel.envelope.time_c = next_string::<i32, R>(&mut reader)?;
+            channel.envelope.value_c = next_string::<i32, R>(&mut reader)?;
+        }
+
+        self.set_sample_params(id, params)
+    }
+
+    pub fn set_sample_params(&self, id: u8, params: PixToneParameters) -> GameResult {
+        self.tx.send(PlaybackMessage::SetSampleParams(id, params))?;
+
+        Ok(())
     }
 }
 
@@ -222,6 +317,7 @@ enum PlaybackMessage {
     SetSpeed(f32),
     SaveState,
     RestoreState,
+    SetSampleParams(u8, PixToneParameters),
 }
 
 #[derive(PartialEq, Eq)]
@@ -239,7 +335,12 @@ enum PlaybackStateType {
     Ogg(SavedOggPlaybackState),
 }
 
-fn run<T>(rx: Receiver<PlaybackMessage>, bank: SoundBank, device: &cpal::Device, config: &cpal::StreamConfig) -> GameResult
+fn run<T>(
+    rx: Receiver<PlaybackMessage>,
+    bank: SoundBank,
+    device: &cpal::Device,
+    config: &cpal::StreamConfig,
+) -> GameResult
 where
     T: cpal::Sample,
 {
@@ -257,10 +358,10 @@ where
     log::info!("Audio format: {} {}", sample_rate, channels);
     org_engine.set_sample_rate(sample_rate as usize);
     #[cfg(feature = "ogg-playback")]
-        {
-            org_engine.loops = usize::MAX;
-            ogg_engine.set_sample_rate(sample_rate as usize);
-        }
+    {
+        org_engine.loops = usize::MAX;
+        ogg_engine.set_sample_rate(sample_rate as usize);
+    }
 
     let buf_size = sample_rate as usize * 10 / 1000;
     let mut bgm_buf = vec![0x8080; buf_size * 2];
@@ -388,6 +489,9 @@ where
                             }
                         }
                     }
+                    Ok(PlaybackMessage::SetSampleParams(id, params)) => {
+                        pixtone.set_sample_parameters(id, params);
+                    }
                     Err(_) => {
                         break;
                     }
@@ -449,16 +553,25 @@ where
                 }
 
                 if frame.len() >= 2 {
-                    let sample_l =
-                        clamp((((bgm_sample_l ^ 0x8000) as i16) as isize) + (((pxt_sample ^ 0x8000) as i16) as isize), -0x7fff, 0x7fff) as u16 ^ 0x8000;
-                    let sample_r =
-                        clamp((((bgm_sample_r ^ 0x8000) as i16) as isize) + (((pxt_sample ^ 0x8000) as i16) as isize), -0x7fff, 0x7fff) as u16 ^ 0x8000;
+                    let sample_l = clamp(
+                        (((bgm_sample_l ^ 0x8000) as i16) as isize) + (((pxt_sample ^ 0x8000) as i16) as isize),
+                        -0x7fff,
+                        0x7fff,
+                    ) as u16
+                        ^ 0x8000;
+                    let sample_r = clamp(
+                        (((bgm_sample_r ^ 0x8000) as i16) as isize) + (((pxt_sample ^ 0x8000) as i16) as isize),
+                        -0x7fff,
+                        0x7fff,
+                    ) as u16
+                        ^ 0x8000;
 
                     frame[0] = Sample::from::<u16>(&sample_l);
                     frame[1] = Sample::from::<u16>(&sample_r);
                 } else {
                     let sample = clamp(
-                        ((((bgm_sample_l ^ 0x8000) as i16) + ((bgm_sample_r ^ 0x8000) as i16)) / 2) as isize + (((pxt_sample ^ 0x8000) as i16) as isize),
+                        ((((bgm_sample_l ^ 0x8000) as i16) + ((bgm_sample_r ^ 0x8000) as i16)) / 2) as isize
+                            + (((pxt_sample ^ 0x8000) as i16) as isize),
                         -0x7fff,
                         0x7fff,
                     ) as u16

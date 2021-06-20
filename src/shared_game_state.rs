@@ -130,16 +130,17 @@ pub struct SharedGameState {
 impl SharedGameState {
     pub fn new(ctx: &mut Context) -> GameResult<SharedGameState> {
         let mut constants = EngineConstants::defaults();
+        let sound_manager = SoundManager::new(ctx)?;
         let mut base_path = "/";
         let settings = Settings::load(ctx)?;
 
         if filesystem::exists(ctx, "/base/Nicalis.bmp") {
             info!("Cave Story+ (PC) data files detected.");
-            constants.apply_csplus_patches();
+            constants.apply_csplus_patches(&sound_manager);
             base_path = "/base/";
         } else if filesystem::exists(ctx, "/base/lighting.tbl") {
             info!("Cave Story+ (Switch) data files detected.");
-            constants.apply_csplus_patches();
+            constants.apply_csplus_patches(&sound_manager);
             constants.apply_csplus_nx_patches();
             base_path = "/base/";
         } else if filesystem::exists(ctx, "/mrmap.bin") {
@@ -155,6 +156,32 @@ impl SharedGameState {
 
         if constants.is_cs_plus {
             texture_set.apply_seasonal_content(season, &settings);
+        }
+
+        for i in 0..0xffu8 {
+            let path = format!("{}/pxt/fx{:02x}.pxt", base_path, i);
+            if let Ok(file) = filesystem::open(ctx, path) {
+                sound_manager.set_sample_params_from_file(i, file)?;
+                continue;
+            }
+
+            let path = format!("/pxt/fx{:02x}.pxt", i);
+            if let Ok(file) = filesystem::open(ctx, path) {
+                sound_manager.set_sample_params_from_file(i, file)?;
+                continue;
+            }
+
+            let path = format!("{}/PixTone/{:03}.pxt", base_path, i);
+            if let Ok(file) = filesystem::open(ctx, path) {
+                sound_manager.set_sample_params_from_file(i, file)?;
+                continue;
+            }
+
+            let path = format!("/PixTone/{:03}.pxt", i);
+            if let Ok(file) = filesystem::open(ctx, path) {
+                sound_manager.set_sample_params_from_file(i, file)?;
+                continue;
+            }
         }
 
         println!("lookup path: {:#?}", texture_set.paths);
@@ -195,7 +222,7 @@ impl SharedGameState {
             texture_set,
             #[cfg(feature = "scripting")]
             lua: LuaScriptingState::new(),
-            sound_manager: SoundManager::new(ctx)?,
+            sound_manager,
             settings,
             shutdown: false,
         })

@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 use num_traits::clamp;
 use vec_mut_scan::VecMutScan;
 
-use crate::sound::pixtone_sfx::PIXTONE_TABLE;
+use crate::sound::pixtone_sfx::{DEFAULT_PIXTONE_TABLE};
 use crate::sound::stuff::cubic_interp;
 
 lazy_static! {
@@ -31,17 +31,7 @@ lazy_static! {
     };
 }
 
-/*#[test]
-fn test_waveforms() {
-    let reference = include_bytes!("pixtone_ref.dat");
-
-    for n in 1..(WAVEFORMS.len()) {
-        for (i, &val) in WAVEFORMS[n].iter().enumerate() {
-            assert_eq!((val as u8, i, n), (reference[n as usize * 256 + i], i, n));
-        }
-    }
-}*/
-
+#[derive(Copy, Clone)]
 pub struct Waveform {
     pub waveform_type: u8,
     pub pitch: f32,
@@ -55,6 +45,7 @@ impl Waveform {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Envelope {
     pub initial: i32,
     pub time_a: i32,
@@ -104,6 +95,7 @@ impl Envelope {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Channel {
     pub enabled: bool,
     pub length: u32,
@@ -149,6 +141,7 @@ impl Channel {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct PixToneParameters {
     pub channels: [Channel; 4],
 }
@@ -204,21 +197,37 @@ pub struct PlaybackState(u8, f32, u32);
 pub struct PixTonePlayback {
     pub samples: HashMap<u8, Vec<i16>>,
     pub playback_state: Vec<PlaybackState>,
+    pub table: [PixToneParameters; 256],
 }
 
-#[allow(unused)]
 impl PixTonePlayback {
     pub fn new() -> PixTonePlayback {
+        let mut table = [PixToneParameters::empty(); 256];
+
+        for (i, params) in DEFAULT_PIXTONE_TABLE.iter().enumerate() {
+            table[i] = *params;
+        }
+
         PixTonePlayback {
             samples: HashMap::new(),
             playback_state: vec![],
+            table,
         }
     }
 
     pub fn create_samples(&mut self) {
-        for (i, params) in PIXTONE_TABLE.iter().enumerate() {
+        for (i, params) in self.table.iter().enumerate() {
             self.samples.insert(i as u8, params.synth());
         }
+    }
+
+    pub fn set_sample_parameters(&mut self, id: u8, params: PixToneParameters) {
+        self.table[id as usize] = params;
+        self.samples.insert(id, params.synth());
+    }
+
+    pub fn set_sample_data(&mut self, id: u8, data: Vec<i16>) {
+        self.samples.insert(id, data);
     }
 
     pub fn play_sfx(&mut self, id: u8) {

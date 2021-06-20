@@ -7,6 +7,8 @@ use crate::case_insensitive_hashmap;
 use crate::common::{BulletFlag, Color, Rect};
 use crate::engine_constants::npcs::NPCConsts;
 use crate::player::ControlMode;
+use crate::sound::pixtone::{Channel, PixToneParameters, Waveform, Envelope};
+use crate::sound::SoundManager;
 use crate::str;
 use crate::text_script::TextScriptEncoding;
 
@@ -1395,7 +1397,7 @@ impl EngineConstants {
                 inventory_item_count_x: 6,
                 text_shadow: false,
                 text_speed_normal: 4,
-                text_speed_fast: 1
+                text_speed_fast: 1,
             },
             title: TitleConsts {
                 intro_text: "Studio Pixel presents".to_string(),
@@ -1468,7 +1470,7 @@ impl EngineConstants {
         }
     }
 
-    pub fn apply_csplus_patches(&mut self) {
+    pub fn apply_csplus_patches(&mut self, sound_manager: &SoundManager) {
         info!("Applying Cave Story+ constants patches...");
 
         self.is_cs_plus = true;
@@ -1482,6 +1484,33 @@ impl EngineConstants {
         self.font_space_offset = 2.0;
         self.soundtracks.insert("Remastered".to_string(), "/base/Ogg11/".to_string());
         self.soundtracks.insert("New".to_string(), "/base/Ogg/".to_string());
+
+        let typewriter_sample = PixToneParameters {
+            // fx2 (CS+)
+            channels: [
+                Channel {
+                    enabled: true,
+                    length: 2000,
+                    carrier: Waveform { waveform_type: 0, pitch: 92.000000, level: 32, offset: 0 },
+                    frequency: Waveform { waveform_type: 0, pitch: 3.000000, level: 44, offset: 0 },
+                    amplitude: Waveform { waveform_type: 0, pitch: 0.000000, level: 32, offset: 0 },
+                    envelope: Envelope {
+                        initial: 7,
+                        time_a: 2,
+                        value_a: 18,
+                        time_b: 128,
+                        value_b: 0,
+                        time_c: 255,
+                        value_c: 0,
+                    },
+                },
+                Channel::disabled(),
+                Channel::disabled(),
+                Channel::disabled(),
+            ],
+        };
+
+        sound_manager.set_sample_params(2, typewriter_sample);
     }
 
     pub fn apply_csplus_nx_patches(&mut self) {
