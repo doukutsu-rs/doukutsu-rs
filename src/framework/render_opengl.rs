@@ -1,21 +1,21 @@
 use std::cell::{RefCell, UnsafeCell};
 use std::ffi::{c_void, CStr};
 use std::mem;
-use std::rc::Rc;
+use std::mem::MaybeUninit;
 use std::sync::Arc;
 
 use imgui::{DrawCmd, DrawCmdParams, DrawData, DrawIdx, DrawVert};
 
 use crate::common::{Color, Rect};
-use crate::framework::backend::{BackendRenderer, BackendTexture, SpriteBatchCommand};
+use crate::framework::backend::{BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData};
 use crate::framework::error::GameError::RenderError;
 use crate::framework::error::GameResult;
 use crate::framework::gl;
 use crate::framework::gl::types::*;
 use crate::framework::graphics::BlendMode;
-use std::mem::MaybeUninit;
 
 pub struct GLContext {
+    pub gles2_mode: bool,
     pub get_proc_address: unsafe fn(user_data: &mut *mut c_void, name: &str) -> *const c_void,
     pub swap_buffers: unsafe fn(user_data: &mut *mut c_void),
     pub user_data: *mut c_void,
@@ -31,14 +31,6 @@ pub struct OpenGLTexture {
     vbo: GLuint,
     vertices: Vec<VertexData>,
     context_active: Arc<RefCell<bool>>,
-}
-
-// #[repr(C)] // since we determine field offset dynamically, doesn't really matter
-#[derive(Copy, Clone)]
-struct VertexData {
-    position: (f32, f32),
-    uv: (f32, f32),
-    color: (u8, u8, u8, u8),
 }
 
 impl BackendTexture for OpenGLTexture {
@@ -510,6 +502,7 @@ pub struct OpenGLRenderer {
     imgui_data: ImguiData,
     context_active: Arc<RefCell<bool>>,
     def_matrix: [[f32; 4]; 4],
+    curr_matrix: [[f32; 4]; 4],
 }
 
 impl OpenGLRenderer {
@@ -520,11 +513,12 @@ impl OpenGLRenderer {
             imgui_data: ImguiData::new(),
             context_active: Arc::new(RefCell::new(true)),
             def_matrix: [[0.0; 4]; 4],
+            curr_matrix: [[0.0; 4]; 4],
         }
     }
 
     fn get_context(&mut self) -> Option<(&mut GLContext, &'static Gl)> {
-        let imgui = unsafe { &mut *self.imgui.get()  };
+        let imgui = unsafe { &mut *self.imgui.get() };
 
         let gl = load_gl(&mut self.refs);
 
@@ -562,7 +556,11 @@ where
 
 impl BackendRenderer for OpenGLRenderer {
     fn renderer_name(&self) -> String {
-        "OpenGL(ES)".to_owned()
+        if self.refs.gles2_mode {
+            "OpenGL ES 2.0".to_string()
+        } else {
+            "OpenGL 3".to_string()
+        }
     }
 
     fn clear(&mut self, color: Color) {
@@ -608,6 +606,7 @@ impl BackendRenderer for OpenGLRenderer {
                     [0.0, 0.0, -1.0, 0.0],
                     [-1.0, 1.0, 0.0, 1.0],
                 ];
+                self.curr_matrix = self.def_matrix;
 
                 gl.gl.BindBuffer(gl::ARRAY_BUFFER, 0);
                 gl.gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
@@ -747,25 +746,38 @@ impl BackendRenderer for OpenGLRenderer {
                 if let Some(texture) = texture {
                     let gl_texture: &Box<OpenGLTexture> = std::mem::transmute(texture);
 
-                    let matrix = [
+                    self.curr_matrix = [
                         [2.0 / (gl_texture.width as f32), 0.0, 0.0, 0.0],
                         [0.0, 2.0 / (gl_texture.height as f32), 0.0, 0.0],
                         [0.0, 0.0, -1.0, 0.0],
                         [-1.0, -1.0, 0.0, 1.0],
                     ];
+
                     gl.gl.UseProgram(self.imgui_data.program_fill);
-                    gl.gl.UniformMatrix4fv(self.imgui_data.fill_locs.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+                    gl.gl.UniformMatrix4fv(self.imgui_data.fill_locs.proj_mtx, 1, gl::FALSE, self.curr_matrix.as_ptr() as _);
                     gl.gl.UseProgram(self.imgui_data.program_tex);
                     gl.gl.Uniform1i(self.imgui_data.tex_locs.texture, 0);
-                    gl.gl.UniformMatrix4fv(self.imgui_data.tex_locs.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+                    gl.gl.UniformMatrix4fv(self.imgui_data.tex_locs.proj_mtx, 1, gl::FALSE, self.curr_matrix.as_ptr() as _);
 
                     gl.gl.BindFramebuffer(gl::FRAMEBUFFER, gl_texture.framebuffer_id);
                 } else {
+                    self.curr_matrix = self.def_matrix;
+
                     gl.gl.UseProgram(self.imgui_data.program_fill);
-                    gl.gl.UniformMatrix4fv(self.imgui_data.fill_locs.proj_mtx, 1, gl::FALSE, self.def_matrix.as_ptr() as _);
+                    gl.gl.UniformMatrix4fv(
+                        self.imgui_data.fill_locs.proj_mtx,
+                        1,
+                        gl::FALSE,
+                        self.def_matrix.as_ptr() as _,
+                    );
                     gl.gl.UseProgram(self.imgui_data.program_tex);
                     gl.gl.Uniform1i(self.imgui_data.tex_locs.texture, 0);
-                    gl.gl.UniformMatrix4fv(self.imgui_data.tex_locs.proj_mtx, 1, gl::FALSE, self.def_matrix.as_ptr() as _);
+                    gl.gl.UniformMatrix4fv(
+                        self.imgui_data.tex_locs.proj_mtx,
+                        1,
+                        gl::FALSE,
+                        self.def_matrix.as_ptr() as _,
+                    );
                     gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
                 }
             }
@@ -885,6 +897,7 @@ impl BackendRenderer for OpenGLRenderer {
                     [0.0, 0.0, -1.0, 0.0],
                     [-1.0, 1.0, 0.0, 1.0],
                 ];
+
                 gl.gl.UseProgram(self.imgui_data.program_tex);
                 gl.gl.Uniform1i(self.imgui_data.tex_locs.texture, 0);
                 gl.gl.UniformMatrix4fv(self.imgui_data.tex_locs.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
@@ -984,6 +997,130 @@ impl BackendRenderer for OpenGLRenderer {
         }
 
         Ok(())
+    }
+
+    fn draw_triangle_list(
+        &mut self,
+        vertices: Vec<VertexData>,
+        texture: Option<&Box<dyn BackendTexture>>,
+        shader: BackendShader,
+    ) -> GameResult<()> {
+        unsafe { self.draw_arrays(gl::TRIANGLES, vertices, texture, shader) }
+    }
+
+    fn supports_vertex_draw(&self) -> bool {
+        true
+    }
+}
+
+impl OpenGLRenderer {
+    unsafe fn draw_arrays(
+        &mut self,
+        vert_type: GLenum,
+        vertices: Vec<VertexData>,
+        texture: Option<&Box<dyn BackendTexture>>,
+        shader: BackendShader,
+    ) -> GameResult<()> {
+        if vertices.len() == 0 {
+            return Ok(());
+        }
+
+        if let Some(gl) = GL_PROC.as_ref() {
+            match shader {
+                BackendShader::Fill => {
+                    gl.gl.UseProgram(self.imgui_data.program_fill);
+                    gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.imgui_data.vbo);
+                    gl.gl.EnableVertexAttribArray(self.imgui_data.fill_locs.position);
+                    gl.gl.EnableVertexAttribArray(self.imgui_data.fill_locs.uv);
+                    gl.gl.EnableVertexAttribArray(self.imgui_data.fill_locs.color);
+
+                    gl.gl.VertexAttribPointer(
+                        self.imgui_data.fill_locs.position,
+                        2,
+                        gl::FLOAT,
+                        gl::FALSE,
+                        mem::size_of::<VertexData>() as _,
+                        field_offset::<VertexData, _, _>(|v| &v.position) as _,
+                    );
+
+                    gl.gl.VertexAttribPointer(
+                        self.imgui_data.fill_locs.uv,
+                        2,
+                        gl::FLOAT,
+                        gl::FALSE,
+                        mem::size_of::<VertexData>() as _,
+                        field_offset::<VertexData, _, _>(|v| &v.uv) as _,
+                    );
+
+                    gl.gl.VertexAttribPointer(
+                        self.imgui_data.fill_locs.color,
+                        4,
+                        gl::UNSIGNED_BYTE,
+                        gl::TRUE,
+                        mem::size_of::<VertexData>() as _,
+                        field_offset::<VertexData, _, _>(|v| &v.color) as _,
+                    );
+                }
+                BackendShader::Texture => {
+                    gl.gl.UseProgram(self.imgui_data.program_tex);
+                    gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.imgui_data.vbo);
+                    gl.gl.EnableVertexAttribArray(self.imgui_data.tex_locs.position);
+                    gl.gl.EnableVertexAttribArray(self.imgui_data.tex_locs.uv);
+                    gl.gl.EnableVertexAttribArray(self.imgui_data.tex_locs.color);
+
+                    gl.gl.VertexAttribPointer(
+                        self.imgui_data.tex_locs.position,
+                        2,
+                        gl::FLOAT,
+                        gl::FALSE,
+                        mem::size_of::<VertexData>() as _,
+                        field_offset::<VertexData, _, _>(|v| &v.position) as _,
+                    );
+
+                    gl.gl.VertexAttribPointer(
+                        self.imgui_data.tex_locs.uv,
+                        2,
+                        gl::FLOAT,
+                        gl::FALSE,
+                        mem::size_of::<VertexData>() as _,
+                        field_offset::<VertexData, _, _>(|v| &v.uv) as _,
+                    );
+
+                    gl.gl.VertexAttribPointer(
+                        self.imgui_data.tex_locs.color,
+                        4,
+                        gl::UNSIGNED_BYTE,
+                        gl::TRUE,
+                        mem::size_of::<VertexData>() as _,
+                        field_offset::<VertexData, _, _>(|v| &v.color) as _,
+                    );
+                }
+            }
+
+            let texture_id = if let Some(texture) = texture {
+                let gl_texture: &Box<OpenGLTexture> = std::mem::transmute(texture);
+                gl_texture.texture_id
+            } else {
+                0
+            };
+
+            gl.gl.BindTexture(gl::TEXTURE_2D, texture_id);
+            gl.gl.BufferData(
+                gl::ARRAY_BUFFER,
+                (vertices.len() * mem::size_of::<VertexData>()) as _,
+                vertices.as_ptr() as _,
+                gl::STREAM_DRAW,
+            );
+
+            gl.gl.DrawArrays(vert_type, 0, vertices.len() as _);
+
+            gl.gl.BindTexture(gl::TEXTURE_2D, 0);
+            gl.gl.BindBuffer(gl::ARRAY_BUFFER, 0);
+
+            Ok(())
+        } else {
+            Err(RenderError("No OpenGL context available!".to_string()))
+        }
     }
 }
 

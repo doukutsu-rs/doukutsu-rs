@@ -40,59 +40,21 @@ pub static PIXTONE_TABLE: [PixToneParameters; 160] = [
             Channel::disabled(),
         ],
     },
-    // PixToneParameters { // fx2 (CS+)
-    //     channels: [
-    //         Channel {
-    //             enabled: true,
-    //             length: 2000,
-    //             carrier: Waveform {
-    //                 waveform_type: 0,
-    //                 pitch: 92.000000,
-    //                 level: 32,
-    //                 offset: 0,
-    //             },
-    //             frequency: Waveform {
-    //                 waveform_type: 0,
-    //                 pitch: 3.000000,
-    //                 level: 44,
-    //                 offset: 0,
-    //             },
-    //             amplitude: Waveform {
-    //                 waveform_type: 0,
-    //                 pitch: 0.000000,
-    //                 level: 32,
-    //                 offset: 0,
-    //             },
-    //             envelope: Envelope {
-    //                 initial: 7,
-    //                 time_a: 2,
-    //                 value_a: 18,
-    //                 time_b: 128,
-    //                 value_b: 0,
-    //                 time_c: 255,
-    //                 value_c: 0,
-    //             },
-    //         },
-    //         Channel::disabled(),
-    //         Channel::disabled(),
-    //         Channel::disabled(),
-    //     ],
-    // },
-    PixToneParameters { // fx2
+    PixToneParameters { // fx2 (CS+)
         channels: [
             Channel {
                 enabled: true,
-                length: 4000,
+                length: 2000,
                 carrier: Waveform {
-                    waveform_type: 1,
-                    pitch: 54.000000,
+                    waveform_type: 0,
+                    pitch: 92.000000,
                     level: 32,
                     offset: 0,
                 },
                 frequency: Waveform {
-                    waveform_type: 5,
-                    pitch: 0.100000,
-                    level: 33,
+                    waveform_type: 0,
+                    pitch: 3.000000,
+                    level: 44,
                     offset: 0,
                 },
                 amplitude: Waveform {
@@ -102,11 +64,11 @@ pub static PIXTONE_TABLE: [PixToneParameters; 160] = [
                     offset: 0,
                 },
                 envelope: Envelope {
-                    initial: 53,
-                    time_a: 57,
-                    value_a: 44,
+                    initial: 7,
+                    time_a: 2,
+                    value_a: 18,
                     time_b: 128,
-                    value_b: 24,
+                    value_b: 0,
                     time_c: 255,
                     value_c: 0,
                 },
@@ -116,6 +78,44 @@ pub static PIXTONE_TABLE: [PixToneParameters; 160] = [
             Channel::disabled(),
         ],
     },
+    // PixToneParameters { // fx2
+    //     channels: [
+    //         Channel {
+    //             enabled: true,
+    //             length: 4000,
+    //             carrier: Waveform {
+    //                 waveform_type: 1,
+    //                 pitch: 54.000000,
+    //                 level: 32,
+    //                 offset: 0,
+    //             },
+    //             frequency: Waveform {
+    //                 waveform_type: 5,
+    //                 pitch: 0.100000,
+    //                 level: 33,
+    //                 offset: 0,
+    //             },
+    //             amplitude: Waveform {
+    //                 waveform_type: 0,
+    //                 pitch: 0.000000,
+    //                 level: 32,
+    //                 offset: 0,
+    //             },
+    //             envelope: Envelope {
+    //                 initial: 53,
+    //                 time_a: 57,
+    //                 value_a: 44,
+    //                 time_b: 128,
+    //                 value_b: 24,
+    //                 time_c: 255,
+    //                 value_c: 0,
+    //             },
+    //         },
+    //         Channel::disabled(),
+    //         Channel::disabled(),
+    //         Channel::disabled(),
+    //     ],
+    // },
     PixToneParameters { // fx3
         channels: [
             Channel {

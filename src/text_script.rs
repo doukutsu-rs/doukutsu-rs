@@ -607,14 +607,14 @@ impl TextScriptVM {
                         if remaining > 1 {
                             let ticks = if state.textscript_vm.flags.fast() || state.textscript_vm.flags.cutscene_skip() {
                                 0
-                            } else if game_scene.player1.controller.jump()
+                            } else if remaining != 2 && (game_scene.player1.controller.jump()
                                 || game_scene.player1.controller.shoot()
                                 || game_scene.player2.controller.jump()
-                                || game_scene.player2.controller.shoot()
+                                || game_scene.player2.controller.shoot())
                             {
-                                1
+                                state.constants.textscript.text_speed_fast
                             } else {
-                                4
+                                state.constants.textscript.text_speed_normal
                             };
 
                             if ticks > 0 {

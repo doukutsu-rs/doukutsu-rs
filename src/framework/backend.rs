@@ -6,6 +6,20 @@ use crate::framework::error::GameResult;
 use crate::framework::graphics::BlendMode;
 use crate::Game;
 
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VertexData {
+    pub position: (f32, f32),
+    pub uv: (f32, f32),
+    pub color: (u8, u8, u8, u8),
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum BackendShader {
+    Fill,
+    Texture
+}
+
 pub trait Backend {
     fn create_event_loop(&self) -> GameResult<Box<dyn BackendEventLoop>>;
 }
@@ -42,6 +56,12 @@ pub trait BackendRenderer {
     fn imgui(&self) -> GameResult<&mut imgui::Context>;
 
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult;
+
+    fn supports_vertex_draw(&self) -> bool {
+        false
+    }
+
+    fn draw_triangle_list(&mut self, vertices: Vec<VertexData>, texture: Option<&Box<dyn BackendTexture>>, shader: BackendShader) -> GameResult;
 }
 
 pub trait BackendTexture {

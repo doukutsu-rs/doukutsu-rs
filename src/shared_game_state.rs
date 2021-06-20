@@ -31,6 +31,7 @@ use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
 use bitvec::array::BitArray;
+use crate::scene::title_scene::TitleScene;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -256,6 +257,14 @@ impl SharedGameState {
     }
 
     pub fn start_intro(&mut self, ctx: &mut Context) -> GameResult {
+        let start_stage_id = 72;
+
+        if self.stages.len() < start_stage_id {
+            log::warn!("Intro scene out of bounds in stage table, skipping to title...");
+            self.next_scene = Some(Box::new(TitleScene::new()));
+            return Ok(());
+        }
+
         let mut next_scene = GameScene::new(self, ctx, 72)?;
         next_scene.player1.cond.set_hidden(true);
         next_scene.player1.x = 3 * 0x2000;

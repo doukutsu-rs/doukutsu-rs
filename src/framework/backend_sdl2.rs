@@ -3,6 +3,7 @@ use std::cell::{RefCell, UnsafeCell};
 use std::collections::HashMap;
 use std::ffi::c_void;
 use std::rc::Rc;
+use std::time::Duration;
 
 use imgui::internal::RawWrapper;
 use imgui::{ConfigFlags, DrawCmd, DrawData, ImString, Key, MouseCursor, TextureId};
@@ -15,7 +16,9 @@ use sdl2::video::WindowContext;
 use sdl2::{keyboard, pixels, EventPump, Sdl, VideoSubsystem};
 
 use crate::common::{Color, Rect};
-use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
+use crate::framework::backend::{
+    Backend, BackendEventLoop, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData,
+};
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
 use crate::framework::graphics::BlendMode;
@@ -24,7 +27,6 @@ use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
 use crate::framework::ui::init_imgui;
 use crate::Game;
 use crate::GAME_SUSPENDED;
-use std::time::Duration;
 
 pub struct SDL2Backend {
     context: Sdl,
@@ -234,8 +236,7 @@ impl BackendEventLoop for SDL2EventLoop {
                     refs.video.gl_get_proc_address(name) as *const _
                 };
 
-                log::info!("gl proc {} -> {:?}", name, result);
-
+                // log::info!("gl proc {} -> {:?}", name, result);
                 *user_data = Rc::into_raw(refs) as *mut c_void;
 
                 result
@@ -253,7 +254,7 @@ impl BackendEventLoop for SDL2EventLoop {
                 *user_data = Rc::into_raw(refs) as *mut c_void;
             }
 
-            let gl_context = GLContext { get_proc_address, swap_buffers, user_data };
+            let gl_context = GLContext { gles2_mode: false, get_proc_address, swap_buffers, user_data };
 
             return Ok(Box::new(OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))));
         }
@@ -369,7 +370,7 @@ fn max3(x: f32, y: f32, z: f32) -> f32 {
 
 impl BackendRenderer for SDL2Renderer {
     fn renderer_name(&self) -> String {
-        "SDL2_Renderer".to_owned()
+        "SDL2_Renderer (fallback)".to_owned()
     }
 
     fn clear(&mut self, color: Color) {
@@ -465,7 +466,9 @@ impl BackendRenderer for SDL2Renderer {
 
         let (r, g, b, a) = color.to_rgba();
 
+        let blend = refs.blend_mode;
         refs.canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
+        refs.canvas.set_blend_mode(blend);
         refs.canvas
             .fill_rect(sdl2::rect::Rect::new(
                 rect.left as i32,
@@ -483,7 +486,9 @@ impl BackendRenderer for SDL2Renderer {
 
         let (r, g, b, a) = color.to_rgba();
 
+        let blend = refs.blend_mode;
         refs.canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
+        refs.canvas.set_blend_mode(blend);
 
         match line_width {
             0 => {} // no-op
@@ -649,6 +654,15 @@ impl BackendRenderer for SDL2Renderer {
         }
 
         Ok(())
+    }
+
+    fn draw_triangle_list(
+        &mut self,
+        vertices: Vec<VertexData>,
+        texture: Option<&Box<dyn BackendTexture>>,
+        shader: BackendShader,
+    ) -> GameResult<()> {
+        Err(GameError::RenderError("Unsupported operation".to_string()))
     }
 }
 

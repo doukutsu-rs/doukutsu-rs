@@ -4,7 +4,7 @@ use case_insensitive_hashmap::CaseInsensitiveHashMap;
 use log::info;
 
 use crate::case_insensitive_hashmap;
-use crate::common::{BulletFlag, Rect};
+use crate::common::{BulletFlag, Color, Rect};
 use crate::engine_constants::npcs::NPCConsts;
 use crate::player::ControlMode;
 use crate::str;
@@ -192,6 +192,9 @@ pub struct TextScriptConsts {
     pub cursor_inventory_weapon: [Rect<u16>; 2],
     pub cursor_inventory_item: [Rect<u16>; 2],
     pub inventory_item_count_x: u8,
+    pub text_shadow: bool,
+    pub text_speed_normal: u8,
+    pub text_speed_fast: u8,
 }
 
 #[derive(Debug)]
@@ -241,6 +244,7 @@ pub struct EngineConstants {
     pub tex_sizes: CaseInsensitiveHashMap<(u16, u16)>,
     pub textscript: TextScriptConsts,
     pub title: TitleConsts,
+    pub inventory_dim_color: Color,
     pub font_path: String,
     pub font_scale: f32,
     pub font_space_offset: f32,
@@ -264,6 +268,7 @@ impl Clone for EngineConstants {
             tex_sizes: self.tex_sizes.clone(),
             textscript: self.textscript,
             title: self.title.clone(),
+            inventory_dim_color: self.inventory_dim_color,
             font_path: self.font_path.clone(),
             font_scale: self.font_scale,
             font_space_offset: self.font_space_offset,
@@ -1388,6 +1393,9 @@ impl EngineConstants {
                     Rect { left: 80, top: 104, right: 112, bottom: 120 },
                 ],
                 inventory_item_count_x: 6,
+                text_shadow: false,
+                text_speed_normal: 4,
+                text_speed_fast: 1
             },
             title: TitleConsts {
                 intro_text: "Studio Pixel presents".to_string(),
@@ -1402,6 +1410,7 @@ impl EngineConstants {
                 menu_left: Rect { left: 0, top: 8, right: 8, bottom: 16 },
                 menu_right: Rect { left: 236, top: 8, right: 244, bottom: 16 },
             },
+            inventory_dim_color: Color::from_rgba(0, 0, 0, 0),
             font_path: "builtin/builtin_font.fnt".to_string(),
             font_scale: 1.0,
             font_space_offset: 0.0,
@@ -1483,9 +1492,13 @@ impl EngineConstants {
         self.tex_sizes.insert(str!("bkMoon"), (427, 240));
         self.tex_sizes.insert(str!("bkFog"), (427, 240));
         self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 62 };
+        self.inventory_dim_color = Color::from_rgba(0, 0, 32, 150);
         self.textscript.encoding = TextScriptEncoding::UTF8;
         self.textscript.encrypted = false;
         self.textscript.animated_face_pics = true;
+        self.textscript.text_shadow = true;
+        self.textscript.text_speed_normal = 1;
+        self.textscript.text_speed_fast = 0;
         self.soundtracks.insert("Famitracks".to_string(), "/base/ogg17/".to_string());
         self.soundtracks.insert("Ridiculon".to_string(), "/base/ogg_ridic/".to_string());
     }

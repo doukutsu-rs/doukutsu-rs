@@ -1,4 +1,4 @@
-use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
+use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand, VertexData, BackendShader};
 use crate::framework::error::GameResult;
 use crate::framework::context::Context;
 use crate::Game;
@@ -123,6 +123,10 @@ impl BackendRenderer for NullRenderer {
     }
 
     fn render_imgui(&mut self, _draw_data: &DrawData) -> GameResult {
+        Ok(())
+    }
+
+    fn draw_triangle_list(&mut self, vertices: Vec<VertexData>, texture: Option<&Box<dyn BackendTexture>>, shader: BackendShader) -> GameResult<()> {
         Ok(())
     }
 }

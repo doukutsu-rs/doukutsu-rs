@@ -37,7 +37,7 @@ impl NpcType {
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Tileset {
-    name: String,
+    pub(crate) name: String,
 }
 
 impl Clone for Tileset {
@@ -205,7 +205,6 @@ fn from_shift_jis(s: &[u8]) -> String {
 }
 
 impl StageData {
-    // todo: refactor to make it less repetitive.
     pub fn load_stage_table(ctx: &mut Context, root: &str) -> GameResult<Vec<Self>> {
         let stage_tbl_path = [root, "stage.tbl"].join("");
         let stage_sect_path = [root, "stage.sect"].join("");

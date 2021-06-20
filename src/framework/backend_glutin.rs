@@ -345,7 +345,7 @@ impl BackendEventLoop for GlutinEventLoop {
             *user_data = Rc::into_raw(refs) as *mut c_void;
         }
 
-        let gl_context = GLContext { get_proc_address, swap_buffers, user_data };
+        let gl_context = GLContext { gles2_mode: true, get_proc_address, swap_buffers, user_data };
 
         Ok(Box::new(OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))))
     }

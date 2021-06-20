@@ -293,8 +293,12 @@ impl<T: Num + PartialOrd + Copy> Rect<T> {
         }
     }
 
+    pub fn has_point(&self, x: T, y: T) -> bool {
+        self.left.ge(&x) && self.right.le(&x) && self.top.ge(&y) && self.bottom.le(&y)
+    }
+
     pub fn width(&self) -> T {
-        if let Some(Ordering::Greater) = self.left.partial_cmp(&self.right) {
+        if self.left.gt(&self.right) {
             self.left.sub(self.right)
         } else {
             self.right.sub(self.left)
@@ -302,7 +306,7 @@ impl<T: Num + PartialOrd + Copy> Rect<T> {
     }
 
     pub fn height(&self) -> T {
-        if let Some(Ordering::Greater) = self.top.partial_cmp(&self.bottom) {
+        if self.top.gt(&self.bottom) {
             self.top.sub(self.bottom)
         } else {
             self.bottom.sub(self.top)

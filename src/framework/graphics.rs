@@ -1,7 +1,7 @@
 use crate::common::{Color, Rect};
+use crate::framework::backend::{BackendShader, BackendTexture, VertexData};
 use crate::framework::context::Context;
-use crate::framework::error::{GameResult, GameError};
-use crate::framework::backend::BackendTexture;
+use crate::framework::error::{GameError, GameResult};
 
 pub enum FilterMode {
     Nearest,
@@ -119,6 +119,27 @@ pub fn render_imgui(ctx: &mut Context, draw_data: &imgui::DrawData) -> GameResul
 pub fn prepare_draw(ctx: &mut Context) -> GameResult {
     if let Some(renderer) = ctx.renderer.as_mut() {
         return renderer.prepare_draw(ctx.screen_size.0, ctx.screen_size.1);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn supports_vertex_draw(ctx: &Context) -> GameResult<bool> {
+    if let Some(renderer) = ctx.renderer.as_ref() {
+        return Ok(renderer.supports_vertex_draw())
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn draw_triangle_list(
+    ctx: &mut Context,
+    vertices: Vec<VertexData>,
+    texture: Option<&Box<dyn BackendTexture>>,
+    shader: BackendShader,
+) -> GameResult {
+    if let Some(renderer) = ctx.renderer.as_mut() {
+        return renderer.draw_triangle_list(vertices, texture, shader);
     }
 
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
