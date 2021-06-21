@@ -101,7 +101,7 @@ impl Player {
         let mut flags = Flag(0);
 
         if ((self.y - self.hit_bounds.top as i32) < (npc.y + npc.hit_bounds.bottom as i32 - 0x600))
-            && ((self.y + self.hit_bounds.top as i32) > (npc.y - npc.hit_bounds.bottom as i32 + 0x600))
+            && ((self.y + self.hit_bounds.bottom as i32) > (npc.y - npc.hit_bounds.bottom as i32 + 0x600))
             && ((self.x - self.hit_bounds.right as i32) < (npc.x + npc.hit_bounds.right as i32))
             && ((self.x - self.hit_bounds.right as i32) > npc.x) {
             if self.vel_x < 0x200 {
@@ -112,7 +112,7 @@ impl Player {
         }
 
         if ((self.y - self.hit_bounds.top as i32) < (npc.y + npc.hit_bounds.bottom as i32 - 0x600))
-            && ((self.y + self.hit_bounds.top as i32) > (npc.y - npc.hit_bounds.bottom as i32 + 0x600))
+            && ((self.y + self.hit_bounds.bottom as i32) > (npc.y - npc.hit_bounds.bottom as i32 + 0x600))
             && ((self.x + self.hit_bounds.right as i32 - 0x200) > (npc.x - npc.hit_bounds.right as i32))
             && ((self.x + self.hit_bounds.right as i32 - 0x200) < npc.x) {
             if self.vel_x > -0x200 {
