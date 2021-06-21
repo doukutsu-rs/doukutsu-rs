@@ -2,7 +2,9 @@ use crate::common::Rect;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::input::combined_menu_controller::CombinedMenuController;
+use crate::player::skin::basic::BasicPlayerSkin;
 use crate::shared_game_state::SharedGameState;
+use std::cell::Cell;
 
 pub struct MenuSaveInfo {}
 
@@ -48,13 +50,25 @@ pub struct Menu {
     entry_y: u16,
     anim_num: u16,
     anim_wait: u16,
+    custom_cursor: Cell<bool>,
 }
 
 static QUOTE_FRAMES: [u16; 4] = [0, 1, 0, 2];
 
 impl Menu {
     pub fn new(x: isize, y: isize, width: u16, height: u16) -> Menu {
-        Menu { x, y, width, height, selected: 0, entry_y: 0, anim_num: 0, anim_wait: 0, entries: Vec::new() }
+        Menu {
+            x,
+            y,
+            width,
+            height,
+            selected: 0,
+            entry_y: 0,
+            anim_num: 0,
+            anim_wait: 0,
+            entries: Vec::new(),
+            custom_cursor: Cell::new(true),
+        }
     }
 
     pub fn push_entry(&mut self, entry: MenuEntry) {
@@ -165,16 +179,33 @@ impl Menu {
 
         batch.draw(ctx)?;
 
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
+        if self.custom_cursor.get() {
+            if let Ok(batch) = state.texture_set.get_or_load_batch(ctx, &state.constants, "MenuCursor") {
+                rect.left = self.anim_num * 16;
+                rect.top = 16;
+                rect.right = rect.left + 16;
+                rect.bottom = rect.top + 16;
 
-        rect.left = QUOTE_FRAMES[self.anim_num as usize] * 16;
-        rect.top = 16;
-        rect.right = rect.left + 16;
-        rect.bottom = rect.top + 16;
+                batch.add_rect(self.x as f32, self.y as f32 + 3.0 + self.entry_y as f32, &rect);
 
-        batch.add_rect(self.x as f32, self.y as f32 + 2.0 + self.entry_y as f32, &rect);
+                batch.draw(ctx)?;
+            } else {
+                self.custom_cursor.set(false);
+            }
+        }
 
-        batch.draw(ctx)?;
+        if !self.custom_cursor.get() {
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
+
+            rect.left = QUOTE_FRAMES[self.anim_num as usize] * 16;
+            rect.top = 16;
+            rect.right = rect.left + 16;
+            rect.bottom = rect.top + 16;
+
+            batch.add_rect(self.x as f32, self.y as f32 + 2.0 + self.entry_y as f32, &rect);
+
+            batch.draw(ctx)?;
+        }
 
         y = self.y as f32 + 6.0;
         for entry in self.entries.iter() {

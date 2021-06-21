@@ -327,6 +327,18 @@ impl<T: Num + PartialOrd + Copy + Serialize> Serialize for Rect<T> {
         state.end()
     }
 }
+
+impl<T: Num + PartialOrd + Copy + Serialize> Default for Rect<T> {
+    fn default() -> Self {
+        Rect {
+            left: num_traits::zero(),
+            top: num_traits::zero(),
+            right: num_traits::zero(),
+            bottom: num_traits::zero()
+        }
+    }
+}
+
 macro_rules! rect_deserialze {
     ($num_type: ident) => {
         impl<'de> Deserialize<'de> for Rect<$num_type> {

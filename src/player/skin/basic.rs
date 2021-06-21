@@ -1,5 +1,70 @@
+use lazy_static::lazy_static;
+
+
 use crate::common::{Color, Direction, Rect};
+use crate::framework::context::Context;
+use crate::framework::filesystem;
+use crate::framework::filesystem::File;
 use crate::player::skin::{PlayerAnimationState, PlayerAppearanceState, PlayerSkin};
+use crate::shared_game_state::SharedGameState;
+
+#[derive(Default, Clone, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkinMeta {
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub author: String,
+    #[serde(default = "skinmeta_ret0i")]
+    pub gun_offset_x: i16,
+    #[serde(default = "skinmeta_ret0i")]
+    pub gun_offset_y: i16,
+    #[serde(default = "skinmeta_ret16")]
+    pub frame_size_width: u16,
+    #[serde(default = "skinmeta_ret16")]
+    pub frame_size_height: u16,
+    #[serde(default = "skinmeta_default_hit_box")]
+    pub hit_box: Rect<u16>,
+    #[serde(default = "skinmeta_default_display_box")]
+    pub display_box: Rect<u16>,
+    #[serde(default)]
+    pub version: u8,
+}
+
+const fn skinmeta_ret0i() -> i16 {
+    0
+}
+
+const fn skinmeta_ret16() -> u16 {
+    16
+}
+
+const fn skinmeta_default_hit_box() -> Rect<u16> {
+    Rect { left: 5, top: 8, right: 5, bottom: 8 }
+}
+
+const fn skinmeta_default_display_box() -> Rect<u16> {
+    Rect { left: 8, top: 8, right: 8, bottom: 8 }
+}
+
+pub static SUPPORTED_SKINMETA_VERSIONS: [u8; 1] = [1];
+
+lazy_static! {
+    pub static ref DEFAULT_SKINMETA: SkinMeta = SkinMeta {
+        name: "Player".to_string(),
+        description: "".to_string(),
+        author: "".to_string(),
+        gun_offset_x: 0,
+        gun_offset_y: 0,
+        frame_size_width: 16,
+        frame_size_height: 16,
+        hit_box: skinmeta_default_hit_box(),
+        display_box: skinmeta_default_display_box(),
+        version: 1
+    };
+}
 
 #[derive(Clone)]
 pub struct BasicPlayerSkin {
@@ -8,17 +73,36 @@ pub struct BasicPlayerSkin {
     state: PlayerAnimationState,
     appearance: PlayerAppearanceState,
     direction: Direction,
+    metadata: SkinMeta,
     tick: u16,
 }
 
 impl BasicPlayerSkin {
-    pub fn new(texture_name: String) -> BasicPlayerSkin {
+    pub fn new(texture_name: String, state: &SharedGameState, ctx: &mut Context) -> BasicPlayerSkin {
+        let metapath = format!("{}/{}.dskinmeta", state.base_path, texture_name);
+        let mut metadata = DEFAULT_SKINMETA.clone();
+
+        if let Ok(file) = filesystem::open(ctx, metapath) {
+            match serde_json::from_reader::<File, SkinMeta>(file) {
+                Ok(meta) if SUPPORTED_SKINMETA_VERSIONS.contains(&meta.version) => {
+                    metadata = meta;
+                }
+                Ok(meta) => {
+                    log::warn!("Unsupported skin metadata file version: {}", meta.version);
+                }
+                Err(err) => {
+                    log::warn!("Failed to load skin metadata file: {:?}", err);
+                }
+            }
+        }
+
         BasicPlayerSkin {
             texture_name,
             color: Color::new(1.0, 1.0, 1.0, 1.0),
             state: PlayerAnimationState::Idle,
             appearance: PlayerAppearanceState::Default,
             direction: Direction::Left,
+            metadata,
             tick: 0,
         }
     }
@@ -49,14 +133,19 @@ impl PlayerSkin for BasicPlayerSkin {
             PlayerAnimationState::FallingUpsideDown => 10,
         };
 
-        let y_offset = if direction == Direction::Left { 0 } else { 16 }
+        let y_offset = if direction == Direction::Left { 0 } else { self.metadata.frame_size_height }
             + match self.appearance {
                 PlayerAppearanceState::Default => 0,
-                PlayerAppearanceState::MimigaMask => 32,
-                PlayerAppearanceState::Custom(i) => (i as u16).saturating_mul(16),
+                PlayerAppearanceState::MimigaMask => self.metadata.frame_size_height.saturating_mul(2),
+                PlayerAppearanceState::Custom(i) => (i as u16).saturating_mul(self.metadata.frame_size_height),
             };
 
-        Rect::new_size(frame_id * 16, y_offset, 16, 16)
+        Rect::new_size(
+            frame_id.saturating_mul(self.metadata.frame_size_width),
+            y_offset,
+            self.metadata.frame_size_width,
+            self.metadata.frame_size_height,
+        )
     }
 
     fn animation_frame(&self) -> Rect<u16> {
@@ -110,5 +199,27 @@ impl PlayerSkin for BasicPlayerSkin {
 
     fn get_mask_texture_name(&self) -> &str {
         ""
+    }
+
+    fn get_hit_bounds(&self) -> Rect<u32> {
+        let ubox = &self.metadata.hit_box;
+
+        Rect {
+            left: ubox.left as u32 * 0x200,
+            top: ubox.top as u32 * 0x200,
+            right: ubox.right as u32 * 0x200,
+            bottom: ubox.bottom as u32 * 0x200,
+        }
+    }
+
+    fn get_display_bounds(&self) -> Rect<u32> {
+        let ubox = &self.metadata.display_box;
+
+        Rect {
+            left: ubox.left as u32 * 0x200,
+            top: ubox.top as u32 * 0x200,
+            right: ubox.right as u32 * 0x200,
+            bottom: ubox.bottom as u32 * 0x200,
+        }
     }
 }

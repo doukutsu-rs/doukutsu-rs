@@ -79,6 +79,12 @@ pub trait PlayerSkin: PlayerSkinClone {
 
     /// Returns the name of skin color mask texture.
     fn get_mask_texture_name(&self) -> &str;
+
+    /// Returns hit bounds of skin.
+    fn get_hit_bounds(&self) -> Rect<u32>;
+
+    /// Returns display bounds of skin.
+    fn get_display_bounds(&self) -> Rect<u32>;
 }
 
 pub trait PlayerSkinClone {

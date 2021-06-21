@@ -240,7 +240,17 @@ pub fn init() -> GameResult {
     }
 
     #[cfg(not(target_os = "android"))]
-    mount_user_vfs(&mut context, Box::new(PhysicalFS::new(project_dirs.data_local_dir(), false)));
+        {
+            if let Ok(_) = crate::framework::filesystem::open(&mut context, "/.drs_localstorage") {
+                let mut user_dir = resource_dir.clone();
+                user_dir.push("_drs_profile");
+
+                let _ = std::fs::create_dir_all(&user_dir);
+                mount_user_vfs(&mut context, Box::new(PhysicalFS::new(&user_dir, false)));
+            } else {
+                mount_user_vfs(&mut context, Box::new(PhysicalFS::new(project_dirs.data_local_dir(), false)));
+            }
+        }
 
     let game = UnsafeCell::new(Game::new(&mut context)?);
     let state_ref = unsafe { &mut *((&mut *game.get()).state.get()) };

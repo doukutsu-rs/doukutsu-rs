@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
 use lazy_static::lazy_static;
-use num_traits::clamp;
 use vec_mut_scan::VecMutScan;
 
-use crate::sound::pixtone_sfx::{DEFAULT_PIXTONE_TABLE};
+use crate::sound::pixtone_sfx::DEFAULT_PIXTONE_TABLE;
 use crate::sound::stuff::cubic_interp;
 
 lazy_static! {
@@ -110,33 +109,10 @@ impl Channel {
         Channel {
             enabled: false,
             length: 0,
-            carrier: Waveform {
-                waveform_type: 0,
-                pitch: 0.0,
-                level: 0,
-                offset: 0,
-            },
-            frequency: Waveform {
-                waveform_type: 0,
-                pitch: 0.0,
-                level: 0,
-                offset: 0,
-            },
-            amplitude: Waveform {
-                waveform_type: 0,
-                pitch: 0.0,
-                level: 0,
-                offset: 0,
-            },
-            envelope: Envelope {
-                initial: 0,
-                time_a: 0,
-                value_a: 0,
-                time_b: 0,
-                value_b: 0,
-                time_c: 0,
-                value_c: 0,
-            },
+            carrier: Waveform { waveform_type: 0, pitch: 0.0, level: 0, offset: 0 },
+            frequency: Waveform { waveform_type: 0, pitch: 0.0, level: 0, offset: 0 },
+            amplitude: Waveform { waveform_type: 0, pitch: 0.0, level: 0, offset: 0 },
+            envelope: Envelope { initial: 0, time_a: 0, value_a: 0, time_b: 0, value_b: 0, time_c: 0, value_c: 0 },
         }
     }
 }
@@ -149,7 +125,7 @@ pub struct PixToneParameters {
 impl PixToneParameters {
     pub const fn empty() -> PixToneParameters {
         PixToneParameters {
-            channels: [Channel::disabled(), Channel::disabled(), Channel::disabled(), Channel::disabled()]
+            channels: [Channel::disabled(), Channel::disabled(), Channel::disabled(), Channel::disabled()],
         }
     }
 
@@ -162,7 +138,9 @@ impl PixToneParameters {
         let mut samples = vec![0i16; length];
 
         for channel in self.channels.iter() {
-            if !channel.enabled { continue; }
+            if !channel.enabled {
+                continue;
+            }
 
             let mut phase = channel.carrier.offset as f32;
             let delta = 256.0 * channel.carrier.pitch as f32 / channel.length as f32;
@@ -178,10 +156,17 @@ impl PixToneParameters {
                 let s = |p: f32| -> f32 { 256.0 * p * i as f32 / channel.length as f32 };
 
                 let carrier = carrier_wave[0xff & phase as usize] as i32 * channel.carrier.level;
-                let freq = frequency_wave[0xff & (channel.frequency.offset as f32 + s(channel.frequency.pitch)) as usize] as i32 * channel.frequency.level;
-                let amp = amplitude_wave[0xff & (channel.amplitude.offset as f32 + s(channel.amplitude.pitch)) as usize] as i32 * channel.amplitude.level;
+                let freq = frequency_wave
+                    [0xff & (channel.frequency.offset as f32 + s(channel.frequency.pitch)) as usize]
+                    as i32
+                    * channel.frequency.level;
+                let amp = amplitude_wave[0xff & (channel.amplitude.offset as f32 + s(channel.amplitude.pitch)) as usize]
+                    as i32
+                    * channel.amplitude.level;
 
-                *result = clamp((*result as i32) + (carrier * (amp + 4096) / 4096 * channel.envelope.evaluate(s(1.0) as i32) / 4096) * 256, -32767, 32767) as i16;
+                *result = ((*result as i32)
+                    + (carrier * (amp + 4096) / 4096 * channel.envelope.evaluate(s(1.0) as i32) / 4096) * 256)
+                    .clamp(-32767, 32767) as i16;
 
                 phase += delta * (1.0 + (freq as f32 / (if freq < 0 { 8192.0 } else { 2048.0 })));
             }
@@ -208,11 +193,7 @@ impl PixTonePlayback {
             table[i] = *params;
         }
 
-        PixTonePlayback {
-            samples: HashMap::new(),
-            playback_state: vec![],
-            table,
-        }
+        PixTonePlayback { samples: HashMap::new(), playback_state: vec![], table }
     }
 
     pub fn create_samples(&mut self) {
@@ -266,8 +247,8 @@ impl PixTonePlayback {
                     } else {
                         let pos = state.1 as usize;
                         let s1 = (sample[pos] as f32) / 32768.0;
-                        let s2 = (sample[clamp(pos + 1, 0, sample.len() - 1)] as f32) / 32768.0;
-                        let s3 = (sample[clamp(pos + 2, 0, sample.len() - 1)] as f32) / 32768.0;
+                        let s2 = (sample[(pos + 1).clamp(0, sample.len() - 1)] as f32) / 32768.0;
+                        let s3 = (sample[(pos + 2).clamp(0, sample.len() - 1)] as f32) / 32768.0;
                         let s4 = (sample[pos.saturating_sub(1)] as f32) / 32768.0;
 
                         let s = cubic_interp(s1, s2, s4, s3, state.1.fract()) * 32768.0;

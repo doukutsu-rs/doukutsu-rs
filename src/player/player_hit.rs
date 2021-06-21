@@ -35,7 +35,11 @@ impl PhysicalEntity for Player {
     }
 
     fn hit_rect_size(&self) -> usize {
-        2
+        if self.hit_bounds.top > 0x1000 || self.hit_bounds.bottom > 0x1000 || self.hit_bounds.right > 0x1000 {
+            4
+        } else {
+            2
+        }
     }
 
     #[inline(always)]

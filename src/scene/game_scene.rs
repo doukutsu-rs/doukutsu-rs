@@ -104,8 +104,8 @@ impl GameScene {
             stage,
             water_params,
             water_renderer,
-            player1: Player::new(state),
-            player2: Player::new(state),
+            player1: Player::new(state, ctx),
+            player2: Player::new(state, ctx),
             inventory_player1: Inventory::new(),
             inventory_player2: Inventory::new(),
             boss_life_bar: BossLifeBar::new(),
@@ -333,7 +333,19 @@ impl GameScene {
                 return Ok(());
             }
             FadeState::Hidden => {
-                graphics::clear(ctx, Color::from_rgb(0, 0, 32));
+                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Fade")?;
+                let mut rect = Rect::new(0, 0, 16, 16);
+                let frame = 15;
+                rect.left = frame * 16;
+                rect.right = rect.left + 16;
+
+                for x in 0..(state.canvas_size.0 as i32 / 16 + 1) {
+                    for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
+                        batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
+                    }
+                }
+
+                batch.draw(ctx)?;
             }
             FadeState::FadeIn(tick, direction) | FadeState::FadeOut(tick, direction) => {
                 let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Fade")?;
@@ -617,7 +629,7 @@ impl GameScene {
                         (x * state.scale) as isize,
                         (y * state.scale) as isize,
                         (5.0 * state.scale) as isize,
-                        (10.0 * state.scale) as isize,
+                        (state.font.line_height(&state.constants) * state.scale) as isize,
                     ),
                     Color::from_rgb(255, 255, 255),
                 )?;

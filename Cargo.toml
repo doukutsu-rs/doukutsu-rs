@@ -64,6 +64,7 @@ sdl2 = { version = "=0.34.2", optional = true, features = ["unsafe_textures", "b
 sdl2-sys = { version = "=0.34.2", optional = true, features = ["bundled", "static-link"] }
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
+serde_json = "1.0"
 serde_yaml = "0.8"
 strum = "0.20"
 strum_macros = "0.20"

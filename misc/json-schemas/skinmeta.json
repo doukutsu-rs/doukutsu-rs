@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "JSON schema for doukutsu-rs .dskinmeta files.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "Name of the skin.",
+      "type": "string"
+    },
+    "description": {
+      "description": "Optional description of the skin.",
+      "type": "string"
+    },
+    "author": {
+      "description": "Optional author of the skin.",
+      "type": "string"
+    },
+    "gunOffsetX": {
+      "description": "Weapon offset from center in X axis.",
+      "type": "number",
+      "minimum": -32768,
+      "maximum": 32767
+    },
+    "gunOffsetY": {
+      "description": "Weapon offset from center in Y axis.",
+      "type": "number",
+      "minimum": -32768,
+      "maximum": 32767
+    },
+    "frameSizeWidth": {
+      "description": "Width of skin animation frame.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 256
+    },
+    "frameSizeHeight": {
+      "description": "Height of skin animation frame.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 256
+    },
+    "hitBox": {
+      "description": "Hit box of the skin. A [front, up, back, down] tuple specifying offsets from center in pixels (as in 1/16 of vanilla tile size, 0x200 as internal fix9 number).",
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      ]
+    },
+    "displayBox": {
+      "description": "Display box of the skin. A [front, up, back, down] tuple specifying offsets from center in pixels (as in 1/16 of vanilla tile size, 0x200 as internal fix9 number).",
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      ]
+    },
+    "custom": {
+      "description": "This field contains an optional object, meant for storing additional metadata not covered by this specification. Any keys with names that are unrecognized by application which is currently parsing the file must be ignored. To avoid value conflicts, we suggest attaching a prefix to every custom key eg. \"d-rs__gun_hitbox\".",
+      "type": "object"
+    },
+    "version": {
+      "type": "number",
+      "enum": [
+        1
+      ]
+    }
+  },
+  "required": [
+    "name",
+    "version"
+  ]
+}

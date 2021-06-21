@@ -89,8 +89,9 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(state: &mut SharedGameState) -> Player {
+    pub fn new(state: &mut SharedGameState, ctx: &mut Context) -> Player {
         let constants = &state.constants;
+        let skin = Box::new(BasicPlayerSkin::new("MyChar".to_string(), state, ctx));
 
         Player {
             x: 0,
@@ -107,8 +108,8 @@ impl Player {
             flags: Flag(0),
             equip: Equipment(0),
             direction: Direction::Right,
-            display_bounds: constants.player.display_bounds,
-            hit_bounds: constants.player.hit_bounds,
+            display_bounds: skin.get_display_bounds(),
+            hit_bounds: skin.get_hit_bounds(),
             control_mode: constants.player.control_mode,
             question: false,
             booster_fuel: 0,
@@ -126,7 +127,7 @@ impl Player {
             damage: 0,
             air_counter: 0,
             air: 0,
-            skin: Box::new(BasicPlayerSkin::new("MyChar".to_string())),
+            skin,
             controller: Box::new(DummyPlayerController::new()),
             popup: NumberPopup::new(),
             damage_counter: 0,
@@ -738,7 +739,7 @@ impl GameEntity<&NPCList> for Player {
         }
 
         self.popup.x = self.x;
-        self.popup.y = self.y;
+        self.popup.y = self.y - self.display_bounds.top as i32 + 0x1000;
         self.popup.tick(state, ())?;
 
         self.cond.set_increase_acceleration(false);
@@ -808,8 +809,8 @@ impl GameEntity<&NPCList> for Player {
                 ) + if self.direction == Direction::Left { -8.0 } else { 0.0 }
                     - frame_x,
                 interpolate_fix9_scale(
-                    self.prev_y - self.display_bounds.left as i32,
-                    self.y - self.display_bounds.left as i32,
+                    self.prev_y - self.display_bounds.top as i32,
+                    self.y - self.display_bounds.top as i32,
                     state.frame_time,
                 ) + self.weapon_offset_y as f32
                     - frame_y,
@@ -829,8 +830,8 @@ impl GameEntity<&NPCList> for Player {
                     state.frame_time,
                 ) - frame_x,
                 interpolate_fix9_scale(
-                    self.prev_y - self.display_bounds.left as i32,
-                    self.y - self.display_bounds.left as i32,
+                    self.prev_y - self.display_bounds.top as i32,
+                    self.y - self.display_bounds.top as i32,
                     state.frame_time,
                 ) - frame_y,
                 &self.anim_rect,

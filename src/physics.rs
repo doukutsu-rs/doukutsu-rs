@@ -6,14 +6,29 @@ use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 use crate::npc::list::NPCList;
 
-//      -1  0  1  2
-//    +------------
-// -1 | 10 14 15 16
-//  0 | 11  1  2  5
-//  1 | 12  3  4  6
-//  2 | 13  8  9  7
-pub const OFF_X: [i32; 16] = [0, 1, 0, 1, 2, 2, 2, 0, 1, -1, -1, -1, -1, 0, 1, 2];
-pub const OFF_Y: [i32; 16] = [0, 0, 1, 1, 0, 1, 2, 2, 2, -1, 0, 1, 2, -1, -1, -1];
+//      -2 -1  0  1  2  3
+//    +------------------
+// -2 | 26 32 33 34 35 36
+// -1 | 27 10 14 15 16 18
+//  0 | 28 11  1  2  5 19
+//  1 | 29 12  3  4  6 20
+//  2 | 30 13  8  9  7 21
+//  3 | 31 22 23 24 25 17
+
+pub const OFF_X: [i32; 36] = [
+    0, 1, 0, 1, 2, 2,
+    2, 0, 1, -1, -1, -1,
+    -1, 0, 1, 2, 3, 3,
+    3, 3, 3, -1, 0, 1,
+    2, -2, -2, -2, -2, -2,
+    -2, -1, 0, 1, 2, 3 ];
+pub const OFF_Y: [i32; 36] = [
+    0, 0, 1, 1, 0, 1,
+    2, 2, 2, -1, 0, 1,
+    2, -1, -1, -1, 3, -1,
+    0, 1, 2, 3, 3, 3,
+    3, -2, -1, 0, 1, 2,
+    3, -2, -2, -2, -2, -2 ];
 
 pub trait PhysicalEntity {
     fn x(&self) -> i32;
@@ -43,14 +58,16 @@ pub trait PhysicalEntity {
 
     fn test_block_hit(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
         let bounds_x = if self.is_player() { 0x600 } else { 0x600 };
-        let bounds_y = if self.is_player() { 0x800 } else { 0x600 };
+        let bounds_top = if self.is_player() { 0x800 } else { 0x600 };
+        let bounds_bottom = if self.is_player() { 0x800 } else { 0x600 };
+        let half_tile_size = 16 * 0x100;
 
         // left wall
-        if (self.y() - self.hit_bounds().top as i32) < ((y * 2 + 1) * 0x1000 - bounds_y)
-            && (self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * 0x1000 + bounds_y)
-            && (self.x() - self.hit_bounds().right as i32) < (x * 2 + 1) * 0x1000
-            && (self.x() - self.hit_bounds().right as i32) > x * 0x2000 {
-            self.set_x(((x * 2 + 1) * 0x1000) + self.hit_bounds().right as i32);
+        if (self.y() - self.hit_bounds().top as i32) < ((y * 2 + 1) * half_tile_size - bounds_top)
+            && (self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * half_tile_size + bounds_bottom)
+            && (self.x() - self.hit_bounds().right as i32) < (x * 2 + 1) * half_tile_size
+            && (self.x() - self.hit_bounds().right as i32) > (x * 2) * half_tile_size {
+            self.set_x(((x * 2 + 1) * half_tile_size) + self.hit_bounds().right as i32);
 
             if self.is_player() {
                 if self.vel_x() < -0x180 {
@@ -66,11 +83,11 @@ pub trait PhysicalEntity {
         }
 
         // right wall
-        if (self.y() - self.hit_bounds().top as i32) < ((y * 2 + 1) * 0x1000 - bounds_y)
-            && (self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * 0x1000 + bounds_y)
-            && (self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * 0x1000
-            && (self.x() + self.hit_bounds().right as i32) < x * 0x2000 {
-            self.set_x(((x * 2 - 1) * 0x1000) - self.hit_bounds().right as i32);
+        if (self.y() - self.hit_bounds().top as i32) < ((y * 2 + 1) * half_tile_size - bounds_top)
+            && (self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * half_tile_size + bounds_bottom)
+            && (self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * half_tile_size
+            && (self.x() + self.hit_bounds().right as i32) < (x * 2) * half_tile_size {
+            self.set_x(((x * 2 - 1) * half_tile_size) - self.hit_bounds().right as i32);
 
             if self.is_player() {
                 if self.vel_x() > 0x180 {
@@ -86,11 +103,11 @@ pub trait PhysicalEntity {
         }
 
         // ceiling
-        if ((self.x() - self.hit_bounds().right as i32) < (x * 2 + 1) * 0x1000 - bounds_x)
-            && ((self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * 0x1000 + bounds_x)
-            && (self.y() - self.hit_bounds().top as i32) < (y * 2 + 1) * 0x1000
-            && (self.y() - self.hit_bounds().top as i32) > y * 0x2000 {
-            self.set_y(((y * 2 + 1) * 0x1000) + self.hit_bounds().top as i32);
+        if ((self.x() - self.hit_bounds().right as i32) < (x * 2 + 1) * half_tile_size - bounds_x)
+            && ((self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * half_tile_size + bounds_x)
+            && (self.y() - self.hit_bounds().top as i32) < (y * 2 + 1) * half_tile_size
+            && (self.y() - self.hit_bounds().top as i32) > (y * 2) * half_tile_size {
+            self.set_y(((y * 2 + 1) * half_tile_size) + self.hit_bounds().top as i32);
 
             if self.is_player() {
                 if !self.cond().hidden() && self.vel_y() < -0x200 {
@@ -110,11 +127,11 @@ pub trait PhysicalEntity {
         }
 
         // floor
-        if ((self.x() - self.hit_bounds().right as i32) < (x * 2 + 1) * 0x1000 - bounds_x)
-            && ((self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * 0x1000 + bounds_x)
-            && ((self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * 0x1000))
-            && ((self.y() + self.hit_bounds().bottom as i32) < (y * 0x2000)) {
-            self.set_y(((y * 2 - 1) * 0x1000) - self.hit_bounds().bottom as i32);
+        if ((self.x() - self.hit_bounds().right as i32) < (x * 2 + 1) * half_tile_size - bounds_x)
+            && ((self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * half_tile_size + bounds_x)
+            && ((self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * half_tile_size))
+            && ((self.y() + self.hit_bounds().bottom as i32) < (y * 2) * half_tile_size) {
+            self.set_y(((y * 2 - 1) * half_tile_size) - self.hit_bounds().bottom as i32);
 
             if self.is_player() {
                 if self.vel_y() > 0x400 {

@@ -38,8 +38,6 @@ pub struct BoosterConsts {
 
 #[derive(Debug, Copy, Clone)]
 pub struct PlayerConsts {
-    pub display_bounds: Rect<u32>,
-    pub hit_bounds: Rect<u32>,
     pub life: u16,
     pub max_life: u16,
     pub control_mode: ControlMode,
@@ -288,8 +286,6 @@ impl EngineConstants {
             is_switch: false,
             supports_og_textures: false,
             player: PlayerConsts {
-                display_bounds: Rect { left: 0x1000, top: 0x1000, right: 0x1000, bottom: 0x1000 },
-                hit_bounds: Rect { left: 5 * 0x200, top: 0x1000, right: 5 * 0x200, bottom: 0x1000 },
                 life: 3,
                 max_life: 3,
                 control_mode: ControlMode::Normal,
@@ -1413,7 +1409,7 @@ impl EngineConstants {
                 menu_right: Rect { left: 236, top: 8, right: 244, bottom: 16 },
             },
             inventory_dim_color: Color::from_rgba(0, 0, 0, 0),
-            font_path: "builtin/builtin_font.fnt".to_string(),
+            font_path: "csfont.fnt".to_string(),
             font_scale: 1.0,
             font_space_offset: 0.0,
             soundtracks: HashMap::new(),
