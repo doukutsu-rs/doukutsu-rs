@@ -1700,12 +1700,12 @@ impl Scene for GameScene {
         self.frame.prev_y = self.frame.y;
         self.player1.prev_x = self.player1.x;
         self.player1.prev_y = self.player1.y;
-        self.player1.popup.prev_x = self.player1.prev_x;
-        self.player1.popup.prev_y = self.player1.prev_y;
+        self.player1.popup.prev_x = self.player1.popup.x;
+        self.player1.popup.prev_y = self.player1.popup.y;
         self.player2.prev_x = self.player2.x;
         self.player2.prev_y = self.player2.y;
-        self.player2.popup.prev_x = self.player2.prev_x;
-        self.player2.popup.prev_y = self.player2.prev_y;
+        self.player2.popup.prev_x = self.player2.popup.x;
+        self.player2.popup.prev_y = self.player2.popup.y;
 
         for npc in self.npc_list.iter_alive() {
             npc.prev_x = npc.x;
