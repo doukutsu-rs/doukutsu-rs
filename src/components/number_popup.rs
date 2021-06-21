@@ -1,4 +1,4 @@
-use crate::common::{fix9_scale, interpolate_fix9_scale, Rect};
+use crate::common::{interpolate_fix9_scale, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
@@ -63,7 +63,7 @@ impl GameEntity<()> for NumberPopup {
 
         let (frame_x, frame_y) = frame.xy_interpolated(state.frame_time);
         let x = interpolate_fix9_scale(self.prev_x, self.x, state.frame_time) - frame_x;
-        let y = interpolate_fix9_scale(self.prev_x, self.y, state.frame_time) - frame_y - y_offset;
+        let y = interpolate_fix9_scale(self.prev_y, self.y, state.frame_time) - frame_y - y_offset;
 
         let mut n = self.value.to_string();
         if self.value > 0 {
