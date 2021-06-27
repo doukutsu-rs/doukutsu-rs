@@ -1870,7 +1870,14 @@ impl TextScript {
                 }
                 b'<' => {
                     allow_next_event = false;
+
                     if !char_buf.is_empty() {
+                        if let Some(&c) = char_buf.last() {
+                            if c == b'\n' {
+                                let _ = char_buf.pop();
+                            }
+                        }
+
                         TextScript::put_string(&mut char_buf, &mut bytecode, encoding);
                     }
 
@@ -1906,6 +1913,10 @@ impl TextScript {
     }
 
     fn put_string(buffer: &mut Vec<u8>, out: &mut Vec<u8>, encoding: TextScriptEncoding) {
+        if buffer.len() == 0 {
+            return;
+        }
+
         let mut cursor: Cursor<&Vec<u8>> = Cursor::new(buffer);
         let mut tmp_buf = Vec::new();
         let mut remaining = buffer.len() as u32;
