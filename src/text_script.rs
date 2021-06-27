@@ -1284,15 +1284,17 @@ impl TextScriptVM {
                             }
                         }
 
-                        let mut npc = NPC::create(4, &state.npc_table);
-                        npc.cond.set_alive(true);
-                        npc.x = partner.x;
-                        npc.y = partner.y;
+                        if partner.cond.alive() && !partner.cond.hidden() {
+                            let mut npc = NPC::create(4, &state.npc_table);
+                            npc.cond.set_alive(true);
+                            npc.x = partner.x;
+                            npc.y = partner.y;
 
-                        let _ = game_scene.npc_list.spawn(0x100, npc.clone());
-                        let _ = game_scene.npc_list.spawn(0x100, npc.clone());
-                        let _ = game_scene.npc_list.spawn(0x100, npc.clone());
-                        let _ = game_scene.npc_list.spawn(0x100, npc);
+                            let _ = game_scene.npc_list.spawn(0x100, npc.clone());
+                            let _ = game_scene.npc_list.spawn(0x100, npc.clone());
+                            let _ = game_scene.npc_list.spawn(0x100, npc.clone());
+                            let _ = game_scene.npc_list.spawn(0x100, npc);
+                        }
 
                         exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
                     }
