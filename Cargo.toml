@@ -26,7 +26,6 @@ opt-level = 3
 default = ["scripting", "backend-sdl", "render-opengl", "ogg-playback", "exe"]
 ogg-playback = ["lewton"]
 backend-sdl = ["sdl2", "sdl2-sys"]
-#backend-sokol = ["sokol"]
 backend-glutin = ["winit", "glutin", "render-opengl"]
 render-opengl = []
 scripting = ["lua-ffi"]

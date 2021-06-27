@@ -74,15 +74,11 @@ pub trait BackendTexture {
     fn draw(&mut self) -> GameResult;
 }
 
+#[allow(unreachable_code)]
 pub fn init_backend() -> GameResult<Box<dyn Backend>> {
     #[cfg(all(feature = "backend-glutin"))]
     {
         return crate::framework::backend_glutin::GlutinBackend::new();
-    }
-
-    #[cfg(feature = "backend-sokol")]
-    {
-        return crate::framework::backend_sokol::SokolBackend::new();
     }
 
     #[cfg(feature = "backend-sdl")]
