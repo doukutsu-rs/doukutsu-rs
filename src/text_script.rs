@@ -1870,14 +1870,15 @@ impl TextScript {
                 }
                 b'<' => {
                     allow_next_event = false;
-
-                    if !char_buf.is_empty() {
+                    if char_buf.len() > 2 {
                         if let Some(&c) = char_buf.last() {
                             if c == b'\n' {
                                 let _ = char_buf.pop();
                             }
                         }
+                    }
 
+                    if !char_buf.is_empty() {
                         TextScript::put_string(&mut char_buf, &mut bytecode, encoding);
                     }
 
