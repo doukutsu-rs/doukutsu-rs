@@ -177,7 +177,12 @@ impl PixToneParameters {
 }
 
 #[derive(Copy, Clone, PartialEq)]
-pub struct PlaybackState(u8, f32, u32);
+pub struct PlaybackState {
+    id: u8
+    pos: f32,
+    tag: u32,
+    looping: bool,
+}
 
 pub struct PixTonePlayback {
     pub samples: HashMap<u8, Vec<i16>>,
@@ -213,17 +218,50 @@ impl PixTonePlayback {
 
     pub fn play_sfx(&mut self, id: u8) {
         for state in self.playback_state.iter_mut() {
-            if state.0 == id && state.2 == 0 {
-                state.1 = 0.0;
+            if state.id == id && state.tag == 0 {
+                state.pos = 0.0;
+                state.looping = false;
                 return;
             }
         }
 
-        self.playback_state.push(PlaybackState(id, 0.0, 0));
+        self.playback_state.push(PlaybackState {
+            id,
+            pos: 0.0,
+            tag: 0,
+            looping: false
+        });
+    }
+
+    pub fn loop_sfx(&mut self, id: u8) {
+        for state in self.playback_state.iter_mut() {
+            if state.id == id && state.tag == 0 {
+                state.looping = true;
+                return;
+            }
+        }
+
+        self.playback_state.push(PlaybackState {
+            id,
+            pos: 0.0,
+            tag: 0,
+            looping: true
+        });
+    }
+
+    pub fn stop_sfx(&mut self, id: u8) {
+        if let Some(pos) = self.playback_state.iter().position(|s| s.id == id && s.tag == 0) {
+            self.playback_state.remove(pos);
+        }
     }
 
     pub fn play_concurrent(&mut self, id: u8, tag: u32) {
-        self.playback_state.push(PlaybackState(id, 0.0, tag));
+        self.playback_state.push(PlaybackState {
+            id,
+            pos: 0.0,
+            tag,
+            looping: false
+        });
     }
 
     pub fn mix(&mut self, dst: &mut [u16], sample_rate: f32) {

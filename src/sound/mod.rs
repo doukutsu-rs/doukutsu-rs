@@ -78,6 +78,14 @@ impl SoundManager {
         let _ = self.tx.send(PlaybackMessage::PlaySample(id));
     }
 
+    pub fn loop_sfx(&self, id: u8) {
+        let _ = self.tx.send(PlaybackMessage::LoopSample(id));
+    }
+
+    pub fn stop_sfx(&self, id: u8) {
+        let _ = self.tx.send(PlaybackMessage::StopSample(id));
+    }
+
     pub fn play_song(
         &mut self,
         song_id: usize,
@@ -255,7 +263,6 @@ impl SoundManager {
 
                     let _ = splits.next();
                     if let Some(str) = splits.next() {
-                        println!("{}", str);
                         return str.trim().parse::<T>().map_err(|_| GameError::ParseError("failed to parse the value as specified type.".to_string()))
                     } else {
                         break;
@@ -314,6 +321,8 @@ enum PlaybackMessage {
     #[cfg(feature = "ogg-playback")]
     PlayOggSongMultiPart(Box<OggStreamReader<File>>, Box<OggStreamReader<File>>),
     PlaySample(u8),
+    LoopSample(u8),
+    StopSample(u8),
     SetSpeed(f32),
     SaveState,
     RestoreState,
@@ -427,6 +436,13 @@ where
                     }
                     Ok(PlaybackMessage::PlaySample(id)) => {
                         pixtone.play_sfx(id);
+                    }
+
+                    Ok(PlaybackMessage::LoopSample(id)) => {
+                        pixtone.loop_sfx(id);
+                    }
+                    Ok(PlaybackMessage::StopSample(id)) => {
+                        pixtone.stop_sfx(id);
                     }
                     Ok(PlaybackMessage::Stop) => {
                         if state == PlaybackState::Stopped {
