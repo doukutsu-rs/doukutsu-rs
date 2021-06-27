@@ -377,6 +377,7 @@ impl BackendRenderer for SDL2Renderer {
         let mut refs = self.refs.borrow_mut();
 
         refs.canvas.set_draw_color(to_sdl(color));
+        refs.canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
         refs.canvas.clear();
     }
 
@@ -384,6 +385,15 @@ impl BackendRenderer for SDL2Renderer {
         let mut refs = self.refs.borrow_mut();
 
         refs.canvas.present();
+
+        Ok(())
+    }
+
+    fn prepare_draw(&mut self, width: f32, height: f32) -> GameResult {
+        let mut refs = self.refs.borrow_mut();
+
+        refs.canvas.set_clip_rect(Some(sdl2::rect::Rect::new(0, 0, width as u32, height as u32, )));
+        //refs.canvas.set_clip_rect(None);
 
         Ok(())
     }
