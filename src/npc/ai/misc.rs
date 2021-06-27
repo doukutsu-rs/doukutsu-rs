@@ -896,7 +896,7 @@ impl NPC {
 
                 for player in players.iter_mut() {
                     if abs(player.x - self.x) < 0x1000 && player.y > self.y && player.y < self.y + 96 * 0x200 {
-                        player.vel_y -= 0x88;
+                        player.vel_y += 0x88;
                     }
                 }
             }
