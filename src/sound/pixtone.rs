@@ -178,7 +178,7 @@ impl PixToneParameters {
 
 #[derive(Copy, Clone, PartialEq)]
 pub struct PlaybackState {
-    id: u8
+    id: u8,
     pos: f32,
     tag: u32,
     looping: bool,
@@ -225,12 +225,7 @@ impl PixTonePlayback {
             }
         }
 
-        self.playback_state.push(PlaybackState {
-            id,
-            pos: 0.0,
-            tag: 0,
-            looping: false
-        });
+        self.playback_state.push(PlaybackState { id, pos: 0.0, tag: 0, looping: false });
     }
 
     pub fn loop_sfx(&mut self, id: u8) {
@@ -241,12 +236,7 @@ impl PixTonePlayback {
             }
         }
 
-        self.playback_state.push(PlaybackState {
-            id,
-            pos: 0.0,
-            tag: 0,
-            looping: true
-        });
+        self.playback_state.push(PlaybackState { id, pos: 0.0, tag: 0, looping: true });
     }
 
     pub fn stop_sfx(&mut self, id: u8) {
@@ -256,12 +246,7 @@ impl PixTonePlayback {
     }
 
     pub fn play_concurrent(&mut self, id: u8, tag: u32) {
-        self.playback_state.push(PlaybackState {
-            id,
-            pos: 0.0,
-            tag,
-            looping: false
-        });
+        self.playback_state.push(PlaybackState { id, pos: 0.0, tag, looping: false });
     }
 
     pub fn mix(&mut self, dst: &mut [u16], sample_rate: f32) {
@@ -272,30 +257,34 @@ impl PixTonePlayback {
             let mut state = *item;
             let mut remove = false;
 
-            if let Some(sample) = self.samples.get(&state.0) {
+            if let Some(sample) = self.samples.get(&state.id) {
                 if sample.is_empty() {
                     item.remove();
                     continue;
                 };
 
                 for result in dst.iter_mut() {
-                    if state.1 >= sample.len() as f32 {
-                        remove = true;
-                        break;
-                    } else {
-                        let pos = state.1 as usize;
-                        let s1 = (sample[pos] as f32) / 32768.0;
-                        let s2 = (sample[(pos + 1).clamp(0, sample.len() - 1)] as f32) / 32768.0;
-                        let s3 = (sample[(pos + 2).clamp(0, sample.len() - 1)] as f32) / 32768.0;
-                        let s4 = (sample[pos.saturating_sub(1)] as f32) / 32768.0;
-
-                        let s = cubic_interp(s1, s2, s4, s3, state.1.fract()) * 32768.0;
-                        // let s = sample[pos] as f32;
-                        let sam = (*result ^ 0x8000) as i16;
-                        *result = sam.saturating_add(s as i16) as u16 ^ 0x8000;
-
-                        state.1 += delta;
+                    if state.pos >= sample.len() as f32 {
+                        if state.looping {
+                            state.pos = 0.0;
+                        } else {
+                            remove = true;
+                            break;
+                        }
                     }
+
+                    let pos = state.pos as usize;
+                    let s1 = (sample[pos] as f32) / 32768.0;
+                    let s2 = (sample[(pos + 1).clamp(0, sample.len() - 1)] as f32) / 32768.0;
+                    let s3 = (sample[(pos + 2).clamp(0, sample.len() - 1)] as f32) / 32768.0;
+                    let s4 = (sample[pos.saturating_sub(1)] as f32) / 32768.0;
+
+                    let s = cubic_interp(s1, s2, s4, s3, state.pos.fract()) * 32768.0;
+                    // let s = sample[pos] as f32;
+                    let sam = (*result ^ 0x8000) as i16;
+                    *result = sam.saturating_add(s as i16) as u16 ^ 0x8000;
+
+                    state.pos += delta;
                 }
 
                 if remove {

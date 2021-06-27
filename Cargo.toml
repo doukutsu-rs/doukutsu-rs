@@ -38,6 +38,7 @@ android = []
 [dependencies]
 #cpal = { path = "./3rdparty/cpal" }
 #glutin = { path = "./3rdparty/glutin/glutin", optional = true }
+#lua-ffi = { path = "./3rdparty/luajit-rs", optional = true }
 #winit = { path = "./3rdparty/winit", optional = true, default_features = false, features = ["x11"] }
 bitvec = "0.20"
 byteorder = "1.4"
@@ -54,7 +55,7 @@ lazy_static = "1.4.0"
 lewton = { version = "0.10.2", optional = true }
 libc = { version = "0.2", optional = true }
 log = "0.4"
-lua-ffi = { git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "1ef3caf772d72068297ddf75df06fd2ef8c1daab", optional = true }
+lua-ffi = { git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "e0b2ff5960f7ef9974aa9675cebe4907bee0134f", optional = true }
 num-derive = "0.3.2"
 num-traits = "0.2.12"
 paste = "1.0.0"

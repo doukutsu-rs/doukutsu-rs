@@ -1643,6 +1643,8 @@ impl Scene for GameScene {
         state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.base_path, &state.constants, ctx)?);
         state.textscript_vm.suspend = false;
         state.tile_size = self.stage.map.tile_size;
+        #[cfg(feature = "scripting")]
+            state.lua.set_game_scene(self as *mut _);
 
         self.player1.controller = state.settings.create_player1_controller();
         self.player2.controller = state.settings.create_player2_controller();
@@ -1653,11 +1655,11 @@ impl Scene for GameScene {
 
             let mut npc = NPC::create_from_data(npc_data, &state.npc_table, state.tile_size);
             if npc.npc_flags.appear_when_flag_set() {
-                if state.get_flag(npc_data.flag_num as usize) {
+                if state.get_flag(npc_data.flag_num as _) {
                     npc.cond.set_alive(true);
                 }
             } else if npc.npc_flags.hide_unless_flag_set() {
-                if !state.get_flag(npc_data.flag_num as usize) {
+                if !state.get_flag(npc_data.flag_num as _) {
                     npc.cond.set_alive(true);
                 }
             } else {
@@ -1776,7 +1778,7 @@ impl Scene for GameScene {
             TextScriptVM::run(state, self, ctx)?;
 
             #[cfg(feature = "scripting")]
-            state.lua.scene_tick(self);
+            state.lua.scene_tick();
 
             if state.control_flags.control_enabled() {
                 self.tick = self.tick.wrapping_add(1);
@@ -1852,9 +1854,6 @@ impl Scene for GameScene {
         self.draw_bullets(state, ctx)?;
         self.player2.draw(state, ctx, &self.frame)?;
         self.player1.draw(state, ctx, &self.frame)?;
-        /*if state.settings.shader_effects && self.water_visible {
-            self.draw_water(state, ctx)?;
-        }*/
 
         self.water_renderer.draw(state, ctx, &self.frame)?;
         self.draw_tiles(state, ctx, TileLayer::Foreground)?;

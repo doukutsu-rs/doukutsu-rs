@@ -670,7 +670,7 @@ impl Player {
     }
 
     pub fn damage(&mut self, hp: i32, state: &mut SharedGameState, npc_list: &NPCList) {
-        if state.settings.god_mode || self.shock_counter > 0 {
+        if self.life == 0 || hp <= 0 || state.settings.god_mode || self.shock_counter > 0 {
             return;
         }
 

@@ -291,17 +291,18 @@ impl SharedGameState {
     }
 
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
-        let mut next_scene = GameScene::new(self, ctx, 13)?;
+        #[cfg(feature = "scripting")]
+            self.lua.reload_scripts(ctx)?;
+
+        let mut next_scene = GameScene::new(self, ctx, self.constants.game.new_game_stage as usize)?;
         next_scene.player1.cond.set_alive(true);
-        next_scene.player1.x = 10 * 0x2000;
-        next_scene.player1.y = 8 * 0x2000;
+        let (pos_x, pos_y)= self.constants.game.new_game_player_pos;
+        next_scene.player1.x = pos_x as i32 * next_scene.stage.map.tile_size.as_int() * 0x200;
+        next_scene.player1.y = pos_y as i32 * next_scene.stage.map.tile_size.as_int() * 0x200;
 
         self.reset_map_flags();
         self.fade_state = FadeState::Hidden;
-        self.textscript_vm.state = TextScriptExecutionState::Running(200, 0);
-
-        #[cfg(feature = "scripting")]
-        self.lua.reload_scripts(ctx)?;
+        self.textscript_vm.state = TextScriptExecutionState::Running(self.constants.game.new_game_event, 0);
 
         self.next_scene = Some(Box::new(next_scene));
 
@@ -309,7 +310,10 @@ impl SharedGameState {
     }
 
     pub fn start_intro(&mut self, ctx: &mut Context) -> GameResult {
-        let start_stage_id = 72;
+        #[cfg(feature = "scripting")]
+            self.lua.reload_scripts(ctx)?;
+
+        let start_stage_id = self.constants.game.intro_stage as usize;
 
         if self.stages.len() < start_stage_id {
             log::warn!("Intro scene out of bounds in stage table, skipping to title...");
@@ -317,18 +321,16 @@ impl SharedGameState {
             return Ok(());
         }
 
-        let mut next_scene = GameScene::new(self, ctx, 72)?;
+        let mut next_scene = GameScene::new(self, ctx, start_stage_id)?;
         next_scene.player1.cond.set_hidden(true);
-        next_scene.player1.x = 3 * 0x2000;
-        next_scene.player1.y = 3 * 0x2000;
+        let (pos_x, pos_y)= self.constants.game.intro_player_pos;
+        next_scene.player1.x = pos_x as i32 * next_scene.stage.map.tile_size.as_int() * 0x200;
+        next_scene.player1.y = pos_y as i32 * next_scene.stage.map.tile_size.as_int() * 0x200;
         next_scene.intro_mode = true;
 
         self.reset_map_flags();
         self.fade_state = FadeState::Hidden;
-        self.textscript_vm.state = TextScriptExecutionState::Running(100, 0);
-
-        #[cfg(feature = "scripting")]
-        self.lua.reload_scripts(ctx)?;
+        self.textscript_vm.state = TextScriptExecutionState::Running(self.constants.game.intro_event, 0);
 
         self.next_scene = Some(Box::new(next_scene));
 

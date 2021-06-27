@@ -48,6 +48,16 @@ pub struct PlayerConsts {
     pub frames_bubble: [Rect<u16>; 2],
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct GameConsts {
+    pub intro_stage: u16,
+    pub intro_event: u16,
+    pub intro_player_pos: (i16, i16),
+    pub new_game_stage: u16,
+    pub new_game_event: u16,
+    pub new_game_player_pos: (i16, i16),
+}
+
 #[derive(Debug)]
 pub struct CaretConsts {
     pub offsets: [(i32, i32); 18],
@@ -235,6 +245,7 @@ pub struct EngineConstants {
     pub is_cs_plus: bool,
     pub is_switch: bool,
     pub supports_og_textures: bool,
+    pub game: GameConsts,
     pub player: PlayerConsts,
     pub booster: BoosterConsts,
     pub caret: CaretConsts,
@@ -259,6 +270,7 @@ impl Clone for EngineConstants {
             is_cs_plus: self.is_cs_plus,
             is_switch: self.is_switch,
             supports_og_textures: self.supports_og_textures,
+            game: self.game,
             player: self.player,
             booster: self.booster,
             caret: self.caret.clone(),
@@ -285,6 +297,14 @@ impl EngineConstants {
             is_cs_plus: false,
             is_switch: false,
             supports_og_textures: false,
+            game: GameConsts {
+                intro_stage: 72,
+                intro_event: 100,
+                intro_player_pos: (3, 3),
+                new_game_stage: 13,
+                new_game_event: 200,
+                new_game_player_pos: (10, 8)
+            },
             player: PlayerConsts {
                 life: 3,
                 max_life: 3,

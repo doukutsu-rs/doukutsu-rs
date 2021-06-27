@@ -1,18 +1,19 @@
 use std::io;
 use std::io::Cursor;
 
-use byteorder::{LE, ReadBytesExt};
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
+use byteorder::{ReadBytesExt, LE};
 use num_traits::abs;
 
 use crate::bitfield;
-use crate::weapon::bullet::BulletManager;
-use crate::common::{Condition, interpolate_fix9_scale, Rect};
 use crate::common::Direction;
 use crate::common::Flag;
+use crate::common::{interpolate_fix9_scale, Condition, Rect};
+use crate::components::flash::Flash;
+use crate::components::number_popup::NumberPopup;
 use crate::entity::GameEntity;
 use crate::frame::Frame;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::npc::list::NPCList;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
@@ -20,8 +21,7 @@ use crate::rng::Xoroshiro32PlusPlus;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 use crate::str;
-use crate::components::flash::Flash;
-use crate::components::number_popup::NumberPopup;
+use crate::weapon::bullet::BulletManager;
 
 pub mod ai;
 pub mod boss;
@@ -155,7 +155,13 @@ impl NPC {
         }
     }
 
-    pub fn draw_if_layer(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame, layer: NPCLayer) -> GameResult {
+    pub fn draw_if_layer(
+        &self,
+        state: &mut SharedGameState,
+        ctx: &mut Context,
+        frame: &Frame,
+        layer: NPCLayer,
+    ) -> GameResult {
         if self.layer == layer {
             self.draw(state, ctx, frame)?
         }
@@ -165,8 +171,23 @@ impl NPC {
 }
 
 impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Flash)> for NPC {
-    fn tick(&mut self, state: &mut SharedGameState, (players, npc_list, stage, bullet_manager, flash): ([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Flash)) -> GameResult {
+    fn tick(
+        &mut self,
+        state: &mut SharedGameState,
+        (players, npc_list, stage, bullet_manager, flash): (
+            [&mut Player; 2],
+            &NPCList,
+            &mut Stage,
+            &BulletManager,
+            &mut Flash,
+        ),
+    ) -> GameResult {
+        let mut npc_hook_ran = false;
+        #[cfg(feature = "scripting")]
+            { npc_hook_ran = state.lua.try_run_npc_hook(self.id, self.npc_type); }
+
         match self.npc_type {
+            _ if npc_hook_ran => Ok(()),
             0 => self.tick_n000_null(),
             1 => self.tick_n001_experience(state, stage),
             2 => self.tick_n002_behemoth(state),
@@ -386,11 +407,11 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             359 => self.tick_n359_water_droplet_generator(state, players, npc_list),
             _ => {
                 #[cfg(feature = "hooks")]
-                    {
-                        crate::hooks::run_npc_hook(self, state, players, npc_list, stage, bullet_manager);
-                    }
+                {
+                    crate::hooks::run_npc_hook(self, state, players, npc_list, stage, bullet_manager);
+                }
                 Ok(())
-            },
+            }
         }?;
 
         self.popup.x = self.x;
@@ -420,20 +441,19 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
         let texture = state.npc_table.get_texture_name(self.spritesheet_id);
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, texture)?;
 
-        let off_x = if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right } as i32;
-        let shock = if self.shock > 0 {
-            (2 * ((self.shock as i32 / 2) % 2) - 1) as f32
-        } else { 0.0 };
+        let off_x =
+            if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right } as i32;
+        let shock = if self.shock > 0 { (2 * ((self.shock as i32 / 2) % 2) - 1) as f32 } else { 0.0 };
 
         let (frame_x, frame_y) = frame.xy_interpolated(state.frame_time);
 
         batch.add_rect(
-            interpolate_fix9_scale(self.prev_x - off_x,
-                                   self.x - off_x,
-                                   state.frame_time) + shock - frame_x,
-            interpolate_fix9_scale(self.prev_y - self.display_bounds.top as i32,
-                                   self.y - self.display_bounds.top as i32,
-                                   state.frame_time) - frame_y,
+            interpolate_fix9_scale(self.prev_x - off_x, self.x - off_x, state.frame_time) + shock - frame_x,
+            interpolate_fix9_scale(
+                self.prev_y - self.display_bounds.top as i32,
+                self.y - self.display_bounds.top as i32,
+                state.frame_time,
+            ) - frame_y,
             &self.anim_rect,
         );
         batch.draw(ctx)?;
@@ -446,31 +466,55 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
 
 impl PhysicalEntity for NPC {
     #[inline(always)]
-    fn x(&self) -> i32 { self.x }
+    fn x(&self) -> i32 {
+        self.x
+    }
 
     #[inline(always)]
-    fn y(&self) -> i32 { self.y }
+    fn y(&self) -> i32 {
+        self.y
+    }
 
     #[inline(always)]
-    fn vel_x(&self) -> i32 { self.vel_x }
+    fn vel_x(&self) -> i32 {
+        self.vel_x
+    }
 
     #[inline(always)]
-    fn vel_y(&self) -> i32 { self.vel_y }
+    fn vel_y(&self) -> i32 {
+        self.vel_y
+    }
 
     #[inline(always)]
     fn hit_rect_size(&self) -> usize {
         if self.size >= 3 {
-            if self.cond.drs_boss() { 4 } else { 3 }
+            if self.cond.drs_boss() {
+                4
+            } else {
+                3
+            }
         } else {
             2
         }
     }
 
     #[inline(always)]
-    fn offset_x(&self) -> i32 { if self.size >= 3 && !self.cond.drs_boss() { -0x1000 } else { 0 } }
+    fn offset_x(&self) -> i32 {
+        if self.size >= 3 && !self.cond.drs_boss() {
+            -0x1000
+        } else {
+            0
+        }
+    }
 
     #[inline(always)]
-    fn offset_y(&self) -> i32 { if self.size >= 3 && !self.cond.drs_boss() { -0x1000 } else { 0 } }
+    fn offset_y(&self) -> i32 {
+        if self.size >= 3 && !self.cond.drs_boss() {
+            -0x1000
+        } else {
+            0
+        }
+    }
 
     #[inline(always)]
     fn hit_bounds(&self) -> &Rect<u32> {
@@ -681,7 +725,7 @@ impl NPCTable {
             23 => "Npc/NpcRegu",
             26 => "TextBox",
             27 => "Face",
-            _ => "Npc/Npc0"
+            _ => "Npc/Npc0",
         }
     }
 }

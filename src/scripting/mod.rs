@@ -13,9 +13,11 @@ use crate::scripting::doukutsu::Doukutsu;
 use crate::shared_game_state::SharedGameState;
 use crate::framework::filesystem::File;
 use crate::framework::filesystem;
+use lua_ffi::types::LuaValue;
+use crate::common::Rect;
+use lua_ffi::ffi::lua_State;
 
 mod doukutsu;
-mod player;
 mod scene;
 
 pub struct LuaScriptingState {
@@ -25,11 +27,13 @@ pub struct LuaScriptingState {
     game_scene: *mut GameScene,
 }
 
-pub static REF_ERROR: &str = "Reference went out of scope. DO NOT store/use references to game objects outside the event.";
+pub(in crate::scripting) static REF_ERROR: &str = "Reference went out of scope. DO NOT store/use references to game objects outside the event.";
+pub(in crate::scripting) static DRS_API_GLOBAL: &str = "__doukutsu_rs";
+pub(in crate::scripting) static DRS_RUNTIME_GLOBAL: &str = "__doukutsu_rs_runtime_dont_touch";
 
 static BOOT_SCRIPT: &str = include_str!("boot.lua");
 
-fn check_status(status: ThreadStatus, state: &mut State) -> GameResult {
+pub(in crate::scripting) fn check_status(status: ThreadStatus, state: &mut State) -> GameResult {
     match status {
         ThreadStatus::Ok | ThreadStatus::Yield => { return Ok(()); }
         _ => {}
@@ -42,6 +46,7 @@ fn check_status(status: ThreadStatus, state: &mut State) -> GameResult {
         ThreadStatus::MemoryError => Err(GameError::EventLoopError(format!("Lua Memory Error: {}", error))),
         ThreadStatus::MsgHandlerError => Err(GameError::EventLoopError(format!("Lua Message Handler Error: {}", error))),
         ThreadStatus::FileError => Err(GameError::EventLoopError(format!("Lua File Error: {}", error))),
+        ThreadStatus::Unknown => Err(GameError::EventLoopError(format!("Unknown Error: {}", error))),
         _ => Ok(())
     }
 }
@@ -69,8 +74,12 @@ impl LuaScriptingState {
         self.ctx_ptr = ctx;
     }
 
+    pub fn set_game_scene(&mut self, game_scene: *mut GameScene) {
+        self.game_scene = game_scene;
+    }
+
     fn load_script(mut state: &mut State, path: &str, mut script: File) -> bool {
-        let mut buf = Vec::with_capacity(1024);
+        let mut buf = Vec::new();
         let res = script.read_to_end(&mut buf);
 
         if let Err(err) = res {
@@ -86,7 +95,7 @@ impl LuaScriptingState {
             return false;
         }
 
-        state.get_global("doukutsu");
+        state.get_global(DRS_RUNTIME_GLOBAL);
         state.get_field(-1, "_initializeScript");
         state.push_value(-3);
 
@@ -109,14 +118,15 @@ impl LuaScriptingState {
         state.set_global("print");
 
         state.push(Doukutsu { ptr: self as *mut LuaScriptingState });
-        state.set_global("__doukutsu");
+        state.set_global(DRS_API_GLOBAL);
 
+        log::info!("Initializing Lua scripting engine...");
         let res = state.do_string(BOOT_SCRIPT);
         check_status(res, &mut state)?;
 
-        if filesystem::exists(ctx, "/scripts/") {
+        if filesystem::exists(ctx, "/drs-scripts/") {
             let mut script_count = 0;
-            let files = filesystem::read_dir(ctx, "/scripts/")?
+            let files = filesystem::read_dir(ctx, "/drs-scripts/")?
                 .filter(|f| f.to_string_lossy().to_lowercase().ends_with(".lua"));
 
             for file in files {
@@ -139,8 +149,88 @@ impl LuaScriptingState {
             }
         }
 
+        let modcs_path = "/Scripts/main.lua";
+        if filesystem::exists(ctx, modcs_path) {
+            log::info!("Loading ModCS main script...");
+
+            match filesystem::open(ctx, modcs_path) {
+                Ok(script) => {
+                    if !LuaScriptingState::load_script(&mut state, modcs_path, script) {
+                        log::warn!("Error loading ModCS main script.");
+                    }
+                }
+                Err(err) => {
+                    log::warn!("Error opening script {:?}: {}", modcs_path, err);
+                }
+            }
+        }
+
         self.state = Some(state);
 
         Ok(())
+    }
+}
+
+impl LuaValue for Rect<u16> {
+    fn push_val(self, l: *mut lua_State) {
+        unsafe {
+            lua_ffi::ffi::lua_newtable(l);
+            lua_ffi::ffi::lua_pushinteger(l, self.left as isize);
+            lua_ffi::ffi::lua_rawseti(l, -2, 1);
+            lua_ffi::ffi::lua_pushinteger(l, self.top as isize);
+            lua_ffi::ffi::lua_rawseti(l, -2, 2);
+            lua_ffi::ffi::lua_pushinteger(l, self.right as isize);
+            lua_ffi::ffi::lua_rawseti(l, -2, 3);
+            lua_ffi::ffi::lua_pushinteger(l, self.bottom as isize);
+            lua_ffi::ffi::lua_rawseti(l, -2, 4);
+        }
+    }
+}
+
+impl LuaValue for Rect<i16> {
+    fn push_val(self, l: *mut lua_State) {
+        unsafe {
+            lua_ffi::ffi::lua_newtable(l);
+            lua_ffi::ffi::lua_pushinteger(l, self.left as isize);
+            lua_ffi::ffi::lua_rawseti(l, -2, 1);
+            lua_ffi::ffi::lua_pushinteger(l, self.top as isize);
+            lua_ffi::ffi::lua_rawseti(l, -2, 2);
+            lua_ffi::ffi::lua_pushinteger(l, self.right as isize);
+            lua_ffi::ffi::lua_rawseti(l, -2, 3);
+            lua_ffi::ffi::lua_pushinteger(l, self.bottom as isize);
+            lua_ffi::ffi::lua_rawseti(l, -2, 4);
+        }
+    }
+}
+
+impl LuaValue for Rect<i32> {
+    fn push_val(self, l: *mut lua_State) {
+        unsafe {
+            lua_ffi::ffi::lua_newtable(l);
+            lua_ffi::ffi::lua_pushinteger(l, self.left as isize);
+            lua_ffi::ffi::lua_rawseti(l, -2, 1);
+            lua_ffi::ffi::lua_pushinteger(l, self.top as isize);
+            lua_ffi::ffi::lua_rawseti(l, -2, 2);
+            lua_ffi::ffi::lua_pushinteger(l, self.right as isize);
+            lua_ffi::ffi::lua_rawseti(l, -2, 3);
+            lua_ffi::ffi::lua_pushinteger(l, self.bottom as isize);
+            lua_ffi::ffi::lua_rawseti(l, -2, 4);
+        }
+    }
+}
+
+impl LuaValue for Rect<f32> {
+    fn push_val(self, l: *mut lua_State) {
+        unsafe {
+            lua_ffi::ffi::lua_newtable(l);
+            lua_ffi::ffi::lua_pushnumber(l, self.left as f64);
+            lua_ffi::ffi::lua_rawseti(l, -2, 1);
+            lua_ffi::ffi::lua_pushnumber(l, self.top as f64);
+            lua_ffi::ffi::lua_rawseti(l, -2, 2);
+            lua_ffi::ffi::lua_pushnumber(l, self.right as f64);
+            lua_ffi::ffi::lua_rawseti(l, -2, 3);
+            lua_ffi::ffi::lua_pushnumber(l, self.bottom as f64);
+            lua_ffi::ffi::lua_rawseti(l, -2, 4);
+        }
     }
 }
