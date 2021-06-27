@@ -1,14 +1,13 @@
-use crate::framework::error::GameResult;
-use num_traits::clamp;
-
 use crate::common::Direction;
+use crate::framework::error::GameResult;
 use crate::npc::NPC;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
+use crate::stage::{Stage, BackgroundType};
 
 impl NPC {
-    pub(crate) fn tick_n001_experience(&mut self, state: &mut SharedGameState) -> GameResult {
-        if state.control_flags.wind() {
+    pub(crate) fn tick_n001_experience(&mut self, state: &mut SharedGameState, stage: &mut Stage) -> GameResult {
+        if stage.data.background_type == BackgroundType::Scrolling || stage.data.background_type == BackgroundType::OutsideWind {
             if self.action_num == 0 {
                 self.action_num = 1;
 
@@ -46,18 +45,10 @@ impl NPC {
                 self.vel_x = self.rng.range(-0x200..0x200) as i32;
                 self.vel_y = self.rng.range(-0x400..0) as i32;
 
-                self.direction = if self.rng.range(0..1) != 0 {
-                    Direction::Left
-                } else {
-                    Direction::Right
-                };
+                self.direction = if self.rng.range(0..1) != 0 { Direction::Left } else { Direction::Right };
             }
 
-            self.vel_y += if self.flags.in_water() {
-                0x15
-            } else {
-                0x2a
-            };
+            self.vel_y += if self.flags.in_water() { 0x15 } else { 0x2a };
 
             if self.flags.hit_left_wall() && self.vel_x < 0 {
                 self.vel_x = -self.vel_x;
@@ -89,8 +80,8 @@ impl NPC {
                 self.action_counter2 = 0;
             }
 
-            self.vel_x = clamp(self.vel_x, -0x5ff, 0x5ff);
-            self.vel_y = clamp(self.vel_y, -0x5ff, 0x5ff);
+            self.vel_x = self.vel_x.clamp(-0x5ff, 0x5ff);
+            self.vel_y = self.vel_y.clamp(-0x5ff, 0x5ff);
         }
 
         self.x += self.vel_x;
@@ -120,13 +111,15 @@ impl NPC {
         self.anim_rect = state.constants.npc.n001_experience[self.anim_num as usize];
 
         if self.action_num != 0 {
-            if self.exp >= 5 {
-                self.anim_rect.top += 16;
-                self.anim_rect.bottom += 16;
-            } else if self.exp >= 20 {
+            if self.exp >= 20 {
                 self.anim_rect.top += 32;
                 self.anim_rect.bottom += 32;
+            } else if self.exp >= 5 {
+                self.anim_rect.top += 16;
+                self.anim_rect.bottom += 16;
             }
+
+            self.action_num = 1;
         }
 
         self.action_counter += 1;
@@ -145,7 +138,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n086_missile_pickup(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n086_missile_pickup(&mut self, state: &mut SharedGameState, stage: &mut Stage) -> GameResult {
         if self.direction == Direction::Left {
             self.anim_counter += 1;
             if self.anim_counter > 2 {
@@ -159,7 +152,7 @@ impl NPC {
             self.action_counter2 += 1;
         }
 
-        if state.control_flags.wind() {
+        if stage.data.background_type == BackgroundType::Scrolling || stage.data.background_type == BackgroundType::OutsideWind {
             if self.action_num == 0 {
                 self.action_num = 1;
                 self.vel_x = self.rng.range(0x7f..0x100) as i32;
@@ -213,7 +206,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n087_heart_pickup(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n087_heart_pickup(&mut self, state: &mut SharedGameState, stage: &mut Stage) -> GameResult {
         if self.direction == Direction::Left {
             self.anim_counter += 1;
             if self.anim_counter > 2 {
@@ -227,7 +220,7 @@ impl NPC {
             self.action_counter2 += 1;
         }
 
-        if state.control_flags.wind() {
+        if stage.data.background_type == BackgroundType::Scrolling || stage.data.background_type == BackgroundType::OutsideWind {
             if self.action_num == 0 {
                 self.action_num = 1;
                 self.vel_x = self.rng.range(0x7f..0x100) as i32;

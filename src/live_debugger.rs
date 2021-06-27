@@ -75,14 +75,20 @@ impl LiveDebugger {
                 ));
 
                 ui.text(format!(
-                    "NPC Count: {}/{}/{}",
-                    game_scene.npc_list.iter_alive().count(),
-                    game_scene.npc_list.current_capacity(),
-                    game_scene.npc_list.max_capacity(),
+                    "frame: ({:.1},{:.1} -> {:.1},{:.1} / {})",
+                    game_scene.frame.x as f32 / 512.0,
+                    game_scene.frame.y as f32 / 512.0,
+                    game_scene.frame.target_x as f32 / 512.0,
+                    game_scene.frame.target_y as f32 / 512.0,
+                    game_scene.frame.wait
                 ));
 
                 ui.text(format!(
-                    "Booster fuel: {}", game_scene.player1.booster_fuel
+                    "NPC Count: {}/{}/{} Booster fuel: {}",
+                    game_scene.npc_list.iter_alive().count(),
+                    game_scene.npc_list.current_capacity(),
+                    game_scene.npc_list.max_capacity(),
+                    game_scene.player1.booster_fuel
                 ));
 
 
@@ -164,20 +170,21 @@ impl LiveDebugger {
                     if ui.button(im_str!("Load"), [0.0, 0.0]) {
                         match GameScene::new(state, ctx, self.selected_stage as usize) {
                             Ok(mut scene) => {
+                                let tile_size = scene.stage.map.tile_size.as_int() * 0x200;
                                 scene.inventory_player1 = game_scene.inventory_player1.clone();
                                 scene.inventory_player2 = game_scene.inventory_player2.clone();
 
                                 scene.player1 = game_scene.player1.clone();
-                                scene.player1.x = scene.stage.map.width as i32 / 2 * 0x2000;
-                                scene.player1.y = scene.stage.map.height as i32 / 2 * 0x2000;
+                                scene.player1.x = scene.stage.map.width as i32 / 2 * tile_size;
+                                scene.player1.y = scene.stage.map.height as i32 / 2 * tile_size;
 
                                 if scene.player1.life == 0 {
                                     scene.player1.life = scene.player1.max_life;
                                 }
 
                                 scene.player2 = game_scene.player2.clone();
-                                scene.player2.x = scene.stage.map.width as i32 / 2 * 0x2000;
-                                scene.player2.y = scene.stage.map.height as i32 / 2 * 0x2000;
+                                scene.player2.x = scene.stage.map.width as i32 / 2 * tile_size;
+                                scene.player2.y = scene.stage.map.height as i32 / 2 * tile_size;
 
                                 if scene.player2.life == 0 {
                                     scene.player2.life = scene.player1.max_life;

@@ -13,6 +13,7 @@ use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::map::{Map, NPCData};
 use crate::text_script::TextScript;
+use crate::common::Color;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct NpcType {
@@ -109,9 +110,9 @@ pub enum BackgroundType {
     Waterway,
 }
 
-impl BackgroundType {
-    pub fn new(id: usize) -> Self {
-        match id {
+impl From<u8> for BackgroundType {
+    fn from(val: u8) -> Self {
+        match val {
             0 => Self::TiledStatic,
             1 => Self::TiledParallax,
             2 => Self::Tiled,
@@ -123,21 +124,87 @@ impl BackgroundType {
             8 => Self::OutsideUnknown,
             9 => Self::Waterway,
             _ => {
-                log::warn!("Unknown background type: {}", id);
+                // log::warn!("Unknown background type: {}", val);
                 Self::Black
             }
         }
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum PxPackScroll {
+    Normal,
+    ThreeQuarters,
+    Half,
+    Quarter,
+    Eighth,
+    Zero,
+    HThreeQuarters,
+    HHalf,
+    HQuarter,
+    V0Half,
+}
+
+impl From<u8> for PxPackScroll {
+    fn from(val: u8) -> Self {
+        match val {
+            0 => PxPackScroll::Normal,
+            1 => PxPackScroll::ThreeQuarters,
+            2 => PxPackScroll::Half,
+            3 => PxPackScroll::Quarter,
+            4 => PxPackScroll::Eighth,
+            5 => PxPackScroll::Zero,
+            6 => PxPackScroll::HThreeQuarters,
+            7 => PxPackScroll::HHalf,
+            8 => PxPackScroll::HQuarter,
+            9 => PxPackScroll::V0Half,
+            _ => PxPackScroll::Normal,
+        }
+    }
+}
+
+impl PxPackScroll {
+    pub fn transform_camera_pos(self, x: f32, y: f32) -> (f32, f32) {
+        match self {
+            PxPackScroll::Normal => (x, y),
+            PxPackScroll::ThreeQuarters => (x * 0.75, y * 0.75),
+            PxPackScroll::Half => (x * 0.5, y * 0.5),
+            PxPackScroll::Quarter => (x * 0.25, y * 0.25),
+            PxPackScroll::Eighth => (x * 0.125, y * 0.125),
+            PxPackScroll::Zero => (0.0, 0.0),
+            PxPackScroll::HThreeQuarters => (x * 0.75, y),
+            PxPackScroll::HHalf => (x * 0.5, y),
+            PxPackScroll::HQuarter => (x * 0.25, y),
+            PxPackScroll::V0Half => (x, y) // ???
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PxPackStageData {
+    pub tileset_fg: String,
+    pub tileset_mg: String,
+    pub tileset_bg: String,
+    pub scroll_fg: PxPackScroll,
+    pub scroll_mg: PxPackScroll,
+    pub scroll_bg: PxPackScroll,
+    pub size_fg: (u16, u16),
+    pub size_mg: (u16, u16),
+    pub size_bg: (u16, u16),
+    pub offset_mg: u32,
+    pub offset_bg: u32,
+}
+
 #[derive(Debug)]
 pub struct StageData {
     pub name: String,
     pub map: String,
-    pub boss_no: usize,
+    pub boss_no: u8,
     pub tileset: Tileset,
+    pub pxpack_data: Option<PxPackStageData>,
     pub background: Background,
     pub background_type: BackgroundType,
+    pub background_color: Color,
     pub npc1: NpcType,
     pub npc2: NpcType,
 }
@@ -149,8 +216,10 @@ impl Clone for StageData {
             map: self.map.clone(),
             boss_no: self.boss_no,
             tileset: self.tileset.clone(),
+            pxpack_data: self.pxpack_data.clone(),
             background: self.background.clone(),
             background_type: self.background_type,
+            background_color: self.background_color,
             npc1: self.npc1.clone(),
             npc2: self.npc2.clone(),
         }
@@ -215,7 +284,7 @@ impl StageData {
             // Cave Story+ stage table.
             let mut stages = Vec::new();
 
-            info!("Loading Cave Story+/Booster's Lab style stage table from {}", &stage_tbl_path);
+            info!("Loading Cave Story+ stage table from {}", &stage_tbl_path);
 
             let mut data = Vec::new();
             filesystem::open(ctx, stage_tbl_path)?.read_to_end(&mut data)?;
@@ -233,11 +302,11 @@ impl StageData {
 
                 f.read_exact(&mut ts_buf)?;
                 f.read_exact(&mut map_buf)?;
-                let bg_type = f.read_u32::<LE>()? as usize;
+                let bg_type = f.read_u32::<LE>()? as u8;
                 f.read_exact(&mut back_buf)?;
                 f.read_exact(&mut npc1_buf)?;
                 f.read_exact(&mut npc2_buf)?;
-                let boss_no = f.read_u8()? as usize;
+                let boss_no = f.read_u8()?;
                 f.read_exact(&mut name_jap_buf)?;
                 f.read_exact(&mut name_buf)?;
 
@@ -253,8 +322,10 @@ impl StageData {
                     map: map.clone(),
                     boss_no,
                     tileset: Tileset::new(&tileset),
+                    pxpack_data: None,
                     background: Background::new(&background),
-                    background_type: BackgroundType::new(bg_type),
+                    background_type: BackgroundType::from(bg_type),
+                    background_color: Color::from_rgb(0, 0, 32),
                     npc1: NpcType::new(&npc1),
                     npc2: NpcType::new(&npc2),
                 };
@@ -266,7 +337,7 @@ impl StageData {
             // Cave Story freeware executable dump.
             let mut stages = Vec::new();
 
-            info!("Loading Cave Story freeware exe dump style stage table from {}", &stage_sect_path);
+            info!("Loading Cave Story freeware exe dump stage table from {}", &stage_sect_path);
 
             let mut data = Vec::new();
             filesystem::open(ctx, stage_sect_path)?.read_to_end(&mut data)?;
@@ -283,16 +354,17 @@ impl StageData {
 
                 f.read_exact(&mut ts_buf)?;
                 f.read_exact(&mut map_buf)?;
-                let bg_type = f.read_u32::<LE>()? as usize;
+                let bg_type = f.read_u32::<LE>()? as u8;
                 f.read_exact(&mut back_buf)?;
                 f.read_exact(&mut npc1_buf)?;
                 f.read_exact(&mut npc2_buf)?;
-                let boss_no = f.read_u8()? as usize;
+                let boss_no = f.read_u8()?;
                 f.read_exact(&mut name_buf)?;
                 // alignment
-                let _ = f.read_u8()?;
-                let _ = f.read_u8()?;
-                let _ = f.read_u8()?;
+                {
+                    let mut lol = [0u8; 3];
+                    let _ = f.read(&mut lol)?;
+                }
 
                 let tileset = from_shift_jis(&ts_buf[0..zero_index(&ts_buf)]);
                 let map = from_shift_jis(&map_buf[0..zero_index(&map_buf)]);
@@ -306,8 +378,10 @@ impl StageData {
                     map: map.clone(),
                     boss_no,
                     tileset: Tileset::new(&tileset),
+                    pxpack_data: None,
                     background: Background::new(&background),
-                    background_type: BackgroundType::new(bg_type),
+                    background_type: BackgroundType::from(bg_type),
+                    background_color: Color::from_rgb(0, 0, 32),
                     npc1: NpcType::new(&npc1),
                     npc2: NpcType::new(&npc2),
                 };
@@ -316,10 +390,10 @@ impl StageData {
 
             return Ok(stages);
         } else if filesystem::exists(ctx, &mrmap_bin_path) {
-            // CSE2E stage table
+            // Moustache Rider stage table
             let mut stages = Vec::new();
 
-            info!("Loading CSE2E style stage table from {}", &mrmap_bin_path);
+            info!("Loading Moustache Rider stage table from {}", &mrmap_bin_path);
 
             let mut data = Vec::new();
             let mut fh = filesystem::open(ctx, &mrmap_bin_path)?;
@@ -344,11 +418,11 @@ impl StageData {
 
                 f.read_exact(&mut ts_buf)?;
                 f.read_exact(&mut map_buf)?;
-                let bg_type = f.read_u8()? as usize;
+                let bg_type = f.read_u8()?;
                 f.read_exact(&mut back_buf)?;
                 f.read_exact(&mut npc1_buf)?;
                 f.read_exact(&mut npc2_buf)?;
-                let boss_no = f.read_u8()? as usize;
+                let boss_no = f.read_u8()?;
                 f.read_exact(&mut name_buf)?;
 
                 let tileset = from_shift_jis(&ts_buf[0..zero_index(&ts_buf)]);
@@ -358,15 +432,15 @@ impl StageData {
                 let npc2 = from_shift_jis(&npc2_buf[0..zero_index(&npc2_buf)]);
                 let name = from_shift_jis(&name_buf[0..zero_index(&name_buf)]);
 
-                println!("bg type: {}", bg_type);
-
                 let stage = StageData {
                     name: name.clone(),
                     map: map.clone(),
                     boss_no,
                     tileset: Tileset::new(&tileset),
+                    pxpack_data: None,
                     background: Background::new(&background),
-                    background_type: BackgroundType::new(bg_type),
+                    background_type: BackgroundType::from(bg_type),
+                    background_color: Color::from_rgb(0, 0, 32),
                     npc1: NpcType::new(&npc1),
                     npc2: NpcType::new(&npc2),
                 };
@@ -377,7 +451,7 @@ impl StageData {
         } else if filesystem::exists(ctx, &stage_dat_path) {
             let mut stages = Vec::new();
 
-            info!("Loading NXEngine style stage table from {}", &stage_dat_path);
+            info!("Loading NXEngine stage table from {}", &stage_dat_path);
 
             let mut data = Vec::new();
             let mut fh = filesystem::open(ctx, &stage_dat_path)?;
@@ -401,8 +475,8 @@ impl StageData {
 
                 let tileset_id = f.read_u8()? as usize;
                 let bg_id = f.read_u8()? as usize;
-                let bg_type = f.read_u8()? as usize;
-                let boss_no = f.read_u8()? as usize;
+                let bg_type = f.read_u8()?;
+                let boss_no = f.read_u8()?;
                 let npc1 = f.read_u8()? as usize;
                 let npc2 = f.read_u8()? as usize;
 
@@ -420,8 +494,10 @@ impl StageData {
                     map: map.clone(),
                     boss_no,
                     tileset: Tileset::new(NXENGINE_TILESETS.get(tileset_id).unwrap_or(&"0")),
+                    pxpack_data: None,
                     background: Background::new(NXENGINE_BACKDROPS.get(bg_id).unwrap_or(&"0")),
-                    background_type: BackgroundType::new(bg_type),
+                    background_type: BackgroundType::from(bg_type),
+                    background_color: Color::from_rgb(0, 0, 32),
                     npc1: NpcType::new(NXENGINE_NPCS.get(npc1).unwrap_or(&"0")),
                     npc2: NpcType::new(NXENGINE_NPCS.get(npc2).unwrap_or(&"0")),
                 };
@@ -442,14 +518,23 @@ pub struct Stage {
 
 impl Stage {
     pub fn load(root: &str, data: &StageData, ctx: &mut Context) -> GameResult<Self> {
-        let map_file = filesystem::open(ctx, [root, "Stage/", &data.map, ".pxm"].join(""))?;
-        let attrib_file = filesystem::open(ctx, [root, "Stage/", &data.tileset.name, ".pxa"].join(""))?;
+        let mut data = data.clone();
 
-        let map = Map::load_from(map_file, attrib_file)?;
+        if let Ok(pxpack_file) = filesystem::open(ctx, [root, "Stage/", &data.map, ".pxpack"].join("")) {
+            let map = Map::load_pxpack(pxpack_file, root, &mut data, ctx)?;
+            let stage = Self { map, data };
 
-        let stage = Self { map, data: data.clone() };
+            Ok(stage)
+        } else {
+            let map_file = filesystem::open(ctx, [root, "Stage/", &data.map, ".pxm"].join(""))?;
+            let attrib_file = filesystem::open(ctx, [root, "Stage/", &data.tileset.name, ".pxa"].join(""))?;
 
-        Ok(stage)
+            let map = Map::load_pxm(map_file, attrib_file)?;
+
+            let stage = Self { map, data };
+
+            Ok(stage)
+        }
     }
 
     pub fn load_text_script(
@@ -471,6 +556,7 @@ impl Stage {
         Ok(npc_data)
     }
 
+    /// Returns map tile from foreground layer.
     pub fn tile_at(&self, x: usize, y: usize) -> u8 {
         if let Some(&tile) = self.map.tiles.get(y.wrapping_mul(self.map.width as usize).wrapping_add(x)) {
             tile
@@ -479,7 +565,7 @@ impl Stage {
         }
     }
 
-    /// Changes map tile. Returns true if smoke should be emitted
+    /// Changes map tile on foreground layer. Returns true if smoke should be emitted
     pub fn change_tile(&mut self, x: usize, y: usize, tile_type: u8) -> bool {
         if let Some(ptr) = self.map.tiles.get_mut(y.wrapping_mul(self.map.width as usize).wrapping_add(x)) {
             if *ptr != tile_type {

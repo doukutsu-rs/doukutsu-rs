@@ -48,6 +48,11 @@ impl PhysicalEntity for Player {
     }
 
     #[inline(always)]
+    fn display_bounds(&self) -> &Rect<u32> {
+        &self.display_bounds
+    }
+
+    #[inline(always)]
     fn set_x(&mut self, x: i32) {
         self.x = x;
     }

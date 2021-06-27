@@ -35,8 +35,10 @@ impl Frame {
     }
 
     pub fn immediate_update(&mut self, state: &mut SharedGameState, stage: &Stage) {
-        if (stage.map.width as usize).saturating_sub(1) * 16 < state.canvas_size.0 as usize {
-            self.x = -(((state.canvas_size.0 as i32 - ((stage.map.width - 1) * 16) as i32) * 0x200) / 2);
+        let tile_size = state.tile_size.as_int();
+
+        if (stage.map.width as usize).saturating_sub(1) * (tile_size as usize) < state.canvas_size.0 as usize {
+            self.x = -(((state.canvas_size.0 as i32 - (stage.map.width as i32 - 1) * tile_size) * 0x200) / 2);
         } else {
             self.x = self.target_x - (state.canvas_size.0 as i32 * 0x200 / 2);
 
@@ -44,14 +46,14 @@ impl Frame {
                 self.x = 0;
             }
 
-            let max_x = (((stage.map.width as i32 - 1) * 16) - state.canvas_size.0 as i32) * 0x200;
+            let max_x = (((stage.map.width as i32 - 1) * tile_size) - state.canvas_size.0 as i32) * 0x200;
             if self.x > max_x {
                 self.x = max_x;
             }
         }
 
-        if (stage.map.height as usize).saturating_sub(1) * 16 < state.canvas_size.1 as usize {
-            self.y = -(((state.canvas_size.1 as i32 - ((stage.map.height - 1) * 16) as i32) * 0x200) / 2);
+        if (stage.map.height as usize).saturating_sub(1) * (tile_size as usize) < state.canvas_size.1 as usize {
+            self.y = -(((state.canvas_size.1 as i32 - (stage.map.height as i32 - 1) * tile_size) * 0x200) / 2);
         } else {
             self.y = self.target_y - (state.canvas_size.1 as i32 * 0x200 / 2);
 
@@ -59,7 +61,7 @@ impl Frame {
                 self.y = 0;
             }
 
-            let max_y = (((stage.map.height as i32 - 1) * 16) - state.canvas_size.1 as i32) * 0x200;
+            let max_y = (((stage.map.height as i32 - 1) * tile_size) - state.canvas_size.1 as i32) * 0x200;
             if self.y > max_y {
                 self.y = max_y;
             }
@@ -70,8 +72,10 @@ impl Frame {
     }
 
     pub fn update(&mut self, state: &mut SharedGameState, stage: &Stage) {
-        if (stage.map.width as usize).saturating_sub(1) * 16 < state.canvas_size.0 as usize {
-            self.x = -(((state.canvas_size.0 as i32 - ((stage.map.width - 1) * 16) as i32) * 0x200) / 2);
+        let tile_size = state.tile_size.as_int();
+
+        if (stage.map.width as usize).saturating_sub(1) * (tile_size as usize) < state.canvas_size.0 as usize {
+            self.x = -(((state.canvas_size.0 as i32 - (stage.map.width as i32 - 1) * tile_size) * 0x200) / 2);
         } else {
             self.x += (self.target_x - (state.canvas_size.0 as i32 * 0x200 / 2) - self.x) / self.wait;
 
@@ -79,14 +83,14 @@ impl Frame {
                 self.x = 0;
             }
 
-            let max_x = (((stage.map.width as i32 - 1) * 16) - state.canvas_size.0 as i32) * 0x200;
+            let max_x = (((stage.map.width as i32 - 1) * tile_size) - state.canvas_size.0 as i32) * 0x200;
             if self.x > max_x {
                 self.x = max_x;
             }
         }
 
-        if (stage.map.height as usize).saturating_sub(1) * 16 < state.canvas_size.1 as usize {
-            self.y = -(((state.canvas_size.1 as i32 - ((stage.map.height - 1) * 16) as i32) * 0x200) / 2);
+        if (stage.map.height as usize).saturating_sub(1) * (tile_size as usize) < state.canvas_size.1 as usize {
+            self.y = -(((state.canvas_size.1 as i32 - (stage.map.height as i32 - 1) * tile_size) * 0x200) / 2);
         } else {
             self.y += (self.target_y - (state.canvas_size.1 as i32 * 0x200 / 2) - self.y) / self.wait;
 
@@ -94,7 +98,7 @@ impl Frame {
                 self.y = 0;
             }
 
-            let max_y = (((stage.map.height as i32 - 1) * 16) - state.canvas_size.1 as i32) * 0x200;
+            let max_y = (((stage.map.height as i32 - 1) * tile_size) - state.canvas_size.1 as i32) * 0x200;
             if self.y > max_y {
                 self.y = max_y;
             }

@@ -87,6 +87,29 @@ impl Season {
     }
 }
 
+
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub enum TileSize {
+    Tile8x8,
+    Tile16x16,
+}
+
+impl TileSize {
+    pub const fn as_float(self) -> f32 {
+        match self {
+            TileSize::Tile8x8 => 8.0,
+            TileSize::Tile16x16 => 16.0,
+        }
+    }
+
+    pub const fn as_int(self) -> i32 {
+        match self {
+            TileSize::Tile8x8 => 8,
+            TileSize::Tile16x16 => 16,
+        }
+    }
+}
+
 pub struct SharedGameState {
     pub timing_mode: TimingMode,
     pub control_flags: ControlFlags,
@@ -98,6 +121,7 @@ pub struct SharedGameState {
     pub game_rng: XorShift,
     /// RNG used by graphics effects that aren't dependent on game's state.
     pub effect_rng: XorShift,
+    pub tile_size: TileSize,
     pub quake_counter: u16,
     pub teleporter_slots: Vec<(u16, u16)>,
     pub carets: Vec<Caret>,
@@ -198,6 +222,7 @@ impl SharedGameState {
             fade_state: FadeState::Hidden,
             game_rng: XorShift::new(0),
             effect_rng: XorShift::new(123),
+            tile_size: TileSize::Tile16x16,
             quake_counter: 0,
             teleporter_slots: Vec::with_capacity(8),
             carets: Vec::with_capacity(32),

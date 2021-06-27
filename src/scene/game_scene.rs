@@ -25,12 +25,12 @@ use crate::map::WaterParams;
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::npc::{NPCLayer, NPC};
-use crate::physics::PhysicalEntity;
+use crate::physics::{PhysicalEntity, OFFSETS};
 use crate::player::{Player, TargetPlayer};
 use crate::rng::XorShift;
 use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
-use crate::shared_game_state::SharedGameState;
+use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM};
 use crate::texture_set::SizedBatch;
@@ -60,6 +60,8 @@ pub struct GameScene {
     pub intro_mode: bool,
     tex_background_name: String,
     tex_tileset_name: String,
+    tex_tileset_name_mg: String,
+    tex_tileset_name_bg: String,
     map_name_counter: u16,
     skip_counter: u16,
     inventory_dim: f32,
@@ -67,8 +69,8 @@ pub struct GameScene {
 
 #[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum TileLayer {
-    All,
     Background,
+    Middleground,
     Foreground,
     Snack,
 }
@@ -97,7 +99,18 @@ impl GameScene {
         }
 
         let tex_background_name = stage.data.background.filename();
-        let tex_tileset_name = ["Stage/", &stage.data.tileset.filename()].join("");
+        let (tex_tileset_name, tex_tileset_name_mg, tex_tileset_name_bg) =
+            if let Some(pxpack_data) = stage.data.pxpack_data.as_ref() {
+                let t_fg = ["Stage/", &pxpack_data.tileset_fg].join("");
+                let t_mg = ["Stage/", &pxpack_data.tileset_mg].join("");
+                let t_bg = ["Stage/", &pxpack_data.tileset_bg].join("");
+
+                (t_fg, t_mg, t_bg)
+            } else {
+                let tex_tileset_name = ["Stage/", &stage.data.tileset.filename()].join("");
+
+                (tex_tileset_name.clone(), tex_tileset_name.clone(), tex_tileset_name)
+            };
 
         Ok(Self {
             tick: 0,
@@ -131,6 +144,8 @@ impl GameScene {
             intro_mode: false,
             tex_background_name,
             tex_tileset_name,
+            tex_tileset_name_mg,
+            tex_tileset_name_bg,
             map_name_counter: 0,
             skip_counter: 0,
             inventory_dim: 0.0,
@@ -161,7 +176,7 @@ impl GameScene {
 
         match self.stage.data.background_type {
             BackgroundType::TiledStatic => {
-                graphics::clear(ctx, Color::from_rgb(0, 0, 0));
+                graphics::clear(ctx, self.stage.data.background_color);
 
                 let count_x = state.canvas_size.0 as usize / batch.width() + 1;
                 let count_y = state.canvas_size.1 as usize / batch.height() + 1;
@@ -173,7 +188,7 @@ impl GameScene {
                 }
             }
             BackgroundType::TiledParallax | BackgroundType::Tiled | BackgroundType::Waterway => {
-                graphics::clear(ctx, Color::from_rgb(0, 0, 0));
+                graphics::clear(ctx, self.stage.data.background_color);
 
                 let (off_x, off_y) = if self.stage.data.background_type == BackgroundType::Tiled {
                     (frame_x % (batch.width() as f32), frame_y % (batch.height() as f32))
@@ -194,12 +209,14 @@ impl GameScene {
                 }
             }
             BackgroundType::Water => {
-                graphics::clear(ctx, Color::from_rgb(0, 0, 32));
+                graphics::clear(ctx, self.stage.data.background_color);
             }
             BackgroundType::Black => {
-                graphics::clear(ctx, Color::from_rgb(0, 0, 32));
+                graphics::clear(ctx, self.stage.data.background_color);
             }
-            BackgroundType::Scrolling => {}
+            BackgroundType::Scrolling => {
+                graphics::clear(ctx, self.stage.data.background_color);
+            }
             BackgroundType::OutsideWind | BackgroundType::Outside | BackgroundType::OutsideUnknown => {
                 graphics::clear(ctx, Color::from_rgb(0, 0, 0));
 
@@ -575,11 +592,7 @@ impl GameScene {
 
         let text_offset = if state.textscript_vm.face == 0 { 0.0 } else { 56.0 };
 
-        let lines = [
-            &state.textscript_vm.line_1,
-            &state.textscript_vm.line_2,
-            &state.textscript_vm.line_3,
-        ];
+        let lines = [&state.textscript_vm.line_1, &state.textscript_vm.line_2, &state.textscript_vm.line_3];
 
         for (idx, line) in lines.iter().enumerate() {
             if !line.is_empty() {
@@ -652,6 +665,7 @@ impl GameScene {
 
     fn draw_light_raycast(
         &self,
+        tile_size: TileSize,
         world_point_x: i32,
         world_point_y: i32,
         (br, bg, bb): (u8, u8, u8),
@@ -664,6 +678,11 @@ impl GameScene {
 
         let fx2 = self.frame.x as f32 / 512.0;
         let fy2 = self.frame.y as f32 / 512.0;
+
+        let ti = tile_size.as_int();
+        let tf = tile_size.as_float();
+        let tih = ti / 2;
+        let tfq = tf / 4.0;
 
         'ray: for deg in angle {
             let d = deg as f32 * (std::f32::consts::PI / 180.0);
@@ -681,56 +700,56 @@ impl GameScene {
 
                 const ARR: [(i32, i32); 4] = [(0, 0), (0, 1), (1, 0), (1, 1)];
                 for (ox, oy) in ARR.iter() {
-                    let bx = x as i32 / 16 + *ox;
-                    let by = y as i32 / 16 + *oy;
+                    let bx = x as i32 / ti + *ox;
+                    let by = y as i32 / ti + *oy;
 
                     let tile = self.stage.map.attrib[self.stage.tile_at(bx as usize, by as usize) as usize];
 
                     if ((tile == 0x62 || tile == 0x41 || tile == 0x43 || tile == 0x46)
-                        && x >= (bx * 16 - 8) as f32
-                        && x <= (bx * 16 + 8) as f32
-                        && y >= (by * 16 - 8) as f32
-                        && y <= (by * 16 + 8) as f32)
+                        && x >= (bx * ti - tih) as f32
+                        && x <= (bx * ti + tih) as f32
+                        && y >= (by * ti - tih) as f32
+                        && y <= (by * ti + tih) as f32)
                         || ((tile == 0x50 || tile == 0x70)
-                            && x >= (bx * 16 - 8) as f32
-                            && x <= (bx * 16 + 8) as f32
-                            && y <= ((by as f32 * 16.0) - (x - bx as f32 * 16.0) / 2.0 + 4.0)
-                            && y >= (by * 16 - 8) as f32)
+                            && x >= (bx * ti - tih) as f32
+                            && x <= (bx * ti + tih) as f32
+                            && y <= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 + tfq)
+                            && y >= (by * ti - tih) as f32)
                         || ((tile == 0x51 || tile == 0x71)
-                            && x >= (bx * 16 - 8) as f32
-                            && x <= (bx * 16 + 8) as f32
-                            && y <= ((by as f32 * 16.0) - (x - bx as f32 * 16.0) / 2.0 - 4.0)
-                            && y >= (by * 16 - 8) as f32)
+                            && x >= (bx * ti - tih) as f32
+                            && x <= (bx * ti + tih) as f32
+                            && y <= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 - tfq)
+                            && y >= (by * ti - tih) as f32)
                         || ((tile == 0x52 || tile == 0x72)
-                            && x >= (bx * 16 - 8) as f32
-                            && x <= (bx * 16 + 8) as f32
-                            && y <= ((by as f32 * 16.0) + (x - bx as f32 * 16.0) / 2.0 - 4.0)
-                            && y >= (by * 16 - 8) as f32)
+                            && x >= (bx * ti - tih) as f32
+                            && x <= (bx * ti + tih) as f32
+                            && y <= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 - tfq)
+                            && y >= (by * ti - tih) as f32)
                         || ((tile == 0x53 || tile == 0x73)
-                            && x >= (bx * 16 - 8) as f32
-                            && x <= (bx * 16 + 8) as f32
-                            && y <= ((by as f32 * 16.0) + (x - bx as f32 * 16.0) / 2.0 + 4.0)
-                            && y >= (by * 16 - 8) as f32)
+                            && x >= (bx * ti - tih) as f32
+                            && x <= (bx * ti + tih) as f32
+                            && y <= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 + tfq)
+                            && y >= (by * ti - tih) as f32)
                         || ((tile == 0x54 || tile == 0x74)
-                            && x >= (bx * 16 - 8) as f32
-                            && x <= (bx * 16 + 8) as f32
-                            && y >= ((by as f32 * 16.0) + (x - bx as f32 * 16.0) / 2.0 - 4.0)
-                            && y <= (by * 16 + 8) as f32)
+                            && x >= (bx * ti - tih) as f32
+                            && x <= (bx * ti + tih) as f32
+                            && y >= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 - tfq)
+                            && y <= (by * ti + tih) as f32)
                         || ((tile == 0x55 || tile == 0x75)
-                            && x >= (bx * 16 - 8) as f32
-                            && x <= (bx * 16 + 8) as f32
-                            && y >= ((by as f32 * 16.0) + (x - bx as f32 * 16.0) / 2.0 + 4.0)
-                            && y <= (by * 16 + 8) as f32)
+                            && x >= (bx * ti - tih) as f32
+                            && x <= (bx * ti + tih) as f32
+                            && y >= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 + tfq)
+                            && y <= (by * ti + tih) as f32)
                         || ((tile == 0x56 || tile == 0x76)
-                            && x >= (bx * 16 - 8) as f32
-                            && x <= (bx * 16 + 8) as f32
-                            && y >= ((by as f32 * 16.0) - (x - bx as f32 * 16.0) / 2.0 + 4.0)
-                            && y <= (by * 16 + 8) as f32)
+                            && x >= (bx * ti - tih) as f32
+                            && x <= (bx * ti + tih) as f32
+                            && y >= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 + tfq)
+                            && y <= (by * ti + tih) as f32)
                         || ((tile == 0x57 || tile == 0x77)
-                            && x >= (bx * 16 - 8) as f32
-                            && x <= (bx * 16 + 8) as f32
-                            && y >= ((by as f32 * 16.0) - (x - bx as f32 * 16.0) / 2.0 - 4.0)
-                            && y <= (by * 16 + 8) as f32)
+                            && x >= (bx * ti - tih) as f32
+                            && x <= (bx * ti + tih) as f32
+                            && y >= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 - tfq)
+                            && y <= (by * ti + tih) as f32)
                     {
                         continue 'ray;
                     }
@@ -783,7 +802,7 @@ impl GameScene {
                         _ => ((150u8, 150u8, 150u8), 7),
                     };
 
-                    self.draw_light_raycast(player.x, player.y, color, att, range, batch);
+                    self.draw_light_raycast(state.tile_size, player.x, player.y, color, att, range, batch);
                 }
             }
 
@@ -1072,20 +1091,57 @@ impl GameScene {
     }
 
     fn draw_tiles(&self, state: &mut SharedGameState, ctx: &mut Context, layer: TileLayer) -> GameResult {
+        if state.tile_size == TileSize::Tile8x8 && layer == TileLayer::Snack {
+            return Ok(());
+        }
+
         let tex = match layer {
             TileLayer::Snack => "Npc/NpcSym",
-            _ => &self.tex_tileset_name,
+            TileLayer::Background => &self.tex_tileset_name_bg,
+            TileLayer::Middleground => &self.tex_tileset_name_mg,
+            TileLayer::Foreground => &self.tex_tileset_name,
         };
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex)?;
-        let mut rect = Rect::new(0, 0, 16, 16);
-        let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time);
 
-        let tile_start_x = (frame_x as i32 / 16).clamp(0, self.stage.map.width as i32) as usize;
-        let tile_start_y = (frame_y as i32 / 16).clamp(0, self.stage.map.height as i32) as usize;
-        let tile_end_x =
-            ((frame_x as i32 + 8 + state.canvas_size.0 as i32) / 16 + 1).clamp(0, self.stage.map.width as i32) as usize;
-        let tile_end_y = ((frame_y as i32 + 8 + state.canvas_size.1 as i32) / 16 + 1)
-            .clamp(0, self.stage.map.height as i32) as usize;
+        let (layer_offset, layer_width, layer_height, uses_layers) = if let Some(pxpack_data) = self.stage.data.pxpack_data.as_ref() {
+            match layer {
+                TileLayer::Background => (pxpack_data.offset_bg as usize, pxpack_data.size_bg.0, pxpack_data.size_bg.1, true),
+                TileLayer::Middleground => (pxpack_data.offset_mg as usize, pxpack_data.size_mg.0, pxpack_data.size_mg.1, true),
+                _ => (0, pxpack_data.size_fg.0, pxpack_data.size_fg.1, true),
+            }
+        } else {
+            (0, self.stage.map.width, self.stage.map.height, false)
+        };
+
+        if !uses_layers && layer == TileLayer::Middleground {
+            return Ok(());
+        }
+
+        let tile_size = state.tile_size.as_int();
+        let tile_sizef = state.tile_size.as_float();
+        let halft = tile_size / 2;
+        let halftf = tile_sizef / 2.0;
+
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex)?;
+        let mut rect = Rect::new(0, 0, tile_size as u16, tile_size as u16);
+        let (mut frame_x, mut frame_y) = self.frame.xy_interpolated(state.frame_time);
+
+        if let Some(pxpack_data) = self.stage.data.pxpack_data.as_ref() {
+            let (fx, fy) = match layer {
+                TileLayer::Background =>  pxpack_data.scroll_bg.transform_camera_pos(frame_x, frame_y),
+                TileLayer::Middleground =>  pxpack_data.scroll_mg.transform_camera_pos(frame_x, frame_y),
+                _ => pxpack_data.scroll_fg.transform_camera_pos(frame_x, frame_y),
+            };
+
+            frame_x = fx;
+            frame_y = fy;
+        }
+
+        let tile_start_x = (frame_x as i32 / tile_size).clamp(0, layer_width as i32) as usize;
+        let tile_start_y = (frame_y as i32 / tile_size).clamp(0, layer_height as i32) as usize;
+        let tile_end_x = ((frame_x as i32 + 8 + state.canvas_size.0 as i32) / tile_size + 1)
+            .clamp(0, layer_width as i32) as usize;
+        let tile_end_y = ((frame_y as i32 + halft + state.canvas_size.1 as i32) / tile_size + 1)
+            .clamp(0, layer_height as i32) as usize;
 
         if layer == TileLayer::Snack {
             rect = state.constants.world.snack_rect;
@@ -1093,18 +1149,27 @@ impl GameScene {
 
         for y in tile_start_y..tile_end_y {
             for x in tile_start_x..tile_end_x {
-                let tile = *self.stage.map.tiles.get((y * self.stage.map.width as usize) + x).unwrap();
-
+                let tile = *self.stage.map.tiles.get((y * layer_width as usize) + x + layer_offset).unwrap();
                 match layer {
+                    _ if uses_layers => {
+                        if tile == 0 { continue; }
+
+                        let tile_size = tile_size as u16;
+                        rect.left = (tile as u16 % 16) * tile_size;
+                        rect.top = (tile as u16 / 16) * tile_size;
+                        rect.right = rect.left + tile_size;
+                        rect.bottom = rect.top + tile_size;
+                    }
                     TileLayer::Background => {
                         if self.stage.map.attrib[tile as usize] >= 0x20 {
                             continue;
                         }
 
-                        rect.left = (tile as u16 % 16) * 16;
-                        rect.top = (tile as u16 / 16) * 16;
-                        rect.right = rect.left + 16;
-                        rect.bottom = rect.top + 16;
+                        let tile_size = tile_size as u16;
+                        rect.left = (tile as u16 % 16) * tile_size;
+                        rect.top = (tile as u16 / 16) * tile_size;
+                        rect.right = rect.left + tile_size;
+                        rect.bottom = rect.top + tile_size;
                     }
                     TileLayer::Foreground => {
                         let attr = self.stage.map.attrib[tile as usize];
@@ -1113,10 +1178,11 @@ impl GameScene {
                             continue;
                         }
 
-                        rect.left = (tile as u16 % 16) * 16;
-                        rect.top = (tile as u16 / 16) * 16;
-                        rect.right = rect.left + 16;
-                        rect.bottom = rect.top + 16;
+                        let tile_size = tile_size as u16;
+                        rect.left = (tile as u16 % 16) * tile_size;
+                        rect.top = (tile as u16 / 16) * tile_size;
+                        rect.right = rect.left + tile_size;
+                        rect.bottom = rect.top + tile_size;
                     }
                     TileLayer::Snack => {
                         if self.stage.map.attrib[tile as usize] != 0x43 {
@@ -1126,7 +1192,11 @@ impl GameScene {
                     _ => {}
                 }
 
-                batch.add_rect((x as f32 * 16.0 - 8.0) - frame_x, (y as f32 * 16.0 - 8.0) - frame_y, &rect);
+                batch.add_rect(
+                    (x as f32 * tile_sizef - halftf) - frame_x,
+                    (y as f32 * tile_sizef - halftf) - frame_y,
+                    &rect,
+                );
             }
         }
 
@@ -1479,46 +1549,58 @@ impl GameScene {
         Ok(())
     }
 
-    fn draw_debug_npc(&self, npc: &NPC, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if npc.x < (self.frame.x - 128 - npc.display_bounds.width() as i32 * 0x200)
-            || npc.x > (self.frame.x + 128 + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
-                && npc.y < (self.frame.y - 128 - npc.display_bounds.height() as i32 * 0x200)
-            || npc.y > (self.frame.y + 128 + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
+    fn draw_debug_object(&self, entity: &dyn PhysicalEntity, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        if entity.x() < (self.frame.x - 128 - entity.display_bounds().width() as i32 * 0x200)
+            || entity.x() > (self.frame.x + 128 + (state.canvas_size.0 as i32 + entity.display_bounds().width() as i32) * 0x200)
+            && entity.y() < (self.frame.y - 128 - entity.display_bounds().height() as i32 * 0x200)
+            || entity.y() > (self.frame.y + 128 + (state.canvas_size.1 as i32 + entity.display_bounds().height() as i32) * 0x200)
         {
             return Ok(());
         }
 
         {
-            let hit_rect_size = npc.hit_rect_size().clamp(1, 4);
-            let hit_rect_size = hit_rect_size * hit_rect_size;
+            let hit_rect_size = entity.hit_rect_size().clamp(1, 4);
+            let hit_rect_size = if state.tile_size == TileSize::Tile8x8 {
+                4 * hit_rect_size * hit_rect_size
+            } else {
+                hit_rect_size * hit_rect_size
+            };
 
-            let x = (npc.x + npc.offset_x()) / (0x2000);
-            let y = (npc.y + npc.offset_y()) / (0x2000);
+            let tile_size = state.tile_size.as_int() * 0x200;
+            let x = (entity.x() + entity.offset_x()) / tile_size;
+            let y = (entity.y() + entity.offset_y()) / tile_size;
+
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Caret")?;
 
-            let caret_rect = Rect::new_size(2, 74, 4, 4);
-            let caret2_rect = Rect::new_size(65, 9, 6, 6);
+            const CARET_RECT: Rect<u16> = Rect { left:2, top: 74, right: 6, bottom: 78};
+            const CARET2_RECT: Rect<u16> = Rect {  left: 65, top: 9, right: 71, bottom: 15 };
 
-            for (idx, (&ox, &oy)) in crate::physics::OFF_X.iter().zip(crate::physics::OFF_Y.iter()).enumerate() {
+            for (idx, &(ox, oy)) in OFFSETS.iter().enumerate() {
                 if idx == hit_rect_size {
                     break;
                 }
 
                 batch.add_rect(
-                    ((x + ox) * 16 - self.frame.x / 0x200) as f32 - 2.0,
-                    ((y + oy) * 16 - self.frame.y / 0x200) as f32 - 2.0,
-                    &caret_rect,
+                    ((x + ox) * tile_size - self.frame.x) as f32 / 512.0 - 2.0,
+                    ((y + oy) * tile_size - self.frame.y) as f32 / 512.0 - 2.0,
+                    &CARET_RECT,
                 );
             }
 
             batch.add_rect(
-                ((npc.x - self.frame.x) / 0x200) as f32 - 3.0,
-                ((npc.y - self.frame.y) / 0x200) as f32 - 3.0,
-                &caret2_rect,
+                (entity.x() - self.frame.x) as f32 / 512.0 - 3.0,
+                (entity.y() - self.frame.y) as f32 / 512.0 - 3.0,
+                &CARET2_RECT,
             );
 
             batch.draw(ctx)?;
         }
+
+        Ok(())
+    }
+
+    fn draw_debug_npc(&self, npc: &NPC, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        self.draw_debug_object(npc, state, ctx)?;
 
         let text = format!("{}:{}:{}", npc.id, npc.npc_type, npc.action_num);
         state.font.draw_colored_text_scaled(
@@ -1544,6 +1626,8 @@ impl GameScene {
             self.draw_debug_npc(boss, state, ctx)?;
         }
 
+        self.draw_debug_object(&self.player1, state, ctx)?;
+
         Ok(())
     }
 }
@@ -1558,6 +1642,7 @@ impl Scene for GameScene {
         state.game_rng = XorShift::new(seed);
         state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.base_path, &state.constants, ctx)?);
         state.textscript_vm.suspend = false;
+        state.tile_size = self.stage.map.tile_size;
 
         self.player1.controller = state.settings.create_player1_controller();
         self.player2.controller = state.settings.create_player2_controller();
@@ -1566,7 +1651,7 @@ impl Scene for GameScene {
         for npc_data in npcs.iter() {
             log::info!("creating npc: {:?}", npc_data);
 
-            let mut npc = NPC::create_from_data(npc_data, &state.npc_table);
+            let mut npc = NPC::create_from_data(npc_data, &state.npc_table, state.tile_size);
             if npc.npc_flags.appear_when_flag_set() {
                 if state.get_flag(npc_data.flag_num as usize) {
                     npc.cond.set_alive(true);
@@ -1597,8 +1682,14 @@ impl Scene for GameScene {
         self.boss.boss_type = self.stage.data.boss_no as u16;
         self.player1.target_x = self.player1.x;
         self.player1.target_y = self.player1.y;
-        self.frame.target_x = self.player1.target_x;
-        self.frame.target_y = self.player1.target_y;
+        self.player1.camera_target_x = 0;
+        self.player1.camera_target_y = 0;
+        self.player2.target_x = self.player2.x;
+        self.player2.target_y = self.player2.y;
+        self.player2.camera_target_x = 0;
+        self.player2.camera_target_y = 0;
+        self.frame.target_x = self.player1.x;
+        self.frame.target_y = self.player1.y;
         self.frame.immediate_update(state, &self.stage);
 
         Ok(())
@@ -1745,6 +1836,8 @@ impl Scene for GameScene {
         self.draw_background(state, ctx)?;
         self.draw_tiles(state, ctx, TileLayer::Background)?;
         self.draw_npc_layer(state, ctx, NPCLayer::Background)?;
+        self.draw_tiles(state, ctx, TileLayer::Middleground)?;
+
         if state.settings.shader_effects
             && self.stage.data.background_type != BackgroundType::Black
             && self.stage.data.background_type != BackgroundType::Outside
@@ -1849,7 +1942,11 @@ impl Scene for GameScene {
 
         self.draw_fade(state, ctx)?;
         if state.textscript_vm.mode == ScriptMode::Map && self.map_name_counter > 0 {
-            let map_name = if self.stage.data.name == "u" { state.constants.title.intro_text.chars() } else { self.stage.data.name.chars() };
+            let map_name = if self.stage.data.name == "u" {
+                state.constants.title.intro_text.chars()
+            } else {
+                self.stage.data.name.chars()
+            };
             let width = state.font.text_width(map_name.clone(), &state.constants);
 
             state.font.draw_text_with_shadow(

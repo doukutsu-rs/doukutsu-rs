@@ -85,6 +85,8 @@ pub trait PlayerSkin: PlayerSkinClone {
 
     /// Returns display bounds of skin.
     fn get_display_bounds(&self) -> Rect<u32>;
+
+    fn get_gun_offset(&self) -> (i32, i32);
 }
 
 pub trait PlayerSkinClone {

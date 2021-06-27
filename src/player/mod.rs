@@ -50,6 +50,8 @@ pub struct Player {
     pub vel_y: i32,
     pub target_x: i32,
     pub target_y: i32,
+    pub camera_target_x: i32,
+    pub camera_target_y: i32,
     pub prev_x: i32,
     pub prev_y: i32,
     pub life: u16,
@@ -75,8 +77,6 @@ pub struct Player {
     pub controller: Box<dyn PlayerController>,
     pub popup: NumberPopup,
     weapon_offset_y: i8,
-    camera_target_x: i32,
-    camera_target_y: i32,
     splash: bool,
     tick: u8,
     booster_switch: u8,
@@ -100,6 +100,8 @@ impl Player {
             vel_y: 0,
             target_x: 0,
             target_y: 0,
+            camera_target_x: 0,
+            camera_target_y: 0,
             prev_x: 0,
             prev_y: 0,
             life: constants.player.life,
@@ -113,8 +115,6 @@ impl Player {
             control_mode: constants.player.control_mode,
             question: false,
             booster_fuel: 0,
-            camera_target_x: 0,
-            camera_target_y: 0,
             splash: false,
             up: false,
             down: false,
@@ -801,18 +801,20 @@ impl GameEntity<&NPCList> for Player {
 
         if self.current_weapon != 0 {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Arms")?;
+            let (gun_off_x, gun_off_y) = self.skin.get_gun_offset();
+
             batch.add_rect(
                 interpolate_fix9_scale(
                     self.prev_x - self.display_bounds.left as i32,
                     self.x - self.display_bounds.left as i32,
                     state.frame_time,
-                ) + if self.direction == Direction::Left { -8.0 } else { 0.0 }
+                ) + if self.direction == Direction::Left { -8.0 - gun_off_x as f32 } else { gun_off_x as f32 }
                     - frame_x,
                 interpolate_fix9_scale(
                     self.prev_y - self.display_bounds.top as i32,
                     self.y - self.display_bounds.top as i32,
                     state.frame_time,
-                ) + self.weapon_offset_y as f32
+                ) + self.weapon_offset_y as f32 + gun_off_y as f32
                     - frame_y,
                 &self.weapon_rect,
             );

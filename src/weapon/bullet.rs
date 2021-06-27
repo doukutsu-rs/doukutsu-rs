@@ -5,10 +5,10 @@ use crate::common::{BulletFlag, Condition, Direction, Flag, Rect};
 use crate::engine_constants::{BulletData, EngineConstants};
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
-use crate::physics::{PhysicalEntity, OFF_X, OFF_Y};
+use crate::physics::{PhysicalEntity, OFFSETS};
 use crate::player::{Player, TargetPlayer};
 use crate::rng::{XorShift, Xoroshiro32PlusPlus, RNG};
-use crate::shared_game_state::SharedGameState;
+use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::Stage;
 
 pub struct BulletManager {
@@ -1406,12 +1406,19 @@ impl Bullet {
         state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Right);
     }
 
-    fn test_hit_block_destructible(&mut self, x: i32, y: i32, attributes: &[u8; 4], state: &mut SharedGameState) {
-        let mut hits = [false; 4];
-        let block_x = (x * 16 + 8) * 0x200;
-        let block_y = (y * 16 + 8) * 0x200;
+    fn test_hit_block_destructible(&mut self, x: i32, y: i32, attributes: &[u8; 16], state: &mut SharedGameState) {
+        let mut hits = [false; 16];
+
+        let (block_x, block_y, max_attr) = match state.tile_size {
+            TileSize::Tile8x8 => ((x * 2 + 1) * 0x800, (y * 2 + 1) * 0x800, 4),
+            TileSize::Tile16x16 => ((x * 2 + 1) * 0x1000, (y * 2 + 1) * 0x1000, 4),
+        };
 
         for (i, &attr) in attributes.iter().enumerate() {
+            if i == max_attr {
+                break;
+            }
+
             if self.weapon_flags.can_destroy_snack() {
                 hits[i] = attr == 0x41 || attr == 0x61;
             } else {
@@ -1518,6 +1525,11 @@ impl PhysicalEntity for Bullet {
     }
 
     #[inline(always)]
+    fn display_bounds(&self) -> &Rect<u32> {
+        &self.display_bounds
+    }
+
+    #[inline(always)]
     fn set_x(&mut self, x: i32) {
         self.x = x;
     }
@@ -1557,11 +1569,13 @@ impl PhysicalEntity for Bullet {
         false
     }
 
-    fn test_block_hit(&mut self, _state: &mut SharedGameState, x: i32, y: i32) {
-        if (self.x - self.hit_bounds.left as i32) < (x * 16 + 8) * 0x200
-            && (self.x + self.hit_bounds.right as i32) > (x * 16 - 8) * 0x200
-            && (self.y - self.hit_bounds.top as i32) < (y * 16 + 8) * 0x200
-            && (self.y + self.hit_bounds.bottom as i32) > (y * 16 - 8) * 0x200
+    fn test_block_hit(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
+        let ti = state.tile_size.as_int() * 0x100;
+
+        if (self.x - self.hit_bounds.left as i32) < (x * 2 + 1) * ti
+            && (self.x + self.hit_bounds.right as i32) > (x * 2 - 1) * ti
+            && (self.y - self.hit_bounds.top as i32) < (y * 2 + 1) * ti
+            && (self.y + self.hit_bounds.bottom as i32) > (y * 2 - 1) * ti
         {
             self.flags.set_weapon_hit_block(true);
         }
@@ -1574,12 +1588,18 @@ impl PhysicalEntity for Bullet {
             return;
         }
 
-        let x = clamp(self.x() / 16 / 0x200, 0, stage.map.width as i32);
-        let y = clamp(self.y() / 16 / 0x200, 0, stage.map.height as i32);
-        let mut hit_attribs = [0u8; 4];
+        let tile_size = state.tile_size.as_int() * 0x200;
+        let max_hits = match state.tile_size {
+            TileSize::Tile8x8 => 16,
+            TileSize::Tile16x16 => 4,
+        };
 
-        for (idx, (&ox, &oy)) in OFF_X.iter().zip(OFF_Y.iter()).enumerate() {
-            if idx == 4 || !self.cond.alive() {
+        let x = clamp(self.x() / tile_size, 0, stage.map.width as i32);
+        let y = clamp(self.y() / tile_size, 0, stage.map.height as i32);
+        let mut hit_attribs = [0u8; 16];
+
+        for (idx, &(ox, oy)) in OFFSETS.iter().enumerate() {
+            if idx == max_hits || !self.cond.alive() {
                 break;
             }
 

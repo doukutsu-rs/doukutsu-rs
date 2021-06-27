@@ -222,4 +222,8 @@ impl PlayerSkin for BasicPlayerSkin {
             bottom: ubox.bottom as u32 * 0x200,
         }
     }
+
+    fn get_gun_offset(&self) -> (i32, i32) {
+        (self.metadata.gun_offset_x as i32, self.metadata.gun_offset_y as i32)
+    }
 }

@@ -168,7 +168,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
     fn tick(&mut self, state: &mut SharedGameState, (players, npc_list, stage, bullet_manager, flash): ([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Flash)) -> GameResult {
         match self.npc_type {
             0 => self.tick_n000_null(),
-            1 => self.tick_n001_experience(state),
+            1 => self.tick_n001_experience(state, stage),
             2 => self.tick_n002_behemoth(state),
             3 => self.tick_n003_dead_enemy(),
             4 => self.tick_n004_smoke(state),
@@ -253,8 +253,8 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             83 => self.tick_n083_igor_cutscene(state),
             84 => self.tick_n084_basu_projectile(state),
             85 => self.tick_n085_terminal(state, players),
-            86 => self.tick_n086_missile_pickup(state),
-            87 => self.tick_n087_heart_pickup(state),
+            86 => self.tick_n086_missile_pickup(state, stage),
+            87 => self.tick_n087_heart_pickup(state, stage),
             88 => self.tick_n088_igor_boss(state, players, npc_list),
             89 => self.tick_n089_igor_dead(state, players, npc_list),
             90 => self.tick_n090_background(state),
@@ -475,6 +475,11 @@ impl PhysicalEntity for NPC {
     #[inline(always)]
     fn hit_bounds(&self) -> &Rect<u32> {
         &self.hit_bounds
+    }
+
+    #[inline(always)]
+    fn display_bounds(&self) -> &Rect<u32> {
+        &self.display_bounds
     }
 
     #[inline(always)]

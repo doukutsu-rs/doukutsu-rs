@@ -1201,10 +1201,13 @@ impl TextScriptVM {
                     OpCode::TRA => {
                         let map_id = read_cur_varint(&mut cursor)? as usize;
                         let event_num = read_cur_varint(&mut cursor)? as u16;
-                        let pos_x = read_cur_varint(&mut cursor)? as i32 * 0x2000;
-                        let pos_y = read_cur_varint(&mut cursor)? as i32 * 0x2000;
 
                         let mut new_scene = GameScene::new(state, ctx, map_id)?;
+
+                        let block_size = new_scene.stage.map.tile_size.as_int() * 0x200;
+                        let pos_x = read_cur_varint(&mut cursor)? as i32 * block_size;
+                        let pos_y = read_cur_varint(&mut cursor)? as i32 * block_size;
+
                         new_scene.intro_mode = game_scene.intro_mode;
                         new_scene.inventory_player1 = game_scene.inventory_player1.clone();
                         new_scene.inventory_player2 = game_scene.inventory_player2.clone();
@@ -1218,6 +1221,7 @@ impl TextScriptVM {
                         new_scene.player2.vel_y = 0;
                         new_scene.player2.x = pos_x;
                         new_scene.player2.y = pos_y;
+                        new_scene.frame.wait = game_scene.frame.wait;
 
                         let skip = state.textscript_vm.flags.cutscene_skip();
                         state.control_flags.set_tick_world(true);
@@ -1236,8 +1240,10 @@ impl TextScriptVM {
                         exec_state = TextScriptExecutionState::Running(event_num, 0);
                     }
                     OpCode::MOV => {
-                        let pos_x = read_cur_varint(&mut cursor)? as i32 * 0x2000;
-                        let pos_y = read_cur_varint(&mut cursor)? as i32 * 0x2000;
+                        let block_size = state.tile_size.as_int() * 0x200;
+
+                        let pos_x = read_cur_varint(&mut cursor)? as i32 * block_size;
+                        let pos_y = read_cur_varint(&mut cursor)? as i32 * block_size;
 
                         for player in [&mut game_scene.player1, &mut game_scene.player2].iter_mut() {
                             player.vel_x = 0;
@@ -1512,11 +1518,12 @@ impl TextScriptVM {
                         let y = read_cur_varint(&mut cursor)? as i32;
                         let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                         let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
+                        let block_size = state.tile_size.as_int() * 0x200;
 
                         for npc in game_scene.npc_list.iter_alive() {
                             if npc.event_num == event_num {
-                                npc.x = x * 0x2000;
-                                npc.y = y * 0x2000;
+                                npc.x = x * block_size;
+                                npc.y = y * block_size;
                                 npc.tsc_direction = tsc_direction as u16;
 
                                 if direction == Direction::FacingPlayer {
@@ -1538,11 +1545,12 @@ impl TextScriptVM {
                         let y = read_cur_varint(&mut cursor)? as i32;
                         let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                         let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
+                        let block_size = state.tile_size.as_int() * 0x200;
 
                         let mut npc = NPC::create(npc_type, &state.npc_table);
                         npc.cond.set_alive(true);
-                        npc.x = x * 0x2000;
-                        npc.y = y * 0x2000;
+                        npc.x = x * block_size;
+                        npc.y = y * block_size;
                         npc.tsc_direction = tsc_direction as u16;
 
                         if direction == Direction::FacingPlayer {

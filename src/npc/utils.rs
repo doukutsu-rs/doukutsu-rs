@@ -10,7 +10,7 @@ use crate::npc::{NPC, NPCFlag, NPCTable, NPCLayer};
 use crate::npc::list::NPCList;
 use crate::player::Player;
 use crate::rng::{RNG, Xoroshiro32PlusPlus};
-use crate::shared_game_state::SharedGameState;
+use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::components::number_popup::NumberPopup;
 
 impl NPC {
@@ -85,12 +85,14 @@ impl NPC {
         }
     }
 
-    pub fn create_from_data(data: &NPCData, table: &NPCTable) -> NPC {
+    pub fn create_from_data(data: &NPCData, table: &NPCTable, tile_size: TileSize) -> NPC {
         let mut npc = NPC::create(data.npc_type, table);
 
+        let ti = tile_size.as_int() * 0x200;
+
         npc.id = data.id;
-        npc.x = data.x as i32 * 0x2000;
-        npc.y = data.y as i32 * 0x2000;
+        npc.x = data.x as i32 * ti;
+        npc.y = data.y as i32 * ti;
         npc.flag_num = data.flag_num;
         npc.event_num = data.event_num;
         npc.npc_flags = NPCFlag(data.flags | npc.npc_flags.0);

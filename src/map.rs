@@ -1,14 +1,19 @@
 use std::collections::HashMap;
 use std::io;
-use std::io::{BufRead, BufReader, Error};
+use std::io::{BufRead, BufReader, Cursor, Read};
 use std::sync::Arc;
 
 use byteorder::{ReadBytesExt, LE};
 
 use crate::common::{Color, Rect};
+use crate::encoding::read_cur_shift_jis;
 use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::{GameError, GameResult};
+use crate::shared_game_state::TileSize;
+use crate::stage::{StageData, PxPackScroll, PxPackStageData};
 use crate::str;
+use crate::framework::filesystem;
+use crate::framework::context::Context;
 
 static SUPPORTED_PXM_VERSIONS: [u8; 1] = [0x10];
 static SUPPORTED_PXE_VERSIONS: [u8; 2] = [0, 0x10];
@@ -18,6 +23,7 @@ pub struct Map {
     pub height: u16,
     pub tiles: Vec<u8>,
     pub attrib: [u8; 0x100],
+    pub tile_size: TileSize,
 }
 
 static SOLID_TILES: [u8; 8] = [0x05, 0x41, 0x43, 0x46, 0x54, 0x55, 0x56, 0x57];
@@ -31,7 +37,7 @@ pub enum WaterRegionType {
 }
 
 impl Map {
-    pub fn load_from<R: io::Read>(mut map_data: R, mut attrib_data: R) -> GameResult<Map> {
+    pub fn load_pxm<R: io::Read>(mut map_data: R, mut attrib_data: R) -> GameResult<Map> {
         let mut magic = [0; 3];
 
         map_data.read_exact(&mut magic)?;
@@ -58,7 +64,215 @@ impl Map {
             log::warn!("Map attribute data is shorter than 256 bytes!");
         }
 
-        Ok(Map { width, height, tiles, attrib })
+        Ok(Map { width, height, tiles, attrib, tile_size: TileSize::Tile16x16 })
+    }
+
+    pub fn load_pxpack<R: io::Read>(mut map_data: R, root: &str, data: &mut StageData, ctx: &mut Context) -> GameResult<Map> {
+        let mut magic = [0u8; 16];
+
+        map_data.read_exact(&mut magic)?;
+
+        // based on https://github.com/tilderain/pxEdit/blob/kero/pxMap.py
+
+        if &magic != b"PXPACK121127a**\0" {
+            return Err(ResourceLoadError(str!("Invalid magic")));
+        }
+
+        fn read_string<R: io::Read>(map_data: &mut R) -> GameResult<String> {
+            let mut bytes = map_data.read_u8()? as u32;
+            let mut raw_chars = Vec::new();
+            raw_chars.resize(bytes as usize, 0u8);
+            map_data.read(&mut raw_chars)?;
+            let mut raw_chars = Cursor::new(raw_chars);
+
+            let mut chars = Vec::new();
+            chars.reserve(bytes as usize);
+
+            while bytes > 0 {
+                let (consumed, chr) = read_cur_shift_jis(&mut raw_chars, bytes);
+                chars.push(chr);
+                bytes -= consumed;
+            }
+
+            Ok(chars.iter().collect())
+        };
+
+        fn skip_string<R: io::Read>(map_data: &mut R) -> GameResult {
+            let bytes = map_data.read_u8()? as u32;
+            for _ in 0..bytes {
+                map_data.read_u8()?;
+            }
+
+            Ok(())
+        };
+
+        let map_name = read_string(&mut map_data)?;
+        skip_string(&mut map_data)?; // left, right, up, down
+        skip_string(&mut map_data)?;
+        skip_string(&mut map_data)?;
+        skip_string(&mut map_data)?;
+        skip_string(&mut map_data)?; // spritesheet
+
+        map_data.read_u16::<LE>()?;
+        map_data.read_u16::<LE>()?;
+        map_data.read_u8()?;
+
+        let bg_color = Color::from_rgb(map_data.read_u8()?, map_data.read_u8()?, map_data.read_u8()?);
+
+        let mut tileset_fg = read_string(&mut map_data)?;
+        map_data.read_u8()?; // ignored
+        let scroll_fg = PxPackScroll::from(map_data.read_u8()?);
+
+        let mut tileset_mg = read_string(&mut map_data)?;
+        map_data.read_u8()?; // ignored
+        let scroll_mg = PxPackScroll::from(map_data.read_u8()?);
+
+        let mut tileset_bg = read_string(&mut map_data)?;
+        map_data.read_u8()?; // ignored
+        let scroll_bg = PxPackScroll::from(map_data.read_u8()?);
+
+        if tileset_fg == "" { tileset_fg = data.tileset.filename() }
+        if tileset_mg == "" { tileset_mg = data.tileset.filename() }
+        if tileset_bg == "" { tileset_bg = data.tileset.filename() }
+
+        let mut tiles = Vec::new();
+        let mut attrib = [0u8; 0x100];
+
+        let mut magic = [0u8; 8];
+        map_data.read_exact(&mut magic)?;
+
+        if &magic != b"pxMAP01\0" {
+            return Err(ResourceLoadError(str!("Invalid magic")));
+        }
+
+        let width_fg = map_data.read_u16::<LE>()?;
+        let height_fg = map_data.read_u16::<LE>()?;
+        map_data.read_u8()?;
+
+        log::info!("Foreground map size: {}x{}", width_fg, height_fg);
+
+        let size_fg = width_fg as u32 * height_fg as u32;
+        tiles.resize(size_fg as usize, 0u8);
+
+        map_data.read_exact(&mut tiles[0..size_fg as usize])?;
+
+        map_data.read_exact(&mut magic)?;
+
+        if &magic != b"pxMAP01\0" {
+            return Err(ResourceLoadError(str!("Invalid magic")));
+        }
+
+        let width_mg = map_data.read_u16::<LE>()?;
+        let height_mg = map_data.read_u16::<LE>()?;
+
+        log::info!("Middleground map size: {}x{}", width_mg, height_mg);
+
+        let size_mg = width_mg as u32 * height_mg as u32;
+        if size_mg != 0 {
+            tiles.resize(size_fg as usize + size_mg as usize, 0u8);
+            map_data.read_u8()?;
+            map_data.read_exact(&mut tiles[size_fg as usize..(size_fg as usize + size_mg as usize)])?;
+        }
+
+        map_data.read_exact(&mut magic)?;
+
+        if &magic != b"pxMAP01\0" {
+            return Err(ResourceLoadError(str!("Invalid magic")));
+        }
+
+        let width_bg = map_data.read_u16::<LE>()?;
+        let height_bg = map_data.read_u16::<LE>()?;
+
+        log::info!("Background map size: {}x{}", width_bg, height_bg);
+
+        let size_bg = width_bg as u32 * height_bg as u32;
+        if size_bg != 0 {
+            map_data.read_u8()?;
+            tiles.resize(size_fg as usize + size_mg as usize + size_bg as usize, 0u8);
+            map_data.read_exact(&mut tiles[(size_fg as usize + size_mg as usize)..(size_fg as usize + size_mg as usize + size_bg as usize)])?;
+        }
+
+        if let Ok(mut attrib_data) = filesystem::open(ctx, [root, "Stage/", &tileset_fg, ".pxa"].join("")) {
+            if attrib_data.read_exact(&mut attrib).is_err() {
+                log::warn!("Map attribute data is shorter than 256 bytes!");
+            }
+        } else if let Ok(mut attrib_data) = filesystem::open(ctx, [root, "Stage/", &tileset_fg, ".pxattr"].join("")) {
+            attrib_data.read_exact(&mut magic)?;
+
+            if &magic != b"pxMAP01\0" {
+                return Err(ResourceLoadError(str!("Invalid magic")));
+            }
+
+            attrib_data.read_u16::<LE>()?;
+            attrib_data.read_u16::<LE>()?;
+            attrib_data.read_u8()?;
+
+            if attrib_data.read_exact(&mut attrib).is_err() {
+                log::warn!("Map attribute data is shorter than 256 bytes!");
+            }
+
+            for attr in attrib.iter_mut() {
+                *attr = match *attr {
+                    1 | 45 => 0x41,
+                    2 | 66 => 0x44,
+                    3 | 67 => 0x46,
+                    4 | 68 => 0x43,
+                    5 => 0x42,
+                    7 => 0x4a,
+                    8 => 0x50,
+                    9 => 0x51,
+                    10 => 0x52,
+                    11 => 0x53,
+                    12 => 0x54,
+                    13 => 0x55,
+                    14 => 0x56,
+                    15 => 0x57,
+                    40 => 0x5a,
+                    41 => 0x5b,
+                    42 => 0x5c,
+                    43 => 0x5d,
+                    64 => 0x60,
+                    65 | 109 => 0x61,
+                    69 => 0x62,
+                    72 => 0x70,
+                    73 => 0x71,
+                    74 => 0x72,
+                    75 => 0x73,
+                    76 => 0x74,
+                    77 => 0x75,
+                    78 => 0x76,
+                    79 => 0x77,
+                    104 => 0x7a,
+                    105 => 0x7b,
+                    106 => 0x7c,
+                    107 => 0x7d,
+                    _ => 0,
+                };
+            }
+        } else {
+            log::warn!("No tile attribute data found for foreground tileset {}, collision might be broken.", tileset_fg);
+        }
+
+        if map_name != "" {
+            data.name = map_name;
+        }
+
+        data.background_color = bg_color;
+        data.pxpack_data = Some(PxPackStageData {
+            tileset_fg,
+            tileset_mg,
+            tileset_bg,
+            scroll_fg,
+            scroll_mg,
+            scroll_bg,
+            size_fg: (width_fg, height_fg),
+            size_mg: (width_mg, height_mg),
+            size_bg: (width_bg, height_bg),
+            offset_mg: size_fg,
+            offset_bg: size_fg + size_mg
+        });
+
+        Ok(Map { width: width_fg, height: height_fg, tiles, attrib, tile_size: TileSize::Tile8x8 })
     }
 
     pub fn get_attribute(&self, x: usize, y: usize) -> u8 {
@@ -149,10 +363,18 @@ impl Map {
                         }
                     };
 
-                    if flow_flags & 0b0001 != 0 { check(0b1011, fx as i32 - 1, fy as i32); }
-                    if flow_flags & 0b0100 != 0 { check(0b1110, fx as i32 + 1, fy as i32); }
-                    if flow_flags & 0b0010 != 0 { check(0b0111, fx as i32, fy as i32 - 1); }
-                    if flow_flags & 0b1000 != 0 { check(0b1101, fx as i32, fy as i32 + 1); }
+                    if flow_flags & 0b0001 != 0 {
+                        check(0b1011, fx as i32 - 1, fy as i32);
+                    }
+                    if flow_flags & 0b0100 != 0 {
+                        check(0b1110, fx as i32 + 1, fy as i32);
+                    }
+                    if flow_flags & 0b0010 != 0 {
+                        check(0b0111, fx as i32, fy as i32 - 1);
+                    }
+                    if flow_flags & 0b1000 != 0 {
+                        check(0b1101, fx as i32, fy as i32 + 1);
+                    }
                 }
 
                 rects.push(rect);
