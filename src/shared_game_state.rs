@@ -1,5 +1,6 @@
 use std::ops::Div;
 
+use bitvec::array::BitArray;
 use bitvec::vec::BitVec;
 use chrono::{Datelike, Local};
 
@@ -7,13 +8,13 @@ use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState};
 use crate::engine_constants::EngineConstants;
-use crate::framework::{filesystem, graphics};
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{create_texture_mutable, set_render_target};
 use crate::framework::keyboard::ScanCode;
 use crate::framework::vfs::OpenOptions;
+use crate::framework::{filesystem, graphics};
 #[cfg(feature = "hooks")]
 use crate::hooks::init_hooks;
 use crate::input::touch_controls::TouchControls;
@@ -21,6 +22,7 @@ use crate::npc::NPCTable;
 use crate::profile::GameProfile;
 use crate::rng::XorShift;
 use crate::scene::game_scene::GameScene;
+use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 #[cfg(feature = "scripting")]
 use crate::scripting::LuaScriptingState;
@@ -30,8 +32,6 @@ use crate::stage::StageData;
 use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
-use bitvec::array::BitArray;
-use crate::scene::title_scene::TitleScene;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TimingMode {
@@ -87,7 +87,6 @@ impl Season {
     }
 }
 
-
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TileSize {
     Tile8x8,
@@ -137,6 +136,7 @@ pub struct SharedGameState {
     pub scale: f32,
     pub canvas_size: (f32, f32),
     pub screen_size: (f32, f32),
+    pub preferred_viewport_size: (f32, f32),
     pub next_scene: Option<Box<dyn Scene>>,
     pub textscript_vm: TextScriptVM,
     pub lightmap_canvas: Option<Box<dyn BackendTexture>>,
@@ -238,6 +238,7 @@ impl SharedGameState {
             scale: 2.0,
             screen_size: (640.0, 480.0),
             canvas_size: (320.0, 240.0),
+            preferred_viewport_size: (320.0, 240.0),
             next_scene: None,
             textscript_vm: TextScriptVM::new(),
             lightmap_canvas: None,
@@ -293,11 +294,11 @@ impl SharedGameState {
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
         self.reset();
         #[cfg(feature = "scripting")]
-            self.lua.reload_scripts(ctx)?;
+        self.lua.reload_scripts(ctx)?;
 
         let mut next_scene = GameScene::new(self, ctx, self.constants.game.new_game_stage as usize)?;
         next_scene.player1.cond.set_alive(true);
-        let (pos_x, pos_y)= self.constants.game.new_game_player_pos;
+        let (pos_x, pos_y) = self.constants.game.new_game_player_pos;
         next_scene.player1.x = pos_x as i32 * next_scene.stage.map.tile_size.as_int() * 0x200;
         next_scene.player1.y = pos_y as i32 * next_scene.stage.map.tile_size.as_int() * 0x200;
 
@@ -312,7 +313,7 @@ impl SharedGameState {
 
     pub fn start_intro(&mut self, ctx: &mut Context) -> GameResult {
         #[cfg(feature = "scripting")]
-            self.lua.reload_scripts(ctx)?;
+        self.lua.reload_scripts(ctx)?;
 
         let start_stage_id = self.constants.game.intro_stage as usize;
 
@@ -324,7 +325,7 @@ impl SharedGameState {
 
         let mut next_scene = GameScene::new(self, ctx, start_stage_id)?;
         next_scene.player1.cond.set_hidden(true);
-        let (pos_x, pos_y)= self.constants.game.intro_player_pos;
+        let (pos_x, pos_y) = self.constants.game.intro_player_pos;
         next_scene.player1.x = pos_x as i32 * next_scene.stage.map.tile_size.as_int() * 0x200;
         next_scene.player1.y = pos_y as i32 * next_scene.stage.map.tile_size.as_int() * 0x200;
         next_scene.intro_mode = true;
@@ -389,7 +390,10 @@ impl SharedGameState {
 
     pub fn handle_resize(&mut self, ctx: &mut Context) -> GameResult {
         self.screen_size = graphics::screen_size(ctx);
-        self.scale = self.screen_size.1.div(230.0).floor().max(1.0);
+        let scale_x = self.screen_size.1.div(self.preferred_viewport_size.1).floor().max(1.0);
+        let scale_y = self.screen_size.0.div(self.preferred_viewport_size.0).floor().max(1.0);
+
+        self.scale = f32::min(scale_x, scale_y);
         self.canvas_size = (self.screen_size.0 / self.scale, self.screen_size.1 / self.scale);
 
         let (width, height) = (self.screen_size.0 as u16, self.screen_size.1 as u16);
