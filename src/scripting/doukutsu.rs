@@ -5,10 +5,7 @@ use lua_ffi::{c_int, LuaObject, State};
 
 use crate::common::{Direction, Rect};
 use crate::framework::filesystem;
-use crate::npc::NPC;
-use crate::player::Player;
 use crate::rng::RNG;
-use crate::scene::game_scene::GameScene;
 use crate::scripting::{check_status, LuaScriptingState, DRS_RUNTIME_GLOBAL};
 
 pub struct Doukutsu {

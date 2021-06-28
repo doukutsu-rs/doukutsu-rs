@@ -27,7 +27,6 @@ pub struct LuaScriptingState {
     game_scene: *mut GameScene,
 }
 
-pub(in crate::scripting) static REF_ERROR: &str = "Reference went out of scope. DO NOT store/use references to game objects outside the event.";
 pub(in crate::scripting) static DRS_API_GLOBAL: &str = "__doukutsu_rs";
 pub(in crate::scripting) static DRS_RUNTIME_GLOBAL: &str = "__doukutsu_rs_runtime_dont_touch";
 

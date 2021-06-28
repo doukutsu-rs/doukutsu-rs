@@ -319,7 +319,7 @@ __doukutsu_rs_runtime_dont_touch._createNPCRef = function(npc_id)
             elseif property == "direction" then
                 __doukutsu_rs:npcCommand(rawget(self, "id"), 0x121, val)
             elseif property == "rawDirection" then
-                __doukutsu_rs:npcCommand(rawget(self, "id"), 0x121, val)
+                __doukutsu_rs:npcCommand(rawget(self, "id"), 0x121, val) -- <- not a typo
             end
 
             return nil
