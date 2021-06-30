@@ -879,6 +879,8 @@ impl TextScriptVM {
                             game_scene.player1.direction = direction;
                             game_scene.player2.direction = direction;
                         }
+                        game_scene.player1.cond.set_interacted(false);
+                        game_scene.player2.cond.set_interacted(false);
 
                         game_scene.player1.vel_x = 0;
                         game_scene.player2.vel_x = 0;
@@ -890,6 +892,10 @@ impl TextScriptVM {
 
                         game_scene.player1.vel_y = -0x200;
                         game_scene.player2.vel_y = -0x200;
+
+                        // Reset interaction condition, needed for places like talking to Toroko in shack
+                        game_scene.player1.cond.set_interacted(false);
+                        game_scene.player2.cond.set_interacted(false);
 
                         if let Some(direction) = Direction::from_int_facing(new_direction) {
                             match direction {
@@ -1221,6 +1227,9 @@ impl TextScriptVM {
                         new_scene.player2.vel_y = 0;
                         new_scene.player2.x = pos_x;
                         new_scene.player2.y = pos_y;
+                        // Reset player interaction flag upon TRA
+                        new_scene.player1.cond.set_interacted(false);
+                        new_scene.player2.cond.set_interacted(false);
                         new_scene.frame.wait = game_scene.frame.wait;
 
                         let skip = state.textscript_vm.flags.cutscene_skip();
