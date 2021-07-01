@@ -1537,6 +1537,7 @@ impl GameScene {
 
             if self.player1.controller.trigger_inventory() {
                 state.textscript_vm.set_mode(ScriptMode::Inventory);
+                self.player1.cond.set_interacted(false);
             }
         }
 

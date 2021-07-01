@@ -30,6 +30,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
 use crate::weapon::WeaponType;
+use crate::common::Direction::{Left, Right};
 
 /// Engine's text script VM operation codes.
 #[derive(EnumString, Debug, FromPrimitive, PartialEq)]
@@ -879,6 +880,9 @@ impl TextScriptVM {
                             game_scene.player1.direction = direction;
                             game_scene.player2.direction = direction;
                         }
+                        game_scene.player1.cond.set_interacted(new_direction == 3);
+                        game_scene.player2.cond.set_interacted(new_direction == 3);
+
 
                         game_scene.player1.vel_x = 0;
                         game_scene.player2.vel_x = 0;
@@ -891,9 +895,15 @@ impl TextScriptVM {
                         game_scene.player1.vel_y = -0x200;
                         game_scene.player2.vel_y = -0x200;
 
+                        // Reset interaction condition, needed for places like talking to Toroko in shack
+                        game_scene.player1.cond.set_interacted(false);
+                        game_scene.player2.cond.set_interacted(false);
+
                         if let Some(direction) = Direction::from_int_facing(new_direction) {
                             match direction {
                                 Direction::Left => {
+                                    game_scene.player1.direction = Left;
+                                    game_scene.player2.direction = Left;
                                     game_scene.player1.vel_x = 0x200;
                                     game_scene.player2.vel_x = 0x200;
                                 }
@@ -902,6 +912,8 @@ impl TextScriptVM {
                                     game_scene.player2.vel_y = -0x200;
                                 }
                                 Direction::Right => {
+                                    game_scene.player1.direction = Right;
+                                    game_scene.player2.direction = Right;
                                     game_scene.player1.vel_x = -0x200;
                                     game_scene.player2.vel_x = -0x200;
                                 }
@@ -910,7 +922,26 @@ impl TextScriptVM {
                                     game_scene.player2.vel_y = 0x200;
                                 }
                                 Direction::FacingPlayer => {
-                                    // todo npc direction dependent bump
+                                    for npc in game_scene.npc_list.iter_alive() {
+                                        if npc.event_num == new_direction as u16{
+                                            if game_scene.player1.x >= npc.x {
+                                                game_scene.player1.direction = Left;
+                                                game_scene.player1.vel_x = 0x200;
+                                            }else{
+                                                game_scene.player1.direction = Right;
+                                                game_scene.player1.vel_x = -0x200;
+                                            }
+
+                                            if game_scene.player2.x >= npc.x {
+                                                game_scene.player2.direction = Left;
+                                                game_scene.player2.vel_x = 0x200;
+                                            }else{
+                                                game_scene.player2.direction = Right;
+                                                game_scene.player2.vel_x = -0x200;
+                                            }
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1221,6 +1252,9 @@ impl TextScriptVM {
                         new_scene.player2.vel_y = 0;
                         new_scene.player2.x = pos_x;
                         new_scene.player2.y = pos_y;
+                        // Reset player interaction flag upon TRA
+                        new_scene.player1.cond.set_interacted(false);
+                        new_scene.player2.cond.set_interacted(false);
                         new_scene.frame.wait = game_scene.frame.wait;
 
                         let skip = state.textscript_vm.flags.cutscene_skip();
@@ -1244,6 +1278,9 @@ impl TextScriptVM {
 
                         let pos_x = read_cur_varint(&mut cursor)? as i32 * block_size;
                         let pos_y = read_cur_varint(&mut cursor)? as i32 * block_size;
+
+                        game_scene.player1.cond.set_interacted(false);
+                        game_scene.player2.cond.set_interacted(false);
 
                         for player in [&mut game_scene.player1, &mut game_scene.player2].iter_mut() {
                             player.vel_x = 0;
