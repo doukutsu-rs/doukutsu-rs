@@ -914,6 +914,8 @@ impl TextScriptVM {
                                 Direction::Bottom => {
                                     game_scene.player1.vel_y = 0x200;
                                     game_scene.player2.vel_y = 0x200;
+                                    game_scene.player1.cond.set_interacted(true);
+                                    game_scene.player2.cond.set_interacted(true);
                                 }
                                 Direction::FacingPlayer => {
                                     // todo npc direction dependent bump
@@ -1253,6 +1255,9 @@ impl TextScriptVM {
 
                         let pos_x = read_cur_varint(&mut cursor)? as i32 * block_size;
                         let pos_y = read_cur_varint(&mut cursor)? as i32 * block_size;
+
+                        new_scene.player1.cond.set_interacted(false);
+                        new_scene.player2.cond.set_interacted(false);
 
                         for player in [&mut game_scene.player1, &mut game_scene.player2].iter_mut() {
                             player.vel_x = 0;
