@@ -902,6 +902,8 @@ impl TextScriptVM {
                         if let Some(direction) = Direction::from_int_facing(new_direction) {
                             match direction {
                                 Direction::Left => {
+                                    game_scene.player1.direction = Left;
+                                    game_scene.player2.direction = Left;
                                     game_scene.player1.vel_x = 0x200;
                                     game_scene.player2.vel_x = 0x200;
                                 }
@@ -910,6 +912,8 @@ impl TextScriptVM {
                                     game_scene.player2.vel_y = -0x200;
                                 }
                                 Direction::Right => {
+                                    game_scene.player1.direction = Right;
+                                    game_scene.player2.direction = Right;
                                     game_scene.player1.vel_x = -0x200;
                                     game_scene.player2.vel_x = -0x200;
                                 }
@@ -919,7 +923,7 @@ impl TextScriptVM {
                                 }
                                 Direction::FacingPlayer => {
                                     for npc in game_scene.npc_list.iter_alive() {
-                                        if npc.event_num == event_num {
+                                        if npc.event_num == new_direction as u16{
                                             if game_scene.player1.x >= npc.x {
                                                 game_scene.player1.direction = Left;
                                                 game_scene.player1.vel_x = 0x200;
@@ -1275,8 +1279,8 @@ impl TextScriptVM {
                         let pos_x = read_cur_varint(&mut cursor)? as i32 * block_size;
                         let pos_y = read_cur_varint(&mut cursor)? as i32 * block_size;
 
-                        new_scene.player1.cond.set_interacted(false);
-                        new_scene.player2.cond.set_interacted(false);
+                        game_scene.player1.cond.set_interacted(false);
+                        game_scene.player2.cond.set_interacted(false);
 
                         for player in [&mut game_scene.player1, &mut game_scene.player2].iter_mut() {
                             player.vel_x = 0;
