@@ -30,6 +30,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::SharedGameState;
 use crate::str;
 use crate::weapon::WeaponType;
+use crate::common::Direction::{Left, Right};
 
 /// Engine's text script VM operation codes.
 #[derive(EnumString, Debug, FromPrimitive, PartialEq)]
@@ -879,8 +880,9 @@ impl TextScriptVM {
                             game_scene.player1.direction = direction;
                             game_scene.player2.direction = direction;
                         }
-                        game_scene.player1.cond.set_interacted(false);
-                        game_scene.player2.cond.set_interacted(false);
+                        game_scene.player1.cond.set_interacted(new_direction == 3);
+                        game_scene.player2.cond.set_interacted(new_direction == 3);
+
 
                         game_scene.player1.vel_x = 0;
                         game_scene.player2.vel_x = 0;
@@ -914,11 +916,28 @@ impl TextScriptVM {
                                 Direction::Bottom => {
                                     game_scene.player1.vel_y = 0x200;
                                     game_scene.player2.vel_y = 0x200;
-                                    game_scene.player1.cond.set_interacted(true);
-                                    game_scene.player2.cond.set_interacted(true);
                                 }
                                 Direction::FacingPlayer => {
-                                    // todo npc direction dependent bump
+                                    for npc in game_scene.npc_list.iter_alive() {
+                                        if npc.event_num == event_num {
+                                            if game_scene.player1.x >= npc.x {
+                                                game_scene.player1.direction = Left;
+                                                game_scene.player1.vel_x = 0x200;
+                                            }else{
+                                                game_scene.player1.direction = Right;
+                                                game_scene.player1.vel_x = -0x200;
+                                            }
+
+                                            if game_scene.player2.x >= npc.x {
+                                                game_scene.player2.direction = Left;
+                                                game_scene.player2.vel_x = 0x200;
+                                            }else{
+                                                game_scene.player2.direction = Right;
+                                                game_scene.player2.vel_x = -0x200;
+                                            }
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }
