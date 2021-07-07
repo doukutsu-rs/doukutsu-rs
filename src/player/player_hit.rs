@@ -330,7 +330,6 @@ impl Player {
             state.control_flags.set_interactions_disabled(true);
             state.textscript_vm.executor_player = id;
             state.textscript_vm.start_script(npc.event_num);
-            self.cond.set_interacted(false);
             self.vel_x = 0;
             self.question = false;
         }
