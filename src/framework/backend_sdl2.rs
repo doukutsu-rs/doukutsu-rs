@@ -66,11 +66,14 @@ impl SDL2EventLoop {
     pub fn new(sdl: &Sdl) -> GameResult<Box<dyn BackendEventLoop>> {
         let event_pump = sdl.event_pump().map_err(|e| GameError::WindowError(e))?;
         let video = sdl.video().map_err(|e| GameError::WindowError(e))?;
-        let window = video
-            .window("Cave Story (doukutsu-rs)", 640, 480)
-            .position_centered()
-            .resizable()
-            .build()
+        let mut window = video.window("Cave Story (doukutsu-rs)", 640, 480);
+        window.position_centered();
+        window.resizable();
+
+        #[cfg(feature = "render-opengl")]
+            window.opengl();
+
+        let window = window.build()
             .map_err(|e| GameError::WindowError(e.to_string()))?;
 
         let canvas = window
