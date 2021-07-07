@@ -110,7 +110,7 @@ impl BasicPlayerSkin {
 
 impl PlayerSkin for BasicPlayerSkin {
     fn animation_frame_for(&self, state: PlayerAnimationState, direction: Direction, tick: u16) -> Rect<u16> {
-        let frame_id = match self.state {
+        let frame_id = match state {
             PlayerAnimationState::Idle => 0u16,
             PlayerAnimationState::Walking => {
                 const WALK_INDEXES: [u16; 4] = [1, 0, 2, 0];

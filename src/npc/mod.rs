@@ -1,13 +1,13 @@
 use std::io;
 use std::io::Cursor;
 
-use byteorder::{ReadBytesExt, LE};
+use byteorder::{LE, ReadBytesExt};
 use num_traits::abs;
 
 use crate::bitfield;
+use crate::common::{Condition, interpolate_fix9_scale, Rect};
 use crate::common::Direction;
 use crate::common::Flag;
-use crate::common::{interpolate_fix9_scale, Condition, Rect};
 use crate::components::flash::Flash;
 use crate::components::number_popup::NumberPopup;
 use crate::entity::GameEntity;
@@ -29,26 +29,41 @@ pub mod list;
 pub mod utils;
 
 bitfield! {
-  #[derive(Clone, Copy)]
-  pub struct NPCFlag(u16);
-  impl Debug;
-
-  pub solid_soft, set_solid_soft: 0; // 0x01
-  pub ignore_tile_44, set_ignore_tile_44: 1; // 0x02
-  pub invulnerable, set_invulnerable: 2; // 0x04
-  pub ignore_solidity, set_ignore_solidity: 3; // 0x08
-  pub bouncy, set_bouncy: 4; // 0x10
-  pub shootable, set_shootable: 5; // 0x20
-  pub solid_hard, set_solid_hard: 6; // 0x40
-  pub rear_and_top_not_hurt, set_rear_and_top_not_hurt: 7; // 0x80
-  pub event_when_touched, set_event_when_touched: 8; // 0x100
-  pub event_when_killed, set_event_when_killed: 9; // 0x200
-  pub flag_x400, set_flag_x400: 10; // 0x400
-  pub appear_when_flag_set, set_appear_when_flag_set: 11; // 0x800
-  pub spawn_facing_right, set_spawn_facing_right: 12; // 0x1000
-  pub interactable, set_interactable: 13; // 0x2000
-  pub hide_unless_flag_set, set_hide_unless_flag_set: 14; // 0x4000
-  pub show_damage, set_show_damage: 15; // 0x8000
+    #[derive(Clone, Copy)]
+    pub struct NPCFlag(u16);
+    impl Debug;
+    /// Represented by 0x01
+    pub solid_soft, set_solid_soft: 0;
+    /// Represented by 0x02
+    pub ignore_tile_44, set_ignore_tile_44: 1;
+    /// Represented by 0x04
+    pub invulnerable, set_invulnerable: 2;
+    /// Represented by 0x08
+    pub ignore_solidity, set_ignore_solidity: 3;
+    /// Represented by 0x10
+    pub bouncy, set_bouncy: 4;
+    /// Represented by 0x20
+    pub shootable, set_shootable: 5;
+    /// Represented by 0x40
+    pub solid_hard, set_solid_hard: 6;
+    /// Represented by 0x80
+    pub rear_and_top_not_hurt, set_rear_and_top_not_hurt: 7;
+    /// Represented by 0x100
+    pub event_when_touched, set_event_when_touched: 8;
+    /// Represented by 0x200
+    pub event_when_killed, set_event_when_killed: 9;
+    /// Represented by 0x400
+    pub flag_x400, set_flag_x400: 10;
+    /// Represented by 0x800
+    pub appear_when_flag_set, set_appear_when_flag_set: 11;
+    /// Represented by 0x1000
+    pub spawn_facing_right, set_spawn_facing_right: 12;
+    /// Represented by 0x2000
+    pub interactable, set_interactable: 13;
+    /// Represented by 0x4000
+    pub hide_unless_flag_set, set_hide_unless_flag_set: 14;
+    /// Represented by 0x8000
+    pub show_damage, set_show_damage: 15;
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialOrd, PartialEq)]
@@ -184,7 +199,9 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
     ) -> GameResult {
         let mut npc_hook_ran = false;
         #[cfg(feature = "scripting")]
-            { npc_hook_ran = state.lua.try_run_npc_hook(self.id, self.npc_type); }
+        {
+            npc_hook_ran = state.lua.try_run_npc_hook(self.id, self.npc_type);
+        }
 
         match self.npc_type {
             _ if npc_hook_ran => Ok(()),

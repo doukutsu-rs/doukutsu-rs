@@ -1,11 +1,10 @@
-use std::cmp::Ordering;
 use std::fmt;
 
 use lazy_static::lazy_static;
 use num_traits::{abs, Num};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeTupleStruct;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bitfield;
 use crate::texture_set::G_MAG;
@@ -153,22 +152,22 @@ pub enum FadeDirection {
 impl FadeDirection {
     pub fn from_int(val: usize) -> Option<FadeDirection> {
         match val {
-            0 => { Some(FadeDirection::Left) }
-            1 => { Some(FadeDirection::Up) }
-            2 => { Some(FadeDirection::Right) }
-            3 => { Some(FadeDirection::Down) }
-            4 => { Some(FadeDirection::Center) }
-            _ => { None }
+            0 => Some(FadeDirection::Left),
+            1 => Some(FadeDirection::Up),
+            2 => Some(FadeDirection::Right),
+            3 => Some(FadeDirection::Down),
+            4 => Some(FadeDirection::Center),
+            _ => None,
         }
     }
 
     pub fn opposite(&self) -> FadeDirection {
         match self {
-            FadeDirection::Left => { FadeDirection::Right }
-            FadeDirection::Up => { FadeDirection::Down }
-            FadeDirection::Right => { FadeDirection::Left }
-            FadeDirection::Down => { FadeDirection::Up }
-            FadeDirection::Center => { FadeDirection::Center }
+            FadeDirection::Left => FadeDirection::Right,
+            FadeDirection::Up => FadeDirection::Down,
+            FadeDirection::Right => FadeDirection::Left,
+            FadeDirection::Down => FadeDirection::Up,
+            FadeDirection::Center => FadeDirection::Center,
         }
     }
 }
@@ -197,68 +196,52 @@ pub const FILE_TYPES: [&str; 3] = [".png", ".bmp", ".pbm"];
 impl Direction {
     pub fn from_int(val: usize) -> Option<Direction> {
         match val {
-            0 => { Some(Direction::Left) }
-            1 => { Some(Direction::Up) }
-            2 => { Some(Direction::Right) }
-            3 => { Some(Direction::Bottom) }
-            _ => { None }
+            0 => Some(Direction::Left),
+            1 => Some(Direction::Up),
+            2 => Some(Direction::Right),
+            3 => Some(Direction::Bottom),
+            _ => None,
         }
     }
 
     pub fn from_int_facing(val: usize) -> Option<Direction> {
         match val {
-            0 => { Some(Direction::Left) }
-            1 => { Some(Direction::Up) }
-            2 => { Some(Direction::Right) }
-            3 => { Some(Direction::Bottom) }
-            4 => { Some(Direction::FacingPlayer) }
-            _ => { None }
+            0 => Some(Direction::Left),
+            1 => Some(Direction::Up),
+            2 => Some(Direction::Right),
+            3 => Some(Direction::Bottom),
+            4 => Some(Direction::FacingPlayer),
+            _ => None,
         }
     }
 
     pub fn opposite(&self) -> Direction {
         match self {
-            Direction::Left => { Direction::Right }
-            Direction::Up => { Direction::Bottom }
-            Direction::Right => { Direction::Left }
-            Direction::Bottom => { Direction::Up }
+            Direction::Left => Direction::Right,
+            Direction::Up => Direction::Bottom,
+            Direction::Right => Direction::Left,
+            Direction::Bottom => Direction::Up,
             Direction::FacingPlayer => unreachable!(),
         }
     }
 
     pub fn vector_x(&self) -> i32 {
         match self {
-            Direction::Left => { -1 }
-            Direction::Up => { 0 }
-            Direction::Right => { 1 }
-            Direction::Bottom => { 0 }
+            Direction::Left => -1,
+            Direction::Up => 0,
+            Direction::Right => 1,
+            Direction::Bottom => 0,
             Direction::FacingPlayer => unreachable!(),
         }
     }
 
     pub fn vector_y(&self) -> i32 {
         match self {
-            Direction::Left => { 0 }
-            Direction::Up => { -1 }
-            Direction::Right => { 0 }
-            Direction::Bottom => { 1 }
+            Direction::Left => 0,
+            Direction::Up => -1,
+            Direction::Right => 0,
+            Direction::Bottom => 1,
             Direction::FacingPlayer => unreachable!(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct Point<T: Num + PartialOrd + Copy = isize> {
-    pub x: T,
-    pub y: T,
-}
-
-impl<T: Num + PartialOrd + Copy> Point<T> {
-    #[inline(always)]
-    pub fn new(x: T, y: T) -> Point<T> {
-        Point {
-            x,
-            y,
         }
     }
 }
@@ -274,21 +257,11 @@ pub struct Rect<T: Num + PartialOrd + Copy = isize> {
 
 impl<T: Num + PartialOrd + Copy> Rect<T> {
     pub fn new(left: T, top: T, right: T, bottom: T) -> Rect<T> {
-        Rect {
-            left,
-            top,
-            right,
-            bottom,
-        }
+        Rect { left, top, right, bottom }
     }
 
     pub fn new_size(x: T, y: T, width: T, height: T) -> Rect<T> {
-        Rect {
-            left: x,
-            top: y,
-            right: x.add(width),
-            bottom: y.add(height),
-        }
+        Rect { left: x, top: y, right: x.add(width), bottom: y.add(height) }
     }
 
     pub fn has_point(&self, x: T, y: T) -> bool {
@@ -314,8 +287,8 @@ impl<T: Num + PartialOrd + Copy> Rect<T> {
 
 impl<T: Num + PartialOrd + Copy + Serialize> Serialize for Rect<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         let mut state = serializer.serialize_tuple_struct("Rect", 4)?;
         state.serialize_field(&self.left)?;
@@ -332,7 +305,7 @@ impl<T: Num + PartialOrd + Copy + Serialize> Default for Rect<T> {
             left: num_traits::zero(),
             top: num_traits::zero(),
             right: num_traits::zero(),
-            bottom: num_traits::zero()
+            bottom: num_traits::zero(),
         }
     }
 }
@@ -341,8 +314,8 @@ macro_rules! rect_deserialze {
     ($num_type: ident) => {
         impl<'de> Deserialize<'de> for Rect<$num_type> {
             fn deserialize<D>(deserializer: D) -> Result<Rect<$num_type>, D::Error>
-                where
-                    D: Deserializer<'de>,
+            where
+                D: Deserializer<'de>,
             {
                 struct RectVisitor;
 
@@ -354,12 +327,10 @@ macro_rules! rect_deserialze {
                     }
 
                     fn visit_seq<V>(self, mut seq: V) -> Result<Self::Value, V::Error>
-                        where
-                            V: SeqAccess<'de>
+                    where
+                        V: SeqAccess<'de>,
                     {
-                        let invalid_length = || {
-                            de::Error::invalid_length(0, &self)
-                        };
+                        let invalid_length = || de::Error::invalid_length(0, &self);
 
                         let left = seq.next_element()?.ok_or_else(invalid_length)?;
                         let top = seq.next_element()?.ok_or_else(invalid_length)?;
@@ -395,11 +366,6 @@ fn lerp_f64(v1: f64, v2: f64, t: f64) -> f64 {
     v1 * (1.0 - t) + v2 * t
 }
 
-#[inline(always)]
-fn lerp_f32(v1: f32, v2: f32, t: f32) -> f32 {
-    v1 * (1.0 - t) + v2 * t
-}
-
 pub fn interpolate_fix9_scale(old_val: i32, val: i32, frame_delta: f64) -> f32 {
     if abs(old_val - val) > 0x1800 {
         return val as f32 / 512.0;
@@ -411,7 +377,6 @@ pub fn interpolate_fix9_scale(old_val: i32, val: i32, frame_delta: f64) -> f32 {
         (interpolated * mag / 512.0).floor() / mag
     }
 }
-
 
 /// A RGBA color in the `sRGB` color space represented as `f32`'s in the range `[0.0-1.0]`
 ///
