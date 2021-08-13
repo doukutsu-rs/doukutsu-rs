@@ -37,12 +37,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Checkout data files
-        uses: actions/checkout@v2
-        with:
-          repository: doukutsu-rs/game-data
-          path: data
-
       - name: Install latest stable Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -60,21 +54,14 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: doukutsu-rs_linux_x86_64
-          path: |
-            doukutsu-rs.x86_64
-            data
-            !data/README.md
+          path: doukutsu-rs.x86_64
           if-no-files-found: error
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            doukutsu-rs.x86_64
-            data
-            !data/.git
-            !data/README.md
+          files: doukutsu-rs.x86_64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -109,12 +96,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Checkout data files
-        uses: actions/checkout@v2
-        with:
-          repository: doukutsu-rs/game-data
-          path: data
-
       - name: Install latest stable Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -127,27 +108,20 @@ jobs:
         run: cargo build --target i686-pc-windows-msvc --all --release
 
       - name: Copy executable to root directory
-        run: cp target/i686-pc-windows-msvc/release/doukutsu-rs.exe doukutsu-rs.exe
+        run: cp target/i686-pc-windows-msvc/release/doukutsu-rs.exe doukutsu-rs.x86.exe
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
           name: doukutsu-rs_windows_x86
-          path: |
-            doukutsu-rs.exe
-            data
-            !data/.git
-            !data/README.md
+          path: doukutsu-rs.x86.exe
           if-no-files-found: error
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            doukutsu-rs.exe
-            data
-            !data/README.md
+          files: doukutsu-rs.x86.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -182,12 +156,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Checkout data files
-        uses: actions/checkout@v2
-        with:
-          repository: doukutsu-rs/game-data
-          path: data
-
       - name: Install latest stable Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -199,26 +167,19 @@ jobs:
         run: cargo build --all --release
 
       - name: Copy executable to root directory
-        run: cp target/release/doukutsu-rs.exe doukutsu-rs.exe
+        run: cp target/release/doukutsu-rs.exe doukutsu-rs.x86_64.exe
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
           name: doukutsu-rs_windows_x64
-          path: |
-            doukutsu-rs.exe
-            data
-            !data/.git
-            !data/README.md
+          path: doukutsu-rs.x86_64.exe
           if-no-files-found: error
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            doukutsu-rs.exe
-            data
-            !data/README.md
+          files: doukutsu-rs.x86_64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
