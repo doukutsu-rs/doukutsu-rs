@@ -77,7 +77,7 @@ for:
       - export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_BUILD_VERSION
       - appveyor DownloadFile https://github.com/doukutsu-rs/game-data/archive/master.zip -FileName ../game-data.zip
       - 7z x ../game-data.zip
-      - rename game-data-master data
+      - mv game-data-master data
       - cargo bundle --release
       - mkdir release
       - cp -a target/release/bundle/osx/doukutsu-rs.app ./release/doukutsu-rs.app
