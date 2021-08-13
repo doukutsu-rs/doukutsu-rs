@@ -131,6 +131,8 @@ impl BackendEventLoop for SDL2EventLoop {
             #[cfg(target_os = "macos")]
             unsafe {
                 use objc::*;
+
+                // no UB: fields are initialized by SDL_GetWindowWMInfo
                 let mut winfo: sdl2_sys::SDL_SysWMinfo = mem::MaybeUninit::uninit().assume_init();
                 winfo.version.major = sdl2_sys::SDL_MAJOR_VERSION as _;
                 winfo.version.minor = sdl2_sys::SDL_MINOR_VERSION as _;
