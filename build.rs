@@ -19,6 +19,10 @@ fn main() {
     //         .unwrap();
     // }
 
+    if target.contains("macos") {
+        println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.12")
+    }
+
     if is_android {
         println!("cargo:rustc-link-lib=dylib=GLESv2");
         println!("cargo:rustc-link-lib=dylib=EGL");

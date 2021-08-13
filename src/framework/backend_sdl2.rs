@@ -13,6 +13,7 @@ use sdl2::mouse::{Cursor, SystemCursor};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Texture, TextureCreator, WindowCanvas};
 use sdl2::video::WindowContext;
+use sdl2::video::GLProfile;
 use sdl2::{keyboard, pixels, EventPump, Sdl, VideoSubsystem};
 
 use crate::common::{Color, Rect};
@@ -66,6 +67,11 @@ impl SDL2EventLoop {
     pub fn new(sdl: &Sdl) -> GameResult<Box<dyn BackendEventLoop>> {
         let event_pump = sdl.event_pump().map_err(|e| GameError::WindowError(e))?;
         let video = sdl.video().map_err(|e| GameError::WindowError(e))?;
+        let gl_attr = video.gl_attr();
+        
+        gl_attr.set_context_profile(GLProfile::Core);
+        gl_attr.set_context_version(3, 0);
+
         let mut window = video.window("Cave Story (doukutsu-rs)", 640, 480);
         window.position_centered();
         window.resizable();
@@ -121,6 +127,29 @@ impl BackendEventLoop for SDL2EventLoop {
         }
 
         loop {
+
+            #[cfg(target_os = "macos")]
+            unsafe {
+                use objc::*;
+                let mut winfo: sdl2_sys::SDL_SysWMinfo = mem::MaybeUninit::uninit().assume_init();
+                winfo.version.major = sdl2_sys::SDL_MAJOR_VERSION as _;
+                winfo.version.minor = sdl2_sys::SDL_MINOR_VERSION as _;
+                winfo.version.patch = sdl2_sys::SDL_PATCHLEVEL as _;
+
+                let mut whandle = self.refs.borrow().canvas.window().raw();
+
+                if sdl2_sys::SDL_GetWindowWMInfo(whandle, &mut winfo as *mut _) != sdl2_sys::SDL_bool::SDL_FALSE {
+                    let window = winfo.info.x11.display as *mut objc::runtime::Object;
+                    let _: () = msg_send![window, setTitlebarAppearsTransparent:1];
+                    let _: () = msg_send![window, setTitleVisibility:1]; // NSWindowTitleHidden
+                    let mut style_mask: u32 = msg_send![window, styleMask];
+
+                    style_mask |= 1 << 15; // NSWindowStyleMaskFullSizeContentView
+
+                    let _: () = msg_send![window, setStyleMask:style_mask];
+                }
+            }
+
             for event in self.event_pump.poll_iter() {
                 imgui_sdl2.handle_event(imgui, &event);
 

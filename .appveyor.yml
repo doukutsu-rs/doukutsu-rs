@@ -1,7 +1,5 @@
 version: "0.1.0.{build}-{branch}"
 
-os: Visual Studio 2019
-
 environment:
   global:
     PROJECT_NAME: doukutsu-rs
@@ -10,37 +8,78 @@ environment:
       target: x86_64-pc-windows-msvc
       target_name: win64
       job_name: windows-x64
+      appveyor_build_worker_image: Visual Studio 2019
 #    - channel: stable
 #      target: i686-pc-windows-msvc
 #      target_name: win32
 #      job_name: windows-x32
+    - channel: stable
+      target: x86_64-pc-windows-msvc
+      target_name: macos
+      job_name: mac-x64
+      appveyor_build_worker_image: macos
 
-install:
-  - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
-  - rustup-init -yv --default-toolchain %channel% --default-host %target%
-  - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
-  - rustup update
-  - rustup default %channel%
-  - rustc -vV
-  - cargo -vV
+matrix:
+  fast_finish: true
 
-cache:
-  - '%USERPROFILE%\.cache\sccache -> Cargo.toml'
-  - '%USERPROFILE%\.cargo -> Cargo.toml'
-  - 'target -> Cargo.toml'
+for:
+  -
+    matrix:
+      only:
+        - appveyor_build_worker_image: Visual Studio 2019
 
-#test_script:
-#  - cargo build --verbose --all
-#  - cargo test --verbose --all --no-fail-fast
+    install:
+      - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+      - rustup-init -yv --default-toolchain %channel% --default-host %target%
+      - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
+      - rustup update
+      - rustup default %channel%
+      - rustc -vV
+      - cargo -vV
 
-build_script:
-  - set DRS_BUILD_VERSION_OVERRIDE=%APPVEYOR_BUILD_VERSION%
-  - cargo build --release --bin doukutsu-rs
-  - mkdir release
-  - copy target\release\doukutsu-rs.exe release
-  - cd release
-  - appveyor DownloadFile https://github.com/doukutsu-rs/game-data/archive/master.zip -FileName ../game-data.zip
-  - 7z x ../game-data.zip
-  - rename game-data-master data
-  - 7z a ../doukutsu-rs_%target_name%.zip *
-  - appveyor PushArtifact ../doukutsu-rs_%target_name%.zip
+    cache:
+      - '%USERPROFILE%\.cache\sccache -> Cargo.toml'
+      - '%USERPROFILE%\.cargo -> Cargo.toml'
+      - 'target -> Cargo.toml'
+
+    build_script:
+      - set DRS_BUILD_VERSION_OVERRIDE=%APPVEYOR_BUILD_VERSION%
+      - cargo build --release --bin doukutsu-rs
+      - mkdir release
+      - copy target\release\doukutsu-rs.exe release
+      - cd release
+      - appveyor DownloadFile https://github.com/doukutsu-rs/game-data/archive/master.zip -FileName ../game-data.zip
+      - 7z x ../game-data.zip
+      - rename game-data-master data
+      - 7z a ../doukutsu-rs_%target_name%.zip *
+      - appveyor PushArtifact ../doukutsu-rs_%target_name%.zip
+
+  -
+    matrix:
+      only:
+        - appveyor_build_worker_image: macos
+        
+    install:
+      - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+      - export PATH=$PATH:$HOME/.cargo/bin
+      - rustup update
+      - rustup default $channel
+      - rustc -vV
+      - cargo -vV
+
+    cache:
+      - '$HOME/.cache/sccache -> Cargo.toml'
+      - '$HOME/.cargo -> Cargo.toml'
+      - 'target -> Cargo.toml'
+
+    build_script:
+      - export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_BUILD_VERSION
+      - appveyor DownloadFile https://github.com/doukutsu-rs/game-data/archive/master.zip -FileName ../game-data.zip
+      - 7z x ../game-data.zip
+      - rename game-data-master data
+      - cargo bundle --release
+      - mkdir release
+      - cp -a target/release/bundle/osx/doukutsu-rs.app ./release/doukutsu-rs.app
+      - cd release
+      - 7z a ../doukutsu-rs_$target_name.zip *
+      - appveyor PushArtifact ../doukutsu-rs_$target_name.zip

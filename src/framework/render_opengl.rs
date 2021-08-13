@@ -279,6 +279,52 @@ fn check_shader_compile_status(shader: u32, gl: &Gl) -> bool {
 }
 
 const VERTEX_SHADER_BASIC: &str = r"
+#version 110
+
+uniform mat4 ProjMtx;
+attribute vec2 Position;
+attribute vec2 UV;
+attribute vec4 Color;
+varying vec2 Frag_UV;
+varying vec4 Frag_Color;
+
+void main()
+{
+    Frag_UV = UV;
+    Frag_Color = Color;
+    gl_Position = ProjMtx * vec4(Position.xy, 0.0, 1.0);
+}
+
+";
+
+const FRAGMENT_SHADER_TEXTURED: &str = r"
+#version 110
+
+uniform sampler2D Texture;
+varying vec2 Frag_UV;
+varying vec4 Frag_Color;
+
+void main()
+{
+    gl_FragColor = Frag_Color * texture2D(Texture, Frag_UV.st);
+}
+
+";
+
+const FRAGMENT_SHADER_COLOR: &str = r"
+#version 110
+
+varying vec2 Frag_UV;
+varying vec4 Frag_Color;
+
+void main()
+{
+    gl_FragColor = Frag_Color;
+}
+
+";
+
+const VERTEX_SHADER_BASIC_GLES: &str = r"
 #version 100
 
 precision mediump float;
@@ -299,7 +345,7 @@ void main()
 
 ";
 
-const FRAGMENT_SHADER_TEXTURED: &str = r"
+const FRAGMENT_SHADER_TEXTURED_GLES: &str = r"
 #version 100
 
 precision mediump float;
@@ -315,7 +361,7 @@ void main()
 
 ";
 
-const FRAGMENT_SHADER_COLOR: &str = r"
+const FRAGMENT_SHADER_COLOR_GLES: &str = r"
 #version 100
 
 precision mediump float;
@@ -366,15 +412,19 @@ impl ImguiData {
         }
     }
 
-    fn init(&mut self, imgui: &mut imgui::Context, gl: &Gl) {
+    fn init(&mut self, gles2_mode: bool, imgui: &mut imgui::Context, gl: &Gl) {
         self.initialized = true;
 
-        let vert_sources = [VERTEX_SHADER_BASIC.as_ptr() as *const GLchar];
-        let frag_sources_tex = [FRAGMENT_SHADER_TEXTURED.as_ptr() as *const GLchar];
-        let frag_sources_fill = [FRAGMENT_SHADER_COLOR.as_ptr() as *const GLchar];
-        let vert_sources_len = [VERTEX_SHADER_BASIC.len() as GLint - 1];
-        let frag_sources_tex_len = [FRAGMENT_SHADER_TEXTURED.len() as GLint - 1];
-        let frag_sources_fill_len = [FRAGMENT_SHADER_COLOR.len() as GLint - 1];
+        let vshdr_basic = if gles2_mode { VERTEX_SHADER_BASIC_GLES } else { VERTEX_SHADER_BASIC };
+        let fshdr_tex = if gles2_mode { FRAGMENT_SHADER_TEXTURED_GLES } else { FRAGMENT_SHADER_TEXTURED };
+        let fshdr_fill = if gles2_mode { FRAGMENT_SHADER_COLOR_GLES } else { FRAGMENT_SHADER_COLOR };
+
+        let vert_sources = [vshdr_basic.as_ptr() as *const GLchar];
+        let frag_sources_tex = [fshdr_tex.as_ptr() as *const GLchar];
+        let frag_sources_fill = [fshdr_fill.as_ptr() as *const GLchar];
+        let vert_sources_len = [vshdr_basic.len() as GLint - 1];
+        let frag_sources_tex_len = [fshdr_tex.len() as GLint - 1];
+        let frag_sources_fill_len = [fshdr_fill.len() as GLint - 1];
 
         unsafe {
             self.program_tex = gl.gl.CreateProgram();
@@ -520,10 +570,11 @@ impl OpenGLRenderer {
     fn get_context(&mut self) -> Option<(&mut GLContext, &'static Gl)> {
         let imgui = unsafe { &mut *self.imgui.get() };
 
+        let gles2 = self.refs.gles2_mode;
         let gl = load_gl(&mut self.refs);
 
         if !self.imgui_data.initialized {
-            self.imgui_data.init(imgui, gl);
+            self.imgui_data.init(gles2, imgui, gl);
         }
 
         Some((&mut self.refs, gl))
