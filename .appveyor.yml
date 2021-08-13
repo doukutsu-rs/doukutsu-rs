@@ -66,6 +66,7 @@ for:
       - rustup default $channel
       - rustc -vV
       - cargo -vV
+      - cargo install cargo-bundle
 
     cache:
       - '$HOME/.cache/sccache -> Cargo.toml'
