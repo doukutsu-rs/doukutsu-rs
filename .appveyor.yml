@@ -4,11 +4,11 @@ environment:
   global:
     PROJECT_NAME: doukutsu-rs
   matrix:
-    # - channel: nightly
-    #   target: x86_64-pc-windows-msvc
-    #   target_name: win64
-    #   job_name: windows-x64
-    #   appveyor_build_worker_image: Visual Studio 2019
+    - channel: nightly
+      target: x86_64-pc-windows-msvc
+      target_name: win64
+      job_name: windows-x64
+      appveyor_build_worker_image: Visual Studio 2019
 #    - channel: stable
 #      target: i686-pc-windows-msvc
 #      target_name: win32
