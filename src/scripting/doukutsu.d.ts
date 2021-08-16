@@ -181,12 +181,32 @@ declare interface DoukutsuPlayer {
     damage(value: number): void;
 }
 
+declare interface DoukutsuRSApi {
+    /**
+     * Lighting mode of current stage.
+     * "none" - no lighting, similar to vanilla.
+     * "backgroundOnly" - lighting only affects background layer, similar to Switch version.
+     * "ambient" - lighting affects everything.
+     */
+    lightingMode: "none" | "backgroundOnly" | "ambient";
+
+    /**
+     * This property is true if lighting is enabled in settings.
+     */
+    readonly lightingEnabled: boolean;
+}
+
 declare namespace doukutsu {
     /**
      * A reference to main locally controlled player.
      * In multiplayer context it refers to player who hosts the game.
      */
     const player: DoukutsuPlayer;
+
+    /**
+     * Helper property for doukutsu-rs specific APIs.
+     */
+    const rs: DoukutsuRSApi;
 
     /**
      * Plays a sound effect with specified ID.
@@ -247,6 +267,13 @@ declare namespace doukutsu {
      * @param value
      */
     function setSetting(name: string, value: any): void;
+
+    /**
+     * Sets an implementation-defined stage parameter.
+     * @param name
+     * @param value
+     */
+    function setStageParam(name: string, value: any): void;
 
     /**
      * Sets the handler override for specified NPC type. Passing a null removes the handler.

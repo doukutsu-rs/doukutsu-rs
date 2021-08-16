@@ -49,6 +49,16 @@ ModCS = {
     Sound = {},
 }
 
+__doukutsu_rs_runtime_dont_touch._known_settings = {
+    ["doukutsu-rs.intro.event_id"] = 0x1000,
+    ["doukutsu-rs.intro.stage_id"] = 0x1001,
+    ["doukutsu-rs.intro.pos"] = 0x1002,
+    ["doukutsu-rs.new_game.event_id"] = 0x1003,
+    ["doukutsu-rs.new_game.stage_id"] = 0x1004,
+    ["doukutsu-rs.new_game.pos"] = 0x1005,
+    ["doukutsu-rs.font_scale"] = 0x2000,
+}
+
 __doukutsu_rs_runtime_dont_touch._requires = {}
 
 require = function(modname)
@@ -332,6 +342,26 @@ end
 __doukutsu_rs_runtime_dont_touch._playerRef0 = __doukutsu_rs_runtime_dont_touch._createPlayerRef(0)
 __doukutsu_rs_runtime_dont_touch._playerRef1 = __doukutsu_rs_runtime_dont_touch._createPlayerRef(1)
 
+doukutsu.rs = {}
+setmetatable(doukutsu.rs, {
+    __index = function(self, property)
+        if property == "lightingMode" then
+            return __doukutsu_rs:stageCommand(0x01)
+        elseif property == "lightingEnabled" then
+            return __doukutsu_rs:stageCommand(0x02)
+        else
+            return nil
+        end
+    end,
+    __newindex = function(self, property, val)
+        if property == "lightingMode" then
+            __doukutsu_rs:stageCommand(0x101, val)
+        end
+
+        return nil
+    end,
+})
+
 doukutsu.player = __doukutsu_rs_runtime_dont_touch._playerRef0
 
 function doukutsu.playSfx(id)
@@ -348,6 +378,15 @@ end
 
 function doukutsu.players()
     return { __doukutsu_rs_runtime_dont_touch._playerRef0, __doukutsu_rs_runtime_dont_touch._playerRef1 }
+end
+
+function doukutsu.setSetting(key, value)
+    assert(type(key) == "string", "key must be a string.")
+
+    local id = __doukutsu_rs_runtime_dont_touch._known_settings[key]
+    if id ~= nil then
+        __doukutsu_rs:setEngineConstant(id, value)
+    end
 end
 
 function doukutsu.setNPCHandler(npc_type, handler)

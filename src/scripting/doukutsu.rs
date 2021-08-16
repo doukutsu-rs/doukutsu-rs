@@ -7,6 +7,7 @@ use crate::common::{Direction, Rect};
 use crate::framework::filesystem;
 use crate::rng::RNG;
 use crate::scripting::{check_status, LuaScriptingState, DRS_RUNTIME_GLOBAL};
+use crate::scene::game_scene::LightingMode;
 
 pub struct Doukutsu {
     pub ptr: *mut LuaScriptingState,
@@ -151,6 +152,14 @@ impl Doukutsu {
                     // ng pos
                     if let (Some(ng_x), Some(ng_y)) = (state.to_int(3), state.to_int(4)) {
                         game_state.constants.game.new_game_player_pos = (ng_x as i16, ng_y as i16);
+                    }
+                }
+                0x2000 => {
+                    // font scale
+                    if let Some(font_scale) = state.to_float(3) {
+                        if font_scale > 0.0 {
+                            game_state.constants.font_scale = font_scale;
+                        }
                     }
                 }
                 _ => {}
@@ -414,6 +423,44 @@ impl Doukutsu {
         1
     }
 
+    unsafe fn lua_stage_command(&self, state: &mut State) -> c_int {
+        if (*self.ptr).game_scene.is_null() {
+            state.push_nil();
+            return 1;
+        }
+
+        if let Some(param_type) = state.to_int(2) {
+            let game_scene = &mut *(*self.ptr).game_scene;
+            let game_state = &mut *(*self.ptr).state_ptr;
+
+            match param_type {
+                0x01 => state.push(match game_scene.lighting_mode {
+                    LightingMode::None => "none",
+                    LightingMode::BackgroundOnly => "backgroundOnly",
+                    LightingMode::Ambient => "ambient",
+                }),
+                0x02 => state.push(game_state.settings.shader_effects),
+                0x101 => {
+                    if let Some(v) = state.to_str(4) {
+                        game_scene.lighting_mode = match v {
+                            "none" => LightingMode::None,
+                            "backgroundOnly" => LightingMode::BackgroundOnly,
+                            "ambient" => LightingMode::Ambient,
+                            _ => game_scene.lighting_mode,
+                        };
+                    }
+
+                    state.push_nil();
+                }
+                _ => state.push_nil(),
+            }
+        } else {
+            state.push_nil()
+        }
+
+        1
+    }
+
     unsafe fn lua_load_script(&mut self, state: &mut State) -> c_int {
         let lua_state = &mut (*self.ptr);
 
@@ -478,6 +525,7 @@ impl LuaObject for Doukutsu {
             lua_method!("setEngineConstant", Doukutsu, Doukutsu::lua_set_engine_constant),
             lua_method!("playerCommand", Doukutsu, Doukutsu::lua_player_command),
             lua_method!("npcCommand", Doukutsu, Doukutsu::lua_npc_command),
+            lua_method!("stageCommand", Doukutsu, Doukutsu::lua_stage_command),
             lua_method!("loadScript", Doukutsu, Doukutsu::lua_load_script),
         ]
     }

@@ -57,6 +57,7 @@ pub struct GameScene {
     pub npc_list: NPCList,
     pub boss: BossNPC,
     pub bullet_manager: BulletManager,
+    pub lighting_mode: LightingMode,
     pub intro_mode: bool,
     tex_background_name: String,
     tex_tileset_name: String,
@@ -73,6 +74,14 @@ pub enum TileLayer {
     Middleground,
     Foreground,
     Snack,
+}
+
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+pub enum LightingMode {
+    None,
+    BackgroundOnly,
+    Ambient,
 }
 
 const FACE_TEX: &str = "Face";
@@ -141,6 +150,7 @@ impl GameScene {
             npc_list: NPCList::new(),
             boss: BossNPC::new(),
             bullet_manager: BulletManager::new(),
+            lighting_mode: LightingMode::None,
             intro_mode: false,
             tex_background_name,
             tex_tileset_name,
@@ -1779,6 +1789,19 @@ impl Scene for GameScene {
         self.frame.target_y = self.player1.y;
         self.frame.immediate_update(state, &self.stage);
 
+        self.lighting_mode = match () {
+            _ if self.intro_mode => LightingMode::None,
+            _ if !state.constants.is_switch && (self.stage.data.background_type == BackgroundType::Black
+                || self.stage.data.background.name() == "bkBlack") => LightingMode::Ambient,
+            _ if state.constants.is_switch && (self.stage.data.background_type == BackgroundType::Black
+                || self.stage.data.background.name() == "bkBlack") => LightingMode::None,
+            _ if self.stage.data.background_type != BackgroundType::Black
+                && self.stage.data.background_type != BackgroundType::Outside
+                && self.stage.data.background_type != BackgroundType::OutsideWind
+                && self.stage.data.background.name() != "bkBlack" => LightingMode::BackgroundOnly,
+            _ => LightingMode::None,
+        };
+
         Ok(())
     }
 
@@ -1925,12 +1948,7 @@ impl Scene for GameScene {
         self.draw_npc_layer(state, ctx, NPCLayer::Background)?;
         self.draw_tiles(state, ctx, TileLayer::Middleground)?;
 
-        if state.settings.shader_effects
-            && self.stage.data.background_type != BackgroundType::Black
-            && self.stage.data.background_type != BackgroundType::Outside
-            && self.stage.data.background_type != BackgroundType::OutsideWind
-            && self.stage.data.background.name() != "bkBlack"
-        {
+        if state.settings.shader_effects && self.lighting_mode == LightingMode::BackgroundOnly {
             self.draw_light_map(state, ctx)?;
         }
 
@@ -1947,18 +1965,11 @@ impl Scene for GameScene {
         self.player1.popup.draw(state, ctx, &self.frame)?;
         self.player2.popup.draw(state, ctx, &self.frame)?;
 
-        if !self.intro_mode
-            && state.settings.shader_effects
-            && (self.stage.data.background_type == BackgroundType::Black
-                || self.stage.data.background.name() == "bkBlack")
-        {
+        if state.settings.shader_effects && self.lighting_mode == LightingMode::Ambient {
             self.draw_light_map(state, ctx)?;
         }
         self.flash.draw(state, ctx, &self.frame)?;
 
-        /*graphics::set_canvas(ctx, None);
-        state.game_canvas.draw(ctx, DrawParam::new()
-            .scale(Vector2::new(1.0 / state.scale, 1.0 / state.scale)))?;*/
         self.draw_black_bars(state, ctx)?;
 
         match state.textscript_vm.mode {
