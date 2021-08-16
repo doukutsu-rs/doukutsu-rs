@@ -3,7 +3,7 @@ use std::ops::Range;
 use log::info;
 
 use crate::caret::CaretType;
-use crate::common::{fix9_scale, interpolate_fix9_scale, Color, Direction, FadeDirection, FadeState, Rect};
+use crate::common::{interpolate_fix9_scale, Color, Direction, FadeDirection, FadeState, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::draw_common::Alignment;
 use crate::components::flash::Flash;
@@ -669,7 +669,7 @@ impl GameScene {
         world_point_x: i32,
         world_point_y: i32,
         (br, bg, bb): (u8, u8, u8),
-        att: u8,
+        att: f32,
         angle: Range<i32>,
         batch: &mut SizedBatch,
     ) {
@@ -683,87 +683,94 @@ impl GameScene {
         let tf = tile_size.as_float();
         let tih = ti / 2;
         let tfq = tf / 4.0;
+        let (br, bg, bb) = (br as f32, bg as f32, bb as f32);
+        let ahalf = (angle.end - angle.start) as f32 / 2.0;
 
-        'ray: for deg in angle {
+        'ray: for (i, deg) in angle.enumerate() {
             let d = deg as f32 * (std::f32::consts::PI / 180.0);
             let dx = d.cos() * -5.0;
             let dy = d.sin() * -5.0;
+            let m = 1.0 - ((ahalf - i as f32).abs() / ahalf) * 0.3;
             let mut x = px;
             let mut y = py;
-            let mut r = br;
-            let mut g = bg;
-            let mut b = bb;
+            let mut r = br * m;
+            let mut g = bg * m;
+            let mut b = bb * m;
 
-            for i in 0..25 {
+            for i in 0..40 {
                 x += dx;
                 y += dy;
 
                 const ARR: [(i32, i32); 4] = [(0, 0), (0, 1), (1, 0), (1, 1)];
                 for (ox, oy) in ARR.iter() {
-                    let bx = x as i32 / ti + *ox;
-                    let by = y as i32 / ti + *oy;
+                    let bx = (x as i32).wrapping_div(ti).wrapping_add(*ox);
+                    let by = (y as i32).wrapping_div(ti).wrapping_add(*oy);
 
                     let tile = self.stage.map.attrib[self.stage.tile_at(bx as usize, by as usize) as usize];
+                    let bxmth = (bx * ti - tih) as f32;
+                    let bxpth = (bx * ti + tih) as f32;
+                    let bymth = (by * ti - tih) as f32;
+                    let bypth = (by * ti + tih) as f32;
 
                     if ((tile == 0x62 || tile == 0x41 || tile == 0x43 || tile == 0x46)
-                        && x >= (bx * ti - tih) as f32
-                        && x <= (bx * ti + tih) as f32
-                        && y >= (by * ti - tih) as f32
-                        && y <= (by * ti + tih) as f32)
+                        && x >= bxmth
+                        && x <= bxpth
+                        && y >= bymth
+                        && y <= bypth)
                         || ((tile == 0x50 || tile == 0x70)
-                            && x >= (bx * ti - tih) as f32
-                            && x <= (bx * ti + tih) as f32
+                            && x >= bxmth
+                            && x <= bxpth
                             && y <= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 + tfq)
-                            && y >= (by * ti - tih) as f32)
+                            && y >= bymth)
                         || ((tile == 0x51 || tile == 0x71)
-                            && x >= (bx * ti - tih) as f32
-                            && x <= (bx * ti + tih) as f32
+                            && x >= bxmth
+                            && x <= bxpth
                             && y <= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 - tfq)
-                            && y >= (by * ti - tih) as f32)
+                            && y >= bymth)
                         || ((tile == 0x52 || tile == 0x72)
-                            && x >= (bx * ti - tih) as f32
-                            && x <= (bx * ti + tih) as f32
+                            && x >= bxmth
+                            && x <= bxpth
                             && y <= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 - tfq)
-                            && y >= (by * ti - tih) as f32)
+                            && y >= bymth)
                         || ((tile == 0x53 || tile == 0x73)
-                            && x >= (bx * ti - tih) as f32
-                            && x <= (bx * ti + tih) as f32
+                            && x >= bxmth
+                            && x <= bxpth
                             && y <= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 + tfq)
-                            && y >= (by * ti - tih) as f32)
+                            && y >= bymth)
                         || ((tile == 0x54 || tile == 0x74)
-                            && x >= (bx * ti - tih) as f32
-                            && x <= (bx * ti + tih) as f32
+                            && x >= bxmth
+                            && x <= bxpth
                             && y >= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 - tfq)
-                            && y <= (by * ti + tih) as f32)
+                            && y <= bypth)
                         || ((tile == 0x55 || tile == 0x75)
-                            && x >= (bx * ti - tih) as f32
-                            && x <= (bx * ti + tih) as f32
+                            && x >= bxmth
+                            && x <= bxpth
                             && y >= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 + tfq)
-                            && y <= (by * ti + tih) as f32)
+                            && y <= bypth)
                         || ((tile == 0x56 || tile == 0x76)
-                            && x >= (bx * ti - tih) as f32
-                            && x <= (bx * ti + tih) as f32
+                            && x >= bxmth
+                            && x <= bxpth
                             && y >= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 + tfq)
-                            && y <= (by * ti + tih) as f32)
+                            && y <= bypth)
                         || ((tile == 0x57 || tile == 0x77)
-                            && x >= (bx * ti - tih) as f32
-                            && x <= (bx * ti + tih) as f32
+                            && x >= bxmth
+                            && x <= bxpth
                             && y >= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 - tfq)
-                            && y <= (by * ti + tih) as f32)
+                            && y <= bypth)
                     {
                         continue 'ray;
                     }
                 }
 
-                r = r.saturating_sub(att);
-                g = g.saturating_sub(att);
-                b = b.saturating_sub(att);
+                r -= att;
+                g -= att;
+                b -= att;
 
-                if r == 0 && g == 0 && b == 0 {
+                if r <= 0.0 && g <= 0.0 && b <= 0.0 {
                     continue 'ray;
                 }
 
-                self.draw_light(x - fx2, y - fy2, 0.12 + i as f32 / 75.0, (r, g, b), batch);
+                self.draw_light(x - fx2, y - fy2, 0.12 + i as f32 / 75.0, (r as u8, g as u8, b as u8), batch);
             }
         }
     }
@@ -781,10 +788,9 @@ impl GameScene {
 
         graphics::clear(ctx, Color::from_rgb(100, 100, 110));
         {
-            let scale = state.scale;
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
 
-            for (player, inv) in
+            'cc: for (player, inv) in
                 [(&self.player1, &self.inventory_player1), (&self.player2, &self.inventory_player2)].iter()
             {
                 if player.cond.alive() && !player.cond.hidden() && inv.get_current_weapon().is_some() {
@@ -793,16 +799,27 @@ impl GameScene {
                         _ if player.down => 240..300,
                         _ if player.direction == Direction::Left => -30..30,
                         _ if player.direction == Direction::Right => 150..210,
-                        _ => 0..1,
+                        _ => continue 'cc,
                     };
 
                     let (color, att) = match inv.get_current_weapon() {
-                        Some(Weapon { wtype: WeaponType::Fireball, .. }) => ((200u8, 70u8, 10u8), 6),
-                        Some(Weapon { wtype: WeaponType::Spur, .. }) => ((170u8, 170u8, 200u8), 7),
-                        _ => ((150u8, 150u8, 150u8), 7),
+                        Some(Weapon { wtype: WeaponType::Fireball, .. }) => ((200u8, 90u8, 10u8), 4.0),
+                        Some(Weapon { wtype: WeaponType::Spur, .. }) => ((170u8, 170u8, 200u8), 6.0),
+                        Some(Weapon { wtype: WeaponType::Blade, .. }) => continue 'cc,
+                        _ => ((100u8, 100u8, 100u8), 4.0),
                     };
 
-                    self.draw_light_raycast(state.tile_size, player.x, player.y, color, att, range, batch);
+                    let (_, gun_off_y) = player.skin.get_gun_offset();
+
+                    self.draw_light_raycast(
+                        state.tile_size,
+                        player.x + player.direction.vector_x() * 0x800,
+                        player.y + gun_off_y * 0x200 + 0x400,
+                        color,
+                        att,
+                        range,
+                        batch,
+                    );
                 }
             }
 
@@ -940,7 +957,7 @@ impl GameScene {
                                 state.frame_time,
                             ),
                             2.0,
-                            (0, 0, 150),
+                            (30, 30, 150),
                             batch,
                         );
 
@@ -957,7 +974,7 @@ impl GameScene {
                                     state.frame_time,
                                 ),
                                 2.1,
-                                (0, 0, 30),
+                                (10, 10, 30),
                                 batch,
                             );
                         }
@@ -987,7 +1004,7 @@ impl GameScene {
                         );
                     }
                     38 => {
-                        let flicker = (npc.anim_num ^ 5 & 3) as u8 * 15;
+                        let flicker = ((npc.anim_num.wrapping_add(npc.id) ^ 5) & 3) as u8 * 15;
                         self.draw_light(
                             interpolate_fix9_scale(
                                 npc.prev_x - self.frame.prev_x,
@@ -1000,7 +1017,7 @@ impl GameScene {
                                 state.frame_time,
                             ),
                             3.5,
-                            (130 + flicker, 40 + flicker, 0),
+                            (150 + flicker, 60 + flicker, 0),
                             batch,
                         );
                     }
@@ -1031,7 +1048,11 @@ impl GameScene {
                     ),
                     85 if npc.action_num == 1 => {
                         let (color, color2) = if npc.direction == Direction::Left {
-                            ((0, 150, 100), (0, 50, 30))
+                            if state.constants.is_cs_plus {
+                                ((20, 100, 20), (20, 50, 20))
+                            } else {
+                                ((20, 20, 100), (20, 20, 50))
+                            }
                         } else {
                             ((150, 0, 0), (50, 0, 0))
                         };
@@ -1047,7 +1068,7 @@ impl GameScene {
                                 npc.y - self.frame.y,
                                 state.frame_time,
                             ),
-                            1.5,
+                            0.75,
                             color,
                             batch,
                         );
@@ -1085,6 +1106,21 @@ impl GameScene {
         canvas.add(SpriteBatchCommand::DrawRect(rect, rect));
         canvas.draw()?;
 
+        graphics::set_render_target(ctx, Some(canvas))?;
+        graphics::draw_rect(
+            ctx,
+            Rect {
+                left: 0,
+                top: 0,
+                right: (state.screen_size.0 + 1.0) as isize,
+                bottom: (state.screen_size.1 + 1.0) as isize,
+            },
+            Color { r: 0.15, g: 0.15, b: 0.15, a: 1.0 },
+        )?;
+        graphics::set_render_target(ctx, None)?;
+        graphics::set_blend_mode(ctx, BlendMode::Add)?;
+        canvas.draw()?;
+
         graphics::set_blend_mode(ctx, BlendMode::Alpha)?;
 
         Ok(())
@@ -1102,15 +1138,20 @@ impl GameScene {
             TileLayer::Foreground => &self.tex_tileset_name,
         };
 
-        let (layer_offset, layer_width, layer_height, uses_layers) = if let Some(pxpack_data) = self.stage.data.pxpack_data.as_ref() {
-            match layer {
-                TileLayer::Background => (pxpack_data.offset_bg as usize, pxpack_data.size_bg.0, pxpack_data.size_bg.1, true),
-                TileLayer::Middleground => (pxpack_data.offset_mg as usize, pxpack_data.size_mg.0, pxpack_data.size_mg.1, true),
-                _ => (0, pxpack_data.size_fg.0, pxpack_data.size_fg.1, true),
-            }
-        } else {
-            (0, self.stage.map.width, self.stage.map.height, false)
-        };
+        let (layer_offset, layer_width, layer_height, uses_layers) =
+            if let Some(pxpack_data) = self.stage.data.pxpack_data.as_ref() {
+                match layer {
+                    TileLayer::Background => {
+                        (pxpack_data.offset_bg as usize, pxpack_data.size_bg.0, pxpack_data.size_bg.1, true)
+                    }
+                    TileLayer::Middleground => {
+                        (pxpack_data.offset_mg as usize, pxpack_data.size_mg.0, pxpack_data.size_mg.1, true)
+                    }
+                    _ => (0, pxpack_data.size_fg.0, pxpack_data.size_fg.1, true),
+                }
+            } else {
+                (0, self.stage.map.width, self.stage.map.height, false)
+            };
 
         if !uses_layers && layer == TileLayer::Middleground {
             return Ok(());
@@ -1127,8 +1168,8 @@ impl GameScene {
 
         if let Some(pxpack_data) = self.stage.data.pxpack_data.as_ref() {
             let (fx, fy) = match layer {
-                TileLayer::Background =>  pxpack_data.scroll_bg.transform_camera_pos(frame_x, frame_y),
-                TileLayer::Middleground =>  pxpack_data.scroll_mg.transform_camera_pos(frame_x, frame_y),
+                TileLayer::Background => pxpack_data.scroll_bg.transform_camera_pos(frame_x, frame_y),
+                TileLayer::Middleground => pxpack_data.scroll_mg.transform_camera_pos(frame_x, frame_y),
                 _ => pxpack_data.scroll_fg.transform_camera_pos(frame_x, frame_y),
             };
 
@@ -1138,8 +1179,8 @@ impl GameScene {
 
         let tile_start_x = (frame_x as i32 / tile_size).clamp(0, layer_width as i32) as usize;
         let tile_start_y = (frame_y as i32 / tile_size).clamp(0, layer_height as i32) as usize;
-        let tile_end_x = ((frame_x as i32 + 8 + state.canvas_size.0 as i32) / tile_size + 1)
-            .clamp(0, layer_width as i32) as usize;
+        let tile_end_x =
+            ((frame_x as i32 + 8 + state.canvas_size.0 as i32) / tile_size + 1).clamp(0, layer_width as i32) as usize;
         let tile_end_y = ((frame_y as i32 + halft + state.canvas_size.1 as i32) / tile_size + 1)
             .clamp(0, layer_height as i32) as usize;
 
@@ -1152,7 +1193,9 @@ impl GameScene {
                 let tile = *self.stage.map.tiles.get((y * layer_width as usize) + x + layer_offset).unwrap();
                 match layer {
                     _ if uses_layers => {
-                        if tile == 0 { continue; }
+                        if tile == 0 {
+                            continue;
+                        }
 
                         let tile_size = tile_size as u16;
                         rect.left = (tile as u16 % 16) * tile_size;
@@ -1541,7 +1584,7 @@ impl GameScene {
             }
         }
 
-        self.water_renderer.tick(state, (&self.player1))?;
+        self.water_renderer.tick(state, &self.player1)?;
 
         if self.map_name_counter > 0 {
             self.map_name_counter -= 1;
@@ -1550,11 +1593,18 @@ impl GameScene {
         Ok(())
     }
 
-    fn draw_debug_object(&self, entity: &dyn PhysicalEntity, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+    fn draw_debug_object(
+        &self,
+        entity: &dyn PhysicalEntity,
+        state: &mut SharedGameState,
+        ctx: &mut Context,
+    ) -> GameResult {
         if entity.x() < (self.frame.x - 128 - entity.display_bounds().width() as i32 * 0x200)
-            || entity.x() > (self.frame.x + 128 + (state.canvas_size.0 as i32 + entity.display_bounds().width() as i32) * 0x200)
-            && entity.y() < (self.frame.y - 128 - entity.display_bounds().height() as i32 * 0x200)
-            || entity.y() > (self.frame.y + 128 + (state.canvas_size.1 as i32 + entity.display_bounds().height() as i32) * 0x200)
+            || entity.x()
+                > (self.frame.x + 128 + (state.canvas_size.0 as i32 + entity.display_bounds().width() as i32) * 0x200)
+                && entity.y() < (self.frame.y - 128 - entity.display_bounds().height() as i32 * 0x200)
+            || entity.y()
+                > (self.frame.y + 128 + (state.canvas_size.1 as i32 + entity.display_bounds().height() as i32) * 0x200)
         {
             return Ok(());
         }
@@ -1573,8 +1623,8 @@ impl GameScene {
 
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Caret")?;
 
-            const CARET_RECT: Rect<u16> = Rect { left:2, top: 74, right: 6, bottom: 78};
-            const CARET2_RECT: Rect<u16> = Rect {  left: 65, top: 9, right: 71, bottom: 15 };
+            const CARET_RECT: Rect<u16> = Rect { left: 2, top: 74, right: 6, bottom: 78 };
+            const CARET2_RECT: Rect<u16> = Rect { left: 65, top: 9, right: 71, bottom: 15 };
 
             for (idx, &(ox, oy)) in OFFSETS.iter().enumerate() {
                 if idx == hit_rect_size {
@@ -1645,7 +1695,7 @@ impl Scene for GameScene {
         state.textscript_vm.suspend = false;
         state.tile_size = self.stage.map.tile_size;
         #[cfg(feature = "scripting")]
-            state.lua.set_game_scene(self as *mut _);
+        state.lua.set_game_scene(self as *mut _);
 
         self.player1.controller = state.settings.create_player1_controller();
         self.player2.controller = state.settings.create_player2_controller();
@@ -1863,12 +1913,13 @@ impl Scene for GameScene {
         self.player1.popup.draw(state, ctx, &self.frame)?;
         self.player2.popup.draw(state, ctx, &self.frame)?;
 
-        // if !self.intro_mode && state.settings.shader_effects
-        //     && (self.stage.data.background_type == BackgroundType::Black
-        //         || self.stage.data.background.name() == "bkBlack")
-        // {
-        //     self.draw_light_map(state, ctx)?;
-        // }
+        if !self.intro_mode
+            && state.settings.shader_effects
+            && (self.stage.data.background_type == BackgroundType::Black
+                || self.stage.data.background.name() == "bkBlack")
+        {
+            self.draw_light_map(state, ctx)?;
+        }
         self.flash.draw(state, ctx, &self.frame)?;
 
         /*graphics::set_canvas(ctx, None);
