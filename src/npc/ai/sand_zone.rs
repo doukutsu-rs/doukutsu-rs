@@ -1,7 +1,7 @@
 use num_traits::{abs, clamp};
 
 use crate::caret::CaretType;
-use crate::common::{CDEG_RAD, Direction};
+use crate::common::{Direction, CDEG_RAD};
 use crate::framework::error::GameResult;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
@@ -1038,7 +1038,6 @@ impl NPC {
         self.y += self.vel_y;
         self.x += self.vel_x;
 
-
         let dir_offset = if self.direction == Direction::Left { 0 } else { 10 };
 
         self.anim_rect = state.constants.npc.n122_colon_enraged[self.anim_num as usize + dir_offset];
@@ -1483,13 +1482,13 @@ impl NPC {
                     self.anim_counter = 0;
                     self.anim_num += 1;
                 }
-                if (self.anim_num > 1) {
+                if self.anim_num > 1 {
                     self.anim_num = 0;
                 }
-                if (self.direction == Direction::Left && self.flags.hit_left_wall()) {
+                if self.direction == Direction::Left && self.flags.hit_left_wall() {
                     self.direction = Direction::Right;
                 }
-                if (self.direction == Direction::Right && self.flags.hit_right_wall()) {
+                if self.direction == Direction::Right && self.flags.hit_right_wall() {
                     self.direction = Direction::Left;
                 }
                 self.x += self.direction.vector_x() * 0x100;

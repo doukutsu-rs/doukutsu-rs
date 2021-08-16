@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use case_insensitive_hashmap::CaseInsensitiveHashMap;
-use log::info;
 
 use crate::case_insensitive_hashmap;
 use crate::common::{BulletFlag, Color, Rect};
@@ -78,6 +77,12 @@ pub struct CaretConsts {
     pub exhaust_rects: Vec<Rect<u16>>,
     pub question_left_rect: Rect<u16>,
     pub question_right_rect: Rect<u16>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct TextureSizeTable {
+    r#override: bool,
+    sizes: HashMap<String, (u16, u16)>,
 }
 
 impl Clone for CaretConsts {
@@ -1487,7 +1492,7 @@ impl EngineConstants {
     }
 
     pub fn apply_csplus_patches(&mut self, sound_manager: &SoundManager) {
-        info!("Applying Cave Story+ constants patches...");
+        log::info!("Applying Cave Story+ constants patches...");
 
         self.is_cs_plus = true;
         self.supports_og_textures = true;
@@ -1530,7 +1535,7 @@ impl EngineConstants {
     }
 
     pub fn apply_csplus_nx_patches(&mut self) {
-        info!("Applying Switch-specific Cave Story+ constants patches...");
+        log::info!("Applying Switch-specific Cave Story+ constants patches...");
 
         self.is_switch = true;
         self.supports_og_textures = true;
@@ -1546,5 +1551,9 @@ impl EngineConstants {
         self.textscript.text_speed_fast = 0;
         self.soundtracks.insert("Famitracks".to_string(), "/base/ogg17/".to_string());
         self.soundtracks.insert("Ridiculon".to_string(), "/base/ogg_ridic/".to_string());
+    }
+
+    pub fn apply_constant_json_files(&mut self) {
+
     }
 }

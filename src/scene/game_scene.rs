@@ -690,12 +690,12 @@ impl GameScene {
             let d = deg as f32 * (std::f32::consts::PI / 180.0);
             let dx = d.cos() * -5.0;
             let dy = d.sin() * -5.0;
-            let m = 1.0 - ((ahalf - i as f32).abs() / ahalf) * 0.3;
+            let m = 1.0 - ((ahalf - i as f32).abs() / ahalf);
             let mut x = px;
             let mut y = py;
-            let mut r = br * m;
-            let mut g = bg * m;
-            let mut b = bb * m;
+            let mut r = br;
+            let mut g = bg;
+            let mut b = bb;
 
             for i in 0..40 {
                 x += dx;
@@ -762,15 +762,21 @@ impl GameScene {
                     }
                 }
 
-                r -= att;
-                g -= att;
-                b -= att;
+                r *= att;
+                g *= att;
+                b *= att;
 
-                if r <= 0.0 && g <= 0.0 && b <= 0.0 {
+                if r <= 1.0 && g <= 1.0 && b <= 1.0 {
                     continue 'ray;
                 }
 
-                self.draw_light(x - fx2, y - fy2, 0.12 + i as f32 / 75.0, (r as u8, g as u8, b as u8), batch);
+                self.draw_light(
+                    x - fx2,
+                    y - fy2,
+                    0.15 + i as f32 / 75.0,
+                    ((r * m) as u8, (g * m) as u8, (b * m) as u8),
+                    batch,
+                );
             }
         }
     }
@@ -803,10 +809,11 @@ impl GameScene {
                     };
 
                     let (color, att) = match inv.get_current_weapon() {
-                        Some(Weapon { wtype: WeaponType::Fireball, .. }) => ((200u8, 90u8, 10u8), 4.0),
-                        Some(Weapon { wtype: WeaponType::Spur, .. }) => ((170u8, 170u8, 200u8), 6.0),
+                        Some(Weapon { wtype: WeaponType::Fireball, .. }) => ((170u8, 80u8, 0u8), 0.92),
+                        Some(Weapon { wtype: WeaponType::PolarStar, .. }) => ((150u8, 150u8, 160u8), 0.92),
+                        Some(Weapon { wtype: WeaponType::Spur, .. }) => ((170u8, 170u8, 200u8), 0.92),
                         Some(Weapon { wtype: WeaponType::Blade, .. }) => continue 'cc,
-                        _ => ((100u8, 100u8, 100u8), 4.0),
+                        _ => ((150u8, 150u8, 150u8), 0.92),
                     };
 
                     let (_, gun_off_y) = player.skin.get_gun_offset();
@@ -1004,7 +1011,7 @@ impl GameScene {
                         );
                     }
                     38 => {
-                        let flicker = ((npc.anim_num.wrapping_add(npc.id) ^ 5) & 3) as u8 * 15;
+                        let flicker = ((npc.anim_num.wrapping_add(npc.id) ^ 5) & 3) as u8 * 24;
                         self.draw_light(
                             interpolate_fix9_scale(
                                 npc.prev_x - self.frame.prev_x,
@@ -1018,6 +1025,23 @@ impl GameScene {
                             ),
                             3.5,
                             (150 + flicker, 60 + flicker, 0),
+                            batch,
+                        );
+                    }
+                    69 | 81 => {
+                        self.draw_light(
+                            interpolate_fix9_scale(
+                                npc.prev_x - self.frame.prev_x,
+                                npc.x - self.frame.x,
+                                state.frame_time,
+                            ),
+                            interpolate_fix9_scale(
+                                npc.prev_y - self.frame.prev_y,
+                                npc.y - self.frame.y,
+                                state.frame_time,
+                            ),
+                            if npc.npc_type == 69 { 0.5 } else { 1.0 },
+                            (200, 200, 200),
                             batch,
                         );
                     }
@@ -1039,13 +1063,6 @@ impl GameScene {
                             batch,
                         );
                     }
-                    75 | 77 => self.draw_light(
-                        interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
-                        interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
-                        3.0,
-                        (255, 100, 0),
-                        batch,
-                    ),
                     85 if npc.action_num == 1 => {
                         let (color, color2) = if npc.direction == Direction::Left {
                             if state.constants.is_cs_plus {
@@ -1091,6 +1108,23 @@ impl GameScene {
                             );
                         }
                     }
+                    175 if npc.action_num < 10 => {
+                        self.draw_light(
+                            interpolate_fix9_scale(
+                                npc.prev_x - self.frame.prev_x,
+                                npc.x - self.frame.x,
+                                state.frame_time,
+                            ),
+                            interpolate_fix9_scale(
+                                npc.prev_y - self.frame.prev_y,
+                                npc.y - self.frame.y,
+                                state.frame_time,
+                            ),
+                            1.0,
+                            (128, 175, 200),
+                            batch,
+                        );
+                    }
                     _ => {}
                 }
             }
@@ -1115,7 +1149,7 @@ impl GameScene {
                 right: (state.screen_size.0 + 1.0) as isize,
                 bottom: (state.screen_size.1 + 1.0) as isize,
             },
-            Color { r: 0.15, g: 0.15, b: 0.15, a: 1.0 },
+            Color { r: 0.15, g: 0.12, b: 0.12, a: 1.0 },
         )?;
         graphics::set_render_target(ctx, None)?;
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
@@ -1584,7 +1618,7 @@ impl GameScene {
             }
         }
 
-        self.water_renderer.tick(state, &self.player1)?;
+        self.water_renderer.tick(state, (&[&self.player1, &self.player2], &self.npc_list))?;
 
         if self.map_name_counter > 0 {
             self.map_name_counter -= 1;

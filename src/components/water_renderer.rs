@@ -8,6 +8,8 @@ use crate::framework::graphics;
 use crate::map::WaterRegionType;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
+use crate::physics::PhysicalEntity;
+use crate::npc::list::NPCList;
 
 const TENSION: f32 = 0.03;
 const DAMPENING: f32 = 0.01;
@@ -115,29 +117,49 @@ impl WaterRenderer {
     }
 }
 
-impl GameEntity<&Player> for WaterRenderer {
-    fn tick(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult<()> {
-        let player_x = player.x as f32 / 512.0 + 8.0;
-        let player_y = player.y as f32 / 512.0 + 8.0;
+impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
+    fn tick(&mut self, state: &mut SharedGameState, (players, npc_list): (&[&Player], &NPCList)) -> GameResult<()> {
+        if !state.settings.shader_effects {
+            return Ok(());
+        }
 
         for surf in self.water_surfaces.iter_mut() {
             let line_x = surf.x as f32 * 16.0;
             let line_y = surf.y as f32 * 16.0;
-            if (player.vel_y > 0x80 || player.vel_y < -0x80)
-                && player_x > line_x
-                && player_x < surf.end_x as f32 * 16.0
-                && player_y > line_y - 5.0
-                && player_y < line_y + 4.0
-            {
-                let col_idx_center = (((player_x - line_x) / 2.0) as i32).clamp(0, surf.columns.len() as i32);
-                let col_idx_left = (col_idx_center - (player.hit_bounds.left as i32 / (8 * 0x200)))
-                    .clamp(0, surf.columns.len() as i32) as usize;
-                let col_idx_right = (col_idx_center + (player.hit_bounds.left as i32 / (8 * 0x200)))
-                    .clamp(0, surf.columns.len() as i32) as usize;
 
-                for col in surf.columns[col_idx_left..=col_idx_right].iter_mut() {
-                    col.speed = player.vel_y as f32 / 512.0;
+            let mut tick_object = |obj: &dyn PhysicalEntity| {
+                let obj_x = obj.x() as f32 / 512.0 + 8.0;
+                let obj_y = obj.y() as f32 / 512.0 + 8.0;
+
+                if (obj.vel_y() > 0x80 || obj.vel_y() < -0x80)
+                    && obj_x > line_x
+                    && obj_x < surf.end_x as f32 * 16.0
+                    && obj_y > line_y - 5.0
+                    && obj_y < line_y + 4.0
+                {
+                    let col_idx_center = (((obj_x - line_x) / 2.0) as i32).clamp(0, surf.columns.len() as i32);
+                    let col_idx_left = (col_idx_center - (obj.hit_bounds().left as i32 / (8 * 0x200)))
+                        .clamp(0, surf.columns.len() as i32) as usize;
+                    let col_idx_right = (col_idx_center + (obj.hit_bounds().left as i32 / (8 * 0x200)))
+                        .clamp(0, surf.columns.len() as i32) as usize;
+
+                    for col in surf.columns[col_idx_left..=col_idx_right].iter_mut() {
+                        col.speed = (obj.vel_y() as f32 / 512.0) * (obj.hit_rect_size() as f32 * 0.25).clamp(0.1, 1.0);
+                    }
                 }
+            };
+
+            for player in players {
+                tick_object(*player);
+            }
+
+            for npc in npc_list.iter_alive() {
+                static NO_COLL_NPCS: [u16; 3] = [0, 3, 4];
+                if NO_COLL_NPCS.contains(&npc.npc_type) {
+                    continue;
+                }
+
+                tick_object(npc);
             }
 
             surf.tick();
@@ -160,7 +182,7 @@ impl GameEntity<&Player> for WaterRenderer {
             graphics::draw_rect(ctx, out_rect, water_color)?;
         }
 
-        if !graphics::supports_vertex_draw(ctx)? {
+        if !state.settings.shader_effects || !graphics::supports_vertex_draw(ctx)? {
             for region in self.surf_regions.iter() {
                 out_rect.left = ((region.left as f32 * 16.0 - o_x - 8.0) * state.scale) as isize;
                 out_rect.top = ((region.top as f32 * 16.0 - o_y - 5.0) * state.scale) as isize;

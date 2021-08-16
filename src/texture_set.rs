@@ -6,7 +6,7 @@ use itertools::Itertools;
 use log::info;
 
 use crate::common;
-use crate::common::{FILE_TYPES, Rect};
+use crate::common::{Rect, FILE_TYPES};
 use crate::engine_constants::EngineConstants;
 use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
@@ -28,6 +28,8 @@ pub struct SizedBatch {
     real_height: usize,
     scale_x: f32,
     scale_y: f32,
+    has_glow_layer: bool,
+    has_normal_layer: bool,
 }
 
 impl SizedBatch {
@@ -57,6 +59,16 @@ impl SizedBatch {
     }
 
     #[inline(always)]
+    pub fn has_glow_layer(&self) -> bool {
+        self.has_glow_layer
+    }
+
+    #[inline(always)]
+    pub fn has_normal_layer(&self) -> bool {
+        self.has_normal_layer
+    }
+
+    #[inline(always)]
     pub fn to_rect(&self) -> common::Rect<usize> {
         common::Rect::<usize>::new(0, 0, self.width, self.height)
     }
@@ -74,12 +86,7 @@ impl SizedBatch {
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRect(
-            Rect {
-                left: 0 as f32,
-                top: 0 as f32,
-                right: self.real_width as f32,
-                bottom: self.real_height as f32,
-            },
+            Rect { left: 0 as f32, top: 0 as f32, right: self.real_width as f32, bottom: self.real_height as f32 },
             Rect {
                 left: x * mag,
                 top: y * mag,
@@ -99,10 +106,6 @@ impl SizedBatch {
             return;
         }
 
-        /*unsafe {
-            x = (x * G_MAG).floor() / G_MAG;
-            y = (y * G_MAG).floor() / G_MAG;
-        }*/
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRectFlip(
@@ -118,7 +121,8 @@ impl SizedBatch {
                 right: (x + rect.width() as f32) * mag,
                 bottom: (y + rect.height() as f32) * mag,
             },
-            flip_x, flip_y
+            flip_x,
+            flip_y,
         ));
     }
 
@@ -154,7 +158,15 @@ impl SizedBatch {
         ));
     }
 
-    pub fn add_rect_scaled_tinted(&mut self, mut x: f32, mut y: f32, color: (u8, u8, u8, u8), scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
+    pub fn add_rect_scaled_tinted(
+        &mut self,
+        mut x: f32,
+        mut y: f32,
+        color: (u8, u8, u8, u8),
+        scale_x: f32,
+        scale_y: f32,
+        rect: &common::Rect<u16>,
+    ) {
         if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
             return;
         }
@@ -166,12 +178,7 @@ impl SizedBatch {
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRectTinted(
-            Rect {
-                left: rect.left as f32,
-                top: rect.top as f32,
-                right: rect.right as f32,
-                bottom: rect.bottom as f32,
-            },
+            Rect { left: rect.left as f32, top: rect.top as f32, right: rect.right as f32, bottom: rect.bottom as f32 },
             Rect {
                 left: x * mag,
                 top: y * mag,
@@ -202,10 +209,7 @@ pub struct TextureSet {
 
 impl TextureSet {
     pub fn new(base_path: &str) -> TextureSet {
-        TextureSet {
-            tex_map: HashMap::new(),
-            paths: vec![base_path.to_string(), "".to_string()],
-        }
+        TextureSet { tex_map: HashMap::new(), paths: vec![base_path.to_string(), "".to_string()] }
     }
 
     pub fn apply_seasonal_content(&mut self, season: Season, settings: &Settings) {
@@ -248,14 +252,26 @@ impl TextureSet {
     }
 
     pub fn load_texture(&self, ctx: &mut Context, constants: &EngineConstants, name: &str) -> GameResult<SizedBatch> {
-        let path = self.paths.iter().find_map(|s| FILE_TYPES
+        let path = self
+            .paths
             .iter()
-            .map(|ext| [s, name, ext].join(""))
-            .find(|path| {
-                println!("{}", path);
-                filesystem::exists(ctx, path)
+            .find_map(|s| {
+                FILE_TYPES.iter().map(|ext| [s, name, ext].join("")).find(|path| {
+                    println!("{}", path);
+                    filesystem::exists(ctx, path)
+                })
             })
-        ).ok_or_else(|| GameError::ResourceLoadError(format!("Texture {} does not exist.", name)))?;
+            .ok_or_else(|| GameError::ResourceLoadError(format!("Texture {} does not exist.", name)))?;
+
+        let has_glow_layer = self
+            .paths
+            .iter()
+            .find_map(|s| {
+                FILE_TYPES.iter().map(|ext| [s, name, ".glow", ext].join("")).find(|path| {
+                    println!("{}", path);
+                    filesystem::exists(ctx, path)
+                })
+            }).is_some();
 
         info!("Loading texture: {}", path);
 
@@ -278,10 +294,17 @@ impl TextureSet {
             scale_y: scale,
             real_width: size.0 as usize,
             real_height: size.1 as usize,
+            has_glow_layer,
+            has_normal_layer: false,
         })
     }
 
-    pub fn get_or_load_batch(&mut self, ctx: &mut Context, constants: &EngineConstants, name: &str) -> GameResult<&mut SizedBatch> {
+    pub fn get_or_load_batch(
+        &mut self,
+        ctx: &mut Context,
+        constants: &EngineConstants,
+        name: &str,
+    ) -> GameResult<&mut SizedBatch> {
         if !self.tex_map.contains_key(name) {
             let batch = self.load_texture(ctx, constants, name)?;
             self.tex_map.insert(str!(name), batch);
