@@ -1,9 +1,30 @@
 use std::mem::MaybeUninit;
 
+use crate::sound::fir::FIR;
+use crate::sound::fir::FIR_STEP;
 use crate::sound::organya::{Song as Organya, Version};
 use crate::sound::stuff::*;
 use crate::sound::wav::*;
 use crate::sound::wave_bank::SoundBank;
+use crate::sound::InterpolationMode;
+
+#[derive(Clone)]
+pub struct FIRData {
+    cache: Vec<f32>,
+    pos: usize,
+}
+
+impl FIRData {
+    pub fn new() -> Self {
+        FIRData { cache: Vec::new(), pos: 0 }
+    }
+
+    pub fn ensure_initialized(&mut self) {
+        if self.cache.is_empty() {
+            self.cache.resize(FIR.len() * 4, 0.0);
+        }
+    }
+}
 
 pub(crate) struct OrgPlaybackEngine {
     song: Organya,
@@ -24,6 +45,7 @@ pub(crate) struct OrgPlaybackEngine {
     frames_this_tick: usize,
     frames_per_tick: usize,
     pub loops: usize,
+    pub interpolation: InterpolationMode,
 }
 
 pub struct SavedOrganyaPlaybackState {
@@ -33,10 +55,7 @@ pub struct SavedOrganyaPlaybackState {
 
 impl Clone for SavedOrganyaPlaybackState {
     fn clone(&self) -> SavedOrganyaPlaybackState {
-        SavedOrganyaPlaybackState {
-            song: self.song.clone(),
-            play_pos: self.play_pos,
-        }
+        SavedOrganyaPlaybackState { song: self.song.clone(), play_pos: self.play_pos }
     }
 }
 
@@ -58,14 +77,11 @@ impl OrgPlaybackEngine {
             keys: [255; 8],
             track_buffers: unsafe { std::mem::transmute(buffers) },
             play_pos: 0,
-            output_format: WavFormat {
-                channels: 2,
-                sample_rate: 44100,
-                bit_depth: 16,
-            },
+            output_format: WavFormat { channels: 2, sample_rate: 44100, bit_depth: 16 },
             frames_this_tick: 0,
             frames_per_tick,
             loops: 1,
+            interpolation: InterpolationMode::Linear,
         }
     }
 
@@ -81,10 +97,7 @@ impl OrgPlaybackEngine {
     }
 
     pub fn get_state(&self) -> SavedOrganyaPlaybackState {
-        SavedOrganyaPlaybackState {
-            song: self.song.clone(),
-            play_pos: self.play_pos,
-        }
+        SavedOrganyaPlaybackState { song: self.song.clone(), play_pos: self.play_pos }
     }
 
     pub fn set_state(&mut self, state: SavedOrganyaPlaybackState, samples: &SoundBank) {
@@ -97,11 +110,7 @@ impl OrgPlaybackEngine {
             let sound_index = song.tracks[i].inst.inst as usize;
             let sound = samples.get_wave(sound_index).iter().map(|&x| x ^ 128).collect();
 
-            let format = WavFormat {
-                channels: 1,
-                sample_rate: 22050,
-                bit_depth: 8,
-            };
+            let format = WavFormat { channels: 1, sample_rate: 22050, bit_depth: 8 };
 
             let rbuf = RenderBuffer::new_organya(WavSample { format, data: sound });
 
@@ -112,11 +121,7 @@ impl OrgPlaybackEngine {
             }
         }
 
-        for (idx, (track, buf)) in song.tracks[8..]
-            .iter()
-            .zip(self.track_buffers[128..].iter_mut())
-            .enumerate()
-        {
+        for (idx, (track, buf)) in song.tracks[8..].iter().zip(self.track_buffers[128..].iter_mut()).enumerate() {
             if self.song.version == Version::Extended {
                 *buf = RenderBuffer::new(samples.samples[track.inst.inst as usize].clone());
             } else {
@@ -292,7 +297,7 @@ impl OrgPlaybackEngine {
                 self.update_play_state()
             }
 
-            mix(std::slice::from_mut(frame), self.output_format, &mut self.track_buffers);
+            mix(std::slice::from_mut(frame), self.interpolation, self.output_format, &mut self.track_buffers);
 
             self.frames_this_tick += 1;
 
@@ -318,7 +323,7 @@ impl OrgPlaybackEngine {
 }
 
 // TODO: Create a MixingBuffer or something...
-pub fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
+fn mix(dst: &mut [u16], interpolation: InterpolationMode, dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
     let freq = dst_fmt.sample_rate as f64;
 
     for buf in srcs {
@@ -343,55 +348,178 @@ pub fn mix(dst: &mut [u16], dst_fmt: WavFormat, srcs: &mut [RenderBuffer]) {
                 }
             }
 
-            #[allow(unused_variables)]
-            for frame in dst.iter_mut() {
-                let pos = buf.position as usize + buf.base_pos;
-                // -1..1
-                let s1 = (buf.sample.data[pos] as f32 - 128.0) / 128.0;
-                let s2 = (buf.sample.data[clamp(pos + 1, buf.base_pos + buf.len - 1)] as f32 - 128.0) / 128.0;
-                let s3 = (buf.sample.data[clamp(pos + 2, buf.base_pos + buf.len - 1)] as f32 - 128.0) / 128.0;
-                let s4 = (buf.sample.data[pos.saturating_sub(1)] as f32 - 128.0) / 128.0;
+            // s1: sample 1
+            // s2: sample 2
+            // sp: previous sample (before s1)
+            // sn: next sample (after s2)
+            // mu: position to interpolate for
+            fn cubic_interp(s1: f32, s2: f32, sp: f32, sn: f32, mu: f32) -> f32 {
+                let mu2 = mu * mu;
+                let a0 = sn - s2 - sp + s1;
+                let a1 = sp - s1 - a0;
+                let a2 = s2 - sp;
+                let a3 = s1;
 
-                use std::f32::consts::PI;
+                a0 * mu * mu2 + a1 * mu2 + a2 * mu + a3
+            }
 
-                let r1 = buf.position.fract() as f32;
-                let r2 = (1.0 - f32::cos(r1 * PI)) / 2.0;
+            if interpolation == InterpolationMode::Polyphase {
+                buf.fir.ensure_initialized();
+                let fir_step = (FIR_STEP * advance as f32).floor();
+                let fir_step = if fir_step == 0.0 { FIR_STEP } else { fir_step };
+                let fir_gain = fir_step / FIR_STEP;
 
-                //let s = s1; // No interp
-                //let s = s1 + (s2 - s1) * r1; // Linear interp
-                //let s = s1 * (1.0 - r2) + s2 * r2; // Cosine interp
-                let s = cubic_interp(s1, s2, s4, s3, r1); // Cubic interp
-                                                          // Ideally we want sinc/lanczos interpolation, since that's what DirectSound appears to use.
+                let mut count = 0isize;
 
-                // -128..128
-                let sl = s * pan_l * vol * 128.0;
-                let sr = s * pan_r * vol * 128.0;
+                // optimized for debug mode
+                // bound / arithmetic checks give a HUGE performance hit in this code
+                let fl = FIR.len() as f32;
 
-                buf.position += advance;
+                // raw pointer access is much faster than get_unchecked
+                let fir_ptr = FIR.as_ptr();
+                let cache_ptr = buf.fir.cache.as_mut_ptr();
 
-                if buf.position as usize >= buf.len {
-                    if buf.looping && buf.nloops != 1 {
-                        buf.position %= buf.len as f64;
-                        if buf.nloops != -1 {
-                            buf.nloops -= 1;
+                for (n, _) in dst.iter().enumerate() {
+                    count += 1;
+                    let pos = buf.position as usize + buf.base_pos;
+                    let i = (buf.fir.pos + n) % buf.fir.cache.len();
+
+                    let s1 = (buf.sample.data[pos] as f32 - 128.0) / 128.0;
+                    let s2 = (buf.sample.data[clamp(pos + 1, buf.base_pos + buf.len - 1)] as f32 - 128.0) / 128.0;
+                    let r1 = buf.position.fract() as f32;
+
+                    buf.fir.cache[i] = s1 + (s2 - s1) * r1;
+
+                    buf.position += advance;
+
+                    if buf.position as usize >= buf.len {
+                        if buf.looping && buf.nloops != 1 {
+                            buf.position %= buf.len as f64;
+                            if buf.nloops != -1 {
+                                buf.nloops -= 1;
+                            }
+                        } else {
+                            buf.position = 0.0;
+                            buf.playing = false;
+
+                            let silent_frames = dst.len() - n;
+                            for m in 0..silent_frames {
+                                let i = (buf.fir.pos + n + m) % buf.fir.cache.len();
+                                buf.fir.cache[i] = 0.0;
+                            }
+                            count += silent_frames as isize;
+
+                            break;
                         }
-                    } else {
-                        buf.position = 0.0;
-                        buf.playing = false;
-                        break;
                     }
                 }
 
-                let [mut l, mut r] = frame.to_le_bytes();
-                // -128..127
-                let xl = (l ^ 128) as i8;
-                let xr = (r ^ 128) as i8;
+                let cl = buf.fir.cache.len() as isize;
 
-                // 0..255
-                l = xl.saturating_add(sl as i8) as u8 ^ 128;
-                r = xr.saturating_add(sr as i8) as u8 ^ 128;
+                for n in 0..count {
+                    let mut insamp_idx = (buf.fir.pos as isize).wrapping_add(n).wrapping_rem(cl);
+                    let mut acc = 0.0;
+                    let mut step = 0.0;
 
-                *frame = u16::from_le_bytes([l, r]);
+                    while step < fl {
+                        unsafe {
+                            acc += (*fir_ptr.add(step as usize)) * (*cache_ptr.add((insamp_idx) as usize));
+                            insamp_idx = if insamp_idx == 0 { cl.wrapping_sub(1) } else { insamp_idx.wrapping_sub(1) };
+                            step += fir_step;
+                        }
+                    }
+
+                    acc *= fir_gain;
+
+                    let sl = acc * pan_l * vol * 128.0;
+                    let sr = acc * pan_r * vol * 128.0;
+
+                    let frame = unsafe { dst.get_unchecked_mut(n as usize) };
+                    let [mut l, mut r] = frame.to_be_bytes();
+                    // -128..127
+                    let xl = (l ^ 128) as i8;
+                    let xr = (r ^ 128) as i8;
+
+                    // 0..255
+                    l = xl.saturating_add(sl as i8) as u8 ^ 128;
+                    r = xr.saturating_add(sr as i8) as u8 ^ 128;
+
+                    *frame = u16::from_be_bytes([l, r]);
+                }
+
+                buf.fir.pos += count as usize;
+            } else {
+                for frame in dst.iter_mut() {
+                    let pos = buf.position as usize + buf.base_pos;
+
+                    // -1..1
+                    let s = match interpolation {
+                        InterpolationMode::Nearest => (buf.sample.data[pos] as f32 - 128.0) / 128.0,
+                        InterpolationMode::Linear => {
+                            let s1 = (buf.sample.data[pos] as f32 - 128.0) / 128.0;
+                            let s2 =
+                                (buf.sample.data[clamp(pos + 1, buf.base_pos + buf.len - 1)] as f32 - 128.0) / 128.0;
+                            let r1 = buf.position.fract() as f32;
+
+                            s1 + (s2 - s1) * r1
+                        }
+                        InterpolationMode::Cosine => {
+                            use std::f32::consts::PI;
+
+                            let s1 = (buf.sample.data[pos] as f32 - 128.0) / 128.0;
+                            let s2 =
+                                (buf.sample.data[clamp(pos + 1, buf.base_pos + buf.len - 1)] as f32 - 128.0) / 128.0;
+
+                            let r1 = buf.position.fract() as f32;
+                            let r2 = (1.0 - f32::cos(r1 * PI)) / 2.0;
+
+                            s1 * (1.0 - r2) + s2 * r2
+                        }
+                        InterpolationMode::Cubic => {
+                            let s1 = (buf.sample.data[pos] as f32 - 128.0) / 128.0;
+                            let s2 =
+                                (buf.sample.data[clamp(pos + 1, buf.base_pos + buf.len - 1)] as f32 - 128.0) / 128.0;
+                            let s3 =
+                                (buf.sample.data[clamp(pos + 2, buf.base_pos + buf.len - 1)] as f32 - 128.0) / 128.0;
+                            let s4 = (buf.sample.data[pos.saturating_sub(1)] as f32 - 128.0) / 128.0;
+
+                            let r1 = buf.position.fract() as f32;
+
+                            cubic_interp(s1, s2, s4, s3, r1)
+                        }
+                        InterpolationMode::Polyphase => unreachable!(),
+                    };
+
+                    // -128..128
+                    let sl = s * pan_l * vol * 128.0;
+                    let sr = s * pan_r * vol * 128.0;
+
+                    buf.position += advance;
+
+                    if buf.position as usize >= buf.len {
+                        if buf.looping && buf.nloops != 1 {
+                            buf.position %= buf.len as f64;
+                            if buf.nloops != -1 {
+                                buf.nloops -= 1;
+                            }
+                        } else {
+                            buf.position = 0.0;
+                            buf.playing = false;
+                            break;
+                        }
+                    }
+
+                    let [mut l, mut r] = frame.to_be_bytes();
+                    // -128..127
+                    let xl = (l ^ 128) as i8;
+                    let xr = (r ^ 128) as i8;
+
+                    // 0..255
+                    l = xl.saturating_add(sl as i8) as u8 ^ 128;
+                    r = xr.saturating_add(sr as i8) as u8 ^ 128;
+
+                    *frame = u16::from_be_bytes([l, r]);
+                }
             }
         }
     }
@@ -414,6 +542,7 @@ pub struct RenderBuffer {
     pub len: usize,
     // -1 = infinite
     pub nloops: i32,
+    pub fir: FIRData,
 }
 
 impl RenderBuffer {
@@ -429,6 +558,7 @@ impl RenderBuffer {
             looping: false,
             base_pos: 0,
             nloops: -1,
+            fir: FIRData::new(),
         }
     }
 
@@ -439,18 +569,12 @@ impl RenderBuffer {
             volume: 0,
             pan: 0,
             len: 0,
-            sample: WavSample {
-                format: WavFormat {
-                    channels: 2,
-                    sample_rate: 22050,
-                    bit_depth: 16,
-                },
-                data: vec![],
-            },
+            sample: WavSample { format: WavFormat { channels: 2, sample_rate: 22050, bit_depth: 16 }, data: vec![] },
             playing: false,
             looping: false,
             base_pos: 0,
             nloops: -1,
+            fir: FIRData::new(),
         }
     }
 

@@ -4,8 +4,7 @@ use std::io;
 use std::fmt;
 
 pub struct SoundBank {
-    // FIXME: would prefer Box<[u8; 25600]>
-    pub wave100: Box<[u8]>,
+    pub wave100: Box<[u8; 25600]>,
     
     pub samples: Vec<wav::WavSample>
 }
@@ -24,10 +23,9 @@ impl fmt::Display for SoundBank {
 
 impl SoundBank {
     pub fn load_from<R: io::Read>(mut f: R) -> io::Result<SoundBank> {
-        // no box [0; 25600] yet
-        let mut wave100 = vec![0; 25600].into_boxed_slice();
+        let mut wave100 = Box::new([0u8; 25600]);
         
-        f.read_exact(&mut *wave100)?;
+        f.read_exact(wave100.as_mut())?;
         
         let mut samples = Vec::with_capacity(16);
         

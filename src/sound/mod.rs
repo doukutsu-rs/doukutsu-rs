@@ -1,6 +1,8 @@
 use std::io;
+use std::io::{BufRead, BufReader, Lines};
+use std::str::FromStr;
 use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -23,9 +25,8 @@ use crate::sound::organya::Song;
 use crate::sound::pixtone::{PixToneParameters, PixTonePlayback};
 use crate::sound::wave_bank::SoundBank;
 use crate::str;
-use std::io::{BufReader, BufRead, Lines};
-use std::str::FromStr;
 
+mod fir;
 #[cfg(feature = "ogg-playback")]
 mod ogg_playback;
 mod org_playback;
@@ -48,6 +49,15 @@ enum SongFormat {
     OggSinglePart,
     #[cfg(feature = "ogg-playback")]
     OggMultiPart,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum InterpolationMode {
+    Nearest,
+    Linear,
+    Cosine,
+    Cubic,
+    Polyphase,
 }
 
 impl SoundManager {
@@ -263,7 +273,9 @@ impl SoundManager {
 
                     let _ = splits.next();
                     if let Some(str) = splits.next() {
-                        return str.trim().parse::<T>().map_err(|_| GameError::ParseError("failed to parse the value as specified type.".to_string()))
+                        return str.trim().parse::<T>().map_err(|_| {
+                            GameError::ParseError("failed to parse the value as specified type.".to_string())
+                        });
                     } else {
                         break;
                     }
@@ -272,8 +284,8 @@ impl SoundManager {
                 }
             }
 
-            return Err(GameError::ParseError("unexpected end.".to_string()))
-        };
+            return Err(GameError::ParseError("unexpected end.".to_string()));
+        }
 
         for channel in params.channels.iter_mut() {
             channel.enabled = next_string::<u8, R>(&mut reader)? != 0;
