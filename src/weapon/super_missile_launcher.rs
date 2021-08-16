@@ -47,7 +47,7 @@ impl Weapon {
 
         fn increment(weapon: &mut Weapon, bullet: &mut Bullet) {
             weapon.counter2 = (weapon.counter2 + 1) % 3;
-            bullet.counter1 = weapon.counter2;
+            bullet.counter2 = weapon.counter2;
         }
 
         match player.direction {

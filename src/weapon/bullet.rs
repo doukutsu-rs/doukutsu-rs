@@ -20,10 +20,22 @@ pub struct BulletManager {
 impl BulletManager {
     #[allow(clippy::new_without_default)]
     pub fn new() -> BulletManager {
-        BulletManager { bullets: Vec::with_capacity(64), new_bullets: Vec::with_capacity(8), seeder: XorShift::new(0x359c482f) }
+        BulletManager {
+            bullets: Vec::with_capacity(64),
+            new_bullets: Vec::with_capacity(8),
+            seeder: XorShift::new(0x359c482f),
+        }
     }
 
-    pub fn create_bullet(&mut self, x: i32, y: i32, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) {
+    pub fn create_bullet(
+        &mut self,
+        x: i32,
+        y: i32,
+        btype: u16,
+        owner: TargetPlayer,
+        direction: Direction,
+        constants: &EngineConstants,
+    ) {
         let mut bullet = Bullet::new(x, y, btype, owner, direction, constants);
         bullet.rng = Xoroshiro32PlusPlus::new(self.seeder.next_u32());
 
@@ -35,7 +47,13 @@ impl BulletManager {
         self.bullets.push(bullet);
     }
 
-    pub fn tick_bullets(&mut self, state: &mut SharedGameState, players: [&Player; 2], npc_list: &NPCList, stage: &mut Stage) {
+    pub fn tick_bullets(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&Player; 2],
+        npc_list: &NPCList,
+        stage: &mut Stage,
+    ) {
         let mut i = 0;
         while i < self.bullets.len() {
             {
@@ -108,7 +126,14 @@ pub struct Bullet {
 }
 
 impl Bullet {
-    pub fn new(x: i32, y: i32, btype: u16, owner: TargetPlayer, direction: Direction, constants: &EngineConstants) -> Bullet {
+    pub fn new(
+        x: i32,
+        y: i32,
+        btype: u16,
+        owner: TargetPlayer,
+        direction: Direction,
+        constants: &EngineConstants,
+    ) -> Bullet {
         let bullet = constants.weapon.bullet_table.get(btype as usize).unwrap_or_else(|| &BulletData {
             damage: 0,
             life: 0,
@@ -358,7 +383,9 @@ impl Bullet {
             return;
         }
 
-        if (self.flags.hit_left_wall() && self.flags.hit_right_wall()) || (self.flags.hit_top_wall() && self.flags.hit_bottom_wall()) {
+        if (self.flags.hit_left_wall() && self.flags.hit_right_wall())
+            || (self.flags.hit_top_wall() && self.flags.hit_bottom_wall())
+        {
             self.cond.set_alive(false);
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
             state.sound_manager.play_sfx(28);
@@ -443,7 +470,8 @@ impl Bullet {
 
             let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
 
-            self.anim_rect = state.constants.weapon.bullet_rects.b008_009_fireball_l2_3[self.anim_num as usize + dir_offset];
+            self.anim_rect =
+                state.constants.weapon.bullet_rects.b008_009_fireball_l2_3[self.anim_num as usize + dir_offset];
 
             let mut npc = NPC::create(129, &state.npc_table);
             npc.cond.set_alive(true);
@@ -535,6 +563,172 @@ impl Bullet {
             _ => {
                 unreachable!()
             }
+        }
+    }
+
+    fn tick_missile(&mut self, state: &mut SharedGameState, players: [&Player; 2], new_bullets: &mut Vec<Bullet>) {
+        let player = players[self.owner.index()];
+
+        self.action_counter += 1;
+        if self.action_counter > self.lifetime {
+            self.cond.set_alive(false);
+            state.create_caret(self.x, self.y, CaretType::Shoot, Direction::Left);
+            return;
+        }
+
+        if match self.direction {
+            _ if self.life != 10 => true,
+            Direction::Left if self.flags.hit_left_wall() => true,
+            Direction::Left if self.flags.hit_left_slope() => true,
+            Direction::Left if self.flags.flag_x80() => true,
+            Direction::Right if self.flags.hit_right_wall() => true,
+            Direction::Right if self.flags.hit_right_slope() => true,
+            Direction::Right if self.flags.flag_x40() => true,
+            Direction::Up if self.flags.hit_top_wall() => true,
+            Direction::Bottom if self.flags.hit_bottom_wall() => true,
+            _ => false,
+        } {
+            let bomb_bullet = match self.btype {
+                13 => 16,
+                14 => 17,
+                15 => 18,
+                _ => unreachable!(),
+            };
+
+            let bullet = Bullet::new(self.x, self.y, bomb_bullet, self.owner, self.direction, &state.constants);
+            new_bullets.push(bullet);
+
+            self.cond.set_alive(false);
+        }
+
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            match self.direction {
+                Direction::Left | Direction::Right => {
+                    self.target_y = self.y;
+                }
+                Direction::Up | Direction::Bottom => {
+                    self.target_x = self.x;
+                }
+                _ => {}
+            }
+
+            if self.btype == 15 {
+                match self.direction {
+                    Direction::Left | Direction::Right => {
+                        self.vel_y = (self.y - player.y).signum() * 0x100;
+                        self.vel_x = self.rng.range(-0x200..0x200);
+                    }
+                    Direction::Up | Direction::Bottom => {
+                        self.vel_x = (self.x - player.x).signum() * 0x100;
+                        self.vel_y = self.rng.range(-0x200..0x200);
+                    }
+                    _ => {}
+                }
+
+                self.counter1 = match self.counter2 {
+                    1 => 64,
+                    2 => 51,
+                    _ => 128,
+                };
+            } else {
+                self.counter1 = 128;
+            }
+        }
+
+        if self.action_num == 1 {
+            match self.direction {
+                Direction::Left => self.vel_x -= self.counter1 as i32,
+                Direction::Up => self.vel_y -= self.counter1 as i32,
+                Direction::Right => self.vel_x += self.counter1 as i32,
+                Direction::Bottom => self.vel_y += self.counter1 as i32,
+                _ => {}
+            }
+
+            if self.btype == 15 {
+                match self.direction {
+                    Direction::Left | Direction::Right => {
+                        self.vel_y = (player.y - self.y).signum() * 0x20;
+                    }
+                    Direction::Up | Direction::Bottom => {
+                        self.vel_x = (player.x - self.x).signum() * 0x20;
+                    }
+                    _ => {}
+                }
+            }
+
+            self.vel_x = clamp(self.vel_x, -0xa00, 0xa00);
+            self.vel_y = clamp(self.vel_y, -0xa00, 0xa00);
+
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+        }
+        self.counter2 += 1;
+
+        if self.counter2 > 2 {
+            self.counter2 = 0;
+
+            match self.direction {
+                Direction::Left => {
+                    state.create_caret(self.x + 0x1000, self.y, CaretType::Exhaust, self.direction.opposite());
+                }
+                Direction::Up => {
+                    state.create_caret(self.x, self.y + 0x1000, CaretType::Exhaust, self.direction.opposite());
+                }
+                Direction::Right => {
+                    state.create_caret(self.x - 0x1000, self.y, CaretType::Exhaust, self.direction.opposite());
+                }
+                Direction::Bottom => {
+                    state.create_caret(self.x, self.y - 0x1000, CaretType::Exhaust, self.direction.opposite());
+                }
+                Direction::FacingPlayer => {}
+            }
+        }
+
+        match self.btype {
+            13 => self.anim_rect = state.constants.weapon.bullet_rects.b013_missile_l1[self.direction as usize],
+            14 => self.anim_rect = state.constants.weapon.bullet_rects.b014_missile_l2[self.direction as usize],
+            15 => self.anim_rect = state.constants.weapon.bullet_rects.b015_missile_l3[self.direction as usize],
+            _ => {}
+        }
+    }
+
+    fn tick_missile_explosion(&mut self, state: &mut SharedGameState, npc_list: &NPCList) {
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            self.action_counter = match self.btype {
+                16 => 10,
+                17 => 15,
+                18 => 5,
+                _ => 0,
+            };
+
+            state.sound_manager.play_sfx(44);
+        }
+
+        if self.action_counter % 3 == 0 {
+            let radius = match self.btype {
+                16 => 16,
+                17 => 32,
+                18 => 40,
+                _ => 0,
+            };
+
+            npc_list.create_death_smoke_up(
+                self.x + self.rng.range(-radius..radius) * 0x200,
+                self.y + self.rng.range(-radius..radius) * 0x200,
+                self.enemy_hit_width as usize,
+                2,
+                state,
+                &self.rng,
+            );
+        }
+
+        self.action_counter -= 1;
+        if self.action_counter == 0 {
+            self.cond.set_alive(false);
         }
     }
 
@@ -661,8 +855,12 @@ impl Bullet {
             state.sound_manager.play_sfx(100);
 
             match () {
-                _ if player.up => new_bullets.push(Bullet::new(self.x, self.y, 22, self.owner, Direction::Up, &state.constants)),
-                _ if player.down => new_bullets.push(Bullet::new(self.x, self.y, 22, self.owner, Direction::Bottom, &state.constants)),
+                _ if player.up => {
+                    new_bullets.push(Bullet::new(self.x, self.y, 22, self.owner, Direction::Up, &state.constants))
+                }
+                _ if player.down => {
+                    new_bullets.push(Bullet::new(self.x, self.y, 22, self.owner, Direction::Bottom, &state.constants))
+                }
                 _ => new_bullets.push(Bullet::new(self.x, self.y, 22, self.owner, player.direction, &state.constants)),
             }
             return;
@@ -987,7 +1185,12 @@ impl Bullet {
         }
     }
 
-    fn tick_super_missile(&mut self, state: &mut SharedGameState, players: [&Player; 2], new_bullets: &mut Vec<Bullet>) {
+    fn tick_super_missile(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&Player; 2],
+        new_bullets: &mut Vec<Bullet>,
+    ) {
         let player = players[self.owner.index()];
 
         self.action_counter += 1;
@@ -998,6 +1201,7 @@ impl Bullet {
         }
 
         if match self.direction {
+            _ if self.life != 10 => true,
             Direction::Left if self.flags.hit_left_wall() => true,
             Direction::Left if self.flags.hit_left_slope() => true,
             Direction::Left if self.flags.flag_x80() => true,
@@ -1019,7 +1223,6 @@ impl Bullet {
             new_bullets.push(bullet);
 
             self.cond.set_alive(false);
-            return;
         }
 
         if self.action_num == 0 {
@@ -1053,41 +1256,44 @@ impl Bullet {
                     }
                     _ => {}
                 }
+
+                self.counter1 = match self.counter2 {
+                    1 => 256,
+                    2 => 170,
+                    _ => 512,
+                };
+            } else {
+                self.counter1 = 512;
             }
-
-            self.counter1 = match self.counter1 {
-                1 => 256,
-                2 => 170,
-                _ => 512,
-            };
         }
 
-        match self.direction {
-            Direction::Left => self.vel_x -= self.counter1 as i32,
-            Direction::Up => self.vel_y -= self.counter1 as i32,
-            Direction::Right => self.vel_x += self.counter1 as i32,
-            Direction::Bottom => self.vel_y += self.counter1 as i32,
-            _ => {}
-        }
-
-        if self.btype == 30 {
+        if self.action_num == 1 {
             match self.direction {
-                Direction::Left | Direction::Right => {
-                    self.vel_y = (player.y - self.y).signum() * 0x40;
-                }
-                Direction::Up | Direction::Bottom => {
-                    self.vel_x = (player.x - self.x).signum() * 0x40;
-                }
+                Direction::Left => self.vel_x -= self.counter1 as i32,
+                Direction::Up => self.vel_y -= self.counter1 as i32,
+                Direction::Right => self.vel_x += self.counter1 as i32,
+                Direction::Bottom => self.vel_y += self.counter1 as i32,
                 _ => {}
             }
+
+            if self.btype == 30 {
+                match self.direction {
+                    Direction::Left | Direction::Right => {
+                        self.vel_y = (player.y - self.y).signum() * 0x40;
+                    }
+                    Direction::Up | Direction::Bottom => {
+                        self.vel_x = (player.x - self.x).signum() * 0x40;
+                    }
+                    _ => {}
+                }
+            }
+
+            self.vel_x = clamp(self.vel_x, -0x1400, 0x1400);
+            self.vel_y = clamp(self.vel_y, -0x1400, 0x1400);
+
+            self.x += self.vel_x;
+            self.y += self.vel_y;
         }
-
-        self.vel_x = clamp(self.vel_x, -0x1400, 0x1400);
-        self.vel_y = clamp(self.vel_y, -0x1400, 0x1400);
-
-        self.x += self.vel_x;
-        self.y += self.vel_y;
-
         self.counter2 += 1;
 
         if self.counter2 > 2 {
@@ -1366,7 +1572,13 @@ impl Bullet {
         }
     }
 
-    pub fn tick(&mut self, state: &mut SharedGameState, players: [&Player; 2], npc_list: &NPCList, new_bullets: &mut Vec<Bullet>) {
+    pub fn tick(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&Player; 2],
+        npc_list: &NPCList,
+        new_bullets: &mut Vec<Bullet>,
+    ) {
         if self.life == 0 {
             self.cond.set_alive(false);
             return;
@@ -1378,6 +1590,8 @@ impl Bullet {
             4 | 5 | 6 => self.tick_polar_star(state),
             7 | 8 | 9 => self.tick_fireball(state, players, npc_list),
             10 | 11 | 12 => self.tick_machine_gun(state, npc_list),
+            13 | 14 | 15 => self.tick_missile(state, players, new_bullets),
+            16 | 17 | 18 => self.tick_missile_explosion(state, npc_list),
             19 => self.tick_bubble_1(state),
             20 => self.tick_bubble_2(state),
             21 => self.tick_bubble_3(state, players, new_bullets),
@@ -1432,10 +1646,16 @@ impl Bullet {
                 self.flags.set_hit_left_wall(true);
             }
         } else if hits[0] && !hits[2] {
-            if (self.x - self.hit_bounds.left as i32) < block_x && (self.y - self.hit_bounds.top as i32) < block_y - (0x600) {
+            if (self.x - self.hit_bounds.left as i32) < block_x
+                && (self.y - self.hit_bounds.top as i32) < block_y - (0x600)
+            {
                 self.flags.set_hit_left_wall(true);
             }
-        } else if !hits[0] && hits[2] && (self.x - self.hit_bounds.left as i32) < block_x && (self.y + self.hit_bounds.top as i32) > block_y + (0x600) {
+        } else if !hits[0]
+            && hits[2]
+            && (self.x - self.hit_bounds.left as i32) < block_x
+            && (self.y + self.hit_bounds.top as i32) > block_y + (0x600)
+        {
             self.flags.set_hit_left_wall(true);
         }
 
@@ -1445,10 +1665,16 @@ impl Bullet {
                 self.flags.set_hit_right_wall(true);
             }
         } else if hits[1] && !hits[3] {
-            if (self.x + self.hit_bounds.right as i32) > block_x && (self.y - self.hit_bounds.top as i32) < block_y - (0x600) {
+            if (self.x + self.hit_bounds.right as i32) > block_x
+                && (self.y - self.hit_bounds.top as i32) < block_y - (0x600)
+            {
                 self.flags.set_hit_right_wall(true);
             }
-        } else if !hits[1] && hits[3] && (self.x + self.hit_bounds.right as i32) > block_x && (self.y + self.hit_bounds.top as i32) > block_y + (0x600) {
+        } else if !hits[1]
+            && hits[3]
+            && (self.x + self.hit_bounds.right as i32) > block_x
+            && (self.y + self.hit_bounds.top as i32) > block_y + (0x600)
+        {
             self.flags.set_hit_right_wall(true);
         }
 
@@ -1458,10 +1684,16 @@ impl Bullet {
                 self.flags.set_hit_top_wall(true);
             }
         } else if hits[0] && !hits[1] {
-            if (self.x - self.hit_bounds.left as i32) < block_x - (0x600) && (self.y - self.hit_bounds.top as i32) < block_y {
+            if (self.x - self.hit_bounds.left as i32) < block_x - (0x600)
+                && (self.y - self.hit_bounds.top as i32) < block_y
+            {
                 self.flags.set_hit_top_wall(true);
             }
-        } else if !hits[0] && hits[1] && (self.x + self.hit_bounds.right as i32) > block_x + (0x600) && (self.y - self.hit_bounds.top as i32) < block_y {
+        } else if !hits[0]
+            && hits[1]
+            && (self.x + self.hit_bounds.right as i32) > block_x + (0x600)
+            && (self.y - self.hit_bounds.top as i32) < block_y
+        {
             self.flags.set_hit_top_wall(true);
         }
 
@@ -1471,10 +1703,16 @@ impl Bullet {
                 self.flags.set_hit_bottom_wall(true);
             }
         } else if hits[2] && !hits[3] {
-            if (self.x - self.hit_bounds.left as i32) < block_x - (0x600) && (self.y + self.hit_bounds.bottom as i32) > block_y {
+            if (self.x - self.hit_bounds.left as i32) < block_x - (0x600)
+                && (self.y + self.hit_bounds.bottom as i32) > block_y
+            {
                 self.flags.set_hit_bottom_wall(true);
             }
-        } else if !hits[2] && hits[3] && (self.x + self.hit_bounds.right as i32) > block_x + (0x600) && (self.y + self.hit_bounds.bottom as i32) > block_y {
+        } else if !hits[2]
+            && hits[3]
+            && (self.x + self.hit_bounds.right as i32) > block_x + (0x600)
+            && (self.y + self.hit_bounds.bottom as i32) > block_y
+        {
             self.flags.set_hit_bottom_wall(true);
         }
 
@@ -1488,7 +1726,11 @@ impl Bullet {
             } else if self.flags.hit_bottom_wall() {
                 self.y = block_y - self.hit_bounds.top as i32;
             }
-        } else if self.flags.hit_left_wall() || self.flags.hit_top_wall() || self.flags.hit_right_wall() || self.flags.hit_bottom_wall() {
+        } else if self.flags.hit_left_wall()
+            || self.flags.hit_top_wall()
+            || self.flags.hit_right_wall()
+            || self.flags.hit_bottom_wall()
+        {
             self.vanish(state);
         }
     }
@@ -1616,7 +1858,9 @@ impl PhysicalEntity for Bullet {
                     self.flags.0 = 0;
                     self.test_block_hit(state, x + ox, y + oy);
 
-                    if self.flags.weapon_hit_block() && (self.weapon_flags.flag_x20() || self.weapon_flags.can_destroy_snack()) {
+                    if self.flags.weapon_hit_block()
+                        && (self.weapon_flags.flag_x20() || self.weapon_flags.can_destroy_snack())
+                    {
                         if !self.weapon_flags.can_destroy_snack() {
                             self.cond.set_alive(false);
                         }
@@ -1637,7 +1881,9 @@ impl PhysicalEntity for Bullet {
                             let _ = npc_list.spawn(0x100, npc.clone());
                         }
 
-                        if let Some(tile) = stage.map.tiles.get_mut(stage.map.width as usize * (y + oy) as usize + (x + ox) as usize) {
+                        if let Some(tile) =
+                            stage.map.tiles.get_mut(stage.map.width as usize * (y + oy) as usize + (x + ox) as usize)
+                        {
                             *tile = tile.wrapping_sub(1);
                         }
                     }
