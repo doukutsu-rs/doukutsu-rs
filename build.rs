@@ -5,7 +5,7 @@ use std::env;
 
 fn main() {
     // let dest = PathBuf::from(&env::var("OUT_DIR").unwrap());
-    let target = env::var("TARGET").unwrap_or_else(|e| panic!(e));
+    let target = env::var("TARGET").unwrap_or_else(|e| panic!("{}", e));
     let is_android = cfg!(target_os = "android") || (cfg!(target_os = "linux") && target.contains("android")); // hack
 
     println!("cargo:rerun-if-changed=build.rs");

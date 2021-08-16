@@ -8,7 +8,6 @@ use crate::framework::graphics;
 use crate::map::WaterRegionType;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
-use crate::framework::graphics::BlendMode;
 
 const TENSION: f32 = 0.03;
 const DAMPENING: f32 = 0.01;
@@ -116,8 +115,8 @@ impl WaterRenderer {
     }
 }
 
-impl GameEntity<(&Player)> for WaterRenderer {
-    fn tick(&mut self, state: &mut SharedGameState, (player): (&Player)) -> GameResult<()> {
+impl GameEntity<&Player> for WaterRenderer {
+    fn tick(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult<()> {
         let player_x = player.x as f32 / 512.0 + 8.0;
         let player_y = player.y as f32 / 512.0 + 8.0;
 

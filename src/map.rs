@@ -7,13 +7,13 @@ use byteorder::{ReadBytesExt, LE};
 
 use crate::common::{Color, Rect};
 use crate::encoding::read_cur_shift_jis;
+use crate::framework::context::Context;
 use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::{GameError, GameResult};
-use crate::shared_game_state::TileSize;
-use crate::stage::{StageData, PxPackScroll, PxPackStageData};
-use crate::str;
 use crate::framework::filesystem;
-use crate::framework::context::Context;
+use crate::shared_game_state::TileSize;
+use crate::stage::{PxPackScroll, PxPackStageData, StageData};
+use crate::str;
 
 static SUPPORTED_PXM_VERSIONS: [u8; 1] = [0x10];
 static SUPPORTED_PXE_VERSIONS: [u8; 2] = [0, 0x10];
@@ -67,7 +67,12 @@ impl Map {
         Ok(Map { width, height, tiles, attrib, tile_size: TileSize::Tile16x16 })
     }
 
-    pub fn load_pxpack<R: io::Read>(mut map_data: R, root: &str, data: &mut StageData, ctx: &mut Context) -> GameResult<Map> {
+    pub fn load_pxpack<R: io::Read>(
+        mut map_data: R,
+        root: &str,
+        data: &mut StageData,
+        ctx: &mut Context,
+    ) -> GameResult<Map> {
         let mut magic = [0u8; 16];
 
         map_data.read_exact(&mut magic)?;
@@ -95,7 +100,7 @@ impl Map {
             }
 
             Ok(chars.iter().collect())
-        };
+        }
 
         fn skip_string<R: io::Read>(map_data: &mut R) -> GameResult {
             let bytes = map_data.read_u8()? as u32;
@@ -104,7 +109,7 @@ impl Map {
             }
 
             Ok(())
-        };
+        }
 
         let map_name = read_string(&mut map_data)?;
         skip_string(&mut map_data)?; // left, right, up, down
@@ -131,9 +136,15 @@ impl Map {
         map_data.read_u8()?; // ignored
         let scroll_bg = PxPackScroll::from(map_data.read_u8()?);
 
-        if tileset_fg == "" { tileset_fg = data.tileset.filename() }
-        if tileset_mg == "" { tileset_mg = data.tileset.filename() }
-        if tileset_bg == "" { tileset_bg = data.tileset.filename() }
+        if tileset_fg == "" {
+            tileset_fg = data.tileset.filename()
+        }
+        if tileset_mg == "" {
+            tileset_mg = data.tileset.filename()
+        }
+        if tileset_bg == "" {
+            tileset_bg = data.tileset.filename()
+        }
 
         let mut tiles = Vec::new();
         let mut attrib = [0u8; 0x100];
@@ -189,7 +200,10 @@ impl Map {
         if size_bg != 0 {
             map_data.read_u8()?;
             tiles.resize(size_fg as usize + size_mg as usize + size_bg as usize, 0u8);
-            map_data.read_exact(&mut tiles[(size_fg as usize + size_mg as usize)..(size_fg as usize + size_mg as usize + size_bg as usize)])?;
+            map_data.read_exact(
+                &mut tiles
+                    [(size_fg as usize + size_mg as usize)..(size_fg as usize + size_mg as usize + size_bg as usize)],
+            )?;
         }
 
         if let Ok(mut attrib_data) = filesystem::open(ctx, [root, "Stage/", &tileset_fg, ".pxa"].join("")) {
@@ -250,7 +264,10 @@ impl Map {
                 };
             }
         } else {
-            log::warn!("No tile attribute data found for foreground tileset {}, collision might be broken.", tileset_fg);
+            log::warn!(
+                "No tile attribute data found for foreground tileset {}, collision might be broken.",
+                tileset_fg
+            );
         }
 
         if map_name != "" {
@@ -269,7 +286,7 @@ impl Map {
             size_mg: (width_mg, height_mg),
             size_bg: (width_bg, height_bg),
             offset_mg: size_fg,
-            offset_bg: size_fg + size_mg
+            offset_bg: size_fg + size_mg,
         });
 
         Ok(Map { width: width_fg, height: height_fg, tiles, attrib, tile_size: TileSize::Tile8x8 })

@@ -479,7 +479,7 @@ pub fn load_gl(gl_context: &mut GLContext) -> &'static Gl {
 
         let gl = gl::Gles2::load_with(|ptr| (gl_context.get_proc_address)(&mut gl_context.user_data, ptr));
 
-        let version = unsafe {
+        let version = {
             let p = gl.GetString(gl::VERSION);
             if p.is_null() {
                 "unknown".to_owned()

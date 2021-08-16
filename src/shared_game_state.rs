@@ -1,6 +1,5 @@
 use std::ops::Div;
 
-use bitvec::array::BitArray;
 use bitvec::vec::BitVec;
 use chrono::{Datelike, Local};
 

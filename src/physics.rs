@@ -1,5 +1,3 @@
-use num_traits::clamp;
-
 use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Flag, Rect};
 use crate::npc::list::NPCList;
