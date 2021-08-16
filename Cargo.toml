@@ -1,8 +1,9 @@
 [package]
+name = "doukutsu-rs"
+description = "A re-implementation of Cave Story (Doukutsu Monogatari) engine"
+version = "0.1.0"
 authors = ["Alula"]
 edition = "2018"
-name = "doukutsu-rs"
-version = "0.1.0"
 
 [lib]
 #crate-type = ["lib", "cdylib"]
@@ -21,6 +22,15 @@ panic = 'abort'
 
 [profile.dev.package."*"]
 opt-level = 3
+
+[package.metadata.bundle]
+name = "doukutsu-rs"
+identifier = "io.github.doukutsu_rs"
+version = "0.1.0"
+resources = ["data"]
+copyright = "Copyright (c) 2020-2021 Alula and contributors"
+category = "Game"
+osx_minimum_system_version = "10.12"
 
 [features]
 default = ["scripting", "backend-sdl", "render-opengl", "ogg-playback", "exe"]
@@ -78,6 +88,9 @@ winit = { git = "https://github.com/alula/winit.git", rev = "6acf76ff192dd8270aa
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3", features = ["winuser"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2.7"
 
 [target.'cfg(target_os = "android")'.dependencies]
 ndk = "0.3"

@@ -200,6 +200,22 @@ pub fn init() -> GameResult {
         if resource_dir.file_name().is_some() {
             let _ = resource_dir.pop();
         }
+
+        #[cfg(target_os = "macos")]
+        {
+            let mut bundle_dir = resource_dir.clone();
+            let _ = bundle_dir.pop();
+            let mut bundle_exec_dir = bundle_dir.clone();
+
+            bundle_exec_dir.push("MacOS");
+            bundle_dir.push("Resources");
+
+            if bundle_exec_dir.is_dir() && bundle_dir.is_dir() {
+                log::info!("Running in macOS bundle mode");
+                resource_dir = bundle_dir
+            }
+        }
+
         resource_dir.push("data");
         resource_dir
     };
