@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::{user_create, user_open};
@@ -8,9 +6,12 @@ use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
 use crate::input::touch_player_controller::TouchPlayerController;
 use crate::player::TargetPlayer;
+use crate::sound::InterpolationMode;
 
-#[derive(Serialize, Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Settings {
+    #[serde(default = "current_version")]
+    pub version: u32,
     pub seasonal_textures: bool,
     pub original_textures: bool,
     pub shader_effects: bool,
@@ -18,6 +19,8 @@ pub struct Settings {
     pub motion_interpolation: bool,
     pub touch_controls: bool,
     pub soundtrack: String,
+    #[serde(default = "default_interpolation")]
+    pub organya_interpolation: InterpolationMode,
     #[serde(default = "p1_default_keymap")]
     pub player1_key_map: PlayerKeyMap,
     #[serde(default = "p2_default_keymap")]
@@ -32,6 +35,13 @@ pub struct Settings {
     pub debug_outlines: bool,
 }
 
+#[inline(always)]
+fn current_version() -> u32 { 2 }
+
+#[inline(always)]
+fn default_interpolation() -> InterpolationMode { InterpolationMode::Linear }
+
+#[inline(always)]
 fn default_speed() -> f64 {
     1.0
 }
@@ -70,6 +80,7 @@ impl Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
+            version: 2,
             seasonal_textures: true,
             original_textures: false,
             shader_effects: true,
@@ -77,6 +88,7 @@ impl Default for Settings {
             motion_interpolation: true,
             touch_controls: cfg!(target_os = "android"),
             soundtrack: "".to_string(),
+            organya_interpolation: InterpolationMode::Linear,
             player1_key_map: p1_default_keymap(),
             player2_key_map: p2_default_keymap(),
             speed: 1.0,
@@ -87,7 +99,7 @@ impl Default for Settings {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct PlayerKeyMap {
     pub left: ScanCode,
     pub up: ScanCode,
@@ -102,6 +114,7 @@ pub struct PlayerKeyMap {
     pub map: ScanCode,
 }
 
+#[inline(always)]
 fn p1_default_keymap() -> PlayerKeyMap {
     PlayerKeyMap {
         left: ScanCode::Left,
@@ -118,6 +131,7 @@ fn p1_default_keymap() -> PlayerKeyMap {
     }
 }
 
+#[inline(always)]
 fn p2_default_keymap() -> PlayerKeyMap {
     PlayerKeyMap {
         left: ScanCode::Comma,

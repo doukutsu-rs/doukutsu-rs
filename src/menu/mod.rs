@@ -1,16 +1,19 @@
+use std::cell::Cell;
+
 use crate::common::Rect;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::player::skin::basic::BasicPlayerSkin;
 use crate::shared_game_state::SharedGameState;
-use std::cell::Cell;
+
+pub mod settings_menu;
 
 pub struct MenuSaveInfo {}
 
 pub enum MenuEntry {
     Hidden,
     Active(String),
+    DisabledWhite(String),
     Disabled(String),
     Toggle(String, bool),
     Options(String, usize, Vec<String>),
@@ -23,11 +26,25 @@ impl MenuEntry {
         match self {
             MenuEntry::Hidden => 0.0,
             MenuEntry::Active(_) => 14.0,
+            MenuEntry::DisabledWhite(_) => 14.0,
             MenuEntry::Disabled(_) => 14.0,
             MenuEntry::Toggle(_, _) => 14.0,
             MenuEntry::Options(_, _, _) => 14.0,
             MenuEntry::SaveData(_) => 30.0,
             MenuEntry::NewSave => 30.0,
+        }
+    }
+
+    pub fn selectable(&self) -> bool {
+        match self {
+            MenuEntry::Hidden => false,
+            MenuEntry::Active(_) => true,
+            MenuEntry::DisabledWhite(_) => false,
+            MenuEntry::Disabled(_) => false,
+            MenuEntry::Toggle(_, _) => true,
+            MenuEntry::Options(_, _, _) => true,
+            MenuEntry::SaveData(_) => true,
+            MenuEntry::NewSave => true,
         }
     }
 }
@@ -210,7 +227,7 @@ impl Menu {
         y = self.y as f32 + 6.0;
         for entry in self.entries.iter() {
             match entry {
-                MenuEntry::Active(name) => {
+                MenuEntry::Active(name) | MenuEntry::DisabledWhite(name) => {
                     state.font.draw_text(
                         name.chars(),
                         self.x as f32 + 20.0,
@@ -253,7 +270,28 @@ impl Menu {
                         ctx,
                     )?;
                 }
-                MenuEntry::Hidden => {}
+                MenuEntry::Options(name, index, value) => {
+                    let value_text = if let Some(text) = value.get(*index) { text.as_str() } else { "???" };
+                    let val_text_len = state.font.text_width(value_text.chars(), &state.constants);
+
+                    state.font.draw_text(
+                        name.chars(),
+                        self.x as f32 + 20.0,
+                        y,
+                        &state.constants,
+                        &mut state.texture_set,
+                        ctx,
+                    )?;
+
+                    state.font.draw_text(
+                        value_text.chars(),
+                        self.x as f32 + self.width as f32 - val_text_len,
+                        y,
+                        &state.constants,
+                        &mut state.texture_set,
+                        ctx,
+                    )?;
+                }
                 _ => {}
             }
 
@@ -289,14 +327,8 @@ impl Menu {
                 }
 
                 if let Some(entry) = self.entries.get(self.selected) {
-                    match entry {
-                        MenuEntry::Active(_) => {
-                            break;
-                        }
-                        MenuEntry::Toggle(_, _) => {
-                            break;
-                        }
-                        _ => {}
+                    if entry.selectable() {
+                        break;
                     }
                 } else {
                     break;
@@ -314,7 +346,7 @@ impl Menu {
             y += entry.height() as f32;
 
             match entry {
-                MenuEntry::Active(_) | MenuEntry::Toggle(_, _)
+                MenuEntry::Active(_) | MenuEntry::Toggle(_, _) | MenuEntry::Options(_, _, _)
                     if (self.selected == idx && controller.trigger_ok())
                         || state.touch_controls.consume_click_in(entry_bounds) =>
                 {

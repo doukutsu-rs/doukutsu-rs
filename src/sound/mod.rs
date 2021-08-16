@@ -96,6 +96,10 @@ impl SoundManager {
         let _ = self.tx.send(PlaybackMessage::StopSample(id));
     }
 
+    pub fn set_org_interpolation(&self, interpolation: InterpolationMode) {
+        let _ = self.tx.send(PlaybackMessage::SetOrgInterpolation(interpolation));
+    }
+
     pub fn play_song(
         &mut self,
         song_id: usize,
@@ -113,6 +117,7 @@ impl SoundManager {
             self.prev_song_id = self.current_song_id;
             self.current_song_id = 0;
 
+            self.tx.send(PlaybackMessage::SetOrgInterpolation(settings.organya_interpolation))?;
             self.tx.send(PlaybackMessage::SaveState)?;
             self.tx.send(PlaybackMessage::Stop)?;
         } else if let Some(song_name) = constants.music_table.get(song_id) {
@@ -152,6 +157,7 @@ impl SoundManager {
 
                                     self.prev_song_id = self.current_song_id;
                                     self.current_song_id = song_id;
+                                    self.tx.send(PlaybackMessage::SetOrgInterpolation(settings.organya_interpolation))?;
                                     self.tx.send(PlaybackMessage::SaveState)?;
                                     self.tx.send(PlaybackMessage::PlayOrganyaSong(Box::new(org)))?;
 
@@ -339,6 +345,7 @@ enum PlaybackMessage {
     SaveState,
     RestoreState,
     SetSampleParams(u8, PixToneParameters),
+    SetOrgInterpolation(InterpolationMode),
 }
 
 #[derive(PartialEq, Eq)]
@@ -520,6 +527,9 @@ where
                     Ok(PlaybackMessage::SetSampleParams(id, params)) => {
                         pixtone.set_sample_parameters(id, params);
                     }
+                    Ok(PlaybackMessage::SetOrgInterpolation(interpolation)) => {
+                        org_engine.interpolation = interpolation;
+                    }
                     Err(_) => {
                         break;
                     }
@@ -626,11 +636,11 @@ where
 
                 if state {
                     if let Err(e) = stream.pause() {
-                        log::error!("Failed to pause the stream: {}", e);
+                        log::error!("Failed to pause the stream: {:?}", e);
                     }
                 } else {
                     if let Err(e) = stream.play() {
-                        log::error!("Failed to unpause the stream: {}", e);
+                        log::error!("Failed to unpause the stream: {:?}", e);
                     }
                 }
             }

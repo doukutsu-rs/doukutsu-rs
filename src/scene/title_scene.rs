@@ -4,9 +4,10 @@ use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::input::touch_controls::TouchControlType;
+use crate::menu::settings_menu::SettingsMenu;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::Scene;
-use crate::shared_game_state::{SharedGameState, TimingMode};
+use crate::shared_game_state::SharedGameState;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
@@ -25,7 +26,7 @@ pub struct TitleScene {
     controller: CombinedMenuController,
     current_menu: CurrentMenu,
     main_menu: Menu,
-    option_menu: Menu,
+    option_menu: SettingsMenu,
     save_select_menu: Menu,
 }
 
@@ -36,7 +37,7 @@ impl TitleScene {
             controller: CombinedMenuController::new(),
             current_menu: CurrentMenu::MainMenu,
             main_menu: Menu::new(0, 0, 100, 0),
-            option_menu: Menu::new(0, 0, 180, 0),
+            option_menu: SettingsMenu::new(),
             save_select_menu: Menu::new(0, 0, 200, 0),
         }
     }
@@ -85,7 +86,6 @@ impl TitleScene {
 
 // asset copyright for freeware version
 static COPYRIGHT_PIXEL: &str = "2004.12  Studio Pixel";
-static DISCORD_LINK: &str = "https://discord.gg/fbRsNNB";
 
 impl Scene for TitleScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -103,27 +103,7 @@ impl Scene for TitleScene {
         }
         self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
 
-        self.option_menu.push_entry(MenuEntry::Toggle(
-            "Original timing (50TPS)".to_string(),
-            state.timing_mode == TimingMode::_50Hz,
-        ));
-        self.option_menu.push_entry(MenuEntry::Toggle("Lighting effects".to_string(), state.settings.shader_effects));
-        if state.constants.supports_og_textures {
-            self.option_menu
-                .push_entry(MenuEntry::Toggle("Original textures".to_string(), state.settings.original_textures));
-        } else {
-            self.option_menu.push_entry(MenuEntry::Disabled("Original textures".to_string()));
-        }
-
-        if state.constants.is_cs_plus {
-            self.option_menu
-                .push_entry(MenuEntry::Toggle("Seasonal textures".to_string(), state.settings.seasonal_textures));
-        } else {
-            self.option_menu.push_entry(MenuEntry::Disabled("Seasonal textures".to_string()));
-        }
-        self.option_menu.push_entry(MenuEntry::Active(DISCORD_LINK.to_owned()));
-        self.option_menu.push_entry(MenuEntry::Disabled(["Renderer: ", &ctx.renderer.as_ref().unwrap().renderer_name()].join("")));
-        self.option_menu.push_entry(MenuEntry::Active("Back".to_string()));
+        self.option_menu.init(state, ctx)?;
 
         self.save_select_menu.push_entry(MenuEntry::NewSave);
         self.save_select_menu.push_entry(MenuEntry::NewSave);
@@ -146,10 +126,6 @@ impl Scene for TitleScene {
         self.main_menu.x = ((state.canvas_size.0 - self.main_menu.width as f32) / 2.0).floor() as isize;
         self.main_menu.y = ((state.canvas_size.1 + 70.0 - self.main_menu.height as f32) / 2.0).floor() as isize;
 
-        self.option_menu.update_height();
-        self.option_menu.x = ((state.canvas_size.0 - self.option_menu.width as f32) / 2.0).floor() as isize;
-        self.option_menu.y = ((state.canvas_size.1 + 70.0 - self.option_menu.height as f32) / 2.0).floor() as isize;
-
         match self.current_menu {
             CurrentMenu::MainMenu => match self.main_menu.tick(&mut self.controller, state) {
                 MenuSelectionResult::Selected(0, _) => {
@@ -171,55 +147,17 @@ impl Scene for TitleScene {
                 }
                 _ => {}
             },
-            CurrentMenu::OptionMenu => match self.option_menu.tick(&mut self.controller, state) {
-                MenuSelectionResult::Selected(0, toggle) => {
-                    if let MenuEntry::Toggle(_, value) = toggle {
-                        match state.timing_mode {
-                            TimingMode::_50Hz => state.timing_mode = TimingMode::_60Hz,
-                            TimingMode::_60Hz => state.timing_mode = TimingMode::_50Hz,
-                            _ => {}
-                        }
-                        let _ = state.settings.save(ctx);
-
-                        *value = state.timing_mode == TimingMode::_50Hz;
-                    }
-                }
-                MenuSelectionResult::Selected(1, toggle) => {
-                    if let MenuEntry::Toggle(_, value) = toggle {
-                        state.settings.shader_effects = !state.settings.shader_effects;
-                        let _ = state.settings.save(ctx);
-
-                        *value = state.settings.shader_effects;
-                    }
-                }
-                MenuSelectionResult::Selected(2, toggle) => {
-                    if let MenuEntry::Toggle(_, value) = toggle {
-                        state.settings.original_textures = !state.settings.original_textures;
-                        state.reload_textures();
-                        let _ = state.settings.save(ctx);
-
-                        *value = state.settings.original_textures;
-                    }
-                }
-                MenuSelectionResult::Selected(3, toggle) => {
-                    if let MenuEntry::Toggle(_, value) = toggle {
-                        state.settings.seasonal_textures = !state.settings.seasonal_textures;
-                        state.reload_textures();
-                        let _ = state.settings.save(ctx);
-
-                        *value = state.settings.seasonal_textures;
-                    }
-                }
-                MenuSelectionResult::Selected(4, _) => {
-                    if let Err(e) = webbrowser::open(DISCORD_LINK) {
-                        log::warn!("Error opening web browser: {}", e);
-                    }
-                }
-                MenuSelectionResult::Selected(6, _) | MenuSelectionResult::Canceled => {
-                    self.current_menu = CurrentMenu::MainMenu;
-                }
-                _ => {}
-            },
+            CurrentMenu::OptionMenu => {
+                let cm = &mut self.current_menu;
+                self.option_menu.tick(
+                    &mut || {
+                        *cm = CurrentMenu::MainMenu;
+                    },
+                    &mut self.controller,
+                    state,
+                    ctx,
+                )?;
+            }
             CurrentMenu::StartGame => {
                 if self.tick == 10 {
                     state.reset_skip_flags();
@@ -262,12 +200,8 @@ impl Scene for TitleScene {
         self.draw_text_centered(COPYRIGHT_PIXEL, state.canvas_size.1 - 30.0, state, ctx)?;
 
         match self.current_menu {
-            CurrentMenu::MainMenu => {
-                self.main_menu.draw(state, ctx)?;
-            }
-            CurrentMenu::OptionMenu => {
-                self.option_menu.draw(state, ctx)?;
-            }
+            CurrentMenu::MainMenu => self.main_menu.draw(state, ctx)?,
+            CurrentMenu::OptionMenu => self.option_menu.draw(state, ctx)?,
             _ => {}
         }
 
