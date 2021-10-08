@@ -187,7 +187,7 @@ impl NPC {
             3 => {
                 self.anim_rect = state.constants.npc.n086_missile_pickup[2 + self.anim_num as usize];
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_counter2 > 550 {
@@ -255,7 +255,7 @@ impl NPC {
             6 => {
                 self.anim_rect = state.constants.npc.n087_heart_pickup[2 + self.anim_num as usize];
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_counter2 > 550 {

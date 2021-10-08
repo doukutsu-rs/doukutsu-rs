@@ -58,7 +58,7 @@ impl NPC {
                     state.create_caret(self.x, self.y, CaretType::Zzz, Direction::Left);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 7 };

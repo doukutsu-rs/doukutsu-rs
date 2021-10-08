@@ -362,6 +362,19 @@ setmetatable(doukutsu.rs, {
     end,
 })
 
+setmetatable(doukutsu, {
+    __index = function(self, property) 
+    	if property == "currentStage" then
+            local v = __doukutsu_rs:stageCommand(0x03)
+            if v == nil then
+            	v = -1
+            end
+            
+            return v
+    	end
+    end,
+})
+
 doukutsu.player = __doukutsu_rs_runtime_dont_touch._playerRef0
 
 function doukutsu.playSfx(id)

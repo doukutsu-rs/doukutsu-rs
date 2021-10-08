@@ -90,6 +90,21 @@ impl BMFontRenderer {
         self.draw_colored_text(iter, x, y, (255, 255, 255, 255), constants, texture_set, ctx)
     }
 
+    pub fn draw_colored_text_with_shadow_scaled<I: Iterator<Item = char> + Clone>(
+        &self,
+        iter: I,
+        x: f32,
+        y: f32,
+        scale: f32,
+        color: (u8, u8, u8, u8),
+        constants: &EngineConstants,
+        texture_set: &mut TextureSet,
+        ctx: &mut Context,
+    ) -> GameResult {
+        self.draw_colored_text_scaled(iter.clone(), x + scale, y + scale, scale, (0, 0, 0, 150), constants, texture_set, ctx)?;
+        self.draw_colored_text_scaled(iter, x, y, scale, color, constants, texture_set, ctx)
+    }
+
     pub fn draw_colored_text_scaled<I: Iterator<Item = char>>(
         &self,
         iter: I,

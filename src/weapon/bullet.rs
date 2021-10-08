@@ -1010,6 +1010,15 @@ impl Bullet {
         self.anim_rect = state.constants.weapon.bullet_rects.b023_blade_slash[self.anim_num as usize + dir_offset];
     }
 
+    fn tick_spike(&mut self) {
+        self.action_counter += 1;
+        if self.action_counter > 2 {
+            self.cond.set_alive(false);
+        }
+
+        self.anim_rect = Rect::new(0, 0, 0, 0);
+    }
+
     fn tick_blade_1(&mut self, state: &mut SharedGameState) {
         self.action_counter += 1;
         if self.action_counter > self.lifetime {
@@ -1597,6 +1606,7 @@ impl Bullet {
             21 => self.tick_bubble_3(state, players, new_bullets),
             22 => self.tick_bubble_spines(state),
             23 => self.tick_blade_slash(state),
+            24 => self.tick_spike(),
             25 => self.tick_blade_1(state),
             26 => self.tick_blade_2(state),
             27 => self.tick_blade_3(state, new_bullets),

@@ -207,6 +207,11 @@ declare namespace doukutsu {
      * Helper property for doukutsu-rs specific APIs.
      */
     const rs: DoukutsuRSApi;
+    
+    /**
+     * The number of current stage, read-only. Set to -1 if in menu.
+     */
+    const currentStage: number;
 
     /**
      * Plays a sound effect with specified ID.

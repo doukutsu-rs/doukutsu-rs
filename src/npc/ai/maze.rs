@@ -136,7 +136,7 @@ impl NPC {
                     state.sound_manager.play_sfx(23);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_num == 4 {
@@ -314,7 +314,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -349,7 +349,7 @@ impl NPC {
                 match self.direction {
                     Direction::Left => self.vel_x = 0x100,
                     Direction::Right => self.vel_x = -0x100,
-                    _ => {}
+                    _ => (),
                 };
                 state.sound_manager.play_sfx(53);
             }
@@ -368,7 +368,7 @@ impl NPC {
                     self.cond.set_explode_die(true);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x20;
@@ -458,7 +458,7 @@ impl NPC {
                     self.anim_counter = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
         if player.x >= self.x {
             self.direction = Direction::Right;
@@ -626,7 +626,7 @@ impl NPC {
                     self.action_num = 1;
                 }
             }
-            _ => {}
+            _ => (),
         }
         self.y += self.vel_y;
 
@@ -692,7 +692,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.anim_rect = state.constants.npc.n166_chaba[self.anim_num as usize];
@@ -786,7 +786,7 @@ impl NPC {
                     self.cond.set_alive(false);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         state.npc_super_pos = (self.x, -512000);
@@ -818,7 +818,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
@@ -850,7 +850,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
@@ -901,7 +901,7 @@ impl NPC {
                     self.action_counter += 1;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.anim_rect = state.constants.npc.n168_boulder;
@@ -1118,7 +1118,7 @@ impl NPC {
                         self.action_counter = 0;
                     }
                 }
-                _ => {}
+                _ => (),
             }
 
             self.vel_y += 0x33;
@@ -1358,7 +1358,7 @@ impl NPC {
 
                 self.target_x += if self.direction != Direction::Left { 0x200 } else { -0x200 };
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_x = self.vel_x.clamp(-0x400, 0x400);
@@ -1419,7 +1419,7 @@ impl NPC {
 
                 self.action_num = 1;
             }
-            _ => {}
+            _ => (),
         }
 
         self.animate(10, 0, 3);
@@ -1454,7 +1454,7 @@ impl NPC {
                 self.y -= 0x3000;
                 self.action_num = 1;
             }
-            _ => {}
+            _ => (),
         }
 
         Ok(())
@@ -1480,7 +1480,7 @@ impl NPC {
                     _ => (),
                 };
             }
-            _ => {}
+            _ => (),
         }
 
         self.animate(10, 0, 3);

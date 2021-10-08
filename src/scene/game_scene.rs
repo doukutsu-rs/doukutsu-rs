@@ -1289,6 +1289,45 @@ impl GameScene {
 
         batch.draw(ctx)?;
 
+        if layer == TileLayer::Foreground && self.stage.data.background_type == BackgroundType::Water {
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_background_name)?;
+            let rect_top = Rect {
+                left: 0,
+                top: 0,
+                right: 32,
+                bottom: 16
+            };
+            let rect_middle = Rect {
+                left: 0,
+                top: 16,
+                right: 32,
+                bottom: 48
+            };
+
+            let tile_start_x = frame_x as i32 / 32;
+            let tile_end_x = (frame_x + 16.0 + state.canvas_size.0) as i32 / 32 + 1;
+            let water_y = state.water_level as f32 / 512.0;
+            let tile_count_y = (frame_y + 16.0 + state.canvas_size.1 - water_y) as i32 / 32 + 1;
+
+            for x in tile_start_x..tile_end_x {
+                batch.add_rect(
+                    (x as f32 * 32.0) - frame_x,
+                    water_y - frame_y,
+                    &rect_top,
+                );
+
+                for y in 0..tile_count_y {
+                    batch.add_rect(
+                        (x as f32 * 32.0) - frame_x,
+                        (y as f32 * 32.0) + water_y - frame_y,
+                        &rect_middle,
+                    );
+                }
+            }
+
+            batch.draw(ctx)?;
+        }
+
         Ok(())
     }
 
@@ -1518,7 +1557,7 @@ impl GameScene {
                     [&mut self.player1, &mut self.player2],
                     &self.npc_list,
                     &mut self.stage,
-                    &self.bullet_manager,
+                    &mut self.bullet_manager,
                     &mut self.flash,
                 ),
             )?;
@@ -1698,12 +1737,12 @@ impl GameScene {
         self.draw_debug_object(npc, state, ctx)?;
 
         let text = format!("{}:{}:{}", npc.id, npc.npc_type, npc.action_num);
-        state.font.draw_colored_text_scaled(
+        state.font.draw_colored_text_with_shadow_scaled(
             text.chars(),
             ((npc.x - self.frame.x) / 0x200) as f32,
             ((npc.y - self.frame.y) / 0x200) as f32,
             0.5,
-            ((npc.id & 0xf0) as u8, (npc.cond.0 >> 8) as u8, (npc.id & 0x0f << 4) as u8, 255),
+            (255, 255, 0, 255),
             &state.constants,
             &mut state.texture_set,
             ctx,
@@ -1789,12 +1828,16 @@ impl Scene for GameScene {
         self.frame.target_y = self.player1.y;
         self.frame.immediate_update(state, &self.stage);
 
+        // I'd personally set it to something higher but left it as is for accuracy.
+        state.water_level = 0x1e0000;
+
         self.lighting_mode = match () {
             _ if self.intro_mode => LightingMode::None,
             _ if !state.constants.is_switch && (self.stage.data.background_type == BackgroundType::Black
                 || self.stage.data.background.name() == "bkBlack") => LightingMode::Ambient,
             _ if state.constants.is_switch && (self.stage.data.background_type == BackgroundType::Black
                 || self.stage.data.background.name() == "bkBlack") => LightingMode::None,
+            _ if self.stage.data.background.name() == "bkFall" => LightingMode::None,
             _ if self.stage.data.background_type != BackgroundType::Black
                 && self.stage.data.background_type != BackgroundType::Outside
                 && self.stage.data.background_type != BackgroundType::OutsideWind
@@ -1857,6 +1900,8 @@ impl Scene for GameScene {
         }
 
         for _ in 0..ticks {
+            TextScriptVM::run(state, self, ctx)?;
+
             match state.textscript_vm.mode {
                 ScriptMode::Map if state.control_flags.tick_world() => self.tick_world(state)?,
                 ScriptMode::StageSelect => self.stage_select.tick(state, (ctx, &self.player1, &self.player2))?,
@@ -1883,12 +1928,11 @@ impl Scene for GameScene {
             }
 
             self.flash.tick(state, ())?;
-            TextScriptVM::run(state, self, ctx)?;
 
             #[cfg(feature = "scripting")]
             state.lua.scene_tick();
 
-            if state.control_flags.control_enabled() {
+            if state.control_flags.tick_world() {
                 self.tick = self.tick.wrapping_add(1);
             }
         }

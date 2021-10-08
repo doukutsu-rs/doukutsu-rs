@@ -91,7 +91,7 @@ impl NPC {
                     self.action_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.shock > 0 && [1, 2, 4].contains(&self.action_num) {
@@ -199,7 +199,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.direction == Direction::Left {
@@ -243,7 +243,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
 
@@ -341,7 +341,7 @@ impl NPC {
 
                 self.anim_num = 6;
             }
-            _ => {}
+            _ => (),
         }
 
         if (self.vel_x < 0 && self.flags.hit_left_wall())
@@ -424,7 +424,7 @@ impl NPC {
                     self.action_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.shock > 0 && [1, 2, 4].contains(&self.action_num) {

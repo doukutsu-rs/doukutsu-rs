@@ -92,7 +92,7 @@ impl NPC {
                     self.action_num = 0x14;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.x += self.vel_x;

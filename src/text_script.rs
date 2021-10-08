@@ -1259,6 +1259,7 @@ impl TextScriptVM {
 
                         let skip = state.textscript_vm.flags.cutscene_skip();
                         state.control_flags.set_tick_world(true);
+                        state.control_flags.set_interactions_disabled(true);
                         state.textscript_vm.flags.0 = 0;
                         state.textscript_vm.flags.set_cutscene_skip(skip);
                         state.textscript_vm.face = 0;
@@ -1542,7 +1543,7 @@ impl TextScriptVM {
                                         [&mut game_scene.player1, &mut game_scene.player2],
                                         &game_scene.npc_list,
                                         &mut game_scene.stage,
-                                        &game_scene.bullet_manager,
+                                        &mut game_scene.bullet_manager,
                                         &mut game_scene.flash,
                                     ),
                                 )?;

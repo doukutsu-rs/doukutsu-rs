@@ -257,7 +257,6 @@ impl TextureSet {
             .iter()
             .find_map(|s| {
                 FILE_TYPES.iter().map(|ext| [s, name, ext].join("")).find(|path| {
-                    println!("{}", path);
                     filesystem::exists(ctx, path)
                 })
             })
@@ -268,7 +267,6 @@ impl TextureSet {
             .iter()
             .find_map(|s| {
                 FILE_TYPES.iter().map(|ext| [s, name, ".glow", ext].join("")).find(|path| {
-                    println!("{}", path);
                     filesystem::exists(ctx, path)
                 })
             }).is_some();

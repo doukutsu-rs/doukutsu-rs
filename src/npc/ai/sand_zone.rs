@@ -109,7 +109,7 @@ impl NPC {
                     self.action_num = 6;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.life <= 100 {
@@ -175,7 +175,7 @@ impl NPC {
                     self.anim_num = 1;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.vel_x2 < 0 && self.flags.hit_left_wall() {
@@ -247,7 +247,7 @@ impl NPC {
                         self.action_counter = 0;
                         self.npc_flags.set_shootable(true);
                     }
-                    _ => {}
+                    _ => (),
                 }
             }
             3 => {
@@ -280,7 +280,7 @@ impl NPC {
                     self.action_counter += 1;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.anim_rect = state.constants.npc.n047_sandcroc[self.anim_num as usize];
@@ -382,7 +382,7 @@ impl NPC {
                     self.anim_num = 1;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_num > 9 {
@@ -458,7 +458,7 @@ impl NPC {
                     }
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y = clamp(self.vel_y, -0x5ff, 0x5ff);
@@ -527,7 +527,7 @@ impl NPC {
                     self.vel_y += 0x20;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.vel_x < 0 && self.flags.hit_left_wall() {
@@ -678,7 +678,7 @@ impl NPC {
                     );
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x80;
@@ -756,7 +756,7 @@ impl NPC {
                     self.anim_counter = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
@@ -836,7 +836,7 @@ impl NPC {
                 self.vel_x = clamp(self.vel_x, -0x5ff, 0x5ff);
                 self.vel_y = clamp(self.vel_y, -0x5ff, 0x5ff);
             }
-            _ => {}
+            _ => (),
         }
 
         self.x += self.vel_x;
@@ -897,7 +897,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.anim_rect = state.constants.npc.n121_colon_b[self.anim_num as usize];
@@ -1020,7 +1020,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
         if self.action_num > 10 && self.action_num < 20 && self.life != 1000 {
             self.action_num = 20;
@@ -1079,7 +1079,7 @@ impl NPC {
                     state.sound_manager.play_sfx(26);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.anim_rect = state.constants.npc.n124_sunstone[self.anim_num as usize];
@@ -1159,7 +1159,7 @@ impl NPC {
                     self.vel_x = -0x400;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         // why
@@ -1234,7 +1234,7 @@ impl NPC {
                     }
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.action_counter += 1;
@@ -1350,7 +1350,7 @@ impl NPC {
                     state.sound_manager.play_sfx(105);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -1390,7 +1390,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
@@ -1428,7 +1428,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         // todo dog stacking?
@@ -1511,7 +1511,7 @@ impl NPC {
                     self.npc_flags.set_invulnerable(false);
                 }
             }
-            _ => {}
+            _ => (),
         }
         self.vel_y += 0x40;
         if self.vel_y > 0x5FF {
@@ -1604,7 +1604,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_num > 9 {

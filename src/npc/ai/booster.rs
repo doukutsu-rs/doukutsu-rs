@@ -76,7 +76,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;

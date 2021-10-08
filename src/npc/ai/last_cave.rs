@@ -89,7 +89,7 @@ impl NPC {
                     state.sound_manager.play_sfx(23);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x55;

@@ -120,7 +120,7 @@ impl NPC {
                     state.quake_counter = 30;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_num != 4 {
@@ -198,7 +198,7 @@ impl NPC {
                     self.npc_flags.set_ignore_solidity(true);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.x += self.vel_x;
@@ -329,7 +329,7 @@ impl NPC {
                     state.sound_manager.play_sfx(23);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_num != 4 {
@@ -429,7 +429,7 @@ impl NPC {
                     self.vel_y = 0x200;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.x += self.vel_x;
@@ -549,7 +549,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.shock > 0 {
@@ -656,7 +656,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.direction = if self.x <= self.target_x { Direction::Right } else { Direction::Left };
@@ -835,7 +835,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_num <= 9
@@ -1021,7 +1021,7 @@ impl NPC {
                 npc_list.create_death_smoke(self.x, self.y, 0x2000, 16, state, &self.rng);
                 self.cond.set_alive(false);
             }
-            _ => {}
+            _ => (),
         }
 
         self.anim_rect = state.constants.npc.n107_malco_broken[self.anim_num as usize];
@@ -1085,7 +1085,7 @@ impl NPC {
                     let _ = npc_list.spawn(0x100, npc.clone());
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -1183,7 +1183,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_num <= 9
@@ -1333,7 +1333,7 @@ impl NPC {
                     state.sound_manager.play_sfx(23);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += if self.action_num <= 50 { 0x40 } else { 0x20 };
@@ -1423,7 +1423,7 @@ impl NPC {
                     self.cond.set_alive(false);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_counter % 4 == 0 && self.action_num >= 20 {

@@ -129,6 +129,7 @@ pub struct SharedGameState {
     pub npc_super_pos: (i32, i32),
     pub npc_curly_target: (i32, i32),
     pub npc_curly_counter: u16,
+    pub water_level: i32,
     pub stages: Vec<StageData>,
     pub frame_time: f64,
     pub debugger: bool,
@@ -207,8 +208,6 @@ impl SharedGameState {
             }
         }
 
-        println!("lookup path: {:#?}", texture_set.paths);
-
         #[cfg(feature = "hooks")]
         init_hooks();
 
@@ -231,6 +230,7 @@ impl SharedGameState {
             npc_super_pos: (0, 0),
             npc_curly_target: (0, 0),
             npc_curly_counter: 0,
+            water_level: 0,
             stages: Vec::with_capacity(96),
             frame_time: 0.0,
             debugger: false,

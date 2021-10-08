@@ -15,7 +15,6 @@ use std::time::Instant;
 
 use directories::ProjectDirs;
 use lazy_static::lazy_static;
-use pretty_env_logger::env_logger::Env;
 
 use crate::builtin_fs::BuiltinFS;
 use crate::framework::context::Context;
@@ -188,9 +187,7 @@ impl Game {
 }
 
 pub fn init() -> GameResult {
-    pretty_env_logger::env_logger::from_env(Env::default().default_filter_or("info"))
-        //.filter(Some("ndk_glue"), LevelFilter::Trace)
-        .init();
+    let _ = simple_logger::init_with_level(log::Level::Info);
 
     #[cfg(not(target_os = "android"))]
     let resource_dir = if let Ok(data_dir) = env::var("CAVESTORY_DATA_DIR") {

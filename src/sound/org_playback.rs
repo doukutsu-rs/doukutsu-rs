@@ -165,7 +165,6 @@ impl OrgPlaybackEngine {
         for track in 0..8 {
             if let Some(note) = self.song.tracks[track].notes.iter().find(|x| x.pos == self.play_pos) {
                 // New note
-                //eprintln!("{:?}", &self.keys);
                 if note.key != 255 {
                     if self.keys[track] == 255 {
                         // New

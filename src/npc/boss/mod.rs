@@ -65,7 +65,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
     fn tick(
         &mut self,
         state: &mut SharedGameState,
-        (players, npc_list, _stage, bullet_manager, flash): (
+        (players, npc_list, stage, bullet_manager, flash): (
             [&mut Player; 2],
             &NPCList,
             &mut Stage,
@@ -81,7 +81,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             1 => self.tick_b01_omega(state, players, npc_list, bullet_manager, flash),
             2 => self.tick_b02_balfrog(state, players, npc_list),
             3 => self.tick_b03_monster_x(state, players, npc_list, flash),
-            4 => self.tick_b04_core(state, players, npc_list),
+            4 => self.tick_b04_core(state, players, npc_list, stage),
             5 => self.tick_b05_ironhead(),
             6 => self.tick_b06_twins(),
             7 => self.tick_b07_undead_core(),

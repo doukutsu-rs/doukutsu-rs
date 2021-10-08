@@ -205,7 +205,7 @@ impl NPC {
                 self.anim_num = 9;
                 self.vel_y = -0x400;
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_num != 14 {
@@ -275,7 +275,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.anim_rect = state.constants.npc.n092_sue_at_pc[self.anim_num as usize];

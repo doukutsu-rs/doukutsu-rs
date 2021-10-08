@@ -71,7 +71,7 @@ impl NPC {
             7 => {
                 self.action_num = 1;
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -258,7 +258,7 @@ impl NPC {
                     self.vel_x2 = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -373,7 +373,7 @@ impl NPC {
                     self.anim_rect = state.constants.npc.n089_igor_dead[self.anim_num as usize + dir_offset];
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         Ok(())

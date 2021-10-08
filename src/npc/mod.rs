@@ -1,13 +1,13 @@
 use std::io;
 use std::io::Cursor;
 
-use byteorder::{LE, ReadBytesExt};
+use byteorder::{ReadBytesExt, LE};
 use num_traits::abs;
 
 use crate::bitfield;
-use crate::common::{Condition, interpolate_fix9_scale, Rect};
 use crate::common::Direction;
 use crate::common::Flag;
+use crate::common::{interpolate_fix9_scale, Condition, Rect};
 use crate::components::flash::Flash;
 use crate::components::number_popup::NumberPopup;
 use crate::entity::GameEntity;
@@ -185,7 +185,7 @@ impl NPC {
     }
 }
 
-impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Flash)> for NPC {
+impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mut Flash)> for NPC {
     fn tick(
         &mut self,
         state: &mut SharedGameState,
@@ -193,7 +193,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             [&mut Player; 2],
             &NPCList,
             &mut Stage,
-            &BulletManager,
+            &mut BulletManager,
             &mut Flash,
         ),
     ) -> GameResult {
@@ -383,23 +383,55 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             175 => self.tick_n175_gaudi_egg(state),
             176 => self.tick_n176_buyo_buyo_base(state, players, npc_list),
             177 => self.tick_n177_buyo_buyo(state, players),
+            178 => self.tick_n178_core_blade_projectile(state),
+            179 => self.tick_n179_core_wisp_projectile(state),
+            180 => self.tick_n180_curly_ai(state, players, npc_list),
+            181 => self.tick_n181_curly_ai_machine_gun(state, npc_list, bullet_manager),
+            182 => self.tick_n182_curly_ai_polar_star(state, npc_list, bullet_manager),
+            183 => self.tick_n183_curly_air_tank_bubble(state, npc_list),
             184 => self.tick_n184_shutter(state, npc_list),
             185 => self.tick_n185_small_shutter(state),
             186 => self.tick_n186_lift_block(state),
             187 => self.tick_n187_fuzz_core(state, players, npc_list),
             188 => self.tick_n188_fuzz(state, players, npc_list),
+            189 => self.tick_n189_homing_flame(state, players),
+            190 => self.tick_n190_broken_robot(state, npc_list),
+            191 => self.tick_n191_water_level(state),
             192 => self.tick_n192_scooter(state),
             193 => self.tick_n193_broken_scooter(state),
             194 => self.tick_n194_broken_blue_robot(state),
             195 => self.tick_n195_background_grate(state),
+            196 => self.tick_n196_ironhead_wall(state),
+            197 => self.tick_n197_porcupine_fish(state),
+            198 => self.tick_n198_ironhead_projectile(state),
             199 => self.tick_n199_wind_particles(state),
+            200 => self.tick_n200_zombie_dragon(state, players, npc_list),
+            201 => self.tick_n201_zombie_dragon_dead(state),
+            202 => self.tick_n202_zombie_dragon_projectile(state),
+            203 => self.tick_n203_critter_destroyed_egg_corridor(state, players),
+            204 => self.tick_n204_small_falling_spike(state, players, npc_list),
+            205 => self.tick_n205_large_falling_spike(state, players, npc_list, bullet_manager),
+            206 => self.tick_n206_counter_bomb(state, players, npc_list),
             207 => self.tick_n207_counter_bomb_countdown(state),
             208 => self.tick_n208_basu_destroyed_egg_corridor(state, players, npc_list),
             209 => self.tick_n209_basu_projectile_destroyed_egg_corridor(state),
+            210 => self.tick_n210_beetle_destroyed_egg_corridor(state, players),
             211 => self.tick_n211_small_spikes(state),
+            212 => self.tick_n212_sky_dragon(state, players, npc_list),
+            213 => self.tick_n213_night_spirit(state, players, npc_list),
+            214 => self.tick_n214_night_spirit_projectile(state, npc_list),
             215 => self.tick_n215_sandcroc_outer_wall(state, players),
             216 => self.tick_n216_debug_cat(state),
+            217 => self.tick_n217_itoh(state),
+            218 => self.tick_n218_core_giant_ball(state),
+            219 => self.tick_n219_smoke_generator(state, npc_list),
+            220 => self.tick_n220_shovel_brigade(state),
+            221 => self.tick_n221_shovel_brigade_walking(state),
             222 => self.tick_n222_prison_bars(state),
+            223 => self.tick_n223_momorin(state, players),
+            224 => self.tick_n224_chie(state, players),
+            225 => self.tick_n225_megane(state),
+            226 => self.tick_n226_kanpachi_plantation(state),
             227 => self.tick_n227_bucket(state),
             229 => self.tick_n229_red_flowers_sprouts(state),
             230 => self.tick_n230_red_flowers_blooming(state),

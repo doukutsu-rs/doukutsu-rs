@@ -24,7 +24,7 @@ impl NPC {
             Direction::Up | Direction::Bottom => {
                 self.anim_rect = state.constants.npc.n127_machine_gun_trail_l2[self.anim_num as usize + 3];
             }
-            _ => {}
+            _ => (),
         }
 
         Ok(())
@@ -54,7 +54,7 @@ impl NPC {
                     self.display_bounds.left = 0x1000;
                     self.display_bounds.top = 0x800;
                 }
-                _ => {}
+                _ => (),
             }
         }
 
@@ -71,7 +71,7 @@ impl NPC {
             Direction::Bottom => {
                 self.anim_rect = state.constants.npc.n128_machine_gun_trail_l3[self.anim_num as usize + 15];
             }
-            _ => {}
+            _ => (),
         }
 
         Ok(())

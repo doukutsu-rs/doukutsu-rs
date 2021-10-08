@@ -62,7 +62,7 @@ impl NPC {
                     self.anim_counter = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y = clamp(self.vel_y, -0x5ff, 0x5ff);
@@ -162,7 +162,7 @@ impl NPC {
                     self.action_counter = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x20;
@@ -501,13 +501,12 @@ impl NPC {
                     }
                 }
 
-                println!("y: {}", self.y as f64 / 512.0);
                 if self.y < -32 * 0x200 {
                     self.npc_type = 0;
                     state.quake_counter = 30;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.target_x != 0 && self.rng.range(0..10) == 0 {
@@ -603,7 +602,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y = clamp(self.vel_y, -0x5ff, 0x5ff);
@@ -793,7 +792,7 @@ impl NPC {
                     self.action_counter = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_num != 5 {
@@ -977,7 +976,7 @@ impl NPC {
                     self.action_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_x = clamp(self.vel_x, -0x400, 0x400);
@@ -1196,7 +1195,7 @@ impl NPC {
                     self.action_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x20;

@@ -125,104 +125,102 @@ pub trait PhysicalEntity {
         let bounds_bottom = if self.is_player() { 0x800 } else { 0x600 };
         let half_tile_size = state.tile_size.as_int() * 0x100;
 
-        // left wall
         if (self.y() - self.hit_bounds().top as i32) < ((y * 2 + 1) * half_tile_size - bounds_top)
-            && (self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * half_tile_size + bounds_bottom)
-            && (self.x() - self.hit_bounds().right as i32) < (x * 2 + 1) * half_tile_size
-            && (self.x() - self.hit_bounds().right as i32) > (x * 2) * half_tile_size
-        {
-            self.set_x(((x * 2 + 1) * half_tile_size) + self.hit_bounds().right as i32);
+            && (self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * half_tile_size + bounds_bottom) {
+            // left wall
+            if (self.x() - self.hit_bounds().right as i32) < (x * 2 + 1) * half_tile_size
+                && (self.x() - self.hit_bounds().right as i32) > (x * 2) * half_tile_size
+            {
+                self.set_x(((x * 2 + 1) * half_tile_size) + self.hit_bounds().right as i32);
 
-            if self.is_player() {
-                if self.vel_x() < -0x180 {
-                    self.set_vel_x(-0x180);
+                if self.is_player() {
+                    if self.vel_x() < -0x180 {
+                        self.set_vel_x(-0x180);
+                    }
+
+                    if !self.player_left_pressed() && self.vel_x() < 0 {
+                        self.set_vel_x(0);
+                    }
                 }
 
-                if !self.player_left_pressed() && self.vel_x() < 0 {
-                    self.set_vel_x(0);
-                }
+                self.flags().set_hit_left_wall(true);
             }
 
-            self.flags().set_hit_left_wall(true);
-        }
+            // right wall
+            if (self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * half_tile_size
+                && (self.x() + self.hit_bounds().right as i32) < (x * 2) * half_tile_size
+            {
+                self.set_x(((x * 2 - 1) * half_tile_size) - self.hit_bounds().right as i32);
 
-        // right wall
-        if (self.y() - self.hit_bounds().top as i32) < ((y * 2 + 1) * half_tile_size - bounds_top)
-            && (self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * half_tile_size + bounds_bottom)
-            && (self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * half_tile_size
-            && (self.x() + self.hit_bounds().right as i32) < (x * 2) * half_tile_size
-        {
-            self.set_x(((x * 2 - 1) * half_tile_size) - self.hit_bounds().right as i32);
+                if self.is_player() {
+                    if self.vel_x() > 0x180 {
+                        self.set_vel_x(0x180);
+                    }
 
-            if self.is_player() {
-                if self.vel_x() > 0x180 {
-                    self.set_vel_x(0x180);
+                    if !self.player_right_pressed() && self.vel_x() > 0 {
+                        self.set_vel_x(0);
+                    }
                 }
 
-                if !self.player_right_pressed() && self.vel_x() > 0 {
-                    self.set_vel_x(0);
-                }
+                self.flags().set_hit_right_wall(true);
             }
-
-            self.flags().set_hit_right_wall(true);
         }
 
-        // ceiling
         if ((self.x() - self.hit_bounds().right as i32) < (x * 2 + 1) * half_tile_size - bounds_x)
-            && ((self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * half_tile_size + bounds_x)
-            && (self.y() - self.hit_bounds().top as i32) < (y * 2 + 1) * half_tile_size
-            && (self.y() - self.hit_bounds().top as i32) > (y * 2) * half_tile_size
-        {
-            self.set_y(((y * 2 + 1) * half_tile_size) + self.hit_bounds().top as i32);
+            && ((self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * half_tile_size + bounds_x) {
+            // ceiling
+            if (self.y() - self.hit_bounds().top as i32) < (y * 2 + 1) * half_tile_size
+                && (self.y() - self.hit_bounds().top as i32) > (y * 2) * half_tile_size
+            {
+                self.set_y(((y * 2 + 1) * half_tile_size) + self.hit_bounds().top as i32);
 
-            if self.is_player() {
-                if !self.cond().hidden() && self.vel_y() < -0x200 {
-                    state.sound_manager.play_sfx(3);
-                    state.create_caret(
-                        self.x(),
-                        self.y() - self.hit_bounds().top as i32,
-                        CaretType::LittleParticles,
-                        Direction::Left,
-                    );
-                    state.create_caret(
-                        self.x(),
-                        self.y() - self.hit_bounds().top as i32,
-                        CaretType::LittleParticles,
-                        Direction::Left,
-                    );
-                }
+                if self.is_player() {
+                    if !self.cond().hidden() && self.vel_y() < -0x200 {
+                        state.sound_manager.play_sfx(3);
+                        state.create_caret(
+                            self.x(),
+                            self.y() - self.hit_bounds().top as i32,
+                            CaretType::LittleParticles,
+                            Direction::Left,
+                        );
+                        state.create_caret(
+                            self.x(),
+                            self.y() - self.hit_bounds().top as i32,
+                            CaretType::LittleParticles,
+                            Direction::Left,
+                        );
+                    }
 
-                if self.vel_y() < 0 {
+                    if self.vel_y() < 0 {
+                        self.set_vel_y(0);
+                    }
+                } else {
                     self.set_vel_y(0);
                 }
-            } else {
-                self.set_vel_y(0);
+
+                self.flags().set_hit_top_wall(true);
             }
 
-            self.flags().set_hit_top_wall(true);
-        }
+            // floor
+            if ((self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * half_tile_size))
+                && ((self.y() + self.hit_bounds().bottom as i32) < (y * 2) * half_tile_size)
+            {
+                self.set_y(((y * 2 - 1) * half_tile_size) - self.hit_bounds().bottom as i32);
 
-        // floor
-        if ((self.x() - self.hit_bounds().right as i32) < (x * 2 + 1) * half_tile_size - bounds_x)
-            && ((self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * half_tile_size + bounds_x)
-            && ((self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * half_tile_size))
-            && ((self.y() + self.hit_bounds().bottom as i32) < (y * 2) * half_tile_size)
-        {
-            self.set_y(((y * 2 - 1) * half_tile_size) - self.hit_bounds().bottom as i32);
+                if self.is_player() {
+                    if self.vel_y() > 0x400 {
+                        state.sound_manager.play_sfx(23);
+                    }
 
-            if self.is_player() {
-                if self.vel_y() > 0x400 {
-                    state.sound_manager.play_sfx(23);
-                }
-
-                if self.vel_y() > 0 {
+                    if self.vel_y() > 0 {
+                        self.set_vel_y(0);
+                    }
+                } else {
                     self.set_vel_y(0);
                 }
-            } else {
-                self.set_vel_y(0);
-            }
 
-            self.flags().set_hit_bottom_wall(true);
+                self.flags().set_hit_bottom_wall(true);
+            }
         }
     }
 
@@ -896,6 +894,10 @@ pub trait PhysicalEntity {
                 }
                 _ => {}
             }
+        }
+
+        if self.is_player() && (self.y() - 0x800) > state.water_level {
+            self.flags().set_in_water(true);
         }
     }
 }

@@ -52,7 +52,7 @@ impl NPC {
                     self.cond.set_alive(false);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -109,7 +109,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -270,7 +270,7 @@ impl NPC {
                     }
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 9 };

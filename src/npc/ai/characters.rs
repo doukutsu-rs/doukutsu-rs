@@ -58,7 +58,7 @@ impl NPC {
                 self.x += self.direction.vector_x() * 0x200;
             }
             5 => self.anim_num = 5,
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x20;
@@ -225,7 +225,7 @@ impl NPC {
                     self.action_counter2 = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_num < 30 || self.action_num >= 40 {
@@ -302,7 +302,7 @@ impl NPC {
                     self.anim_rect = state.constants.npc.n062_kazuma_computer[self.anim_num as usize];
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         Ok(())
@@ -342,7 +342,7 @@ impl NPC {
 
                 self.vel_x = self.direction.vector_x() * 0x200;
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -412,7 +412,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
@@ -467,10 +467,102 @@ impl NPC {
                     self.cond.set_alive(false);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.anim_rect = state.constants.npc.n167_booster_falling[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n217_itoh(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                    self.vel_x = 0;
+                }
+                if self.rng.range(0..120) == 10 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            10 => {
+                self.anim_num = 2;
+                self.vel_x = 0;
+            }
+            20 => {
+                self.action_num = 21;
+                self.anim_num = 2;
+                self.vel_x += 0x200;
+                self.vel_y -= 0x400;
+            }
+            21 => {
+                if self.flags.hit_bottom_wall() {
+                    self.anim_num = 3;
+                    self.action_num = 30;
+                    self.action_counter = 0;
+                    self.vel_x = 0;
+                    self.target_x = self.x;
+                }
+            }
+            30 => {
+                self.anim_num = 3;
+                self.action_counter += 1;
+                self.x = if ((self.action_counter / 2) & 1) != 0 { self.target_x + 512 } else { self.target_x }
+            }
+
+            40 | 41 => {
+                if self.action_num == 40 {
+                    self.action_num = 41;
+                    self.vel_y = -512;
+                    self.anim_num = 2;
+                }
+                if self.flags.hit_bottom_wall() {
+                    self.action_num = 42;
+                    self.anim_num = 4;
+                }
+            }
+            42 => {
+                self.vel_x = 0;
+                self.anim_num = 4;
+            }
+
+            50 | 51 => {
+                if self.action_num == 50 {
+                    self.action_num = 51;
+                    self.action_counter = 0;
+                }
+                self.action_counter += 1;
+                if self.action_counter > 32 {
+                    self.action_num = 42;
+                }
+                self.vel_x = 512;
+
+                self.animate(3, 4, 7);
+            }
+            _ => (),
+        }
+
+        self.vel_y += 0x40;
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        self.anim_rect = state.constants.npc.n217_itoh[self.anim_num as usize];
 
         Ok(())
     }

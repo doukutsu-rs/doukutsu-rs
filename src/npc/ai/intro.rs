@@ -75,7 +75,7 @@ impl NPC {
                     }
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.anim_rect = state.constants.npc.n298_intro_doctor[self.anim_num as usize];
@@ -97,7 +97,7 @@ impl NPC {
                     self.anim_num = 0;
                     self.action_counter = 0;
                 }
-                _ => {}
+                _ => (),
             }
         }
 

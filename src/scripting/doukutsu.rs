@@ -440,8 +440,9 @@ impl Doukutsu {
                     LightingMode::Ambient => "ambient",
                 }),
                 0x02 => state.push(game_state.settings.shader_effects),
+                0x03 => state.push(game_scene.stage_id as u32),
                 0x101 => {
-                    if let Some(v) = state.to_str(4) {
+                    if let Some(v) = state.to_str(3) {
                         game_scene.lighting_mode = match v {
                             "none" => LightingMode::None,
                             "backgroundOnly" => LightingMode::BackgroundOnly,

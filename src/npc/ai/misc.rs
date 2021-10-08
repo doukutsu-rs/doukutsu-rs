@@ -4,8 +4,8 @@ use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
 use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
-use crate::npc::{NPC, NPCLayer};
 use crate::npc::list::NPCList;
+use crate::npc::{NPCLayer, NPC};
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
@@ -84,7 +84,7 @@ impl NPC {
             Direction::Up => {
                 self.anim_rect = state.constants.npc.n004_smoke[self.anim_num as usize + 8];
             }
-            _ => {}
+            _ => (),
         }
 
         Ok(())
@@ -171,7 +171,7 @@ impl NPC {
                     self.action_num = 1;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -271,7 +271,7 @@ impl NPC {
                     self.action_num = 1;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -289,7 +289,7 @@ impl NPC {
             0 => match self.direction {
                 Direction::Left => self.anim_rect = state.constants.npc.n018_door[0],
                 Direction::Right => self.anim_rect = state.constants.npc.n018_door[1],
-                _ => {}
+                _ => (),
             },
             1 => {
                 let mut npc = NPC::create(4, &state.npc_table);
@@ -307,7 +307,7 @@ impl NPC {
                 self.action_num = 0;
                 self.anim_rect = state.constants.npc.n018_door[0]
             }
-            _ => {}
+            _ => (),
         }
 
         Ok(())
@@ -324,7 +324,7 @@ impl NPC {
                 self.anim_num = self.anim_counter / 4;
                 self.anim_rect = state.constants.npc.n020_computer[1 + self.anim_num as usize];
             }
-            _ => {}
+            _ => (),
         }
 
         Ok(())
@@ -352,7 +352,7 @@ impl NPC {
             1 => {
                 self.anim_num = (self.anim_num + 1) & 1;
             }
-            _ => {}
+            _ => (),
         }
 
         self.anim_rect = state.constants.npc.n022_teleporter[self.anim_num as usize];
@@ -408,7 +408,7 @@ impl NPC {
                         self.anim_rect = state.constants.npc.n030_hermit_gunsmith[0];
                     }
                 }
-                _ => {}
+                _ => (),
             }
         } else {
             if self.action_num == 0 {
@@ -442,7 +442,7 @@ impl NPC {
             match self.direction {
                 Direction::Left => self.anim_rect = state.constants.npc.n034_bed[0],
                 Direction::Right => self.anim_rect = state.constants.npc.n034_bed[1],
-                _ => {}
+                _ => (),
             }
         }
 
@@ -472,7 +472,7 @@ impl NPC {
                 self.anim_rect.left = 0;
                 self.anim_rect.right = 0;
             }
-            _ => {}
+            _ => (),
         }
 
         Ok(())
@@ -485,7 +485,7 @@ impl NPC {
             match self.direction {
                 Direction::Left => self.anim_rect = state.constants.npc.n039_save_sign[0],
                 Direction::Right => self.anim_rect = state.constants.npc.n039_save_sign[1],
-                _ => {}
+                _ => (),
             }
         }
 
@@ -511,7 +511,7 @@ impl NPC {
             match self.direction {
                 Direction::Left => self.anim_rect = state.constants.npc.n043_chalkboard[0],
                 Direction::Right => self.anim_rect = state.constants.npc.n043_chalkboard[1],
-                _ => {}
+                _ => (),
             }
         }
 
@@ -555,7 +555,6 @@ impl NPC {
         if self.direction == Direction::Left {
             self.anim_counter = (self.anim_counter + 1) % 4;
             self.anim_num = self.anim_counter / 2;
-            self.anim_rect = state.constants.npc.n072_sprinkler[self.anim_num as usize];
 
             let player = self.get_closest_player_mut(players);
             if self.anim_num % 2 == 0 && (player.x - self.x).abs() < 480 * 0x200 {
@@ -577,6 +576,8 @@ impl NPC {
                 }
             }
         }
+
+        self.anim_rect = state.constants.npc.n072_sprinkler[self.anim_num as usize];
 
         Ok(())
     }
@@ -637,7 +638,7 @@ impl NPC {
             match self.direction {
                 Direction::Left => self.anim_rect = state.constants.npc.n078_pot[0],
                 Direction::Right => self.anim_rect = state.constants.npc.n078_pot[1],
-                _ => {}
+                _ => (),
             }
         }
 
@@ -650,8 +651,7 @@ impl NPC {
                 self.anim_num = 0;
                 let player = self.get_closest_player_mut(players);
 
-                if abs(player.x - self.x) < 0x1000 && player.y < self.y + 0x1000 && player.y > self.y - 0x2000
-                {
+                if abs(player.x - self.x) < 0x1000 && player.y < self.y + 0x1000 && player.y > self.y - 0x2000 {
                     state.sound_manager.play_sfx(43);
                     self.action_num = 1;
                 }
@@ -662,7 +662,7 @@ impl NPC {
                     self.anim_num = 1;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
@@ -730,7 +730,7 @@ impl NPC {
                     }
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.anim_counter == 0 {
@@ -789,7 +789,7 @@ impl NPC {
                     }
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.anim_counter == 0 {
@@ -845,7 +845,7 @@ impl NPC {
                     }
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.anim_counter == 0 {
@@ -900,7 +900,7 @@ impl NPC {
                     }
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.anim_counter == 0 {
@@ -1002,7 +1002,7 @@ impl NPC {
                     self.npc_flags.set_solid_hard(true);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x20;
@@ -1061,14 +1061,14 @@ impl NPC {
                     npc.direction = Direction::Right;
                     let _ = npc_list.spawn(0, npc);
                 }
-                _ => {}
+                _ => (),
             }
         }
 
         match self.direction {
             Direction::Left => self.anim_rect = state.constants.npc.n125_hidden_item[0],
             Direction::Right => self.anim_rect = state.constants.npc.n125_hidden_item[1],
-            _ => {}
+            _ => (),
         }
 
         Ok(())
@@ -1119,7 +1119,7 @@ impl NPC {
                     return Ok(());
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.anim_rect = state.constants.npc.n146_lighting[self.anim_num as usize];
@@ -1243,7 +1243,7 @@ impl NPC {
                     self.vel_x += 0x20;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_x = clamp(self.vel_x, -0x200, 0x200);
@@ -1387,7 +1387,7 @@ impl NPC {
                     self.vel_y += 0x20;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y = clamp(self.vel_y, -0x200, 0x200);
@@ -1397,6 +1397,134 @@ impl NPC {
             self.anim_num = 149;
             self.anim_rect = state.constants.npc.n149_horizontal_moving_block;
         }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n189_homing_flame(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
+        let player = self.get_closest_player_ref(&players);
+
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.vel_x = -0x40;
+                }
+
+                self.y += self.vel_y;
+                self.action_counter += 1;
+                if self.action_counter > 256 {
+                    self.action_num = 10;
+                }
+            }
+            10 => {
+                self.vel_x += if player.x >= self.x { 8 } else { -8 };
+                self.vel_y += if player.y >= self.y { 8 } else { -8 };
+
+                self.vel_x = self.vel_x.clamp(-0x400, 0x400);
+                self.vel_y = self.vel_y.clamp(-0x400, 0x400);
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+            }
+            _ => (),
+        }
+
+        if player.x >= self.x {
+            self.direction = Direction::Right;
+        } else {
+            self.direction = Direction::Left;
+        }
+
+        self.animate(2, 0, 2);
+
+        self.anim_rect = state.constants.npc.n189_homing_flame[self.anim_num as usize];
+        Ok(())
+    }
+
+    pub(crate) fn tick_n190_broken_robot(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        match self.action_num {
+            0 => self.anim_num = 0,
+            10 => {
+                let mut npc = NPC::create(4, &state.npc_table);
+                npc.cond.set_alive(true);
+                npc.x = self.x;
+
+                for _ in 0..8 {
+                    npc.y = self.y + self.rng.range(-8..8) * 0x200;
+                    npc.vel_x = self.rng.range(-8..-2) * 0x200;
+                    npc.vel_y = self.rng.range(-3..3) * 0x200;
+
+                    npc_list.spawn(0x100, npc.clone());
+                }
+
+                state.sound_manager.play_sfx(72);
+                self.cond.set_alive(false);
+            }
+            20 => self.animate(10, 0, 1),
+            _ => (),
+        }
+
+        self.anim_rect = state.constants.npc.n190_broken_robot[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n191_water_level(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 10 => {
+                if self.action_num == 0 {
+                    self.action_num = 10;
+                    self.target_y = self.y;
+                    self.vel_y = 0x200;
+                }
+
+                self.vel_y += if self.y >= self.target_y { -4 } else { 4 };
+                self.vel_y = self.vel_y.clamp(-0x100, 0x100);
+
+                self.y += self.vel_y;
+            }
+            20 | 21 => {
+                if self.action_num == 20 {
+                    self.action_num = 21;
+                    self.action_counter = 0;
+                }
+
+                self.vel_y += if self.y >= self.target_y { -4 } else { 4 };
+                self.vel_y = self.vel_y.clamp(-0x200, 0x200);
+
+                self.y += self.vel_y;
+
+                self.action_counter += 1;
+                if self.action_counter > 1000 {
+                    self.action_num = 22;
+                }
+            }
+            22 => {
+                self.vel_y += if self.y >= 0 { -4 } else { 4 };
+                self.vel_y = self.vel_y.clamp(-0x200, 0x200);
+
+                self.y += self.vel_y;
+
+                if self.y <= 0x7FFF || state.npc_super_pos.1 > 0 {
+                    self.action_num = 21;
+                    self.action_counter = 0;
+                }
+            }
+            30 => {
+                self.vel_y += if self.y >= 0 { -4 } else { 4 };
+                self.vel_y = self.vel_y.clamp(-0x200, 0x100);
+
+                self.y += self.vel_y;
+            }
+            _ => (),
+        }
+
+        state.water_level = self.y;
+        self.anim_rect = Rect::new(0, 0, 0, 0);
 
         Ok(())
     }
@@ -1464,6 +1592,27 @@ impl NPC {
             self.action_num = 1;
             self.anim_rect = state.constants.npc.n216_debug_cat;
         }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n219_smoke_generator(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        if self.direction != Direction::Left {
+            let mut npc = NPC::create(199, &state.npc_table);
+            npc.x = self.x + self.rng.range(-160..160) * 0x200;
+            npc.y = self.y + self.rng.range(-128..128) * 0x200;
+            npc.direction = Direction::Right;
+
+            let _ = npc_list.spawn(0x100, npc);
+        } else if self.rng.range(0..40) == 1 {
+            let mut npc = NPC::create(4, &state.npc_table);
+            npc.x = self.x + self.rng.range(-20..20) * 0x200;
+            npc.y = self.y;
+
+            let _ = npc_list.spawn(0x100, npc);
+        }
+
+        self.anim_rect = Rect::new(0, 0, 0, 0);
 
         Ok(())
     }
@@ -1594,7 +1743,7 @@ impl NPC {
                 Direction::Up => self.y -= 0x400,
                 Direction::Right => self.x += 0x400,
                 Direction::Bottom => self.y += 0x400,
-                _ => {}
+                _ => (),
             },
             30 => {
                 self.x = player.x;
@@ -1625,7 +1774,7 @@ impl NPC {
                     self.y = (player.y + npc.y) / 2;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         Ok(())
@@ -1696,7 +1845,7 @@ impl NPC {
                 self.anim_num += 4;
                 self.action_num = 1;
             }
-            _ => {}
+            _ => (),
         }
 
         self.anim_rect = state.constants.npc.n351_statue_shootable[self.anim_num as usize % 9];
@@ -1801,7 +1950,7 @@ impl NPC {
                         self.y = npc.y - 0x2600;
                     }
                 }
-                _ => {}
+                _ => (),
             }
         }
 

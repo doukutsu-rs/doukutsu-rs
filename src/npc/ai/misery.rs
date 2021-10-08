@@ -55,7 +55,7 @@ impl NPC {
 
                 self.animate(3, 2, 3);
             }
-            _ => {}
+            _ => (),
         }
 
         self.x += self.vel_x;
@@ -183,7 +183,7 @@ impl NPC {
                     self.action_num = 14;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.x += self.vel_x;
@@ -350,7 +350,7 @@ impl NPC {
             50 => {
                 self.anim_num = 8;
             }
-            _ => {}
+            _ => (),
         }
 
         self.x += self.vel_x;

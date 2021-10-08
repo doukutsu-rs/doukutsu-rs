@@ -56,7 +56,7 @@ impl NPC {
                     }
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.shock > 0 {
@@ -167,7 +167,7 @@ impl NPC {
                     }
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -215,7 +215,7 @@ impl NPC {
 
                 self.vel_y = clamp(self.vel_y, -0x300, 0x300);
             }
-            _ => {}
+            _ => (),
         }
 
         self.x += self.vel_x;

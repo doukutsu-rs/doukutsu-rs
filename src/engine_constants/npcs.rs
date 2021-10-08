@@ -585,8 +585,8 @@ pub struct NPCConsts {
     #[serde(default = "default_n195_background_grate")]
     pub n195_background_grate: Rect<u16>,
 
-    #[serde(default = "default_n196_ironhead_motion_wall")]
-    pub n196_ironhead_motion_wall: [Rect<u16>; 2],
+    #[serde(default = "default_n196_ironhead_wall")]
+    pub n196_ironhead_wall: [Rect<u16>; 2],
 
     #[serde(default = "default_n197_porcupine_fish")]
     pub n197_porcupine_fish: [Rect<u16>; 4],
@@ -627,8 +627,8 @@ pub struct NPCConsts {
     #[serde(default = "default_n209_basu_projectile_destroyed_egg_corridor")]
     pub n209_basu_projectile_destroyed_egg_corridor: [Rect<u16>; 4],
 
-    #[serde(default = "default_n210_destroyed_egg_corridor")]
-    pub n210_destroyed_egg_corridor: [Rect<u16>; 4],
+    #[serde(default = "default_n210_beetle_destroyed_egg_corridor")]
+    pub n210_beetle_destroyed_egg_corridor: [Rect<u16>; 4],
 
     #[serde(default = "default_n211_small_spikes")]
     pub n211_small_spikes: [Rect<u16>; 4],
@@ -1074,6 +1074,9 @@ pub struct NPCConsts {
 
     #[serde(default = "default_b03_monster_x")]
     pub b03_monster_x: [Rect<u16>; 29],
+
+    #[serde(default = "default_b04_core")]
+    pub b04_core: [Rect<u16>; 10],
 }
 
 fn default_n001_experience() -> [Rect<u16>; 6] {
@@ -3211,7 +3214,7 @@ fn default_n195_background_grate() -> Rect<u16> {
     Rect { left: 112, top: 64, right: 128, bottom: 80 }
 }
 
-fn default_n196_ironhead_motion_wall() -> [Rect<u16>; 2] {
+fn default_n196_ironhead_wall() -> [Rect<u16>; 2] {
     [
         Rect { left: 112, top: 64, right: 144, bottom: 80 },
         Rect { left: 112, top: 80, right: 144, bottom: 96 },
@@ -3340,7 +3343,7 @@ fn default_n209_basu_projectile_destroyed_egg_corridor() -> [Rect<u16>; 4] {
     ]
 }
 
-fn default_n210_destroyed_egg_corridor() -> [Rect<u16>; 4] {
+fn default_n210_beetle_destroyed_egg_corridor() -> [Rect<u16>; 4] {
     [
         Rect { left: 0, top: 112, right: 16, bottom: 128 },
         Rect { left: 16, top: 112, right: 32, bottom: 128 },
@@ -4848,5 +4851,22 @@ fn default_b03_monster_x() -> [Rect<u16>; 29] {
         Rect { left: 16, top: 208, right: 32, bottom: 224 },
         Rect { left: 32, top: 208, right: 48, bottom: 224 },
         Rect { left: 48, top: 208, right: 64, bottom: 224 },
+    ]
+}
+
+fn default_b04_core() -> [Rect<u16>; 10] {
+    [
+        Rect { left: 0, top: 0, right: 72, bottom: 112 }, // face
+        Rect { left: 0, top: 112, right: 72, bottom: 224 },
+        Rect { left: 160, top: 0, right: 232, bottom: 112 },
+        Rect { left: 0, top: 0, right: 0, bottom: 0 },
+
+        Rect { left: 72, top: 0, right: 160, bottom: 112 }, // tail
+        Rect { left: 72, top: 112, right: 160, bottom: 224 },
+        Rect { left: 0, top: 0, right: 0, bottom: 0 },
+
+        Rect { left: 256, top: 0, right: 320, bottom: 40 }, // small head
+        Rect { left: 256, top: 40, right: 320, bottom: 80 },
+        Rect { left: 256, top: 80, right: 320, bottom: 120 },
     ]
 }

@@ -120,7 +120,6 @@ impl BuiltinFS {
                     ]),
                     FSNode::Directory("lightmap", vec![
                         FSNode::File("spot.png", include_bytes!("builtin/lightmap/spot.png")),
-                        FSNode::File("direct.png", include_bytes!("builtin/lightmap/direct.png")),
                     ]),
                 ])
             ],

@@ -62,7 +62,7 @@ impl NPC {
             5 => {
                 self.anim_num = 6;
             }
-            _ => {}
+            _ => (),
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 7 };

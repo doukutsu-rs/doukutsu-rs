@@ -148,7 +148,7 @@ impl NPC {
             12 => {
                 self.vel_x = 0;
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -252,7 +252,7 @@ impl NPC {
                 self.vel_x = 0;
                 self.anim_num = 5;
             }
-            _ => {}
+            _ => (),
         }
 
         self.vel_y += 0x40;
@@ -560,7 +560,7 @@ impl NPC {
                     self.cond.set_alive(false);
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_num > 100 && self.action_num <= 104 && (self.action_counter % 9) == 0 {
@@ -744,7 +744,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
         self.vel_y += 64;
         self.vel_y = self.vel_y.clamp(-0x5ff, 0x5ff);
@@ -807,7 +807,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-            _ => {}
+            _ => (),
         }
 
         if self.action_num > 1 {

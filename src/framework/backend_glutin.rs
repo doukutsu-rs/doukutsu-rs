@@ -155,7 +155,6 @@ impl BackendEventLoop for GlutinEventLoop {
                     state_ref.shutdown();
                 }
                 Event::Resumed => {
-                    println!("resumed!");
                     {
                         let mut mutex = GAME_SUSPENDED.lock().unwrap();
                         *mutex = false;
@@ -171,7 +170,6 @@ impl BackendEventLoop for GlutinEventLoop {
                     }
                 }
                 Event::Suspended => {
-                    println!("suspended!");
                     {
                         let mut mutex = GAME_SUSPENDED.lock().unwrap();
                         *mutex = true;

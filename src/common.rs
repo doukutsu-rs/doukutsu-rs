@@ -9,9 +9,10 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use crate::bitfield;
 use crate::texture_set::G_MAG;
 
-/// Multiply cave story degrees (0-255, which corresponds to 0°-360°) with this to get
+/// Multiply cave story degrees (0-255, which corresponds to 0°-360°) with this constant to get
 /// respective value in radians.
 pub const CDEG_RAD: f64 = std::f64::consts::PI / 128.0;
+
 lazy_static! {
     pub static ref VERSION_BANNER: String = {
         let version = option_env!("DRS_BUILD_VERSION_OVERRIDE").unwrap_or(env!("CARGO_PKG_VERSION"));
@@ -57,6 +58,10 @@ bitfield! {
 }
 
 impl Flag {
+    pub fn any_flag(&self) -> bool {
+        self.0 != 0
+    }
+
     pub fn hit_anything(&self) -> bool {
         (self.0 & 0x2ff) != 0
     }
@@ -121,7 +126,6 @@ bitfield! {
 
   // engine specific flags
   pub friendly_fire, set_friendly_fire: 14;
-  pub wind, set_wind: 15;
 }
 
 bitfield! {
