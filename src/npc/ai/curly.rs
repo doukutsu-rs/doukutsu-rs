@@ -785,4 +785,54 @@ impl NPC {
 
         Ok(())
     }
+
+    pub(crate) fn tick_n259_curly_unconcious(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.npc_flags.set_interactable(false);
+                    self.action_num = 1;
+                }
+
+                let player = &players[0];
+
+                self.direction = player.direction;
+                self.x = player.x + 0x600 * self.direction.opposite().vector_x();
+                self.y = player.y - 0x800;
+
+                let dir_offset = if self.direction == Direction::Left { 0 } else { 1 };
+
+                self.anim_rect = state.constants.npc.n259_curly_unconscious[dir_offset];
+
+                if (player.anim_num & 1) != 0 {
+                    self.anim_rect.top += 1;
+                }
+            }
+            10 => {
+                self.action_num = 11;
+                self.vel_x = 0x40;
+                self.vel_y = -0x20;
+                self.anim_rect = state.constants.npc.n259_curly_unconscious[0];
+            }
+            11 => {
+                if self.y <= 0x7FFF {
+                    self.vel_y = 0x20;
+                }
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+            }
+            20 => {
+                self.vanish(state);
+                npc_list.create_death_smoke_up(self.x, self.y, 0x2000, 64, state, &self.rng);
+            }
+            _ => (),
+        }
+
+        Ok(())
+    }
 }

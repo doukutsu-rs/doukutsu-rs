@@ -177,14 +177,20 @@ impl NPC {
     }
 
     /// Creates experience drop for this NPC.
+    #[inline]
     pub fn create_xp_drop(&self, state: &SharedGameState, npc_list: &NPCList) {
-        let mut exp = self.exp;
+        self.create_xp_drop_custom(self.x, self.y, self.exp, state, npc_list)
+    }
+
+    /// Creates experience drop using specified parameters
+    pub fn create_xp_drop_custom(&self, x: i32, y: i32, amount: u16, state: &SharedGameState, npc_list: &NPCList) {
+        let mut exp = amount;
 
         let mut xp_npc = NPC::create(1, &state.npc_table);
         xp_npc.cond.set_alive(true);
         xp_npc.direction = Direction::Left;
-        xp_npc.x = self.x;
-        xp_npc.y = self.y;
+        xp_npc.x = x;
+        xp_npc.y = y;
 
         while exp > 0 {
             let exp_piece = if exp >= 20 {
@@ -310,7 +316,7 @@ impl NPCList {
     }
 
     /// Removes NPCs whose event number matches the provided one.
-    pub fn remove_by_event(&mut self, event_num: u16, state: &mut SharedGameState) {
+    pub fn remove_by_event(&self, event_num: u16, state: &mut SharedGameState) {
         for npc in self.iter_alive() {
             if npc.event_num == event_num {
                 npc.cond.set_alive(false);
@@ -320,7 +326,7 @@ impl NPCList {
     }
 
     /// Removes NPCs (and creates a smoke effect) whose type IDs match the provided one.
-    pub fn remove_by_type(&mut self, npc_type: u16, state: &mut SharedGameState) {
+    pub fn remove_by_type(&self, npc_type: u16, state: &mut SharedGameState) {
         for npc in self.iter_alive() {
             if npc.npc_type == npc_type {
                 npc.cond.set_alive(false);

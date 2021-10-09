@@ -326,7 +326,7 @@ impl NPC {
                 }
 
                 self.action_counter2 += 1;
-                self.x += if self.action_counter2 / 2 % 2 != 0 { 0x200 } else { -0x200 };
+                self.x += if self.action_counter2 & 0x02 != 0 { 0x200 } else { -0x200 };
 
                 if self.action_counter > 100 {
                     self.action_num = 11;
@@ -365,7 +365,7 @@ impl NPC {
                 }
 
                 self.anim_counter += 1;
-                self.anim_num = if self.anim_counter / 2 % 2 != 0 { 5 } else { 6 };
+                self.anim_num = if self.anim_counter & 0x02 != 0 { 5 } else { 6 };
             }
             42 | 43 => {
                 if self.action_num == 42 {
@@ -385,7 +385,7 @@ impl NPC {
                 }
 
                 self.anim_counter += 1;
-                self.anim_num = if self.anim_counter / 2 % 2 != 0 { 7 } else { 6 };
+                self.anim_num = if self.anim_counter & 0x02 != 0 { 7 } else { 6 };
             }
             50 => {
                 self.anim_num = 8;
@@ -438,7 +438,7 @@ impl NPC {
                 }
 
                 self.action_counter2 += 1;
-                self.x += if self.action_counter2 / 2 % 2 != 0 { 0x200 } else { -0x200 };
+                self.x += if self.action_counter2 & 0x02 != 0 { 0x200 } else { -0x200 };
 
                 self.anim_num = 5;
                 self.vel_x = 0;

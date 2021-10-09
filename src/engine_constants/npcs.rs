@@ -772,8 +772,8 @@ pub struct NPCConsts {
     #[serde(default = "default_n258_mimiga_sleeping")]
     pub n258_mimiga_sleeping: Rect<u16>,
 
-    #[serde(default = "default_n259_curly_unconcious")]
-    pub n259_curly_unconcious: [Rect<u16>; 2],
+    #[serde(default = "default_n259_curly_unconscious")]
+    pub n259_curly_unconscious: [Rect<u16>; 2],
 
     #[serde(default = "default_n260_shovel_brigade_caged")]
     pub n260_shovel_brigade_caged: [Rect<u16>; 6],
@@ -3794,7 +3794,7 @@ fn default_n258_mimiga_sleeping() -> Rect<u16> {
     Rect { left: 48, top: 32, right: 64, bottom: 48 }
 }
 
-fn default_n259_curly_unconcious() -> [Rect<u16>; 2] {
+fn default_n259_curly_unconscious() -> [Rect<u16>; 2] {
     [
         Rect { left: 224, top: 96, right: 240, bottom: 112 },
         Rect { left: 224, top: 112, right: 240, bottom: 128 },

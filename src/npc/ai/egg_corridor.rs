@@ -675,7 +675,7 @@ impl NPC {
             }
         }
 
-        if self.action_counter > 120 && self.action_counter / 2 % 2 == 1 && self.anim_num == 1 {
+        if self.action_counter > 120 && self.action_counter & 0x02 == 1 && self.anim_num == 1 {
             self.anim_num = 2;
         }
 
@@ -1335,7 +1335,7 @@ impl NPC {
             }
         }
 
-        if self.action_counter > 120 && self.action_counter / 2 % 2 == 1 && self.anim_num == 1 {
+        if self.action_counter > 120 && self.action_counter & 0x02 == 1 && self.anim_num == 1 {
             self.anim_num = 2;
         }
 

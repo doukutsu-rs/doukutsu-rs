@@ -728,7 +728,6 @@ impl GameEntity<&NPCList> for Player {
         if self.shock_counter != 0 {
             self.shock_counter -= 1;
         } else if self.damage_taken != 0 {
-            // todo: damage popup
             self.damage_taken = 0;
         }
 

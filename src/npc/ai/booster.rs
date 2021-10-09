@@ -88,7 +88,7 @@ impl NPC {
 
         if self.action_num == 31 {
             self.anim_rect.bottom = self.action_counter / 4 + self.anim_rect.top;
-            if self.action_counter / 2 % 2 != 0 {
+            if self.action_counter & 0x02 != 0 {
                 self.anim_rect.left += 1;
             }
         }

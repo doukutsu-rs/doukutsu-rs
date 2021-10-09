@@ -111,4 +111,48 @@ impl NPC {
 
         Ok(())
     }
+
+    pub(crate) fn tick_n257_red_crystal(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+        }
+
+        if self.action_num == 1 {
+            if state.npc_super_pos.0 != 0 {
+                self.action_num = 10;
+            }
+        } else if self.action_num == 10 {
+            if self.x < state.npc_super_pos.0 {
+                self.vel_x += 0x55;
+            }
+            if self.x > state.npc_super_pos.0 {
+                self.vel_x -= 0x55;
+            }
+            if self.y < state.npc_super_pos.1 {
+                self.vel_y += 0x55;
+            }
+            if self.y > state.npc_super_pos.1 {
+                self.vel_y -= 0x55;
+            }
+
+            self.vel_x = self.vel_x.clamp(-0x400, 0x400);
+            self.vel_y = self.vel_y.clamp(-0x400, 0x400);
+
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+        }
+
+        self.animate(3, 0, 1);
+
+        if self.direction == Direction::Left && self.vel_x > 0 {
+            self.anim_num = 2;
+        }
+        if self.direction == Direction::Right && self.vel_x < 0 {
+            self.anim_num = 2;
+        }
+
+        self.anim_rect = state.constants.npc.n257_red_crystal[self.anim_num as usize];
+
+        Ok(())
+    }
 }

@@ -40,7 +40,7 @@ impl NPC {
                 self.damage = 3;
                 self.animate(0, 2, 3);
 
-                if self.x <= 0x5FFF {
+                if self.x <= 0x5fff {
                     // npc->destroy_voice = 0; // todo
                     self.cond.set_explode_die(true);
                 }

@@ -4,8 +4,8 @@ use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
 use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
+use crate::npc::{NPC, NPCLayer};
 use crate::npc::list::NPCList;
-use crate::npc::{NPCLayer, NPC};
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
@@ -1679,6 +1679,105 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n238_press_sideways(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
+        let player = self.get_closest_player_ref(&players);
+
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.target_x = self.x;
+                    self.target_y = self.y;
+                    self.display_bounds.left = 0x2000;
+                    self.display_bounds.right = 0x1000;
+                }
+
+                if self.direction == Direction::Left
+                    && player.x < self.x
+                    && player.x > self.x - 0x18000
+                    && player.y > self.y - 0x800
+                    && player.y < self.y + 0x1000
+                {
+                    self.action_num = 10;
+                    self.action_counter = 0;
+                    self.anim_num = 2;
+                }
+
+                if self.direction == Direction::Right
+                    && player.x > self.x
+                    && player.x < self.x + 0x18000
+                    && player.y > self.y - 0x800
+                    && player.y < self.y + 0x1000
+                {
+                    self.action_num = 10;
+                    self.action_counter = 0;
+                    self.anim_num = 2;
+                }
+            }
+            10 => {
+                self.damage = 127;
+                self.x += if self.direction != Direction::Left { 0xC00 } else { -0xC00 };
+
+                self.action_counter += 1;
+                if self.action_counter == 8 {
+                    self.action_num = 20;
+                    self.action_counter = 0;
+
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+
+                    for _ in 0..4 {
+                        npc.x = self.x + self.rng.range(-16..16) * 0x200;
+                        npc.y = self.y + self.rng.range(-8..8) * 0x200;
+                        let _ = npc_list.spawn(0x100, npc.clone());
+
+                        state.sound_manager.play_sfx(12);
+                    }
+                }
+            }
+            20 => {
+                self.damage = 0;
+                self.action_counter += 1;
+                if self.action_counter > 50 {
+                    self.action_counter = 0;
+                    self.action_num = 30;
+                }
+            }
+            30 => {
+                self.damage = 0;
+                self.anim_num = 1;
+                self.action_counter += 1;
+                if self.action_counter == 12 {
+                    self.action_num = 1;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                }
+
+                self.x += if self.direction != Direction::Left { -0x800 } else { 0x800 };
+            }
+            _ => (),
+        }
+
+        if self.direction != Direction::Left || player.x >= self.x {
+            if self.direction == Direction::Right && player.x > self.x {
+                self.hit_bounds.right = 0x2000;
+            } else {
+                self.hit_bounds.right = 0x1000;
+            }
+        } else {
+            self.hit_bounds.right = 0x2000;
+        }
+
+        self.anim_rect = state.constants.npc.n238_press_sideways[self.anim_num as usize];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n239_cage_bars(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
@@ -1695,6 +1794,31 @@ impl NPC {
         let anim = if self.direction == Direction::Left { 0 } else { 1 };
 
         self.anim_rect = state.constants.npc.n239_cage_bars[anim];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n253_experience_capsule(
+        &mut self,
+        state: &mut SharedGameState,
+        npc_list: &NPCList,
+    ) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+        }
+
+        self.animate(4, 0, 1);
+
+        if self.life <= 100 {
+            self.cond.set_alive(false);
+
+            self.create_xp_drop_custom(self.x, self.y, self.flag_num, state, npc_list);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
+
+            state.sound_manager.play_sfx(25);
+        }
+
+        self.anim_rect = state.constants.npc.n253_experience_capsule[self.anim_num as usize];
 
         Ok(())
     }

@@ -928,7 +928,7 @@ impl NPC {
                     self.action_counter = 0;
                 }
 
-                if self.action_counter / 2 % 2 != 0 {
+                if self.action_counter & 0x02 != 0 {
                     self.x += 0x200;
                     state.sound_manager.play_sfx(11);
                 } else {

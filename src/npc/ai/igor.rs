@@ -250,7 +250,7 @@ impl NPC {
                     state.sound_manager.play_sfx(12);
                 }
 
-                self.anim_num = if self.action_counter > 50 && (self.action_counter / 2 % 2) != 0 { 11 } else { 10 };
+                self.anim_num = if self.action_counter > 50 && (self.action_counter & 0x02) != 0 { 11 } else { 10 };
 
                 if self.action_counter > 132 {
                     self.action_num = 0;
@@ -319,13 +319,13 @@ impl NPC {
                 let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
                 self.anim_rect = state.constants.npc.n089_igor_dead[dir_offset];
 
-                if (self.action_counter / 2 % 2) != 0 {
+                if (self.action_counter & 0x02) != 0 {
                     self.anim_rect.left -= 1;
                 }
             }
             2 => {
                 self.action_counter += 1;
-                if (self.action_counter / 2 % 2) != 0 && self.action_counter < 100 {
+                if (self.action_counter & 0x02) != 0 && self.action_counter < 100 {
                     self.anim_num = 0;
                     self.display_bounds.left = 20 * 0x200;
                     self.display_bounds.right = 20 * 0x200;

@@ -68,7 +68,7 @@ impl NPC {
         if self.action_num == 4 {
             self.anim_rect.bottom = self.anim_rect.top + self.action_counter / 4;
 
-            if self.action_counter / 2 % 2 != 0 {
+            if self.action_counter & 0x02 != 0 {
                 self.anim_rect.left += 1;
             }
         }
@@ -125,7 +125,7 @@ impl NPC {
         if self.action_num == 1 {
             self.anim_rect.bottom = self.anim_rect.top + self.action_counter / 4;
 
-            if self.action_counter / 2 % 2 != 0 {
+            if self.action_counter & 0x02 != 0 {
                 self.anim_rect.left += 1;
             }
         }

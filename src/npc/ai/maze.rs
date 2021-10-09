@@ -763,7 +763,7 @@ impl NPC {
 
                     self.anim_rect.top += self.action_counter3 / 8;
                     self.y = ((self.action_counter3 as i32 / 8) * 0x200) + self.target_y;
-                    self.anim_rect.left -= self.action_counter3 / 2 % 2;
+                    self.anim_rect.left -= if (self.action_counter3 & 0x02) != 0 { 1 } else { 0 };
                 }
                 if self.action_counter3 % 3 == 2 {
                     let mut npc = NPC::create(161, &state.npc_table);

@@ -1,5 +1,7 @@
+use crate::caret::CaretType;
 use crate::common::Direction;
 use crate::framework::error::GameResult;
+use crate::npc::list::NPCList;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::rng::RNG;
@@ -28,7 +30,6 @@ impl NPC {
                     self.anim_num = 0;
                 }
             }
-
             _ => (),
         }
 
@@ -284,6 +285,200 @@ impl NPC {
         self.y += self.vel_y;
 
         self.anim_rect = state.constants.npc.n226_kanpachi_plantation[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n228_droll(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.y -= 0x1000;
+                }
+                self.vel_x = 0;
+                self.action_num = 2;
+                self.anim_num = 0;
+            }
+            2 => {
+                let player = self.get_closest_player_ref(&players);
+                if self.x <= player.x {
+                    self.direction = Direction::Right;
+                } else {
+                    self.direction = Direction::Left;
+                }
+                self.anim_counter += 1;
+                if self.anim_counter > 50 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                }
+                if self.anim_num > 1 {
+                    self.anim_num = 0;
+                }
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.anim_num = 2;
+                    self.action_counter = 0;
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 10 {
+                    self.action_num = 12;
+                    self.anim_num = 3;
+                    self.vel_y = -0x600;
+                    if self.direction != Direction::Left {
+                        self.vel_x = 0x200;
+                    } else {
+                        self.vel_x = -0x200;
+                    }
+                }
+            }
+            12 => {
+                if self.flags.hit_bottom_wall() {
+                    self.anim_num = 2;
+                    self.action_num = 13;
+                    self.action_counter = 0;
+                }
+            }
+            13 => {
+                self.vel_x /= 2;
+                self.action_counter += 1;
+                if self.action_counter > 10 {
+                    self.action_num = 1;
+                }
+            }
+            _ => (),
+        }
+
+        self.vel_y += 0x40;
+        if self.vel_y > 0x5FF {
+            self.vel_y = 0x5FF;
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
+
+        self.anim_rect = state.constants.npc.n228_droll[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n231_rocket(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                }
+                self.anim_num = 0;
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.action_counter = 0;
+                }
+
+                self.action_counter += 1;
+                self.vel_y += 8;
+                if self.flags.hit_bottom_wall() {
+                    if self.action_counter > 9 {
+                        self.action_num = 1;
+                    } else {
+                        self.action_num = 12;
+                    }
+                }
+            }
+            12 | 13 => {
+                if self.action_num == 12 {
+                    self.npc_flags.set_interactable(false);
+                    self.action_num = 13;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+
+                    for _ in 0..10 {
+                        npc.x = self.x + self.rng.range(-16..16) * 0x200;
+                        npc.y = self.y + self.rng.range(-8..8) * 0x200;
+                        let _ = npc_list.spawn(0x100, npc.clone());
+
+                        state.sound_manager.play_sfx(12);
+                    }
+                }
+
+                self.vel_y -= 8;
+                self.action_counter += 1;
+
+                if (self.action_counter & 1) == 0 {
+                    state.create_caret(self.x - 0x1400, self.y + 0x1000, CaretType::Exhaust, Direction::Bottom);
+                }
+                if self.action_counter % 2 == 1 {
+                    state.create_caret(self.x + 0x1400, self.y + 0x1000, CaretType::Exhaust, Direction::Bottom);
+                }
+                if self.action_counter % 4 == 1 {
+                    state.sound_manager.play_sfx(34);
+                }
+
+                let player = self.get_closest_player_ref(&players);
+
+                if self.flags.hit_top_wall() || player.flags.hit_top_wall() || self.action_counter > 450 {
+                    if self.flags.hit_top_wall() || player.flags.hit_top_wall() {
+                        self.vel_y = 0;
+                    }
+                    self.action_num = 15;
+
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+
+                    for _ in 0..6 {
+                        npc.x = self.x + self.rng.range(-16..16) * 0x200;
+                        npc.y = self.y + self.rng.range(-8..8) * 0x200;
+                        let _ = npc_list.spawn(0x100, npc.clone());
+
+                        state.sound_manager.play_sfx(12);
+                    }
+                }
+            }
+            15 => {
+                self.vel_y += 8;
+                self.action_counter += 1;
+
+                if self.vel_y < 0 {
+                    if (self.action_counter & 7) == 0 {
+                        state.create_caret(self.x - 0x1400, self.y + 0x1000, CaretType::Exhaust, Direction::Bottom);
+                    }
+                    if self.action_counter % 8 == 4 {
+                        state.create_caret(self.x + 0x1400, self.y + 0x1000, CaretType::Exhaust, Direction::Bottom);
+                    }
+
+                    if self.action_counter % 16 == 1 {
+                        state.sound_manager.play_sfx(34);
+                    }
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    self.npc_flags.set_interactable(true);
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            _ => (),
+        }
+
+        self.vel_y = self.vel_y.clamp(-0x5ff, 0x5ff);
+        self.y += self.vel_y;
+
+        self.anim_rect = state.constants.npc.n231_rocket[self.anim_num as usize];
+
         Ok(())
     }
 }

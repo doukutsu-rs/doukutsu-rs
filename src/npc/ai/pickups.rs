@@ -128,7 +128,7 @@ impl NPC {
             return Ok(());
         }
 
-        if self.action_counter > 400 && (self.action_counter / 2 % 2) != 0 {
+        if self.action_counter > 400 && (self.action_counter & 0x02) != 0 {
             self.anim_rect.left = 0;
             self.anim_rect.top = 0;
             self.anim_rect.right = 0;
@@ -194,7 +194,7 @@ impl NPC {
             self.cond.set_alive(false);
         }
 
-        if self.action_counter2 > 500 && self.action_counter2 / 2 % 2 != 0 {
+        if self.action_counter2 > 500 && self.action_counter2 & 0x02 != 0 {
             self.anim_rect.right = self.anim_rect.left;
             self.anim_rect.bottom = self.anim_rect.top;
         }
@@ -262,7 +262,7 @@ impl NPC {
             self.cond.set_alive(false);
         }
 
-        if self.action_counter2 > 500 && self.action_counter2 / 2 % 2 != 0 {
+        if self.action_counter2 > 500 && self.action_counter2 & 0x02 != 0 {
             self.anim_rect.right = self.anim_rect.left;
             self.anim_rect.bottom = self.anim_rect.top;
         }
