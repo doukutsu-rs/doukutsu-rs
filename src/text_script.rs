@@ -277,6 +277,9 @@ pub enum OpCode {
     ///        - if it's 1 put the player on right side of the player, otherwise put it on left
     #[strum(serialize = "2MV")]
     S2MV,
+    /// <2PJ, jump to event if in multiplayer mode.
+    #[strum(serialize = "2PJ")]
+    S2PJ,
     /// <INJxxxx:yyyy:zzzz, Jumps to event zzzz if amount of item xxxx equals yyyy
     INJ,
     /// <I+Nxxxx:yyyy, Adds item xxxx with maximum amount of yyyy
@@ -1082,6 +1085,16 @@ impl TextScriptVM {
                             exec_state = TextScriptExecutionState::Running(event_num, 0);
                         } else {
                             exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                        }
+                    }
+
+                    OpCode::S2PJ => {
+                        let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                        exec_state = if game_scene.player2.cond.alive() {
+                            TextScriptExecutionState::Running(event_num, 0)
+                        } else {
+                            TextScriptExecutionState::Running(event, cursor.position() as u32)
                         }
                     }
                     OpCode::EVE => {
@@ -2106,6 +2119,7 @@ impl TextScript {
             | OpCode::SSS
             | OpCode::ACH
             | OpCode::S2MV
+            | OpCode::S2PJ
             | OpCode::PSH => {
                 let operand = TextScript::read_number(iter)?;
                 TextScript::put_varint(instr as i32, out);
@@ -2286,6 +2300,7 @@ impl TextScript {
                         | OpCode::SSS
                         | OpCode::ACH
                         | OpCode::S2MV
+                        | OpCode::S2PJ
                         | OpCode::PSH => {
                             let par_a = read_cur_varint(&mut cursor)?;
 
