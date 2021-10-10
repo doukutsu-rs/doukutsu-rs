@@ -35,6 +35,7 @@ impl SettingsMenu {
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.graphics.push_entry(MenuEntry::Toggle("Lighting effects:".to_string(), state.settings.shader_effects));
+        self.graphics.push_entry(MenuEntry::Toggle("Player's weapon light cone:".to_string(), state.settings.light_cone));
         self.graphics
             .push_entry(MenuEntry::Toggle("Motion interpolation:".to_string(), state.settings.motion_interpolation));
         self.graphics.push_entry(MenuEntry::Toggle("Subpixel scrolling:".to_string(), state.settings.subpixel_coords));
@@ -157,13 +158,21 @@ impl SettingsMenu {
                 }
                 MenuSelectionResult::Selected(1, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
+                        state.settings.light_cone = !state.settings.light_cone;
+                        let _ = state.settings.save(ctx);
+
+                        *value = state.settings.light_cone;
+                    }
+                }
+                MenuSelectionResult::Selected(2, toggle) => {
+                    if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.motion_interpolation = !state.settings.motion_interpolation;
                         let _ = state.settings.save(ctx);
 
                         *value = state.settings.motion_interpolation;
                     }
                 }
-                MenuSelectionResult::Selected(2, toggle) => {
+                MenuSelectionResult::Selected(3, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.subpixel_coords = !state.settings.subpixel_coords;
                         let _ = state.settings.save(ctx);
@@ -171,7 +180,7 @@ impl SettingsMenu {
                         *value = state.settings.subpixel_coords;
                     }
                 }
-                MenuSelectionResult::Selected(3, toggle) => {
+                MenuSelectionResult::Selected(4, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.original_textures = !state.settings.original_textures;
                         state.reload_textures();
@@ -180,7 +189,7 @@ impl SettingsMenu {
                         *value = state.settings.original_textures;
                     }
                 }
-                MenuSelectionResult::Selected(4, toggle) => {
+                MenuSelectionResult::Selected(5, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.seasonal_textures = !state.settings.seasonal_textures;
                         state.reload_textures();
@@ -189,7 +198,7 @@ impl SettingsMenu {
                         *value = state.settings.seasonal_textures;
                     }
                 }
-                MenuSelectionResult::Selected(6, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(7, _) | MenuSelectionResult::Canceled => {
                     self.current = CurrentMenu::MainMenu
                 }
                 _ => (),

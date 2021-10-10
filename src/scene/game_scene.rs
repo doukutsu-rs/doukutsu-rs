@@ -809,33 +809,51 @@ impl GameScene {
                 [(&self.player1, &self.inventory_player1), (&self.player2, &self.inventory_player2)].iter()
             {
                 if player.cond.alive() && !player.cond.hidden() && inv.get_current_weapon().is_some() {
-                    let range = match () {
-                        _ if player.up => 60..120,
-                        _ if player.down => 240..300,
-                        _ if player.direction == Direction::Left => -30..30,
-                        _ if player.direction == Direction::Right => 150..210,
-                        _ => continue 'cc,
-                    };
+                    if state.settings.light_cone {
+                        let range = match () {
+                            _ if player.up => 60..120,
+                            _ if player.down => 240..300,
+                            _ if player.direction == Direction::Left => -30..30,
+                            _ if player.direction == Direction::Right => 150..210,
+                            _ => continue 'cc,
+                        };
 
-                    let (color, att) = match inv.get_current_weapon() {
-                        Some(Weapon { wtype: WeaponType::Fireball, .. }) => ((170u8, 80u8, 0u8), 0.92),
-                        Some(Weapon { wtype: WeaponType::PolarStar, .. }) => ((150u8, 150u8, 160u8), 0.92),
-                        Some(Weapon { wtype: WeaponType::Spur, .. }) => ((170u8, 170u8, 200u8), 0.92),
-                        Some(Weapon { wtype: WeaponType::Blade, .. }) => continue 'cc,
-                        _ => ((150u8, 150u8, 150u8), 0.92),
-                    };
+                        let (color, att) = match inv.get_current_weapon() {
+                            Some(Weapon { wtype: WeaponType::Fireball, .. }) => ((170u8, 80u8, 0u8), 0.92),
+                            Some(Weapon { wtype: WeaponType::PolarStar, .. }) => ((150u8, 150u8, 160u8), 0.92),
+                            Some(Weapon { wtype: WeaponType::Spur, .. }) => ((170u8, 170u8, 200u8), 0.92),
+                            Some(Weapon { wtype: WeaponType::Blade, .. }) => continue 'cc,
+                            _ => ((150u8, 150u8, 150u8), 0.92),
+                        };
 
-                    let (_, gun_off_y) = player.skin.get_gun_offset();
+                        let (_, gun_off_y) = player.skin.get_gun_offset();
 
-                    self.draw_light_raycast(
-                        state.tile_size,
-                        player.x + player.direction.vector_x() * 0x800,
-                        player.y + gun_off_y * 0x200 + 0x400,
-                        color,
-                        att,
-                        range,
-                        batch,
-                    );
+                        self.draw_light_raycast(
+                            state.tile_size,
+                            player.x + player.direction.vector_x() * 0x800,
+                            player.y + gun_off_y * 0x200 + 0x400,
+                            color,
+                            att,
+                            range,
+                            batch,
+                        );
+                    } else {
+                        self.draw_light(
+                            interpolate_fix9_scale(
+                                player.prev_x - self.frame.prev_x,
+                                player.x - self.frame.x,
+                                state.frame_time,
+                            ),
+                            interpolate_fix9_scale(
+                                player.prev_y - self.frame.prev_y,
+                                player.y - self.frame.y,
+                                state.frame_time,
+                            ),
+                            5.0,
+                            (150, 150, 150),
+                            batch,
+                        );
+                    }
                 }
             }
 

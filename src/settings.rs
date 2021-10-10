@@ -12,10 +12,15 @@ use crate::sound::InterpolationMode;
 pub struct Settings {
     #[serde(default = "current_version")]
     pub version: u32,
+    #[serde(default = "default_true")]
     pub seasonal_textures: bool,
     pub original_textures: bool,
     pub shader_effects: bool,
+    #[serde(default = "default_true")]
+    pub light_cone: bool,
+    #[serde(default = "default_true")]
     pub subpixel_coords: bool,
+    #[serde(default = "default_true")]
     pub motion_interpolation: bool,
     pub touch_controls: bool,
     pub soundtrack: String,
@@ -34,6 +39,8 @@ pub struct Settings {
     #[serde(skip)]
     pub debug_outlines: bool,
 }
+
+fn default_true() -> bool { true }
 
 #[inline(always)]
 fn current_version() -> u32 { 2 }
@@ -84,6 +91,7 @@ impl Default for Settings {
             seasonal_textures: true,
             original_textures: false,
             shader_effects: true,
+            light_cone: true,
             subpixel_coords: true,
             motion_interpolation: true,
             touch_controls: cfg!(target_os = "android"),
