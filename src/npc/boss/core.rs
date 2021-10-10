@@ -442,10 +442,10 @@ impl BossNPC {
         self.tick_b04_core_small_head(3, state, &players, npc_list, stage);
         self.tick_b04_core_small_head(6, state, &players, npc_list, stage);
         self.tick_b04_core_small_head(7, state, &players, npc_list, stage);
-        self.tick_b04_core_hitbox(8, state);
-        self.tick_b04_core_hitbox(9, state);
-        self.tick_b04_core_hitbox(10, state);
-        self.tick_b04_core_hitbox(11, state);
+        self.tick_b04_core_hitbox(8);
+        self.tick_b04_core_hitbox(9);
+        self.tick_b04_core_hitbox(10);
+        self.tick_b04_core_hitbox(11);
     }
 
     fn tick_b04_core_face(&mut self, i: usize, state: &mut SharedGameState) {
@@ -652,7 +652,7 @@ impl BossNPC {
         part.anim_rect = state.constants.npc.b04_core[7 + part.anim_num as usize];
     }
 
-    fn tick_b04_core_hitbox(&mut self, i: usize, state: &mut SharedGameState) {
+    fn tick_b04_core_hitbox(&mut self, i: usize) {
         let (head, tail) = self.parts.split_at_mut(i);
         let base = &mut head[0];
         let part = &mut tail[0];

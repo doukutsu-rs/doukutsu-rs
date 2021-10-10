@@ -107,7 +107,7 @@ pub fn init_imgui() -> GameResult<imgui::Context> {
 }
 
 impl UI {
-    pub fn new(ctx: &mut Context) -> GameResult<Self> {
+    pub fn new(_ctx: &mut Context) -> GameResult<Self> {
         Ok(Self {
             components: Components {
                 live_debugger: LiveDebugger::new(),

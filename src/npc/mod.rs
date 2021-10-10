@@ -197,6 +197,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             &mut Flash,
         ),
     ) -> GameResult {
+        #[allow(unused_assignments)]
         let mut npc_hook_ran = false;
         #[cfg(feature = "scripting")]
         {

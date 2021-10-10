@@ -12,8 +12,8 @@ use sdl2::keyboard::Scancode;
 use sdl2::mouse::{Cursor, SystemCursor};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Texture, TextureCreator, WindowCanvas};
-use sdl2::video::WindowContext;
 use sdl2::video::GLProfile;
+use sdl2::video::WindowContext;
 use sdl2::{keyboard, pixels, EventPump, Sdl, VideoSubsystem};
 
 use crate::common::{Color, Rect};
@@ -68,7 +68,7 @@ impl SDL2EventLoop {
         let event_pump = sdl.event_pump().map_err(|e| GameError::WindowError(e))?;
         let video = sdl.video().map_err(|e| GameError::WindowError(e))?;
         let gl_attr = video.gl_attr();
-        
+
         gl_attr.set_context_profile(GLProfile::Core);
         gl_attr.set_context_version(3, 0);
 
@@ -77,10 +77,9 @@ impl SDL2EventLoop {
         window.resizable();
 
         #[cfg(feature = "render-opengl")]
-            window.opengl();
+        window.opengl();
 
-        let window = window.build()
-            .map_err(|e| GameError::WindowError(e.to_string()))?;
+        let window = window.build().map_err(|e| GameError::WindowError(e.to_string()))?;
 
         let canvas = window
             .into_canvas()
@@ -127,7 +126,6 @@ impl BackendEventLoop for SDL2EventLoop {
         }
 
         loop {
-
             #[cfg(target_os = "macos")]
             unsafe {
                 use objc::*;
@@ -148,7 +146,7 @@ impl BackendEventLoop for SDL2EventLoop {
 
                     style_mask |= 1 << 15; // NSWindowStyleMaskFullSizeContentView
 
-                    let _: () = msg_send![window, setStyleMask:style_mask];
+                    let _: () = msg_send![window, setStyleMask: style_mask];
                 }
             }
 
@@ -244,7 +242,7 @@ impl BackendEventLoop for SDL2EventLoop {
             let mut refs = self.refs.borrow_mut();
             match refs.canvas.window().gl_create_context() {
                 Ok(gl_ctx) => {
-                    refs.canvas.window().gl_make_current(&gl_ctx);
+                    refs.canvas.window().gl_make_current(&gl_ctx).map_err(|e| GameError::RenderError(e.to_string()))?;
                     refs.gl_context = Some(gl_ctx);
                 }
                 Err(err) => {
@@ -256,7 +254,7 @@ impl BackendEventLoop for SDL2EventLoop {
 
         #[cfg(feature = "render-opengl")]
         if *self.opengl_available.borrow() {
-            let mut imgui = init_imgui()?;
+            let imgui = init_imgui()?;
 
             let refs = self.refs.clone();
 
@@ -426,7 +424,7 @@ impl BackendRenderer for SDL2Renderer {
     fn prepare_draw(&mut self, width: f32, height: f32) -> GameResult {
         let mut refs = self.refs.borrow_mut();
 
-        refs.canvas.set_clip_rect(Some(sdl2::rect::Rect::new(0, 0, width as u32, height as u32, )));
+        refs.canvas.set_clip_rect(Some(sdl2::rect::Rect::new(0, 0, width as u32, height as u32)));
         //refs.canvas.set_clip_rect(None);
 
         Ok(())
@@ -702,9 +700,9 @@ impl BackendRenderer for SDL2Renderer {
 
     fn draw_triangle_list(
         &mut self,
-        vertices: Vec<VertexData>,
-        texture: Option<&Box<dyn BackendTexture>>,
-        shader: BackendShader,
+        _vertices: Vec<VertexData>,
+        _texture: Option<&Box<dyn BackendTexture>>,
+        _shader: BackendShader,
     ) -> GameResult<()> {
         Err(GameError::RenderError("Unsupported operation".to_string()))
     }

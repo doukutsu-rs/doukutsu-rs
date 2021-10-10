@@ -5,11 +5,12 @@ pub mod basic;
 pub mod pxchar;
 
 bitfield! {
-  #[derive(Clone, Copy)]
-  pub struct PlayerSkinFlags(u16);
-  impl Debug;
+    #[derive(Clone, Copy)]
+    #[allow(unused)]
+    pub struct PlayerSkinFlags(u16);
+    impl Debug;
 
-  pub supports_color, set_supports_color: 0;
+    pub supports_color, set_supports_color: 0;
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

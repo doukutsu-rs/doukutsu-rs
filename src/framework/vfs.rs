@@ -45,6 +45,7 @@ pub struct OpenOptions {
     pub truncate: bool,
 }
 
+#[allow(unused)]
 impl OpenOptions {
     /// Create a new instance
     pub fn new() -> OpenOptions {

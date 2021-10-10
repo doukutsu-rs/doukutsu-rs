@@ -65,6 +65,7 @@ impl io::Seek for File {
     }
 }
 
+#[allow(unused)]
 impl Filesystem {
     pub fn new() -> Filesystem {
         // Set up VFS to merge resource path, root path, and zip path.

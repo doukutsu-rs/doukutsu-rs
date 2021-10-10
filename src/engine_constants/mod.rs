@@ -1531,7 +1531,7 @@ impl EngineConstants {
             ],
         };
 
-        sound_manager.set_sample_params(2, typewriter_sample);
+        let _ = sound_manager.set_sample_params(2, typewriter_sample);
     }
 
     pub fn apply_csplus_nx_patches(&mut self) {

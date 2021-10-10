@@ -17,21 +17,22 @@ pub struct TouchPlayerController {
 }
 
 bitfield! {
-  #[derive(Clone, Copy)]
-  pub struct KeyState(u16);
-  impl Debug;
+    #[allow(unused)]
+    #[derive(Clone, Copy)]
+    pub struct KeyState(u16);
+    impl Debug;
 
-  pub left, set_left: 0;
-  pub right, set_right: 1;
-  pub up, set_up: 2;
-  pub down, set_down: 3;
-  pub map, set_map: 4;
-  pub inventory, set_inventory: 5;
-  pub jump, set_jump: 6;
-  pub shoot, set_shoot: 7;
-  pub next_weapon, set_next_weapon: 8;
-  pub prev_weapon, set_prev_weapon: 9;
-  pub pause, set_pause: 10;
+    pub left, set_left: 0;
+    pub right, set_right: 1;
+    pub up, set_up: 2;
+    pub down, set_down: 3;
+    pub map, set_map: 4;
+    pub inventory, set_inventory: 5;
+    pub jump, set_jump: 6;
+    pub shoot, set_shoot: 7;
+    pub next_weapon, set_next_weapon: 8;
+    pub prev_weapon, set_prev_weapon: 9;
+    pub pause, set_pause: 10;
 }
 
 impl TouchPlayerController {
@@ -58,7 +59,7 @@ impl PlayerController for TouchPlayerController {
                 }
             }
             TouchControlType::Controls => {
-                let (left, top, right, bottom) = screen_insets_scaled(ctx, state.scale);
+                let (left, _top, right, bottom) = screen_insets_scaled(ctx, state.scale);
 
                 let left = 4 + left as isize;
                 let top = 4 + bottom as isize;
@@ -183,9 +184,7 @@ impl PlayerController for TouchPlayerController {
 
                 self.state.set_inventory(
                     self.state.inventory()
-                        || state
-                        .touch_controls
-                        .consume_click_in(Rect::new_size(
+                        || state.touch_controls.consume_click_in(Rect::new_size(
                             state.canvas_size.0 as isize - 48 - right,
                             top,
                             48,

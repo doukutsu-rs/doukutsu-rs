@@ -56,34 +56,34 @@ impl DynamicWater {
             col.tick(DAMPENING, TENSION);
         }
 
-        static mut l_deltas: Vec<f32> = Vec::new();
-        static mut r_deltas: Vec<f32> = Vec::new();
+        static mut L_DELTAS: Vec<f32> = Vec::new();
+        static mut R_DELTAS: Vec<f32> = Vec::new();
 
         // we assume tick() is never called from other threads.
         unsafe {
-            l_deltas.resize(self.columns.len(), 0.0);
-            r_deltas.resize(self.columns.len(), 0.0);
+            L_DELTAS.resize(self.columns.len(), 0.0);
+            R_DELTAS.resize(self.columns.len(), 0.0);
 
             for _ in 0..2 {
                 for i in 0..self.columns.len() {
                     if i > 0 {
-                        l_deltas[i] = SPREAD * (self.columns[i].height - self.columns[i - 1].height);
-                        self.columns[i - 1].speed += l_deltas[i];
+                        L_DELTAS[i] = SPREAD * (self.columns[i].height - self.columns[i - 1].height);
+                        self.columns[i - 1].speed += L_DELTAS[i];
                     }
 
                     if i < self.columns.len() - 1 {
-                        r_deltas[i] = SPREAD * (self.columns[i].height - self.columns[i + 1].height);
-                        self.columns[i + 1].speed += r_deltas[i];
+                        R_DELTAS[i] = SPREAD * (self.columns[i].height - self.columns[i + 1].height);
+                        self.columns[i + 1].speed += R_DELTAS[i];
                     }
                 }
 
                 for i in 0..self.columns.len() {
                     if i > 0 {
-                        self.columns[i - 1].height += l_deltas[i];
+                        self.columns[i - 1].height += L_DELTAS[i];
                     }
 
                     if i < self.columns.len() - 1 {
-                        self.columns[i + 1].height += r_deltas[i];
+                        self.columns[i + 1].height += R_DELTAS[i];
                     }
                 }
             }
@@ -238,7 +238,7 @@ impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
                 vertices.push(VertexData { position: (x_right, bottom), uv, color: color_btm_rgba });
             }
 
-            graphics::draw_triangle_list(ctx, vertices, None, BackendShader::Fill);
+            graphics::draw_triangle_list(ctx, vertices, None, BackendShader::Fill)?;
         }
 
         Ok(())

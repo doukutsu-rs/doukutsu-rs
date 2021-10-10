@@ -1458,7 +1458,7 @@ impl NPC {
                     npc.vel_x = self.rng.range(-8..-2) * 0x200;
                     npc.vel_y = self.rng.range(-3..3) * 0x200;
 
-                    npc_list.spawn(0x100, npc.clone());
+                    let _ = npc_list.spawn(0x100, npc.clone());
                 }
 
                 state.sound_manager.play_sfx(72);

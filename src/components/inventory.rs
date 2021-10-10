@@ -30,7 +30,6 @@ struct InvWeaponData {
 pub struct InventoryUI {
     tick: usize,
     text_y_pos: u16,
-    current_script: u16,
     selected_weapon: u16,
     selected_item: u16,
     weapon_count: u16,
@@ -45,7 +44,6 @@ impl InventoryUI {
         InventoryUI {
             text_y_pos: 16,
             tick: 0,
-            current_script: 0,
             selected_weapon: 0,
             selected_item: 0,
             weapon_count: 0,
@@ -336,7 +334,7 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
 
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ItemImage")?;
 
-        for (idx, (item_id, amount)) in self.item_data.iter().enumerate() {
+        for (idx, (item_id, _amount)) in self.item_data.iter().enumerate() {
             if *item_id == 0 {
                 break;
             }
@@ -354,8 +352,6 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
         }
 
         batch.draw(ctx)?;
-
-        let batch = (); // unbind batch to make borrow checker happy
 
         for (idx, weapon) in self.weapon_data.iter().enumerate() {
             if weapon.wtype == WeaponType::None {

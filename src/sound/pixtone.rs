@@ -190,6 +190,7 @@ pub struct PixTonePlayback {
     pub table: [PixToneParameters; 256],
 }
 
+#[allow(unused)]
 impl PixTonePlayback {
     pub fn new() -> PixTonePlayback {
         let mut table = [PixToneParameters::empty(); 256];

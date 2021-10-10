@@ -78,11 +78,7 @@ impl SizedBatch {
         self.batch.clear();
     }
 
-    pub fn add(&mut self, mut x: f32, mut y: f32) {
-        /*unsafe {
-            x = (x * G_MAG).floor() / G_MAG;
-            y = (y * G_MAG).floor() / G_MAG;
-        }*/
+    pub fn add(&mut self, x: f32, y: f32) {
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRect(
@@ -101,7 +97,7 @@ impl SizedBatch {
         self.add_rect_scaled(x, y, 1.0, 1.0, rect)
     }
 
-    pub fn add_rect_flip(&mut self, mut x: f32, mut y: f32, flip_x: bool, flip_y: bool, rect: &common::Rect<u16>) {
+    pub fn add_rect_flip(&mut self, x: f32, y: f32, flip_x: bool, flip_y: bool, rect: &common::Rect<u16>) {
         if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
             return;
         }
@@ -131,15 +127,11 @@ impl SizedBatch {
         self.add_rect_scaled_tinted(x, y, color, 1.0, 1.0, rect)
     }
 
-    pub fn add_rect_scaled(&mut self, mut x: f32, mut y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
+    pub fn add_rect_scaled(&mut self, x: f32, y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
         if (rect.right.saturating_sub(rect.left)) == 0 || (rect.bottom.saturating_sub(rect.top)) == 0 {
             return;
         }
 
-        /*unsafe {
-            x = (x * G_MAG).floor() / G_MAG;
-            y = (y * G_MAG).floor() / G_MAG;
-        }*/
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRect(
@@ -160,8 +152,8 @@ impl SizedBatch {
 
     pub fn add_rect_scaled_tinted(
         &mut self,
-        mut x: f32,
-        mut y: f32,
+        x: f32,
+        y: f32,
         color: (u8, u8, u8, u8),
         scale_x: f32,
         scale_y: f32,
@@ -171,10 +163,6 @@ impl SizedBatch {
             return;
         }
 
-        /*unsafe {
-            x = (x * G_MAG).floor() / G_MAG;
-            y = (y * G_MAG).floor() / G_MAG;
-        }*/
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRectTinted(

@@ -1,12 +1,16 @@
-use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand, VertexData, BackendShader};
-use crate::framework::error::GameResult;
-use crate::framework::context::Context;
-use crate::Game;
-use crate::common::{Rect, Color};
-use imgui::{DrawData};
-use crate::framework::graphics::BlendMode;
 use std::cell::RefCell;
 use std::mem;
+
+use imgui::DrawData;
+
+use crate::common::{Color, Rect};
+use crate::framework::backend::{
+    Backend, BackendEventLoop, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData,
+};
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::graphics::BlendMode;
+use crate::Game;
 
 pub struct NullBackend;
 
@@ -33,10 +37,12 @@ impl BackendEventLoop for NullEventLoop {
 
         loop {
             game.update(ctx).unwrap();
+
             if state_ref.shutdown {
                 log::info!("Shutting down...");
                 break;
             }
+
             if state_ref.next_scene.is_some() {
                 mem::swap(&mut game.scene, &mut state_ref.next_scene);
                 state_ref.next_scene = None;
@@ -66,13 +72,9 @@ impl BackendTexture for NullTexture {
         (self.0, self.1)
     }
 
-    fn add(&mut self, _command: SpriteBatchCommand) {
+    fn add(&mut self, _command: SpriteBatchCommand) {}
 
-    }
-
-    fn clear(&mut self) {
-
-    }
+    fn clear(&mut self) {}
 
     fn draw(&mut self) -> GameResult<()> {
         Ok(())
@@ -86,9 +88,7 @@ impl BackendRenderer for NullRenderer {
         "Null".to_owned()
     }
 
-    fn clear(&mut self, _color: Color) {
-
-    }
+    fn clear(&mut self, _color: Color) {}
 
     fn present(&mut self) -> GameResult {
         Ok(())
@@ -126,7 +126,12 @@ impl BackendRenderer for NullRenderer {
         Ok(())
     }
 
-    fn draw_triangle_list(&mut self, vertices: Vec<VertexData>, texture: Option<&Box<dyn BackendTexture>>, shader: BackendShader) -> GameResult<()> {
+    fn draw_triangle_list(
+        &mut self,
+        _vertices: Vec<VertexData>,
+        _texture: Option<&Box<dyn BackendTexture>>,
+        _shader: BackendShader,
+    ) -> GameResult<()> {
         Ok(())
     }
 }

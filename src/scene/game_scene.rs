@@ -76,7 +76,6 @@ pub enum TileLayer {
     Snack,
 }
 
-
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum LightingMode {
     None,
@@ -1291,18 +1290,8 @@ impl GameScene {
 
         if layer == TileLayer::Foreground && self.stage.data.background_type == BackgroundType::Water {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_background_name)?;
-            let rect_top = Rect {
-                left: 0,
-                top: 0,
-                right: 32,
-                bottom: 16
-            };
-            let rect_middle = Rect {
-                left: 0,
-                top: 16,
-                right: 32,
-                bottom: 48
-            };
+            let rect_top = Rect { left: 0, top: 0, right: 32, bottom: 16 };
+            let rect_middle = Rect { left: 0, top: 16, right: 32, bottom: 48 };
 
             let tile_start_x = frame_x as i32 / 32;
             let tile_end_x = (frame_x + 16.0 + state.canvas_size.0) as i32 / 32 + 1;
@@ -1310,18 +1299,10 @@ impl GameScene {
             let tile_count_y = (frame_y + 16.0 + state.canvas_size.1 - water_y) as i32 / 32 + 1;
 
             for x in tile_start_x..tile_end_x {
-                batch.add_rect(
-                    (x as f32 * 32.0) - frame_x,
-                    water_y - frame_y,
-                    &rect_top,
-                );
+                batch.add_rect((x as f32 * 32.0) - frame_x, water_y - frame_y, &rect_top);
 
                 for y in 0..tile_count_y {
-                    batch.add_rect(
-                        (x as f32 * 32.0) - frame_x,
-                        (y as f32 * 32.0) + water_y - frame_y,
-                        &rect_middle,
-                    );
+                    batch.add_rect((x as f32 * 32.0) - frame_x, (y as f32 * 32.0) + water_y - frame_y, &rect_middle);
                 }
             }
 
@@ -1833,15 +1814,26 @@ impl Scene for GameScene {
 
         self.lighting_mode = match () {
             _ if self.intro_mode => LightingMode::None,
-            _ if !state.constants.is_switch && (self.stage.data.background_type == BackgroundType::Black
-                || self.stage.data.background.name() == "bkBlack") => LightingMode::Ambient,
-            _ if state.constants.is_switch && (self.stage.data.background_type == BackgroundType::Black
-                || self.stage.data.background.name() == "bkBlack") => LightingMode::None,
+            _ if !state.constants.is_switch
+                && (self.stage.data.background_type == BackgroundType::Black
+                    || self.stage.data.background.name() == "bkBlack") =>
+            {
+                LightingMode::Ambient
+            }
+            _ if state.constants.is_switch
+                && (self.stage.data.background_type == BackgroundType::Black
+                    || self.stage.data.background.name() == "bkBlack") =>
+            {
+                LightingMode::None
+            }
             _ if self.stage.data.background.name() == "bkFall" => LightingMode::None,
             _ if self.stage.data.background_type != BackgroundType::Black
                 && self.stage.data.background_type != BackgroundType::Outside
                 && self.stage.data.background_type != BackgroundType::OutsideWind
-                && self.stage.data.background.name() != "bkBlack" => LightingMode::BackgroundOnly,
+                && self.stage.data.background.name() != "bkBlack" =>
+            {
+                LightingMode::BackgroundOnly
+            }
             _ => LightingMode::None,
         };
 
@@ -1900,15 +1892,24 @@ impl Scene for GameScene {
         }
 
         for _ in 0..ticks {
-            TextScriptVM::run(state, self, ctx)?;
-
             match state.textscript_vm.mode {
-                ScriptMode::Map if state.control_flags.tick_world() => self.tick_world(state)?,
-                ScriptMode::StageSelect => self.stage_select.tick(state, (ctx, &self.player1, &self.player2))?,
-                ScriptMode::Inventory => {
-                    self.inventory_ui.tick(state, (ctx, &mut self.player1, &mut self.inventory_player1))?
+                ScriptMode::Map => {
+                    TextScriptVM::run(state, self, ctx)?;
+
+                    if state.control_flags.tick_world() {
+                        self.tick_world(state)?;
+                    }
                 }
-                _ => {}
+                ScriptMode::StageSelect => {
+                    self.stage_select.tick(state, (ctx, &self.player1, &self.player2))?;
+
+                    TextScriptVM::run(state, self, ctx)?;
+                }
+                ScriptMode::Inventory => {
+                    self.inventory_ui.tick(state, (ctx, &mut self.player1, &mut self.inventory_player1))?;
+
+                    TextScriptVM::run(state, self, ctx)?;
+                }
             }
 
             match state.fade_state {
@@ -1982,6 +1983,14 @@ impl Scene for GameScene {
             }
         }
 
+        self.inventory_dim += 0.1 * if state.textscript_vm.mode == ScriptMode::Inventory {
+            state.frame_time as f32
+        } else {
+            -(state.frame_time as f32)
+        };
+
+        self.inventory_dim = self.inventory_dim.clamp(0.0, 1.0);
+
         Ok(())
     }
 
@@ -2015,6 +2024,13 @@ impl Scene for GameScene {
         self.flash.draw(state, ctx, &self.frame)?;
 
         self.draw_black_bars(state, ctx)?;
+
+        if self.inventory_dim > 0.0 {
+            let rect = Rect::new(0, 0, state.screen_size.0 as isize + 1, state.screen_size.1 as isize + 1);
+            let mut dim_color = state.constants.inventory_dim_color;
+            dim_color.a *= self.inventory_dim;
+            graphics::draw_rect(ctx, rect, dim_color)?;
+        }
 
         match state.textscript_vm.mode {
             ScriptMode::Map if state.control_flags.control_enabled() => {

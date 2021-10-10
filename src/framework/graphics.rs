@@ -36,6 +36,7 @@ pub fn present(ctx: &mut Context) -> GameResult {
     Ok(())
 }
 
+#[allow(unused)]
 pub fn renderer_initialized(ctx: &mut Context) -> bool {
     ctx.renderer.is_some()
 }
@@ -60,6 +61,7 @@ pub fn screen_size(ctx: &mut Context) -> (f32, f32) {
     ctx.screen_size
 }
 
+#[allow(unused)]
 pub fn screen_insets(ctx: &mut Context) -> (f32, f32, f32, f32) {
     ctx.screen_insets
 }
@@ -92,6 +94,7 @@ pub fn draw_rect(ctx: &mut Context, rect: Rect, color: Color) -> GameResult {
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
 
+#[allow(unused)]
 pub fn draw_outline_rect(ctx: &mut Context, rect: Rect, line_width: usize, color: Color) -> GameResult {
     if let Some(renderer) = ctx.renderer.as_mut() {
         return renderer.draw_outline_rect(rect, line_width, color);

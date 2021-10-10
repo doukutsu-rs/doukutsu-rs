@@ -914,7 +914,7 @@ impl BackendRenderer for OpenGLRenderer {
         }
     }
 
-    fn draw_outline_rect(&mut self, rect: Rect<isize>, line_width: usize, color: Color) -> GameResult {
+    fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Color) -> GameResult {
         Ok(())
     }
 

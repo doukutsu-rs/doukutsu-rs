@@ -215,6 +215,7 @@ pub enum ScanCode {
 bitfield! {
     /// Bitflags describing the state of keyboard modifiers, such as `Control` or `Shift`.
     #[derive(Debug, Copy, Clone)]
+    #[allow(unused)]
     pub struct KeyMods(u8);
 
     /// No modifiers; equivalent to `KeyMods::default()` and
