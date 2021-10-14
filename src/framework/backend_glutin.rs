@@ -128,6 +128,13 @@ fn get_insets() -> GameResult<(f32, f32, f32, f32)> {
     }
 }
 
+fn get_scaled_size(width: u32, height: u32) -> (f32, f32) {
+    let scaled_height = ((height / 480).max(1) * 480) as f32;
+    let scaled_width = width as f32 * (scaled_height as f32 / height as f32);
+
+    (scaled_width, scaled_height)
+}
+
 impl BackendEventLoop for GlutinEventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
         let event_loop = EventLoop::new();
@@ -137,7 +144,8 @@ impl BackendEventLoop for GlutinEventLoop {
 
         {
             let size = window.window().inner_size();
-            ctx.screen_size = (size.width.max(1) as f32, size.height.max(1) as f32);
+            ctx.real_screen_size = (size.width, size.height);
+            ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
             state_ref.handle_resize(ctx).unwrap();
         }
 
@@ -188,7 +196,8 @@ impl BackendEventLoop for GlutinEventLoop {
                             imgui.io_mut().display_size = [size.width as f32, size.height as f32];
                         }
 
-                        ctx.screen_size = (size.width as f32, size.height as f32);
+                        ctx.real_screen_size = (size.width, size.height);
+                        ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
                         state_ref.handle_resize(ctx).unwrap();
                     }
                 }
@@ -197,19 +206,21 @@ impl BackendEventLoop for GlutinEventLoop {
                 {
                     let mut controls = &mut state_ref.touch_controls;
                     let scale = state_ref.scale as f64;
+                    let loc_x = (touch.location.x * ctx.screen_size.0 as f64 / ctx.real_screen_size.0 as f64) / scale;
+                    let loc_y = (touch.location.y * ctx.screen_size.1 as f64 / ctx.real_screen_size.1 as f64) / scale;
 
                     match touch.phase {
                         TouchPhase::Started | TouchPhase::Moved => {
                             if let Some(point) = controls.points.iter_mut().find(|p| p.id == touch.id) {
                                 point.last_position = point.position;
-                                point.position = (touch.location.x / scale, touch.location.y / scale);
+                                point.position = (loc_x, loc_y);
                             } else {
                                 controls.touch_id_counter = controls.touch_id_counter.wrapping_add(1);
 
                                 let point = TouchPoint {
                                     id: touch.id,
                                     touch_id: controls.touch_id_counter,
-                                    position: (touch.location.x / scale, touch.location.y / scale),
+                                    position: (loc_x, loc_y),
                                     last_position: (0.0, 0.0),
                                 };
                                 controls.points.push(point);

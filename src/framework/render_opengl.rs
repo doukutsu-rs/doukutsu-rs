@@ -2,6 +2,7 @@ use std::cell::{RefCell, UnsafeCell};
 use std::ffi::{c_void, CStr};
 use std::mem;
 use std::mem::MaybeUninit;
+use std::ptr::null;
 use std::sync::Arc;
 
 use imgui::{DrawCmd, DrawCmdParams, DrawData, DrawIdx, DrawVert};
@@ -395,6 +396,9 @@ struct ImguiData {
     ebo: GLuint,
     font_texture: GLuint,
     font_tex_size: (f32, f32),
+    surf_framebuffer: GLuint,
+    surf_texture: GLuint,
+    last_size: (u32, u32),
 }
 
 impl ImguiData {
@@ -409,6 +413,9 @@ impl ImguiData {
             ebo: 0,
             font_texture: 0,
             font_tex_size: (1.0, 1.0),
+            surf_framebuffer: 0,
+            surf_texture: 0,
+            last_size: (320, 240),
         }
     }
 
@@ -510,7 +517,36 @@ impl ImguiData {
                 atlas.tex_id = (self.font_texture as usize).into();
             }
 
-            gl.gl.BindTexture(gl::TEXTURE_2D, current_texture as _);
+            let texture_id = return_param(|x| gl.gl.GenTextures(1, x));
+
+            gl.gl.BindTexture(gl::TEXTURE_2D, texture_id);
+            gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as _);
+            gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _);
+
+            gl.gl.TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA as _,
+                320 as _,
+                240 as _,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                null() as _,
+            );
+
+            gl.gl.BindTexture(gl::TEXTURE_2D, 0 as _);
+
+            self.surf_texture = texture_id;
+
+            let framebuffer_id = return_param(|x| gl.gl.GenFramebuffers(1, x));
+
+            gl.gl.BindFramebuffer(gl::FRAMEBUFFER, framebuffer_id);
+            gl.gl.FramebufferTexture2D(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D, texture_id, 0);
+            let draw_buffers = [gl::COLOR_ATTACHMENT0];
+            gl.gl.DrawBuffers(1, draw_buffers.as_ptr() as _);
+
+            self.surf_framebuffer = framebuffer_id;
         }
     }
 }
@@ -631,10 +667,36 @@ impl BackendRenderer for OpenGLRenderer {
             }
         }
 
-        if let Some((context, gl)) = self.get_context() {
-            unsafe {
-                gl.gl.Finish();
+        let ImguiData { program_tex, surf_texture, tex_locs: Locs { proj_mtx, .. }, .. } = self.imgui_data;
 
+        unsafe {
+            if let Some((_, gl)) = self.get_context() {
+                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
+                gl.gl.ClearColor(0.0, 0.0, 0.0, 1.0);
+                gl.gl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+                let matrix =
+                    [[2.0f32, 0.0, 0.0, 0.0], [0.0, -2.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0], [-1.0, 1.0, 0.0, 1.0]];
+
+                gl.gl.UseProgram(program_tex);
+                gl.gl.UniformMatrix4fv(proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+
+                let color = (255, 255, 255, 255);
+                let vertices = vec![
+                    VertexData { position: (0.0, 1.0), uv: (0.0, 0.0), color },
+                    VertexData { position: (0.0, 0.0), uv: (0.0, 1.0), color },
+                    VertexData { position: (1.0, 0.0), uv: (1.0, 1.0), color },
+                    VertexData { position: (0.0, 1.0), uv: (0.0, 0.0), color },
+                    VertexData { position: (1.0, 0.0), uv: (1.0, 1.0), color },
+                    VertexData { position: (1.0, 1.0), uv: (1.0, 0.0), color },
+                ];
+
+                self.draw_arrays_tex_id(gl::TRIANGLES, vertices, surf_texture, BackendShader::Texture)?;
+
+                gl.gl.Finish();
+            }
+
+            if let Some((context, _)) = self.get_context() {
                 (context.swap_buffers)(&mut context.user_data);
             }
         }
@@ -645,11 +707,35 @@ impl BackendRenderer for OpenGLRenderer {
     fn prepare_draw(&mut self, width: f32, height: f32) -> GameResult {
         if let Some((_, gl)) = self.get_context() {
             unsafe {
+                let (width_u, height_u) = (width as u32, height as u32);
+                if self.imgui_data.last_size != (width_u, height_u) {
+                    gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
+                    gl.gl.BindTexture(gl::TEXTURE_2D, self.imgui_data.surf_texture);
+
+                    gl.gl.TexImage2D(
+                        gl::TEXTURE_2D,
+                        0,
+                        gl::RGBA as _,
+                        width_u as _,
+                        height_u as _,
+                        0,
+                        gl::RGBA,
+                        gl::UNSIGNED_BYTE,
+                        null() as _,
+                    );
+
+                    gl.gl.BindTexture(gl::TEXTURE_2D, 0 as _);
+                }
+
+                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.imgui_data.surf_framebuffer);
+                gl.gl.ClearColor(0.0, 0.0, 0.0, 0.0);
+                gl.gl.Clear(gl::COLOR_BUFFER_BIT);
+
                 gl.gl.ActiveTexture(gl::TEXTURE0);
                 gl.gl.BlendEquation(gl::FUNC_ADD);
                 gl.gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
 
-                gl.gl.Viewport(0, 0, width as _, height as _);
+                gl.gl.Viewport(0, 0, width_u as _, height_u as _);
 
                 self.def_matrix = [
                     [2.0 / width, 0.0, 0.0, 0.0],
@@ -677,7 +763,6 @@ impl BackendRenderer for OpenGLRenderer {
     fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>> {
         if let Some((_, gl)) = self.get_context() {
             unsafe {
-                let data = vec![0u8; width as usize * height as usize * 4];
                 let current_texture_id = return_param(|x| gl.gl.GetIntegerv(gl::TEXTURE_BINDING_2D, x)) as u32;
                 let texture_id = return_param(|x| gl.gl.GenTextures(1, x));
 
@@ -694,7 +779,7 @@ impl BackendRenderer for OpenGLRenderer {
                     0,
                     gl::RGBA,
                     gl::UNSIGNED_BYTE,
-                    data.as_ptr() as _,
+                    null() as _,
                 );
 
                 gl.gl.BindTexture(gl::TEXTURE_2D, current_texture_id);
@@ -707,6 +792,8 @@ impl BackendRenderer for OpenGLRenderer {
                 gl.gl.DrawBuffers(1, draw_buffers.as_ptr() as _);
 
                 gl.gl.Viewport(0, 0, width as _, height as _);
+                gl.gl.ClearColor(0.0, 0.0, 0.0, 0.0);
+                gl.gl.Clear(gl::COLOR_BUFFER_BIT);
                 gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
 
                 // todo error checking: glCheckFramebufferStatus()
@@ -805,10 +892,20 @@ impl BackendRenderer for OpenGLRenderer {
                     ];
 
                     gl.gl.UseProgram(self.imgui_data.program_fill);
-                    gl.gl.UniformMatrix4fv(self.imgui_data.fill_locs.proj_mtx, 1, gl::FALSE, self.curr_matrix.as_ptr() as _);
+                    gl.gl.UniformMatrix4fv(
+                        self.imgui_data.fill_locs.proj_mtx,
+                        1,
+                        gl::FALSE,
+                        self.curr_matrix.as_ptr() as _,
+                    );
                     gl.gl.UseProgram(self.imgui_data.program_tex);
                     gl.gl.Uniform1i(self.imgui_data.tex_locs.texture, 0);
-                    gl.gl.UniformMatrix4fv(self.imgui_data.tex_locs.proj_mtx, 1, gl::FALSE, self.curr_matrix.as_ptr() as _);
+                    gl.gl.UniformMatrix4fv(
+                        self.imgui_data.tex_locs.proj_mtx,
+                        1,
+                        gl::FALSE,
+                        self.curr_matrix.as_ptr() as _,
+                    );
 
                     gl.gl.BindFramebuffer(gl::FRAMEBUFFER, gl_texture.framebuffer_id);
                 } else {
@@ -829,7 +926,7 @@ impl BackendRenderer for OpenGLRenderer {
                         gl::FALSE,
                         self.def_matrix.as_ptr() as _,
                     );
-                    gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
+                    gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.imgui_data.surf_framebuffer);
                 }
             }
 
@@ -1076,6 +1173,23 @@ impl OpenGLRenderer {
             return Ok(());
         }
 
+        let texture_id = if let Some(texture) = texture {
+            let gl_texture: &Box<OpenGLTexture> = std::mem::transmute(texture);
+            gl_texture.texture_id
+        } else {
+            0
+        };
+
+        self.draw_arrays_tex_id(vert_type, vertices, texture_id, shader)
+    }
+
+    unsafe fn draw_arrays_tex_id(
+        &mut self,
+        vert_type: GLenum,
+        vertices: Vec<VertexData>,
+        texture: u32,
+        shader: BackendShader,
+    ) -> GameResult<()> {
         if let Some(gl) = GL_PROC.as_ref() {
             match shader {
                 BackendShader::Fill => {
@@ -1148,14 +1262,7 @@ impl OpenGLRenderer {
                 }
             }
 
-            let texture_id = if let Some(texture) = texture {
-                let gl_texture: &Box<OpenGLTexture> = std::mem::transmute(texture);
-                gl_texture.texture_id
-            } else {
-                0
-            };
-
-            gl.gl.BindTexture(gl::TEXTURE_2D, texture_id);
+            gl.gl.BindTexture(gl::TEXTURE_2D, texture);
             gl.gl.BufferData(
                 gl::ARRAY_BUFFER,
                 (vertices.len() * mem::size_of::<VertexData>()) as _,

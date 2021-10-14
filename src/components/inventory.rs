@@ -1,5 +1,5 @@
 use crate::common::Rect;
-use crate::components::draw_common::{Alignment, draw_number};
+use crate::components::draw_common::{draw_number, Alignment};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
@@ -61,6 +61,15 @@ impl InventoryUI {
     fn get_item_event_number_action(&self, inventory: &Inventory) -> u16 {
         inventory.get_item_idx(self.selected_item as usize).map(|i| i.0 + 6000).unwrap_or(6000)
     }
+
+    fn exit(&mut self, state: &mut SharedGameState, player: &mut Player, inventory: &mut Inventory) {
+        self.focus = InventoryFocus::None;
+        inventory.current_item = 0;
+        self.text_y_pos = 16;
+        state.textscript_vm.reset();
+        state.textscript_vm.set_mode(ScriptMode::Map);
+        player.controller.update_trigger();
+    }
 }
 
 impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
@@ -80,12 +89,7 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
                 || player.controller.trigger_menu_back()
                 || (state.settings.touch_controls && state.touch_controls.consume_click_in(slot_rect)))
         {
-            self.focus = InventoryFocus::None;
-            inventory.current_item = 0;
-            self.text_y_pos = 16;
-            state.textscript_vm.reset();
-            state.textscript_vm.set_mode(ScriptMode::Map);
-            player.controller.update_trigger();
+            self.exit(state, player, inventory);
             return Ok(());
         }
 
@@ -231,6 +235,7 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
                     self.selected_weapon = i;
                     inventory.current_weapon = i;
                     state.textscript_vm.start_script(get_weapon_event_number(inventory));
+                    self.exit(state, player, inventory);
                 }
             }
 

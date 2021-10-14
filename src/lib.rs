@@ -104,16 +104,16 @@ impl Game {
         if let Some(scene) = self.scene.as_mut() {
             let state_ref = unsafe { &mut *self.state.get() };
 
-            match state_ref.timing_mode {
+            match state_ref.settings.timing_mode {
                 TimingMode::_50Hz | TimingMode::_60Hz => {
                     let last_tick = self.next_tick;
 
                     while self.start_time.elapsed().as_nanos() >= self.next_tick && self.loops < 10 {
                         if (state_ref.settings.speed - 1.0).abs() < 0.01 {
-                            self.next_tick += state_ref.timing_mode.get_delta() as u128;
+                            self.next_tick += state_ref.settings.timing_mode.get_delta() as u128;
                         } else {
                             self.next_tick +=
-                                (state_ref.timing_mode.get_delta() as f64 / state_ref.settings.speed) as u128;
+                                (state_ref.settings.timing_mode.get_delta() as f64 / state_ref.settings.speed) as u128;
                         }
                         self.loops += 1;
                     }
@@ -122,7 +122,7 @@ impl Game {
                         log::warn!("Frame skip is way too high, a long system lag occurred?");
                         self.last_tick = self.start_time.elapsed().as_nanos();
                         self.next_tick = self.last_tick
-                            + (state_ref.timing_mode.get_delta() as f64 / state_ref.settings.speed) as u128;
+                            + (state_ref.settings.timing_mode.get_delta() as f64 / state_ref.settings.speed) as u128;
                         self.loops = 0;
                     }
 
@@ -152,7 +152,7 @@ impl Game {
             return Ok(());
         }
 
-        if state_ref.timing_mode != TimingMode::FrameSynchronized {
+        if state_ref.settings.timing_mode != TimingMode::FrameSynchronized {
             let mut elapsed = self.start_time.elapsed().as_nanos();
 
             // Even with the non-monotonic Instant mitigation at the start of the event loop, there's still a chance of it not working.

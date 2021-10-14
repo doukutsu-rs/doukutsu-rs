@@ -64,7 +64,7 @@ impl SettingsMenu {
 
         self.main.push_entry(MenuEntry::Options(
             "Game timing:".to_owned(),
-            if state.timing_mode == TimingMode::_50Hz { 0 } else { 1 },
+            if state.settings.timing_mode == TimingMode::_50Hz { 0 } else { 1 },
             vec!["50tps (freeware)".to_owned(), "60tps (CS+)".to_owned()],
         ));
 
@@ -125,13 +125,13 @@ impl SettingsMenu {
                 }
                 MenuSelectionResult::Selected(2, toggle) => {
                     if let MenuEntry::Options(_, value, _) = toggle {
-                        match state.timing_mode {
+                        match state.settings.timing_mode {
                             TimingMode::_50Hz => {
-                                state.timing_mode = TimingMode::_60Hz;
+                                state.settings.timing_mode = TimingMode::_60Hz;
                                 *value = 1;
                             }
                             TimingMode::_60Hz => {
-                                state.timing_mode = TimingMode::_50Hz;
+                                state.settings.timing_mode = TimingMode::_50Hz;
                                 *value = 0;
                             }
                             _ => {}

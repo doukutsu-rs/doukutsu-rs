@@ -32,7 +32,7 @@ use crate::str;
 use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
 
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TimingMode {
     _50Hz,
     _60Hz,
@@ -109,7 +109,6 @@ impl TileSize {
 }
 
 pub struct SharedGameState {
-    pub timing_mode: TimingMode,
     pub control_flags: ControlFlags,
     pub game_flags: BitVec,
     pub skip_flags: BitVec,
@@ -212,7 +211,6 @@ impl SharedGameState {
         init_hooks();
 
         Ok(SharedGameState {
-            timing_mode: TimingMode::_50Hz,
             control_flags: ControlFlags(0),
             game_flags: bitvec::bitvec![0; 8000],
             skip_flags: bitvec::bitvec![0; 64],
@@ -422,7 +420,7 @@ impl SharedGameState {
     }
 
     pub fn current_tps(&self) -> f64 {
-        self.timing_mode.get_tps() as f64 * self.settings.speed
+        self.settings.timing_mode.get_tps() as f64 * self.settings.speed
     }
 
     pub fn shutdown(&mut self) {

@@ -9,6 +9,7 @@ pub struct Context {
     pub(crate) filesystem: Filesystem,
     pub(crate) renderer: Option<Box<dyn BackendRenderer>>,
     pub(crate) keyboard_context: KeyboardContext,
+    pub(crate) real_screen_size: (u32, u32),
     pub(crate) screen_size: (f32, f32),
     pub(crate) screen_insets: (f32, f32, f32, f32),
 }
@@ -20,6 +21,7 @@ impl Context {
             filesystem: Filesystem::new(),
             renderer: None,
             keyboard_context: KeyboardContext::new(),
+            real_screen_size: (320, 240),
             screen_size: (320.0, 240.0),
             screen_insets: (0.0, 0.0, 0.0, 0.0),
         }

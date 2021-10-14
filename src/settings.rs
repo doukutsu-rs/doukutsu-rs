@@ -6,6 +6,7 @@ use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
 use crate::input::touch_player_controller::TouchPlayerController;
 use crate::player::TargetPlayer;
+use crate::shared_game_state::TimingMode;
 use crate::sound::InterpolationMode;
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -24,6 +25,8 @@ pub struct Settings {
     pub motion_interpolation: bool,
     pub touch_controls: bool,
     pub soundtrack: String,
+    #[serde(default = "default_timing")]
+    pub timing_mode: TimingMode,
     #[serde(default = "default_interpolation")]
     pub organya_interpolation: InterpolationMode,
     #[serde(default = "p1_default_keymap")]
@@ -43,7 +46,10 @@ pub struct Settings {
 fn default_true() -> bool { true }
 
 #[inline(always)]
-fn current_version() -> u32 { 3 }
+fn current_version() -> u32 { 4 }
+
+#[inline(always)]
+fn default_timing() -> TimingMode { TimingMode::_50Hz }
 
 #[inline(always)]
 fn default_interpolation() -> InterpolationMode { InterpolationMode::Linear }
@@ -71,6 +77,11 @@ impl Settings {
         if self.version == 2 {
             self.version = 3;
             self.light_cone = true;
+        }
+
+        if self.version == 3 {
+            self.version = 4;
+            self.timing_mode = default_timing();
         }
 
         if self.version != initial_version {
@@ -112,6 +123,7 @@ impl Default for Settings {
             motion_interpolation: true,
             touch_controls: cfg!(target_os = "android"),
             soundtrack: "".to_string(),
+            timing_mode: default_timing(),
             organya_interpolation: InterpolationMode::Linear,
             player1_key_map: p1_default_keymap(),
             player2_key_map: p2_default_keymap(),
