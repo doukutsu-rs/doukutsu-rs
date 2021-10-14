@@ -14,9 +14,9 @@ cmake_minimum_required(VERSION 3.10)
 #
 #   find_package(ndk-stl REQUIRED PATHS ".")
 
-if(NOT ${ANDROID_STL} MATCHES "_shared")
-  return()
-endif()
+#if(NOT ${ANDROID_STL} MATCHES "_shared")
+#  return()
+#endif()
 
 function(configure_shared_stl lib_path so_base)
   message("Configuring STL ${so_base} for ${ANDROID_ABI}")
