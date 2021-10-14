@@ -93,9 +93,9 @@ impl From<std::string::FromUtf8Error> for GameError {
     }
 }
 
-impl From<serde_yaml::Error> for GameError {
-    fn from(e: serde_yaml::Error) -> Self {
-        let errstr = format!("Yaml error: {:?}", e);
+impl From<serde_json::Error> for GameError {
+    fn from(e: serde_json::Error) -> Self {
+        let errstr = format!("JSON error: {:?}", e);
         GameError::ParseError(errstr)
     }
 }

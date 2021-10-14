@@ -260,10 +260,12 @@ pub struct Rect<T: Num + PartialOrd + Copy = isize> {
 }
 
 impl<T: Num + PartialOrd + Copy> Rect<T> {
+    #[inline(always)]
     pub fn new(left: T, top: T, right: T, bottom: T) -> Rect<T> {
         Rect { left, top, right, bottom }
     }
 
+    #[inline(always)]
     pub fn new_size(x: T, y: T, width: T, height: T) -> Rect<T> {
         Rect { left: x, top: y, right: x.add(width), bottom: y.add(height) }
     }

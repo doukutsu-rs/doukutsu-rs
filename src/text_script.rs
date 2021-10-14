@@ -1845,8 +1845,6 @@ impl TextScript {
 
     /// Compiles a decrypted text script data into internal bytecode.
     pub fn compile(data: &[u8], strict: bool, encoding: TextScriptEncoding) -> GameResult<TextScript> {
-        log::info!("data: {}", String::from_utf8_lossy(data));
-
         let mut event_map = HashMap::new();
         let mut iter = data.iter().copied().peekable();
         let mut last_event = 0;

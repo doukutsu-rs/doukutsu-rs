@@ -4,7 +4,8 @@ use num_derive::FromPrimitive;
 use num_traits::clamp;
 
 use crate::caret::CaretType;
-use crate::common::{Condition, Direction, Equipment, Flag, interpolate_fix9_scale, Rect};
+use crate::common::{interpolate_fix9_scale, Condition, Direction, Equipment, Flag, Rect};
+use crate::components::number_popup::NumberPopup;
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
@@ -13,13 +14,13 @@ use crate::input::dummy_player_controller::DummyPlayerController;
 use crate::input::player_controller::PlayerController;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
-use crate::player::skin::{PlayerAnimationState, PlayerAppearanceState, PlayerSkin};
 use crate::player::skin::basic::BasicPlayerSkin;
+use crate::player::skin::{PlayerAnimationState, PlayerAppearanceState, PlayerSkin};
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
-use crate::components::number_popup::NumberPopup;
 
 mod player_hit;
+pub mod player_list;
 pub mod skin;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
@@ -40,6 +41,14 @@ impl TargetPlayer {
     pub fn index(self) -> usize {
         self as usize
     }
+}
+
+#[derive(PartialEq, Eq, Copy, Clone)]
+enum BoosterSwitch {
+    None,
+    Up,
+    Sides,
+    Down,
 }
 
 #[derive(Clone)]
@@ -68,6 +77,7 @@ pub struct Player {
     pub up: bool,
     pub down: bool,
     pub shock_counter: u8,
+    pub xp_counter: u8,
     pub current_weapon: u8,
     pub stars: u8,
     pub damage: u16,
@@ -79,7 +89,7 @@ pub struct Player {
     weapon_offset_y: i8,
     splash: bool,
     tick: u8,
-    booster_switch: u8,
+    booster_switch: BoosterSwitch,
     damage_counter: u16,
     damage_taken: i16,
     pub anim_num: u16,
@@ -121,8 +131,9 @@ impl Player {
             current_weapon: 0,
             weapon_offset_y: 0,
             shock_counter: 0,
+            xp_counter: 0,
             tick: 0,
-            booster_switch: 0,
+            booster_switch: BoosterSwitch::None,
             stars: 0,
             damage: 0,
             air_counter: 0,
@@ -185,12 +196,12 @@ impl Player {
         self.question = false;
 
         if !state.control_flags.control_enabled() {
-            self.booster_switch = 0;
+            self.booster_switch = BoosterSwitch::None;
         }
 
         // ground movement
         if self.flags.hit_bottom_wall() || self.flags.hit_right_slope() || self.flags.hit_left_slope() {
-            self.booster_switch = 0;
+            self.booster_switch = BoosterSwitch::None;
 
             if state.settings.infinite_booster {
                 self.booster_fuel = u32::MAX;
@@ -258,31 +269,30 @@ impl Player {
             if state.control_flags.control_enabled() {
                 if self.controller.trigger_jump() && self.booster_fuel != 0 {
                     if self.equip.has_booster_0_8() {
-                        self.booster_switch = 1;
+                        self.booster_switch = BoosterSwitch::Sides;
 
                         if self.vel_y > 0x100 {
-                            // 0.5fix9
                             self.vel_y /= 2;
                         }
                     } else if state.settings.infinite_booster || self.equip.has_booster_2_0() {
                         if self.controller.move_up() {
-                            self.booster_switch = 2;
+                            self.booster_switch = BoosterSwitch::Up;
                             self.vel_x = 0;
                             self.vel_y = state.constants.booster.b2_0_up;
                         } else if self.controller.move_left() {
-                            self.booster_switch = 1;
+                            self.booster_switch = BoosterSwitch::Sides;
                             self.vel_x = state.constants.booster.b2_0_left;
                             self.vel_y = 0;
                         } else if self.controller.move_right() {
-                            self.booster_switch = 1;
+                            self.booster_switch = BoosterSwitch::Sides;
                             self.vel_x = state.constants.booster.b2_0_right;
                             self.vel_y = 0;
                         } else if self.controller.move_down() {
-                            self.booster_switch = 3;
+                            self.booster_switch = BoosterSwitch::Down;
                             self.vel_x = 0;
                             self.vel_y = state.constants.booster.b2_0_down;
                         } else {
-                            self.booster_switch = 2;
+                            self.booster_switch = BoosterSwitch::Up;
                             self.vel_x = 0;
                             self.vel_y = state.constants.booster.b2_0_up_nokey;
                         }
@@ -307,18 +317,18 @@ impl Player {
             }
 
             if (state.settings.infinite_booster || self.equip.has_booster_2_0())
-                && self.booster_switch != 0
+                && self.booster_switch != BoosterSwitch::None
                 && (!self.controller.jump() || self.booster_fuel == 0)
             {
                 match self.booster_switch {
-                    1 => self.vel_x /= 2,
-                    2 => self.vel_y /= 2,
-                    _ => {}
+                    BoosterSwitch::Sides => self.vel_x /= 2,
+                    BoosterSwitch::Up => self.vel_y /= 2,
+                    _ => (),
                 }
             }
 
             if self.booster_fuel == 0 || !self.controller.jump() {
-                self.booster_switch = 0;
+                self.booster_switch = BoosterSwitch::None;
             }
         }
 
@@ -348,7 +358,7 @@ impl Player {
         }
 
         // booster losing fuel
-        if self.booster_switch != 0 && self.booster_fuel != 0 {
+        if self.booster_switch != BoosterSwitch::None && self.booster_fuel != 0 {
             self.booster_fuel -= 1;
         }
 
@@ -367,18 +377,18 @@ impl Player {
             self.vel_y += 0x55;
         }
 
-        if (state.settings.infinite_booster || self.equip.has_booster_2_0()) && self.booster_switch != 0 {
+        if (state.settings.infinite_booster || self.equip.has_booster_2_0()) && self.booster_switch != BoosterSwitch::None {
             match self.booster_switch {
-                1 => {
+                BoosterSwitch::Sides => {
                     if self.flags.hit_left_wall() || self.flags.hit_right_wall() {
-                        self.vel_y = -0x100; // -0.5fix9
+                        self.vel_y = -0x100;
                     }
 
                     if self.direction == Direction::Left {
-                        self.vel_x -= 0x20; // 0.1fix9
+                        self.vel_x -= 0x20;
                     }
                     if self.direction == Direction::Right {
-                        self.vel_x += 0x20; // 0.1fix9
+                        self.vel_x += 0x20;
                     }
 
                     if self.controller.trigger_jump() || self.booster_fuel % 3 == 1 {
@@ -393,7 +403,7 @@ impl Player {
                         state.sound_manager.play_sfx(113);
                     }
                 }
-                2 => {
+                BoosterSwitch::Up => {
                     self.vel_y -= 0x20;
 
                     if self.controller.trigger_jump() || self.booster_fuel % 3 == 1 {
@@ -401,7 +411,7 @@ impl Player {
                         state.sound_manager.play_sfx(113);
                     }
                 }
-                3 if self.controller.trigger_jump() || self.booster_fuel % 3 == 1 => {
+                BoosterSwitch::Down if self.controller.trigger_jump() || self.booster_fuel % 3 == 1 => {
                     state.create_caret(self.x, self.y + 0xc00, CaretType::Exhaust, Direction::Up);
                     state.sound_manager.play_sfx(113);
                 }
@@ -409,7 +419,7 @@ impl Player {
             }
         } else if self.flags.force_up() {
             self.vel_y += physics.gravity_air;
-        } else if self.equip.has_booster_0_8() && self.booster_switch != 0 && self.vel_y > -0x400 {
+        } else if self.equip.has_booster_0_8() && self.booster_switch != BoosterSwitch::None && self.vel_y > -0x400 {
             self.vel_y -= 0x20;
 
             if self.booster_fuel % 3 == 0 {
@@ -725,13 +735,16 @@ impl GameEntity<&NPCList> for Player {
             self.damage_counter -= 1;
         }
 
+        if self.xp_counter != 0 {
+            self.xp_counter -= 1;
+        }
+
         if self.shock_counter != 0 {
             self.shock_counter -= 1;
         } else if self.damage_taken != 0 {
             self.damage_taken = 0;
         }
 
-        // todo: add additional control modes like NXEngine has such as noclip?
         match self.control_mode {
             ControlMode::Normal => self.tick_normal(state, npc_list)?,
             ControlMode::IronHead => self.tick_ironhead(state)?,
@@ -813,7 +826,8 @@ impl GameEntity<&NPCList> for Player {
                     self.prev_y - self.display_bounds.top as i32,
                     self.y - self.display_bounds.top as i32,
                     state.frame_time,
-                ) + self.weapon_offset_y as f32 + gun_off_y as f32
+                ) + self.weapon_offset_y as f32
+                    + gun_off_y as f32
                     - frame_y,
                 &self.weapon_rect,
             );

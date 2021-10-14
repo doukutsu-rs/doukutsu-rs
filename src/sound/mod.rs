@@ -41,6 +41,7 @@ pub struct SoundManager {
     tx: Sender<PlaybackMessage>,
     prev_song_id: usize,
     current_song_id: usize,
+    no_audio: bool,
 }
 
 enum SongFormat {
@@ -64,6 +65,12 @@ impl SoundManager {
     pub fn new(ctx: &mut Context) -> GameResult<SoundManager> {
         let (tx, rx): (Sender<PlaybackMessage>, Receiver<PlaybackMessage>) = mpsc::channel();
 
+        if ctx.headless {
+            log::info!("Running in headless mode, skipping initialization.");
+
+            return Ok(SoundManager { tx: tx.clone(), prev_song_id: 0, current_song_id: 0, no_audio: true });
+        }
+
         let host = cpal::default_host();
         let device =
             host.default_output_device().ok_or_else(|| AudioError(str!("Error initializing audio device.")))?;
@@ -81,22 +88,34 @@ impl SoundManager {
             }
         });
 
-        Ok(SoundManager { tx: tx.clone(), prev_song_id: 0, current_song_id: 0 })
+        Ok(SoundManager { tx: tx.clone(), prev_song_id: 0, current_song_id: 0, no_audio: false })
     }
 
     pub fn play_sfx(&self, id: u8) {
+        if self.no_audio {
+            return;
+        }
         let _ = self.tx.send(PlaybackMessage::PlaySample(id));
     }
 
     pub fn loop_sfx(&self, id: u8) {
+        if self.no_audio {
+            return;
+        }
         let _ = self.tx.send(PlaybackMessage::LoopSample(id));
     }
 
     pub fn stop_sfx(&self, id: u8) {
+        if self.no_audio {
+            return;
+        }
         let _ = self.tx.send(PlaybackMessage::StopSample(id));
     }
 
     pub fn set_org_interpolation(&self, interpolation: InterpolationMode) {
+        if self.no_audio {
+            return;
+        }
         let _ = self.tx.send(PlaybackMessage::SetOrgInterpolation(interpolation));
     }
 
@@ -107,7 +126,7 @@ impl SoundManager {
         settings: &Settings,
         ctx: &mut Context,
     ) -> GameResult {
-        if self.current_song_id == song_id {
+        if self.current_song_id == song_id || self.no_audio {
             return Ok(());
         }
 
@@ -157,7 +176,8 @@ impl SoundManager {
 
                                     self.prev_song_id = self.current_song_id;
                                     self.current_song_id = song_id;
-                                    self.tx.send(PlaybackMessage::SetOrgInterpolation(settings.organya_interpolation))?;
+                                    self.tx
+                                        .send(PlaybackMessage::SetOrgInterpolation(settings.organya_interpolation))?;
                                     self.tx.send(PlaybackMessage::SaveState)?;
                                     self.tx.send(PlaybackMessage::PlayOrganyaSong(Box::new(org)))?;
 
@@ -237,6 +257,10 @@ impl SoundManager {
     }
 
     pub fn save_state(&mut self) -> GameResult {
+        if self.no_audio {
+            return Ok(());
+        }
+
         self.tx.send(PlaybackMessage::SaveState)?;
         self.prev_song_id = self.current_song_id;
 
@@ -244,6 +268,10 @@ impl SoundManager {
     }
 
     pub fn restore_state(&mut self) -> GameResult {
+        if self.no_audio {
+            return Ok(());
+        }
+
         self.tx.send(PlaybackMessage::RestoreState)?;
         self.current_song_id = self.prev_song_id;
 
@@ -251,9 +279,14 @@ impl SoundManager {
     }
 
     pub fn set_speed(&self, speed: f32) -> GameResult {
+        if self.no_audio {
+            return Ok(());
+        }
+
         if speed <= 0.0 {
             return Err(InvalidValue(str!("Speed must be bigger than 0.0!")));
         }
+
         self.tx.send(PlaybackMessage::SetSpeed(speed))?;
 
         Ok(())
@@ -264,6 +297,10 @@ impl SoundManager {
     }
 
     pub fn set_sample_params_from_file<R: io::Read>(&self, id: u8, data: R) -> GameResult {
+        if self.no_audio {
+            return Ok(());
+        }
+
         let mut reader = BufReader::new(data).lines();
         let mut params = PixToneParameters::empty();
 
@@ -325,6 +362,10 @@ impl SoundManager {
     }
 
     pub fn set_sample_params(&self, id: u8, params: PixToneParameters) -> GameResult {
+        if self.no_audio {
+            return Ok(());
+        }
+
         self.tx.send(PlaybackMessage::SetSampleParams(id, params))?;
 
         Ok(())

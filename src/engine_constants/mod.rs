@@ -480,7 +480,7 @@ impl EngineConstants {
                 question_right_rect: Rect { left: 48, top: 64, right: 64, bottom: 80 },
             },
             world: WorldConsts { snack_rect: Rect { left: 256, top: 48, right: 272, bottom: 64 } },
-            npc: serde_yaml::from_str("dummy: \"lol\"").unwrap(),
+            npc: serde_json::from_str("{}").unwrap(),
             weapon: WeaponConsts {
                 bullet_table: vec![
                     // Null

@@ -17,8 +17,8 @@ bench = false
 required-features = ["exe"]
 
 [profile.release]
-lto = 'thin'
-panic = 'abort'
+lto = "off"
+panic = "abort"
 
 [profile.dev.package."*"]
 opt-level = 3
@@ -33,13 +33,13 @@ category = "Game"
 osx_minimum_system_version = "10.12"
 
 [features]
-default = ["scripting", "backend-sdl", "render-opengl", "ogg-playback", "exe"]
+default = ["scripting", "backend-sdl", "render-opengl", "ogg-playback", "exe", "netplay"]
 ogg-playback = ["lewton"]
 backend-sdl = ["sdl2", "sdl2-sys"]
 backend-glutin = ["winit", "glutin", "render-opengl"]
 render-opengl = []
 scripting = ["lua-ffi"]
-netplay = []
+netplay = ["tokio", "serde_cbor"]
 editor = []
 hooks = ["libc"]
 exe = []
@@ -73,11 +73,12 @@ sdl2 = { version = "=0.34.2", optional = true, features = ["unsafe_textures", "b
 sdl2-sys = { version = "=0.34.2", optional = true, features = ["bundled", "static-link"] }
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
+serde_cbor = { version = "0.11.2", optional = true }
 serde_json = "1.0"
-serde_yaml = "0.8"
 simple_logger = { version = "1.13" }
 strum = "0.20"
 strum_macros = "0.20"
+tokio = { version = "1.12.0", features = ["net"], optional = true }
 # remove and replace when drain_filter is in stable
 vec_mut_scan = "0.4"
 webbrowser = "0.5.5"

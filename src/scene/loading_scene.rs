@@ -37,7 +37,12 @@ impl LoadingScene {
         let stage_select_script = TextScript::load_from(stage_select_tsc, &state.constants)?;
         state.textscript_vm.set_stage_select_script(stage_select_script);
 
-        state.start_intro(ctx)?;
+        if ctx.headless {
+            log::info!("Headless mode detected, skipping intro and loading last saved game.");
+            state.load_or_start_game(ctx)?;
+        } else {
+            state.start_intro(ctx)?;
+        }
 
         Ok(())
     }

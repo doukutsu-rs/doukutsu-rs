@@ -75,7 +75,11 @@ pub trait BackendTexture {
 }
 
 #[allow(unreachable_code)]
-pub fn init_backend() -> GameResult<Box<dyn Backend>> {
+pub fn init_backend(headless: bool) -> GameResult<Box<dyn Backend>> {
+    if headless {
+        return crate::framework::backend_null::NullBackend::new();
+    }
+
     #[cfg(all(feature = "backend-glutin"))]
     {
         return crate::framework::backend_glutin::GlutinBackend::new();

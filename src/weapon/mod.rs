@@ -136,6 +136,12 @@ impl Weapon {
                 state.create_caret(player.x, player.y, CaretType::LevelUp, Direction::Left);
             }
         }
+
+        player.xp_counter = if self.wtype != WeaponType::Spur {
+            30
+        } else {
+            10
+        };
     }
 
     pub fn reset_xp(&mut self) {

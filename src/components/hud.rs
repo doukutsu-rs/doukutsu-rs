@@ -18,6 +18,7 @@ pub struct HUD {
     max_ammo: u16,
     xp: u16,
     max_xp: u16,
+    xp_bar_counter: u8,
     max_level: bool,
     life: u16,
     max_life: u16,
@@ -42,6 +43,7 @@ impl HUD {
             max_ammo: 0,
             xp: 0,
             max_xp: 0,
+            xp_bar_counter: 0,
             max_level: false,
             life: 0,
             max_life: 0,
@@ -66,6 +68,7 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
         self.max_ammo = max_ammo;
         self.xp = xp;
         self.max_xp = max_xp;
+        self.xp_bar_counter = if player.xp_counter != 0 { self.xp_bar_counter.wrapping_add(1) } else { 0 };
         self.max_level = max_level;
 
         self.life = player.life;
@@ -138,7 +141,7 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
                     pos_x -= 48;
                 }
 
-                let wtype = unsafe { *self.weapon_types.get_unchecked(a) };
+                let wtype = self.weapon_types[a];
                 if wtype != 0 {
                     rect = Rect::new_size(pos_x + weapon_offset - 4, 16 - 4, 24, 24);
 
@@ -203,6 +206,10 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
             batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(0, 80, bar_width, 8));
         }
 
+        if (self.xp_bar_counter & 0x02) != 0 {
+            batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(40, 80, 40, 8));
+        }
+
         if self.max_life != 0 {
             let yellow_bar_width = (self.life_bar as f32 / self.max_life as f32 * 39.0) as u16;
             let bar_width = (self.life as f32 / self.max_life as f32 * 39.0) as u16;
@@ -252,8 +259,7 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
                     pos_x -= 96.0 + self.weapon_count as f32 * 16.0;
                 }
 
-                let wtype = unsafe { *self.weapon_types.get_unchecked(a) };
-
+                let wtype = self.weapon_types[a];
                 if wtype != 0 {
                     rect.left = wtype as u16 * 16;
                     rect.right = rect.left + 16;

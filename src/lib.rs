@@ -67,6 +67,10 @@ mod text_script;
 mod texture_set;
 mod weapon;
 
+pub struct LaunchOptions {
+    pub server_mode: bool,
+}
+
 lazy_static! {
     pub static ref GAME_SUSPENDED: Mutex<bool> = Mutex::new(false);
 }
@@ -142,6 +146,12 @@ impl Game {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         let state_ref = unsafe { &mut *self.state.get() };
 
+        if ctx.headless {
+            self.loops = 0;
+            state_ref.frame_time = 1.0;
+            return Ok(());
+        }
+
         if state_ref.timing_mode != TimingMode::FrameSynchronized {
             let mut elapsed = self.start_time.elapsed().as_nanos();
 
@@ -185,7 +195,7 @@ impl Game {
     }
 }
 
-pub fn init() -> GameResult {
+pub fn init(options: LaunchOptions) -> GameResult {
     let _ = simple_logger::init_with_level(log::Level::Info);
 
     #[cfg(not(target_os = "android"))]
@@ -263,6 +273,11 @@ pub fn init() -> GameResult {
                 mount_user_vfs(&mut context, Box::new(PhysicalFS::new(project_dirs.data_local_dir(), false)));
             }
         }
+
+    if options.server_mode {
+        log::info!("Running in server mode...");
+        context.headless = true;
+    }
 
     let game = UnsafeCell::new(Game::new(&mut context)?);
     let state_ref = unsafe { &mut *((&mut *game.get()).state.get()) };

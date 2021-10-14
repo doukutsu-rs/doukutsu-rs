@@ -5,6 +5,7 @@ use crate::framework::keyboard::KeyboardContext;
 use crate::Game;
 
 pub struct Context {
+    pub headless: bool,
     pub(crate) filesystem: Filesystem,
     pub(crate) renderer: Option<Box<dyn BackendRenderer>>,
     pub(crate) keyboard_context: KeyboardContext,
@@ -15,6 +16,7 @@ pub struct Context {
 impl Context {
     pub fn new() -> Context {
         Context {
+            headless: false,
             filesystem: Filesystem::new(),
             renderer: None,
             keyboard_context: KeyboardContext::new(),
@@ -24,7 +26,7 @@ impl Context {
     }
 
     pub fn run(&mut self, game: &mut Game) -> GameResult {
-        let backend = init_backend()?;
+        let backend = init_backend(self.headless)?;
         let mut event_loop = backend.create_event_loop()?;
         self.renderer = Some(event_loop.new_renderer()?);
 

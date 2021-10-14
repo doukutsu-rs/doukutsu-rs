@@ -3,7 +3,18 @@
 use std::process::exit;
 
 fn main() {
-    let result = doukutsu_rs::init();
+    let args = std::env::args();
+    let mut options = doukutsu_rs::LaunchOptions {
+        server_mode: false
+    };
+
+    for arg in args {
+        if arg == "--server-mode" {
+            options.server_mode = true;
+        }
+    }
+
+    let result = doukutsu_rs::init(options);
 
     #[cfg(target_os = "windows")]
         unsafe {
@@ -28,7 +39,7 @@ fn main() {
     }
 
     if let Err(e) = result {
-        println!("Initialization error: {}", e);
+        eprintln!("Initialization error: {}", e);
         exit(1);
     }
 }

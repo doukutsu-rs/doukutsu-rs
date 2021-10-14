@@ -20,6 +20,117 @@ use crate::str;
 pub static mut I_MAG: f32 = 1.0;
 pub static mut G_MAG: f32 = 1.0;
 
+pub trait SpriteBatch {
+    fn width(&self) -> usize;
+
+    fn height(&self) -> usize;
+
+    fn dimensions(&self) -> (usize, usize);
+
+    fn real_dimensions(&self) -> (usize, usize);
+
+    fn scale(&self) -> (f32, f32);
+
+    fn has_glow_layer(&self) -> bool;
+
+    fn has_normal_layer(&self) -> bool;
+
+    fn to_rect(&self) -> common::Rect<usize>;
+
+    fn clear(&mut self);
+
+    fn add(&mut self, x: f32, y: f32);
+
+    fn add_rect(&mut self, x: f32, y: f32, rect: &common::Rect<u16>);
+
+    fn add_rect_flip(&mut self, x: f32, y: f32, flip_x: bool, flip_y: bool, rect: &common::Rect<u16>);
+
+    fn add_rect_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8, u8), rect: &common::Rect<u16>);
+
+    fn add_rect_scaled(&mut self, x: f32, y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<u16>);
+
+    fn add_rect_scaled_tinted(
+        &mut self,
+        x: f32,
+        y: f32,
+        color: (u8, u8, u8, u8),
+        scale_x: f32,
+        scale_y: f32,
+        rect: &common::Rect<u16>,
+    );
+
+    fn draw(&mut self, ctx: &mut Context) -> GameResult;
+
+    fn draw_filtered(&mut self, _filter: FilterMode, _ctx: &mut Context) -> GameResult;
+}
+
+pub struct DummyBatch;
+
+impl SpriteBatch for DummyBatch {
+    fn width(&self) -> usize {
+        1
+    }
+
+    fn height(&self) -> usize {
+        1
+    }
+
+    fn dimensions(&self) -> (usize, usize) {
+        (1, 1)
+    }
+
+    fn real_dimensions(&self) -> (usize, usize) {
+        (1, 1)
+    }
+
+    fn scale(&self) -> (f32, f32) {
+        (1.0, 1.0)
+    }
+
+    fn has_glow_layer(&self) -> bool {
+        false
+    }
+
+    fn has_normal_layer(&self) -> bool {
+        false
+    }
+
+    fn to_rect(&self) -> Rect<usize> {
+        Rect::new(0, 0, 1, 1)
+    }
+
+    fn clear(&mut self) {}
+
+    fn add(&mut self, _x: f32, _y: f32) {}
+
+    fn add_rect(&mut self, _x: f32, _y: f32, _rect: &Rect<u16>) {}
+
+    fn add_rect_flip(&mut self, _x: f32, _y: f32, _flip_x: bool, _flip_y: bool, _rect: &Rect<u16>) {}
+
+    fn add_rect_tinted(&mut self, _x: f32, _y: f32, _color: (u8, u8, u8, u8), _rect: &Rect<u16>) {}
+
+    fn add_rect_scaled(&mut self, _x: f32, _y: f32, _scale_x: f32, _scale_y: f32, _rect: &Rect<u16>) {}
+
+    fn add_rect_scaled_tinted(
+        &mut self,
+        _x: f32,
+        _y: f32,
+        _color: (u8, u8, u8, u8),
+        _scale_x: f32,
+        _scale_y: f32,
+        _rect: &Rect<u16>,
+    ) {
+    }
+
+    fn draw(&mut self, _ctx: &mut Context) -> GameResult {
+        Ok(())
+    }
+
+    fn draw_filtered(&mut self, _filter: FilterMode, _ctx: &mut Context) -> GameResult {
+        Ok(())
+    }
+}
+
 pub struct SizedBatch {
     batch: Box<dyn BackendTexture>,
     width: usize,
@@ -32,53 +143,53 @@ pub struct SizedBatch {
     has_normal_layer: bool,
 }
 
-impl SizedBatch {
+impl SpriteBatch for SizedBatch {
     #[inline(always)]
-    pub fn width(&self) -> usize {
+    fn width(&self) -> usize {
         self.width
     }
 
     #[inline(always)]
-    pub fn height(&self) -> usize {
+    fn height(&self) -> usize {
         self.height
     }
 
     #[inline(always)]
-    pub fn dimensions(&self) -> (usize, usize) {
+    fn dimensions(&self) -> (usize, usize) {
         (self.width, self.height)
     }
 
     #[inline(always)]
-    pub fn real_dimensions(&self) -> (usize, usize) {
+    fn real_dimensions(&self) -> (usize, usize) {
         (self.real_width, self.real_height)
     }
 
     #[inline(always)]
-    pub fn scale(&self) -> (f32, f32) {
+    fn scale(&self) -> (f32, f32) {
         (self.scale_x, self.scale_y)
     }
 
     #[inline(always)]
-    pub fn has_glow_layer(&self) -> bool {
+    fn has_glow_layer(&self) -> bool {
         self.has_glow_layer
     }
 
     #[inline(always)]
-    pub fn has_normal_layer(&self) -> bool {
+    fn has_normal_layer(&self) -> bool {
         self.has_normal_layer
     }
 
     #[inline(always)]
-    pub fn to_rect(&self) -> common::Rect<usize> {
+    fn to_rect(&self) -> common::Rect<usize> {
         common::Rect::<usize>::new(0, 0, self.width, self.height)
     }
 
     #[inline(always)]
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         self.batch.clear();
     }
 
-    pub fn add(&mut self, x: f32, y: f32) {
+    fn add(&mut self, x: f32, y: f32) {
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRect(
@@ -93,11 +204,11 @@ impl SizedBatch {
     }
 
     #[inline(always)]
-    pub fn add_rect(&mut self, x: f32, y: f32, rect: &common::Rect<u16>) {
+    fn add_rect(&mut self, x: f32, y: f32, rect: &common::Rect<u16>) {
         self.add_rect_scaled(x, y, 1.0, 1.0, rect)
     }
 
-    pub fn add_rect_flip(&mut self, x: f32, y: f32, flip_x: bool, flip_y: bool, rect: &common::Rect<u16>) {
+    fn add_rect_flip(&mut self, x: f32, y: f32, flip_x: bool, flip_y: bool, rect: &common::Rect<u16>) {
         if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
             return;
         }
@@ -123,11 +234,11 @@ impl SizedBatch {
     }
 
     #[inline(always)]
-    pub fn add_rect_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8, u8), rect: &common::Rect<u16>) {
+    fn add_rect_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8, u8), rect: &common::Rect<u16>) {
         self.add_rect_scaled_tinted(x, y, color, 1.0, 1.0, rect)
     }
 
-    pub fn add_rect_scaled(&mut self, x: f32, y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
+    fn add_rect_scaled(&mut self, x: f32, y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<u16>) {
         if (rect.right.saturating_sub(rect.left)) == 0 || (rect.bottom.saturating_sub(rect.top)) == 0 {
             return;
         }
@@ -150,7 +261,7 @@ impl SizedBatch {
         ));
     }
 
-    pub fn add_rect_scaled_tinted(
+    fn add_rect_scaled_tinted(
         &mut self,
         x: f32,
         y: f32,
@@ -178,11 +289,11 @@ impl SizedBatch {
     }
 
     #[inline(always)]
-    pub fn draw(&mut self, ctx: &mut Context) -> GameResult {
+    fn draw(&mut self, ctx: &mut Context) -> GameResult {
         self.draw_filtered(FilterMode::Nearest, ctx)
     }
 
-    pub fn draw_filtered(&mut self, _filter: FilterMode, _ctx: &mut Context) -> GameResult {
+    fn draw_filtered(&mut self, _filter: FilterMode, _ctx: &mut Context) -> GameResult {
         //self.batch.set_filter(filter);
         self.batch.draw()?;
         self.batch.clear();
@@ -191,13 +302,18 @@ impl SizedBatch {
 }
 
 pub struct TextureSet {
-    pub tex_map: HashMap<String, SizedBatch>,
+    pub tex_map: HashMap<String, Box<dyn SpriteBatch>>,
     pub paths: Vec<String>,
+    dummy_batch: Box<dyn SpriteBatch>,
 }
 
 impl TextureSet {
     pub fn new(base_path: &str) -> TextureSet {
-        TextureSet { tex_map: HashMap::new(), paths: vec![base_path.to_string(), "".to_string()] }
+        TextureSet {
+            tex_map: HashMap::new(),
+            paths: vec![base_path.to_string(), "".to_string()],
+            dummy_batch: Box::new(DummyBatch),
+        }
     }
 
     pub fn apply_seasonal_content(&mut self, season: Season, settings: &Settings) {
@@ -239,14 +355,17 @@ impl TextureSet {
         create_texture(ctx, width as u16, height as u16, &img)
     }
 
-    pub fn load_texture(&self, ctx: &mut Context, constants: &EngineConstants, name: &str) -> GameResult<SizedBatch> {
+    pub fn load_texture(
+        &self,
+        ctx: &mut Context,
+        constants: &EngineConstants,
+        name: &str,
+    ) -> GameResult<Box<dyn SpriteBatch>> {
         let path = self
             .paths
             .iter()
             .find_map(|s| {
-                FILE_TYPES.iter().map(|ext| [s, name, ext].join("")).find(|path| {
-                    filesystem::exists(ctx, path)
-                })
+                FILE_TYPES.iter().map(|ext| [s, name, ext].join("")).find(|path| filesystem::exists(ctx, path))
             })
             .ok_or_else(|| GameError::ResourceLoadError(format!("Texture {} does not exist.", name)))?;
 
@@ -254,25 +373,21 @@ impl TextureSet {
             .paths
             .iter()
             .find_map(|s| {
-                FILE_TYPES.iter().map(|ext| [s, name, ".glow", ext].join("")).find(|path| {
-                    filesystem::exists(ctx, path)
-                })
-            }).is_some();
+                FILE_TYPES.iter().map(|ext| [s, name, ".glow", ext].join("")).find(|path| filesystem::exists(ctx, path))
+            })
+            .is_some();
 
         info!("Loading texture: {}", path);
 
         let batch = self.load_image(ctx, &path)?;
         let size = batch.dimensions();
 
-        assert_ne!(size.0 as isize, 0, "size.width == 0");
-        assert_ne!(size.1 as isize, 0, "size.height == 0");
-
         let orig_dimensions = constants.tex_sizes.get(name).unwrap_or_else(|| &size);
         let scale = orig_dimensions.0 as f32 / size.0 as f32;
         let width = (size.0 as f32 * scale) as usize;
         let height = (size.1 as f32 * scale) as usize;
 
-        Ok(SizedBatch {
+        Ok(Box::new(SizedBatch {
             batch,
             width,
             height,
@@ -282,7 +397,7 @@ impl TextureSet {
             real_height: size.1 as usize,
             has_glow_layer,
             has_normal_layer: false,
-        })
+        }))
     }
 
     pub fn get_or_load_batch(
@@ -290,7 +405,11 @@ impl TextureSet {
         ctx: &mut Context,
         constants: &EngineConstants,
         name: &str,
-    ) -> GameResult<&mut SizedBatch> {
+    ) -> GameResult<&mut Box<dyn SpriteBatch>> {
+        if ctx.headless {
+            return Ok(&mut self.dummy_batch);
+        }
+
         if !self.tex_map.contains_key(name) {
             let batch = self.load_texture(ctx, constants, name)?;
             self.tex_map.insert(str!(name), batch);

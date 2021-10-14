@@ -43,7 +43,7 @@ pub struct Settings {
 fn default_true() -> bool { true }
 
 #[inline(always)]
-fn current_version() -> u32 { 2 }
+fn current_version() -> u32 { 3 }
 
 #[inline(always)]
 fn default_interpolation() -> InterpolationMode { InterpolationMode::Linear }
@@ -55,9 +55,9 @@ fn default_speed() -> f64 {
 
 impl Settings {
     pub fn load(ctx: &Context) -> GameResult<Settings> {
-        if let Ok(file) = user_open(ctx, "/settings.yml") {
-            match serde_yaml::from_reader::<_, Settings>(file) {
-                Ok(settings) => return Ok(settings),
+        if let Ok(file) = user_open(ctx, "/settings.json") {
+            match serde_json::from_reader::<_, Settings>(file) {
+                Ok(settings) => return Ok(settings.upgrade()),
                 Err(err) => log::warn!("Failed to deserialize settings: {}", err),
             }
         }
@@ -65,9 +65,25 @@ impl Settings {
         Ok(Settings::default())
     }
 
+    fn upgrade(mut self) -> Self {
+        let initial_version = self.version;
+
+        if self.version == 2 {
+            self.version = 3;
+            self.light_cone = true;
+        }
+
+        if self.version != initial_version {
+            log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
+        }
+
+        self
+    }
+
     pub fn save(&self, ctx: &Context) -> GameResult {
-        let file = user_create(ctx, "/settings.yml")?;
-        serde_yaml::to_writer(file, self)?;
+        let file = user_create(ctx, "/settings.json")?;
+        serde_json::to_writer(file, self)?;
+
         Ok(())
     }
 
@@ -87,7 +103,7 @@ impl Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
-            version: 2,
+            version: current_version(),
             seasonal_textures: true,
             original_textures: false,
             shader_effects: true,

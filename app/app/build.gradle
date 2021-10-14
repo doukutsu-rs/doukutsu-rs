@@ -6,7 +6,7 @@ plugins {
 android {
     compileSdkVersion 30
     buildToolsVersion "30.0.3"
-    //ndkVersion "21.3.6528147"
+    ndkVersion "22.1.7171670"
 
     defaultConfig {
         applicationId "io.github.doukutsu_rs"
@@ -65,6 +65,7 @@ dependencies {
 }
 
 println("cargo target: ${project.buildDir.getAbsolutePath()}/rust-target")
+println("ndk dir: ${android.ndkDirectory}")
 
 cargoNdk {
     targets = [

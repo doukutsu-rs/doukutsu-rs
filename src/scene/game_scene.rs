@@ -33,7 +33,7 @@ use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage};
 use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM};
-use crate::texture_set::SizedBatch;
+use crate::texture_set::SpriteBatch;
 use crate::weapon::bullet::BulletManager;
 use crate::weapon::{Weapon, WeaponType};
 
@@ -661,7 +661,7 @@ impl GameScene {
         Ok(())
     }
 
-    fn draw_light(&self, x: f32, y: f32, size: f32, color: (u8, u8, u8), batch: &mut SizedBatch) {
+    fn draw_light(&self, x: f32, y: f32, size: f32, color: (u8, u8, u8), batch: &mut Box<dyn SpriteBatch>) {
         batch.add_rect_scaled_tinted(
             x - size * 32.0,
             y - size * 32.0,
@@ -680,7 +680,7 @@ impl GameScene {
         (br, bg, bb): (u8, u8, u8),
         att: f32,
         angle: Range<i32>,
-        batch: &mut SizedBatch,
+        batch: &mut Box<dyn SpriteBatch>,
     ) {
         let px = world_point_x as f32 / 512.0;
         let py = world_point_y as f32 / 512.0;
@@ -2001,11 +2001,12 @@ impl Scene for GameScene {
             }
         }
 
-        self.inventory_dim += 0.1 * if state.textscript_vm.mode == ScriptMode::Inventory {
-            state.frame_time as f32
-        } else {
-            -(state.frame_time as f32)
-        };
+        self.inventory_dim += 0.1
+            * if state.textscript_vm.mode == ScriptMode::Inventory {
+                state.frame_time as f32
+            } else {
+                -(state.frame_time as f32)
+            };
 
         self.inventory_dim = self.inventory_dim.clamp(0.0, 1.0);
 
