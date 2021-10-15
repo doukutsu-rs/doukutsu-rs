@@ -11,4 +11,4 @@ crate-type = ["cdylib"]
 ndk = "0.3"
 ndk-glue = "0.3"
 ndk-sys = "0.2"
-doukutsu-rs = { path = "../", default-features = false, features = ["android", "backend-glutin", "ogg-playback", "scripting"] }
+doukutsu-rs = { path = "../", default-features = false, features = ["default-base", "backend-glutin"] }

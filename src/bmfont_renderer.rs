@@ -2,13 +2,12 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 use crate::bmfont::BMFont;
-use crate::common::{FILE_TYPES, Rect};
+use crate::common::{Rect, FILE_TYPES};
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
 use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
-use crate::str;
 use crate::texture_set::TextureSet;
 
 pub struct BMFontRenderer {
@@ -21,7 +20,7 @@ impl BMFontRenderer {
         let root = PathBuf::from(root);
         let full_path = &root.join(PathBuf::from(desc_path));
         let desc_stem =
-            full_path.file_stem().ok_or_else(|| ResourceLoadError(str!("Cannot extract the file stem.")))?;
+            full_path.file_stem().ok_or_else(|| ResourceLoadError("Cannot extract the file stem.".to_owned()))?;
         let stem = full_path.parent().unwrap_or(full_path).join(desc_stem);
 
         let font = BMFont::load_from(filesystem::open(ctx, &full_path)?)?;
@@ -101,7 +100,16 @@ impl BMFontRenderer {
         texture_set: &mut TextureSet,
         ctx: &mut Context,
     ) -> GameResult {
-        self.draw_colored_text_scaled(iter.clone(), x + scale, y + scale, scale, (0, 0, 0, 150), constants, texture_set, ctx)?;
+        self.draw_colored_text_scaled(
+            iter.clone(),
+            x + scale,
+            y + scale,
+            scale,
+            (0, 0, 0, 150),
+            constants,
+            texture_set,
+            ctx,
+        )?;
         self.draw_colored_text_scaled(iter, x, y, scale, color, constants, texture_set, ctx)
     }
 

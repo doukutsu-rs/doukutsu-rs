@@ -8,7 +8,7 @@ use crate::input::touch_controls::TouchControlType;
 use crate::inventory::Inventory;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
-use crate::text_script::ScriptMode;
+use crate::scripting::tsc::text_script::ScriptMode;
 use crate::weapon::{WeaponLevel, WeaponType};
 
 #[derive(Copy, Clone, PartialEq, Eq)]

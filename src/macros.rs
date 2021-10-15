@@ -5,16 +5,6 @@ pub use core::fmt;
 #[doc(hidden)]
 pub use core::mem::size_of;
 
-#[macro_export]
-macro_rules! str {
-    () => {
-        String::new()
-    };
-    ($x:expr) => {
-        ToString::to_string(&$x)
-    };
-}
-
 // extended version of https://github.com/dzamlo/rust-bitfield
 
 #[macro_export(local_inner_macros)]

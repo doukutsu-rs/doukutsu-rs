@@ -1,13 +1,15 @@
 use std::io::Read;
 
+use lua_ffi::c_str;
 use lua_ffi::ffi::luaL_Reg;
+use lua_ffi::lua_method;
 use lua_ffi::{c_int, LuaObject, State};
 
 use crate::common::{Direction, Rect};
 use crate::framework::filesystem;
 use crate::rng::RNG;
-use crate::scripting::{check_status, LuaScriptingState, DRS_RUNTIME_GLOBAL};
 use crate::scene::game_scene::LightingMode;
+use crate::scripting::lua::{check_status, LuaScriptingState, DRS_RUNTIME_GLOBAL};
 
 pub struct Doukutsu {
     pub ptr: *mut LuaScriptingState,

@@ -1,8 +1,10 @@
+use lua_ffi::c_str;
 use lua_ffi::ffi::luaL_Reg;
+use lua_ffi::lua_method;
 use lua_ffi::{c_int, LuaObject, State};
 
 use crate::scene::game_scene::GameScene;
-use crate::scripting::{LuaScriptingState, DRS_RUNTIME_GLOBAL};
+use crate::scripting::lua::{LuaScriptingState, DRS_RUNTIME_GLOBAL};
 
 pub struct LuaGameScene {
     valid_reference: bool,

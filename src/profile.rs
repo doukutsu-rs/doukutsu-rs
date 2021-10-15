@@ -10,7 +10,6 @@ use crate::framework::error::GameResult;
 use crate::player::ControlMode;
 use crate::scene::game_scene::GameScene;
 use crate::shared_game_state::SharedGameState;
-use crate::str;
 use crate::weapon::{WeaponLevel, WeaponType};
 
 pub struct WeaponData {
@@ -294,7 +293,7 @@ impl GameProfile {
     pub fn load_from_save<R: io::Read>(mut data: R) -> GameResult<GameProfile> {
         // Do041220
         if data.read_u64::<BE>()? != 0x446f303431323230 {
-            return Err(ResourceLoadError(str!("Invalid magic")));
+            return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
         let current_map = data.read_u32::<LE>()?;
@@ -354,7 +353,7 @@ impl GameProfile {
         data.read_exact(&mut map_flags)?;
 
         if data.read_u32::<BE>()? != 0x464c4147 {
-            return Err(ResourceLoadError(str!("Invalid FLAG signature")));
+            return Err(ResourceLoadError("Invalid FLAG signature".to_owned()));
         }
 
         let mut flags = [0u8; 1000];

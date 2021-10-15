@@ -23,13 +23,12 @@ use crate::rng::XorShift;
 use crate::scene::game_scene::GameScene;
 use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
-#[cfg(feature = "scripting")]
-use crate::scripting::LuaScriptingState;
+#[cfg(feature = "scripting-lua")]
+use crate::scripting::lua::LuaScriptingState;
 use crate::settings::Settings;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
-use crate::str;
-use crate::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
+use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
 
 #[derive(PartialEq, Eq, Copy, Clone, serde::Serialize, serde::Deserialize)]
@@ -143,7 +142,7 @@ pub struct SharedGameState {
     pub constants: EngineConstants,
     pub font: BMFontRenderer,
     pub texture_set: TextureSet,
-    #[cfg(feature = "scripting")]
+    #[cfg(feature = "scripting-lua")]
     pub lua: LuaScriptingState,
     pub sound_manager: SoundManager,
     pub settings: Settings,
@@ -223,7 +222,7 @@ impl SharedGameState {
             teleporter_slots: Vec::with_capacity(8),
             carets: Vec::with_capacity(32),
             touch_controls: TouchControls::new(),
-            base_path: str!(base_path),
+            base_path: base_path.to_owned(),
             npc_table: NPCTable::new(),
             npc_super_pos: (0, 0),
             npc_curly_target: (0, 0),
@@ -243,7 +242,7 @@ impl SharedGameState {
             constants,
             font,
             texture_set,
-            #[cfg(feature = "scripting")]
+            #[cfg(feature = "scripting-lua")]
             lua: LuaScriptingState::new(),
             sound_manager,
             settings,
@@ -290,7 +289,7 @@ impl SharedGameState {
 
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
         self.reset();
-        #[cfg(feature = "scripting")]
+        #[cfg(feature = "scripting-lua")]
         self.lua.reload_scripts(ctx)?;
 
         let mut next_scene = GameScene::new(self, ctx, self.constants.game.new_game_stage as usize)?;
@@ -309,7 +308,7 @@ impl SharedGameState {
     }
 
     pub fn start_intro(&mut self, ctx: &mut Context) -> GameResult {
-        #[cfg(feature = "scripting")]
+        #[cfg(feature = "scripting-lua")]
         self.lua.reload_scripts(ctx)?;
 
         let start_stage_id = self.constants.game.intro_stage as usize;
@@ -356,7 +355,7 @@ impl SharedGameState {
 
                     profile.apply(self, &mut next_scene, ctx);
 
-                    #[cfg(feature = "scripting")]
+                    #[cfg(feature = "scripting-lua")]
                     self.lua.reload_scripts(ctx)?;
 
                     self.next_scene = Some(Box::new(next_scene));

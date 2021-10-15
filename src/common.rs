@@ -21,40 +21,40 @@ lazy_static! {
 }
 
 bitfield! {
-  #[derive(Clone, Copy)]
-  #[repr(C)]
-  pub struct Flag(u32);
-  impl Debug;
+    #[derive(Clone, Copy)]
+    #[repr(C)]
+    pub struct Flag(u32);
+    impl Debug;
 
-  /// Set if left wall was hit. (corresponds to flag & 0x01)
-  pub hit_left_wall, set_hit_left_wall: 0;
-  /// Set if top wall was hit. (corresponds to flag & 0x02)
-  pub hit_top_wall, set_hit_top_wall: 1;
-  /// Set if right wall was hit. (corresponds to flag & 0x04)
-  pub hit_right_wall, set_hit_right_wall: 2;
-  /// Set if bottom wall was hit. (corresponds to flag & 0x08)
-  pub hit_bottom_wall, set_hit_bottom_wall: 3;
-  /// Set if entity stays on right slope. (corresponds to flag & 0x10)
-  pub hit_right_slope, set_hit_right_slope: 4;
-  /// Set if entity stays on left slope. (corresponds to flag & 0x20)
-  pub hit_left_slope, set_hit_left_slope: 5;
-  /// Unknown purpose (corresponds to flag & 0x40)
-  pub flag_x40, set_flag_x40: 6;
-  /// Unknown purpose (corresponds to flag & 0x80)
-  pub flag_x80, set_flag_x80: 7;
-  /// Set if entity is in water. (corresponds to flag & 0x100)
-  pub in_water, set_in_water: 8;
-  pub weapon_hit_block, set_weapon_hit_block: 9; // 0x200
-  pub hit_by_spike, set_hit_by_spike: 10; // 0x400
-  pub water_splash_facing_right, set_water_splash_facing_right: 11; // 0x800
-  pub force_left, set_force_left: 12; // 0x1000
-  pub force_up, set_force_up: 13; // 0x2000
-  pub force_right, set_force_right: 14; // 0x4000
-  pub force_down, set_force_down: 15; // 0x8000
-  pub hit_left_higher_half, set_hit_left_higher_half: 16; // 0x10000
-  pub hit_left_lower_half, set_hit_left_lower_half: 17; // 0x20000
-  pub hit_right_lower_half, set_hit_right_lower_half: 18; // 0x40000
-  pub hit_right_higher_half, set_hit_right_higher_half: 19; // 0x80000
+    /// Set if left wall was hit. (corresponds to flag & 0x01)
+    pub hit_left_wall, set_hit_left_wall: 0;
+    /// Set if top wall was hit. (corresponds to flag & 0x02)
+    pub hit_top_wall, set_hit_top_wall: 1;
+    /// Set if right wall was hit. (corresponds to flag & 0x04)
+    pub hit_right_wall, set_hit_right_wall: 2;
+    /// Set if bottom wall was hit. (corresponds to flag & 0x08)
+    pub hit_bottom_wall, set_hit_bottom_wall: 3;
+    /// Set if entity stays on right slope. (corresponds to flag & 0x10)
+    pub hit_right_slope, set_hit_right_slope: 4;
+    /// Set if entity stays on left slope. (corresponds to flag & 0x20)
+    pub hit_left_slope, set_hit_left_slope: 5;
+    /// Unknown purpose (corresponds to flag & 0x40)
+    pub flag_x40, set_flag_x40: 6;
+    /// Unknown purpose (corresponds to flag & 0x80)
+    pub flag_x80, set_flag_x80: 7;
+    /// Set if entity is in water. (corresponds to flag & 0x100)
+    pub in_water, set_in_water: 8;
+    pub weapon_hit_block, set_weapon_hit_block: 9; // 0x200
+    pub hit_by_spike, set_hit_by_spike: 10; // 0x400
+    pub water_splash_facing_right, set_water_splash_facing_right: 11; // 0x800
+    pub force_left, set_force_left: 12; // 0x1000
+    pub force_up, set_force_up: 13; // 0x2000
+    pub force_right, set_force_right: 14; // 0x4000
+    pub force_down, set_force_down: 15; // 0x8000
+    pub hit_left_higher_half, set_hit_left_higher_half: 16; // 0x10000
+    pub hit_left_lower_half, set_hit_left_lower_half: 17; // 0x20000
+    pub hit_right_lower_half, set_hit_right_lower_half: 18; // 0x40000
+    pub hit_right_higher_half, set_hit_right_higher_half: 19; // 0x80000
 }
 
 impl Flag {
@@ -68,79 +68,79 @@ impl Flag {
 }
 
 bitfield! {
-  #[derive(Clone, Copy)]
-  #[repr(C)]
-  pub struct Equipment(u16);
-  impl Debug;
+    #[derive(Clone, Copy)]
+    #[repr(C)]
+    pub struct Equipment(u16);
+    impl Debug;
 
-  pub has_booster_0_8, set_booster_0_8: 0; // 0x01 / 0001
-  pub has_map, set_map: 1; // 0x02 / 0002
-  pub has_arms_barrier, set_arms_barrier: 2; // 0x04 / 0004
-  pub has_turbocharge, set_turbocharge: 3; // 0x08 / 0008
-  pub has_air_tank, set_air_tank: 4; // 0x10 / 0016
-  pub has_booster_2_0, set_booster_2_0: 5; // 0x20 / 0032
-  pub has_mimiga_mask, set_mimiga_mask: 6; // 0x40 / 0064
-  pub has_whimsical_star, set_whimsical_star: 7; // 0x080 / 0128
-  pub has_nikumaru, set_nikumaru: 8; // 0x100 / 0256
-  // for custom equips
-  pub unused_1, set_unused_1: 9; // 0x200 / 0512
-  pub unused_2, set_unused_2: 10; // 0x400 / 1024
-  pub unused_3, set_unused_3: 11; // 0x800 / 2048
-  pub unused_4, set_unused_4: 12; // 0x1000 / 4096
-  pub unused_5, set_unused_5: 13; // 0x2000 / 8192
-  // bit 14 and 15 aren't accessible via TSC without abusing overflows (won't work in strict mode)
-  pub unused_6, set_unused_6: 14; // 0x4000 / @384
-  pub unused_7, set_unused_7: 15; // 0x8000 / P768
+    pub has_booster_0_8, set_booster_0_8: 0; // 0x01 / 0001
+    pub has_map, set_map: 1; // 0x02 / 0002
+    pub has_arms_barrier, set_arms_barrier: 2; // 0x04 / 0004
+    pub has_turbocharge, set_turbocharge: 3; // 0x08 / 0008
+    pub has_air_tank, set_air_tank: 4; // 0x10 / 0016
+    pub has_booster_2_0, set_booster_2_0: 5; // 0x20 / 0032
+    pub has_mimiga_mask, set_mimiga_mask: 6; // 0x40 / 0064
+    pub has_whimsical_star, set_whimsical_star: 7; // 0x080 / 0128
+    pub has_nikumaru, set_nikumaru: 8; // 0x100 / 0256
+    // for custom equips
+    pub unused_1, set_unused_1: 9; // 0x200 / 0512
+    pub unused_2, set_unused_2: 10; // 0x400 / 1024
+    pub unused_3, set_unused_3: 11; // 0x800 / 2048
+    pub unused_4, set_unused_4: 12; // 0x1000 / 4096
+    pub unused_5, set_unused_5: 13; // 0x2000 / 8192
+    // bit 14 and 15 aren't accessible via TSC without abusing overflows (won't work in strict mode)
+    pub unused_6, set_unused_6: 14; // 0x4000 / @384
+    pub unused_7, set_unused_7: 15; // 0x8000 / P768
 }
 
 bitfield! {
-  #[derive(Clone, Copy)]
-  #[repr(C)]
-  pub struct Condition(u16);
-  impl Debug;
+    #[derive(Clone, Copy)]
+    #[repr(C)]
+    pub struct Condition(u16);
+    impl Debug;
 
-  pub interacted, set_interacted: 0; // 0x01
-  pub hidden, set_hidden: 1; // 0x02
-  pub fallen, set_fallen: 2; // 0x04
-  pub explode_die, set_explode_die: 3; // 0x08
-  pub damage_boss, set_damage_boss: 4; // 0x10
-  pub increase_acceleration, set_increase_acceleration: 5; // 0x20
-  pub cond_x40, set_cond_x40: 6; // 0x40
-  pub alive, set_alive: 7; // 0x80
+    pub interacted, set_interacted: 0; // 0x01
+    pub hidden, set_hidden: 1; // 0x02
+    pub fallen, set_fallen: 2; // 0x04
+    pub explode_die, set_explode_die: 3; // 0x08
+    pub damage_boss, set_damage_boss: 4; // 0x10
+    pub increase_acceleration, set_increase_acceleration: 5; // 0x20
+    pub cond_x40, set_cond_x40: 6; // 0x40
+    pub alive, set_alive: 7; // 0x80
 
-  // engine specific flags
-  pub drs_novanish, set_drs_novanish: 14;
-  pub drs_boss, set_drs_boss: 15;
+    // engine specific flags
+    pub drs_novanish, set_drs_novanish: 14;
+    pub drs_boss, set_drs_boss: 15;
 }
 
 bitfield! {
-  #[derive(Clone, Copy, Serialize, Deserialize)]
-  #[repr(C)]
-  pub struct ControlFlags(u16);
-  impl Debug;
+    #[derive(Clone, Copy, Serialize, Deserialize)]
+    #[repr(C)]
+    pub struct ControlFlags(u16);
+    impl Debug;
 
-  pub tick_world, set_tick_world: 0; // 0x01
-  pub control_enabled, set_control_enabled: 1; // 0x02
-  pub interactions_disabled, set_interactions_disabled: 2; // 0x04
-  pub credits_running, set_credits_running: 3; // 0x08
+    pub tick_world, set_tick_world: 0; // 0x01
+    pub control_enabled, set_control_enabled: 1; // 0x02
+    pub interactions_disabled, set_interactions_disabled: 2; // 0x04
+    pub credits_running, set_credits_running: 3; // 0x08
 
-  // engine specific flags
-  pub friendly_fire, set_friendly_fire: 14;
+    // engine specific flags
+    pub friendly_fire, set_friendly_fire: 14;
 }
 
 bitfield! {
-  #[derive(Clone, Copy)]
-  #[repr(C)]
-  pub struct BulletFlag(u16);
-  impl Debug;
-  pub flag_x01, set_flag_x01: 0; // 0x01
-  pub flag_x02, set_flag_x02: 1; // 0x02
-  pub no_collision_checks, set_no_collision_checks: 2; // 0x04
-  pub bounce_from_walls, set_bounce_from_walls: 3; // 0x08
-  pub flag_x10, set_flag_x10: 4; // 0x10
-  pub flag_x20, set_flag_x20: 5; // 0x20
-  pub can_destroy_snack, set_can_destroy_snack: 6; // 0x40
-  pub flag_x80, set_flag_x80: 7; // 0x80
+    #[derive(Clone, Copy)]
+    #[repr(C)]
+    pub struct BulletFlag(u16);
+    impl Debug;
+    pub flag_x01, set_flag_x01: 0; // 0x01
+    pub flag_x02, set_flag_x02: 1; // 0x02
+    pub no_collision_checks, set_no_collision_checks: 2; // 0x04
+    pub bounce_from_walls, set_bounce_from_walls: 3; // 0x08
+    pub flag_x10, set_flag_x10: 4; // 0x10
+    pub flag_x20, set_flag_x20: 5; // 0x20
+    pub can_destroy_snack, set_can_destroy_snack: 6; // 0x40
+    pub flag_x80, set_flag_x80: 7; // 0x80
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

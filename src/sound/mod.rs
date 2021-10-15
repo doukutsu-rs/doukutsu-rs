@@ -24,7 +24,6 @@ use crate::sound::org_playback::{OrgPlaybackEngine, SavedOrganyaPlaybackState};
 use crate::sound::organya::Song;
 use crate::sound::pixtone::{PixToneParameters, PixTonePlayback};
 use crate::sound::wave_bank::SoundBank;
-use crate::str;
 
 mod fir;
 #[cfg(feature = "ogg-playback")]
@@ -73,7 +72,7 @@ impl SoundManager {
 
         let host = cpal::default_host();
         let device =
-            host.default_output_device().ok_or_else(|| AudioError(str!("Error initializing audio device.")))?;
+            host.default_output_device().ok_or_else(|| AudioError("Error initializing audio device.".to_owned()))?;
         let config = device.default_output_config()?;
 
         let bnk = wave_bank::SoundBank::load_from(filesystem::open(ctx, "/builtin/organya-wavetable-doukutsu.bin")?)?;
@@ -284,7 +283,7 @@ impl SoundManager {
         }
 
         if speed <= 0.0 {
-            return Err(InvalidValue(str!("Speed must be bigger than 0.0!")));
+            return Err(InvalidValue("Speed must be bigger than 0.0!".to_owned()));
         }
 
         self.tx.send(PlaybackMessage::SetSpeed(speed))?;

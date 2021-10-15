@@ -13,7 +13,6 @@ use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
 use crate::shared_game_state::TileSize;
 use crate::stage::{PxPackScroll, PxPackStageData, StageData};
-use crate::str;
 
 static SUPPORTED_PXM_VERSIONS: [u8; 1] = [0x10];
 static SUPPORTED_PXE_VERSIONS: [u8; 2] = [0, 0x10];
@@ -43,7 +42,7 @@ impl Map {
         map_data.read_exact(&mut magic)?;
 
         if &magic != b"PXM" {
-            return Err(ResourceLoadError(str!("Invalid magic")));
+            return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
         let version = map_data.read_u8()?;
@@ -80,7 +79,7 @@ impl Map {
         // based on https://github.com/tilderain/pxEdit/blob/kero/pxMap.py
 
         if &magic != b"PXPACK121127a**\0" {
-            return Err(ResourceLoadError(str!("Invalid magic")));
+            return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
         fn read_string<R: io::Read>(map_data: &mut R) -> GameResult<String> {
@@ -153,7 +152,7 @@ impl Map {
         map_data.read_exact(&mut magic)?;
 
         if &magic != b"pxMAP01\0" {
-            return Err(ResourceLoadError(str!("Invalid magic")));
+            return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
         let width_fg = map_data.read_u16::<LE>()?;
@@ -170,7 +169,7 @@ impl Map {
         map_data.read_exact(&mut magic)?;
 
         if &magic != b"pxMAP01\0" {
-            return Err(ResourceLoadError(str!("Invalid magic")));
+            return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
         let width_mg = map_data.read_u16::<LE>()?;
@@ -188,7 +187,7 @@ impl Map {
         map_data.read_exact(&mut magic)?;
 
         if &magic != b"pxMAP01\0" {
-            return Err(ResourceLoadError(str!("Invalid magic")));
+            return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
         let width_bg = map_data.read_u16::<LE>()?;
@@ -214,7 +213,7 @@ impl Map {
             attrib_data.read_exact(&mut magic)?;
 
             if &magic != b"pxMAP01\0" {
-                return Err(ResourceLoadError(str!("Invalid magic")));
+                return Err(ResourceLoadError("Invalid magic".to_owned()));
             }
 
             attrib_data.read_u16::<LE>()?;
@@ -475,7 +474,7 @@ impl NPCData {
         data.read_exact(&mut magic)?;
 
         if &magic != b"PXE" {
-            return Err(ResourceLoadError(str!("Invalid magic")));
+            return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
         let version = data.read_u8()?;

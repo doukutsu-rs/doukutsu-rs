@@ -1,8 +1,5 @@
 #[macro_use]
 extern crate log;
-#[cfg_attr(feature = "scripting", macro_use)]
-#[cfg(feature = "scripting")]
-extern crate lua_ffi;
 extern crate strum;
 #[macro_use]
 extern crate strum_macros;
@@ -55,7 +52,6 @@ mod player;
 mod profile;
 mod rng;
 mod scene;
-#[cfg(feature = "scripting")]
 mod scripting;
 mod settings;
 #[cfg(feature = "backend-gfx")]
@@ -63,7 +59,6 @@ mod shaders;
 mod shared_game_state;
 mod sound;
 mod stage;
-mod text_script;
 mod texture_set;
 mod weapon;
 
@@ -281,7 +276,7 @@ pub fn init(options: LaunchOptions) -> GameResult {
 
     let game = UnsafeCell::new(Game::new(&mut context)?);
     let state_ref = unsafe { &mut *((&mut *game.get()).state.get()) };
-    #[cfg(feature = "scripting")]
+    #[cfg(feature = "scripting-lua")]
     {
         state_ref.lua.update_refs(unsafe { (&*game.get()).state.get() }, &mut context as *mut Context);
     }

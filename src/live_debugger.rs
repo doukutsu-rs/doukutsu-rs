@@ -5,7 +5,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::scene::game_scene::GameScene;
 use crate::shared_game_state::SharedGameState;
-use crate::text_script::TextScriptExecutionState;
+use crate::scripting::tsc::text_script::TextScriptExecutionState;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
@@ -121,7 +121,7 @@ impl LiveDebugger {
                     self.flags_visible = !self.flags_visible;
                 }
 
-                #[cfg(feature = "scripting")]
+                #[cfg(feature = "scripting-lua")]
                     {
                         ui.same_line(0.0);
                         if ui.button(im_str!("Reload Scripts"), [0.0, 0.0]) {

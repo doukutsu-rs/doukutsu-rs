@@ -12,7 +12,7 @@ use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::map::{Map, NPCData};
-use crate::text_script::TextScript;
+use crate::scripting::tsc::text_script::TextScript;
 use crate::common::Color;
 
 #[derive(Debug, PartialEq, Eq, Hash)]

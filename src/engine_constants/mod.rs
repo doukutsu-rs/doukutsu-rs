@@ -6,10 +6,9 @@ use crate::case_insensitive_hashmap;
 use crate::common::{BulletFlag, Color, Rect};
 use crate::engine_constants::npcs::NPCConsts;
 use crate::player::ControlMode;
-use crate::sound::pixtone::{Channel, PixToneParameters, Waveform, Envelope};
+use crate::scripting::tsc::text_script::TextScriptEncoding;
+use crate::sound::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
 use crate::sound::SoundManager;
-use crate::str;
-use crate::text_script::TextScriptEncoding;
 
 mod npcs;
 
@@ -308,7 +307,7 @@ impl EngineConstants {
                 intro_player_pos: (3, 3),
                 new_game_stage: 13,
                 new_game_event: 200,
-                new_game_player_pos: (10, 8)
+                new_game_player_pos: (10, 8),
             },
             player: PlayerConsts {
                 life: 3,
@@ -1421,7 +1420,7 @@ impl EngineConstants {
                 text_speed_fast: 1,
             },
             title: TitleConsts {
-                intro_text: "Studio Pixel presents".to_string(),
+                intro_text: "Studio Pixel presents".to_owned(),
                 logo_rect: Rect { left: 0, top: 0, right: 144, bottom: 40 },
                 menu_left_top: Rect { left: 0, top: 0, right: 8, bottom: 8 },
                 menu_right_top: Rect { left: 236, top: 0, right: 244, bottom: 8 },
@@ -1434,59 +1433,59 @@ impl EngineConstants {
                 menu_right: Rect { left: 236, top: 8, right: 244, bottom: 16 },
             },
             inventory_dim_color: Color::from_rgba(0, 0, 0, 0),
-            font_path: "csfont.fnt".to_string(),
+            font_path: "csfont.fnt".to_owned(),
             font_scale: 1.0,
             font_space_offset: 0.0,
             soundtracks: HashMap::new(),
             music_table: vec![
-                "xxxx".to_string(),
-                "wanpaku".to_string(),
-                "anzen".to_string(),
-                "gameover".to_string(),
-                "gravity".to_string(),
-                "weed".to_string(),
-                "mdown2".to_string(),
-                "fireeye".to_string(),
-                "vivi".to_string(),
-                "mura".to_string(),
-                "fanfale1".to_string(),
-                "ginsuke".to_string(),
-                "cemetery".to_string(),
-                "plant".to_string(),
-                "kodou".to_string(),
-                "fanfale3".to_string(),
-                "fanfale2".to_string(),
-                "dr".to_string(),
-                "escape".to_string(),
-                "jenka".to_string(),
-                "maze".to_string(),
-                "access".to_string(),
-                "ironh".to_string(),
-                "grand".to_string(),
-                "curly".to_string(),
-                "oside".to_string(),
-                "requiem".to_string(),
-                "wanpak2".to_string(),
-                "quiet".to_string(),
-                "lastcave".to_string(),
-                "balcony".to_string(),
-                "lastbtl".to_string(),
-                "lastbt3".to_string(),
-                "ending".to_string(),
-                "zonbie".to_string(),
-                "bdown".to_string(),
-                "hell".to_string(),
-                "jenka2".to_string(),
-                "marine".to_string(),
-                "ballos".to_string(),
-                "toroko".to_string(),
-                "white".to_string(),
-                "kaze".to_string(),
+                "xxxx".to_owned(),
+                "wanpaku".to_owned(),
+                "anzen".to_owned(),
+                "gameover".to_owned(),
+                "gravity".to_owned(),
+                "weed".to_owned(),
+                "mdown2".to_owned(),
+                "fireeye".to_owned(),
+                "vivi".to_owned(),
+                "mura".to_owned(),
+                "fanfale1".to_owned(),
+                "ginsuke".to_owned(),
+                "cemetery".to_owned(),
+                "plant".to_owned(),
+                "kodou".to_owned(),
+                "fanfale3".to_owned(),
+                "fanfale2".to_owned(),
+                "dr".to_owned(),
+                "escape".to_owned(),
+                "jenka".to_owned(),
+                "maze".to_owned(),
+                "access".to_owned(),
+                "ironh".to_owned(),
+                "grand".to_owned(),
+                "curly".to_owned(),
+                "oside".to_owned(),
+                "requiem".to_owned(),
+                "wanpak2".to_owned(),
+                "quiet".to_owned(),
+                "lastcave".to_owned(),
+                "balcony".to_owned(),
+                "lastbtl".to_owned(),
+                "lastbt3".to_owned(),
+                "ending".to_owned(),
+                "zonbie".to_owned(),
+                "bdown".to_owned(),
+                "hell".to_owned(),
+                "jenka2".to_owned(),
+                "marine".to_owned(),
+                "ballos".to_owned(),
+                "toroko".to_owned(),
+                "white".to_owned(),
+                "kaze".to_owned(),
             ],
             organya_paths: vec![
-                "/org/".to_string(),          // NXEngine
-                "/base/Org/".to_string(),     // CS+
-                "/Resource/ORG/".to_string(), // CSE2E
+                "/org/".to_owned(),          // NXEngine
+                "/base/Org/".to_owned(),     // CS+
+                "/Resource/ORG/".to_owned(), // CSE2E
             ],
         }
     }
@@ -1496,15 +1495,15 @@ impl EngineConstants {
 
         self.is_cs_plus = true;
         self.supports_og_textures = true;
-        self.tex_sizes.insert(str!("Caret"), (320, 320));
-        self.tex_sizes.insert(str!("MyChar"), (200, 384));
-        self.tex_sizes.insert(str!("Npc/NpcRegu"), (320, 410));
+        self.tex_sizes.insert("Caret".to_owned(), (320, 320));
+        self.tex_sizes.insert("MyChar".to_owned(), (200, 384));
+        self.tex_sizes.insert("Npc/NpcRegu".to_owned(), (320, 410));
         self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 50 };
-        self.font_path = str!("csfont.fnt");
+        self.font_path = "csfont.fnt".to_owned();
         self.font_scale = 0.5;
         self.font_space_offset = 2.0;
-        self.soundtracks.insert("Remastered".to_string(), "/base/Ogg11/".to_string());
-        self.soundtracks.insert("New".to_string(), "/base/Ogg/".to_string());
+        self.soundtracks.insert("Remastered".to_owned(), "/base/Ogg11/".to_owned());
+        self.soundtracks.insert("New".to_owned(), "/base/Ogg/".to_owned());
 
         let typewriter_sample = PixToneParameters {
             // fx2 (CS+)
@@ -1539,8 +1538,8 @@ impl EngineConstants {
 
         self.is_switch = true;
         self.supports_og_textures = true;
-        self.tex_sizes.insert(str!("bkMoon"), (427, 240));
-        self.tex_sizes.insert(str!("bkFog"), (427, 240));
+        self.tex_sizes.insert("bkMoon".to_owned(), (427, 240));
+        self.tex_sizes.insert("bkFog".to_owned(), (427, 240));
         self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 62 };
         self.inventory_dim_color = Color::from_rgba(0, 0, 32, 150);
         self.textscript.encoding = TextScriptEncoding::UTF8;
@@ -1549,11 +1548,9 @@ impl EngineConstants {
         self.textscript.text_shadow = true;
         self.textscript.text_speed_normal = 1;
         self.textscript.text_speed_fast = 0;
-        self.soundtracks.insert("Famitracks".to_string(), "/base/ogg17/".to_string());
-        self.soundtracks.insert("Ridiculon".to_string(), "/base/ogg_ridic/".to_string());
+        self.soundtracks.insert("Famitracks".to_owned(), "/base/ogg17/".to_owned());
+        self.soundtracks.insert("Ridiculon".to_owned(), "/base/ogg_ridic/".to_owned());
     }
 
-    pub fn apply_constant_json_files(&mut self) {
-
-    }
+    pub fn apply_constant_json_files(&mut self) {}
 }

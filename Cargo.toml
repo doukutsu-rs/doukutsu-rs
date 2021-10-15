@@ -33,12 +33,13 @@ category = "Game"
 osx_minimum_system_version = "10.12"
 
 [features]
-default = ["scripting", "backend-sdl", "render-opengl", "ogg-playback", "exe", "netplay"]
+default = ["default-base", "backend-sdl", "render-opengl", "exe"]
+default-base = ["scripting-lua", "ogg-playback", "netplay"]
 ogg-playback = ["lewton"]
 backend-sdl = ["sdl2", "sdl2-sys"]
 backend-glutin = ["winit", "glutin", "render-opengl"]
 render-opengl = []
-scripting = ["lua-ffi"]
+scripting-lua = ["lua-ffi"]
 netplay = ["tokio", "serde_cbor"]
 editor = []
 hooks = ["libc"]

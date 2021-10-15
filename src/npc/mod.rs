@@ -20,7 +20,6 @@ use crate::player::Player;
 use crate::rng::Xoroshiro32PlusPlus;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
-use crate::str;
 use crate::weapon::bullet::BulletManager;
 
 pub mod ai;
@@ -199,7 +198,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
     ) -> GameResult {
         #[allow(unused_assignments)]
         let mut npc_hook_ran = false;
-        #[cfg(feature = "scripting")]
+        #[cfg(feature = "scripting-lua")]
         {
             npc_hook_ran = state.lua.try_run_npc_hook(self.id, self.npc_type);
         }
@@ -655,9 +654,9 @@ impl NPCTable {
     pub fn new() -> NPCTable {
         NPCTable {
             entries: Vec::new(),
-            tileset_name: str!("Stage/Prt0"),
-            tex_npc1_name: str!("Npc/Npc0"),
-            tex_npc2_name: str!("Npc/Npc0"),
+            tileset_name: "Stage/Prt0".to_owned(),
+            tex_npc1_name: "Npc/Npc0".to_owned(),
+            tex_npc2_name: "Npc/Npc0".to_owned(),
         }
     }
 

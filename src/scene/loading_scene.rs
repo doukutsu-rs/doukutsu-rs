@@ -6,7 +6,7 @@ use crate::scene::no_data_scene::NoDataScene;
 use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::StageData;
-use crate::text_script::TextScript;
+use crate::scripting::tsc::text_script::TextScript;
 
 pub struct LoadingScene {
     tick: usize,

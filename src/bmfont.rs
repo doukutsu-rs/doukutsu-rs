@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 use std::io;
 
-use byteorder::{LE, ReadBytesExt};
+use byteorder::{ReadBytesExt, LE};
 
 use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::GameResult;
-use crate::str;
 
 #[derive(Debug)]
 pub struct BmChar {
@@ -43,7 +42,7 @@ impl BMFont {
         data.read_exact(&mut magic)?;
 
         if magic != MAGIC {
-            return Err(ResourceLoadError(str!( "Invalid magic")));
+            return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
         while let Ok(block_type) = data.read_u8() {
@@ -80,30 +79,16 @@ impl BMFont {
                         let chnl = data.read_u8()?;
 
                         if let Some(chr) = std::char::from_u32(id) {
-                            chars.insert(chr, BmChar {
-                                x,
-                                y,
-                                width,
-                                height,
-                                xoffset,
-                                yoffset,
-                                xadvance,
-                                page,
-                                chnl,
-                            });
+                            chars.insert(chr, BmChar { x, y, width, height, xoffset, yoffset, xadvance, page, chnl });
                         }
                     }
                 }
-                _ => { return Err(ResourceLoadError(str!( "Unknown block type."))); }
+                _ => {
+                    return Err(ResourceLoadError("Unknown block type.".to_owned()));
+                }
             }
         }
 
-        Ok(Self {
-            pages,
-            font_size,
-            line_height,
-            base,
-            chars,
-        })
+        Ok(Self { pages, font_size, line_height, base, chars })
     }
 }

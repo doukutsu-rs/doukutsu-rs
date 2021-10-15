@@ -32,7 +32,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage};
-use crate::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM};
+use crate::scripting::tsc::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM};
 use crate::texture_set::SpriteBatch;
 use crate::weapon::bullet::BulletManager;
 use crate::weapon::{Weapon, WeaponType};
@@ -1776,7 +1776,7 @@ impl Scene for GameScene {
         state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.base_path, &state.constants, ctx)?);
         state.textscript_vm.suspend = false;
         state.tile_size = self.stage.map.tile_size;
-        #[cfg(feature = "scripting")]
+        #[cfg(feature = "scripting-lua")]
         state.lua.set_game_scene(self as *mut _);
 
         self.player1.controller = state.settings.create_player1_controller();
@@ -1948,7 +1948,7 @@ impl Scene for GameScene {
 
             self.flash.tick(state, ())?;
 
-            #[cfg(feature = "scripting")]
+            #[cfg(feature = "scripting-lua")]
             state.lua.scene_tick();
 
             if state.control_flags.tick_world() {

@@ -15,7 +15,6 @@ use crate::framework::filesystem;
 use crate::framework::graphics::{create_texture, FilterMode};
 use crate::settings::Settings;
 use crate::shared_game_state::Season;
-use crate::str;
 
 pub static mut I_MAG: f32 = 1.0;
 pub static mut G_MAG: f32 = 1.0;
@@ -412,7 +411,7 @@ impl TextureSet {
 
         if !self.tex_map.contains_key(name) {
             let batch = self.load_texture(ctx, constants, name)?;
-            self.tex_map.insert(str!(name), batch);
+            self.tex_map.insert(name.to_owned(), batch);
         }
 
         Ok(self.tex_map.get_mut(name).unwrap())
