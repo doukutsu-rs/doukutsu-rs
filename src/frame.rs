@@ -36,7 +36,7 @@ impl Frame {
 
     pub fn immediate_update(&mut self, state: &mut SharedGameState, stage: &Stage) {
         let mut screen_width = state.canvas_size.0;
-        if state.constants.is_switch {
+        if state.constants.is_switch && stage.map.width <= 54 {
             screen_width += 10.0; // hack for scrolling
         }
 
@@ -78,9 +78,10 @@ impl Frame {
 
     pub fn update(&mut self, state: &mut SharedGameState, stage: &Stage) {
         let mut screen_width = state.canvas_size.0;
-        if state.constants.is_switch {
+        if state.constants.is_switch && stage.map.width <= 54 {
             screen_width += 10.0;
         }
+
         let tile_size = state.tile_size.as_int();
 
         if (stage.map.width as usize).saturating_sub(1) * (tile_size as usize) < screen_width as usize {

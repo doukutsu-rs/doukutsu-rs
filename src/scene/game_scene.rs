@@ -398,7 +398,7 @@ impl GameScene {
 
                                 for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
                                     if direction == FadeDirection::Left {
-                                        batch.add_rect(state.canvas_size.0 - x as f32 * 16.0, y as f32 * 16.0, &rect);
+                                        batch.add_rect(state.canvas_size.0 - x as f32 * 16.0 - 16.0, y as f32 * 16.0, &rect);
                                     } else {
                                         batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
                                     }
