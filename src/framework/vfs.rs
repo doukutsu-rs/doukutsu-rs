@@ -10,10 +10,11 @@
 //! convenient.
 
 use std::collections::VecDeque;
+use std::ffi::OsStr;
 use std::fmt::{self, Debug};
 use std::fs;
 use std::io::{Read, Seek, Write};
-use std::path::{self, Path, PathBuf};
+use std::path::{self, Component, Path, PathBuf};
 
 use crate::framework::error::{GameError, GameResult};
 
@@ -105,17 +106,11 @@ pub trait VFS: Debug {
     }
     /// Open the file at this path for writing, truncating it if it exists already
     fn create(&self, path: &Path) -> GameResult<Box<dyn VFile>> {
-        self.open_options(
-            path,
-            OpenOptions::new().write(true).create(true).truncate(true),
-        )
+        self.open_options(path, OpenOptions::new().write(true).create(true).truncate(true))
     }
     /// Open the file at this path for appending, creating it if necessary
     fn append(&self, path: &Path) -> GameResult<Box<dyn VFile>> {
-        self.open_options(
-            path,
-            OpenOptions::new().write(true).create(true).append(true),
-        )
+        self.open_options(path, OpenOptions::new().write(true).create(true).append(true))
     }
     /// Create a directory at the location by this path
     fn mkdir(&self, path: &Path) -> GameResult;
@@ -219,10 +214,7 @@ fn sanitize_path(path: &path::Path) -> Option<PathBuf> {
 impl PhysicalFS {
     /// Creates a new PhysicalFS
     pub fn new(root: &Path, readonly: bool) -> Self {
-        PhysicalFS {
-            root: root.into(),
-            readonly,
-        }
+        PhysicalFS { root: root.into(), readonly }
     }
 
     /// Takes a given path (&str) and returns
@@ -232,7 +224,45 @@ impl PhysicalFS {
     fn to_absolute(&self, p: &Path) -> GameResult<PathBuf> {
         if let Some(safe_path) = sanitize_path(p) {
             let mut root_path = self.root.clone();
-            root_path.push(safe_path);
+            root_path.push(safe_path.clone());
+
+            // emulate case insensitive paths on systems with case sensitive filesystems.
+            #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+            if !root_path.exists() {
+                let mut root_path2 = self.root.clone();
+                let mut ok = true;
+
+                let components: Vec<&OsStr> = safe_path
+                    .components()
+                    .filter_map(|c| if let Component::Normal(s) = c { Some(s) } else { None })
+                    .collect();
+
+                'citer: for node in components {
+
+                    if let Ok(entries) = root_path2.read_dir() {
+                        for entry in entries {
+                            if let Ok(entry) = entry {
+                                let name = entry.file_name();
+                                if name.to_ascii_lowercase() != node.to_ascii_lowercase() {
+                                    continue;
+                                }
+
+                                root_path2.push(name);
+                                continue 'citer;
+                            }
+                        }
+                    }
+
+                    ok = false;
+                    break;
+                }
+
+                if ok {
+                    // log::info!("resolved case insensitive path {:?} -> {:?}", root_path, root_path2);
+                    root_path = root_path2;
+                }
+            }
+
             Ok(root_path)
         } else {
             let msg = format!(
@@ -267,25 +297,14 @@ impl Debug for PhysicalFS {
 impl VFS for PhysicalFS {
     /// Open the file at this path with the given options
     fn open_options(&self, path: &Path, open_options: OpenOptions) -> GameResult<Box<dyn VFile>> {
-        if self.readonly
-            && (open_options.write
-                || open_options.create
-                || open_options.append
-                || open_options.truncate)
+        if self.readonly && (open_options.write || open_options.create || open_options.append || open_options.truncate)
         {
-            let msg = format!(
-                "Cannot alter file {:?} in root {:?}, filesystem read-only",
-                path, self
-            );
+            let msg = format!("Cannot alter file {:?} in root {:?}, filesystem read-only", path, self);
             return Err(GameError::FilesystemError(msg));
         }
         self.create_root()?;
         let p = self.to_absolute(path)?;
-        open_options
-            .to_fs_openoptions()
-            .open(p)
-            .map(|x| Box::new(x) as Box<dyn VFile>)
-            .map_err(GameError::from)
+        open_options.to_fs_openoptions().open(p).map(|x| Box::new(x) as Box<dyn VFile>).map_err(GameError::from)
     }
 
     /// Create a directory at the location by this path
@@ -300,18 +319,13 @@ impl VFS for PhysicalFS {
         self.create_root()?;
         let p = self.to_absolute(path)?;
         //println!("Creating {:?}", p);
-        fs::DirBuilder::new()
-            .recursive(true)
-            .create(p)
-            .map_err(GameError::from)
+        fs::DirBuilder::new().recursive(true).create(p).map_err(GameError::from)
     }
 
     /// Remove a file
     fn rm(&self, path: &Path) -> GameResult {
         if self.readonly {
-            return Err(GameError::FilesystemError(
-                "Tried to remove file {} but FS is read-only".to_string(),
-            ));
+            return Err(GameError::FilesystemError("Tried to remove file {} but FS is read-only".to_string()));
         }
 
         self.create_root()?;
@@ -354,9 +368,7 @@ impl VFS for PhysicalFS {
     fn metadata(&self, path: &Path) -> GameResult<Box<dyn VMetadata>> {
         self.create_root()?;
         let p = self.to_absolute(path)?;
-        p.metadata()
-            .map(|m| Box::new(PhysicalMetadata(m)) as Box<dyn VMetadata>)
-            .map_err(GameError::from)
+        p.metadata().map(|m| Box::new(PhysicalMetadata(m)) as Box<dyn VMetadata>).map_err(GameError::from)
     }
 
     /// Retrieve the path entries in this path
@@ -371,18 +383,13 @@ impl VFS for PhysicalFS {
         // it and such by name.
         // So we build the paths ourself.
         let direntry_to_path = |entry: &fs::DirEntry| -> GameResult<PathBuf> {
-            let fname = entry
-                .file_name()
-                .into_string()
-                .expect("Non-unicode char in file path?  Should never happen, I hope!");
+            let fname =
+                entry.file_name().into_string().expect("Non-unicode char in file path?  Should never happen, I hope!");
             let mut pathbuf = PathBuf::from(path);
             pathbuf.push(fname);
             Ok(pathbuf)
         };
-        let itr = fs::read_dir(p)?
-            .map(|entry| direntry_to_path(&entry?))
-            .collect::<Vec<_>>()
-            .into_iter();
+        let itr = fs::read_dir(p)?.map(|entry| direntry_to_path(&entry?)).collect::<Vec<_>>().into_iter();
         Ok(Box::new(itr))
     }
 
@@ -401,9 +408,7 @@ pub struct OverlayFS {
 impl OverlayFS {
     /// Creates a new OverlayFS
     pub fn new() -> Self {
-        Self {
-            roots: VecDeque::new(),
-        }
+        Self { roots: VecDeque::new() }
     }
 
     /// Adds a new VFS to the front of the list.
@@ -454,10 +459,7 @@ impl VFS for OverlayFS {
                 f => return f,
             }
         }
-        Err(GameError::FilesystemError(format!(
-            "Could not find anywhere writeable to make dir {:?}",
-            path
-        )))
+        Err(GameError::FilesystemError(format!("Could not find anywhere writeable to make dir {:?}", path)))
     }
 
     /// Remove a file
@@ -468,10 +470,7 @@ impl VFS for OverlayFS {
                 f => return f,
             }
         }
-        Err(GameError::FilesystemError(format!(
-            "Could not remove file {:?}",
-            path
-        )))
+        Err(GameError::FilesystemError(format!("Could not remove file {:?}", path)))
     }
 
     /// Remove a file or directory and all its contents
@@ -482,10 +481,7 @@ impl VFS for OverlayFS {
                 f => return f,
             }
         }
-        Err(GameError::FilesystemError(format!(
-            "Could not remove file/dir {:?}",
-            path
-        )))
+        Err(GameError::FilesystemError(format!("Could not remove file/dir {:?}", path)))
     }
 
     /// Check if the file exists
@@ -507,10 +503,7 @@ impl VFS for OverlayFS {
                 f => return f,
             }
         }
-        Err(GameError::FilesystemError(format!(
-            "Could not get metadata for file/dir {:?}",
-            path
-        )))
+        Err(GameError::FilesystemError(format!("Could not get metadata for file/dir {:?}", path)))
     }
 
     /// Retrieve the path entries in this path
