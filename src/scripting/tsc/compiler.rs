@@ -4,11 +4,11 @@ use std::str::FromStr;
 
 use itertools::Itertools;
 
-use crate::encoding::read_cur_wtf8;
 use crate::framework::error::GameError::ParseError;
 use crate::framework::error::GameResult;
 use crate::scripting::tsc::bytecode_utils::{put_string, put_varint};
-use crate::scripting::tsc::opcodes::OpCode;
+use crate::scripting::tsc::credit_script::CreditScript;
+use crate::scripting::tsc::opcodes::{CreditOpCode, TSCOpCode};
 use crate::scripting::tsc::parse_utils::{expect_char, read_number, skip_until};
 use crate::scripting::tsc::text_script::{TextScript, TextScriptEncoding};
 
@@ -80,11 +80,12 @@ impl TextScript {
             match chr {
                 b'#' if allow_next_event => {
                     if !char_buf.is_empty() {
+                        put_varint(TSCOpCode::_STR as i32, &mut bytecode);
                         put_string(&mut char_buf, &mut bytecode, encoding);
                     }
 
                     // some events end without <END marker.
-                    put_varint(OpCode::_END as i32, &mut bytecode);
+                    put_varint(TSCOpCode::_END as i32, &mut bytecode);
                     break;
                 }
                 b'<' => {
@@ -98,6 +99,7 @@ impl TextScript {
                     }
 
                     if !char_buf.is_empty() {
+                        put_varint(TSCOpCode::_STR as i32, &mut bytecode);
                         put_string(&mut char_buf, &mut bytecode, encoding);
                     }
 
@@ -138,111 +140,111 @@ impl TextScript {
         iter: &mut Peekable<I>,
         out: &mut Vec<u8>,
     ) -> GameResult {
-        let instr = OpCode::from_str(code).map_err(|_| ParseError(format!("Unknown opcode: {}", code)))?;
+        let instr = TSCOpCode::from_str(code).map_err(|_| ParseError(format!("Unknown opcode: {}", code)))?;
 
         match instr {
             // Zero operand codes
-            OpCode::AEp
-            | OpCode::CAT
-            | OpCode::CIL
-            | OpCode::CLO
-            | OpCode::CLR
-            | OpCode::CPS
-            | OpCode::CRE
-            | OpCode::CSS
-            | OpCode::END
-            | OpCode::ESC
-            | OpCode::FLA
-            | OpCode::FMU
-            | OpCode::FRE
-            | OpCode::HMC
-            | OpCode::INI
-            | OpCode::KEY
-            | OpCode::LDP
-            | OpCode::MLP
-            | OpCode::MM0
-            | OpCode::MNA
-            | OpCode::MS2
-            | OpCode::MS3
-            | OpCode::MSG
-            | OpCode::NOD
-            | OpCode::PRI
-            | OpCode::RMU
-            | OpCode::SAT
-            | OpCode::SLP
-            | OpCode::SMC
-            | OpCode::SPS
-            | OpCode::STC
-            | OpCode::SVP
-            | OpCode::TUR
-            | OpCode::WAS
-            | OpCode::ZAM
-            | OpCode::HM2
-            | OpCode::POP
-            | OpCode::KE2
-            | OpCode::FR2 => {
+            TSCOpCode::AEp
+            | TSCOpCode::CAT
+            | TSCOpCode::CIL
+            | TSCOpCode::CLO
+            | TSCOpCode::CLR
+            | TSCOpCode::CPS
+            | TSCOpCode::CRE
+            | TSCOpCode::CSS
+            | TSCOpCode::END
+            | TSCOpCode::ESC
+            | TSCOpCode::FLA
+            | TSCOpCode::FMU
+            | TSCOpCode::FRE
+            | TSCOpCode::HMC
+            | TSCOpCode::INI
+            | TSCOpCode::KEY
+            | TSCOpCode::LDP
+            | TSCOpCode::MLP
+            | TSCOpCode::MM0
+            | TSCOpCode::MNA
+            | TSCOpCode::MS2
+            | TSCOpCode::MS3
+            | TSCOpCode::MSG
+            | TSCOpCode::NOD
+            | TSCOpCode::PRI
+            | TSCOpCode::RMU
+            | TSCOpCode::SAT
+            | TSCOpCode::SLP
+            | TSCOpCode::SMC
+            | TSCOpCode::SPS
+            | TSCOpCode::STC
+            | TSCOpCode::SVP
+            | TSCOpCode::TUR
+            | TSCOpCode::WAS
+            | TSCOpCode::ZAM
+            | TSCOpCode::HM2
+            | TSCOpCode::POP
+            | TSCOpCode::KE2
+            | TSCOpCode::FR2 => {
                 put_varint(instr as i32, out);
             }
             // One operand codes
-            OpCode::BOA
-            | OpCode::BSL
-            | OpCode::FOB
-            | OpCode::FOM
-            | OpCode::QUA
-            | OpCode::UNI
-            | OpCode::MYB
-            | OpCode::MYD
-            | OpCode::FAI
-            | OpCode::FAO
-            | OpCode::WAI
-            | OpCode::FAC
-            | OpCode::GIT
-            | OpCode::NUM
-            | OpCode::DNA
-            | OpCode::DNP
-            | OpCode::FLm
-            | OpCode::FLp
-            | OpCode::MPp
-            | OpCode::SKm
-            | OpCode::SKp
-            | OpCode::EQp
-            | OpCode::EQm
-            | OpCode::MLp
-            | OpCode::ITp
-            | OpCode::ITm
-            | OpCode::AMm
-            | OpCode::UNJ
-            | OpCode::MPJ
-            | OpCode::YNJ
-            | OpCode::EVE
-            | OpCode::XX1
-            | OpCode::SIL
-            | OpCode::LIp
-            | OpCode::SOU
-            | OpCode::CMU
-            | OpCode::SSS
-            | OpCode::ACH
-            | OpCode::S2MV
-            | OpCode::S2PJ
-            | OpCode::PSH => {
+            TSCOpCode::BOA
+            | TSCOpCode::BSL
+            | TSCOpCode::FOB
+            | TSCOpCode::FOM
+            | TSCOpCode::QUA
+            | TSCOpCode::UNI
+            | TSCOpCode::MYB
+            | TSCOpCode::MYD
+            | TSCOpCode::FAI
+            | TSCOpCode::FAO
+            | TSCOpCode::WAI
+            | TSCOpCode::FAC
+            | TSCOpCode::GIT
+            | TSCOpCode::NUM
+            | TSCOpCode::DNA
+            | TSCOpCode::DNP
+            | TSCOpCode::FLm
+            | TSCOpCode::FLp
+            | TSCOpCode::MPp
+            | TSCOpCode::SKm
+            | TSCOpCode::SKp
+            | TSCOpCode::EQp
+            | TSCOpCode::EQm
+            | TSCOpCode::MLp
+            | TSCOpCode::ITp
+            | TSCOpCode::ITm
+            | TSCOpCode::AMm
+            | TSCOpCode::UNJ
+            | TSCOpCode::MPJ
+            | TSCOpCode::YNJ
+            | TSCOpCode::EVE
+            | TSCOpCode::XX1
+            | TSCOpCode::SIL
+            | TSCOpCode::LIp
+            | TSCOpCode::SOU
+            | TSCOpCode::CMU
+            | TSCOpCode::SSS
+            | TSCOpCode::ACH
+            | TSCOpCode::S2MV
+            | TSCOpCode::S2PJ
+            | TSCOpCode::PSH => {
                 let operand = read_number(iter)?;
                 put_varint(instr as i32, out);
                 put_varint(operand as i32, out);
             }
             // Two operand codes
-            OpCode::FON
-            | OpCode::MOV
-            | OpCode::AMp
-            | OpCode::NCJ
-            | OpCode::ECJ
-            | OpCode::FLJ
-            | OpCode::ITJ
-            | OpCode::SKJ
-            | OpCode::AMJ
-            | OpCode::SMP
-            | OpCode::PSp
-            | OpCode::IpN
-            | OpCode::FFm => {
+            TSCOpCode::FON
+            | TSCOpCode::MOV
+            | TSCOpCode::AMp
+            | TSCOpCode::NCJ
+            | TSCOpCode::ECJ
+            | TSCOpCode::FLJ
+            | TSCOpCode::ITJ
+            | TSCOpCode::SKJ
+            | TSCOpCode::AMJ
+            | TSCOpCode::SMP
+            | TSCOpCode::PSp
+            | TSCOpCode::IpN
+            | TSCOpCode::FFm => {
                 let operand_a = read_number(iter)?;
                 if strict {
                     expect_char(b':', iter)?;
@@ -256,7 +258,7 @@ impl TextScript {
                 put_varint(operand_b as i32, out);
             }
             // Three operand codes
-            OpCode::ANP | OpCode::CNP | OpCode::INP | OpCode::TAM | OpCode::CMP | OpCode::INJ => {
+            TSCOpCode::ANP | TSCOpCode::CNP | TSCOpCode::INP | TSCOpCode::TAM | TSCOpCode::CMP | TSCOpCode::INJ => {
                 let operand_a = read_number(iter)?;
                 if strict {
                     expect_char(b':', iter)?;
@@ -277,7 +279,7 @@ impl TextScript {
                 put_varint(operand_c as i32, out);
             }
             // Four operand codes
-            OpCode::TRA | OpCode::MNP | OpCode::SNP => {
+            TSCOpCode::TRA | TSCOpCode::MNP | TSCOpCode::SNP => {
                 let operand_a = read_number(iter)?;
                 if strict {
                     expect_char(b':', iter)?;
@@ -304,11 +306,110 @@ impl TextScript {
                 put_varint(operand_c as i32, out);
                 put_varint(operand_d as i32, out);
             }
-            OpCode::_NOP | OpCode::_UNI | OpCode::_STR | OpCode::_END => {
+            TSCOpCode::_NOP | TSCOpCode::_UNI | TSCOpCode::_STR | TSCOpCode::_END => {
                 unreachable!()
             }
         }
 
         Ok(())
+    }
+}
+
+impl CreditScript {
+    pub fn compile(data: &[u8], strict: bool, encoding: TextScriptEncoding) -> GameResult<CreditScript> {
+        println!("data: {}", String::from_utf8_lossy(data));
+        let mut labels = HashMap::new();
+        let mut bytecode = Vec::new();
+        let mut iter = data.iter().copied().peekable();
+
+        while let Some(chr) = iter.next() {
+            match chr {
+                b'/' => {
+                    put_varint(CreditOpCode::StopCredits as i32, &mut bytecode);
+                }
+                b'[' => {
+                    let mut char_buf = Vec::new();
+
+                    while let Some(&chr) = iter.peek() {
+                        if chr == b']' {
+                            iter.next();
+                            break;
+                        }
+
+                        char_buf.push(chr);
+                        iter.next();
+                    }
+
+                    if let Ok(cast_tile) = read_number(&mut iter) {
+                        put_varint(CreditOpCode::PushLine as i32, &mut bytecode);
+                        put_varint((cast_tile as u16) as i32, &mut bytecode);
+                        put_string(&mut char_buf, &mut bytecode, encoding);
+                    }
+                }
+                b'-' => {
+                    let ticks = read_number(&mut iter)? as u16;
+
+                    put_varint(CreditOpCode::Wait as i32, &mut bytecode);
+                    put_varint(ticks as i32, &mut bytecode);
+                }
+                b'+' => {
+                    let offset = read_number(&mut iter)?;
+
+                    put_varint(CreditOpCode::ChangeXOffset as i32, &mut bytecode);
+                    put_varint(offset, &mut bytecode);
+                }
+                b'!' => {
+                    let music = read_number(&mut iter)? as u16;
+
+                    put_varint(CreditOpCode::ChangeMusic as i32, &mut bytecode);
+                    put_varint(music as i32, &mut bytecode);
+                }
+                b'~' => {
+                    put_varint(CreditOpCode::FadeMusic as i32, &mut bytecode);
+                }
+                b'l' => {
+                    let label = read_number(&mut iter)? as u16;
+                    let pos = bytecode.len() as u32;
+
+                    labels.insert(label, pos);
+                }
+                b'j' => {
+                    let label = read_number(&mut iter)? as u16;
+
+                    put_varint(CreditOpCode::JumpLabel as i32, &mut bytecode);
+                    put_varint(label as i32, &mut bytecode);
+                }
+                b'f' => {
+                    let flag = read_number(&mut iter)? as u16;
+                    if strict {
+                        expect_char(b':', &mut iter)?;
+                    } else {
+                        iter.next().ok_or_else(|| ParseError("Script unexpectedly ended.".to_owned()))?;
+                    }
+                    let label = read_number(&mut iter)? as u16;
+
+                    put_varint(CreditOpCode::JumpFlag as i32, &mut bytecode);
+                    put_varint(flag as i32, &mut bytecode);
+                    put_varint(label as i32, &mut bytecode);
+                }
+                b'p' => {
+                    iter.next(); // idfk what's that for, in cs+ Credits.tsc it's '2'.
+
+                    if strict {
+                        expect_char(b':', &mut iter)?;
+                    } else {
+                        iter.next().ok_or_else(|| ParseError("Script unexpectedly ended.".to_owned()))?;
+                    }
+
+                    let label = read_number(&mut iter)? as u16;
+
+                    put_varint(CreditOpCode::JumpPlayer2 as i32, &mut bytecode);
+                    put_varint(label as i32, &mut bytecode);
+                }
+                _ => (),
+            }
+        }
+
+        Ok(CreditScript { labels, bytecode })
     }
 }

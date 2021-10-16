@@ -5,7 +5,7 @@ use num_traits::FromPrimitive;
 use crate::framework::error::GameError::InvalidValue;
 use crate::framework::error::GameResult;
 use crate::scripting::tsc::bytecode_utils::read_cur_varint;
-use crate::scripting::tsc::opcodes::OpCode;
+use crate::scripting::tsc::opcodes::TSCOpCode;
 use crate::scripting::tsc::text_script::TextScript;
 
 impl TextScript {
@@ -15,119 +15,119 @@ impl TextScript {
             let mut cursor = Cursor::new(bytecode);
 
             while let Ok(op_num) = read_cur_varint(&mut cursor) {
-                let op_maybe: Option<OpCode> = FromPrimitive::from_i32(op_num);
+                let op_maybe: Option<TSCOpCode> = FromPrimitive::from_i32(op_num);
 
                 if let Some(op) = op_maybe {
                     match op {
                         // Zero operand codes
-                        OpCode::AEp
-                        | OpCode::CAT
-                        | OpCode::CIL
-                        | OpCode::CLO
-                        | OpCode::CLR
-                        | OpCode::CPS
-                        | OpCode::CRE
-                        | OpCode::CSS
-                        | OpCode::END
-                        | OpCode::ESC
-                        | OpCode::FLA
-                        | OpCode::FMU
-                        | OpCode::FRE
-                        | OpCode::HMC
-                        | OpCode::INI
-                        | OpCode::KEY
-                        | OpCode::LDP
-                        | OpCode::MLP
-                        | OpCode::MM0
-                        | OpCode::MNA
-                        | OpCode::MS2
-                        | OpCode::MS3
-                        | OpCode::MSG
-                        | OpCode::NOD
-                        | OpCode::PRI
-                        | OpCode::RMU
-                        | OpCode::SAT
-                        | OpCode::SLP
-                        | OpCode::SMC
-                        | OpCode::SPS
-                        | OpCode::STC
-                        | OpCode::SVP
-                        | OpCode::TUR
-                        | OpCode::WAS
-                        | OpCode::ZAM
-                        | OpCode::HM2
-                        | OpCode::POP
-                        | OpCode::KE2
-                        | OpCode::FR2 => {
+                        TSCOpCode::AEp
+                        | TSCOpCode::CAT
+                        | TSCOpCode::CIL
+                        | TSCOpCode::CLO
+                        | TSCOpCode::CLR
+                        | TSCOpCode::CPS
+                        | TSCOpCode::CRE
+                        | TSCOpCode::CSS
+                        | TSCOpCode::END
+                        | TSCOpCode::ESC
+                        | TSCOpCode::FLA
+                        | TSCOpCode::FMU
+                        | TSCOpCode::FRE
+                        | TSCOpCode::HMC
+                        | TSCOpCode::INI
+                        | TSCOpCode::KEY
+                        | TSCOpCode::LDP
+                        | TSCOpCode::MLP
+                        | TSCOpCode::MM0
+                        | TSCOpCode::MNA
+                        | TSCOpCode::MS2
+                        | TSCOpCode::MS3
+                        | TSCOpCode::MSG
+                        | TSCOpCode::NOD
+                        | TSCOpCode::PRI
+                        | TSCOpCode::RMU
+                        | TSCOpCode::SAT
+                        | TSCOpCode::SLP
+                        | TSCOpCode::SMC
+                        | TSCOpCode::SPS
+                        | TSCOpCode::STC
+                        | TSCOpCode::SVP
+                        | TSCOpCode::TUR
+                        | TSCOpCode::WAS
+                        | TSCOpCode::ZAM
+                        | TSCOpCode::HM2
+                        | TSCOpCode::POP
+                        | TSCOpCode::KE2
+                        | TSCOpCode::FR2 => {
                             result.push_str(format!("{:?}()\n", op).as_str());
                         }
                         // One operand codes
-                        OpCode::BOA
-                        | OpCode::BSL
-                        | OpCode::FOB
-                        | OpCode::FOM
-                        | OpCode::QUA
-                        | OpCode::UNI
-                        | OpCode::MYB
-                        | OpCode::MYD
-                        | OpCode::FAI
-                        | OpCode::FAO
-                        | OpCode::WAI
-                        | OpCode::FAC
-                        | OpCode::GIT
-                        | OpCode::NUM
-                        | OpCode::DNA
-                        | OpCode::DNP
-                        | OpCode::FLm
-                        | OpCode::FLp
-                        | OpCode::MPp
-                        | OpCode::SKm
-                        | OpCode::SKp
-                        | OpCode::EQp
-                        | OpCode::EQm
-                        | OpCode::MLp
-                        | OpCode::ITp
-                        | OpCode::ITm
-                        | OpCode::AMm
-                        | OpCode::UNJ
-                        | OpCode::MPJ
-                        | OpCode::YNJ
-                        | OpCode::EVE
-                        | OpCode::XX1
-                        | OpCode::SIL
-                        | OpCode::LIp
-                        | OpCode::SOU
-                        | OpCode::CMU
-                        | OpCode::SSS
-                        | OpCode::ACH
-                        | OpCode::S2MV
-                        | OpCode::S2PJ
-                        | OpCode::PSH => {
+                        TSCOpCode::BOA
+                        | TSCOpCode::BSL
+                        | TSCOpCode::FOB
+                        | TSCOpCode::FOM
+                        | TSCOpCode::QUA
+                        | TSCOpCode::UNI
+                        | TSCOpCode::MYB
+                        | TSCOpCode::MYD
+                        | TSCOpCode::FAI
+                        | TSCOpCode::FAO
+                        | TSCOpCode::WAI
+                        | TSCOpCode::FAC
+                        | TSCOpCode::GIT
+                        | TSCOpCode::NUM
+                        | TSCOpCode::DNA
+                        | TSCOpCode::DNP
+                        | TSCOpCode::FLm
+                        | TSCOpCode::FLp
+                        | TSCOpCode::MPp
+                        | TSCOpCode::SKm
+                        | TSCOpCode::SKp
+                        | TSCOpCode::EQp
+                        | TSCOpCode::EQm
+                        | TSCOpCode::MLp
+                        | TSCOpCode::ITp
+                        | TSCOpCode::ITm
+                        | TSCOpCode::AMm
+                        | TSCOpCode::UNJ
+                        | TSCOpCode::MPJ
+                        | TSCOpCode::YNJ
+                        | TSCOpCode::EVE
+                        | TSCOpCode::XX1
+                        | TSCOpCode::SIL
+                        | TSCOpCode::LIp
+                        | TSCOpCode::SOU
+                        | TSCOpCode::CMU
+                        | TSCOpCode::SSS
+                        | TSCOpCode::ACH
+                        | TSCOpCode::S2MV
+                        | TSCOpCode::S2PJ
+                        | TSCOpCode::PSH => {
                             let par_a = read_cur_varint(&mut cursor)?;
 
                             result.push_str(format!("{:?}({})\n", op, par_a).as_str());
                         }
                         // Two operand codes
-                        OpCode::FON
-                        | OpCode::MOV
-                        | OpCode::AMp
-                        | OpCode::NCJ
-                        | OpCode::ECJ
-                        | OpCode::FLJ
-                        | OpCode::ITJ
-                        | OpCode::SKJ
-                        | OpCode::AMJ
-                        | OpCode::SMP
-                        | OpCode::PSp
-                        | OpCode::IpN
-                        | OpCode::FFm => {
+                        TSCOpCode::FON
+                        | TSCOpCode::MOV
+                        | TSCOpCode::AMp
+                        | TSCOpCode::NCJ
+                        | TSCOpCode::ECJ
+                        | TSCOpCode::FLJ
+                        | TSCOpCode::ITJ
+                        | TSCOpCode::SKJ
+                        | TSCOpCode::AMJ
+                        | TSCOpCode::SMP
+                        | TSCOpCode::PSp
+                        | TSCOpCode::IpN
+                        | TSCOpCode::FFm => {
                             let par_a = read_cur_varint(&mut cursor)?;
                             let par_b = read_cur_varint(&mut cursor)?;
 
                             result.push_str(format!("{:?}({}, {})\n", op, par_a, par_b).as_str());
                         }
                         // Three operand codes
-                        OpCode::ANP | OpCode::CNP | OpCode::INP | OpCode::TAM | OpCode::CMP | OpCode::INJ => {
+                        TSCOpCode::ANP | TSCOpCode::CNP | TSCOpCode::INP | TSCOpCode::TAM | TSCOpCode::CMP | TSCOpCode::INJ => {
                             let par_a = read_cur_varint(&mut cursor)?;
                             let par_b = read_cur_varint(&mut cursor)?;
                             let par_c = read_cur_varint(&mut cursor)?;
@@ -135,7 +135,7 @@ impl TextScript {
                             result.push_str(format!("{:?}({}, {}, {})\n", op, par_a, par_b, par_c).as_str());
                         }
                         // Four operand codes
-                        OpCode::TRA | OpCode::MNP | OpCode::SNP => {
+                        TSCOpCode::TRA | TSCOpCode::MNP | TSCOpCode::SNP => {
                             let par_a = read_cur_varint(&mut cursor)?;
                             let par_b = read_cur_varint(&mut cursor)?;
                             let par_c = read_cur_varint(&mut cursor)?;
@@ -143,7 +143,7 @@ impl TextScript {
 
                             result.push_str(format!("{:?}({}, {}, {}, {})\n", op, par_a, par_b, par_c, par_d).as_str());
                         }
-                        OpCode::_STR => {
+                        TSCOpCode::_STR => {
                             let len = read_cur_varint(&mut cursor)?;
 
                             result.push_str(format!("%string(len = {}, value = \"", len).as_str());
@@ -169,9 +169,9 @@ impl TextScript {
                             }
                             result.push_str("\")\n");
                         }
-                        OpCode::_NOP => result.push_str("%no_op()\n"),
-                        OpCode::_UNI => result.push_str("%unimplemented()\n"),
-                        OpCode::_END => result.push_str("%end_marker()\n"),
+                        TSCOpCode::_NOP => result.push_str("%no_op()\n"),
+                        TSCOpCode::_UNI => result.push_str("%unimplemented()\n"),
+                        TSCOpCode::_END => result.push_str("%end_marker()\n"),
                     }
                 } else {
                     break;

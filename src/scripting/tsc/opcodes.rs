@@ -1,9 +1,8 @@
 use num_derive::FromPrimitive;
 
 /// Engine's text script VM operation codes.
-#[derive(EnumString, Debug, FromPrimitive, PartialEq)]
-#[repr(i32)]
-pub enum OpCode {
+#[derive(EnumString, Debug, FromPrimitive, PartialEq, Copy, Clone)]
+pub enum TSCOpCode {
     // ---- Internal opcodes (used by bytecode, no TSC representation)
     /// internal: no operation
     _NOP = 0,
@@ -266,4 +265,55 @@ pub enum OpCode {
     /// <FRE related to player 2?
     FR2,
     // ---- Custom opcodes, for use by modders ----
+}
+
+#[derive(FromPrimitive, PartialEq, Copy, Clone)]
+pub enum CreditOpCode {
+    /// Internal, no operation
+    _NOP = 0,
+    /// `/`
+    ///
+    /// Arguments: `()`
+    StopCredits,
+
+    /// `[{text: string}]{cast_tile: number}`
+    ///
+    /// Arguments: `(cast_tile: varint, text_len: varint, text: [varint; text_len])`
+    PushLine,
+
+    /// `-{ticks: number}`
+    ///
+    /// Arguments: `(ticks: varint)`
+    Wait,
+
+    /// `+{offset: number}`
+    ///
+    /// Arguments: `(offset: varint)`
+    ChangeXOffset,
+
+    /// `!{music_id: number}`
+    ///
+    /// Arguments: `(music_id: varint)`
+    ChangeMusic,
+
+    /// `~`
+    ///
+    /// Arguments: `()`
+    FadeMusic,
+
+    /// `j{label: number}`
+    ///
+    /// Arguments: `(label: varint)`
+    JumpLabel,
+
+    /// `f{flag: number}:{label: number}`
+    ///
+    /// Arguments: `(flag: varint, label: varint)`
+    JumpFlag,
+
+    // ---- Cave Story+ (Switch) specific opcodes ----
+    /// `p2:{label: number}`
+    ///
+    /// Arguments: `(label: varint)`
+    JumpPlayer2,
 }

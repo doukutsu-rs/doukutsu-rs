@@ -25,6 +25,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 #[cfg(feature = "scripting-lua")]
 use crate::scripting::lua::LuaScriptingState;
+use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::settings::Settings;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
@@ -137,6 +138,7 @@ pub struct SharedGameState {
     pub preferred_viewport_size: (f32, f32),
     pub next_scene: Option<Box<dyn Scene>>,
     pub textscript_vm: TextScriptVM,
+    pub creditscript_vm: CreditScriptVM,
     pub lightmap_canvas: Option<Box<dyn BackendTexture>>,
     pub season: Season,
     pub constants: EngineConstants,
@@ -237,6 +239,7 @@ impl SharedGameState {
             preferred_viewport_size: (320.0, 240.0),
             next_scene: None,
             textscript_vm: TextScriptVM::new(),
+            creditscript_vm: CreditScriptVM::new(),
             lightmap_canvas: None,
             season,
             constants,

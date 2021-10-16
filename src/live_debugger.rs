@@ -64,7 +64,7 @@ impl LiveDebugger {
             .resizable(false)
             .collapsed(true, Condition::FirstUseEver)
             .position([5.0, 5.0], Condition::FirstUseEver)
-            .size([400.0, 170.0], Condition::FirstUseEver)
+            .size([400.0, 190.0], Condition::FirstUseEver)
             .build(ui, || {
                 ui.text(format!(
                     "Player position: ({:.1},{:.1}), velocity: ({:.1},{:.1})",
@@ -112,7 +112,7 @@ impl LiveDebugger {
                 }
 
                 ui.same_line(0.0);
-                if ui.button(im_str!("Events"), [0.0, 0.0]) {
+                if ui.button(im_str!("TSC Scripts"), [0.0, 0.0]) {
                     self.events_visible = !self.events_visible;
                 }
 
@@ -124,7 +124,7 @@ impl LiveDebugger {
                 #[cfg(feature = "scripting-lua")]
                     {
                         ui.same_line(0.0);
-                        if ui.button(im_str!("Reload Scripts"), [0.0, 0.0]) {
+                        if ui.button(im_str!("Reload Lua Scripts"), [0.0, 0.0]) {
                             if let Err(err) = state.lua.reload_scripts(ctx) {
                                 log::error!("Error reloading scripts: {:?}", err);
                                 self.error = Some(ImString::new(err.to_string()));
@@ -204,39 +204,40 @@ impl LiveDebugger {
         }
 
         if self.events_visible {
-            Window::new(im_str!("Events"))
+            Window::new(im_str!("TSC Scripts"))
                 .resizable(false)
                 .position([80.0, 80.0], Condition::Appearing)
-                .size([300.0, 300.0], Condition::Appearing)
+                .size([300.0, 320.0], Condition::Appearing)
                 .build(ui, || {
                     if self.events.is_empty() {
                         self.event_ids.clear();
 
-                        let vm = &state.textscript_vm;
+                        let scripts = state.textscript_vm.scripts.borrow();
 
-                        for event in vm.scripts.scene_script.get_event_ids() {
+                        for event in scripts.scene_script.get_event_ids() {
                             self.events.push(ImString::new(format!("Scene: #{:04}", event)));
                             self.event_ids.push((ScriptType::Scene, event));
                         }
 
-                        for event in vm.scripts.global_script.get_event_ids() {
+                        for event in scripts.global_script.get_event_ids() {
                             self.events.push(ImString::new(format!("Global: #{:04}", event)));
                             self.event_ids.push((ScriptType::Global, event));
                         }
 
-                        for event in vm.scripts.inventory_script.get_event_ids() {
+                        for event in scripts.inventory_script.get_event_ids() {
                             self.events.push(ImString::new(format!("Inventory: #{:04}", event)));
                             self.event_ids.push((ScriptType::Inventory, event));
                         }
 
-                        for event in vm.scripts.stage_select_script.get_event_ids() {
+                        for event in scripts.stage_select_script.get_event_ids() {
                             self.events.push(ImString::new(format!("Stage Select: #{:04}", event)));
                             self.event_ids.push((ScriptType::StageSelect, event));
                         }
                     }
                     let events: Vec<&ImStr> = self.events.iter().map(|e| e.as_ref()).collect();
 
-                    ui.text_wrapped(&ImString::new(format!("Execution state: {:?}", state.textscript_vm.state)));
+                    ui.text_wrapped(&ImString::new(format!("TextScript execution state: {:?}", state.textscript_vm.state)));
+                    ui.text_wrapped(&ImString::new(format!("CreditScript execution state: {:?}", state.creditscript_vm.state)));
 
                     ui.push_item_width(-1.0);
                     ui.list_box(im_str!(""), &mut self.selected_event, &events, 10);
@@ -256,11 +257,12 @@ impl LiveDebugger {
                         if let Some((stype, event_num)) = self.event_ids.get(self.selected_event as usize) {
                             let id = ((*stype as u32) << 16) | (*event_num as u32);
                             if !self.text_windows.iter().any(|(e, _, _)| *e == id) {
+                                let scripts = state.textscript_vm.scripts.borrow();
                                 let script = match stype {
-                                    ScriptType::Scene => &state.textscript_vm.scripts.scene_script,
-                                    ScriptType::Global => &state.textscript_vm.scripts.global_script,
-                                    ScriptType::Inventory => &state.textscript_vm.scripts.inventory_script,
-                                    ScriptType::StageSelect => &state.textscript_vm.scripts.stage_select_script,
+                                    ScriptType::Scene => &scripts.scene_script,
+                                    ScriptType::Global => &scripts.global_script,
+                                    ScriptType::Inventory => &scripts.inventory_script,
+                                    ScriptType::StageSelect => &scripts.stage_select_script,
                                 };
 
                                 match script.decompile_event(*event_num) {

@@ -5,6 +5,7 @@ use log::info;
 use crate::caret::CaretType;
 use crate::common::{interpolate_fix9_scale, Color, Direction, FadeDirection, FadeState, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
+use crate::components::credits::Credits;
 use crate::components::draw_common::Alignment;
 use crate::components::flash::Flash;
 use crate::components::hud::HUD;
@@ -30,6 +31,7 @@ use crate::player::{Player, TargetPlayer};
 use crate::rng::XorShift;
 use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
+use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage};
 use crate::scripting::tsc::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM};
@@ -45,6 +47,7 @@ pub struct GameScene {
     pub boss_life_bar: BossLifeBar,
     pub stage_select: StageSelect,
     pub flash: Flash,
+    pub credits: Credits,
     pub inventory_ui: InventoryUI,
     pub hud_player1: HUD,
     pub hud_player2: HUD,
@@ -132,6 +135,7 @@ impl GameScene {
             boss_life_bar: BossLifeBar::new(),
             stage_select: StageSelect::new(),
             flash: Flash::new(),
+            credits: Credits::new(),
             inventory_ui: InventoryUI::new(),
             hud_player1: HUD::new(Alignment::Left),
             hud_player2: HUD::new(Alignment::Right),
@@ -1930,6 +1934,11 @@ impl Scene for GameScene {
                 }
             }
 
+            if state.control_flags.credits_running() {
+                self.skip_counter = 0;
+                CreditScriptVM::run(state, ctx)?;
+            }
+
             match state.fade_state {
                 FadeState::FadeOut(tick, direction) if tick < 15 => {
                     state.fade_state = FadeState::FadeOut(tick + 1, direction);
@@ -2134,7 +2143,12 @@ impl Scene for GameScene {
             )?;
         }
 
+        if state.control_flags.credits_running() {
+            self.credits.draw(state, ctx, &self.frame)?;
+        }
+
         self.draw_text_boxes(state, ctx)?;
+
         if self.skip_counter > 0 {
             let text = format!("Hold {:?} to skip the cutscene", state.settings.player1_key_map.inventory);
             let width = state.font.text_width(text.chars(), &state.constants);

@@ -3,7 +3,6 @@ use std::io::{Cursor, Read};
 use crate::encoding::{read_cur_shift_jis, read_cur_wtf8};
 use crate::framework::error::GameError::ParseError;
 use crate::framework::error::GameResult;
-use crate::scripting::tsc::opcodes::OpCode;
 use crate::scripting::tsc::text_script::TextScriptEncoding;
 
 pub fn put_varint(val: i32, out: &mut Vec<u8>) {
@@ -83,7 +82,6 @@ pub fn put_string(buffer: &mut Vec<u8>, out: &mut Vec<u8>, encoding: TextScriptE
 
     buffer.clear();
 
-    put_varint(OpCode::_STR as i32, out);
     put_varint(chars, out);
     out.append(&mut tmp_buf);
 }

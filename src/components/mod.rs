@@ -1,4 +1,5 @@
 pub mod boss_life_bar;
+pub mod credits;
 pub mod draw_common;
 pub mod flash;
 pub mod hud;

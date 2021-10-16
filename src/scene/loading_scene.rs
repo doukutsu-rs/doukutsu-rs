@@ -4,6 +4,7 @@ use crate::framework::filesystem;
 use crate::npc::NPCTable;
 use crate::scene::no_data_scene::NoDataScene;
 use crate::scene::Scene;
+use crate::scripting::tsc::credit_script::CreditScript;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::StageData;
 use crate::scripting::tsc::text_script::TextScript;
@@ -36,6 +37,10 @@ impl LoadingScene {
         let stage_select_tsc = filesystem::open(ctx, [&state.base_path, "/StageSelect.tsc"].join(""))?;
         let stage_select_script = TextScript::load_from(stage_select_tsc, &state.constants)?;
         state.textscript_vm.set_stage_select_script(stage_select_script);
+
+        let credit_tsc = filesystem::open(ctx, [&state.base_path, "/Credit.tsc"].join(""))?;
+        let credit_script = CreditScript::load_from(credit_tsc, &state.constants)?;
+        state.creditscript_vm.set_script(credit_script);
 
         if ctx.headless {
             log::info!("Headless mode detected, skipping intro and loading last saved game.");
