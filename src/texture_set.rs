@@ -354,18 +354,26 @@ impl TextureSet {
         create_texture(ctx, width as u16, height as u16, &img)
     }
 
+    pub fn find_texture(
+        &self,
+        ctx: &mut Context,
+        name: &str,
+    ) -> Option<String> {
+        self
+            .paths
+            .iter()
+            .find_map(|s| {
+                FILE_TYPES.iter().map(|ext| [s, name, ext].join("")).find(|path| filesystem::exists(ctx, path))
+            })
+    }
+
     pub fn load_texture(
         &self,
         ctx: &mut Context,
         constants: &EngineConstants,
         name: &str,
     ) -> GameResult<Box<dyn SpriteBatch>> {
-        let path = self
-            .paths
-            .iter()
-            .find_map(|s| {
-                FILE_TYPES.iter().map(|ext| [s, name, ext].join("")).find(|path| filesystem::exists(ctx, path))
-            })
+        let path = self.find_texture(ctx, name)
             .ok_or_else(|| GameError::ResourceLoadError(format!("Texture {} does not exist.", name)))?;
 
         let has_glow_layer = self
@@ -376,7 +384,7 @@ impl TextureSet {
             })
             .is_some();
 
-        info!("Loading texture: {}", path);
+        info!("Loading texture: {} -> {}", name, path);
 
         let batch = self.load_image(ctx, &path)?;
         let size = batch.dimensions();

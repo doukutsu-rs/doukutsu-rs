@@ -75,7 +75,7 @@ pub trait BackendTexture {
 }
 
 #[allow(unreachable_code)]
-pub fn init_backend(headless: bool) -> GameResult<Box<dyn Backend>> {
+pub fn init_backend(headless: bool, size_hint: (u16, u16)) -> GameResult<Box<dyn Backend>> {
     if headless {
         return crate::framework::backend_null::NullBackend::new();
     }
@@ -87,7 +87,7 @@ pub fn init_backend(headless: bool) -> GameResult<Box<dyn Backend>> {
 
     #[cfg(feature = "backend-sdl")]
     {
-        return crate::framework::backend_sdl2::SDL2Backend::new();
+        return crate::framework::backend_sdl2::SDL2Backend::new(size_hint);
     }
 
     log::warn!("No backend compiled in, using null backend instead.");

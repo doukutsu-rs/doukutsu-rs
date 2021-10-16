@@ -266,6 +266,7 @@ pub struct EngineConstants {
     pub soundtracks: HashMap<String, String>,
     pub music_table: Vec<String>,
     pub organya_paths: Vec<String>,
+    pub credit_illustration_paths: Vec<String>,
 }
 
 impl Clone for EngineConstants {
@@ -291,6 +292,7 @@ impl Clone for EngineConstants {
             soundtracks: self.soundtracks.clone(),
             music_table: self.music_table.clone(),
             organya_paths: self.organya_paths.clone(),
+            credit_illustration_paths: self.credit_illustration_paths.clone(),
         }
     }
 }
@@ -1287,6 +1289,27 @@ impl EngineConstants {
                 "Bullet" => (320, 176),
                 "Caret" => (320, 240),
                 "casts" => (320, 240),
+                "Credit01" => (160, 240),
+                "Credit01a" => (160, 240),
+                "Credit02" => (160, 240),
+                "Credit02a" => (160, 240),
+                "Credit03" => (160, 240),
+                "Credit03a" => (160, 240),
+                "Credit04" => (160, 240),
+                "Credit05" => (160, 240),
+                "Credit06" => (160, 240),
+                "Credit07" => (160, 240),
+                "Credit08" => (160, 240),
+                "Credit09" => (160, 240),
+                "Credit10" => (160, 240),
+                "Credit11" => (160, 240),
+                "Credit12" => (160, 240),
+                "Credit13" => (160, 240),
+                "Credit14" => (160, 240),
+                "Credit15" => (160, 240),
+                "Credit16" => (160, 240),
+                "Credit17" => (160, 240),
+                "Credit18" => (160, 240),
                 "Face" => (288, 240),
                 "Face_0" => (288, 240), // nxengine
                 "Face_1" => (288, 240), // nxengine
@@ -1486,6 +1509,11 @@ impl EngineConstants {
                 "/org/".to_owned(),          // NXEngine
                 "/base/Org/".to_owned(),     // CS+
                 "/Resource/ORG/".to_owned(), // CSE2E
+            ],
+            credit_illustration_paths: vec![
+                "".to_owned(),
+                "Resource/BITMAP/".to_owned(), // CSE2E
+                "endpic/".to_owned(), // NXEngine
             ],
         }
     }

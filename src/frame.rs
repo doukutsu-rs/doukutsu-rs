@@ -35,18 +35,23 @@ impl Frame {
     }
 
     pub fn immediate_update(&mut self, state: &mut SharedGameState, stage: &Stage) {
+        let mut screen_width = state.canvas_size.0;
+        if state.constants.is_switch {
+            screen_width += 10.0; // hack for scrolling
+        }
+
         let tile_size = state.tile_size.as_int();
 
-        if (stage.map.width as usize).saturating_sub(1) * (tile_size as usize) < state.canvas_size.0 as usize {
-            self.x = -(((state.canvas_size.0 as i32 - (stage.map.width as i32 - 1) * tile_size) * 0x200) / 2);
+        if (stage.map.width as usize).saturating_sub(1) * (tile_size as usize) < screen_width as usize {
+            self.x = -(((screen_width as i32 - (stage.map.width as i32 - 1) * tile_size) * 0x200) / 2);
         } else {
-            self.x = self.target_x - (state.canvas_size.0 as i32 * 0x200 / 2);
+            self.x = self.target_x - (screen_width as i32 * 0x200 / 2);
 
             if self.x < 0 {
                 self.x = 0;
             }
 
-            let max_x = (((stage.map.width as i32 - 1) * tile_size) - state.canvas_size.0 as i32) * 0x200;
+            let max_x = (((stage.map.width as i32 - 1) * tile_size) - screen_width as i32) * 0x200;
             if self.x > max_x {
                 self.x = max_x;
             }
@@ -72,18 +77,22 @@ impl Frame {
     }
 
     pub fn update(&mut self, state: &mut SharedGameState, stage: &Stage) {
+        let mut screen_width = state.canvas_size.0;
+        if state.constants.is_switch {
+            screen_width += 10.0;
+        }
         let tile_size = state.tile_size.as_int();
 
-        if (stage.map.width as usize).saturating_sub(1) * (tile_size as usize) < state.canvas_size.0 as usize {
-            self.x = -(((state.canvas_size.0 as i32 - (stage.map.width as i32 - 1) * tile_size) * 0x200) / 2);
+        if (stage.map.width as usize).saturating_sub(1) * (tile_size as usize) < screen_width as usize {
+            self.x = -(((screen_width as i32 - (stage.map.width as i32 - 1) * tile_size) * 0x200) / 2);
         } else {
-            self.x += (self.target_x - (state.canvas_size.0 as i32 * 0x200 / 2) - self.x) / self.wait;
+            self.x += (self.target_x - (screen_width as i32 * 0x200 / 2) - self.x) / self.wait;
 
             if self.x < 0 {
                 self.x = 0;
             }
 
-            let max_x = (((stage.map.width as i32 - 1) * tile_size) - state.canvas_size.0 as i32) * 0x200;
+            let max_x = (((stage.map.width as i32 - 1) * tile_size) - screen_width as i32) * 0x200;
             if self.x > max_x {
                 self.x = max_x;
             }

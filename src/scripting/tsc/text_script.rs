@@ -97,6 +97,14 @@ pub enum TextScriptExecutionState {
     Reset,
 }
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum IllustrationState {
+    Hidden,
+    Shown,
+    FadeIn(f32),
+    FadeOut(f32),
+}
+
 pub struct TextScriptVM {
     pub scripts: Rc<RefCell<Scripts>>,
     pub state: TextScriptExecutionState,
@@ -117,6 +125,8 @@ pub struct TextScriptVM {
     pub line_1: Vec<char>,
     pub line_2: Vec<char>,
     pub line_3: Vec<char>,
+    pub current_illustration: Option<String>,
+    pub illustration_state: IllustrationState,
     prev_char: char,
 }
 
@@ -180,6 +190,8 @@ impl TextScriptVM {
             line_1: Vec::with_capacity(24),
             line_2: Vec::with_capacity(24),
             line_3: Vec::with_capacity(24),
+            current_illustration: None,
+            illustration_state: IllustrationState::Hidden,
             prev_char: '\x00',
         }
     }
@@ -219,6 +231,8 @@ impl TextScriptVM {
     pub fn reset(&mut self) {
         self.state = TextScriptExecutionState::Ended;
         self.flags.0 = 0;
+        self.current_illustration = None;
+        self.illustration_state = IllustrationState::Hidden;
         self.clear_text_box();
     }
 
@@ -1520,10 +1534,33 @@ impl TextScriptVM {
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
+            TSCOpCode::SIL => {
+                let number = read_cur_varint(&mut cursor)? as u16;
+
+                for path in state.constants.credit_illustration_paths.iter() {
+                    let path = format!("{}Credit{:02}", path, number);
+                    if let Some(_) = state.texture_set.find_texture(ctx, &path) {
+                        state.textscript_vm.current_illustration = Some(path);
+                        break;
+                    }
+                }
+
+                state.textscript_vm.illustration_state = IllustrationState::FadeIn(-160.0);
+
+                exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+            }
+            TSCOpCode::CIL => {
+                state.textscript_vm.illustration_state = if let Some(_) = state.textscript_vm.current_illustration {
+                    IllustrationState::FadeOut(0.0)
+                } else {
+                    IllustrationState::Hidden
+                };
+
+                exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+            }
             // unimplemented opcodes
             // Zero operands
-            TSCOpCode::CIL
-            | TSCOpCode::CPS
+            TSCOpCode::CPS
             | TSCOpCode::KE2
             | TSCOpCode::CSS
             | TSCOpCode::MLP
@@ -1536,7 +1573,7 @@ impl TextScriptVM {
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
             // One operand codes
-            TSCOpCode::UNJ | TSCOpCode::XX1 | TSCOpCode::SIL | TSCOpCode::SSS | TSCOpCode::ACH => {
+            TSCOpCode::UNJ | TSCOpCode::XX1 | TSCOpCode::SSS | TSCOpCode::ACH => {
                 let par_a = read_cur_varint(&mut cursor)?;
 
                 log::warn!("unimplemented opcode: {:?} {}", op, par_a);

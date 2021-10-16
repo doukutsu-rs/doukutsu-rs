@@ -164,6 +164,7 @@ impl SharedGameState {
             base_path = "/base/";
         } else if filesystem::exists(ctx, "/base/lighting.tbl") {
             info!("Cave Story+ (Switch) data files detected.");
+            ctx.size_hint = (854, 480);
             constants.apply_csplus_patches(&sound_manager);
             constants.apply_csplus_nx_patches();
             base_path = "/base/";

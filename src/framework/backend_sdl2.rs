@@ -31,13 +31,14 @@ use crate::GAME_SUSPENDED;
 
 pub struct SDL2Backend {
     context: Sdl,
+    size_hint: (u16, u16),
 }
 
 impl SDL2Backend {
-    pub fn new() -> GameResult<Box<dyn Backend>> {
+    pub fn new(size_hint: (u16, u16)) -> GameResult<Box<dyn Backend>> {
         let context = sdl2::init().map_err(|e| GameError::WindowError(e))?;
 
-        let backend = SDL2Backend { context };
+        let backend = SDL2Backend { context, size_hint };
 
         Ok(Box::new(backend))
     }
@@ -45,7 +46,7 @@ impl SDL2Backend {
 
 impl Backend for SDL2Backend {
     fn create_event_loop(&self) -> GameResult<Box<dyn BackendEventLoop>> {
-        SDL2EventLoop::new(&self.context)
+        SDL2EventLoop::new(&self.context, self.size_hint)
     }
 }
 
@@ -64,7 +65,7 @@ struct SDL2Context {
 }
 
 impl SDL2EventLoop {
-    pub fn new(sdl: &Sdl) -> GameResult<Box<dyn BackendEventLoop>> {
+    pub fn new(sdl: &Sdl, size_hint: (u16, u16)) -> GameResult<Box<dyn BackendEventLoop>> {
         let event_pump = sdl.event_pump().map_err(|e| GameError::WindowError(e))?;
         let video = sdl.video().map_err(|e| GameError::WindowError(e))?;
         let gl_attr = video.gl_attr();
@@ -72,7 +73,7 @@ impl SDL2EventLoop {
         gl_attr.set_context_profile(GLProfile::Core);
         gl_attr.set_context_version(3, 0);
 
-        let mut window = video.window("Cave Story (doukutsu-rs)", 640, 480);
+        let mut window = video.window("Cave Story (doukutsu-rs)", size_hint.0 as _, size_hint.1 as _);
         window.position_centered();
         window.resizable();
 

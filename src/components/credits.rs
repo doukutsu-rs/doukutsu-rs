@@ -1,8 +1,10 @@
-use crate::common::Rect;
+use crate::common::{Color, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::framework::graphics;
+use crate::scripting::tsc::text_script::IllustrationState;
 use crate::shared_game_state::SharedGameState;
 
 pub struct Credits {}
@@ -11,14 +13,48 @@ impl Credits {
     pub fn new() -> Credits {
         Credits {}
     }
+
+    pub fn draw_tick(&mut self, state: &mut SharedGameState) {
+        match state.textscript_vm.illustration_state {
+            IllustrationState::FadeIn(mut x) => {
+                x += 40.0 * state.frame_time as f32;
+
+                state.textscript_vm.illustration_state =
+                    if x >= 0.0 { IllustrationState::Shown } else { IllustrationState::FadeIn(x) };
+            }
+            IllustrationState::FadeOut(mut x) => {
+                x -= 40.0 * state.frame_time as f32;
+
+                state.textscript_vm.illustration_state =
+                    if x <= -160.0 { IllustrationState::Hidden } else { IllustrationState::FadeOut(x) };
+            }
+            _ => (),
+        }
+    }
 }
 
 impl GameEntity<()> for Credits {
-    fn tick(&mut self, state: &mut SharedGameState, custom: ()) -> GameResult {
+    fn tick(&mut self, _state: &mut SharedGameState, _custom: ()) -> GameResult {
         Ok(())
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, _frame: &Frame) -> GameResult {
+        if state.textscript_vm.illustration_state != IllustrationState::Hidden {
+            let x = match state.textscript_vm.illustration_state {
+                IllustrationState::FadeIn(x) | IllustrationState::FadeOut(x) => x,
+                _ => 0.0,
+            };
+
+            if let Some(tex) = &state.textscript_vm.current_illustration {
+                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex)?;
+                batch.add(x, 0.0);
+                batch.draw(ctx)?;
+            } else {
+                let rect = Rect::new_size((x * state.scale) as isize, 0, (160.0 * state.scale) as _, state.screen_size.1 as _);
+                graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 32))?;
+            }
+        }
+
         if state.creditscript_vm.lines.is_empty() {
             return Ok(());
         }

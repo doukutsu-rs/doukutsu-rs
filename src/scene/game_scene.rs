@@ -2018,6 +2018,7 @@ impl Scene for GameScene {
             };
 
         self.inventory_dim = self.inventory_dim.clamp(0.0, 1.0);
+        self.credits.draw_tick(state);
 
         Ok(())
     }
