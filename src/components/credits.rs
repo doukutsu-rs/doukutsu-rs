@@ -39,6 +39,9 @@ impl GameEntity<()> for Credits {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, _frame: &Frame) -> GameResult {
+        let rect = Rect::new(0, 0, (state.screen_size.0 / 2.0) as _, state.screen_size.1 as _);
+        graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 32))?;
+
         if state.textscript_vm.illustration_state != IllustrationState::Hidden {
             let x = match state.textscript_vm.illustration_state {
                 IllustrationState::FadeIn(x) | IllustrationState::FadeOut(x) => x,
@@ -49,9 +52,6 @@ impl GameEntity<()> for Credits {
                 let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex)?;
                 batch.add(x, 0.0);
                 batch.draw(ctx)?;
-            } else {
-                let rect = Rect::new_size((x * state.scale) as isize, 0, (160.0 * state.scale) as _, state.screen_size.1 as _);
-                graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 32))?;
             }
         }
 

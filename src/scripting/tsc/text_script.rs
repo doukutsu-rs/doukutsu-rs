@@ -1536,6 +1536,10 @@ impl TextScriptVM {
             }
             TSCOpCode::SIL => {
                 let number = read_cur_varint(&mut cursor)? as u16;
+                log::warn!("<SIL{:04}", number);
+
+                state.textscript_vm.current_illustration = None;
+                state.textscript_vm.illustration_state = IllustrationState::FadeIn(-160.0);
 
                 for path in state.constants.credit_illustration_paths.iter() {
                     let path = format!("{}Credit{:02}", path, number);
@@ -1545,11 +1549,10 @@ impl TextScriptVM {
                     }
                 }
 
-                state.textscript_vm.illustration_state = IllustrationState::FadeIn(-160.0);
-
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
             TSCOpCode::CIL => {
+                log::warn!("<CIL");
                 state.textscript_vm.illustration_state = if let Some(_) = state.textscript_vm.current_illustration {
                     IllustrationState::FadeOut(0.0)
                 } else {
