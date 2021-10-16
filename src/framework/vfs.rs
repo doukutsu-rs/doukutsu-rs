@@ -238,6 +238,12 @@ impl PhysicalFS {
                     .collect();
 
                 'citer: for node in components {
+                    let mut tmp = root_path2.clone();
+                    tmp.push(node);
+                    if tmp.exists() {
+                        root_path2 = tmp;
+                        continue;
+                    }
 
                     if let Ok(entries) = root_path2.read_dir() {
                         for entry in entries {
