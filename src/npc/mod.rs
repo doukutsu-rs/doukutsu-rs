@@ -182,6 +182,36 @@ impl NPC {
 
         Ok(())
     }
+
+    pub fn draw_lightmap(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
+        if !self.cond.alive() || self.cond.hidden() {
+            return Ok(());
+        }
+
+        let texture = state.npc_table.get_texture_name(self.spritesheet_id);
+
+        if let Some(batch) = state.texture_set.get_or_load_batch(ctx, &state.constants, texture)?.glow() {
+            let off_x =
+                if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right } as i32;
+            let shock = if self.shock > 0 { (2 * ((self.shock as i32 / 2) % 2) - 1) as f32 } else { 0.0 };
+
+            let (frame_x, frame_y) = frame.xy_interpolated(state.frame_time);
+
+            batch.add_rect(
+                interpolate_fix9_scale(self.prev_x - off_x, self.x - off_x, state.frame_time) + shock - frame_x,
+                interpolate_fix9_scale(
+                    self.prev_y - self.display_bounds.top as i32,
+                    self.y - self.display_bounds.top as i32,
+                    state.frame_time,
+                ) - frame_y,
+                &self.anim_rect,
+            );
+
+            batch.draw(ctx)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mut Flash)> for NPC {

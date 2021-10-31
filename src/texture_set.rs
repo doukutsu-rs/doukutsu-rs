@@ -34,6 +34,14 @@ pub trait SpriteBatch {
 
     fn has_normal_layer(&self) -> bool;
 
+    fn glow(&mut self) -> Option<&mut dyn SpriteBatch> {
+        None
+    }
+
+    fn normal(&mut self) -> Option<&mut dyn SpriteBatch> {
+        None
+    }
+
     fn to_rect(&self) -> common::Rect<usize>;
 
     fn clear(&mut self);
@@ -130,37 +138,40 @@ impl SpriteBatch for DummyBatch {
     }
 }
 
-pub struct SizedBatch {
+pub struct SubBatch {
     batch: Box<dyn BackendTexture>,
-    width: usize,
-    height: usize,
-    real_width: usize,
-    real_height: usize,
+    width: u16,
+    height: u16,
+    real_width: u16,
+    real_height: u16,
     scale_x: f32,
     scale_y: f32,
-    has_glow_layer: bool,
-    has_normal_layer: bool,
 }
 
-impl SpriteBatch for SizedBatch {
+pub struct CombinedBatch {
+    main_batch: SubBatch,
+    glow_batch: Option<SubBatch>,
+}
+
+impl SpriteBatch for SubBatch {
     #[inline(always)]
     fn width(&self) -> usize {
-        self.width
+        self.width as _
     }
 
     #[inline(always)]
     fn height(&self) -> usize {
-        self.height
+        self.height as _
     }
 
     #[inline(always)]
     fn dimensions(&self) -> (usize, usize) {
-        (self.width, self.height)
+        (self.width as _, self.height as _)
     }
 
     #[inline(always)]
     fn real_dimensions(&self) -> (usize, usize) {
-        (self.real_width, self.real_height)
+        (self.real_width as _, self.real_height as _)
     }
 
     #[inline(always)]
@@ -170,17 +181,17 @@ impl SpriteBatch for SizedBatch {
 
     #[inline(always)]
     fn has_glow_layer(&self) -> bool {
-        self.has_glow_layer
+        false
     }
 
     #[inline(always)]
     fn has_normal_layer(&self) -> bool {
-        self.has_normal_layer
+        false
     }
 
     #[inline(always)]
     fn to_rect(&self) -> common::Rect<usize> {
-        common::Rect::<usize>::new(0, 0, self.width, self.height)
+        common::Rect::<usize>::new(0, 0, self.width as _, self.height as _)
     }
 
     #[inline(always)]
@@ -300,6 +311,92 @@ impl SpriteBatch for SizedBatch {
     }
 }
 
+impl SpriteBatch for CombinedBatch {
+    fn width(&self) -> usize {
+        self.main_batch.width as _
+    }
+
+    fn height(&self) -> usize {
+        self.main_batch.height as _
+    }
+
+    fn dimensions(&self) -> (usize, usize) {
+        self.main_batch.dimensions()
+    }
+
+    fn real_dimensions(&self) -> (usize, usize) {
+        self.main_batch.real_dimensions()
+    }
+
+    fn scale(&self) -> (f32, f32) {
+        self.main_batch.scale()
+    }
+
+    fn has_glow_layer(&self) -> bool {
+        self.glow_batch.is_some()
+    }
+
+    fn has_normal_layer(&self) -> bool {
+        false
+    }
+
+    fn glow(&mut self) -> Option<&mut dyn SpriteBatch> {
+        if let Some(batch) = self.glow_batch.as_mut() {
+            Some(batch)
+        } else {
+            None
+        }
+    }
+
+    fn to_rect(&self) -> Rect<usize> {
+        self.main_batch.to_rect()
+    }
+
+    fn clear(&mut self) {
+        self.main_batch.clear()
+    }
+
+    fn add(&mut self, x: f32, y: f32) {
+        self.main_batch.add(x, y)
+    }
+
+    fn add_rect(&mut self, x: f32, y: f32, rect: &Rect<u16>) {
+        self.main_batch.add_rect(x, y, rect)
+    }
+
+    fn add_rect_flip(&mut self, x: f32, y: f32, flip_x: bool, flip_y: bool, rect: &Rect<u16>) {
+        self.main_batch.add_rect_flip(x, y, flip_x, flip_y, rect)
+    }
+
+    fn add_rect_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8, u8), rect: &Rect<u16>) {
+        self.main_batch.add_rect_tinted(x, y, color, rect)
+    }
+
+    fn add_rect_scaled(&mut self, x: f32, y: f32, scale_x: f32, scale_y: f32, rect: &Rect<u16>) {
+        self.main_batch.add_rect_scaled(x, y, scale_x, scale_y, rect)
+    }
+
+    fn add_rect_scaled_tinted(
+        &mut self,
+        x: f32,
+        y: f32,
+        color: (u8, u8, u8, u8),
+        scale_x: f32,
+        scale_y: f32,
+        rect: &Rect<u16>,
+    ) {
+        self.main_batch.add_rect_scaled_tinted(x, y, color, scale_x, scale_y, rect)
+    }
+
+    fn draw(&mut self, ctx: &mut Context) -> GameResult {
+        self.main_batch.draw(ctx)
+    }
+
+    fn draw_filtered(&mut self, filter: FilterMode, ctx: &mut Context) -> GameResult {
+        self.main_batch.draw_filtered(filter, ctx)
+    }
+}
+
 pub struct TextureSet {
     pub tex_map: HashMap<String, Box<dyn SpriteBatch>>,
     pub paths: Vec<String>,
@@ -354,17 +451,10 @@ impl TextureSet {
         create_texture(ctx, width as u16, height as u16, &img)
     }
 
-    pub fn find_texture(
-        &self,
-        ctx: &mut Context,
-        name: &str,
-    ) -> Option<String> {
-        self
-            .paths
-            .iter()
-            .find_map(|s| {
-                FILE_TYPES.iter().map(|ext| [s, name, ext].join("")).find(|path| filesystem::exists(ctx, path))
-            })
+    pub fn find_texture(&self, ctx: &mut Context, name: &str) -> Option<String> {
+        self.paths.iter().find_map(|s| {
+            FILE_TYPES.iter().map(|ext| [s, name, ext].join("")).find(|path| filesystem::exists(ctx, path))
+        })
     }
 
     pub fn load_texture(
@@ -373,38 +463,41 @@ impl TextureSet {
         constants: &EngineConstants,
         name: &str,
     ) -> GameResult<Box<dyn SpriteBatch>> {
-        let path = self.find_texture(ctx, name)
+        let path = self
+            .find_texture(ctx, name)
             .ok_or_else(|| GameError::ResourceLoadError(format!("Texture {} does not exist.", name)))?;
 
-        let has_glow_layer = self
-            .paths
-            .iter()
-            .find_map(|s| {
-                FILE_TYPES.iter().map(|ext| [s, name, ".glow", ext].join("")).find(|path| filesystem::exists(ctx, path))
-            })
-            .is_some();
+        let glow_path = self.find_texture(ctx, [name, ".glow"].join("").as_str());
 
         info!("Loading texture: {} -> {}", name, path);
 
-        let batch = self.load_image(ctx, &path)?;
-        let size = batch.dimensions();
+        fn make_batch(name: &str, constants: &EngineConstants, batch: Box<dyn BackendTexture>) -> SubBatch {
+            let size = batch.dimensions();
 
-        let orig_dimensions = constants.tex_sizes.get(name).unwrap_or_else(|| &size);
-        let scale = orig_dimensions.0 as f32 / size.0 as f32;
-        let width = (size.0 as f32 * scale) as usize;
-        let height = (size.1 as f32 * scale) as usize;
+            let orig_dimensions = constants.tex_sizes.get(name).unwrap_or_else(|| &size);
+            let scale = orig_dimensions.0 as f32 / size.0 as f32;
+            let width = (size.0 as f32 * scale) as _;
+            let height = (size.1 as f32 * scale) as _;
 
-        Ok(Box::new(SizedBatch {
-            batch,
-            width,
-            height,
-            scale_x: scale,
-            scale_y: scale,
-            real_width: size.0 as usize,
-            real_height: size.1 as usize,
-            has_glow_layer,
-            has_normal_layer: false,
-        }))
+            SubBatch {
+                batch,
+                width,
+                height,
+                scale_x: scale,
+                scale_y: scale,
+                real_width: size.0 as _,
+                real_height: size.1 as _,
+            }
+        }
+
+        let main_batch = make_batch(name, constants, self.load_image(ctx, &path)?);
+        let glow_batch = if let Some(glow_path) = glow_path {
+            self.load_image(ctx, &glow_path).ok().map(|b| make_batch(name, constants, b))
+        } else {
+            None
+        };
+
+        Ok(Box::new(CombinedBatch { main_batch, glow_batch }))
     }
 
     pub fn get_or_load_batch(

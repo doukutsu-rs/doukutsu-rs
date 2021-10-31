@@ -795,17 +795,39 @@ impl GameScene {
     }
 
     fn draw_light_map(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let canvas = state.lightmap_canvas.as_mut();
-        if let None = canvas {
-            return Ok(());
+        {
+            let canvas = state.lightmap_canvas.as_mut();
+
+            if let None = canvas {
+                return Ok(());
+            }
+
+            let canvas = canvas.unwrap();
+            graphics::set_render_target(ctx, Some(canvas))?;
         }
 
-        let canvas = canvas.unwrap();
-
-        graphics::set_render_target(ctx, Some(canvas))?;
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
         graphics::clear(ctx, Color::from_rgb(100, 100, 110));
+
+        for npc in self.npc_list.iter_alive() {
+            if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
+                || npc.x
+                > (self.frame.x
+                + 128 * 0x200
+                + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+                && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
+                || npc.y
+                > (self.frame.y
+                + 128 * 0x200
+                + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
+            {
+                continue;
+            }
+
+            npc.draw_lightmap(state, ctx, &self.frame)?;
+        }
+
         {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
 
@@ -1024,7 +1046,7 @@ impl GameScene {
                         (0, 0, 255),
                         batch,
                     ),
-                    32 | 87 | 211 => {
+                    32 | 87 => {
                         self.draw_light(
                             interpolate_fix9_scale(
                                 npc.prev_x - self.frame.prev_x,
@@ -1038,6 +1060,23 @@ impl GameScene {
                             ),
                             2.0,
                             (255, 30, 30),
+                            batch,
+                        );
+                    }
+                    211 => {
+                        self.draw_light(
+                            interpolate_fix9_scale(
+                                npc.prev_x - self.frame.prev_x,
+                                npc.x - self.frame.x,
+                                state.frame_time,
+                            ),
+                            interpolate_fix9_scale(
+                                npc.prev_y - self.frame.prev_y,
+                                npc.y - self.frame.y,
+                                state.frame_time,
+                            ),
+                            1.5,
+                            (128, 0, 0),
                             batch,
                         );
                     }
@@ -1139,6 +1178,13 @@ impl GameScene {
                             );
                         }
                     }
+                    101 | 102 => self.draw_light(
+                        interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
+                        interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
+                        1.0,
+                        (100, 100, 200),
+                        batch,
+                    ),
                     175 if npc.action_num < 10 => {
                         self.draw_light(
                             interpolate_fix9_scale(
@@ -1156,6 +1202,13 @@ impl GameScene {
                             batch,
                         );
                     }
+                    189 => self.draw_light(
+                        interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
+                        interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
+                        1.0,
+                        (10, 50, 255),
+                        batch,
+                    ),
                     _ => {}
                 }
             }
@@ -1166,27 +1219,32 @@ impl GameScene {
         graphics::set_blend_mode(ctx, BlendMode::Multiply)?;
         graphics::set_render_target(ctx, None)?;
 
-        let rect = Rect { left: 0.0, top: 0.0, right: state.screen_size.0, bottom: state.screen_size.1 };
-        canvas.clear();
-        canvas.add(SpriteBatchCommand::DrawRect(rect, rect));
-        canvas.draw()?;
+        {
+            let canvas = state.lightmap_canvas.as_mut().unwrap();
+            let rect = Rect { left: 0.0, top: 0.0, right: state.screen_size.0, bottom: state.screen_size.1 };
 
-        graphics::set_render_target(ctx, Some(canvas))?;
-        graphics::draw_rect(
-            ctx,
-            Rect {
-                left: 0,
-                top: 0,
-                right: (state.screen_size.0 + 1.0) as isize,
-                bottom: (state.screen_size.1 + 1.0) as isize,
-            },
-            Color { r: 0.15, g: 0.12, b: 0.12, a: 1.0 },
-        )?;
-        graphics::set_render_target(ctx, None)?;
-        graphics::set_blend_mode(ctx, BlendMode::Add)?;
-        canvas.draw()?;
+            canvas.clear();
+            canvas.add(SpriteBatchCommand::DrawRect(rect, rect));
+            canvas.draw()?;
 
-        graphics::set_blend_mode(ctx, BlendMode::Alpha)?;
+
+            graphics::set_render_target(ctx, Some(canvas))?;
+            graphics::draw_rect(
+                ctx,
+                Rect {
+                    left: 0,
+                    top: 0,
+                    right: (state.screen_size.0 + 1.0) as isize,
+                    bottom: (state.screen_size.1 + 1.0) as isize,
+                },
+                Color { r: 0.15, g: 0.12, b: 0.12, a: 1.0 },
+            )?;
+            graphics::set_render_target(ctx, None)?;
+            graphics::set_blend_mode(ctx, BlendMode::Add)?;
+            canvas.draw()?;
+
+            graphics::set_blend_mode(ctx, BlendMode::Alpha)?;
+        }
 
         Ok(())
     }
