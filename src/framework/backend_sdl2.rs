@@ -5,9 +5,8 @@ use std::ffi::c_void;
 use std::rc::Rc;
 use std::time::Duration;
 
-use imgui::{ConfigFlags, DrawCmd, DrawData, ImString, Key, MouseCursor, TextureId};
 use imgui::internal::RawWrapper;
-use sdl2::{EventPump, keyboard, pixels, Sdl, VideoSubsystem};
+use imgui::{ConfigFlags, DrawCmd, DrawData, Key, MouseCursor, TextureId};
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Scancode;
 use sdl2::mouse::{Cursor, SystemCursor};
@@ -15,6 +14,7 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Texture, TextureCreator, WindowCanvas};
 use sdl2::video::GLProfile;
 use sdl2::video::WindowContext;
+use sdl2::{keyboard, pixels, EventPump, Sdl, VideoSubsystem};
 
 use crate::common::{Color, Rect};
 use crate::framework::backend::{
@@ -309,7 +309,7 @@ impl SDL2Renderer {
         let mut imgui = init_imgui()?;
         let mut imgui_textures = HashMap::new();
 
-        imgui.set_renderer_name(ImString::new("SDL2Renderer"));
+        imgui.set_renderer_name("SDL2Renderer".to_owned());
         {
             let refs = refs.clone();
             let mut fonts = imgui.fonts();
@@ -1006,23 +1006,23 @@ pub struct ImguiSdl2 {
 struct Sdl2ClipboardBackend(sdl2::clipboard::ClipboardUtil);
 
 impl imgui::ClipboardBackend for Sdl2ClipboardBackend {
-    fn get(&mut self) -> Option<imgui::ImString> {
+    fn get(&mut self) -> Option<String> {
         if !self.0.has_clipboard_text() {
             return None;
         }
 
-        self.0.clipboard_text().ok().map(imgui::ImString::new)
+        self.0.clipboard_text().ok()
     }
 
-    fn set(&mut self, value: &imgui::ImStr) {
-        let _ = self.0.set_clipboard_text(value.to_str());
+    fn set(&mut self, value: &str) {
+        let _ = self.0.set_clipboard_text(value);
     }
 }
 
 impl ImguiSdl2 {
     pub fn new(imgui: &mut imgui::Context, window: &sdl2::video::Window) -> Self {
         let clipboard_util = window.subsystem().clipboard();
-        imgui.set_clipboard_backend(Box::new(Sdl2ClipboardBackend(clipboard_util)));
+        imgui.set_clipboard_backend(Sdl2ClipboardBackend(clipboard_util));
 
         imgui.io_mut().key_map[Key::Tab as usize] = Scancode::Tab as u32;
         imgui.io_mut().key_map[Key::LeftArrow as usize] = Scancode::Left as u32;
