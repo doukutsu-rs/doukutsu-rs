@@ -1,7 +1,7 @@
-use crate::framework::error::GameResult;
 use num_traits::abs;
 
 use crate::common::Direction;
+use crate::framework::error::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::rng::RNG;
@@ -24,13 +24,8 @@ impl NPC {
                 }
 
                 let player = self.get_closest_player_mut(players);
-                if abs(self.x - player.x) < 32 * 0x200
-                    && self.y - 32 * 0x200 < player.y && self.y + 0x2000 > player.y {
-                    self.direction = if self.x > player.x {
-                        Direction::Left
-                    } else {
-                        Direction::Right
-                    };
+                if abs(self.x - player.x) < 32 * 0x200 && self.y - 32 * 0x200 < player.y && self.y + 0x2000 > player.y {
+                    self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
                 }
             }
             2 => {
@@ -68,6 +63,40 @@ impl NPC {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 7 };
 
         self.anim_rect = state.constants.npc.n040_santa[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n307_santa_caged(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                    self.x += 0x200;
+                    self.y -= 0x400;
+                }
+
+                if self.rng.range(0..160) == 10 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 12 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            _ => (),
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
+        self.anim_rect = state.constants.npc.n307_santa_caged[self.anim_num as usize + dir_offset];
 
         Ok(())
     }

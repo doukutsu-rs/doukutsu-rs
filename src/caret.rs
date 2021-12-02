@@ -196,11 +196,11 @@ impl Caret {
                 }
 
                 match self.direction {
-                    Direction::Left => self.x -= 0x400,  // 2.0fix9
+                    Direction::Left => self.x -= 0x400,
                     Direction::Up => self.y -= 0x400,
                     Direction::Right => self.x += 0x400,
                     Direction::Bottom => self.y += 0x400,
-                    Direction::FacingPlayer => {}
+                    Direction::FacingPlayer => (),
                 }
             }
             CaretType::DrownedQuote => {
@@ -302,8 +302,8 @@ impl Caret {
                 if self.anim_num == 0 {
                     match self.direction {
                         Direction::Left => {
-                            self.vel_x = rng.range(-0x600..0x600) as i32; // -3.0fix9..3.0fix9
-                            self.vel_y = rng.range(-0x200..0x200) as i32; // -1.0fix9..1.0fix9
+                            self.vel_x = rng.range(-0x600..0x600) as i32;
+                            self.vel_y = rng.range(-0x200..0x200) as i32;
                         }
                         Direction::Up => {
                             self.vel_y = rng.range(-3..-1) as i32 * 0x200;

@@ -2,7 +2,6 @@ use std::io;
 use std::io::Cursor;
 
 use byteorder::{ReadBytesExt, LE};
-use num_traits::abs;
 
 use crate::bitfield;
 use crate::common::Direction;
@@ -14,6 +13,7 @@ use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::physics::PhysicalEntity;
 use crate::player::Player;
@@ -192,7 +192,8 @@ impl NPC {
 
         if let Some(batch) = state.texture_set.get_or_load_batch(ctx, &state.constants, texture)?.glow() {
             let off_x =
-                if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right } as i32;
+                if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right }
+                    as i32;
             let shock = if self.shock > 0 { (2 * ((self.shock as i32 / 2) % 2) - 1) as f32 } else { 0.0 };
 
             let (frame_x, frame_y) = frame.xy_interpolated(state.frame_time);
@@ -214,16 +215,17 @@ impl NPC {
     }
 }
 
-impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mut Flash)> for NPC {
+impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mut Flash, &mut BossNPC)> for NPC {
     fn tick(
         &mut self,
         state: &mut SharedGameState,
-        (players, npc_list, stage, bullet_manager, flash): (
+        (players, npc_list, stage, bullet_manager, flash, boss): (
             [&mut Player; 2],
             &NPCList,
             &mut Stage,
             &mut BulletManager,
             &mut Flash,
+            &mut BossNPC,
         ),
     ) -> GameResult {
         #[allow(unused_assignments)]
@@ -467,31 +469,96 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             229 => self.tick_n229_red_flowers_sprouts(state),
             230 => self.tick_n230_red_flowers_blooming(state),
             231 => self.tick_n231_rocket(state, players, npc_list),
+            232 => self.tick_n232_orangebell(state, npc_list),
+            233 => self.tick_n233_orangebell_bat(state, players, npc_list),
             234 => self.tick_n234_red_flowers_picked(state),
+            235 => self.tick_n235_midorin(state),
+            236 => self.tick_n236_gunfish(state, players, npc_list),
+            237 => self.tick_n237_gunfish_projectile(state),
             238 => self.tick_n238_press_sideways(state, players, npc_list),
             239 => self.tick_n239_cage_bars(state),
+            240 => self.tick_n240_mimiga_jailed(state),
             241 => self.tick_n241_critter_red(state, players),
+            242 => self.tick_n242_bat_last_cave(state),
+            243 => self.tick_n243_bat_generator(state, npc_list),
+            244 => self.tick_n244_lava_drop(state, players),
+            245 => self.tick_n245_lava_drop_generator(state, npc_list),
+            246 => self.tick_n246_press_proximity(state, players, npc_list),
             247 => self.tick_n247_misery_boss(state, players, npc_list),
             248 => self.tick_n248_misery_boss_vanishing(state),
-            249 => self.tick_n249_misery_boss_energy_shot(state),
+            249 => self.tick_n249_misery_boss_appearing(state),
+            250 => self.tick_n250_misery_boss_lighting_ball(state, players, npc_list),
+            251 => self.tick_n251_misery_boss_lighting(state, npc_list),
+            252 => self.tick_n252_misery_boss_bats(state, players, npc_list),
             253 => self.tick_n253_experience_capsule(state, npc_list),
+            254 => self.tick_n254_helicopter(state, npc_list),
+            255 => self.tick_n255_helicopter_blades(state, npc_list),
+            256 => self.tick_n256_doctor_facing_away(state, npc_list),
             257 => self.tick_n257_red_crystal(state),
             258 => self.tick_n258_mimiga_sleeping(state),
-            259 => self.tick_n259_curly_unconcious(state, players, npc_list),
+            259 => self.tick_n259_curly_unconscious(state, players, npc_list),
+            260 => self.tick_n260_shovel_brigade_caged(state, players, npc_list),
+            261 => self.tick_n261_chie_caged(state, players),
+            262 => self.tick_n262_chaco_caged(state, players),
+            263 => self.tick_n263_doctor_boss(state, players, npc_list),
+            264 => self.tick_n264_doctor_boss_red_projectile(state, npc_list, stage),
+            265 => self.tick_n265_doctor_boss_red_projectile_trail(state),
+            266 => self.tick_n266_doctor_boss_red_projectile_bouncing(state, npc_list),
+            267 => self.tick_n267_muscle_doctor(state, players, npc_list),
+            268 => self.tick_n268_igor_enemy(state, players, npc_list),
+            269 => self.tick_n269_red_bat_bouncing(state),
+            270 => self.tick_n270_doctor_red_energy(state, npc_list),
+            271 => self.tick_n271_ironhead_block(state, stage),
+            272 => self.tick_n272_ironhead_block_generator(state, npc_list),
+            273 => self.tick_n273_droll_projectile(state, npc_list),
+            274 => self.tick_n274_droll(state, players, npc_list),
+            275 => self.tick_n275_puppy_plantation(state, players),
+            276 => self.tick_n276_red_demon(state, players, npc_list),
+            277 => self.tick_n277_red_demon_projectile(state, npc_list),
+            278 => self.tick_n278_little_family(state),
+            279 => self.tick_n279_large_falling_block(state, players, npc_list, stage),
+            280 => self.tick_n280_sue_teleported(state),
+            281 => self.tick_n281_doctor_energy_form(state, npc_list),
+            282 => self.tick_n282_mini_undead_core_active(state, players),
+            283 => self.tick_n283_misery_possessed(state, players, npc_list, stage, boss),
+            284 => self.tick_n284_sue_possessed(state, players, npc_list, stage, boss),
+            285 => self.tick_n285_undead_core_spiral_projectile(state, npc_list, stage),
+            286 => self.tick_n286_undead_core_spiral_projectile_trail(state),
+            287 => self.tick_n287_orange_smoke(state),
+            288 => self.tick_n288_undead_core_exploding_rock(state, players, npc_list, stage),
+            289 => self.tick_n289_critter_orange(state, players, stage),
+            290 => self.tick_n290_bat_misery(state, players, stage),
+            291 => self.tick_n291_mini_undead_core_inactive(state),
             292 => self.tick_n292_quake(state),
+            293 => self.tick_n293_undead_core_energy_shot(state, npc_list),
+            294 => self.tick_n294_quake_falling_block_generator(state, players, npc_list, stage),
+            295 => self.tick_n295_cloud(state),
+            296 => self.tick_n296_cloud_generator(state, npc_list),
             297 => self.tick_n297_sue_dragon_mouth(state, npc_list),
             298 => self.tick_n298_intro_doctor(state),
             299 => self.tick_n299_intro_balrog_misery(state),
             300 => self.tick_n300_intro_demon_crown(state),
+            301 => self.tick_n301_misery_fish_missile(state, players),
             302 => self.tick_n302_camera_focus_marker(state, players, npc_list),
+            304 => self.tick_n304_gaudi_hospital(state),
+            305 => self.tick_n305_small_puppy(state),
+            306 => self.tick_n306_balrog_nurse(state),
+            307 => self.tick_n307_santa_caged(state),
+            308 => self.tick_n308_stumpy(state, players),
+            326 => self.tick_n326_sue_itoh_human_transition(state, npc_list),
+            327 => self.tick_n327_sneeze(state, npc_list),
             328 => self.tick_n328_human_transform_machine(state),
             329 => self.tick_n329_laboratory_fan(state),
+            337 => self.tick_n337_numahachi(state),
+            347 => self.tick_n347_hoppy(state, players),
             349 => self.tick_n349_statue(state),
             351 => self.tick_n351_statue_shootable(state, npc_list),
             352 => self.tick_n352_ending_characters(state, npc_list),
             355 => self.tick_n355_quote_and_curly_on_balrog(state, npc_list),
+            357 => self.tick_n357_puppy_ghost(state),
             358 => self.tick_n358_misery_credits(state),
             359 => self.tick_n359_water_droplet_generator(state, players, npc_list),
+            360 => self.tick_n360_credits_thank_you(state),
             _ => {
                 #[cfg(feature = "hooks")]
                 {
@@ -509,11 +576,11 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             self.shock -= 1;
         }
 
-        if abs(self.prev_x - self.x) > 0x1000 {
+        if (self.prev_x - self.x).abs() > 0x1000 {
             self.prev_x = self.x;
         }
 
-        if abs(self.prev_y - self.y) > 0x1000 {
+        if (self.prev_y - self.y).abs() > 0x1000 {
             self.prev_y = self.y;
         }
 

@@ -20,7 +20,7 @@ pub mod ironhead;
 pub mod monster_x;
 pub mod omega;
 pub mod press;
-pub mod twins;
+pub mod sisters;
 pub mod undead_core;
 
 pub struct BossNPC {
@@ -82,9 +82,9 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             2 => self.tick_b02_balfrog(state, players, npc_list),
             3 => self.tick_b03_monster_x(state, players, npc_list, flash),
             4 => self.tick_b04_core(state, players, npc_list, stage),
-            5 => self.tick_b05_ironhead(),
-            6 => self.tick_b06_twins(),
-            7 => self.tick_b07_undead_core(),
+            5 => self.tick_b05_ironhead(state, players, npc_list),
+            6 => self.tick_b06_sisters(state, players, npc_list, flash),
+            7 => self.tick_b07_undead_core(state, npc_list, stage, flash),
             8 => self.tick_b08_press(),
             9 => self.tick_b09_ballos(),
             _ => {}

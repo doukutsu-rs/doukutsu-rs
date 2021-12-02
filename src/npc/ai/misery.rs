@@ -6,11 +6,14 @@ use crate::caret::CaretType;
 use crate::common::{Direction, CDEG_RAD};
 use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
+use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
+use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
+use crate::stage::Stage;
 
 impl NPC {
     pub(crate) fn tick_n066_misery_bubble(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
@@ -573,7 +576,7 @@ impl NPC {
                     npc.y = self.target_y;
                     let _ = npc_list.spawn(0x100, npc.clone());
 
-                    npc.x = self.x - 0x2000;
+                    npc.x = self.target_x - 0x2000;
                     npc.direction = Direction::Right;
                     let _ = npc_list.spawn(0x100, npc);
                 }
@@ -716,7 +719,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n249_misery_boss_energy_shot(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n249_misery_boss_appearing(&mut self, state: &mut SharedGameState) -> GameResult {
         self.action_counter2 += 1;
         if self.action_counter2 > 8 {
             self.cond.set_alive(false);
@@ -724,11 +727,615 @@ impl NPC {
 
         if self.direction == Direction::Left {
             self.x -= 0x400;
-            self.anim_rect = state.constants.npc.n249_misery_boss_energy_shot[0];
+            self.anim_rect = state.constants.npc.n249_misery_boss_appearing[0];
         } else {
             self.x += 0x400;
-            self.anim_rect = state.constants.npc.n249_misery_boss_energy_shot[1];
+            self.anim_rect = state.constants.npc.n249_misery_boss_appearing[1];
         }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n250_misery_boss_lighting_ball(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.target_y = self.y;
+                    self.vel_x = 0;
+                    self.vel_y = -0x200;
+                }
+
+                let player = self.get_closest_player_ref(&players);
+
+                self.vel_x += if self.x < player.x { 0x10 } else { -0x10 };
+                self.vel_y += if self.y < self.target_y { 0x20 } else { -0x20 };
+
+                self.vel_x = self.vel_x.clamp(-0x200, 0x200);
+                self.vel_y = self.vel_y.clamp(-0x200, 0x200);
+
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+
+                self.animate(2, 0, 1);
+
+                if player.x > self.x - 0x1000 && player.x < self.x + 0x1000 && player.y > self.y {
+                    self.action_num = 10;
+                }
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.action_counter = 0;
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 10 {
+                    let mut npc = NPC::create(251, &state.npc_table);
+                    npc.cond.set_alive(true);
+
+                    npc.x = self.x;
+                    npc.y = self.y;
+
+                    let _ = npc_list.spawn(0x100, npc);
+
+                    state.sound_manager.play_sfx(101);
+                    self.cond.set_alive(false);
+
+                    return Ok(());
+                }
+
+                self.anim_num = if (self.action_counter & 2) != 0 { 2 } else { 1 };
+            }
+            _ => (),
+        }
+
+        self.anim_rect = state.constants.npc.n250_misery_boss_lighting_ball[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n251_misery_boss_lighting(
+        &mut self,
+        state: &mut SharedGameState,
+        npc_list: &NPCList,
+    ) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+        }
+
+        if self.action_num == 1 {
+            self.anim_num = (self.anim_num + 1) & 1;
+            self.y += 0x1000;
+
+            if self.flags.any_flag() {
+                npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 3, state, &self.rng);
+                self.cond.set_alive(false);
+            }
+        }
+
+        self.anim_rect = state.constants.npc.n251_misery_boss_lighting[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n252_misery_boss_bats(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.action_counter = 0;
+                    self.action_counter2 = self.tsc_direction;
+                }
+
+                self.action_counter2 += 2;
+                self.action_counter2 &= 0xff;
+
+                if self.action_counter < 192 {
+                    self.action_counter += 1;
+                }
+
+                if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                    self.x = parent.x
+                        + self.action_counter as i32 * ((self.action_counter2 as f64 * CDEG_RAD).cos() * -512.0) as i32
+                            / 4;
+                    self.y = parent.y
+                        + self.action_counter as i32 * ((self.action_counter2 as f64 * CDEG_RAD).sin() * -512.0) as i32
+                            / 4;
+
+                    if parent.action_num == 151 {
+                        self.action_num = 10;
+                        self.anim_num = 0;
+                    }
+                }
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.npc_flags.set_shootable(true);
+                    self.npc_flags.set_invulnerable(false);
+                    self.npc_flags.set_ignore_solidity(false);
+
+                    let player = self.get_closest_player_ref(&players);
+                    let deg = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64);
+                    let deg = deg + self.rng.range(-3..3) as f64 * CDEG_RAD;
+
+                    self.vel_x = (deg.cos() * -512.0) as i32;
+                    self.vel_y = (deg.sin() * -512.0) as i32;
+
+                    self.anim_num = 1;
+                    self.anim_counter = 0;
+
+                    self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
+                }
+
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+
+                if self.flags.hit_anything() {
+                    let mut npc = NPC::create(4, &state.npc_table);
+
+                    npc.cond.set_alive(true);
+                    npc.x = self.x;
+                    npc.y = self.y;
+
+                    let _ = npc_list.spawn(0x100, npc.clone());
+                    let _ = npc_list.spawn(0x100, npc.clone());
+                    let _ = npc_list.spawn(0x100, npc);
+
+                    self.cond.set_alive(false);
+                }
+
+                self.animate(4, 1, 3);
+            }
+            _ => (),
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
+
+        self.anim_rect = state.constants.npc.n252_misery_boss_bats[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n283_misery_possessed(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+        stage: &mut Stage,
+        boss: &mut BossNPC,
+    ) -> GameResult {
+        if self.action_num < 100 && (!boss.parts[0].cond.alive() || self.life < 400) {
+            self.action_num = 100;
+        }
+
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 9 {
+                    self.action_num = 1;
+                    self.y -= 0x1000;
+                    state.sound_manager.play_sfx(29);
+                }
+
+                self.action_counter += 1;
+                self.anim_num = if self.action_counter & 2 != 0 { 9 } else { 0 };
+            }
+            10 => {
+                self.action_num = 11;
+                self.anim_num = 9;
+            }
+            20 | 21 => {
+                if self.action_num == 21 {
+                    self.action_num = 21;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+
+                    state.npc_super_pos.0 = 0;
+                }
+
+                self.vel_x = 7 * self.vel_x / 8;
+                self.vel_y = 7 * self.vel_y / 8;
+
+                self.animate(20, 0, 1);
+
+                self.action_counter += 1;
+                if self.action_counter > 100 {
+                    self.action_num = 30;
+                }
+
+                let player = self.get_closest_player_ref(&players);
+
+                self.direction = if player.x > self.x { Direction::Left } else { Direction::Right };
+            }
+            30 | 31 => {
+                if self.action_num == 31 {
+                    self.action_num = 31;
+                    self.action_counter = 0;
+                    self.anim_num = 2;
+                    self.action_counter3 = self.life;
+                }
+
+                self.animate(1, 2, 3);
+
+                if self.flags.hit_bottom_wall() {
+                    self.vel_y = -0x200;
+                }
+
+                let player = self.get_closest_player_ref(&players);
+
+                self.vel_x += if self.x > boss.parts[0].x { -0x20 } else { 0x20 };
+                self.vel_y += if self.y > player.y { -0x10 } else { 0x10 };
+
+                self.vel_x = self.vel_x.clamp(-0x200, 0x200);
+                self.vel_y = self.vel_y.clamp(-0x200, 0x200);
+
+                self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
+
+                self.action_counter += 1;
+                if self.action_counter > 150 && (self.life + 20 < self.action_counter3 || state.npc_super_pos.0 != 0) {
+                    state.npc_super_pos.0 = 0;
+                    self.action_num = 40;
+                }
+
+                if boss.parts[0].anim_num != 0 && self.action_counter > 250 {
+                    self.action_num = 50;
+                }
+            }
+            40 | 41 => {
+                if self.action_num == 40 {
+                    self.action_num = 41;
+                    self.action_counter = 0;
+                    self.vel_x = 0;
+                    self.vel_y = 0;
+
+                    let player = self.get_closest_player_ref(&players);
+                    self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
+                    self.action_counter3 = if player.y >= 0x14000 { 289 } else { 290 };
+                }
+
+                self.action_counter += 1;
+                self.anim_num = if self.action_counter & 2 != 0 { 4 } else { 5 };
+
+                if self.action_counter % 6 == 1 {
+                    state.sound_manager.play_sfx(39);
+
+                    let mut npc = NPC::create(self.action_counter3, &state.npc_table);
+                    npc.cond.set_alive(true);
+
+                    if self.action_counter3 == 289 {
+                        npc.x = self.x + self.rng.range(-64..64) * 0x200;
+                        npc.y = self.y + self.rng.range(-32..32) * 0x200;
+                    } else {
+                        npc.x = self.x + self.rng.range(-32..32) * 0x200;
+                        npc.y = self.y + self.rng.range(-64..64) * 0x200;
+                    }
+
+                    npc.x = npc.x.clamp(
+                        2 * state.tile_size.as_int() * 0x200,
+                        (stage.map.width as i32 - 2) * state.tile_size.as_int() * 0x200,
+                    );
+                    npc.y = npc.y.clamp(
+                        2 * state.tile_size.as_int() * 0x200,
+                        (stage.map.height as i32 - 2) * state.tile_size.as_int() * 0x200,
+                    );
+
+                    let _ = npc_list.spawn(0x100, npc);
+                }
+
+                if self.action_counter > 50 {
+                    self.action_num = 42;
+                    self.action_counter = 0;
+
+                    let player = self.get_closest_player_ref(&players);
+                    self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
+                }
+            }
+            42 => {
+                self.action_counter += 1;
+                self.anim_num = 6;
+                if self.action_counter > 50 {
+                    self.action_num = 30;
+                    self.vel_y = -0x200;
+                    self.vel_x = self.direction.vector_x() * 0x200;
+                }
+            }
+            50 | 51 => {
+                let player = self.get_closest_player_ref(&players);
+
+                if self.action_num == 50 {
+                    self.action_num = 51;
+                    self.action_counter = 0;
+                    self.vel_x = 0;
+                    self.vel_y = 0;
+                    self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
+
+                    state.sound_manager.play_sfx(103);
+                }
+
+                self.action_counter += 1;
+                self.anim_num = if self.action_counter & 2 != 0 { 4 } else { 5 };
+
+                let period = if player.equip.has_booster_2_0() { 10 } else { 24 };
+                if self.action_counter % period == 1 {
+                    state.sound_manager.play_sfx(39);
+
+                    let mut npc = NPC::create(301, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.x + 0x1400 * self.direction.vector_x();
+                    npc.y = self.y;
+                    npc.tsc_direction = match ((self.action_counter / 6) & 3, self.direction) {
+                        (0, Direction::Left) => 0x58,
+                        (1, Direction::Left) => 0x6C,
+                        (2, Direction::Left) => 0x94,
+                        (3, Direction::Left) => 0xA8,
+                        (0, _) => 0xD8,
+                        (1, _) => 0xEC,
+                        (2, _) => 0x14,
+                        (3, _) => 0x28,
+                        _ => unsafe {
+                            unreachable_unchecked();
+                        },
+                    };
+
+                    let _ = npc_list.spawn(0x100, npc);
+                }
+
+                if self.action_counter > 50 {
+                    self.action_num = 42;
+                    self.action_counter = 0;
+
+                    let player = self.get_closest_player_ref(&players);
+                    self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
+                }
+            }
+            99 => {
+                self.vel_x = 0;
+                self.vel_y = 0;
+                self.anim_num = 9;
+                self.npc_flags.set_shootable(false);
+            }
+            100 | 101 => {
+                if self.action_num == 100 {
+                    self.action_num = 101;
+                    self.anim_num = 9;
+                    self.damage = 0;
+                    self.npc_flags.set_shootable(false);
+                    self.npc_flags.set_ignore_solidity(true);
+                    self.vel_y = -0x200;
+                    self.shock += 50;
+                    self.hit_bounds.bottom = 0x1800;
+                    boss.parts[0].anim_num += 1;
+                }
+
+                self.vel_y += 0x20;
+                if self.y > 0x1B000 - self.hit_bounds.bottom as i32 {
+                    self.y = 0x1B000 - self.hit_bounds.bottom as i32;
+                    self.action_num = 102;
+                    self.anim_num = 10;
+                    self.vel_x = 0;
+                    self.vel_y = 0;
+                }
+            }
+            _ => (),
+        }
+
+        self.x += if self.shock > 0 { self.vel_x / 2 } else { self.vel_x };
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 11 };
+
+        self.anim_rect = state.constants.npc.n283_misery_possessed[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n289_critter_orange(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        stage: &mut Stage,
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 2;
+
+                    let player = self.get_closest_player_ref(&players);
+                    self.direction = if player.x > self.x { Direction::Left } else { Direction::Right };
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 16 {
+                    self.action_num = 10;
+                    self.display_bounds.top = 0x1000;
+                    self.display_bounds.bottom = 0x1000;
+                    self.damage = 2;
+                    self.npc_flags.set_shootable(true);
+                }
+            }
+            10 => {
+                if self.flags.hit_bottom_wall() {
+                    self.action_num = 11;
+                    self.anim_num = 0;
+                    self.action_counter = 0;
+                    self.vel_x = 0;
+
+                    let player = self.get_closest_player_ref(&players);
+                    self.direction = if player.x > self.x { Direction::Left } else { Direction::Right };
+                }
+            }
+            11 => {
+                self.action_counter += 1;
+                if self.action_counter > 10 {
+                    self.anim_num = 2;
+                    self.action_counter2 += 1;
+                    self.action_num = if self.action_counter2 > 4 { 12 } else { 10 };
+
+                    state.sound_manager.play_sfx(30);
+                    self.vel_x = self.direction.vector_x() * 0x200;
+                    self.vel_y = -0x600;
+                }
+            }
+            12 => {
+                self.npc_flags.set_ignore_solidity(true);
+
+                if self.y > stage.map.height as i32 * state.tile_size.as_int() * 0x200 {
+                    self.vanish(state);
+                }
+            }
+            _ => (),
+        }
+
+        if self.action_num >= 10 {
+            self.vel_y += 0x40;
+        }
+
+        if self.vel_y > 0x5FF {
+            self.vel_y = 0x5FF;
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+
+        self.anim_rect = state.constants.npc.n289_critter_orange[self.anim_num as usize + dir_offset];
+
+        if self.action_num == 1 {
+            self.anim_rect.top += 8 - self.action_counter / 2;
+            self.anim_rect.bottom -= 8 + self.action_counter / 2;
+            self.display_bounds.top = (self.action_counter as u32 * 0x200) / 2;
+            self.display_bounds.bottom = (self.action_counter as u32 * 0x200) / 2;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n290_bat_misery(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        stage: &mut Stage,
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 2;
+
+                    let player = self.get_closest_player_ref(&players);
+                    self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 16 {
+                    self.action_num = 10;
+                    self.display_bounds.top = 0x1000;
+                    self.display_bounds.bottom = 0x1000;
+                    self.damage = 2;
+                    self.npc_flags.set_shootable(true);
+                    self.target_y = self.y;
+                    self.vel_y = 0x400;
+                }
+            }
+            10 => {
+                self.animate(2, 0, 2);
+
+                self.vel_y += if self.y >= self.target_y { -0x40 } else { 0x40 };
+                self.vel_x += if self.direction == Direction::Left { -0x10 } else { 0x10 };
+
+                if self.x < 0
+                    || self.y < 0
+                    || self.x > (stage.map.width as i32 * state.tile_size.as_int())
+                    || self.y > (stage.map.height as i32 * state.tile_size.as_int())
+                {
+                    self.vanish(state);
+                    return Ok(());
+                }
+            }
+            _ => (),
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+        self.anim_rect = state.constants.npc.n290_bat_misery[self.anim_num as usize + dir_offset];
+
+        if self.action_num == 1 {
+            self.anim_rect.top += 8 - self.action_counter / 2;
+            self.anim_rect.bottom -= 8 + self.action_counter / 2;
+            self.display_bounds.top = (self.action_counter as u32 * 0x200) / 2;
+            self.display_bounds.bottom = (self.action_counter as u32 * 0x200) / 2;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n301_misery_fish_missile(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.action_counter2 = self.tsc_direction;
+                }
+
+                let radians = self.action_counter2 as f64 * CDEG_RAD;
+                self.vel_x = 2 * (radians.cos() * 512.0) as i32;
+                self.vel_y = 2 * (radians.sin() * 512.0) as i32;
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+
+                let player = self.get_closest_player_mut(players);
+                let direction = f64::atan2(-(self.y - player.y) as f64, -(self.x - player.x) as f64);
+
+                if direction < radians {
+                    if radians - direction < std::f64::consts::PI {
+                        self.action_counter2 = self.action_counter2.wrapping_sub(1) & 0xff;
+                    } else {
+                        self.action_counter2 = (self.action_counter2 + 1) & 0xff;
+                    }
+                } else {
+                    if direction - radians < std::f64::consts::PI {
+                        self.action_counter2 = (self.action_counter2 + 1) & 0xff;
+                    } else {
+                        self.action_counter2 = self.action_counter2.wrapping_sub(1) & 0xff;
+                    }
+                }
+            }
+            _ => (),
+        }
+
+        self.anim_counter += 1;
+        if self.anim_counter > 2 {
+            self.anim_counter = 0;
+            state.create_caret(self.x, self.y, CaretType::Exhaust, Direction::FacingPlayer);
+        }
+
+        self.anim_num = (self.action_counter2 + 0x10) / 0x20;
+
+        if self.anim_num > 7 {
+            self.anim_num = 7;
+        }
+
+        self.anim_rect = state.constants.npc.n301_misery_fish_missile[self.anim_num as usize];
 
         Ok(())
     }

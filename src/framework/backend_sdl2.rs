@@ -5,8 +5,9 @@ use std::ffi::c_void;
 use std::rc::Rc;
 use std::time::Duration;
 
-use imgui::internal::RawWrapper;
 use imgui::{ConfigFlags, DrawCmd, DrawData, ImString, Key, MouseCursor, TextureId};
+use imgui::internal::RawWrapper;
+use sdl2::{EventPump, keyboard, pixels, Sdl, VideoSubsystem};
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Scancode;
 use sdl2::mouse::{Cursor, SystemCursor};
@@ -14,7 +15,6 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Texture, TextureCreator, WindowCanvas};
 use sdl2::video::GLProfile;
 use sdl2::video::WindowContext;
-use sdl2::{keyboard, pixels, EventPump, Sdl, VideoSubsystem};
 
 use crate::common::{Color, Rect};
 use crate::framework::backend::{
@@ -565,6 +565,23 @@ impl BackendRenderer for SDL2Renderer {
 
                 refs.canvas.fill_rects(&rects).map_err(|e| GameError::RenderError(e.to_string()))?;
             }
+        }
+
+        Ok(())
+    }
+
+    fn set_clip_rect(&mut self, rect: Option<Rect>) -> GameResult {
+        let mut refs = self.refs.borrow_mut();
+
+        if let Some(rect) = &rect {
+            refs.canvas.set_clip_rect(Some(sdl2::rect::Rect::new(
+                rect.left as i32,
+                rect.top as i32,
+                rect.width() as u32,
+                rect.height() as u32,
+            )));
+        } else {
+            refs.canvas.set_clip_rect(None);
         }
 
         Ok(())

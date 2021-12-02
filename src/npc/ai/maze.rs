@@ -1596,4 +1596,33 @@ impl NPC {
 
         Ok(())
     }
+
+    pub(crate) fn tick_n304_gaudi_hospital(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.y += 0x1400;
+                }
+
+                self.anim_num = 0;
+            }
+            10 => {
+                self.anim_num = 1;
+            }
+            20 | 21 => {
+                if self.action_num == 20 {
+                    self.action_num = 21;
+                    self.anim_num = 2;
+                }
+
+                self.animate(10, 2, 3);
+            }
+            _ => (),
+        }
+
+        self.anim_rect = state.constants.npc.n304_gaudi_hospital[self.anim_num as usize];
+
+        Ok(())
+    }
 }

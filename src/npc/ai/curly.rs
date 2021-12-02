@@ -786,7 +786,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n259_curly_unconcious(
+    pub(crate) fn tick_n259_curly_unconscious(
         &mut self,
         state: &mut SharedGameState,
         players: [&mut Player; 2],

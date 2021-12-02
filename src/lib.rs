@@ -22,6 +22,7 @@ use crate::framework::ui::UI;
 use crate::framework::vfs::PhysicalFS;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
+use crate::scripting::tsc::text_script::ScriptMode;
 use crate::shared_game_state::{SharedGameState, TimingMode};
 use crate::texture_set::{G_MAG, I_MAG};
 
@@ -99,16 +100,22 @@ impl Game {
         if let Some(scene) = self.scene.as_mut() {
             let state_ref = unsafe { &mut *self.state.get() };
 
+            let speed = if state_ref.textscript_vm.mode == ScriptMode::Map && state_ref.textscript_vm.flags.cutscene_skip() {
+                4.0 * state_ref.settings.speed
+            } else {
+                1.0 * state_ref.settings.speed
+            };
+
             match state_ref.settings.timing_mode {
                 TimingMode::_50Hz | TimingMode::_60Hz => {
                     let last_tick = self.next_tick;
 
                     while self.start_time.elapsed().as_nanos() >= self.next_tick && self.loops < 10 {
-                        if (state_ref.settings.speed - 1.0).abs() < 0.01 {
+                        if (speed - 1.0).abs() < 0.01 {
                             self.next_tick += state_ref.settings.timing_mode.get_delta() as u128;
                         } else {
                             self.next_tick +=
-                                (state_ref.settings.timing_mode.get_delta() as f64 / state_ref.settings.speed) as u128;
+                                (state_ref.settings.timing_mode.get_delta() as f64 / speed) as u128;
                         }
                         self.loops += 1;
                     }
@@ -117,7 +124,7 @@ impl Game {
                         log::warn!("Frame skip is way too high, a long system lag occurred?");
                         self.last_tick = self.start_time.elapsed().as_nanos();
                         self.next_tick = self.last_tick
-                            + (state_ref.settings.timing_mode.get_delta() as f64 / state_ref.settings.speed) as u128;
+                            + (state_ref.settings.timing_mode.get_delta() as f64 / speed) as u128;
                         self.loops = 0;
                     }
 

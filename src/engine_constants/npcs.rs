@@ -5,7 +5,6 @@ use crate::common::Rect;
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct NPCConsts {
     // pub n000_null: () // Defined in code
-
     #[serde(default = "default_n001_experience")]
     pub n001_experience: [Rect<u16>; 6],
 
@@ -13,7 +12,6 @@ pub struct NPCConsts {
     pub n002_behemoth: [Rect<u16>; 14],
 
     // pub n003_dead_enemy: () // Defined in code
-
     #[serde(default = "default_n004_smoke")]
     pub n004_smoke: [Rect<u16>; 16],
 
@@ -141,7 +139,6 @@ pub struct NPCConsts {
     pub n045_baby: [Rect<u16>; 3],
 
     // pub n046_hv_trigger: () // Defined in code
-
     #[serde(default = "default_n047_sandcroc")]
     pub n047_sandcroc: [Rect<u16>; 5],
 
@@ -230,7 +227,6 @@ pub struct NPCConsts {
     pub n075_kanpachi: [Rect<u16>; 2],
 
     // pub n076_flowers: () // Defined in code
-
     #[serde(default = "default_n077_yamashita")]
     pub n077_yamashita: [Rect<u16>; 3],
 
@@ -319,7 +315,6 @@ pub struct NPCConsts {
     pub n105_hey_bubble_low: [Rect<u16>; 2],
 
     // pub n106_hey_bubble_high: () // Defined in code
-
     #[serde(default = "default_n107_malco_broken")]
     pub n107_malco_broken: [Rect<u16>; 10],
 
@@ -456,7 +451,6 @@ pub struct NPCConsts {
     pub n151_blue_robot_standing: [Rect<u16>; 4],
 
     // pub n152_shutter_stuck: () // Defined in code
-
     #[serde(default = "default_n153_gaudi")]
     pub n153_gaudi: [Rect<u16>; 14],
 
@@ -572,7 +566,6 @@ pub struct NPCConsts {
     pub n190_broken_robot: [Rect<u16>; 2],
 
     // pub n191_water_level: () // Defined in code
-
     #[serde(default = "default_n192_scooter")]
     pub n192_scooter: [Rect<u16>; 4],
 
@@ -655,7 +648,6 @@ pub struct NPCConsts {
     pub n218_core_giant_ball: [Rect<u16>; 2],
 
     // pub n219_smoke_generator: () // Defined in code
-
     #[serde(default = "default_n220_shovel_brigade")]
     pub n220_shovel_brigade: [Rect<u16>; 4],
 
@@ -695,8 +687,8 @@ pub struct NPCConsts {
     #[serde(default = "default_n232_orangebell")]
     pub n232_orangebell: [Rect<u16>; 6],
 
-    #[serde(default = "default_n233_orangebell_hat")]
-    pub n233_orangebell_hat: [Rect<u16>; 8],
+    #[serde(default = "default_n233_orangebell_bat")]
+    pub n233_orangebell_bat: [Rect<u16>; 8],
 
     #[serde(default = "default_n234_red_flowers_picked")]
     pub n234_red_flowers_picked: [Rect<u16>; 2],
@@ -726,7 +718,6 @@ pub struct NPCConsts {
     pub n242_bat_last_cave: [Rect<u16>; 8],
 
     // pub n243_bat_generator: () // Defined in code
-
     #[serde(default = "default_n244_lava_drop")]
     pub n244_lava_drop: Rect<u16>,
 
@@ -742,8 +733,8 @@ pub struct NPCConsts {
     #[serde(default = "default_n248_misery_boss_vanishing")]
     pub n248_misery_boss_vanishing: [Rect<u16>; 3],
 
-    #[serde(default = "default_n249_misery_boss_energy_shot")]
-    pub n249_misery_boss_energy_shot: [Rect<u16>; 2],
+    #[serde(default = "default_n249_misery_boss_appearing")]
+    pub n249_misery_boss_appearing: [Rect<u16>; 2],
 
     #[serde(default = "default_n250_misery_boss_lighting_ball")]
     pub n250_misery_boss_lighting_ball: [Rect<u16>; 3],
@@ -787,14 +778,14 @@ pub struct NPCConsts {
     #[serde(default = "default_n263_doctor_boss")]
     pub n263_doctor_boss: [Rect<u16>; 18],
 
-    #[serde(default = "default_n264_doctor_boss_red_wave_projectile")]
-    pub n264_doctor_boss_red_wave_projectile: Rect<u16>,
+    #[serde(default = "default_n264_doctor_boss_red_projectile")]
+    pub n264_doctor_boss_red_projectile: Rect<u16>,
 
-    #[serde(default = "default_n265_doctor_boss_red_ball_projectile")]
-    pub n265_doctor_boss_red_ball_projectile: [Rect<u16>; 3],
+    #[serde(default = "default_n265_doctor_boss_red_projectile_trail")]
+    pub n265_doctor_boss_red_projectile_trail: [Rect<u16>; 3],
 
-    #[serde(default = "default_n266_doctor_boss_red_ball_projectile_bouncing")]
-    pub n266_doctor_boss_red_ball_projectile_bouncing: [Rect<u16>; 2],
+    #[serde(default = "default_n266_doctor_boss_red_projectile_bouncing")]
+    pub n266_doctor_boss_red_projectile_bouncing: [Rect<u16>; 2],
 
     #[serde(default = "default_n267_muscle_doctor")]
     pub n267_muscle_doctor: [Rect<u16>; 20],
@@ -811,7 +802,6 @@ pub struct NPCConsts {
     // pub n271_ironhead_block: () // Defined in code
 
     // pub n272_ironhead_block_generator: () // Defined in code
-
     #[serde(default = "default_n273_droll_projectile")]
     pub n273_droll_projectile: [Rect<u16>; 3],
 
@@ -837,7 +827,6 @@ pub struct NPCConsts {
     pub n280_sue_teleported: [Rect<u16>; 4],
 
     // pub n281_doctor_energy_form: () // Defined in code
-
     #[serde(default = "default_n282_mini_undead_core_active")]
     pub n282_mini_undead_core_active: [Rect<u16>; 3],
 
@@ -869,17 +858,14 @@ pub struct NPCConsts {
     pub n291_mini_undead_core_inactive: [Rect<u16>; 2],
 
     // pub n292_quake: () // Defined in code
-
     #[serde(default = "default_n293_undead_core_energy_shot")]
     pub n293_undead_core_energy_shot: [Rect<u16>; 2],
 
     // pub n294_quake_falling_block_generator: () // Defined in code
-
     #[serde(default = "default_n295_cloud")]
     pub n295_cloud: [Rect<u16>; 4],
 
     // pub n296_cloud_generator: () // Defined in code
-
     #[serde(default = "default_n297_sue_dragon_mouth")]
     pub n297_sue_dragon_mouth: Rect<u16>,
 
@@ -896,7 +882,6 @@ pub struct NPCConsts {
     pub n301_misery_fish_missile: [Rect<u16>; 8],
 
     // pub n302_camera_focus_marker: () // Defined in code
-
     #[serde(default = "default_n303_curly_machine_gun")]
     pub n303_curly_machine_gun: [Rect<u16>; 4],
 
@@ -961,7 +946,6 @@ pub struct NPCConsts {
     pub n323_bute_spinning: [Rect<u16>; 4],
 
     // pub n324_bute_generator: () // Defined in code
-
     #[serde(default = "default_n325_heavy_press_lighting")]
     pub n325_heavy_press_lighting: [Rect<u16>; 7],
 
@@ -996,7 +980,6 @@ pub struct NPCConsts {
     pub n335_ikachan: [Rect<u16>; 3],
 
     // pub n336_ikachan_generator: () // Defined in code
-
     #[serde(default = "default_n337_numahachi")]
     pub n337_numahachi: [Rect<u16>; 2],
 
@@ -1004,7 +987,6 @@ pub struct NPCConsts {
     pub n338_green_devil: [Rect<u16>; 4],
 
     // pub n339_green_devil_generator: () // Defined in code
-
     #[serde(default = "default_n340_ballos")]
     pub n340_ballos: [Rect<u16>; 22],
 
@@ -1048,7 +1030,6 @@ pub struct NPCConsts {
     pub n353_bute_sword_flying: [Rect<u16>; 8],
 
     // pub n354_invisible_deathtrap_wall: () // Defined in code
-
     #[serde(default = "default_n355_quote_and_curly_on_balrog")]
     pub n355_quote_and_curly_on_balrog: [Rect<u16>; 4],
 
@@ -1062,7 +1043,6 @@ pub struct NPCConsts {
     pub n358_misery_credits: [Rect<u16>; 5],
 
     // pub n359_water_droplet_generator: () // Defined in code
-
     #[serde(default = "default_n360_credits_thank_you")]
     pub n360_credits_thank_you: Rect<u16>,
 
@@ -1077,6 +1057,15 @@ pub struct NPCConsts {
 
     #[serde(default = "default_b04_core")]
     pub b04_core: [Rect<u16>; 10],
+
+    #[serde(default = "default_b05_ironhead")]
+    pub b05_ironhead: [Rect<u16>; 18],
+
+    #[serde(default = "default_b06_sisters")]
+    pub b06_sisters: [Rect<u16>; 14],
+
+    #[serde(default = "default_b07_undead_core")]
+    pub b07_undead_core: [Rect<u16>; 15],
 }
 
 fn default_n001_experience() -> [Rect<u16>; 6] {
@@ -1280,17 +1269,11 @@ fn default_n016_save_point() -> [Rect<u16>; 8] {
 }
 
 fn default_n017_health_refill() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 288, top: 0, right: 304, bottom: 16 },
-        Rect { left: 304, top: 0, right: 320, bottom: 16 },
-    ]
+    [Rect { left: 288, top: 0, right: 304, bottom: 16 }, Rect { left: 304, top: 0, right: 320, bottom: 16 }]
 }
 
 fn default_n018_door() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 224, top: 16, right: 240, bottom: 40 },
-        Rect { left: 192, top: 112, right: 208, bottom: 136 },
-    ]
+    [Rect { left: 224, top: 16, right: 240, bottom: 40 }, Rect { left: 192, top: 112, right: 208, bottom: 136 }]
 }
 
 fn default_n019_balrog_bust_in() -> [Rect<u16>; 8] {
@@ -1320,10 +1303,7 @@ fn default_n021_chest_open() -> Rect<u16> {
 }
 
 fn default_n022_teleporter() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 240, top: 16, right: 264, bottom: 48 },
-        Rect { left: 248, top: 152, right: 272, bottom: 184 },
-    ]
+    [Rect { left: 240, top: 16, right: 264, bottom: 48 }, Rect { left: 248, top: 152, right: 272, bottom: 184 }]
 }
 
 fn default_n023_teleporter_lights() -> [Rect<u16>; 8] {
@@ -1357,10 +1337,7 @@ fn default_n024_power_critter() -> [Rect<u16>; 12] {
 }
 
 fn default_n025_lift() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 256, top: 64, right: 288, bottom: 80 },
-        Rect { left: 256, top: 80, right: 288, bottom: 96 },
-    ]
+    [Rect { left: 256, top: 64, right: 288, bottom: 80 }, Rect { left: 256, top: 80, right: 288, bottom: 96 }]
 }
 
 fn default_n026_bat_flying() -> [Rect<u16>; 8] {
@@ -1430,24 +1407,15 @@ fn default_n031_bat_hanging() -> [Rect<u16>; 10] {
 }
 
 fn default_n032_life_capsule() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 32, top: 96, right: 48, bottom: 112 },
-        Rect { left: 48, top: 96, right: 64, bottom: 112 },
-    ]
+    [Rect { left: 32, top: 96, right: 48, bottom: 112 }, Rect { left: 48, top: 96, right: 64, bottom: 112 }]
 }
 
 fn default_n033_balrog_bouncing_projectile() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 240, top: 64, right: 256, bottom: 80 },
-        Rect { left: 240, top: 80, right: 256, bottom: 96 },
-    ]
+    [Rect { left: 240, top: 64, right: 256, bottom: 80 }, Rect { left: 240, top: 80, right: 256, bottom: 96 }]
 }
 
 fn default_n034_bed() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 192, top: 48, right: 224, bottom: 64 },
-        Rect { left: 192, top: 184, right: 224, bottom: 200 },
-    ]
+    [Rect { left: 192, top: 48, right: 224, bottom: 64 }, Rect { left: 192, top: 184, right: 224, bottom: 200 }]
 }
 
 fn default_n035_mannan() -> [Rect<u16>; 8] {
@@ -1481,10 +1449,7 @@ fn default_n036_balrog_hover() -> [Rect<u16>; 12] {
 }
 
 fn default_n037_sign() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 192, top: 64, right: 208, bottom: 80 },
-        Rect { left: 208, top: 64, right: 224, bottom: 80 },
-    ]
+    [Rect { left: 192, top: 64, right: 208, bottom: 80 }, Rect { left: 208, top: 64, right: 224, bottom: 80 }]
 }
 
 fn default_n038_fireplace() -> [Rect<u16>; 4] {
@@ -1497,10 +1462,7 @@ fn default_n038_fireplace() -> [Rect<u16>; 4] {
 }
 
 fn default_n039_save_sign() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 224, top: 64, right: 240, bottom: 80 },
-        Rect { left: 240, top: 64, right: 256, bottom: 80 },
-    ]
+    [Rect { left: 224, top: 64, right: 240, bottom: 80 }, Rect { left: 240, top: 64, right: 256, bottom: 80 }]
 }
 
 fn default_n040_santa() -> [Rect<u16>; 14] {
@@ -1558,10 +1520,7 @@ fn default_n042_sue() -> [Rect<u16>; 26] {
 }
 
 fn default_n043_chalkboard() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 128, top: 80, right: 168, bottom: 112 },
-        Rect { left: 168, top: 80, right: 208, bottom: 112 },
-    ]
+    [Rect { left: 128, top: 80, right: 168, bottom: 112 }, Rect { left: 168, top: 80, right: 208, bottom: 112 }]
 }
 
 fn default_n044_polish() -> [Rect<u16>; 6] {
@@ -1912,10 +1871,7 @@ fn default_n071_chinfish() -> [Rect<u16>; 6] {
 }
 
 fn default_n072_sprinkler() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 224, top: 48, right: 240, bottom: 64 },
-        Rect { left: 240, top: 48, right: 256, bottom: 64 },
-    ]
+    [Rect { left: 224, top: 48, right: 240, bottom: 64 }, Rect { left: 240, top: 48, right: 256, bottom: 64 }]
 }
 
 fn default_n073_water_droplet() -> [Rect<u16>; 5] {
@@ -1946,10 +1902,7 @@ fn default_n074_jack() -> [Rect<u16>; 12] {
 }
 
 fn default_n075_kanpachi() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 272, top: 32, right: 296, bottom: 56 },
-        Rect { left: 296, top: 32, right: 320, bottom: 56 },
-    ]
+    [Rect { left: 272, top: 32, right: 296, bottom: 56 }, Rect { left: 296, top: 32, right: 320, bottom: 56 }]
 }
 
 fn default_n077_yamashita() -> [Rect<u16>; 3] {
@@ -1961,10 +1914,7 @@ fn default_n077_yamashita() -> [Rect<u16>; 3] {
 }
 
 fn default_n078_pot() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 160, top: 48, right: 176, bottom: 64 },
-        Rect { left: 176, top: 48, right: 192, bottom: 64 },
-    ]
+    [Rect { left: 160, top: 48, right: 176, bottom: 64 }, Rect { left: 176, top: 48, right: 192, bottom: 64 }]
 }
 
 fn default_n079_mahin() -> [Rect<u16>; 6] {
@@ -2231,10 +2181,7 @@ fn default_n099_fan_down() -> [Rect<u16>; 3] {
 }
 
 fn default_n100_grate() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 272, top: 48, right: 288, bottom: 64 },
-        Rect { left: 272, top: 48, right: 288, bottom: 64 },
-    ]
+    [Rect { left: 272, top: 48, right: 288, bottom: 64 }, Rect { left: 272, top: 48, right: 288, bottom: 64 }]
 }
 
 fn default_n101_malco_screen() -> [Rect<u16>; 3] {
@@ -2277,10 +2224,7 @@ fn default_n104_frog() -> [Rect<u16>; 6] {
 }
 
 fn default_n105_hey_bubble_low() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 128, top: 32, right: 144, bottom: 48 },
-        Rect { left: 128, top: 32, right: 128, bottom: 32 },
-    ]
+    [Rect { left: 128, top: 32, right: 144, bottom: 48 }, Rect { left: 128, top: 32, right: 128, bottom: 32 }]
 }
 
 fn default_n107_malco_broken() -> [Rect<u16>; 10] {
@@ -2445,10 +2389,7 @@ fn default_n119_table_chair() -> Rect<u16> {
 }
 
 fn default_n120_colon_a() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 64, top: 0, right: 80, bottom: 16 },
-        Rect { left: 64, top: 16, right: 80, bottom: 32 },
-    ]
+    [Rect { left: 64, top: 0, right: 80, bottom: 16 }, Rect { left: 64, top: 16, right: 80, bottom: 32 }]
 }
 
 fn default_n121_colon_b() -> [Rect<u16>; 3] {
@@ -2494,17 +2435,11 @@ fn default_n123_curly_boss_bullet() -> [Rect<u16>; 4] {
 }
 
 fn default_n124_sunstone() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 160, top: 0, right: 192, bottom: 32 },
-        Rect { left: 192, top: 0, right: 224, bottom: 32 },
-    ]
+    [Rect { left: 160, top: 0, right: 192, bottom: 32 }, Rect { left: 192, top: 0, right: 224, bottom: 32 }]
 }
 
 fn default_n125_hidden_item() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 0, top: 96, right: 16, bottom: 112 },
-        Rect { left: 16, top: 96, right: 32, bottom: 112 },
-    ]
+    [Rect { left: 0, top: 96, right: 16, bottom: 112 }, Rect { left: 16, top: 96, right: 32, bottom: 112 }]
 }
 
 fn default_n126_puppy_running() -> [Rect<u16>; 12] {
@@ -2597,10 +2532,7 @@ fn default_n130_puppy_sitting() -> [Rect<u16>; 8] {
 }
 
 fn default_n131_puppy_sleeping() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 144, top: 144, right: 160, bottom: 160 },
-        Rect { left: 144, top: 160, right: 160, bottom: 176 },
-    ]
+    [Rect { left: 144, top: 144, right: 160, bottom: 160 }, Rect { left: 144, top: 160, right: 160, bottom: 176 }]
 }
 
 fn default_n132_puppy_barking() -> [Rect<u16>; 10] {
@@ -2661,10 +2593,7 @@ fn default_n137_large_door_frame() -> Rect<u16> {
 }
 
 fn default_n138_large_door() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 96, top: 112, right: 112, bottom: 136 },
-        Rect { left: 112, top: 112, right: 128, bottom: 136 },
-    ]
+    [Rect { left: 96, top: 112, right: 112, bottom: 136 }, Rect { left: 112, top: 112, right: 128, bottom: 136 }]
 }
 
 fn default_n139_doctor() -> [Rect<u16>; 6] {
@@ -2712,10 +2641,7 @@ fn default_n140_toroko_frenzied() -> [Rect<u16>; 28] {
 }
 
 fn default_n141_toroko_block_projectile() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 288, top: 32, right: 304, bottom: 48 },
-        Rect { left: 304, top: 32, right: 320, bottom: 48 },
-    ]
+    [Rect { left: 288, top: 32, right: 304, bottom: 48 }, Rect { left: 304, top: 32, right: 320, bottom: 48 }]
 }
 
 fn default_n142_flower_cub() -> [Rect<u16>; 5] {
@@ -2729,10 +2655,7 @@ fn default_n142_flower_cub() -> [Rect<u16>; 5] {
 }
 
 fn default_n143_jenka_collapsed() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 208, top: 32, right: 224, bottom: 48 },
-        Rect { left: 208, top: 48, right: 224, bottom: 64 },
-    ]
+    [Rect { left: 208, top: 32, right: 224, bottom: 48 }, Rect { left: 208, top: 48, right: 224, bottom: 64 }]
 }
 
 fn default_n144_toroko_teleporting_in() -> [Rect<u16>; 10] {
@@ -2751,10 +2674,7 @@ fn default_n144_toroko_teleporting_in() -> [Rect<u16>; 10] {
 }
 
 fn default_n145_king_sword() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 96, top: 32, right: 112, bottom: 48 },
-        Rect { left: 112, top: 32, right: 128, bottom: 48 },
-    ]
+    [Rect { left: 96, top: 32, right: 112, bottom: 48 }, Rect { left: 112, top: 32, right: 128, bottom: 48 }]
 }
 
 fn default_n146_lighting() -> [Rect<u16>; 5] {
@@ -2785,10 +2705,7 @@ fn default_n147_critter_purple() -> [Rect<u16>; 12] {
 }
 
 fn default_n148_critter_purple_projectile() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 96, top: 96, right: 104, bottom: 104 },
-        Rect { left: 104, top: 96, right: 112, bottom: 104 },
-    ]
+    [Rect { left: 96, top: 96, right: 104, bottom: 104 }, Rect { left: 104, top: 96, right: 112, bottom: 104 }]
 }
 
 fn default_n149_horizontal_moving_block() -> Rect<u16> {
@@ -2829,19 +2746,19 @@ fn default_n151_blue_robot_standing() -> [Rect<u16>; 4] {
 
 fn default_n153_gaudi() -> [Rect<u16>; 14] {
     [
-        Rect { left: 0, top: 0, right: 24, bottom: 24 }, // 0 0 // left
-        Rect { left: 24, top: 0, right: 48, bottom: 24 }, // 1 1
-        Rect { left: 48, top: 0, right: 72, bottom: 24 }, // 2 2
-        Rect { left: 0, top: 0, right: 24, bottom: 24 }, // 3 3
-        Rect { left: 72, top: 0, right: 96, bottom: 24 }, // 4 4
-        Rect { left: 0, top: 0, right: 24, bottom: 24 }, // 5 5
+        Rect { left: 0, top: 0, right: 24, bottom: 24 },    // 0 0 // left
+        Rect { left: 24, top: 0, right: 48, bottom: 24 },   // 1 1
+        Rect { left: 48, top: 0, right: 72, bottom: 24 },   // 2 2
+        Rect { left: 0, top: 0, right: 24, bottom: 24 },    // 3 3
+        Rect { left: 72, top: 0, right: 96, bottom: 24 },   // 4 4
+        Rect { left: 0, top: 0, right: 24, bottom: 24 },    // 5 5
         Rect { left: 96, top: 48, right: 120, bottom: 72 }, // 6 20
-        Rect { left: 0, top: 24, right: 24, bottom: 48 }, // 0 0 // right
-        Rect { left: 24, top: 24, right: 48, bottom: 48 }, // 1 1
-        Rect { left: 48, top: 24, right: 72, bottom: 48 }, // 2 2
-        Rect { left: 0, top: 24, right: 24, bottom: 48 }, // 3 3
-        Rect { left: 72, top: 24, right: 96, bottom: 48 }, // 4 4
-        Rect { left: 0, top: 24, right: 24, bottom: 48 }, // 5 5
+        Rect { left: 0, top: 24, right: 24, bottom: 48 },   // 0 0 // right
+        Rect { left: 24, top: 24, right: 48, bottom: 48 },  // 1 1
+        Rect { left: 48, top: 24, right: 72, bottom: 48 },  // 2 2
+        Rect { left: 0, top: 24, right: 24, bottom: 48 },   // 3 3
+        Rect { left: 72, top: 24, right: 96, bottom: 48 },  // 4 4
+        Rect { left: 0, top: 24, right: 24, bottom: 48 },   // 5 5
         Rect { left: 96, top: 72, right: 120, bottom: 96 }, // 6 20
     ]
 }
@@ -2859,14 +2776,14 @@ fn default_n154_gaudi_dead() -> [Rect<u16>; 6] {
 
 fn default_n155_gaudi_flying() -> [Rect<u16>; 8] {
     [
-        Rect { left: 0, top: 48, right: 24, bottom: 72 }, // 0 14 // left
-        Rect { left: 24, top: 48, right: 48, bottom: 72 }, // 1 15
-        Rect { left: 288, top: 0, right: 312, bottom: 24 }, // 2 18
-        Rect { left: 24, top: 48, right: 48, bottom: 72 }, // 3 19
-        Rect { left: 0, top: 72, right: 24, bottom: 96 }, // 0 14 // right
-        Rect { left: 24, top: 72, right: 48, bottom: 96 }, // 1 15
+        Rect { left: 0, top: 48, right: 24, bottom: 72 },    // 0 14 // left
+        Rect { left: 24, top: 48, right: 48, bottom: 72 },   // 1 15
+        Rect { left: 288, top: 0, right: 312, bottom: 24 },  // 2 18
+        Rect { left: 24, top: 48, right: 48, bottom: 72 },   // 3 19
+        Rect { left: 0, top: 72, right: 24, bottom: 96 },    // 0 14 // right
+        Rect { left: 24, top: 72, right: 48, bottom: 96 },   // 1 15
         Rect { left: 288, top: 24, right: 312, bottom: 48 }, // 2 18
-        Rect { left: 24, top: 72, right: 48, bottom: 96 }, // 3 19
+        Rect { left: 24, top: 72, right: 48, bottom: 96 },   // 3 19
     ]
 }
 
@@ -2955,10 +2872,7 @@ fn default_n165_curly_collapsed() -> [Rect<u16>; 3] {
 }
 
 fn default_n166_chaba() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 144, top: 104, right: 184, bottom: 128 },
-        Rect { left: 184, top: 104, right: 224, bottom: 128 },
-    ]
+    [Rect { left: 144, top: 104, right: 184, bottom: 128 }, Rect { left: 184, top: 104, right: 224, bottom: 128 }]
 }
 
 fn default_n167_booster_falling() -> [Rect<u16>; 3] {
@@ -3064,10 +2978,7 @@ fn default_n176_buyo_buyo_base() -> [Rect<u16>; 6] {
 }
 
 fn default_n177_buyo_buyo() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 192, top: 128, right: 208, bottom: 144 },
-        Rect { left: 208, top: 128, right: 224, bottom: 144 },
-    ]
+    [Rect { left: 192, top: 128, right: 208, bottom: 144 }, Rect { left: 208, top: 128, right: 224, bottom: 144 }]
 }
 
 fn default_n178_core_blade_projectile() -> [Rect<u16>; 3] {
@@ -3132,10 +3043,7 @@ fn default_n182_curly_ai_polar_star() -> [Rect<u16>; 4] {
 }
 
 fn default_n183_curly_air_tank_bubble() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 56, top: 96, right: 80, bottom: 120 },
-        Rect { left: 80, top: 96, right: 104, bottom: 120 },
-    ]
+    [Rect { left: 56, top: 96, right: 80, bottom: 120 }, Rect { left: 80, top: 96, right: 104, bottom: 120 }]
 }
 
 fn default_n184_shutter() -> [Rect<u16>; 4] {
@@ -3187,10 +3095,7 @@ fn default_n189_homing_flame() -> [Rect<u16>; 3] {
 }
 
 fn default_n190_broken_robot() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 192, top: 32, right: 208, bottom: 48 },
-        Rect { left: 208, top: 32, right: 224, bottom: 48 },
-    ]
+    [Rect { left: 192, top: 32, right: 208, bottom: 48 }, Rect { left: 208, top: 32, right: 224, bottom: 48 }]
 }
 
 fn default_n192_scooter() -> [Rect<u16>; 4] {
@@ -3215,10 +3120,7 @@ fn default_n195_background_grate() -> Rect<u16> {
 }
 
 fn default_n196_ironhead_wall() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 112, top: 64, right: 144, bottom: 80 },
-        Rect { left: 112, top: 80, right: 144, bottom: 96 },
-    ]
+    [Rect { left: 112, top: 64, right: 144, bottom: 80 }, Rect { left: 112, top: 80, right: 144, bottom: 96 }]
 }
 
 fn default_n197_porcupine_fish() -> [Rect<u16>; 4] {
@@ -3266,10 +3168,7 @@ fn default_n200_zombie_dragon() -> [Rect<u16>; 12] {
 }
 
 fn default_n201_zombie_dragon_dead() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 200, top: 0, right: 240, bottom: 40 },
-        Rect { left: 200, top: 40, right: 240, bottom: 80 },
-    ]
+    [Rect { left: 200, top: 0, right: 240, bottom: 40 }, Rect { left: 200, top: 40, right: 240, bottom: 80 }]
 }
 
 fn default_n202_zombie_dragon_projectile() -> [Rect<u16>; 3] {
@@ -3292,17 +3191,11 @@ fn default_n203_critter_destroyed_egg_corridor() -> [Rect<u16>; 6] {
 }
 
 fn default_n204_small_falling_spike() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 240, top: 80, right: 256, bottom: 96 },
-        Rect { left: 240, top: 144, right: 256, bottom: 160 },
-    ]
+    [Rect { left: 240, top: 80, right: 256, bottom: 96 }, Rect { left: 240, top: 144, right: 256, bottom: 160 }]
 }
 
 fn default_n205_large_falling_spike() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 112, top: 80, right: 128, bottom: 112 },
-        Rect { left: 128, top: 80, right: 144, bottom: 112 },
-    ]
+    [Rect { left: 112, top: 80, right: 128, bottom: 112 }, Rect { left: 128, top: 80, right: 144, bottom: 112 }]
 }
 
 fn default_n206_counter_bomb() -> [Rect<u16>; 3] {
@@ -3421,10 +3314,7 @@ fn default_n217_itoh() -> [Rect<u16>; 8] {
 }
 
 fn default_n218_core_giant_ball() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 256, top: 120, right: 288, bottom: 152 },
-        Rect { left: 288, top: 120, right: 320, bottom: 152 },
-    ]
+    [Rect { left: 256, top: 120, right: 288, bottom: 152 }, Rect { left: 288, top: 120, right: 320, bottom: 152 }]
 }
 
 fn default_n220_shovel_brigade() -> [Rect<u16>; 4] {
@@ -3516,24 +3406,15 @@ fn default_n228_droll() -> [Rect<u16>; 8] {
 }
 
 fn default_n229_red_flowers_sprouts() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 0, top: 96, right: 48, bottom: 112 },
-        Rect { left: 0, top: 112, right: 48, bottom: 128 },
-    ]
+    [Rect { left: 0, top: 96, right: 48, bottom: 112 }, Rect { left: 0, top: 112, right: 48, bottom: 128 }]
 }
 
 fn default_n230_red_flowers_blooming() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 48, top: 96, right: 96, bottom: 128 },
-        Rect { left: 96, top: 96, right: 144, bottom: 128 },
-    ]
+    [Rect { left: 48, top: 96, right: 96, bottom: 128 }, Rect { left: 96, top: 96, right: 144, bottom: 128 }]
 }
 
 fn default_n231_rocket() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 176, top: 32, right: 208, bottom: 48 },
-        Rect { left: 176, top: 48, right: 208, bottom: 64 },
-    ]
+    [Rect { left: 176, top: 32, right: 208, bottom: 48 }, Rect { left: 176, top: 48, right: 208, bottom: 64 }]
 }
 
 fn default_n232_orangebell() -> [Rect<u16>; 6] {
@@ -3547,7 +3428,7 @@ fn default_n232_orangebell() -> [Rect<u16>; 6] {
     ]
 }
 
-fn default_n233_orangebell_hat() -> [Rect<u16>; 8] {
+fn default_n233_orangebell_bat() -> [Rect<u16>; 8] {
     [
         Rect { left: 256, top: 0, right: 272, bottom: 16 },
         Rect { left: 272, top: 0, right: 288, bottom: 16 },
@@ -3561,10 +3442,7 @@ fn default_n233_orangebell_hat() -> [Rect<u16>; 8] {
 }
 
 fn default_n234_red_flowers_picked() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 144, top: 96, right: 192, bottom: 112 },
-        Rect { left: 144, top: 112, right: 192, bottom: 128 },
-    ]
+    [Rect { left: 144, top: 96, right: 192, bottom: 112 }, Rect { left: 144, top: 112, right: 192, bottom: 128 }]
 }
 
 fn default_n235_midorin() -> [Rect<u16>; 8] {
@@ -3610,10 +3488,7 @@ fn default_n238_press_sideways() -> [Rect<u16>; 3] {
 }
 
 fn default_n239_cage_bars() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 192, top: 48, right: 256, bottom: 80 },
-        Rect { left: 96, top: 112, right: 144, bottom: 144 },
-    ]
+    [Rect { left: 192, top: 48, right: 256, bottom: 80 }, Rect { left: 96, top: 112, right: 144, bottom: 144 }]
 }
 
 fn default_n240_mimiga_jailed() -> [Rect<u16>; 12] {
@@ -3709,11 +3584,8 @@ fn default_n248_misery_boss_vanishing() -> [Rect<u16>; 3] {
     ]
 }
 
-fn default_n249_misery_boss_energy_shot() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 48, top: 48, right: 64, bottom: 64 },
-        Rect { left: 64, top: 48, right: 80, bottom: 64 },
-    ]
+fn default_n249_misery_boss_appearing() -> [Rect<u16>; 2] {
+    [Rect { left: 48, top: 48, right: 64, bottom: 64 }, Rect { left: 64, top: 48, right: 80, bottom: 64 }]
 }
 
 fn default_n250_misery_boss_lighting_ball() -> [Rect<u16>; 3] {
@@ -3725,10 +3597,7 @@ fn default_n250_misery_boss_lighting_ball() -> [Rect<u16>; 3] {
 }
 
 fn default_n251_misery_boss_lighting() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 80, top: 32, right: 96, bottom: 64 },
-        Rect { left: 96, top: 32, right: 112, bottom: 64 },
-    ]
+    [Rect { left: 80, top: 32, right: 96, bottom: 64 }, Rect { left: 96, top: 32, right: 112, bottom: 64 }]
 }
 
 fn default_n252_misery_boss_bats() -> [Rect<u16>; 8] {
@@ -3745,17 +3614,11 @@ fn default_n252_misery_boss_bats() -> [Rect<u16>; 8] {
 }
 
 fn default_n253_experience_capsule() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 0, top: 64, right: 16, bottom: 80 },
-        Rect { left: 16, top: 64, right: 32, bottom: 80 },
-    ]
+    [Rect { left: 0, top: 64, right: 16, bottom: 80 }, Rect { left: 16, top: 64, right: 32, bottom: 80 }]
 }
 
 fn default_n254_helicopter() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 0, top: 0, right: 128, bottom: 64 },
-        Rect { left: 0, top: 64, right: 128, bottom: 128 },
-    ]
+    [Rect { left: 0, top: 0, right: 128, bottom: 64 }, Rect { left: 0, top: 64, right: 128, bottom: 128 }]
 }
 
 fn default_n255_helicopter_blades() -> [Rect<u16>; 8] {
@@ -3795,10 +3658,7 @@ fn default_n258_mimiga_sleeping() -> Rect<u16> {
 }
 
 fn default_n259_curly_unconscious() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 224, top: 96, right: 240, bottom: 112 },
-        Rect { left: 224, top: 112, right: 240, bottom: 128 },
-    ]
+    [Rect { left: 224, top: 96, right: 240, bottom: 112 }, Rect { left: 224, top: 112, right: 240, bottom: 128 }]
 }
 
 fn default_n260_shovel_brigade_caged() -> [Rect<u16>; 6] {
@@ -3853,11 +3713,11 @@ fn default_n263_doctor_boss() -> [Rect<u16>; 18] {
     ]
 }
 
-fn default_n264_doctor_boss_red_wave_projectile() -> Rect<u16> {
+fn default_n264_doctor_boss_red_projectile() -> Rect<u16> {
     Rect { left: 288, top: 0, right: 304, bottom: 16 }
 }
 
-fn default_n265_doctor_boss_red_ball_projectile() -> [Rect<u16>; 3] {
+fn default_n265_doctor_boss_red_projectile_trail() -> [Rect<u16>; 3] {
     [
         Rect { left: 288, top: 16, right: 304, bottom: 32 },
         Rect { left: 288, top: 32, right: 304, bottom: 48 },
@@ -3865,11 +3725,8 @@ fn default_n265_doctor_boss_red_ball_projectile() -> [Rect<u16>; 3] {
     ]
 }
 
-fn default_n266_doctor_boss_red_ball_projectile_bouncing() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 304, top: 16, right: 320, bottom: 32 },
-        Rect { left: 304, top: 32, right: 320, bottom: 48 },
-    ]
+fn default_n266_doctor_boss_red_projectile_bouncing() -> [Rect<u16>; 2] {
+    [Rect { left: 304, top: 16, right: 320, bottom: 32 }, Rect { left: 304, top: 32, right: 320, bottom: 48 }]
 }
 
 fn default_n267_muscle_doctor() -> [Rect<u16>; 20] {
@@ -3934,10 +3791,7 @@ fn default_n269_red_bat_bouncing() -> [Rect<u16>; 6] {
 }
 
 fn default_n270_doctor_red_energy() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 170, top: 34, right: 174, bottom: 38 },
-        Rect { left: 170, top: 42, right: 174, bottom: 46 },
-    ]
+    [Rect { left: 170, top: 34, right: 174, bottom: 38 }, Rect { left: 170, top: 42, right: 174, bottom: 46 }]
 }
 
 fn default_n273_droll_projectile() -> [Rect<u16>; 3] {
@@ -4017,10 +3871,7 @@ fn default_n278_little_family() -> [Rect<u16>; 6] {
 }
 
 fn default_n279_large_falling_block() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 0, top: 16, right: 32, bottom: 48 },
-        Rect { left: 16, top: 0, right: 32, bottom: 16 },
-    ]
+    [Rect { left: 0, top: 16, right: 32, bottom: 48 }, Rect { left: 16, top: 0, right: 32, bottom: 16 }]
 }
 
 fn default_n280_sue_teleported() -> [Rect<u16>; 4] {
@@ -4155,17 +4006,11 @@ fn default_n290_bat_misery() -> [Rect<u16>; 6] {
 }
 
 fn default_n291_mini_undead_core_inactive() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 256, top: 80, right: 320, bottom: 120 },
-        Rect { left: 256, top: 0, right: 320, bottom: 40 },
-    ]
+    [Rect { left: 256, top: 80, right: 320, bottom: 120 }, Rect { left: 256, top: 0, right: 320, bottom: 40 }]
 }
 
 fn default_n293_undead_core_energy_shot() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 240, top: 200, right: 280, bottom: 240 },
-        Rect { left: 280, top: 200, right: 320, bottom: 240 },
-    ]
+    [Rect { left: 240, top: 200, right: 280, bottom: 240 }, Rect { left: 280, top: 200, right: 320, bottom: 240 }]
 }
 
 fn default_n295_cloud() -> [Rect<u16>; 4] {
@@ -4195,10 +4040,7 @@ fn default_n298_intro_doctor() -> [Rect<u16>; 8] {
 }
 
 fn default_n299_intro_balrog_misery() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 0, top: 0, right: 48, bottom: 48 },
-        Rect { left: 48, top: 0, right: 96, bottom: 48 },
-    ]
+    [Rect { left: 0, top: 0, right: 48, bottom: 48 }, Rect { left: 48, top: 0, right: 96, bottom: 48 }]
 }
 
 fn default_n300_intro_demon_crown() -> Rect<u16> {
@@ -4500,10 +4342,7 @@ fn default_n326_sue_itoh_human_transition() -> [Rect<u16>; 16] {
 }
 
 fn default_n327_sneeze() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 240, top: 80, right: 256, bottom: 96 },
-        Rect { left: 256, top: 80, right: 272, bottom: 96 },
-    ]
+    [Rect { left: 240, top: 80, right: 256, bottom: 96 }, Rect { left: 256, top: 80, right: 272, bottom: 96 }]
 }
 
 fn default_n328_human_transform_machine() -> Rect<u16> {
@@ -4511,10 +4350,7 @@ fn default_n328_human_transform_machine() -> Rect<u16> {
 }
 
 fn default_n329_laboratory_fan() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 48, top: 0, right: 64, bottom: 16 },
-        Rect { left: 64, top: 0, right: 80, bottom: 16 },
-    ]
+    [Rect { left: 48, top: 0, right: 64, bottom: 16 }, Rect { left: 64, top: 0, right: 80, bottom: 16 }]
 }
 
 fn default_n330_rolling() -> [Rect<u16>; 3] {
@@ -4543,10 +4379,7 @@ fn default_n332_ballos_shockwave() -> [Rect<u16>; 3] {
 }
 
 fn default_n333_ballos_lighting() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 80, top: 120, right: 104, bottom: 144 },
-        Rect { left: 104, top: 120, right: 128, bottom: 144 },
-    ]
+    [Rect { left: 80, top: 120, right: 104, bottom: 144 }, Rect { left: 104, top: 120, right: 128, bottom: 144 }]
 }
 
 fn default_n334_sweat() -> [Rect<u16>; 4] {
@@ -4567,10 +4400,7 @@ fn default_n335_ikachan() -> [Rect<u16>; 3] {
 }
 
 fn default_n337_numahachi() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 256, top: 112, right: 288, bottom: 152 },
-        Rect { left: 288, top: 112, right: 320, bottom: 152 },
-    ]
+    [Rect { left: 256, top: 112, right: 288, bottom: 152 }, Rect { left: 288, top: 112, right: 320, bottom: 152 }]
 }
 
 fn default_n338_green_devil() -> [Rect<u16>; 4] {
@@ -4630,10 +4460,7 @@ fn default_n343_ballos_2_cutscene() -> Rect<u16> {
 }
 
 fn default_n344_ballos_2_eyes() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 272, top: 0, right: 296, bottom: 16 },
-        Rect { left: 296, top: 0, right: 320, bottom: 16 },
-    ]
+    [Rect { left: 272, top: 0, right: 296, bottom: 16 }, Rect { left: 296, top: 0, right: 320, bottom: 16 }]
 }
 
 fn default_n345_ballos_skull_projectile() -> [Rect<u16>; 4] {
@@ -4659,10 +4486,7 @@ fn default_n347_hoppy() -> [Rect<u16>; 4] {
 }
 
 fn default_n348_ballos_4_spikes() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 128, top: 152, right: 160, bottom: 176 },
-        Rect { left: 160, top: 152, right: 192, bottom: 176 },
-    ]
+    [Rect { left: 128, top: 152, right: 160, bottom: 176 }, Rect { left: 160, top: 152, right: 192, bottom: 176 }]
 }
 
 fn default_n349_statue() -> Rect<u16> {
@@ -4758,10 +4582,7 @@ fn default_n355_quote_and_curly_on_balrog() -> [Rect<u16>; 4] {
 }
 
 fn default_n356_balrog_rescuing() -> [Rect<u16>; 2] {
-    [
-        Rect { left: 240, top: 128, right: 280, bottom: 152 },
-        Rect { left: 240, top: 152, right: 280, bottom: 176 },
-    ]
+    [Rect { left: 240, top: 128, right: 280, bottom: 152 }, Rect { left: 240, top: 152, right: 280, bottom: 176 }]
 }
 
 fn default_n357_puppy_ghost() -> Rect<u16> {
@@ -4822,28 +4643,35 @@ fn default_b02_balfrog() -> [Rect<u16>; 18] {
 
 fn default_b03_monster_x() -> [Rect<u16>; 29] {
     [
-        Rect { left: 216, top: 0, right: 320, bottom: 48 }, // face
+        // face
+        Rect { left: 216, top: 0, right: 320, bottom: 48 },
         Rect { left: 216, top: 48, right: 320, bottom: 96 },
         Rect { left: 216, top: 144, right: 320, bottom: 192 },
-        Rect { left: 0, top: 0, right: 72, bottom: 32 }, // tracks up
+        // tracks up
+        Rect { left: 0, top: 0, right: 72, bottom: 32 },
         Rect { left: 0, top: 32, right: 72, bottom: 64 },
         Rect { left: 72, top: 0, right: 144, bottom: 32 },
         Rect { left: 144, top: 0, right: 216, bottom: 32 },
         Rect { left: 72, top: 32, right: 144, bottom: 64 },
         Rect { left: 144, top: 32, right: 216, bottom: 64 },
-        Rect { left: 0, top: 64, right: 72, bottom: 96 }, // tracks down
+        // tracks down
+        Rect { left: 0, top: 64, right: 72, bottom: 96 },
         Rect { left: 0, top: 96, right: 72, bottom: 128 },
         Rect { left: 72, top: 64, right: 144, bottom: 96 },
         Rect { left: 144, top: 64, right: 216, bottom: 96 },
         Rect { left: 72, top: 96, right: 144, bottom: 128 },
         Rect { left: 144, top: 96, right: 216, bottom: 128 },
-        Rect { left: 0, top: 128, right: 72, bottom: 160 }, // frame
+        // frame
+        Rect { left: 0, top: 128, right: 72, bottom: 160 },
         Rect { left: 72, top: 128, right: 144, bottom: 160 },
         Rect { left: 0, top: 160, right: 72, bottom: 192 },
         Rect { left: 72, top: 160, right: 144, bottom: 192 },
-        Rect { left: 216, top: 96, right: 264, bottom: 144 }, // shield left
-        Rect { left: 264, top: 96, right: 312, bottom: 144 }, // shield right
-        Rect { left: 0, top: 192, right: 16, bottom: 208 }, // part 4
+        // shield left
+        Rect { left: 216, top: 96, right: 264, bottom: 144 },
+        // shield right
+        Rect { left: 264, top: 96, right: 312, bottom: 144 },
+        // part 4
+        Rect { left: 0, top: 192, right: 16, bottom: 208 },
         Rect { left: 16, top: 192, right: 32, bottom: 208 },
         Rect { left: 32, top: 192, right: 48, bottom: 208 },
         Rect { left: 48, top: 192, right: 64, bottom: 208 },
@@ -4856,16 +4684,87 @@ fn default_b03_monster_x() -> [Rect<u16>; 29] {
 
 fn default_b04_core() -> [Rect<u16>; 10] {
     [
-        Rect { left: 0, top: 0, right: 72, bottom: 112 }, // face
+        // face
+        Rect { left: 0, top: 0, right: 72, bottom: 112 },
         Rect { left: 0, top: 112, right: 72, bottom: 224 },
         Rect { left: 160, top: 0, right: 232, bottom: 112 },
         Rect { left: 0, top: 0, right: 0, bottom: 0 },
-
-        Rect { left: 72, top: 0, right: 160, bottom: 112 }, // tail
+        // tail
+        Rect { left: 72, top: 0, right: 160, bottom: 112 },
         Rect { left: 72, top: 112, right: 160, bottom: 224 },
         Rect { left: 0, top: 0, right: 0, bottom: 0 },
+        // small head
+        Rect { left: 256, top: 0, right: 320, bottom: 40 },
+        Rect { left: 256, top: 40, right: 320, bottom: 80 },
+        Rect { left: 256, top: 80, right: 320, bottom: 120 },
+    ]
+}
 
-        Rect { left: 256, top: 0, right: 320, bottom: 40 }, // small head
+fn default_b05_ironhead() -> [Rect<u16>; 18] {
+    [
+        // set 1
+        Rect { left: 0, top: 0, right: 64, bottom: 24 },
+        Rect { left: 64, top: 0, right: 128, bottom: 24 },
+        Rect { left: 128, top: 0, right: 192, bottom: 24 },
+        Rect { left: 64, top: 0, right: 128, bottom: 24 },
+        Rect { left: 0, top: 0, right: 64, bottom: 24 },
+        Rect { left: 192, top: 0, right: 256, bottom: 24 },
+        Rect { left: 256, top: 0, right: 320, bottom: 24 },
+        Rect { left: 192, top: 0, right: 256, bottom: 24 },
+        Rect { left: 256, top: 48, right: 320, bottom: 72 },
+        // set 2
+        Rect { left: 0, top: 24, right: 64, bottom: 48 },
+        Rect { left: 64, top: 24, right: 128, bottom: 48 },
+        Rect { left: 128, top: 24, right: 192, bottom: 48 },
+        Rect { left: 64, top: 24, right: 128, bottom: 48 },
+        Rect { left: 0, top: 24, right: 64, bottom: 48 },
+        Rect { left: 192, top: 24, right: 256, bottom: 48 },
+        Rect { left: 256, top: 24, right: 320, bottom: 48 },
+        Rect { left: 192, top: 24, right: 256, bottom: 48 },
+        Rect { left: 256, top: 48, right: 320, bottom: 72 },
+    ]
+}
+
+fn default_b06_sisters() -> [Rect<u16>; 14] {
+    [
+        // head
+        Rect { left: 0, top: 80, right: 40, bottom: 112 },
+        Rect { left: 40, top: 80, right: 80, bottom: 112 },
+        Rect { left: 80, top: 80, right: 120, bottom: 112 },
+        Rect { left: 120, top: 80, right: 160, bottom: 112 },
+        Rect { left: 0, top: 112, right: 40, bottom: 144 },
+        Rect { left: 40, top: 112, right: 80, bottom: 144 },
+        Rect { left: 80, top: 112, right: 120, bottom: 144 },
+        Rect { left: 120, top: 112, right: 160, bottom: 144 },
+        // body
+        Rect { left: 0, top: 0, right: 40, bottom: 40 },
+        Rect { left: 40, top: 0, right: 80, bottom: 40 },
+        Rect { left: 80, top: 0, right: 120, bottom: 40 },
+        Rect { left: 0, top: 40, right: 40, bottom: 80 },
+        Rect { left: 40, top: 40, right: 80, bottom: 80 },
+        Rect { left: 80, top: 40, right: 120, bottom: 80 },
+    ]
+}
+
+fn default_b07_undead_core() -> [Rect<u16>; 15] {
+    [
+        // face
+        Rect { left: 0, top: 0, right: 0, bottom: 0 },
+        Rect { left: 160, top: 112, right: 232, bottom: 152 },
+        Rect { left: 160, top: 152, right: 232, bottom: 192 },
+        Rect { left: 160, top: 192, right: 232, bottom: 232 },
+        Rect { left: 248, top: 160, right: 320, bottom: 200 },
+        // head
+        Rect { left: 0, top: 0, right: 72, bottom: 112 },
+        Rect { left: 0, top: 112, right: 72, bottom: 224 },
+        Rect { left: 160, top: 0, right: 232, bottom: 112 },
+        Rect { left: 0, top: 0, right: 0, bottom: 0 },
+        // tail
+        Rect { left: 72, top: 0, right: 160, bottom: 112 },
+        Rect { left: 72, top: 112, right: 160, bottom: 224 },
+        Rect { left: 0, top: 0, right: 0, bottom: 0 },
+        // small head
+        Rect { left: 256, top: 0, right: 320, bottom: 40 },
         Rect { left: 256, top: 40, right: 320, bottom: 80 },
         Rect { left: 256, top: 80, right: 320, bottom: 120 },
     ]

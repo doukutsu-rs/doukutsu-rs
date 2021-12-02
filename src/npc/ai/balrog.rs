@@ -1212,7 +1212,6 @@ impl NPC {
 
         self.anim_rect = state.constants.npc.n169_balrog_shooting_missiles[self.anim_num as usize + dir_offset];
 
-
         Ok(())
     }
 
@@ -1277,6 +1276,39 @@ impl NPC {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
 
         self.anim_rect = state.constants.npc.n170_balrog_missile[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n306_balrog_nurse(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                    self.y += 0x800;
+                }
+
+                if self.rng.range(0..120) == 10 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            _ => (),
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
+        self.anim_rect = state.constants.npc.n306_balrog_nurse[self.anim_num as usize + dir_offset];
 
         Ok(())
     }

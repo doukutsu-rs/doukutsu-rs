@@ -103,6 +103,15 @@ pub fn draw_outline_rect(ctx: &mut Context, rect: Rect, line_width: usize, color
     Ok(())
 }
 
+pub fn set_clip_rect(ctx: &mut Context, rect: Option<Rect>) -> GameResult {
+    if let Some(renderer) = ctx.renderer.as_mut() {
+        return renderer.set_clip_rect(rect);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+
 pub fn imgui_context(ctx: &Context) -> GameResult<&mut imgui::Context> {
     if let Some(renderer) = ctx.renderer.as_ref() {
         return renderer.imgui();

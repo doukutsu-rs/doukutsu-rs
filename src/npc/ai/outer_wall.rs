@@ -301,4 +301,77 @@ impl NPC {
 
         Ok(())
     }
+
+    pub(crate) fn tick_n347_hoppy(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                }
+
+                self.anim_num = 0;
+                let player = self.get_closest_player_ref(&players);
+                if player.y < self.y + 0x10000 && player.y > self.y - 0x10000 {
+                    self.action_num = 10;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            10 => {
+                self.action_counter += 1;
+                if self.action_counter == 4 {
+                    self.anim_num = 2;
+                }
+
+                if self.action_counter > 12 {
+                    self.action_num = 12;
+                    self.anim_num = 3;
+                    self.vel_x = 0x700;
+                    state.sound_manager.play_sfx(6);
+                }
+            }
+            12 => {
+                let player = self.get_closest_player_ref(&players);
+                if player.y < self.y {
+                    self.vel_y = -0xAA;
+                } else {
+                    self.vel_y = 0xAA;
+                }
+
+                if self.flags.hit_left_wall() {
+                    self.action_num = 13;
+                    self.action_counter = 0;
+                    self.anim_num = 2;
+                    self.vel_x = 0;
+                    self.vel_y = 0;
+                } else {
+                    self.vel_x -= 0x2A;
+                    if self.vel_x < -0x5FF {
+                        self.vel_x = -0x5FF;
+                    }
+                    self.x += self.vel_x;
+                    self.y += self.vel_y;
+                }
+            }
+            13 => {
+                self.action_counter += 1;
+                if self.action_counter == 2 {
+                    self.anim_num = 1;
+                }
+
+                if self.action_counter == 6 {
+                    self.anim_num = 0;
+                }
+
+                if self.action_counter > 16 {
+                    self.action_num = 1;
+                }
+            }
+            _ => (),
+        }
+
+        self.anim_rect = state.constants.npc.n347_hoppy[self.anim_num as usize];
+
+        Ok(())
+    }
 }

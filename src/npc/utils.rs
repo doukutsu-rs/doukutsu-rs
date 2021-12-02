@@ -1,46 +1,48 @@
 ///! Various utility functions for NPC-related objects
-
 use num_traits::abs;
 
-use crate::weapon::bullet::Bullet;
 use crate::caret::CaretType;
 use crate::common::{Condition, Direction, Flag, Rect};
-use crate::map::NPCData;
-use crate::npc::{NPC, NPCFlag, NPCTable, NPCLayer};
-use crate::npc::list::NPCList;
-use crate::player::Player;
-use crate::rng::{RNG, Xoroshiro32PlusPlus};
-use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::components::number_popup::NumberPopup;
+use crate::map::NPCData;
+use crate::npc::list::NPCList;
+use crate::npc::{NPCFlag, NPCLayer, NPCTable, NPC};
+use crate::player::Player;
+use crate::rng::{Xoroshiro32PlusPlus, RNG};
+use crate::shared_game_state::{SharedGameState, TileSize};
+use crate::weapon::bullet::Bullet;
 
 impl NPC {
     /// Initializes the RNG. Called when the [NPC] is being added to an [NPCList].
     pub(crate) fn init_rng(&mut self) {
-        self.rng = Xoroshiro32PlusPlus::new((self.id as u32)
-            .wrapping_sub(self.npc_type as u32)
-            .wrapping_add(self.flag_num as u32)
-            .wrapping_mul(214013)
-            .wrapping_add(2531011) >> 5);
+        self.rng = Xoroshiro32PlusPlus::new(
+            (self.id as u32)
+                .wrapping_sub(self.npc_type as u32)
+                .rotate_right(5)
+                .wrapping_sub(self.flag_num as u32)
+                .rotate_right((self.event_num % 13) as u32)
+                .wrapping_mul(214013)
+                .rotate_right(13)
+                .wrapping_add(2531011)
+                .rotate_right(5),
+        );
     }
 
     /// Creates a new NPC object with properties that have been populated with data from given NPC data table.
     pub fn create(npc_type: u16, table: &NPCTable) -> NPC {
         let display_bounds = table.get_display_bounds(npc_type);
         let hit_bounds = table.get_hit_bounds(npc_type);
-        let (size, life, damage, flags, exp, spritesheet_id) =
-            match table.get_entry(npc_type) {
-                Some(entry) => {
-                    (
-                        entry.size,
-                        entry.life,
-                        entry.damage as u16,
-                        entry.npc_flags,
-                        entry.experience as u16,
-                        entry.spritesheet_id as u16
-                    )
-                }
-                None => { (2, 0, 0, NPCFlag(0), 0, 0) }
-            };
+        let (size, life, damage, flags, exp, spritesheet_id) = match table.get_entry(npc_type) {
+            Some(entry) => (
+                entry.size,
+                entry.life,
+                entry.damage as u16,
+                entry.npc_flags,
+                entry.experience as u16,
+                entry.spritesheet_id as u16,
+            ),
+            None => (2, 0, 0, NPCFlag(0), 0, 0),
+        };
         let npc_flags = NPCFlag(flags.0);
 
         NPC {
@@ -161,19 +163,16 @@ impl NPC {
 
     /// Returns true if the [NPC] collides with a [Bullet].
     pub fn collides_with_bullet(&self, bullet: &Bullet) -> bool {
-        (
-            self.npc_flags.shootable()
-                && (self.x - self.hit_bounds.right as i32) < (bullet.x + bullet.enemy_hit_width as i32)
-                && (self.x + self.hit_bounds.right as i32) > (bullet.x - bullet.enemy_hit_width as i32)
-                && (self.y - self.hit_bounds.top as i32) < (bullet.y + bullet.enemy_hit_height as i32)
-                && (self.y + self.hit_bounds.bottom as i32) > (bullet.y - bullet.enemy_hit_height as i32)
-        ) || (
-            self.npc_flags.invulnerable()
+        (self.npc_flags.shootable()
+            && (self.x - self.hit_bounds.right as i32) < (bullet.x + bullet.enemy_hit_width as i32)
+            && (self.x + self.hit_bounds.right as i32) > (bullet.x - bullet.enemy_hit_width as i32)
+            && (self.y - self.hit_bounds.top as i32) < (bullet.y + bullet.enemy_hit_height as i32)
+            && (self.y + self.hit_bounds.bottom as i32) > (bullet.y - bullet.enemy_hit_height as i32))
+            || (self.npc_flags.invulnerable()
                 && (self.x - self.hit_bounds.right as i32) < (bullet.x + bullet.hit_bounds.right as i32)
                 && (self.x + self.hit_bounds.right as i32) > (bullet.x - bullet.hit_bounds.left as i32)
                 && (self.y - self.hit_bounds.top as i32) < (bullet.y + bullet.hit_bounds.bottom as i32)
-                && (self.y + self.hit_bounds.bottom as i32) > (bullet.y - bullet.hit_bounds.top as i32)
-        )
+                && (self.y + self.hit_bounds.bottom as i32) > (bullet.y - bullet.hit_bounds.top as i32))
     }
 
     /// Creates experience drop for this NPC.
@@ -247,9 +246,15 @@ impl NPCList {
                 }
 
                 match npc.size {
-                    1 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 3, state, &npc.rng); }
-                    2 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 7, state, &npc.rng); }
-                    3 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 12, state, &npc.rng); }
+                    1 => {
+                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 3, state, &npc.rng);
+                    }
+                    2 => {
+                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 7, state, &npc.rng);
+                    }
+                    3 => {
+                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 12, state, &npc.rng);
+                    }
                     _ => {}
                 };
             }
@@ -264,9 +269,15 @@ impl NPCList {
             }
 
             match npc.size {
-                1 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 3, state, &npc.rng); }
-                2 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 7, state, &npc.rng); }
-                3 => { self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 12, state, &npc.rng); }
+                1 => {
+                    self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 3, state, &npc.rng);
+                }
+                2 => {
+                    self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 7, state, &npc.rng);
+                }
+                3 => {
+                    self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 12, state, &npc.rng);
+                }
                 _ => {}
             };
 
@@ -344,18 +355,43 @@ impl NPCList {
 
     /// Creates NPC death smoke diffusing in random directions.
     #[inline]
-    pub fn create_death_smoke(&self, x: i32, y: i32, radius: usize, amount: usize, state: &mut SharedGameState, rng: &dyn RNG) {
+    pub fn create_death_smoke(
+        &self,
+        x: i32,
+        y: i32,
+        radius: usize,
+        amount: usize,
+        state: &mut SharedGameState,
+        rng: &dyn RNG,
+    ) {
         self.create_death_smoke_common(x, y, radius, amount, Direction::Left, state, rng)
     }
 
     /// Creates NPC death smoke diffusing upwards.
     #[inline]
-    pub fn create_death_smoke_up(&self, x: i32, y: i32, radius: usize, amount: usize, state: &mut SharedGameState, rng: &dyn RNG) {
+    pub fn create_death_smoke_up(
+        &self,
+        x: i32,
+        y: i32,
+        radius: usize,
+        amount: usize,
+        state: &mut SharedGameState,
+        rng: &dyn RNG,
+    ) {
         self.create_death_smoke_common(x, y, radius, amount, Direction::Up, state, rng)
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn create_death_smoke_common(&self, x: i32, y: i32, radius: usize, amount: usize, direction: Direction, state: &mut SharedGameState, rng: &dyn RNG) {
+    fn create_death_smoke_common(
+        &self,
+        x: i32,
+        y: i32,
+        radius: usize,
+        amount: usize,
+        direction: Direction,
+        state: &mut SharedGameState,
+        rng: &dyn RNG,
+    ) {
         let radius = (radius / 0x200) as i32;
 
         let mut npc = NPC::create(4, &state.npc_table);

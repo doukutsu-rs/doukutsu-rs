@@ -20,14 +20,7 @@ impl NPC {
         self.y += self.vel_y;
 
         self.action_counter += 1;
-        self.anim_counter += 1;
-        if self.anim_counter > 1 {
-            self.anim_counter = 0;
-            self.anim_num += 1;
-            if self.anim_num > 2 {
-                self.anim_num = 0;
-            }
-        }
+        self.animate(1, 0, 2);
 
         self.anim_rect = state.constants.npc.n108_balfrog_projectile[self.anim_num as usize];
 

@@ -7,6 +7,7 @@ use crate::common::{interpolate_fix9_scale, Color, Direction, FadeDirection, Fad
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
 use crate::components::draw_common::Alignment;
+use crate::components::falling_island::FallingIsland;
 use crate::components::flash::Flash;
 use crate::components::hud::HUD;
 use crate::components::inventory::InventoryUI;
@@ -32,9 +33,11 @@ use crate::rng::XorShift;
 use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
+use crate::scripting::tsc::text_script::{
+    ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM,
+};
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage};
-use crate::scripting::tsc::text_script::{ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM};
 use crate::texture_set::SpriteBatch;
 use crate::weapon::bullet::BulletManager;
 use crate::weapon::{Weapon, WeaponType};
@@ -48,6 +51,7 @@ pub struct GameScene {
     pub stage_select: StageSelect,
     pub flash: Flash,
     pub credits: Credits,
+    pub falling_island: FallingIsland,
     pub inventory_ui: InventoryUI,
     pub hud_player1: HUD,
     pub hud_player2: HUD,
@@ -136,6 +140,7 @@ impl GameScene {
             stage_select: StageSelect::new(),
             flash: Flash::new(),
             credits: Credits::new(),
+            falling_island: FallingIsland::new(),
             inventory_ui: InventoryUI::new(),
             hud_player1: HUD::new(Alignment::Left),
             hud_player2: HUD::new(Alignment::Right),
@@ -398,7 +403,11 @@ impl GameScene {
 
                                 for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
                                     if direction == FadeDirection::Left {
-                                        batch.add_rect(state.canvas_size.0 - x as f32 * 16.0 - 16.0, y as f32 * 16.0, &rect);
+                                        batch.add_rect(
+                                            state.canvas_size.0 - x as f32 * 16.0 - 16.0,
+                                            y as f32 * 16.0,
+                                            &rect,
+                                        );
                                     } else {
                                         batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
                                     }
@@ -813,14 +822,14 @@ impl GameScene {
         for npc in self.npc_list.iter_alive() {
             if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
                 || npc.x
-                > (self.frame.x
-                + 128 * 0x200
-                + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
-                && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
+                    > (self.frame.x
+                        + 128 * 0x200
+                        + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
                 || npc.y
-                > (self.frame.y
-                + 128 * 0x200
-                + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
+                    > (self.frame.y
+                        + 128 * 0x200
+                        + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
             {
                 continue;
             }
@@ -1209,6 +1218,27 @@ impl GameScene {
                         (10, 50, 255),
                         batch,
                     ),
+                    270 => self.draw_light(
+                        interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
+                        interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
+                        0.4,
+                        (192, 0, 0),
+                        batch,
+                    ),
+                    285 | 287 => self.draw_light(
+                        interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
+                        interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
+                        1.0,
+                        (150, 90, 0),
+                        batch,
+                    ),
+                    293 => self.draw_light(
+                        interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
+                        interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
+                        4.0,
+                        (255, 255, 255),
+                        batch,
+                    ),
                     _ => {}
                 }
             }
@@ -1226,7 +1256,6 @@ impl GameScene {
             canvas.clear();
             canvas.add(SpriteBatchCommand::DrawRect(rect, rect));
             canvas.draw()?;
-
 
             graphics::set_render_target(ctx, Some(canvas))?;
             graphics::draw_rect(
@@ -1620,6 +1649,7 @@ impl GameScene {
                     &mut self.stage,
                     &mut self.bullet_manager,
                     &mut self.flash,
+                    &mut self.boss,
                 ),
             )?;
         }
@@ -1950,6 +1980,7 @@ impl Scene for GameScene {
             | TextScriptExecutionState::WaitTicks(_, _, _)
             | TextScriptExecutionState::WaitInput(_, _, _)
             | TextScriptExecutionState::Msg(_, _, _, _)
+            | TextScriptExecutionState::FallingIsland(_, _, _, _, _, _)
                 if !state.control_flags.control_enabled() && !state.textscript_vm.flags.cutscene_skip() =>
             {
                 if self.player1.controller.inventory() {
@@ -1966,61 +1997,59 @@ impl Scene for GameScene {
             }
         }
 
-        let mut ticks = 1;
-        if state.textscript_vm.mode == ScriptMode::Map && state.textscript_vm.flags.cutscene_skip() {
-            ticks = 4;
-        }
+        match state.textscript_vm.mode {
+            ScriptMode::Map => {
+                TextScriptVM::run(state, self, ctx)?;
 
-        for _ in 0..ticks {
-            match state.textscript_vm.mode {
-                ScriptMode::Map => {
-                    TextScriptVM::run(state, self, ctx)?;
-
-                    if state.control_flags.tick_world() {
-                        self.tick_world(state)?;
+                match state.textscript_vm.state {
+                    TextScriptExecutionState::FallingIsland(_, _, _, _, _, _) => (),
+                    _ => {
+                        if state.control_flags.tick_world() {
+                            self.tick_world(state)?;
+                        }
                     }
                 }
-                ScriptMode::StageSelect => {
-                    self.stage_select.tick(state, (ctx, &self.player1, &self.player2))?;
-
-                    TextScriptVM::run(state, self, ctx)?;
-                }
-                ScriptMode::Inventory => {
-                    self.inventory_ui.tick(state, (ctx, &mut self.player1, &mut self.inventory_player1))?;
-
-                    TextScriptVM::run(state, self, ctx)?;
-                }
             }
+            ScriptMode::StageSelect => {
+                self.stage_select.tick(state, (ctx, &self.player1, &self.player2))?;
 
-            if state.control_flags.credits_running() {
-                self.skip_counter = 0;
-                CreditScriptVM::run(state, ctx)?;
+                TextScriptVM::run(state, self, ctx)?;
             }
+            ScriptMode::Inventory => {
+                self.inventory_ui.tick(state, (ctx, &mut self.player1, &mut self.inventory_player1))?;
 
-            match state.fade_state {
-                FadeState::FadeOut(tick, direction) if tick < 15 => {
-                    state.fade_state = FadeState::FadeOut(tick + 1, direction);
-                }
-                FadeState::FadeOut(tick, _) if tick == 15 => {
-                    state.fade_state = FadeState::Hidden;
-                }
-                FadeState::FadeIn(tick, direction) if tick > -15 => {
-                    state.fade_state = FadeState::FadeIn(tick - 1, direction);
-                }
-                FadeState::FadeIn(tick, _) if tick == -15 => {
-                    state.fade_state = FadeState::Visible;
-                }
-                _ => {}
+                TextScriptVM::run(state, self, ctx)?;
             }
+        }
 
-            self.flash.tick(state, ())?;
+        if state.control_flags.credits_running() {
+            self.skip_counter = 0;
+            CreditScriptVM::run(state, ctx)?;
+        }
 
-            #[cfg(feature = "scripting-lua")]
-            state.lua.scene_tick();
-
-            if state.control_flags.tick_world() {
-                self.tick = self.tick.wrapping_add(1);
+        match state.fade_state {
+            FadeState::FadeOut(tick, direction) if tick < 15 => {
+                state.fade_state = FadeState::FadeOut(tick + 1, direction);
             }
+            FadeState::FadeOut(tick, _) if tick == 15 => {
+                state.fade_state = FadeState::Hidden;
+            }
+            FadeState::FadeIn(tick, direction) if tick > -15 => {
+                state.fade_state = FadeState::FadeIn(tick - 1, direction);
+            }
+            FadeState::FadeIn(tick, _) if tick == -15 => {
+                state.fade_state = FadeState::Visible;
+            }
+            _ => {}
+        }
+
+        self.flash.tick(state, ())?;
+
+        #[cfg(feature = "scripting-lua")]
+        state.lua.scene_tick();
+
+        if state.control_flags.tick_world() {
+            self.tick = self.tick.wrapping_add(1);
         }
 
         Ok(())
@@ -2105,7 +2134,10 @@ impl Scene for GameScene {
         self.player1.popup.draw(state, ctx, &self.frame)?;
         self.player2.popup.draw(state, ctx, &self.frame)?;
 
-        if state.settings.shader_effects && self.lighting_mode == LightingMode::Ambient {
+        if !state.control_flags.credits_running()
+            && state.settings.shader_effects
+            && self.lighting_mode == LightingMode::Ambient
+        {
             self.draw_light_map(state, ctx)?;
         }
         self.flash.draw(state, ctx, &self.frame)?;
@@ -2206,6 +2238,7 @@ impl Scene for GameScene {
             self.credits.draw(state, ctx, &self.frame)?;
         }
 
+        self.falling_island.draw(state, ctx, &self.frame)?;
         self.draw_text_boxes(state, ctx)?;
 
         if self.skip_counter > 0 {

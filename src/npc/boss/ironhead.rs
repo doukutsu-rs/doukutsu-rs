@@ -1,9 +1,11 @@
-use crate::common::Direction;
+use crate::common::{Direction, Rect};
 use crate::framework::error::GameResult;
 use crate::npc::boss::BossNPC;
+use crate::npc::list::NPCList;
 use crate::npc::NPC;
-use crate::shared_game_state::SharedGameState;
+use crate::player::Player;
 use crate::rng::RNG;
+use crate::shared_game_state::SharedGameState;
 
 impl NPC {
     pub(crate) fn tick_n196_ironhead_wall(&mut self, state: &mut SharedGameState) -> GameResult {
@@ -96,5 +98,174 @@ impl NPC {
 }
 
 impl BossNPC {
-    pub(crate) fn tick_b05_ironhead(&mut self) {}
+    pub(crate) fn tick_b05_ironhead(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) {
+        match self.parts[0].action_num {
+            0 => {
+                self.parts[0].cond.set_alive(true);
+                self.parts[0].exp = 1;
+                self.parts[0].direction = Direction::Right;
+                self.parts[0].action_num = 100;
+                self.parts[0].x = 0x14000;
+                self.parts[0].y = 0x10000;
+                self.hurt_sound[0] = 54;
+                self.parts[0].npc_flags.set_event_when_killed(true);
+                self.parts[0].npc_flags.set_shootable(true);
+                self.parts[0].npc_flags.set_ignore_solidity(true);
+                self.parts[0].npc_flags.set_show_damage(true);
+                self.parts[0].size = 3;
+                self.parts[0].damage = 10;
+                self.parts[0].event_num = 1000;
+                self.parts[0].life = 400;
+                self.parts[0].display_bounds = Rect::new(0x5000, 0x1800, 0x3000, 0x1800);
+                self.parts[0].hit_bounds = Rect::new(0x2000, 0x1400, 0x2000, 0x1400);
+            }
+            100 | 101 => {
+                if self.parts[0].action_num == 100 {
+                    self.parts[0].action_num = 101;
+                    self.parts[0].action_counter = 0;
+                    self.parts[0].npc_flags.set_shootable(false);
+                }
+
+                self.parts[0].action_counter += 1;
+                if self.parts[0].action_counter > 50 {
+                    self.parts[0].action_num = 250;
+                    self.parts[0].action_counter = 0;
+                }
+
+                if self.parts[0].action_counter % 4 == 0 {
+                    let mut npc = NPC::create(197, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.parts[0].rng.range(15..18) * state.tile_size.as_int() * 0x200;
+                    npc.y = self.parts[0].rng.range(2..13) * state.tile_size.as_int() * 0x200;
+
+                    let _ = npc_list.spawn(0x100, npc);
+                }
+            }
+            250 | 251 => {
+                if self.parts[0].action_num == 250 {
+                    self.parts[0].action_num = 251;
+                    if self.parts[0].direction == Direction::Right {
+                        let player = self.parts[0].get_closest_player_ref(&players);
+
+                        self.parts[0].x = 0x1E000;
+                        self.parts[0].y = player.y;
+                    } else {
+                        self.parts[0].x = 0x5A000;
+                        self.parts[0].y = self.parts[0].rng.range(2..13) * state.tile_size.as_int() * 0x200;
+                    }
+
+                    self.parts[0].target_x = self.parts[0].x;
+                    self.parts[0].target_y = self.parts[0].y;
+                    self.parts[0].vel_y = self.parts[0].rng.range(-0x200..0x200);
+                    self.parts[0].vel_x = self.parts[0].rng.range(-0x200..0x200);
+                    self.parts[0].npc_flags.set_shootable(true);
+                }
+
+                if self.parts[0].direction == Direction::Right {
+                    self.parts[0].target_x += 0x400;
+                } else {
+                    self.parts[0].target_x -= 0x200;
+                    if self.parts[0].target_y >= self.parts[0].y {
+                        self.parts[0].target_y -= 0x200;
+                    } else {
+                        self.parts[0].target_y += 0x200;
+                    }
+                }
+
+                self.parts[0].vel_x += if self.parts[0].x >= self.parts[0].target_x { -8 } else { 8 };
+                self.parts[0].vel_y += if self.parts[0].y >= self.parts[0].target_y { -8 } else { 8 };
+                self.parts[0].vel_y = self.parts[0].vel_y.clamp(-0x200, 0x200);
+                self.parts[0].x += self.parts[0].vel_x;
+                self.parts[0].y += self.parts[0].vel_y;
+
+                if self.parts[0].direction == Direction::Right {
+                    if self.parts[0].x > 0x5A000 {
+                        self.parts[0].direction = Direction::Left;
+                        self.parts[0].action_num = 100;
+                    }
+                } else if self.parts[0].x < 0x22000 {
+                    self.parts[0].direction = Direction::Right;
+                    self.parts[0].action_num = 100;
+                }
+
+                self.parts[0].action_counter += 1;
+                if [300, 310, 320].contains(&self.parts[0].action_counter) {
+                    state.sound_manager.play_sfx(39);
+
+                    let mut npc = NPC::create(198, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.parts[0].x + 0x1400;
+                    npc.y = self.parts[0].y + 0x200;
+                    npc.vel_x = self.parts[0].rng.range(-3..0) * 0x200;
+                    npc.vel_y = self.parts[0].rng.range(-3..3) * 0x200;
+                    npc.direction = Direction::Right;
+
+                    let _ = npc_list.spawn(0x100, npc);
+                }
+
+                self.parts[0].animate(2, 0, 7);
+            }
+            1000 | 1001 => {
+                if self.parts[0].action_num == 1000 {
+                    self.parts[0].action_num = 1001;
+                    self.parts[0].anim_num = 8;
+                    self.parts[0].npc_flags.set_shootable(false);
+                    self.parts[0].damage = 0;
+                    self.parts[0].target_x = self.parts[0].x;
+                    self.parts[0].target_y = self.parts[0].y;
+                    state.quake_counter = 20;
+                    for _ in 0..32 {
+                        let mut npc = NPC::create(4, &state.npc_table);
+                        npc.cond.set_alive(true);
+                        npc.x = self.parts[0].x + self.parts[0].rng.range(-0x80..0x80) * 0x200;
+                        npc.y = self.parts[0].y + self.parts[0].rng.range(-0x40..0x40) * 0x200;
+                        npc.vel_x = self.parts[0].rng.range(-0x80..0x80) * 0x200;
+                        npc.vel_y = self.parts[0].rng.range(-0x80..0x80) * 0x200;
+                        npc.direction = Direction::Left;
+
+                        let _ = npc_list.spawn(0x100, npc);
+                    }
+
+                    npc_list.kill_npcs_by_type(197, true, state);
+                    npc_list.kill_npcs_by_type(271, true, state);
+                    npc_list.kill_npcs_by_type(272, true, state);
+                }
+
+                self.parts[0].target_x -= 0x200;
+                self.parts[0].x = self.parts[0].target_x + self.parts[0].rng.range(-1..1) * 0x200;
+                self.parts[0].y = self.parts[0].target_y + self.parts[0].rng.range(-1..1) * 0x200;
+
+                if self.parts[0].action_counter % 4 == 0 {
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.parts[0].x + self.parts[0].rng.range(-0x80..0x80) * 0x200;
+                    npc.y = self.parts[0].y + self.parts[0].rng.range(-0x40..0x40) * 0x200;
+                    npc.vel_x = self.parts[0].rng.range(-0x80..0x80) * 0x200;
+                    npc.vel_y = self.parts[0].rng.range(-0x80..0x80) * 0x200;
+                    npc.direction = Direction::Left;
+
+                    let _ = npc_list.spawn(0x100, npc);
+                }
+            }
+            _ => (),
+        }
+
+        let offset = if self.parts[0].shock != 0 {
+            self.parts[19].action_counter += 1;
+            if self.parts[19].action_counter & 2 != 0 {
+                0
+            } else {
+                9
+            }
+        } else {
+            0
+        };
+
+        self.parts[0].anim_rect = state.constants.npc.b05_ironhead[self.parts[0].anim_num as usize + offset];
+    }
 }

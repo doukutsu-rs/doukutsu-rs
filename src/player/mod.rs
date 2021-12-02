@@ -472,8 +472,8 @@ impl Player {
             state.constants.player.air_physics.max_move
         };
 
-        self.vel_x = clamp(self.vel_x, -max_move, max_move);
-        self.vel_y = clamp(self.vel_y, -max_move, max_move);
+        self.vel_x = self.vel_x.clamp(-max_move, max_move);
+        self.vel_y = self.vel_y.clamp(-max_move, max_move);
 
         if !self.splash && self.flags.in_water() {
             let vertical_splash = !self.flags.hit_bottom_wall() && self.vel_y > 0x200;
@@ -551,8 +551,100 @@ impl Player {
         Ok(())
     }
 
-    fn tick_ironhead(&mut self, _state: &mut SharedGameState) -> GameResult {
-        // todo ironhead boss controls
+    fn tick_ironhead(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.up = false;
+        self.down = false;
+
+        if state.control_flags.control_enabled() {
+            if self.controller.move_left() || self.controller.move_right() {
+                if self.controller.move_left() {
+                    self.vel_x -= 0x100;
+                }
+                if self.controller.move_right() {
+                    self.vel_x += 0x100;
+                }
+            } else if self.vel_x > 0x7f || self.vel_x < -0x7f {
+                self.vel_x += 0x80 * -self.vel_x.signum();
+            } else {
+                self.vel_x = 0;
+            }
+
+            if self.controller.move_up() || self.controller.move_down() {
+                if self.controller.move_up() {
+                    self.vel_y -= 0x100;
+                }
+                if self.controller.move_down() {
+                    self.vel_y += 0x100;
+                }
+            } else if self.vel_y > 0x7f || self.vel_y < -0x7f {
+                self.vel_y += 0x80 * -self.vel_y.signum();
+            } else {
+                self.vel_y = 0;
+            }
+        } else {
+            if self.vel_x > 0x7f || self.vel_x < -0x7f {
+                self.vel_x += 0x80 * -self.vel_x.signum();
+            } else {
+                self.vel_x = 0;
+            }
+
+            if self.vel_y > 0x7f || self.vel_y < -0x7f {
+                self.vel_y += 0x80 * -self.vel_y.signum();
+            } else {
+                self.vel_y = 0;
+            }
+        }
+
+        if self.vel_y < -0x200 && self.flags.hit_top_wall() {
+            state.create_caret(self.x, self.y - self.hit_bounds.top as i32, CaretType::LittleParticles, Direction::FacingPlayer);
+        }
+
+        if self.vel_y > 0x200 && self.flags.hit_bottom_wall() {
+            state.create_caret(self.x, self.y + self.hit_bounds.bottom as i32, CaretType::LittleParticles, Direction::FacingPlayer);
+        }
+
+        self.vel_x = self.vel_x.clamp(-0x400, 0x400);
+        self.vel_y = self.vel_y.clamp(-0x400, 0x400);
+
+        if self.controller.move_left() && self.controller.move_up() {
+            if self.vel_x < -0x30c {
+                self.vel_x = -0x30c;
+            }
+            if self.vel_y < -0x30c {
+                self.vel_y = -0x30c;
+            }
+        }
+
+        if self.controller.move_right() && self.controller.move_up() {
+            if self.vel_x > 0x30c {
+                self.vel_x = 0x30c;
+            }
+            if self.vel_y < -0x30c {
+                self.vel_y = -0x30c;
+            }
+        }
+
+        if self.controller.move_left() && self.controller.move_down() {
+            if self.vel_x < -0x30c {
+                self.vel_x = -0x30c;
+            }
+            if self.vel_y > 0x30c {
+                self.vel_y = 0x30c;
+            }
+        }
+
+        if self.controller.move_right() && self.controller.move_down() {
+            if self.vel_x > 0x30c {
+                self.vel_x = 0x30c;
+            }
+            if self.vel_y > 0x30c {
+                self.vel_y = 0x30c;
+            }
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
         Ok(())
     }
 

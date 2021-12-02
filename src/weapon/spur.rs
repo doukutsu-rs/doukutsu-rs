@@ -13,7 +13,7 @@ impl Weapon {
         bullet_manager: &mut BulletManager,
         state: &mut SharedGameState,
     ) {
-        const BULLETS: [u16; 6] = [44, 45, 46, 47, 48, 49];
+        const BULLETS: [u16; 6] = [37, 38, 39, 40, 41, 42];
 
         let mut shoot = false;
         let btype;
@@ -22,7 +22,7 @@ impl Weapon {
             self.add_xp(if player.equip.has_turbocharge() { 3 } else { 2 }, player, state);
             self.counter1 += 1;
 
-            if (self.counter1 / 2 % 2) != 0 {
+            if self.counter1 & 2 != 0 {
                 match self.level {
                     WeaponLevel::Level1 => {
                         state.sound_manager.play_sfx(59);

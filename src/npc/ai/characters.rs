@@ -566,4 +566,248 @@ impl NPC {
 
         Ok(())
     }
+
+    pub(crate) fn tick_n278_little_family(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.anim_counter = 0;
+                    self.vel_x = 0;
+                }
+
+                if self.rng.range(0..60) == 1 {
+                    self.action_num = 2;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+
+                if self.rng.range(0..60) == 1 {
+                    self.action_num = 10;
+                    self.action_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
+            10 | 11 => {
+                if self.action_counter == 10 {
+                    self.action_num = 11;
+                    self.action_counter = self.rng.range(0..16) as u16;
+                    self.anim_num = 0;
+                    self.direction = if self.rng.range(0..9) % 2 != 0 { Direction::Left } else { Direction::Right };
+                }
+
+                if self.direction == Direction::Left && self.flags.hit_left_wall() {
+                    self.direction = Direction::Right;
+                }
+
+                if self.direction == Direction::Right && self.flags.hit_right_wall() {
+                    self.direction = Direction::Left;
+                }
+
+                self.vel_x = self.direction.vector_x() * 0x100;
+
+                self.animate(4, 0, 1);
+                self.action_counter += 1;
+                if self.action_counter > 32 {
+                    self.action_num = 0;
+                }
+            }
+            _ => (),
+        }
+
+        self.vel_y += 0x20;
+        if self.vel_y > 0x5FF {
+            self.vel_y = 0x5FF;
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let offset = match self.event_num {
+            200 => 0,
+            210 => 2,
+            _ => 4,
+        };
+
+        self.anim_rect = state.constants.npc.n278_little_family[self.anim_num as usize + offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n305_small_puppy(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.y -= 0x2000;
+            self.anim_counter = self.rng.range(0..6) as u16;
+        }
+
+        if self.action_num == 1 {
+            self.animate(6, 0, 1);
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
+        self.anim_rect = state.constants.npc.n305_small_puppy[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n326_sue_itoh_human_transition(
+        &mut self,
+        state: &mut SharedGameState,
+        npc_list: &NPCList,
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.x += 0x2000;
+                    self.y -= 0x1000;
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 80 {
+                    self.action_num = 10;
+                    self.action_counter = 0;
+                } else {
+                    if self.direction != Direction::Left {
+                        if self.action_counter == 50 {
+                            self.anim_num = 1;
+                        }
+                        if self.action_counter == 60 {
+                            self.anim_num = 0;
+                        }
+                    } else {
+                        if self.action_counter == 30 {
+                            self.anim_num = 1;
+                        }
+                        if self.action_counter == 40 {
+                            self.anim_num = 0;
+                        }
+                    }
+                }
+            }
+            10 => {
+                self.action_counter += 1;
+                if self.action_counter <= 50 {
+                    self.anim_num = if self.action_counter & 2 != 0 { 2 } else { 3 };
+                } else {
+                    self.action_num = 15;
+                    self.anim_num = 4;
+
+                    let actr: &mut i16 = unsafe { std::mem::transmute(&mut self.action_counter) };
+                    if self.direction == Direction::Left {
+                        *actr = -20;
+                    } else {
+                        *actr = 0;
+                    }
+                }
+            }
+            15 => {
+                let actr: &mut i16 = unsafe { std::mem::transmute(&mut self.action_counter) };
+                *actr += 1;
+                if *actr > 40 {
+                    *actr = 0;
+                    self.action_num = 20;
+                }
+            }
+            20 => {
+                self.vel_y += 0x40;
+                if self.vel_y > 0x5FF {
+                    self.vel_y = 0x5FF;
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 50 {
+                    self.action_num = 30;
+                    self.action_counter = 0;
+                    self.anim_num = 6;
+
+                    let mut npc = NPC::create(327, &state.npc_table);
+                    npc.cond.set_alive(true);
+
+                    npc.x = self.x;
+                    npc.y = if self.direction == Direction::Left { self.y - 0x1000 } else { self.y - 0x2000 };
+                    npc.parent_id = self.id;
+
+                    let _ = npc_list.spawn(0x100, npc);
+                }
+            }
+            30 => {
+                self.action_counter += 1;
+                if self.action_counter == 30 {
+                    self.anim_num = 7;
+                }
+                if self.action_counter == 40 {
+                    self.action_num = 40;
+                }
+            }
+            40 | 41 => {
+                if self.action_num == 40 {
+                    self.action_num = 41;
+                    self.action_counter = 0;
+                    self.anim_num = 0;
+                }
+
+                self.action_counter += 1;
+                if self.action_counter == 30 {
+                    self.anim_num = 1;
+                }
+                if self.action_counter == 40 {
+                    self.anim_num = 0;
+                }
+            }
+            _ => (),
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 8 };
+
+        self.anim_rect = state.constants.npc.n326_sue_itoh_human_transition[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n327_sneeze(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        self.action_counter += 1;
+
+        if self.action_num == 0 {
+            if self.action_counter < 4 {
+                self.y -= 0x400;
+            }
+
+            if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                if parent.anim_num == 7 {
+                    self.action_num = 1;
+                    self.anim_num = 1;
+                    self.target_x = self.x;
+                    self.target_y = self.y;
+                }
+            }
+        } else if self.action_num == 1 {
+            if self.action_counter >= 48 {
+                self.x = self.target_x;
+                self.y = self.target_y;
+            } else {
+                self.x += self.target_x + self.rng.range(-1..1) * 0x200;
+                self.y += self.target_y + self.rng.range(-1..1) * 0x200;
+            }
+        }
+
+        if self.action_counter > 70 {
+            self.cond.set_alive(false);
+        }
+
+        self.anim_rect = state.constants.npc.n327_sneeze[self.anim_num as usize];
+
+        Ok(())
+    }
 }

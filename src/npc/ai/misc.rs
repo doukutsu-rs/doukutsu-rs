@@ -1,11 +1,11 @@
-use num_traits::{abs, clamp};
+use std::hint::unreachable_unchecked;
 
 use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
 use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
-use crate::npc::{NPC, NPCLayer};
 use crate::npc::list::NPCList;
+use crate::npc::{NPCLayer, NPC};
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
@@ -610,7 +610,7 @@ impl NPC {
             self.cond.set_alive(false);
         }
 
-        if self.y > stage.map.height as i32 * 0x2000 {
+        if self.y > stage.map.height as i32 * state.tile_size.as_int() * 0x200 {
             // out of map
             self.cond.set_alive(false);
         }
@@ -651,7 +651,7 @@ impl NPC {
                 self.anim_num = 0;
                 let player = self.get_closest_player_mut(players);
 
-                if abs(player.x - self.x) < 0x1000 && player.y < self.y + 0x1000 && player.y > self.y - 0x2000 {
+                if (player.x - self.x).abs() < 0x1000 && player.y < self.y + 0x1000 && player.y > self.y - 0x2000 {
                     state.sound_manager.play_sfx(43);
                     self.action_num = 1;
                 }
@@ -666,6 +666,7 @@ impl NPC {
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+
         self.anim_rect = state.constants.npc.n085_terminal[self.anim_num as usize + dir_offset];
 
         Ok(())
@@ -706,8 +707,8 @@ impl NPC {
 
                 {
                     let i = self.get_closest_player_idx_mut(&players);
-                    if abs(players[i].x - self.x) < 480 * 0x200
-                        && abs(players[i].y - self.y) < 240 * 0x200
+                    if (players[i].x - self.x).abs() < 480 * 0x200
+                        && (players[i].y - self.y).abs() < 240 * 0x200
                         && self.rng.range(0..5) == 1
                     {
                         let mut particle = NPC::create(199, &state.npc_table);
@@ -724,7 +725,7 @@ impl NPC {
                         continue;
                     }
 
-                    if abs(player.y - self.y) < 0x1000 && player.x < self.x && player.x > self.x - 96 * 0x200 {
+                    if (player.y - self.y).abs() < 0x1000 && player.x < self.x && player.x > self.x - 96 * 0x200 {
                         player.vel_x -= 0x88;
                         player.cond.set_increase_acceleration(true);
                     }
@@ -766,8 +767,8 @@ impl NPC {
 
                 {
                     let i = self.get_closest_player_idx_mut(&players);
-                    if abs(players[i].x - self.x) < 480 * 0x200
-                        && abs(players[i].y - self.y) < 240 * 0x200
+                    if (players[i].x - self.x).abs() < 480 * 0x200
+                        && (players[i].y - self.y).abs() < 240 * 0x200
                         && self.rng.range(0..5) == 1
                     {
                         let mut particle = NPC::create(199, &state.npc_table);
@@ -784,7 +785,7 @@ impl NPC {
                         continue;
                     }
 
-                    if abs(player.x - self.x) < 0x1000 && player.y < self.y && player.y > self.y - 96 * 0x200 {
+                    if (player.x - self.x).abs() < 0x1000 && player.y < self.y && player.y > self.y - 96 * 0x200 {
                         player.vel_y -= 0x88;
                     }
                 }
@@ -825,8 +826,8 @@ impl NPC {
 
                 {
                     let i = self.get_closest_player_idx_mut(&players);
-                    if abs(players[i].x - self.x) < 480 * 0x200
-                        && abs(players[i].y - self.y) < 240 * 0x200
+                    if (players[i].x - self.x).abs() < 480 * 0x200
+                        && (players[i].y - self.y).abs() < 240 * 0x200
                         && self.rng.range(0..5) == 1
                     {
                         let mut particle = NPC::create(199, &state.npc_table);
@@ -839,7 +840,7 @@ impl NPC {
                 }
 
                 for player in players.iter_mut() {
-                    if abs(player.y - self.y) < 0x1000 && player.x > self.x && player.x < self.x + 96 * 0x200 {
+                    if (player.y - self.y).abs() < 0x1000 && player.x > self.x && player.x < self.x + 96 * 0x200 {
                         player.vel_x += 0x88;
                         player.cond.set_increase_acceleration(true);
                     }
@@ -881,8 +882,8 @@ impl NPC {
 
                 {
                     let i = self.get_closest_player_idx_mut(&players);
-                    if abs(players[i].x - self.x) < 480 * 0x200
-                        && abs(players[i].y - self.y) < 240 * 0x200
+                    if (players[i].x - self.x).abs() < 480 * 0x200
+                        && (players[i].y - self.y).abs() < 240 * 0x200
                         && self.rng.range(0..5) == 1
                     {
                         let mut particle = NPC::create(199, &state.npc_table);
@@ -895,7 +896,7 @@ impl NPC {
                 }
 
                 for player in players.iter_mut() {
-                    if abs(player.x - self.x) < 0x1000 && player.y > self.y && player.y < self.y + 96 * 0x200 {
+                    if (player.x - self.x).abs() < 0x1000 && player.y > self.y && player.y < self.y + 96 * 0x200 {
                         player.vel_y += 0x88;
                     }
                 }
@@ -959,14 +960,7 @@ impl NPC {
                 }
             }
             10 => {
-                self.anim_counter += 1;
-                if self.anim_counter > 2 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-                    if self.anim_num > 2 {
-                        self.anim_num = 2;
-                    }
-                }
+                self.animate(2, 2, 2);
 
                 for player in players.iter() {
                     if player.y > self.y {
@@ -1246,7 +1240,7 @@ impl NPC {
             _ => (),
         }
 
-        self.vel_x = clamp(self.vel_x, -0x200, 0x200);
+        self.vel_x = self.vel_x.clamp(-0x200, 0x200);
         self.x += self.vel_x;
 
         if self.anim_num != 149 {
@@ -1390,7 +1384,7 @@ impl NPC {
             _ => (),
         }
 
-        self.vel_y = clamp(self.vel_y, -0x200, 0x200);
+        self.vel_y = self.vel_y.clamp(-0x200, 0x200);
         self.y += self.vel_y;
 
         if self.anim_num != 149 {
@@ -1798,6 +1792,91 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n246_press_proximity(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.y -= 0x800;
+                }
+
+                for player in players.iter() {
+                    if player.x < self.x + 0x1000
+                        && player.x > self.x - 0x1000
+                        && player.y > self.y + 0x1000
+                        && player.y < self.y + 0x10000
+                    {
+                        self.action_num = 5;
+                    }
+                }
+            }
+            5 => {
+                if self.flags.hit_bottom_wall() {
+                    self.action_num = 10;
+                    self.anim_counter = 0;
+                    self.anim_num = 1;
+                }
+            }
+            10 => {
+                self.animate(2, 2, 2);
+
+                for player in players.iter() {
+                    if player.y > self.y {
+                        self.npc_flags.set_solid_hard(false);
+                        self.damage = 127;
+                    } else {
+                        self.npc_flags.set_solid_hard(true);
+                        self.damage = 0;
+                    }
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    if self.anim_num > 1 {
+                        let mut npc = NPC::create(4, &state.npc_table);
+                        npc.cond.set_alive(true);
+                        npc.x = self.x;
+                        npc.y = self.y;
+
+                        for _ in 0..4 {
+                            npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                            npc.vel_y = self.rng.range(-0x600..0) as i32;
+
+                            let _ = npc_list.spawn(0x100, npc.clone());
+                        }
+
+                        state.quake_counter = 10;
+                        state.sound_manager.play_sfx(26);
+                    }
+
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                    self.damage = 0;
+                    self.npc_flags.set_solid_hard(true);
+                }
+            }
+            _ => (),
+        }
+
+        if self.action_num >= 5 {
+            self.vel_y += 0x80;
+
+            if self.vel_y > 0x5ff {
+                self.vel_y = 0x5ff;
+            }
+
+            self.y += self.vel_y;
+        }
+
+        self.anim_rect = state.constants.npc.n246_press_proximity[self.anim_num as usize];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n253_experience_capsule(
         &mut self,
         state: &mut SharedGameState,
@@ -1832,8 +1911,364 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n271_ironhead_block(&mut self, state: &mut SharedGameState, stage: &mut Stage) -> GameResult {
+        if self.vel_x < 0 && self.x < -0x2000
+            || self.vel_x > 0 && self.x > stage.map.width as i32 * state.tile_size.as_int() * 0x200 + 0x2000
+        {
+            self.cond.set_alive(false);
+            return Ok(());
+        }
+
+        if self.action_num == 0 {
+            self.action_num = 1;
+            if self.rng.range(0..9) == 9 {
+                self.anim_rect = Rect::new(0, 64, 32, 96);
+                self.display_bounds = Rect::new(0x2000, 0x2000, 0x2000, 0x2000);
+                self.hit_bounds = Rect::new(0x1800, 0x1800, 0x1800, 0x1800);
+            } else {
+                self.anim_rect =
+                    Rect::new_size(16 * (self.rng.range(0..3) as u16), 16 * (self.rng.range(0..3) as u16 / 3), 16, 16);
+            }
+
+            self.vel_x = self.direction.vector_x() * 2 * self.rng.range(256..512);
+            self.vel_y = self.rng.range(-512..512);
+        }
+
+        if self.vel_y < 0 && self.y - (self.hit_bounds.top as i32) < 0x1000 {
+            self.vel_y = -self.vel_y;
+            state.create_caret(self.x, self.y - 0x1000, CaretType::LittleParticles, Direction::Left);
+            state.create_caret(self.x, self.y - 0x1000, CaretType::LittleParticles, Direction::Left);
+        }
+
+        if self.vel_y > 0 && (self.hit_bounds.bottom as i32) + self.y > 0x1D000 {
+            self.vel_y = -self.vel_y;
+            state.create_caret(self.x, self.y + 0x1000, CaretType::LittleParticles, Direction::Left);
+            state.create_caret(self.x, self.y + 0x1000, CaretType::LittleParticles, Direction::Left);
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n272_ironhead_block_generator(
+        &mut self,
+        state: &mut SharedGameState,
+        npc_list: &NPCList,
+    ) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.action_counter = self.rng.range(0..200) as u16;
+        }
+
+        if self.action_num == 1 {
+            if self.action_counter > 0 {
+                self.action_counter -= 1;
+            } else {
+                self.action_num = 0;
+
+                let mut npc = NPC::create(271, &state.npc_table);
+                npc.cond.set_alive(true);
+
+                npc.x = self.x;
+                npc.y = self.y + self.rng.range(-32..32) * 0x200;
+                npc.direction = self.direction;
+
+                let _ = npc_list.spawn(0x100, npc);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n279_large_falling_block(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+        stage: &mut Stage,
+    ) -> GameResult {
+        match self.action_num {
+            0 => {
+                if self.action_num == 0 {
+                    match self.direction {
+                        Direction::Left => {
+                            self.action_num = 100;
+                            self.npc_flags.set_invulnerable(true);
+                            self.anim_num = 0;
+                        }
+                        Direction::Up => {
+                            self.anim_num = 0;
+                            self.action_num = 10;
+                        }
+                        Direction::Right => {
+                            self.action_num = 100;
+                            self.npc_flags.set_invulnerable(true);
+                            self.anim_num = 1;
+                            self.display_bounds = Rect::new(0x1000, 0x1000, 0x1000, 0x1000);
+                            self.hit_bounds = Rect::new(0x1000, 0x1000, 0x1000, 0x1000);
+                        }
+                        _ => (),
+                    }
+                }
+
+                if self.direction == Direction::Up {
+                    self.action_num = 11;
+                    self.action_counter = 16;
+
+                    if self.action_counter > 0 {
+                        self.action_counter = self.action_counter.saturating_sub(2);
+                    } else {
+                        self.action_num = 100;
+                        self.npc_flags.set_invulnerable(true);
+                    }
+                }
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.action_counter = 16;
+                }
+
+                if self.action_counter > 0 {
+                    self.action_counter = self.action_counter.saturating_sub(2);
+                } else {
+                    self.action_num = 100;
+                    self.npc_flags.set_invulnerable(true);
+                }
+            }
+            100 => {
+                self.vel_y += 0x40;
+                if self.vel_y > 0x700 {
+                    self.vel_y = 0x700;
+                }
+
+                if self.y > 0x10000 {
+                    self.npc_flags.set_ignore_solidity(false);
+                }
+
+                if self.flags.hit_bottom_wall() {
+                    self.vel_y = -0x200;
+                    self.action_num = 110;
+                    self.npc_flags.set_ignore_solidity(true);
+                    state.sound_manager.play_sfx(26);
+                    state.quake_counter = 10;
+
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+
+                    for _ in 0..4 {
+                        npc.x = self.x + self.rng.range(-12..12) * 0x200;
+                        npc.y = self.y + 0x2000;
+                        npc.vel_x = self.rng.range(-0x155..0x155);
+                        npc.vel_y = self.rng.range(-0x600..0);
+
+                        let _ = npc_list.spawn(0x100, npc.clone());
+                    }
+                }
+            }
+            110 => {
+                self.vel_y += 0x40;
+                if self.y > stage.map.height as i32 * state.tile_size.as_int() * 0x200 + 0x4000 {
+                    self.cond.set_alive(false);
+                    return Ok(());
+                }
+            }
+            _ => (),
+        }
+
+        let player = self.get_closest_player_ref(&players);
+        self.damage = if player.y > self.y { 10 } else { 0 };
+
+        self.y += self.vel_y;
+
+        self.anim_rect = state.constants.npc.n279_large_falling_block[self.anim_num as usize];
+
+        if self.action_num == 11 {
+            self.anim_rect.top += self.action_counter;
+            self.anim_rect.bottom += self.action_counter;
+            self.display_bounds.top = (16u32).saturating_sub(self.action_counter as u32) * 0x200;
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n292_quake(&mut self, state: &mut SharedGameState) -> GameResult {
         state.quake_counter = 10;
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n294_quake_falling_block_generator(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+        stage: &mut Stage,
+    ) -> GameResult {
+        match self.action_num {
+            0 => {
+                if self.x < (stage.map.width as i32 - 6) * state.tile_size.as_int() * 0x200 {
+                    self.action_num = 1;
+                    self.action_counter = 0;
+                }
+            }
+            1 => {
+                self.action_counter += 1;
+                let player = &players[0];
+                if player.equip.has_booster_2_0() {
+                    self.x = player.x + 0x8000;
+                    if self.x < 0x34000 {
+                        self.x = 0x34000;
+                    }
+                } else {
+                    self.x = player.x + 0xC000;
+                    if self.x < 0x2E000 {
+                        self.x = 0x2E000;
+                    }
+                }
+
+                let map_start = (stage.map.width as i32 - 10) * state.tile_size.as_int() * 0x200;
+                if self.x > map_start {
+                    self.x = map_start;
+                }
+
+                if self.action_counter > 24 {
+                    let mut npc = NPC::create(279, &state.npc_table);
+
+                    npc.cond.set_alive(true);
+                    npc.x = self.x
+                        + if player.equip.has_booster_2_0() {
+                            self.rng.range(-14..14)
+                        } else {
+                            self.rng.range(-11..11)
+                        } * state.tile_size.as_int()
+                            * 0x200;
+                    npc.y = player.y - 0x1C000;
+                    npc.direction = if self.rng.range(0..10) & 1 != 0 { Direction::Left } else { Direction::Right };
+
+                    let _ = npc_list.spawn(0x100, npc);
+
+                    self.action_counter = self.rng.range(0..15) as u16;
+                }
+            }
+            _ => (),
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n295_cloud(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.anim_num = self.tsc_direction % 4;
+
+            match self.tsc_direction {
+                0 => {
+                    self.vel_y = -0x1000;
+                    self.display_bounds.right = 0xD000;
+                    self.display_bounds.left = 0xD000;
+                }
+                1 => {
+                    self.vel_y = -0x800;
+                    self.display_bounds.right = 0x7000;
+                    self.display_bounds.left = 0x7000;
+                }
+                2 => {
+                    self.vel_y = -0x400;
+                    self.display_bounds.right = 0x4000;
+                    self.display_bounds.left = 0x4000;
+                }
+                3 => {
+                    self.vel_y = -0x200;
+                    self.display_bounds.right = 0x2800;
+                    self.display_bounds.left = 0x2800;
+                }
+                4 => {
+                    self.vel_x = -0x400;
+                    self.display_bounds.right = 0xD000;
+                    self.display_bounds.left = 0xD000;
+                }
+                5 => {
+                    self.vel_x = -0x200;
+                    self.display_bounds.right = 0x7000;
+                    self.display_bounds.left = 0x7000;
+                }
+                6 => {
+                    self.vel_x = -0x100;
+                    self.display_bounds.right = 0x4000;
+                    self.display_bounds.left = 0x4000;
+                }
+                7 => {
+                    self.vel_x = -0x80;
+                    self.display_bounds.right = 0x2800;
+                    self.display_bounds.left = 0x2800;
+                }
+                _ => (),
+            }
+        }
+
+        if self.action_num == 1 {
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+
+            if self.x < -0x8000 {
+                self.cond.set_alive(false);
+            }
+
+            if self.y < -0x4000 {
+                self.cond.set_alive(false);
+            }
+        }
+
+        self.anim_rect = state.constants.npc.n295_cloud[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n296_cloud_generator(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        self.action_counter += 1;
+        if self.action_counter <= 16 {
+            return Ok(());
+        }
+
+        self.action_counter = self.rng.range(0..16) as u16;
+        let dir = self.rng.range(0..100) as u16 & 3;
+        let mut npc = NPC::create(295, &state.npc_table);
+        npc.cond.set_alive(true);
+
+        if self.direction != Direction::Left {
+            let layer = match dir {
+                0 => 128,
+                1 => 85,
+                2 => 64,
+                3 => 0,
+                _ => unsafe {
+                    unreachable_unchecked();
+                },
+            };
+
+            npc.x = self.x;
+            npc.y = self.y + self.rng.range(-7..7) * state.tile_size.as_int() * 0x200;
+            npc.tsc_direction = dir + 4;
+
+            let _ = npc_list.spawn(layer, npc);
+        } else {
+            let layer = match dir {
+                0 => 384,
+                1 => 128,
+                2 => 64,
+                3 => 0,
+                _ => unsafe { unreachable_unchecked() },
+            };
+
+            npc.x = self.x + self.rng.range(-10..10) * state.tile_size.as_int() * 0x200;
+            npc.y = self.y;
+            npc.tsc_direction = dir;
+
+            let _ = npc_list.spawn(layer, npc);
+        }
 
         Ok(())
     }
@@ -2102,7 +2537,7 @@ impl NPC {
         npc_list: &NPCList,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
-        if abs(player.x - self.x) < 320 * 0x200
+        if (player.x - self.x).abs() < 320 * 0x200
             && player.y < self.y + 320 * 0x200
             && player.y > self.y - 160 * 0x200
             && self.rng.range(0..100) == 2
@@ -2114,6 +2549,18 @@ impl NPC {
 
             let _ = npc_list.spawn(0, npc);
         }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n360_credits_thank_you(&mut self, state: &mut SharedGameState) -> GameResult {
+        if self.action_num == 0 {
+            self.action_num = 1;
+            self.x -= 0x1000;
+            self.y -= 0x1000;
+        }
+
+        self.anim_rect = state.constants.npc.n360_credits_thank_you;
 
         Ok(())
     }

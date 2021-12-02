@@ -530,3 +530,29 @@ impl From<Color> for [f32; 4] {
         [color.r, color.g, color.b, color.a]
     }
 }
+
+pub trait SliceExt {
+    type Item;
+
+    fn get_two_mut(&mut self, a: usize, b: usize) -> Option<(&mut Self::Item, &mut Self::Item)>;
+}
+
+impl<T> SliceExt for [T] {
+    type Item = T;
+
+    fn get_two_mut(&mut self, a: usize, b: usize) -> Option<(&mut Self::Item, &mut Self::Item)> {
+        if a == b {
+            None
+        } else {
+            if a >= self.len() || b >= self.len() {
+                None
+            } else {
+                unsafe {
+                    let ar = &mut *(self.get_unchecked_mut(a) as *mut _);
+                    let br = &mut *(self.get_unchecked_mut(b) as *mut _);
+                    Some((ar, br))
+                }
+            }
+        }
+    }
+}

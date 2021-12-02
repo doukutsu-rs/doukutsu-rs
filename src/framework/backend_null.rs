@@ -118,6 +118,10 @@ impl BackendRenderer for NullRenderer {
         Ok(())
     }
 
+    fn set_clip_rect(&mut self, rect: Option<Rect>) -> GameResult {
+        Ok(())
+    }
+
     fn imgui(&self) -> GameResult<&mut imgui::Context> {
         unsafe { Ok(&mut *self.0.as_ptr()) }
     }

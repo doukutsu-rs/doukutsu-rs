@@ -1159,6 +1159,23 @@ impl BackendRenderer for OpenGLRenderer {
     fn supports_vertex_draw(&self) -> bool {
         true
     }
+
+    fn set_clip_rect(&mut self, rect: Option<Rect>) -> GameResult {
+        if let Some((_, gl)) = self.get_context() {
+            unsafe {
+                if let Some(rect) = &rect {
+                    gl.gl.Enable(gl::SCISSOR_TEST);
+                    gl.gl.Scissor(rect.left as GLint, rect.top as GLint, rect.width() as GLint, rect.height() as GLint);
+                } else {
+                    gl.gl.Disable(gl::SCISSOR_TEST);
+                }
+            }
+
+            Ok(())
+        } else {
+            Err(RenderError("No OpenGL context available!".to_string()))
+        }
+    }
 }
 
 impl OpenGLRenderer {

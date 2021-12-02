@@ -92,6 +92,7 @@ pub enum TextScriptExecutionState {
     WaitStanding(u16, u32),
     WaitConfirmation(u16, u32, u16, u8, ConfirmSelection),
     WaitFade(u16, u32),
+    FallingIsland(u16, u32, i32, i32, u16, bool),
     SaveProfile(u16, u32),
     LoadProfile,
     Reset,
@@ -517,7 +518,31 @@ impl TextScriptVM {
                     }
                     break;
                 }
+                TextScriptExecutionState::FallingIsland(event, ip, pos_x, mut pos_y, mut tick, mode) => {
+                    if tick == 900 {
+                        state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
+                        break;
+                    }
 
+                    tick += 1;
+
+                    if mode {
+                        if tick < 350 {
+                            pos_y += 0x33;
+                        } else if tick < 500 {
+                            pos_y += 0x19;
+                        } else if tick < 600 {
+                            pos_y += 0xC;
+                        } else if tick == 750 {
+                            tick = 900;
+                        }
+                    } else {
+                        pos_y += 0x33;
+                    }
+
+                    state.textscript_vm.state = TextScriptExecutionState::FallingIsland(event, ip, pos_x, pos_y, tick, mode);
+                    break;
+                }
                 TextScriptExecutionState::SaveProfile(event, ip) => {
                     state.save_game(game_scene, ctx)?;
                     state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
@@ -1326,6 +1351,7 @@ impl TextScriptVM {
                                 &mut game_scene.stage,
                                 &mut game_scene.bullet_manager,
                                 &mut game_scene.flash,
+                                &mut game_scene.boss,
                             ),
                         )?;
                     }
@@ -1561,22 +1587,45 @@ impl TextScriptVM {
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
+            TSCOpCode::CPS => {
+                state.sound_manager.stop_sfx(58);
+
+                exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+            }
+            TSCOpCode::SPS => {
+                state.sound_manager.loop_sfx(58);
+
+                exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+            }
+            TSCOpCode::CSS => {
+                state.sound_manager.stop_sfx(40);
+                state.sound_manager.stop_sfx(41);
+
+                exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+            }
+            TSCOpCode::SSS => {
+                let _freq = read_cur_varint(&mut cursor)?;
+
+                // todo change freq
+                state.sound_manager.loop_sfx(40);
+                state.sound_manager.loop_sfx(41);
+
+                exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+            }
+            TSCOpCode::XX1 => {
+                let mode = read_cur_varint(&mut cursor)?;
+
+                exec_state = TextScriptExecutionState::FallingIsland(event, cursor.position() as u32, 0x15000, 0x8000, 0, mode != 0);
+            }
             // unimplemented opcodes
             // Zero operands
-            TSCOpCode::CPS
-            | TSCOpCode::KE2
-            | TSCOpCode::CSS
-            | TSCOpCode::MLP
-            | TSCOpCode::SPS
-            | TSCOpCode::FR2
-            | TSCOpCode::STC
-            | TSCOpCode::HM2 => {
+            TSCOpCode::KE2 | TSCOpCode::MLP | TSCOpCode::FR2 | TSCOpCode::STC | TSCOpCode::HM2 => {
                 log::warn!("unimplemented opcode: {:?}", op);
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
             // One operand codes
-            TSCOpCode::UNJ | TSCOpCode::XX1 | TSCOpCode::SSS | TSCOpCode::ACH => {
+            TSCOpCode::UNJ | TSCOpCode::ACH => {
                 let par_a = read_cur_varint(&mut cursor)?;
 
                 log::warn!("unimplemented opcode: {:?} {}", op, par_a);
