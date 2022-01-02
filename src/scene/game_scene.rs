@@ -872,6 +872,32 @@ impl GameScene {
                             range,
                             batch,
                         );
+
+                        // Curly's lightcone
+
+                        if state.npc_curly_carried && state.settings.light_cone {
+                            let range = match () {
+                                _ if player.up && player.flags.hit_bottom_wall() => 60..120,
+                                _ if player.down => 60..120,
+                                _ if player.up => 240..300,
+                                _ if player.direction == Direction::Right => -30..30,
+                                _ if player.direction == Direction::Left => 150..210,
+                                _ => continue 'cc,
+                            };
+    
+                            let (_, gun_off_y) = player.skin.get_gun_offset();
+    
+                            self.draw_light_raycast(
+                                state.tile_size,
+                                player.x + player.direction.opposite().vector_x() * 0x800,
+                                player.y + gun_off_y * 0x200 - 0x200,
+                                (19u8, 34u8, 117u8),
+                                0.95,
+                                range,
+                                batch,
+                            );
+                        }
+
                     } else {
                         self.draw_light(
                             interpolate_fix9_scale(
