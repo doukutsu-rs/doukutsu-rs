@@ -835,4 +835,59 @@ impl NPC {
 
         Ok(())
     }
+
+    pub(crate) fn tick_n320_curly_carried(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
+        match self.action_num {
+            0 => {
+                if self.action_num == 0 {
+                    let player = &players[0];
+                    self.x = player.x;
+                    self.y = player.y;
+                    self.action_num = 1;
+                }
+            }
+            1 => {
+                let player = &players[0];
+
+                self.direction = player.direction.opposite();
+                let grounded = player.flags.hit_bottom_wall();
+
+                self.target_x = player.x;
+
+                if player.up {
+                    self.target_y = player.y + if grounded { -0x1400 } else { 0x1000 };
+                    self.anim_num = if grounded { 1 } else { 2 };
+                    self.direction = if grounded { Direction::Up } else { Direction::Bottom };
+                }
+                else if player.down && !grounded {
+                    self.target_y = player.y - 0x1000;
+                    self.anim_num = 1;
+                    self.direction = Direction::Up;
+                }
+                else {
+                    self.target_x += if self.direction == Direction::Right { 0xE00 } else { -0xE00 };
+                    self.target_y = player.y - 0x600;
+                    self.anim_num = 0;
+                }
+
+                self.x += (self.target_x - self.x) / 2;
+                self.y += (self.target_y - self.y) / 2;
+
+                if (player.anim_num & 1) != 0 {
+                    self.y -= 0x200
+                };
+                
+                let dir_offset = if player.direction.opposite() == Direction::Left { 0 } else { 3 };
+
+                self.anim_rect = state.constants.npc.n320_curly_carried[self.anim_num as usize + dir_offset];
+            }
+            _ => (),
+        }
+
+        Ok(())
+    }
 }

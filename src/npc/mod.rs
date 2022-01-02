@@ -545,6 +545,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             306 => self.tick_n306_balrog_nurse(state),
             307 => self.tick_n307_santa_caged(state),
             308 => self.tick_n308_stumpy(state, players),
+            320 => self.tick_n320_curly_carried(state, players),
             326 => self.tick_n326_sue_itoh_human_transition(state, npc_list),
             327 => self.tick_n327_sneeze(state, npc_list),
             328 => self.tick_n328_human_transform_machine(state),
