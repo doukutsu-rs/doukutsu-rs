@@ -840,6 +840,7 @@ impl NPC {
         &mut self,
         state: &mut SharedGameState,
         players: [&mut Player; 2],
+        npc_list: &NPCList,
     ) -> GameResult {
         match self.action_num {
             0 => {
@@ -847,6 +848,14 @@ impl NPC {
                     let player = &players[0];
                     self.x = player.x;
                     self.y = player.y;
+                    
+                    let mut npc = NPC::create(321, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.parent_id = self.id;
+                    let _ = npc_list.spawn(0x100, npc);
+
+                    state.npc_curly_carried = true;
+
                     self.action_num = 1;
                 }
             }
@@ -886,6 +895,55 @@ impl NPC {
                 self.anim_rect = state.constants.npc.n320_curly_carried[self.anim_num as usize + dir_offset];
             }
             _ => (),
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n321_curly_nemesis(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+        bullet_manager: &mut BulletManager,
+    ) -> GameResult {
+        if self.action_num == 0 {
+            if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+
+                let player = &players[0];
+
+                self.direction = npc.direction;
+                self.x = npc.x;
+                self.y = npc.y;
+
+                match self.direction {
+                    Direction::Right => {
+                        self.x += 0x1000;
+                    }
+                    Direction::Left => {
+                        self.x -= 0x1000;
+                    }
+                    Direction::Up => {
+                        self.y -= 0x1400;
+                    }
+                    Direction::Bottom => {
+                        self.y += 0x1400;
+                    }
+                    _ => (),
+                }
+
+                if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi(&[43], TargetPlayer::Player1) < 2 {
+                    bullet_manager.create_bullet(self.x,self.y,43,TargetPlayer::Player1,self.direction,&state.constants,);
+                    state.create_caret(self.x + 0x800, self.y + 0x600, CaretType::Shoot, self.direction);
+                }
+
+                let mut dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+                if self.direction == Direction::Up {dir_offset += 2};
+                if self.direction == Direction::Bottom {dir_offset += 1};
+
+                self.anim_rect = state.constants.npc.n321_curly_nemesis[dir_offset];
+
+            }
         }
 
         Ok(())
