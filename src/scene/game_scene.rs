@@ -542,7 +542,7 @@ impl GameScene {
 
             if let TextScriptExecutionState::WaitConfirmation(_, _, _, wait, selection) = state.textscript_vm.state {
                 let pos_y = if wait > 14 {
-                    state.canvas_size.1 - off_bottom - 96.0 - (wait as f32 + 2.0) * 4.0
+                    state.canvas_size.1 - off_bottom - 96.0 + (wait as f32 + 2.0) 
                 } else {
                     state.canvas_size.1 - off_bottom - 96.0
                 };
