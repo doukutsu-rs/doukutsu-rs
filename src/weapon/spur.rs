@@ -130,25 +130,25 @@ impl Weapon {
                 }
                 Direction::Left => {
                     bullet_manager.create_bullet(
-                        player.x - 0xc00,
+                        player.x - 0x1800,
                         player.y + 0x600,
                         btype,
                         player_id,
                         Direction::Left,
                         &state.constants,
                     );
-                    state.create_caret(player.x - 0xc00, player.y + 0x600, CaretType::Shoot, Direction::Left);
+                    state.create_caret(player.x - 0x1800, player.y + 0x600, CaretType::Shoot, Direction::Left);
                 }
                 Direction::Right => {
                     bullet_manager.create_bullet(
-                        player.x + 0xc00,
+                        player.x + 0x1800,
                         player.y + 0x600,
                         btype,
                         player_id,
                         Direction::Right,
                         &state.constants,
                     );
-                    state.create_caret(player.x + 0xc00, player.y + 0x600, CaretType::Shoot, Direction::Right);
+                    state.create_caret(player.x + 0x1800, player.y + 0x600, CaretType::Shoot, Direction::Right);
                 }
                 _ => {}
             }

@@ -933,8 +933,8 @@ impl NPC {
                 }
 
                 if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi(&[43], TargetPlayer::Player1) < 2 {
-                    bullet_manager.create_bullet(self.x,self.y,43,TargetPlayer::Player1,self.direction,&state.constants,);
-                    state.create_caret(self.x + 0x800, self.y + 0x600, CaretType::Shoot, self.direction);
+                    bullet_manager.create_bullet(npc.x, npc.y, 43, TargetPlayer::Player1, self.direction, &state.constants,);
+                    state.create_caret(npc.x, npc.y, CaretType::Shoot, self.direction);
                 }
 
                 let mut dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
