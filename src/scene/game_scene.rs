@@ -3,7 +3,7 @@ use std::ops::Range;
 use log::info;
 
 use crate::caret::CaretType;
-use crate::common::{interpolate_fix9_scale, Color, Direction, FadeDirection, FadeState, Rect};
+use crate::common::{Color, Direction, FadeDirection, FadeState, interpolate_fix9_scale, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
 use crate::components::draw_common::Alignment;
@@ -15,23 +15,23 @@ use crate::components::stage_select::StageSelect;
 use crate::components::water_renderer::WaterRenderer;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
+use crate::framework::{filesystem, graphics};
 use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
+use crate::framework::graphics::{BlendMode, draw_rect, FilterMode};
 use crate::framework::ui::Components;
-use crate::framework::{filesystem, graphics};
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::map::WaterParams;
+use crate::npc::{NPC, NPCLayer};
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
-use crate::npc::{NPCLayer, NPC};
-use crate::physics::{PhysicalEntity, OFFSETS};
+use crate::physics::{OFFSETS, PhysicalEntity};
 use crate::player::{Player, TargetPlayer};
 use crate::rng::XorShift;
-use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
+use crate::scene::title_scene::TitleScene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{
     ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM,
@@ -39,8 +39,8 @@ use crate::scripting::tsc::text_script::{
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage};
 use crate::texture_set::SpriteBatch;
-use crate::weapon::bullet::BulletManager;
 use crate::weapon::{Weapon, WeaponType};
+use crate::weapon::bullet::BulletManager;
 
 pub struct GameScene {
     pub tick: u32,
@@ -542,7 +542,7 @@ impl GameScene {
 
             if let TextScriptExecutionState::WaitConfirmation(_, _, _, wait, selection) = state.textscript_vm.state {
                 let pos_y = if wait > 14 {
-                    state.canvas_size.1 - off_bottom - 96.0 + (wait as f32 + 2.0) 
+                    state.canvas_size.1 - off_bottom - 96.0 + (wait as f32 + 2.0)
                 } else {
                     state.canvas_size.1 - off_bottom - 96.0
                 };
@@ -2282,7 +2282,7 @@ impl Scene for GameScene {
         Ok(())
     }
 
-    fn debug_overlay_draw(
+    fn imgui_draw(
         &mut self,
         components: &mut Components,
         state: &mut SharedGameState,

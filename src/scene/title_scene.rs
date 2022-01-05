@@ -142,6 +142,13 @@ impl Scene for TitleScene {
                 MenuSelectionResult::Selected(2, _) => {
                     self.current_menu = CurrentMenu::OptionMenu;
                 }
+                MenuSelectionResult::Selected(3, _) => {
+                    #[cfg(feature = "editor")]
+                    {
+                        use crate::scene::editor_scene::EditorScene;
+                        state.next_scene = Some(Box::new(EditorScene::new()));
+                    }
+                }
                 MenuSelectionResult::Selected(4, _) => {
                     state.shutdown();
                 }

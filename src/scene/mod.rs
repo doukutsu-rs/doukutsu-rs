@@ -8,6 +8,7 @@ pub mod game_scene;
 pub mod loading_scene;
 pub mod no_data_scene;
 pub mod title_scene;
+pub mod editor_scene;
 
 /// Implement this trait on any object that represents an interactive game screen.
 pub trait Scene {
@@ -25,5 +26,5 @@ pub trait Scene {
     fn draw(&self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult { Ok(()) }
 
     /// Independent draw meant for debug overlay, that lets you mutate the game state.
-    fn debug_overlay_draw(&mut self, _game_ui: &mut Components, _state: &mut SharedGameState, _ctx: &mut Context, _frame: &mut imgui::Ui) -> GameResult { Ok(()) }
+    fn imgui_draw(&mut self, _game_ui: &mut Components, _state: &mut SharedGameState, _ctx: &mut Context, _frame: &mut imgui::Ui) -> GameResult { Ok(()) }
 }

@@ -126,7 +126,7 @@ impl UI {
 
         let mut ui = imgui.frame();
 
-        scene.debug_overlay_draw(&mut self.components, state, ctx2, &mut ui)?;
+        scene.imgui_draw(&mut self.components, state, ctx2, &mut ui)?;
 
         let draw_data = ui.render();
         render_imgui(ctx2, draw_data)?;
