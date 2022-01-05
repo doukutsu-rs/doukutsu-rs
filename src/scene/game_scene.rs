@@ -6,6 +6,7 @@ use log::info;
 
 use crate::caret::CaretType;
 use crate::common::{interpolate_fix9_scale, Color, Direction, FadeDirection, FadeState, Rect};
+use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
 use crate::components::draw_common::Alignment;
@@ -57,6 +58,7 @@ pub struct GameScene {
     pub inventory_ui: InventoryUI,
     pub hud_player1: HUD,
     pub hud_player2: HUD,
+    pub background: Background,
     pub tilemap: Tilemap,
     pub text_boxes: TextBoxes,
     pub frame: Frame,
@@ -141,6 +143,7 @@ impl GameScene {
             inventory_ui: InventoryUI::new(),
             hud_player1: HUD::new(Alignment::Left),
             hud_player2: HUD::new(Alignment::Right),
+            background: Background::new(),
             tilemap: Tilemap::new(),
             text_boxes: TextBoxes::new(),
             frame: Frame {
@@ -181,92 +184,6 @@ impl GameScene {
 
     pub fn drop_player2(&mut self) {
         self.player2.cond.set_alive(false);
-    }
-
-    fn draw_background(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(
-            ctx,
-            &state.constants,
-            &self.stage_textures.deref().borrow().background,
-        )?;
-        let scale = state.scale;
-        let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time);
-
-        match self.stage.data.background_type {
-            BackgroundType::TiledStatic => {
-                graphics::clear(ctx, self.stage.data.background_color);
-
-                let count_x = state.canvas_size.0 as usize / batch.width() + 1;
-                let count_y = state.canvas_size.1 as usize / batch.height() + 1;
-
-                for y in 0..count_y {
-                    for x in 0..count_x {
-                        batch.add((x * batch.width()) as f32, (y * batch.height()) as f32);
-                    }
-                }
-            }
-            BackgroundType::TiledParallax | BackgroundType::Tiled | BackgroundType::Waterway => {
-                graphics::clear(ctx, self.stage.data.background_color);
-
-                let (off_x, off_y) = if self.stage.data.background_type == BackgroundType::Tiled {
-                    (frame_x % (batch.width() as f32), frame_y % (batch.height() as f32))
-                } else {
-                    (
-                        ((frame_x / 2.0 * scale).floor() / scale) % (batch.width() as f32),
-                        ((frame_y / 2.0 * scale).floor() / scale) % (batch.height() as f32),
-                    )
-                };
-
-                let count_x = state.canvas_size.0 as usize / batch.width() + 2;
-                let count_y = state.canvas_size.1 as usize / batch.height() + 2;
-
-                for y in 0..count_y {
-                    for x in 0..count_x {
-                        batch.add((x * batch.width()) as f32 - off_x, (y * batch.height()) as f32 - off_y);
-                    }
-                }
-            }
-            BackgroundType::Water => {
-                graphics::clear(ctx, self.stage.data.background_color);
-            }
-            BackgroundType::Black => {
-                graphics::clear(ctx, self.stage.data.background_color);
-            }
-            BackgroundType::Scrolling => {
-                graphics::clear(ctx, self.stage.data.background_color);
-            }
-            BackgroundType::OutsideWind | BackgroundType::Outside | BackgroundType::OutsideUnknown => {
-                graphics::clear(ctx, Color::from_rgb(0, 0, 0));
-
-                let offset = (self.tick % 640) as i32;
-
-                for x in (0..(state.canvas_size.0 as i32)).step_by(200) {
-                    batch.add_rect(x as f32, 0.0, &Rect::new_size(0, 0, 200, 88));
-                }
-
-                batch.add_rect(state.canvas_size.0 - 320.0, 0.0, &Rect::new_size(0, 0, 320, 88));
-
-                for x in ((-offset / 2)..(state.canvas_size.0 as i32)).step_by(320) {
-                    batch.add_rect(x as f32, 88.0, &Rect::new_size(0, 88, 320, 35));
-                }
-
-                for x in ((-offset % 320)..(state.canvas_size.0 as i32)).step_by(320) {
-                    batch.add_rect(x as f32, 123.0, &Rect::new_size(0, 123, 320, 23));
-                }
-
-                for x in ((-offset * 2)..(state.canvas_size.0 as i32)).step_by(320) {
-                    batch.add_rect(x as f32, 146.0, &Rect::new_size(0, 146, 320, 30));
-                }
-
-                for x in ((-offset * 4)..(state.canvas_size.0 as i32)).step_by(320) {
-                    batch.add_rect(x as f32, 176.0, &Rect::new_size(0, 176, 320, 64));
-                }
-            }
-        }
-
-        batch.draw(ctx)?;
-
-        Ok(())
     }
 
     fn draw_npc_layer(&self, state: &mut SharedGameState, ctx: &mut Context, layer: NPCLayer) -> GameResult {
@@ -1294,6 +1211,7 @@ impl GameScene {
     }
 
     fn tick_world(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.background.tick()?;
         self.hud_player1.visible = self.player1.cond.alive();
         self.hud_player2.visible = self.player2.cond.alive();
         self.hud_player1.has_player2 = self.player2.cond.alive() && !self.player2.cond.hidden();
@@ -1596,14 +1514,6 @@ impl Scene for GameScene {
 
         state.npc_table.stage_textures = self.stage_textures.clone();
 
-        /*if state.constants.is_cs_plus {
-            match state.season {
-                Season::Halloween => self.player1.appearance = PlayerAppearance::HalloweenQuote,
-                Season::Christmas => self.player1.appearance = PlayerAppearance::ReindeerQuote,
-                _ => {}
-            }
-        }*/
-
         self.boss.boss_type = self.stage.data.boss_no as u16;
         self.player1.target_x = self.player1.x;
         self.player1.target_y = self.player1.y;
@@ -1803,6 +1713,7 @@ impl Scene for GameScene {
             };
 
         self.inventory_dim = self.inventory_dim.clamp(0.0, 1.0);
+        self.background.draw_tick()?;
         self.credits.draw_tick(state);
 
         Ok(())
@@ -1810,8 +1721,8 @@ impl Scene for GameScene {
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         //graphics::set_canvas(ctx, Some(&state.game_canvas));
-        self.draw_background(state, ctx)?;
         let stage_textures_ref = &*self.stage_textures.deref().borrow();
+        self.background.draw(state, ctx, &self.frame, stage_textures_ref, &self.stage)?;
         self.tilemap.draw(state, ctx, &self.frame, TileLayer::Background, stage_textures_ref, &self.stage)?;
         self.draw_npc_layer(state, ctx, NPCLayer::Background)?;
         self.tilemap.draw(state, ctx, &self.frame, TileLayer::Middleground, stage_textures_ref, &self.stage)?;
