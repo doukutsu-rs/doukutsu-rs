@@ -8,3 +8,4 @@ pub mod inventory;
 pub mod number_popup;
 pub mod stage_select;
 pub mod water_renderer;
+pub mod tilemap;

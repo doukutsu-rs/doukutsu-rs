@@ -9,7 +9,6 @@ use crate::framework::error::GameResult;
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::npc::NPC;
-use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;

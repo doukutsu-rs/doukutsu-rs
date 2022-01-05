@@ -1,9 +1,11 @@
-use std::ops::Range;
+use std::cell::RefCell;
+use std::ops::{Deref, Range};
+use std::rc::Rc;
 
 use log::info;
 
 use crate::caret::CaretType;
-use crate::common::{Color, Direction, FadeDirection, FadeState, interpolate_fix9_scale, Rect};
+use crate::common::{interpolate_fix9_scale, Color, Direction, FadeDirection, FadeState, Rect};
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
 use crate::components::draw_common::Alignment;
@@ -12,35 +14,36 @@ use crate::components::flash::Flash;
 use crate::components::hud::HUD;
 use crate::components::inventory::InventoryUI;
 use crate::components::stage_select::StageSelect;
+use crate::components::tilemap::{TileLayer, Tilemap};
 use crate::components::water_renderer::WaterRenderer;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
-use crate::framework::{filesystem, graphics};
 use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{BlendMode, draw_rect, FilterMode};
+use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
 use crate::framework::ui::Components;
+use crate::framework::{filesystem, graphics};
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::map::WaterParams;
-use crate::npc::{NPC, NPCLayer};
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
-use crate::physics::{OFFSETS, PhysicalEntity};
+use crate::npc::{NPCLayer, NPC};
+use crate::physics::{PhysicalEntity, OFFSETS};
 use crate::player::{Player, TargetPlayer};
 use crate::rng::XorShift;
-use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
+use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{
     ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM,
 };
 use crate::shared_game_state::{SharedGameState, TileSize};
-use crate::stage::{BackgroundType, Stage};
+use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
-use crate::weapon::{Weapon, WeaponType};
 use crate::weapon::bullet::BulletManager;
+use crate::weapon::{Weapon, WeaponType};
 
 pub struct GameScene {
     pub tick: u32,
@@ -55,6 +58,7 @@ pub struct GameScene {
     pub inventory_ui: InventoryUI,
     pub hud_player1: HUD,
     pub hud_player2: HUD,
+    pub tilemap: Tilemap,
     pub frame: Frame,
     pub player1: Player,
     pub player2: Player,
@@ -66,21 +70,10 @@ pub struct GameScene {
     pub bullet_manager: BulletManager,
     pub lighting_mode: LightingMode,
     pub intro_mode: bool,
-    tex_background_name: String,
-    tex_tileset_name: String,
-    tex_tileset_name_mg: String,
-    tex_tileset_name_bg: String,
+    pub stage_textures: Rc<RefCell<StageTexturePaths>>,
     map_name_counter: u16,
     skip_counter: u16,
     inventory_dim: f32,
-}
-
-#[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
-pub enum TileLayer {
-    Background,
-    Middleground,
-    Foreground,
-    Snack,
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -113,9 +106,9 @@ impl GameScene {
             water_renderer.initialize(stage.map.find_water_regions());
         }
 
-        let tex_background_name = stage.data.background.filename();
-        let (tex_tileset_name, tex_tileset_name_mg, tex_tileset_name_bg) =
-            if let Some(pxpack_data) = stage.data.pxpack_data.as_ref() {
+        let stage_textures = {
+            let background = stage.data.background.filename();
+            let (tileset_fg, tileset_mg, tileset_bg) = if let Some(pxpack_data) = stage.data.pxpack_data.as_ref() {
                 let t_fg = ["Stage/", &pxpack_data.tileset_fg].join("");
                 let t_mg = ["Stage/", &pxpack_data.tileset_mg].join("");
                 let t_bg = ["Stage/", &pxpack_data.tileset_bg].join("");
@@ -126,6 +119,12 @@ impl GameScene {
 
                 (tex_tileset_name.clone(), tex_tileset_name.clone(), tex_tileset_name)
             };
+
+            let npc1 = ["Npc/", &stage.data.npc1.filename()].join("");
+            let npc2 = ["Npc/", &stage.data.npc2.filename()].join("");
+
+            Rc::new(RefCell::new(StageTexturePaths { background, tileset_fg, tileset_mg, tileset_bg, npc1, npc2 }))
+        };
 
         Ok(Self {
             tick: 0,
@@ -144,6 +143,7 @@ impl GameScene {
             inventory_ui: InventoryUI::new(),
             hud_player1: HUD::new(Alignment::Left),
             hud_player2: HUD::new(Alignment::Right),
+            tilemap: Tilemap::new(),
             frame: Frame {
                 x: 0,
                 y: 0,
@@ -160,10 +160,7 @@ impl GameScene {
             bullet_manager: BulletManager::new(),
             lighting_mode: LightingMode::None,
             intro_mode: false,
-            tex_background_name,
-            tex_tileset_name,
-            tex_tileset_name_mg,
-            tex_tileset_name_bg,
+            stage_textures,
             map_name_counter: 0,
             skip_counter: 0,
             inventory_dim: 0.0,
@@ -188,7 +185,11 @@ impl GameScene {
     }
 
     fn draw_background(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_background_name)?;
+        let batch = state.texture_set.get_or_load_batch(
+            ctx,
+            &state.constants,
+            &self.stage_textures.deref().borrow().background,
+        )?;
         let scale = state.scale;
         let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time);
 
@@ -510,12 +511,7 @@ impl GameScene {
         }
 
         if lower_side < canvas_h_scaled {
-            let rect = Rect::new(
-                0,
-                lower_side as isize,
-                canvas_w_scaled as isize,
-                canvas_h_scaled as isize,
-            );
+            let rect = Rect::new(0, lower_side as isize, canvas_w_scaled as isize, canvas_h_scaled as isize);
             graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 0))?;
         }
 
@@ -1319,149 +1315,6 @@ impl GameScene {
         Ok(())
     }
 
-    fn draw_tiles(&self, state: &mut SharedGameState, ctx: &mut Context, layer: TileLayer) -> GameResult {
-        if state.tile_size == TileSize::Tile8x8 && layer == TileLayer::Snack {
-            return Ok(());
-        }
-
-        let tex = match layer {
-            TileLayer::Snack => "Npc/NpcSym",
-            TileLayer::Background => &self.tex_tileset_name_bg,
-            TileLayer::Middleground => &self.tex_tileset_name_mg,
-            TileLayer::Foreground => &self.tex_tileset_name,
-        };
-
-        let (layer_offset, layer_width, layer_height, uses_layers) =
-            if let Some(pxpack_data) = self.stage.data.pxpack_data.as_ref() {
-                match layer {
-                    TileLayer::Background => {
-                        (pxpack_data.offset_bg as usize, pxpack_data.size_bg.0, pxpack_data.size_bg.1, true)
-                    }
-                    TileLayer::Middleground => {
-                        (pxpack_data.offset_mg as usize, pxpack_data.size_mg.0, pxpack_data.size_mg.1, true)
-                    }
-                    _ => (0, pxpack_data.size_fg.0, pxpack_data.size_fg.1, true),
-                }
-            } else {
-                (0, self.stage.map.width, self.stage.map.height, false)
-            };
-
-        if !uses_layers && layer == TileLayer::Middleground {
-            return Ok(());
-        }
-
-        let tile_size = state.tile_size.as_int();
-        let tile_sizef = state.tile_size.as_float();
-        let halft = tile_size / 2;
-        let halftf = tile_sizef / 2.0;
-
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex)?;
-        let mut rect = Rect::new(0, 0, tile_size as u16, tile_size as u16);
-        let (mut frame_x, mut frame_y) = self.frame.xy_interpolated(state.frame_time);
-
-        if let Some(pxpack_data) = self.stage.data.pxpack_data.as_ref() {
-            let (fx, fy) = match layer {
-                TileLayer::Background => pxpack_data.scroll_bg.transform_camera_pos(frame_x, frame_y),
-                TileLayer::Middleground => pxpack_data.scroll_mg.transform_camera_pos(frame_x, frame_y),
-                _ => pxpack_data.scroll_fg.transform_camera_pos(frame_x, frame_y),
-            };
-
-            frame_x = fx;
-            frame_y = fy;
-        }
-
-        let tile_start_x = (frame_x as i32 / tile_size).clamp(0, layer_width as i32) as usize;
-        let tile_start_y = (frame_y as i32 / tile_size).clamp(0, layer_height as i32) as usize;
-        let tile_end_x =
-            ((frame_x as i32 + 8 + state.canvas_size.0 as i32) / tile_size + 1).clamp(0, layer_width as i32) as usize;
-        let tile_end_y = ((frame_y as i32 + halft + state.canvas_size.1 as i32) / tile_size + 1)
-            .clamp(0, layer_height as i32) as usize;
-
-        if layer == TileLayer::Snack {
-            rect = state.constants.world.snack_rect;
-        }
-
-        for y in tile_start_y..tile_end_y {
-            for x in tile_start_x..tile_end_x {
-                let tile = *self.stage.map.tiles.get((y * layer_width as usize) + x + layer_offset).unwrap();
-                match layer {
-                    _ if uses_layers => {
-                        if tile == 0 {
-                            continue;
-                        }
-
-                        let tile_size = tile_size as u16;
-                        rect.left = (tile as u16 % 16) * tile_size;
-                        rect.top = (tile as u16 / 16) * tile_size;
-                        rect.right = rect.left + tile_size;
-                        rect.bottom = rect.top + tile_size;
-                    }
-                    TileLayer::Background => {
-                        if self.stage.map.attrib[tile as usize] >= 0x20 {
-                            continue;
-                        }
-
-                        let tile_size = tile_size as u16;
-                        rect.left = (tile as u16 % 16) * tile_size;
-                        rect.top = (tile as u16 / 16) * tile_size;
-                        rect.right = rect.left + tile_size;
-                        rect.bottom = rect.top + tile_size;
-                    }
-                    TileLayer::Foreground => {
-                        let attr = self.stage.map.attrib[tile as usize];
-
-                        if attr < 0x40 || attr >= 0x80 || attr == 0x43 {
-                            continue;
-                        }
-
-                        let tile_size = tile_size as u16;
-                        rect.left = (tile as u16 % 16) * tile_size;
-                        rect.top = (tile as u16 / 16) * tile_size;
-                        rect.right = rect.left + tile_size;
-                        rect.bottom = rect.top + tile_size;
-                    }
-                    TileLayer::Snack => {
-                        if self.stage.map.attrib[tile as usize] != 0x43 {
-                            continue;
-                        }
-                    }
-                    _ => {}
-                }
-
-                batch.add_rect(
-                    (x as f32 * tile_sizef - halftf) - frame_x,
-                    (y as f32 * tile_sizef - halftf) - frame_y,
-                    &rect,
-                );
-            }
-        }
-
-        batch.draw(ctx)?;
-
-        if layer == TileLayer::Foreground && self.stage.data.background_type == BackgroundType::Water {
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_background_name)?;
-            let rect_top = Rect { left: 0, top: 0, right: 32, bottom: 16 };
-            let rect_middle = Rect { left: 0, top: 16, right: 32, bottom: 48 };
-
-            let tile_start_x = frame_x as i32 / 32;
-            let tile_end_x = (frame_x + 16.0 + state.canvas_size.0) as i32 / 32 + 1;
-            let water_y = state.water_level as f32 / 512.0;
-            let tile_count_y = (frame_y + 16.0 + state.canvas_size.1 - water_y) as i32 / 32 + 1;
-
-            for x in tile_start_x..tile_end_x {
-                batch.add_rect((x as f32 * 32.0) - frame_x, water_y - frame_y, &rect_top);
-
-                for y in 0..tile_count_y {
-                    batch.add_rect((x as f32 * 32.0) - frame_x, (y as f32 * 32.0) + water_y - frame_y, &rect_middle);
-                }
-            }
-
-            batch.draw(ctx)?;
-        }
-
-        Ok(())
-    }
-
     fn tick_npc_bullet_collissions(&mut self, state: &mut SharedGameState) {
         for npc in self.npc_list.iter_alive() {
             if npc.npc_flags.shootable() && npc.npc_flags.interactable() {
@@ -1935,9 +1788,7 @@ impl Scene for GameScene {
             self.npc_list.spawn_at_slot(npc_data.id, npc)?;
         }
 
-        state.npc_table.tileset_name = self.tex_tileset_name.to_owned();
-        state.npc_table.tex_npc1_name = ["Npc/", &self.stage.data.npc1.filename()].join("");
-        state.npc_table.tex_npc2_name = ["Npc/", &self.stage.data.npc2.filename()].join("");
+        state.npc_table.stage_textures = self.stage_textures.clone();
 
         /*if state.constants.is_cs_plus {
             match state.season {
@@ -2154,9 +2005,10 @@ impl Scene for GameScene {
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         //graphics::set_canvas(ctx, Some(&state.game_canvas));
         self.draw_background(state, ctx)?;
-        self.draw_tiles(state, ctx, TileLayer::Background)?;
+        let stage_textures_ref = &*self.stage_textures.deref().borrow();
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Background, stage_textures_ref, &self.stage)?;
         self.draw_npc_layer(state, ctx, NPCLayer::Background)?;
-        self.draw_tiles(state, ctx, TileLayer::Middleground)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Middleground, stage_textures_ref, &self.stage)?;
 
         if state.settings.shader_effects && self.lighting_mode == LightingMode::BackgroundOnly {
             self.draw_light_map(state, ctx)?;
@@ -2169,8 +2021,9 @@ impl Scene for GameScene {
         self.player1.draw(state, ctx, &self.frame)?;
 
         self.water_renderer.draw(state, ctx, &self.frame)?;
-        self.draw_tiles(state, ctx, TileLayer::Foreground)?;
-        self.draw_tiles(state, ctx, TileLayer::Snack)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Foreground, stage_textures_ref, &self.stage)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Snack, stage_textures_ref, &self.stage)?;
+
         self.draw_carets(state, ctx)?;
         self.player1.popup.draw(state, ctx, &self.frame)?;
         self.player2.popup.draw(state, ctx, &self.frame)?;

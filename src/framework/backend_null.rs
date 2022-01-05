@@ -118,7 +118,7 @@ impl BackendRenderer for NullRenderer {
         Ok(())
     }
 
-    fn set_clip_rect(&mut self, rect: Option<Rect>) -> GameResult {
+    fn set_clip_rect(&mut self, _rect: Option<Rect>) -> GameResult {
         Ok(())
     }
 
