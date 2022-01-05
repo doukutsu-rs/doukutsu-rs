@@ -354,7 +354,7 @@ impl NPC {
 
     pub(crate) fn tick_n312_bute_arrow_projectile(&mut self, state: &mut SharedGameState) -> GameResult { 
 
-        if self.flags.0 != 0 && self.action_num > 0 && self.action_num < 20 {
+        if self.flags.hit_anything() && self.action_num > 0 && self.action_num < 20 {
             self.action_num = 20;
         }
 
@@ -362,6 +362,7 @@ impl NPC {
             0 | 1 => {
                 if self.action_num == 0 {
                     self.action_num = 1;
+                    self.action_counter = 0;
 
                     self.direction = if self.vel_x < 0 {Direction::Left} else {Direction::Right};
                     self.anim_num = if self.vel_y < 0 {0} else {2};
@@ -369,7 +370,7 @@ impl NPC {
 
                 self.action_counter += 1;
 
-                if self.action_counter == 3 {self.npc_flags.set_ignore_solidity(false)};
+                if self.action_counter == 4 {self.npc_flags.set_ignore_solidity(false)};
                 if self.action_counter > 10 {self.action_num = 10}
             }
             10 | 11 => {
@@ -419,7 +420,7 @@ impl NPC {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 5 };
         self.anim_rect = state.constants.npc.n312_bute_arrow_projectile[self.anim_num as usize + dir_offset];
 
-        if self.action_num == 31 && self.action_counter / 2 % 2 != 0 {
+        if self.action_num == 31 && self.action_counter & 0x02 != 0 {
             self.anim_rect.left = 0;
             self.anim_rect.right = 0;
         }
