@@ -5,6 +5,7 @@ use byteorder::LE;
 use byteorder::ReadBytesExt;
 use log::info;
 
+use crate::common::Color;
 use crate::encoding::read_cur_shift_jis;
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
@@ -13,7 +14,6 @@ use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::map::{Map, NPCData};
 use crate::scripting::tsc::text_script::TextScript;
-use crate::common::Color;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct NpcType {
@@ -175,7 +175,7 @@ impl PxPackScroll {
             PxPackScroll::HThreeQuarters => (x * 0.75, y),
             PxPackScroll::HHalf => (x * 0.5, y),
             PxPackScroll::HQuarter => (x * 0.25, y),
-            PxPackScroll::V0Half => (x, y) // ???
+            PxPackScroll::V0Half => (x, y), // ???
         }
     }
 }
@@ -575,5 +575,38 @@ impl Stage {
         }
 
         false
+    }
+}
+
+pub struct StageTexturePaths {
+    /// Path to the stage's background texture.
+    pub background: String,
+
+    /// Path to the stage's foreground tileset texture.
+    pub tileset_fg: String,
+
+    /// Path to the stage's middleground tileset texture.
+    pub tileset_mg: String,
+
+    /// Path to the stage's background tileset texture.
+    pub tileset_bg: String,
+
+    /// Path to the stage's NPC spritesheet 1.
+    pub npc1: String,
+
+    /// Path to the stage's NPC spritesheet 2.
+    pub npc2: String,
+}
+
+impl StageTexturePaths {
+    pub fn new() -> StageTexturePaths {
+        StageTexturePaths {
+            background: "bk0".to_string(),
+            tileset_fg: "Stage/Prt0".to_owned(),
+            tileset_mg: "Stage/Prt0".to_owned(),
+            tileset_bg: "Stage/Prt0".to_owned(),
+            npc1: "Npc/Npc0".to_owned(),
+            npc2: "Npc/Npc0".to_owned(),
+        }
     }
 }

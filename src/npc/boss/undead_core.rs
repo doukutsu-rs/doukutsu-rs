@@ -1047,7 +1047,7 @@ impl BossNPC {
             let angle =
                 if part.action_counter2 != 0 { part.action_counter3 + 0x80 } else { part.action_counter3 + 0x180 };
 
-            let angle = ((angle / 2) as f64 * CDEG_RAD);
+            let angle = (angle / 2) as f64 * CDEG_RAD;
 
             part.x = base.x + 0x30 * (angle.cos() * -512.0) as i32 - 0x1000;
             part.y = base.y + 0x50 * (angle.sin() * -512.0) as i32;

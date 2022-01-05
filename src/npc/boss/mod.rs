@@ -1,4 +1,5 @@
 use std::mem::MaybeUninit;
+use std::ops::Deref;
 
 use crate::common::{interpolate_fix9_scale, Direction};
 use crate::components::flash::Flash;
@@ -99,8 +100,11 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
-        let batch =
-            state.texture_set.get_or_load_batch(ctx, &state.constants, state.npc_table.tex_npc2_name.as_str())?;
+        let batch = state.texture_set.get_or_load_batch(
+            ctx,
+            &state.constants,
+            &state.npc_table.stage_textures.deref().borrow().npc2,
+        )?;
 
         for npc in self.parts.iter().rev() {
             if !npc.cond.alive() || npc.cond.hidden() {
@@ -114,12 +118,12 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             let (frame_x, frame_y) = frame.xy_interpolated(state.frame_time);
 
             batch.add_rect(
-                interpolate_fix9_scale(npc.prev_x - off_x,
-                                       npc.x - off_x,
-                                       state.frame_time) + shock - frame_x,
-                interpolate_fix9_scale(npc.prev_y - npc.display_bounds.top as i32,
-                                       npc.y - npc.display_bounds.top as i32,
-                                       state.frame_time) - frame_y,
+                interpolate_fix9_scale(npc.prev_x - off_x, npc.x - off_x, state.frame_time) + shock - frame_x,
+                interpolate_fix9_scale(
+                    npc.prev_y - npc.display_bounds.top as i32,
+                    npc.y - npc.display_bounds.top as i32,
+                    state.frame_time,
+                ) - frame_y,
                 &npc.anim_rect,
             );
         }

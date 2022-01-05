@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use crate::common::{Color, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
@@ -16,7 +18,7 @@ impl FallingIsland {
 }
 
 impl GameEntity<()> for FallingIsland {
-    fn tick(&mut self, state: &mut SharedGameState, custom: ()) -> GameResult {
+    fn tick(&mut self, _state: &mut SharedGameState, _custom: ()) -> GameResult {
         Ok(())
     }
 
@@ -43,7 +45,11 @@ impl GameEntity<()> for FallingIsland {
         static RECT_ISLAND: Rect<u16> = Rect { left: 160, top: 0, right: 200, bottom: 24 };
         static RECT_TERRAIN: Rect<u16> = Rect { left: 160, top: 48, right: 320, bottom: 80 };
 
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &state.npc_table.tex_npc1_name)?;
+        let batch = state.texture_set.get_or_load_batch(
+            ctx,
+            &state.constants,
+            &state.npc_table.stage_textures.deref().borrow().npc1,
+        )?;
         batch.add_rect(off_x + 80.0, 80.0, &RECT_BG);
         batch.add_rect(off_x + (pos_x as f32 / 512.0) - 20.0, (pos_y as f32 / 512.0) - 12.0, &RECT_ISLAND);
         batch.add_rect(off_x + 80.0, 128.0, &RECT_TERRAIN);

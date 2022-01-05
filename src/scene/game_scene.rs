@@ -1,17 +1,23 @@
-use std::ops::Range;
+use std::cell::RefCell;
+use std::ops::{Deref, Range};
+use std::rc::Rc;
 
 use log::info;
 
 use crate::caret::CaretType;
-use crate::common::{interpolate_fix9_scale, Color, Direction, FadeDirection, FadeState, Rect};
+use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
+use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
 use crate::components::draw_common::Alignment;
+use crate::components::fade::Fade;
 use crate::components::falling_island::FallingIsland;
 use crate::components::flash::Flash;
 use crate::components::hud::HUD;
 use crate::components::inventory::InventoryUI;
 use crate::components::stage_select::StageSelect;
+use crate::components::text_boxes::TextBoxes;
+use crate::components::tilemap::{TileLayer, Tilemap};
 use crate::components::water_renderer::WaterRenderer;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
@@ -33,11 +39,9 @@ use crate::rng::XorShift;
 use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
-use crate::scripting::tsc::text_script::{
-    ConfirmSelection, ScriptMode, TextScriptExecutionState, TextScriptLine, TextScriptVM,
-};
+use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::shared_game_state::{SharedGameState, TileSize};
-use crate::stage::{BackgroundType, Stage};
+use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
 use crate::weapon::bullet::BulletManager;
 use crate::weapon::{Weapon, WeaponType};
@@ -55,6 +59,10 @@ pub struct GameScene {
     pub inventory_ui: InventoryUI,
     pub hud_player1: HUD,
     pub hud_player2: HUD,
+    pub background: Background,
+    pub tilemap: Tilemap,
+    pub text_boxes: TextBoxes,
+    pub fade: Fade,
     pub frame: Frame,
     pub player1: Player,
     pub player2: Player,
@@ -66,21 +74,10 @@ pub struct GameScene {
     pub bullet_manager: BulletManager,
     pub lighting_mode: LightingMode,
     pub intro_mode: bool,
-    tex_background_name: String,
-    tex_tileset_name: String,
-    tex_tileset_name_mg: String,
-    tex_tileset_name_bg: String,
+    pub stage_textures: Rc<RefCell<StageTexturePaths>>,
     map_name_counter: u16,
     skip_counter: u16,
     inventory_dim: f32,
-}
-
-#[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
-pub enum TileLayer {
-    Background,
-    Middleground,
-    Foreground,
-    Snack,
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -90,8 +87,6 @@ pub enum LightingMode {
     Ambient,
 }
 
-const FACE_TEX: &str = "Face";
-const SWITCH_FACE_TEX: [&str; 4] = ["Face1", "Face2", "Face3", "Face4"];
 const P2_LEFT_TEXT: &str = "< P2";
 const P2_RIGHT_TEXT: &str = "P2 >";
 const CUTSCENE_SKIP_WAIT: u16 = 50;
@@ -113,9 +108,9 @@ impl GameScene {
             water_renderer.initialize(stage.map.find_water_regions());
         }
 
-        let tex_background_name = stage.data.background.filename();
-        let (tex_tileset_name, tex_tileset_name_mg, tex_tileset_name_bg) =
-            if let Some(pxpack_data) = stage.data.pxpack_data.as_ref() {
+        let stage_textures = {
+            let background = stage.data.background.filename();
+            let (tileset_fg, tileset_mg, tileset_bg) = if let Some(pxpack_data) = stage.data.pxpack_data.as_ref() {
                 let t_fg = ["Stage/", &pxpack_data.tileset_fg].join("");
                 let t_mg = ["Stage/", &pxpack_data.tileset_mg].join("");
                 let t_bg = ["Stage/", &pxpack_data.tileset_bg].join("");
@@ -126,6 +121,12 @@ impl GameScene {
 
                 (tex_tileset_name.clone(), tex_tileset_name.clone(), tex_tileset_name)
             };
+
+            let npc1 = ["Npc/", &stage.data.npc1.filename()].join("");
+            let npc2 = ["Npc/", &stage.data.npc2.filename()].join("");
+
+            Rc::new(RefCell::new(StageTexturePaths { background, tileset_fg, tileset_mg, tileset_bg, npc1, npc2 }))
+        };
 
         Ok(Self {
             tick: 0,
@@ -144,6 +145,10 @@ impl GameScene {
             inventory_ui: InventoryUI::new(),
             hud_player1: HUD::new(Alignment::Left),
             hud_player2: HUD::new(Alignment::Right),
+            background: Background::new(),
+            tilemap: Tilemap::new(),
+            text_boxes: TextBoxes::new(),
+            fade: Fade::new(),
             frame: Frame {
                 x: 0,
                 y: 0,
@@ -160,10 +165,7 @@ impl GameScene {
             bullet_manager: BulletManager::new(),
             lighting_mode: LightingMode::None,
             intro_mode: false,
-            tex_background_name,
-            tex_tileset_name,
-            tex_tileset_name_mg,
-            tex_tileset_name_bg,
+            stage_textures,
             map_name_counter: 0,
             skip_counter: 0,
             inventory_dim: 0.0,
@@ -185,88 +187,6 @@ impl GameScene {
 
     pub fn drop_player2(&mut self) {
         self.player2.cond.set_alive(false);
-    }
-
-    fn draw_background(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_background_name)?;
-        let scale = state.scale;
-        let (frame_x, frame_y) = self.frame.xy_interpolated(state.frame_time);
-
-        match self.stage.data.background_type {
-            BackgroundType::TiledStatic => {
-                graphics::clear(ctx, self.stage.data.background_color);
-
-                let count_x = state.canvas_size.0 as usize / batch.width() + 1;
-                let count_y = state.canvas_size.1 as usize / batch.height() + 1;
-
-                for y in 0..count_y {
-                    for x in 0..count_x {
-                        batch.add((x * batch.width()) as f32, (y * batch.height()) as f32);
-                    }
-                }
-            }
-            BackgroundType::TiledParallax | BackgroundType::Tiled | BackgroundType::Waterway => {
-                graphics::clear(ctx, self.stage.data.background_color);
-
-                let (off_x, off_y) = if self.stage.data.background_type == BackgroundType::Tiled {
-                    (frame_x % (batch.width() as f32), frame_y % (batch.height() as f32))
-                } else {
-                    (
-                        ((frame_x / 2.0 * scale).floor() / scale) % (batch.width() as f32),
-                        ((frame_y / 2.0 * scale).floor() / scale) % (batch.height() as f32),
-                    )
-                };
-
-                let count_x = state.canvas_size.0 as usize / batch.width() + 2;
-                let count_y = state.canvas_size.1 as usize / batch.height() + 2;
-
-                for y in 0..count_y {
-                    for x in 0..count_x {
-                        batch.add((x * batch.width()) as f32 - off_x, (y * batch.height()) as f32 - off_y);
-                    }
-                }
-            }
-            BackgroundType::Water => {
-                graphics::clear(ctx, self.stage.data.background_color);
-            }
-            BackgroundType::Black => {
-                graphics::clear(ctx, self.stage.data.background_color);
-            }
-            BackgroundType::Scrolling => {
-                graphics::clear(ctx, self.stage.data.background_color);
-            }
-            BackgroundType::OutsideWind | BackgroundType::Outside | BackgroundType::OutsideUnknown => {
-                graphics::clear(ctx, Color::from_rgb(0, 0, 0));
-
-                let offset = (self.tick % 640) as i32;
-
-                for x in (0..(state.canvas_size.0 as i32)).step_by(200) {
-                    batch.add_rect(x as f32, 0.0, &Rect::new_size(0, 0, 200, 88));
-                }
-
-                batch.add_rect(state.canvas_size.0 - 320.0, 0.0, &Rect::new_size(0, 0, 320, 88));
-
-                for x in ((-offset / 2)..(state.canvas_size.0 as i32)).step_by(320) {
-                    batch.add_rect(x as f32, 88.0, &Rect::new_size(0, 88, 320, 35));
-                }
-
-                for x in ((-offset % 320)..(state.canvas_size.0 as i32)).step_by(320) {
-                    batch.add_rect(x as f32, 123.0, &Rect::new_size(0, 123, 320, 23));
-                }
-
-                for x in ((-offset * 2)..(state.canvas_size.0 as i32)).step_by(320) {
-                    batch.add_rect(x as f32, 146.0, &Rect::new_size(0, 146, 320, 30));
-                }
-
-                for x in ((-offset * 4)..(state.canvas_size.0 as i32)).step_by(320) {
-                    batch.add_rect(x as f32, 176.0, &Rect::new_size(0, 176, 320, 64));
-                }
-            }
-        }
-
-        batch.draw(ctx)?;
-
-        Ok(())
     }
 
     fn draw_npc_layer(&self, state: &mut SharedGameState, ctx: &mut Context, layer: NPCLayer) -> GameResult {
@@ -362,313 +282,41 @@ impl GameScene {
         Ok(())
     }
 
-    fn draw_fade(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        match state.fade_state {
-            FadeState::Visible => {
-                return Ok(());
-            }
-            FadeState::Hidden => {
-                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Fade")?;
-                let mut rect = Rect::new(0, 0, 16, 16);
-                let frame = 15;
-                rect.left = frame * 16;
-                rect.right = rect.left + 16;
+    fn draw_black_bars(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let (x, y) = self.frame.xy_interpolated(state.frame_time);
+        let (x, y) = (x * state.scale, y * state.scale);
+        let canvas_w_scaled = state.canvas_size.0 as f32 * state.scale;
+        let canvas_h_scaled = state.canvas_size.1 as f32 * state.scale;
+        let level_width = (self.stage.map.width as f32 - 1.0) * self.stage.map.tile_size.as_float();
+        let level_height = (self.stage.map.height as f32 - 1.0) * self.stage.map.tile_size.as_float();
+        let left_side = -x;
+        let right_side = -x + level_width * state.scale;
+        let upper_side = -y;
+        let lower_side = -y + level_height * state.scale;
 
-                for x in 0..(state.canvas_size.0 as i32 / 16 + 1) {
-                    for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
-                        batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
-                    }
-                }
-
-                batch.draw(ctx)?;
-            }
-            FadeState::FadeIn(tick, direction) | FadeState::FadeOut(tick, direction) => {
-                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Fade")?;
-                let mut rect = Rect::new(0, 0, 16, 16);
-
-                match direction {
-                    FadeDirection::Left | FadeDirection::Right => {
-                        let mut frame = tick;
-
-                        for x in 0..(state.canvas_size.0 as i32 / 16 + 1) {
-                            if frame >= 15 {
-                                frame = 15;
-                            } else {
-                                frame += 1;
-                            }
-
-                            if frame >= 0 {
-                                rect.left = frame.abs() as u16 * 16;
-                                rect.right = rect.left + 16;
-
-                                for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
-                                    if direction == FadeDirection::Left {
-                                        batch.add_rect(
-                                            state.canvas_size.0 - x as f32 * 16.0 - 16.0,
-                                            y as f32 * 16.0,
-                                            &rect,
-                                        );
-                                    } else {
-                                        batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    FadeDirection::Up | FadeDirection::Down => {
-                        let mut frame = tick;
-
-                        for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
-                            if frame >= 15 {
-                                frame = 15;
-                            } else {
-                                frame += 1;
-                            }
-
-                            if frame >= 0 {
-                                rect.left = frame.abs() as u16 * 16;
-                                rect.right = rect.left + 16;
-
-                                for x in 0..(state.canvas_size.0 as i32 / 16 + 1) {
-                                    if direction == FadeDirection::Down {
-                                        batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
-                                    } else {
-                                        batch.add_rect(x as f32 * 16.0, state.canvas_size.1 - y as f32 * 16.0, &rect);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    FadeDirection::Center => {
-                        let center_x = (state.canvas_size.0 / 2.0 - 8.0) as i32;
-                        let center_y = (state.canvas_size.1 / 2.0 - 8.0) as i32;
-                        let mut start_frame = tick;
-
-                        for x in 0..(center_x / 16 + 2) {
-                            let mut frame = start_frame;
-
-                            for y in 0..(center_y / 16 + 2) {
-                                if frame >= 15 {
-                                    frame = 15;
-                                } else {
-                                    frame += 1;
-                                }
-
-                                if frame >= 0 {
-                                    rect.left = frame.abs() as u16 * 16;
-                                    rect.right = rect.left + 16;
-
-                                    batch.add_rect((center_x - x * 16) as f32, (center_y + y * 16) as f32, &rect);
-                                    batch.add_rect((center_x - x * 16) as f32, (center_y - y * 16) as f32, &rect);
-                                    batch.add_rect((center_x + x * 16) as f32, (center_y + y * 16) as f32, &rect);
-                                    batch.add_rect((center_x + x * 16) as f32, (center_y - y * 16) as f32, &rect);
-                                }
-                            }
-
-                            start_frame += 1;
-                        }
-                    }
-                }
-
-                batch.draw(ctx)?;
-            }
+        if left_side > 0.0 {
+            let rect = Rect::new(0, 0, left_side as isize, canvas_h_scaled as isize);
+            graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 0))?;
         }
 
-        Ok(())
-    }
-
-    fn draw_black_bars(&self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult {
-        Ok(())
-    }
-
-    fn draw_text_boxes(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if !state.textscript_vm.flags.render() {
-            return Ok(());
-        }
-
-        let (off_left, off_top, off_right, off_bottom) =
-            crate::framework::graphics::screen_insets_scaled(ctx, state.scale);
-
-        let center = ((state.canvas_size.0 - off_left - off_right) / 2.0).floor();
-        let top_pos = if state.textscript_vm.flags.position_top() {
-            32.0 + off_top
-        } else {
-            state.canvas_size.1 as f32 - off_bottom - 66.0
-        };
-        let left_pos = off_left + center - 122.0;
-
-        {
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
-            if state.textscript_vm.flags.background_visible() {
-                batch.add_rect(left_pos, top_pos, &state.constants.textscript.textbox_rect_top);
-                for i in 1..7 {
-                    batch.add_rect(left_pos, top_pos + i as f32 * 8.0, &state.constants.textscript.textbox_rect_middle);
-                }
-                batch.add_rect(left_pos, top_pos + 56.0, &state.constants.textscript.textbox_rect_bottom);
-            }
-
-            if state.textscript_vm.item != 0 {
-                batch.add_rect(
-                    center - 40.0,
-                    state.canvas_size.1 - off_bottom - 112.0,
-                    &state.constants.textscript.get_item_top_left,
-                );
-                batch.add_rect(
-                    center - 40.0,
-                    state.canvas_size.1 - off_bottom - 96.0,
-                    &state.constants.textscript.get_item_bottom_left,
-                );
-                batch.add_rect(
-                    center + 32.0,
-                    state.canvas_size.1 - off_bottom - 112.0,
-                    &state.constants.textscript.get_item_top_right,
-                );
-                batch.add_rect(
-                    center + 32.0,
-                    state.canvas_size.1 - off_bottom - 104.0,
-                    &state.constants.textscript.get_item_right,
-                );
-                batch.add_rect(
-                    center + 32.0,
-                    state.canvas_size.1 - off_bottom - 96.0,
-                    &state.constants.textscript.get_item_right,
-                );
-                batch.add_rect(
-                    center + 32.0,
-                    state.canvas_size.1 - off_bottom - 88.0,
-                    &state.constants.textscript.get_item_bottom_right,
-                );
-            }
-
-            if let TextScriptExecutionState::WaitConfirmation(_, _, _, wait, selection) = state.textscript_vm.state {
-                let pos_y = if wait > 14 {
-                    state.canvas_size.1 - off_bottom - 96.0 + (wait as f32 + 2.0) 
-                } else {
-                    state.canvas_size.1 - off_bottom - 96.0
-                };
-
-                batch.add_rect(center + 56.0, pos_y, &state.constants.textscript.textbox_rect_yes_no);
-
-                if wait == 0 {
-                    let pos_x = if selection == ConfirmSelection::No { 41.0 } else { 0.0 };
-
-                    batch.add_rect(
-                        center + 51.0 + pos_x,
-                        pos_y + 10.0,
-                        &state.constants.textscript.textbox_rect_cursor,
-                    );
-                }
-            }
-
-            batch.draw(ctx)?;
-        }
-
-        if state.textscript_vm.face != 0 {
-            let tex_name = if state.constants.textscript.animated_face_pics { SWITCH_FACE_TEX[0] } else { FACE_TEX };
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex_name)?;
-
-            // switch version uses 1xxx flag to show a flipped version of face
-            let flip = state.textscript_vm.face > 1000;
-            // x1xx flag shows a talking animation
-            let _talking = (state.textscript_vm.face % 1000) > 100;
-            let face_num = state.textscript_vm.face % 100;
-
-            batch.add_rect_flip(
-                left_pos + 14.0,
-                top_pos + 8.0,
-                flip,
-                false,
-                &Rect::new_size((face_num as u16 % 6) * 48, (face_num as u16 / 6) * 48, 48, 48),
+        if right_side < canvas_w_scaled {
+            let rect = Rect::new(
+                right_side as isize,
+                0,
+                (state.canvas_size.0 * state.scale) as isize,
+                (state.canvas_size.1 * state.scale) as isize,
             );
-
-            batch.draw(ctx)?;
+            graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 0))?;
         }
 
-        if state.textscript_vm.item != 0 {
-            let mut rect = Rect::new(0, 0, 0, 0);
-
-            if state.textscript_vm.item < 1000 {
-                let item_id = state.textscript_vm.item as u16;
-
-                rect.left = (item_id % 16) * 16;
-                rect.right = rect.left + 16;
-                rect.top = (item_id / 16) * 16;
-                rect.bottom = rect.top + 16;
-
-                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ArmsImage")?;
-                batch.add_rect((center - 12.0).floor(), state.canvas_size.1 - off_bottom - 104.0, &rect);
-                batch.draw(ctx)?;
-            } else {
-                let item_id = state.textscript_vm.item as u16 - 1000;
-
-                rect.left = (item_id % 8) * 32;
-                rect.right = rect.left + 32;
-                rect.top = (item_id / 8) * 16;
-                rect.bottom = rect.top + 16;
-
-                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ItemImage")?;
-                batch.add_rect((center - 20.0).floor(), state.canvas_size.1 - off_bottom - 104.0, &rect);
-                batch.draw(ctx)?;
-            }
+        if upper_side > 0.0 {
+            let rect = Rect::new(0, 0, canvas_w_scaled as isize, upper_side as isize);
+            graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 0))?;
         }
 
-        let text_offset = if state.textscript_vm.face == 0 { 0.0 } else { 56.0 };
-
-        let lines = [&state.textscript_vm.line_1, &state.textscript_vm.line_2, &state.textscript_vm.line_3];
-
-        for (idx, line) in lines.iter().enumerate() {
-            if !line.is_empty() {
-                if state.constants.textscript.text_shadow {
-                    state.font.draw_text_with_shadow(
-                        line.iter().copied(),
-                        left_pos + text_offset + 14.0,
-                        top_pos + 10.0 + idx as f32 * 16.0,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
-                } else {
-                    state.font.draw_text(
-                        line.iter().copied(),
-                        left_pos + text_offset + 14.0,
-                        top_pos + 10.0 + idx as f32 * 16.0,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
-                }
-            }
-        }
-
-        if let TextScriptExecutionState::WaitInput(_, _, tick) = state.textscript_vm.state {
-            if tick > 10 {
-                let (mut x, y) = match state.textscript_vm.current_line {
-                    TextScriptLine::Line1 => (
-                        state.font.text_width(state.textscript_vm.line_1.iter().copied(), &state.constants),
-                        top_pos + 10.0,
-                    ),
-                    TextScriptLine::Line2 => (
-                        state.font.text_width(state.textscript_vm.line_2.iter().copied(), &state.constants),
-                        top_pos + 10.0 + 16.0,
-                    ),
-                    TextScriptLine::Line3 => (
-                        state.font.text_width(state.textscript_vm.line_3.iter().copied(), &state.constants),
-                        top_pos + 10.0 + 32.0,
-                    ),
-                };
-                x += left_pos + text_offset + 14.0;
-
-                draw_rect(
-                    ctx,
-                    Rect::new_size(
-                        (x * state.scale) as isize,
-                        (y * state.scale) as isize,
-                        (5.0 * state.scale) as isize,
-                        (state.font.line_height(&state.constants) * state.scale) as isize,
-                    ),
-                    Color::from_rgb(255, 255, 255),
-                )?;
-            }
+        if lower_side < canvas_h_scaled {
+            let rect = Rect::new(0, lower_side as isize, canvas_w_scaled as isize, canvas_h_scaled as isize);
+            graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 0))?;
         }
 
         Ok(())
@@ -1304,149 +952,6 @@ impl GameScene {
         Ok(())
     }
 
-    fn draw_tiles(&self, state: &mut SharedGameState, ctx: &mut Context, layer: TileLayer) -> GameResult {
-        if state.tile_size == TileSize::Tile8x8 && layer == TileLayer::Snack {
-            return Ok(());
-        }
-
-        let tex = match layer {
-            TileLayer::Snack => "Npc/NpcSym",
-            TileLayer::Background => &self.tex_tileset_name_bg,
-            TileLayer::Middleground => &self.tex_tileset_name_mg,
-            TileLayer::Foreground => &self.tex_tileset_name,
-        };
-
-        let (layer_offset, layer_width, layer_height, uses_layers) =
-            if let Some(pxpack_data) = self.stage.data.pxpack_data.as_ref() {
-                match layer {
-                    TileLayer::Background => {
-                        (pxpack_data.offset_bg as usize, pxpack_data.size_bg.0, pxpack_data.size_bg.1, true)
-                    }
-                    TileLayer::Middleground => {
-                        (pxpack_data.offset_mg as usize, pxpack_data.size_mg.0, pxpack_data.size_mg.1, true)
-                    }
-                    _ => (0, pxpack_data.size_fg.0, pxpack_data.size_fg.1, true),
-                }
-            } else {
-                (0, self.stage.map.width, self.stage.map.height, false)
-            };
-
-        if !uses_layers && layer == TileLayer::Middleground {
-            return Ok(());
-        }
-
-        let tile_size = state.tile_size.as_int();
-        let tile_sizef = state.tile_size.as_float();
-        let halft = tile_size / 2;
-        let halftf = tile_sizef / 2.0;
-
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex)?;
-        let mut rect = Rect::new(0, 0, tile_size as u16, tile_size as u16);
-        let (mut frame_x, mut frame_y) = self.frame.xy_interpolated(state.frame_time);
-
-        if let Some(pxpack_data) = self.stage.data.pxpack_data.as_ref() {
-            let (fx, fy) = match layer {
-                TileLayer::Background => pxpack_data.scroll_bg.transform_camera_pos(frame_x, frame_y),
-                TileLayer::Middleground => pxpack_data.scroll_mg.transform_camera_pos(frame_x, frame_y),
-                _ => pxpack_data.scroll_fg.transform_camera_pos(frame_x, frame_y),
-            };
-
-            frame_x = fx;
-            frame_y = fy;
-        }
-
-        let tile_start_x = (frame_x as i32 / tile_size).clamp(0, layer_width as i32) as usize;
-        let tile_start_y = (frame_y as i32 / tile_size).clamp(0, layer_height as i32) as usize;
-        let tile_end_x =
-            ((frame_x as i32 + 8 + state.canvas_size.0 as i32) / tile_size + 1).clamp(0, layer_width as i32) as usize;
-        let tile_end_y = ((frame_y as i32 + halft + state.canvas_size.1 as i32) / tile_size + 1)
-            .clamp(0, layer_height as i32) as usize;
-
-        if layer == TileLayer::Snack {
-            rect = state.constants.world.snack_rect;
-        }
-
-        for y in tile_start_y..tile_end_y {
-            for x in tile_start_x..tile_end_x {
-                let tile = *self.stage.map.tiles.get((y * layer_width as usize) + x + layer_offset).unwrap();
-                match layer {
-                    _ if uses_layers => {
-                        if tile == 0 {
-                            continue;
-                        }
-
-                        let tile_size = tile_size as u16;
-                        rect.left = (tile as u16 % 16) * tile_size;
-                        rect.top = (tile as u16 / 16) * tile_size;
-                        rect.right = rect.left + tile_size;
-                        rect.bottom = rect.top + tile_size;
-                    }
-                    TileLayer::Background => {
-                        if self.stage.map.attrib[tile as usize] >= 0x20 {
-                            continue;
-                        }
-
-                        let tile_size = tile_size as u16;
-                        rect.left = (tile as u16 % 16) * tile_size;
-                        rect.top = (tile as u16 / 16) * tile_size;
-                        rect.right = rect.left + tile_size;
-                        rect.bottom = rect.top + tile_size;
-                    }
-                    TileLayer::Foreground => {
-                        let attr = self.stage.map.attrib[tile as usize];
-
-                        if attr < 0x40 || attr >= 0x80 || attr == 0x43 {
-                            continue;
-                        }
-
-                        let tile_size = tile_size as u16;
-                        rect.left = (tile as u16 % 16) * tile_size;
-                        rect.top = (tile as u16 / 16) * tile_size;
-                        rect.right = rect.left + tile_size;
-                        rect.bottom = rect.top + tile_size;
-                    }
-                    TileLayer::Snack => {
-                        if self.stage.map.attrib[tile as usize] != 0x43 {
-                            continue;
-                        }
-                    }
-                    _ => {}
-                }
-
-                batch.add_rect(
-                    (x as f32 * tile_sizef - halftf) - frame_x,
-                    (y as f32 * tile_sizef - halftf) - frame_y,
-                    &rect,
-                );
-            }
-        }
-
-        batch.draw(ctx)?;
-
-        if layer == TileLayer::Foreground && self.stage.data.background_type == BackgroundType::Water {
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex_background_name)?;
-            let rect_top = Rect { left: 0, top: 0, right: 32, bottom: 16 };
-            let rect_middle = Rect { left: 0, top: 16, right: 32, bottom: 48 };
-
-            let tile_start_x = frame_x as i32 / 32;
-            let tile_end_x = (frame_x + 16.0 + state.canvas_size.0) as i32 / 32 + 1;
-            let water_y = state.water_level as f32 / 512.0;
-            let tile_count_y = (frame_y + 16.0 + state.canvas_size.1 - water_y) as i32 / 32 + 1;
-
-            for x in tile_start_x..tile_end_x {
-                batch.add_rect((x as f32 * 32.0) - frame_x, water_y - frame_y, &rect_top);
-
-                for y in 0..tile_count_y {
-                    batch.add_rect((x as f32 * 32.0) - frame_x, (y as f32 * 32.0) + water_y - frame_y, &rect_middle);
-                }
-            }
-
-            batch.draw(ctx)?;
-        }
-
-        Ok(())
-    }
-
     fn tick_npc_bullet_collissions(&mut self, state: &mut SharedGameState) {
         for npc in self.npc_list.iter_alive() {
             if npc.npc_flags.shootable() && npc.npc_flags.interactable() {
@@ -1620,6 +1125,7 @@ impl GameScene {
     }
 
     fn tick_world(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.background.tick()?;
         self.hud_player1.visible = self.player1.cond.alive();
         self.hud_player2.visible = self.player2.cond.alive();
         self.hud_player1.has_player2 = self.player2.cond.alive() && !self.player2.cond.hidden();
@@ -1920,17 +1426,7 @@ impl Scene for GameScene {
             self.npc_list.spawn_at_slot(npc_data.id, npc)?;
         }
 
-        state.npc_table.tileset_name = self.tex_tileset_name.to_owned();
-        state.npc_table.tex_npc1_name = ["Npc/", &self.stage.data.npc1.filename()].join("");
-        state.npc_table.tex_npc2_name = ["Npc/", &self.stage.data.npc2.filename()].join("");
-
-        /*if state.constants.is_cs_plus {
-            match state.season {
-                Season::Halloween => self.player1.appearance = PlayerAppearance::HalloweenQuote,
-                Season::Christmas => self.player1.appearance = PlayerAppearance::ReindeerQuote,
-                _ => {}
-            }
-        }*/
+        state.npc_table.stage_textures = self.stage_textures.clone();
 
         self.boss.boss_type = self.stage.data.boss_no as u16;
         self.player1.target_x = self.player1.x;
@@ -2053,22 +1549,7 @@ impl Scene for GameScene {
             CreditScriptVM::run(state, ctx)?;
         }
 
-        match state.fade_state {
-            FadeState::FadeOut(tick, direction) if tick < 15 => {
-                state.fade_state = FadeState::FadeOut(tick + 1, direction);
-            }
-            FadeState::FadeOut(tick, _) if tick == 15 => {
-                state.fade_state = FadeState::Hidden;
-            }
-            FadeState::FadeIn(tick, direction) if tick > -15 => {
-                state.fade_state = FadeState::FadeIn(tick - 1, direction);
-            }
-            FadeState::FadeIn(tick, _) if tick == -15 => {
-                state.fade_state = FadeState::Visible;
-            }
-            _ => {}
-        }
-
+        self.fade.tick(state, ())?;
         self.flash.tick(state, ())?;
 
         #[cfg(feature = "scripting-lua")]
@@ -2131,6 +1612,7 @@ impl Scene for GameScene {
             };
 
         self.inventory_dim = self.inventory_dim.clamp(0.0, 1.0);
+        self.background.draw_tick()?;
         self.credits.draw_tick(state);
 
         Ok(())
@@ -2138,10 +1620,11 @@ impl Scene for GameScene {
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         //graphics::set_canvas(ctx, Some(&state.game_canvas));
-        self.draw_background(state, ctx)?;
-        self.draw_tiles(state, ctx, TileLayer::Background)?;
+        let stage_textures_ref = &*self.stage_textures.deref().borrow();
+        self.background.draw(state, ctx, &self.frame, stage_textures_ref, &self.stage)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Background, stage_textures_ref, &self.stage)?;
         self.draw_npc_layer(state, ctx, NPCLayer::Background)?;
-        self.draw_tiles(state, ctx, TileLayer::Middleground)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Middleground, stage_textures_ref, &self.stage)?;
 
         if state.settings.shader_effects && self.lighting_mode == LightingMode::BackgroundOnly {
             self.draw_light_map(state, ctx)?;
@@ -2154,8 +1637,9 @@ impl Scene for GameScene {
         self.player1.draw(state, ctx, &self.frame)?;
 
         self.water_renderer.draw(state, ctx, &self.frame)?;
-        self.draw_tiles(state, ctx, TileLayer::Foreground)?;
-        self.draw_tiles(state, ctx, TileLayer::Snack)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Foreground, stage_textures_ref, &self.stage)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Snack, stage_textures_ref, &self.stage)?;
+
         self.draw_carets(state, ctx)?;
         self.player1.popup.draw(state, ctx, &self.frame)?;
         self.player2.popup.draw(state, ctx, &self.frame)?;
@@ -2241,7 +1725,7 @@ impl Scene for GameScene {
             _ => {}
         }
 
-        self.draw_fade(state, ctx)?;
+        self.fade.draw(state, ctx, &self.frame)?;
         if state.textscript_vm.mode == ScriptMode::Map && self.map_name_counter > 0 {
             let map_name = if self.stage.data.name == "u" {
                 state.constants.title.intro_text.chars()
@@ -2265,7 +1749,7 @@ impl Scene for GameScene {
         }
 
         self.falling_island.draw(state, ctx, &self.frame)?;
-        self.draw_text_boxes(state, ctx)?;
+        self.text_boxes.draw(state, ctx, &self.frame)?;
 
         if self.skip_counter > 0 {
             let text = format!("Hold {:?} to skip the cutscene", state.settings.player1_key_map.inventory);
@@ -2308,7 +1792,7 @@ impl Scene for GameScene {
         Ok(())
     }
 
-    fn debug_overlay_draw(
+    fn imgui_draw(
         &mut self,
         components: &mut Components,
         state: &mut SharedGameState,

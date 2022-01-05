@@ -23,7 +23,6 @@ public class MainActivity extends NativeActivity {
         File f = new File(getFilesDir().getAbsolutePath() + "/data/");
         String[] list = f.list();
         if (!f.exists() || (list != null && list.length == 0)) {
-
             messageBox("Missing data files", "No data files found, would you like to download them?", () -> {
                 Intent intent = new Intent(this, DownloadActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_TASK_ON_HOME);

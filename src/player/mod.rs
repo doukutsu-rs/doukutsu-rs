@@ -868,7 +868,7 @@ impl GameEntity<&NPCList> for Player {
                 let vec_y = 0x1400;
 
                 if let Some(entry) = state.npc_table.get_entry(136) {
-                    let sprite = state.npc_table.get_texture_name(entry.spritesheet_id as u16);
+                    let sprite = &*state.npc_table.get_texture_ref(entry.spritesheet_id as u16);
                     let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, sprite)?;
 
                     let (off_x, frame_id) = if self.direction == Direction::Left {

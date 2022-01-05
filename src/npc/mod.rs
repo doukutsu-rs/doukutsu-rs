@@ -1,12 +1,15 @@
+use std::cell::{Ref, RefCell};
 use std::io;
 use std::io::Cursor;
+use std::ops::Deref;
+use std::rc::Rc;
 
-use byteorder::{ReadBytesExt, LE};
+use byteorder::{LE, ReadBytesExt};
 
 use crate::bitfield;
+use crate::common::{Condition, interpolate_fix9_scale, Rect};
 use crate::common::Direction;
 use crate::common::Flag;
-use crate::common::{interpolate_fix9_scale, Condition, Rect};
 use crate::components::flash::Flash;
 use crate::components::number_popup::NumberPopup;
 use crate::entity::GameEntity;
@@ -19,7 +22,7 @@ use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::rng::Xoroshiro32PlusPlus;
 use crate::shared_game_state::SharedGameState;
-use crate::stage::Stage;
+use crate::stage::{Stage, StageTexturePaths};
 use crate::weapon::bullet::BulletManager;
 
 pub mod ai;
@@ -188,7 +191,7 @@ impl NPC {
             return Ok(());
         }
 
-        let texture = state.npc_table.get_texture_name(self.spritesheet_id);
+        let texture = &*state.npc_table.get_texture_ref(self.spritesheet_id);
 
         if let Some(batch) = state.texture_set.get_or_load_batch(ctx, &state.constants, texture)?.glow() {
             let off_x =
@@ -602,8 +605,11 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             return Ok(());
         }
 
-        let texture = state.npc_table.get_texture_name(self.spritesheet_id);
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, texture)?;
+        let batch = state.texture_set.get_or_load_batch(
+            ctx,
+            &state.constants,
+            &*state.npc_table.get_texture_ref(self.spritesheet_id),
+        )?;
 
         let off_x =
             if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right } as i32;
@@ -751,20 +757,13 @@ pub struct NPCTableEntry {
 
 pub struct NPCTable {
     entries: Vec<NPCTableEntry>,
-    pub tileset_name: String,
-    pub tex_npc1_name: String,
-    pub tex_npc2_name: String,
+    pub stage_textures: Rc<RefCell<StageTexturePaths>>,
 }
 
 impl NPCTable {
     #[allow(clippy::new_without_default)]
     pub fn new() -> NPCTable {
-        NPCTable {
-            entries: Vec::new(),
-            tileset_name: "Stage/Prt0".to_owned(),
-            tex_npc1_name: "Npc/Npc0".to_owned(),
-            tex_npc2_name: "Npc/Npc0".to_owned(),
-        }
+        NPCTable { entries: Vec::new(), stage_textures: Rc::new(RefCell::new(StageTexturePaths::new())) }
     }
 
     pub fn load_from<R: io::Read>(mut data: R) -> GameResult<NPCTable> {
@@ -870,26 +869,58 @@ impl NPCTable {
         }
     }
 
-    pub fn get_texture_name(&self, spritesheet_id: u16) -> &str {
+    pub fn get_texture_ref(&self, spritesheet_id: u16) -> TexRef<'_> {
         match spritesheet_id {
-            0 => "Title",
-            2 => &self.tileset_name,
-            6 => "Fade",
-            8 => "ItemImage",
-            11 => "Arms",
-            12 => "ArmsImage",
-            14 => "StageImage",
-            15 => "Loading",
-            16 => "MyChar",
-            17 => "Bullet",
-            19 => "Caret",
-            20 => "Npc/NpcSym",
-            21 => &self.tex_npc1_name,
-            22 => &self.tex_npc2_name,
-            23 => "Npc/NpcRegu",
-            26 => "TextBox",
-            27 => "Face",
-            _ => "Npc/Npc0",
+            0 => TexRef::from_str("Title"),
+            2 => TexRef { variant: TexRefVariant::StageTileset(self.stage_textures.deref().borrow()) },
+            6 => TexRef::from_str("Fade"),
+            8 => TexRef::from_str("ItemImage"),
+            11 => TexRef::from_str("Arms"),
+            12 => TexRef::from_str("ArmsImage"),
+            14 => TexRef::from_str("StageImage"),
+            15 => TexRef::from_str("Loading"),
+            16 => TexRef::from_str("MyChar"),
+            17 => TexRef::from_str("Bullet"),
+            19 => TexRef::from_str("Caret"),
+            20 => TexRef::from_str("Npc/NpcSym"),
+            21 => TexRef { variant: TexRefVariant::StageNPC1(self.stage_textures.deref().borrow()) },
+            22 => TexRef { variant: TexRefVariant::StageNPC2(self.stage_textures.deref().borrow()) },
+            23 => TexRef::from_str("Npc/NpcRegu"),
+            26 => TexRef::from_str("TextBox"),
+            27 => TexRef::from_str("Face"),
+            _ => TexRef::from_str("Npc/Npc0"),
+        }
+    }
+}
+
+pub struct TexRef<'a> {
+    variant: TexRefVariant<'a>,
+}
+
+enum TexRefVariant<'a> {
+    Str(&'static str),
+    StageTileset(Ref<'a, StageTexturePaths>),
+    StageNPC1(Ref<'a, StageTexturePaths>),
+    StageNPC2(Ref<'a, StageTexturePaths>),
+}
+
+impl TexRef<'_> {
+    #[inline]
+    fn from_str(str: &'static str) -> TexRef {
+        TexRef { variant: TexRefVariant::Str(str) }
+    }
+}
+
+impl Deref for TexRef<'_> {
+    type Target = str;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        match &self.variant {
+            TexRefVariant::Str(str) => str,
+            TexRefVariant::StageTileset(paths) => &paths.tileset_fg,
+            TexRefVariant::StageNPC1(paths) => &paths.npc1,
+            TexRefVariant::StageNPC2(paths) => &paths.npc2,
         }
     }
 }
