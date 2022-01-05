@@ -1,7 +1,10 @@
 use core::mem;
+use std::any::Any;
+use std::borrow::Borrow;
 use std::cell::{RefCell, UnsafeCell};
-use std::collections::HashMap;
 use std::ffi::c_void;
+use std::ops::Deref;
+use std::ptr::null_mut;
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -11,7 +14,7 @@ use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Scancode;
 use sdl2::mouse::{Cursor, SystemCursor};
 use sdl2::pixels::PixelFormatEnum;
-use sdl2::render::{Texture, TextureCreator, WindowCanvas};
+use sdl2::render::{Texture, TextureCreator, TextureQuery, WindowCanvas};
 use sdl2::video::GLProfile;
 use sdl2::video::WindowContext;
 use sdl2::{keyboard, pixels, EventPump, Sdl, VideoSubsystem};
@@ -27,6 +30,7 @@ use crate::framework::keyboard::ScanCode;
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
 use crate::framework::ui::init_imgui;
 use crate::Game;
+use crate::GameError::RenderError;
 use crate::GAME_SUSPENDED;
 
 pub struct SDL2Backend {
@@ -119,7 +123,7 @@ impl BackendEventLoop for SDL2EventLoop {
         };
 
         {
-            let (width, height) = self.refs.borrow().canvas.window().size();
+            let (width, height) = self.refs.deref().borrow().canvas.window().size();
             ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
 
             imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
@@ -230,7 +234,7 @@ impl BackendEventLoop for SDL2EventLoop {
 
             imgui_sdl2.prepare_frame(
                 imgui.io_mut(),
-                self.refs.borrow().canvas.window(),
+                self.refs.deref().borrow().canvas.window(),
                 &self.event_pump.mouse_state(),
             );
             game.draw(ctx).unwrap();
@@ -300,20 +304,18 @@ struct SDL2Renderer {
     refs: Rc<RefCell<SDL2Context>>,
     imgui: Rc<RefCell<imgui::Context>>,
     imgui_event: Rc<RefCell<ImguiSdl2>>,
-    imgui_textures: HashMap<TextureId, SDL2Texture>,
+    imgui_font_tex: SDL2Texture,
 }
 
 impl SDL2Renderer {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(refs: Rc<RefCell<SDL2Context>>) -> GameResult<Box<dyn BackendRenderer>> {
         let mut imgui = init_imgui()?;
-        let mut imgui_textures = HashMap::new();
 
         imgui.set_renderer_name("SDL2Renderer".to_owned());
-        {
+        let imgui_font_tex = {
             let refs = refs.clone();
             let mut fonts = imgui.fonts();
-            let id = fonts.tex_id;
             let font_tex = fonts.build_rgba32_texture();
 
             let mut texture = refs
@@ -339,17 +341,15 @@ impl SDL2Renderer {
                 })
                 .map_err(|e| GameError::RenderError(e.to_string()))?;
 
-            imgui_textures.insert(
-                id,
-                SDL2Texture {
-                    refs: refs.clone(),
-                    texture: Some(texture),
-                    width: font_tex.width as u16,
-                    height: font_tex.height as u16,
-                    commands: vec![],
-                },
-            );
-        }
+            SDL2Texture {
+                refs: refs.clone(),
+                texture: Some(texture),
+                width: font_tex.width as u16,
+                height: font_tex.height as u16,
+                commands: vec![],
+            }
+        };
+        imgui.fonts().tex_id = TextureId::new(imgui_font_tex.texture.as_ref().unwrap().raw() as usize);
 
         let imgui_sdl2 = unsafe {
             let refs = &mut *refs.as_ptr();
@@ -360,7 +360,7 @@ impl SDL2Renderer {
             refs,
             imgui: Rc::new(RefCell::new(imgui)),
             imgui_event: Rc::new(RefCell::new(imgui_sdl2)),
-            imgui_textures,
+            imgui_font_tex,
         }))
     }
 }
@@ -426,7 +426,6 @@ impl BackendRenderer for SDL2Renderer {
         let mut refs = self.refs.borrow_mut();
 
         refs.canvas.set_clip_rect(Some(sdl2::rect::Rect::new(0, 0, width as u32, height as u32)));
-        //refs.canvas.set_clip_rect(None);
 
         Ok(())
     }
@@ -483,19 +482,23 @@ impl BackendRenderer for SDL2Renderer {
     }
 
     fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult {
-        let renderer = self.refs.borrow().canvas.raw();
+        let renderer = self.refs.deref().borrow().canvas.raw();
 
-        // todo: horribly unsafe
         match texture {
-            Some(texture) => unsafe {
-                let sdl2_texture: &Box<SDL2Texture> = std::mem::transmute(texture);
+            Some(texture) => {
+                let sdl2_texture = texture
+                    .as_any()
+                    .downcast_ref::<SDL2Texture>()
+                    .ok_or(RenderError("This texture was not created by OpenGL backend.".to_string()))?;
 
-                if let Some(target) = sdl2_texture.texture.as_ref() {
-                    set_raw_target(renderer, target.raw())?;
-                } else {
-                    set_raw_target(renderer, std::ptr::null_mut())?;
+                unsafe {
+                    if let Some(target) = sdl2_texture.texture.as_ref() {
+                        set_raw_target(renderer, target.raw())?;
+                    } else {
+                        set_raw_target(renderer, std::ptr::null_mut())?;
+                    }
                 }
-            },
+            }
             None => unsafe {
                 set_raw_target(renderer, std::ptr::null_mut())?;
             },
@@ -591,6 +594,15 @@ impl BackendRenderer for SDL2Renderer {
         unsafe { Ok(&mut *self.imgui.as_ptr()) }
     }
 
+    fn imgui_texture_id(&self, texture: &Box<dyn BackendTexture>) -> GameResult<TextureId> {
+        let sdl_texture = texture
+            .as_any()
+            .downcast_ref::<SDL2Texture>()
+            .ok_or(GameError::RenderError("This texture was not created by SDL backend.".to_string()))?;
+
+        Ok(TextureId::new(sdl_texture.texture.as_ref().map(|t| t.raw()).unwrap_or(null_mut()) as usize))
+    }
+
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult {
         let mut refs = self.refs.borrow_mut();
 
@@ -668,13 +680,17 @@ impl BackendRenderer for SDL2Renderer {
                                 }
                             }
 
-                            if let Some(surf) = self.imgui_textures.get_mut(&cmd_params.texture_id) {
+                            let ptr = cmd_params.texture_id.id() as *mut sdl2::sys::SDL_Texture;
+                            if !ptr.is_null() {
+                                let mut surf = unsafe { refs.texture_creator.raw_create_texture(ptr) };
+                                let TextureQuery { width, height, .. } = surf.query();
+
                                 if is_rect {
                                     let src = sdl2::rect::Rect::new(
-                                        (tex_pos[0] * surf.width as f32) as i32,
-                                        (tex_pos[1] * surf.height as f32) as i32,
-                                        ((tex_pos[2] - tex_pos[0]) * surf.width as f32) as u32,
-                                        ((tex_pos[3] - tex_pos[1]) * surf.height as f32) as u32,
+                                        (tex_pos[0] * width as f32) as i32,
+                                        (tex_pos[1] * height as f32) as i32,
+                                        ((tex_pos[2] - tex_pos[0]) * width as f32) as u32,
+                                        ((tex_pos[3] - tex_pos[1]) * height as f32) as u32,
                                     );
                                     let dest = sdl2::rect::Rect::new(
                                         min[0] as i32,
@@ -683,12 +699,11 @@ impl BackendRenderer for SDL2Renderer {
                                         (max[1] - min[1]) as u32,
                                     );
 
-                                    let tex = surf.texture.as_mut().unwrap();
-                                    tex.set_color_mod(v1.col[0], v1.col[1], v1.col[2]);
-                                    tex.set_alpha_mod(v1.col[3]);
+                                    surf.set_color_mod(v1.col[0], v1.col[1], v1.col[2]);
+                                    surf.set_alpha_mod(v1.col[3]);
 
                                     refs.canvas
-                                        .copy(tex, src, dest)
+                                        .copy(&surf, src, dest)
                                         .map_err(|e| GameError::RenderError(e.to_string()))?;
                                 } else {
                                     /*sdl2::sys::gfx::primitives::filledPolygonRGBA(
@@ -834,6 +849,10 @@ impl BackendTexture for SDL2Texture {
                 Ok(())
             }
         }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
