@@ -477,7 +477,48 @@ impl GameScene {
         Ok(())
     }
 
-    fn draw_black_bars(&self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult {
+    fn draw_black_bars(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let (x, y) = self.frame.xy_interpolated(state.frame_time);
+        let (x, y) = (x * state.scale, y * state.scale);
+        let canvas_w_scaled = state.canvas_size.0 as f32 * state.scale;
+        let canvas_h_scaled = state.canvas_size.1 as f32 * state.scale;
+        let level_width = (self.stage.map.width as f32 - 1.0) * self.stage.map.tile_size.as_float();
+        let level_height = (self.stage.map.height as f32 - 1.0) * self.stage.map.tile_size.as_float();
+        let left_side = -x;
+        let right_side = -x + level_width * state.scale;
+        let upper_side = -y;
+        let lower_side = -y + level_height * state.scale;
+
+        if left_side > 0.0 {
+            let rect = Rect::new(0, 0, left_side as isize, canvas_h_scaled as isize);
+            graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 0))?;
+        }
+
+        if right_side < canvas_w_scaled {
+            let rect = Rect::new(
+                right_side as isize,
+                0,
+                (state.canvas_size.0 * state.scale) as isize,
+                (state.canvas_size.1 * state.scale) as isize,
+            );
+            graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 0))?;
+        }
+
+        if upper_side > 0.0 {
+            let rect = Rect::new(0, 0, canvas_w_scaled as isize, upper_side as isize);
+            graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 0))?;
+        }
+
+        if lower_side < canvas_h_scaled {
+            let rect = Rect::new(
+                0,
+                lower_side as isize,
+                canvas_w_scaled as isize,
+                canvas_h_scaled as isize,
+            );
+            graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 0))?;
+        }
+
         Ok(())
     }
 
