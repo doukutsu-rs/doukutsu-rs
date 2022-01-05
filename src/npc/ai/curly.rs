@@ -836,6 +836,37 @@ impl NPC {
         Ok(())
     }
 
+    // unused
+    pub(crate) fn tick_n303_curly_machine_gun(
+        &mut self,
+        state: &mut SharedGameState,
+        npc_list: &NPCList,
+    ) -> GameResult {
+        if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+
+            self.x = parent.x;
+            self.y = parent.y;
+            self.direction = parent.direction;
+
+            if self.direction == Direction::Left {
+                self.x -= 0x1000;
+            }
+            else {
+                self.x += 0x1000;
+            }
+
+            if parent.anim_num == 3 || parent.anim_num == 5 {
+                self.y -= 0x200;
+            }
+
+            let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+
+            self.anim_rect = state.constants.npc.n303_curly_machine_gun[dir_offset];
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n320_curly_carried(
         &mut self,
         state: &mut SharedGameState,

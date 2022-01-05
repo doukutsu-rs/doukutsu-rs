@@ -1816,7 +1816,7 @@ impl NPC {
                 }
             }
             5 => {
-                if self.flags.hit_bottom_wall() {
+                if !self.flags.hit_bottom_wall() {
                     self.action_num = 10;
                     self.anim_counter = 0;
                     self.anim_num = 1;
