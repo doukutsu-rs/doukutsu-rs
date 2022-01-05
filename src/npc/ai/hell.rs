@@ -568,4 +568,180 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n317_mesa(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList,) -> GameResult {
+
+        let player = self.get_closest_player_mut(players);
+    
+        match self.action_num {
+            0 | 1 | 2 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.y -= 0x1000;
+                    self.target_x = self.x;
+                }
+                if self.action_num == 1 {
+                    self.action_num = 2;
+                    self.vel_x = 0;
+                    self.anim_num = 0;
+                    self.action_counter = 0;
+                }
+                self.direction = if player.x < self.x  {Direction::Left} else {Direction::Right};
+                self.animate(40, 0, 1);
+                
+                self.action_counter += 1;
+                if player.x > self.x - 0x28000 &&
+                   player.x < self.x + 0x28000 &&
+                   player.y > self.y - 0x14000 &&
+                   player.y < self.y + 0x14000 &&
+                   self.action_counter > 50 {
+                       self.action_num = 10
+                   }
+            }
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.action_counter = 0;
+                    self.anim_num = 2;
+
+                    let mut npc = NPC::create(319, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.x;
+                    npc.y = self.y;
+                    npc.parent_id = self.id;
+
+                    let _ = npc_list.spawn(0x100, npc);
+                }
+
+                self.action_counter += 1;
+                if self.action_counter > 50 {
+                    self.action_counter = 0;
+                    self.action_num = 12;
+                    self.anim_num = 3;
+                    state.sound_manager.play_sfx(39);
+                }
+            }
+            12 => {
+                self.action_counter += 1;
+                if self.action_counter > 20 {self.action_num = 1}
+            }
+            _ => (),
+        }
+
+        self.vel_y += 0x55;
+        if self.vel_y > 0x55F {self.vel_y = 0x55F};
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
+        self.anim_rect = state.constants.npc.n317_mesa[self.anim_num as usize + dir_offset];
+
+        if self.life <= 936 {
+            self.npc_type = 318;
+            self.action_num = 0;
+        }
+    
+        Ok(())
+    }
+
+    pub(crate) fn tick_n318_mesa_dead(&mut self, state: &mut SharedGameState) -> GameResult {
+        // (nearly) same as Gaudi death
+        match self.action_num {
+            0 => {
+                self.npc_flags.set_shootable(false);
+                self.npc_flags.set_ignore_solidity(false);
+                self.npc_flags.set_solid_soft(false);
+                self.damage = 0;
+                self.action_num = 1;
+                self.anim_num = 0;
+                self.vel_y = -0x200;
+
+                match self.direction {
+                    Direction::Left => self.vel_x = 0x40,
+                    Direction::Right => self.vel_x = -0x40,
+                    _ => (),
+                };
+                state.sound_manager.play_sfx(54);
+            }
+            1 if self.flags.hit_bottom_wall() => {
+                self.action_num = 2;
+                self.action_counter = 0;
+                self.anim_num = 1;
+                self.anim_counter = 0;
+            }
+            2 => {
+                self.vel_x = 8 * self.vel_x / 9;
+                self.animate(3, 1, 2);
+
+                self.action_counter += 1;
+                if self.action_counter > 50 {
+                    self.cond.set_explode_die(true);
+                }
+            }
+            _ => (),
+        }
+
+        self.vel_y += 0x20;
+        if self.vel_y > 0x5ff {
+            self.vel_y = 0x5ff;
+        }
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+        self.anim_rect = state.constants.npc.n318_mesa_dead[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n319_mesa_block(&mut self, state: &mut SharedGameState, npc_list: &NPCList,) -> GameResult {
+    
+        match self.action_num {
+            0 => {
+                if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                    self.y = parent.y + 0x1400;
+                    self.x = parent.x + if parent.direction == Direction::Left {0xE00} else {-0xE00};
+
+                    if parent.npc_type == 318 {
+                        npc_list.create_death_smoke(self.x, self.y, 0, 3, state, &self.rng);
+                        self.cond.set_alive(false);
+                        return Ok(());
+                    }
+
+                    if parent.anim_num != 2 {
+                        self.action_num = 2;
+                        self.action_counter = 0;
+                        self.vel_y = -0x400;
+                        self.y = parent.y - 0x800;
+
+                        self.vel_x = if parent.direction == Direction::Left {-0x400} else {0x400};
+                    }
+                }
+            }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter == 4 {self.npc_flags.set_ignore_solidity(false)};
+
+                self.vel_y += 0x2A;
+                if self.vel_y > 0x5FF {self.vel_y = 0x5FF};
+
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+
+                if self.flags.hit_bottom_wall() {
+                    state.sound_manager.play_sfx(12);
+                    npc_list.create_death_smoke(self.x, self.y, 0, 3, state, &self.rng);
+                    self.cond.set_alive(false);
+                    return Ok(());
+                }
+            }
+            _ => (),
+        }
+        
+        self.animate(1, 0, 2);
+        self.anim_rect = state.constants.npc.n319_mesa_block[self.anim_num as usize];
+    
+        Ok(())
+    }
 }
