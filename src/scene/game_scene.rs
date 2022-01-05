@@ -5,11 +5,12 @@ use std::rc::Rc;
 use log::info;
 
 use crate::caret::CaretType;
-use crate::common::{interpolate_fix9_scale, Color, Direction, FadeDirection, FadeState, Rect};
+use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
 use crate::components::draw_common::Alignment;
+use crate::components::fade::Fade;
 use crate::components::falling_island::FallingIsland;
 use crate::components::flash::Flash;
 use crate::components::hud::HUD;
@@ -61,6 +62,7 @@ pub struct GameScene {
     pub background: Background,
     pub tilemap: Tilemap,
     pub text_boxes: TextBoxes,
+    pub fade: Fade,
     pub frame: Frame,
     pub player1: Player,
     pub player2: Player,
@@ -146,6 +148,7 @@ impl GameScene {
             background: Background::new(),
             tilemap: Tilemap::new(),
             text_boxes: TextBoxes::new(),
+            fade: Fade::new(),
             frame: Frame {
                 x: 0,
                 y: 0,
@@ -276,121 +279,6 @@ impl GameScene {
         }
 
         batch.draw(ctx)?;
-        Ok(())
-    }
-
-    fn draw_fade(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        match state.fade_state {
-            FadeState::Visible => {
-                return Ok(());
-            }
-            FadeState::Hidden => {
-                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Fade")?;
-                let mut rect = Rect::new(0, 0, 16, 16);
-                let frame = 15;
-                rect.left = frame * 16;
-                rect.right = rect.left + 16;
-
-                for x in 0..(state.canvas_size.0 as i32 / 16 + 1) {
-                    for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
-                        batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
-                    }
-                }
-
-                batch.draw(ctx)?;
-            }
-            FadeState::FadeIn(tick, direction) | FadeState::FadeOut(tick, direction) => {
-                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Fade")?;
-                let mut rect = Rect::new(0, 0, 16, 16);
-
-                match direction {
-                    FadeDirection::Left | FadeDirection::Right => {
-                        let mut frame = tick;
-
-                        for x in 0..(state.canvas_size.0 as i32 / 16 + 1) {
-                            if frame >= 15 {
-                                frame = 15;
-                            } else {
-                                frame += 1;
-                            }
-
-                            if frame >= 0 {
-                                rect.left = frame.abs() as u16 * 16;
-                                rect.right = rect.left + 16;
-
-                                for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
-                                    if direction == FadeDirection::Left {
-                                        batch.add_rect(
-                                            state.canvas_size.0 - x as f32 * 16.0 - 16.0,
-                                            y as f32 * 16.0,
-                                            &rect,
-                                        );
-                                    } else {
-                                        batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    FadeDirection::Up | FadeDirection::Down => {
-                        let mut frame = tick;
-
-                        for y in 0..(state.canvas_size.1 as i32 / 16 + 1) {
-                            if frame >= 15 {
-                                frame = 15;
-                            } else {
-                                frame += 1;
-                            }
-
-                            if frame >= 0 {
-                                rect.left = frame.abs() as u16 * 16;
-                                rect.right = rect.left + 16;
-
-                                for x in 0..(state.canvas_size.0 as i32 / 16 + 1) {
-                                    if direction == FadeDirection::Down {
-                                        batch.add_rect(x as f32 * 16.0, y as f32 * 16.0, &rect);
-                                    } else {
-                                        batch.add_rect(x as f32 * 16.0, state.canvas_size.1 - y as f32 * 16.0, &rect);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    FadeDirection::Center => {
-                        let center_x = (state.canvas_size.0 / 2.0 - 8.0) as i32;
-                        let center_y = (state.canvas_size.1 / 2.0 - 8.0) as i32;
-                        let mut start_frame = tick;
-
-                        for x in 0..(center_x / 16 + 2) {
-                            let mut frame = start_frame;
-
-                            for y in 0..(center_y / 16 + 2) {
-                                if frame >= 15 {
-                                    frame = 15;
-                                } else {
-                                    frame += 1;
-                                }
-
-                                if frame >= 0 {
-                                    rect.left = frame.abs() as u16 * 16;
-                                    rect.right = rect.left + 16;
-
-                                    batch.add_rect((center_x - x * 16) as f32, (center_y + y * 16) as f32, &rect);
-                                    batch.add_rect((center_x - x * 16) as f32, (center_y - y * 16) as f32, &rect);
-                                    batch.add_rect((center_x + x * 16) as f32, (center_y + y * 16) as f32, &rect);
-                                    batch.add_rect((center_x + x * 16) as f32, (center_y - y * 16) as f32, &rect);
-                                }
-                            }
-
-                            start_frame += 1;
-                        }
-                    }
-                }
-
-                batch.draw(ctx)?;
-            }
-        }
-
         Ok(())
     }
 
@@ -1635,22 +1523,7 @@ impl Scene for GameScene {
             CreditScriptVM::run(state, ctx)?;
         }
 
-        match state.fade_state {
-            FadeState::FadeOut(tick, direction) if tick < 15 => {
-                state.fade_state = FadeState::FadeOut(tick + 1, direction);
-            }
-            FadeState::FadeOut(tick, _) if tick == 15 => {
-                state.fade_state = FadeState::Hidden;
-            }
-            FadeState::FadeIn(tick, direction) if tick > -15 => {
-                state.fade_state = FadeState::FadeIn(tick - 1, direction);
-            }
-            FadeState::FadeIn(tick, _) if tick == -15 => {
-                state.fade_state = FadeState::Visible;
-            }
-            _ => {}
-        }
-
+        self.fade.tick(state, ())?;
         self.flash.tick(state, ())?;
 
         #[cfg(feature = "scripting-lua")]
@@ -1826,7 +1699,7 @@ impl Scene for GameScene {
             _ => {}
         }
 
-        self.draw_fade(state, ctx)?;
+        self.fade.draw(state, ctx, &self.frame)?;
         if state.textscript_vm.mode == ScriptMode::Map && self.map_name_counter > 0 {
             let map_name = if self.stage.data.name == "u" {
                 state.constants.title.intro_text.chars()

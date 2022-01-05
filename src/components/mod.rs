@@ -2,6 +2,7 @@ pub mod background;
 pub mod boss_life_bar;
 pub mod credits;
 pub mod draw_common;
+pub mod fade;
 pub mod falling_island;
 pub mod flash;
 pub mod hud;
