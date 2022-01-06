@@ -3,8 +3,10 @@ use crate::caret::CaretType;
 use crate::common::Direction;
 use crate::npc::NPC;
 use crate::npc::list::NPCList;
-use crate::rng::RNG;
 use crate::player::Player;
+use crate::rng::RNG;
+use crate::stage::Stage;
+
 
 impl NPC {
     pub(crate) fn tick_n337_numahachi(&mut self, state: &mut SharedGameState) -> GameResult {
@@ -744,4 +746,138 @@ impl NPC {
     
         Ok(())
     }
+
+    pub(crate) fn tick_n322_deleet(&mut self, state: &mut SharedGameState, npc_list: &NPCList, stage: &mut Stage) -> GameResult {
+
+        if self.action_num < 2 && self.life <= 968 {
+            self.action_num = 2;
+            self.action_counter = 0;
+            self.npc_flags.set_shootable(false);
+            self.npc_flags.set_invulnerable(true);
+            state.sound_manager.play_sfx(22);
+        }
+    
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    if self.direction == Direction::Left {self.y += 0x1000} else {self.x += 0x1000};
+                }
+
+                if self.shock > 0 {self.anim_counter += 1} else {self.anim_counter = 0};
+                self.anim_num = self.anim_counter & 0x02;
+            }
+            2 => {
+                self.anim_num = 2;
+
+                let mut npc = NPC::create(207, &state.npc_table);
+                npc.cond.set_alive(true);
+                npc.x = self.x + 0x800;
+                npc.y = self.y;
+
+                // Same as Egg Corridor? Bomb
+                match self.action_counter {
+                    0 => {
+                        npc.tsc_direction = 0;
+                        let _ = npc_list.spawn(0x100, npc);
+                    }
+                    50 => {
+                        npc.tsc_direction = 1;
+                        let _ = npc_list.spawn(0x100, npc);
+                    }
+                    100 => {
+                        npc.tsc_direction = 2;
+                        let _ = npc_list.spawn(0x100, npc);
+                    }
+                    150 => {
+                        npc.tsc_direction = 3;
+                        let _ = npc_list.spawn(0x100, npc);
+                    }
+                    200 => {
+                        npc.tsc_direction = 4;
+                        let _ = npc_list.spawn(0x100, npc);
+                    }
+                    250 => {
+                        self.hit_bounds.right = 0x6000;
+                        self.hit_bounds.left = 0x6000;
+                        self.hit_bounds.top = 0x6000;
+                        self.hit_bounds.bottom = 0x6000;
+                        self.damage = 12;
+                        self.cond.set_explode_die(true);
+
+                        state.quake_counter = 10;
+                        state.sound_manager.play_sfx(26);
+                        npc_list.create_death_smoke(self.x, self.y, 0x6000, 40 as usize, state, &self.rng);
+
+                        let x = (self.x / 0x1000) as usize;
+                        let y = (self.y / 0x1000) as usize;
+
+                        if self.direction == Direction::Left {
+                            stage.change_tile(x/2, (y+1)/2, 0);
+                            stage.change_tile(x/2, (y-1)/2, 0);
+                        }
+                        else {
+                            stage.change_tile((x+1)/2, y/2, 0);
+                            stage.change_tile((x-1)/2, y/2, 0);
+                        }
+
+                    }
+                    _ => (),
+                }
+                self.action_counter += 1;
+
+            }
+            _ => (),
+        }
+
+        self.anim_rect = state.constants.npc.n322_deleet[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n330_rolling(&mut self, state: &mut SharedGameState, stage: &mut Stage) -> GameResult {
+    
+        match self.action_num {
+            0  => {
+                let x = (self.x / 0x2000) as usize;
+                let y = (self.y / 0x2000) as usize;
+                stage.change_tile(x, y, 0);
+
+                self.action_num = if self.direction == Direction::Left {10} else {30};
+            }
+            10 => {
+                self.vel_x -= 0x40;
+                self.vel_y = 0;
+                if self.flags.hit_left_wall() {self.action_num = 20};
+            }
+            20 => {
+                self.vel_x = 0;
+                self.vel_y -= 0x40;
+                if self.flags.hit_top_wall() {self.action_num = 30};
+            }
+            30 => {
+                self.vel_x += 0x40;
+                self.vel_y = 0;
+                if self.flags.hit_right_wall() {self.action_num = 40};
+            }
+            40 => {
+                self.vel_x = 0;
+                self.vel_y += 0x40;
+                if self.flags.hit_bottom_wall() {self.action_num = 10};
+            }
+            _ => (),
+        }
+
+        self.vel_x = self.vel_x.clamp(-0x400, 0x400);
+        self.vel_y = self.vel_y.clamp(-0x400, 0x400);
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        self.animate(1, 0, 2);
+        self.anim_rect = state.constants.npc.n330_rolling[self.anim_num as usize];
+
+        Ok(())
+    }
+
 }
