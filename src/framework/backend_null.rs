@@ -1,7 +1,8 @@
+use std::any::Any;
 use std::cell::RefCell;
 use std::mem;
 
-use imgui::DrawData;
+use imgui::{DrawData, TextureId};
 
 use crate::common::{Color, Rect};
 use crate::framework::backend::{
@@ -79,6 +80,10 @@ impl BackendTexture for NullTexture {
     fn draw(&mut self) -> GameResult<()> {
         Ok(())
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 pub struct NullRenderer(RefCell<imgui::Context>);
@@ -124,6 +129,10 @@ impl BackendRenderer for NullRenderer {
 
     fn imgui(&self) -> GameResult<&mut imgui::Context> {
         unsafe { Ok(&mut *self.0.as_ptr()) }
+    }
+
+    fn imgui_texture_id(&self, _texture: &Box<dyn BackendTexture>) -> GameResult<TextureId> {
+        Ok(TextureId::from(0))
     }
 
     fn render_imgui(&mut self, _draw_data: &DrawData) -> GameResult {

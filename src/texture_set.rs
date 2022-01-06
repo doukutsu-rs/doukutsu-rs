@@ -69,6 +69,8 @@ pub trait SpriteBatch {
     fn draw(&mut self, ctx: &mut Context) -> GameResult;
 
     fn draw_filtered(&mut self, _filter: FilterMode, _ctx: &mut Context) -> GameResult;
+
+    fn get_texture(&self) -> Option<&Box<dyn BackendTexture>>;
 }
 
 pub struct DummyBatch;
@@ -135,6 +137,10 @@ impl SpriteBatch for DummyBatch {
 
     fn draw_filtered(&mut self, _filter: FilterMode, _ctx: &mut Context) -> GameResult {
         Ok(())
+    }
+
+    fn get_texture(&self) -> Option<&Box<dyn BackendTexture>> {
+        None
     }
 }
 
@@ -309,6 +315,10 @@ impl SpriteBatch for SubBatch {
         self.batch.clear();
         Ok(())
     }
+
+    fn get_texture(&self) -> Option<&Box<dyn BackendTexture>> {
+        Some(&self.batch)
+    }
 }
 
 impl SpriteBatch for CombinedBatch {
@@ -394,6 +404,10 @@ impl SpriteBatch for CombinedBatch {
 
     fn draw_filtered(&mut self, filter: FilterMode, ctx: &mut Context) -> GameResult {
         self.main_batch.draw_filtered(filter, ctx)
+    }
+
+    fn get_texture(&self) -> Option<&Box<dyn BackendTexture>> {
+        self.main_batch.get_texture()
     }
 }
 

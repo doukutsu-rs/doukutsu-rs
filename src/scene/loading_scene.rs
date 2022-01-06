@@ -5,9 +5,9 @@ use crate::npc::NPCTable;
 use crate::scene::no_data_scene::NoDataScene;
 use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScript;
+use crate::scripting::tsc::text_script::TextScript;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::StageData;
-use crate::scripting::tsc::text_script::TextScript;
 
 pub struct LoadingScene {
     tick: usize,
@@ -15,9 +15,7 @@ pub struct LoadingScene {
 
 impl LoadingScene {
     pub fn new() -> Self {
-        Self {
-            tick: 0,
-        }
+        Self { tick: 0 }
     }
 
     fn load_stuff(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -71,8 +69,10 @@ impl Scene for LoadingScene {
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         match state.texture_set.get_or_load_batch(ctx, &state.constants, "Loading") {
             Ok(batch) => {
-                batch.add(((state.canvas_size.0 - batch.width() as f32) / 2.0).floor(),
-                          ((state.canvas_size.1 - batch.height() as f32) / 2.0).floor());
+                batch.add(
+                    ((state.canvas_size.0 - batch.width() as f32) / 2.0).floor(),
+                    ((state.canvas_size.1 - batch.height() as f32) / 2.0).floor(),
+                );
                 batch.draw(ctx)?;
             }
             Err(err) => {

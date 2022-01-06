@@ -5,13 +5,23 @@ use std::process::exit;
 fn main() {
     let args = std::env::args();
     let mut options = doukutsu_rs::LaunchOptions {
-        server_mode: false
+        server_mode: false,
+        editor: false,
     };
 
     for arg in args {
         if arg == "--server-mode" {
             options.server_mode = true;
         }
+
+        if arg == "--editor" {
+            options.editor = true;
+        }
+    }
+
+    if options.server_mode && options.editor {
+        eprintln!("Cannot run in server mode and editor mode at the same time.");
+        exit(1);
     }
 
     let result = doukutsu_rs::init(options);

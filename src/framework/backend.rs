@@ -1,3 +1,4 @@
+use std::any::Any;
 use imgui::DrawData;
 
 use crate::common::{Color, Rect};
@@ -17,7 +18,7 @@ pub struct VertexData {
 #[derive(Copy, Clone, PartialEq)]
 pub enum BackendShader {
     Fill,
-    Texture
+    Texture,
 }
 
 pub trait Backend {
@@ -57,13 +58,20 @@ pub trait BackendRenderer {
 
     fn imgui(&self) -> GameResult<&mut imgui::Context>;
 
+    fn imgui_texture_id(&self, texture: &Box<dyn BackendTexture>) -> GameResult<imgui::TextureId>;
+
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult;
 
     fn supports_vertex_draw(&self) -> bool {
         false
     }
 
-    fn draw_triangle_list(&mut self, vertices: Vec<VertexData>, texture: Option<&Box<dyn BackendTexture>>, shader: BackendShader) -> GameResult;
+    fn draw_triangle_list(
+        &mut self,
+        vertices: Vec<VertexData>,
+        texture: Option<&Box<dyn BackendTexture>>,
+        shader: BackendShader,
+    ) -> GameResult;
 }
 
 pub trait BackendTexture {
@@ -74,6 +82,8 @@ pub trait BackendTexture {
     fn clear(&mut self);
 
     fn draw(&mut self) -> GameResult;
+
+    fn as_any(&self) -> &dyn Any;
 }
 
 #[allow(unreachable_code)]

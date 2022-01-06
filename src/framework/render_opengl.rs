@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cell::{RefCell, UnsafeCell};
 use std::ffi::{c_void, CStr};
 use std::mem;
@@ -5,7 +6,7 @@ use std::mem::MaybeUninit;
 use std::ptr::null;
 use std::sync::Arc;
 
-use imgui::{DrawCmd, DrawCmdParams, DrawData, DrawIdx, DrawVert};
+use imgui::{DrawCmd, DrawCmdParams, DrawData, DrawIdx, DrawVert, TextureId};
 
 use crate::common::{Color, Rect};
 use crate::framework::backend::{BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData};
@@ -231,6 +232,10 @@ impl BackendTexture for OpenGLTexture {
                 Err(RenderError("No OpenGL context available!".to_string()))
             }
         }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -882,7 +887,10 @@ impl BackendRenderer for OpenGLRenderer {
         if let Some((_, gl)) = self.get_context() {
             unsafe {
                 if let Some(texture) = texture {
-                    let gl_texture: &Box<OpenGLTexture> = std::mem::transmute(texture);
+                    let gl_texture = texture
+                        .as_any()
+                        .downcast_ref::<OpenGLTexture>()
+                        .ok_or(RenderError("This texture was not created by OpenGL backend.".to_string()))?;
 
                     self.curr_matrix = [
                         [2.0 / (gl_texture.width as f32), 0.0, 0.0, 0.0],
@@ -1015,8 +1023,34 @@ impl BackendRenderer for OpenGLRenderer {
         Ok(())
     }
 
+    fn set_clip_rect(&mut self, rect: Option<Rect>) -> GameResult {
+        if let Some((_, gl)) = self.get_context() {
+            unsafe {
+                if let Some(rect) = &rect {
+                    gl.gl.Enable(gl::SCISSOR_TEST);
+                    gl.gl.Scissor(rect.left as GLint, rect.top as GLint, rect.width() as GLint, rect.height() as GLint);
+                } else {
+                    gl.gl.Disable(gl::SCISSOR_TEST);
+                }
+            }
+
+            Ok(())
+        } else {
+            Err(RenderError("No OpenGL context available!".to_string()))
+        }
+    }
+
     fn imgui(&self) -> GameResult<&mut imgui::Context> {
         unsafe { Ok(&mut *self.imgui.get()) }
+    }
+
+    fn imgui_texture_id(&self, texture: &Box<dyn BackendTexture>) -> GameResult<TextureId> {
+        let gl_texture = texture
+            .as_any()
+            .downcast_ref::<OpenGLTexture>()
+            .ok_or(RenderError("This texture was not created by OpenGL backend.".to_string()))?;
+
+        Ok(TextureId::new(gl_texture.texture_id as usize))
     }
 
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult {
@@ -1147,39 +1181,22 @@ impl BackendRenderer for OpenGLRenderer {
         Ok(())
     }
 
+    fn supports_vertex_draw(&self) -> bool {
+        true
+    }
+
     fn draw_triangle_list(
         &mut self,
         vertices: Vec<VertexData>,
         texture: Option<&Box<dyn BackendTexture>>,
         shader: BackendShader,
     ) -> GameResult<()> {
-        unsafe { self.draw_arrays(gl::TRIANGLES, vertices, texture, shader) }
-    }
-
-    fn supports_vertex_draw(&self) -> bool {
-        true
-    }
-
-    fn set_clip_rect(&mut self, rect: Option<Rect>) -> GameResult {
-        if let Some((_, gl)) = self.get_context() {
-            unsafe {
-                if let Some(rect) = &rect {
-                    gl.gl.Enable(gl::SCISSOR_TEST);
-                    gl.gl.Scissor(rect.left as GLint, rect.top as GLint, rect.width() as GLint, rect.height() as GLint);
-                } else {
-                    gl.gl.Disable(gl::SCISSOR_TEST);
-                }
-            }
-
-            Ok(())
-        } else {
-            Err(RenderError("No OpenGL context available!".to_string()))
-        }
+        self.draw_arrays(gl::TRIANGLES, vertices, texture, shader)
     }
 }
 
 impl OpenGLRenderer {
-    unsafe fn draw_arrays(
+    fn draw_arrays(
         &mut self,
         vert_type: GLenum,
         vertices: Vec<VertexData>,
@@ -1191,13 +1208,17 @@ impl OpenGLRenderer {
         }
 
         let texture_id = if let Some(texture) = texture {
-            let gl_texture: &Box<OpenGLTexture> = std::mem::transmute(texture);
+            let gl_texture = texture
+                .as_any()
+                .downcast_ref::<OpenGLTexture>()
+                .ok_or(RenderError("This texture was not created by OpenGL backend.".to_string()))?;
+
             gl_texture.texture_id
         } else {
             0
         };
 
-        self.draw_arrays_tex_id(vert_type, vertices, texture_id, shader)
+        unsafe { self.draw_arrays_tex_id(vert_type, vertices, texture_id, shader) }
     }
 
     unsafe fn draw_arrays_tex_id(

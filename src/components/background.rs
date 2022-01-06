@@ -48,12 +48,13 @@ impl Background {
             BackgroundType::TiledStatic => {
                 graphics::clear(ctx, stage.data.background_color);
 
-                let count_x = state.canvas_size.0 as usize / batch.width() + 1;
-                let count_y = state.canvas_size.1 as usize / batch.height() + 1;
+                let (bg_width, bg_height) = (batch.width() as i32, batch.height() as i32);
+                let count_x = state.canvas_size.0 as i32 / bg_width + 1;
+                let count_y = state.canvas_size.1 as i32 / bg_height + 1;
 
-                for y in 0..count_y {
-                    for x in 0..count_x {
-                        batch.add((x * batch.width()) as f32, (y * batch.height()) as f32);
+                for y in -1..count_y {
+                    for x in -1..count_x {
+                        batch.add((x * bg_width) as f32, (y * bg_height) as f32);
                     }
                 }
             }
@@ -69,12 +70,13 @@ impl Background {
                     )
                 };
 
-                let count_x = state.canvas_size.0 as usize / batch.width() + 2;
-                let count_y = state.canvas_size.1 as usize / batch.height() + 2;
+                let (bg_width, bg_height) = (batch.width() as i32, batch.height() as i32);
+                let count_x = state.canvas_size.0 as i32 / bg_width + 2;
+                let count_y = state.canvas_size.1 as i32 / bg_height + 2;
 
-                for y in 0..count_y {
-                    for x in 0..count_x {
-                        batch.add((x * batch.width()) as f32 - off_x, (y * batch.height()) as f32 - off_y);
+                for y in -1..count_y {
+                    for x in -1..count_x {
+                        batch.add((x * bg_width) as f32 - off_x, (y * bg_height) as f32 - off_y);
                     }
                 }
             }

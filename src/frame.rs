@@ -23,6 +23,19 @@ pub struct Frame {
 }
 
 impl Frame {
+    pub fn new() -> Frame {
+        Frame {
+            x: 0,
+            y: 0,
+            prev_x: 0,
+            prev_y: 0,
+            update_target: UpdateTarget::Player,
+            target_x: 0,
+            target_y: 0,
+            wait: 16,
+        }
+    }
+
     pub fn xy_interpolated(&self, frame_time: f64) -> (f32, f32) {
         if self.prev_x == self.x && self.prev_y == self.y {
             return (fix9_scale(self.x), fix9_scale(self.y));
