@@ -317,7 +317,6 @@ impl TextScript {
 
 impl CreditScript {
     pub fn compile(data: &[u8], strict: bool, encoding: TextScriptEncoding) -> GameResult<CreditScript> {
-        println!("data: {}", String::from_utf8_lossy(data));
         let mut labels = HashMap::new();
         let mut bytecode = Vec::new();
         let mut iter = data.iter().copied().peekable();
