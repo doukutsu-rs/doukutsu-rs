@@ -4,8 +4,8 @@ use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::input::touch_controls::TouchControlType;
-use crate::menu::settings_menu::SettingsMenu;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
+use crate::menu::settings_menu::SettingsMenu;
 use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
 
@@ -144,10 +144,10 @@ impl Scene for TitleScene {
                 }
                 MenuSelectionResult::Selected(3, _) => {
                     #[cfg(feature = "editor")]
-                    {
-                        use crate::scene::editor_scene::EditorScene;
-                        state.next_scene = Some(Box::new(EditorScene::new()));
-                    }
+                        {
+                            use crate::scene::editor_scene::EditorScene;
+                            state.next_scene = Some(Box::new(EditorScene::new()));
+                        }
                 }
                 MenuSelectionResult::Selected(4, _) => {
                     state.shutdown();

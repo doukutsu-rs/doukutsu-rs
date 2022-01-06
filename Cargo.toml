@@ -6,7 +6,6 @@ authors = ["Alula"]
 edition = "2018"
 
 [lib]
-#crate-type = ["lib", "cdylib"]
 crate-type = ["lib"]
 
 [[bin]]
@@ -57,6 +56,7 @@ case_insensitive_hashmap = "1.0.0"
 chrono = "0.4"
 cpal = { git = "https://github.com/doukutsu-rs/cpal.git", rev = "4218ff23242834d36bcdcc0c2e3883985c15b5e0" }
 directories = "3"
+downcast = "0.11"
 funty = "=1.1.0" # https://github.com/bitvecto-rs/bitvec/issues/105
 glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "8dd457b9adb7dbac7ade337246b6356c784272d9", optional = true, default_features = false, features = ["x11"] }
 imgui = "0.8.0"
@@ -76,7 +76,7 @@ serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_cbor = { version = "0.11.2", optional = true }
 serde_json = "1.0"
-simple_logger = { version = "1.13" }
+simple_logger = { version = "1.16", features = ["colors", "threads"] }
 strum = "0.20"
 strum_macros = "0.20"
 tokio = { version = "1.12.0", features = ["net"], optional = true }

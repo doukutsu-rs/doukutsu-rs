@@ -5,7 +5,7 @@ use std::rc::Rc;
 use log::info;
 
 use crate::caret::CaretType;
-use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
+use crate::common::{Color, Direction, interpolate_fix9_scale, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
@@ -21,30 +21,30 @@ use crate::components::tilemap::{TileLayer, Tilemap};
 use crate::components::water_renderer::WaterRenderer;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
+use crate::framework::{filesystem, graphics};
 use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
+use crate::framework::graphics::{BlendMode, draw_rect, FilterMode};
 use crate::framework::ui::Components;
-use crate::framework::{filesystem, graphics};
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::map::WaterParams;
+use crate::npc::{NPC, NPCLayer};
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
-use crate::npc::{NPCLayer, NPC};
-use crate::physics::{PhysicalEntity, OFFSETS};
+use crate::physics::{OFFSETS, PhysicalEntity};
 use crate::player::{Player, TargetPlayer};
 use crate::rng::XorShift;
-use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
+use crate::scene::title_scene::TitleScene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
-use crate::weapon::bullet::BulletManager;
 use crate::weapon::{Weapon, WeaponType};
+use crate::weapon::bullet::BulletManager;
 
 pub struct GameScene {
     pub tick: u32,
@@ -96,11 +96,16 @@ impl GameScene {
         info!("Loading stage {} ({})", id, &state.stages[id].map);
         let stage = Stage::load(&state.base_path, &state.stages[id], ctx)?;
         info!("Loaded stage: {}", stage.data.name);
+
+        GameScene::from_stage(state, ctx, stage, id)
+    }
+
+    pub fn from_stage(state: &mut SharedGameState, ctx: &mut Context, stage: Stage, id: usize) -> GameResult<Self> {
         let mut water_params = WaterParams::new();
         let mut water_renderer = WaterRenderer::new();
 
         if let Ok(water_param_file) =
-            filesystem::open(ctx, [&state.base_path, "Stage/", &state.stages[id].tileset.name, ".pxw"].join(""))
+        filesystem::open(ctx, [&state.base_path, "Stage/", &state.stages[id].tileset.name, ".pxw"].join(""))
         {
             water_params.load_from(water_param_file)?;
             info!("Loaded water parameters file.");
@@ -109,23 +114,9 @@ impl GameScene {
         }
 
         let stage_textures = {
-            let background = stage.data.background.filename();
-            let (tileset_fg, tileset_mg, tileset_bg) = if let Some(pxpack_data) = stage.data.pxpack_data.as_ref() {
-                let t_fg = ["Stage/", &pxpack_data.tileset_fg].join("");
-                let t_mg = ["Stage/", &pxpack_data.tileset_mg].join("");
-                let t_bg = ["Stage/", &pxpack_data.tileset_bg].join("");
-
-                (t_fg, t_mg, t_bg)
-            } else {
-                let tex_tileset_name = ["Stage/", &stage.data.tileset.filename()].join("");
-
-                (tex_tileset_name.clone(), tex_tileset_name.clone(), tex_tileset_name)
-            };
-
-            let npc1 = ["Npc/", &stage.data.npc1.filename()].join("");
-            let npc2 = ["Npc/", &stage.data.npc2.filename()].join("");
-
-            Rc::new(RefCell::new(StageTexturePaths { background, tileset_fg, tileset_mg, tileset_bg, npc1, npc2 }))
+            let mut textures = StageTexturePaths::new();
+            textures.update(&stage);
+            Rc::new(RefCell::new(textures))
         };
 
         Ok(Self {
@@ -149,16 +140,7 @@ impl GameScene {
             tilemap: Tilemap::new(),
             text_boxes: TextBoxes::new(),
             fade: Fade::new(),
-            frame: Frame {
-                x: 0,
-                y: 0,
-                prev_x: 0,
-                prev_y: 0,
-                update_target: UpdateTarget::Player,
-                target_x: 0,
-                target_y: 0,
-                wait: 16,
-            },
+            frame: Frame::new(),
             stage_id: id,
             npc_list: NPCList::new(),
             boss: BossNPC::new(),

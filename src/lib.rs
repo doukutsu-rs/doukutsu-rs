@@ -32,15 +32,17 @@ mod builtin_fs;
 mod caret;
 mod common;
 mod components;
+#[cfg(feature = "editor")]
+mod editor;
 mod encoding;
 mod engine_constants;
 mod entity;
 mod frame;
 mod framework;
-mod input;
-mod inventory;
 #[cfg(feature = "hooks")]
 mod hooks;
+mod input;
+mod inventory;
 mod live_debugger;
 mod macros;
 mod map;
@@ -65,6 +67,7 @@ mod weapon;
 
 pub struct LaunchOptions {
     pub server_mode: bool,
+    pub editor: bool,
 }
 
 lazy_static! {
@@ -100,11 +103,12 @@ impl Game {
         if let Some(scene) = self.scene.as_mut() {
             let state_ref = unsafe { &mut *self.state.get() };
 
-            let speed = if state_ref.textscript_vm.mode == ScriptMode::Map && state_ref.textscript_vm.flags.cutscene_skip() {
-                4.0 * state_ref.settings.speed
-            } else {
-                1.0 * state_ref.settings.speed
-            };
+            let speed =
+                if state_ref.textscript_vm.mode == ScriptMode::Map && state_ref.textscript_vm.flags.cutscene_skip() {
+                    4.0 * state_ref.settings.speed
+                } else {
+                    1.0 * state_ref.settings.speed
+                };
 
             match state_ref.settings.timing_mode {
                 TimingMode::_50Hz | TimingMode::_60Hz => {
@@ -114,8 +118,7 @@ impl Game {
                         if (speed - 1.0).abs() < 0.01 {
                             self.next_tick += state_ref.settings.timing_mode.get_delta() as u128;
                         } else {
-                            self.next_tick +=
-                                (state_ref.settings.timing_mode.get_delta() as f64 / speed) as u128;
+                            self.next_tick += (state_ref.settings.timing_mode.get_delta() as f64 / speed) as u128;
                         }
                         self.loops += 1;
                     }
@@ -123,8 +126,8 @@ impl Game {
                     if self.loops == 10 {
                         log::warn!("Frame skip is way too high, a long system lag occurred?");
                         self.last_tick = self.start_time.elapsed().as_nanos();
-                        self.next_tick = self.last_tick
-                            + (state_ref.settings.timing_mode.get_delta() as f64 / speed) as u128;
+                        self.next_tick =
+                            self.last_tick + (state_ref.settings.timing_mode.get_delta() as f64 / speed) as u128;
                         self.loops = 0;
                     }
 
@@ -198,7 +201,11 @@ impl Game {
 }
 
 pub fn init(options: LaunchOptions) -> GameResult {
-    let _ = simple_logger::init_with_level(log::Level::Info);
+    let _ = simple_logger::SimpleLogger::new()
+        .without_timestamps()
+        .with_colors(true)
+        .with_level(log::Level::Info.to_level_filter())
+        .init();
 
     #[cfg(not(target_os = "android"))]
     let resource_dir = if let Ok(data_dir) = env::var("CAVESTORY_DATA_DIR") {
@@ -264,17 +271,17 @@ pub fn init(options: LaunchOptions) -> GameResult {
     }
 
     #[cfg(not(target_os = "android"))]
-        {
-            if let Ok(_) = crate::framework::filesystem::open(&mut context, "/.drs_localstorage") {
-                let mut user_dir = resource_dir.clone();
-                user_dir.push("_drs_profile");
+    {
+        if let Ok(_) = crate::framework::filesystem::open(&mut context, "/.drs_localstorage") {
+            let mut user_dir = resource_dir.clone();
+            user_dir.push("_drs_profile");
 
-                let _ = std::fs::create_dir_all(&user_dir);
-                mount_user_vfs(&mut context, Box::new(PhysicalFS::new(&user_dir, false)));
-            } else {
-                mount_user_vfs(&mut context, Box::new(PhysicalFS::new(project_dirs.data_local_dir(), false)));
-            }
+            let _ = std::fs::create_dir_all(&user_dir);
+            mount_user_vfs(&mut context, Box::new(PhysicalFS::new(&user_dir, false)));
+        } else {
+            mount_user_vfs(&mut context, Box::new(PhysicalFS::new(project_dirs.data_local_dir(), false)));
         }
+    }
 
     if options.server_mode {
         log::info!("Running in server mode...");

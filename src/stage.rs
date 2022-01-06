@@ -1,8 +1,8 @@
 use std::io::{Cursor, Read};
 use std::str::from_utf8;
 
-use byteorder::LE;
 use byteorder::ReadBytesExt;
+use byteorder::LE;
 use log::info;
 
 use crate::common::Color;
@@ -511,6 +511,7 @@ impl StageData {
     }
 }
 
+#[derive(Clone)]
 pub struct Stage {
     pub map: Map,
     pub data: StageData,
@@ -608,5 +609,26 @@ impl StageTexturePaths {
             npc1: "Npc/Npc0".to_owned(),
             npc2: "Npc/Npc0".to_owned(),
         }
+    }
+
+    pub fn update(&mut self, stage: &Stage) {
+        self.background = stage.data.background.filename();
+        let (tileset_fg, tileset_mg, tileset_bg) = if let Some(pxpack_data) = stage.data.pxpack_data.as_ref() {
+            let t_fg = ["Stage/", &pxpack_data.tileset_fg].join("");
+            let t_mg = ["Stage/", &pxpack_data.tileset_mg].join("");
+            let t_bg = ["Stage/", &pxpack_data.tileset_bg].join("");
+
+            (t_fg, t_mg, t_bg)
+        } else {
+            let tex_tileset_name = ["Stage/", &stage.data.tileset.filename()].join("");
+
+            (tex_tileset_name.clone(), tex_tileset_name.clone(), tex_tileset_name)
+        };
+        self.tileset_fg = tileset_fg;
+        self.tileset_mg = tileset_mg;
+        self.tileset_bg = tileset_bg;
+
+        self.npc1 = ["Npc/", &stage.data.npc1.filename()].join("");
+        self.npc2 = ["Npc/", &stage.data.npc2.filename()].join("");
     }
 }
