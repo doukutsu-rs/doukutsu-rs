@@ -10,28 +10,32 @@ pub const OCT_TBL: [i16; 8] = [
     32, 64, 64, 128, 128, 128, 128, 128
 ];
 
-pub fn org_key_to_freq(key: u8, a: i16) -> i32 {
+pub const fn org_key_to_freq(key: u8, a: i16) -> i32 {
     let (oct, pitch) = org_key_to_oct_pitch(key);
 
-    let freq = FRQ_TBL[pitch as usize] as f32;
-    let oct = OCT_TBL[oct as usize] as f32;
+    let freq = FRQ_TBL[pitch as usize] as i32;
+    let oct = OCT_TBL[oct as usize] as i32;
 
-    (freq * oct) as i32 + (a as i32 - 1000)
+    (freq * oct) + (a as i32 - 1000)
 }
 
-pub fn org_key_to_drum_freq(key: u8) -> i32 {
+#[inline(always)]
+pub const fn org_key_to_drum_freq(key: u8) -> i32 {
     key as i32 * 800 + 100
 }
 
-pub fn org_pan_to_pan(pan: u8) -> i32 {
+#[inline(always)]
+pub const fn org_pan_to_pan(pan: u8) -> i32 {
     (PAN_TBL[pan as usize] as i32 - 256) * 10
 }
 
-pub fn org_vol_to_vol(vol: u8) -> i32 {
+#[inline(always)]
+pub const fn org_vol_to_vol(vol: u8) -> i32 {
     (vol as i32 - 255) * 8
 }
 
-pub fn org_key_to_oct_pitch(key: u8) -> (u8, u8) {
+#[inline(always)]
+pub const fn org_key_to_oct_pitch(key: u8) -> (u8, u8) {
     (key / 12, key % 12)
 }
 
@@ -40,6 +44,7 @@ pub fn org_key_to_oct_pitch(key: u8) -> (u8, u8) {
 // sp: previous sample (before s1)
 // sn: next sample (after s2)
 // mu: position to interpolate for
+#[inline(always)]
 pub fn cubic_interp(s1: f32, s2: f32, sp: f32, sn: f32, mu: f32) -> f32 {
     let mu2 = mu * mu;
     let a0 = sn - s2 - sp + s1;

@@ -147,9 +147,20 @@ impl OggPlaybackEngine {
         }
     }
 
-    fn resample_buffer(&self, mut data: Vec<i16>, sample_rate: u32, _channels: u8) -> Vec<i16> {
+    fn resample_buffer(&self, mut data: Vec<i16>, sample_rate: u32, channels: u8) -> Vec<i16> {
+        if channels == 1 {
+            let mut tmp_data = Vec::with_capacity(data.len() * 2);
+
+            for s in data.iter().copied() {
+                tmp_data.push(s);
+                tmp_data.push(s);
+            }
+
+            data = tmp_data;
+        }
+
         if sample_rate != self.output_format.sample_rate {
-            let mut tmp_data = Vec::new();
+            let mut tmp_data = Vec::with_capacity((data.len() as f64 * self.output_format.sample_rate as f64 / sample_rate as f64) as usize);
             let mut pos = 0.0;
             let phase = sample_rate as f32 / self.output_format.sample_rate as f32;
 
@@ -164,11 +175,8 @@ impl OggPlaybackEngine {
                     let s1 = (*data.get_unchecked(upos) as f32) / 32768.0;
                     let s2 =
                         (*data.get_unchecked(clamp(upos + 1, 0, data.len() - 1)) as f32) / 32768.0;
-                    let s3 =
-                        (*data.get_unchecked(clamp(upos + 2, 0, data.len() - 1)) as f32) / 32768.0;
-                    let s4 = (*data.get_unchecked(upos.saturating_sub(1)) as f32) / 32768.0;
 
-                    (cubic_interp(s1, s2, s4, s3, pos.fract()) * 32768.0) as i16
+                    (s1 + (s2 - s1) * pos.fract()) as i16
                 };
                 tmp_data.push(s);
 

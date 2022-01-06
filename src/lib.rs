@@ -240,8 +240,6 @@ pub fn init(options: LaunchOptions) -> GameResult {
     log::info!("Initializing engine...");
 
     let mut context = Context::new();
-    mount_vfs(&mut context, Box::new(BuiltinFS::new()));
-
     #[cfg(not(target_os = "android"))]
     mount_vfs(&mut context, Box::new(PhysicalFS::new(&resource_dir, true)));
 
@@ -282,6 +280,8 @@ pub fn init(options: LaunchOptions) -> GameResult {
             mount_user_vfs(&mut context, Box::new(PhysicalFS::new(project_dirs.data_local_dir(), false)));
         }
     }
+
+    mount_vfs(&mut context, Box::new(BuiltinFS::new()));
 
     if options.server_mode {
         log::info!("Running in server mode...");
