@@ -93,7 +93,7 @@ impl Settings {
 
     pub fn save(&self, ctx: &Context) -> GameResult {
         let file = user_create(ctx, "/settings.json")?;
-        serde_json::to_writer(file, self)?;
+        serde_json::to_writer_pretty(file, self)?;
 
         Ok(())
     }

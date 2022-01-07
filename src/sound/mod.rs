@@ -539,7 +539,7 @@ where
                                 }
 
                                 for i in &mut bgm_buf[0..samples] {
-                                    *i = 0x8080
+                                    *i = 0x8000
                                 }
                                 samples = org_engine.render_to(&mut bgm_buf);
                                 bgm_index = 0;
@@ -581,40 +581,26 @@ where
                     if state == PlaybackState::Stopped {
                         (0x8000, 0x8000)
                     } else if bgm_index < samples {
-                        match state {
-                            PlaybackState::PlayingOrg => {
-                                let sample = bgm_buf[bgm_index];
-                                bgm_index += 1;
-                                ((sample & 0xff) << 8, sample & 0xff00)
-                            }
-                            #[cfg(feature = "ogg-playback")]
-                            PlaybackState::PlayingOgg => {
-                                let samples = (bgm_buf[bgm_index], bgm_buf[bgm_index + 1]);
-                                bgm_index += 2;
-                                samples
-                            }
-                            _ => unreachable!(),
-                        }
+                        let samples = (bgm_buf[bgm_index], bgm_buf[bgm_index + 1]);
+                        bgm_index += 2;
+                        samples
                     } else {
                         for i in &mut bgm_buf[0..samples] {
-                            *i = 0x8080
+                            *i = 0x8000
                         }
 
                         match state {
                             PlaybackState::PlayingOrg => {
                                 samples = org_engine.render_to(&mut bgm_buf);
-                                bgm_index = 1;
-                                let sample = bgm_buf[0];
-                                ((sample & 0xff) << 8, sample & 0xff00)
                             }
                             #[cfg(feature = "ogg-playback")]
                             PlaybackState::PlayingOgg => {
                                 samples = ogg_engine.render_to(&mut bgm_buf);
-                                bgm_index = 2;
-                                (bgm_buf[0], bgm_buf[1])
                             }
                             _ => unreachable!(),
                         }
+                        bgm_index = 2;
+                        (bgm_buf[0], bgm_buf[1])
                     }
                 };
 
