@@ -507,7 +507,7 @@ impl NPC {
                         Direction::Bottom => {
                             self.vel_y = 0x600;
                         }
-                        Direction::FacingPlayer => unreachable!(),
+                        _ => (),
                     }
                 }
 
@@ -517,7 +517,7 @@ impl NPC {
                 self.x += self.vel_x;
                 self.y += self.vel_y;
 
-                if self.flags.0 != 0 {self.action_num = 10};
+                if self.flags.hit_anything() {self.action_num = 10};
 
                 if self.action_counter > 20 {
                     if (self.direction == Direction::Left && self.x <= player.x + 0x4000) 
@@ -630,7 +630,7 @@ impl NPC {
         }
 
         self.vel_y += 0x55;
-        if self.vel_y > 0x55F {self.vel_y = 0x55F};
+        if self.vel_y > 0x5FF {self.vel_y = 0x5FF};
 
         self.x += self.vel_x;
         self.y += self.vel_y;

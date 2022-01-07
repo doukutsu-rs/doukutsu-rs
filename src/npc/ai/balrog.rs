@@ -183,7 +183,7 @@ impl NPC {
     }
 
     pub(crate) fn tick_n011_balrogs_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
-        if self.flags.0 != 0 {
+        if self.flags.hit_anything() {
             self.cond.set_alive(false);
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
         }
