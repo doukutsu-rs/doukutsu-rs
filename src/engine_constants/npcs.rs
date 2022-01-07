@@ -432,8 +432,8 @@ pub struct NPCConsts {
     #[serde(default = "default_n145_king_sword")]
     pub n145_king_sword: [Rect<u16>; 2],
 
-    #[serde(default = "default_n146_lighting")]
-    pub n146_lighting: [Rect<u16>; 5],
+    #[serde(default = "default_n146_lightning")]
+    pub n146_lightning: [Rect<u16>; 5],
 
     #[serde(default = "default_n147_critter_purple")]
     pub n147_critter_purple: [Rect<u16>; 12],
@@ -736,11 +736,11 @@ pub struct NPCConsts {
     #[serde(default = "default_n249_misery_boss_appearing")]
     pub n249_misery_boss_appearing: [Rect<u16>; 2],
 
-    #[serde(default = "default_n250_misery_boss_lighting_ball")]
-    pub n250_misery_boss_lighting_ball: [Rect<u16>; 3],
+    #[serde(default = "default_n250_misery_boss_lightning_ball")]
+    pub n250_misery_boss_lightning_ball: [Rect<u16>; 3],
 
-    #[serde(default = "default_n251_misery_boss_lighting")]
-    pub n251_misery_boss_lighting: [Rect<u16>; 2],
+    #[serde(default = "default_n251_misery_boss_lightning")]
+    pub n251_misery_boss_lightning: [Rect<u16>; 2],
 
     #[serde(default = "default_n252_misery_boss_bats")]
     pub n252_misery_boss_bats: [Rect<u16>; 8],
@@ -946,8 +946,8 @@ pub struct NPCConsts {
     pub n323_bute_spinning: [Rect<u16>; 4],
 
     // pub n324_bute_generator: () // Defined in code
-    #[serde(default = "default_n325_heavy_press_lighting")]
-    pub n325_heavy_press_lighting: [Rect<u16>; 7],
+    #[serde(default = "default_n325_heavy_press_lightning")]
+    pub n325_heavy_press_lightning: [Rect<u16>; 7],
 
     #[serde(default = "default_n326_sue_itoh_human_transition")]
     pub n326_sue_itoh_human_transition: [Rect<u16>; 16],
@@ -970,8 +970,8 @@ pub struct NPCConsts {
     #[serde(default = "default_n332_ballos_shockwave")]
     pub n332_ballos_shockwave: [Rect<u16>; 3],
 
-    #[serde(default = "default_n333_ballos_lighting")]
-    pub n333_ballos_lighting: [Rect<u16>; 2],
+    #[serde(default = "default_n333_ballos_lightning")]
+    pub n333_ballos_lightning: [Rect<u16>; 2],
 
     #[serde(default = "default_n334_sweat")]
     pub n334_sweat: [Rect<u16>; 4],
@@ -2677,7 +2677,7 @@ fn default_n145_king_sword() -> [Rect<u16>; 2] {
     [Rect { left: 96, top: 32, right: 112, bottom: 48 }, Rect { left: 112, top: 32, right: 128, bottom: 48 }]
 }
 
-fn default_n146_lighting() -> [Rect<u16>; 5] {
+fn default_n146_lightning() -> [Rect<u16>; 5] {
     [
         Rect { left: 0, top: 0, right: 0, bottom: 0 },
         Rect { left: 256, top: 0, right: 272, bottom: 240 },
@@ -3588,7 +3588,7 @@ fn default_n249_misery_boss_appearing() -> [Rect<u16>; 2] {
     [Rect { left: 48, top: 48, right: 64, bottom: 64 }, Rect { left: 64, top: 48, right: 80, bottom: 64 }]
 }
 
-fn default_n250_misery_boss_lighting_ball() -> [Rect<u16>; 3] {
+fn default_n250_misery_boss_lightning_ball() -> [Rect<u16>; 3] {
     [
         Rect { left: 0, top: 32, right: 16, bottom: 48 },
         Rect { left: 16, top: 32, right: 32, bottom: 48 },
@@ -3596,7 +3596,7 @@ fn default_n250_misery_boss_lighting_ball() -> [Rect<u16>; 3] {
     ]
 }
 
-fn default_n251_misery_boss_lighting() -> [Rect<u16>; 2] {
+fn default_n251_misery_boss_lightning() -> [Rect<u16>; 2] {
     [Rect { left: 80, top: 32, right: 96, bottom: 64 }, Rect { left: 96, top: 32, right: 112, bottom: 64 }]
 }
 
@@ -4308,7 +4308,7 @@ fn default_n323_bute_spinning() -> [Rect<u16>; 4] {
     ]
 }
 
-fn default_n325_heavy_press_lighting() -> [Rect<u16>; 7] {
+fn default_n325_heavy_press_lightning() -> [Rect<u16>; 7] {
     [
         Rect { left: 240, top: 96, right: 272, bottom: 128 },
         Rect { left: 272, top: 96, right: 304, bottom: 128 },
@@ -4378,7 +4378,7 @@ fn default_n332_ballos_shockwave() -> [Rect<u16>; 3] {
     ]
 }
 
-fn default_n333_ballos_lighting() -> [Rect<u16>; 2] {
+fn default_n333_ballos_lightning() -> [Rect<u16>; 2] {
     [Rect { left: 80, top: 120, right: 104, bottom: 144 }, Rect { left: 104, top: 120, right: 128, bottom: 144 }]
 }
 

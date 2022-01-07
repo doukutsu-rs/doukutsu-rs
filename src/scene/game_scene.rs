@@ -605,6 +605,7 @@ impl GameScene {
                     continue;
                 }
 
+                // NPC lighting 
                 match npc.npc_type {
                     1 => {
                         self.draw_light(
@@ -742,6 +743,23 @@ impl GameScene {
                             ),
                             1.5,
                             (128, 0, 0),
+                            batch,
+                        );
+                    }
+                    27 => {
+                        self.draw_light(
+                            interpolate_fix9_scale(
+                                npc.prev_x - self.frame.prev_x,
+                                npc.x - self.frame.x,
+                                state.frame_time,
+                            ) + 0.5,
+                            interpolate_fix9_scale(
+                                npc.prev_y - self.frame.prev_y,
+                                npc.y - self.frame.y,
+                                state.frame_time,
+                            ),
+                            3.0,
+                            (96, 0, 0),
                             batch,
                         );
                     }
@@ -895,6 +913,45 @@ impl GameScene {
                         (255, 255, 255),
                         batch,
                     ),
+                    311 => {
+                        let size = if npc.anim_num % 7 == 2 || npc.anim_num % 7 == 5 {1.0} else {0.0};
+
+                        self.draw_light(
+                            interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
+                            interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
+                            size,
+                            (255,255,255),
+                            batch,)
+                    }
+                    312 => self.draw_light(
+                        interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
+                        interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
+                        0.5,
+                        (255,255,255),
+                        batch,
+                    ),
+                    319 => {
+                        let color = if npc.anim_num == 2 {(255, 29, 0)} else {(234, 157, 68)};
+
+                        self.draw_light(
+                            interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
+                            interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
+                            1.0,
+                            color,
+                            batch,)
+                    }
+                    322 => {
+                        let scale = 0.004 * (npc.action_counter as f32);
+
+                        self.draw_light_raycast(
+                            state.tile_size,
+                            npc.x,
+                            npc.y,
+                            (255, 0, 0),
+                            scale,
+                            0..360,
+                            batch,)
+                    }
                     _ => {}
                 }
             }
@@ -1508,7 +1565,7 @@ impl Scene for GameScene {
                 match state.textscript_vm.state {
                     TextScriptExecutionState::FallingIsland(_, _, _, _, _, _) => (),
                     _ => {
-                        if state.control_flags.tick_world() {
+                        if state.control_flags.tick_world() {                            
                             self.tick_world(state)?;
                         }
                     }
