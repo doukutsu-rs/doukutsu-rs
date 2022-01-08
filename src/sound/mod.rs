@@ -403,6 +403,12 @@ enum PlaybackStateType {
     Ogg(SavedOggPlaybackState),
 }
 
+impl Default for PlaybackStateType {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
 fn run<T>(
     rx: Receiver<PlaybackMessage>,
     bank: SoundBank,
@@ -526,11 +532,12 @@ where
                         };
                     }
                     Ok(PlaybackMessage::RestoreState) => {
-                        let mut saved_state_loc = PlaybackStateType::None;
-                        std::mem::swap(&mut saved_state_loc, &mut saved_state);
+                        let saved_state_loc = std::mem::take(&mut saved_state);
 
                         match saved_state_loc {
-                            PlaybackStateType::None => {}
+                            PlaybackStateType::None => {
+                                state = PlaybackState::Stopped;
+                            }
                             PlaybackStateType::Organya(playback_state) => {
                                 org_engine.set_state(playback_state, &bank);
 
