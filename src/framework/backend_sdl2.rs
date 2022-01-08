@@ -1073,25 +1073,6 @@ impl ImguiSdl2 {
         Self { mouse_press: [false; 5], ignore_keyboard: false, ignore_mouse: false, cursor: None, sdl_cursor: None }
     }
 
-    pub fn ignore_event(&self, event: &Event) -> bool {
-        match *event {
-            Event::KeyDown { .. } | Event::KeyUp { .. } | Event::TextEditing { .. } | Event::TextInput { .. } => {
-                self.ignore_keyboard
-            }
-            Event::MouseMotion { .. }
-            | Event::MouseButtonDown { .. }
-            | Event::MouseButtonUp { .. }
-            | Event::MouseWheel { .. }
-            | Event::FingerDown { .. }
-            | Event::FingerUp { .. }
-            | Event::FingerMotion { .. }
-            | Event::DollarGesture { .. }
-            | Event::DollarRecord { .. }
-            | Event::MultiGesture { .. } => self.ignore_mouse,
-            _ => false,
-        }
-    }
-
     pub fn handle_event(&mut self, imgui: &mut imgui::Context, event: &Event) {
         use sdl2::mouse::MouseButton;
 
@@ -1105,10 +1086,6 @@ impl ImguiSdl2 {
             imgui.io_mut().key_alt = alt;
             imgui.io_mut().key_shift = shift;
             imgui.io_mut().key_super = super_;
-        }
-
-        if self.ignore_event(event) {
-            return;
         }
 
         match *event {
