@@ -240,8 +240,12 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
         if self.weapon_count != 0 {
             let mut rect = Rect::new(0, 0, 0, 16);
 
+            // First frame of animation is off by one weapon
+            // There's probably a more elegant solution than this
+            let first_frame_offset = if self.weapon_x_pos == 32 { -1 } else if self.weapon_x_pos == 0 { 1 } else { 0 };
+
             for a in 0..self.weapon_count {
-                let mut pos_x = ((a as isize - self.current_weapon) as f32 * 16.0) + weap_x;
+                let mut pos_x = ((a as isize - self.current_weapon + first_frame_offset) as f32 * 16.0) + weap_x;
 
                 if pos_x < 8.0 {
                     pos_x += 48.0 + self.weapon_count as f32 * 16.0;
@@ -266,6 +270,7 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
                     batch.add_rect(pos_x + weapon_offset, 16.0 + top, &rect);
                 }
             }
+
         }
 
         batch.draw(ctx)?;

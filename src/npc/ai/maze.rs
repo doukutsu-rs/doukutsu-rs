@@ -162,7 +162,7 @@ impl NPC {
     }
 
     pub(crate) fn tick_n148_critter_purple_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
-        if self.flags.0 != 0 {
+        if self.flags.hit_anything() {
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
             self.cond.set_alive(false);
         }

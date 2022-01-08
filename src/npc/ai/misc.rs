@@ -1077,7 +1077,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n146_lighting(
+    pub(crate) fn tick_n146_lightning(
         &mut self,
         state: &mut SharedGameState,
         npc_list: &NPCList,
@@ -1116,7 +1116,7 @@ impl NPC {
             _ => (),
         }
 
-        self.anim_rect = state.constants.npc.n146_lighting[self.anim_num as usize];
+        self.anim_rect = state.constants.npc.n146_lightning[self.anim_num as usize];
 
         Ok(())
     }
@@ -1816,7 +1816,7 @@ impl NPC {
                 }
             }
             5 => {
-                if self.flags.hit_bottom_wall() {
+                if !self.flags.hit_bottom_wall() {
                     self.action_num = 10;
                     self.anim_counter = 0;
                     self.anim_num = 1;

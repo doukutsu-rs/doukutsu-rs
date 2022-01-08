@@ -735,7 +735,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n250_misery_boss_lighting_ball(
+    pub(crate) fn tick_n250_misery_boss_lightning_ball(
         &mut self,
         state: &mut SharedGameState,
         players: [&mut Player; 2],
@@ -794,12 +794,12 @@ impl NPC {
             _ => (),
         }
 
-        self.anim_rect = state.constants.npc.n250_misery_boss_lighting_ball[self.anim_num as usize];
+        self.anim_rect = state.constants.npc.n250_misery_boss_lightning_ball[self.anim_num as usize];
 
         Ok(())
     }
 
-    pub(crate) fn tick_n251_misery_boss_lighting(
+    pub(crate) fn tick_n251_misery_boss_lightning(
         &mut self,
         state: &mut SharedGameState,
         npc_list: &NPCList,
@@ -818,7 +818,7 @@ impl NPC {
             }
         }
 
-        self.anim_rect = state.constants.npc.n251_misery_boss_lighting[self.anim_num as usize];
+        self.anim_rect = state.constants.npc.n251_misery_boss_lightning[self.anim_num as usize];
 
         Ok(())
     }

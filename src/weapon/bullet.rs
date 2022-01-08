@@ -1452,6 +1452,78 @@ impl Bullet {
         };
     }
 
+    fn tick_nemesis_curly(&mut self, state: &mut SharedGameState, npc_list: &NPCList) {
+        self.action_counter += 1;
+        if self.action_counter > self.lifetime {
+            self.cond.set_alive(false);
+            state.create_caret(self.x, self.y, CaretType::Shoot, Direction::Left);
+            return;
+        }
+
+        if self.action_num == 0 {
+            self.action_num = 1;
+
+            match self.direction {
+                Direction::Left => self.vel_x = -0x1000,
+                Direction::Up => self.vel_y = -0x1000,
+                Direction::Right => self.vel_x = 0x1000,
+                Direction::Bottom => self.vel_y = 0x1000,
+                Direction::FacingPlayer => unreachable!(),
+            }
+
+        } else {
+            if self.action_counter % 4 == 1 {
+                let mut npc = NPC::create(4, &state.npc_table);
+                npc.cond.set_alive(true);
+                npc.x = self.x;
+                npc.y = self.y;
+
+                match self.direction {
+                    Direction::Left => {
+                        npc.vel_y = self.rng.range(-0x200..0x200);
+                        npc.vel_x = -0x200;
+                    }
+                    Direction::Up => {
+                        npc.vel_x = self.rng.range(-0x200..0x200);
+                        npc.vel_y = -0x200;
+                    }
+                    Direction::Right => {
+                        npc.vel_y = self.rng.range(-0x200..0x200);
+                        npc.vel_x = 0x200;
+                    }
+                    Direction::Bottom => {
+                        npc.vel_x = self.rng.range(-0x200..0x200);
+                        npc.vel_y = 0x200;
+                    }
+                    Direction::FacingPlayer => unreachable!(),
+                }
+
+                let _ = npc_list.spawn(256, npc);
+            }
+
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+        }
+
+        self.anim_num += 1;
+        if self.anim_num > 1 {
+            self.anim_num = 0;
+        }
+
+        let dir_offset = match self.direction {
+            Direction::Left => 0,
+            Direction::Up => 2,
+            Direction::Right => 4,
+            Direction::Bottom => 6,
+            Direction::FacingPlayer => unreachable!(),
+        } + self.anim_num as usize;
+
+        self.anim_rect = match self.btype {
+            43 => state.constants.weapon.bullet_rects.b034_nemesis_l1[dir_offset],
+            _ => unreachable!(),
+        };
+    }
+
     fn tick_spur(&mut self, state: &mut SharedGameState, new_bullets: &mut Vec<Bullet>) {
         self.action_counter += 1;
         if self.action_counter > self.lifetime {
@@ -1615,6 +1687,7 @@ impl Bullet {
             34 | 35 | 36 => self.tick_nemesis(state, npc_list),
             37 | 38 | 39 => self.tick_spur(state, new_bullets),
             40 | 41 | 42 => self.tick_spur_trail(state),
+            43 => self.tick_nemesis_curly(state, npc_list),
             _ => self.cond.set_alive(false),
         }
     }

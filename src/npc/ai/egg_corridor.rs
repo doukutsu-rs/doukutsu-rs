@@ -702,7 +702,7 @@ impl NPC {
         self.anim_rect = state.constants.npc.n084_basu_projectile[self.anim_num as usize];
 
         self.action_counter2 += 1;
-        if self.flags.0 != 0 || self.action_counter2 > 300 {
+        if self.flags.hit_anything() || self.action_counter2 > 300 {
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
             self.cond.set_alive(false);
         }
@@ -1365,7 +1365,7 @@ impl NPC {
         self.anim_rect = state.constants.npc.n209_basu_projectile_destroyed_egg_corridor[self.anim_num as usize];
 
         self.action_counter2 += 1;
-        if self.flags.0 != 0 || self.action_counter2 > 300 {
+        if self.flags.hit_anything() || self.action_counter2 > 300 {
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
             self.cond.set_alive(false);
         }
