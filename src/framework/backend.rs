@@ -60,6 +60,8 @@ pub trait BackendRenderer {
 
     fn imgui_texture_id(&self, texture: &Box<dyn BackendTexture>) -> GameResult<imgui::TextureId>;
 
+    fn prepare_imgui(&mut self, ui: &imgui::Ui) -> GameResult;
+
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult;
 
     fn supports_vertex_draw(&self) -> bool {

@@ -128,6 +128,14 @@ pub fn imgui_texture_id(ctx: &Context, texture: &Box<dyn BackendTexture>) -> Gam
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
 
+pub fn prepare_imgui(ctx: &mut Context, ui: &imgui::Ui) -> GameResult {
+    if let Some(renderer) = ctx.renderer.as_mut() {
+        return renderer.prepare_imgui(ui);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
 pub fn render_imgui(ctx: &mut Context, draw_data: &imgui::DrawData) -> GameResult {
     if let Some(renderer) = ctx.renderer.as_mut() {
         return renderer.render_imgui(draw_data);

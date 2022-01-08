@@ -6,7 +6,7 @@ use std::mem::MaybeUninit;
 use std::ptr::null;
 use std::sync::Arc;
 
-use imgui::{DrawCmd, DrawCmdParams, DrawData, DrawIdx, DrawVert, TextureId};
+use imgui::{DrawCmd, DrawCmdParams, DrawData, DrawIdx, DrawVert, TextureId, Ui};
 
 use crate::common::{Color, Rect};
 use crate::framework::backend::{BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData};
@@ -1051,6 +1051,10 @@ impl BackendRenderer for OpenGLRenderer {
             .ok_or(RenderError("This texture was not created by OpenGL backend.".to_string()))?;
 
         Ok(TextureId::new(gl_texture.texture_id as usize))
+    }
+
+    fn prepare_imgui(&mut self, _ui: &Ui) -> GameResult {
+        Ok(())
     }
 
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult {

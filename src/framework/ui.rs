@@ -6,6 +6,7 @@ use imgui::sys::*;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{imgui_context, render_imgui};
+use crate::graphics::prepare_imgui;
 use crate::live_debugger::LiveDebugger;
 use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
@@ -128,6 +129,7 @@ impl UI {
 
         scene.imgui_draw(&mut self.components, state, ctx2, &mut ui)?;
 
+        prepare_imgui(ctx2, &ui);
         let draw_data = ui.render();
         render_imgui(ctx2, draw_data)?;
 

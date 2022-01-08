@@ -8,7 +8,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use imgui::internal::RawWrapper;
-use imgui::{ConfigFlags, DrawCmd, DrawData, Key, MouseCursor, TextureId};
+use imgui::{ConfigFlags, DrawCmd, DrawData, Key, MouseCursor, TextureId, Ui};
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Scancode;
 use sdl2::mouse::{Cursor, SystemCursor};
@@ -602,6 +602,13 @@ impl BackendRenderer for SDL2Renderer {
         Ok(TextureId::new(sdl_texture.texture.as_ref().map(|t| t.raw()).unwrap_or(null_mut()) as usize))
     }
 
+    fn prepare_imgui(&mut self, ui: &Ui) -> GameResult {
+        let refs = self.refs.borrow_mut();
+        self.imgui_event.borrow_mut().prepare_render(ui, refs.canvas.window());
+
+        Ok(())
+    }
+
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult {
         let mut refs = self.refs.borrow_mut();
 
@@ -1098,6 +1105,10 @@ impl ImguiSdl2 {
             imgui.io_mut().key_alt = alt;
             imgui.io_mut().key_shift = shift;
             imgui.io_mut().key_super = super_;
+        }
+
+        if self.ignore_event(event) {
+            return;
         }
 
         match *event {

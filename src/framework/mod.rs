@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 pub mod backend;
 pub mod backend_null;
 #[cfg(feature = "backend-glutin")]
