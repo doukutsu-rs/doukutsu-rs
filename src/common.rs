@@ -2,9 +2,9 @@ use std::fmt;
 
 use lazy_static::lazy_static;
 use num_traits::{abs, Num};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeTupleStruct;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bitfield;
 use crate::texture_set::G_MAG;
@@ -131,16 +131,21 @@ bitfield! {
 bitfield! {
     #[derive(Clone, Copy)]
     #[repr(C)]
-    pub struct BulletFlag(u16);
+    pub struct BulletFlag(u8);
     impl Debug;
-    pub flag_x01, set_flag_x01: 0; // 0x01
-    pub flag_x02, set_flag_x02: 1; // 0x02
-    pub no_collision_checks, set_no_collision_checks: 2; // 0x04
-    pub bounce_from_walls, set_bounce_from_walls: 3; // 0x08
-    pub flag_x10, set_flag_x10: 4; // 0x10
-    pub flag_x20, set_flag_x20: 5; // 0x20
-    pub can_destroy_snack, set_can_destroy_snack: 6; // 0x40
-    pub flag_x80, set_flag_x80: 7; // 0x80
+    pub flag_x01, set_flag_x01: 0; // 0x01, nowhere in code?
+    pub flag_x02, set_flag_x02: 1; // 0x02, nowhere in code?
+    /// Corresponds to flag & 0x04. If set, bullet will pass through blocks.
+    pub no_collision_checks, set_no_collision_checks: 2;
+    /// Corresponds to flag & 0x08. IF set, bullet will bounce off walls.
+    pub bounce_from_walls, set_bounce_from_walls: 3;
+    /// Corresponds to flag & 0x10. IF set, bullet will not produce projectile dissipation effect when it hits a NPC or boss.
+    pub no_proj_dissipation, set_no_proj_dissipation: 4;
+    /// Corresponds to flag & 0x20. If set, performs checks in block colission check procedure. Kills the bullet if flag 0x40 isn't set.
+    pub check_block_hit, set_check_block_hit: 5;
+    /// Corresponds to flag & 0x40. If set, bullet will destroy snack blocks on hit.
+    pub can_destroy_snack, set_can_destroy_snack: 6;
+    pub flag_x80, set_flag_x80: 7; // 0x80, nowhere in code?
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

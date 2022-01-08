@@ -1942,7 +1942,7 @@ impl PhysicalEntity for Bullet {
                     self.test_block_hit(state, x + ox, y + oy);
 
                     if self.flags.weapon_hit_block()
-                        && (self.weapon_flags.flag_x20() || self.weapon_flags.can_destroy_snack())
+                        && (self.weapon_flags.check_block_hit() || self.weapon_flags.can_destroy_snack())
                     {
                         if !self.weapon_flags.can_destroy_snack() {
                             self.cond.set_alive(false);
