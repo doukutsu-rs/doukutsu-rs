@@ -961,7 +961,7 @@ impl NPC {
                     _ => (),
                 }
 
-                if player.controller.trigger_shoot() && bullet_manager.count_bullets_multi(&[43], TargetPlayer::Player1) < 2 {
+                if player.controller.trigger_shoot() && state.control_flags.control_enabled() && bullet_manager.count_bullets_multi(&[43], TargetPlayer::Player1) < 2 {
                     bullet_manager.create_bullet(npc.x, npc.y, 43, TargetPlayer::Player1, self.direction, &state.constants,);
                     state.create_caret(npc.x, npc.y, CaretType::Shoot, self.direction);
                 }

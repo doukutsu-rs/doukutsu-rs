@@ -959,6 +959,15 @@ impl GameScene {
 
                         self.draw_light_raycast(state.tile_size, npc.x, npc.y, (255, 0, 0), scale, 0..360, batch)
                     }
+                    325 => {
+                        let size = 0.5 * (npc.anim_num as f32 + 1.0);
+                        self.draw_light(
+                            interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
+                            interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
+                            size,
+                            (255, 255, 255),
+                            batch,)
+                    }
                     _ => {}
                 }
             }
