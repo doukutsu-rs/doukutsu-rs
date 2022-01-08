@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::hint::unreachable_unchecked;
 use std::mem::MaybeUninit;
 
@@ -352,67 +353,67 @@ impl OrgPlaybackEngine {
                     let vol = buf.vol_cent;
                     let (pan_l, pan_r) = buf.pan_cent;
 
-                    fn clamp<T: Ord>(v: T, limit: T) -> T {
-                        if v > limit {
-                            limit
-                        } else {
-                            v
-                        }
-                    }
-
                     if self.interpolation == InterpolationMode::Polyphase {
                         let fir_step = (FIR_STEP * advance as f32).floor();
                         let fir_step = if fir_step == 0.0 { FIR_STEP } else { fir_step };
                         let fir_gain = fir_step / FIR_STEP;
                         let cache_ptr = buf.fir.cache.as_mut_ptr();
+                        let sample_data_ptr = buf.sample.data.as_ptr();
 
                         let pos = buf.position as usize + buf.base_pos;
                         let cl = buf.fir.cache.len() / 2;
                         let i = buf.fir.pos % cl;
 
                         let (sl1, sr1, sl2, sr2) = match (is_16bit, is_stereo) {
-                            (true, true) => {
-                                let sl1 = i16::from_le_bytes([buf.sample.data[pos << 2], buf.sample.data[pos << 2 + 1]])
+                            (true, true) => unsafe {
+                                let ps = pos << 2;
+                                let sl1 = (*sample_data_ptr.add(ps) as u16
+                                    | (*sample_data_ptr.add(ps + 1) as u16) << 8)
                                     as f32
                                     / 32768.0;
                                 let sr1 =
-                                    i16::from_le_bytes([buf.sample.data[pos << 2 + 2], buf.sample.data[pos << 2 + 3]])
+                                    (*sample_data_ptr.add(ps + 2) as u16
+                                        | (*sample_data_ptr.add(ps + 3) as u16) << 8)
                                         as f32
                                         / 32768.0;
-                                let pos = clamp(pos + 1, buf.base_pos + buf.len - 1);
-                                let sl2 = i16::from_le_bytes([buf.sample.data[pos << 2], buf.sample.data[pos << 2 + 1]])
+                                let ps = min(pos + 1, buf.base_pos + buf.len - 1) << 2;
+                                let sl2 = (*sample_data_ptr.add(ps) as u16
+                                    | (*sample_data_ptr.add(ps + 1) as u16) << 8)
                                     as f32
                                     / 32768.0;
                                 let sr2 =
-                                    i16::from_le_bytes([buf.sample.data[pos << 2 + 2], buf.sample.data[pos << 2 + 3]])
+                                    (*sample_data_ptr.add(ps + 2) as u16
+                                        | (*sample_data_ptr.add(ps + 3) as u16) << 8)
                                         as f32
                                         / 32768.0;
                                 (sl1, sr1, sl2, sr2)
                             }
-                            (false, true) => {
-                                let sl1 = (buf.sample.data[pos << 1] as f32 - 128.0) / 128.0;
-                                let sr1 = (buf.sample.data[(pos << 1) + 1] as f32 - 128.0) / 128.0;
-                                let pos = clamp(pos + 1, buf.base_pos + buf.len - 1);
-                                let sl2 = (buf.sample.data[pos << 1] as f32 - 128.0) / 128.0;
-                                let sr2 = (buf.sample.data[(pos << 1) + 1] as f32 - 128.0) / 128.0;
+                            (false, true) => unsafe {
+                                let ps = pos << 1;
+                                let sl1 = (*sample_data_ptr.add(ps) as f32 - 128.0) / 128.0;
+                                let sr1 = (*sample_data_ptr.add(ps + 1) as f32 - 128.0) / 128.0;
+                                let ps = min(pos + 1, buf.base_pos + buf.len - 1) << 1;
+                                let sl2 = (*sample_data_ptr.add(ps) as f32 - 128.0) / 128.0;
+                                let sr2 = (*sample_data_ptr.add(ps + 1) as f32 - 128.0) / 128.0;
                                 (sl1, sr1, sl2, sr2)
                             }
-                            (true, false) => {
-                                let s1 = (buf.sample.data[pos << 1] as u16
-                                    | (buf.sample.data[pos << 1 + 1] as u16) << 8)
+                            (true, false) => unsafe {
+                                let ps = pos << 1;
+                                let s1 = (*sample_data_ptr.add(ps) as u16
+                                    | (*sample_data_ptr.add(ps + 1) as u16) << 8)
                                     as f32
                                     / 32768.0;
-                                let pos = clamp(pos + 1, buf.base_pos + buf.len - 1);
-                                let s2 = (buf.sample.data[pos << 1] as u16
-                                    | (buf.sample.data[pos << 1 + 1] as u16) << 8)
+                                let ps = min(pos + 1, buf.base_pos + buf.len - 1) << 1;
+                                let s2 = (*sample_data_ptr.add(ps) as u16
+                                    | (*sample_data_ptr.add(ps + 1) as u16) << 8)
                                     as f32
                                     / 32768.0;
                                 (s1, s1, s2, s2)
                             }
-                            (false, false) => {
-                                let s1 = (buf.sample.data[pos] as f32 - 128.0) / 128.0;
-                                let pos = clamp(pos + 1, buf.base_pos + buf.len - 1);
-                                let s2 = (buf.sample.data[pos] as f32 - 128.0) / 128.0;
+                            (false, false) => unsafe {
+                                let s1 = (*sample_data_ptr.add(pos) as f32 - 128.0) / 128.0;
+                                let pos = min(pos + 1, buf.base_pos + buf.len - 1);
+                                let s2 = (*sample_data_ptr.add(pos) as f32 - 128.0) / 128.0;
                                 (s1, s1, s2, s2)
                             }
                         };
@@ -504,7 +505,7 @@ impl OrgPlaybackEngine {
                             InterpolationMode::Nearest => get_sample(buf, pos),
                             InterpolationMode::Linear => {
                                 let (sl1, sr1) = get_sample(buf, pos);
-                                let (sl2, sr2) = get_sample(buf, clamp(pos + 1, buf.base_pos + buf.len - 1));
+                                let (sl2, sr2) = get_sample(buf, min(pos + 1, buf.base_pos + buf.len - 1));
                                 let r1 = buf.position.fract() as f32;
 
                                 let sl = sl1 + (sl2 - sl1) * r1;
@@ -516,7 +517,7 @@ impl OrgPlaybackEngine {
                                 use std::f32::consts::PI;
 
                                 let (sl1, sr1) = get_sample(buf, pos);
-                                let (sl2, sr2) = get_sample(buf, clamp(pos + 1, buf.base_pos + buf.len - 1));
+                                let (sl2, sr2) = get_sample(buf, min(pos + 1, buf.base_pos + buf.len - 1));
 
                                 let r1 = buf.position.fract() as f32;
                                 let r2 = (1.0 - f32::cos(r1 * PI)) / 2.0;
@@ -528,8 +529,8 @@ impl OrgPlaybackEngine {
                             }
                             InterpolationMode::Cubic => {
                                 let (sl1, sr1) = get_sample(buf, pos);
-                                let (sl2, sr2) = get_sample(buf, clamp(pos + 1, buf.base_pos + buf.len - 1));
-                                let (sl3, sr3) = get_sample(buf, clamp(pos + 2, buf.base_pos + buf.len - 1));
+                                let (sl2, sr2) = get_sample(buf, min(pos + 1, buf.base_pos + buf.len - 1));
+                                let (sl3, sr3) = get_sample(buf, min(pos + 2, buf.base_pos + buf.len - 1));
                                 let (sl4, sr4) = get_sample(buf, pos.saturating_sub(1));
 
                                 let r1 = buf.position.fract() as f32;
@@ -692,7 +693,8 @@ impl RenderBuffer {
     pub fn set_frequency(&mut self, frequency: u32) {
         //assert!(frequency >= 100 && frequency <= 100000);
         //dbg!(frequency);
-        self.frequency = frequency;
+        let rate_mod = self.sample.format.sample_rate as f32 / 22050.0;
+        self.frequency = (frequency as f32 * rate_mod) as u32;
     }
 
     #[inline]
