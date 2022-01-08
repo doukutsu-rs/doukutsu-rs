@@ -885,8 +885,6 @@ impl NPC {
                     npc.parent_id = self.id;
                     let _ = npc_list.spawn(0x100, npc);
 
-                    state.npc_curly_carried = true;
-
                     self.action_num = 1;
                 }
             }
