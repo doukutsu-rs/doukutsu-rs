@@ -176,13 +176,11 @@ impl BossNPC {
                 if self.parts[0].action_counter3 > 1 && self.parts[0].life < self.parts[0].action_counter3 * 70 {
                     self.parts[0].action_counter3 -= 1;
 
-                    let scale = state.tile_size.as_int();
-
                     // This relies heavily on the map not being changed
                     // Need to calculate offset from the default starting location
                     for i in 0..5 {
                         stage.change_tile(i + 8, self.parts[0].action_counter3 as usize, 0);
-                        npc_list.create_death_smoke((i as i32 + 8) * scale, self.parts[0].action_counter3 as i32 * scale, 0, 1, state, &self.parts[0].rng);
+                        npc_list.create_death_smoke((i as i32 + 8) * 0x2000, self.parts[0].action_counter3 as i32 * 0x2000, 0, 4, state, &self.parts[0].rng);
                         state.sound_manager.play_sfx(12);
                     }
                 }
@@ -258,13 +256,11 @@ impl BossNPC {
                     self.parts[0].vel_y = -0x200;
                     self.parts[0].damage = 0;
 
-                    let scale = state.tile_size.as_int();
-
                     // This relies heavily on the map not being changed
                     // Need to calculate offset from the default starting location
                     for i in 0..7 {
                         stage.change_tile(i + 7, 14, 0);
-                        npc_list.create_death_smoke((i as i32 + 7) * scale, self.parts[0].action_counter3 as i32 * scale, 0, 1, state, &self.parts[0].rng);
+                        npc_list.create_death_smoke((i as i32 + 7) * 0x2000, 0x1C000, 0, 1, state, &self.parts[0].rng);
                         state.sound_manager.play_sfx(12);
                     }
                 }
