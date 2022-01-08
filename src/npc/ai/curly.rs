@@ -296,7 +296,7 @@ impl NPC {
                     self.vel_x = self.rng.range(-0x80..0x80);
                     self.vel_y = 0x1000;
                 }
-                Direction::FacingPlayer => unreachable!(),
+                Direction::FacingPlayer => (),
             }
 
             self.anim_rect = state.constants.npc.n123_curly_boss_bullet[self.direction as usize];
