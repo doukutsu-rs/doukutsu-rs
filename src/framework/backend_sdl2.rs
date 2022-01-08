@@ -141,7 +141,7 @@ impl BackendEventLoop for SDL2EventLoop {
                 winfo.version.minor = sdl2_sys::SDL_MINOR_VERSION as _;
                 winfo.version.patch = sdl2_sys::SDL_PATCHLEVEL as _;
 
-                let mut whandle = self.refs.borrow().canvas.window().raw();
+                let mut whandle = self.refs.deref().borrow().canvas.window().raw();
 
                 if sdl2_sys::SDL_GetWindowWMInfo(whandle, &mut winfo as *mut _) != sdl2_sys::SDL_bool::SDL_FALSE {
                     let window = winfo.info.x11.display as *mut objc::runtime::Object;
