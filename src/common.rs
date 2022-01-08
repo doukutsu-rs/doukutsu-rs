@@ -38,10 +38,10 @@ bitfield! {
     pub hit_right_slope, set_hit_right_slope: 4;
     /// Set if entity stays on left slope. (corresponds to flag & 0x20)
     pub hit_left_slope, set_hit_left_slope: 5;
-    /// Unknown purpose (corresponds to flag & 0x40)
-    pub flag_x40, set_flag_x40: 6;
-    /// Unknown purpose (corresponds to flag & 0x80)
-    pub flag_x80, set_flag_x80: 7;
+    /// Used only in bullet code, set if a bullet hits upper right slope (corresponds to flag & 0x40)
+    pub hit_right_upper_slope, set_hit_right_upper_slope: 6;
+    /// Used only in bullet code, set if a bullet hits upper left slope (corresponds to flag & 0x80)
+    pub hit_left_upper_slope, set_hit_left_upper_slope: 7;
     /// Set if entity is in water. (corresponds to flag & 0x100)
     pub in_water, set_in_water: 8;
     pub weapon_hit_block, set_weapon_hit_block: 9; // 0x200
@@ -141,7 +141,7 @@ bitfield! {
     pub bounce_from_walls, set_bounce_from_walls: 3;
     /// Corresponds to flag & 0x10. IF set, bullet will not produce projectile dissipation effect when it hits a NPC or boss.
     pub no_proj_dissipation, set_no_proj_dissipation: 4;
-    /// Corresponds to flag & 0x20. If set, performs checks in block colission check procedure. Kills the bullet if flag 0x40 isn't set.
+    /// Corresponds to flag & 0x20. If set, performs checks in block collision check procedure. Kills the bullet if flag 0x40 isn't set.
     pub check_block_hit, set_check_block_hit: 5;
     /// Corresponds to flag & 0x40. If set, bullet will destroy snack blocks on hit.
     pub can_destroy_snack, set_can_destroy_snack: 6;
