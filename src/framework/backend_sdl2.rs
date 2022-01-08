@@ -1,6 +1,5 @@
 use core::mem;
 use std::any::Any;
-use std::borrow::Borrow;
 use std::cell::{RefCell, UnsafeCell};
 use std::ffi::c_void;
 use std::ops::Deref;
@@ -223,10 +222,8 @@ impl BackendEventLoop for SDL2EventLoop {
 
             game.update(ctx).unwrap();
 
-            if state.next_scene.is_some() {
-                mem::swap(&mut game.scene, &mut state.next_scene);
-                state.next_scene = None;
-
+            if let Some(_) = &state.next_scene {
+                game.scene = mem::take(&mut state.next_scene);
                 game.scene.as_mut().unwrap().init(state, ctx).unwrap();
                 game.loops = 0;
                 state.frame_time = 0.0;
@@ -237,6 +234,7 @@ impl BackendEventLoop for SDL2EventLoop {
                 self.refs.deref().borrow().canvas.window(),
                 &self.event_pump.mouse_state(),
             );
+
             game.draw(ctx).unwrap();
         }
     }
@@ -304,6 +302,7 @@ struct SDL2Renderer {
     refs: Rc<RefCell<SDL2Context>>,
     imgui: Rc<RefCell<imgui::Context>>,
     imgui_event: Rc<RefCell<ImguiSdl2>>,
+    #[allow(unused)] // the rendering pipeline uses pointers to SDL_Texture, and we manually manage the lifetimes
     imgui_font_tex: SDL2Texture,
 }
 
