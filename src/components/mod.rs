@@ -7,6 +7,7 @@ pub mod falling_island;
 pub mod flash;
 pub mod hud;
 pub mod inventory;
+pub mod nikumaru;
 pub mod number_popup;
 pub mod stage_select;
 pub mod text_boxes;

@@ -5,7 +5,7 @@ use std::rc::Rc;
 use log::info;
 
 use crate::caret::CaretType;
-use crate::common::{Color, Direction, interpolate_fix9_scale, Rect};
+use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
@@ -15,36 +15,37 @@ use crate::components::falling_island::FallingIsland;
 use crate::components::flash::Flash;
 use crate::components::hud::HUD;
 use crate::components::inventory::InventoryUI;
+use crate::components::nikumaru::NikumaruCounter;
 use crate::components::stage_select::StageSelect;
 use crate::components::text_boxes::TextBoxes;
 use crate::components::tilemap::{TileLayer, Tilemap};
 use crate::components::water_renderer::WaterRenderer;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
-use crate::framework::{filesystem, graphics};
 use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{BlendMode, draw_rect, FilterMode};
+use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
 use crate::framework::ui::Components;
+use crate::framework::{filesystem, graphics};
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::map::WaterParams;
-use crate::npc::{NPC, NPCLayer};
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
-use crate::physics::{OFFSETS, PhysicalEntity};
+use crate::npc::{NPCLayer, NPC};
+use crate::physics::{PhysicalEntity, OFFSETS};
 use crate::player::{Player, TargetPlayer};
 use crate::rng::XorShift;
-use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
+use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
-use crate::weapon::{Weapon, WeaponType};
 use crate::weapon::bullet::BulletManager;
+use crate::weapon::{Weapon, WeaponType};
 
 pub struct GameScene {
     pub tick: u32,
@@ -59,6 +60,7 @@ pub struct GameScene {
     pub inventory_ui: InventoryUI,
     pub hud_player1: HUD,
     pub hud_player2: HUD,
+    pub nikumaru: NikumaruCounter,
     pub background: Background,
     pub tilemap: Tilemap,
     pub text_boxes: TextBoxes,
@@ -105,7 +107,7 @@ impl GameScene {
         let mut water_renderer = WaterRenderer::new();
 
         if let Ok(water_param_file) =
-        filesystem::open(ctx, [&state.base_path, "Stage/", &state.stages[id].tileset.name, ".pxw"].join(""))
+            filesystem::open(ctx, [&state.base_path, "Stage/", &state.stages[id].tileset.name, ".pxw"].join(""))
         {
             water_params.load_from(water_param_file)?;
             info!("Loaded water parameters file.");
@@ -136,6 +138,7 @@ impl GameScene {
             inventory_ui: InventoryUI::new(),
             hud_player1: HUD::new(Alignment::Left),
             hud_player2: HUD::new(Alignment::Right),
+            nikumaru: NikumaruCounter::new(),
             background: Background::new(),
             tilemap: Tilemap::new(),
             text_boxes: TextBoxes::new(),
@@ -502,7 +505,6 @@ impl GameScene {
                             range,
                             batch,
                         );
-
                     } else {
                         self.draw_light(
                             interpolate_fix9_scale(
@@ -580,7 +582,7 @@ impl GameScene {
                     continue;
                 }
 
-                // NPC lighting 
+                // NPC lighting
                 match npc.npc_type {
                     1 => {
                         self.draw_light(
@@ -889,31 +891,49 @@ impl GameScene {
                         batch,
                     ),
                     311 => {
-                        let size = if npc.anim_num % 7 == 2 || npc.anim_num % 7 == 5 {1.0} else {0.0};
+                        let size = if npc.anim_num % 7 == 2 || npc.anim_num % 7 == 5 { 1.0 } else { 0.0 };
 
                         self.draw_light(
-                            interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
-                            interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
+                            interpolate_fix9_scale(
+                                npc.prev_x - self.frame.prev_x,
+                                npc.x - self.frame.x,
+                                state.frame_time,
+                            ),
+                            interpolate_fix9_scale(
+                                npc.prev_y - self.frame.prev_y,
+                                npc.y - self.frame.y,
+                                state.frame_time,
+                            ),
                             size,
-                            (255,255,255),
-                            batch,)
+                            (255, 255, 255),
+                            batch,
+                        )
                     }
                     312 => self.draw_light(
                         interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
                         interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
                         0.5,
-                        (255,255,255),
+                        (255, 255, 255),
                         batch,
                     ),
                     319 => {
-                        let color = if npc.anim_num == 2 {(255, 29, 0)} else {(234, 157, 68)};
+                        let color = if npc.anim_num == 2 { (255, 29, 0) } else { (234, 157, 68) };
 
                         self.draw_light(
-                            interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
-                            interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
+                            interpolate_fix9_scale(
+                                npc.prev_x - self.frame.prev_x,
+                                npc.x - self.frame.x,
+                                state.frame_time,
+                            ),
+                            interpolate_fix9_scale(
+                                npc.prev_y - self.frame.prev_y,
+                                npc.y - self.frame.y,
+                                state.frame_time,
+                            ),
                             1.0,
                             color,
-                            batch,)
+                            batch,
+                        )
                     }
                     320 => {
                         let range = match npc.direction() {
@@ -937,14 +957,7 @@ impl GameScene {
                     322 => {
                         let scale = 0.004 * (npc.action_counter as f32);
 
-                        self.draw_light_raycast(
-                            state.tile_size,
-                            npc.x,
-                            npc.y,
-                            (255, 0, 0),
-                            scale,
-                            0..360,
-                            batch,)
+                        self.draw_light_raycast(state.tile_size, npc.x, npc.y, (255, 0, 0), scale, 0..360, batch)
                     }
                     _ => {}
                 }
@@ -1158,6 +1171,7 @@ impl GameScene {
     }
 
     fn tick_world(&mut self, state: &mut SharedGameState) -> GameResult {
+        self.nikumaru.tick(state, &self.player1)?;
         self.background.tick()?;
         self.hud_player1.visible = self.player1.cond.alive();
         self.hud_player2.visible = self.player2.cond.alive();
@@ -1559,7 +1573,7 @@ impl Scene for GameScene {
                 match state.textscript_vm.state {
                     TextScriptExecutionState::FallingIsland(_, _, _, _, _, _) => (),
                     _ => {
-                        if state.control_flags.tick_world() {                            
+                        if state.control_flags.tick_world() {
                             self.tick_world(state)?;
                         }
                     }
@@ -1696,6 +1710,7 @@ impl Scene for GameScene {
 
         match state.textscript_vm.mode {
             ScriptMode::Map if state.control_flags.control_enabled() => {
+                self.nikumaru.draw(state, ctx, &self.frame)?;
                 self.hud_player1.draw(state, ctx, &self.frame)?;
                 self.hud_player2.draw(state, ctx, &self.frame)?;
                 self.boss_life_bar.draw(state, ctx, &self.frame)?;
