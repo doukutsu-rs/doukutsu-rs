@@ -8,29 +8,30 @@ use crate::player::Player;
 use crate::shared_game_state::{SharedGameState, TimingMode};
 
 pub struct NikumaruCounter {
-    pub tick: usize,
     pub shown: bool,
 }
 
 impl NikumaruCounter {
     pub fn new() -> NikumaruCounter {
-        NikumaruCounter { tick: 0, shown: false }
+        NikumaruCounter { shown: false }
     }
 }
 
 impl GameEntity<&Player> for NikumaruCounter {
-    fn tick(&mut self, _state: &mut SharedGameState, player: &Player) -> GameResult {
+    fn tick(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
         if !player.equip.has_nikumaru() {
-            self.tick = 0;
+            state.nikumaru_tick = 0;
             self.shown = false;
             return Ok(());
         }
 
         self.shown = true;
-        self.tick += 1;
+        if state.control_flags.control_enabled() {
+            state.nikumaru_tick += 1;
+        }
 
-        if self.tick >= 300000 {
-            self.tick = 300000;
+        if state.nikumaru_tick >= 300000 {
+            state.nikumaru_tick = 300000;
         }
 
         Ok(())
@@ -40,6 +41,8 @@ impl GameEntity<&Player> for NikumaruCounter {
         if !self.shown {
             return Ok(());
         }
+
+        let tick = state.nikumaru_tick;
 
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
 
@@ -57,7 +60,7 @@ impl GameEntity<&Player> for NikumaruCounter {
             _ => (5, 50, 3000),
         };
 
-        if self.tick % 30 <= 10 {
+        if tick % 30 <= 10 {
             batch.add_rect(x, y, &CLOCK_RECTS[1]);
         } else {
             batch.add_rect(x, y, &CLOCK_RECTS[0]);
@@ -66,9 +69,9 @@ impl GameEntity<&Player> for NikumaruCounter {
 
         batch.draw(ctx)?;
 
-        draw_number(x + 32.0, y, self.tick / minute, Alignment::Right, state, ctx)?;
-        draw_number_zeros(x + 52.0, y, (self.tick / second) % 60, Alignment::Right, 2, state, ctx)?;
-        draw_number(x + 64.0, y, (self.tick / one_tenth) % 10, Alignment::Right, state, ctx)?;
+        draw_number(x + 32.0, y, tick / minute, Alignment::Right, state, ctx)?;
+        draw_number_zeros(x + 52.0, y, (tick / second) % 60, Alignment::Right, 2, state, ctx)?;
+        draw_number(x + 64.0, y, (tick / one_tenth) % 10, Alignment::Right, state, ctx)?;
 
         Ok(())
     }

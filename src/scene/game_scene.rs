@@ -1710,7 +1710,6 @@ impl Scene for GameScene {
 
         match state.textscript_vm.mode {
             ScriptMode::Map if state.control_flags.control_enabled() => {
-                self.nikumaru.draw(state, ctx, &self.frame)?;
                 self.hud_player1.draw(state, ctx, &self.frame)?;
                 self.hud_player2.draw(state, ctx, &self.frame)?;
                 self.boss_life_bar.draw(state, ctx, &self.frame)?;
@@ -1798,6 +1797,9 @@ impl Scene for GameScene {
 
         self.falling_island.draw(state, ctx, &self.frame)?;
         self.text_boxes.draw(state, ctx, &self.frame)?;
+
+        // Gets drawn overtop of fade animations and falling island
+        if state.textscript_vm.mode == ScriptMode::Map {self.nikumaru.draw(state, ctx, &self.frame)?;}
 
         if self.skip_counter > 0 {
             let text = format!("Hold {:?} to skip the cutscene", state.settings.player1_key_map.inventory);
