@@ -503,31 +503,6 @@ impl GameScene {
                             batch,
                         );
 
-                        // Curly's lightcone
-
-                        if state.npc_curly_carried && state.settings.light_cone {
-                            let range = match () {
-                                _ if player.up && player.flags.hit_bottom_wall() => 60..120,
-                                _ if player.down => 60..120,
-                                _ if player.up => 240..300,
-                                _ if player.direction == Direction::Right => -30..30,
-                                _ if player.direction == Direction::Left => 150..210,
-                                _ => continue 'cc,
-                            };
-    
-                            let (_, gun_off_y) = player.skin.get_gun_offset();
-    
-                            self.draw_light_raycast(
-                                state.tile_size,
-                                player.x + player.direction.opposite().vector_x() * 0x800,
-                                player.y + gun_off_y * 0x200 - 0x200,
-                                (19u8, 34u8, 117u8),
-                                0.95,
-                                range,
-                                batch,
-                            );
-                        }
-
                     } else {
                         self.draw_light(
                             interpolate_fix9_scale(
@@ -939,6 +914,25 @@ impl GameScene {
                             1.0,
                             color,
                             batch,)
+                    }
+                    320 => {
+                        let range = match npc.direction() {
+                            Direction::Up => 60..120,
+                            Direction::Bottom => 240..300,
+                            Direction::Left => -30..30,
+                            Direction::Right => 150..210,
+                            _ => 0..0,
+                        };
+
+                        self.draw_light_raycast(
+                            state.tile_size,
+                            npc.x + npc.direction.opposite().vector_x() * 0x800,
+                            npc.y + 2 * 0x200,
+                            (19u8, 34u8, 117u8),
+                            0.95,
+                            range,
+                            batch,
+                        );
                     }
                     322 => {
                         let scale = 0.004 * (npc.action_counter as f32);
@@ -1565,7 +1559,7 @@ impl Scene for GameScene {
                 match state.textscript_vm.state {
                     TextScriptExecutionState::FallingIsland(_, _, _, _, _, _) => (),
                     _ => {
-                        if state.control_flags.tick_world() {
+                        if state.control_flags.tick_world() {                            
                             self.tick_world(state)?;
                         }
                     }
