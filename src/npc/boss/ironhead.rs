@@ -223,11 +223,10 @@ impl BossNPC {
                 }
             }
             250 | 251 => {
+                let player = self.parts[0].get_closest_player_ref(&players);
                 if self.parts[0].action_num == 250 {
                     self.parts[0].action_num = 251;
                     if self.parts[0].direction == Direction::Right {
-                        let player = self.parts[0].get_closest_player_ref(&players);
-
                         self.parts[0].x = 0x1E000;
                         self.parts[0].y = player.y;
                     } else {
@@ -246,7 +245,7 @@ impl BossNPC {
                     self.parts[0].target_x += 0x400;
                 } else {
                     self.parts[0].target_x -= 0x200;
-                    if self.parts[0].target_y >= self.parts[0].y {
+                    if self.parts[0].target_y >= player.y {
                         self.parts[0].target_y -= 0x200;
                     } else {
                         self.parts[0].target_y += 0x200;
