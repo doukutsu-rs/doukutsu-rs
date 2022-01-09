@@ -20,7 +20,7 @@ impl NikumaruCounter {
 }
 
 impl GameEntity<&Player> for NikumaruCounter {
-    fn tick(&mut self, _state: &mut SharedGameState, player: &Player) -> GameResult {
+    fn tick(&mut self, state: &mut SharedGameState, player: &Player) -> GameResult {
         if !player.equip.has_nikumaru() {
             self.tick = 0;
             self.shown = false;
@@ -28,7 +28,10 @@ impl GameEntity<&Player> for NikumaruCounter {
         }
 
         self.shown = true;
-        self.tick += 1;
+
+        if state.control_flags.control_enabled() {
+            self.tick += 1;
+        }
 
         if self.tick >= 300000 {
             self.tick = 300000;
