@@ -95,6 +95,82 @@ impl NPC {
 
         Ok(())
     }
+
+    pub(crate) fn tick_n335_ikachan(&mut self, state: &mut SharedGameState) -> GameResult {
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.action_counter = self.rng.range(3..20) as u16;
+                }
+
+                self.action_counter -= 1;
+                if self.action_counter <= 0 {
+                    self.action_num = 2;
+                    self.action_counter = self.rng.range(10..50) as u16;
+                    self.anim_num = 1;
+                    self.vel_x = 0x600;
+                }
+            }
+            2 => {
+                self.action_counter -= 1;
+                if self.action_counter <= 0 {
+                    self.action_num = 3;
+                    self.action_counter = self.rng.range(40..50) as u16;
+                    self.anim_num = 2;
+                    self.vel_y = self.rng.range(-0x100..0x100);
+                }
+            }
+            3 => {
+                self.action_counter -= 1;
+                if self.action_counter <= 0 {
+                    self.action_num = 1;
+                    self.action_counter = 1; // Should be 0 but causes underflow as unsigned
+                    self.anim_num = 0;
+                }
+            }
+            _ => (),
+        }
+
+        self.vel_x -= 0x10;
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
+
+        self.anim_rect = state.constants.npc.n335_ikachan[self.anim_num as usize];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n336_ikachan_generator(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
+        match self.action_num {
+            0 => {
+                for player in players {
+                    if player.shock_counter > 0 {
+                        self.cond.set_alive(false);
+                    }
+                }
+            }
+            10 => {
+                self.action_counter += 1;
+                if self.action_counter % 6 == 0 {
+                    let mut npc = NPC::create(335, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = self.x;
+                    npc.y = self.rng.range(0..13) * 0x2000;
+                    let _ = npc_list.spawn(0x100, npc);
+                }
+            }
+            _ => (),
+        }
+
+        Ok(())
+    }
 }
 
 impl BossNPC {
