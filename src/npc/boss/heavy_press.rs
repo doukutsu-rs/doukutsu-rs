@@ -1,15 +1,18 @@
 use crate::common::{Direction, Rect};
 use crate::framework::error::GameResult;
-use crate::npc::NPC;
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
 impl NPC {
-    pub(crate) fn tick_n325_heavy_press_lightning(&mut self, state: &mut SharedGameState, npc_list: &NPCList,) -> GameResult {
-    
+    pub(crate) fn tick_n325_heavy_press_lightning(
+        &mut self,
+        state: &mut SharedGameState,
+        npc_list: &NPCList,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -29,28 +32,27 @@ impl NPC {
                     self.display_bounds.top = 0x1800;
                     state.sound_manager.play_sfx(101);
                     npc_list.create_death_smoke(self.x, self.y + 0xA800, 0, 3, state, &self.rng);
-                    }
                 }
-                10 => {
-                    self.animate(2, 3, 7);
-
-                    if self.anim_num > 6 { 
-                        self.cond.set_alive(false);
-                        return Ok(());
-                    };
-                }
-                _ => (),
             }
+            10 => {
+                self.animate(2, 3, 7);
+
+                if self.anim_num > 6 {
+                    self.cond.set_alive(false);
+                    return Ok(());
+                };
+            }
+            _ => (),
+        }
 
         self.anim_rect = state.constants.npc.n325_heavy_press_lightning[self.anim_num as usize];
-    
+
         Ok(())
     }
 }
 
 impl BossNPC {
-    pub(crate) fn tick_b08_heavy_press(&mut self, state: &mut SharedGameState, npc_list: &NPCList, stage: &mut Stage,) {
-
+    pub(crate) fn tick_b08_heavy_press(&mut self, state: &mut SharedGameState, npc_list: &NPCList, stage: &mut Stage) {
         match self.parts[0].action_num {
             0 => {
                 self.parts[0].action_num = 10;
@@ -59,18 +61,8 @@ impl BossNPC {
                 self.parts[0].direction = Direction::Right;
                 self.parts[0].x = 0;
                 self.parts[0].y = 0;
-                self.parts[0].display_bounds = Rect {
-                    left: 0x5000,
-                    top: 0x7800,
-                    right: 0x5000,
-                    bottom: 0x7800,
-                };
-                self.parts[0].hit_bounds = Rect {
-                    left: 0x6200,
-                    top: 0x7800,
-                    right: 0x5000,
-                    bottom: 0x6000,
-                };
+                self.parts[0].display_bounds = Rect { left: 0x5000, top: 0x7800, right: 0x5000, bottom: 0x7800 };
+                self.parts[0].hit_bounds = Rect { left: 0x6200, top: 0x7800, right: 0x5000, bottom: 0x6000 };
                 self.parts[0].npc_flags.set_ignore_solidity(true);
                 self.parts[0].npc_flags.set_solid_hard(true);
                 self.parts[0].npc_flags.set_event_when_killed(true);
@@ -115,7 +107,7 @@ impl BossNPC {
                 }
             }
             30 | 31 => {
-                    if self.parts[0].action_num == 30 {
+                if self.parts[0].action_num == 30 {
                     self.parts[0].action_num = 31;
                     self.parts[0].anim_num = 2;
                     self.parts[0].x = 0x14000;
@@ -146,24 +138,14 @@ impl BossNPC {
                     self.parts[1].cond.set_alive(true);
                     self.parts[1].npc_flags.set_invulnerable(true);
                     self.parts[1].npc_flags.set_ignore_solidity(true);
-                    self.parts[1].hit_bounds = Rect {
-                        left: 0x1C00,
-                        top: 0x1000,
-                        right: 0x1C00,
-                        bottom: 0x1000,
-                    };
+                    self.parts[1].hit_bounds = Rect { left: 0x1C00, top: 0x1000, right: 0x1C00, bottom: 0x1000 };
 
                     self.parts[2] = self.parts[1].clone();
-                    
+
                     self.parts[3].cond.set_alive(true);
                     self.parts[3].cond.set_damage_boss(true);
                     self.parts[3].npc_flags.set_shootable(true);
-                    self.parts[3].hit_bounds = Rect {
-                        left: 0xC00,
-                        top: 0x1000,
-                        right: 0xC00,
-                        bottom: 0x1000,
-                    };
+                    self.parts[3].hit_bounds = Rect { left: 0xC00, top: 0x1000, right: 0xC00, bottom: 0x1000 };
 
                     let mut npc = NPC::create(325, &state.npc_table);
                     npc.cond.set_alive(true);
@@ -180,11 +162,18 @@ impl BossNPC {
                     // Need to calculate offset from the default starting location
                     for i in 0..5 {
                         stage.change_tile(i + 8, self.parts[0].action_counter3 as usize, 0);
-                        npc_list.create_death_smoke((i as i32 + 8) * 0x2000, self.parts[0].action_counter3 as i32 * 0x2000, 0, 4, state, &self.parts[0].rng);
+                        npc_list.create_death_smoke(
+                            (i as i32 + 8) * 0x2000,
+                            self.parts[0].action_counter3 as i32 * 0x2000,
+                            0,
+                            4,
+                            state,
+                            &self.parts[0].rng,
+                        );
                         state.sound_manager.play_sfx(12);
                     }
                 }
-                
+
                 self.parts[0].action_counter += 1;
 
                 // All of these checks are +100 to account for no negative values
@@ -195,16 +184,14 @@ impl BossNPC {
                     npc.y = 0x1E000;
                     npc.direction = Direction::Up;
                     let _ = npc_list.spawn(0x100, npc);
-                }
-                else if self.parts[0].action_counter == 101 || self.parts[0].action_counter == 261 {
+                } else if self.parts[0].action_counter == 101 || self.parts[0].action_counter == 261 {
                     let mut npc = NPC::create(323, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = 0x22000;
                     npc.y = 0x1E000;
                     npc.direction = Direction::Up;
                     let _ = npc_list.spawn(0x100, npc);
-                }
-                else if self.parts[0].action_counter >= 400 {
+                } else if self.parts[0].action_counter >= 400 {
                     self.parts[0].action_counter = 100; // Should be 0
 
                     let mut npc = NPC::create(325, &state.npc_table);
@@ -240,10 +227,12 @@ impl BossNPC {
                     );
                 }
 
-                if self.parts[0].action_counter == 95 { self.parts[0].anim_num = 1; }
-                else if self.parts[0].action_counter == 98 { self.parts[0].anim_num = 2; }
-                else if self.parts[0].action_counter > 100 { 
-                    self.parts[0].action_num = 510; 
+                if self.parts[0].action_counter == 95 {
+                    self.parts[0].anim_num = 1;
+                } else if self.parts[0].action_counter == 98 {
+                    self.parts[0].anim_num = 2;
+                } else if self.parts[0].action_counter > 100 {
+                    self.parts[0].action_num = 510;
                 }
             }
             510 => {
@@ -265,7 +254,9 @@ impl BossNPC {
                     }
                 }
 
-                if self.parts[0].y > 0x3C000 { self.parts[0].action_num = 520;}
+                if self.parts[0].y > 0x3C000 {
+                    self.parts[0].action_num = 520;
+                }
             }
             _ => (),
         }
@@ -282,7 +273,9 @@ impl BossNPC {
         let mut anim_offset = 0;
         if self.parts[0].shock != 0 {
             self.parts[4].action_counter += 1;
-            if self.parts[4].action_counter & 0x02 == 0 { anim_offset = 3; }
+            if self.parts[4].action_counter & 0x02 == 0 {
+                anim_offset = 3;
+            }
         }
 
         self.parts[0].anim_rect = state.constants.npc.b08_heavy_press[self.parts[0].anim_num as usize + anim_offset];
