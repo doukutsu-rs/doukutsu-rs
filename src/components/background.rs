@@ -1,7 +1,7 @@
-use crate::{Context, GameResult, graphics, SharedGameState};
 use crate::common::{Color, Rect};
 use crate::frame::Frame;
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
+use crate::{graphics, Context, GameResult, SharedGameState};
 
 pub struct Background {
     pub tick: usize,
@@ -10,10 +10,7 @@ pub struct Background {
 
 impl Background {
     pub fn new() -> Self {
-        Background {
-            tick: 0,
-            prev_tick: 0,
-        }
+        Background { tick: 0, prev_tick: 0 }
     }
 
     pub fn tick(&mut self) -> GameResult<()> {
@@ -36,11 +33,7 @@ impl Background {
         textures: &StageTexturePaths,
         stage: &Stage,
     ) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(
-            ctx,
-            &state.constants,
-            &textures.background,
-        )?;
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &textures.background)?;
         let scale = state.scale;
         let (frame_x, frame_y) = frame.xy_interpolated(state.frame_time);
 
@@ -88,6 +81,22 @@ impl Background {
             }
             BackgroundType::Scrolling => {
                 graphics::clear(ctx, stage.data.background_color);
+
+                let (bg_width, bg_height) = (batch.width() as i32, batch.height() as i32);
+                let offset_x = self.tick as f32 % (bg_width as f32 / 3.0);
+                let interp_x = (offset_x * (1.0 - state.frame_time as f32)
+                    + (offset_x + 1.0) * state.frame_time as f32)
+                    * 3.0
+                    * scale;
+
+                let count_x = state.canvas_size.0 as i32 / bg_width + 6;
+                let count_y = state.canvas_size.1 as i32 / bg_height + 1;
+
+                for y in -1..count_y {
+                    for x in -1..count_x {
+                        batch.add((x * bg_width) as f32 - interp_x, (y * bg_height) as f32);
+                    }
+                }
             }
             BackgroundType::OutsideWind | BackgroundType::Outside | BackgroundType::OutsideUnknown => {
                 graphics::clear(ctx, Color::from_rgb(0, 0, 0));
@@ -104,13 +113,25 @@ impl Background {
                     let scale = offset_y;
 
                     for x in (0..(state.canvas_size.0 as i32)).step_by(100) {
-                        batch.add_rect_scaled(x as f32,0.0, 1.0, scale,  &Rect::new_size(128, 0, 100, 1));
+                        batch.add_rect_scaled(x as f32, 0.0, 1.0, scale, &Rect::new_size(128, 0, 100, 1));
                     }
 
-                    batch.add_rect_scaled((state.canvas_size.0 - 320.0) / 2.0, 0.0, 1.0, scale, &Rect::new_size(0, 0, 320, 1));
+                    batch.add_rect_scaled(
+                        (state.canvas_size.0 - 320.0) / 2.0,
+                        0.0,
+                        1.0,
+                        scale,
+                        &Rect::new_size(0, 0, 320, 1),
+                    );
 
                     for x in ((-offset_x * 4)..(state.canvas_size.0 as i32)).step_by(320) {
-                        batch.add_rect_scaled(x as f32, offset_y + 240.0, 1.0, scale + 4.0, &Rect::new_size(0, 239, 320, 1));
+                        batch.add_rect_scaled(
+                            x as f32,
+                            offset_y + 240.0,
+                            1.0,
+                            scale + 4.0,
+                            &Rect::new_size(0, 239, 320, 1),
+                        );
                     }
                 }
 
