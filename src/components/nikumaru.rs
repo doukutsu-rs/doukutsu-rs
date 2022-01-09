@@ -7,6 +7,7 @@ use crate::framework::error::GameResult;
 use crate::player::Player;
 use crate::shared_game_state::{SharedGameState, TimingMode};
 
+#[derive(Clone, Copy)]
 pub struct NikumaruCounter {
     pub tick: usize,
     pub shown: bool,

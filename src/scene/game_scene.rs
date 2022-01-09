@@ -1710,7 +1710,6 @@ impl Scene for GameScene {
 
         match state.textscript_vm.mode {
             ScriptMode::Map if state.control_flags.control_enabled() => {
-                self.nikumaru.draw(state, ctx, &self.frame)?;
                 self.hud_player1.draw(state, ctx, &self.frame)?;
                 self.hud_player2.draw(state, ctx, &self.frame)?;
                 self.boss_life_bar.draw(state, ctx, &self.frame)?;
@@ -1774,6 +1773,8 @@ impl Scene for GameScene {
         }
 
         self.fade.draw(state, ctx, &self.frame)?;
+        self.nikumaru.draw(state, ctx, &self.frame)?;
+
         if state.textscript_vm.mode == ScriptMode::Map && self.map_name_counter > 0 {
             let map_name = if self.stage.data.name == "u" {
                 state.constants.title.intro_text.chars()
