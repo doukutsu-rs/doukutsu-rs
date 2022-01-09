@@ -1063,6 +1063,7 @@ impl TextScriptVM {
                 new_scene.player1.cond.set_interacted(false);
                 new_scene.player2.cond.set_interacted(false);
                 new_scene.frame.wait = game_scene.frame.wait;
+                new_scene.nikumaru = game_scene.nikumaru;
 
                 let skip = state.textscript_vm.flags.cutscene_skip();
                 state.control_flags.set_tick_world(true);
