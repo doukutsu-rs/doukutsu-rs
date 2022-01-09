@@ -4,12 +4,12 @@ use std::io::Cursor;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use byteorder::{LE, ReadBytesExt};
+use byteorder::{ReadBytesExt, LE};
 
 use crate::bitfield;
-use crate::common::{Condition, interpolate_fix9_scale, Rect};
 use crate::common::Direction;
 use crate::common::Flag;
+use crate::common::{interpolate_fix9_scale, Condition, Rect};
 use crate::components::flash::Flash;
 use crate::components::number_popup::NumberPopup;
 use crate::entity::GameEntity;
@@ -570,6 +570,8 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             328 => self.tick_n328_human_transform_machine(state),
             329 => self.tick_n329_laboratory_fan(state),
             330 => self.tick_n330_rolling(state, stage),
+            335 => self.tick_n335_ikachan(state),
+            336 => self.tick_n336_ikachan_generator(state, players, npc_list),
             337 => self.tick_n337_numahachi(state),
             347 => self.tick_n347_hoppy(state, players),
             349 => self.tick_n349_statue(state),
