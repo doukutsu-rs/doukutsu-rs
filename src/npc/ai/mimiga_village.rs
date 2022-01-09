@@ -4,8 +4,8 @@ use num_traits::{abs, clamp};
 
 use crate::common::Direction;
 use crate::framework::error::GameResult;
-use crate::npc::NPC;
 use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::player::{Player, TargetPlayer};
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
@@ -34,7 +34,6 @@ impl NPC {
 
                     self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
                 }
-
 
                 if self.rng.range(0..150) == 1 {
                     self.action_num = 3;
@@ -127,9 +126,9 @@ impl NPC {
 
         if self.action_num == 1 {
             self.vel_y += match self.target_y.cmp(&self.y) {
-                Ordering::Less => { -8 }
-                Ordering::Equal => { 0 }
-                Ordering::Greater => { 8 }
+                Ordering::Less => -8,
+                Ordering::Equal => 0,
+                Ordering::Greater => 8,
             };
 
             self.vel_y = clamp(self.vel_y, -0x100, 0x100);
@@ -167,8 +166,11 @@ impl NPC {
 
         if self.action_num == 1 {
             let player = self.get_closest_player_mut(players);
-            if (self.x - (48 * 0x200) < player.x) && (self.x + (48 * 0x200) > player.x)
-                && (self.y - (48 * 0x200) < player.y) && (self.y + (48 * 0x200) > player.y) {
+            if (self.x - (48 * 0x200) < player.x)
+                && (self.x + (48 * 0x200) > player.x)
+                && (self.y - (48 * 0x200) < player.y)
+                && (self.y + (48 * 0x200) > player.y)
+            {
                 self.anim_num = 1;
             } else {
                 self.anim_num = 0;
@@ -230,8 +232,11 @@ impl NPC {
                 }
 
                 let player = self.get_closest_player_mut(players);
-                if (self.x - (32 * 0x200) < player.x) && (self.x + (32 * 0x200) > player.x)
-                    && (self.y - (32 * 0x200) < player.y) && (self.y + (0x2000) > player.y) {
+                if (self.x - (32 * 0x200) < player.x)
+                    && (self.x + (32 * 0x200) > player.x)
+                    && (self.y - (32 * 0x200) < player.y)
+                    && (self.y + (0x2000) > player.y)
+                {
                     if self.x > player.x {
                         self.direction = Direction::Left;
                     } else {
@@ -249,7 +254,6 @@ impl NPC {
             _ => (),
         }
 
-
         self.vel_y += 0x40;
 
         if self.vel_y > 0x5ff {
@@ -264,7 +268,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n080_gravekeeper(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n080_gravekeeper(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -278,7 +286,9 @@ impl NPC {
 
                 let player = self.get_closest_player_mut(players);
                 if abs(player.x - self.x) < 128 * 0x200
-                    && self.y - 48 * 0x200 < player.y && self.y + 32 * 0x200 > player.y {
+                    && self.y - 48 * 0x200 < player.y
+                    && self.y + 32 * 0x200 > player.y
+                {
                     self.anim_counter = 0;
                     self.action_num = 2;
                 }
@@ -347,8 +357,7 @@ impl NPC {
             _ => (),
         }
 
-        if (self.vel_x < 0 && self.flags.hit_left_wall())
-            || (self.vel_x > 0 && self.flags.hit_right_wall()) {
+        if (self.vel_x < 0 && self.flags.hit_left_wall()) || (self.vel_x > 0 && self.flags.hit_right_wall()) {
             self.vel_x = 0;
         }
 
@@ -364,7 +373,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n081_giant_pignon(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n081_giant_pignon(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -464,10 +477,15 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n313_ma_pignon(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList, bullet_manager: &mut BulletManager,) -> GameResult {
-
+    pub(crate) fn tick_n313_ma_pignon(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+        bullet_manager: &mut BulletManager,
+    ) -> GameResult {
         let player = self.get_closest_player_mut(players);
-    
+
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -484,7 +502,7 @@ impl NPC {
                 }
 
                 if player.x > self.x - 0x4000 && player.x < self.x + 0x4000 {
-                    self.direction = if player.x < self.x {Direction::Left} else {Direction::Right};
+                    self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
                 }
             }
             2 => {
@@ -503,9 +521,9 @@ impl NPC {
                 }
 
                 self.damage = 1;
-                self.direction = if player.x < self.x {Direction::Left} else {Direction::Right};
+                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
                 self.anim_num = 0;
-                
+
                 self.action_counter += 1;
                 if self.action_counter > 4 {
                     self.action_counter = 0;
@@ -534,10 +552,20 @@ impl NPC {
             130 => {
                 self.vel_y += 0x80;
 
-                if self.y > 0x10000 {self.npc_flags.set_ignore_solidity(false)};
-                if (self.vel_x < 0 && self.flags.hit_left_wall()) || (self.vel_x > 0 && self.flags.hit_right_wall()) {self.vel_x *= -1};
-                self.direction = if player.x < self.x {Direction::Left} else {Direction::Right};
-                self.anim_num = if self.vel_y < -0x200 {3} else if self.vel_y > 0x200 {4} else {0};
+                if self.y > 0x10000 {
+                    self.npc_flags.set_ignore_solidity(false)
+                };
+                if (self.vel_x < 0 && self.flags.hit_left_wall()) || (self.vel_x > 0 && self.flags.hit_right_wall()) {
+                    self.vel_x *= -1
+                };
+                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+                self.anim_num = if self.vel_y < -0x200 {
+                    3
+                } else if self.vel_y > 0x200 {
+                    4
+                } else {
+                    0
+                };
 
                 if self.flags.hit_bottom_wall() {
                     self.action_num = 140;
@@ -569,7 +597,7 @@ impl NPC {
                     self.action_num = 210;
                     self.anim_num = 6;
 
-                    self.vel_x = if self.direction == Direction::Left {-0x5FF} else {0x5FF};
+                    self.vel_x = if self.direction == Direction::Left { -0x5FF } else { 0x5FF };
 
                     state.sound_manager.play_sfx(25);
                     self.npc_flags.set_shootable(false);
@@ -580,7 +608,9 @@ impl NPC {
             210 => {
                 self.animate(1, 6, 7);
 
-                if (self.vel_x < 0 && self.flags.hit_left_wall()) || (self.vel_x > 0 && self.flags.hit_right_wall()) {self.action_num = 220};
+                if (self.vel_x < 0 && self.flags.hit_left_wall()) || (self.vel_x > 0 && self.flags.hit_right_wall()) {
+                    self.action_num = 220
+                };
             }
             220 | 221 => {
                 if self.action_num == 220 {
@@ -599,7 +629,7 @@ impl NPC {
                     npc.cond.set_alive(true);
                     npc.x = self.rng.range(4..16) * 0x2000;
                     npc.y = 0x2000;
-                
+
                     let _ = npc_list.spawn(0x100, npc);
                 }
 
@@ -615,12 +645,12 @@ impl NPC {
                 if self.action_num == 300 {
                     self.action_num = 301;
                     self.anim_num = 9;
-                    self.direction = if player.x < self.x {Direction::Left} else {Direction::Right};
+                    self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
                 }
 
                 self.animate(1, 9, 11);
 
-                self.vel_x = if self.direction == Direction::Left {-0x400} else {0x400};
+                self.vel_x = if self.direction == Direction::Left { -0x400 } else { 0x400 };
 
                 if player.x > self.x - 0x800 && player.x < self.x + 0x800 {
                     self.action_num = 310;
@@ -647,7 +677,9 @@ impl NPC {
             320 => {
                 self.animate(1, 12, 13);
 
-                if self.y < 0x2000 {self.action_num = 330};
+                if self.y < 0x2000 {
+                    self.action_num = 330
+                };
             }
             330 | 331 => {
                 if self.action_num == 330 {
@@ -666,7 +698,7 @@ impl NPC {
                     let mut npc = NPC::create(315, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.rng.range(4..16) * 0x2000;
-                
+
                     let _ = npc_list.spawn(0x100, npc);
                 }
 
@@ -691,39 +723,51 @@ impl NPC {
                 self.vel_y += 0x20;
 
                 self.action_counter += 1;
-                self.x = self.target_x + if self.action_counter % 2 == 0 {0x200} else {0};
+                self.x = self.target_x + if self.action_counter % 2 == 0 { 0x200 } else { 0 };
             }
             _ => (),
         }
 
         if self.action_num > 100 && self.action_num < 500 && self.action_num != 210 && self.action_num != 320 {
             // Missiles + Blade
-            if bullet_manager.count_bullets_multi(&[13,14,15,16,17,18,23,25,26,27,28,29,30,31,32,33], TargetPlayer::Player1) + 
-            bullet_manager.count_bullets_multi(&[13,14,15,16,17,18,23,25,26,27,28,29,30,31,32,33], TargetPlayer::Player2) > 0 {
+            if bullet_manager.count_bullets_multi(
+                &[13, 14, 15, 16, 17, 18, 23, 25, 26, 27, 28, 29, 30, 31, 32, 33],
+                TargetPlayer::Player1,
+            ) + bullet_manager.count_bullets_multi(
+                &[13, 14, 15, 16, 17, 18, 23, 25, 26, 27, 28, 29, 30, 31, 32, 33],
+                TargetPlayer::Player2,
+            ) > 0
+            {
                 self.npc_flags.set_shootable(false);
                 self.npc_flags.set_invulnerable(true);
-            }
-            else {
+            } else {
                 self.npc_flags.set_shootable(true);
                 self.npc_flags.set_invulnerable(false);
             }
         }
 
-        if self.vel_y > 0x5FF {self.vel_y = 0x5FF};
+        if self.vel_y > 0x5FF {
+            self.vel_y = 0x5FF
+        };
 
         self.x += self.vel_x;
         self.y += self.vel_y;
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 14 };
         self.anim_rect = state.constants.npc.n313_ma_pignon[self.anim_num as usize + dir_offset];
-    
+
         Ok(())
     }
 
-    pub(crate) fn tick_n314_ma_pignon_rock(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList, stage: &Stage) -> GameResult {
-
+    pub(crate) fn tick_n314_ma_pignon_rock(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+        stage: &Stage,
+    ) -> GameResult {
         let player = self.get_closest_player_mut(players);
-    
+
         match self.action_num {
             0 | 100 => {
                 if self.action_num == 0 {
@@ -733,8 +777,12 @@ impl NPC {
                 }
                 self.vel_y += 0x40;
 
-                if self.vel_y > 0x700 {self.vel_y = 0x700};
-                if self.y > 0x10000 {self.npc_flags.set_ignore_solidity(false)};
+                if self.vel_y > 0x700 {
+                    self.vel_y = 0x700
+                };
+                if self.y > 0x10000 {
+                    self.npc_flags.set_ignore_solidity(false)
+                };
 
                 if self.flags.hit_bottom_wall() {
                     self.vel_y = -0x200;
@@ -765,10 +813,10 @@ impl NPC {
             }
             _ => (),
         }
-    
+
         self.animate(6, 0, 2);
 
-        self.damage = if player.y > self.y {10} else {0};
+        self.damage = if player.y > self.y { 10 } else { 0 };
 
         self.y += self.vel_y;
 
@@ -777,10 +825,14 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n315_ma_pignon_clone(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], bullet_manager: &mut BulletManager,) -> GameResult {
-
+    pub(crate) fn tick_n315_ma_pignon_clone(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        bullet_manager: &mut BulletManager,
+    ) -> GameResult {
         let player = self.get_closest_player_mut(players);
-    
+
         match self.action_num {
             0 => {
                 self.anim_num = 3;
@@ -800,7 +852,7 @@ impl NPC {
                     self.npc_flags.set_shootable(true);
                 }
 
-                self.direction = if player.x < self.x {Direction::Left} else {Direction::Right};
+                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
 
                 self.action_counter += 1;
                 if self.action_counter > 4 {
@@ -822,10 +874,18 @@ impl NPC {
             }
             130 => {
                 self.vel_y += 0x80;
-                if (self.vel_x < 0 && self.flags.hit_left_wall()) || (self.vel_x > 0 && self.flags.hit_right_wall()) {self.vel_x *= -1};
-                self.direction = if player.x < self.x {Direction::Left} else {Direction::Right};
+                if (self.vel_x < 0 && self.flags.hit_left_wall()) || (self.vel_x > 0 && self.flags.hit_right_wall()) {
+                    self.vel_x *= -1
+                };
+                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
 
-                self.anim_num = if self.vel_y < -0x200 {2} else if self.vel_y > 0x200 {0} else {3};
+                self.anim_num = if self.vel_y < -0x200 {
+                    2
+                } else if self.vel_y > 0x200 {
+                    0
+                } else {
+                    3
+                };
 
                 if self.flags.hit_bottom_wall() {
                     self.action_num = 140;
@@ -833,7 +893,6 @@ impl NPC {
                     self.anim_num = 1;
                     self.vel_x = 0;
                 }
-
             }
             140 => {
                 self.anim_num = 1;
@@ -850,12 +909,17 @@ impl NPC {
 
         if self.action_num > 100 {
             // Missiles + Blade
-            if bullet_manager.count_bullets_multi(&[13,14,15,16,17,18,23,25,26,27,28,29,30,31,32,33], TargetPlayer::Player1) + 
-            bullet_manager.count_bullets_multi(&[13,14,15,16,17,18,23,25,26,27,28,29,30,31,32,33], TargetPlayer::Player2) > 0 {
+            if bullet_manager.count_bullets_multi(
+                &[13, 14, 15, 16, 17, 18, 23, 25, 26, 27, 28, 29, 30, 31, 32, 33],
+                TargetPlayer::Player1,
+            ) + bullet_manager.count_bullets_multi(
+                &[13, 14, 15, 16, 17, 18, 23, 25, 26, 27, 28, 29, 30, 31, 32, 33],
+                TargetPlayer::Player2,
+            ) > 0
+            {
                 self.npc_flags.set_shootable(false);
                 self.npc_flags.set_invulnerable(true);
-            }
-            else {
+            } else {
                 self.npc_flags.set_shootable(true);
                 self.npc_flags.set_invulnerable(false);
             }
@@ -864,9 +928,10 @@ impl NPC {
         self.action_counter2 += 1;
         if self.action_counter2 > 300 {
             self.vanish(state);
-        }
-        else {
-            if self.vel_y > 0x5FF {self.vel_y = 0x5FF};
+        } else {
+            if self.vel_y > 0x5FF {
+                self.vel_y = 0x5FF
+            };
 
             self.x += self.vel_x;
             self.y += self.vel_y;
@@ -874,8 +939,7 @@ impl NPC {
             let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
             self.anim_rect = state.constants.npc.n315_ma_pignon_clone[self.anim_num as usize + dir_offset];
         }
-    
+
         Ok(())
     }
-
 }
