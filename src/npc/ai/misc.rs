@@ -1921,13 +1921,16 @@ impl NPC {
 
         if self.action_num == 0 {
             self.action_num = 1;
-            if self.rng.range(0..9) == 9 {
+            let block = self.rng.range(0..9) as u16;
+            if block == 9 {
+                // Big Block
                 self.anim_rect = Rect::new(0, 64, 32, 96);
                 self.display_bounds = Rect::new(0x2000, 0x2000, 0x2000, 0x2000);
                 self.hit_bounds = Rect::new(0x1800, 0x1800, 0x1800, 0x1800);
             } else {
-                self.anim_rect =
-                    Rect::new_size(16 * (self.rng.range(0..3) as u16), 16 * (self.rng.range(0..3) as u16 / 3), 16, 16);
+                // Small Blocks
+                let scale = state.tile_size.as_int() as u16;
+                self.anim_rect = Rect::new_size(((block % 3) + 7) * scale, (block / 3) * scale, scale, scale);
             }
 
             self.vel_x = self.direction.vector_x() * 2 * self.rng.range(256..512);
