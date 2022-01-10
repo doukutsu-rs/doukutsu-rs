@@ -150,7 +150,7 @@ impl Caret {
                 }
 
                 self.anim_counter += 1;
-                if self.anim_counter > 3 {
+                if self.anim_counter > 2 {
                     self.anim_counter = 0;
                     self.anim_num += 1;
 

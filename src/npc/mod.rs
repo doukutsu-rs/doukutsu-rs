@@ -565,6 +565,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             322 => self.tick_n322_deleet(state, npc_list, stage),
             323 => self.tick_n323_bute_spinning(state, players),
             324 => self.tick_n324_bute_generator(state, npc_list),
+            325 => self.tick_n325_heavy_press_lightning(state, npc_list),
             326 => self.tick_n326_sue_itoh_human_transition(state, npc_list),
             327 => self.tick_n327_sneeze(state, npc_list),
             328 => self.tick_n328_human_transform_machine(state),

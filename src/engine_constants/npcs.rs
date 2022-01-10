@@ -1066,6 +1066,9 @@ pub struct NPCConsts {
 
     #[serde(default = "default_b07_undead_core")]
     pub b07_undead_core: [Rect<u16>; 15],
+
+    #[serde(default = "default_b08_heavy_press")]
+    pub b08_heavy_press: [Rect<u16>; 6],
 }
 
 fn default_n001_experience() -> [Rect<u16>; 6] {
@@ -4767,5 +4770,18 @@ fn default_b07_undead_core() -> [Rect<u16>; 15] {
         Rect { left: 256, top: 0, right: 320, bottom: 40 },
         Rect { left: 256, top: 40, right: 320, bottom: 80 },
         Rect { left: 256, top: 80, right: 320, bottom: 120 },
+    ]
+}
+
+fn default_b08_heavy_press() -> [Rect<u16>; 6] {
+    [
+        // Normal
+        Rect { left: 0, top: 0, right: 80, bottom: 120 },
+        Rect { left: 80, top: 0, right: 160, bottom: 120 },
+        Rect { left: 160, top: 0, right: 240, bottom: 120 },
+        // Hurt 
+        Rect { left: 0, top: 120, right: 80, bottom: 240 },
+        Rect { left: 80, top: 120, right: 160, bottom: 240 },
+        Rect { left: 160, top: 120, right: 240, bottom: 240 },
     ]
 }
