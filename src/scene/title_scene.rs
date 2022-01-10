@@ -1,13 +1,17 @@
 use crate::common::{Color, Rect, VERSION_BANNER};
+use crate::components::background::Background;
+use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::input::touch_controls::TouchControlType;
-use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
+use crate::map::Map;
 use crate::menu::settings_menu::SettingsMenu;
+use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::Scene;
-use crate::shared_game_state::SharedGameState;
+use crate::shared_game_state::{SharedGameState, TileSize};
+use crate::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
@@ -28,10 +32,32 @@ pub struct TitleScene {
     main_menu: Menu,
     option_menu: SettingsMenu,
     save_select_menu: Menu,
+    background: Background,
+    frame: Frame,
+    stage: Stage,
+    textures: StageTexturePaths,
 }
 
 impl TitleScene {
     pub fn new() -> Self {
+        let fake_stage = Stage {
+            map: Map { width: 0, height: 0, tiles: vec![], attrib: [0; 0x100], tile_size: TileSize::Tile16x16 },
+            data: StageData {
+                name: "".to_string(),
+                map: "".to_string(),
+                boss_no: 0,
+                tileset: Tileset { name: "0".to_string() },
+                pxpack_data: None,
+                background: crate::stage::Background::new("bkMoon"),
+                background_type: BackgroundType::Outside,
+                background_color: Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+                npc1: NpcType::new("0"),
+                npc2: NpcType::new("0"),
+            },
+        };
+        let mut textures = StageTexturePaths::new();
+        textures.update(&fake_stage);
+
         Self {
             tick: 0,
             controller: CombinedMenuController::new(),
@@ -39,34 +65,11 @@ impl TitleScene {
             main_menu: Menu::new(0, 0, 100, 0),
             option_menu: SettingsMenu::new(),
             save_select_menu: Menu::new(0, 0, 200, 0),
+            background: Background::new(),
+            frame: Frame::new(),
+            stage: fake_stage,
+            textures,
         }
-    }
-
-    fn draw_background(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "bkMoon")?;
-        let offset = (self.tick % 640) as isize;
-
-        batch.add_rect(((state.canvas_size.0 - 320.0) / 2.0).floor(), 0.0, &Rect::new_size(0, 0, 320, 88));
-
-        for x in ((-offset / 2)..(state.canvas_size.0 as isize)).step_by(320) {
-            batch.add_rect(x as f32, 88.0, &Rect::new_size(0, 88, 320, 35));
-        }
-
-        for x in ((-offset % 320)..(state.canvas_size.0 as isize)).step_by(320) {
-            batch.add_rect(x as f32, 123.0, &Rect::new_size(0, 123, 320, 23));
-        }
-
-        for x in ((-offset * 2)..(state.canvas_size.0 as isize)).step_by(320) {
-            batch.add_rect(x as f32, 146.0, &Rect::new_size(0, 146, 320, 30));
-        }
-
-        for x in ((-offset * 4)..(state.canvas_size.0 as isize)).step_by(320) {
-            batch.add_rect(x as f32, 176.0, &Rect::new_size(0, 176, 320, 64));
-        }
-
-        batch.draw(ctx)?;
-
-        Ok(())
     }
 
     fn draw_text_centered(&self, text: &str, y: f32, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -119,6 +122,7 @@ impl Scene for TitleScene {
 
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         state.touch_controls.control_type = TouchControlType::None;
+        self.background.tick()?;
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
 
@@ -143,11 +147,12 @@ impl Scene for TitleScene {
                     self.current_menu = CurrentMenu::OptionMenu;
                 }
                 MenuSelectionResult::Selected(3, _) => {
+                    // this comment is just there because rustfmt removes parenthesis around the match case and breaks compilation
                     #[cfg(feature = "editor")]
-                        {
-                            use crate::scene::editor_scene::EditorScene;
-                            state.next_scene = Some(Box::new(EditorScene::new()));
-                        }
+                    {
+                        use crate::scene::editor_scene::EditorScene;
+                        state.next_scene = Some(Box::new(EditorScene::new()));
+                    }
                 }
                 MenuSelectionResult::Selected(4, _) => {
                     state.shutdown();
@@ -190,7 +195,7 @@ impl Scene for TitleScene {
             return Ok(());
         }
 
-        self.draw_background(state, ctx)?;
+        self.background.draw(state, ctx, &self.frame, &self.textures, &self.stage)?;
 
         {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Title")?;
