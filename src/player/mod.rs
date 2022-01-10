@@ -377,7 +377,9 @@ impl Player {
             self.vel_y += 0x55;
         }
 
-        if (state.settings.infinite_booster || self.equip.has_booster_2_0()) && self.booster_switch != BoosterSwitch::None {
+        if (state.settings.infinite_booster || self.equip.has_booster_2_0())
+            && self.booster_switch != BoosterSwitch::None
+        {
             match self.booster_switch {
                 BoosterSwitch::Sides => {
                     if self.flags.hit_left_wall() || self.flags.hit_right_wall() {
@@ -596,11 +598,21 @@ impl Player {
         }
 
         if self.vel_y < -0x200 && self.flags.hit_top_wall() {
-            state.create_caret(self.x, self.y - self.hit_bounds.top as i32, CaretType::LittleParticles, Direction::FacingPlayer);
+            state.create_caret(
+                self.x,
+                self.y - self.hit_bounds.top as i32,
+                CaretType::LittleParticles,
+                Direction::FacingPlayer,
+            );
         }
 
         if self.vel_y > 0x200 && self.flags.hit_bottom_wall() {
-            state.create_caret(self.x, self.y + self.hit_bounds.bottom as i32, CaretType::LittleParticles, Direction::FacingPlayer);
+            state.create_caret(
+                self.x,
+                self.y + self.hit_bounds.bottom as i32,
+                CaretType::LittleParticles,
+                Direction::FacingPlayer,
+            );
         }
 
         self.vel_x = self.vel_x.clamp(-0x400, 0x400);
@@ -716,11 +728,11 @@ impl Player {
                 self.anim_num = 0;
                 self.anim_counter = 0;
             }
-        } else if self.controller.look_up() {
+        } else if self.controller.look_up() && self.control_mode == ControlMode::Normal {
             self.skin.set_state(PlayerAnimationState::FallingLookingUp);
             self.anim_num = 0;
             self.anim_counter = 0;
-        } else if self.controller.look_down() {
+        } else if self.controller.look_down() && self.control_mode == ControlMode::Normal {
             self.skin.set_state(PlayerAnimationState::FallingLookingDown);
             self.anim_num = 0;
             self.anim_counter = 0;
