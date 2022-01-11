@@ -1203,6 +1203,7 @@ impl GameScene {
         };
         self.player1.tick(state, &self.npc_list)?;
         self.player2.tick(state, &self.npc_list)?;
+        state.textscript_vm.reset_invicibility = false;
 
         if self.player1.damage > 0 {
             let xp_loss = self.player1.damage * if self.player1.equip.has_arms_barrier() { 1 } else { 2 };
