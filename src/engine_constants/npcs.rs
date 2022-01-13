@@ -1069,6 +1069,9 @@ pub struct NPCConsts {
 
     #[serde(default = "default_b08_heavy_press")]
     pub b08_heavy_press: [Rect<u16>; 6],
+
+    #[serde(default = "default_b09_ballos")]
+    pub b09_ballos: [Rect<u16>; 14],
 }
 
 fn default_n001_experience() -> [Rect<u16>; 6] {
@@ -4779,9 +4782,30 @@ fn default_b08_heavy_press() -> [Rect<u16>; 6] {
         Rect { left: 0, top: 0, right: 80, bottom: 120 },
         Rect { left: 80, top: 0, right: 160, bottom: 120 },
         Rect { left: 160, top: 0, right: 240, bottom: 120 },
-        // Hurt 
+        // Hurt
         Rect { left: 0, top: 120, right: 80, bottom: 240 },
         Rect { left: 80, top: 120, right: 160, bottom: 240 },
         Rect { left: 160, top: 120, right: 240, bottom: 240 },
+    ]
+}
+
+fn default_b09_ballos() -> [Rect<u16>; 14] {
+    [
+        // B A L L S
+        Rect { left: 0, top: 0, right: 120, bottom: 120 },
+        Rect { left: 120, top: 0, right: 240, bottom: 120 },
+        Rect { left: 0, top: 120, right: 120, bottom: 240 },
+        Rect { left: 120, top: 120, right: 240, bottom: 240 },
+        // Eye
+        Rect { left: 272, top: 0, right: 296, bottom: 16 },
+        Rect { left: 272, top: 16, right: 296, bottom: 32 },
+        Rect { left: 272, top: 32, right: 296, bottom: 48 },
+        Rect { left: 0, top: 0, right: 0, bottom: 0 },
+        Rect { left: 240, top: 16, right: 264, bottom: 32 },
+        Rect { left: 296, top: 0, right: 320, bottom: 16 },
+        Rect { left: 296, top: 16, right: 320, bottom: 32 },
+        Rect { left: 296, top: 32, right: 320, bottom: 48 },
+        Rect { left: 0, top: 0, right: 0, bottom: 0 },
+        Rect { left: 240, top: 32, right: 264, bottom: 48 },
     ]
 }

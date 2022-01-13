@@ -4,6 +4,7 @@ use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
 use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
+use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::npc::{NPCLayer, NPC};
 use crate::player::Player;
@@ -2292,6 +2293,7 @@ impl NPC {
         state: &mut SharedGameState,
         players: [&mut Player; 2],
         npc_list: &NPCList,
+        boss: &mut BossNPC,
     ) -> GameResult {
         let player = &players[state.textscript_vm.executor_player.index()];
 
@@ -2327,13 +2329,17 @@ impl NPC {
                             self.cond.set_alive(false);
                         }
                     } else {
-                        // TODO: handle boss
+                        // This shouldn't get hit but it's here for completeness
+                        self.parent_id = boss.parts[0].id;
                     }
                 }
 
                 if let Some(npc) = self.get_parent_ref_mut(npc_list) {
                     self.x = (player.x + npc.x) / 2;
                     self.y = (player.y + npc.y) / 2;
+                } else if self.tsc_direction == 0 {
+                    self.x = (player.x + boss.parts[0].x) / 2;
+                    self.y = (player.y + boss.parts[0].y) / 2;
                 }
             }
             _ => (),
