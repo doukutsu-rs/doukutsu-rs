@@ -133,7 +133,7 @@ impl NPC {
                     self.action_num = 212;
                     self.action_counter = 0;
                     self.damage = 3;
-                    state.quake_counter = 10; // todo: super quake
+                    state.super_quake_counter = 10;
                     state.sound_manager.play_sfx(26);
                 }
 
@@ -203,7 +203,7 @@ impl NPC {
                     npc.direction = Direction::Right;
                     let _ = npc_list.spawn(0x100, npc);
 
-                    state.quake_counter = 10; // todo super quake
+                    state.super_quake_counter = 10;
                     state.sound_manager.play_sfx(26);
                 }
 
@@ -488,7 +488,7 @@ impl BossNPC {
                     self.parts[0].vel_y = 0;
                     self.parts[0].action_num = 103;
                     self.parts[0].action_counter = 0;
-                    state.quake_counter = 30; // todo: super quake
+                    state.super_quake_counter = 30;
                     state.sound_manager.play_sfx(44);
 
                     if player.y > self.parts[0].y + 0x6000
@@ -532,10 +532,10 @@ impl BossNPC {
                     self.parts[0].damage = 0;
                     self.parts[0].action_counter2 += 1;
 
-                    if self.parts[0].action_counter2 % 3 > 0 {
-                        self.parts[0].action_counter = 50;
-                    } else {
+                    if self.parts[0].action_counter2 % 3 == 0 {
                         self.parts[0].action_counter = 150;
+                    } else {
+                        self.parts[0].action_counter = 50;
                     }
                 }
 
@@ -570,7 +570,7 @@ impl BossNPC {
                     self.parts[0].vel_y = 0;
                     self.parts[0].action_num = 201;
                     self.parts[0].action_counter = 0;
-                    state.quake_counter = 30; // todo: super quake
+                    state.super_quake_counter = 30;
                     state.sound_manager.play_sfx(26);
                     state.sound_manager.play_sfx(44);
 
@@ -624,9 +624,9 @@ impl BossNPC {
                 if self.parts[0].y > 0x26000 - self.parts[0].hit_bounds.bottom as i32 {
                     self.parts[0].y = 0x26000 - self.parts[0].hit_bounds.bottom as i32;
                     self.parts[0].vel_y = 0;
-                    self.parts[0].action_num = 201;
+                    self.parts[0].action_num = 222;
                     self.parts[0].action_counter = 0;
-                    state.quake_counter = 30; // todo: super quake
+                    state.super_quake_counter = 30;
                     state.sound_manager.play_sfx(26);
 
                     for _ in 0..16 {
@@ -655,9 +655,7 @@ impl BossNPC {
                             npc.x = self.parts[0].x;
                             npc.y = self.parts[0].y;
                             npc.parent_id = self.parts[0].id;
-                            // This should be set to "direction" so we need to use something else
-                            // NPC 342 sets action_counter3 to a flat value so we can extract the value passed here
-                            npc.action_counter3 = (64 * iter) + side;
+                            npc.tsc_direction = (64 * iter) + side;
                             let _ = npc_list.spawn(0x5A, npc);
                         }
                     }
@@ -816,7 +814,7 @@ impl BossNPC {
                     self.parts[0].action_num = 421;
                     self.parts[0].action_counter = 0;
                     self.parts[0].anim_counter = 0;
-                    state.quake_counter = 30; // todo: super quake
+                    state.super_quake_counter = 30;
                     state.sound_manager.play_sfx(35);
 
                     self.parts[1].action_num = 102;
@@ -882,8 +880,7 @@ impl BossNPC {
                 }
             }
             1002 => {
-                // todo super quake
-                state.quake_counter = 40;
+                state.super_quake_counter = 40;
 
                 self.parts[0].action_counter += 1;
 

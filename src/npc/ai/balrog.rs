@@ -478,7 +478,7 @@ impl NPC {
 
                 if y <= 34 && stage.change_tile(x, y, 0) {
                     state.sound_manager.play_sfx(44);
-                    state.quake_counter = 10;
+                    state.super_quake_counter = 10;
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);

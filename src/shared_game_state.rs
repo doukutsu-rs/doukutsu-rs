@@ -26,10 +26,10 @@ use crate::scene::Scene;
 #[cfg(feature = "scripting-lua")]
 use crate::scripting::lua::LuaScriptingState;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
+use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::settings::Settings;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
-use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::texture_set::TextureSet;
 
 #[derive(PartialEq, Eq, Copy, Clone, serde::Serialize, serde::Deserialize)]
@@ -120,6 +120,7 @@ pub struct SharedGameState {
     pub effect_rng: XorShift,
     pub tile_size: TileSize,
     pub quake_counter: u16,
+    pub super_quake_counter: u16,
     pub teleporter_slots: Vec<(u16, u16)>,
     pub carets: Vec<Caret>,
     pub touch_controls: TouchControls,
@@ -222,6 +223,7 @@ impl SharedGameState {
             effect_rng: XorShift::new(123),
             tile_size: TileSize::Tile16x16,
             quake_counter: 0,
+            super_quake_counter: 0,
             teleporter_slots: Vec::with_capacity(8),
             carets: Vec::with_capacity(32),
             touch_controls: TouchControls::new(),

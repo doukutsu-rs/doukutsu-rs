@@ -127,6 +127,13 @@ impl Frame {
             }
         }
 
+        if state.super_quake_counter > 0 {
+            state.super_quake_counter -= 1;
+
+            self.x += state.effect_rng.range(-0x300..0x300) * 5 as i32;
+            self.y += state.effect_rng.range(-0x300..0x300) * 3 as i32;
+        }
+
         if state.quake_counter > 0 {
             state.quake_counter -= 1;
 
