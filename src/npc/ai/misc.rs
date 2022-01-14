@@ -2330,16 +2330,16 @@ impl NPC {
                         }
                     } else {
                         // This shouldn't get hit but it's here for completeness
-                        self.parent_id = boss.parts[0].id;
+                        self.parent_id = 0;
                     }
                 }
 
-                if let Some(npc) = self.get_parent_ref_mut(npc_list) {
-                    self.x = (player.x + npc.x) / 2;
-                    self.y = (player.y + npc.y) / 2;
-                } else if self.tsc_direction == 0 {
+                if self.tsc_direction == 0 {
                     self.x = (player.x + boss.parts[0].x) / 2;
                     self.y = (player.y + boss.parts[0].y) / 2;
+                } else if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                    self.x = (player.x + npc.x) / 2;
+                    self.y = (player.y + npc.y) / 2;
                 }
             }
             _ => (),
