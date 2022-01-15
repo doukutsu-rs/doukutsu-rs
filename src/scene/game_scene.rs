@@ -1351,7 +1351,9 @@ impl GameScene {
             self.hud_player2.tick(state, (&self.player2, &mut self.inventory_player2))?;
             self.boss_life_bar.tick(state, (&self.npc_list, &self.boss))?;
 
-            if self.player1.controller.trigger_inventory() {
+            if self.player1.controller.trigger_inventory()
+                && state.textscript_vm.state == TextScriptExecutionState::Ended
+            {
                 state.textscript_vm.set_mode(ScriptMode::Inventory);
                 self.player1.cond.set_interacted(false);
             }
