@@ -2364,6 +2364,38 @@ impl NPC {
         Ok(())
     }
 
+    pub(crate) fn tick_n334_sweat(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
+        match self.action_num {
+            0 | 10 => {
+                if self.action_num == 0 {
+                    self.action_num = 10;
+                    if self.direction == Direction::Left {
+                        self.x += 0x1400;
+                        self.y -= 0x2400;
+                    } else {
+                        self.x = player.x - 0x1400;
+                        self.y = player.y - 0x400;
+                    }
+                }
+
+                self.action_counter += 1;
+                self.anim_num = if self.action_counter / 8 % 2 != 0 { 0 } else { 1 };
+
+                if self.action_counter >= 64 {
+                    self.cond.set_alive(false);
+                }
+            }
+            _ => (),
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+        self.anim_rect = state.constants.npc.n334_sweat[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
     pub(crate) fn tick_n349_statue(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;

@@ -993,14 +993,14 @@ pub struct NPCConsts {
     #[serde(default = "default_n341_ballos_1_head")]
     pub n341_ballos_1_head: [Rect<u16>; 3],
 
-    #[serde(default = "default_n342_ballos_1_eye")]
-    pub n342_ballos_1_eye: [Rect<u16>; 3],
+    #[serde(default = "default_n342_ballos_orbiting_eye")]
+    pub n342_ballos_orbiting_eye: [Rect<u16>; 3],
 
-    #[serde(default = "default_n343_ballos_2_cutscene")]
-    pub n343_ballos_2_cutscene: Rect<u16>,
+    #[serde(default = "default_n343_ballos_3_cutscene")]
+    pub n343_ballos_3_cutscene: Rect<u16>,
 
-    #[serde(default = "default_n344_ballos_2_eyes")]
-    pub n344_ballos_2_eyes: [Rect<u16>; 2],
+    #[serde(default = "default_n344_ballos_3_eyes")]
+    pub n344_ballos_3_eyes: [Rect<u16>; 2],
 
     #[serde(default = "default_n345_ballos_skull_projectile")]
     pub n345_ballos_skull_projectile: [Rect<u16>; 4],
@@ -4453,7 +4453,7 @@ fn default_n341_ballos_1_head() -> [Rect<u16>; 3] {
     ]
 }
 
-fn default_n342_ballos_1_eye() -> [Rect<u16>; 3] {
+fn default_n342_ballos_orbiting_eye() -> [Rect<u16>; 3] {
     [
         Rect { left: 240, top: 48, right: 280, bottom: 88 },
         Rect { left: 240, top: 88, right: 280, bottom: 128 },
@@ -4461,11 +4461,11 @@ fn default_n342_ballos_1_eye() -> [Rect<u16>; 3] {
     ]
 }
 
-fn default_n343_ballos_2_cutscene() -> Rect<u16> {
+fn default_n343_ballos_3_cutscene() -> Rect<u16> {
     Rect { left: 0, top: 0, right: 120, bottom: 120 }
 }
 
-fn default_n344_ballos_2_eyes() -> [Rect<u16>; 2] {
+fn default_n344_ballos_3_eyes() -> [Rect<u16>; 2] {
     [Rect { left: 272, top: 0, right: 296, bottom: 16 }, Rect { left: 296, top: 0, right: 320, bottom: 16 }]
 }
 
@@ -4567,10 +4567,12 @@ fn default_n352_ending_characters() -> [Rect<u16>; 28] {
 
 fn default_n353_bute_sword_flying() -> [Rect<u16>; 8] {
     [
+        // Entering
         Rect { left: 168, top: 160, right: 184, bottom: 184 },
         Rect { left: 184, top: 160, right: 200, bottom: 184 },
         Rect { left: 168, top: 184, right: 184, bottom: 208 },
         Rect { left: 184, top: 184, right: 200, bottom: 208 },
+        // Flying
         Rect { left: 200, top: 160, right: 216, bottom: 176 },
         Rect { left: 216, top: 160, right: 232, bottom: 176 },
         Rect { left: 200, top: 176, right: 216, bottom: 192 },
