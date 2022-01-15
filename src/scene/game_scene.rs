@@ -20,6 +20,7 @@ use crate::components::stage_select::StageSelect;
 use crate::components::text_boxes::TextBoxes;
 use crate::components::tilemap::{TileLayer, Tilemap};
 use crate::components::water_renderer::WaterRenderer;
+use crate::components::whimsical_star::WhimsicalStar;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
 use crate::framework::backend::SpriteBatchCommand;
@@ -61,6 +62,7 @@ pub struct GameScene {
     pub hud_player1: HUD,
     pub hud_player2: HUD,
     pub nikumaru: NikumaruCounter,
+    pub whimsical_star: WhimsicalStar,
     pub background: Background,
     pub tilemap: Tilemap,
     pub text_boxes: TextBoxes,
@@ -139,6 +141,7 @@ impl GameScene {
             hud_player1: HUD::new(Alignment::Left),
             hud_player2: HUD::new(Alignment::Right),
             nikumaru: NikumaruCounter::new(),
+            whimsical_star: WhimsicalStar::new(),
             background: Background::new(),
             tilemap: Tilemap::new(),
             text_boxes: TextBoxes::new(),
@@ -1215,6 +1218,8 @@ impl GameScene {
         self.player2.tick(state, &self.npc_list)?;
         state.textscript_vm.reset_invicibility = false;
 
+        self.whimsical_star.tick(state, (&self.player1, &mut self.bullet_manager))?;
+
         if self.player1.damage > 0 {
             let xp_loss = self.player1.damage * if self.player1.equip.has_arms_barrier() { 1 } else { 2 };
             match self.inventory_player1.take_xp(xp_loss, state) {
@@ -1702,6 +1707,10 @@ impl Scene for GameScene {
         self.draw_bullets(state, ctx)?;
         self.player2.draw(state, ctx, &self.frame)?;
         self.player1.draw(state, ctx, &self.frame)?;
+
+        if !self.player1.cond.hidden() {
+            self.whimsical_star.draw(state, ctx, &self.frame)?;
+        }
 
         self.water_renderer.draw(state, ctx, &self.frame)?;
         self.tilemap.draw(state, ctx, &self.frame, TileLayer::Foreground, stage_textures_ref, &self.stage)?;
