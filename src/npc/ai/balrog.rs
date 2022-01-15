@@ -478,7 +478,7 @@ impl NPC {
 
                 if y <= 34 && stage.change_tile(x, y, 0) {
                     state.sound_manager.play_sfx(44);
-                    state.quake_counter = 10;
+                    state.super_quake_counter = 10;
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
@@ -1309,6 +1309,60 @@ impl NPC {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
 
         self.anim_rect = state.constants.npc.n306_balrog_nurse[self.anim_num as usize + dir_offset];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n356_balrog_rescuing(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        match self.action_num {
+            0 | 11 => {
+                if self.action_num == 0 {
+                    self.action_num = 11;
+                    self.anim_counter = 0;
+                    self.target_x = self.x - 0xC00;
+                    self.target_y = self.y - 0x2000;
+                    self.vel_y = 0;
+                    let mut npc = NPC::create(355, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.parent_id = self.id;
+                    npc.direction = Direction::Bottom;
+                    let _ = npc_list.spawn(0xAA, npc.clone());
+                    npc.direction = Direction::Right;
+                    let _ = npc_list.spawn(0xAA, npc);
+                }
+
+                self.vel_x += 8 * if self.x < self.target_x { 1 } else { -1 };
+                self.vel_y += 8 * if self.y < self.target_y { 1 } else { -1 };
+
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+            }
+            20 | 21 => {
+                if self.action_num == 20 {
+                    self.action_num = 21;
+                    self.vel_x = -0x400;
+                    self.vel_y = 0x200;
+                }
+                self.anim_counter += 1;
+                self.vel_x += 16;
+                self.vel_y -= 8;
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+
+                if self.x > 0x78000 {
+                    self.action_num = 22;
+                }
+            }
+            22 => {
+                self.vel_x = 0;
+                self.vel_y = 0;
+            }
+            _ => (),
+        }
+
+        self.animate(4, 0, 1);
+
+        self.anim_rect = state.constants.npc.n356_balrog_rescuing[self.anim_num as usize];
 
         Ok(())
     }

@@ -4,6 +4,7 @@ use crate::caret::CaretType;
 use crate::common::{Direction, Rect};
 use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
+use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::npc::{NPCLayer, NPC};
 use crate::player::Player;
@@ -2292,6 +2293,7 @@ impl NPC {
         state: &mut SharedGameState,
         players: [&mut Player; 2],
         npc_list: &NPCList,
+        boss: &mut BossNPC,
     ) -> GameResult {
         let player = &players[state.textscript_vm.executor_player.index()];
 
@@ -2327,11 +2329,15 @@ impl NPC {
                             self.cond.set_alive(false);
                         }
                     } else {
-                        // TODO: handle boss
+                        // This shouldn't get hit but it's here for completeness
+                        self.parent_id = 0;
                     }
                 }
 
-                if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                if self.tsc_direction == 0 {
+                    self.x = (player.x + boss.parts[0].x) / 2;
+                    self.y = (player.y + boss.parts[0].y) / 2;
+                } else if let Some(npc) = self.get_parent_ref_mut(npc_list) {
                     self.x = (player.x + npc.x) / 2;
                     self.y = (player.y + npc.y) / 2;
                 }
@@ -2354,6 +2360,38 @@ impl NPC {
     pub(crate) fn tick_n329_laboratory_fan(&mut self, state: &mut SharedGameState) -> GameResult {
         self.anim_counter = self.anim_counter.wrapping_add(1);
         self.anim_rect = state.constants.npc.n329_laboratory_fan[(self.anim_counter as usize / 2) & 1];
+
+        Ok(())
+    }
+
+    pub(crate) fn tick_n334_sweat(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+
+        match self.action_num {
+            0 | 10 => {
+                if self.action_num == 0 {
+                    self.action_num = 10;
+                    if self.direction == Direction::Left {
+                        self.x += 0x1400;
+                        self.y -= 0x2400;
+                    } else {
+                        self.x = player.x - 0x1400;
+                        self.y = player.y - 0x400;
+                    }
+                }
+
+                self.action_counter += 1;
+                self.anim_num = if self.action_counter / 8 % 2 != 0 { 0 } else { 1 };
+
+                if self.action_counter >= 64 {
+                    self.cond.set_alive(false);
+                }
+            }
+            _ => (),
+        }
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+        self.anim_rect = state.constants.npc.n334_sweat[self.anim_num as usize + dir_offset];
 
         Ok(())
     }

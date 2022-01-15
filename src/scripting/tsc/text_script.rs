@@ -1065,6 +1065,9 @@ impl TextScriptVM {
                 // Reset player interaction flag upon TRA
                 new_scene.player1.cond.set_interacted(false);
                 new_scene.player2.cond.set_interacted(false);
+                // Reset ground collision for WAS / WaitStanding
+                new_scene.player1.flags.set_hit_bottom_wall(false);
+                new_scene.player2.flags.set_hit_bottom_wall(false);
                 new_scene.frame.wait = game_scene.frame.wait;
                 new_scene.nikumaru = game_scene.nikumaru;
 
