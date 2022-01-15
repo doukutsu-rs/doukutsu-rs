@@ -98,7 +98,12 @@ impl OggPlaybackEngine {
 
                 let mut buf = match music.read_dec_packet_itl() {
                     Ok(Some(buf)) => buf,
-                    Ok(None) | Err(_) => {
+                    Ok(None) => {
+                        self.playing_intro = false;
+                        return;
+                    }
+                    Err(e) => {
+                        log::error!("Error decoding intro: {}", e);
                         self.playing_intro = false;
                         return;
                     }
@@ -175,7 +180,7 @@ impl OggPlaybackEngine {
                     let s2 =
                         (*data.get_unchecked(clamp(upos + 1, 0, data.len() - 1)) as f32) / 32768.0;
 
-                    (s1 + (s2 - s1) * pos.fract()) as i16
+                    ((s1 + (s2 - s1) * pos.fract()) * 32768.0) as i16
                 };
                 tmp_data.push(s);
 

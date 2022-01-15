@@ -119,6 +119,7 @@ pub struct TextScriptVM {
     /// while parsing no one noticed them.
     pub strict_mode: bool,
     pub suspend: bool,
+    pub reset_invicibility: bool,
     pub numbers: [u16; 4],
     pub face: u16,
     pub item: u16,
@@ -184,6 +185,7 @@ impl TextScriptVM {
             executor_player: TargetPlayer::Player1,
             strict_mode: false,
             suspend: true,
+            reset_invicibility: false,
             numbers: [0; 4],
             face: 0,
             item: 0,
@@ -253,6 +255,7 @@ impl TextScriptVM {
 
     pub fn start_script(&mut self, event_num: u16) {
         self.reset();
+        self.reset_invicibility = true;
         self.state = TextScriptExecutionState::Running(event_num, 0);
 
         log::info!("Started script: #{:04}", event_num);

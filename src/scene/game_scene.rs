@@ -272,12 +272,13 @@ impl GameScene {
         let (x, y) = (x * state.scale, y * state.scale);
         let canvas_w_scaled = state.canvas_size.0 as f32 * state.scale;
         let canvas_h_scaled = state.canvas_size.1 as f32 * state.scale;
-        let level_width = (self.stage.map.width as f32 - 1.0) * self.stage.map.tile_size.as_float();
-        let level_height = (self.stage.map.height as f32 - 1.0) * self.stage.map.tile_size.as_float();
-        let left_side = -x;
-        let right_side = -x + level_width * state.scale;
-        let upper_side = -y;
-        let lower_side = -y + level_height * state.scale;
+        let half_block = self.stage.map.tile_size.as_float() * 0.5 * state.scale;
+        let level_width = (self.stage.map.width as f32) * self.stage.map.tile_size.as_float();
+        let level_height = (self.stage.map.height as f32) * self.stage.map.tile_size.as_float();
+        let left_side = -x - half_block;
+        let right_side = left_side + level_width * state.scale;
+        let upper_side = -y - half_block;
+        let lower_side = upper_side + level_height * state.scale;
 
         if left_side > 0.0 {
             let rect = Rect::new(0, 0, left_side as isize, canvas_h_scaled as isize);
@@ -962,11 +963,20 @@ impl GameScene {
                     325 => {
                         let size = 0.5 * (npc.anim_num as f32 + 1.0);
                         self.draw_light(
-                            interpolate_fix9_scale(npc.prev_x - self.frame.prev_x, npc.x - self.frame.x, state.frame_time),
-                            interpolate_fix9_scale(npc.prev_y - self.frame.prev_y, npc.y - self.frame.y, state.frame_time),
+                            interpolate_fix9_scale(
+                                npc.prev_x - self.frame.prev_x,
+                                npc.x - self.frame.x,
+                                state.frame_time,
+                            ),
+                            interpolate_fix9_scale(
+                                npc.prev_y - self.frame.prev_y,
+                                npc.y - self.frame.y,
+                                state.frame_time,
+                            ),
                             size,
                             (255, 255, 255),
-                            batch,)
+                            batch,
+                        )
                     }
                     _ => {}
                 }
@@ -1203,6 +1213,7 @@ impl GameScene {
         };
         self.player1.tick(state, &self.npc_list)?;
         self.player2.tick(state, &self.npc_list)?;
+        state.textscript_vm.reset_invicibility = false;
 
         if self.player1.damage > 0 {
             let xp_loss = self.player1.damage * if self.player1.equip.has_arms_barrier() { 1 } else { 2 };
