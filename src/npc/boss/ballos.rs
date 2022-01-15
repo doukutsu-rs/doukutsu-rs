@@ -568,6 +568,7 @@ impl NPC {
                     flash.set_blink();
                     state.sound_manager.play_sfx(29);
                 }
+                self.anim_num = self.anim_num.max(8);
                 self.animate(1, 8, 9);
             }
             _ => (),
