@@ -109,7 +109,7 @@ impl NPC {
                 }
 
                 self.animate(8, 1, 4);
-                self.x += self.direction.vector_x() * 0x100;
+                self.x += self.direction.vector_x() * 0x100 * -1;
             }
             _ => (),
         }
@@ -843,15 +843,13 @@ impl NPC {
         npc_list: &NPCList,
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref_mut(npc_list) {
-
             self.x = parent.x;
             self.y = parent.y;
             self.direction = parent.direction;
 
             if self.direction == Direction::Left {
                 self.x -= 0x1000;
-            }
-            else {
+            } else {
                 self.x += 0x1000;
             }
 
@@ -879,7 +877,7 @@ impl NPC {
                     let player = &players[0];
                     self.x = player.x;
                     self.y = player.y;
-                    
+
                     let mut npc = NPC::create(321, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.parent_id = self.id;
@@ -900,13 +898,11 @@ impl NPC {
                     self.target_y = player.y + if grounded { -0x1400 } else { 0x1000 };
                     self.anim_num = if grounded { 1 } else { 2 };
                     self.direction = if grounded { Direction::Up } else { Direction::Bottom };
-                }
-                else if player.down && !grounded {
+                } else if player.down && !grounded {
                     self.target_y = player.y - 0x1000;
                     self.anim_num = 1;
                     self.direction = Direction::Up;
-                }
-                else {
+                } else {
                     self.target_x += if self.direction == Direction::Right { 0xE00 } else { -0xE00 };
                     self.target_y = player.y - 0x600;
                     self.anim_num = 0;
@@ -918,7 +914,7 @@ impl NPC {
                 if (player.anim_num & 1) != 0 {
                     self.y -= 0x200
                 };
-                
+
                 let dir_offset = if player.direction.opposite() == Direction::Left { 0 } else { 3 };
 
                 self.anim_rect = state.constants.npc.n320_curly_carried[self.anim_num as usize + dir_offset];
@@ -938,7 +934,6 @@ impl NPC {
     ) -> GameResult {
         if self.action_num == 0 {
             if let Some(npc) = self.get_parent_ref_mut(npc_list) {
-
                 let player = &players[0];
 
                 self.direction = npc.direction;
@@ -961,17 +956,30 @@ impl NPC {
                     _ => (),
                 }
 
-                if player.controller.trigger_shoot() && state.control_flags.control_enabled() && bullet_manager.count_bullets_multi(&[43], TargetPlayer::Player1) < 2 {
-                    bullet_manager.create_bullet(npc.x, npc.y, 43, TargetPlayer::Player1, self.direction, &state.constants,);
+                if player.controller.trigger_shoot()
+                    && state.control_flags.control_enabled()
+                    && bullet_manager.count_bullets_multi(&[43], TargetPlayer::Player1) < 2
+                {
+                    bullet_manager.create_bullet(
+                        npc.x,
+                        npc.y,
+                        43,
+                        TargetPlayer::Player1,
+                        self.direction,
+                        &state.constants,
+                    );
                     state.create_caret(npc.x, npc.y, CaretType::Shoot, self.direction);
                 }
 
                 let mut dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
-                if self.direction == Direction::Up {dir_offset += 2};
-                if self.direction == Direction::Bottom {dir_offset += 1};
+                if self.direction == Direction::Up {
+                    dir_offset += 2
+                };
+                if self.direction == Direction::Bottom {
+                    dir_offset += 1
+                };
 
                 self.anim_rect = state.constants.npc.n321_curly_nemesis[dir_offset];
-
             }
         }
 
