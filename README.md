@@ -4,9 +4,7 @@
 
 [Download latest Nightly builds](https://github.com/doukutsu-rs/doukutsu-rs/actions) (Requires being logged in to GitHub)
 
-A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/).
-
-**The project is still incomplete and not fully playable yet.** [Click here to see the current status of the project](https://github.com/doukutsu-rs/doukutsu-rs/issues/10).
+A fully playable re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/).
 
 [Join the Discord server](https://discord.gg/fbRsNNB)
 
@@ -14,7 +12,7 @@ A re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust]
 
 This repository does not contain any copyrighted files. 
 
-For better user experience, pre-built binaries are distributed with slightly modified freeware game files.
+For better user experience, AppVeyor builds are distributed with slightly modified freeware game files.
 
 *doukutsu-rs* should work fine with pre-extracted and tweaked data files from [this repository](https://github.com/doukutsu-rs/game-data), [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) extracted freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) data files.
 
