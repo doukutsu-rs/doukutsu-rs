@@ -57,7 +57,7 @@ impl BMFontRenderer {
         for chr in iter {
             if let Some(glyph) = self.font.chars.get(&chr) {
                 offset_x += ((glyph.width as f32 + glyph.xoffset as f32) * constants.font_scale).floor()
-                    + if chr != ' ' { 1.0 } else { constants.font_space_offset };
+                    + if chr != ' ' { constants.font_scale } else { constants.font_space_offset };
             }
         }
 
@@ -140,7 +140,7 @@ impl BMFontRenderer {
                     );
 
                     offset_x += ((glyph.width as f32 + glyph.xoffset as f32) * constants.font_scale).floor()
-                        + if chr != ' ' { 1.0 } else { constants.font_space_offset };
+                        + if chr != ' ' { constants.font_scale } else { constants.font_space_offset };
                 }
             }
 
@@ -180,7 +180,7 @@ impl BMFontRenderer {
 
                     offset_x += scale
                         * (((glyph.width as f32 + glyph.xoffset as f32) * constants.font_scale).floor()
-                            + if *chr != ' ' { 1.0 } else { constants.font_space_offset });
+                            + if *chr != ' ' { constants.font_scale } else { constants.font_space_offset });
                 }
 
                 batch.draw(ctx)?;

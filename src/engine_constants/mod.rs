@@ -1529,7 +1529,7 @@ impl EngineConstants {
         self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 50 };
         self.font_path = "csfont.fnt".to_owned();
         self.font_scale = 0.5;
-        self.font_space_offset = 2.0;
+        self.font_space_offset = 3.0;
         self.soundtracks.insert("Remastered".to_owned(), "/base/Ogg11/".to_owned());
         self.soundtracks.insert("New".to_owned(), "/base/Ogg/".to_owned());
 
