@@ -555,10 +555,11 @@ impl NPC {
                     self.action_num = 10
                 };
 
-                if self.action_counter > 20 && (self.direction == Direction::Left && self.x <= player.x + 0x4000)
-                    || (self.direction == Direction::Up && self.y <= player.y + 0x4000)
-                    || (self.direction == Direction::Right && self.x <= player.x - 0x4000)
-                    || (self.direction == Direction::Bottom && self.y <= player.y - 0x4000)
+                if self.action_counter > 20
+                    && ((self.direction == Direction::Left && self.x <= player.x + 0x4000)
+                        || (self.direction == Direction::Up && self.y <= player.y + 0x4000)
+                        || (self.direction == Direction::Right && self.x <= player.x - 0x4000)
+                        || (self.direction == Direction::Bottom && self.y <= player.y - 0x4000))
                 {
                     self.action_num = 10
                 }
