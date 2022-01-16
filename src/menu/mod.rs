@@ -9,14 +9,13 @@ use crate::shared_game_state::SharedGameState;
 pub mod settings_menu;
 
 pub struct MenuSaveInfo {}
-
 pub enum MenuEntry {
     Hidden,
     Active(String),
     DisabledWhite(String),
     Disabled(String),
     Toggle(String, bool),
-    Options(String, usize, Vec<String>),
+    Options(String, usize, Vec<String>, Vec<String>),
     SaveData(MenuSaveInfo),
     NewSave,
 }
@@ -29,7 +28,7 @@ impl MenuEntry {
             MenuEntry::DisabledWhite(_) => 14.0,
             MenuEntry::Disabled(_) => 14.0,
             MenuEntry::Toggle(_, _) => 14.0,
-            MenuEntry::Options(_, _, _) => 14.0,
+            MenuEntry::Options(_, _, _, _) => 14.0,
             MenuEntry::SaveData(_) => 30.0,
             MenuEntry::NewSave => 30.0,
         }
@@ -42,7 +41,7 @@ impl MenuEntry {
             MenuEntry::DisabledWhite(_) => false,
             MenuEntry::Disabled(_) => false,
             MenuEntry::Toggle(_, _) => true,
-            MenuEntry::Options(_, _, _) => true,
+            MenuEntry::Options(_, _, _, _) => true,
             MenuEntry::SaveData(_) => true,
             MenuEntry::NewSave => true,
         }
@@ -250,7 +249,7 @@ impl Menu {
                 }
                 MenuEntry::Toggle(name, value) => {
                     let value_text = if *value { "ON" } else { "OFF" };
-                    let val_text_len = state.font.text_width(value_text.chars(), &state.constants);
+                    let name_text_len = state.font.text_width(name.chars(), &state.constants);
 
                     state.font.draw_text(
                         name.chars(),
@@ -263,16 +262,17 @@ impl Menu {
 
                     state.font.draw_text(
                         value_text.chars(),
-                        self.x as f32 + self.width as f32 - val_text_len,
+                        self.x as f32 + 25.0 + name_text_len,
                         y,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
                     )?;
                 }
-                MenuEntry::Options(name, index, value) => {
+                MenuEntry::Options(name, index, value, description) => {
                     let value_text = if let Some(text) = value.get(*index) { text.as_str() } else { "???" };
-                    let val_text_len = state.font.text_width(value_text.chars(), &state.constants);
+                    let description_text = if let Some(text) = description.get(*index) { text.as_str() } else { "???" };
+                    let name_text_len = state.font.text_width(name.chars(), &state.constants);
 
                     state.font.draw_text(
                         name.chars(),
@@ -285,8 +285,18 @@ impl Menu {
 
                     state.font.draw_text(
                         value_text.chars(),
-                        self.x as f32 + self.width as f32 - val_text_len,
+                        self.x as f32 + 25.0 + name_text_len,
                         y,
+                        &state.constants,
+                        &mut state.texture_set,
+                        ctx,
+                    )?;
+
+                        state.font.draw_colored_text(
+                        description_text.chars(),
+                        self.x as f32 + 40.0,
+                        y + 14.0,
+                        (0xa0, 0xa0, 0xff, 0xff),
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -346,18 +356,18 @@ impl Menu {
             y += entry.height() as f32;
 
             match entry {
-                MenuEntry::Active(_) | MenuEntry::Toggle(_, _) | MenuEntry::Options(_, _, _)
+                MenuEntry::Active(_) | MenuEntry::Toggle(_, _) | MenuEntry::Options(_, _, _, _)
                     if (self.selected == idx && controller.trigger_ok())
                         || state.touch_controls.consume_click_in(entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(18);
                     return MenuSelectionResult::Selected(idx, entry);
                 }
-                MenuEntry::Options(_, _, _) if controller.trigger_left() => {
+                MenuEntry::Options(_, _, _, _) if controller.trigger_left() => {
                     state.sound_manager.play_sfx(1);
                     return MenuSelectionResult::Left(self.selected, entry);
                 }
-                MenuEntry::Options(_, _, _) if controller.trigger_right() => {
+                MenuEntry::Options(_, _, _, _) if controller.trigger_right() => {
                     state.sound_manager.play_sfx(1);
                     return MenuSelectionResult::Right(self.selected, entry);
                 }
