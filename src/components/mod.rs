@@ -13,3 +13,4 @@ pub mod stage_select;
 pub mod text_boxes;
 pub mod tilemap;
 pub mod water_renderer;
+pub mod whimsical_star;
