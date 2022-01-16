@@ -3,6 +3,7 @@ use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::graphics;
 use crate::graphics::draw_rect;
 use crate::scripting::tsc::text_script::{ConfirmSelection, TextScriptExecutionState, TextScriptLine};
 use crate::shared_game_state::SharedGameState;
@@ -156,15 +157,29 @@ impl GameEntity<()> for TextBoxes {
 
         let text_offset = if state.textscript_vm.face == 0 { 0.0 } else { 56.0 };
 
+        let y_offset = if let TextScriptExecutionState::MsgNewLine(_, _, _, _, counter) = state.textscript_vm.state {
+            16.0 - counter as f32 * 4.0
+        } else {
+            0.0
+        };
+
         let lines = [&state.textscript_vm.line_1, &state.textscript_vm.line_2, &state.textscript_vm.line_3];
 
+        let clip_rect = Rect::new_size(
+            0,
+            ((top_pos + 6.0) * state.scale) as isize,
+            state.screen_size.0 as isize,
+            (48.0 * state.scale) as isize,
+        );
+
+        graphics::set_clip_rect(ctx, Some(clip_rect))?;
         for (idx, line) in lines.iter().enumerate() {
             if !line.is_empty() {
                 if state.constants.textscript.text_shadow {
                     state.font.draw_text_with_shadow(
                         line.iter().copied(),
                         left_pos + text_offset + 14.0,
-                        top_pos + 10.0 + idx as f32 * 16.0,
+                        top_pos + 10.0 + idx as f32 * 16.0 - y_offset,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -173,7 +188,7 @@ impl GameEntity<()> for TextBoxes {
                     state.font.draw_text(
                         line.iter().copied(),
                         left_pos + text_offset + 14.0,
-                        top_pos + 10.0 + idx as f32 * 16.0,
+                        top_pos + 10.0 + idx as f32 * 16.0 - y_offset,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -181,6 +196,7 @@ impl GameEntity<()> for TextBoxes {
                 }
             }
         }
+        graphics::set_clip_rect(ctx, None)?;
 
         if let TextScriptExecutionState::WaitInput(_, _, tick) = state.textscript_vm.state {
             if tick > 10 {

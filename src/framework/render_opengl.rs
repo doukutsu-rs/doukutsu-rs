@@ -714,6 +714,7 @@ impl BackendRenderer for OpenGLRenderer {
             unsafe {
                 let (width_u, height_u) = (width as u32, height as u32);
                 if self.imgui_data.last_size != (width_u, height_u) {
+                    self.imgui_data.last_size = (width_u, height_u);
                     gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
                     gl.gl.BindTexture(gl::TEXTURE_2D, self.imgui_data.surf_texture);
 
@@ -1028,7 +1029,12 @@ impl BackendRenderer for OpenGLRenderer {
             unsafe {
                 if let Some(rect) = &rect {
                     gl.gl.Enable(gl::SCISSOR_TEST);
-                    gl.gl.Scissor(rect.left as GLint, rect.top as GLint, rect.width() as GLint, rect.height() as GLint);
+                    gl.gl.Scissor(
+                        rect.left as GLint,
+                        self.imgui_data.last_size.1 as GLint - rect.bottom as GLint,
+                        rect.width() as GLint,
+                        rect.height() as GLint,
+                    );
                 } else {
                     gl.gl.Disable(gl::SCISSOR_TEST);
                 }

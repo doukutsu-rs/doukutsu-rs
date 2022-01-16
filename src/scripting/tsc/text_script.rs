@@ -11,8 +11,8 @@ use std::rc::Rc;
 use num_traits::{clamp, FromPrimitive};
 
 use crate::bitfield;
-use crate::common::Direction::{Left, Right};
 use crate::common::{Direction, FadeDirection, FadeState, Rect};
+use crate::common::Direction::{Left, Right};
 use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::frame::UpdateTarget;
@@ -87,6 +87,7 @@ pub enum TextScriptExecutionState {
     Ended,
     Running(u16, u32),
     Msg(u16, u32, u32, u8),
+    MsgNewLine(u16, u32, u32, u8, u8),
     WaitTicks(u16, u32, u16),
     WaitInput(u16, u32, u16),
     WaitStanding(u16, u32),
@@ -324,6 +325,7 @@ impl TextScriptVM {
 
                     if let Some((_, bytecode)) = cached_event {
                         let mut cursor = Cursor::new(bytecode);
+                        let mut new_line = false;
                         cursor.seek(SeekFrom::Start(ip as u64))?;
 
                         let chr = std::char::from_u32(read_cur_varint(&mut cursor)? as u32).unwrap_or('\u{fffd}');
@@ -336,9 +338,7 @@ impl TextScriptVM {
                                 state.textscript_vm.current_line = TextScriptLine::Line3;
                             }
                             '\n' => {
-                                state.textscript_vm.line_1.clear();
-                                state.textscript_vm.line_1.append(&mut state.textscript_vm.line_2);
-                                state.textscript_vm.line_2.append(&mut state.textscript_vm.line_3);
+                                new_line = true;
                             }
                             '\r' => {}
                             _ if state.textscript_vm.current_line == TextScriptLine::Line1 => {
@@ -368,9 +368,7 @@ impl TextScriptVM {
                                 let text_len =
                                     state.font.text_width(state.textscript_vm.line_3.iter().copied(), &state.constants);
                                 if text_len >= 284.0 {
-                                    state.textscript_vm.line_1.clear();
-                                    state.textscript_vm.line_1.append(&mut state.textscript_vm.line_2);
-                                    state.textscript_vm.line_2.append(&mut state.textscript_vm.line_3);
+                                    new_line = true;
                                 }
                             }
                             _ => {}
@@ -395,8 +393,11 @@ impl TextScriptVM {
                                 state.sound_manager.play_sfx(2);
                             }
 
-                            state.textscript_vm.state =
-                                TextScriptExecutionState::Msg(event, cursor.position() as u32, remaining - 1, ticks);
+                            state.textscript_vm.state = if !new_line {
+                                TextScriptExecutionState::Msg(event, cursor.position() as u32, remaining - 1, ticks)
+                            } else {
+                                TextScriptExecutionState::MsgNewLine(event, cursor.position() as u32, remaining - 1, ticks, 4)
+                            };
                         } else {
                             state.textscript_vm.state =
                                 TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -404,6 +405,23 @@ impl TextScriptVM {
                     } else {
                         state.textscript_vm.reset();
                     }
+                }
+                TextScriptExecutionState::MsgNewLine(event, ip, remaining, ticks, mut counter) => {
+                    counter = if state.textscript_vm.flags.fast() || state.textscript_vm.flags.cutscene_skip() {
+                        0
+                    } else {
+                        counter.saturating_sub(1)
+                    };
+
+                    if counter == 0 {
+                        state.textscript_vm.line_1.clear();
+                        state.textscript_vm.line_1.append(&mut state.textscript_vm.line_2);
+                        state.textscript_vm.line_2.append(&mut state.textscript_vm.line_3);
+                        state.textscript_vm.state = TextScriptExecutionState::Msg(event, ip, remaining, ticks);
+                    } else {
+                        state.textscript_vm.state = TextScriptExecutionState::MsgNewLine(event, ip, remaining, ticks, counter);
+                    }
+                    break;
                 }
                 TextScriptExecutionState::WaitTicks(event, ip, ticks) => {
                     if ticks == 0 {
@@ -543,7 +561,8 @@ impl TextScriptVM {
                         pos_y += 0x33;
                     }
 
-                    state.textscript_vm.state = TextScriptExecutionState::FallingIsland(event, ip, pos_x, pos_y, tick, mode);
+                    state.textscript_vm.state =
+                        TextScriptExecutionState::FallingIsland(event, ip, pos_x, pos_y, tick, mode);
                     break;
                 }
                 TextScriptExecutionState::SaveProfile(event, ip) => {
@@ -1622,7 +1641,14 @@ impl TextScriptVM {
             TSCOpCode::XX1 => {
                 let mode = read_cur_varint(&mut cursor)?;
 
-                exec_state = TextScriptExecutionState::FallingIsland(event, cursor.position() as u32, 0x15000, 0x8000, 0, mode != 0);
+                exec_state = TextScriptExecutionState::FallingIsland(
+                    event,
+                    cursor.position() as u32,
+                    0x15000,
+                    0x8000,
+                    0,
+                    mode != 0,
+                );
             }
             // unimplemented opcodes
             // Zero operands
