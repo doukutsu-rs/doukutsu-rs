@@ -23,7 +23,6 @@ Vanilla Cave Story does not work yet because some important data files have been
 **Freeware**
 
 - https://github.com/doukutsu-rs/game-data - Freeware game data distributed with CI builds, based on those two below.
-- ~~https://github.com/Clownacy/CSE2/archive/enhanced.zip - copy `game_english/data` from archive to the runtime directory (place you run the executable from, usually project root)~~
 - https://github.com/nxengine/nxengine-evo/releases/download/v2.6.4/NXEngine-v2.6.4-Win32.zip - copy `NXEngine-evo-2.6.4-xxx/data` from the archive to runtime directory
 
 **Cave Story+ (no full support)**
