@@ -1,8 +1,8 @@
 [package]
 name = "doukutsu-rs"
 description = "A re-implementation of Cave Story (Doukutsu Monogatari) engine"
-version = "0.1.0"
-authors = ["Alula"]
+version = "0.99.0"
+authors = ["Alula", "dawnDus"]
 edition = "2018"
 
 [lib]
@@ -25,9 +25,9 @@ opt-level = 3
 [package.metadata.bundle]
 name = "doukutsu-rs"
 identifier = "io.github.doukutsu_rs"
-version = "0.1.0"
+version = "0.99.0"
 resources = ["data"]
-copyright = "Copyright (c) 2020-2021 Alula and contributors"
+copyright = "Copyright (c) 2020-2022 doukutsu-rs dev team"
 category = "Game"
 osx_minimum_system_version = "10.12"
 
