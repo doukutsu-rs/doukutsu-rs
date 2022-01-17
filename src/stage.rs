@@ -613,7 +613,7 @@ impl StageTexturePaths {
 
     pub fn update(&mut self, stage: &Stage) {
         self.background = stage.data.background.filename();
-        let (tileset_fg, tileset_mg, tileset_bg) = if let Some(pxpack_data) = stage.data.pxpack_data.as_ref() {
+        let (tileset_fg, tileset_mg, tileset_bg) = if let Some(pxpack_data) = &stage.data.pxpack_data {
             let t_fg = ["Stage/", &pxpack_data.tileset_fg].join("");
             let t_mg = ["Stage/", &pxpack_data.tileset_mg].join("");
             let t_bg = ["Stage/", &pxpack_data.tileset_bg].join("");

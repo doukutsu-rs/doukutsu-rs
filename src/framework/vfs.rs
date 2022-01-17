@@ -246,16 +246,14 @@ impl PhysicalFS {
                     }
 
                     if let Ok(entries) = root_path2.read_dir() {
-                        for entry in entries {
-                            if let Ok(entry) = entry {
-                                let name = entry.file_name();
-                                if name.to_ascii_lowercase() != node.to_ascii_lowercase() {
-                                    continue;
-                                }
-
-                                root_path2.push(name);
-                                continue 'citer;
+                        for entry in entries.flatten() {
+                            let name = entry.file_name();
+                            if name.to_ascii_lowercase() != node.to_ascii_lowercase() {
+                                continue;
                             }
+
+                            root_path2.push(name);
+                            continue 'citer;
                         }
                     }
 

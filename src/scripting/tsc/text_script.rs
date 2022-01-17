@@ -324,7 +324,7 @@ impl TextScriptVM {
                     }
 
                     if let Some((_, bytecode)) = cached_event {
-                        let mut cursor = Cursor::new(bytecode);
+                        let mut cursor: Cursor<&[u8]> = Cursor::new(bytecode);
                         let mut new_line = false;
                         cursor.seek(SeekFrom::Start(ip as u64))?;
 
@@ -586,7 +586,7 @@ impl TextScriptVM {
     }
 
     pub fn execute(
-        bytecode: &Vec<u8>,
+        bytecode: &[u8],
         event: u16,
         ip: u32,
         state: &mut SharedGameState,
@@ -1593,9 +1593,9 @@ impl TextScriptVM {
                 state.textscript_vm.current_illustration = None;
                 state.textscript_vm.illustration_state = IllustrationState::FadeIn(-160.0);
 
-                for path in state.constants.credit_illustration_paths.iter() {
+                for path in &state.constants.credit_illustration_paths {
                     let path = format!("{}Credit{:02}", path, number);
-                    if let Some(_) = state.texture_set.find_texture(ctx, &path) {
+                    if state.texture_set.find_texture(ctx, &path).is_some() {
                         state.textscript_vm.current_illustration = Some(path);
                         break;
                     }
@@ -1605,7 +1605,7 @@ impl TextScriptVM {
             }
             TSCOpCode::CIL => {
                 log::warn!("<CIL");
-                state.textscript_vm.illustration_state = if let Some(_) = state.textscript_vm.current_illustration {
+                state.textscript_vm.illustration_state = if state.textscript_vm.current_illustration.is_some() {
                     IllustrationState::FadeOut(0.0)
                 } else {
                     IllustrationState::Hidden

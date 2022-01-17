@@ -56,7 +56,7 @@ impl GameProfile {
 
         game_scene.inventory_player1.current_weapon = self.current_weapon as u16;
         game_scene.inventory_player1.current_item = self.current_item as u16;
-        for weapon in self.weapon_data.iter() {
+        for weapon in &self.weapon_data {
             if weapon.weapon_id == 0 {
                 continue;
             }
@@ -85,7 +85,7 @@ impl GameProfile {
             game_scene.inventory_player1.add_item(item as u16);
         }
 
-        for slot in self.teleporter_slots.iter() {
+        for slot in &self.teleporter_slots {
             if slot.event_num == 0 {
                 break;
             }
@@ -214,9 +214,9 @@ impl GameProfile {
         let mut flags = [0u8; 1000];
         for bits in state.game_flags.as_raw_slice() {
             let bytes = bits.to_le_bytes();
-            for b in bytes.iter() {
+            for b in bytes {
                 if let Some(out) = flags.get_mut(bidx) {
-                    *out = *b;
+                    *out = b;
                 } else {
                     break;
                 }
@@ -264,7 +264,7 @@ impl GameProfile {
         data.write_u32::<LE>(self.control_mode)?;
         data.write_u32::<LE>(self.counter)?;
 
-        for weapon in self.weapon_data.iter() {
+        for weapon in &self.weapon_data {
             data.write_u32::<LE>(weapon.weapon_id)?;
             data.write_u32::<LE>(weapon.level)?;
             data.write_u32::<LE>(weapon.exp)?;
@@ -276,7 +276,7 @@ impl GameProfile {
             data.write_u32::<LE>(item)?;
         }
 
-        for slot in self.teleporter_slots.iter() {
+        for slot in &self.teleporter_slots {
             data.write_u32::<LE>(slot.index)?;
             data.write_u32::<LE>(slot.event_num)?;
         }
@@ -332,21 +332,21 @@ impl GameProfile {
             TeleporterSlotData { index: 0, event_num: 0 },
         ];
 
-        for weap in weapon_data.iter_mut() {
-            weap.weapon_id = data.read_u32::<LE>()?;
-            weap.level = data.read_u32::<LE>()?;
-            weap.exp = data.read_u32::<LE>()?;
-            weap.max_ammo = data.read_u32::<LE>()?;
-            weap.ammo = data.read_u32::<LE>()?;
+        for WeaponData { weapon_id, level, exp, max_ammo, ammo } in &mut weapon_data {
+            *weapon_id = data.read_u32::<LE>()?;
+            *level = data.read_u32::<LE>()?;
+            *exp = data.read_u32::<LE>()?;
+            *max_ammo = data.read_u32::<LE>()?;
+            *ammo = data.read_u32::<LE>()?;
         }
 
-        for item in items.iter_mut() {
+        for item in &mut items {
             *item = data.read_u32::<LE>()?;
         }
 
-        for slot in teleporter_slots.iter_mut() {
-            slot.index = data.read_u32::<LE>()?;
-            slot.event_num = data.read_u32::<LE>()?;
+        for TeleporterSlotData { index, event_num } in &mut teleporter_slots {
+            *index = data.read_u32::<LE>()?;
+            *event_num = data.read_u32::<LE>()?;
         }
 
         let mut map_flags = [0u8; 0x80];

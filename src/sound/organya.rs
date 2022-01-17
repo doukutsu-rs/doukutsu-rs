@@ -142,7 +142,7 @@ impl Song {
             Mu::uninit().assume_init()
         };
 
-        for i in insts.iter_mut() {
+        for i in &mut insts {
             let freq = f.read_u16::<LE>()?;
             let inst = f.read_u8()?;
             let pipi = f.read_u8()?;
@@ -181,23 +181,23 @@ impl Song {
                 vec![Mu::uninit().assume_init(); count]
             };
 
-            for note in notes.iter_mut() {
+            for note in &mut notes {
                 note.pos = Mu::new(f.read_i32::<LE>()?);
             }
 
-            for note in notes.iter_mut() {
+            for note in &mut notes {
                 note.key = Mu::new(f.read_u8()?);
             }
 
-            for note in notes.iter_mut() {
+            for note in &mut notes {
                 note.len = Mu::new(f.read_u8()?);
             }
 
-            for note in notes.iter_mut() {
+            for note in &mut notes {
                 note.vol = Mu::new(f.read_u8()?);
             }
 
-            for note in notes.iter_mut() {
+            for note in &mut notes {
                 note.pan = Mu::new(f.read_u8()?);
             }
 

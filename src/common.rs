@@ -546,18 +546,14 @@ impl<T> SliceExt for [T] {
     type Item = T;
 
     fn get_two_mut(&mut self, a: usize, b: usize) -> Option<(&mut Self::Item, &mut Self::Item)> {
-        if a == b {
-            None
-        } else {
-            if a >= self.len() || b >= self.len() {
-                None
-            } else {
-                unsafe {
-                    let ar = &mut *(self.get_unchecked_mut(a) as *mut _);
-                    let br = &mut *(self.get_unchecked_mut(b) as *mut _);
-                    Some((ar, br))
-                }
-            }
+        if a == b || a >= self.len() || b >= self.len() {
+            return None;
+        }
+
+        unsafe {
+            let ar = &mut *(self.get_unchecked_mut(a) as *mut _);
+            let br = &mut *(self.get_unchecked_mut(b) as *mut _);
+            Some((ar, br))
         }
     }
 }

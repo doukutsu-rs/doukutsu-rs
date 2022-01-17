@@ -351,11 +351,7 @@ impl SpriteBatch for CombinedBatch {
     }
 
     fn glow(&mut self) -> Option<&mut dyn SpriteBatch> {
-        if let Some(batch) = self.glow_batch.as_mut() {
-            Some(batch)
-        } else {
-            None
-        }
+        self.glow_batch.as_mut().map(|batch| batch as &mut dyn SpriteBatch)
     }
 
     fn to_rect(&self) -> Rect<usize> {
@@ -481,14 +477,14 @@ impl TextureSet {
             .find_texture(ctx, name)
             .ok_or_else(|| GameError::ResourceLoadError(format!("Texture {} does not exist.", name)))?;
 
-        let glow_path = self.find_texture(ctx, [name, ".glow"].join("").as_str());
+        let glow_path = self.find_texture(ctx, &[name, ".glow"].join(""));
 
         info!("Loading texture: {} -> {}", name, path);
 
         fn make_batch(name: &str, constants: &EngineConstants, batch: Box<dyn BackendTexture>) -> SubBatch {
             let size = batch.dimensions();
 
-            let orig_dimensions = constants.tex_sizes.get(name).unwrap_or_else(|| &size);
+            let orig_dimensions = constants.tex_sizes.get(name).unwrap_or(&size);
             let scale = orig_dimensions.0 as f32 / size.0 as f32;
             let width = (size.0 as f32 * scale) as _;
             let height = (size.1 as f32 * scale) as _;

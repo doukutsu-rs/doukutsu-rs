@@ -48,7 +48,7 @@ impl GameEntity<(&Player, &mut BulletManager)> for WhimsicalStar {
     ) -> GameResult {
         if !player.equip.has_whimsical_star() {
             return Ok(());
-        } else if self.equipped == false && player.equip.has_whimsical_star() {
+        } else if !self.equipped && player.equip.has_whimsical_star() {
             for iter in 0..2 {
                 self.star[iter].x = player.x;
                 self.star[iter].y = player.y;

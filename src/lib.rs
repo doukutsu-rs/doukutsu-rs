@@ -100,7 +100,7 @@ impl Game {
     }
 
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        if let Some(scene) = self.scene.as_mut() {
+        if let Some(scene) = &mut self.scene {
             let state_ref = unsafe { &mut *self.state.get() };
 
             let speed =
@@ -179,7 +179,7 @@ impl Game {
         graphics::prepare_draw(ctx)?;
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
 
-        if let Some(scene) = self.scene.as_mut() {
+        if let Some(scene) = &mut self.scene {
             scene.draw(state_ref, ctx)?;
             if state_ref.settings.touch_controls {
                 state_ref.touch_controls.draw(
@@ -270,7 +270,7 @@ pub fn init(options: LaunchOptions) -> GameResult {
 
     #[cfg(not(target_os = "android"))]
     {
-        if let Ok(_) = crate::framework::filesystem::open(&mut context, "/.drs_localstorage") {
+        if crate::framework::filesystem::open(&context, "/.drs_localstorage").is_ok() {
             let mut user_dir = resource_dir.clone();
             user_dir.push("_drs_profile");
 

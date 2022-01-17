@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use std::io::Cursor;
 
 use num_traits::FromPrimitive;
@@ -12,7 +13,7 @@ impl TextScript {
     pub fn decompile_event(&self, id: u16) -> GameResult<String> {
         if let Some(bytecode) = self.event_map.get(&id) {
             let mut result = String::new();
-            let mut cursor = Cursor::new(bytecode);
+            let mut cursor: Cursor<&[u8]> = Cursor::new(bytecode);
 
             while let Ok(op_num) = read_cur_varint(&mut cursor) {
                 let op_maybe: Option<TSCOpCode> = FromPrimitive::from_i32(op_num);
@@ -59,7 +60,7 @@ impl TextScript {
                         | TSCOpCode::POP
                         | TSCOpCode::KE2
                         | TSCOpCode::FR2 => {
-                            result.push_str(format!("{:?}()\n", op).as_str());
+                            writeln!(&mut result, "{:?}()", op).unwrap();
                         }
                         // One operand codes
                         TSCOpCode::BOA
@@ -105,7 +106,7 @@ impl TextScript {
                         | TSCOpCode::PSH => {
                             let par_a = read_cur_varint(&mut cursor)?;
 
-                            result.push_str(format!("{:?}({})\n", op, par_a).as_str());
+                            writeln!(&mut result, "{:?}({})", op, par_a).unwrap();
                         }
                         // Two operand codes
                         TSCOpCode::FON
@@ -124,7 +125,7 @@ impl TextScript {
                             let par_a = read_cur_varint(&mut cursor)?;
                             let par_b = read_cur_varint(&mut cursor)?;
 
-                            result.push_str(format!("{:?}({}, {})\n", op, par_a, par_b).as_str());
+                            writeln!(&mut result, "{:?}({}, {})", op, par_a, par_b).unwrap();
                         }
                         // Three operand codes
                         TSCOpCode::ANP | TSCOpCode::CNP | TSCOpCode::INP | TSCOpCode::TAM | TSCOpCode::CMP | TSCOpCode::INJ => {
@@ -132,7 +133,7 @@ impl TextScript {
                             let par_b = read_cur_varint(&mut cursor)?;
                             let par_c = read_cur_varint(&mut cursor)?;
 
-                            result.push_str(format!("{:?}({}, {}, {})\n", op, par_a, par_b, par_c).as_str());
+                            writeln!(&mut result, "{:?}({}, {}, {})", op, par_a, par_b, par_c).unwrap();
                         }
                         // Four operand codes
                         TSCOpCode::TRA | TSCOpCode::MNP | TSCOpCode::SNP => {
@@ -141,12 +142,12 @@ impl TextScript {
                             let par_c = read_cur_varint(&mut cursor)?;
                             let par_d = read_cur_varint(&mut cursor)?;
 
-                            result.push_str(format!("{:?}({}, {}, {}, {})\n", op, par_a, par_b, par_c, par_d).as_str());
+                            writeln!(&mut result, "{:?}({}, {}, {}, {})", op, par_a, par_b, par_c, par_d).unwrap();
                         }
                         TSCOpCode::_STR => {
                             let len = read_cur_varint(&mut cursor)?;
 
-                            result.push_str(format!("%string(len = {}, value = \"", len).as_str());
+                            write!(&mut result, "%string(len = {}, value = \"", len).unwrap();
                             for _ in 0..len {
                                 let chr = std::char::from_u32(read_cur_varint(&mut cursor)? as u32).unwrap_or('?');
                                 match chr {
@@ -160,7 +161,7 @@ impl TextScript {
                                         result.push_str("\\t");
                                     }
                                     '\u{0000}'..='\u{001f}' | '\u{0080}'..='\u{ffff}' => {
-                                        result.push_str(chr.escape_unicode().to_string().as_str());
+                                        result.push_str(&chr.escape_unicode().to_string());
                                     }
                                     _ => {
                                         result.push(chr);

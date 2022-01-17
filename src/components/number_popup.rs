@@ -65,10 +65,7 @@ impl GameEntity<()> for NumberPopup {
         let x = interpolate_fix9_scale(self.prev_x, self.x, state.frame_time) - frame_x;
         let y = interpolate_fix9_scale(self.prev_y, self.y, state.frame_time) - frame_y - y_offset;
 
-        let mut n = self.value.to_string();
-        if self.value > 0 {
-            n = "+".to_owned() + n.as_str();
-        };
+        let n = format!("{:+}", self.value);
 
         let x = x - n.len() as f32 * 4.0;
 

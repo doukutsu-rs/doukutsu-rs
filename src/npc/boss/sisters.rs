@@ -112,18 +112,16 @@ impl BossNPC {
                     *actr2 -= 2;
                 } else if self.parts[0].action_counter < self.parts[0].action_counter2 + 60 {
                     *actr2 -= 1;
+                } else if self.parts[0].life >= 300 {
+                    self.parts[0].action_counter = 0;
+                    self.parts[0].action_num = 100;
+                    *actr2 = self.parts[0].rng.range(400..700) as i16;
                 } else {
-                    if self.parts[0].life >= 300 {
-                        self.parts[0].action_counter = 0;
-                        self.parts[0].action_num = 100;
-                        *actr2 = self.parts[0].rng.range(400..700) as i16;
-                    } else {
-                        self.parts[0].action_counter = 0;
-                        self.parts[0].action_num = 400;
-                        self.parts[2].action_num = 400;
-                        self.parts[4].action_num = 400;
-                        b = false;
-                    }
+                    self.parts[0].action_counter = 0;
+                    self.parts[0].action_num = 400;
+                    self.parts[2].action_num = 400;
+                    self.parts[4].action_num = 400;
+                    b = false;
                 }
 
                 if b && *actr2 <= 0 {

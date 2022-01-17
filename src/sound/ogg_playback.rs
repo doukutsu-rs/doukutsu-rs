@@ -77,12 +77,12 @@ impl OggPlaybackEngine {
     }
 
     pub fn rewind(&mut self) {
-        if let Some(music) = self.intro_music.as_ref() {
+        if let Some(music) = &self.intro_music {
             let _ = music.write().unwrap().seek_absgp_pg(0);
             self.position = 0;
             self.playing_intro = true;
         } else {
-            if let Some(music) = self.loop_music.as_ref() {
+            if let Some(music) = &self.loop_music {
                 let _ = music.write().unwrap().seek_absgp_pg(0);
             }
 
@@ -93,7 +93,7 @@ impl OggPlaybackEngine {
 
     fn decode(&mut self) {
         if self.playing_intro {
-            if let Some(music) = self.intro_music.as_ref() {
+            if let Some(music) = &self.intro_music {
                 let mut music = music.write().unwrap();
 
                 let mut buf = match music.read_dec_packet_itl() {
@@ -119,35 +119,33 @@ impl OggPlaybackEngine {
             } else {
                 self.playing_intro = false;
             }
+        } else if let Some(music) = &self.loop_music {
+            let mut music = music.write().unwrap();
+
+            let mut buf = match music.read_dec_packet_itl() {
+                Ok(Some(buf)) => buf,
+                Ok(None) => {
+                    if music.seek_absgp_pg(0).is_ok() {
+                        return;
+                    }
+
+                    vec![0, 1000]
+                }
+                Err(_) => {
+                    vec![0, 1000]
+                }
+            };
+
+            self.position = music.get_last_absgp().unwrap_or(0);
+            buf = self.resample_buffer(
+                buf,
+                music.ident_hdr.audio_sample_rate,
+                music.ident_hdr.audio_channels,
+            );
+            self.buffer.append(&mut buf);
         } else {
-            if let Some(music) = self.loop_music.as_ref() {
-                let mut music = music.write().unwrap();
-
-                let mut buf = match music.read_dec_packet_itl() {
-                    Ok(Some(buf)) => buf,
-                    Ok(None) => {
-                        if let Err(_) = music.seek_absgp_pg(0) {
-                            vec![0, 1000]
-                        } else {
-                            return;
-                        }
-                    }
-                    Err(_) => {
-                        vec![0, 1000]
-                    }
-                };
-
-                self.position = music.get_last_absgp().unwrap_or(0);
-                buf = self.resample_buffer(
-                    buf,
-                    music.ident_hdr.audio_sample_rate,
-                    music.ident_hdr.audio_channels,
-                );
-                self.buffer.append(&mut buf);
-            } else {
-                let mut buf = vec![0; 1000];
-                self.buffer.append(&mut buf);
-            }
+            let mut buf = vec![0; 1000];
+            self.buffer.append(&mut buf);
         }
     }
 

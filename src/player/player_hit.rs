@@ -344,7 +344,7 @@ impl Player {
             self.tick_npc_collision(id, state, npc, npc_list, inventory);
         }
 
-        for boss_npc in boss.parts.iter_mut() {
+        for boss_npc in &mut boss.parts {
             if boss_npc.cond.alive() {
                 self.tick_npc_collision(id, state, boss_npc, npc_list, inventory);
             }

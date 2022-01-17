@@ -181,7 +181,7 @@ impl BossNPC {
                 self.parts[7].x = self.parts[0].x - 0x6000;
                 self.parts[7].y = self.parts[0].y + 0x4000;
 
-                for part in self.parts.iter_mut() {
+                for part in &mut self.parts {
                     part.prev_x = part.x;
                     part.prev_y = part.y;
                 }

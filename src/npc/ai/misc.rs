@@ -685,7 +685,7 @@ impl NPC {
     pub(crate) fn tick_n096_fan_left(
         &mut self,
         state: &mut SharedGameState,
-        mut players: [&mut Player; 2],
+        players: [&mut Player; 2],
         npc_list: &NPCList,
     ) -> GameResult {
         match self.action_num {
@@ -721,7 +721,7 @@ impl NPC {
                     }
                 }
 
-                for player in players.iter_mut() {
+                for player in players {
                     if !player.cond.alive() || player.cond.hidden() {
                         continue;
                     }
@@ -745,7 +745,7 @@ impl NPC {
     pub(crate) fn tick_n097_fan_up(
         &mut self,
         state: &mut SharedGameState,
-        mut players: [&mut Player; 2],
+        players: [&mut Player; 2],
         npc_list: &NPCList,
     ) -> GameResult {
         match self.action_num {
@@ -781,7 +781,7 @@ impl NPC {
                     }
                 }
 
-                for player in players.iter_mut() {
+                for player in players {
                     if !player.cond.alive() || player.cond.hidden() {
                         continue;
                     }
@@ -804,7 +804,7 @@ impl NPC {
     pub(crate) fn tick_n098_fan_right(
         &mut self,
         state: &mut SharedGameState,
-        mut players: [&mut Player; 2],
+        players: [&mut Player; 2],
         npc_list: &NPCList,
     ) -> GameResult {
         match self.action_num {
@@ -840,7 +840,7 @@ impl NPC {
                     }
                 }
 
-                for player in players.iter_mut() {
+                for player in players {
                     if (player.y - self.y).abs() < 0x1000 && player.x > self.x && player.x < self.x + 96 * 0x200 {
                         player.vel_x += 0x88;
                         player.cond.set_increase_acceleration(true);
@@ -860,7 +860,7 @@ impl NPC {
     pub(crate) fn tick_n099_fan_down(
         &mut self,
         state: &mut SharedGameState,
-        mut players: [&mut Player; 2],
+        players: [&mut Player; 2],
         npc_list: &NPCList,
     ) -> GameResult {
         match self.action_num {
@@ -896,7 +896,7 @@ impl NPC {
                     }
                 }
 
-                for player in players.iter_mut() {
+                for player in players {
                     if (player.x - self.x).abs() < 0x1000 && player.y > self.y && player.y < self.y + 96 * 0x200 {
                         player.vel_y += 0x88;
                     }
@@ -963,7 +963,7 @@ impl NPC {
             10 => {
                 self.animate(2, 2, 2);
 
-                for player in players.iter() {
+                for player in players {
                     if player.y > self.y {
                         self.npc_flags.set_solid_hard(false);
                         self.damage = 127;
@@ -1806,7 +1806,7 @@ impl NPC {
                     self.y -= 0x800;
                 }
 
-                for player in players.iter() {
+                for player in players {
                     if player.x < self.x + 0x1000
                         && player.x > self.x - 0x1000
                         && player.y > self.y + 0x1000
@@ -1826,7 +1826,7 @@ impl NPC {
             10 => {
                 self.animate(2, 2, 2);
 
-                for player in players.iter() {
+                for player in players {
                     if player.y > self.y {
                         self.npc_flags.set_solid_hard(false);
                         self.damage = 127;

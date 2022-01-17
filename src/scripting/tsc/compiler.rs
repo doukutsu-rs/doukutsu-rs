@@ -111,7 +111,7 @@ impl TextScript {
 
                     let code = String::from_utf8_lossy(&n);
 
-                    TextScript::compile_code(code.as_ref(), strict, iter, &mut bytecode)?;
+                    TextScript::compile_code(&code, strict, iter, &mut bytecode)?;
                 }
                 b'\r' => {
                     iter.next();

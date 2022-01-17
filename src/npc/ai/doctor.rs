@@ -15,7 +15,7 @@ impl NPC {
                     self.action_num = 1;
                     self.vel_x = 0;
                     self.vel_y = 0;
-                    self.y = self.y + -0x1000;
+                    self.y += -0x1000;
                 }
 
                 if !self.flags.hit_bottom_wall() {
@@ -24,7 +24,7 @@ impl NPC {
                     self.anim_num = 0;
                 }
 
-                self.vel_y = self.vel_y + 0x40;
+                self.vel_y += 0x40;
             }
             10 | 11 => {
                 if self.action_num == 10 {
@@ -34,15 +34,15 @@ impl NPC {
                     self.action_counter3 = 0;
                 }
 
-                self.anim_counter = self.anim_counter + 1;
+                self.anim_counter += 1;
                 if 6 < self.anim_counter {
                     self.anim_counter = 0;
-                    self.anim_num = self.anim_num + 1;
+                    self.anim_num += 1;
                 }
 
                 if 1 < self.anim_num {
                     self.anim_num = 0;
-                    self.action_counter3 = self.action_counter3 + 1;
+                    self.action_counter3 += 1;
                 }
 
                 if 8 < self.action_counter3 {
@@ -59,9 +59,9 @@ impl NPC {
                 }
 
                 if self.y < self.target_y {
-                    self.vel_y = self.vel_y + 0x20;
+                    self.vel_y += 0x20;
                 } else {
-                    self.vel_y = self.vel_y + -0x20;
+                    self.vel_y += -0x20;
                 }
 
                 self.vel_y = self.vel_y.clamp(-0x200, 0x200);
@@ -91,7 +91,7 @@ impl NPC {
                     state.sound_manager.play_sfx(0x1d);
                 }
                 self.anim_num = 2;
-                self.action_counter = self.action_counter + 1;
+                self.action_counter += 1;
                 if 0x3f < self.action_counter {
                     self.action_num = 0x14;
                 }

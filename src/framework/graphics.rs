@@ -23,7 +23,7 @@ pub enum BlendMode {
 }
 
 pub fn clear(ctx: &mut Context, color: Color) {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         renderer.clear(color)
     }
 }

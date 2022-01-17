@@ -596,8 +596,8 @@ impl NPC {
             if 1 < self.action_num {
                 if self.action_num == 10 {
                     if (self.flags.0 & 0xf) == 0 {
-                        self.x = self.x + self.vel_x;
-                        self.y = self.y + self.vel_y;
+                        self.x += self.vel_x;
+                        self.y += self.vel_y;
                     } else {
                         self.action_num = 0x14;
                         self.action_counter = 0;
@@ -617,9 +617,9 @@ impl NPC {
                         }
                     }
                 } else if self.action_num == 0x14 {
-                    self.x = self.x + self.vel_x;
-                    self.y = self.y + self.vel_y;
-                    self.action_counter = self.action_counter + 1;
+                    self.x += self.vel_x;
+                    self.y += self.vel_y;
+                    self.action_counter += 1;
                     if 4 < self.action_counter {
                         let mut npc = NPC::create(4, &state.npc_table);
                         npc.cond.set_alive(true);
@@ -676,7 +676,7 @@ impl NPC {
             }
         }
 
-        self.anim_num = self.anim_num + 1;
+        self.anim_num += 1;
         if 1 < self.anim_num {
             self.anim_num = 0;
         }

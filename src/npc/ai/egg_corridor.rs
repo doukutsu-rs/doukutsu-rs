@@ -868,10 +868,8 @@ impl NPC {
                     && self.y + 0xa000 > player.y
                 {
                     self.anim_num = 1;
-                } else {
-                    if self.action_counter < 8 {
-                        self.action_counter += 1;
-                    }
+                } else if self.action_counter < 8 {
+                    self.action_counter += 1;
                 }
 
                 if self.shock > 0 {

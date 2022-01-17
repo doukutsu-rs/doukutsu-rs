@@ -819,46 +819,46 @@ impl NPCTable {
             });
         }
 
-        for npc in table.entries.iter_mut() {
+        for npc in &mut table.entries {
             npc.npc_flags.0 = f.read_u16::<LE>()?;
         }
 
-        for npc in table.entries.iter_mut() {
+        for npc in &mut table.entries {
             npc.life = f.read_u16::<LE>()?;
         }
 
-        for npc in table.entries.iter_mut() {
+        for npc in &mut table.entries {
             npc.spritesheet_id = f.read_u8()?;
         }
 
-        for npc in table.entries.iter_mut() {
+        for npc in &mut table.entries {
             npc.death_sound = f.read_u8()?;
         }
 
-        for npc in table.entries.iter_mut() {
+        for npc in &mut table.entries {
             npc.hurt_sound = f.read_u8()?;
         }
 
-        for npc in table.entries.iter_mut() {
+        for npc in &mut table.entries {
             npc.size = f.read_u8()?;
         }
 
-        for npc in table.entries.iter_mut() {
+        for npc in &mut table.entries {
             npc.experience = f.read_u32::<LE>()?;
         }
 
-        for npc in table.entries.iter_mut() {
+        for npc in &mut table.entries {
             npc.damage = f.read_u32::<LE>()?;
         }
 
-        for npc in table.entries.iter_mut() {
+        for npc in &mut table.entries {
             npc.hit_bounds.left = f.read_u8()?;
             npc.hit_bounds.top = f.read_u8()?;
             npc.hit_bounds.right = f.read_u8()?;
             npc.hit_bounds.bottom = f.read_u8()?;
         }
 
-        for npc in table.entries.iter_mut() {
+        for npc in &mut table.entries {
             npc.display_bounds.left = f.read_u8()?;
             npc.display_bounds.top = f.read_u8()?;
             npc.display_bounds.right = f.read_u8()?;

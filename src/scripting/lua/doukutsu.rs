@@ -476,7 +476,7 @@ impl Doukutsu {
             let lua_vfs_path = format!("@/Scripts/{}.lua", name);
 
             fn raise_error(name: &str, state: &mut State, err: &str) {
-                let error_msg = format!("module '{}' not found: {}", name, err.to_string());
+                let error_msg = format!("module '{}' not found: {}", name, err);
                 state.error(&error_msg);
             }
 
@@ -538,7 +538,7 @@ impl LuaScriptingState {
     pub fn try_run_npc_hook(&mut self, npc_id: u16, npc_type: u16) -> bool {
         let mut result = false;
 
-        if let Some(state) = self.state.as_mut() {
+        if let Some(state) = &mut self.state {
             state.get_global(DRS_RUNTIME_GLOBAL);
             state.get_field(-1, "_tryNPCHook");
 

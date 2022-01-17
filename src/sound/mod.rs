@@ -169,7 +169,7 @@ impl SoundManager {
                             // we're sure that there's one element
                             let path = unsafe { paths.get_unchecked(0) };
 
-                            match filesystem::open(ctx, path).map(|f| organya::Song::load_from(f)) {
+                            match filesystem::open(ctx, path).map(organya::Song::load_from) {
                                 Ok(Ok(org)) => {
                                     log::info!("Playing Organya BGM: {} {}", song_id, path);
 
@@ -304,32 +304,28 @@ impl SoundManager {
         let mut params = PixToneParameters::empty();
 
         fn next_string<T: FromStr, R: io::Read>(reader: &mut Lines<BufReader<R>>) -> GameResult<T> {
-            loop {
-                if let Some(Ok(str)) = reader.next() {
-                    let str = str.trim();
-                    if str == "" || str.starts_with("#") {
-                        continue;
-                    }
+            while let Some(Ok(str)) = reader.next() {
+                let str = str.trim();
+                if str.is_empty() || str.starts_with('#') {
+                    continue;
+                }
 
-                    let mut splits = str.split(":");
+                let mut splits = str.split(':');
 
-                    let _ = splits.next();
-                    if let Some(str) = splits.next() {
-                        return str.trim().parse::<T>().map_err(|_| {
-                            GameError::ParseError("failed to parse the value as specified type.".to_string())
-                        });
-                    } else {
-                        break;
-                    }
+                let _ = splits.next();
+                if let Some(str) = splits.next() {
+                    return str.trim().parse::<T>().map_err(|_| {
+                        GameError::ParseError("failed to parse the value as specified type.".to_string())
+                    });
                 } else {
                     break;
                 }
             }
 
-            return Err(GameError::ParseError("unexpected end.".to_string()));
+            Err(GameError::ParseError("unexpected end.".to_string()))
         }
 
-        for channel in params.channels.iter_mut() {
+        for channel in &mut params.channels {
             channel.enabled = next_string::<u8, R>(&mut reader)? != 0;
             channel.length = next_string::<u32, R>(&mut reader)?;
 
@@ -617,9 +613,7 @@ where
                     pxt_index += 1;
                 } else {
                     pxt_index = 0;
-                    for i in pxt_buf.iter_mut() {
-                        *i = 0x8000
-                    }
+                    pxt_buf.fill(0x8000);
                     pixtone.mix(&mut pxt_buf, sample_rate / speed);
                 }
 
@@ -671,10 +665,8 @@ where
                     if let Err(e) = stream.pause() {
                         log::error!("Failed to pause the stream: {:?}", e);
                     }
-                } else {
-                    if let Err(e) = stream.play() {
-                        log::error!("Failed to unpause the stream: {:?}", e);
-                    }
+                } else if let Err(e) = stream.play() {
+                    log::error!("Failed to unpause the stream: {:?}", e);
                 }
             }
         }

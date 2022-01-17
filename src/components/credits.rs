@@ -60,7 +60,7 @@ impl GameEntity<()> for Credits {
         }
 
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Casts")?;
-        for line in state.creditscript_vm.lines.iter() {
+        for line in &state.creditscript_vm.lines {
             let x = (line.cast_id % 13) * 24;
             let y = ((line.cast_id / 13) & 0xff) * 24;
             let rect = Rect::new_size(x, y, 24, 24);
@@ -69,7 +69,7 @@ impl GameEntity<()> for Credits {
         }
         batch.draw(ctx)?;
 
-        for line in state.creditscript_vm.lines.iter() {
+        for line in &state.creditscript_vm.lines {
             state.font.draw_text_with_shadow(
                 line.text.chars(),
                 line.pos_x,

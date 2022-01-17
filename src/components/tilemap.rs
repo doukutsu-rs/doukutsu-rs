@@ -41,7 +41,7 @@ impl Tilemap {
         };
 
         let (layer_offset, layer_width, layer_height, uses_layers) =
-            if let Some(pxpack_data) = stage.data.pxpack_data.as_ref() {
+            if let Some(pxpack_data) = &stage.data.pxpack_data {
                 match layer {
                     TileLayer::Background => {
                         (pxpack_data.offset_bg as usize, pxpack_data.size_bg.0, pxpack_data.size_bg.1, true)
@@ -68,7 +68,7 @@ impl Tilemap {
         let mut rect = Rect::new(0, 0, tile_size as u16, tile_size as u16);
         let (mut frame_x, mut frame_y) = frame.xy_interpolated(state.frame_time);
 
-        if let Some(pxpack_data) = stage.data.pxpack_data.as_ref() {
+        if let Some(pxpack_data) = &stage.data.pxpack_data {
             let (fx, fy) = match layer {
                 TileLayer::Background => pxpack_data.scroll_bg.transform_camera_pos(frame_x, frame_y),
                 TileLayer::Middleground => pxpack_data.scroll_mg.transform_camera_pos(frame_x, frame_y),

@@ -366,7 +366,7 @@ impl BossNPC {
             self.parts[i].shock = self.parts[0].shock;
         }
 
-        for &i in [3, 4].iter() {
+        for &i in &[3, 4] {
             match self.parts[i].action_num {
                 0 | 1 => {
                     if self.parts[i].action_num == 0 {
@@ -403,7 +403,7 @@ impl BossNPC {
             self.parts[i].anim_rect = state.constants.npc.b01_omega[6 + dir_offset + self.parts[i].anim_num as usize];
         }
 
-        for &i in [1, 2].iter() {
+        for &i in &[1, 2] {
             self.parts[i].x = self.parts[0].x + self.parts[i].direction.vector_x() * 0x2000;
             self.parts[i].y = (self.parts[0].y + self.parts[i + 2].y - 0x1000) / 2;
 

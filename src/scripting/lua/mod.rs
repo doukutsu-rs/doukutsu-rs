@@ -74,7 +74,7 @@ impl LuaScriptingState {
         self.game_scene = game_scene;
     }
 
-    fn load_script(mut state: &mut State, path: &str, mut script: File) -> bool {
+    fn load_script(state: &mut State, path: &str, mut script: File) -> bool {
         let mut buf = Vec::new();
         let res = script.read_to_end(&mut buf);
 
@@ -85,7 +85,7 @@ impl LuaScriptingState {
 
         let name = format!("@{}", path);
         let res = state.load_buffer(&buf, &name);
-        let res = check_status(res, &mut state);
+        let res = check_status(res, state);
         if let Err(err) = res {
             log::warn!("Error loading script {}: {}", path, err);
             return false;
@@ -130,7 +130,7 @@ impl LuaScriptingState {
 
                 match filesystem::open(ctx, file) {
                     Ok(script) => {
-                        if LuaScriptingState::load_script(&mut state, path.to_string_lossy().as_ref(), script) {
+                        if LuaScriptingState::load_script(&mut state, &path.to_string_lossy(), script) {
                             script_count += 1;
                         }
                     }

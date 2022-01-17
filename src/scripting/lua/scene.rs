@@ -41,7 +41,7 @@ impl LuaObject for LuaGameScene {
 
 impl LuaScriptingState {
     pub fn scene_tick(&mut self) {
-        if let Some(state) = self.state.as_mut() {
+        if let Some(state) = &mut self.state {
             let val = LuaGameScene::new(self.game_scene);
 
             state.get_global(DRS_RUNTIME_GLOBAL);

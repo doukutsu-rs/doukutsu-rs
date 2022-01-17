@@ -24,7 +24,7 @@ pub fn put_varint(val: i32, out: &mut Vec<u8>) {
     }
 }
 
-pub fn read_cur_varint(cursor: &mut Cursor<&Vec<u8>>) -> GameResult<i32> {
+pub fn read_cur_varint(cursor: &mut Cursor<&[u8]>) -> GameResult<i32> {
     let mut result = 0u32;
 
     for o in 0..5 {
@@ -59,7 +59,7 @@ pub fn read_varint<I: Iterator<Item = u8>>(iter: &mut I) -> GameResult<i32> {
 }
 
 pub fn put_string(buffer: &mut Vec<u8>, out: &mut Vec<u8>, encoding: TextScriptEncoding) {
-    if buffer.len() == 0 {
+    if buffer.is_empty() {
         return;
     }
 
@@ -94,7 +94,7 @@ fn test_varint() {
 
         let result = read_varint(&mut out.iter().copied()).unwrap();
         assert_eq!(result, n);
-        let mut cur = Cursor::new(&out);
+        let mut cur: Cursor<&[u8]> = Cursor::new(&out);
         let result = read_cur_varint(&mut cur).unwrap();
         assert_eq!(result, n);
     }

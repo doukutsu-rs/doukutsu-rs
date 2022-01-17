@@ -52,7 +52,7 @@ impl DynamicWater {
     }
 
     pub fn tick(&mut self) {
-        for col in self.columns.iter_mut() {
+        for col in &mut self.columns {
             col.tick(DAMPENING, TENSION);
         }
 
@@ -123,7 +123,7 @@ impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
             return Ok(());
         }
 
-        for surf in self.water_surfaces.iter_mut() {
+        for surf in &mut self.water_surfaces {
             let line_x = surf.x as f32 * 16.0;
             let line_y = surf.y as f32 * 16.0;
 
@@ -143,7 +143,7 @@ impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
                     let col_idx_right = (col_idx_center + (obj.hit_bounds().left as i32 / (8 * 0x200)))
                         .clamp(0, surf.columns.len() as i32) as usize;
 
-                    for col in surf.columns[col_idx_left..=col_idx_right].iter_mut() {
+                    for col in &mut surf.columns[col_idx_left..=col_idx_right] {
                         col.speed = (obj.vel_y() as f32 / 512.0) * (obj.hit_rect_size() as f32 * 0.25).clamp(0.1, 1.0);
                     }
                 }
@@ -174,7 +174,7 @@ impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
         let water_color_top = Color::from_rgba(102, 153, 204, 150);
         let water_color = Color::from_rgba(102, 153, 204, 75);
 
-        for region in self.depth_regions.iter() {
+        for region in &self.depth_regions {
             out_rect.left = ((region.left as f32 * 16.0 - o_x - 8.0) * state.scale) as isize;
             out_rect.top = ((region.top as f32 * 16.0 - o_y - 8.0) * state.scale) as isize;
             out_rect.right = ((region.right as f32 * 16.0 - o_x + 8.0) * state.scale) as isize;
@@ -183,7 +183,7 @@ impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
         }
 
         if !state.settings.shader_effects || !graphics::supports_vertex_draw(ctx)? {
-            for region in self.surf_regions.iter() {
+            for region in &self.surf_regions {
                 out_rect.left = ((region.left as f32 * 16.0 - o_x - 8.0) * state.scale) as isize;
                 out_rect.top = ((region.top as f32 * 16.0 - o_y - 5.0) * state.scale) as isize;
                 out_rect.right = ((region.right as f32 * 16.0 - o_x + 8.0) * state.scale) as isize;
@@ -199,7 +199,7 @@ impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
         let color_mid_rgba = water_color.to_rgba();
         let color_btm_rgba = water_color.to_rgba();
 
-        for surf in self.water_surfaces.iter() {
+        for surf in &self.water_surfaces {
             let pos_x = surf.x as f32 * 16.0;
             let pos_y = surf.y as f32 * 16.0;
 
