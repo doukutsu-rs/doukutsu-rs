@@ -136,13 +136,13 @@ impl Map {
         map_data.read_u8()?; // ignored
         let scroll_bg = PxPackScroll::from(map_data.read_u8()?);
 
-        if tileset_fg == "" {
+        if tileset_fg.is_empty() {
             tileset_fg = data.tileset.filename()
         }
-        if tileset_mg == "" {
+        if tileset_mg.is_empty() {
             tileset_mg = data.tileset.filename()
         }
-        if tileset_bg == "" {
+        if tileset_bg.is_empty() {
             tileset_bg = data.tileset.filename()
         }
 
@@ -225,7 +225,7 @@ impl Map {
                 log::warn!("Map attribute data is shorter than 256 bytes!");
             }
 
-            for attr in attrib.iter_mut() {
+            for attr in &mut attrib {
                 *attr = match *attr {
                     1 | 45 => 0x41,
                     2 | 66 => 0x44,
@@ -270,7 +270,7 @@ impl Map {
             );
         }
 
-        if map_name != "" {
+        if !map_name.is_empty() {
             data.name = map_name;
         }
 
@@ -297,7 +297,7 @@ impl Map {
             return 0;
         }
 
-        self.attrib[*self.tiles.get(self.width as usize * y + x).unwrap_or_else(|| &0u8) as usize]
+        self.attrib[*self.tiles.get(self.width as usize * y + x).unwrap_or(&0u8) as usize]
     }
 
     pub fn find_water_regions(&self) -> Vec<(WaterRegionType, Rect<u16>)> {
@@ -325,8 +325,7 @@ impl Map {
 
                 walked[idx] = true;
                 let mut rect = Rect::new(x, y, x, y);
-                let mut queue = Vec::new();
-                queue.push((0b1100, x, y));
+                let mut queue = vec![(0b1100, x, y)];
 
                 while let Some((flow_flags, fx, fy)) = queue.pop() {
                     let idx = self.width as usize * fy as usize + fx as usize;
@@ -521,7 +520,7 @@ impl WaterParams {
     }
 
     pub fn load_from<R: io::Read>(&mut self, data: R) -> GameResult {
-        fn next_u8(s: &mut std::str::Split<&str>, error_msg: &str) -> GameResult<u8> {
+        fn next_u8<'a>(s: &mut impl Iterator<Item = &'a str>, error_msg: &str) -> GameResult<u8> {
             match s.next() {
                 None => Err(GameError::ParseError("Out of range.".to_string())),
                 Some(v) => v.trim().parse::<u8>().map_err(|_| GameError::ParseError(error_msg.to_string())),
@@ -531,7 +530,7 @@ impl WaterParams {
         for line in BufReader::new(data).lines() {
             match line {
                 Ok(line) => {
-                    let mut splits = line.split(":");
+                    let mut splits = line.split(':');
 
                     if splits.clone().count() != 5 {
                         return Err(GameError::ParseError("Invalid count of delimiters.".to_string()));
@@ -546,11 +545,11 @@ impl WaterParams {
 
                     let mut read_color = || -> GameResult<Color> {
                         let cstr = splits.next().unwrap().trim();
-                        if !cstr.starts_with("[") || !cstr.ends_with("]") {
+                        if !cstr.starts_with('[') || !cstr.ends_with(']') {
                             return Err(GameError::ParseError("Invalid format of color value.".to_string()));
                         }
 
-                        let mut csplits = cstr[1..cstr.len() - 1].split(",");
+                        let mut csplits = cstr[1..cstr.len() - 1].split(',');
 
                         if csplits.clone().count() != 4 {
                             return Err(GameError::ParseError("Invalid count of delimiters.".to_string()));

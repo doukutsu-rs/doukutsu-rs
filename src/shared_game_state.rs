@@ -280,7 +280,7 @@ impl SharedGameState {
     }
 
     pub fn reload_textures(&mut self) {
-        let mut texture_set = TextureSet::new(self.base_path.as_str());
+        let mut texture_set = TextureSet::new(&self.base_path);
 
         if self.constants.is_cs_plus {
             texture_set.apply_seasonal_content(self.season, &self.settings);
@@ -408,7 +408,7 @@ impl SharedGameState {
     }
 
     pub fn tick_carets(&mut self) {
-        for caret in self.carets.iter_mut() {
+        for caret in &mut self.carets {
             caret.tick(&self.effect_rng, &self.constants);
         }
 

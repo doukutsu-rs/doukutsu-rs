@@ -191,7 +191,7 @@ impl BackendEventLoop for GlutinEventLoop {
                 Event::WindowEvent { event: WindowEvent::Resized(size), window_id }
                     if window_id == window.window().id() =>
                 {
-                    if let Some(renderer) = ctx.renderer.as_ref() {
+                    if let Some(renderer) = &ctx.renderer {
                         if let Ok(imgui) = renderer.imgui() {
                             imgui.io_mut().display_size = [size.width as f32, size.height as f32];
                         }

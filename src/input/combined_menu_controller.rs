@@ -15,7 +15,7 @@ impl CombinedMenuController {
     }
 
     pub fn update(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        for cont in self.controllers.iter_mut() {
+        for cont in &mut self.controllers {
             cont.update(state, ctx)?;
         }
 
@@ -23,7 +23,7 @@ impl CombinedMenuController {
     }
 
     pub fn update_trigger(&mut self) {
-        for cont in self.controllers.iter_mut() {
+        for cont in &mut self.controllers {
             cont.update_trigger();
         }
     }
@@ -33,7 +33,7 @@ impl CombinedMenuController {
     }
 
     pub fn trigger_up(&self) -> bool {
-        for cont in self.controllers.iter() {
+        for cont in &self.controllers {
             if cont.trigger_up() {
                 return true;
             }
@@ -43,7 +43,7 @@ impl CombinedMenuController {
     }
 
     pub fn trigger_down(&self) -> bool {
-        for cont in self.controllers.iter() {
+        for cont in &self.controllers {
             if cont.trigger_down() {
                 return true;
             }
@@ -53,7 +53,7 @@ impl CombinedMenuController {
     }
 
     pub fn trigger_left(&self) -> bool {
-        for cont in self.controllers.iter() {
+        for cont in &self.controllers {
             if cont.trigger_left() {
                 return true;
             }
@@ -63,7 +63,7 @@ impl CombinedMenuController {
     }
 
     pub fn trigger_right(&self) -> bool {
-        for cont in self.controllers.iter() {
+        for cont in &self.controllers {
             if cont.trigger_right() {
                 return true;
             }
@@ -73,7 +73,7 @@ impl CombinedMenuController {
     }
 
     pub fn trigger_ok(&self) -> bool {
-        for cont in self.controllers.iter() {
+        for cont in &self.controllers {
             if cont.trigger_menu_ok() {
                 return true;
             }
@@ -83,7 +83,7 @@ impl CombinedMenuController {
     }
 
     pub fn trigger_back(&self) -> bool {
-        for cont in self.controllers.iter() {
+        for cont in &self.controllers {
             if cont.trigger_menu_back() {
                 return true;
             }

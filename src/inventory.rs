@@ -38,11 +38,8 @@ impl Inventory {
     pub fn add_item(&mut self, item_id: u16) {
         if !self.has_item(item_id) {
             self.items.push(Item(item_id, 1));
-        } else {
-            if let Some(item) = self.get_item(item_id) {
-                item.1 += 1;
-                return;
-            }
+        } else if let Some(item) = self.get_item(item_id) {
+            item.1 += 1;
         }
     }
 
@@ -273,28 +270,28 @@ fn inventory_test() {
     let mut inventory = Inventory::new();
 
     inventory.add_item(3);
-    assert_eq!(inventory.has_item(2), false);
-    assert_eq!(inventory.has_item(3), true);
+    assert!(!inventory.has_item(2));
+    assert!(inventory.has_item(3));
 
-    assert_eq!(inventory.has_item_amount(3, Ordering::Equal, 1), true);
-    assert_eq!(inventory.has_item_amount(3, Ordering::Less, 2), true);
+    assert!(inventory.has_item_amount(3, Ordering::Equal, 1));
+    assert!(inventory.has_item_amount(3, Ordering::Less, 2));
     inventory.consume_item(3);
 
-    assert_eq!(inventory.has_item_amount(3, Ordering::Equal, 0), true);
-    assert_eq!(inventory.has_item_amount(3, Ordering::Less, 2), true);
+    assert!(inventory.has_item_amount(3, Ordering::Equal, 0));
+    assert!(inventory.has_item_amount(3, Ordering::Less, 2));
 
     inventory.add_item(2);
-    assert_eq!(inventory.has_item(2), true);
-    assert_eq!(inventory.has_item_amount(2, Ordering::Equal, 1), true);
-    assert_eq!(inventory.has_item_amount(2, Ordering::Less, 1), false);
+    assert!(inventory.has_item(2));
+    assert!(inventory.has_item_amount(2, Ordering::Equal, 1));
+    assert!(!inventory.has_item_amount(2, Ordering::Less, 1));
 
     inventory.add_item(4);
     inventory.add_item(4);
     inventory.add_item(4);
     inventory.add_item(4);
 
-    assert_eq!(inventory.has_item(4), true);
-    assert_eq!(inventory.has_item_amount(4, Ordering::Greater, 3), true);
-    assert_eq!(inventory.has_item_amount(4, Ordering::Equal, 4), true);
-    assert_eq!(inventory.has_item_amount(4, Ordering::Less, 2), false);
+    assert!(inventory.has_item(4));
+    assert!(inventory.has_item_amount(4, Ordering::Greater, 3));
+    assert!(inventory.has_item_amount(4, Ordering::Equal, 4));
+    assert!(!inventory.has_item_amount(4, Ordering::Less, 2));
 }

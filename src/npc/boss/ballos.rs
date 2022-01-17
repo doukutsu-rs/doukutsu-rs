@@ -790,7 +790,7 @@ impl NPC {
                     self.npc_flags.set_ignore_solidity(false);
                     self.npc_flags.set_shootable(false);
                     self.damage = 0;
-                    self.action_counter2 = self.action_counter2 / 4;
+                    self.action_counter2 /= 4;
                     self.exp = 0;
                 }
                 if self.action_counter2 > 0 {
@@ -1508,7 +1508,7 @@ impl BossNPC {
                         let _ = npc_list.spawn(0x100, npc);
                     }
 
-                    if self.parts[0].flags.hit_bottom_wall() == true {
+                    if self.parts[0].flags.hit_bottom_wall() {
                         self.parts[0].vel_y = -0x200;
                     }
                 }
@@ -1597,7 +1597,7 @@ impl BossNPC {
                         let _ = npc_list.spawn(0x100, npc);
                     }
 
-                    if self.parts[0].flags.hit_bottom_wall() == true {
+                    if self.parts[0].flags.hit_bottom_wall() {
                         self.parts[0].vel_y = -0x200;
                     }
                 }
@@ -2043,7 +2043,7 @@ impl BossNPC {
         part.y = base.y - 0x4800;
 
         if part.action_num < 300 {
-            part.npc_flags.set_shootable(if part.anim_num != 3 { false } else { true });
+            part.npc_flags.set_shootable(part.anim_num == 3);
         }
 
         let dir_offset = if part.direction == Direction::Left { 0 } else { 5 };

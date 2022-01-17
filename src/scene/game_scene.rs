@@ -442,14 +442,13 @@ impl GameScene {
 
     fn draw_light_map(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         {
-            let canvas = state.lightmap_canvas.as_mut();
+            let maybe_canvas = state.lightmap_canvas.as_ref();
 
-            if let None = canvas {
+            if maybe_canvas.is_some() {
+                graphics::set_render_target(ctx, maybe_canvas)?;
+            } else {
                 return Ok(());
             }
-
-            let canvas = canvas.unwrap();
-            graphics::set_render_target(ctx, Some(canvas))?;
         }
 
         graphics::set_blend_mode(ctx, BlendMode::Add)?;

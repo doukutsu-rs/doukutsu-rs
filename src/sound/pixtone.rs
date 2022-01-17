@@ -137,7 +137,7 @@ impl PixToneParameters {
 
         let mut samples = vec![0i16; length];
 
-        for channel in self.channels.iter() {
+        for channel in &self.channels {
             if !channel.enabled {
                 continue;
             }
@@ -218,7 +218,7 @@ impl PixTonePlayback {
     }
 
     pub fn play_sfx(&mut self, id: u8) {
-        for state in self.playback_state.iter_mut() {
+        for state in &mut self.playback_state {
             if state.id == id && state.tag == 0 {
                 state.pos = 0.0;
                 state.looping = false;
@@ -230,7 +230,7 @@ impl PixTonePlayback {
     }
 
     pub fn loop_sfx(&mut self, id: u8) {
-        for state in self.playback_state.iter_mut() {
+        for state in &mut self.playback_state {
             if state.id == id && state.tag == 0 {
                 state.looping = true;
                 return;

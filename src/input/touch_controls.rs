@@ -40,7 +40,7 @@ impl TouchControls {
     }
 
     pub fn point_in(&self, bounds: Rect) -> Option<u64> {
-        for point in self.points.iter() {
+        for point in &self.points {
             if (point.position.0 as isize) > bounds.left
                 && (point.position.0 as isize) < bounds.right
                 && (point.position.1 as isize) > bounds.top
@@ -56,7 +56,7 @@ impl TouchControls {
     pub fn consume_click_in(&mut self, bounds: Rect) -> bool {
         self.clicks.retain(|p| p.touch_id != 0);
 
-        for point in self.clicks.iter_mut() {
+        for point in &mut self.clicks {
             if (point.position.0 as isize) > bounds.left
                 && (point.position.0 as isize) < bounds.right
                 && (point.position.1 as isize) > bounds.top

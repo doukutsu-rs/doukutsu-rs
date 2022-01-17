@@ -156,7 +156,7 @@ impl LiveDebugger {
                 .size([240.0, 280.0], Condition::Appearing)
                 .build(ui, || {
                     if self.stages.is_empty() {
-                        for s in state.stages.iter() {
+                        for s in &state.stages {
                             self.stages.push(ImString::new(s.name.to_owned()));
                         }
 
@@ -301,7 +301,7 @@ impl LiveDebugger {
                 .position([80.0, 80.0], Condition::FirstUseEver)
                 .size([280.0, 300.0], Condition::FirstUseEver)
                 .build(ui, || {
-                    if CollapsingHeader::new("Control flags").default_open(false).build(&ui) {
+                    if CollapsingHeader::new("Control flags").default_open(false).build(ui) {
                         ui.checkbox_flags("Tick world", &mut state.control_flags.0, 1);
                         ui.checkbox_flags("Control enabled", &mut state.control_flags.0, 2);
                         ui.checkbox_flags("Interactions disabled", &mut state.control_flags.0, 4);
@@ -310,11 +310,11 @@ impl LiveDebugger {
                         ui.checkbox_flags("[Internal] Windy level", &mut state.control_flags.0, 15);
                     }
 
-                    if CollapsingHeader::new("Player condition flags").default_open(false).build(&ui) {
-                        cond_flags(&ui, &mut game_scene.player1.cond);
+                    if CollapsingHeader::new("Player condition flags").default_open(false).build(ui) {
+                        cond_flags(ui, &mut game_scene.player1.cond);
                     }
 
-                    if CollapsingHeader::new("Player equipment").default_open(false).build(&ui) {
+                    if CollapsingHeader::new("Player equipment").default_open(false).build(ui) {
                         ui.checkbox_flags("Booster 0.8", &mut game_scene.player1.equip.0, 1);
                         ui.checkbox_flags("Map System", &mut game_scene.player1.equip.0, 2);
                         ui.checkbox_flags("Arms Barrier", &mut game_scene.player1.equip.0, 4);
@@ -338,7 +338,7 @@ impl LiveDebugger {
                     for npc in game_scene.npc_list.iter_alive() {
                         if CollapsingHeader::new(&ImString::from(format!("id={} type={}", npc.id, npc.npc_type)))
                             .default_open(false)
-                            .build(&ui)
+                            .build(ui)
                         {
                             let mut position = [npc.x as f32 / 512.0, npc.y as f32 / 512.0];
                             ui.input_float2("Position:", &mut position).build();
@@ -376,7 +376,7 @@ impl LiveDebugger {
                             ));
                             ui.text_wrapped(content);
 
-                            cond_flags(&ui, &mut npc.cond);
+                            cond_flags(ui, &mut npc.cond);
                         }
                     }
                 });

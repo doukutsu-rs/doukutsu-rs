@@ -13,7 +13,7 @@ impl fmt::Display for SoundBank {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "WAVE100: {:2X?}...", &self.wave100[..8])?;
 
-        for sample in self.samples.iter() {
+        for sample in &self.samples {
             writeln!(f, "{}", sample)?;
         }
 

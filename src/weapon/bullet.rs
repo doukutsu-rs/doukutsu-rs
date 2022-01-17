@@ -69,7 +69,7 @@ impl BulletManager {
                 bullet.tick_map_collisions(state, npc_list, stage);
             }
 
-            for bullet in self.new_bullets.iter_mut() {
+            for bullet in &mut self.new_bullets {
                 bullet.rng = Xoroshiro32PlusPlus::new(self.seeder.next_u32());
             }
 

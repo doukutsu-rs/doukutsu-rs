@@ -89,7 +89,7 @@ impl CreditScriptVM {
 
     pub fn run(state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         if state.creditscript_vm.state != CreditScriptExecutionState::Ended {
-            for line in state.creditscript_vm.lines.iter_mut() {
+            for line in &mut state.creditscript_vm.lines {
                 line.pos_y -= 0.5;
             }
         }
@@ -102,7 +102,7 @@ impl CreditScriptVM {
                     break;
                 }
                 CreditScriptExecutionState::Running(ip) => {
-                    let mut cursor = Cursor::new(&state.creditscript_vm.script.bytecode);
+                    let mut cursor: Cursor<&[u8]> = Cursor::new(&state.creditscript_vm.script.bytecode);
                     cursor.seek(SeekFrom::Start(ip as u64))?;
 
                     let op: CreditOpCode = if let Some(op) = FromPrimitive::from_i32(

@@ -65,9 +65,7 @@ impl OrgPlaybackEngine {
     pub fn new() -> Self {
         let mut buffers: [MaybeUninit<RenderBuffer>; 136] = unsafe { MaybeUninit::uninit().assume_init() };
 
-        for buffer in buffers.iter_mut() {
-            *buffer = MaybeUninit::new(RenderBuffer::empty());
-        }
+        buffers.fill_with(|| MaybeUninit::new(RenderBuffer::empty()));
 
         let song = Organya::empty();
         let frames_per_tick = (44100 / 1000) * song.time.wait as usize;
@@ -135,15 +133,9 @@ impl OrgPlaybackEngine {
         self.play_pos = 0;
         self.frames_per_tick = (self.output_format.sample_rate as usize / 1000) * self.song.time.wait as usize;
         self.frames_this_tick = 0;
-        for i in self.lengths.iter_mut() {
-            *i = 0
-        }
-        for i in self.swaps.iter_mut() {
-            *i = 0
-        }
-        for i in self.keys.iter_mut() {
-            *i = 255
-        }
+        self.lengths.fill(0);
+        self.swaps.fill(0);
+        self.keys.fill(255);
     }
 
     pub fn set_position(&mut self, position: i32) {
@@ -249,15 +241,13 @@ impl OrgPlaybackEngine {
                 }
             }
 
-            if self.lengths[track] == 0 {
-                if self.keys[track] != 255 {
-                    let octave = (self.keys[track] / 12) * 8;
-                    let j = octave as usize + track + self.swaps[track];
-                    if self.song.tracks[track].inst.pipi == 0 {
-                        self.track_buffers[j].looping = false;
-                    }
-                    self.keys[track] = 255;
+            if self.lengths[track] == 0 && self.keys[track] != 255 {
+                let octave = (self.keys[track] / 12) * 8;
+                let j = octave as usize + track + self.swaps[track];
+                if self.song.tracks[track].inst.pipi == 0 {
+                    self.track_buffers[j].looping = false;
                 }
+                self.keys[track] = 255;
             }
 
             self.lengths[track] = self.lengths[track].saturating_sub(1);
@@ -305,7 +295,7 @@ impl OrgPlaybackEngine {
         let freq = self.output_format.sample_rate as f64;
 
         if self.interpolation == InterpolationMode::Polyphase {
-            for buf in self.track_buffers.iter_mut() {
+            for buf in &mut self.track_buffers {
                 buf.fir.ensure_initialized();
             }
         }
@@ -315,7 +305,7 @@ impl OrgPlaybackEngine {
                 self.update_play_state()
             }
 
-            for buf in self.track_buffers.iter_mut() {
+            for buf in &mut self.track_buffers {
                 if buf.playing {
                     let is_16bit = buf.sample.format.bit_depth == 16;
                     let is_stereo = buf.sample.format.channels == 2;

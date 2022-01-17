@@ -194,7 +194,7 @@ impl PlayerSkin for BasicPlayerSkin {
     }
 
     fn get_skin_texture_name(&self) -> &str {
-        self.texture_name.as_str()
+        &self.texture_name
     }
 
     fn get_mask_texture_name(&self) -> &str {

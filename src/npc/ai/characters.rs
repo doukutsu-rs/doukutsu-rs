@@ -678,21 +678,19 @@ impl NPC {
                 if self.action_counter > 80 {
                     self.action_num = 10;
                     self.action_counter = 0;
+                } else if self.direction != Direction::Left {
+                    if self.action_counter == 50 {
+                        self.anim_num = 1;
+                    }
+                    if self.action_counter == 60 {
+                        self.anim_num = 0;
+                    }
                 } else {
-                    if self.direction != Direction::Left {
-                        if self.action_counter == 50 {
-                            self.anim_num = 1;
-                        }
-                        if self.action_counter == 60 {
-                            self.anim_num = 0;
-                        }
-                    } else {
-                        if self.action_counter == 30 {
-                            self.anim_num = 1;
-                        }
-                        if self.action_counter == 40 {
-                            self.anim_num = 0;
-                        }
+                    if self.action_counter == 30 {
+                        self.anim_num = 1;
+                    }
+                    if self.action_counter == 40 {
+                        self.anim_num = 0;
                     }
                 }
             }

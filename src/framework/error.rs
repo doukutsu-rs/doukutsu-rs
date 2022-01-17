@@ -63,8 +63,8 @@ impl fmt::Display for GameError {
 
 impl Error for GameError {
     fn cause(&self) -> Option<&dyn Error> {
-        match *self {
-            GameError::IOError(ref e) => Some(&**e),
+        match self {
+            GameError::IOError(e) => Some(e as &dyn Error),
             _ => None,
         }
     }

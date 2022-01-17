@@ -1311,12 +1311,10 @@ impl NPC {
                     } else {
                         self.action_counter2 = (self.action_counter2 + 1) & 0xff;
                     }
+                } else if direction - radians < std::f64::consts::PI {
+                    self.action_counter2 = (self.action_counter2 + 1) & 0xff;
                 } else {
-                    if direction - radians < std::f64::consts::PI {
-                        self.action_counter2 = (self.action_counter2 + 1) & 0xff;
-                    } else {
-                        self.action_counter2 = self.action_counter2.wrapping_sub(1) & 0xff;
-                    }
+                    self.action_counter2 = self.action_counter2.wrapping_sub(1) & 0xff;
                 }
             }
             _ => (),

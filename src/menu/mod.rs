@@ -98,7 +98,7 @@ impl Menu {
     pub fn update_height(&mut self) {
         let mut height = 6.0;
 
-        for entry in self.entries.iter() {
+        for entry in &self.entries {
             height += entry.height();
         }
 
@@ -228,7 +228,7 @@ impl Menu {
         }
 
         y = self.y as f32 + 6.0;
-        for entry in self.entries.iter() {
+        for entry in &self.entries {
             match entry {
                 MenuEntry::Active(name) | MenuEntry::DisabledWhite(name) => {
                     state.font.draw_text(
@@ -274,7 +274,7 @@ impl Menu {
                     )?;
                 }
                 MenuEntry::Options(name, index, value) => {
-                    let value_text = if let Some(text) = value.get(*index) { text.as_str() } else { "???" };
+                    let value_text = if let Some(text) = value.get(*index) { text } else { "???" };
                     let name_text_len = state.font.text_width(name.chars(), &state.constants);
 
                     state.font.draw_text(
@@ -296,8 +296,8 @@ impl Menu {
                     )?;
                 }
                 MenuEntry::DescriptiveOptions(name, index, value, description) => {
-                    let value_text = if let Some(text) = value.get(*index) { text.as_str() } else { "???" };
-                    let description_text = if let Some(text) = description.get(*index) { text.as_str() } else { "???" };
+                    let value_text = if let Some(text) = value.get(*index) { text } else { "???" };
+                    let description_text = if let Some(text) = description.get(*index) { text } else { "???" };
                     let name_text_len = state.font.text_width(name.chars(), &state.constants);
 
                     state.font.draw_text(

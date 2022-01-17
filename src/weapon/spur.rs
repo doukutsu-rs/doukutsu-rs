@@ -38,11 +38,9 @@ impl Weapon {
                     WeaponLevel::None => unreachable!(),
                 }
             }
-        } else {
-            if self.counter1 > 0 {
-                shoot = true;
-                self.counter1 = 0;
-            }
+        } else if self.counter1 > 0 {
+            shoot = true;
+            self.counter1 = 0;
         }
 
         if let (_, _, true) = self.get_max_exp(&state.constants) {

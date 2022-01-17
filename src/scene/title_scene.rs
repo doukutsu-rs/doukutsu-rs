@@ -1,4 +1,4 @@
-use crate::common::{Color, Rect, VERSION_BANNER};
+use crate::common::{Color, VERSION_BANNER};
 use crate::components::background::Background;
 use crate::frame::Frame;
 use crate::framework::context::Context;
@@ -208,7 +208,7 @@ impl Scene for TitleScene {
             batch.draw(ctx)?;
         }
 
-        self.draw_text_centered(VERSION_BANNER.as_str(), state.canvas_size.1 - 15.0, state, ctx)?;
+        self.draw_text_centered(&VERSION_BANNER, state.canvas_size.1 - 15.0, state, ctx)?;
         self.draw_text_centered(COPYRIGHT_PIXEL, state.canvas_size.1 - 30.0, state, ctx)?;
 
         match self.current_menu {

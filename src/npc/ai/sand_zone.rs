@@ -412,10 +412,8 @@ impl NPC {
     pub(crate) fn tick_n050_skeleton_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
             0 | 1 => {
-                if self.action_num == 0 {
-                    if self.direction == Direction::Right {
-                        self.action_num = 2;
-                    }
+                if self.action_num == 0 && self.direction == Direction::Right {
+                    self.action_num = 2;
                 }
 
                 self.x += self.vel_x;
@@ -606,7 +604,7 @@ impl NPC {
         }
 
         self.direction = parent.direction;
-        self.anim_num = if angle < 0x14 || angle > 0x6c { 1 } else { 0 };
+        self.anim_num = if !(0x14..=0x6c).contains(&angle) { 1 } else { 0 };
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
 
@@ -1164,7 +1162,7 @@ impl NPC {
 
         // why
         self.npc_flags.set_interactable(false);
-        for player in players.iter() {
+        for player in players {
             if player.controller.trigger_down() {
                 self.npc_flags.set_interactable(true);
             }

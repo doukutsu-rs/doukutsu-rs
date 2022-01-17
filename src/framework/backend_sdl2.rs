@@ -39,7 +39,7 @@ pub struct SDL2Backend {
 
 impl SDL2Backend {
     pub fn new(size_hint: (u16, u16)) -> GameResult<Box<dyn Backend>> {
-        let context = sdl2::init().map_err(|e| GameError::WindowError(e))?;
+        let context = sdl2::init().map_err(GameError::WindowError)?;
 
         let backend = SDL2Backend { context, size_hint };
 
@@ -69,8 +69,8 @@ struct SDL2Context {
 
 impl SDL2EventLoop {
     pub fn new(sdl: &Sdl, size_hint: (u16, u16)) -> GameResult<Box<dyn BackendEventLoop>> {
-        let event_pump = sdl.event_pump().map_err(|e| GameError::WindowError(e))?;
-        let video = sdl.video().map_err(|e| GameError::WindowError(e))?;
+        let event_pump = sdl.event_pump().map_err(GameError::WindowError)?;
+        let video = sdl.video().map_err(GameError::WindowError)?;
         let gl_attr = video.gl_attr();
 
         gl_attr.set_context_profile(GLProfile::Core);
@@ -177,7 +177,7 @@ impl BackendEventLoop for SDL2EventLoop {
                         WindowEvent::SizeChanged(width, height) => {
                             ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
 
-                            if let Some(renderer) = ctx.renderer.as_ref() {
+                            if let Some(renderer) = &ctx.renderer {
                                 if let Ok(imgui) = renderer.imgui() {
                                     imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
                                 }
@@ -186,21 +186,17 @@ impl BackendEventLoop for SDL2EventLoop {
                         }
                         _ => {}
                     },
-                    Event::KeyDown { scancode, repeat, .. } => {
-                        if let Some(scancode) = scancode {
-                            if let Some(drs_scan) = conv_scancode(scancode) {
-                                if !repeat {
-                                    state.process_debug_keys(drs_scan);
-                                }
-                                ctx.keyboard_context.set_key(drs_scan, true);
+                    Event::KeyDown { scancode: Some(scancode), repeat, .. } => {
+                        if let Some(drs_scan) = conv_scancode(scancode) {
+                            if !repeat {
+                                state.process_debug_keys(drs_scan);
                             }
+                            ctx.keyboard_context.set_key(drs_scan, true);
                         }
                     }
-                    Event::KeyUp { scancode, .. } => {
-                        if let Some(scancode) = scancode {
-                            if let Some(drs_scan) = conv_scancode(scancode) {
-                                ctx.keyboard_context.set_key(drs_scan, false);
-                            }
+                    Event::KeyUp { scancode: Some(scancode), .. } => {
+                        if let Some(drs_scan) = conv_scancode(scancode) {
+                            ctx.keyboard_context.set_key(drs_scan, false);
                         }
                     }
                     _ => {}
@@ -491,7 +487,7 @@ impl BackendRenderer for SDL2Renderer {
                     .ok_or(RenderError("This texture was not created by OpenGL backend.".to_string()))?;
 
                 unsafe {
-                    if let Some(target) = sdl2_texture.texture.as_ref() {
+                    if let Some(target) = &sdl2_texture.texture {
                         set_raw_target(renderer, target.raw())?;
                     } else {
                         set_raw_target(renderer, std::ptr::null_mut())?;
@@ -769,11 +765,11 @@ impl BackendTexture for SDL2Texture {
     }
 
     fn draw(&mut self) -> GameResult {
-        match self.texture.as_mut() {
+        match &mut self.texture {
             None => Ok(()),
             Some(texture) => {
                 let mut refs = self.refs.borrow_mut();
-                for command in self.commands.iter() {
+                for command in &self.commands {
                     match command {
                         SpriteBatchCommand::DrawRect(src, dest) => {
                             texture.set_color_mod(255, 255, 255);

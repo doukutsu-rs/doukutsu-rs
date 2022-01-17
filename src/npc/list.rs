@@ -24,7 +24,7 @@ impl NPCList {
             npcs: Box::new(UnsafeCell::new(unsafe {
                 let mut parts_uninit: [NPC; NPC_LIST_MAX_CAP] = MaybeUninit::uninit().assume_init();
 
-                for part in parts_uninit.iter_mut() {
+                for part in &mut parts_uninit {
                     *part = NPC::empty();
                 }
 

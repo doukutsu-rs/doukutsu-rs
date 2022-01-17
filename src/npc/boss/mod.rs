@@ -36,7 +36,7 @@ impl BossNPC {
         let mut parts = unsafe {
             let mut parts_uninit: [NPC; 20] = MaybeUninit::uninit().assume_init();
 
-            for part in parts_uninit.iter_mut() {
+            for part in &mut parts_uninit {
                 *part = NPC::empty();
                 part.cond.set_drs_boss(true);
             }
@@ -91,7 +91,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             _ => {}
         }
 
-        for part in self.parts.iter_mut() {
+        for part in &mut self.parts {
             if part.shock > 0 {
                 part.shock -= 1;
             }

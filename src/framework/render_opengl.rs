@@ -167,7 +167,7 @@ impl BackendTexture for OpenGLTexture {
 
     fn draw(&mut self) -> GameResult {
         unsafe {
-            if let Some(gl) = GL_PROC.as_ref() {
+            if let Some(gl) = &GL_PROC {
                 if self.texture_id == 0 {
                     return Ok(());
                 }
@@ -243,7 +243,7 @@ impl Drop for OpenGLTexture {
     fn drop(&mut self) {
         if *self.context_active.as_ref().borrow() {
             unsafe {
-                if let Some(gl) = GL_PROC.as_ref() {
+                if let Some(gl) = &GL_PROC {
                     if self.texture_id != 0 {
                         let texture_id = &self.texture_id;
                         gl.gl.DeleteTextures(1, texture_id as *const _);
@@ -564,7 +564,7 @@ static mut GL_PROC: Option<Gl> = None;
 
 pub fn load_gl(gl_context: &mut GLContext) -> &'static Gl {
     unsafe {
-        if let Some(gl) = GL_PROC.as_ref() {
+        if let Some(gl) = &GL_PROC {
             return gl;
         }
 
@@ -891,7 +891,7 @@ impl BackendRenderer for OpenGLRenderer {
                     let gl_texture = texture
                         .as_any()
                         .downcast_ref::<OpenGLTexture>()
-                        .ok_or(RenderError("This texture was not created by OpenGL backend.".to_string()))?;
+                        .ok_or_else(|| RenderError("This texture was not created by OpenGL backend.".to_string()))?;
 
                     self.curr_matrix = [
                         [2.0 / (gl_texture.width as f32), 0.0, 0.0, 0.0],
@@ -947,7 +947,7 @@ impl BackendRenderer for OpenGLRenderer {
 
     fn draw_rect(&mut self, rect: Rect<isize>, color: Color) -> GameResult {
         unsafe {
-            if let Some(gl) = GL_PROC.as_ref() {
+            if let Some(gl) = &GL_PROC {
                 let color = color.to_rgba();
                 let mut uv = self.imgui_data.font_tex_size;
                 uv.0 = 0.0 / uv.0;
@@ -1054,7 +1054,7 @@ impl BackendRenderer for OpenGLRenderer {
         let gl_texture = texture
             .as_any()
             .downcast_ref::<OpenGLTexture>()
-            .ok_or(RenderError("This texture was not created by OpenGL backend.".to_string()))?;
+            .ok_or_else(|| RenderError("This texture was not created by OpenGL backend.".to_string()))?;
 
         Ok(TextureId::new(gl_texture.texture_id as usize))
     }
@@ -1213,7 +1213,7 @@ impl OpenGLRenderer {
         texture: Option<&Box<dyn BackendTexture>>,
         shader: BackendShader,
     ) -> GameResult<()> {
-        if vertices.len() == 0 {
+        if vertices.is_empty() {
             return Ok(());
         }
 
@@ -1221,7 +1221,7 @@ impl OpenGLRenderer {
             let gl_texture = texture
                 .as_any()
                 .downcast_ref::<OpenGLTexture>()
-                .ok_or(RenderError("This texture was not created by OpenGL backend.".to_string()))?;
+                .ok_or_else(|| RenderError("This texture was not created by OpenGL backend.".to_string()))?;
 
             gl_texture.texture_id
         } else {
@@ -1238,7 +1238,7 @@ impl OpenGLRenderer {
         texture: u32,
         shader: BackendShader,
     ) -> GameResult<()> {
-        if let Some(gl) = GL_PROC.as_ref() {
+        if let Some(gl) = &GL_PROC {
             match shader {
                 BackendShader::Fill => {
                     gl.gl.UseProgram(self.imgui_data.program_fill);
