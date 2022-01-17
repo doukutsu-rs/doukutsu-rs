@@ -66,14 +66,13 @@ impl SettingsMenu {
             "Game timing:".to_owned(),
             if state.settings.timing_mode == TimingMode::_50Hz { 0 } else { 1 },
             vec!["50tps (freeware)".to_owned(), "60tps (CS+)".to_owned()],
-            vec!["".to_owned(),"".to_owned()],
         ));
 
         self.main.push_entry(MenuEntry::Active(DISCORD_LINK.to_owned()));
 
         self.main.push_entry(MenuEntry::Active("< Back".to_owned()));
 
-        self.sound.push_entry(MenuEntry::Options(
+        self.sound.push_entry(MenuEntry::DescriptiveOptions(
             "BGM Interpolation:".to_owned(),
             state.settings.organya_interpolation as usize,
             vec![
@@ -86,8 +85,8 @@ impl SettingsMenu {
             vec![
                 "(Fastest, lowest quality)".to_owned(),
                 "(Fast, similar to freeware on Vista+)".to_owned(),
-                "(Cosine interp)".to_owned(),
-                "(Cubic interp)".to_owned(),
+                "(Cosine interpolation)".to_owned(),
+                "(Cubic interpolation)".to_owned(),
                 "(Slowest, similar to freeware on XP)".to_owned()
             ],
         ));
@@ -132,7 +131,7 @@ impl SettingsMenu {
                     self.current = CurrentMenu::SoundMenu;
                 }
                 MenuSelectionResult::Selected(2, toggle) => {
-                    if let MenuEntry::Options(_, value, _, _) = toggle {
+                    if let MenuEntry::Options(_, value, _) = toggle {
                         match state.settings.timing_mode {
                             TimingMode::_50Hz => {
                                 state.settings.timing_mode = TimingMode::_60Hz;
@@ -213,7 +212,7 @@ impl SettingsMenu {
             },
             CurrentMenu::SoundMenu => match self.sound.tick(controller, state) {
                 MenuSelectionResult::Selected(0, toggle) => {
-                    if let MenuEntry::Options(_, value, _, _) = toggle {
+                    if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
                         let (new_mode, new_value) = match *value {
                             0 => (InterpolationMode::Linear, 1),
                             1 => (InterpolationMode::Cosine, 2),
