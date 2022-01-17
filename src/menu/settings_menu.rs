@@ -35,7 +35,7 @@ impl SettingsMenu {
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.graphics.push_entry(MenuEntry::Toggle("Lighting effects:".to_string(), state.settings.shader_effects));
-        self.graphics.push_entry(MenuEntry::Toggle("Player's weapon light cone:".to_string(), state.settings.light_cone));
+        self.graphics.push_entry(MenuEntry::Toggle("Weapon light cone:".to_string(), state.settings.light_cone));
         self.graphics
             .push_entry(MenuEntry::Toggle("Motion interpolation:".to_string(), state.settings.motion_interpolation));
         self.graphics.push_entry(MenuEntry::Toggle("Subpixel scrolling:".to_string(), state.settings.subpixel_coords));
@@ -72,18 +72,25 @@ impl SettingsMenu {
 
         self.main.push_entry(MenuEntry::Active("< Back".to_owned()));
 
-        self.sound.push_entry(MenuEntry::DisabledWhite("BGM Interpolation:".to_owned()));
-        self.sound.push_entry(MenuEntry::Options(
-            "".to_owned(),
+        self.sound.push_entry(MenuEntry::DescriptiveOptions(
+            "BGM Interpolation:".to_owned(),
             state.settings.organya_interpolation as usize,
             vec![
-                "Nearest (fastest, lowest quality)".to_owned(),
-                "Linear (fast, similar to freeware on Vista+)".to_owned(),
+                "Nearest".to_owned(),
+                "Linear".to_owned(),
                 "Cosine".to_owned(),
                 "Cubic".to_owned(),
-                "Polyphase (slowest, similar to freeware on XP)".to_owned()
+                "Polyphase".to_owned()
+            ],
+            vec![
+                "(Fastest, lowest quality)".to_owned(),
+                "(Fast, similar to freeware on Vista+)".to_owned(),
+                "(Cosine interpolation)".to_owned(),
+                "(Cubic interpolation)".to_owned(),
+                "(Slowest, similar to freeware on XP)".to_owned()
             ],
         ));
+        self.sound.push_entry(MenuEntry::DisabledWhite("".to_owned()));
         self.sound.push_entry(MenuEntry::Disabled(format!("Soundtrack: {}", state.settings.soundtrack)));
         self.sound.push_entry(MenuEntry::Active("< Back".to_owned()));
 
@@ -204,8 +211,8 @@ impl SettingsMenu {
                 _ => (),
             },
             CurrentMenu::SoundMenu => match self.sound.tick(controller, state) {
-                MenuSelectionResult::Selected(1, toggle) => {
-                    if let MenuEntry::Options(_, value, _) = toggle {
+                MenuSelectionResult::Selected(0, toggle) => {
+                    if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
                         let (new_mode, new_value) = match *value {
                             0 => (InterpolationMode::Linear, 1),
                             1 => (InterpolationMode::Cosine, 2),
