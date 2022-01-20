@@ -938,6 +938,30 @@ impl GameScene {
                             batch,
                         )
                     }
+                    180 => {
+                        // Curly's looking upward frames
+                        let range = if [5, 6, 7, 8, 9].contains(&(npc.anim_num % 11)) {
+                            60..120
+                        } else if npc.action_num == 40 || npc.action_num == 41 {
+                            0..0
+                        } else if npc.direction() == Direction::Left {
+                            -30..30
+                        } else if npc.direction() == Direction::Right {
+                            150..210
+                        } else {
+                            0..0
+                        };
+
+                        self.draw_light_raycast(
+                            state.tile_size,
+                            npc.x + npc.direction.opposite().vector_x() * 0x800,
+                            npc.y + 2 * 0x200,
+                            (19u8, 34u8, 117u8),
+                            0.95,
+                            range,
+                            batch,
+                        );
+                    }
                     320 => {
                         let range = match npc.direction() {
                             Direction::Up => 60..120,
