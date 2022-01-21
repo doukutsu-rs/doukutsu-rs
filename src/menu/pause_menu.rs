@@ -1,5 +1,6 @@
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::framework::keyboard::ScanCode;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
@@ -81,6 +82,10 @@ impl PauseMenu {
         self.controller.update_trigger();
 
         self.is_paused = true;
+
+        if ctx.keyboard_context.is_key_pressed(ScanCode::F2) {
+            state.load_or_start_game(ctx)?;
+        }
 
         match self.current_menu {
             CurrentMenu::PauseMenu => match self.pause_menu.tick(&mut self.controller, state) {
