@@ -10,8 +10,8 @@ use crate::shared_game_state::SharedGameState;
 impl NPC {
     pub(crate) fn tick_n196_ironhead_wall(&mut self, state: &mut SharedGameState) -> GameResult {
         self.x -= 0xC00;
-        if self.x <= 0x26000 {
-            self.x += 0x2C000;
+        if self.x <= if !state.constants.is_switch { 0x26000 } else { 0x1E000 } {
+            self.x += if !state.constants.is_switch { 0x2C000 } else { 0x3C000 };
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 1 };
@@ -224,13 +224,14 @@ impl BossNPC {
             }
             250 | 251 => {
                 let player = self.parts[0].get_closest_player_ref(&players);
+                let switch_buffer = if state.constants.is_switch { 0x6000 } else { 0 }; // Buffer to stop Ironhead's teleport to be visible
                 if self.parts[0].action_num == 250 {
                     self.parts[0].action_num = 251;
                     if self.parts[0].direction == Direction::Right {
-                        self.parts[0].x = 0x1E000;
+                        self.parts[0].x = 0x1E000 - switch_buffer;
                         self.parts[0].y = player.y;
                     } else {
-                        self.parts[0].x = 0x5A000;
+                        self.parts[0].x = 0x5A000 + switch_buffer;
                         self.parts[0].y = self.parts[0].rng.range(2..13) * state.tile_size.as_int() * 0x200;
                     }
 
@@ -259,11 +260,11 @@ impl BossNPC {
                 self.parts[0].y += self.parts[0].vel_y;
 
                 if self.parts[0].direction == Direction::Right {
-                    if self.parts[0].x > 0x5A000 {
+                    if self.parts[0].x > 0x5A000 + switch_buffer {
                         self.parts[0].direction = Direction::Left;
                         self.parts[0].action_num = 100;
                     }
-                } else if self.parts[0].x < 0x22000 {
+                } else if self.parts[0].x < 0x22000 - switch_buffer {
                     self.parts[0].direction = Direction::Right;
                     self.parts[0].action_num = 100;
                 }

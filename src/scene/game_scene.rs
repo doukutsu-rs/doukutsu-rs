@@ -37,7 +37,7 @@ use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::npc::{NPCLayer, NPC};
 use crate::physics::{PhysicalEntity, OFFSETS};
-use crate::player::{Player, TargetPlayer};
+use crate::player::{ControlMode, Player, TargetPlayer};
 use crate::rng::XorShift;
 use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
@@ -1733,6 +1733,18 @@ impl Scene for GameScene {
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         //graphics::set_canvas(ctx, Some(&state.game_canvas));
+
+        if self.player1.control_mode == ControlMode::IronHead {
+            let x_size = if !state.constants.is_switch { 320.0 } else { 426.0 };
+            let clip_rect: Rect = Rect::new_size(
+                (((state.canvas_size.0 - x_size) * 0.5) * state.scale) as _,
+                (((state.canvas_size.1 - 240.0) * 0.5) * state.scale) as _,
+                (x_size * state.scale) as _,
+                (240.0 * state.scale) as _,
+            );
+            graphics::set_clip_rect(ctx, Some(clip_rect))?;
+        }
+
         let stage_textures_ref = &*self.stage_textures.deref().borrow();
         self.background.draw(state, ctx, &self.frame, stage_textures_ref, &self.stage)?;
         self.tilemap.draw(state, ctx, &self.frame, TileLayer::Background, stage_textures_ref, &self.stage)?;
@@ -1770,6 +1782,10 @@ impl Scene for GameScene {
         self.flash.draw(state, ctx, &self.frame)?;
 
         self.draw_black_bars(state, ctx)?;
+
+        if self.player1.control_mode == ControlMode::IronHead {
+            graphics::set_clip_rect(ctx, None)?;
+        }
 
         if self.inventory_dim > 0.0 {
             let rect = Rect::new(0, 0, state.screen_size.0 as isize + 1, state.screen_size.1 as isize + 1);
