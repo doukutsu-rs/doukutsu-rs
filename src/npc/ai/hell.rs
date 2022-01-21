@@ -64,7 +64,7 @@ impl NPC {
             _ => (),
         }
 
-        if self.action_counter & 8 == 1 {
+        if self.action_counter % 8 == 1 {
             state.create_caret(
                 self.x + self.rng.range(-8..8) * 0x200,
                 self.y + 0x1000,
