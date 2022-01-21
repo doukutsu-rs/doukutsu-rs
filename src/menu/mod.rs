@@ -228,14 +228,14 @@ impl Menu {
             batch.draw(ctx)?;
         }
 
-        y = self.y as f32 + 6.0;
+        y = self.y as f32 + 8.0;
         for entry in &self.entries {
             match entry {
                 MenuEntry::Active(name) | MenuEntry::DisabledWhite(name) => {
                     state.font.draw_text(
                         name.chars(),
                         self.x as f32 + 20.0,
-                        y,
+                        y - 2.0,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -245,7 +245,7 @@ impl Menu {
                     state.font.draw_colored_text(
                         name.chars(),
                         self.x as f32 + 20.0,
-                        y,
+                        y - 2.0,
                         (0xa0, 0xa0, 0xff, 0xff),
                         &state.constants,
                         &mut state.texture_set,
@@ -259,7 +259,7 @@ impl Menu {
                     state.font.draw_text(
                         name.chars(),
                         self.x as f32 + 20.0,
-                        y,
+                        y - 2.0,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -268,7 +268,7 @@ impl Menu {
                     state.font.draw_text(
                         value_text.chars(),
                         self.x as f32 + 25.0 + name_text_len,
-                        y,
+                        y - 2.0,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -281,7 +281,7 @@ impl Menu {
                     state.font.draw_text(
                         name.chars(),
                         self.x as f32 + 20.0,
-                        y,
+                        y - 2.0,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -290,7 +290,7 @@ impl Menu {
                     state.font.draw_text(
                         value_text.chars(),
                         self.x as f32 + 25.0 + name_text_len,
-                        y,
+                        y - 2.0,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -304,7 +304,7 @@ impl Menu {
                     state.font.draw_text(
                         name.chars(),
                         self.x as f32 + 20.0,
-                        y,
+                        y - 2.0,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -313,7 +313,7 @@ impl Menu {
                     state.font.draw_text(
                         value_text.chars(),
                         self.x as f32 + 25.0 + name_text_len,
-                        y,
+                        y - 2.0,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -322,7 +322,7 @@ impl Menu {
                     state.font.draw_colored_text(
                         description_text.chars(),
                         self.x as f32 + 20.0,
-                        y + 14.0,
+                        y + 12.0,
                         (0xa0, 0xa0, 0xff, 0xff),
                         &state.constants,
                         &mut state.texture_set,
@@ -377,7 +377,7 @@ impl Menu {
             self.entry_y = self.entries[0..(self.selected)].iter().map(|e| e.height()).sum::<f64>().max(0.0) as u16;
         }
 
-        let mut y = self.y as f32 + 6.0;
+        let mut y = self.y as f32 + 8.0;
         for (idx, entry) in self.entries.iter_mut().enumerate() {
             let entry_bounds = Rect::new_size(self.x, y as isize, self.width as isize, entry.height() as isize);
             y += entry.height() as f32;
