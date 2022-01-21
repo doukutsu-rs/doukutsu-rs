@@ -11,8 +11,8 @@ use std::rc::Rc;
 use num_traits::{clamp, FromPrimitive};
 
 use crate::bitfield;
-use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::common::Direction::{Left, Right};
+use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::frame::UpdateTarget;
@@ -396,7 +396,13 @@ impl TextScriptVM {
                             state.textscript_vm.state = if !new_line {
                                 TextScriptExecutionState::Msg(event, cursor.position() as u32, remaining - 1, ticks)
                             } else {
-                                TextScriptExecutionState::MsgNewLine(event, cursor.position() as u32, remaining - 1, ticks, 4)
+                                TextScriptExecutionState::MsgNewLine(
+                                    event,
+                                    cursor.position() as u32,
+                                    remaining - 1,
+                                    ticks,
+                                    4,
+                                )
                             };
                         } else {
                             state.textscript_vm.state =
@@ -419,7 +425,8 @@ impl TextScriptVM {
                         state.textscript_vm.line_2.append(&mut state.textscript_vm.line_3);
                         state.textscript_vm.state = TextScriptExecutionState::Msg(event, ip, remaining, ticks);
                     } else {
-                        state.textscript_vm.state = TextScriptExecutionState::MsgNewLine(event, ip, remaining, ticks, counter);
+                        state.textscript_vm.state =
+                            TextScriptExecutionState::MsgNewLine(event, ip, remaining, ticks, counter);
                     }
                     break;
                 }
@@ -1650,9 +1657,14 @@ impl TextScriptVM {
                     mode != 0,
                 );
             }
+            TSCOpCode::STC => {
+                game_scene.nikumaru.save_counter(state, ctx)?;
+
+                exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+            }
             // unimplemented opcodes
             // Zero operands
-            TSCOpCode::KE2 | TSCOpCode::MLP | TSCOpCode::FR2 | TSCOpCode::STC | TSCOpCode::HM2 => {
+            TSCOpCode::KE2 | TSCOpCode::MLP | TSCOpCode::FR2 | TSCOpCode::HM2 => {
                 log::warn!("unimplemented opcode: {:?}", op);
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
