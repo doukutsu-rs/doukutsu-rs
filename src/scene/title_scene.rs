@@ -1,5 +1,7 @@
 use crate::common::{Color, VERSION_BANNER};
 use crate::components::background::Background;
+use crate::components::nikumaru::NikumaruCounter;
+use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -34,6 +36,7 @@ pub struct TitleScene {
     save_select_menu: Menu,
     background: Background,
     frame: Frame,
+    nikumaru_rec: NikumaruCounter,
     stage: Stage,
     textures: StageTexturePaths,
 }
@@ -67,6 +70,7 @@ impl TitleScene {
             save_select_menu: Menu::new(0, 0, 200, 0),
             background: Background::new(),
             frame: Frame::new(),
+            nikumaru_rec: NikumaruCounter::new(),
             stage: fake_stage,
             textures,
         }
@@ -116,6 +120,8 @@ impl Scene for TitleScene {
 
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
+
+        self.nikumaru_rec.load_counter(ctx)?;
 
         Ok(())
     }
@@ -210,6 +216,8 @@ impl Scene for TitleScene {
 
         self.draw_text_centered(&VERSION_BANNER, state.canvas_size.1 - 15.0, state, ctx)?;
         self.draw_text_centered(COPYRIGHT_PIXEL, state.canvas_size.1 - 30.0, state, ctx)?;
+
+        self.nikumaru_rec.draw(state, ctx, &self.frame)?;
 
         match self.current_menu {
             CurrentMenu::MainMenu => self.main_menu.draw(state, ctx)?,
