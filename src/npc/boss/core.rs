@@ -66,8 +66,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n218_core_giant_ball(&mut self, state: &mut SharedGameState) -> GameResult
-    {
+    pub(crate) fn tick_n218_core_giant_ball(&mut self, state: &mut SharedGameState) -> GameResult {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
@@ -331,7 +330,7 @@ impl BossNPC {
             }
             500 | 501 => {
                 if self.parts[0].action_num == 500 {
-                    self.parts[0].action_num  = 501;
+                    self.parts[0].action_num = 501;
                     self.parts[0].action_counter = 0;
                     self.parts[0].vel_x = 0;
                     self.parts[0].vel_y = 0;
@@ -375,6 +374,24 @@ impl BossNPC {
 
                     let _ = npc_list.spawn(0x100, npc);
                 }
+
+                self.parts[0].x += if self.parts[0].action_counter & 0x02 == 0 { 0x200 } else { -0x200 };
+                self.parts[0].x += if self.parts[0].x < 0x7E000 { 0x80 } else { -0x80 };
+                self.parts[0].y += if self.parts[0].y < 0x16000 { 0x80 } else { -0x80 };
+            }
+            600 | 601 => {
+                if self.parts[0].action_num == 600 {
+                    self.parts[0].action_num = 601;
+                    self.parts[4].action_num = 50;
+                    self.parts[5].action_num = 50;
+                    self.parts[8].npc_flags.set_invulnerable(false);
+                    self.parts[9].npc_flags.set_invulnerable(false);
+                    self.parts[10].npc_flags.set_invulnerable(false);
+                    self.parts[11].npc_flags.set_invulnerable(false);
+                }
+                self.parts[0].action_counter += 1;
+
+                self.parts[0].x += if self.parts[0].action_counter & 0x02 == 0 { 0x800 } else { -0x800 };
             }
             _ => {}
         }
@@ -485,11 +502,11 @@ impl BossNPC {
             _ => {}
         }
 
+        part.anim_rect = state.constants.npc.b04_core[part.anim_num as usize];
+
         if part.action_num == 51 {
             part.anim_rect.bottom = part.action_counter + part.anim_rect.top;
         }
-
-        part.anim_rect = state.constants.npc.b04_core[part.anim_num as usize];
     }
 
     fn tick_b04_core_tail(&mut self, i: usize, state: &mut SharedGameState) {
@@ -529,11 +546,11 @@ impl BossNPC {
             _ => {}
         }
 
+        part.anim_rect = state.constants.npc.b04_core[4 + part.anim_num as usize];
+
         if part.action_num == 51 {
             part.anim_rect.bottom = part.action_counter + part.anim_rect.top;
         }
-
-        part.anim_rect = state.constants.npc.b04_core[4 + part.anim_num as usize];
     }
 
     fn tick_b04_core_small_head(

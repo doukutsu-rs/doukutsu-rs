@@ -321,7 +321,7 @@ impl<T: Num + PartialOrd + Copy + Serialize> Default for Rect<T> {
     }
 }
 
-macro_rules! rect_deserialze {
+macro_rules! rect_deserialize {
     ($num_type: ident) => {
         impl<'de> Deserialize<'de> for Rect<$num_type> {
             fn deserialize<D>(deserializer: D) -> Result<Rect<$num_type>, D::Error>
@@ -358,11 +358,11 @@ macro_rules! rect_deserialze {
     };
 }
 
-rect_deserialze!(u8);
-rect_deserialze!(u16);
-rect_deserialze!(i32);
-rect_deserialze!(isize);
-rect_deserialze!(usize);
+rect_deserialize!(u8);
+rect_deserialize!(u16);
+rect_deserialize!(i32);
+rect_deserialize!(isize);
+rect_deserialize!(usize);
 
 #[inline(always)]
 pub fn fix9_scale(val: i32) -> f32 {
