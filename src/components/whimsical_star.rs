@@ -38,6 +38,13 @@ impl WhimsicalStar {
             active_star: 0,
         }
     }
+
+    pub fn set_prev(&mut self) {
+        for iter in 0..=2 {
+            self.star[iter].prev_x = self.star[iter].x;
+            self.star[iter].prev_y = self.star[iter].y;
+        }
+    }
 }
 
 impl GameEntity<(&Player, &mut BulletManager)> for WhimsicalStar {
@@ -75,9 +82,6 @@ impl GameEntity<(&Player, &mut BulletManager)> for WhimsicalStar {
 
             self.star[iter].vel_x = self.star[iter].vel_x.clamp(-0xA00, 0xA00);
             self.star[iter].vel_y = self.star[iter].vel_y.clamp(-0xA00, 0xA00);
-
-            self.star[iter].prev_x = self.star[iter].x;
-            self.star[iter].prev_y = self.star[iter].y;
 
             self.star[iter].x += self.star[iter].vel_x;
             self.star[iter].y += self.star[iter].vel_y;

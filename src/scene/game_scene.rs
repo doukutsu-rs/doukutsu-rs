@@ -1715,6 +1715,8 @@ impl Scene for GameScene {
             }
         }
 
+        self.whimsical_star.set_prev();
+
         self.inventory_dim += 0.1
             * if state.textscript_vm.mode == ScriptMode::Inventory {
                 state.frame_time as f32
