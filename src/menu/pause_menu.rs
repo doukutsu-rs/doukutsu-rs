@@ -103,6 +103,7 @@ impl PauseMenu {
                     self.current_menu = CurrentMenu::OptionsMenu;
                 }
                 MenuSelectionResult::Selected(3, _) => {
+                    state.textscript_vm.flags.set_cutscene_skip(false);
                     state.next_scene = Some(Box::new(TitleScene::new()));
                 }
                 MenuSelectionResult::Selected(5, _) => {
