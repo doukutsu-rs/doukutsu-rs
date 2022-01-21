@@ -6,6 +6,7 @@ use crate::framework::error::GameResult;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::shared_game_state::SharedGameState;
 
+pub mod pause_menu;
 pub mod settings_menu;
 
 pub struct MenuSaveInfo {}
@@ -318,7 +319,7 @@ impl Menu {
                         ctx,
                     )?;
 
-                        state.font.draw_colored_text(
+                    state.font.draw_colored_text(
                         description_text.chars(),
                         self.x as f32 + 20.0,
                         y + 14.0,
@@ -382,7 +383,10 @@ impl Menu {
             y += entry.height() as f32;
 
             match entry {
-                MenuEntry::Active(_) | MenuEntry::Toggle(_, _) | MenuEntry::Options(_, _, _) | MenuEntry::DescriptiveOptions(_, _, _, _)
+                MenuEntry::Active(_)
+                | MenuEntry::Toggle(_, _)
+                | MenuEntry::Options(_, _, _)
+                | MenuEntry::DescriptiveOptions(_, _, _, _)
                     if (self.selected == idx && controller.trigger_ok())
                         || state.touch_controls.consume_click_in(entry_bounds) =>
                 {

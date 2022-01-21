@@ -32,6 +32,7 @@ use crate::framework::{filesystem, graphics};
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::map::WaterParams;
+use crate::menu::pause_menu::PauseMenu;
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
 use crate::npc::{NPCLayer, NPC};
@@ -78,6 +79,7 @@ pub struct GameScene {
     pub bullet_manager: BulletManager,
     pub lighting_mode: LightingMode,
     pub intro_mode: bool,
+    pub pause_menu: PauseMenu,
     pub stage_textures: Rc<RefCell<StageTexturePaths>>,
     map_name_counter: u16,
     skip_counter: u16,
@@ -153,6 +155,7 @@ impl GameScene {
             bullet_manager: BulletManager::new(),
             lighting_mode: LightingMode::None,
             intro_mode: false,
+            pause_menu: PauseMenu::new(),
             stage_textures,
             map_name_counter: 0,
             skip_counter: 0,
@@ -1566,6 +1569,8 @@ impl Scene for GameScene {
             _ => LightingMode::None,
         };
 
+        self.pause_menu.init(state, ctx)?;
+
         Ok(())
     }
 
@@ -1592,6 +1597,15 @@ impl Scene for GameScene {
             if self.player1.controller.trigger_menu_ok() {
                 state.next_scene = Some(Box::new(TitleScene::new()));
             }
+        }
+
+        if self.player1.controller.trigger_menu_pause() {
+            self.pause_menu.pause();
+        }
+
+        if self.pause_menu.is_paused() {
+            self.pause_menu.tick(state, ctx)?;
+            return Ok(());
         }
 
         match state.textscript_vm.state {
@@ -1890,6 +1904,8 @@ impl Scene for GameScene {
         if state.settings.debug_outlines {
             self.draw_debug_outlines(state, ctx)?;
         }
+
+        self.pause_menu.draw(state, ctx)?;
 
         //draw_number(state.canvas_size.0 - 8.0, 8.0, timer::fps(ctx) as usize, Alignment::Right, state, ctx)?;
         Ok(())
