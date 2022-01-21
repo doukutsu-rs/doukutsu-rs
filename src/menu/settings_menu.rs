@@ -26,7 +26,7 @@ static DISCORD_LINK: &str = "https://discord.gg/fbRsNNB";
 
 impl SettingsMenu {
     pub fn new() -> SettingsMenu {
-        let main = Menu::new(0, 0, 200, 0);
+        let main = Menu::new(0, 0, 220, 0);
         let graphics = Menu::new(0, 0, 180, 0);
         let sound = Menu::new(0, 0, 260, 0);
 

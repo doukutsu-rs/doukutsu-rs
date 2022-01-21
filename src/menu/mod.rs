@@ -26,14 +26,14 @@ impl MenuEntry {
     pub fn height(&self) -> f64 {
         match self {
             MenuEntry::Hidden => 0.0,
-            MenuEntry::Active(_) => 14.0,
-            MenuEntry::DisabledWhite(_) => 14.0,
-            MenuEntry::Disabled(_) => 14.0,
-            MenuEntry::Toggle(_, _) => 14.0,
-            MenuEntry::Options(_, _, _) => 14.0,
-            MenuEntry::DescriptiveOptions(_, _, _, _) => 14.0,
-            MenuEntry::SaveData(_) => 30.0,
-            MenuEntry::NewSave => 30.0,
+            MenuEntry::Active(_) => 16.0,
+            MenuEntry::DisabledWhite(_) => 16.0,
+            MenuEntry::Disabled(_) => 16.0,
+            MenuEntry::Toggle(_, _) => 16.0,
+            MenuEntry::Options(_, _, _) => 16.0,
+            MenuEntry::DescriptiveOptions(_, _, _, _) => 16.0,
+            MenuEntry::SaveData(_) => 32.0,
+            MenuEntry::NewSave => 32.0,
         }
     }
 
@@ -96,13 +96,13 @@ impl Menu {
     }
 
     pub fn update_height(&mut self) {
-        let mut height = 6.0;
+        let mut height = 8.0;
 
         for entry in &self.entries {
             height += entry.height();
         }
 
-        self.height = height.max(6.0) as u16;
+        self.height = height.max(8.0) as u16;
     }
 
     pub fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {

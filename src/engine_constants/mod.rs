@@ -1449,7 +1449,7 @@ impl EngineConstants {
                 menu_right_top: Rect { left: 236, top: 0, right: 244, bottom: 8 },
                 menu_left_bottom: Rect { left: 0, top: 16, right: 8, bottom: 24 },
                 menu_right_bottom: Rect { left: 236, top: 16, right: 244, bottom: 24 },
-                menu_top: Rect { left: 8, top: 0, right: 236, bottom: 8 },
+                menu_top: Rect { left: 8, top: 0, right: 232, bottom: 8 },
                 menu_middle: Rect { left: 8, top: 8, right: 236, bottom: 16 },
                 menu_bottom: Rect { left: 8, top: 16, right: 236, bottom: 24 },
                 menu_left: Rect { left: 0, top: 8, right: 8, bottom: 16 },
