@@ -56,8 +56,7 @@ impl BMFontRenderer {
 
         for chr in iter {
             if let Some(glyph) = self.font.chars.get(&chr) {
-                offset_x += ((glyph.width as f32 + glyph.xoffset as f32) * constants.font_scale).floor()
-                    + if chr != ' ' { constants.font_scale } else { constants.font_space_offset };
+                offset_x += glyph.xadvance as f32 * constants.font_scale;
             }
         }
 
@@ -131,16 +130,15 @@ impl BMFontRenderer {
             for chr in iter {
                 if let Some(glyph) = self.font.chars.get(&chr) {
                     batch.add_rect_scaled_tinted(
-                        offset_x,
-                        y + (glyph.yoffset as f32 * constants.font_scale).floor(),
+                        offset_x + (glyph.xoffset as f32 * constants.font_scale),
+                        y + (glyph.yoffset as f32 * constants.font_scale),
                         color,
                         constants.font_scale,
                         constants.font_scale,
                         &Rect::new_size(glyph.x as u16, glyph.y as u16, glyph.width as u16, glyph.height as u16),
                     );
 
-                    offset_x += ((glyph.width as f32 + glyph.xoffset as f32) * constants.font_scale).floor()
-                        + if chr != ' ' { constants.font_scale } else { constants.font_space_offset };
+                    offset_x += glyph.xadvance as f32 * constants.font_scale;
                 }
             }
 
@@ -169,8 +167,8 @@ impl BMFontRenderer {
                 for (chr, glyph) in chars.iter() {
                     if glyph.page == page {
                         batch.add_rect_scaled_tinted(
-                            offset_x,
-                            y + (glyph.yoffset as f32 * constants.font_scale).floor(),
+                            offset_x + (glyph.xoffset as f32 * constants.font_scale),
+                            y + (glyph.yoffset as f32 * constants.font_scale),
                             color,
                             constants.font_scale * scale,
                             constants.font_scale * scale,
@@ -178,9 +176,7 @@ impl BMFontRenderer {
                         );
                     }
 
-                    offset_x += scale
-                        * (((glyph.width as f32 + glyph.xoffset as f32) * constants.font_scale).floor()
-                            + if *chr != ' ' { constants.font_scale } else { constants.font_space_offset });
+                    offset_x += scale * (glyph.xadvance as f32 * constants.font_scale);
                 }
 
                 batch.draw(ctx)?;

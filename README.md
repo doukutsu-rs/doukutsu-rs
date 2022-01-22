@@ -25,13 +25,14 @@ Vanilla Cave Story does not work yet because some important data files have been
 - https://github.com/doukutsu-rs/game-data - Freeware game data distributed with CI builds, based on those two below.
 - https://github.com/nxengine/nxengine-evo/releases/download/v2.6.4/NXEngine-v2.6.4-Win32.zip - copy `NXEngine-evo-2.6.4-xxx/data` from the archive to runtime directory
 
-**Cave Story+ (no full support)**
+**Cave Story+ (not fully supported)**
 
-- SDL version (first released in 2011 on Steam)
+- Original version (first released in 2011 on Steam)
   - PC release (Steam) - Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
   - PC release (Epic Games Store) - Essentially the same thing as with Steam version.
   - PC release (Humble Bundle) - Essentially the same thing as with Steam version.
-- KAGE version (first released in 2017 on Switch)
+  - PC release (GOG) - Essentially the same thing as with Steam version.
+- Remastered version (first released in 2017 on Switch)
   - Switch release - (tested only with eShop version) Extract `data` directory from romfs. Requires a hacked console and a recent and legal copy of the game. If you don't know how, look in Google how to exactly do that because the methods really differ.
 
 #### Mandatory screenshots

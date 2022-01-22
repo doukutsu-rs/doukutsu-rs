@@ -46,7 +46,6 @@ exe = []
 android = []
 
 [dependencies]
-#cpal = { path = "./3rdparty/cpal" }
 #glutin = { path = "./3rdparty/glutin/glutin", optional = true }
 #lua-ffi = { path = "./3rdparty/luajit-rs", optional = true }
 #winit = { path = "./3rdparty/winit", optional = true, default_features = false, features = ["x11"] }
@@ -54,7 +53,7 @@ bitvec = "0.20"
 byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
 chrono = "0.4"
-cpal = { git = "https://github.com/doukutsu-rs/cpal.git", rev = "4218ff23242834d36bcdcc0c2e3883985c15b5e0" }
+cpal = "0.13"
 directories = "3"
 downcast = "0.11"
 funty = "=1.1.0" # https://github.com/bitvecto-rs/bitvec/issues/105

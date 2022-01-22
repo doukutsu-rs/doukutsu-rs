@@ -159,15 +159,15 @@ impl SharedGameState {
         let mut base_path = "/";
         let settings = Settings::load(ctx)?;
 
-        if filesystem::exists(ctx, "/base/Nicalis.bmp") {
-            info!("Cave Story+ (PC) data files detected.");
-            constants.apply_csplus_patches(&sound_manager);
-            base_path = "/base/";
-        } else if filesystem::exists(ctx, "/base/lighting.tbl") {
+        if filesystem::exists(ctx, "/base/lighting.tbl") {
             info!("Cave Story+ (Switch) data files detected.");
             ctx.size_hint = (854, 480);
             constants.apply_csplus_patches(&sound_manager);
             constants.apply_csplus_nx_patches();
+            base_path = "/base/";
+        } else if filesystem::exists(ctx, "/base/Nicalis.bmp") || filesystem::exists(ctx, "/base/Nicalis.png") {
+            info!("Cave Story+ (PC) data files detected.");
+            constants.apply_csplus_patches(&sound_manager);
             base_path = "/base/";
         } else if filesystem::exists(ctx, "/mrmap.bin") {
             info!("CSE2E data files detected.");

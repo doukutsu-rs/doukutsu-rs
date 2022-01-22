@@ -176,6 +176,8 @@ impl BackendEventLoop for GlutinEventLoop {
                             request_android_redraw();
                         }
                     }
+
+                    state_ref.sound_manager.resume();
                 }
                 Event::Suspended => {
                     {
@@ -187,6 +189,8 @@ impl BackendEventLoop for GlutinEventLoop {
                     unsafe {
                         window.surface_destroyed();
                     }
+
+                    state_ref.sound_manager.pause();
                 }
                 Event::WindowEvent { event: WindowEvent::Resized(size), window_id }
                     if window_id == window.window().id() =>
