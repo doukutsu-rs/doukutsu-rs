@@ -168,11 +168,14 @@ impl BackendEventLoop for SDL2EventLoop {
                                 *mutex = false;
                             }
 
+                            state.sound_manager.resume();
                             game.loops = 0;
                         }
                         WindowEvent::FocusLost | WindowEvent::Hidden => {
                             let mut mutex = GAME_SUSPENDED.lock().unwrap();
                             *mutex = true;
+
+                            state.sound_manager.pause();
                         }
                         WindowEvent::SizeChanged(width, height) => {
                             ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
@@ -267,7 +270,6 @@ impl BackendEventLoop for SDL2EventLoop {
                     refs.video.gl_get_proc_address(name) as *const _
                 };
 
-                // log::info!("gl proc {} -> {:?}", name, result);
                 *user_data = Rc::into_raw(refs) as *mut c_void;
 
                 result

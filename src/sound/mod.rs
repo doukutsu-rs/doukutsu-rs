@@ -41,6 +41,7 @@ pub struct SoundManager {
     prev_song_id: usize,
     current_song_id: usize,
     no_audio: bool,
+    stream: Option<cpal::Stream>,
 }
 
 enum SongFormat {
@@ -67,7 +68,13 @@ impl SoundManager {
         if ctx.headless {
             log::info!("Running in headless mode, skipping initialization.");
 
-            return Ok(SoundManager { tx: tx.clone(), prev_song_id: 0, current_song_id: 0, no_audio: true });
+            return Ok(SoundManager {
+                tx: tx.clone(),
+                prev_song_id: 0,
+                current_song_id: 0,
+                no_audio: true,
+                stream: None,
+            });
         }
 
         let host = cpal::default_host();
@@ -76,18 +83,29 @@ impl SoundManager {
         let config = device.default_output_config()?;
 
         let bnk = wave_bank::SoundBank::load_from(filesystem::open(ctx, "/builtin/organya-wavetable-doukutsu.bin")?)?;
+        let res = match config.sample_format() {
+            cpal::SampleFormat::F32 => run::<f32>(rx, bnk, device, config.into()),
+            cpal::SampleFormat::I16 => run::<i16>(rx, bnk, device, config.into()),
+            cpal::SampleFormat::U16 => run::<u16>(rx, bnk, device, config.into()),
+        };
 
-        std::thread::spawn(move || {
-            if let Err(err) = match config.sample_format() {
-                cpal::SampleFormat::F32 => run::<f32>(rx, bnk, &device, &config.into()),
-                cpal::SampleFormat::I16 => run::<i16>(rx, bnk, &device, &config.into()),
-                cpal::SampleFormat::U16 => run::<u16>(rx, bnk, &device, &config.into()),
-            } {
-                log::error!("Something went wrong in audio thread: {}", err);
-            }
-        });
+        if let Err(res) = &res {
+            log::error!("Error initializing audio: {}", res);
+        }
 
-        Ok(SoundManager { tx: tx.clone(), prev_song_id: 0, current_song_id: 0, no_audio: false })
+        Ok(SoundManager { tx: tx.clone(), prev_song_id: 0, current_song_id: 0, no_audio: false, stream: res.ok() })
+    }
+
+    pub fn pause(&mut self) {
+        if let Some(stream) = &mut self.stream {
+            let _ = stream.pause();
+        }
+    }
+
+    pub fn resume(&mut self) {
+        if let Some(stream) = &mut self.stream {
+            let _ = stream.play();
+        }
     }
 
     pub fn play_sfx(&self, id: u8) {
@@ -367,7 +385,7 @@ impl SoundManager {
     }
 }
 
-enum PlaybackMessage {
+pub(in crate::sound) enum PlaybackMessage {
     Stop,
     PlayOrganyaSong(Box<Song>),
     #[cfg(feature = "ogg-playback")]
@@ -408,9 +426,9 @@ impl Default for PlaybackStateType {
 fn run<T>(
     rx: Receiver<PlaybackMessage>,
     bank: SoundBank,
-    device: &cpal::Device,
-    config: &cpal::StreamConfig,
-) -> GameResult
+    device: cpal::Device,
+    config: cpal::StreamConfig,
+) -> GameResult<cpal::Stream>
 where
     T: cpal::Sample,
 {
@@ -444,7 +462,7 @@ where
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
     let stream = device.build_output_stream(
-        config,
+        &config,
         move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
             loop {
                 match rx.try_recv() {
@@ -456,7 +474,7 @@ where
                         org_engine.start_song(*song, &bank);
 
                         for i in &mut bgm_buf[0..samples] {
-                            *i = 0x8080
+                            *i = 0x8000
                         }
                         samples = org_engine.render_to(&mut bgm_buf);
                         bgm_index = 0;
@@ -651,24 +669,5 @@ where
 
     stream.play()?;
 
-    let mut saved_state = true;
-    loop {
-        std::thread::sleep(Duration::from_millis(10));
-
-        {
-            let mutex = crate::GAME_SUSPENDED.lock().unwrap();
-            let state = *mutex;
-            if saved_state != state {
-                saved_state = state;
-
-                if state {
-                    if let Err(e) = stream.pause() {
-                        log::error!("Failed to pause the stream: {:?}", e);
-                    }
-                } else if let Err(e) = stream.play() {
-                    log::error!("Failed to unpause the stream: {:?}", e);
-                }
-            }
-        }
-    }
+    Ok(stream)
 }
