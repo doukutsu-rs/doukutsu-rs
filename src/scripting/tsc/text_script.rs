@@ -1637,11 +1637,10 @@ impl TextScriptVM {
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
             TSCOpCode::SSS => {
-                let _freq = read_cur_varint(&mut cursor)?;
+                let freq = read_cur_varint(&mut cursor)? as f32 / 2205.0;
 
-                // todo change freq
-                state.sound_manager.loop_sfx(40);
-                state.sound_manager.loop_sfx(41);
+                state.sound_manager.loop_sfx_freq(40, freq);
+                state.sound_manager.loop_sfx_freq(41, freq);
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }

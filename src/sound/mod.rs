@@ -122,6 +122,13 @@ impl SoundManager {
         let _ = self.tx.send(PlaybackMessage::LoopSample(id));
     }
 
+    pub fn loop_sfx_freq(&self, id: u8, freq: f32) {
+        if self.no_audio {
+            return;
+        }
+        let _ = self.tx.send(PlaybackMessage::LoopSampleFreq(id, freq));
+    }
+
     pub fn stop_sfx(&self, id: u8) {
         if self.no_audio {
             return;
@@ -394,6 +401,7 @@ pub(in crate::sound) enum PlaybackMessage {
     PlayOggSongMultiPart(Box<OggStreamReader<File>>, Box<OggStreamReader<File>>),
     PlaySample(u8),
     LoopSample(u8),
+    LoopSampleFreq(u8, f32),
     StopSample(u8),
     SetSpeed(f32),
     SaveState,
@@ -519,6 +527,9 @@ where
 
                     Ok(PlaybackMessage::LoopSample(id)) => {
                         pixtone.loop_sfx(id);
+                    }
+                    Ok(PlaybackMessage::LoopSampleFreq(id, freq)) => {
+                        pixtone.loop_sfx_freq(id, freq);
                     }
                     Ok(PlaybackMessage::StopSample(id)) => {
                         pixtone.stop_sfx(id);

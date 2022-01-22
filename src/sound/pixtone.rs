@@ -182,6 +182,7 @@ pub struct PlaybackState {
     pos: f32,
     tag: u32,
     looping: bool,
+    freq: f32,
 }
 
 pub struct PixTonePlayback {
@@ -226,7 +227,7 @@ impl PixTonePlayback {
             }
         }
 
-        self.playback_state.push(PlaybackState { id, pos: 0.0, tag: 0, looping: false });
+        self.playback_state.push(PlaybackState { id, pos: 0.0, tag: 0, looping: false, freq: 1.0 });
     }
 
     pub fn loop_sfx(&mut self, id: u8) {
@@ -237,7 +238,18 @@ impl PixTonePlayback {
             }
         }
 
-        self.playback_state.push(PlaybackState { id, pos: 0.0, tag: 0, looping: true });
+        self.playback_state.push(PlaybackState { id, pos: 0.0, tag: 0, looping: true, freq: 1.0 });
+    }
+
+    pub fn loop_sfx_freq(&mut self, id: u8, freq: f32) {
+        for state in &mut self.playback_state {
+            if state.id == id && state.tag == 0 {
+                state.looping = true;
+                return;
+            }
+        }
+
+        self.playback_state.push(PlaybackState { id, pos: 0.0, tag: 0, looping: true, freq });
     }
 
     pub fn stop_sfx(&mut self, id: u8) {
@@ -247,7 +259,7 @@ impl PixTonePlayback {
     }
 
     pub fn play_concurrent(&mut self, id: u8, tag: u32) {
-        self.playback_state.push(PlaybackState { id, pos: 0.0, tag, looping: false });
+        self.playback_state.push(PlaybackState { id, pos: 0.0, tag, looping: false, freq: 1.0 });
     }
 
     pub fn mix(&mut self, dst: &mut [u16], sample_rate: f32) {
@@ -285,7 +297,7 @@ impl PixTonePlayback {
                     let sam = (*result ^ 0x8000) as i16;
                     *result = sam.saturating_add(s as i16) as u16 ^ 0x8000;
 
-                    state.pos += delta;
+                    state.pos += delta * state.freq;
                 }
 
                 if remove {
