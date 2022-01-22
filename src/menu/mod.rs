@@ -103,7 +103,7 @@ impl Menu {
             height += entry.height();
         }
 
-        self.height = height.max(8.0) as u16;
+        self.height = height.max(16.0) as u16;
     }
 
     pub fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -223,7 +223,7 @@ impl Menu {
             rect.right = rect.left + 16;
             rect.bottom = rect.top + 16;
 
-            batch.add_rect(self.x as f32, self.y as f32 + 2.0 + self.entry_y as f32, &rect);
+            batch.add_rect(self.x as f32, self.y as f32 + 4.0 + self.entry_y as f32, &rect);
 
             batch.draw(ctx)?;
         }
@@ -235,7 +235,7 @@ impl Menu {
                     state.font.draw_text(
                         name.chars(),
                         self.x as f32 + 20.0,
-                        y - 2.0,
+                        y,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -245,7 +245,7 @@ impl Menu {
                     state.font.draw_colored_text(
                         name.chars(),
                         self.x as f32 + 20.0,
-                        y - 2.0,
+                        y,
                         (0xa0, 0xa0, 0xff, 0xff),
                         &state.constants,
                         &mut state.texture_set,
@@ -259,7 +259,7 @@ impl Menu {
                     state.font.draw_text(
                         name.chars(),
                         self.x as f32 + 20.0,
-                        y - 2.0,
+                        y,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -268,7 +268,7 @@ impl Menu {
                     state.font.draw_text(
                         value_text.chars(),
                         self.x as f32 + 25.0 + name_text_len,
-                        y - 2.0,
+                        y,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -281,7 +281,7 @@ impl Menu {
                     state.font.draw_text(
                         name.chars(),
                         self.x as f32 + 20.0,
-                        y - 2.0,
+                        y,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -290,7 +290,7 @@ impl Menu {
                     state.font.draw_text(
                         value_text.chars(),
                         self.x as f32 + 25.0 + name_text_len,
-                        y - 2.0,
+                        y,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -304,7 +304,7 @@ impl Menu {
                     state.font.draw_text(
                         name.chars(),
                         self.x as f32 + 20.0,
-                        y - 2.0,
+                        y,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -313,7 +313,7 @@ impl Menu {
                     state.font.draw_text(
                         value_text.chars(),
                         self.x as f32 + 25.0 + name_text_len,
-                        y - 2.0,
+                        y,
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
@@ -322,8 +322,8 @@ impl Menu {
                     state.font.draw_colored_text(
                         description_text.chars(),
                         self.x as f32 + 20.0,
-                        y + 12.0,
-                        (0xa0, 0xa0, 0xff, 0xff),
+                        y + 16.0,
+                        (0xc0, 0xc0, 0xff, 0xff),
                         &state.constants,
                         &mut state.texture_set,
                         ctx,
