@@ -31,6 +31,10 @@ impl NumberPopup {
     pub fn add_value(&mut self, value: i16) {
         self.set_value(self.value + value);
     }
+
+    pub fn is_finished(self) -> bool {
+        self.counter == 0
+    }
 }
 
 impl GameEntity<()> for NumberPopup {

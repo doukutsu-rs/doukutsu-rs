@@ -313,7 +313,6 @@ impl NPCList {
             state.game_flags.set(npc.flag_num as usize, true);
 
             if npc.npc_flags.show_damage() {
-                // todo show damage
                 if vanish {
                     npc.vanish(state);
                 }

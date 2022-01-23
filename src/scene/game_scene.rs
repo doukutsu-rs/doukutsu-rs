@@ -17,6 +17,7 @@ use crate::components::hud::HUD;
 use crate::components::inventory::InventoryUI;
 use crate::components::map_system::MapSystem;
 use crate::components::nikumaru::NikumaruCounter;
+use crate::components::number_popup::NumberPopup;
 use crate::components::stage_select::StageSelect;
 use crate::components::text_boxes::TextBoxes;
 use crate::components::tilemap::{TileLayer, Tilemap};
@@ -78,6 +79,7 @@ pub struct GameScene {
     pub stage_id: usize,
     pub npc_list: NPCList,
     pub boss: BossNPC,
+    pub orphaned_popups: Vec<NumberPopup>,
     pub bullet_manager: BulletManager,
     pub lighting_mode: LightingMode,
     pub intro_mode: bool,
@@ -155,6 +157,7 @@ impl GameScene {
             stage_id: id,
             npc_list: NPCList::new(),
             boss: BossNPC::new(),
+            orphaned_popups: Vec::new(),
             bullet_manager: BulletManager::new(),
             lighting_mode: LightingMode::None,
             intro_mode: false,
@@ -273,6 +276,13 @@ impl GameScene {
         }
 
         batch.draw(ctx)?;
+        Ok(())
+    }
+
+    fn draw_orphaned_popups(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        for popup in self.orphaned_popups.iter() {
+            popup.draw(state, ctx, &self.frame)?;
+        }
         Ok(())
     }
 
@@ -1125,6 +1135,10 @@ impl GameScene {
                 }
             }
 
+            if npc.life == 0 && npc.npc_flags.show_damage() {
+                self.orphaned_popups.push(npc.popup);
+            }
+
             if npc.cond.explode_die() {
                 let can_drop_missile = [&self.inventory_player1, &self.inventory_player2].iter().any(|inv| {
                     inv.has_weapon(WeaponType::MissileLauncher) || inv.has_weapon(WeaponType::SuperMissileLauncher)
@@ -1216,6 +1230,14 @@ impl GameScene {
                 }
             }
         }
+    }
+
+    fn tick_orphaned_popups(&mut self, state: &mut SharedGameState) -> GameResult {
+        for popup in self.orphaned_popups.iter_mut() {
+            popup.tick(state, ())?;
+        }
+        self.orphaned_popups.retain(|popup| !popup.is_finished());
+        Ok(())
     }
 
     fn tick_world(&mut self, state: &mut SharedGameState) -> GameResult {
@@ -1323,6 +1345,7 @@ impl GameScene {
             }
         }
 
+        self.tick_orphaned_popups(state)?;
         self.tick_npc_bullet_collissions(state);
 
         self.bullet_manager.tick_bullets(state, [&self.player1, &self.player2], &self.npc_list, &mut self.stage);
@@ -1721,6 +1744,11 @@ impl Scene for GameScene {
             }
         }
 
+        for popup in self.orphaned_popups.iter_mut() {
+            popup.prev_x = popup.x;
+            popup.prev_y = popup.y;
+        }
+
         self.whimsical_star.set_prev();
 
         self.inventory_dim += 0.1
@@ -1778,6 +1806,7 @@ impl Scene for GameScene {
         self.draw_carets(state, ctx)?;
         self.player1.popup.draw(state, ctx, &self.frame)?;
         self.player2.popup.draw(state, ctx, &self.frame)?;
+        self.draw_orphaned_popups(state, ctx)?;
 
         if !state.control_flags.credits_running()
             && state.settings.shader_effects
