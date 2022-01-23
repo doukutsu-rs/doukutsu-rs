@@ -94,6 +94,7 @@ pub enum TextScriptExecutionState {
     WaitConfirmation(u16, u32, u16, u8, ConfirmSelection),
     WaitFade(u16, u32),
     FallingIsland(u16, u32, i32, i32, u16, bool),
+    MapSystem,
     SaveProfile(u16, u32),
     LoadProfile,
     Reset,
@@ -586,6 +587,9 @@ impl TextScriptVM {
                     state.start_new_game(ctx)?;
                     break;
                 }
+                TextScriptExecutionState::MapSystem => {
+                    break;
+                }
             }
         }
 
@@ -601,10 +605,6 @@ impl TextScriptVM {
         ctx: &mut Context,
     ) -> GameResult<TextScriptExecutionState> {
         let mut exec_state = state.textscript_vm.state;
-
-        // let state_ref = state as *mut SharedGameState;
-        // let scripts = unsafe { &(*state_ref).textscript_vm.scripts };
-
         let mut cursor = Cursor::new(bytecode);
         cursor.seek(SeekFrom::Start(ip as u64))?;
 
@@ -1637,11 +1637,10 @@ impl TextScriptVM {
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
             TSCOpCode::SSS => {
-                let _freq = read_cur_varint(&mut cursor)?;
+                let freq = read_cur_varint(&mut cursor)? as f32 / 2205.0;
 
-                // todo change freq
-                state.sound_manager.loop_sfx(40);
-                state.sound_manager.loop_sfx(41);
+                state.sound_manager.loop_sfx_freq(40, freq);
+                state.sound_manager.loop_sfx_freq(41, freq);
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
@@ -1662,9 +1661,12 @@ impl TextScriptVM {
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
+            TSCOpCode::MLP => {
+                exec_state = TextScriptExecutionState::MapSystem;
+            }
             // unimplemented opcodes
             // Zero operands
-            TSCOpCode::KE2 | TSCOpCode::MLP | TSCOpCode::FR2 | TSCOpCode::HM2 => {
+            TSCOpCode::KE2 | TSCOpCode::FR2 | TSCOpCode::HM2 => {
                 log::warn!("unimplemented opcode: {:?}", op);
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);

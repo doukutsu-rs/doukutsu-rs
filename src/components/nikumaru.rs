@@ -1,7 +1,7 @@
-use byteorder::{ReadBytesExt, WriteBytesExt, LE};
+use byteorder::{LE, ReadBytesExt, WriteBytesExt};
 
 use crate::common::Rect;
-use crate::components::draw_common::{draw_number, draw_number_zeros, Alignment};
+use crate::components::draw_common::{Alignment, draw_number, draw_number_zeros};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
@@ -10,6 +10,7 @@ use crate::framework::filesystem;
 use crate::framework::vfs::OpenOptions;
 use crate::player::Player;
 use crate::rng::RNG;
+use crate::scripting::tsc::text_script::TextScriptExecutionState;
 use crate::shared_game_state::{SharedGameState, TimingMode};
 
 #[derive(Clone, Copy)]
@@ -117,6 +118,10 @@ impl GameEntity<&Player> for NikumaruCounter {
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, _frame: &Frame) -> GameResult {
         if !self.shown {
+            return Ok(());
+        }
+
+        if state.textscript_vm.state == TextScriptExecutionState::MapSystem {
             return Ok(());
         }
 

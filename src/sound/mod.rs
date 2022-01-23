@@ -3,18 +3,17 @@ use std::io::{BufRead, BufReader, Lines};
 use std::str::FromStr;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
-use std::time::Duration;
 
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Sample;
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 #[cfg(feature = "ogg-playback")]
 use lewton::inside_ogg::OggStreamReader;
 use num_traits::clamp;
 
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
-use crate::framework::error::GameError::{AudioError, InvalidValue};
 use crate::framework::error::{GameError, GameResult};
+use crate::framework::error::GameError::{AudioError, InvalidValue};
 use crate::framework::filesystem;
 use crate::framework::filesystem::File;
 use crate::settings::Settings;
@@ -120,6 +119,13 @@ impl SoundManager {
             return;
         }
         let _ = self.tx.send(PlaybackMessage::LoopSample(id));
+    }
+
+    pub fn loop_sfx_freq(&self, id: u8, freq: f32) {
+        if self.no_audio {
+            return;
+        }
+        let _ = self.tx.send(PlaybackMessage::LoopSampleFreq(id, freq));
     }
 
     pub fn stop_sfx(&self, id: u8) {
@@ -394,6 +400,7 @@ pub(in crate::sound) enum PlaybackMessage {
     PlayOggSongMultiPart(Box<OggStreamReader<File>>, Box<OggStreamReader<File>>),
     PlaySample(u8),
     LoopSample(u8),
+    LoopSampleFreq(u8, f32),
     StopSample(u8),
     SetSpeed(f32),
     SaveState,
@@ -437,10 +444,10 @@ where
     let mut state = PlaybackState::Stopped;
     let mut saved_state: PlaybackStateType = PlaybackStateType::None;
     let mut speed = 1.0;
-    let mut org_engine = OrgPlaybackEngine::new();
+    let mut org_engine = Box::new(OrgPlaybackEngine::new());
     #[cfg(feature = "ogg-playback")]
-    let mut ogg_engine = OggPlaybackEngine::new();
-    let mut pixtone = PixTonePlayback::new();
+    let mut ogg_engine = Box::new(OggPlaybackEngine::new());
+    let mut pixtone = Box::new(PixTonePlayback::new());
     pixtone.create_samples();
 
     log::info!("Audio format: {} {}", sample_rate, channels);
@@ -519,6 +526,9 @@ where
 
                     Ok(PlaybackMessage::LoopSample(id)) => {
                         pixtone.loop_sfx(id);
+                    }
+                    Ok(PlaybackMessage::LoopSampleFreq(id, freq)) => {
+                        pixtone.loop_sfx_freq(id, freq);
                     }
                     Ok(PlaybackMessage::StopSample(id)) => {
                         pixtone.stop_sfx(id);
