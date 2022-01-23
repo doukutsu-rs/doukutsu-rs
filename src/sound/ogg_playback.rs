@@ -4,6 +4,7 @@ use lewton::inside_ogg::OggStreamReader;
 use num_traits::clamp;
 
 use crate::framework::filesystem::File;
+use crate::sound::stuff::cubic_interp;
 use crate::sound::wav::WavFormat;
 
 pub(crate) struct OggPlaybackEngine {
@@ -27,11 +28,7 @@ impl OggPlaybackEngine {
         OggPlaybackEngine {
             intro_music: None,
             loop_music: None,
-            output_format: WavFormat {
-                channels: 2,
-                sample_rate: 44100,
-                bit_depth: 16,
-            },
+            output_format: WavFormat { channels: 2, sample_rate: 44100, bit_depth: 16 },
             playing_intro: false,
             position: 0,
             buffer: Vec::with_capacity(4096),
@@ -65,11 +62,7 @@ impl OggPlaybackEngine {
         self.position = 0;
     }
 
-    pub fn start_multi(
-        &mut self,
-        intro_music: Box<OggStreamReader<File>>,
-        loop_music: Box<OggStreamReader<File>>,
-    ) {
+    pub fn start_multi(&mut self, intro_music: Box<OggStreamReader<File>>, loop_music: Box<OggStreamReader<File>>) {
         self.intro_music = Some(Arc::new(RwLock::new(intro_music)));
         self.loop_music = Some(Arc::new(RwLock::new(loop_music)));
         self.playing_intro = true;
@@ -110,11 +103,7 @@ impl OggPlaybackEngine {
                 };
 
                 self.position = music.get_last_absgp().unwrap_or(0);
-                buf = self.resample_buffer(
-                    buf,
-                    music.ident_hdr.audio_sample_rate,
-                    music.ident_hdr.audio_channels,
-                );
+                buf = self.resample_buffer(buf, music.ident_hdr.audio_sample_rate, music.ident_hdr.audio_channels);
                 self.buffer.append(&mut buf);
             } else {
                 self.playing_intro = false;
@@ -137,11 +126,7 @@ impl OggPlaybackEngine {
             };
 
             self.position = music.get_last_absgp().unwrap_or(0);
-            buf = self.resample_buffer(
-                buf,
-                music.ident_hdr.audio_sample_rate,
-                music.ident_hdr.audio_channels,
-            );
+            buf = self.resample_buffer(buf, music.ident_hdr.audio_sample_rate, music.ident_hdr.audio_channels);
             self.buffer.append(&mut buf);
         } else {
             let mut buf = vec![0; 1000];
@@ -150,6 +135,108 @@ impl OggPlaybackEngine {
     }
 
     fn resample_buffer(&self, mut data: Vec<i16>, sample_rate: u32, channels: u8) -> Vec<i16> {
+        if data.is_empty() {
+            return data;
+        }
+
+        if sample_rate != self.output_format.sample_rate {
+            let mut tmp_data = Vec::with_capacity(
+                (data.len() as f64 * self.output_format.sample_rate as f64 / sample_rate as f64) as usize,
+            );
+            let mut pos = 0.0;
+            let phase = sample_rate as f32 / self.output_format.sample_rate as f32;
+            let num_samples = data.len() / channels as usize;
+
+            if channels == 1 {
+                loop {
+                    if pos >= num_samples as f32 {
+                        data = tmp_data;
+                        break;
+                    }
+
+                    let s = unsafe {
+                        let upos = pos as usize;
+                        let s1 = (*data.get_unchecked(upos) as f32) / 32768.0;
+                        let s2 = (*data.get_unchecked(clamp(upos + 1, 0, data.len() - 1)) as f32) / 32768.0;
+                        let s3 = (*data.get_unchecked(clamp(upos + 2, 0, data.len() - 1)) as f32) / 32768.0;
+                        let s4 =
+                            (*data.get_unchecked(clamp(upos.saturating_sub(1), 0, data.len() - 1)) as f32) / 32768.0;
+
+                        (cubic_interp(s1, s2, s4, s3, pos.fract()) * 32768.0) as i16
+                    };
+                    tmp_data.push(s);
+
+                    pos += phase;
+                }
+            } else if channels == 2 {
+                let max_samp = (num_samples - 1) * 2;
+
+                // unrolled for performance reasons
+                loop {
+                    if pos >= num_samples as f32 {
+                        data = tmp_data;
+                        break;
+                    }
+
+                    let sl = unsafe {
+                        let upos = pos as usize;
+                        let max = max_samp as usize;
+                        let s1 = (*data.get_unchecked(upos * 2) as f32) / 32768.0;
+                        let s2 = (*data.get_unchecked(clamp((upos + 1) * 2, 0, max)) as f32) / 32768.0;
+                        let s3 = (*data.get_unchecked(clamp((upos + 2) * 2, 0, max)) as f32) / 32768.0;
+                        let s4 = (*data.get_unchecked(clamp(upos.saturating_sub(1) * 2, 0, max)) as f32) / 32768.0;
+
+                        (cubic_interp(s1, s2, s4, s3, pos.fract()) * 32768.0) as i16
+                    };
+                    tmp_data.push(sl);
+
+                    let sr = unsafe {
+                        let upos = pos as usize;
+                        let max = max_samp as usize + 1;
+                        let s1 = (*data.get_unchecked(upos * 2 + 1) as f32) / 32768.0;
+                        let s2 = (*data.get_unchecked(clamp((upos + 1) * 2 + 1, 1, max)) as f32) / 32768.0;
+                        let s3 = (*data.get_unchecked(clamp((upos + 2) * 2 + 1, 1, max)) as f32) / 32768.0;
+                        let s4 = (*data.get_unchecked(clamp(upos.saturating_sub(1) * 2 + 1, 0, max)) as f32) / 32768.0;
+
+                        (cubic_interp(s1, s2, s4, s3, pos.fract()) * 32768.0) as i16
+                    };
+                    tmp_data.push(sr);
+
+                    pos += phase;
+                }
+            } else {
+                let cc = channels as usize;
+                let max_samp = (num_samples - 1) * cc;
+
+                loop {
+                    if pos >= num_samples as f32 {
+                        data = tmp_data;
+                        break;
+                    }
+
+                    for c in 0..channels {
+                        let s = unsafe {
+                            let upos = pos as usize;
+                            let max = max_samp + c as usize;
+                            let s1 = (*data.get_unchecked(upos * cc + c as usize) as f32) / 32768.0;
+                            let s2 = (*data.get_unchecked(clamp((upos + 1) * cc + c as usize, c as usize, max)) as f32)
+                                / 32768.0;
+                            let s3 = (*data.get_unchecked(clamp((upos + 2) * cc + c as usize, c as usize, max)) as f32) / 32768.0;
+                            let s4 =
+                                (*data.get_unchecked(clamp(upos.saturating_sub(1) * cc + c as usize, c as usize, max))
+                                    as f32)
+                                    / 32768.0;
+
+                            (cubic_interp(s1, s2, s4, s3, pos.fract()) * 32768.0) as i16
+                        };
+                        tmp_data.push(s);
+                    }
+
+                    pos += phase;
+                }
+            }
+        }
+
         if channels == 1 {
             let mut tmp_data = Vec::with_capacity(data.len() * 2);
 
@@ -161,31 +248,6 @@ impl OggPlaybackEngine {
             data = tmp_data;
         }
 
-        if sample_rate != self.output_format.sample_rate {
-            let mut tmp_data = Vec::with_capacity((data.len() as f64 * self.output_format.sample_rate as f64 / sample_rate as f64) as usize);
-            let mut pos = 0.0;
-            let phase = sample_rate as f32 / self.output_format.sample_rate as f32;
-
-            loop {
-                if pos >= data.len() as f32 {
-                    data = tmp_data;
-                    break;
-                }
-
-                let s = unsafe {
-                    let upos = pos as usize;
-                    let s1 = (*data.get_unchecked(upos) as f32) / 32768.0;
-                    let s2 =
-                        (*data.get_unchecked(clamp(upos + 1, 0, data.len() - 1)) as f32) / 32768.0;
-
-                    ((s1 + (s2 - s1) * pos.fract()) * 32768.0) as i16
-                };
-                tmp_data.push(s);
-
-                pos += phase;
-            }
-        }
-
         data
     }
 
@@ -194,11 +256,7 @@ impl OggPlaybackEngine {
             self.decode();
         }
 
-        self.buffer
-            .drain(0..buf.len())
-            .map(|n| n as u16 ^ 0x8000)
-            .zip(buf.iter_mut())
-            .for_each(|(n, tgt)| *tgt = n);
+        self.buffer.drain(0..buf.len()).map(|n| n as u16 ^ 0x8000).zip(buf.iter_mut()).for_each(|(n, tgt)| *tgt = n);
 
         buf.len()
     }

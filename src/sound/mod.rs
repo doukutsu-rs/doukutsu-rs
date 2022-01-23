@@ -3,18 +3,17 @@ use std::io::{BufRead, BufReader, Lines};
 use std::str::FromStr;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
-use std::time::Duration;
 
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Sample;
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 #[cfg(feature = "ogg-playback")]
 use lewton::inside_ogg::OggStreamReader;
 use num_traits::clamp;
 
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
-use crate::framework::error::GameError::{AudioError, InvalidValue};
 use crate::framework::error::{GameError, GameResult};
+use crate::framework::error::GameError::{AudioError, InvalidValue};
 use crate::framework::filesystem;
 use crate::framework::filesystem::File;
 use crate::settings::Settings;
