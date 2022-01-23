@@ -917,6 +917,7 @@ impl BackendRenderer for OpenGLRenderer {
                     );
 
                     gl.gl.BindFramebuffer(gl::FRAMEBUFFER, gl_texture.framebuffer_id);
+                    gl.gl.Viewport(0, 0, gl_texture.width as _, gl_texture.height as _);
                 } else {
                     self.curr_matrix = self.def_matrix;
 
@@ -936,6 +937,7 @@ impl BackendRenderer for OpenGLRenderer {
                         self.def_matrix.as_ptr() as _,
                     );
                     gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.imgui_data.surf_framebuffer);
+                    gl.gl.Viewport(0, 0, self.imgui_data.last_size.0 as _, self.imgui_data.last_size.1 as _);
                 }
             }
 

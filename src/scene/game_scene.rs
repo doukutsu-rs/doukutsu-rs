@@ -15,6 +15,7 @@ use crate::components::falling_island::FallingIsland;
 use crate::components::flash::Flash;
 use crate::components::hud::HUD;
 use crate::components::inventory::InventoryUI;
+use crate::components::map_system::MapSystem;
 use crate::components::nikumaru::NikumaruCounter;
 use crate::components::stage_select::StageSelect;
 use crate::components::text_boxes::TextBoxes;
@@ -60,6 +61,7 @@ pub struct GameScene {
     pub credits: Credits,
     pub falling_island: FallingIsland,
     pub inventory_ui: InventoryUI,
+    pub map_system: MapSystem,
     pub hud_player1: HUD,
     pub hud_player2: HUD,
     pub nikumaru: NikumaruCounter,
@@ -140,6 +142,7 @@ impl GameScene {
             credits: Credits::new(),
             falling_island: FallingIsland::new(),
             inventory_ui: InventoryUI::new(),
+            map_system: MapSystem::new(),
             hud_player1: HUD::new(Alignment::Left),
             hud_player2: HUD::new(Alignment::Right),
             nikumaru: NikumaruCounter::new(),
@@ -1382,11 +1385,13 @@ impl GameScene {
             self.hud_player2.tick(state, (&self.player2, &mut self.inventory_player2))?;
             self.boss_life_bar.tick(state, (&self.npc_list, &self.boss))?;
 
-            if self.player1.controller.trigger_inventory()
-                && state.textscript_vm.state == TextScriptExecutionState::Ended
-            {
-                state.textscript_vm.set_mode(ScriptMode::Inventory);
-                self.player1.cond.set_interacted(false);
+            if state.textscript_vm.state == TextScriptExecutionState::Ended {
+                if self.player1.controller.trigger_inventory() {
+                    state.textscript_vm.set_mode(ScriptMode::Inventory);
+                    self.player1.cond.set_interacted(false);
+                } else if self.player1.controller.trigger_map() && self.inventory_player1.has_item(2) {
+                    state.textscript_vm.state = TextScriptExecutionState::MapSystem;
+                }
             }
         }
 
@@ -1613,6 +1618,7 @@ impl Scene for GameScene {
             | TextScriptExecutionState::WaitTicks(_, _, _)
             | TextScriptExecutionState::WaitInput(_, _, _)
             | TextScriptExecutionState::Msg(_, _, _, _)
+            | TextScriptExecutionState::MsgNewLine(_, _, _, _, _)
             | TextScriptExecutionState::FallingIsland(_, _, _, _, _, _)
                 if !state.control_flags.control_enabled() && !state.textscript_vm.flags.cutscene_skip() =>
             {
@@ -1630,12 +1636,15 @@ impl Scene for GameScene {
             }
         }
 
+        self.map_system.tick(state, ctx, &self.stage, [&self.player1, &self.player2])?;
+
         match state.textscript_vm.mode {
             ScriptMode::Map => {
                 TextScriptVM::run(state, self, ctx)?;
 
                 match state.textscript_vm.state {
                     TextScriptExecutionState::FallingIsland(_, _, _, _, _, _) => (),
+                    TextScriptExecutionState::MapSystem => (),
                     _ => {
                         if state.control_flags.tick_world() {
                             self.tick_world(state)?;
@@ -1858,10 +1867,14 @@ impl Scene for GameScene {
             _ => {}
         }
 
+        self.map_system.draw(state, ctx, &self.stage, [&self.player1, &self.player2])?;
         self.fade.draw(state, ctx, &self.frame)?;
         self.nikumaru.draw(state, ctx, &self.frame)?;
 
-        if state.textscript_vm.mode == ScriptMode::Map && self.map_name_counter > 0 {
+        if state.textscript_vm.mode == ScriptMode::Map
+            && state.textscript_vm.state != TextScriptExecutionState::MapSystem
+            && self.map_name_counter > 0
+        {
             let map_name = if self.stage.data.name == "u" {
                 state.constants.title.intro_text.chars()
             } else {

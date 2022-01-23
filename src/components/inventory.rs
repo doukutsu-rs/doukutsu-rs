@@ -8,7 +8,7 @@ use crate::input::touch_controls::TouchControlType;
 use crate::inventory::Inventory;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
-use crate::scripting::tsc::text_script::ScriptMode;
+use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState};
 use crate::weapon::{WeaponLevel, WeaponType};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -264,6 +264,10 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, _frame: &Frame) -> GameResult<()> {
+        if state.textscript_vm.state == TextScriptExecutionState::MapSystem {
+            return Ok(());
+        }
+
         let mut tmp_rect = Rect { left: 0, top: 0, right: 0, bottom: 0 };
         let (off_left, off_top, off_right, _) = crate::framework::graphics::screen_insets_scaled(ctx, state.scale);
         let x = (((state.canvas_size.0 - off_left - off_right) - 244.0) / 2.0).floor() + off_left;
