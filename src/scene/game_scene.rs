@@ -566,8 +566,8 @@ impl GameScene {
                                 caret.y - self.frame.y,
                                 state.frame_time,
                             ),
-                            1.0,
-                            (200, 200, 200),
+                            0.5,
+                            (150, 150, 150),
                             batch,
                         );
                     }
@@ -605,8 +605,8 @@ impl GameScene {
                                 npc.y - self.frame.y,
                                 state.frame_time,
                             ),
-                            0.4,
-                            (255, 255, 0),
+                            0.33,
+                            (255, 255, 50),
                             batch,
                         );
                     }
@@ -636,8 +636,8 @@ impl GameScene {
                                 npc.y - self.frame.y,
                                 state.frame_time,
                             ),
-                            2.0,
-                            (160, 0, 0),
+                            1.25,
+                            (100, 0, 0),
                             batch,
                         );
                         self.draw_light(
@@ -652,7 +652,7 @@ impl GameScene {
                                 state.frame_time,
                             ),
                             0.5,
-                            (255, 0, 0),
+                            (255, 10, 10),
                             batch,
                         );
                     }
@@ -668,8 +668,8 @@ impl GameScene {
                                 npc.y - self.frame.y,
                                 state.frame_time,
                             ),
-                            2.0,
-                            (30, 30, 150),
+                            1.5,
+                            (30, 30, 130),
                             batch,
                         );
 
@@ -685,8 +685,8 @@ impl GameScene {
                                     npc.y - self.frame.y,
                                     state.frame_time,
                                 ),
-                                2.1,
-                                (10, 10, 30),
+                                1.0,
+                                (0, 0, 20),
                                 batch,
                             );
                         }
@@ -710,7 +710,7 @@ impl GameScene {
                                 npc.y - self.frame.y,
                                 state.frame_time,
                             ),
-                            2.0,
+                            0.75,
                             (255, 30, 30),
                             batch,
                         );
@@ -727,8 +727,8 @@ impl GameScene {
                                 npc.y - self.frame.y,
                                 state.frame_time,
                             ),
-                            1.5,
-                            (128, 0, 0),
+                            1.0,
+                            (90, 0, 0),
                             batch,
                         );
                     }
