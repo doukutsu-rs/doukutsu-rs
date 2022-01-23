@@ -276,7 +276,8 @@ impl BossNPC {
                     self.parts[0].action_counter = 0;
                     self.parts[11].npc_flags.set_shootable(true);
 
-                    // todo <SSS1000 equivalent!!!!
+                    state.sound_manager.loop_sfx_freq(40, 1000.0 / 2205.0);
+                    state.sound_manager.loop_sfx_freq(41, 1100.0 / 2205.0);
                     state.quake_counter = 100;
                     state.npc_super_pos.1 = 1;
                 }
@@ -312,7 +313,10 @@ impl BossNPC {
                 if [300, 350, 400].contains(&self.parts[0].action_counter) {
                     state.sound_manager.play_sfx(101);
                     let mut npc = NPC::create(218, &state.npc_table);
-                    let angle = 0.0f64;
+                    let angle = f64::atan2(
+                        (self.parts[0].y - players[idx].y) as f64,
+                        (self.parts[0].x - players[idx].x) as f64,
+                    );
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].x - 0x5000;
                     npc.y = self.parts[0].y;
@@ -343,6 +347,10 @@ impl BossNPC {
                     self.parts[7].action_num = 200;
 
                     state.quake_counter = 20;
+
+                    state.sound_manager.stop_sfx(40);
+                    state.sound_manager.stop_sfx(41);
+                    state.sound_manager.stop_sfx(58);
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
