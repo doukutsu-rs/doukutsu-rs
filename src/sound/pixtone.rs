@@ -32,10 +32,10 @@ lazy_static! {
 
 #[derive(Copy, Clone)]
 pub struct Waveform {
-    pub waveform_type: u8,
     pub pitch: f32,
     pub level: i32,
     pub offset: i32,
+    pub waveform_type: u8,
 }
 
 impl Waveform {
@@ -96,12 +96,12 @@ impl Envelope {
 
 #[derive(Copy, Clone)]
 pub struct Channel {
-    pub enabled: bool,
-    pub length: u32,
     pub carrier: Waveform,
     pub frequency: Waveform,
     pub amplitude: Waveform,
     pub envelope: Envelope,
+    pub length: u32,
+    pub enabled: bool,
 }
 
 impl Channel {
@@ -179,9 +179,9 @@ impl PixToneParameters {
 #[derive(Copy, Clone, PartialEq)]
 pub struct PlaybackState {
     id: u8,
+    looping: bool,
     pos: f32,
     tag: u32,
-    looping: bool,
     freq: f32,
 }
 

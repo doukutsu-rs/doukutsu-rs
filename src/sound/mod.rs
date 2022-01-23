@@ -445,10 +445,10 @@ where
     let mut state = PlaybackState::Stopped;
     let mut saved_state: PlaybackStateType = PlaybackStateType::None;
     let mut speed = 1.0;
-    let mut org_engine = OrgPlaybackEngine::new();
+    let mut org_engine = Box::new(OrgPlaybackEngine::new());
     #[cfg(feature = "ogg-playback")]
-    let mut ogg_engine = OggPlaybackEngine::new();
-    let mut pixtone = PixTonePlayback::new();
+    let mut ogg_engine = Box::new(OggPlaybackEngine::new());
+    let mut pixtone = Box::new(PixTonePlayback::new());
     pixtone.create_samples();
 
     log::info!("Audio format: {} {}", sample_rate, channels);
