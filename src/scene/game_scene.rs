@@ -1778,8 +1778,6 @@ impl Scene for GameScene {
             self.whimsical_star.draw(state, ctx, &self.frame)?;
         }
 
-        self.draw_npc_popup(state, ctx)?;
-
         self.water_renderer.draw(state, ctx, &self.frame)?;
         self.tilemap.draw(state, ctx, &self.frame, TileLayer::Foreground, stage_textures_ref, &self.stage)?;
         self.tilemap.draw(state, ctx, &self.frame, TileLayer::Snack, stage_textures_ref, &self.stage)?;
@@ -1787,6 +1785,7 @@ impl Scene for GameScene {
         self.draw_carets(state, ctx)?;
         self.player1.popup.draw(state, ctx, &self.frame)?;
         self.player2.popup.draw(state, ctx, &self.frame)?;
+        self.draw_npc_popup(state, ctx)?;
 
         if !state.control_flags.credits_running()
             && state.settings.shader_effects
