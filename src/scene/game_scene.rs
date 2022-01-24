@@ -206,6 +206,13 @@ impl GameScene {
         Ok(())
     }
 
+    fn draw_npc_popup(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        for npc in self.npc_list.iter_alive() {
+            npc.popup.draw(state, ctx, &self.frame)?;
+        }
+        Ok(())
+    }
+
     fn draw_bullets(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Bullet")?;
         let mut x: i32;
@@ -1770,6 +1777,8 @@ impl Scene for GameScene {
         if !self.player1.cond.hidden() {
             self.whimsical_star.draw(state, ctx, &self.frame)?;
         }
+
+        self.draw_npc_popup(state, ctx)?;
 
         self.water_renderer.draw(state, ctx, &self.frame)?;
         self.tilemap.draw(state, ctx, &self.frame, TileLayer::Foreground, stage_textures_ref, &self.stage)?;
