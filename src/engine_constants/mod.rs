@@ -179,6 +179,7 @@ impl Clone for WeaponConsts {
 #[derive(Debug, Copy, Clone)]
 pub struct WorldConsts {
     pub snack_rect: Rect<u16>,
+    pub water_push_rect: Rect<u16>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -480,7 +481,10 @@ impl EngineConstants {
                 question_left_rect: Rect { left: 0, top: 80, right: 16, bottom: 96 },
                 question_right_rect: Rect { left: 48, top: 64, right: 64, bottom: 80 },
             },
-            world: WorldConsts { snack_rect: Rect { left: 256, top: 48, right: 272, bottom: 64 } },
+            world: WorldConsts {
+                snack_rect: Rect { left: 256, top: 48, right: 272, bottom: 64 },
+                water_push_rect: Rect { left: 224, top: 48, right: 240, bottom: 64 },
+            },
             npc: serde_json::from_str("{}").unwrap(),
             weapon: WeaponConsts {
                 bullet_table: vec![
@@ -1513,7 +1517,7 @@ impl EngineConstants {
             credit_illustration_paths: vec![
                 "".to_owned(),
                 "Resource/BITMAP/".to_owned(), // CSE2E
-                "endpic/".to_owned(), // NXEngine
+                "endpic/".to_owned(),          // NXEngine
             ],
         }
     }

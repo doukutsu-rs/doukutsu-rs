@@ -324,6 +324,18 @@ impl GameScene {
         Ok(())
     }
 
+    fn set_ironhead_clip(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let x_size = if !state.constants.is_switch { 320.0 } else { 426.0 };
+        let clip_rect: Rect = Rect::new_size(
+            (((state.canvas_size.0 - x_size) * 0.5) * state.scale) as _,
+            (((state.canvas_size.1 - 240.0) * 0.5) * state.scale) as _,
+            (x_size * state.scale) as _,
+            (240.0 * state.scale) as _,
+        );
+        graphics::set_clip_rect(ctx, Some(clip_rect))?;
+        Ok(())
+    }
+
     fn draw_light(&self, x: f32, y: f32, size: f32, color: (u8, u8, u8), batch: &mut Box<dyn SpriteBatch>) {
         batch.add_rect_scaled_tinted(
             x - size * 32.0,
@@ -1609,7 +1621,7 @@ impl Scene for GameScene {
         }
 
         if self.player1.controller.trigger_menu_pause() {
-            self.pause_menu.pause();
+            self.pause_menu.pause(state);
         }
 
         if self.pause_menu.is_paused() {
@@ -1748,21 +1760,30 @@ impl Scene for GameScene {
         //graphics::set_canvas(ctx, Some(&state.game_canvas));
 
         if self.player1.control_mode == ControlMode::IronHead {
-            let x_size = if !state.constants.is_switch { 320.0 } else { 426.0 };
-            let clip_rect: Rect = Rect::new_size(
-                (((state.canvas_size.0 - x_size) * 0.5) * state.scale) as _,
-                (((state.canvas_size.1 - 240.0) * 0.5) * state.scale) as _,
-                (x_size * state.scale) as _,
-                (240.0 * state.scale) as _,
-            );
-            graphics::set_clip_rect(ctx, Some(clip_rect))?;
+            self.set_ironhead_clip(state, ctx)?;
         }
 
         let stage_textures_ref = &*self.stage_textures.deref().borrow();
         self.background.draw(state, ctx, &self.frame, stage_textures_ref, &self.stage)?;
-        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Background, stage_textures_ref, &self.stage)?;
+        self.tilemap.draw(
+            state,
+            ctx,
+            &self.frame,
+            TileLayer::Background,
+            stage_textures_ref,
+            &self.stage,
+            self.tick,
+        )?;
         self.draw_npc_layer(state, ctx, NPCLayer::Background)?;
-        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Middleground, stage_textures_ref, &self.stage)?;
+        self.tilemap.draw(
+            state,
+            ctx,
+            &self.frame,
+            TileLayer::Middleground,
+            stage_textures_ref,
+            &self.stage,
+            self.tick,
+        )?;
 
         if state.settings.shader_effects && self.lighting_mode == LightingMode::BackgroundOnly {
             self.draw_light_map(state, ctx)?;
@@ -1779,8 +1800,16 @@ impl Scene for GameScene {
         }
 
         self.water_renderer.draw(state, ctx, &self.frame)?;
-        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Foreground, stage_textures_ref, &self.stage)?;
-        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Snack, stage_textures_ref, &self.stage)?;
+        self.tilemap.draw(
+            state,
+            ctx,
+            &self.frame,
+            TileLayer::Foreground,
+            stage_textures_ref,
+            &self.stage,
+            self.tick,
+        )?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Snack, stage_textures_ref, &self.stage, self.tick)?;
 
         self.draw_carets(state, ctx)?;
         self.player1.popup.draw(state, ctx, &self.frame)?;
