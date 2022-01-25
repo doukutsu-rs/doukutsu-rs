@@ -214,10 +214,10 @@ impl EditorInstance {
         let paths = self.stage_textures.deref().borrow();
         self.background.draw(state, ctx, &self.frame, &*paths, &self.stage)?;
 
-        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Background, &*paths, &self.stage, 0)?;
-        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Middleground, &*paths, &self.stage, 0)?;
-        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Foreground, &*paths, &self.stage, 0)?;
-        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Snack, &*paths, &self.stage, 0)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Background, &*paths, &self.stage)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Middleground, &*paths, &self.stage)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Foreground, &*paths, &self.stage)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Snack, &*paths, &self.stage)?;
 
         self.draw_black_bars(state, ctx)?;
 
