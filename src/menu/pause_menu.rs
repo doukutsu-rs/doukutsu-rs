@@ -164,7 +164,7 @@ impl PauseMenu {
             let clip_rect = crate::common::Rect::new_size(
                 0,
                 (state.screen_size.1 / 2.0) as isize - clip_y,
-                state.screen_size.1 as isize,
+                state.screen_size.0 as isize,
                 clip_y * 2,
             );
 
