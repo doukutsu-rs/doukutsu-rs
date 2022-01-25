@@ -1381,6 +1381,9 @@ impl GameScene {
                 }
             }
         }
+
+        self.tilemap.tick()?;
+
         self.frame.update(state, &self.stage);
 
         if state.control_flags.control_enabled() {
@@ -1742,6 +1745,8 @@ impl Scene for GameScene {
 
         self.whimsical_star.set_prev();
 
+        self.tilemap.set_prev()?;
+
         self.inventory_dim += 0.1
             * if state.textscript_vm.mode == ScriptMode::Inventory {
                 state.frame_time as f32
@@ -1765,25 +1770,9 @@ impl Scene for GameScene {
 
         let stage_textures_ref = &*self.stage_textures.deref().borrow();
         self.background.draw(state, ctx, &self.frame, stage_textures_ref, &self.stage)?;
-        self.tilemap.draw(
-            state,
-            ctx,
-            &self.frame,
-            TileLayer::Background,
-            stage_textures_ref,
-            &self.stage,
-            self.tick,
-        )?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Background, stage_textures_ref, &self.stage)?;
         self.draw_npc_layer(state, ctx, NPCLayer::Background)?;
-        self.tilemap.draw(
-            state,
-            ctx,
-            &self.frame,
-            TileLayer::Middleground,
-            stage_textures_ref,
-            &self.stage,
-            self.tick,
-        )?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Middleground, stage_textures_ref, &self.stage)?;
 
         if state.settings.shader_effects && self.lighting_mode == LightingMode::BackgroundOnly {
             self.draw_light_map(state, ctx)?;
@@ -1800,16 +1789,8 @@ impl Scene for GameScene {
         }
 
         self.water_renderer.draw(state, ctx, &self.frame)?;
-        self.tilemap.draw(
-            state,
-            ctx,
-            &self.frame,
-            TileLayer::Foreground,
-            stage_textures_ref,
-            &self.stage,
-            self.tick,
-        )?;
-        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Snack, stage_textures_ref, &self.stage, self.tick)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Foreground, stage_textures_ref, &self.stage)?;
+        self.tilemap.draw(state, ctx, &self.frame, TileLayer::Snack, stage_textures_ref, &self.stage)?;
 
         self.draw_carets(state, ctx)?;
         self.player1.popup.draw(state, ctx, &self.frame)?;

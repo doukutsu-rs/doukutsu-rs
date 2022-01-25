@@ -5,7 +5,10 @@ use crate::framework::error::GameResult;
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 
-pub struct Tilemap;
+pub struct Tilemap {
+    tick: u32,
+    prev_tick: u32,
+}
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum TileLayer {
@@ -17,7 +20,17 @@ pub enum TileLayer {
 
 impl Tilemap {
     pub fn new() -> Self {
-        Tilemap
+        Tilemap { tick: 0, prev_tick: 0 }
+    }
+
+    pub fn tick(&mut self) -> GameResult {
+        self.tick = self.tick.wrapping_add(1);
+        Ok(())
+    }
+
+    pub fn set_prev(&mut self) -> GameResult {
+        self.prev_tick = self.tick;
+        Ok(())
     }
 
     pub fn draw(
@@ -28,7 +41,6 @@ impl Tilemap {
         layer: TileLayer,
         textures: &StageTexturePaths,
         stage: &Stage,
-        tick: u32,
     ) -> GameResult {
         if stage.map.tile_size == TileSize::Tile8x8 && layer == TileLayer::Snack {
             return Ok(());
@@ -181,7 +193,8 @@ impl Tilemap {
                         continue;
                     }
 
-                    let shift = ((tick as f64 + state.frame_time) * 2.0) as u16 % 16;
+                    let shift =
+                        ((self.tick as f64 + (self.tick - self.prev_tick) as f64 * state.frame_time) * 2.0) as u16 % 16;
                     let mut push_rect = state.constants.world.water_push_rect;
 
                     match attr {
