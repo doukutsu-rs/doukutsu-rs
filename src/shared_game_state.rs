@@ -6,6 +6,7 @@ use chrono::{Datelike, Local};
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState};
+use crate::components::draw_common::{draw_number, Alignment};
 use crate::engine_constants::EngineConstants;
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
@@ -62,6 +63,30 @@ impl TimingMode {
             TimingMode::_60Hz => 60,
             TimingMode::FrameSynchronized => 0,
         }
+    }
+}
+
+pub struct Fps {
+    pub frame_count: u32,
+    pub fps: u32,
+    last_capture: u128,
+}
+
+impl Fps {
+    pub fn new() -> Fps {
+        Fps { frame_count: 0, fps: 0, last_capture: 0 }
+    }
+
+    pub fn act(&mut self, state: &mut SharedGameState, ctx: &mut Context, time: u128) -> GameResult {
+        if time - self.last_capture > 1000000000 {
+            self.fps = self.frame_count;
+            self.frame_count = 0;
+            self.last_capture = time;
+        } else {
+            self.frame_count += 1;
+        }
+        draw_number(state.canvas_size.0 - 8.0, 8.0, self.fps as usize, Alignment::Right, state, ctx)?;
+        Ok(())
     }
 }
 
@@ -274,6 +299,7 @@ impl SharedGameState {
                 }
             }
             ScanCode::F10 => self.settings.debug_outlines = !self.settings.debug_outlines,
+            ScanCode::F11 => self.settings.fps_counter = !self.settings.fps_counter,
             ScanCode::F12 => self.debugger = !self.debugger,
             _ => {}
         }

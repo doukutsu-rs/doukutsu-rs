@@ -41,6 +41,8 @@ pub struct Settings {
     pub infinite_booster: bool,
     #[serde(skip)]
     pub debug_outlines: bool,
+    #[serde(skip, default = "default_true")]
+    pub fps_counter: bool,
 }
 
 fn default_true() -> bool { true }
@@ -131,6 +133,7 @@ impl Default for Settings {
             god_mode: false,
             infinite_booster: false,
             debug_outlines: false,
+            fps_counter: true,
         }
     }
 }
