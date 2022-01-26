@@ -627,7 +627,7 @@ impl NPC {
                 if self.action_counter % 6 == 0 {
                     let mut npc = NPC::create(314, &state.npc_table);
                     npc.cond.set_alive(true);
-                    npc.x = self.rng.range(4..16) * 0x2000;
+                    npc.x = (self.rng.range(4..16) + state.constants.game.tile_offset_x) * 0x2000;
                     npc.y = 0x2000;
 
                     let _ = npc_list.spawn(0x100, npc);
@@ -697,7 +697,7 @@ impl NPC {
                 if self.action_counter % 6 == 0 {
                     let mut npc = NPC::create(315, &state.npc_table);
                     npc.cond.set_alive(true);
-                    npc.x = self.rng.range(4..16) * 0x2000;
+                    npc.x = (self.rng.range(4..16) + state.constants.game.tile_offset_x) * 0x2000;
 
                     let _ = npc_list.spawn(0x100, npc);
                 }

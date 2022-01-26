@@ -54,6 +54,7 @@ pub struct GameConsts {
     pub new_game_stage: u16,
     pub new_game_event: u16,
     pub new_game_player_pos: (i16, i16),
+    pub tile_offset_x: i32,
 }
 
 #[derive(Debug)]
@@ -311,6 +312,7 @@ impl EngineConstants {
                 new_game_stage: 13,
                 new_game_event: 200,
                 new_game_player_pos: (10, 8),
+                tile_offset_x: 0,
             },
             player: PlayerConsts {
                 life: 3,
@@ -1581,6 +1583,7 @@ impl EngineConstants {
         self.textscript.text_speed_fast = 0;
         self.soundtracks.insert("Famitracks".to_owned(), "/base/ogg17/".to_owned());
         self.soundtracks.insert("Ridiculon".to_owned(), "/base/ogg_ridic/".to_owned());
+        self.game.tile_offset_x = 3;
     }
 
     pub fn apply_constant_json_files(&mut self) {}
