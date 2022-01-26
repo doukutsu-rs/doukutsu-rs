@@ -462,7 +462,7 @@ impl SharedGameState {
         if id < self.game_flags.len() {
             self.game_flags.set(id, value);
         } else {
-            log::warn!("Attempted to set an out-of-bounds flag {}:", id);
+            log::warn!("Attempted to set an out-of-bounds flag: {} to {}.", id, value);
         }
     }
 
