@@ -94,7 +94,12 @@ impl PauseMenu {
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
 
+        // Shortcut for quick restart
         if ctx.keyboard_context.is_key_pressed(ScanCode::F2) {
+            state.sound_manager.stop_sfx(40);
+            state.sound_manager.stop_sfx(41);
+            state.sound_manager.stop_sfx(58);
+            state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
             state.load_or_start_game(ctx)?;
         }
 
@@ -108,6 +113,10 @@ impl PauseMenu {
                     }
                 }
                 MenuSelectionResult::Selected(1, _) => {
+                    state.sound_manager.stop_sfx(40);
+                    state.sound_manager.stop_sfx(41);
+                    state.sound_manager.stop_sfx(58);
+                    state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
                     state.load_or_start_game(ctx)?;
                 }
                 MenuSelectionResult::Selected(2, _) => {

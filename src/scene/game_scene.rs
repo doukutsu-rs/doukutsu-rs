@@ -1748,7 +1748,7 @@ impl Scene for GameScene {
         self.tilemap.set_prev()?;
 
         self.inventory_dim += 0.1
-            * if state.textscript_vm.mode == ScriptMode::Inventory {
+            * if state.textscript_vm.mode == ScriptMode::Inventory || self.pause_menu.is_paused() {
                 state.frame_time as f32
             } else {
                 -(state.frame_time as f32)
