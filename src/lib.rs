@@ -23,7 +23,7 @@ use crate::framework::vfs::PhysicalFS;
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 use crate::scripting::tsc::text_script::ScriptMode;
-use crate::shared_game_state::{SharedGameState, TimingMode};
+use crate::shared_game_state::{Fps, SharedGameState, TimingMode};
 use crate::texture_set::{G_MAG, I_MAG};
 
 mod bmfont;
@@ -82,6 +82,7 @@ pub struct Game {
     last_tick: u128,
     next_tick: u128,
     loops: u64,
+    fps: Fps,
 }
 
 impl Game {
@@ -94,6 +95,7 @@ impl Game {
             last_tick: 0,
             next_tick: 0,
             loops: 0,
+            fps: Fps::new(),
         };
 
         Ok(s)
@@ -189,6 +191,10 @@ impl Game {
                     &mut state_ref.texture_set,
                     ctx,
                 )?;
+            }
+
+            if state_ref.settings.fps_counter {
+                self.fps.act(state_ref, ctx, self.last_tick)?;
             }
 
             self.ui.draw(state_ref, ctx, scene)?;

@@ -40,8 +40,7 @@ impl Weapon {
         }
 
         if !self.consume_ammo(1) {
-            state.sound_manager.play_sfx(37);
-            // todo switch to first weapon
+            self.draw_empty(state, player.x, player.y);
             return;
         }
 
@@ -52,7 +51,8 @@ impl Weapon {
 
         match player.direction {
             Direction::Left if player.up => {
-                let mut bullet = Bullet::new(player.x - 0x200, player.y - 0x1000, btype, player_id, Direction::Up, &state.constants);
+                let mut bullet =
+                    Bullet::new(player.x - 0x200, player.y - 0x1000, btype, player_id, Direction::Up, &state.constants);
                 increment(self, &mut bullet);
 
                 bullet_manager.push_bullet(bullet.clone());
@@ -71,7 +71,8 @@ impl Weapon {
                 }
             }
             Direction::Right if player.up => {
-                let mut bullet = Bullet::new(player.x + 0x200, player.y - 0x1000, btype, player_id, Direction::Up, &state.constants);
+                let mut bullet =
+                    Bullet::new(player.x + 0x200, player.y - 0x1000, btype, player_id, Direction::Up, &state.constants);
                 increment(self, &mut bullet);
 
                 bullet_manager.push_bullet(bullet.clone());
@@ -90,7 +91,14 @@ impl Weapon {
                 }
             }
             Direction::Left if player.down => {
-                let mut bullet = Bullet::new(player.x - 0x200, player.y + 0x1000, btype, player_id, Direction::Bottom, &state.constants);
+                let mut bullet = Bullet::new(
+                    player.x - 0x200,
+                    player.y + 0x1000,
+                    btype,
+                    player_id,
+                    Direction::Bottom,
+                    &state.constants,
+                );
                 increment(self, &mut bullet);
 
                 bullet_manager.push_bullet(bullet.clone());
@@ -109,7 +117,14 @@ impl Weapon {
                 }
             }
             Direction::Right if player.down => {
-                let mut bullet = Bullet::new(player.x + 0x200, player.y + 0x1000, btype, player_id, Direction::Bottom, &state.constants);
+                let mut bullet = Bullet::new(
+                    player.x + 0x200,
+                    player.y + 0x1000,
+                    btype,
+                    player_id,
+                    Direction::Bottom,
+                    &state.constants,
+                );
                 increment(self, &mut bullet);
 
                 bullet_manager.push_bullet(bullet.clone());
@@ -128,7 +143,8 @@ impl Weapon {
                 }
             }
             Direction::Left => {
-                let mut bullet = Bullet::new(player.x - 0xc00, player.y, btype, player_id, Direction::Left, &state.constants);
+                let mut bullet =
+                    Bullet::new(player.x - 0xc00, player.y, btype, player_id, Direction::Left, &state.constants);
                 increment(self, &mut bullet);
 
                 bullet_manager.push_bullet(bullet.clone());
@@ -148,7 +164,8 @@ impl Weapon {
                 }
             }
             Direction::Right => {
-                let mut bullet = Bullet::new(player.x + 0xc00, player.y, btype, player_id, Direction::Right, &state.constants);
+                let mut bullet =
+                    Bullet::new(player.x + 0xc00, player.y, btype, player_id, Direction::Right, &state.constants);
                 increment(self, &mut bullet);
 
                 bullet_manager.push_bullet(bullet.clone());

@@ -215,6 +215,7 @@ impl NPC {
         npc.cond.set_alive(true);
         npc.x = self.x;
         npc.y = self.y;
+        npc.popup = self.popup;
 
         *self = npc;
     }
@@ -237,7 +238,7 @@ impl NPCList {
     /// Deletes NPCs with specified type.
     pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState) {
         for npc in self.iter_alive().filter(|n| n.npc_type == npc_type) {
-            state.game_flags.set(npc.flag_num as usize, true);
+            state.set_flag(npc.flag_num as usize, true);
             npc.cond.set_alive(false);
 
             if smoke {
@@ -310,10 +311,9 @@ impl NPCList {
                 }
             }
 
-            state.game_flags.set(npc.flag_num as usize, true);
+            state.set_flag(npc.flag_num as usize, true);
 
             if npc.npc_flags.show_damage() {
-                // todo show damage
                 if vanish {
                     npc.vanish(state);
                 }
@@ -331,7 +331,7 @@ impl NPCList {
         for npc in self.iter_alive() {
             if npc.event_num == event_num {
                 npc.cond.set_alive(false);
-                state.game_flags.set(npc.flag_num as usize, true);
+                state.set_flag(npc.flag_num as usize, true);
             }
         }
     }
@@ -341,7 +341,7 @@ impl NPCList {
         for npc in self.iter_alive() {
             if npc.npc_type == npc_type {
                 npc.cond.set_alive(false);
-                state.game_flags.set(npc.flag_num as usize, true);
+                state.set_flag(npc.flag_num as usize, true);
 
                 match npc.size {
                     1 => self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 3, state, &npc.rng),

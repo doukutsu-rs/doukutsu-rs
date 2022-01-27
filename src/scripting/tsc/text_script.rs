@@ -814,7 +814,7 @@ impl TextScriptVM {
                 if flag_to >= flag_from {
                     for flag in flag_from..=flag_to {
                         if state.get_flag(flag) {
-                            state.game_flags.set(flag, false);
+                            state.set_flag(flag, false);
                             break;
                         }
                     }

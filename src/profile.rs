@@ -1,6 +1,6 @@
 use std::io;
 
-use byteorder::{BE, LE, ReadBytesExt, WriteBytesExt};
+use byteorder::{ReadBytesExt, WriteBytesExt, BE, LE};
 use num_traits::{clamp, FromPrimitive};
 
 use crate::common::{Direction, FadeState};
@@ -99,28 +99,28 @@ impl GameProfile {
 
         for (idx, &flags) in self.flags.iter().enumerate() {
             if flags & 0b00000001 != 0 {
-                state.game_flags.set(idx * 8, true);
+                state.set_flag(idx * 8, true);
             }
             if flags & 0b00000010 != 0 {
-                state.game_flags.set(idx * 8 + 1, true);
+                state.set_flag(idx * 8 + 1, true);
             }
             if flags & 0b00000100 != 0 {
-                state.game_flags.set(idx * 8 + 2, true);
+                state.set_flag(idx * 8 + 2, true);
             }
             if flags & 0b00001000 != 0 {
-                state.game_flags.set(idx * 8 + 3, true);
+                state.set_flag(idx * 8 + 3, true);
             }
             if flags & 0b00010000 != 0 {
-                state.game_flags.set(idx * 8 + 4, true);
+                state.set_flag(idx * 8 + 4, true);
             }
             if flags & 0b00100000 != 0 {
-                state.game_flags.set(idx * 8 + 5, true);
+                state.set_flag(idx * 8 + 5, true);
             }
             if flags & 0b01000000 != 0 {
-                state.game_flags.set(idx * 8 + 6, true);
+                state.set_flag(idx * 8 + 6, true);
             }
             if flags & 0b10000000 != 0 {
-                state.game_flags.set(idx * 8 + 7, true);
+                state.set_flag(idx * 8 + 7, true);
             }
         }
 

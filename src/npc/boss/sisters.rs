@@ -21,7 +21,7 @@ impl BossNPC {
                 self.parts[0].direction = Direction::Left;
                 self.parts[0].action_num = 10;
                 self.parts[0].exp = 0;
-                self.parts[0].x = 0x14000;
+                self.parts[0].x = 0x14000 + (state.constants.game.tile_offset_x * 0x2000);
                 self.parts[0].y = 0x10000;
                 self.parts[0].display_bounds = Rect::new(0x1000, 0x1000, 0x10000, 0x1000);
                 self.parts[0].hit_bounds = Rect::new(0x1000, 0x1000, 0x1000, 0x1000);

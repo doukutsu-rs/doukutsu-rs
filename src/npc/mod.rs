@@ -657,8 +657,6 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
         );
         batch.draw(ctx)?;
 
-        self.popup.draw(state, ctx, frame)?;
-
         Ok(())
     }
 }

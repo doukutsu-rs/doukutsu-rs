@@ -224,7 +224,7 @@ impl BossNPC {
             }
             250 | 251 => {
                 let player = self.parts[0].get_closest_player_ref(&players);
-                let switch_buffer = if state.constants.is_switch { 0x6000 } else { 0 }; // Buffer to stop Ironhead's teleport to be visible
+                let switch_buffer = state.constants.game.tile_offset_x * 0x2000; // Buffer to stop Ironhead's teleport to be visible
                 if self.parts[0].action_num == 250 {
                     self.parts[0].action_num = 251;
                     if self.parts[0].direction == Direction::Right {

@@ -5,7 +5,10 @@ use crate::framework::error::GameResult;
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 
-pub struct Tilemap;
+pub struct Tilemap {
+    tick: u32,
+    prev_tick: u32,
+}
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum TileLayer {
@@ -17,7 +20,17 @@ pub enum TileLayer {
 
 impl Tilemap {
     pub fn new() -> Self {
-        Tilemap
+        Tilemap { tick: 0, prev_tick: 0 }
+    }
+
+    pub fn tick(&mut self) -> GameResult {
+        self.tick = self.tick.wrapping_add(1);
+        Ok(())
+    }
+
+    pub fn set_prev(&mut self) -> GameResult {
+        self.prev_tick = self.tick;
+        Ok(())
     }
 
     pub fn draw(
@@ -40,20 +53,20 @@ impl Tilemap {
             TileLayer::Foreground => &textures.tileset_fg,
         };
 
-        let (layer_offset, layer_width, layer_height, uses_layers) =
-            if let Some(pxpack_data) = &stage.data.pxpack_data {
-                match layer {
-                    TileLayer::Background => {
-                        (pxpack_data.offset_bg as usize, pxpack_data.size_bg.0, pxpack_data.size_bg.1, true)
-                    }
-                    TileLayer::Middleground => {
-                        (pxpack_data.offset_mg as usize, pxpack_data.size_mg.0, pxpack_data.size_mg.1, true)
-                    }
-                    _ => (0, pxpack_data.size_fg.0, pxpack_data.size_fg.1, true),
+        let (layer_offset, layer_width, layer_height, uses_layers) = if let Some(pxpack_data) = &stage.data.pxpack_data
+        {
+            match layer {
+                TileLayer::Background => {
+                    (pxpack_data.offset_bg as usize, pxpack_data.size_bg.0, pxpack_data.size_bg.1, true)
                 }
-            } else {
-                (0, stage.map.width, stage.map.height, false)
-            };
+                TileLayer::Middleground => {
+                    (pxpack_data.offset_mg as usize, pxpack_data.size_mg.0, pxpack_data.size_mg.1, true)
+                }
+                _ => (0, pxpack_data.size_fg.0, pxpack_data.size_fg.1, true),
+            }
+        } else {
+            (0, stage.map.width, stage.map.height, false)
+        };
 
         if !uses_layers && layer == TileLayer::Middleground {
             return Ok(());
@@ -162,6 +175,53 @@ impl Tilemap {
 
                 for y in 0..tile_count_y {
                     batch.add_rect((x as f32 * 32.0) - frame_x, (y as f32 * 32.0) + water_y - frame_y, &rect_middle);
+                }
+            }
+
+            batch.draw(ctx)?;
+        }
+
+        if layer == TileLayer::Foreground {
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Caret")?;
+
+            for y in tile_start_y..tile_end_y {
+                for x in tile_start_x..tile_end_x {
+                    let tile = *stage.map.tiles.get((y * layer_width as usize) + x + layer_offset).unwrap();
+                    let attr = stage.map.attrib[tile as usize];
+
+                    if ![0x80, 0x81, 0x82, 0x83, 0xA0, 0xA1, 0xA2, 0xA3].contains(&attr) {
+                        continue;
+                    }
+
+                    let shift =
+                        ((self.tick as f64 + (self.tick - self.prev_tick) as f64 * state.frame_time) * 2.0) as u16 % 16;
+                    let mut push_rect = state.constants.world.water_push_rect;
+
+                    match attr {
+                        0x80 | 0xA0 => {
+                            push_rect.left = push_rect.left + shift;
+                            push_rect.right = push_rect.right + shift;
+                        }
+                        0x81 | 0xA1 => {
+                            push_rect.top = push_rect.top + shift;
+                            push_rect.bottom = push_rect.bottom + shift;
+                        }
+                        0x82 | 0xA2 => {
+                            push_rect.left = push_rect.left - shift + state.tile_size.as_int() as u16;
+                            push_rect.right = push_rect.right - shift + state.tile_size.as_int() as u16;
+                        }
+                        0x83 | 0xA3 => {
+                            push_rect.top = push_rect.top - shift + state.tile_size.as_int() as u16;
+                            push_rect.bottom = push_rect.bottom - shift + state.tile_size.as_int() as u16;
+                        }
+                        _ => (),
+                    }
+
+                    batch.add_rect(
+                        (x as f32 * tile_sizef - halftf) - frame_x,
+                        (y as f32 * tile_sizef - halftf) - frame_y,
+                        &push_rect,
+                    );
                 }
             }
 

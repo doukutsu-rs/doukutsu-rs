@@ -88,7 +88,7 @@ impl BossNPC {
                 if self.parts[0].action_num == 20 {
                     self.parts[0].action_num = 21;
                     self.parts[0].damage = 0;
-                    self.parts[0].x = if !state.constants.is_switch { 0x14000 } else { 0x1A000 };
+                    self.parts[0].x = 0x14000 + (state.constants.game.tile_offset_x * 0x2000);
                     self.parts[0].y = 0x33A00;
                     self.parts[0].npc_flags.set_solid_hard(false);
                     self.parts[1].cond.set_alive(false);
@@ -110,7 +110,7 @@ impl BossNPC {
                 if self.parts[0].action_num == 30 {
                     self.parts[0].action_num = 31;
                     self.parts[0].anim_num = 2;
-                    self.parts[0].x = if !state.constants.is_switch { 0x14000 } else { 0x1A000 };
+                    self.parts[0].x = 0x14000 + (state.constants.game.tile_offset_x * 0x2000);
                     self.parts[0].y = 0x8000;
                 }
                 self.parts[0].y += 0x800;

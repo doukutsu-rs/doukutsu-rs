@@ -206,6 +206,13 @@ impl GameScene {
         Ok(())
     }
 
+    fn draw_npc_popup(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        for npc in self.npc_list.iter_alive() {
+            npc.popup.draw(state, ctx, &self.frame)?;
+        }
+        Ok(())
+    }
+
     fn draw_bullets(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Bullet")?;
         let mut x: i32;
@@ -314,6 +321,18 @@ impl GameScene {
             graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 0))?;
         }
 
+        Ok(())
+    }
+
+    fn set_ironhead_clip(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let x_size = if !state.constants.is_switch { 320.0 } else { 426.0 };
+        let clip_rect: Rect = Rect::new_size(
+            (((state.canvas_size.0 - x_size) * 0.5) * state.scale) as _,
+            (((state.canvas_size.1 - 240.0) * 0.5) * state.scale) as _,
+            (x_size * state.scale) as _,
+            (240.0 * state.scale) as _,
+        );
+        graphics::set_clip_rect(ctx, Some(clip_rect))?;
         Ok(())
     }
 
@@ -1362,6 +1381,9 @@ impl GameScene {
                 }
             }
         }
+
+        self.tilemap.tick()?;
+
         self.frame.update(state, &self.stage);
 
         if state.control_flags.control_enabled() {
@@ -1602,7 +1624,7 @@ impl Scene for GameScene {
         }
 
         if self.player1.controller.trigger_menu_pause() {
-            self.pause_menu.pause();
+            self.pause_menu.pause(state);
         }
 
         if self.pause_menu.is_paused() {
@@ -1723,8 +1745,10 @@ impl Scene for GameScene {
 
         self.whimsical_star.set_prev();
 
+        self.tilemap.set_prev()?;
+
         self.inventory_dim += 0.1
-            * if state.textscript_vm.mode == ScriptMode::Inventory {
+            * if state.textscript_vm.mode == ScriptMode::Inventory || self.pause_menu.is_paused() {
                 state.frame_time as f32
             } else {
                 -(state.frame_time as f32)
@@ -1741,14 +1765,7 @@ impl Scene for GameScene {
         //graphics::set_canvas(ctx, Some(&state.game_canvas));
 
         if self.player1.control_mode == ControlMode::IronHead {
-            let x_size = if !state.constants.is_switch { 320.0 } else { 426.0 };
-            let clip_rect: Rect = Rect::new_size(
-                (((state.canvas_size.0 - x_size) * 0.5) * state.scale) as _,
-                (((state.canvas_size.1 - 240.0) * 0.5) * state.scale) as _,
-                (x_size * state.scale) as _,
-                (240.0 * state.scale) as _,
-            );
-            graphics::set_clip_rect(ctx, Some(clip_rect))?;
+            self.set_ironhead_clip(state, ctx)?;
         }
 
         let stage_textures_ref = &*self.stage_textures.deref().borrow();
@@ -1778,6 +1795,7 @@ impl Scene for GameScene {
         self.draw_carets(state, ctx)?;
         self.player1.popup.draw(state, ctx, &self.frame)?;
         self.player2.popup.draw(state, ctx, &self.frame)?;
+        self.draw_npc_popup(state, ctx)?;
 
         if !state.control_flags.credits_running()
             && state.settings.shader_effects

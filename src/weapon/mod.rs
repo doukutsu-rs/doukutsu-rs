@@ -71,13 +71,14 @@ pub struct Weapon {
     pub experience: u16,
     pub ammo: u16,
     pub max_ammo: u16,
+    empty_counter: u16,
     counter1: u16,
     counter2: u16,
 }
 
 impl Weapon {
     pub fn new(wtype: WeaponType, level: WeaponLevel, experience: u16, ammo: u16, max_ammo: u16) -> Weapon {
-        Weapon { wtype, level, experience, ammo, max_ammo, counter1: 0, counter2: 0 }
+        Weapon { wtype, level, experience, ammo, max_ammo, empty_counter: 0, counter1: 0, counter2: 0 }
     }
 
     /// Consume a specified amount of bullets, returns true if there was enough ammo.
@@ -92,6 +93,16 @@ impl Weapon {
         }
 
         false
+    }
+
+    /// Draw empty! caret only once every 50 ticks
+    pub fn draw_empty(&mut self, state: &mut SharedGameState, x: i32, y: i32) {
+        state.sound_manager.play_sfx(37);
+
+        if self.empty_counter == 0 {
+            state.create_caret(x, y, CaretType::EmptyText, Direction::Left);
+            self.empty_counter = 50;
+        }
     }
 
     /// Refill a specified amount of bullets.
@@ -137,11 +148,7 @@ impl Weapon {
             }
         }
 
-        player.xp_counter = if self.wtype != WeaponType::Spur {
-            30
-        } else {
-            10
-        };
+        player.xp_counter = if self.wtype != WeaponType::Spur { 30 } else { 10 };
     }
 
     pub fn reset_xp(&mut self) {
@@ -159,6 +166,8 @@ impl Weapon {
         if !player.cond.alive() || player.cond.hidden() {
             return;
         }
+
+        self.empty_counter = self.empty_counter.saturating_sub(1);
 
         // todo lua hook
 
