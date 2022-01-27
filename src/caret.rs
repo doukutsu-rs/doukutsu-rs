@@ -94,7 +94,33 @@ impl Caret {
     pub fn tick(&mut self, rng: &dyn RNG, constants: &EngineConstants) {
         match self.ctype {
             CaretType::None => {}
-            CaretType::Bubble => {}
+            CaretType::Bubble => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.vel_x = rng.range(-0x400..0x400);
+                    self.vel_y = rng.range(-0x400..0);
+                }
+
+                self.vel_y += 0x40;
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+
+                self.anim_counter += 1;
+                if self.anim_counter > 5 {
+                    self.anim_counter = 0;
+                    self.anim_num += 1;
+                    if self.anim_num > 3 {
+                        self.cond.set_alive(false);
+                        self.anim_num = 3;
+                    }
+                }
+
+                match self.direction {
+                    Direction::Left => self.anim_rect = constants.caret.bubble_left_rects[self.anim_num as usize],
+                    Direction::Right => self.anim_rect = constants.caret.bubble_right_rects[self.anim_num as usize],
+                    _ => (),
+                }
+            }
             CaretType::ProjectileDissipation => match self.direction {
                 Direction::Left => {
                     self.vel_y -= 0x10;
