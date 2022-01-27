@@ -1,4 +1,4 @@
-use crate::common::{CDEG_RAD, Condition, Direction, Rect};
+use crate::common::{Condition, Direction, Rect, CDEG_RAD};
 use crate::engine_constants::EngineConstants;
 use crate::rng::RNG;
 
@@ -20,7 +20,7 @@ pub enum CaretType {
     LittleParticles,
     Unknown,
     SmallProjectileDissipation,
-    Empty,
+    EmptyText,
     PushJumpKey,
 }
 
@@ -43,7 +43,7 @@ impl CaretType {
             13 => Some(CaretType::LittleParticles),
             14 => Some(CaretType::Unknown),
             15 => Some(CaretType::SmallProjectileDissipation),
-            16 => Some(CaretType::Empty),
+            16 => Some(CaretType::EmptyText),
             17 => Some(CaretType::PushJumpKey),
             _ => None,
         }
@@ -95,55 +95,54 @@ impl Caret {
         match self.ctype {
             CaretType::None => {}
             CaretType::Bubble => {}
-            CaretType::ProjectileDissipation => {
-                match self.direction {
-                    Direction::Left => {
-                        self.vel_y -= 0x10;
-                        self.y += self.vel_y;
+            CaretType::ProjectileDissipation => match self.direction {
+                Direction::Left => {
+                    self.vel_y -= 0x10;
+                    self.y += self.vel_y;
 
-                        self.anim_counter += 1;
-                        if self.anim_counter > 5 {
-                            self.anim_counter = 0;
-                            self.anim_num += 1;
+                    self.anim_counter += 1;
+                    if self.anim_counter > 5 {
+                        self.anim_counter = 0;
+                        self.anim_num += 1;
 
-                            if self.anim_num >= constants.caret.projectile_dissipation_left_rects.len() as u16 {
-                                self.cond.set_alive(false);
-                                return;
-                            }
-
-                            self.anim_rect = constants.caret.projectile_dissipation_left_rects[self.anim_num as usize];
-                        }
-                    }
-                    Direction::Up => {
-                        self.anim_counter += 1;
-
-                        if self.anim_counter > 24 {
+                        if self.anim_num >= constants.caret.projectile_dissipation_left_rects.len() as u16 {
                             self.cond.set_alive(false);
+                            return;
                         }
 
-                        let len = constants.caret.projectile_dissipation_up_rects.len();
-                        self.anim_rect = constants.caret.projectile_dissipation_up_rects[(self.anim_num as usize / 2) % len];
+                        self.anim_rect = constants.caret.projectile_dissipation_left_rects[self.anim_num as usize];
                     }
-                    Direction::Right => {
-                        self.anim_counter += 1;
-                        if self.anim_counter > 2 {
-                            self.anim_counter = 0;
-                            self.anim_num += 1;
+                }
+                Direction::Up => {
+                    self.anim_counter += 1;
 
-                            if self.anim_num >= constants.caret.projectile_dissipation_right_rects.len() as u16 {
-                                self.cond.set_alive(false);
-                                return;
-                            }
-
-                            self.anim_rect = constants.caret.projectile_dissipation_right_rects[self.anim_num as usize];
-                        }
-                    }
-                    Direction::Bottom => {
+                    if self.anim_counter > 24 {
                         self.cond.set_alive(false);
                     }
-                    Direction::FacingPlayer => unreachable!(),
+
+                    let len = constants.caret.projectile_dissipation_up_rects.len();
+                    self.anim_rect =
+                        constants.caret.projectile_dissipation_up_rects[(self.anim_num as usize / 2) % len];
                 }
-            }
+                Direction::Right => {
+                    self.anim_counter += 1;
+                    if self.anim_counter > 2 {
+                        self.anim_counter = 0;
+                        self.anim_num += 1;
+
+                        if self.anim_num >= constants.caret.projectile_dissipation_right_rects.len() as u16 {
+                            self.cond.set_alive(false);
+                            return;
+                        }
+
+                        self.anim_rect = constants.caret.projectile_dissipation_right_rects[self.anim_num as usize];
+                    }
+                }
+                Direction::Bottom => {
+                    self.cond.set_alive(false);
+                }
+                Direction::FacingPlayer => unreachable!(),
+            },
             CaretType::Shoot => {
                 if self.anim_counter == 0 {
                     self.anim_rect = constants.caret.shoot_rects[self.anim_num as usize];
@@ -226,9 +225,9 @@ impl Caret {
                 }
 
                 self.anim_rect = match self.direction {
-                    Direction::Left => { constants.caret.question_left_rect }
-                    Direction::Right => { constants.caret.question_right_rect }
-                    _ => { self.anim_rect }
+                    Direction::Left => constants.caret.question_left_rect,
+                    Direction::Right => constants.caret.question_right_rect,
+                    _ => self.anim_rect,
                 }
             }
             CaretType::LevelUp => {
@@ -339,9 +338,43 @@ impl Caret {
                 // not implemented because it was apparently broken in og game?
                 self.cond.set_alive(false);
             }
-            CaretType::SmallProjectileDissipation => {}
-            CaretType::Empty => {}
-            CaretType::PushJumpKey => {}
+            CaretType::SmallProjectileDissipation => {
+                self.anim_counter += 1;
+                if self.anim_counter > 2 {
+                    self.anim_counter = 0;
+
+                    self.anim_num += 1;
+                    if self.anim_num > 3 {
+                        self.cond.set_alive(false);
+                        self.anim_num = 3;
+                    }
+                }
+
+                self.anim_rect = constants.caret.small_projectile_dissipation[self.anim_num as usize];
+            }
+            CaretType::EmptyText => {
+                self.anim_counter += 1;
+
+                if self.anim_counter < 10 {
+                    self.y -= 0x400;
+                }
+
+                if self.anim_counter == 40 {
+                    self.cond.set_alive(false);
+                }
+
+                self.anim_rect = constants.caret.empty_text[self.anim_counter as usize / 2 % 2];
+            }
+            // Completely unused but whatever
+            CaretType::PushJumpKey => {
+                self.anim_counter += 1;
+
+                if self.anim_counter >= 40 {
+                    self.anim_counter = 0;
+                }
+
+                self.anim_rect = constants.caret.push_jump_key[if self.anim_counter < 30 { 1 } else { 0 }];
+            }
         }
     }
 

@@ -77,6 +77,9 @@ pub struct CaretConsts {
     pub exhaust_rects: Vec<Rect<u16>>,
     pub question_left_rect: Rect<u16>,
     pub question_right_rect: Rect<u16>,
+    pub small_projectile_dissipation: Vec<Rect<u16>>,
+    pub empty_text: Vec<Rect<u16>>,
+    pub push_jump_key: Vec<Rect<u16>>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -106,6 +109,9 @@ impl Clone for CaretConsts {
             exhaust_rects: self.exhaust_rects.clone(),
             question_left_rect: self.question_left_rect,
             question_right_rect: self.question_right_rect,
+            small_projectile_dissipation: self.small_projectile_dissipation.clone(),
+            empty_text: self.empty_text.clone(),
+            push_jump_key: self.push_jump_key.clone(),
         }
     }
 }
@@ -482,6 +488,20 @@ impl EngineConstants {
                 ],
                 question_left_rect: Rect { left: 0, top: 80, right: 16, bottom: 96 },
                 question_right_rect: Rect { left: 48, top: 64, right: 64, bottom: 80 },
+                small_projectile_dissipation: vec![
+                    Rect { left: 0, top: 72, right: 8, bottom: 80 },
+                    Rect { left: 8, top: 72, right: 16, bottom: 80 },
+                    Rect { left: 16, top: 72, right: 24, bottom: 80 },
+                    Rect { left: 24, top: 72, right: 32, bottom: 80 },
+                ],
+                empty_text: vec![
+                    Rect { left: 104, top: 96, right: 144, bottom: 104 },
+                    Rect { left: 104, top: 104, right: 144, bottom: 112 },
+                ],
+                push_jump_key: vec![
+                    Rect { left: 0, top: 144, right: 144, bottom: 152 },
+                    Rect { left: 0, top: 0, right: 0, bottom: 0 },
+                ],
             },
             world: WorldConsts {
                 snack_rect: Rect { left: 256, top: 48, right: 272, bottom: 64 },

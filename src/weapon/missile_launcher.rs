@@ -40,8 +40,7 @@ impl Weapon {
         }
 
         if !self.consume_ammo(1) {
-            state.sound_manager.play_sfx(37);
-            // todo switch to first weapon
+            self.draw_empty(state, player.x, player.y);
             return;
         }
 
