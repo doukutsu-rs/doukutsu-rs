@@ -4,7 +4,7 @@ use crate::common::Rect;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::shared_game_state::SharedGameState;
+use crate::shared_game_state::{MenuCharacter, SharedGameState};
 
 pub mod pause_menu;
 pub mod settings_menu;
@@ -73,8 +73,6 @@ pub struct Menu {
     anim_wait: u16,
     custom_cursor: Cell<bool>,
 }
-
-static QUOTE_FRAMES: [u16; 4] = [0, 1, 0, 2];
 
 impl Menu {
     pub fn new(x: isize, y: isize, width: u16, height: u16) -> Menu {
@@ -216,14 +214,39 @@ impl Menu {
         }
 
         if !self.custom_cursor.get() {
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
+            let menu_texture: &str;
+            let character_rect: [Rect<u16>; 4];
 
-            rect.left = QUOTE_FRAMES[self.anim_num as usize] * 16;
-            rect.top = 16;
-            rect.right = rect.left + 16;
-            rect.bottom = rect.top + 16;
+            match state.menu_character {
+                MenuCharacter::Quote => {
+                    menu_texture = "MyChar";
+                    character_rect = state.constants.title.cursor_quote;
+                }
+                MenuCharacter::Curly => {
+                    menu_texture = "Npc/NpcRegu";
+                    character_rect = state.constants.title.cursor_curly;
+                }
+                MenuCharacter::Toroko => {
+                    menu_texture = "Npc/NpcRegu";
+                    character_rect = state.constants.title.cursor_toroko;
+                }
+                MenuCharacter::King => {
+                    menu_texture = "Npc/NpcRegu";
+                    character_rect = state.constants.title.cursor_king;
+                }
+                MenuCharacter::Sue => {
+                    menu_texture = "Npc/NpcRegu";
+                    character_rect = state.constants.title.cursor_sue;
+                }
+            }
 
-            batch.add_rect(self.x as f32, self.y as f32 + 4.0 + self.entry_y as f32, &rect);
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, menu_texture)?;
+
+            batch.add_rect(
+                self.x as f32,
+                self.y as f32 + 4.0 + self.entry_y as f32,
+                &character_rect[self.anim_num as usize],
+            );
 
             batch.draw(ctx)?;
         }
@@ -413,13 +436,12 @@ impl Menu {
             }
         }
 
-        // todo nikumaru counter support
         self.anim_wait += 1;
         if self.anim_wait > 8 {
             self.anim_wait = 0;
 
             self.anim_num += 1;
-            if self.anim_num >= QUOTE_FRAMES.len() as u16 {
+            if self.anim_num >= 4 as u16 {
                 self.anim_num = 0;
             }
         }

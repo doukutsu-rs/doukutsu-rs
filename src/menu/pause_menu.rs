@@ -6,7 +6,7 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
 use crate::scene::title_scene::TitleScene;
-use crate::shared_game_state::SharedGameState;
+use crate::shared_game_state::{MenuCharacter, SharedGameState};
 
 use super::settings_menu::SettingsMenu;
 
@@ -66,6 +66,8 @@ impl PauseMenu {
 
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
+
+        state.menu_character = MenuCharacter::Quote;
 
         Ok(())
     }

@@ -112,6 +112,15 @@ impl Season {
 }
 
 #[derive(PartialEq, Eq, Copy, Clone)]
+pub enum MenuCharacter {
+    Quote,
+    Curly,
+    Toroko,
+    King,
+    Sue,
+}
+
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TileSize {
     Tile8x8,
     Tile16x16,
@@ -167,6 +176,7 @@ pub struct SharedGameState {
     pub creditscript_vm: CreditScriptVM,
     pub lightmap_canvas: Option<Box<dyn BackendTexture>>,
     pub season: Season,
+    pub menu_character: MenuCharacter,
     pub constants: EngineConstants,
     pub font: BMFontRenderer,
     pub texture_set: TextureSet,
@@ -270,6 +280,7 @@ impl SharedGameState {
             creditscript_vm: CreditScriptVM::new(),
             lightmap_canvas: None,
             season,
+            menu_character: MenuCharacter::Quote,
             constants,
             font,
             texture_set,
