@@ -31,28 +31,70 @@ impl Weapon {
 
         match player.direction {
             Direction::Left if player.up => {
-                bullet_manager.create_bullet(player.x - 0x200, player.y - 0x1000, btype, player_id, Direction::Up, &state.constants);
+                bullet_manager.create_bullet(
+                    player.x - 0x200,
+                    player.y - 0x1000,
+                    btype,
+                    player_id,
+                    Direction::Up,
+                    &state.constants,
+                );
                 state.create_caret(player.x - 0x200, player.y - 0x1000, CaretType::Shoot, Direction::Left);
             }
             Direction::Right if player.up => {
-                bullet_manager.create_bullet(player.x + 0x200, player.y - 0x1000, btype, player_id, Direction::Up, &state.constants);
+                bullet_manager.create_bullet(
+                    player.x + 0x200,
+                    player.y - 0x1000,
+                    btype,
+                    player_id,
+                    Direction::Up,
+                    &state.constants,
+                );
                 state.create_caret(player.x + 0x200, player.y - 0x1000, CaretType::Shoot, Direction::Left);
             }
             Direction::Left if player.down => {
-                bullet_manager.create_bullet(player.x - 0x200, player.y + 0x1000, btype, player_id, Direction::Bottom, &state.constants);
+                bullet_manager.create_bullet(
+                    player.x - 0x200,
+                    player.y + 0x1000,
+                    btype,
+                    player_id,
+                    Direction::Bottom,
+                    &state.constants,
+                );
                 state.create_caret(player.x - 0x200, player.y + 0x1000, CaretType::Shoot, Direction::Left);
             }
             Direction::Right if player.down => {
-                bullet_manager.create_bullet(player.x + 0x200, player.y + 0x1000, btype, player_id, Direction::Bottom, &state.constants);
+                bullet_manager.create_bullet(
+                    player.x + 0x200,
+                    player.y + 0x1000,
+                    btype,
+                    player_id,
+                    Direction::Bottom,
+                    &state.constants,
+                );
                 state.create_caret(player.x + 0x200, player.y + 0x1000, CaretType::Shoot, Direction::Left);
             }
             Direction::Left => {
-                bullet_manager.create_bullet(player.x - 0xc00, player.y + 0x600, btype, player_id, Direction::Left, &state.constants);
-                state.create_caret(player.x - 0xc00, player.y + 0x600, CaretType::Shoot, Direction::Left);
+                bullet_manager.create_bullet(
+                    player.x - 0xc00,
+                    player.y + 0x600,
+                    btype,
+                    player_id,
+                    Direction::Left,
+                    &state.constants,
+                );
+                state.create_caret(player.x - 0x1800, player.y + 0x600, CaretType::Shoot, Direction::Left);
             }
             Direction::Right => {
-                bullet_manager.create_bullet(player.x + 0xc00, player.y + 0x600, btype, player_id, Direction::Right, &state.constants);
-                state.create_caret(player.x + 0xc00, player.y + 0x600, CaretType::Shoot, Direction::Right);
+                bullet_manager.create_bullet(
+                    player.x + 0xc00,
+                    player.y + 0x600,
+                    btype,
+                    player_id,
+                    Direction::Right,
+                    &state.constants,
+                );
+                state.create_caret(player.x + 0x1800, player.y + 0x600, CaretType::Shoot, Direction::Right);
             }
             _ => {}
         }

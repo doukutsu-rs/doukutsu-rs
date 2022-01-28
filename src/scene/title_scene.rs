@@ -12,7 +12,7 @@ use crate::map::Map;
 use crate::menu::settings_menu::SettingsMenu;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::Scene;
-use crate::shared_game_state::{SharedGameState, TileSize};
+use crate::shared_game_state::{MenuCharacter, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -89,6 +89,33 @@ impl TitleScene {
 
         Ok(())
     }
+
+    pub fn update_menu_cursor(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let minutes = self.nikumaru_rec.tick / (60 * state.settings.timing_mode.get_tps());
+        let song_id: usize;
+
+        if self.nikumaru_rec.shown && minutes < 3 {
+            state.menu_character = MenuCharacter::Sue;
+            song_id = 2;
+        } else if self.nikumaru_rec.shown && minutes < 4 {
+            state.menu_character = MenuCharacter::King;
+            song_id = 41;
+        } else if self.nikumaru_rec.shown && minutes < 5 {
+            state.menu_character = MenuCharacter::Toroko;
+            song_id = 40;
+        } else if self.nikumaru_rec.shown && minutes < 6 {
+            state.menu_character = MenuCharacter::Curly;
+            song_id = 36;
+        } else {
+            state.menu_character = MenuCharacter::Quote;
+            song_id = 24;
+        }
+
+        if song_id != state.sound_manager.current_song() {
+            state.sound_manager.play_song(song_id, &state.constants, &state.settings, ctx)?;
+        }
+        Ok(())
+    }
 }
 
 // asset copyright for freeware version
@@ -99,7 +126,6 @@ impl Scene for TitleScene {
         self.controller.add(state.settings.create_player1_controller());
         self.controller.add(state.settings.create_player2_controller());
 
-        state.sound_manager.play_song(24, &state.constants, &state.settings, ctx)?;
         self.main_menu.push_entry(MenuEntry::Active("New game".to_string()));
         self.main_menu.push_entry(MenuEntry::Active("Load game".to_string()));
         self.main_menu.push_entry(MenuEntry::Active("Options".to_string()));
@@ -122,6 +148,7 @@ impl Scene for TitleScene {
         self.controller.update_trigger();
 
         self.nikumaru_rec.load_counter(ctx)?;
+        self.update_menu_cursor(state, ctx)?;
 
         Ok(())
     }
@@ -166,6 +193,7 @@ impl Scene for TitleScene {
                 _ => {}
             },
             CurrentMenu::OptionMenu => {
+                let timing_mode = state.settings.timing_mode;
                 let cm = &mut self.current_menu;
                 self.option_menu.tick(
                     &mut || {
@@ -175,6 +203,9 @@ impl Scene for TitleScene {
                     state,
                     ctx,
                 )?;
+                if timing_mode != state.settings.timing_mode {
+                    self.update_menu_cursor(state, ctx)?;
+                }
             }
             CurrentMenu::StartGame => {
                 if self.tick == 10 {

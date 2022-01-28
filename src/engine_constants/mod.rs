@@ -232,6 +232,11 @@ pub struct TitleConsts {
     pub menu_middle: Rect<u16>,
     pub menu_left: Rect<u16>,
     pub menu_right: Rect<u16>,
+    pub cursor_quote: [Rect<u16>; 4],
+    pub cursor_curly: [Rect<u16>; 4],
+    pub cursor_toroko: [Rect<u16>; 4],
+    pub cursor_king: [Rect<u16>; 4],
+    pub cursor_sue: [Rect<u16>; 4],
 }
 
 impl Clone for TitleConsts {
@@ -248,6 +253,11 @@ impl Clone for TitleConsts {
             menu_middle: self.menu_middle,
             menu_left: self.menu_left,
             menu_right: self.menu_right,
+            cursor_quote: self.cursor_quote,
+            cursor_curly: self.cursor_curly,
+            cursor_toroko: self.cursor_toroko,
+            cursor_king: self.cursor_king,
+            cursor_sue: self.cursor_sue,
         }
     }
 }
@@ -1480,6 +1490,36 @@ impl EngineConstants {
                 menu_bottom: Rect { left: 8, top: 16, right: 236, bottom: 24 },
                 menu_left: Rect { left: 0, top: 8, right: 8, bottom: 16 },
                 menu_right: Rect { left: 236, top: 8, right: 244, bottom: 16 },
+                cursor_quote: [
+                    Rect { left: 0, top: 16, right: 16, bottom: 32 },
+                    Rect { left: 16, top: 16, right: 32, bottom: 32 },
+                    Rect { left: 0, top: 16, right: 16, bottom: 32 },
+                    Rect { left: 32, top: 16, right: 48, bottom: 32 },
+                ],
+                cursor_curly: [
+                    Rect { left: 0, top: 112, right: 16, bottom: 128 },
+                    Rect { left: 16, top: 112, right: 32, bottom: 128 },
+                    Rect { left: 0, top: 112, right: 16, bottom: 128 },
+                    Rect { left: 32, top: 112, right: 48, bottom: 128 },
+                ],
+                cursor_toroko: [
+                    Rect { left: 64, top: 80, right: 80, bottom: 96 },
+                    Rect { left: 80, top: 80, right: 96, bottom: 96 },
+                    Rect { left: 64, top: 80, right: 80, bottom: 96 },
+                    Rect { left: 96, top: 80, right: 112, bottom: 96 },
+                ],
+                cursor_king: [
+                    Rect { left: 224, top: 48, right: 240, bottom: 64 },
+                    Rect { left: 288, top: 48, right: 304, bottom: 64 },
+                    Rect { left: 224, top: 48, right: 240, bottom: 64 },
+                    Rect { left: 304, top: 48, right: 320, bottom: 64 },
+                ],
+                cursor_sue: [
+                    Rect { left: 0, top: 16, right: 16, bottom: 32 },
+                    Rect { left: 32, top: 16, right: 48, bottom: 32 },
+                    Rect { left: 0, top: 16, right: 16, bottom: 32 },
+                    Rect { left: 48, top: 16, right: 64, bottom: 32 },
+                ],
             },
             inventory_dim_color: Color::from_rgba(0, 0, 0, 0),
             font_path: "csfont.fnt".to_owned(),
