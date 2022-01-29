@@ -21,18 +21,23 @@ pub struct Star {
     pub prev_y: i32,
     pub vel_x: i32,
     pub vel_y: i32,
+    pub rect: Rect<u16>,
 }
 
 impl Star {
-    fn new(vel_x: i32, vel_y: i32) -> Star {
-        Star { x: 0, y: 0, vel_x, vel_y, prev_x: 0, prev_y: 0 }
+    fn new(vel_x: i32, vel_y: i32, rect: Rect<u16>) -> Star {
+        Star { x: 0, y: 0, vel_x, vel_y, prev_x: 0, prev_y: 0, rect }
     }
 }
 
 impl WhimsicalStar {
     pub fn new() -> WhimsicalStar {
         WhimsicalStar {
-            star: [Star::new(0x400, -0x200), Star::new(-0x200, 0x400), Star::new(0x200, 0x200)],
+            star: [
+                Star::new(0x400, -0x200, Rect { left: 192, top: 0, right: 200, bottom: 8 }),
+                Star::new(-0x200, 0x400, Rect { left: 192, top: 8, right: 200, bottom: 16 }),
+                Star::new(0x200, 0x200, Rect { left: 192, top: 16, right: 200, bottom: 24 }),
+            ],
             star_count: 0,
             equipped: false,
             active_star: 0,
@@ -40,9 +45,9 @@ impl WhimsicalStar {
     }
 
     pub fn set_prev(&mut self) {
-        for iter in 0..=2 {
-            self.star[iter].prev_x = self.star[iter].x;
-            self.star[iter].prev_y = self.star[iter].y;
+        for star in &mut self.star {
+            star.prev_x = star.x;
+            star.prev_y = star.y;
         }
     }
 }
@@ -54,9 +59,9 @@ impl GameEntity<(&Player, &mut BulletManager)> for WhimsicalStar {
         (player, bullet_manager): (&Player, &mut BulletManager),
     ) -> GameResult {
         if !self.equipped && player.equip.has_whimsical_star() {
-            for iter in 0..=2 {
-                self.star[iter].x = player.x;
-                self.star[iter].y = player.y;
+            for star in &mut self.star {
+                star.x = player.x;
+                star.y = player.y;
             }
             self.equipped = true;
         }
@@ -68,39 +73,37 @@ impl GameEntity<(&Player, &mut BulletManager)> for WhimsicalStar {
 
         self.star_count = player.stars;
 
+        let mut prev_x = player.x;
+        let mut prev_y = player.y;
+
+        for star in &mut self.star {
+            star.vel_x += if prev_x >= star.x { 0x80 } else { -0x80 };
+            star.vel_y += if prev_y >= star.y { 0xAA } else { -0xAA };
+
+            star.vel_x = star.vel_x.clamp(-0xA00, 0xA00);
+            star.vel_y = star.vel_y.clamp(-0xA00, 0xA00);
+
+            star.x += star.vel_x;
+            star.y += star.vel_y;
+
+            prev_x = star.x;
+            prev_y = star.y;
+        }
+
         // Only one star can deal damage per tick
         self.active_star += 1;
         self.active_star %= 3;
 
-        for iter in 0..3 {
-            if iter != 0 {
-                self.star[iter].vel_x += if self.star[iter - 1].x >= self.star[iter].x { 0x80 } else { -0x80 };
-                self.star[iter].vel_y += if self.star[iter - 1].y >= self.star[iter].y { 0xAA } else { -0xAA };
-            } else {
-                self.star[iter].vel_x += if player.x >= self.star[iter].x { 0x80 } else { -0x80 };
-                self.star[iter].vel_y += if player.y >= self.star[iter].y { 0xAA } else { -0xAA };
-            }
-
-            self.star[iter].vel_x = self.star[iter].vel_x.clamp(-0xA00, 0xA00);
-            self.star[iter].vel_y = self.star[iter].vel_y.clamp(-0xA00, 0xA00);
-
-            self.star[iter].x += self.star[iter].vel_x;
-            self.star[iter].y += self.star[iter].vel_y;
-
-            if iter < self.star_count as usize
-                && state.control_flags.control_enabled()
-                && self.active_star == iter as u8
-            {
-                let bullet = Bullet::new(
-                    self.star[iter].x,
-                    self.star[iter].y,
-                    45,
-                    TargetPlayer::Player1,
-                    Direction::Left,
-                    &state.constants,
-                );
-                bullet_manager.push_bullet(bullet);
-            }
+        if self.active_star < self.star_count && state.control_flags.control_enabled() {
+            let bullet = Bullet::new(
+                self.star[self.active_star as usize].x,
+                self.star[self.active_star as usize].y,
+                45,
+                TargetPlayer::Player1,
+                Direction::Left,
+                &state.constants,
+            );
+            bullet_manager.push_bullet(bullet);
         }
 
         Ok(())
@@ -115,18 +118,12 @@ impl GameEntity<(&Player, &mut BulletManager)> for WhimsicalStar {
 
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
 
-        const STAR_RECTS: [Rect<u16>; 3] = [
-            Rect { left: 192, top: 0, right: 200, bottom: 8 },
-            Rect { left: 192, top: 8, right: 200, bottom: 16 },
-            Rect { left: 192, top: 16, right: 200, bottom: 24 },
-        ];
+        let (active_stars, _) = self.star.split_at(self.star_count as usize);
 
-        for iter in 0..self.star_count as usize {
-            let x = interpolate_fix9_scale(self.star[iter].prev_x as i32, self.star[iter].x as i32, state.frame_time)
-                - frame_x;
-            let y = interpolate_fix9_scale(self.star[iter].prev_y as i32, self.star[iter].y as i32, state.frame_time)
-                - frame_y;
-            batch.add_rect(x, y, &STAR_RECTS[iter]);
+        for star in active_stars {
+            let x = interpolate_fix9_scale(star.prev_x as i32, star.x as i32, state.frame_time) - frame_x;
+            let y = interpolate_fix9_scale(star.prev_y as i32, star.y as i32, state.frame_time) - frame_y;
+            batch.add_rect(x, y, &star.rect);
         }
 
         batch.draw(ctx)?;
