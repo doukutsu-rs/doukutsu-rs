@@ -1594,6 +1594,7 @@ impl Scene for GameScene {
         };
 
         self.pause_menu.init(state, ctx)?;
+        self.whimsical_star.init(&self.player1);
 
         Ok(())
     }

@@ -87,7 +87,11 @@ pub trait PlayerSkin: PlayerSkinClone {
     /// Returns display bounds of skin.
     fn get_display_bounds(&self) -> Rect<u32>;
 
+    /// Returns gun offset
     fn get_gun_offset(&self) -> (i32, i32);
+
+    /// Returns Whimsical Star rect location
+    fn get_whimsical_star_rect(&self, index: usize) -> Rect<u16>;
 }
 
 pub trait PlayerSkinClone {

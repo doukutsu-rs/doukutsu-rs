@@ -9,6 +9,7 @@ use crate::weapon::bullet::{Bullet, BulletManager};
 
 pub struct WhimsicalStar {
     pub star: [Star; 3],
+    pub tex: String,
     pub star_count: u8,
     pub equipped: bool,
     pub active_star: u8,
@@ -25,22 +26,26 @@ pub struct Star {
 }
 
 impl Star {
-    fn new(vel_x: i32, vel_y: i32, rect: Rect<u16>) -> Star {
-        Star { x: 0, y: 0, vel_x, vel_y, prev_x: 0, prev_y: 0, rect }
+    fn new(vel_x: i32, vel_y: i32) -> Star {
+        Star { x: 0, y: 0, vel_x, vel_y, prev_x: 0, prev_y: 0, rect: Rect::new(0, 0, 0, 0) }
     }
 }
 
 impl WhimsicalStar {
     pub fn new() -> WhimsicalStar {
         WhimsicalStar {
-            star: [
-                Star::new(0x400, -0x200, Rect { left: 192, top: 0, right: 200, bottom: 8 }),
-                Star::new(-0x200, 0x400, Rect { left: 192, top: 8, right: 200, bottom: 16 }),
-                Star::new(0x200, 0x200, Rect { left: 192, top: 16, right: 200, bottom: 24 }),
-            ],
+            star: [Star::new(0x400, -0x200), Star::new(-0x200, 0x400), Star::new(0x200, 0x200)],
+            tex: "MyChar".to_string(),
             star_count: 0,
             equipped: false,
             active_star: 0,
+        }
+    }
+
+    pub fn init(&mut self, player: &Player) {
+        self.tex = player.skin.get_skin_texture_name().to_string();
+        for (iter, star) in &mut self.star.iter_mut().enumerate() {
+            star.rect = player.skin.get_whimsical_star_rect(iter);
         }
     }
 
@@ -116,7 +121,7 @@ impl GameEntity<(&Player, &mut BulletManager)> for WhimsicalStar {
 
         let (frame_x, frame_y) = frame.xy_interpolated(state.frame_time);
 
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &self.tex)?;
 
         let (active_stars, _) = self.star.split_at(self.star_count as usize);
 
