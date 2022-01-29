@@ -1,6 +1,5 @@
 use lazy_static::lazy_static;
 
-
 use crate::common::{Color, Direction, Rect};
 use crate::framework::context::Context;
 use crate::framework::filesystem;
@@ -29,6 +28,8 @@ pub struct SkinMeta {
     pub hit_box: Rect<u16>,
     #[serde(default = "skinmeta_default_display_box")]
     pub display_box: Rect<u16>,
+    #[serde(default = "skinmeta_default_whimsical_star")]
+    pub whimsical_star_rect: Rect<u16>,
     #[serde(default)]
     pub version: u8,
 }
@@ -49,6 +50,10 @@ const fn skinmeta_default_display_box() -> Rect<u16> {
     Rect { left: 8, top: 8, right: 8, bottom: 8 }
 }
 
+const fn skinmeta_default_whimsical_star() -> Rect<u16> {
+    Rect { left: 192, top: 0, right: 200, bottom: 8 }
+}
+
 pub static SUPPORTED_SKINMETA_VERSIONS: [u8; 1] = [1];
 
 lazy_static! {
@@ -62,6 +67,7 @@ lazy_static! {
         frame_size_height: 16,
         hit_box: skinmeta_default_hit_box(),
         display_box: skinmeta_default_display_box(),
+        whimsical_star_rect: skinmeta_default_whimsical_star(),
         version: 1
     };
 }
@@ -225,5 +231,12 @@ impl PlayerSkin for BasicPlayerSkin {
 
     fn get_gun_offset(&self) -> (i32, i32) {
         (self.metadata.gun_offset_x as i32, self.metadata.gun_offset_y as i32)
+    }
+
+    fn get_whimsical_star_rect(&self, index: usize) -> Rect<u16> {
+        let mut rect = self.metadata.whimsical_star_rect;
+        rect.top += (8 * index) as u16;
+        rect.bottom = rect.top + 8;
+        return rect;
     }
 }
