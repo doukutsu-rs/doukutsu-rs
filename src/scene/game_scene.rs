@@ -848,7 +848,7 @@ impl GameScene {
                             batch,
                         );
 
-                        if npc.anim_num < 2 {
+                        if npc.anim_num < 2 && npc.direction == Direction::Right {
                             self.draw_light(
                                 interpolate_fix9_scale(
                                     npc.prev_x - self.frame.prev_x,
