@@ -25,6 +25,10 @@ pub struct Settings {
     pub motion_interpolation: bool,
     pub touch_controls: bool,
     pub soundtrack: String,
+    #[serde(default = "default_vol")]
+    pub bgm_volume: f32,
+    #[serde(default = "default_vol")]
+    pub sfx_volume: f32,
     #[serde(default = "default_timing")]
     pub timing_mode: TimingMode,
     #[serde(default = "default_interpolation")]
@@ -45,19 +49,32 @@ pub struct Settings {
     pub fps_counter: bool,
 }
 
-fn default_true() -> bool { true }
+fn default_true() -> bool {
+    true
+}
 
 #[inline(always)]
-fn current_version() -> u32 { 4 }
+fn current_version() -> u32 {
+    5
+}
 
 #[inline(always)]
-fn default_timing() -> TimingMode { TimingMode::_50Hz }
+fn default_timing() -> TimingMode {
+    TimingMode::_50Hz
+}
 
 #[inline(always)]
-fn default_interpolation() -> InterpolationMode { InterpolationMode::Linear }
+fn default_interpolation() -> InterpolationMode {
+    InterpolationMode::Linear
+}
 
 #[inline(always)]
 fn default_speed() -> f64 {
+    1.0
+}
+
+#[inline(always)]
+fn default_vol() -> f32 {
     1.0
 }
 
@@ -84,6 +101,12 @@ impl Settings {
         if self.version == 3 {
             self.version = 4;
             self.timing_mode = default_timing();
+        }
+
+        if self.version == 4 {
+            self.version = 5;
+            self.bgm_volume = default_vol();
+            self.sfx_volume = default_vol();
         }
 
         if self.version != initial_version {
@@ -125,6 +148,8 @@ impl Default for Settings {
             motion_interpolation: true,
             touch_controls: cfg!(target_os = "android"),
             soundtrack: "".to_string(),
+            bgm_volume: 1.0,
+            sfx_volume: 1.0,
             timing_mode: default_timing(),
             organya_interpolation: InterpolationMode::Linear,
             player1_key_map: p1_default_keymap(),

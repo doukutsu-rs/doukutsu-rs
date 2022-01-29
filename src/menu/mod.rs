@@ -57,8 +57,8 @@ pub enum MenuSelectionResult<'a> {
     None,
     Canceled,
     Selected(usize, &'a mut MenuEntry),
-    Left(usize, &'a mut MenuEntry),
-    Right(usize, &'a mut MenuEntry),
+    Left(usize, &'a mut MenuEntry, i16),
+    Right(usize, &'a mut MenuEntry, i16),
 }
 
 pub struct Menu {
@@ -416,21 +416,21 @@ impl Menu {
                     state.sound_manager.play_sfx(18);
                     return MenuSelectionResult::Selected(idx, entry);
                 }
-                MenuEntry::Options(_, _, _) if controller.trigger_left() => {
+                MenuEntry::Options(_, _, _) if self.selected == idx && controller.trigger_left() => {
                     state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Left(self.selected, entry);
+                    return MenuSelectionResult::Left(self.selected, entry, -1);
                 }
-                MenuEntry::Options(_, _, _) if controller.trigger_right() => {
+                MenuEntry::Options(_, _, _) if self.selected == idx && controller.trigger_right() => {
                     state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Right(self.selected, entry);
+                    return MenuSelectionResult::Right(self.selected, entry, 1);
                 }
-                MenuEntry::DescriptiveOptions(_, _, _, _) if controller.trigger_left() => {
+                MenuEntry::DescriptiveOptions(_, _, _, _) if self.selected == idx && controller.trigger_left() => {
                     state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Left(self.selected, entry);
+                    return MenuSelectionResult::Left(self.selected, entry, -1);
                 }
-                MenuEntry::DescriptiveOptions(_, _, _, _) if controller.trigger_right() => {
+                MenuEntry::DescriptiveOptions(_, _, _, _) if self.selected == idx && controller.trigger_right() => {
                     state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Right(self.selected, entry);
+                    return MenuSelectionResult::Right(self.selected, entry, 1);
                 }
                 _ => {}
             }

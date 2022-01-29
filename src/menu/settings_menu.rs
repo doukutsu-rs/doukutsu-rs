@@ -1,8 +1,8 @@
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::menu::{Menu, MenuSelectionResult};
 use crate::menu::MenuEntry;
+use crate::menu::{Menu, MenuSelectionResult};
 use crate::shared_game_state::{SharedGameState, TimingMode};
 use crate::sound::InterpolationMode;
 
@@ -72,6 +72,17 @@ impl SettingsMenu {
 
         self.main.push_entry(MenuEntry::Active("< Back".to_owned()));
 
+        self.sound.push_entry(MenuEntry::Options(
+            "Music Volume:".to_owned(),
+            (state.settings.bgm_volume * 10.0) as usize,
+            (0..=10).map(|x| (x * 10).to_string() + "%").collect(),
+        ));
+        self.sound.push_entry(MenuEntry::Options(
+            "Effects Volume:".to_owned(),
+            (state.settings.sfx_volume * 10.0) as usize,
+            (0..=10).map(|x| (x * 10).to_string() + "%").collect(),
+        ));
+
         self.sound.push_entry(MenuEntry::DescriptiveOptions(
             "BGM Interpolation:".to_owned(),
             state.settings.organya_interpolation as usize,
@@ -80,14 +91,14 @@ impl SettingsMenu {
                 "Linear".to_owned(),
                 "Cosine".to_owned(),
                 "Cubic".to_owned(),
-                "Polyphase".to_owned()
+                "Polyphase".to_owned(),
             ],
             vec![
                 "(Fastest, lowest quality)".to_owned(),
                 "(Fast, similar to freeware on Vista+)".to_owned(),
                 "(Cosine interpolation)".to_owned(),
                 "(Cubic interpolation)".to_owned(),
-                "(Slowest, similar to freeware on XP)".to_owned()
+                "(Slowest, similar to freeware on XP)".to_owned(),
             ],
         ));
         self.sound.push_entry(MenuEntry::DisabledWhite("".to_owned()));
@@ -211,7 +222,27 @@ impl SettingsMenu {
                 _ => (),
             },
             CurrentMenu::SoundMenu => match self.sound.tick(controller, state) {
-                MenuSelectionResult::Selected(0, toggle) => {
+                MenuSelectionResult::Left(0, bgm, direction) | MenuSelectionResult::Right(0, bgm, direction) => {
+                    if let MenuEntry::Options(_, value, _) = bgm {
+                        *value = (*value as i16 + direction).clamp(0, 10) as usize;
+                        let new_value = *value as f32 / 10.0;
+                        state.settings.bgm_volume = new_value;
+                        state.sound_manager.set_song_volume(new_value);
+
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Left(1, sfx, direction) | MenuSelectionResult::Right(1, sfx, direction) => {
+                    if let MenuEntry::Options(_, value, _) = sfx {
+                        *value = (*value as i16 + direction).clamp(0, 10) as usize;
+                        let new_value = *value as f32 / 10.0;
+                        state.settings.sfx_volume = new_value;
+                        state.sound_manager.set_sfx_volume(new_value);
+
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Selected(2, toggle) => {
                     if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
                         let (new_mode, new_value) = match *value {
                             0 => (InterpolationMode::Linear, 1),
@@ -228,11 +259,11 @@ impl SettingsMenu {
                         let _ = state.settings.save(ctx);
                     }
                 }
-                MenuSelectionResult::Selected(3, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(5, _) | MenuSelectionResult::Canceled => {
                     self.current = CurrentMenu::MainMenu
                 }
                 _ => (),
-            }
+            },
         }
         Ok(())
     }
