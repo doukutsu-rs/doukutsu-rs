@@ -1592,6 +1592,7 @@ impl EngineConstants {
         self.tex_sizes.insert("Caret".to_owned(), (320, 320));
         self.tex_sizes.insert("MyChar".to_owned(), (200, 384));
         self.tex_sizes.insert("Npc/NpcRegu".to_owned(), (320, 410));
+        self.tex_sizes.insert("ui".to_owned(), (128, 32));
         self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 50 };
         self.font_path = "csfont.fnt".to_owned();
         self.font_scale = 0.5;
@@ -1633,6 +1634,7 @@ impl EngineConstants {
         self.supports_og_textures = true;
         self.tex_sizes.insert("bkMoon".to_owned(), (427, 240));
         self.tex_sizes.insert("bkFog".to_owned(), (427, 240));
+        self.tex_sizes.insert("ui".to_owned(), (128, 32));
         self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 62 };
         self.inventory_dim_color = Color::from_rgba(0, 0, 32, 150);
         self.textscript.encoding = TextScriptEncoding::UTF8;

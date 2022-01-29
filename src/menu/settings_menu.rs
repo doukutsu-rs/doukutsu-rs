@@ -72,16 +72,8 @@ impl SettingsMenu {
 
         self.main.push_entry(MenuEntry::Active("< Back".to_owned()));
 
-        self.sound.push_entry(MenuEntry::Options(
-            "Music Volume:".to_owned(),
-            (state.settings.bgm_volume * 10.0) as usize,
-            (0..=10).map(|x| (x * 10).to_string() + "%").collect(),
-        ));
-        self.sound.push_entry(MenuEntry::Options(
-            "Effects Volume:".to_owned(),
-            (state.settings.sfx_volume * 10.0) as usize,
-            (0..=10).map(|x| (x * 10).to_string() + "%").collect(),
-        ));
+        self.sound.push_entry(MenuEntry::OptionsBar("Music Volume".to_owned(), state.settings.bgm_volume));
+        self.sound.push_entry(MenuEntry::OptionsBar("Effects Volume".to_owned(), state.settings.sfx_volume));
 
         self.sound.push_entry(MenuEntry::DescriptiveOptions(
             "BGM Interpolation:".to_owned(),
@@ -223,21 +215,19 @@ impl SettingsMenu {
             },
             CurrentMenu::SoundMenu => match self.sound.tick(controller, state) {
                 MenuSelectionResult::Left(0, bgm, direction) | MenuSelectionResult::Right(0, bgm, direction) => {
-                    if let MenuEntry::Options(_, value, _) = bgm {
-                        *value = (*value as i16 + direction).clamp(0, 10) as usize;
-                        let new_value = *value as f32 / 10.0;
-                        state.settings.bgm_volume = new_value;
-                        state.sound_manager.set_song_volume(new_value);
+                    if let MenuEntry::OptionsBar(_, value) = bgm {
+                        *value = (*value + (direction as f32 * 0.1)).clamp(0.0, 1.0);
+                        state.settings.bgm_volume = *value;
+                        state.sound_manager.set_song_volume(*value);
 
                         let _ = state.settings.save(ctx);
                     }
                 }
                 MenuSelectionResult::Left(1, sfx, direction) | MenuSelectionResult::Right(1, sfx, direction) => {
-                    if let MenuEntry::Options(_, value, _) = sfx {
-                        *value = (*value as i16 + direction).clamp(0, 10) as usize;
-                        let new_value = *value as f32 / 10.0;
-                        state.settings.sfx_volume = new_value;
-                        state.sound_manager.set_sfx_volume(new_value);
+                    if let MenuEntry::OptionsBar(_, value) = sfx {
+                        *value = (*value + (direction as f32 * 0.1)).clamp(0.0, 1.0);
+                        state.settings.sfx_volume = *value;
+                        state.sound_manager.set_sfx_volume(*value);
 
                         let _ = state.settings.save(ctx);
                     }
