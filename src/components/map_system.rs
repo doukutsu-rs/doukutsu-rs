@@ -131,6 +131,13 @@ impl MapSystem {
                 } else {
                     self.state = MapSystemState::Visible;
                 }
+
+                for player in &players {
+                    if player.controller.trigger_jump() || player.controller.trigger_shoot() {
+                        self.state = MapSystemState::FadeOutBox(8);
+                        break;
+                    }
+                }
             }
             MapSystemState::Visible => {
                 for player in &players {
