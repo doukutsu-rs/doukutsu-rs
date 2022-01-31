@@ -366,42 +366,40 @@ impl Menu {
                         ctx,
                     )?;
 
-                    if state.constants.is_switch {
+                    if state.constants.is_switch || state.constants.is_cs_plus {
                         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ui")?;
+                        let bar_width = if state.constants.is_switch { 81.0 } else { 109.0 };
 
-                        let rect = Rect::new(0, 18, (81.0 - (81.0 * (1.0 - percent))) as u16, 32);
+                        let rect = Rect::new(0, 18, (bar_width - (bar_width * (1.0 - percent))) as u16, 32);
 
-                        batch.add_rect((self.x + self.width as isize - 84) as f32, y - (state.scale * 2.0), &rect);
-
-                        batch.draw(ctx)?;
-                    } else if state.constants.is_cs_plus {
-                        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ui")?;
-
-                        let rect = Rect::new(0, 18, (109.0 - (109.0 * (1.0 - percent))) as u16, 32);
-
-                        batch.add_rect((self.x + self.width as isize - 114) as f32, y - (state.scale * 2.0), &rect);
-
+                        batch.add_rect(
+                            (self.x + self.width as isize) as f32 - (bar_width + (2.0 * state.scale)),
+                            y - (state.scale * 2.0),
+                            &rect,
+                        );
                         batch.draw(ctx)?;
                     } else {
-                        let left = (self.x + self.width as isize - (75.0 * (1.0 - percent)) as isize)
-                            * state.scale as isize
-                            - 4;
-                        let top = (y * state.scale) as isize;
-                        let right = (self.x + self.width as isize - 75) * state.scale as isize - 4;
-                        let bottom = ((y + 8.0) * state.scale) as isize;
+                        let scale = state.scale;
+
+                        let bar_rect = Rect::new_size(
+                            ((self.x + self.width as isize - 80) as f32 * scale) as isize,
+                            (y * scale) as isize,
+                            (75.0 * scale * percent) as isize,
+                            (8.0 * scale) as isize,
+                        );
 
                         graphics::draw_rect(
                             ctx,
-                            Rect::new(
-                                (self.x + self.width as isize + 2) * state.scale as isize - 4,
-                                top + (state.scale * 2.0) as isize,
-                                right + (state.scale * 2.0) as isize,
-                                bottom + (state.scale * 2.0) as isize,
+                            Rect::new_size(
+                                bar_rect.left + (2.0 * scale) as isize,
+                                bar_rect.top + (2.0 * scale) as isize,
+                                (75.0 * scale) as isize,
+                                (8.0 * scale) as isize,
                             ),
                             Color::new(0.0, 0.0, 0.0, 1.0),
                         )?;
 
-                        graphics::draw_rect(ctx, Rect::new(left, top, right, bottom), Color::new(1.0, 1.0, 1.0, 1.0))?;
+                        graphics::draw_rect(ctx, bar_rect, Color::new(1.0, 1.0, 1.0, 1.0))?;
                     }
                 }
                 _ => {}
