@@ -247,6 +247,9 @@ impl SharedGameState {
             }
         }
 
+        sound_manager.set_song_volume(settings.bgm_volume);
+        sound_manager.set_sfx_volume(settings.sfx_volume);
+
         #[cfg(feature = "hooks")]
         init_hooks();
 

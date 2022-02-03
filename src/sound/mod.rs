@@ -4,16 +4,16 @@ use std::str::FromStr;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 
-use cpal::Sample;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::Sample;
 #[cfg(feature = "ogg-playback")]
 use lewton::inside_ogg::OggStreamReader;
 use num_traits::clamp;
 
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
-use crate::framework::error::{GameError, GameResult};
 use crate::framework::error::GameError::{AudioError, InvalidValue};
+use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
 use crate::framework::filesystem::File;
 use crate::settings::Settings;
@@ -140,6 +140,20 @@ impl SoundManager {
             return;
         }
         let _ = self.tx.send(PlaybackMessage::SetOrgInterpolation(interpolation));
+    }
+
+    pub fn set_song_volume(&self, volume: f32) {
+        if self.no_audio {
+            return;
+        }
+        let _ = self.tx.send(PlaybackMessage::SetSongVolume(volume.powf(3.0)));
+    }
+
+    pub fn set_sfx_volume(&self, volume: f32) {
+        if self.no_audio {
+            return;
+        }
+        let _ = self.tx.send(PlaybackMessage::SetSampleVolume(volume.powf(3.0)));
     }
 
     pub fn play_song(
@@ -403,6 +417,8 @@ pub(in crate::sound) enum PlaybackMessage {
     LoopSampleFreq(u8, f32),
     StopSample(u8),
     SetSpeed(f32),
+    SetSongVolume(f32),
+    SetSampleVolume(f32),
     SaveState,
     RestoreState,
     SetSampleParams(u8, PixToneParameters),
@@ -464,6 +480,8 @@ where
     let mut bgm_index = 0;
     let mut pxt_index = 0;
     let mut samples = 0;
+    let mut bgm_vol = 1.0_f32;
+    let mut sfx_vol = 1.0_f32;
     pixtone.mix(&mut pxt_buf, sample_rate);
 
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
@@ -546,6 +564,14 @@ where
                         #[cfg(feature = "ogg-playback")]
                         ogg_engine.set_sample_rate((sample_rate / new_speed) as usize);
                         org_engine.set_sample_rate((sample_rate / new_speed) as usize);
+                    }
+                    Ok(PlaybackMessage::SetSongVolume(new_volume)) => {
+                        assert!(bgm_vol >= 0.0);
+                        bgm_vol = new_volume;
+                    }
+                    Ok(PlaybackMessage::SetSampleVolume(new_volume)) => {
+                        assert!(sfx_vol >= 0.0);
+                        sfx_vol = new_volume;
                     }
                     Ok(PlaybackMessage::SaveState) => {
                         saved_state = match state {
@@ -647,13 +673,15 @@ where
 
                 if frame.len() >= 2 {
                     let sample_l = clamp(
-                        (((bgm_sample_l ^ 0x8000) as i16) as isize) + (((pxt_sample ^ 0x8000) as i16) as isize),
+                        (((bgm_sample_l ^ 0x8000) as i16) as f32 * bgm_vol) as isize
+                            + (((pxt_sample ^ 0x8000) as i16) as f32 * sfx_vol) as isize,
                         -0x7fff,
                         0x7fff,
                     ) as u16
                         ^ 0x8000;
                     let sample_r = clamp(
-                        (((bgm_sample_r ^ 0x8000) as i16) as isize) + (((pxt_sample ^ 0x8000) as i16) as isize),
+                        (((bgm_sample_r ^ 0x8000) as i16) as f32 * bgm_vol) as isize
+                            + (((pxt_sample ^ 0x8000) as i16) as f32 * sfx_vol) as isize,
                         -0x7fff,
                         0x7fff,
                     ) as u16
@@ -663,8 +691,9 @@ where
                     frame[1] = Sample::from::<u16>(&sample_r);
                 } else {
                     let sample = clamp(
-                        ((((bgm_sample_l ^ 0x8000) as i16) + ((bgm_sample_r ^ 0x8000) as i16)) / 2) as isize
-                            + (((pxt_sample ^ 0x8000) as i16) as isize),
+                        ((((bgm_sample_l ^ 0x8000) as i16) + ((bgm_sample_r ^ 0x8000) as i16)) as f32 * bgm_vol / 2.0)
+                            as isize
+                            + (((pxt_sample ^ 0x8000) as i16) as f32 * sfx_vol) as isize,
                         -0x7fff,
                         0x7fff,
                     ) as u16
