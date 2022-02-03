@@ -1,10 +1,15 @@
 use std::collections::HashMap;
+use std::io::{Cursor, Read};
 
+use byteorder::{ReadBytesExt, LE};
 use case_insensitive_hashmap::CaseInsensitiveHashMap;
 
 use crate::case_insensitive_hashmap;
 use crate::common::{BulletFlag, Color, Rect};
 use crate::engine_constants::npcs::NPCConsts;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::filesystem;
 use crate::player::ControlMode;
 use crate::scripting::tsc::text_script::TextScriptEncoding;
 use crate::sound::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
@@ -1647,4 +1652,63 @@ impl EngineConstants {
     }
 
     pub fn apply_constant_json_files(&mut self) {}
+
+    /// Loads bullet.tbl and arms_level.tbl from CS+ files,
+    /// even though they match vanilla 1:1, we should load them for completeness
+    /// or if any crazy person uses it for a CS+ mod...
+    pub fn load_csplus_tables(&mut self, ctx: &mut Context) -> GameResult {
+        if filesystem::exists(ctx, "/base/bullet.tbl") {
+            let mut data = Vec::new();
+            filesystem::open(ctx, "/base/bullet.tbl")?.read_to_end(&mut data)?;
+            let bullets = data.len() / 0x2A;
+            let mut f = Cursor::new(data);
+
+            let mut new_bullet_table = Vec::new();
+            for _ in 0..bullets {
+                let bullet = BulletData {
+                    damage: f.read_u8()?,
+                    life: f.read_u8()?,
+                    lifetime: f.read_u32::<LE>()? as u16,
+                    flags: BulletFlag(f.read_u32::<LE>()? as u8),
+                    enemy_hit_width: f.read_u32::<LE>()? as u16,
+                    enemy_hit_height: f.read_u32::<LE>()? as u16,
+                    block_hit_width: f.read_u32::<LE>()? as u16,
+                    block_hit_height: f.read_u32::<LE>()? as u16,
+                    display_bounds: Rect {
+                        left: f.read_u32::<LE>()? as u8,
+                        top: f.read_u32::<LE>()? as u8,
+                        right: f.read_u32::<LE>()? as u8,
+                        bottom: f.read_u32::<LE>()? as u8,
+                    },
+                };
+                new_bullet_table.push(bullet);
+            }
+
+            self.weapon.bullet_table = new_bullet_table;
+            log::info!("Loaded bullet.tbl.");
+        } else {
+            log::warn!("CS+ bullet.tbl not found.");
+        }
+
+        if filesystem::exists(ctx, "/base/arms_level.tbl") {
+            let mut data = Vec::new();
+            filesystem::open(ctx, "/base/arms_level.tbl")?.read_to_end(&mut data)?;
+            let mut f = Cursor::new(data);
+
+            let mut new_level_table = EngineConstants::defaults().weapon.level_table;
+            for iter in 0..14 {
+                let level1 = f.read_u32::<LE>()? as u16;
+                let level2 = f.read_u32::<LE>()? as u16;
+                let level3 = f.read_u32::<LE>()? as u16;
+                new_level_table[iter] = [level1, level2, level3];
+            }
+
+            self.weapon.level_table = new_level_table;
+            log::info!("Loaded arms_level.tbl.");
+        } else {
+            log::warn!("CS+ arms_level.tbl not found.")
+        }
+
+        Ok(())
+    }
 }
