@@ -1,8 +1,9 @@
 use std::cell::Cell;
 
-use crate::common::Rect;
+use crate::common::{Color, Rect};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::framework::graphics;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::shared_game_state::{MenuCharacter, SharedGameState};
 
@@ -19,6 +20,7 @@ pub enum MenuEntry {
     Toggle(String, bool),
     Options(String, usize, Vec<String>),
     DescriptiveOptions(String, usize, Vec<String>, Vec<String>),
+    OptionsBar(String, f32),
     SaveData(MenuSaveInfo),
     NewSave,
 }
@@ -33,6 +35,7 @@ impl MenuEntry {
             MenuEntry::Toggle(_, _) => 16.0,
             MenuEntry::Options(_, _, _) => 16.0,
             MenuEntry::DescriptiveOptions(_, _, _, _) => 16.0,
+            MenuEntry::OptionsBar(_, _) => 16.0,
             MenuEntry::SaveData(_) => 32.0,
             MenuEntry::NewSave => 32.0,
         }
@@ -47,6 +50,7 @@ impl MenuEntry {
             MenuEntry::Toggle(_, _) => true,
             MenuEntry::Options(_, _, _) => true,
             MenuEntry::DescriptiveOptions(_, _, _, _) => true,
+            MenuEntry::OptionsBar(_, _) => true,
             MenuEntry::SaveData(_) => true,
             MenuEntry::NewSave => true,
         }
@@ -57,8 +61,8 @@ pub enum MenuSelectionResult<'a> {
     None,
     Canceled,
     Selected(usize, &'a mut MenuEntry),
-    Left(usize, &'a mut MenuEntry),
-    Right(usize, &'a mut MenuEntry),
+    Left(usize, &'a mut MenuEntry, i16),
+    Right(usize, &'a mut MenuEntry, i16),
 }
 
 pub struct Menu {
@@ -352,6 +356,52 @@ impl Menu {
                         ctx,
                     )?;
                 }
+                MenuEntry::OptionsBar(name, percent) => {
+                    state.font.draw_text(
+                        name.chars(),
+                        self.x as f32 + 20.0,
+                        y,
+                        &state.constants,
+                        &mut state.texture_set,
+                        ctx,
+                    )?;
+
+                    if state.constants.is_switch || state.constants.is_cs_plus {
+                        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ui")?;
+                        let bar_width = if state.constants.is_switch { 81.0 } else { 109.0 };
+
+                        let rect = Rect::new(0, 18, (bar_width - (bar_width * (1.0 - percent))) as u16, 32);
+
+                        batch.add_rect(
+                            (self.x + self.width as isize) as f32 - (bar_width + (2.0 * state.scale)),
+                            y - (state.scale * 2.0),
+                            &rect,
+                        );
+                        batch.draw(ctx)?;
+                    } else {
+                        let scale = state.scale;
+
+                        let bar_rect = Rect::new_size(
+                            ((self.x + self.width as isize - 80) as f32 * scale) as isize,
+                            (y * scale) as isize,
+                            (75.0 * scale * percent) as isize,
+                            (8.0 * scale) as isize,
+                        );
+
+                        graphics::draw_rect(
+                            ctx,
+                            Rect::new_size(
+                                bar_rect.left + (2.0 * scale) as isize,
+                                bar_rect.top + (2.0 * scale) as isize,
+                                (75.0 * scale) as isize,
+                                (8.0 * scale) as isize,
+                            ),
+                            Color::new(0.0, 0.0, 0.0, 1.0),
+                        )?;
+
+                        graphics::draw_rect(ctx, bar_rect, Color::new(1.0, 1.0, 1.0, 1.0))?;
+                    }
+                }
                 _ => {}
             }
 
@@ -416,21 +466,25 @@ impl Menu {
                     state.sound_manager.play_sfx(18);
                     return MenuSelectionResult::Selected(idx, entry);
                 }
-                MenuEntry::Options(_, _, _) if controller.trigger_left() => {
+                MenuEntry::Options(_, _, _) | MenuEntry::OptionsBar(_, _)
+                    if self.selected == idx && controller.trigger_left() =>
+                {
                     state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Left(self.selected, entry);
+                    return MenuSelectionResult::Left(self.selected, entry, -1);
                 }
-                MenuEntry::Options(_, _, _) if controller.trigger_right() => {
+                MenuEntry::Options(_, _, _) | MenuEntry::OptionsBar(_, _)
+                    if self.selected == idx && controller.trigger_right() =>
+                {
                     state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Right(self.selected, entry);
+                    return MenuSelectionResult::Right(self.selected, entry, 1);
                 }
-                MenuEntry::DescriptiveOptions(_, _, _, _) if controller.trigger_left() => {
+                MenuEntry::DescriptiveOptions(_, _, _, _) if self.selected == idx && controller.trigger_left() => {
                     state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Left(self.selected, entry);
+                    return MenuSelectionResult::Left(self.selected, entry, -1);
                 }
-                MenuEntry::DescriptiveOptions(_, _, _, _) if controller.trigger_right() => {
+                MenuEntry::DescriptiveOptions(_, _, _, _) if self.selected == idx && controller.trigger_right() => {
                     state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Right(self.selected, entry);
+                    return MenuSelectionResult::Right(self.selected, entry, 1);
                 }
                 _ => {}
             }
