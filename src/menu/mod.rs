@@ -1,16 +1,17 @@
 use std::cell::Cell;
 
 use crate::common::{Color, Rect};
+use crate::components::draw_common::{draw_number, Alignment};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::input::combined_menu_controller::CombinedMenuController;
+use crate::menu::save_select_menu::MenuSaveInfo;
 use crate::shared_game_state::{MenuCharacter, SharedGameState};
 
 pub mod pause_menu;
+pub mod save_select_menu;
 pub mod settings_menu;
-
-pub struct MenuSaveInfo {}
 
 pub enum MenuEntry {
     Hidden,
@@ -402,6 +403,55 @@ impl Menu {
                         graphics::draw_rect(ctx, bar_rect, Color::new(1.0, 1.0, 1.0, 1.0))?;
                     }
                 }
+                MenuEntry::NewSave => {
+                    state.font.draw_text(
+                        "New Save".chars(),
+                        self.x as f32 + 20.0,
+                        y,
+                        &state.constants,
+                        &mut state.texture_set,
+                        ctx,
+                    )?;
+                }
+                MenuEntry::SaveData(save) => {
+                    let name = &state.stages[save.current_map as usize].name;
+                    let bar_width = (save.life as f32 / save.max_life as f32 * 39.0) as u16;
+                    let right_edge = self.x as f32 + self.width as f32 - 4.0;
+
+                    // Lifebar
+                    let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
+
+                    batch.add_rect(right_edge - 60.0, y, &Rect::new_size(0, 40, 24, 8));
+                    batch.add_rect(right_edge - 36.0, y, &Rect::new_size(24, 40, 40, 8));
+                    batch.add_rect(right_edge - 36.0, y, &Rect::new_size(0, 24, bar_width, 8));
+
+                    state.font.draw_text(
+                        name.chars(),
+                        self.x as f32 + 20.0,
+                        y,
+                        &state.constants,
+                        &mut state.texture_set,
+                        ctx,
+                    )?;
+
+                    // Weapons
+                    let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ArmsImage")?;
+
+                    for weapon_slot in 0..save.weapon_count {
+                        let wtype = save.weapon_id[weapon_slot];
+                        let pos_x = weapon_slot as f32 * 16.0 - (16 * save.weapon_count.saturating_sub(4)) as f32;
+                        let mut rect = Rect::new(0, 0, 0, 16);
+                        if wtype != 0 {
+                            rect.left = wtype as u16 * 16;
+                            rect.right = rect.left + 16;
+                            batch.add_rect(right_edge + pos_x - 60.0, y + 8.0, &rect);
+                        }
+                    }
+
+                    batch.draw(ctx)?;
+
+                    draw_number(right_edge - 36.0, y, save.life as usize, Alignment::Right, state, ctx)?;
+                }
                 _ => {}
             }
 
@@ -453,6 +503,8 @@ impl Menu {
         let mut y = self.y as f32 + 8.0;
         for (idx, entry) in self.entries.iter_mut().enumerate() {
             let entry_bounds = Rect::new_size(self.x, y as isize, self.width as isize, entry.height() as isize);
+            let right_entry_bounds =
+                Rect::new_size(self.x + self.width as isize, y as isize, self.width as isize, entry.height() as isize);
             y += entry.height() as f32;
 
             match entry {
@@ -460,6 +512,8 @@ impl Menu {
                 | MenuEntry::Toggle(_, _)
                 | MenuEntry::Options(_, _, _)
                 | MenuEntry::DescriptiveOptions(_, _, _, _)
+                | MenuEntry::SaveData(_)
+                | MenuEntry::NewSave
                     if (self.selected == idx && controller.trigger_ok())
                         || state.touch_controls.consume_click_in(entry_bounds) =>
                 {
@@ -478,11 +532,16 @@ impl Menu {
                     state.sound_manager.play_sfx(1);
                     return MenuSelectionResult::Right(self.selected, entry, 1);
                 }
-                MenuEntry::DescriptiveOptions(_, _, _, _) if self.selected == idx && controller.trigger_left() => {
+                MenuEntry::DescriptiveOptions(_, _, _, _)
+                    if (self.selected == idx && controller.trigger_left())
+                        || state.touch_controls.consume_click_in(right_entry_bounds) =>
+                {
                     state.sound_manager.play_sfx(1);
                     return MenuSelectionResult::Left(self.selected, entry, -1);
                 }
-                MenuEntry::DescriptiveOptions(_, _, _, _) if self.selected == idx && controller.trigger_right() => {
+                MenuEntry::DescriptiveOptions(_, _, _, _) | MenuEntry::SaveData(_)
+                    if self.selected == idx && controller.trigger_right() =>
+                {
                     state.sound_manager.play_sfx(1);
                     return MenuSelectionResult::Right(self.selected, entry, 1);
                 }
