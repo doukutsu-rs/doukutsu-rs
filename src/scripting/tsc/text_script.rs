@@ -238,11 +238,11 @@ impl TextScriptVM {
         self.flags.0 = 0;
         self.current_illustration = None;
         self.illustration_state = IllustrationState::Hidden;
+        self.face = 0;
         self.clear_text_box();
     }
 
     pub fn clear_text_box(&mut self) {
-        self.face = 0;
         self.item = 0;
         self.current_line = TextScriptLine::Line1;
         self.line_1.clear();
@@ -375,7 +375,7 @@ impl TextScriptVM {
                             _ => {}
                         }
 
-                        if remaining > 1 {
+                        if remaining > 1 || new_line {
                             let ticks = if state.textscript_vm.flags.fast() || state.textscript_vm.flags.cutscene_skip()
                             {
                                 0
@@ -424,7 +424,11 @@ impl TextScriptVM {
                         state.textscript_vm.line_1.clear();
                         state.textscript_vm.line_1.append(&mut state.textscript_vm.line_2);
                         state.textscript_vm.line_2.append(&mut state.textscript_vm.line_3);
-                        state.textscript_vm.state = TextScriptExecutionState::Msg(event, ip, remaining, ticks);
+                        if remaining == 0 {
+                            state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
+                        } else {
+                            state.textscript_vm.state = TextScriptExecutionState::Msg(event, ip, remaining, ticks);
+                        }
                     } else {
                         state.textscript_vm.state =
                             TextScriptExecutionState::MsgNewLine(event, ip, remaining, ticks, counter);
