@@ -989,6 +989,10 @@ impl TextScriptVM {
             }
             TSCOpCode::FAC => {
                 let face = read_cur_varint(&mut cursor)? as u16;
+                // Switch uses xx00 for face animation states
+                if face % 100 != state.textscript_vm.face % 100 {
+                    game_scene.text_boxes.anim_counter = 0;
+                }
                 state.textscript_vm.face = face;
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);

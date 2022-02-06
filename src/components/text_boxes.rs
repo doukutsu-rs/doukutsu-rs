@@ -8,19 +8,24 @@ use crate::graphics::draw_rect;
 use crate::scripting::tsc::text_script::{ConfirmSelection, TextScriptExecutionState, TextScriptLine};
 use crate::shared_game_state::SharedGameState;
 
-pub struct TextBoxes;
+pub struct TextBoxes {
+    pub anim_counter: usize,
+}
 
 const FACE_TEX: &str = "Face";
 const SWITCH_FACE_TEX: [&str; 4] = ["Face1", "Face2", "Face3", "Face4"];
 
 impl TextBoxes {
     pub fn new() -> TextBoxes {
-        TextBoxes
+        TextBoxes { anim_counter: 0 }
     }
 }
 
 impl GameEntity<()> for TextBoxes {
-    fn tick(&mut self, _state: &mut SharedGameState, _custom: ()) -> GameResult {
+    fn tick(&mut self, state: &mut SharedGameState, _custom: ()) -> GameResult {
+        if state.textscript_vm.face != 0 {
+            self.anim_counter = self.anim_counter.wrapping_add(1);
+        }
         Ok(())
     }
 
@@ -107,6 +112,15 @@ impl GameEntity<()> for TextBoxes {
         }
 
         if state.textscript_vm.face != 0 {
+            let clip_rect = Rect::new_size(
+                ((left_pos + 14.0) * state.scale) as isize,
+                ((top_pos + 8.0) * state.scale) as isize,
+                (48.0 * state.scale) as isize,
+                (48.0 * state.scale) as isize,
+            );
+
+            graphics::set_clip_rect(ctx, Some(clip_rect))?;
+
             let tex_name = if state.constants.textscript.animated_face_pics { SWITCH_FACE_TEX[0] } else { FACE_TEX };
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex_name)?;
 
@@ -116,8 +130,10 @@ impl GameEntity<()> for TextBoxes {
             let _talking = (state.textscript_vm.face % 1000) > 100;
             let face_num = state.textscript_vm.face % 100;
 
+            let face_x = (4.0 + (self.anim_counter.min(7) - 1) as f32 * 8.0) - 52.0;
+
             batch.add_rect_flip(
-                left_pos + 14.0,
+                left_pos + 14.0 + face_x,
                 top_pos + 8.0,
                 flip,
                 false,
@@ -125,6 +141,7 @@ impl GameEntity<()> for TextBoxes {
             );
 
             batch.draw(ctx)?;
+            graphics::set_clip_rect(ctx, None)?;
         }
 
         if state.textscript_vm.item != 0 {

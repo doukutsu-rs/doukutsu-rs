@@ -1691,6 +1691,7 @@ impl Scene for GameScene {
 
         self.fade.tick(state, ())?;
         self.flash.tick(state, ())?;
+        self.text_boxes.tick(state, ())?;
 
         #[cfg(feature = "scripting-lua")]
         state.lua.scene_tick();
