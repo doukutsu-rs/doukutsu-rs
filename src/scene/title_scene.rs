@@ -9,6 +9,7 @@ use crate::framework::graphics;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::input::touch_controls::TouchControlType;
 use crate::map::Map;
+use crate::menu::save_select_menu::SaveSelectMenu;
 use crate::menu::settings_menu::SettingsMenu;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::Scene;
@@ -33,7 +34,7 @@ pub struct TitleScene {
     current_menu: CurrentMenu,
     main_menu: Menu,
     option_menu: SettingsMenu,
-    save_select_menu: Menu,
+    save_select_menu: SaveSelectMenu,
     background: Background,
     frame: Frame,
     nikumaru_rec: NikumaruCounter,
@@ -67,7 +68,7 @@ impl TitleScene {
             current_menu: CurrentMenu::MainMenu,
             main_menu: Menu::new(0, 0, 100, 0),
             option_menu: SettingsMenu::new(),
-            save_select_menu: Menu::new(0, 0, 200, 0),
+            save_select_menu: SaveSelectMenu::new(),
             background: Background::new(),
             frame: Frame::new(),
             nikumaru_rec: NikumaruCounter::new(),
@@ -126,8 +127,7 @@ impl Scene for TitleScene {
         self.controller.add(state.settings.create_player1_controller());
         self.controller.add(state.settings.create_player2_controller());
 
-        self.main_menu.push_entry(MenuEntry::Active("New game".to_string()));
-        self.main_menu.push_entry(MenuEntry::Active("Load game".to_string()));
+        self.main_menu.push_entry(MenuEntry::Active("Start Game".to_string()));
         self.main_menu.push_entry(MenuEntry::Active("Options".to_string()));
         if cfg!(feature = "editor") {
             self.main_menu.push_entry(MenuEntry::Active("Editor".to_string()));
@@ -138,11 +138,7 @@ impl Scene for TitleScene {
 
         self.option_menu.init(state, ctx)?;
 
-        self.save_select_menu.push_entry(MenuEntry::NewSave);
-        self.save_select_menu.push_entry(MenuEntry::NewSave);
-        self.save_select_menu.push_entry(MenuEntry::NewSave);
-        self.save_select_menu.push_entry(MenuEntry::Active("Delete a save".to_string()));
-        self.save_select_menu.push_entry(MenuEntry::Active("Back".to_string()));
+        self.save_select_menu.init(state, ctx)?;
 
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
@@ -166,20 +162,12 @@ impl Scene for TitleScene {
         match self.current_menu {
             CurrentMenu::MainMenu => match self.main_menu.tick(&mut self.controller, state) {
                 MenuSelectionResult::Selected(0, _) => {
-                    state.reset();
-                    state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
-                    self.tick = 1;
-                    self.current_menu = CurrentMenu::StartGame;
+                    self.current_menu = CurrentMenu::SaveSelectMenu;
                 }
                 MenuSelectionResult::Selected(1, _) => {
-                    state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
-                    self.tick = 1;
-                    self.current_menu = CurrentMenu::LoadGame;
-                }
-                MenuSelectionResult::Selected(2, _) => {
                     self.current_menu = CurrentMenu::OptionMenu;
                 }
-                MenuSelectionResult::Selected(3, _) => {
+                MenuSelectionResult::Selected(2, _) => {
                     // this comment is just there because rustfmt removes parenthesis around the match case and breaks compilation
                     #[cfg(feature = "editor")]
                     {
@@ -187,7 +175,7 @@ impl Scene for TitleScene {
                         state.next_scene = Some(Box::new(EditorScene::new()));
                     }
                 }
-                MenuSelectionResult::Selected(4, _) => {
+                MenuSelectionResult::Selected(3, _) => {
                     state.shutdown();
                 }
                 _ => {}
@@ -206,6 +194,17 @@ impl Scene for TitleScene {
                 if timing_mode != state.settings.timing_mode {
                     self.update_menu_cursor(state, ctx)?;
                 }
+            }
+            CurrentMenu::SaveSelectMenu => {
+                let cm = &mut self.current_menu;
+                self.save_select_menu.tick(
+                    &mut || {
+                        *cm = CurrentMenu::MainMenu;
+                    },
+                    &mut self.controller,
+                    state,
+                    ctx,
+                )?;
             }
             CurrentMenu::StartGame => {
                 if self.tick == 10 {
@@ -253,6 +252,7 @@ impl Scene for TitleScene {
         match self.current_menu {
             CurrentMenu::MainMenu => self.main_menu.draw(state, ctx)?,
             CurrentMenu::OptionMenu => self.option_menu.draw(state, ctx)?,
+            CurrentMenu::SaveSelectMenu => self.save_select_menu.draw(state, ctx)?,
             _ => {}
         }
 
