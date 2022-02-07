@@ -991,7 +991,7 @@ impl TextScriptVM {
                 let face = read_cur_varint(&mut cursor)? as u16;
                 // Switch uses xx00 for face animation states
                 if face % 100 != state.textscript_vm.face % 100 {
-                    game_scene.text_boxes.anim_counter = 0;
+                    game_scene.text_boxes.slide_in = 7;
                 }
                 state.textscript_vm.face = face;
 

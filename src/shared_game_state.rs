@@ -201,6 +201,7 @@ impl SharedGameState {
             constants.apply_csplus_patches(&sound_manager);
             constants.apply_csplus_nx_patches();
             constants.load_csplus_tables(ctx)?;
+            constants.load_animated_faces(ctx)?;
             base_path = "/base/";
         } else if filesystem::exists(ctx, "/base/Nicalis.bmp") || filesystem::exists(ctx, "/base/Nicalis.png") {
             info!("Cave Story+ (PC) data files detected.");
