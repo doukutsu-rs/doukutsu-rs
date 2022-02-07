@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{Cursor, Read};
+use std::io::{BufRead, BufReader, Cursor, Read};
 
 use byteorder::{ReadBytesExt, LE};
 use case_insensitive_hashmap::CaseInsensitiveHashMap;
@@ -194,6 +194,13 @@ pub struct WorldConsts {
     pub water_push_rect: Rect<u16>,
 }
 
+#[derive(Debug, Clone)]
+pub struct AnimatedFace {
+    pub face_id: u16,
+    pub anim_id: u16,
+    pub anim_frames: Vec<(u16, u16)>,
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct TextScriptConsts {
     pub encoding: TextScriptEncoding,
@@ -290,6 +297,7 @@ pub struct EngineConstants {
     pub music_table: Vec<String>,
     pub organya_paths: Vec<String>,
     pub credit_illustration_paths: Vec<String>,
+    pub animated_face_table: Vec<AnimatedFace>,
 }
 
 impl Clone for EngineConstants {
@@ -316,6 +324,7 @@ impl Clone for EngineConstants {
             music_table: self.music_table.clone(),
             organya_paths: self.organya_paths.clone(),
             credit_illustration_paths: self.credit_illustration_paths.clone(),
+            animated_face_table: self.animated_face_table.clone(),
         }
     }
 }
@@ -1586,6 +1595,7 @@ impl EngineConstants {
                 "Resource/BITMAP/".to_owned(), // CSE2E
                 "endpic/".to_owned(),          // NXEngine
             ],
+            animated_face_table: vec![AnimatedFace { face_id: 0, anim_id: 0, anim_frames: vec![(0, 0)] }],
         }
     }
 
@@ -1650,6 +1660,7 @@ impl EngineConstants {
         self.textscript.text_speed_fast = 0;
         self.soundtracks.insert("Famitracks".to_owned(), "/base/ogg17/".to_owned());
         self.soundtracks.insert("Ridiculon".to_owned(), "/base/ogg_ridic/".to_owned());
+        self.animated_face_table.push(AnimatedFace { face_id: 5, anim_id: 4, anim_frames: vec![(4, 0)] }); // Teethrog fix
         self.game.tile_offset_x = 3;
     }
 
@@ -1711,6 +1722,50 @@ impl EngineConstants {
             log::warn!("CS+ arms_level.tbl not found.")
         }
 
+        Ok(())
+    }
+
+    /// Load in the `faceanm.dat` file that details the Switch extensions to the <FAC command
+    /// It's actually a text file, go figure
+    pub fn load_animated_faces(&mut self, ctx: &mut Context) -> GameResult {
+        if filesystem::exists(ctx, "/base/faceanm.dat") {
+            let file = filesystem::open(ctx, "/base/faceanm.dat")?;
+            let buf = BufReader::new(file);
+            let mut face_id = 1;
+            let mut anim_id = 0;
+
+            for line in buf.lines() {
+                let line_str = line?.to_owned().replace(",", " ");
+                let mut anim_frames = Vec::new();
+
+                if line_str.find("\\") == None {
+                    continue;
+                } else if line_str == "\\end" {
+                    face_id += 1;
+                    anim_id = 0;
+                    continue;
+                }
+
+                for split in line_str.split_whitespace() {
+                    // The animation labels aren't actually used
+                    // There are also comments on some lines that we need to ignore
+                    if split.find("\\") != None {
+                        continue;
+                    } else if split.find("//") != None {
+                        break;
+                    }
+                    let mut parse = split.split(":");
+                    let frame = (
+                        parse.next().unwrap().parse::<u16>().unwrap_or(0),
+                        parse.next().unwrap().parse::<u16>().unwrap_or(0),
+                    );
+                    anim_frames.push(frame);
+                }
+
+                self.animated_face_table.push(AnimatedFace { face_id, anim_id, anim_frames });
+                anim_id += 1;
+            }
+        }
         Ok(())
     }
 }

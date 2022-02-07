@@ -184,6 +184,7 @@ pub struct SharedGameState {
     pub lua: LuaScriptingState,
     pub sound_manager: SoundManager,
     pub settings: Settings,
+    pub save_slot: usize,
     pub shutdown: bool,
 }
 
@@ -200,6 +201,7 @@ impl SharedGameState {
             constants.apply_csplus_patches(&sound_manager);
             constants.apply_csplus_nx_patches();
             constants.load_csplus_tables(ctx)?;
+            constants.load_animated_faces(ctx)?;
             base_path = "/base/";
         } else if filesystem::exists(ctx, "/base/Nicalis.bmp") || filesystem::exists(ctx, "/base/Nicalis.png") {
             info!("Cave Story+ (PC) data files detected.");
@@ -293,6 +295,7 @@ impl SharedGameState {
             lua: LuaScriptingState::new(),
             sound_manager,
             settings,
+            save_slot: 1,
             shutdown: false,
         })
     }
@@ -384,7 +387,11 @@ impl SharedGameState {
     }
 
     pub fn save_game(&mut self, game_scene: &mut GameScene, ctx: &mut Context) -> GameResult {
-        if let Ok(data) = filesystem::open_options(ctx, "/Profile.dat", OpenOptions::new().write(true).create(true)) {
+        if let Ok(data) = filesystem::open_options(
+            ctx,
+            self.get_save_filename(self.save_slot),
+            OpenOptions::new().write(true).create(true),
+        ) {
             let profile = GameProfile::dump(self, game_scene);
             profile.write_save(data)?;
         } else {
@@ -395,7 +402,7 @@ impl SharedGameState {
     }
 
     pub fn load_or_start_game(&mut self, ctx: &mut Context) -> GameResult {
-        if let Ok(data) = filesystem::user_open(ctx, "/Profile.dat") {
+        if let Ok(data) = filesystem::user_open(ctx, self.get_save_filename(self.save_slot)) {
             match GameProfile::load_from_save(data) {
                 Ok(profile) => {
                     self.reset();
@@ -527,6 +534,14 @@ impl SharedGameState {
             *flag
         } else {
             false
+        }
+    }
+
+    pub fn get_save_filename(&self, slot: usize) -> String {
+        if slot == 1 {
+            "/Profile.dat".to_owned()
+        } else {
+            format!("/Profile{}.dat", slot)
         }
     }
 }

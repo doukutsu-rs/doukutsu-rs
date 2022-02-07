@@ -1,4 +1,5 @@
 use crate::common::{Color, Rect};
+use crate::engine_constants::AnimatedFace;
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
@@ -8,19 +9,51 @@ use crate::graphics::draw_rect;
 use crate::scripting::tsc::text_script::{ConfirmSelection, TextScriptExecutionState, TextScriptLine};
 use crate::shared_game_state::SharedGameState;
 
-pub struct TextBoxes;
+pub struct TextBoxes {
+    pub slide_in: u8,
+    pub anim_counter: usize,
+    animated_face: AnimatedFace,
+}
 
 const FACE_TEX: &str = "Face";
-const SWITCH_FACE_TEX: [&str; 4] = ["Face1", "Face2", "Face3", "Face4"];
+const SWITCH_FACE_TEX: [&str; 5] = ["Face1", "Face2", "Face3", "Face4", "Face5"];
 
 impl TextBoxes {
     pub fn new() -> TextBoxes {
-        TextBoxes
+        TextBoxes {
+            slide_in: 7,
+            anim_counter: 0,
+            animated_face: AnimatedFace { face_id: 0, anim_id: 0, anim_frames: vec![(0, 0)] },
+        }
     }
 }
 
 impl GameEntity<()> for TextBoxes {
-    fn tick(&mut self, _state: &mut SharedGameState, _custom: ()) -> GameResult {
+    fn tick(&mut self, state: &mut SharedGameState, _custom: ()) -> GameResult {
+        if state.textscript_vm.face != 0 {
+            self.slide_in = self.slide_in.saturating_sub(1);
+            self.anim_counter = self.anim_counter.wrapping_add(1);
+
+            let face_num = state.textscript_vm.face % 100;
+            let animation = state.textscript_vm.face % 1000 / 100;
+
+            if state.constants.textscript.animated_face_pics
+                && (self.animated_face.anim_id != animation || self.animated_face.face_id != face_num)
+            {
+                self.animated_face = state
+                    .constants
+                    .animated_face_table
+                    .clone()
+                    .into_iter()
+                    .find(|face| face.face_id == face_num && face.anim_id == animation)
+                    .unwrap_or_else(|| AnimatedFace { face_id: face_num, anim_id: 0, anim_frames: vec![(0, 0)] });
+            }
+
+            if self.anim_counter > self.animated_face.anim_frames.first().unwrap().1 as usize {
+                self.animated_face.anim_frames.rotate_left(1);
+                self.anim_counter = 0;
+            }
+        }
         Ok(())
     }
 
@@ -107,17 +140,28 @@ impl GameEntity<()> for TextBoxes {
         }
 
         if state.textscript_vm.face != 0 {
-            let tex_name = if state.constants.textscript.animated_face_pics { SWITCH_FACE_TEX[0] } else { FACE_TEX };
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex_name)?;
+            let clip_rect = Rect::new_size(
+                ((left_pos + 14.0) * state.scale) as isize,
+                ((top_pos + 8.0) * state.scale) as isize,
+                (48.0 * state.scale) as isize,
+                (48.0 * state.scale) as isize,
+            );
+
+            graphics::set_clip_rect(ctx, Some(clip_rect))?;
 
             // switch version uses 1xxx flag to show a flipped version of face
             let flip = state.textscript_vm.face > 1000;
-            // x1xx flag shows a talking animation
-            let _talking = (state.textscript_vm.face % 1000) > 100;
             let face_num = state.textscript_vm.face % 100;
+            let animation_frame = self.animated_face.anim_frames.first().unwrap().0 as usize;
+
+            let tex_name =
+                if state.constants.textscript.animated_face_pics { SWITCH_FACE_TEX[animation_frame] } else { FACE_TEX };
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex_name)?;
+
+            let face_x = (4.0 + (6 - self.slide_in) as f32 * 8.0) - 52.0;
 
             batch.add_rect_flip(
-                left_pos + 14.0,
+                left_pos + 14.0 + face_x,
                 top_pos + 8.0,
                 flip,
                 false,
@@ -125,6 +169,7 @@ impl GameEntity<()> for TextBoxes {
             );
 
             batch.draw(ctx)?;
+            graphics::set_clip_rect(ctx, None)?;
         }
 
         if state.textscript_vm.item != 0 {
