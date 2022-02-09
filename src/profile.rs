@@ -78,11 +78,13 @@ impl GameProfile {
         }
 
         for item in self.items.iter().copied() {
-            if item == 0 {
+            let item_id = item as u16;
+            let amount = (item >> 16) as u16;
+            if item_id == 0 {
                 break;
             }
 
-            game_scene.inventory_player1.add_item(item as u16);
+            game_scene.inventory_player1.add_item_amount(item_id, amount + 1);
         }
 
         for slot in &self.teleporter_slots {
@@ -190,7 +192,7 @@ impl GameProfile {
 
         for (idx, item) in items.iter_mut().enumerate() {
             if let Some(sitem) = game_scene.inventory_player1.get_item_idx(idx) {
-                *item = sitem.0 as u32;
+                *item = sitem.0 as u32 + (((sitem.1 - 1) as u32) << 16);
             }
         }
 

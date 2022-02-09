@@ -43,6 +43,14 @@ impl Inventory {
         }
     }
 
+    pub fn add_item_amount(&mut self, item_id: u16, amount: u16) {
+        if !self.has_item(item_id) {
+            self.items.push(Item(item_id, amount));
+        } else if let Some(item) = self.get_item(item_id) {
+            item.1 += amount;
+        }
+    }
+
     pub fn consume_item(&mut self, item_id: u16) {
         if let Some(item) = self.get_item(item_id) {
             if item.1 > 1 {
