@@ -362,6 +362,23 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
 
         batch.draw(ctx)?;
 
+        for (idx, (item_id, amount)) in self.item_data.iter().enumerate() {
+            if *item_id == 0 || *amount == 0 {
+                break;
+            }
+
+            if *amount > 1 {
+                draw_number(
+                    x + 12.0 + (idx % count_x) as f32 * 32.0 + 32.0,
+                    y + 68.0 + (idx / count_x) as f32 * 16.0,
+                    *amount as usize,
+                    Alignment::Right,
+                    state,
+                    ctx,
+                )?;
+            }
+        }
+
         for (idx, weapon) in self.weapon_data.iter().enumerate() {
             if weapon.wtype == WeaponType::None {
                 break;

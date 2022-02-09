@@ -1246,7 +1246,7 @@ impl NPC {
             self.vel_x += self.direction.vector_x() * 0x20;
             if self.action_counter3 % 3 == 1 {
                 state.create_caret(
-                    self.x + 0x1000 * self.direction.vector_x(),
+                    self.x + 0x1000 * self.direction.opposite().vector_x(),
                     self.y,
                     CaretType::Exhaust,
                     self.direction,
