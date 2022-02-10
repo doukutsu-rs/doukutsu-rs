@@ -551,7 +551,9 @@ impl SharedGameState {
     }
 
     pub fn get_save_filename(&self, slot: usize) -> String {
-        if slot == 1 {
+        if let Some(mod_path) = &self.mod_path {
+            format!("/Profile{}.dat", mod_path.replace("/", "")) // Until we have mod names
+        } else if slot == 1 {
             "/Profile.dat".to_owned()
         } else {
             format!("/Profile{}.dat", slot)
