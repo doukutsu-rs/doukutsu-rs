@@ -896,7 +896,7 @@ pub trait PhysicalEntity {
             }
         }
 
-        if self.is_player() && (self.y() - 0x800) > state.water_level {
+        if (self.y() - 0x800) > state.water_level {
             self.flags().set_in_water(true);
         }
     }

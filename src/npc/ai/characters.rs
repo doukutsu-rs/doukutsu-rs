@@ -84,6 +84,9 @@ impl NPC {
                     self.anim_num = 0;
                     self.anim_counter = 0;
                     self.vel_x = 0;
+                    if self.tsc_direction == 20 {
+                        self.direction = Direction::Right;
+                    }
                 }
 
                 if self.rng.range(0..120) == 10 {

@@ -1219,6 +1219,9 @@ impl GameScene {
                         }
 
                         npc.shock = 8;
+
+                        npc = unsafe { self.boss.parts.get_unchecked_mut(i) };
+                        npc.shock = 8;
                     }
 
                     bullet.life = bullet.life.saturating_sub(1);

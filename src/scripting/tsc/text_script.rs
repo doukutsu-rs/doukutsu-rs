@@ -1327,7 +1327,7 @@ impl TextScriptVM {
                         if direction == Direction::FacingPlayer {
                             npc.direction =
                                 if game_scene.player1.x < npc.x { Direction::Left } else { Direction::Right };
-                        } else {
+                        } else if tsc_direction != 5 {
                             npc.direction = direction;
                         }
                     }
@@ -1380,7 +1380,7 @@ impl TextScriptVM {
                         if direction == Direction::FacingPlayer {
                             npc.direction =
                                 if game_scene.player1.x < npc.x { Direction::Left } else { Direction::Right };
-                        } else {
+                        } else if tsc_direction != 5 {
                             npc.direction = direction;
                         }
 
@@ -1417,7 +1417,7 @@ impl TextScriptVM {
                         if direction == Direction::FacingPlayer {
                             npc.direction =
                                 if game_scene.player1.x < npc.x { Direction::Left } else { Direction::Right };
-                        } else {
+                        } else if tsc_direction != 5 {
                             npc.direction = direction;
                         }
 
@@ -1442,7 +1442,7 @@ impl TextScriptVM {
                 npc.tsc_direction = tsc_direction as u16;
 
                 if direction == Direction::FacingPlayer {
-                    npc.direction = if game_scene.player1.x < npc.x { Direction::Right } else { Direction::Left };
+                    npc.direction = if game_scene.player1.x < npc.x { Direction::Left } else { Direction::Right };
                 } else {
                     npc.direction = direction;
                 }

@@ -1603,6 +1603,8 @@ impl NPC {
             let mut npc = NPC::create(4, &state.npc_table);
             npc.x = self.x + self.rng.range(-20..20) * 0x200;
             npc.y = self.y;
+            npc.cond.set_alive(true);
+            npc.vel_y = -0x200;
 
             let _ = npc_list.spawn(0x100, npc);
         }

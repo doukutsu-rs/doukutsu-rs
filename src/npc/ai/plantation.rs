@@ -526,7 +526,9 @@ impl NPC {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
-        self.anim_rect = state.constants.npc.n232_orangebell[self.anim_num as usize];
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+
+        self.anim_rect = state.constants.npc.n232_orangebell[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
@@ -787,6 +789,8 @@ impl NPC {
         }
 
         self.vel_y = self.vel_y.clamp(-0x100, 0x100);
+
+        self.y += self.vel_y;
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
 
