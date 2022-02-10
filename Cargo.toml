@@ -32,7 +32,7 @@ category = "Game"
 osx_minimum_system_version = "10.12"
 
 [features]
-default = ["default-base", "backend-sdl", "render-opengl", "exe"]
+default = ["default-base", "backend-sdl", "render-opengl", "exe", "editor"]
 default-base = ["scripting-lua", "ogg-playback", "netplay"]
 ogg-playback = ["lewton"]
 backend-sdl = ["sdl2", "sdl2-sys"]
@@ -69,8 +69,8 @@ lua-ffi = { git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "e0b2ff596
 num-derive = "0.3.2"
 num-traits = "0.2.12"
 paste = "1.0.0"
-sdl2 = { version = "=0.35.1", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
-sdl2-sys = { version = "=0.35.1", optional = true, features = ["bundled", "static-link"] }
+sdl2 = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", rev = "f01b240e14cd23a089daffbb7abf14d55b3b2129", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
+sdl2-sys = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", rev = "f01b240e14cd23a089daffbb7abf14d55b3b2129", optional = true, features = ["bundled", "static-link"] }
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_cbor = { version = "0.11.2", optional = true }
