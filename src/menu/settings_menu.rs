@@ -35,7 +35,7 @@ impl SettingsMenu {
         let main = Menu::new(0, 0, 220, 0);
         let graphics = Menu::new(0, 0, 180, 0);
         let sound = Menu::new(0, 0, 260, 0);
-        let soundtrack = Menu::new(0, 0, 260, 0);
+        let soundtrack = Menu::new(0, 0, 100, 0);
 
         SettingsMenu { current: CurrentMenu::MainMenu, main, graphics, sound, soundtrack, on_title: false }
     }
@@ -152,7 +152,7 @@ impl SettingsMenu {
 
         self.soundtrack.update_height();
         self.soundtrack.x = ((state.canvas_size.0 - self.soundtrack.width as f32) / 2.0).floor() as isize;
-        self.soundtrack.y = ((state.canvas_size.1 - self.soundtrack.height as f32) / 2.0).floor() as isize;
+        self.soundtrack.y = 30+ ((state.canvas_size.1 - self.soundtrack.height as f32) / 2.0).floor() as isize;
     }
 
     pub fn tick(
