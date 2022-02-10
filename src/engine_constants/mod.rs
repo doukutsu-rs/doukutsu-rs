@@ -1614,6 +1614,18 @@ impl EngineConstants {
         self.tex_sizes.insert("Npc/NpcRegu".to_owned(), (320, 410));
         self.tex_sizes.insert("ui".to_owned(), (128, 32));
         self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 50 };
+
+        self.title.menu_left_top = Rect { left: 0, top: 0, right: 4, bottom: 4 };
+        self.title.menu_right_top = Rect { left: 12, top: 0, right: 16, bottom: 4 };
+        self.title.menu_left_bottom = Rect { left: 0, top: 12, right: 4, bottom: 16 };
+        self.title.menu_right_bottom = Rect { left: 12, top: 12, right: 16, bottom: 16 };
+
+        self.title.menu_top = Rect { left: 4, top: 0, right: 8, bottom: 4 };
+        self.title.menu_middle = Rect { left: 8, top: 8, right: 12, bottom: 12 };
+        self.title.menu_bottom = Rect { left: 4, top: 12, right: 8, bottom: 16 };
+        self.title.menu_left = Rect { left: 0, top: 4, right: 4, bottom: 12 };
+        self.title.menu_right = Rect { left: 12, top: 4, right: 16, bottom: 12 };
+
         self.font_path = "csfont.fnt".to_owned();
         self.font_scale = 0.5;
         self.soundtracks.insert("Remastered".to_owned(), "/base/Ogg11/".to_owned());

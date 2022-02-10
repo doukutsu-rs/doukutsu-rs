@@ -110,7 +110,8 @@ impl Menu {
     }
 
     pub fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
+        let ui_texture = if state.constants.is_cs_plus { "ui" } else { "TextBox" };
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, ui_texture)?;
 
         let mut rect;
         let mut rect2;
