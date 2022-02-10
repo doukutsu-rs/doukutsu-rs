@@ -18,6 +18,7 @@ use crate::framework::vfs::OpenOptions;
 #[cfg(feature = "hooks")]
 use crate::hooks::init_hooks;
 use crate::input::touch_controls::TouchControls;
+use crate::mod_list::ModList;
 use crate::npc::NPCTable;
 use crate::profile::GameProfile;
 use crate::rng::XorShift;
@@ -159,6 +160,7 @@ pub struct SharedGameState {
     pub carets: Vec<Caret>,
     pub touch_controls: TouchControls,
     pub mod_path: Option<String>,
+    pub mod_list: ModList,
     pub npc_table: NPCTable,
     pub npc_super_pos: (i32, i32),
     pub npc_curly_target: (i32, i32),
@@ -211,11 +213,12 @@ impl SharedGameState {
         let season = Season::current();
         constants.rebuild_path_list(None, season, &settings);
 
-        let font = BMFontRenderer::load(&constants.base_paths, &constants.font_path, ctx)
-            .or_else(|e| {
-                log::warn!("Failed to load font, using built-in: {}", e);
-                BMFontRenderer::load(&vec!["/".to_owned()], "/builtin/builtin_font.fnt", ctx)
-            })?;
+        let font = BMFontRenderer::load(&constants.base_paths, &constants.font_path, ctx).or_else(|e| {
+            log::warn!("Failed to load font, using built-in: {}", e);
+            BMFontRenderer::load(&vec!["/".to_owned()], "/builtin/builtin_font.fnt", ctx)
+        })?;
+
+        let mut mod_list = ModList::load(ctx)?;
 
         for i in 0..0xffu8 {
             let path = format!("/pxt/fx{:02x}.pxt", i);
@@ -252,6 +255,7 @@ impl SharedGameState {
             carets: Vec::with_capacity(32),
             touch_controls: TouchControls::new(),
             mod_path: None,
+            mod_list,
             npc_table: NPCTable::new(),
             npc_super_pos: (0, 0),
             npc_curly_target: (0, 0),

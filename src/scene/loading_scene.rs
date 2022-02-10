@@ -1,14 +1,8 @@
-use imgui::Ui;
-
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::filesystem;
-use crate::framework::ui::Components;
-use crate::npc::NPCTable;
 use crate::scene::no_data_scene::NoDataScene;
 use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
-use crate::stage::StageData;
 
 pub struct LoadingScene {
     tick: usize,

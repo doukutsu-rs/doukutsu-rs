@@ -1687,8 +1687,12 @@ impl EngineConstants {
             }
         }
 
-        if let Some(mod_path) = mod_path {
-            self.base_paths.insert(0, mod_path);
+        if let Some(mut mod_path) = mod_path {
+            self.base_paths.insert(0, mod_path.clone());
+            if settings.original_textures {
+                mod_path.push_str("ogph/");
+                self.base_paths.insert(0, mod_path);
+            }
         }
     }
 

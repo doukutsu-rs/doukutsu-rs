@@ -33,8 +33,9 @@ pub struct TitleScene {
     controller: CombinedMenuController,
     current_menu: CurrentMenu,
     main_menu: Menu,
-    settings_menu: SettingsMenu,
     save_select_menu: SaveSelectMenu,
+    challenges_menu: Menu,
+    settings_menu: SettingsMenu,
     background: Background,
     frame: Frame,
     nikumaru_rec: NikumaruCounter,
@@ -70,8 +71,9 @@ impl TitleScene {
             controller: CombinedMenuController::new(),
             current_menu: CurrentMenu::MainMenu,
             main_menu: Menu::new(0, 0, 100, 0),
-            settings_menu,
             save_select_menu: SaveSelectMenu::new(),
+            challenges_menu: Menu::new(0, 0, 150, 0),
+            settings_menu,
             background: Background::new(),
             frame: Frame::new(),
             nikumaru_rec: NikumaruCounter::new(),
@@ -127,10 +129,20 @@ static COPYRIGHT_PIXEL: &str = "2004.12  Studio Pixel";
 
 impl Scene for TitleScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        if !state.mod_path.is_none() {
+            state.mod_path = None;
+            state.reload_resources(ctx)?;
+        }
+
         self.controller.add(state.settings.create_player1_controller());
         self.controller.add(state.settings.create_player2_controller());
 
         self.main_menu.push_entry(MenuEntry::Active("Start Game".to_string()));
+        if state.constants.is_cs_plus {
+            self.main_menu.push_entry(MenuEntry::Active("Challenges".to_string()));
+        } else {
+            self.main_menu.push_entry(MenuEntry::Hidden);
+        }
         self.main_menu.push_entry(MenuEntry::Active("Options".to_string()));
         if cfg!(feature = "editor") {
             self.main_menu.push_entry(MenuEntry::Active("Editor".to_string()));
@@ -142,6 +154,11 @@ impl Scene for TitleScene {
         self.settings_menu.init(state, ctx)?;
 
         self.save_select_menu.init(state, ctx)?;
+
+        for mod_info in state.mod_list.mods.iter() {
+            self.challenges_menu.push_entry(MenuEntry::Active(mod_info.path.clone()));
+        }
+        self.challenges_menu.push_entry(MenuEntry::Active("< Back".to_string()));
 
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
@@ -162,15 +179,23 @@ impl Scene for TitleScene {
         self.main_menu.x = ((state.canvas_size.0 - self.main_menu.width as f32) / 2.0).floor() as isize;
         self.main_menu.y = ((state.canvas_size.1 + 70.0 - self.main_menu.height as f32) / 2.0).floor() as isize;
 
+        self.challenges_menu.update_height();
+        self.challenges_menu.x = ((state.canvas_size.0 - self.challenges_menu.width as f32) / 2.0).floor() as isize;
+        self.challenges_menu.y =
+            ((state.canvas_size.1 + 30.0 - self.challenges_menu.height as f32) / 2.0).floor() as isize;
+
         match self.current_menu {
             CurrentMenu::MainMenu => match self.main_menu.tick(&mut self.controller, state) {
                 MenuSelectionResult::Selected(0, _) => {
                     self.current_menu = CurrentMenu::SaveSelectMenu;
                 }
                 MenuSelectionResult::Selected(1, _) => {
-                    self.current_menu = CurrentMenu::OptionMenu;
+                    self.current_menu = CurrentMenu::ChallengesMenu;
                 }
                 MenuSelectionResult::Selected(2, _) => {
+                    self.current_menu = CurrentMenu::OptionMenu;
+                }
+                MenuSelectionResult::Selected(3, _) => {
                     // this comment is just there because rustfmt removes parenthesis around the match case and breaks compilation
                     #[cfg(feature = "editor")]
                     {
@@ -178,7 +203,7 @@ impl Scene for TitleScene {
                         state.next_scene = Some(Box::new(EditorScene::new()));
                     }
                 }
-                MenuSelectionResult::Selected(3, _) => {
+                MenuSelectionResult::Selected(4, _) => {
                     state.shutdown();
                 }
                 _ => {}
@@ -220,7 +245,25 @@ impl Scene for TitleScene {
                     state.load_or_start_game(ctx)?;
                 }
             }
-            _ => {}
+            CurrentMenu::ChallengesMenu => {
+                let last_idx = self.challenges_menu.entries.len() - 1;
+                match self.challenges_menu.tick(&mut self.controller, state) {
+                    MenuSelectionResult::Selected(idx, _) => {
+                        if last_idx == idx {
+                            self.current_menu = CurrentMenu::MainMenu;
+                        } else if let Some(mod_info) = state.mod_list.mods.get(idx) {
+                            state.save_slot = 4;
+                            state.mod_path = Some(mod_info.path.clone());
+                            state.reload_resources(ctx)?;
+                            state.start_new_game(ctx)?;
+                        }
+                    }
+                    MenuSelectionResult::Canceled => {
+                        self.current_menu = CurrentMenu::MainMenu;
+                    }
+                    _ => (),
+                }
+            }
         }
 
         self.tick += 1;
@@ -254,6 +297,7 @@ impl Scene for TitleScene {
 
         match self.current_menu {
             CurrentMenu::MainMenu => self.main_menu.draw(state, ctx)?,
+            CurrentMenu::ChallengesMenu => self.challenges_menu.draw(state, ctx)?,
             CurrentMenu::OptionMenu => self.settings_menu.draw(state, ctx)?,
             CurrentMenu::SaveSelectMenu => self.save_select_menu.draw(state, ctx)?,
             _ => {}

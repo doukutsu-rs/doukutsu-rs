@@ -47,6 +47,7 @@ mod live_debugger;
 mod macros;
 mod map;
 mod menu;
+mod mod_list;
 #[cfg(feature = "netplay")]
 mod netplay;
 mod npc;
