@@ -47,9 +47,14 @@ impl SettingsMenu {
             .push_entry(MenuEntry::Toggle("Motion interpolation:".to_string(), state.settings.motion_interpolation));
         self.graphics.push_entry(MenuEntry::Toggle("Subpixel scrolling:".to_string(), state.settings.subpixel_coords));
 
+        // NS version uses two different maps, therefore we can't dynamically switch between graphics presets.
         if state.constants.supports_og_textures {
-            self.graphics
-                .push_entry(MenuEntry::Toggle("Original textures".to_string(), state.settings.original_textures));
+            if !state.constants.is_switch || self.on_title {
+                self.graphics
+                    .push_entry(MenuEntry::Toggle("Original textures".to_string(), state.settings.original_textures));
+            } else {
+                self.graphics.push_entry(MenuEntry::Disabled("Original textures".to_string()));
+            }
         } else {
             self.graphics.push_entry(MenuEntry::Hidden);
         }
@@ -227,7 +232,7 @@ impl SettingsMenu {
                 MenuSelectionResult::Selected(4, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.original_textures = !state.settings.original_textures;
-                        state.reload_textures();
+                        state.reload_resources(ctx)?;
                         let _ = state.settings.save(ctx);
 
                         *value = state.settings.original_textures;
@@ -236,7 +241,7 @@ impl SettingsMenu {
                 MenuSelectionResult::Selected(5, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.seasonal_textures = !state.settings.seasonal_textures;
-                        state.reload_textures();
+                        state.reload_graphics();
                         let _ = state.settings.save(ctx);
 
                         *value = state.settings.seasonal_textures;

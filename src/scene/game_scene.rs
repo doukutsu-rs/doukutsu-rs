@@ -102,7 +102,7 @@ const CUTSCENE_SKIP_WAIT: u16 = 50;
 impl GameScene {
     pub fn new(state: &mut SharedGameState, ctx: &mut Context, id: usize) -> GameResult<Self> {
         info!("Loading stage {} ({})", id, &state.stages[id].map);
-        let stage = Stage::load(&state.base_path, &state.stages[id], ctx)?;
+        let stage = Stage::load(&state.constants.base_paths, &state.stages[id], ctx)?;
         info!("Loaded stage: {}", stage.data.name);
 
         GameScene::from_stage(state, ctx, stage, id)
@@ -112,13 +112,17 @@ impl GameScene {
         let mut water_params = WaterParams::new();
         let mut water_renderer = WaterRenderer::new();
 
-        if let Ok(water_param_file) =
-            filesystem::open(ctx, [&state.base_path, "Stage/", &state.stages[id].tileset.name, ".pxw"].join(""))
-        {
-            water_params.load_from(water_param_file)?;
-            info!("Loaded water parameters file.");
+        if !state.settings.original_textures {
+            if let Ok(water_param_file) = filesystem::open_find(
+                ctx,
+                &state.constants.base_paths,
+                ["Stage/", &state.stages[id].tileset.name, ".pxw"].join(""),
+            ) {
+                water_params.load_from(water_param_file)?;
+                info!("Loaded water parameters file.");
 
-            water_renderer.initialize(stage.map.find_water_regions());
+                water_renderer.initialize(stage.map.find_water_regions());
+            }
         }
 
         let stage_textures = {
@@ -1524,7 +1528,7 @@ impl Scene for GameScene {
             .wrapping_add(self.stage_id as i32)
             .rotate_right(7);
         state.game_rng = XorShift::new(seed);
-        state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.base_path, &state.constants, ctx)?);
+        state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.constants.base_paths, &state.constants, ctx)?);
         state.textscript_vm.suspend = false;
         state.tile_size = self.stage.map.tile_size;
         #[cfg(feature = "scripting-lua")]
@@ -1533,7 +1537,7 @@ impl Scene for GameScene {
         self.player1.controller = state.settings.create_player1_controller();
         self.player2.controller = state.settings.create_player2_controller();
 
-        let npcs = self.stage.load_npcs(&state.base_path, ctx)?;
+        let npcs = self.stage.load_npcs(&state.constants.base_paths, ctx)?;
         for npc_data in npcs.iter() {
             log::info!("creating npc: {:?}", npc_data);
 

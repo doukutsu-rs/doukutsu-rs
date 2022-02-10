@@ -6,15 +6,15 @@ use chrono::{Datelike, Local};
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState};
-use crate::components::draw_common::{draw_number, Alignment};
+use crate::components::draw_common::{Alignment, draw_number};
 use crate::engine_constants::EngineConstants;
+use crate::framework::{filesystem, graphics};
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{create_texture_mutable, set_render_target};
 use crate::framework::keyboard::ScanCode;
 use crate::framework::vfs::OpenOptions;
-use crate::framework::{filesystem, graphics};
 #[cfg(feature = "hooks")]
 use crate::hooks::init_hooks;
 use crate::input::touch_controls::TouchControls;
@@ -22,12 +22,12 @@ use crate::npc::NPCTable;
 use crate::profile::GameProfile;
 use crate::rng::XorShift;
 use crate::scene::game_scene::GameScene;
-use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
+use crate::scene::title_scene::TitleScene;
 #[cfg(feature = "scripting-lua")]
 use crate::scripting::lua::LuaScriptingState;
-use crate::scripting::tsc::credit_script::CreditScriptVM;
-use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
+use crate::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
+use crate::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptExecutionState, TextScriptVM};
 use crate::settings::Settings;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
@@ -158,7 +158,7 @@ pub struct SharedGameState {
     pub teleporter_slots: Vec<(u16, u16)>,
     pub carets: Vec<Caret>,
     pub touch_controls: TouchControls,
-    pub base_path: String,
+    pub mod_path: Option<String>,
     pub npc_table: NPCTable,
     pub npc_super_pos: (i32, i32),
     pub npc_curly_target: (i32, i32),
@@ -192,7 +192,6 @@ impl SharedGameState {
     pub fn new(ctx: &mut Context) -> GameResult<SharedGameState> {
         let mut constants = EngineConstants::defaults();
         let sound_manager = SoundManager::new(ctx)?;
-        let mut base_path = "/";
         let settings = Settings::load(ctx)?;
 
         if filesystem::exists(ctx, "/base/lighting.tbl") {
@@ -200,50 +199,33 @@ impl SharedGameState {
             ctx.size_hint = (854, 480);
             constants.apply_csplus_patches(&sound_manager);
             constants.apply_csplus_nx_patches();
-            constants.load_csplus_tables(ctx)?;
-            constants.load_animated_faces(ctx)?;
-            base_path = "/base/";
         } else if filesystem::exists(ctx, "/base/Nicalis.bmp") || filesystem::exists(ctx, "/base/Nicalis.png") {
             info!("Cave Story+ (PC) data files detected.");
             constants.apply_csplus_patches(&sound_manager);
-            constants.load_csplus_tables(ctx)?;
-            base_path = "/base/";
         } else if filesystem::exists(ctx, "/mrmap.bin") {
             info!("CSE2E data files detected.");
         } else if filesystem::exists(ctx, "/stage.dat") {
             info!("NXEngine-evo data files detected.");
         }
 
-        let font = BMFontRenderer::load(base_path, &constants.font_path, ctx)
-            .or_else(|_| BMFontRenderer::load("/", "builtin/builtin_font.fnt", ctx))?;
         let season = Season::current();
-        let mut texture_set = TextureSet::new(base_path);
+        constants.rebuild_path_list(None, season, &settings);
 
-        if constants.is_cs_plus {
-            texture_set.apply_seasonal_content(season, &settings);
-        }
+        let font = BMFontRenderer::load(&constants.base_paths, &constants.font_path, ctx)
+            .or_else(|e| {
+                log::warn!("Failed to load font, using built-in: {}", e);
+                BMFontRenderer::load(&vec!["/".to_owned()], "/builtin/builtin_font.fnt", ctx)
+            })?;
 
         for i in 0..0xffu8 {
-            let path = format!("{}/pxt/fx{:02x}.pxt", base_path, i);
-            if let Ok(file) = filesystem::open(ctx, path) {
-                sound_manager.set_sample_params_from_file(i, file)?;
-                continue;
-            }
-
             let path = format!("/pxt/fx{:02x}.pxt", i);
-            if let Ok(file) = filesystem::open(ctx, path) {
-                sound_manager.set_sample_params_from_file(i, file)?;
-                continue;
-            }
-
-            let path = format!("{}/PixTone/{:03}.pxt", base_path, i);
-            if let Ok(file) = filesystem::open(ctx, path) {
+            if let Ok(file) = filesystem::open_find(ctx, &constants.base_paths, path) {
                 sound_manager.set_sample_params_from_file(i, file)?;
                 continue;
             }
 
             let path = format!("/PixTone/{:03}.pxt", i);
-            if let Ok(file) = filesystem::open(ctx, path) {
+            if let Ok(file) = filesystem::open_find(ctx, &constants.base_paths, path) {
                 sound_manager.set_sample_params_from_file(i, file)?;
                 continue;
             }
@@ -269,7 +251,7 @@ impl SharedGameState {
             teleporter_slots: Vec::with_capacity(8),
             carets: Vec::with_capacity(32),
             touch_controls: TouchControls::new(),
-            base_path: base_path.to_owned(),
+            mod_path: None,
             npc_table: NPCTable::new(),
             npc_super_pos: (0, 0),
             npc_curly_target: (0, 0),
@@ -290,7 +272,7 @@ impl SharedGameState {
             menu_character: MenuCharacter::Quote,
             constants,
             font,
-            texture_set,
+            texture_set: TextureSet::new(),
             #[cfg(feature = "scripting-lua")]
             lua: LuaScriptingState::new(),
             sound_manager,
@@ -324,18 +306,45 @@ impl SharedGameState {
         }
     }
 
-    pub fn reload_textures(&mut self) {
-        let mut texture_set = TextureSet::new(&self.base_path);
+    pub fn reload_resources(&mut self, ctx: &mut Context) -> GameResult {
+        self.constants.rebuild_path_list(self.mod_path.clone(), self.season, &self.settings);
+        self.constants.load_csplus_tables(ctx)?;
+        self.constants.load_animated_faces(ctx)?;
+        let stages = StageData::load_stage_table(ctx, &self.constants.base_paths)?;
+        self.stages = stages;
 
-        if self.constants.is_cs_plus {
-            texture_set.apply_seasonal_content(self.season, &self.settings);
-        }
+        let npc_tbl = filesystem::open_find(ctx, &self.constants.base_paths, "/npc.tbl")?;
+        let npc_table = NPCTable::load_from(npc_tbl)?;
+        self.npc_table = npc_table;
 
-        self.texture_set = texture_set;
+        let head_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "/Head.tsc")?;
+        let head_script = TextScript::load_from(head_tsc, &self.constants)?;
+        self.textscript_vm.set_global_script(head_script);
+
+        let arms_item_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "/ArmsItem.tsc")?;
+        let arms_item_script = TextScript::load_from(arms_item_tsc, &self.constants)?;
+        self.textscript_vm.set_inventory_script(arms_item_script);
+
+        let stage_select_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "/StageSelect.tsc")?;
+        let stage_select_script = TextScript::load_from(stage_select_tsc, &self.constants)?;
+        self.textscript_vm.set_stage_select_script(stage_select_script);
+
+        let credit_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "/Credit.tsc")?;
+        let credit_script = CreditScript::load_from(credit_tsc, &self.constants)?;
+        self.creditscript_vm.set_script(credit_script);
+
+        self.texture_set.unload_all();
+
+        Ok(())
+    }
+
+    pub fn reload_graphics(&mut self) {
+        self.constants.rebuild_path_list(self.mod_path.clone(), self.season, &self.settings);
+        self.texture_set.unload_all();
     }
 
     pub fn graphics_reset(&mut self) {
-        self.reload_textures();
+        self.texture_set.unload_all();
     }
 
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {

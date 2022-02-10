@@ -69,7 +69,7 @@ impl Map {
 
     pub fn load_pxpack<R: io::Read>(
         mut map_data: R,
-        root: &str,
+        roots: &Vec<String>,
         data: &mut StageData,
         ctx: &mut Context,
     ) -> GameResult<Map> {
@@ -206,11 +206,13 @@ impl Map {
             )?;
         }
 
-        if let Ok(mut attrib_data) = filesystem::open(ctx, [root, "Stage/", &tileset_fg, ".pxa"].join("")) {
+        if let Ok(mut attrib_data) = filesystem::open_find(ctx, roots, ["/Stage/", &tileset_fg, ".pxa"].join("")) {
             if attrib_data.read_exact(&mut attrib).is_err() {
                 log::warn!("Map attribute data is shorter than 256 bytes!");
             }
-        } else if let Ok(mut attrib_data) = filesystem::open(ctx, [root, "Stage/", &tileset_fg, ".pxattr"].join("")) {
+        } else if let Ok(mut attrib_data) =
+            filesystem::open_find(ctx, roots, ["/Stage/", &tileset_fg, ".pxattr"].join(""))
+        {
             attrib_data.read_exact(&mut magic)?;
 
             if &magic != b"pxMAP01\0" {
