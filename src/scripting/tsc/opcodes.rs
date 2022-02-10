@@ -149,15 +149,15 @@ pub enum TSCOpCode {
     /// <TAMxxxx:yyyy:zzzz, Trades weapon xxxx for weapon yyyy with zzzz ammo
     TAM,
 
-    /// <UNJxxxx, Jumps to event xxxx if no damage has been taken
+    /// <UNJxxxx:yyyy, Jumps to event yyyy if movement mode is equal to xxxx
     UNJ,
-    /// <NCJxxxx:yyyy, Jumps to event xxxx if NPC of type yyyy is alive
+    /// <NCJxxxx:yyyy, Jumps to event yyyy if NPC of type xxxx is alive
     NCJ,
-    /// <ECJxxxx:yyyy, Jumps to event xxxx if NPC tagged with event yyyy is alive
+    /// <ECJxxxx:yyyy, Jumps to event yyyy if NPC tagged with event xxxx is alive
     ECJ,
     /// <FLJxxxx:yyyy, Jumps to event yyyy if flag xxxx is set
     FLJ,
-    /// <FLJxxxx:yyyy, Jumps to event xxxx if player has item yyyy
+    /// <FLJxxxx:yyyy, Jumps to event yyyy if player has item xxxx
     ITJ,
     /// <MPJxxxx, Jumps to event xxxx if map flag for current stage is set
     MPJ,

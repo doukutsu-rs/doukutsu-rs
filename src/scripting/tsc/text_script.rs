@@ -11,8 +11,8 @@ use std::rc::Rc;
 use num_traits::{clamp, FromPrimitive};
 
 use crate::bitfield;
-use crate::common::Direction::{Left, Right};
 use crate::common::{Direction, FadeDirection, FadeState, Rect};
+use crate::common::Direction::{Left, Right};
 use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::frame::UpdateTarget;
@@ -790,6 +790,16 @@ impl TextScriptVM {
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
+            TSCOpCode::HM2 => {
+                let player = match state.textscript_vm.executor_player {
+                    TargetPlayer::Player1 => &mut game_scene.player1,
+                    TargetPlayer::Player2 => &mut game_scene.player2,
+                };
+
+                player.cond.set_hidden(true);
+
+                exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+            }
             TSCOpCode::WAI => {
                 let ticks = read_cur_varint(&mut cursor)? as u16;
 
@@ -1051,6 +1061,16 @@ impl TextScriptVM {
                     16,
                     ConfirmSelection::Yes,
                 );
+            }
+            TSCOpCode::UNJ => {
+                let mode = read_cur_varint(&mut cursor)?;
+                let event_num = read_cur_varint(&mut cursor)? as u16;
+
+                exec_state = if game_scene.player1.control_mode as i32 == mode {
+                    TextScriptExecutionState::Running(event_num, cursor.position() as u32)
+                } else {
+                    TextScriptExecutionState::Running(event, cursor.position() as u32)
+                };
             }
             TSCOpCode::NUM => {
                 let index = read_cur_varint(&mut cursor)? as usize;
@@ -1672,18 +1692,21 @@ impl TextScriptVM {
             TSCOpCode::MLP => {
                 exec_state = TextScriptExecutionState::MapSystem;
             }
-            // unimplemented opcodes
-            // Zero operands
-            TSCOpCode::KE2 | TSCOpCode::FR2 | TSCOpCode::HM2 => {
-                log::warn!("unimplemented opcode: {:?}", op);
-
+            TSCOpCode::KE2 => {
+                state.control_flags.set_tick_world(true);
+                state.control_flags.set_ok_button_disabled(true);
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
-            // One operand codes
-            TSCOpCode::UNJ | TSCOpCode::ACH => {
-                let par_a = read_cur_varint(&mut cursor)?;
+            TSCOpCode::FR2 => {
+                state.control_flags.set_tick_world(true);
+                state.control_flags.set_ok_button_disabled(false);
+                exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+            }
+            TSCOpCode::ACH => {
+                // todo: any idea for any practical purpose of that opcode?
+                let idx = read_cur_varint(&mut cursor)?;
 
-                log::warn!("unimplemented opcode: {:?} {}", op, par_a);
+                log::info!("achievement get: {}", idx);
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }

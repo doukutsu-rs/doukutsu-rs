@@ -123,7 +123,10 @@ bitfield! {
     pub control_enabled, set_control_enabled: 1; // 0x02
     pub interactions_disabled, set_interactions_disabled: 2; // 0x04
     pub credits_running, set_credits_running: 3; // 0x08
-
+    // cs+ switch specific, according to peri:
+    // Flag 0x10 prevents the OK button from restarting the item description event (resets when the cursor is moved)
+    // (it does not prevent the cancel button from exiting the inventory, however)
+    pub ok_button_disabled, set_ok_button_disabled: 4; // 0x10
     // engine specific flags
     pub friendly_fire, set_friendly_fire: 14;
 }
