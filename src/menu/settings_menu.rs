@@ -126,9 +126,16 @@ impl SettingsMenu {
 
         soundtrack_entries.sort();
 
-        for soundtrack in soundtrack_entries {
-            self.soundtrack.push_entry(MenuEntry::Active(soundtrack));
+        for soundtrack in &soundtrack_entries {
+            self.soundtrack.push_entry(MenuEntry::Active(soundtrack.to_string()));
         }
+
+        self.soundtrack.width = soundtrack_entries
+            .into_iter()
+            .map(|str| state.font.text_width(str.chars(), &state.constants))
+            .max_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap())
+            .unwrap_or(self.soundtrack.width as f32) as u16
+            + 32;
 
         self.soundtrack.push_entry(MenuEntry::Active("< Back".to_owned()));
 
