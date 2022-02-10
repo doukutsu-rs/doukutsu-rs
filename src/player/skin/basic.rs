@@ -85,16 +85,17 @@ pub struct BasicPlayerSkin {
 
 impl BasicPlayerSkin {
     pub fn new(texture_name: String, state: &SharedGameState, ctx: &mut Context) -> BasicPlayerSkin {
-        let metapath = format!("{}/{}.dskinmeta", state.base_path, texture_name);
         let mut metadata = DEFAULT_SKINMETA.clone();
 
-        if let Ok(file) = filesystem::open(ctx, metapath) {
+        let meta_path = format!("/{}.dskinmeta", texture_name);
+
+        if let Ok(file) = filesystem::open_find(ctx, &state.constants.base_paths, &meta_path) {
             match serde_json::from_reader::<File, SkinMeta>(file) {
                 Ok(meta) if SUPPORTED_SKINMETA_VERSIONS.contains(&meta.version) => {
                     metadata = meta;
                 }
                 Ok(meta) => {
-                    log::warn!("Unsupported skin metadata file version: {}", meta.version);
+                    log::warn!("{}: Unsupported skin metadata file version: {}", meta_path, meta.version);
                 }
                 Err(err) => {
                     log::warn!("Failed to load skin metadata file: {:?}", err);

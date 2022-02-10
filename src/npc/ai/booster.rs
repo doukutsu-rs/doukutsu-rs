@@ -53,6 +53,7 @@ impl NPC {
                     // interpolation glitch fix
                     self.prev_x = self.x;
                     self.prev_y = self.y;
+                    state.sound_manager.play_sfx(29);
                 }
 
                 self.action_counter += 1;

@@ -87,13 +87,13 @@ impl NPC {
                 }
 
                 self.anim_num = 7;
-                self.vel_x = self.direction.vector_x() * 0x200;
+                self.vel_x = self.direction.vector_x() * -0x200;
                 self.vel_y += 0x40;
 
-                self.action_counter += 1;
                 if self.action_counter > 0 && self.flags.hit_bottom_wall() {
                     self.action_num = 32;
                 }
+                self.action_counter += 1;
             }
             32 => {
                 self.vel_x = 0;
@@ -708,7 +708,7 @@ impl NPC {
                             bullet_manager.create_bullet(
                                 self.x + 0x400,
                                 self.y - 0x800,
-                                12,
+                                6,
                                 TargetPlayer::Player1,
                                 Direction::Up,
                                 &state.constants,
@@ -718,7 +718,7 @@ impl NPC {
                             bullet_manager.create_bullet(
                                 self.x - 0x400,
                                 self.y - 0x800,
-                                12,
+                                6,
                                 TargetPlayer::Player1,
                                 Direction::Up,
                                 &state.constants,
@@ -729,7 +729,7 @@ impl NPC {
                         bullet_manager.create_bullet(
                             self.x + 0x800,
                             self.y + 0x600,
-                            12,
+                            6,
                             TargetPlayer::Player1,
                             Direction::Right,
                             &state.constants,
@@ -739,7 +739,7 @@ impl NPC {
                         bullet_manager.create_bullet(
                             self.x - 0x800,
                             self.y + 0x600,
-                            12,
+                            6,
                             TargetPlayer::Player1,
                             Direction::Left,
                             &state.constants,

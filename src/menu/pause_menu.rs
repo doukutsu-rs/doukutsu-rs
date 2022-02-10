@@ -22,7 +22,7 @@ enum CurrentMenu {
 pub struct PauseMenu {
     is_paused: bool,
     current_menu: CurrentMenu,
-    option_menu: SettingsMenu,
+    settings_menu: SettingsMenu,
     controller: CombinedMenuController,
     pause_menu: Menu,
     confirm_menu: Menu,
@@ -36,7 +36,7 @@ impl PauseMenu {
         PauseMenu {
             is_paused: false,
             current_menu: CurrentMenu::PauseMenu,
-            option_menu: SettingsMenu::new(),
+            settings_menu: SettingsMenu::new(),
             controller: CombinedMenuController::new(),
             pause_menu: main,
             confirm_menu: Menu::new(0, 0, 75, 0),
@@ -62,7 +62,7 @@ impl PauseMenu {
 
         self.update_sizes(state);
 
-        self.option_menu.init(state, ctx)?;
+        self.settings_menu.init(state, ctx)?;
 
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
@@ -136,7 +136,7 @@ impl PauseMenu {
             },
             CurrentMenu::OptionsMenu => {
                 let cm = &mut self.current_menu;
-                self.option_menu.tick(
+                self.settings_menu.tick(
                     &mut || {
                         *cm = CurrentMenu::PauseMenu;
                     },
@@ -186,7 +186,7 @@ impl PauseMenu {
                     graphics::set_clip_rect(ctx, None)?;
                 }
                 CurrentMenu::OptionsMenu => {
-                    self.option_menu.draw(state, ctx)?;
+                    self.settings_menu.draw(state, ctx)?;
                 }
                 CurrentMenu::ConfirmMenu => {
                     graphics::set_clip_rect(ctx, Some(clip_rect))?;

@@ -2,6 +2,7 @@ use std::fmt;
 use std::io;
 use std::io::SeekFrom;
 use std::path;
+use std::path::PathBuf;
 
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
@@ -73,10 +74,7 @@ impl Filesystem {
         // User data VFS.
         let user_overlay = vfs::OverlayFS::new();
 
-        Filesystem {
-            vfs: overlay,
-            user_vfs: user_overlay,
-        }
+        Filesystem { vfs: overlay, user_vfs: user_overlay }
     }
 
     /// Opens the given `path` and returns the resulting `File`
@@ -96,12 +94,9 @@ impl Filesystem {
     /// Note that even if you open a file read-write, it can only
     /// write to files in the "user" directory.
     pub(crate) fn open_options<P: AsRef<path::Path>>(&self, path: P, options: OpenOptions) -> GameResult<File> {
-        self.user_vfs
-            .open_options(path.as_ref(), options)
-            .map(|f| File::VfsFile(f))
-            .map_err(|e| {
-                GameError::ResourceLoadError(format!("Tried to open {:?} but got error: {:?}", path.as_ref(), e))
-            })
+        self.user_vfs.open_options(path.as_ref(), options).map(|f| File::VfsFile(f)).map_err(|e| {
+            GameError::ResourceLoadError(format!("Tried to open {:?} but got error: {:?}", path.as_ref(), e))
+        })
     }
 
     /// Creates a new file in the user directory and opens it
@@ -140,10 +135,7 @@ impl Filesystem {
 
     /// Check whether a path points at a file.
     pub(crate) fn user_is_file<P: AsRef<path::Path>>(&self, path: P) -> bool {
-        self.user_vfs
-            .metadata(path.as_ref())
-            .map(|m| m.is_file())
-            .unwrap_or(false)
+        self.user_vfs.metadata(path.as_ref()).map(|m| m.is_file()).unwrap_or(false)
     }
 
     /// Check whether a path points at a file.
@@ -153,10 +145,7 @@ impl Filesystem {
 
     /// Check whether a path points at a directory.
     pub(crate) fn user_is_dir<P: AsRef<path::Path>>(&self, path: P) -> bool {
-        self.user_vfs
-            .metadata(path.as_ref())
-            .map(|m| m.is_dir())
-            .unwrap_or(false)
+        self.user_vfs.metadata(path.as_ref()).map(|m| m.is_dir()).unwrap_or(false)
     }
 
     /// Check whether a path points at a directory.
@@ -240,6 +229,23 @@ pub fn open<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult<File> {
     ctx.filesystem.open(path)
 }
 
+pub fn open_find<P: AsRef<path::Path>>(ctx: &Context, roots: &Vec<String>, path: P) -> GameResult<File> {
+    let mut errors = Vec::new();
+    for root in roots {
+        let mut full_path = root.to_string();
+        full_path.push_str(path.as_ref().to_string_lossy().as_ref());
+
+        let result = ctx.filesystem.open(&full_path);
+        if result.is_ok() {
+            return result;
+        }
+
+        errors.push((PathBuf::from(full_path), result.err().unwrap()));
+    }
+
+    Err(GameError::ResourceNotFound("File not found".to_owned(), errors))
+}
+
 /// Opens the given path in the user directory and returns the resulting `File`
 /// in read-only mode.
 pub fn user_open<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult<File> {
@@ -305,6 +311,20 @@ pub fn user_read_dir<P: AsRef<path::Path>>(
 pub fn exists<P: AsRef<path::Path>>(ctx: &Context, path: P) -> bool {
     ctx.filesystem.exists(path.as_ref())
 }
+
+pub fn exists_find<P: AsRef<path::Path>>(ctx: &Context, roots: &Vec<String>, path: P) -> bool {
+    for root in roots {
+        let mut full_path = root.to_string();
+        full_path.push_str(path.as_ref().to_string_lossy().as_ref());
+
+        if ctx.filesystem.exists(full_path) {
+            return true;
+        }
+    }
+
+    false
+}
+
 
 /// Check whether a path points at a file.
 pub fn is_file<P: AsRef<path::Path>>(ctx: &Context, path: P) -> bool {

@@ -71,7 +71,7 @@ impl EditorScene {
             }
 
             if let Some(stage) = state.stages.get(stage_id) {
-                let stage = Stage::load(&state.base_path, stage, ctx)?;
+                let stage = Stage::load(&state.constants.base_paths, stage, ctx)?;
 
                 let new_instance = EditorInstance::new(stage_id, stage);
                 self.instances.push(new_instance);

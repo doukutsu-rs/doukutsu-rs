@@ -16,4 +16,5 @@ pub mod keyboard;
 #[cfg(feature = "render-opengl")]
 pub mod render_opengl;
 pub mod ui;
+pub mod util;
 pub mod vfs;

@@ -16,25 +16,24 @@ pub struct BMFontRenderer {
 }
 
 impl BMFontRenderer {
-    pub fn load(root: &str, desc_path: &str, ctx: &mut Context) -> GameResult<BMFontRenderer> {
-        let root = PathBuf::from(root);
-        let full_path = &root.join(PathBuf::from(desc_path));
+    pub fn load(roots: &Vec<String>, desc_path: &str, ctx: &mut Context) -> GameResult<BMFontRenderer> {
+        let full_path = PathBuf::from(desc_path);
         let desc_stem =
             full_path.file_stem().ok_or_else(|| ResourceLoadError("Cannot extract the file stem.".to_owned()))?;
-        let stem = full_path.parent().unwrap_or(full_path).join(desc_stem);
+        let stem = full_path.parent().unwrap_or(&full_path).join(desc_stem);
 
-        let font = BMFont::load_from(filesystem::open(ctx, &full_path)?)?;
+        let font = BMFont::load_from(filesystem::open_find(ctx, roots, &full_path)?)?;
         let mut pages = Vec::new();
 
         let (zeros, _, _) = FILE_TYPES
             .iter()
             .map(|ext| (1, ext, format!("{}_0{}", stem.to_string_lossy(), ext)))
-            .find(|(_, _, path)| filesystem::exists(ctx, &path))
+            .find(|(_, _, path)| filesystem::exists_find(ctx, roots, &path))
             .or_else(|| {
                 FILE_TYPES
                     .iter()
                     .map(|ext| (2, ext, format!("{}_00{}", stem.to_string_lossy(), ext)))
-                    .find(|(_, _, path)| filesystem::exists(ctx, &path))
+                    .find(|(_, _, path)| filesystem::exists_find(ctx, roots, &path))
             })
             .ok_or_else(|| ResourceLoadError(format!("Cannot find glyph atlas 0 for font: {:?}", desc_path)))?;
 
@@ -164,7 +163,7 @@ impl BMFontRenderer {
                 let batch = texture_set.get_or_load_batch(ctx, constants, page_tex)?;
                 let mut offset_x = x;
 
-                for (chr, glyph) in chars.iter() {
+                for (_chr, glyph) in chars.iter() {
                     if glyph.page == page {
                         batch.add_rect_scaled_tinted(
                             offset_x + (glyph.xoffset as f32 * constants.font_scale),

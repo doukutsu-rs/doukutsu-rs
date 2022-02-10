@@ -3,12 +3,12 @@ use std::any::Any;
 use std::cell::{RefCell, UnsafeCell};
 use std::ffi::c_void;
 use std::ops::Deref;
-use std::ptr::null_mut;
+use std::ptr::{null, null_mut};
 use std::rc::Rc;
 use std::time::Duration;
 
 use imgui::internal::RawWrapper;
-use imgui::{ConfigFlags, DrawCmd, DrawData, Key, MouseCursor, TextureId, Ui};
+use imgui::{ConfigFlags, DrawCmd, DrawData, DrawIdx, DrawVert, Key, MouseCursor, TextureId, Ui};
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Scancode;
 use sdl2::mouse::{Cursor, SystemCursor};
@@ -486,7 +486,7 @@ impl BackendRenderer for SDL2Renderer {
                 let sdl2_texture = texture
                     .as_any()
                     .downcast_ref::<SDL2Texture>()
-                    .ok_or(RenderError("This texture was not created by OpenGL backend.".to_string()))?;
+                    .ok_or(RenderError("This texture was not created by SDL2 backend.".to_string()))?;
 
                 unsafe {
                     if let Some(target) = &sdl2_texture.texture {
@@ -621,107 +621,28 @@ impl BackendRenderer for SDL2Renderer {
                             (cmd_params.clip_rect[3] - cmd_params.clip_rect[1]) as u32,
                         )));
 
+                        let vtx_buffer = draw_list.vtx_buffer();
                         let idx_buffer = draw_list.idx_buffer();
-                        let mut vert_x = [0i16; 6];
-                        let mut vert_y = [0i16; 6];
-                        let mut min = [0f32; 2];
-                        let mut max = [0f32; 2];
-                        let mut tex_pos = [0f32; 4];
-                        let mut is_rect = false;
 
-                        for i in (0..count).step_by(3) {
-                            if is_rect {
-                                is_rect = false;
-                                continue;
-                            }
+                        let tex_ptr = cmd_params.texture_id.id() as *mut sdl2::sys::SDL_Texture;
 
-                            let v1 = draw_list.vtx_buffer()
-                                [cmd_params.vtx_offset + idx_buffer[cmd_params.idx_offset + i] as usize];
-                            let v2 = draw_list.vtx_buffer()
-                                [cmd_params.vtx_offset + idx_buffer[cmd_params.idx_offset + i + 1] as usize];
-                            let v3 = draw_list.vtx_buffer()
-                                [cmd_params.vtx_offset + idx_buffer[cmd_params.idx_offset + i + 2] as usize];
+                        unsafe {
+                            let v0 = vtx_buffer.get_unchecked(cmd_params.vtx_offset);
 
-                            vert_x[0] = (v1.pos[0] - 0.5) as i16;
-                            vert_y[0] = (v1.pos[1] - 0.5) as i16;
-                            vert_x[1] = (v2.pos[0] - 0.5) as i16;
-                            vert_y[1] = (v2.pos[1] - 0.5) as i16;
-                            vert_x[2] = (v3.pos[0] - 0.5) as i16;
-                            vert_y[2] = (v3.pos[1] - 0.5) as i16;
-
-                            #[allow(clippy::float_cmp)]
-                            if i < count - 3 {
-                                let v4 = draw_list.vtx_buffer()
-                                    [cmd_params.vtx_offset + idx_buffer[cmd_params.idx_offset + i + 3] as usize];
-                                let v5 = draw_list.vtx_buffer()
-                                    [cmd_params.vtx_offset + idx_buffer[cmd_params.idx_offset + i + 4] as usize];
-                                let v6 = draw_list.vtx_buffer()
-                                    [cmd_params.vtx_offset + idx_buffer[cmd_params.idx_offset + i + 5] as usize];
-
-                                min[0] = min3(v1.pos[0], v2.pos[0], v3.pos[0]);
-                                min[1] = min3(v1.pos[1], v2.pos[1], v3.pos[1]);
-                                max[0] = max3(v1.pos[0], v2.pos[0], v3.pos[0]);
-                                max[1] = max3(v1.pos[1], v2.pos[1], v3.pos[1]);
-
-                                is_rect = (v1.pos[0] == min[0] || v1.pos[0] == max[0])
-                                    && (v1.pos[1] == min[1] || v1.pos[1] == max[1])
-                                    && (v2.pos[0] == min[0] || v2.pos[0] == max[0])
-                                    && (v2.pos[1] == min[1] || v2.pos[1] == max[1])
-                                    && (v3.pos[0] == min[0] || v3.pos[0] == max[0])
-                                    && (v3.pos[1] == min[1] || v3.pos[1] == max[1])
-                                    && (v4.pos[0] == min[0] || v4.pos[0] == max[0])
-                                    && (v4.pos[1] == min[1] || v4.pos[1] == max[1])
-                                    && (v5.pos[0] == min[0] || v5.pos[0] == max[0])
-                                    && (v5.pos[1] == min[1] || v5.pos[1] == max[1])
-                                    && (v6.pos[0] == min[0] || v6.pos[0] == max[0])
-                                    && (v6.pos[1] == min[1] || v6.pos[1] == max[1]);
-
-                                if is_rect {
-                                    tex_pos[0] = min3(v1.uv[0], v2.uv[0], v3.uv[0]);
-                                    tex_pos[1] = min3(v1.uv[1], v2.uv[1], v3.uv[1]);
-                                    tex_pos[2] = max3(v1.uv[0], v2.uv[0], v3.uv[0]);
-                                    tex_pos[3] = max3(v1.uv[1], v2.uv[1], v3.uv[1]);
-                                }
-                            }
-
-                            let ptr = cmd_params.texture_id.id() as *mut sdl2::sys::SDL_Texture;
-                            if !ptr.is_null() {
-                                let mut surf = unsafe { refs.texture_creator.raw_create_texture(ptr) };
-                                let TextureQuery { width, height, .. } = surf.query();
-
-                                if is_rect {
-                                    let src = sdl2::rect::Rect::new(
-                                        (tex_pos[0] * width as f32) as i32,
-                                        (tex_pos[1] * height as f32) as i32,
-                                        ((tex_pos[2] - tex_pos[0]) * width as f32) as u32,
-                                        ((tex_pos[3] - tex_pos[1]) * height as f32) as u32,
-                                    );
-                                    let dest = sdl2::rect::Rect::new(
-                                        min[0] as i32,
-                                        min[1] as i32,
-                                        (max[0] - min[0]) as u32,
-                                        (max[1] - min[1]) as u32,
-                                    );
-
-                                    surf.set_color_mod(v1.col[0], v1.col[1], v1.col[2]);
-                                    surf.set_alpha_mod(v1.col[3]);
-
-                                    refs.canvas
-                                        .copy(&surf, src, dest)
-                                        .map_err(|e| GameError::RenderError(e.to_string()))?;
-                                } else {
-                                    /*sdl2::sys::gfx::primitives::filledPolygonRGBA(
-                                        refs.canvas.raw(),
-                                        vert_x.as_ptr(),
-                                        vert_y.as_ptr(),
-                                        3,
-                                        v1.col[0],
-                                        v1.col[1],
-                                        v1.col[2],
-                                        v1.col[3],
-                                    );*/
-                                }
-                            }
+                            sdl2_sys::SDL_RenderGeometryRaw(
+                                refs.canvas.raw(),
+                                tex_ptr,
+                                v0.pos.as_ptr(),
+                                mem::size_of::<DrawVert>() as _,
+                                v0.col.as_ptr() as *const _,
+                                mem::size_of::<DrawVert>() as _,
+                                v0.uv.as_ptr(),
+                                mem::size_of::<DrawVert>() as _,
+                                vtx_buffer.len().saturating_sub(cmd_params.vtx_offset) as i32,
+                                idx_buffer.as_ptr().add(cmd_params.idx_offset) as *const _,
+                                count as i32,
+                                mem::size_of::<DrawIdx>() as _,
+                            );
                         }
 
                         refs.canvas.set_clip_rect(None);
@@ -735,13 +656,46 @@ impl BackendRenderer for SDL2Renderer {
         Ok(())
     }
 
+    fn supports_vertex_draw(&self) -> bool {
+        true
+    }
+
     fn draw_triangle_list(
         &mut self,
-        _vertices: Vec<VertexData>,
-        _texture: Option<&Box<dyn BackendTexture>>,
-        _shader: BackendShader,
+        vertices: Vec<VertexData>,
+        mut texture: Option<&Box<dyn BackendTexture>>,
+        shader: BackendShader,
     ) -> GameResult<()> {
-        Err(GameError::RenderError("Unsupported operation".to_string()))
+        let mut refs = self.refs.borrow_mut();
+        if shader == BackendShader::Fill {
+            texture = None;
+        }
+
+        let texture_ptr = if let Some(texture) = texture {
+            texture
+                .as_any()
+                .downcast_ref::<SDL2Texture>()
+                .ok_or(RenderError("This texture was not created by SDL2 backend.".to_string()))?
+                .texture
+                .as_ref()
+                .map_or(null_mut(), |t| t.raw())
+        } else {
+            null_mut::<sdl2_sys::SDL_Texture>()
+        };
+
+        unsafe {
+            // potential danger: we assume that the layout of VertexData is the same as SDL_Vertex
+            sdl2_sys::SDL_RenderGeometry(
+                refs.canvas.raw(),
+                texture_ptr,
+                vertices.as_ptr() as *const sdl2_sys::SDL_Vertex,
+                vertices.len() as i32,
+                null(),
+                0,
+            );
+        }
+
+        Ok(())
     }
 }
 

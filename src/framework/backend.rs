@@ -11,8 +11,8 @@ use crate::Game;
 #[derive(Copy, Clone)]
 pub struct VertexData {
     pub position: (f32, f32),
-    pub uv: (f32, f32),
     pub color: (u8, u8, u8, u8),
+    pub uv: (f32, f32),
 }
 
 #[derive(Copy, Clone, PartialEq)]

@@ -213,7 +213,6 @@ impl TextScript {
             | TSCOpCode::ITp
             | TSCOpCode::ITm
             | TSCOpCode::AMm
-            | TSCOpCode::UNJ
             | TSCOpCode::MPJ
             | TSCOpCode::YNJ
             | TSCOpCode::EVE
@@ -241,6 +240,7 @@ impl TextScript {
             | TSCOpCode::ITJ
             | TSCOpCode::SKJ
             | TSCOpCode::AMJ
+            | TSCOpCode::UNJ
             | TSCOpCode::SMP
             | TSCOpCode::PSp
             | TSCOpCode::IpN

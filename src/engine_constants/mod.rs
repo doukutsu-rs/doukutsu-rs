@@ -12,6 +12,8 @@ use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::player::ControlMode;
 use crate::scripting::tsc::text_script::TextScriptEncoding;
+use crate::settings::Settings;
+use crate::shared_game_state::Season;
 use crate::sound::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
 use crate::sound::SoundManager;
 
@@ -276,6 +278,7 @@ impl Clone for TitleConsts {
 
 #[derive(Debug)]
 pub struct EngineConstants {
+    pub base_paths: Vec<String>,
     pub is_cs_plus: bool,
     pub is_switch: bool,
     pub supports_og_textures: bool,
@@ -303,6 +306,7 @@ pub struct EngineConstants {
 impl Clone for EngineConstants {
     fn clone(&self) -> EngineConstants {
         EngineConstants {
+            base_paths: self.base_paths.clone(),
             is_cs_plus: self.is_cs_plus,
             is_switch: self.is_switch,
             supports_og_textures: self.supports_og_textures,
@@ -332,6 +336,7 @@ impl Clone for EngineConstants {
 impl EngineConstants {
     pub fn defaults() -> Self {
         EngineConstants {
+            base_paths: Vec::new(),
             is_cs_plus: false,
             is_switch: false,
             supports_og_textures: false,
@@ -1664,15 +1669,38 @@ impl EngineConstants {
         self.game.tile_offset_x = 3;
     }
 
+    pub fn rebuild_path_list(&mut self, mod_path: Option<String>, season: Season, settings: &Settings) {
+        self.base_paths.clear();
+        self.base_paths.push("/".to_owned());
+
+        if self.is_cs_plus {
+            self.base_paths.insert(0, "/base/".to_owned());
+
+            if settings.original_textures {
+                self.base_paths.insert(0, "/base/ogph/".to_string())
+            } else if settings.seasonal_textures {
+                match season {
+                    Season::Halloween => self.base_paths.insert(0, "/Halloween/season/".to_string()),
+                    Season::Christmas => self.base_paths.insert(0, "/Christmas/season/".to_string()),
+                    _ => {}
+                }
+            }
+        }
+
+        if let Some(mod_path) = mod_path {
+            self.base_paths.insert(0, mod_path);
+        }
+    }
+
     pub fn apply_constant_json_files(&mut self) {}
 
     /// Loads bullet.tbl and arms_level.tbl from CS+ files,
     /// even though they match vanilla 1:1, we should load them for completeness
     /// or if any crazy person uses it for a CS+ mod...
     pub fn load_csplus_tables(&mut self, ctx: &mut Context) -> GameResult {
-        if filesystem::exists(ctx, "/base/bullet.tbl") {
+        if let Ok(mut file) = filesystem::open_find(ctx, &self.base_paths, "/bullet.tbl") {
             let mut data = Vec::new();
-            filesystem::open(ctx, "/base/bullet.tbl")?.read_to_end(&mut data)?;
+            file.read_to_end(&mut data)?;
             let bullets = data.len() / 0x2A;
             let mut f = Cursor::new(data);
 
@@ -1699,13 +1727,11 @@ impl EngineConstants {
 
             self.weapon.bullet_table = new_bullet_table;
             log::info!("Loaded bullet.tbl.");
-        } else {
-            log::warn!("CS+ bullet.tbl not found.");
         }
 
-        if filesystem::exists(ctx, "/base/arms_level.tbl") {
+        if let Ok(mut file) = filesystem::open_find(ctx, &self.base_paths, "/arms_level.tbl") {
             let mut data = Vec::new();
-            filesystem::open(ctx, "/base/arms_level.tbl")?.read_to_end(&mut data)?;
+            file.read_to_end(&mut data)?;
             let mut f = Cursor::new(data);
 
             let mut new_level_table = EngineConstants::defaults().weapon.level_table;
@@ -1718,8 +1744,6 @@ impl EngineConstants {
 
             self.weapon.level_table = new_level_table;
             log::info!("Loaded arms_level.tbl.");
-        } else {
-            log::warn!("CS+ arms_level.tbl not found.")
         }
 
         Ok(())
@@ -1728,8 +1752,9 @@ impl EngineConstants {
     /// Load in the `faceanm.dat` file that details the Switch extensions to the <FAC command
     /// It's actually a text file, go figure
     pub fn load_animated_faces(&mut self, ctx: &mut Context) -> GameResult {
-        if filesystem::exists(ctx, "/base/faceanm.dat") {
-            let file = filesystem::open(ctx, "/base/faceanm.dat")?;
+        self.animated_face_table.clear();
+
+        if let Ok(mut file) = filesystem::open_find(ctx, &self.base_paths, "/faceanm.dat") {
             let buf = BufReader::new(file);
             let mut face_id = 1;
             let mut anim_id = 0;

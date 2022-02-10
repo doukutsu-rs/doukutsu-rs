@@ -1,5 +1,8 @@
+use itertools::Itertools;
+
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::framework::filesystem;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
@@ -13,6 +16,7 @@ enum CurrentMenu {
     MainMenu,
     GraphicsMenu,
     SoundMenu,
+    SoundtrackMenu,
 }
 
 pub struct SettingsMenu {
@@ -20,6 +24,8 @@ pub struct SettingsMenu {
     main: Menu,
     graphics: Menu,
     sound: Menu,
+    soundtrack: Menu,
+    pub on_title: bool,
 }
 
 static DISCORD_LINK: &str = "https://discord.gg/fbRsNNB";
@@ -29,8 +35,9 @@ impl SettingsMenu {
         let main = Menu::new(0, 0, 220, 0);
         let graphics = Menu::new(0, 0, 180, 0);
         let sound = Menu::new(0, 0, 260, 0);
+        let soundtrack = Menu::new(0, 0, 260, 0);
 
-        SettingsMenu { current: CurrentMenu::MainMenu, main, graphics, sound }
+        SettingsMenu { current: CurrentMenu::MainMenu, main, graphics, sound, soundtrack, on_title: false }
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -40,9 +47,14 @@ impl SettingsMenu {
             .push_entry(MenuEntry::Toggle("Motion interpolation:".to_string(), state.settings.motion_interpolation));
         self.graphics.push_entry(MenuEntry::Toggle("Subpixel scrolling:".to_string(), state.settings.subpixel_coords));
 
+        // NS version uses two different maps, therefore we can't dynamically switch between graphics presets.
         if state.constants.supports_og_textures {
-            self.graphics
-                .push_entry(MenuEntry::Toggle("Original textures".to_string(), state.settings.original_textures));
+            if !state.constants.is_switch || self.on_title {
+                self.graphics
+                    .push_entry(MenuEntry::Toggle("Original textures".to_string(), state.settings.original_textures));
+            } else {
+                self.graphics.push_entry(MenuEntry::Disabled("Original textures".to_string()));
+            }
         } else {
             self.graphics.push_entry(MenuEntry::Hidden);
         }
@@ -83,7 +95,7 @@ impl SettingsMenu {
                 "Linear".to_owned(),
                 "Cosine".to_owned(),
                 "Cubic".to_owned(),
-                "Polyphase".to_owned(),
+                "Linear+LP".to_owned(),
             ],
             vec![
                 "(Fastest, lowest quality)".to_owned(),
@@ -94,8 +106,31 @@ impl SettingsMenu {
             ],
         ));
         self.sound.push_entry(MenuEntry::DisabledWhite("".to_owned()));
-        self.sound.push_entry(MenuEntry::Disabled(format!("Soundtrack: {}", state.settings.soundtrack)));
+        self.sound.push_entry(MenuEntry::Active(format!("Soundtrack: {}", state.settings.soundtrack)));
         self.sound.push_entry(MenuEntry::Active("< Back".to_owned()));
+
+        let mut soundtrack_entries = state.constants.soundtracks.keys().map(|s| s.to_owned()).collect_vec();
+        soundtrack_entries.push("Organya".to_owned());
+
+        if let Ok(dir) = filesystem::read_dir(ctx, "/Soundtracks/") {
+            for entry in dir {
+                if filesystem::is_dir(ctx, &entry) {
+                    let filename = entry.file_name().unwrap().to_string_lossy().to_string();
+
+                    if !soundtrack_entries.contains(&filename) {
+                        soundtrack_entries.push(filename);
+                    }
+                }
+            }
+        }
+
+        soundtrack_entries.sort();
+
+        for soundtrack in soundtrack_entries {
+            self.soundtrack.push_entry(MenuEntry::Active(soundtrack));
+        }
+
+        self.soundtrack.push_entry(MenuEntry::Active("< Back".to_owned()));
 
         self.update_sizes(state);
 
@@ -114,6 +149,10 @@ impl SettingsMenu {
         self.sound.update_height();
         self.sound.x = ((state.canvas_size.0 - self.sound.width as f32) / 2.0).floor() as isize;
         self.sound.y = 30 + ((state.canvas_size.1 - self.sound.height as f32) / 2.0).floor() as isize;
+
+        self.soundtrack.update_height();
+        self.soundtrack.x = ((state.canvas_size.0 - self.soundtrack.width as f32) / 2.0).floor() as isize;
+        self.soundtrack.y = ((state.canvas_size.1 - self.soundtrack.height as f32) / 2.0).floor() as isize;
     }
 
     pub fn tick(
@@ -193,7 +232,7 @@ impl SettingsMenu {
                 MenuSelectionResult::Selected(4, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.original_textures = !state.settings.original_textures;
-                        state.reload_textures();
+                        state.reload_resources(ctx)?;
                         let _ = state.settings.save(ctx);
 
                         *value = state.settings.original_textures;
@@ -202,7 +241,7 @@ impl SettingsMenu {
                 MenuSelectionResult::Selected(5, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.seasonal_textures = !state.settings.seasonal_textures;
-                        state.reload_textures();
+                        state.reload_graphics();
                         let _ = state.settings.save(ctx);
 
                         *value = state.settings.seasonal_textures;
@@ -249,11 +288,31 @@ impl SettingsMenu {
                         let _ = state.settings.save(ctx);
                     }
                 }
+                MenuSelectionResult::Selected(4, _) => self.current = CurrentMenu::SoundtrackMenu,
                 MenuSelectionResult::Selected(5, _) | MenuSelectionResult::Canceled => {
                     self.current = CurrentMenu::MainMenu
                 }
                 _ => (),
             },
+            CurrentMenu::SoundtrackMenu => {
+                let last = self.soundtrack.entries.len() - 1;
+                match self.soundtrack.tick(controller, state) {
+                    MenuSelectionResult::Selected(idx, entry) => {
+                        if let (true, MenuEntry::Active(name)) = (idx != last, entry) {
+                            state.settings.soundtrack = name.to_owned();
+                            self.sound.entries[4] =
+                                MenuEntry::Active(format!("Soundtrack: {}", state.settings.soundtrack));
+                            state.sound_manager.reload_songs(&state.constants, &state.settings, ctx)?;
+                        }
+
+                        self.current = CurrentMenu::SoundMenu;
+                    }
+                    MenuSelectionResult::Canceled => {
+                        self.current = CurrentMenu::SoundMenu;
+                    }
+                    _ => (),
+                }
+            }
         }
         Ok(())
     }
@@ -263,6 +322,7 @@ impl SettingsMenu {
             CurrentMenu::MainMenu => self.main.draw(state, ctx)?,
             CurrentMenu::GraphicsMenu => self.graphics.draw(state, ctx)?,
             CurrentMenu::SoundMenu => self.sound.draw(state, ctx)?,
+            CurrentMenu::SoundtrackMenu => self.soundtrack.draw(state, ctx)?,
         }
 
         Ok(())

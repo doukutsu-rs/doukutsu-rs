@@ -14,6 +14,7 @@ use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::map::{Map, NPCData};
 use crate::scripting::tsc::text_script::TextScript;
+use crate::GameError;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct NpcType {
@@ -274,20 +275,20 @@ fn from_shift_jis(s: &[u8]) -> String {
 }
 
 impl StageData {
-    pub fn load_stage_table(ctx: &mut Context, root: &str) -> GameResult<Vec<Self>> {
-        let stage_tbl_path = [root, "stage.tbl"].join("");
-        let stage_sect_path = [root, "stage.sect"].join("");
-        let mrmap_bin_path = [root, "mrmap.bin"].join("");
-        let stage_dat_path = [root, "stage.dat"].join("");
+    pub fn load_stage_table(ctx: &mut Context, roots: &Vec<String>) -> GameResult<Vec<Self>> {
+        let stage_tbl_path = "/stage.tbl";
+        let stage_sect_path = "/stage.sect";
+        let mrmap_bin_path = "/mrmap.bin";
+        let stage_dat_path = "/stage.dat";
 
-        if filesystem::exists(ctx, &stage_tbl_path) {
+        if let Ok(mut file) = filesystem::open_find(ctx, roots, stage_tbl_path) {
             // Cave Story+ stage table.
             let mut stages = Vec::new();
 
             info!("Loading Cave Story+ stage table from {}", &stage_tbl_path);
 
             let mut data = Vec::new();
-            filesystem::open(ctx, stage_tbl_path)?.read_to_end(&mut data)?;
+            file.read_to_end(&mut data)?;
 
             let count = data.len() / 0xe5;
             let mut f = Cursor::new(data);
@@ -333,14 +334,14 @@ impl StageData {
             }
 
             return Ok(stages);
-        } else if filesystem::exists(ctx, &stage_sect_path) {
+        } else if let Ok(mut file) = filesystem::open_find(ctx, roots, stage_sect_path) {
             // Cave Story freeware executable dump.
             let mut stages = Vec::new();
 
             info!("Loading Cave Story freeware exe dump stage table from {}", &stage_sect_path);
 
             let mut data = Vec::new();
-            filesystem::open(ctx, stage_sect_path)?.read_to_end(&mut data)?;
+            file.read_to_end(&mut data)?;
 
             let count = data.len() / 0xc8;
             let mut f = Cursor::new(data);
@@ -389,17 +390,16 @@ impl StageData {
             }
 
             return Ok(stages);
-        } else if filesystem::exists(ctx, &mrmap_bin_path) {
+        } else if let Ok(mut file) = filesystem::open_find(ctx, roots, mrmap_bin_path) {
             // Moustache Rider stage table
             let mut stages = Vec::new();
 
             info!("Loading Moustache Rider stage table from {}", &mrmap_bin_path);
 
             let mut data = Vec::new();
-            let mut fh = filesystem::open(ctx, &mrmap_bin_path)?;
 
-            let count = fh.read_u32::<LE>()?;
-            fh.read_to_end(&mut data)?;
+            let count = file.read_u32::<LE>()?;
+            file.read_to_end(&mut data)?;
 
             if data.len() < count as usize * 0x74 {
                 return Err(ResourceLoadError(
@@ -448,16 +448,15 @@ impl StageData {
             }
 
             return Ok(stages);
-        } else if filesystem::exists(ctx, &stage_dat_path) {
+        } else if let Ok(mut file) = filesystem::open_find(ctx, roots, stage_dat_path) {
             let mut stages = Vec::new();
 
             info!("Loading NXEngine stage table from {}", &stage_dat_path);
 
             let mut data = Vec::new();
-            let mut fh = filesystem::open(ctx, &stage_dat_path)?;
 
-            let count = fh.read_u8()? as usize;
-            fh.read_to_end(&mut data)?;
+            let count = file.read_u8()? as usize;
+            file.read_to_end(&mut data)?;
 
             if data.len() < count * 0x49 {
                 return Err(ResourceLoadError(
@@ -518,40 +517,41 @@ pub struct Stage {
 }
 
 impl Stage {
-    pub fn load(root: &str, data: &StageData, ctx: &mut Context) -> GameResult<Self> {
+    pub fn load(roots: &Vec<String>, data: &StageData, ctx: &mut Context) -> GameResult<Self> {
         let mut data = data.clone();
 
-        if let Ok(pxpack_file) = filesystem::open(ctx, [root, "Stage/", &data.map, ".pxpack"].join("")) {
-            let map = Map::load_pxpack(pxpack_file, root, &mut data, ctx)?;
+        if let Ok(pxpack_file) = filesystem::open_find(ctx, roots, ["/Stage/", &data.map, ".pxpack"].join("")) {
+            let map = Map::load_pxpack(pxpack_file, roots, &mut data, ctx)?;
             let stage = Self { map, data };
 
-            Ok(stage)
-        } else {
-            let map_file = filesystem::open(ctx, [root, "Stage/", &data.map, ".pxm"].join(""))?;
-            let attrib_file = filesystem::open(ctx, [root, "Stage/", &data.tileset.name, ".pxa"].join(""))?;
+            return Ok(stage);
+        } else if let Ok(map_file) = filesystem::open_find(ctx, roots, ["/Stage/", &data.map, ".pxm"].join("")) {
+            let attrib_file = filesystem::open_find(ctx, roots, ["/Stage/", &data.tileset.name, ".pxa"].join(""))?;
 
             let map = Map::load_pxm(map_file, attrib_file)?;
 
             let stage = Self { map, data };
 
-            Ok(stage)
+            return Ok(stage);
         }
+
+        Err(GameError::ResourceLoadError(format!("Stage {} not found", data.map)))
     }
 
     pub fn load_text_script(
         &self,
-        root: &str,
+        roots: &Vec<String>,
         constants: &EngineConstants,
         ctx: &mut Context,
     ) -> GameResult<TextScript> {
-        let tsc_file = filesystem::open(ctx, [root, "Stage/", &self.data.map, ".tsc"].join(""))?;
+        let tsc_file = filesystem::open_find(ctx, roots, ["/Stage/", &self.data.map, ".tsc"].join(""))?;
         let text_script = TextScript::load_from(tsc_file, constants)?;
 
         Ok(text_script)
     }
 
-    pub fn load_npcs(&self, root: &str, ctx: &mut Context) -> GameResult<Vec<NPCData>> {
-        let pxe_file = filesystem::open(ctx, [root, "Stage/", &self.data.map, ".pxe"].join(""))?;
+    pub fn load_npcs(&self, roots: &Vec<String>, ctx: &mut Context) -> GameResult<Vec<NPCData>> {
+        let pxe_file = filesystem::open_find(ctx, roots, ["/Stage/", &self.data.map, ".pxe"].join(""))?;
         let npc_data = NPCData::load_from(pxe_file)?;
 
         Ok(npc_data)

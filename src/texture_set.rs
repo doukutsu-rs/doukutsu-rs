@@ -6,7 +6,7 @@ use itertools::Itertools;
 use log::info;
 
 use crate::common;
-use crate::common::{Rect, FILE_TYPES};
+use crate::common::{FILE_TYPES, Rect};
 use crate::engine_constants::EngineConstants;
 use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
@@ -409,29 +409,16 @@ impl SpriteBatch for CombinedBatch {
 
 pub struct TextureSet {
     pub tex_map: HashMap<String, Box<dyn SpriteBatch>>,
-    pub paths: Vec<String>,
     dummy_batch: Box<dyn SpriteBatch>,
 }
 
 impl TextureSet {
-    pub fn new(base_path: &str) -> TextureSet {
-        TextureSet {
-            tex_map: HashMap::new(),
-            paths: vec![base_path.to_string(), "".to_string()],
-            dummy_batch: Box::new(DummyBatch),
-        }
+    pub fn new() -> TextureSet {
+        TextureSet { tex_map: HashMap::new(), dummy_batch: Box::new(DummyBatch) }
     }
 
-    pub fn apply_seasonal_content(&mut self, season: Season, settings: &Settings) {
-        if settings.original_textures {
-            self.paths.insert(0, "/base/ogph/".to_string())
-        } else if settings.seasonal_textures {
-            match season {
-                Season::Halloween => self.paths.insert(0, "/Halloween/season/".to_string()),
-                Season::Christmas => self.paths.insert(0, "/Christmas/season/".to_string()),
-                _ => {}
-            }
-        }
+    pub fn unload_all(&mut self) {
+        self.tex_map.clear();
     }
 
     fn make_transparent(rgba: &mut RgbaImage) {
@@ -442,10 +429,10 @@ impl TextureSet {
         }
     }
 
-    fn load_image(&self, ctx: &mut Context, path: &str) -> GameResult<Box<dyn BackendTexture>> {
+    fn load_image(&self, ctx: &mut Context,  roots: &Vec<String>, path: &str) -> GameResult<Box<dyn BackendTexture>> {
         let img = {
             let mut buf = [0u8; 8];
-            let mut reader = filesystem::open(ctx, path)?;
+            let mut reader = filesystem::open_find(ctx, roots,path)?;
             reader.read_exact(&mut buf)?;
             reader.seek(SeekFrom::Start(0))?;
 
@@ -461,10 +448,8 @@ impl TextureSet {
         create_texture(ctx, width as u16, height as u16, &img)
     }
 
-    pub fn find_texture(&self, ctx: &mut Context, name: &str) -> Option<String> {
-        self.paths.iter().find_map(|s| {
-            FILE_TYPES.iter().map(|ext| [s, name, ext].join("")).find(|path| filesystem::exists(ctx, path))
-        })
+    pub fn find_texture(&self, ctx: &mut Context, roots: &Vec<String>, name: &str) -> Option<String> {
+        FILE_TYPES.iter().map(|ext| [name, ext].join("")).find(|path| filesystem::exists_find(ctx, roots, path))
     }
 
     pub fn load_texture(
@@ -474,10 +459,10 @@ impl TextureSet {
         name: &str,
     ) -> GameResult<Box<dyn SpriteBatch>> {
         let path = self
-            .find_texture(ctx, name)
+            .find_texture(ctx, &constants.base_paths, name)
             .ok_or_else(|| GameError::ResourceLoadError(format!("Texture {} does not exist.", name)))?;
 
-        let glow_path = self.find_texture(ctx, &[name, ".glow"].join(""));
+        let glow_path = self.find_texture(ctx, &constants.base_paths, &[name, ".glow"].join(""));
 
         info!("Loading texture: {} -> {}", name, path);
 
@@ -500,9 +485,9 @@ impl TextureSet {
             }
         }
 
-        let main_batch = make_batch(name, constants, self.load_image(ctx, &path)?);
+        let main_batch = make_batch(name, constants, self.load_image(ctx, &constants.base_paths, &path)?);
         let glow_batch = if let Some(glow_path) = glow_path {
-            self.load_image(ctx, &glow_path).ok().map(|b| make_batch(name, constants, b))
+            self.load_image(ctx, &constants.base_paths, &glow_path).ok().map(|b| make_batch(name, constants, b))
         } else {
             None
         };

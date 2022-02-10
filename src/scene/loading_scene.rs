@@ -1,11 +1,12 @@
+use imgui::Ui;
+
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
+use crate::framework::ui::Components;
 use crate::npc::NPCTable;
 use crate::scene::no_data_scene::NoDataScene;
 use crate::scene::Scene;
-use crate::scripting::tsc::credit_script::CreditScript;
-use crate::scripting::tsc::text_script::TextScript;
 use crate::shared_game_state::SharedGameState;
 use crate::stage::StageData;
 
@@ -19,26 +20,7 @@ impl LoadingScene {
     }
 
     fn load_stuff(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let stages = StageData::load_stage_table(ctx, &state.base_path)?;
-        state.stages = stages;
-        let npc_tbl = filesystem::open(ctx, [&state.base_path, "/npc.tbl"].join(""))?;
-        let npc_table = NPCTable::load_from(npc_tbl)?;
-        state.npc_table = npc_table;
-        let head_tsc = filesystem::open(ctx, [&state.base_path, "/Head.tsc"].join(""))?;
-        let head_script = TextScript::load_from(head_tsc, &state.constants)?;
-        state.textscript_vm.set_global_script(head_script);
-
-        let arms_item_tsc = filesystem::open(ctx, [&state.base_path, "/ArmsItem.tsc"].join(""))?;
-        let arms_item_script = TextScript::load_from(arms_item_tsc, &state.constants)?;
-        state.textscript_vm.set_inventory_script(arms_item_script);
-
-        let stage_select_tsc = filesystem::open(ctx, [&state.base_path, "/StageSelect.tsc"].join(""))?;
-        let stage_select_script = TextScript::load_from(stage_select_tsc, &state.constants)?;
-        state.textscript_vm.set_stage_select_script(stage_select_script);
-
-        let credit_tsc = filesystem::open(ctx, [&state.base_path, "/Credit.tsc"].join(""))?;
-        let credit_script = CreditScript::load_from(credit_tsc, &state.constants)?;
-        state.creditscript_vm.set_script(credit_script);
+        state.reload_resources(ctx)?;
 
         if ctx.headless {
             log::info!("Headless mode detected, skipping intro and loading last saved game.");

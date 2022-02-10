@@ -89,6 +89,7 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
                 || player.controller.trigger_menu_back()
                 || (state.settings.touch_controls && state.touch_controls.consume_click_in(slot_rect)))
         {
+            state.control_flags.set_ok_button_disabled(false);
             self.exit(state, player, inventory);
             return Ok(());
         }
@@ -136,23 +137,27 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
         match self.focus {
             InventoryFocus::None => {
                 self.focus = InventoryFocus::Weapons;
+                state.control_flags.set_ok_button_disabled(false);
                 state.textscript_vm.start_script(get_weapon_event_number(inventory));
             }
             InventoryFocus::Weapons if state.control_flags.control_enabled() => {
                 if player.controller.trigger_left() {
                     state.sound_manager.play_sfx(4);
                     inventory.prev_weapon();
+                    state.control_flags.set_ok_button_disabled(false);
                     state.textscript_vm.start_script(get_weapon_event_number(inventory));
                 }
 
                 if player.controller.trigger_right() {
                     state.sound_manager.play_sfx(4);
                     inventory.next_weapon();
+                    state.control_flags.set_ok_button_disabled(false);
                     state.textscript_vm.start_script(get_weapon_event_number(inventory));
                 }
 
                 if player.controller.trigger_up() || player.controller.trigger_down() {
                     self.focus = InventoryFocus::Items;
+                    state.control_flags.set_ok_button_disabled(false);
                     state.textscript_vm.start_script(self.get_item_event_number(inventory));
                 }
             }
@@ -166,6 +171,7 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
                         self.selected_item += count_x - 1;
                     }
 
+                    state.control_flags.set_ok_button_disabled(false);
                     state.textscript_vm.start_script(self.get_item_event_number(inventory));
                 }
 
@@ -181,6 +187,7 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
                     }
 
                     state.sound_manager.play_sfx(1);
+                    state.control_flags.set_ok_button_disabled(false);
                     state.textscript_vm.start_script(self.get_item_event_number(inventory));
                 }
 
@@ -189,11 +196,13 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
                         self.focus = InventoryFocus::Weapons;
 
                         state.sound_manager.play_sfx(4);
+                        state.control_flags.set_ok_button_disabled(false);
                         state.textscript_vm.start_script(get_weapon_event_number(inventory));
                     } else {
                         self.selected_item -= count_x;
 
                         state.sound_manager.play_sfx(1);
+                        state.control_flags.set_ok_button_disabled(false);
                         state.textscript_vm.start_script(self.get_item_event_number(inventory));
                     }
                 }
@@ -203,16 +212,18 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
                         self.focus = InventoryFocus::Weapons;
 
                         state.sound_manager.play_sfx(4);
+                        state.control_flags.set_ok_button_disabled(false);
                         state.textscript_vm.start_script(get_weapon_event_number(inventory));
                     } else {
                         self.selected_item += count_x;
 
                         state.sound_manager.play_sfx(1);
+                        state.control_flags.set_ok_button_disabled(false);
                         state.textscript_vm.start_script(self.get_item_event_number(inventory));
                     }
                 }
 
-                if player.controller.trigger_menu_ok() {
+                if !state.control_flags.ok_button_disabled() && player.controller.trigger_menu_ok() {
                     state.textscript_vm.start_script(self.get_item_event_number_action(inventory));
                 }
 
