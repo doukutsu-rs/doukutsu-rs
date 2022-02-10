@@ -15,6 +15,7 @@ use crate::framework::error::GameResult;
 use crate::framework::gl;
 use crate::framework::gl::types::*;
 use crate::framework::graphics::BlendMode;
+use crate::framework::util::{field_offset, return_param};
 
 pub struct GLContext {
     pub gles2_mode: bool,
@@ -620,30 +621,6 @@ impl OpenGLRenderer {
 
         Some((&mut self.refs, gl))
     }
-}
-
-fn field_offset<T, U, F: for<'a> FnOnce(&'a T) -> &'a U>(f: F) -> usize {
-    unsafe {
-        let instance = MaybeUninit::uninit().assume_init();
-
-        let offset = {
-            let field: &U = f(&instance);
-            field as *const U as usize - &instance as *const T as usize
-        };
-
-        mem::forget(instance);
-
-        offset
-    }
-}
-
-fn return_param<T, F>(f: F) -> T
-where
-    F: FnOnce(&mut T),
-{
-    let mut val = unsafe { mem::zeroed() };
-    f(&mut val);
-    val
 }
 
 impl BackendRenderer for OpenGLRenderer {
