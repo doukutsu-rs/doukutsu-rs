@@ -33,7 +33,7 @@ pub struct TitleScene {
     controller: CombinedMenuController,
     current_menu: CurrentMenu,
     main_menu: Menu,
-    option_menu: SettingsMenu,
+    settings_menu: SettingsMenu,
     save_select_menu: SaveSelectMenu,
     background: Background,
     frame: Frame,
@@ -62,12 +62,15 @@ impl TitleScene {
         let mut textures = StageTexturePaths::new();
         textures.update(&fake_stage);
 
+        let mut settings_menu = SettingsMenu::new();
+        settings_menu.on_title = true;
+
         Self {
             tick: 0,
             controller: CombinedMenuController::new(),
             current_menu: CurrentMenu::MainMenu,
             main_menu: Menu::new(0, 0, 100, 0),
-            option_menu: SettingsMenu::new(),
+            settings_menu,
             save_select_menu: SaveSelectMenu::new(),
             background: Background::new(),
             frame: Frame::new(),
@@ -136,7 +139,7 @@ impl Scene for TitleScene {
         }
         self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
 
-        self.option_menu.init(state, ctx)?;
+        self.settings_menu.init(state, ctx)?;
 
         self.save_select_menu.init(state, ctx)?;
 
@@ -183,7 +186,7 @@ impl Scene for TitleScene {
             CurrentMenu::OptionMenu => {
                 let timing_mode = state.settings.timing_mode;
                 let cm = &mut self.current_menu;
-                self.option_menu.tick(
+                self.settings_menu.tick(
                     &mut || {
                         *cm = CurrentMenu::MainMenu;
                     },
@@ -251,7 +254,7 @@ impl Scene for TitleScene {
 
         match self.current_menu {
             CurrentMenu::MainMenu => self.main_menu.draw(state, ctx)?,
-            CurrentMenu::OptionMenu => self.option_menu.draw(state, ctx)?,
+            CurrentMenu::OptionMenu => self.settings_menu.draw(state, ctx)?,
             CurrentMenu::SaveSelectMenu => self.save_select_menu.draw(state, ctx)?,
             _ => {}
         }

@@ -156,6 +156,23 @@ impl SoundManager {
         let _ = self.tx.send(PlaybackMessage::SetSampleVolume(volume.powf(3.0)));
     }
 
+    pub fn reload_songs(
+        &mut self,
+        constants: &EngineConstants,
+        settings: &Settings,
+        ctx: &mut Context,
+    ) -> GameResult {
+        let prev_song = self.prev_song_id;
+        let current_song = self.current_song_id;
+
+        self.play_song(0, constants, settings, ctx)?;
+        self.play_song(prev_song, constants, settings, ctx)?;
+        self.save_state()?;
+        self.play_song(current_song, constants, settings, ctx)?;
+
+        Ok(())
+    }
+
     pub fn play_song(
         &mut self,
         song_id: usize,
