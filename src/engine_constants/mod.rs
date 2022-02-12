@@ -1667,6 +1667,7 @@ impl EngineConstants {
         self.tex_sizes.insert("bkMoon".to_owned(), (427, 240));
         self.tex_sizes.insert("bkFog".to_owned(), (427, 240));
         self.tex_sizes.insert("ui".to_owned(), (128, 32));
+        self.tex_sizes.insert("uimusic".to_owned(), (192, 144));
         self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 62 };
         self.inventory_dim_color = Color::from_rgba(0, 0, 32, 150);
         self.textscript.encoding = TextScriptEncoding::UTF8;

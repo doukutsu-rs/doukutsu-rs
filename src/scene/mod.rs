@@ -6,6 +6,7 @@ use crate::shared_game_state::SharedGameState;
 #[cfg(feature = "editor")]
 pub mod editor_scene;
 pub mod game_scene;
+pub mod jukebox_scene;
 pub mod loading_scene;
 pub mod no_data_scene;
 pub mod title_scene;

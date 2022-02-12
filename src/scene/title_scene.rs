@@ -12,6 +12,7 @@ use crate::map::Map;
 use crate::menu::save_select_menu::SaveSelectMenu;
 use crate::menu::settings_menu::SettingsMenu;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
+use crate::scene::jukebox_scene::JukeboxScene;
 use crate::scene::Scene;
 use crate::shared_game_state::{MenuCharacter, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
@@ -149,6 +150,11 @@ impl Scene for TitleScene {
         } else {
             self.main_menu.push_entry(MenuEntry::Hidden);
         }
+        if state.constants.is_switch {
+            self.main_menu.push_entry(MenuEntry::Active("Jukebox".to_string()));
+        } else {
+            self.main_menu.push_entry(MenuEntry::Hidden);
+        }
         self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
 
         self.settings_menu.init(state, ctx)?;
@@ -204,6 +210,9 @@ impl Scene for TitleScene {
                     }
                 }
                 MenuSelectionResult::Selected(4, _) => {
+                    state.next_scene = Some(Box::new(JukeboxScene::new()));
+                }
+                MenuSelectionResult::Selected(5, _) => {
                     state.shutdown();
                 }
                 _ => {}

@@ -9,9 +9,7 @@ pub struct CombinedMenuController {
 
 impl CombinedMenuController {
     pub fn new() -> CombinedMenuController {
-        CombinedMenuController {
-            controllers: Vec::new(),
-        }
+        CombinedMenuController { controllers: Vec::new() }
     }
 
     pub fn update(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -85,6 +83,26 @@ impl CombinedMenuController {
     pub fn trigger_back(&self) -> bool {
         for cont in &self.controllers {
             if cont.trigger_menu_back() {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn trigger_shift_left(&self) -> bool {
+        for cont in &self.controllers {
+            if cont.trigger_prev_weapon() {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn trigger_shift_right(&self) -> bool {
+        for cont in &self.controllers {
+            if cont.trigger_next_weapon() {
                 return true;
             }
         }
