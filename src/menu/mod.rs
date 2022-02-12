@@ -506,6 +506,8 @@ impl Menu {
             let entry_bounds = Rect::new_size(self.x, y as isize, self.width as isize, entry.height() as isize);
             let right_entry_bounds =
                 Rect::new_size(self.x + self.width as isize, y as isize, self.width as isize, entry.height() as isize);
+            let left_entry_bounds =
+                Rect::new_size(self.x - self.width as isize, y as isize, self.width as isize, entry.height() as isize);
             y += entry.height() as f32;
 
             match entry {
@@ -522,26 +524,29 @@ impl Menu {
                     return MenuSelectionResult::Selected(idx, entry);
                 }
                 MenuEntry::Options(_, _, _) | MenuEntry::OptionsBar(_, _)
-                    if self.selected == idx && controller.trigger_left() =>
+                    if (self.selected == idx && controller.trigger_left())
+                        || state.touch_controls.consume_click_in(left_entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(1);
                     return MenuSelectionResult::Left(self.selected, entry, -1);
                 }
                 MenuEntry::Options(_, _, _) | MenuEntry::OptionsBar(_, _)
-                    if self.selected == idx && controller.trigger_right() =>
+                    if (self.selected == idx && controller.trigger_right())
+                        || state.touch_controls.consume_click_in(right_entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(1);
                     return MenuSelectionResult::Right(self.selected, entry, 1);
                 }
                 MenuEntry::DescriptiveOptions(_, _, _, _)
                     if (self.selected == idx && controller.trigger_left())
-                        || state.touch_controls.consume_click_in(right_entry_bounds) =>
+                        || state.touch_controls.consume_click_in(left_entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(1);
                     return MenuSelectionResult::Left(self.selected, entry, -1);
                 }
                 MenuEntry::DescriptiveOptions(_, _, _, _) | MenuEntry::SaveData(_)
-                    if self.selected == idx && controller.trigger_right() =>
+                    if (self.selected == idx && controller.trigger_right())
+                        || state.touch_controls.consume_click_in(right_entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(1);
                     return MenuSelectionResult::Right(self.selected, entry, 1);
