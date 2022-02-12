@@ -134,8 +134,11 @@ impl Background {
                         );
                     }
                 }
-
-                batch.add_rect((state.canvas_size.0 - 320.0) / 2.0, offset_y, &Rect::new_size(0, 0, 320, 88));
+                if !state.constants.is_switch {
+                    batch.add_rect((state.canvas_size.0 - 320.0) / 2.0, offset_y, &Rect::new_size(0, 0, 320, 88));
+                } else {
+                    batch.add_rect((state.canvas_size.0 - 427.0) / 2.0, offset_y, &Rect::new_size(0, 0, 427, 88));
+                }
 
                 for x in ((-offset_x / 2)..(state.canvas_size.0 as i32)).step_by(320) {
                     batch.add_rect(x as f32, offset_y + 88.0, &Rect::new_size(0, 88, 320, 35));
