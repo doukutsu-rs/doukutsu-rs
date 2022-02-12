@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Cursor, Read};
 
-use byteorder::{ReadBytesExt, LE};
+use byteorder::{LE, ReadBytesExt};
 use case_insensitive_hashmap::CaseInsensitiveHashMap;
 
 use crate::case_insensitive_hashmap;
@@ -1679,6 +1679,7 @@ impl EngineConstants {
         self.soundtracks.insert("Ridiculon".to_owned(), "/base/ogg_ridic/".to_owned());
         self.animated_face_table.push(AnimatedFace { face_id: 5, anim_id: 4, anim_frames: vec![(4, 0)] }); // Teethrog fix
         self.game.tile_offset_x = 3;
+        self.game.new_game_player_pos = (13, 8);
     }
 
     pub fn rebuild_path_list(&mut self, mod_path: Option<String>, season: Season, settings: &Settings) {
@@ -1706,6 +1707,24 @@ impl EngineConstants {
                 self.base_paths.insert(0, mod_path);
             }
         }
+    }
+
+    pub fn special_treatment_for_csplus_mods(&mut self, mod_path: Option<&String>) {
+        if !self.is_cs_plus {
+            return;
+        }
+
+        let mut pos = if self.is_switch { (13, 8) } else { (10, 8) };
+
+        if let Some(mod_path) = mod_path {
+            if mod_path == "/TimeTrial/mod/" {
+                pos = (8, 9);
+            } else if mod_path == "/boss/mod/" {
+                pos = (57, 21);
+            }
+        }
+
+        self.game.new_game_player_pos = pos;
     }
 
     pub fn apply_constant_json_files(&mut self) {}
