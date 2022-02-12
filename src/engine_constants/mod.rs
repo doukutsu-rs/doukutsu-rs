@@ -1677,7 +1677,6 @@ impl EngineConstants {
         self.textscript.text_speed_fast = 0;
         self.soundtracks.insert("Famitracks".to_owned(), "/base/ogg17/".to_owned());
         self.soundtracks.insert("Ridiculon".to_owned(), "/base/ogg_ridic/".to_owned());
-        self.animated_face_table.push(AnimatedFace { face_id: 5, anim_id: 4, anim_frames: vec![(4, 0)] }); // Teethrog fix
         self.game.tile_offset_x = 3;
         self.game.new_game_player_pos = (13, 8);
     }
@@ -1789,7 +1788,10 @@ impl EngineConstants {
     pub fn load_animated_faces(&mut self, ctx: &mut Context) -> GameResult {
         self.animated_face_table.clear();
 
-        if let Ok(mut file) = filesystem::open_find(ctx, &self.base_paths, "/faceanm.dat") {
+        // Bugfix for Malco cutscene - this face should be used but the original tsc has the wrong ID
+        self.animated_face_table.push(AnimatedFace { face_id: 5, anim_id: 4, anim_frames: vec![(4, 0)] });
+
+        if let Ok(file) = filesystem::open_find(ctx, &self.base_paths, "/faceanm.dat") {
             let buf = BufReader::new(file);
             let mut face_id = 1;
             let mut anim_id = 0;
