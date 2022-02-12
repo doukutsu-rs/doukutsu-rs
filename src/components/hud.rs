@@ -143,7 +143,7 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
 
                 let wtype = self.weapon_types[a];
                 if wtype != 0 {
-                    rect = Rect::new_size(pos_x + weapon_offset - 4, 16 - 4, 24, 24);
+                    rect = Rect::new_size(pos_x + weapon_offset - 4, 16 + (4 * state.scale as isize), 24, 24);
 
                     if state.touch_controls.consume_click_in(rect) {
                         state.sound_manager.play_sfx(4);

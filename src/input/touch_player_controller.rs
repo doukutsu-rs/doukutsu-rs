@@ -216,6 +216,10 @@ impl PlayerController for TouchPlayerController {
                             ))
                             .is_some(),
                 );
+
+                self.state.set_pause(
+                    self.state.pause() || state.touch_controls.point_in(Rect::new_size(0, 0, 20, 20)).is_some(),
+                );
             }
         }
 

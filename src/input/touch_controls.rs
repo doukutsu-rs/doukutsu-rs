@@ -124,6 +124,8 @@ impl TouchControls {
                 &Rect::new_size(0, 3 * 32, 32, 32),
             );
 
+            batch.add_rect_tinted(4.0, 4.0, color, &Rect::new_size(32, 3 * 32, 32, 32));
+
             batch.draw(ctx)?;
         }
 
