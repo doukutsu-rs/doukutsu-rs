@@ -173,7 +173,9 @@ impl MapSystem {
             ((text_height + 4.0) * state.scale) as _,
         );
 
-        graphics::draw_rect(ctx, rect_black_bar, Color::new(0.0, 0.0, 0.0, 1.0))?;
+        if !state.constants.is_switch {
+            graphics::draw_rect(ctx, rect_black_bar, Color::new(0.0, 0.0, 0.0, 1.0))?;
+        }
 
         let map_name_width = state.font.text_width(stage.data.name.chars(), &state.constants);
         let map_name_off_x = (state.canvas_size.0 - map_name_width) / 2.0;

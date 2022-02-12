@@ -5,7 +5,7 @@ use std::rc::Rc;
 use log::info;
 
 use crate::caret::CaretType;
-use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
+use crate::common::{Color, Direction, interpolate_fix9_scale, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
@@ -24,31 +24,31 @@ use crate::components::water_renderer::WaterRenderer;
 use crate::components::whimsical_star::WhimsicalStar;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
+use crate::framework::{filesystem, graphics};
 use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
+use crate::framework::graphics::{BlendMode, draw_rect, FilterMode};
 use crate::framework::ui::Components;
-use crate::framework::{filesystem, graphics};
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::map::WaterParams;
 use crate::menu::pause_menu::PauseMenu;
+use crate::npc::{NPC, NPCLayer};
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
-use crate::npc::{NPCLayer, NPC};
-use crate::physics::{PhysicalEntity, OFFSETS};
+use crate::physics::{OFFSETS, PhysicalEntity};
 use crate::player::{ControlMode, Player, TargetPlayer};
 use crate::rng::XorShift;
-use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
+use crate::scene::title_scene::TitleScene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
-use crate::weapon::bullet::BulletManager;
 use crate::weapon::{Weapon, WeaponType};
+use crate::weapon::bullet::BulletManager;
 
 pub struct GameScene {
     pub tick: u32,
@@ -1528,7 +1528,11 @@ impl Scene for GameScene {
             .wrapping_add(self.stage_id as i32)
             .rotate_right(7);
         state.game_rng = XorShift::new(seed);
-        state.textscript_vm.set_scene_script(self.stage.load_text_script(&state.constants.base_paths, &state.constants, ctx)?);
+        state.textscript_vm.set_scene_script(self.stage.load_text_script(
+            &state.constants.base_paths,
+            &state.constants,
+            ctx,
+        )?);
         state.textscript_vm.suspend = false;
         state.tile_size = self.stage.map.tile_size;
         #[cfg(feature = "scripting-lua")]
@@ -1757,7 +1761,10 @@ impl Scene for GameScene {
         self.tilemap.set_prev()?;
 
         self.inventory_dim += 0.1
-            * if state.textscript_vm.mode == ScriptMode::Inventory || self.pause_menu.is_paused() {
+            * if state.textscript_vm.mode == ScriptMode::Inventory
+                || state.textscript_vm.state == TextScriptExecutionState::MapSystem
+                || self.pause_menu.is_paused()
+            {
                 state.frame_time as f32
             } else {
                 -(state.frame_time as f32)
