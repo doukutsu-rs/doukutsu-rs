@@ -130,7 +130,7 @@ fn get_insets() -> GameResult<(f32, f32, f32, f32)> {
 
 fn get_scaled_size(width: u32, height: u32) -> (f32, f32) {
     let scaled_height = ((height / 480).max(1) * 480) as f32;
-    let scaled_width = width as f32 * (scaled_height as f32 / height as f32);
+    let scaled_width = (width as f32 * (scaled_height as f32 / height as f32)).floor();
 
     (scaled_width, scaled_height)
 }
