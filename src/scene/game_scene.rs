@@ -1934,22 +1934,22 @@ impl Scene for GameScene {
                 (pos_x * state.scale) as isize,
                 (pos_y * state.scale) as isize,
                 ((20.0 + width) * state.scale) as isize,
-                ((20.0 + line_height) * state.scale) as isize,
+                ((10.0 + line_height) * state.scale) as isize,
             );
 
             draw_rect(ctx, rect, Color::from_rgb(0, 0, 32))?;
 
             rect.right = rect.left + (w * state.scale) as isize;
-            draw_rect(ctx, rect, Color::from_rgb(160, 181, 222))?;
+            draw_rect(ctx, rect, Color::from_rgb(128, 128, 160))?;
 
             rect.left = ((state.canvas_size.0 - w) * state.scale) as isize;
             rect.right = rect.left + (w * state.scale) as isize;
-            draw_rect(ctx, rect, Color::from_rgb(160, 181, 222))?;
+            draw_rect(ctx, rect, Color::from_rgb(128, 128, 160))?;
 
             state.font.draw_text_with_shadow(
                 text.chars(),
                 pos_x + 10.0,
-                pos_y + 10.0,
+                pos_y + 5.0,
                 &state.constants,
                 &mut state.texture_set,
                 ctx,
