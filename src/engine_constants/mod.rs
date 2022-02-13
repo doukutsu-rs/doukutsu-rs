@@ -3,6 +3,7 @@ use std::io::{BufRead, BufReader, Cursor, Read};
 
 use byteorder::{LE, ReadBytesExt};
 use case_insensitive_hashmap::CaseInsensitiveHashMap;
+use xmltree::Element;
 
 use crate::case_insensitive_hashmap;
 use crate::common::{BulletFlag, Color, Rect};
@@ -301,6 +302,7 @@ pub struct EngineConstants {
     pub organya_paths: Vec<String>,
     pub credit_illustration_paths: Vec<String>,
     pub animated_face_table: Vec<AnimatedFace>,
+    pub string_table: HashMap<String, String>,
 }
 
 impl Clone for EngineConstants {
@@ -329,6 +331,7 @@ impl Clone for EngineConstants {
             organya_paths: self.organya_paths.clone(),
             credit_illustration_paths: self.credit_illustration_paths.clone(),
             animated_face_table: self.animated_face_table.clone(),
+            string_table: self.string_table.clone(),
         }
     }
 }
@@ -1601,6 +1604,7 @@ impl EngineConstants {
                 "endpic/".to_owned(),          // NXEngine
             ],
             animated_face_table: vec![AnimatedFace { face_id: 0, anim_id: 0, anim_frames: vec![(0, 0)] }],
+            string_table: HashMap::new(),
         }
     }
 
@@ -1725,6 +1729,27 @@ impl EngineConstants {
         }
 
         self.game.new_game_player_pos = pos;
+    }
+
+    pub fn load_nx_stringtable(&mut self, ctx: &mut Context) -> GameResult {
+        if let Ok(file) = filesystem::open(ctx, "/base/stringtable.sta") {
+            let mut reader = BufReader::new(file);
+            let _ = reader.read_exact(&mut [0; 3]);
+            if let Ok(xml) = Element::parse(reader) {
+                for node in &xml.get_child("category").unwrap().children {
+                    let element = node.as_element().unwrap();
+                    let key = element.attributes.get_key_value("name").unwrap().1.to_string();
+                    let english = element
+                        .get_child("string")
+                        .unwrap()
+                        .get_text()
+                        .unwrap_or(std::borrow::Cow::Borrowed(""))
+                        .to_string();
+                    self.string_table.insert(key, english);
+                }
+            }
+        }
+        Ok(())
     }
 
     pub fn apply_constant_json_files(&mut self) {}

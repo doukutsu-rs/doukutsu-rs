@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
 use std::iter::Peekable;
 use std::str::Chars;
@@ -11,6 +12,8 @@ pub struct ModInfo {
     pub requirement: Requirement,
     pub priority: u32,
     pub path: String,
+    pub name: String,
+    pub description: String,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -32,7 +35,7 @@ pub struct ModList {
 }
 
 impl ModList {
-    pub fn load(ctx: &mut Context) -> GameResult<ModList> {
+    pub fn load(ctx: &mut Context, string_table: &HashMap<String, String>) -> GameResult<ModList> {
         let mut mods = Vec::new();
 
         if let Ok(file) = filesystem::open(ctx, "/mods.txt") {
@@ -132,7 +135,22 @@ impl ModList {
                     }
                 }
 
-                mods.push(ModInfo { id, requirement, priority, path })
+                let mut name = String::new();
+                let mut description = String::new();
+
+                if let Ok(file) = filesystem::open(ctx, [&path, "/mod.txt"].join("")) {
+                    let reader = BufReader::new(file);
+                    let mut lines = reader.lines();
+                    if let Some(line) = lines.nth(2) {
+                        let read_name = line.unwrap_or("No Mod Name".to_string()).to_string();
+                        name = string_table.get(&read_name).unwrap_or(&read_name).to_string();
+                    }
+                    if let Some(line) = lines.next() {
+                        description = line.unwrap_or("No Description".to_string()).to_string();
+                    }
+                }
+
+                mods.push(ModInfo { id, requirement, priority, path, name, description })
             }
         }
 

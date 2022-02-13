@@ -201,6 +201,7 @@ impl SharedGameState {
             ctx.size_hint = (854, 480);
             constants.apply_csplus_patches(&sound_manager);
             constants.apply_csplus_nx_patches();
+            constants.load_nx_stringtable(ctx)?;
         } else if filesystem::exists(ctx, "/base/Nicalis.bmp") || filesystem::exists(ctx, "/base/Nicalis.png") {
             info!("Cave Story+ (PC) data files detected.");
             constants.apply_csplus_patches(&sound_manager);
@@ -218,7 +219,7 @@ impl SharedGameState {
             BMFontRenderer::load(&vec!["/".to_owned()], "/builtin/builtin_font.fnt", ctx)
         })?;
 
-        let mut mod_list = ModList::load(ctx)?;
+        let mut mod_list = ModList::load(ctx, &constants.string_table)?;
 
         for i in 0..0xffu8 {
             let path = format!("/pxt/fx{:02x}.pxt", i);

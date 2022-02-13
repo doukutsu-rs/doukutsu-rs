@@ -162,7 +162,7 @@ impl Scene for TitleScene {
         self.save_select_menu.init(state, ctx)?;
 
         for mod_info in state.mod_list.mods.iter() {
-            self.challenges_menu.push_entry(MenuEntry::Active(mod_info.path.clone()));
+            self.challenges_menu.push_entry(MenuEntry::Active(mod_info.name.clone()));
         }
         self.challenges_menu.push_entry(MenuEntry::Active("< Back".to_string()));
 
