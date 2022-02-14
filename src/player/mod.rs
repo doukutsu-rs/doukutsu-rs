@@ -414,7 +414,7 @@ impl Player {
                     }
                 }
                 BoosterSwitch::Down if self.controller.trigger_jump() || self.booster_fuel % 3 == 1 => {
-                    state.create_caret(self.x, self.y + 0xc00, CaretType::Exhaust, Direction::Up);
+                    state.create_caret(self.x, self.y - 0xc00, CaretType::Exhaust, Direction::Up);
                     state.sound_manager.play_sfx(113);
                 }
                 _ => {}

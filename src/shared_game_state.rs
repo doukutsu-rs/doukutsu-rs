@@ -365,6 +365,8 @@ impl SharedGameState {
         next_scene.player1.y = pos_y as i32 * next_scene.stage.map.tile_size.as_int() * 0x200;
 
         self.reset_map_flags();
+        self.control_flags.set_control_enabled(true);
+        self.control_flags.set_tick_world(true);
         self.fade_state = FadeState::Hidden;
         self.textscript_vm.state = TextScriptExecutionState::Running(self.constants.game.new_game_event, 0);
 

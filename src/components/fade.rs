@@ -15,17 +15,18 @@ impl Fade {
 
 impl GameEntity<()> for Fade {
     fn tick(&mut self, state: &mut SharedGameState, _custom: ()) -> GameResult {
+        let fade_ticks = state.constants.textscript.fade_ticks;
         match state.fade_state {
-            FadeState::FadeOut(tick, direction) if tick < 15 => {
+            FadeState::FadeOut(tick, direction) if tick < fade_ticks => {
                 state.fade_state = FadeState::FadeOut(tick + 1, direction);
             }
-            FadeState::FadeOut(tick, _) if tick == 15 => {
+            FadeState::FadeOut(tick, _) if tick == fade_ticks => {
                 state.fade_state = FadeState::Hidden;
             }
-            FadeState::FadeIn(tick, direction) if tick > -15 => {
+            FadeState::FadeIn(tick, direction) if tick > -fade_ticks => {
                 state.fade_state = FadeState::FadeIn(tick - 1, direction);
             }
-            FadeState::FadeIn(tick, _) if tick == -15 => {
+            FadeState::FadeIn(tick, _) if tick == -fade_ticks => {
                 state.fade_state = FadeState::Visible;
             }
             _ => {}
