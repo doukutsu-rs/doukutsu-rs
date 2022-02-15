@@ -1587,6 +1587,9 @@ impl TextScriptVM {
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
             TSCOpCode::INI => {
+                game_scene.player1.flags.0 = 0;
+                game_scene.player2.flags.0 = 0;
+
                 exec_state = TextScriptExecutionState::Reset;
             }
             TSCOpCode::ESC => {
@@ -1601,6 +1604,9 @@ impl TextScriptVM {
                 exec_state = TextScriptExecutionState::SaveProfile(event, cursor.position() as u32);
             }
             TSCOpCode::LDP => {
+                game_scene.player1.flags.0 = 0;
+                game_scene.player2.flags.0 = 0;
+
                 state.control_flags.set_tick_world(false);
                 state.control_flags.set_control_enabled(false);
                 state.control_flags.set_interactions_disabled(true);

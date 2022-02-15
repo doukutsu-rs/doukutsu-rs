@@ -170,8 +170,11 @@ impl Player {
                 } else if state.get_flag(4000) {
                     state.textscript_vm.start_script(1100);
                 } else {
-                    self.cond.set_hidden(true);
-                    state.create_caret(self.x, self.y, CaretType::DrownedQuote, self.direction);
+                    // Switch uses player sprite for drowned effect
+                    if !state.constants.is_switch {
+                        self.cond.set_hidden(true);
+                        state.create_caret(self.x, self.y, CaretType::DrownedQuote, self.direction);
+                    }
                     state.textscript_vm.start_script(41);
                 }
             } else {
@@ -778,6 +781,12 @@ impl Player {
         } else {
             PlayerAppearanceState::Default
         });
+
+        if state.constants.is_switch && self.air == 0 && self.flags.in_water() && !state.get_flag(4000) {
+            self.skin.set_appearance(PlayerAppearanceState::Default);
+            self.skin.set_state(PlayerAnimationState::Drowned);
+        }
+
         self.anim_rect = self.skin.animation_frame();
 
         self.tick = self.tick.wrapping_add(1);

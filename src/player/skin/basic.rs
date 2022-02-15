@@ -138,6 +138,7 @@ impl PlayerSkin for BasicPlayerSkin {
             PlayerAnimationState::FallingLookingUp => 4,
             PlayerAnimationState::FallingLookingDown => 6,
             PlayerAnimationState::FallingUpsideDown => 10,
+            PlayerAnimationState::Drowned => 11,
         };
 
         let y_offset = if direction == Direction::Left { 0 } else { self.metadata.frame_size_height }

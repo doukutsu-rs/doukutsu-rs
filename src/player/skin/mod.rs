@@ -28,6 +28,7 @@ pub enum PlayerAnimationState {
     FallingLookingUp,
     FallingLookingDown,
     FallingUpsideDown,
+    Drowned,
 }
 
 /// Represents an alternative appearance of player eg. wearing a Mimiga Mask
