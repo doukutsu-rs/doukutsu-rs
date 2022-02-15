@@ -48,8 +48,7 @@ Vanilla Cave Story does not work yet because some important data files have been
 #### Credits
 
 - Studio Pixel/Nicalis for Cave Story 
-- [@uselesscalcium](https://twitter.com/uselesscalcium) - Android port icon artwork
-- Daedily - banner / server icon artwork
+- [@Daedily](https://twitter.com/Daedliy) - brand artwork (Icon / Banner / Server)
 - [ggez](https://github.com/ggez/ggez) - parts of it are used in `crate::framework`, notably the VFS code.
 - [@ClayHanson_](https://twitter.com/ClayHanson_) - for letting us use his .pxchar skin format from Cave Story Multiplayer mod. 
 - [Clownacy](https://github.com/Clownacy) - widescreen camera code.
