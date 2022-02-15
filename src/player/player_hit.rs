@@ -108,7 +108,8 @@ impl Player {
         if ((self.y - self.hit_bounds.top as i32) < (npc.y + npc.hit_bounds.bottom as i32 - 0x600))
             && ((self.y + self.hit_bounds.bottom as i32) > (npc.y - npc.hit_bounds.bottom as i32 + 0x600))
             && ((self.x - self.hit_bounds.right as i32) < (npc.x + npc.hit_bounds.right as i32))
-            && ((self.x - self.hit_bounds.right as i32) > npc.x) {
+            && ((self.x - self.hit_bounds.right as i32) > npc.x)
+        {
             if self.vel_x < 0x200 {
                 self.vel_x += 0x200;
             }
@@ -119,7 +120,8 @@ impl Player {
         if ((self.y - self.hit_bounds.top as i32) < (npc.y + npc.hit_bounds.bottom as i32 - 0x600))
             && ((self.y + self.hit_bounds.bottom as i32) > (npc.y - npc.hit_bounds.bottom as i32 + 0x600))
             && ((self.x + self.hit_bounds.right as i32 - 0x200) > (npc.x - npc.hit_bounds.right as i32))
-            && ((self.x + self.hit_bounds.right as i32 - 0x200) < npc.x) {
+            && ((self.x + self.hit_bounds.right as i32 - 0x200) < npc.x)
+        {
             if self.vel_x > -0x200 {
                 self.vel_x -= 0x200;
             }
@@ -127,11 +129,11 @@ impl Player {
             flags.set_hit_right_wall(true);
         }
 
-
         if ((self.x - self.hit_bounds.right as i32) < (npc.x + npc.hit_bounds.right as i32 - 0x600))
             && ((self.x + self.hit_bounds.right as i32) > (npc.x - npc.hit_bounds.right as i32 + 0x600))
             && ((self.y - self.hit_bounds.top as i32) < (npc.y + npc.hit_bounds.bottom as i32))
-            && ((self.y - self.hit_bounds.top as i32) > npc.y) {
+            && ((self.y - self.hit_bounds.top as i32) > npc.y)
+        {
             if self.vel_y < 0 {
                 self.vel_y = 0;
             }
@@ -142,7 +144,8 @@ impl Player {
         if ((self.x - self.hit_bounds.right as i32) < (npc.x + npc.hit_bounds.right as i32 - 0x600))
             && ((self.x + self.hit_bounds.right as i32) > (npc.x - npc.hit_bounds.right as i32 + 0x600))
             && ((self.y + self.hit_bounds.bottom as i32) > (npc.y - npc.hit_bounds.top as i32))
-            && ((self.y + self.hit_bounds.bottom as i32) < (npc.y + 0x600)) {
+            && ((self.y + self.hit_bounds.bottom as i32) < (npc.y + 0x600))
+        {
             if npc.npc_flags.bouncy() {
                 self.vel_y = npc.vel_y - 0x200;
                 flags.set_hit_bottom_wall(true);
@@ -171,9 +174,11 @@ impl Player {
 
         if fy1 / fx1 <= fy2 / fx2 {
             if (self.y - self.hit_bounds.top as i32) < (npc.y + npc.hit_bounds.bottom as i32)
-                && (self.y + self.hit_bounds.bottom as i32) > (npc.y - npc.hit_bounds.top as i32) {
+                && (self.y + self.hit_bounds.bottom as i32) > (npc.y - npc.hit_bounds.top as i32)
+            {
                 if (self.x - self.hit_bounds.right as i32) < (npc.x + npc.hit_bounds.right as i32)
-                    && (self.x - self.hit_bounds.right as i32) > npc.x {
+                    && (self.x - self.hit_bounds.right as i32) > npc.x
+                {
                     if self.vel_x < npc.vel_x {
                         self.vel_x = npc.vel_x;
                     }
@@ -183,7 +188,8 @@ impl Player {
                 }
 
                 if (self.x + self.hit_bounds.right as i32) > (npc.x - npc.hit_bounds.right as i32)
-                    && (self.x + self.hit_bounds.right as i32) < npc.x {
+                    && (self.x + self.hit_bounds.right as i32) < npc.x
+                {
                     if self.vel_x > npc.vel_x {
                         self.vel_x = npc.vel_x;
                     }
@@ -193,9 +199,11 @@ impl Player {
                 }
             }
         } else if (self.x - self.hit_bounds.right as i32) < (npc.x + npc.hit_bounds.right as i32)
-            && (self.x + self.hit_bounds.right as i32) > (npc.x - npc.hit_bounds.right as i32) {
+            && (self.x + self.hit_bounds.right as i32) > (npc.x - npc.hit_bounds.right as i32)
+        {
             if (self.y - self.hit_bounds.top as i32) < (npc.y + npc.hit_bounds.bottom as i32)
-                && (self.y - self.hit_bounds.top as i32) > npc.y {
+                && (self.y - self.hit_bounds.top as i32) > npc.y
+            {
                 if self.vel_y >= npc.vel_y {
                     if self.vel_y < 0 {
                         self.vel_y = 0;
@@ -209,7 +217,8 @@ impl Player {
             }
 
             if (self.y + self.hit_bounds.bottom as i32) > (npc.y - npc.hit_bounds.top as i32)
-                && (self.y + self.hit_bounds.bottom as i32) < (npc.y + 0x600) {
+                && (self.y + self.hit_bounds.bottom as i32) < (npc.y + 0x600)
+            {
                 if self.vel_y - npc.vel_y > 0x400 {
                     state.sound_manager.play_sfx(23);
                 }
@@ -236,19 +245,28 @@ impl Player {
     fn test_hit_npc_non_solid(&mut self, npc: &NPC) -> Flag {
         let mut flags = Flag(0);
         let hit_left = if npc.direction == Direction::Left { npc.hit_bounds.left } else { npc.hit_bounds.right } as i32;
-        let hit_right = if npc.direction == Direction::Left { npc.hit_bounds.right } else { npc.hit_bounds.left } as i32;
+        let hit_right =
+            if npc.direction == Direction::Left { npc.hit_bounds.right } else { npc.hit_bounds.left } as i32;
 
         if self.x + 0x400 > npc.x - hit_left
             && self.x - 0x400 < npc.x + hit_right
             && self.y + 0x400 > npc.y - npc.hit_bounds.top as i32
-            && self.y - 0x400 < npc.y + npc.hit_bounds.bottom as i32 {
+            && self.y - 0x400 < npc.y + npc.hit_bounds.bottom as i32
+        {
             flags.set_hit_left_wall(true);
         }
 
         flags
     }
 
-    fn tick_npc_collision(&mut self, id: TargetPlayer, state: &mut SharedGameState, npc: &mut NPC, npc_list: &NPCList, inventory: &mut Inventory) {
+    fn tick_npc_collision(
+        &mut self,
+        id: TargetPlayer,
+        state: &mut SharedGameState,
+        npc: &mut NPC,
+        npc_list: &NPCList,
+        inventory: &mut Inventory,
+    ) {
         let flags: Flag;
 
         if npc.npc_flags.solid_soft() {
@@ -323,7 +341,8 @@ impl Player {
                 if flags.hit_left_wall() && npc.vel_x > 0
                     || flags.hit_right_wall() && npc.vel_x < 0
                     || flags.hit_top_wall() && npc.vel_y > 0
-                    || flags.hit_bottom_wall() && npc.vel_y < 0 {
+                    || flags.hit_bottom_wall() && npc.vel_y < 0
+                {
                     self.damage(npc.damage as i32, state, npc_list);
                 }
             } else if flags.0 != 0 && npc.damage != 0 && !state.control_flags.interactions_disabled() {
@@ -331,7 +350,11 @@ impl Player {
             }
         }
 
-        if npc.npc_flags.interactable() && !state.control_flags.interactions_disabled() && flags.0 != 0 && self.cond.interacted() {
+        if npc.npc_flags.interactable()
+            && !state.control_flags.interactions_disabled()
+            && flags.0 != 0
+            && self.cond.interacted()
+        {
             state.control_flags.set_tick_world(true);
             state.control_flags.set_interactions_disabled(true);
             state.textscript_vm.executor_player = id;
@@ -341,7 +364,14 @@ impl Player {
         }
     }
 
-    pub fn tick_npc_collisions(&mut self, id: TargetPlayer, state: &mut SharedGameState, npc_list: &NPCList, boss: &mut BossNPC, inventory: &mut Inventory) {
+    pub fn tick_npc_collisions(
+        &mut self,
+        id: TargetPlayer,
+        state: &mut SharedGameState,
+        npc_list: &NPCList,
+        boss: &mut BossNPC,
+        inventory: &mut Inventory,
+    ) {
         if !self.cond.alive() {
             return;
         }
