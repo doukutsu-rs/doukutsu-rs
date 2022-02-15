@@ -268,6 +268,12 @@ impl Player {
                     state.sound_manager.play_sfx(14);
                     inventory.add_xp(npc.exp, self, state);
 
+                    if let Some(weapon) = inventory.get_current_weapon() {
+                        if weapon.wtype == WeaponType::Spur {
+                            npc.exp = 0;
+                        }
+                    }
+
                     if self.popup.value > 0 {
                         self.popup.add_value(npc.exp as i16);
                     } else {
