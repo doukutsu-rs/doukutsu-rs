@@ -969,6 +969,7 @@ impl NPC {
                         &state.constants,
                     );
                     state.create_caret(npc.x, npc.y, CaretType::Shoot, self.direction);
+                    state.sound_manager.play_sfx(117);
                 }
 
                 let mut dir_offset = if self.direction == Direction::Left { 0 } else { 3 };

@@ -370,8 +370,7 @@ impl NPC {
                     self.anim_num = 1;
                 }
 
-                if abs(self.x - player.x) < 0x1000 && self.y - 0x1000 < player.y && self.y + 96 * 0x200 > player.y
-                {
+                if abs(self.x - player.x) < 0x1000 && self.y - 0x1000 < player.y && self.y + 96 * 0x200 > player.y {
                     self.action_num = 3;
                     self.anim_num = 0;
                 }
@@ -1056,10 +1055,7 @@ impl NPC {
 
                 let player = self.get_closest_player_mut(players);
 
-                if abs(self.x - player.x) < 32 * 0x200
-                    && self.y - 32 * 0x200 < player.y
-                    && self.y + 0x2000 > player.y
-                {
+                if abs(self.x - player.x) < 32 * 0x200 && self.y - 32 * 0x200 < player.y && self.y + 0x2000 > player.y {
                     self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
                 }
             }
@@ -1293,9 +1289,9 @@ impl NPC {
 
                     let player = self.get_closest_player_mut(players);
                     if player.x > self.x + 0x12000
-                        && player.x < self.x - 0x12000
-                        && player.y > self.y + 0x6000
-                        && player.y < self.y - 0x12000
+                        || player.x < self.x - 0x12000
+                        || player.y > self.y + 0x6000
+                        || player.y < self.y - 0x12000
                     {
                         self.action_num = 0;
                     }

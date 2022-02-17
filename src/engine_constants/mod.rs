@@ -1737,7 +1737,14 @@ impl EngineConstants {
     pub fn load_nx_stringtable(&mut self, ctx: &mut Context) -> GameResult {
         if let Ok(file) = filesystem::open(ctx, "/base/stringtable.sta") {
             let mut reader = BufReader::new(file);
-            let _ = reader.read_exact(&mut [0; 3]);
+
+            // Only some versions start with the BOM marker, thankfully the file isn't that large to read twice
+            let mut bom = [0xef, 0xbb, 0xbf];
+            let buf = reader.fill_buf()?;
+            if buf.len() > 3 && buf[0..3] == bom {
+                reader.read_exact(&mut bom)?;
+            }
+
             if let Ok(xml) = Element::parse(reader) {
                 for node in &xml.get_child("category").unwrap().children {
                     let element = node.as_element().unwrap();

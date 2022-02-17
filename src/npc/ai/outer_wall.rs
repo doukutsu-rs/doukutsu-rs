@@ -62,6 +62,7 @@ impl NPC {
 
                 let mut npc = NPC::create(297, &state.npc_table);
                 npc.cond.set_alive(true);
+                npc.parent_id = self.id;
                 let _ = npc_list.spawn(0x100, npc);
             }
             _ => (),

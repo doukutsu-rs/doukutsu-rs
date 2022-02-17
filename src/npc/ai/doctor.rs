@@ -982,8 +982,8 @@ impl NPC {
                 for i in 0..4 {
                     npc.x = self.x + self.rng.range(-0x10..0x10) * 0x200;
                     npc.y = self.y - ((0x150 - self.action_counter as i32) / 8) * 0x200;
-                    npc.vel_x = 2 * self.rng.range(-0x200..0);
-                    npc.vel_y = if i >= 2 { 0 } else { self.rng.range(-0x200..0x200) };
+                    npc.vel_y = 2 * self.rng.range(-0x200..0);
+                    npc.vel_x = if i >= 2 { 0 } else { self.rng.range(-0x200..0x200) };
                     npc.direction = Direction::Bottom;
                     let _ = npc_list.spawn(0xAA, npc.clone());
                 }

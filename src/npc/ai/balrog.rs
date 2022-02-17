@@ -191,14 +191,7 @@ impl NPC {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
-        self.anim_counter += 1;
-        if self.anim_counter > 1 {
-            self.anim_counter = 0;
-
-            if self.anim_num > 2 {
-                self.anim_num = 0;
-            }
-        }
+        self.animate(1, 0, 2);
 
         self.anim_rect = state.constants.npc.n011_balrog_energy_shot[self.anim_num as usize];
 

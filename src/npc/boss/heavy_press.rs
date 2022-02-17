@@ -63,6 +63,7 @@ impl BossNPC {
                 self.parts[0].y = 0;
                 self.parts[0].display_bounds = Rect { left: 0x5000, top: 0x7800, right: 0x5000, bottom: 0x7800 };
                 self.parts[0].hit_bounds = Rect { left: 0x6200, top: 0x7800, right: 0x5000, bottom: 0x6000 };
+                self.hurt_sound[0] = 54;
                 self.parts[0].npc_flags.set_ignore_solidity(true);
                 self.parts[0].npc_flags.set_solid_hard(true);
                 self.parts[0].npc_flags.set_event_when_killed(true);
