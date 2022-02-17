@@ -2,7 +2,6 @@ use crate::bitfield;
 use crate::common::{Color, Direction, Rect};
 
 pub mod basic;
-pub mod pxchar;
 
 bitfield! {
     #[derive(Clone, Copy)]

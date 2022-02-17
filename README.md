@@ -49,7 +49,6 @@ Vanilla Cave Story does not work yet because some important data files have been
 
 - Studio Pixel/Nicalis for Cave Story 
 - [@Daedily](https://twitter.com/Daedliy) - brand artwork (Icon / Banner / Server)
-- [ggez](https://github.com/ggez/ggez) - parts of it are used in `crate::framework`, notably the VFS code.
-- [@ClayHanson_](https://twitter.com/ClayHanson_) - for letting us use his .pxchar skin format from Cave Story Multiplayer mod. 
+- [ggez](https://github.com/ggez/ggez) - parts of it are used in `crate::framework`, notably the VFS code. 
 - [Clownacy](https://github.com/Clownacy) - widescreen camera code.
 - [LunarLambda for organism](https://gitdab.com/LunarLambda/organism) - used as basis for our Organya playback engine.
