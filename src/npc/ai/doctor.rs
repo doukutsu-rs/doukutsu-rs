@@ -452,7 +452,7 @@ impl NPC {
 
         if self.action_num == 102 {
             state.npc_super_pos = (self.target_x, self.target_y);
-        } else {
+        } else if self.action_num >= 10 {
             state.npc_super_pos = (self.x, self.y);
         }
 

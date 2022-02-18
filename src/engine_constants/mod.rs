@@ -208,6 +208,7 @@ pub struct AnimatedFace {
 pub struct TextScriptConsts {
     pub encoding: TextScriptEncoding,
     pub encrypted: bool,
+    pub reset_invicibility_on_any_script: bool,
     pub animated_face_pics: bool,
     pub textbox_rect_top: Rect<u16>,
     pub textbox_rect_middle: Rect<u16>,
@@ -1467,6 +1468,7 @@ impl EngineConstants {
             textscript: TextScriptConsts {
                 encoding: TextScriptEncoding::ShiftJIS,
                 encrypted: true,
+                reset_invicibility_on_any_script: true,
                 animated_face_pics: false,
                 textbox_rect_top: Rect { left: 0, top: 0, right: 244, bottom: 8 },
                 textbox_rect_middle: Rect { left: 0, top: 8, right: 244, bottom: 16 },
@@ -1619,6 +1621,7 @@ impl EngineConstants {
         self.tex_sizes.insert("MyChar".to_owned(), (200, 384));
         self.tex_sizes.insert("Npc/NpcRegu".to_owned(), (320, 410));
         self.tex_sizes.insert("ui".to_owned(), (128, 32));
+        self.textscript.reset_invicibility_on_any_script = false;
         self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 50 };
 
         self.title.menu_left_top = Rect { left: 0, top: 0, right: 4, bottom: 4 };

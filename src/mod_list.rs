@@ -11,6 +11,7 @@ pub struct ModInfo {
     pub id: String,
     pub requirement: Requirement,
     pub priority: u32,
+    pub save_slot: i32,
     pub path: String,
     pub name: String,
     pub description: String,
@@ -137,11 +138,15 @@ impl ModList {
 
                 let mut name = String::new();
                 let mut description = String::new();
+                let mut save_slot = -1;
 
                 if let Ok(file) = filesystem::open(ctx, [&path, "/mod.txt"].join("")) {
                     let reader = BufReader::new(file);
                     let mut lines = reader.lines();
-                    if let Some(line) = lines.nth(2) {
+                    if let Some(line) = lines.nth(1) {
+                        save_slot = line.unwrap_or("-1".to_string()).parse::<i32>().unwrap_or(-1);
+                    }
+                    if let Some(line) = lines.next() {
                         let read_name = line.unwrap_or("No Mod Name".to_string()).to_string();
                         name = string_table.get(&read_name).unwrap_or(&read_name).to_string();
                     }
@@ -150,7 +155,7 @@ impl ModList {
                     }
                 }
 
-                mods.push(ModInfo { id, requirement, priority, path, name, description })
+                mods.push(ModInfo { id, requirement, priority, save_slot, path, name, description })
             }
         }
 

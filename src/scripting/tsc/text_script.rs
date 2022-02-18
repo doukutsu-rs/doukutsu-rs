@@ -121,6 +121,7 @@ pub struct TextScriptVM {
     /// while parsing no one noticed them.
     pub strict_mode: bool,
     pub suspend: bool,
+    /// Requires `constants.textscript.reset_invicibility_on_any_script`
     pub reset_invicibility: bool,
     pub numbers: [u16; 4],
     pub face: u16,
@@ -375,7 +376,7 @@ impl TextScriptVM {
                             _ => {}
                         }
 
-                        if remaining > 1 || new_line {
+                        if remaining > 1 {
                             let ticks = if state.textscript_vm.flags.fast() || state.textscript_vm.flags.cutscene_skip()
                             {
                                 0
@@ -424,11 +425,7 @@ impl TextScriptVM {
                         state.textscript_vm.line_1.clear();
                         state.textscript_vm.line_1.append(&mut state.textscript_vm.line_2);
                         state.textscript_vm.line_2.append(&mut state.textscript_vm.line_3);
-                        if remaining == 0 {
-                            state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
-                        } else {
-                            state.textscript_vm.state = TextScriptExecutionState::Msg(event, ip, remaining, ticks);
-                        }
+                        state.textscript_vm.state = TextScriptExecutionState::Msg(event, ip, remaining, ticks);
                     } else {
                         state.textscript_vm.state =
                             TextScriptExecutionState::MsgNewLine(event, ip, remaining, ticks, counter);

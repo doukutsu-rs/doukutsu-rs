@@ -844,7 +844,7 @@ impl GameEntity<&NPCList> for Player {
             return Ok(());
         }
 
-        if state.textscript_vm.reset_invicibility {
+        if state.textscript_vm.reset_invicibility && state.constants.textscript.reset_invicibility_on_any_script {
             self.shock_counter = 0;
         }
 
