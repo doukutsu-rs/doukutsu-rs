@@ -216,6 +216,8 @@ impl NPC {
         npc.x = self.x;
         npc.y = self.y;
         npc.popup = self.popup;
+        npc.spritesheet_id = self.spritesheet_id;
+        npc.display_bounds = self.display_bounds;
 
         *self = npc;
     }
