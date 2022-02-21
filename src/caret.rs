@@ -135,9 +135,8 @@ impl Caret {
                             self.cond.set_alive(false);
                             return;
                         }
-
-                        self.anim_rect = constants.caret.projectile_dissipation_left_rects[self.anim_num as usize];
                     }
+                    self.anim_rect = constants.caret.projectile_dissipation_left_rects[self.anim_num as usize];
                 }
                 Direction::Up => {
                     self.anim_counter += 1;
@@ -160,9 +159,8 @@ impl Caret {
                             self.cond.set_alive(false);
                             return;
                         }
-
-                        self.anim_rect = constants.caret.projectile_dissipation_right_rects[self.anim_num as usize];
                     }
+                    self.anim_rect = constants.caret.projectile_dissipation_right_rects[self.anim_num as usize];
                 }
                 Direction::Bottom => {
                     self.cond.set_alive(false);
