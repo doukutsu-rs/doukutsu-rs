@@ -295,7 +295,21 @@ impl SettingsMenu {
                         let _ = state.settings.save(ctx);
                     }
                 }
-                MenuSelectionResult::Selected(4, _) => self.current = CurrentMenu::SoundtrackMenu,
+                MenuSelectionResult::Selected(4, _) => {
+                    let mut active_soundtrack_index = 0;
+
+                    for (idx, entry) in self.soundtrack.entries.iter().enumerate() {
+                        if let MenuEntry::Active(soundtrack) = entry {
+                            if soundtrack == &state.settings.soundtrack {
+                                active_soundtrack_index = idx;
+                            }
+                        }
+                    }
+
+                    self.soundtrack.selected = active_soundtrack_index;
+
+                    self.current = CurrentMenu::SoundtrackMenu
+                }
                 MenuSelectionResult::Selected(5, _) | MenuSelectionResult::Canceled => {
                     self.current = CurrentMenu::MainMenu
                 }
@@ -307,6 +321,7 @@ impl SettingsMenu {
                     MenuSelectionResult::Selected(idx, entry) => {
                         if let (true, MenuEntry::Active(name)) = (idx != last, entry) {
                             state.settings.soundtrack = name.to_owned();
+                            let _ = state.settings.save(ctx);
                             self.sound.entries[4] =
                                 MenuEntry::Active(format!("Soundtrack: {}", state.settings.soundtrack));
                             state.sound_manager.reload_songs(&state.constants, &state.settings, ctx)?;
