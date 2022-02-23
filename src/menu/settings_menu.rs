@@ -309,7 +309,7 @@ impl SettingsMenu {
                     self.soundtrack.selected = active_soundtrack_index;
 
                     self.current = CurrentMenu::SoundtrackMenu
-                },
+                }
                 MenuSelectionResult::Selected(5, _) | MenuSelectionResult::Canceled => {
                     self.current = CurrentMenu::MainMenu
                 }
