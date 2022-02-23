@@ -554,13 +554,20 @@ impl SharedGameState {
         }
     }
 
-    pub fn get_save_filename(&self, slot: usize) -> String {
+    pub fn get_save_filename(&mut self, slot: usize) -> String {
         if let Some(mod_path) = &self.mod_path {
-            format!("/Profile{}.dat", mod_path.replace("/", "")) // Until we have mod names
-        } else if slot == 1 {
-            "/Profile.dat".to_owned()
+            let save_slot = self.mod_list.get_save_from_path(mod_path.to_string());
+            if save_slot < 0 {
+                return "/ModSaveDump.dat".to_owned();
+            } else if save_slot > 0 {
+                return format!("/Mod{}_Profile{}.dat", save_slot, slot);
+            }
+        }
+
+        if slot == 1 {
+            return "/Profile.dat".to_owned();
         } else {
-            format!("/Profile{}.dat", slot)
+            return format!("/Profile{}.dat", slot);
         }
     }
 }

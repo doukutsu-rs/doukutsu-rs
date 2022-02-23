@@ -163,4 +163,12 @@ impl ModList {
 
         Ok(ModList { mods })
     }
+
+    pub fn get_save_from_path(&self, mod_path: String) -> i32 {
+        if let Some(mod_sel) = self.mods.iter().find(|x| x.path == mod_path) {
+            mod_sel.save_slot
+        } else {
+            -1
+        }
+    }
 }

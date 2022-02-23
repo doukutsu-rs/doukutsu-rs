@@ -43,6 +43,9 @@ impl SaveSelectMenu {
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &Context) -> GameResult {
+        self.save_menu = Menu::new(0, 0, 200, 0);
+        self.delete_confirm = Menu::new(0, 0, 75, 0);
+
         for (iter, save) in self.saves.iter_mut().enumerate() {
             if let Ok(data) = filesystem::user_open(ctx, state.get_save_filename(iter + 1)) {
                 let loaded_save = GameProfile::load_from_save(data)?;
@@ -94,14 +97,17 @@ impl SaveSelectMenu {
             CurrentMenu::SaveMenu => match self.save_menu.tick(controller, state) {
                 MenuSelectionResult::Selected(0, _) => {
                     state.save_slot = 1;
+                    state.reload_resources(ctx)?;
                     state.load_or_start_game(ctx)?;
                 }
                 MenuSelectionResult::Selected(1, _) => {
                     state.save_slot = 2;
+                    state.reload_resources(ctx)?;
                     state.load_or_start_game(ctx)?;
                 }
                 MenuSelectionResult::Selected(2, _) => {
                     state.save_slot = 3;
+                    state.reload_resources(ctx)?;
                     state.load_or_start_game(ctx)?;
                 }
                 MenuSelectionResult::Selected(3, _) | MenuSelectionResult::Canceled => exit_action(),

@@ -193,6 +193,8 @@ impl Scene for TitleScene {
         match self.current_menu {
             CurrentMenu::MainMenu => match self.main_menu.tick(&mut self.controller, state) {
                 MenuSelectionResult::Selected(0, _) => {
+                    state.mod_path = None;
+                    self.save_select_menu.init(state, ctx)?;
                     self.current_menu = CurrentMenu::SaveSelectMenu;
                 }
                 MenuSelectionResult::Selected(1, _) => {
@@ -261,10 +263,14 @@ impl Scene for TitleScene {
                         if last_idx == idx {
                             self.current_menu = CurrentMenu::MainMenu;
                         } else if let Some(mod_info) = state.mod_list.mods.get(idx) {
-                            state.save_slot = 4;
                             state.mod_path = Some(mod_info.path.clone());
-                            state.reload_resources(ctx)?;
-                            state.start_new_game(ctx)?;
+                            if mod_info.save_slot >= 0 {
+                                self.save_select_menu.init(state, ctx)?;
+                                self.current_menu = CurrentMenu::SaveSelectMenu;
+                            } else {
+                                state.reload_resources(ctx)?;
+                                state.start_new_game(ctx)?;
+                            }
                         }
                     }
                     MenuSelectionResult::Canceled => {
