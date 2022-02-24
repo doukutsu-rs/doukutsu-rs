@@ -139,7 +139,7 @@ impl Scene for TitleScene {
         self.controller.add(state.settings.create_player2_controller());
 
         self.main_menu.push_entry(MenuEntry::Active("Start Game".to_string()));
-        if state.constants.is_cs_plus {
+        if !state.mod_list.mods.is_empty() {
             self.main_menu.push_entry(MenuEntry::Active("Challenges".to_string()));
         } else {
             self.main_menu.push_entry(MenuEntry::Hidden);
