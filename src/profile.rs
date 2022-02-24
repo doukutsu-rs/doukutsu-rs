@@ -126,6 +126,8 @@ impl GameProfile {
             }
         }
 
+        state.textscript_vm.start_script(0);
+
         game_scene.player1.equip.0 = self.equipment as u16;
 
         game_scene.player1.x = self.pos_x;
