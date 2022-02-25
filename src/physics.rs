@@ -126,7 +126,8 @@ pub trait PhysicalEntity {
         let half_tile_size = state.tile_size.as_int() * 0x100;
 
         if (self.y() - self.hit_bounds().top as i32) < ((y * 2 + 1) * half_tile_size - bounds_top)
-            && (self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * half_tile_size + bounds_bottom) {
+            && (self.y() + self.hit_bounds().bottom as i32) > ((y * 2 - 1) * half_tile_size + bounds_bottom)
+        {
             // left wall
             if (self.x() - self.hit_bounds().right as i32) < (x * 2 + 1) * half_tile_size
                 && (self.x() - self.hit_bounds().right as i32) > (x * 2) * half_tile_size
@@ -167,7 +168,8 @@ pub trait PhysicalEntity {
         }
 
         if ((self.x() - self.hit_bounds().right as i32) < (x * 2 + 1) * half_tile_size - bounds_x)
-            && ((self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * half_tile_size + bounds_x) {
+            && ((self.x() + self.hit_bounds().right as i32) > (x * 2 - 1) * half_tile_size + bounds_x)
+        {
             // ceiling
             if (self.y() - self.hit_bounds().top as i32) < (y * 2 + 1) * half_tile_size
                 && (self.y() - self.hit_bounds().top as i32) > (y * 2) * half_tile_size
@@ -287,6 +289,7 @@ pub trait PhysicalEntity {
             }
 
             self.flags().set_hit_top_wall(true);
+            self.flags().set_hit_upper_left_slope(true);
         }
     }
 
@@ -327,6 +330,7 @@ pub trait PhysicalEntity {
             }
 
             self.flags().set_hit_top_wall(true);
+            self.flags().set_hit_upper_left_slope(true);
         }
     }
 
@@ -367,6 +371,7 @@ pub trait PhysicalEntity {
             }
 
             self.flags().set_hit_top_wall(true);
+            self.flags().set_hit_upper_right_slope(true);
         }
     }
 
@@ -407,6 +412,7 @@ pub trait PhysicalEntity {
             }
 
             self.flags().set_hit_top_wall(true);
+            self.flags().set_hit_upper_right_slope(true);
         }
     }
 
@@ -551,9 +557,7 @@ pub trait PhysicalEntity {
             && (self.y() - self.hit_bounds().top as i32) < (y * tile_size) - (self.x() - x * tile_size)
             && (self.y() + self.hit_bounds().bottom as i32) > (y * 2 - 1) * half_tile_size
         {
-            self.set_y(
-                (y * tile_size) - (self.x() - x * tile_size) + self.hit_bounds().top as i32
-            );
+            self.set_y((y * tile_size) - (self.x() - x * tile_size) + self.hit_bounds().top as i32);
 
             if self.is_player() && !self.cond().hidden() && self.vel_y() < -0x200 {
                 state.sound_manager.play_sfx(3);
@@ -589,9 +593,7 @@ pub trait PhysicalEntity {
             && (self.y() - self.hit_bounds().top as i32) < (y * tile_size) + (self.x() - x * tile_size)
             && (self.y() + self.hit_bounds().bottom as i32) > (y * 2 - 1) * half_tile_size
         {
-            self.set_y(
-                (y * tile_size) + (self.x() - x * tile_size) + self.hit_bounds().top as i32
-            );
+            self.set_y((y * tile_size) + (self.x() - x * tile_size) + self.hit_bounds().top as i32);
 
             if self.is_player() && !self.cond().hidden() && self.vel_y() < -0x200 {
                 state.sound_manager.play_sfx(3);
@@ -627,10 +629,13 @@ pub trait PhysicalEntity {
 
         if self.x() < (x * 2 + 1) * half_tile_size
             && self.x() > (x * 2 - 1) * half_tile_size
-            && (self.y() + self.hit_bounds().bottom as i32) > (y * tile_size) + (self.x() - x * tile_size) - quarter_tile_size
+            && (self.y() + self.hit_bounds().bottom as i32)
+                > (y * tile_size) + (self.x() - x * tile_size) - quarter_tile_size
             && (self.y() - self.hit_bounds().top as i32) < (y * 2 + 1) * half_tile_size
         {
-            self.set_y((y * tile_size) + (self.x() - x * tile_size) - quarter_tile_size - self.hit_bounds().bottom as i32);
+            self.set_y(
+                (y * tile_size) + (self.x() - x * tile_size) - quarter_tile_size - self.hit_bounds().bottom as i32,
+            );
 
             if self.is_player() && self.vel_y() > 0x400 {
                 state.sound_manager.play_sfx(23);
@@ -655,10 +660,13 @@ pub trait PhysicalEntity {
 
         if (self.x() < (x * 2 + 1) * half_tile_size)
             && (self.x() > (x * 2 - 1) * half_tile_size)
-            && (self.y() + self.hit_bounds().bottom as i32) > (y * tile_size) - (self.x() - x * tile_size) - quarter_tile_size
+            && (self.y() + self.hit_bounds().bottom as i32)
+                > (y * tile_size) - (self.x() - x * tile_size) - quarter_tile_size
             && (self.y() - self.hit_bounds().top as i32) < (y * 2 + 1) * half_tile_size
         {
-            self.set_y((y * tile_size) - (self.x() - x * tile_size) - quarter_tile_size - self.hit_bounds().bottom as i32);
+            self.set_y(
+                (y * tile_size) - (self.x() - x * tile_size) - quarter_tile_size - self.hit_bounds().bottom as i32,
+            );
 
             if self.is_player() && self.vel_y() > 0x400 {
                 state.sound_manager.play_sfx(23);

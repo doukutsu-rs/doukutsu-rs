@@ -39,9 +39,9 @@ bitfield! {
     /// Set if entity stays on left slope. (corresponds to flag & 0x20)
     pub hit_left_slope, set_hit_left_slope: 5;
     /// Used only in bullet code, set if a bullet hits upper right slope (corresponds to flag & 0x40)
-    pub hit_right_upper_slope, set_hit_right_upper_slope: 6;
+    pub hit_upper_right_slope, set_hit_upper_right_slope: 6;
     /// Used only in bullet code, set if a bullet hits upper left slope (corresponds to flag & 0x80)
-    pub hit_left_upper_slope, set_hit_left_upper_slope: 7;
+    pub hit_upper_left_slope, set_hit_upper_left_slope: 7;
     /// Set if entity is in water. (corresponds to flag & 0x100)
     pub in_water, set_in_water: 8;
     pub weapon_hit_block, set_weapon_hit_block: 9; // 0x200

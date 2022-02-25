@@ -580,10 +580,10 @@ impl Bullet {
             _ if self.life != 10 => true,
             Direction::Left if self.flags.hit_left_wall() => true,
             Direction::Left if self.flags.hit_left_slope() => true,
-            Direction::Left if self.flags.hit_left_upper_slope() => true,
+            Direction::Left if self.flags.hit_upper_left_slope() => true,
             Direction::Right if self.flags.hit_right_wall() => true,
             Direction::Right if self.flags.hit_right_slope() => true,
-            Direction::Right if self.flags.hit_right_upper_slope() => true,
+            Direction::Right if self.flags.hit_upper_right_slope() => true,
             Direction::Up if self.flags.hit_top_wall() => true,
             Direction::Bottom if self.flags.hit_bottom_wall() => true,
             _ => false,
@@ -1213,10 +1213,10 @@ impl Bullet {
             _ if self.life != 10 => true,
             Direction::Left if self.flags.hit_left_wall() => true,
             Direction::Left if self.flags.hit_left_slope() => true,
-            Direction::Left if self.flags.hit_left_upper_slope() => true,
+            Direction::Left if self.flags.hit_upper_left_slope() => true,
             Direction::Right if self.flags.hit_right_wall() => true,
             Direction::Right if self.flags.hit_right_slope() => true,
-            Direction::Right if self.flags.hit_right_upper_slope() => true,
+            Direction::Right if self.flags.hit_upper_right_slope() => true,
             Direction::Up if self.flags.hit_top_wall() => true,
             Direction::Bottom if self.flags.hit_bottom_wall() => true,
             _ => false,
@@ -1241,14 +1241,14 @@ impl Bullet {
                 Direction::Left | Direction::Right => {
                     self.target_y = self.y;
                     self.enemy_hit_height = 0x1000;
-                    self.hit_bounds.top = 0x1000;
-                    self.hit_bounds.bottom = 0x1000;
+                    self.hit_bounds.left = 0x1000;
+                    self.hit_bounds.right = 0x1000;
                 }
                 Direction::Up | Direction::Bottom => {
                     self.target_x = self.x;
                     self.enemy_hit_width = 0x1000;
-                    self.hit_bounds.left = 0x1000;
-                    self.hit_bounds.right = 0x1000;
+                    self.hit_bounds.top = 0x1000;
+                    self.hit_bounds.bottom = 0x1000;
                 }
                 _ => {}
             }
@@ -1470,7 +1470,6 @@ impl Bullet {
                 Direction::Bottom => self.vel_y = 0x1000,
                 Direction::FacingPlayer => unreachable!(),
             }
-
         } else {
             if self.action_counter % 4 == 1 {
                 let mut npc = NPC::create(4, &state.npc_table);
@@ -1705,6 +1704,7 @@ impl Bullet {
 
     fn test_hit_block_destructible(&mut self, x: i32, y: i32, attributes: &[u8; 16], state: &mut SharedGameState) {
         let mut hits = [false; 16];
+        let mut temp_flags = Flag(0);
 
         let (block_x, block_y, max_attr) = match state.tile_size {
             TileSize::Tile8x8 => ((x * 2 + 1) * 0x800, (y * 2 + 1) * 0x800, 4),
@@ -1726,87 +1726,88 @@ impl Bullet {
         // left wall
         if hits[0] && hits[2] {
             if (self.x - self.hit_bounds.left as i32) < block_x {
-                self.flags.set_hit_left_wall(true);
+                temp_flags.set_hit_left_wall(true);
             }
         } else if hits[0] && !hits[2] {
             if (self.x - self.hit_bounds.left as i32) < block_x
                 && (self.y - self.hit_bounds.top as i32) < block_y - (0x600)
             {
-                self.flags.set_hit_left_wall(true);
+                temp_flags.set_hit_left_wall(true);
             }
         } else if !hits[0]
             && hits[2]
             && (self.x - self.hit_bounds.left as i32) < block_x
             && (self.y + self.hit_bounds.top as i32) > block_y + (0x600)
         {
-            self.flags.set_hit_left_wall(true);
+            temp_flags.set_hit_left_wall(true);
         }
 
         // right wall
         if hits[1] && hits[3] {
             if (self.x + self.hit_bounds.right as i32) > block_x {
-                self.flags.set_hit_right_wall(true);
+                temp_flags.set_hit_right_wall(true);
             }
         } else if hits[1] && !hits[3] {
             if (self.x + self.hit_bounds.right as i32) > block_x
                 && (self.y - self.hit_bounds.top as i32) < block_y - (0x600)
             {
-                self.flags.set_hit_right_wall(true);
+                temp_flags.set_hit_right_wall(true);
             }
         } else if !hits[1]
             && hits[3]
             && (self.x + self.hit_bounds.right as i32) > block_x
             && (self.y + self.hit_bounds.top as i32) > block_y + (0x600)
         {
-            self.flags.set_hit_right_wall(true);
+            temp_flags.set_hit_right_wall(true);
         }
 
         // ceiling
         if hits[0] && hits[1] {
             if (self.y - self.hit_bounds.top as i32) < block_y {
-                self.flags.set_hit_top_wall(true);
+                temp_flags.set_hit_top_wall(true);
             }
         } else if hits[0] && !hits[1] {
             if (self.x - self.hit_bounds.left as i32) < block_x - (0x600)
                 && (self.y - self.hit_bounds.top as i32) < block_y
             {
-                self.flags.set_hit_top_wall(true);
+                temp_flags.set_hit_top_wall(true);
             }
         } else if !hits[0]
             && hits[1]
             && (self.x + self.hit_bounds.right as i32) > block_x + (0x600)
             && (self.y - self.hit_bounds.top as i32) < block_y
         {
-            self.flags.set_hit_top_wall(true);
+            temp_flags.set_hit_top_wall(true);
         }
 
         // ground
         if hits[2] && hits[3] {
             if (self.y + self.hit_bounds.bottom as i32) > block_y {
-                self.flags.set_hit_bottom_wall(true);
+                temp_flags.set_hit_bottom_wall(true);
             }
         } else if hits[2] && !hits[3] {
             if (self.x - self.hit_bounds.left as i32) < block_x - (0x600)
                 && (self.y + self.hit_bounds.bottom as i32) > block_y
             {
-                self.flags.set_hit_bottom_wall(true);
+                temp_flags.set_hit_bottom_wall(true);
             }
         } else if !hits[2]
             && hits[3]
             && (self.x + self.hit_bounds.right as i32) > block_x + (0x600)
             && (self.y + self.hit_bounds.bottom as i32) > block_y
         {
-            self.flags.set_hit_bottom_wall(true);
+            temp_flags.set_hit_bottom_wall(true);
         }
+        self.flags.0 |= temp_flags.0;
 
         if self.weapon_flags.bounce_from_walls() {
-            if self.flags.hit_left_wall() {
+            if temp_flags.hit_left_wall() {
                 self.x = block_x + self.hit_bounds.right as i32;
-            } else if self.flags.hit_right_wall() {
+            } else if temp_flags.hit_right_wall() {
                 self.x = block_x - self.hit_bounds.left as i32;
-            } else if self.flags.hit_top_wall() {
+            } else if temp_flags.hit_top_wall() {
                 self.y = block_y + self.hit_bounds.bottom as i32;
-            } else if self.flags.hit_bottom_wall() {
+            } else if temp_flags.hit_bottom_wall() {
                 self.y = block_y - self.hit_bounds.top as i32;
             }
         } else if self.flags.hit_left_wall()
