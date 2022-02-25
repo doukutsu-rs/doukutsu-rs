@@ -95,6 +95,10 @@ impl Frame {
             screen_width += 10.0;
         }
 
+        if self.wait == 0 { // prevent zero division
+            self.wait = 1;
+        }
+        
         let tile_size = state.tile_size.as_int();
 
         if (stage.map.width as usize).saturating_sub(1) * (tile_size as usize) < screen_width as usize {
