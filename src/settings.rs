@@ -45,7 +45,6 @@ pub struct Settings {
     pub infinite_booster: bool,
     #[serde(skip)]
     pub debug_outlines: bool,
-    #[serde(skip, default = "default_true")]
     pub fps_counter: bool,
 }
 
@@ -142,12 +141,12 @@ impl Default for Settings {
             version: current_version(),
             seasonal_textures: true,
             original_textures: false,
-            shader_effects: true,
+            shader_effects: false,
             light_cone: true,
             subpixel_coords: true,
             motion_interpolation: true,
             touch_controls: cfg!(target_os = "android"),
-            soundtrack: "".to_string(),
+            soundtrack: "Organya".to_string(),
             bgm_volume: 1.0,
             sfx_volume: 1.0,
             timing_mode: default_timing(),
@@ -158,7 +157,7 @@ impl Default for Settings {
             god_mode: false,
             infinite_booster: false,
             debug_outlines: false,
-            fps_counter: true,
+            fps_counter: false,
         }
     }
 }
