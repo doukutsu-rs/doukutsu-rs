@@ -47,7 +47,7 @@ impl SaveSelectMenu {
         self.delete_confirm = Menu::new(0, 0, 75, 0);
 
         for (iter, save) in self.saves.iter_mut().enumerate() {
-            if let Ok(data) = filesystem::user_open(ctx, state.get_save_filename(iter + 1)) {
+            if let Ok(data) = filesystem::user_open(ctx, state.get_save_filename(iter + 1).unwrap_or("".to_string())) {
                 let loaded_save = GameProfile::load_from_save(data)?;
 
                 save.current_map = loaded_save.current_map;
@@ -122,7 +122,10 @@ impl SaveSelectMenu {
             CurrentMenu::DeleteConfirm => match self.delete_confirm.tick(controller, state) {
                 MenuSelectionResult::Selected(1, _) => {
                     state.sound_manager.play_sfx(17); // Player Death sfx
-                    filesystem::user_delete(ctx, state.get_save_filename(self.save_menu.selected + 1))?;
+                    filesystem::user_delete(
+                        ctx,
+                        state.get_save_filename(self.save_menu.selected + 1).unwrap_or("".to_string()),
+                    )?;
                     self.save_menu.entries[self.save_menu.selected] = MenuEntry::NewSave;
                     self.current_menu = CurrentMenu::SaveMenu;
                 }

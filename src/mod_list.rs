@@ -171,4 +171,12 @@ impl ModList {
             -1
         }
     }
+
+    pub fn get_name_from_path(&self, mod_path: String) -> &str {
+        if let Some(mod_sel) = self.mods.iter().find(|x| x.path == mod_path) {
+            &mod_sel.name
+        } else {
+            "NoName"
+        }
+    }
 }

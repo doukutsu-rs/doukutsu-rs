@@ -5,7 +5,6 @@ use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::input::touch_controls::TouchControlType;
 use crate::map::Map;
@@ -25,8 +24,7 @@ enum CurrentMenu {
     OptionMenu,
     SaveSelectMenu,
     ChallengesMenu,
-    StartGame,
-    LoadGame,
+    ChallengeConfirmMenu,
 }
 
 pub struct TitleScene {
@@ -36,6 +34,7 @@ pub struct TitleScene {
     main_menu: Menu,
     save_select_menu: SaveSelectMenu,
     challenges_menu: Menu,
+    confirm_menu: Menu,
     settings_menu: SettingsMenu,
     background: Background,
     frame: Frame,
@@ -74,6 +73,7 @@ impl TitleScene {
             main_menu: Menu::new(0, 0, 100, 0),
             save_select_menu: SaveSelectMenu::new(),
             challenges_menu: Menu::new(0, 0, 150, 0),
+            confirm_menu: Menu::new(0, 0, 150, 0),
             settings_menu,
             background: Background::new(),
             frame: Frame::new(),
@@ -166,10 +166,15 @@ impl Scene for TitleScene {
         }
         self.challenges_menu.push_entry(MenuEntry::Active("< Back".to_string()));
 
+        self.confirm_menu.push_entry(MenuEntry::Disabled("".to_owned()));
+        self.confirm_menu.push_entry(MenuEntry::Active("Start".to_owned()));
+        self.confirm_menu.push_entry(MenuEntry::Active("< Back".to_owned()));
+        self.confirm_menu.selected = 1;
+
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
 
-        self.nikumaru_rec.load_counter(ctx)?;
+        self.nikumaru_rec.load_counter(state, ctx)?;
         self.update_menu_cursor(state, ctx)?;
 
         Ok(())
@@ -236,50 +241,63 @@ impl Scene for TitleScene {
             }
             CurrentMenu::SaveSelectMenu => {
                 let cm = &mut self.current_menu;
+                let rm = if state.mod_path.is_none() { CurrentMenu::MainMenu } else { CurrentMenu::ChallengesMenu };
                 self.save_select_menu.tick(
                     &mut || {
-                        *cm = CurrentMenu::MainMenu;
+                        *cm = rm;
                     },
                     &mut self.controller,
                     state,
                     ctx,
                 )?;
             }
-            CurrentMenu::StartGame => {
-                if self.tick == 10 {
-                    state.reset_skip_flags();
-                    state.start_new_game(ctx)?;
-                }
-            }
-            CurrentMenu::LoadGame => {
-                if self.tick == 10 {
-                    state.load_or_start_game(ctx)?;
-                }
-            }
             CurrentMenu::ChallengesMenu => {
                 let last_idx = self.challenges_menu.entries.len() - 1;
                 match self.challenges_menu.tick(&mut self.controller, state) {
                     MenuSelectionResult::Selected(idx, _) => {
                         if last_idx == idx {
+                            state.mod_path = None;
+                            self.nikumaru_rec.load_counter(state, ctx)?;
                             self.current_menu = CurrentMenu::MainMenu;
                         } else if let Some(mod_info) = state.mod_list.mods.get(idx) {
                             state.mod_path = Some(mod_info.path.clone());
                             if mod_info.save_slot >= 0 {
                                 self.save_select_menu.init(state, ctx)?;
+                                self.nikumaru_rec.load_counter(state, ctx)?;
                                 self.current_menu = CurrentMenu::SaveSelectMenu;
                             } else {
-                                state.reload_resources(ctx)?;
-                                state.start_new_game(ctx)?;
+                                let mod_name = mod_info.name.clone();
+                                self.confirm_menu.width =
+                                    (state.font.text_width(mod_name.chars(), &state.constants).max(50.0) + 32.0) as u16;
+                                self.confirm_menu.entries[0] = MenuEntry::Disabled(mod_name);
+                                self.nikumaru_rec.load_counter(state, ctx)?;
+                                self.current_menu = CurrentMenu::ChallengeConfirmMenu;
                             }
                         }
                     }
                     MenuSelectionResult::Canceled => {
+                        state.mod_path = None;
+                        self.nikumaru_rec.load_counter(state, ctx)?;
                         self.current_menu = CurrentMenu::MainMenu;
                     }
                     _ => (),
                 }
             }
+            CurrentMenu::ChallengeConfirmMenu => match self.confirm_menu.tick(&mut self.controller, state) {
+                MenuSelectionResult::Selected(1, _) => {
+                    state.reload_resources(ctx)?;
+                    state.start_new_game(ctx)?;
+                }
+                MenuSelectionResult::Selected(2, _) | MenuSelectionResult::Canceled => {
+                    self.current_menu = CurrentMenu::ChallengesMenu;
+                }
+                _ => (),
+            },
         }
+
+        self.confirm_menu.update_height();
+        self.confirm_menu.x = ((state.canvas_size.0 - self.confirm_menu.width as f32) / 2.0).floor() as isize;
+        self.confirm_menu.y = ((state.canvas_size.1 + 30.0 - self.confirm_menu.height as f32) / 2.0).floor() as isize;
 
         self.tick += 1;
 
@@ -287,11 +305,6 @@ impl Scene for TitleScene {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if self.current_menu == CurrentMenu::StartGame || self.current_menu == CurrentMenu::LoadGame {
-            graphics::clear(ctx, Color::from_rgb(0, 0, 0));
-            return Ok(());
-        }
-
         self.background.draw(state, ctx, &self.frame, &self.textures, &self.stage)?;
 
         {
@@ -313,9 +326,9 @@ impl Scene for TitleScene {
         match self.current_menu {
             CurrentMenu::MainMenu => self.main_menu.draw(state, ctx)?,
             CurrentMenu::ChallengesMenu => self.challenges_menu.draw(state, ctx)?,
+            CurrentMenu::ChallengeConfirmMenu => self.confirm_menu.draw(state, ctx)?,
             CurrentMenu::OptionMenu => self.settings_menu.draw(state, ctx)?,
             CurrentMenu::SaveSelectMenu => self.save_select_menu.draw(state, ctx)?,
-            _ => {}
         }
 
         Ok(())

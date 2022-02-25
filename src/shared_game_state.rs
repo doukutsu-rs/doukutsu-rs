@@ -6,15 +6,15 @@ use chrono::{Datelike, Local};
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState};
-use crate::components::draw_common::{Alignment, draw_number};
+use crate::components::draw_common::{draw_number, Alignment};
 use crate::engine_constants::EngineConstants;
-use crate::framework::{filesystem, graphics};
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{create_texture_mutable, set_render_target};
 use crate::framework::keyboard::ScanCode;
 use crate::framework::vfs::OpenOptions;
+use crate::framework::{filesystem, graphics};
 #[cfg(feature = "hooks")]
 use crate::hooks::init_hooks;
 use crate::input::touch_controls::TouchControls;
@@ -23,8 +23,8 @@ use crate::npc::NPCTable;
 use crate::profile::GameProfile;
 use crate::rng::XorShift;
 use crate::scene::game_scene::GameScene;
-use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
+use crate::scene::Scene;
 #[cfg(feature = "scripting-lua")]
 use crate::scripting::lua::LuaScriptingState;
 use crate::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
@@ -404,41 +404,45 @@ impl SharedGameState {
     }
 
     pub fn save_game(&mut self, game_scene: &mut GameScene, ctx: &mut Context) -> GameResult {
-        if let Ok(data) = filesystem::open_options(
-            ctx,
-            self.get_save_filename(self.save_slot),
-            OpenOptions::new().write(true).create(true),
-        ) {
-            let profile = GameProfile::dump(self, game_scene);
-            profile.write_save(data)?;
+        if let Some(save_path) = self.get_save_filename(self.save_slot) {
+            if let Ok(data) = filesystem::open_options(ctx, save_path, OpenOptions::new().write(true).create(true)) {
+                let profile = GameProfile::dump(self, game_scene);
+                profile.write_save(data)?;
+            } else {
+                log::warn!("Cannot open save file.");
+            }
         } else {
-            log::warn!("Cannot open save file.");
+            log::info!("Mod has saves disabled.");
         }
 
         Ok(())
     }
 
     pub fn load_or_start_game(&mut self, ctx: &mut Context) -> GameResult {
-        if let Ok(data) = filesystem::user_open(ctx, self.get_save_filename(self.save_slot)) {
-            match GameProfile::load_from_save(data) {
-                Ok(profile) => {
-                    self.reset();
-                    let mut next_scene = GameScene::new(self, ctx, profile.current_map as usize)?;
+        if let Some(save_path) = self.get_save_filename(self.save_slot) {
+            if let Ok(data) = filesystem::user_open(ctx, save_path) {
+                match GameProfile::load_from_save(data) {
+                    Ok(profile) => {
+                        self.reset();
+                        let mut next_scene = GameScene::new(self, ctx, profile.current_map as usize)?;
 
-                    profile.apply(self, &mut next_scene, ctx);
+                        profile.apply(self, &mut next_scene, ctx);
 
-                    #[cfg(feature = "scripting-lua")]
-                    self.lua.reload_scripts(ctx)?;
+                        #[cfg(feature = "scripting-lua")]
+                        self.lua.reload_scripts(ctx)?;
 
-                    self.next_scene = Some(Box::new(next_scene));
-                    return Ok(());
+                        self.next_scene = Some(Box::new(next_scene));
+                        return Ok(());
+                    }
+                    Err(e) => {
+                        log::warn!("Failed to load save game, starting new one: {}", e);
+                    }
                 }
-                Err(e) => {
-                    log::warn!("Failed to load save game, starting new one: {}", e);
-                }
+            } else {
+                log::warn!("No save game found, starting new one...");
             }
         } else {
-            log::warn!("No save game found, starting new one...");
+            log::info!("Mod has saves disabled.");
         }
 
         self.start_new_game(ctx)
@@ -554,20 +558,29 @@ impl SharedGameState {
         }
     }
 
-    pub fn get_save_filename(&mut self, slot: usize) -> String {
+    pub fn get_save_filename(&mut self, slot: usize) -> Option<String> {
         if let Some(mod_path) = &self.mod_path {
             let save_slot = self.mod_list.get_save_from_path(mod_path.to_string());
             if save_slot < 0 {
-                return "/ModSaveDump.dat".to_owned();
+                return None;
             } else if save_slot > 0 {
-                return format!("/Mod{}_Profile{}.dat", save_slot, slot);
+                return Some(format!("/Mod{}_Profile{}.dat", save_slot, slot));
             }
         }
 
         if slot == 1 {
-            return "/Profile.dat".to_owned();
+            return Some("/Profile.dat".to_owned());
         } else {
-            return format!("/Profile{}.dat", slot);
+            return Some(format!("/Profile{}.dat", slot));
+        }
+    }
+
+    pub fn get_290_filename(&self) -> String {
+        if let Some(mod_path) = &self.mod_path {
+            let name = self.mod_list.get_name_from_path(mod_path.to_string());
+            return format!("/{}.rec", name);
+        } else {
+            return "/290.rec".to_string();
         }
     }
 }

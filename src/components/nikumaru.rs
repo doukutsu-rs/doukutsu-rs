@@ -1,7 +1,7 @@
-use byteorder::{LE, ReadBytesExt, WriteBytesExt};
+use byteorder::{ReadBytesExt, WriteBytesExt, LE};
 
 use crate::common::Rect;
-use crate::components::draw_common::{Alignment, draw_number, draw_number_zeros};
+use crate::components::draw_common::{draw_number, draw_number_zeros, Alignment};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
@@ -24,8 +24,8 @@ impl NikumaruCounter {
         NikumaruCounter { tick: 0, shown: false }
     }
 
-    fn load_time(&mut self, ctx: &mut Context) -> GameResult<u32> {
-        if let Ok(mut data) = filesystem::user_open(ctx, "/290.rec") {
+    fn load_time(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<u32> {
+        if let Ok(mut data) = filesystem::user_open(ctx, state.get_290_filename()) {
             let mut ticks: [u32; 4] = [0; 4];
 
             for iter in 0..=3 {
@@ -54,7 +54,9 @@ impl NikumaruCounter {
     }
 
     fn save_time(&mut self, new_time: u32, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if let Ok(mut data) = filesystem::open_options(ctx, "/290.rec", OpenOptions::new().write(true).create(true)) {
+        if let Ok(mut data) =
+            filesystem::open_options(ctx, state.get_290_filename(), OpenOptions::new().write(true).create(true))
+        {
             let mut ticks: [u32; 4] = [new_time; 4];
             let mut random_list: [u8; 4] = [0; 4];
 
@@ -78,16 +80,18 @@ impl NikumaruCounter {
         Ok(())
     }
 
-    pub fn load_counter(&mut self, ctx: &mut Context) -> GameResult {
-        self.tick = self.load_time(ctx)? as usize;
+    pub fn load_counter(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        self.tick = self.load_time(state, ctx)? as usize;
         if self.tick > 0 {
             self.shown = true;
+        } else {
+            self.shown = false;
         }
         Ok(())
     }
 
     pub fn save_counter(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let old_record = self.load_time(ctx)? as usize;
+        let old_record = self.load_time(state, ctx)? as usize;
         if self.tick < old_record || old_record == 0 {
             self.save_time(self.tick as u32, state, ctx)?;
         }
