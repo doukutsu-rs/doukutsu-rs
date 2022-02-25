@@ -1240,13 +1240,13 @@ impl Bullet {
             match self.direction {
                 Direction::Left | Direction::Right => {
                     self.target_y = self.y;
-                    self.enemy_hit_height = 0x1000;
+                    self.enemy_hit_width = 0x1000;
                     self.hit_bounds.left = 0x1000;
                     self.hit_bounds.right = 0x1000;
                 }
                 Direction::Up | Direction::Bottom => {
                     self.target_x = self.x;
-                    self.enemy_hit_width = 0x1000;
+                    self.enemy_hit_height = 0x1000;
                     self.hit_bounds.top = 0x1000;
                     self.hit_bounds.bottom = 0x1000;
                 }
