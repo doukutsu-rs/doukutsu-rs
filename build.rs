@@ -19,8 +19,12 @@ fn main() {
     //         .unwrap();
     // }
 
-    if target.contains("macos") {
-        println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.12")
+    if target.contains("darwin") {
+        println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.12");
+        println!("cargo:rustc-link-arg=-weak_framework");
+        println!("cargo:rustc-link-arg=GameController");
+        println!("cargo:rustc-link-arg=-weak_framework");
+        println!("cargo:rustc-link-arg=CoreHaptics");
     }
 
     if is_android {

@@ -228,13 +228,25 @@ pub fn init(options: LaunchOptions) -> GameResult {
             let mut bundle_dir = resource_dir.clone();
             let _ = bundle_dir.pop();
             let mut bundle_exec_dir = bundle_dir.clone();
+            let mut csplus_data_dir = bundle_dir.clone();
+            let _ = csplus_data_dir.pop();
+            let _ = csplus_data_dir.pop();
+            let mut csplus_data_base_dir = csplus_data_dir.clone();
+            csplus_data_base_dir.push("data");
+            csplus_data_base_dir.push("base");
 
             bundle_exec_dir.push("MacOS");
             bundle_dir.push("Resources");
 
             if bundle_exec_dir.is_dir() && bundle_dir.is_dir() {
                 log::info!("Running in macOS bundle mode");
-                resource_dir = bundle_dir
+
+                if csplus_data_base_dir.is_dir() {
+                    log::info!("Cave Story+ Steam detected");
+                    resource_dir = csplus_data_dir;
+                } else {
+                    resource_dir = bundle_dir;
+                }
             }
         }
 

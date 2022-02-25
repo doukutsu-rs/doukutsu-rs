@@ -628,7 +628,7 @@ impl BackendRenderer for OpenGLRenderer {
         if self.refs.gles2_mode {
             "OpenGL ES 2.0".to_string()
         } else {
-            "OpenGL 3".to_string()
+            "OpenGL 2.1".to_string()
         }
     }
 

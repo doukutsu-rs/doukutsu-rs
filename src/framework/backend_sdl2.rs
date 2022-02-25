@@ -16,6 +16,7 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Texture, TextureCreator, TextureQuery, WindowCanvas};
 use sdl2::video::GLProfile;
 use sdl2::video::WindowContext;
+use sdl2::video::Window;
 use sdl2::{keyboard, pixels, EventPump, Sdl, VideoSubsystem};
 
 use crate::common::{Color, Rect};
@@ -53,6 +54,71 @@ impl Backend for SDL2Backend {
     }
 }
 
+enum WindowOrCanvas {
+    None,
+    Win(Window),
+    Canvas(WindowCanvas, TextureCreator<WindowContext>),
+}
+
+impl Default for WindowOrCanvas {
+    fn default() -> Self {
+        WindowOrCanvas::None
+    }
+}
+
+impl WindowOrCanvas {
+    #[inline]
+    pub fn window(&self) -> &Window {
+        match self {
+            WindowOrCanvas::Win(ref window) => window,
+            WindowOrCanvas::Canvas(ref canvas, _) => canvas.window(),
+            _ => unsafe { std::hint::unreachable_unchecked(); },
+        }
+    }
+
+    #[inline]
+    pub fn window_mut(&mut self) -> &mut Window {
+        match self {
+            WindowOrCanvas::Win(ref mut window) => window,
+            WindowOrCanvas::Canvas(ref mut canvas, _) => canvas.window_mut(),
+            _ => unsafe { std::hint::unreachable_unchecked(); },
+        }
+    }
+
+    #[inline]
+    pub fn canvas(&mut self) -> &mut WindowCanvas {
+        match self {
+            WindowOrCanvas::Canvas(ref mut canvas, _) => canvas,
+            _ => unsafe { std::hint::unreachable_unchecked(); },
+        }
+    }
+
+    #[inline]
+    pub fn texture_creator(&mut self) -> &mut TextureCreator<WindowContext> {
+        match self {
+            WindowOrCanvas::Canvas(_, ref mut texture_creator) => texture_creator,
+            _ => unsafe { std::hint::unreachable_unchecked(); },
+        }
+    }
+
+    pub fn make_canvas(self) -> GameResult<WindowOrCanvas> {
+        if let WindowOrCanvas::Win(window) = self {
+            let canvas = window
+                .into_canvas()
+                .accelerated()
+                .present_vsync()
+                .build()
+                .map_err(|e| GameError::RenderError(e.to_string()))?;
+
+            let texture_creator = canvas.texture_creator();
+
+            Ok(WindowOrCanvas::Canvas(canvas, texture_creator))
+        } else {
+            Ok(self)
+        }
+    }
+}
+
 struct SDL2EventLoop {
     event_pump: EventPump,
     refs: Rc<RefCell<SDL2Context>>,
@@ -61,8 +127,7 @@ struct SDL2EventLoop {
 
 struct SDL2Context {
     video: VideoSubsystem,
-    canvas: WindowCanvas,
-    texture_creator: TextureCreator<WindowContext>,
+    window: WindowOrCanvas,
     gl_context: Option<sdl2::video::GLContext>,
     blend_mode: sdl2::render::BlendMode,
 }
@@ -73,8 +138,8 @@ impl SDL2EventLoop {
         let video = sdl.video().map_err(GameError::WindowError)?;
         let gl_attr = video.gl_attr();
 
-        gl_attr.set_context_profile(GLProfile::Core);
-        gl_attr.set_context_version(3, 0);
+        gl_attr.set_context_profile(GLProfile::Compatibility);
+        gl_attr.set_context_version(2, 1);
 
         let mut window = video.window("Cave Story (doukutsu-rs)", size_hint.0 as _, size_hint.1 as _);
         window.position_centered();
@@ -85,22 +150,12 @@ impl SDL2EventLoop {
 
         let window = window.build().map_err(|e| GameError::WindowError(e.to_string()))?;
 
-        let canvas = window
-            .into_canvas()
-            .accelerated()
-            .present_vsync()
-            .build()
-            .map_err(|e| GameError::RenderError(e.to_string()))?;
-
-        let texture_creator = canvas.texture_creator();
-
         let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
         let event_loop = SDL2EventLoop {
             event_pump,
             refs: Rc::new(RefCell::new(SDL2Context {
                 video,
-                canvas,
-                texture_creator,
+                window: WindowOrCanvas::Win(window),
                 gl_context: None,
                 blend_mode: sdl2::render::BlendMode::Blend,
             })),
@@ -122,7 +177,7 @@ impl BackendEventLoop for SDL2EventLoop {
         };
 
         {
-            let (width, height) = self.refs.deref().borrow().canvas.window().size();
+            let (width, height) = self.refs.deref().borrow().window.window().size();
             ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
 
             imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
@@ -140,7 +195,7 @@ impl BackendEventLoop for SDL2EventLoop {
                 winfo.version.minor = sdl2_sys::SDL_MINOR_VERSION as _;
                 winfo.version.patch = sdl2_sys::SDL_PATCHLEVEL as _;
 
-                let mut whandle = self.refs.deref().borrow().canvas.window().raw();
+                let mut whandle = self.refs.deref().borrow().window.window().raw();
 
                 if sdl2_sys::SDL_GetWindowWMInfo(whandle, &mut winfo as *mut _) != sdl2_sys::SDL_bool::SDL_FALSE {
                     let window = winfo.info.x11.display as *mut objc::runtime::Object;
@@ -230,7 +285,7 @@ impl BackendEventLoop for SDL2EventLoop {
 
             imgui_sdl2.prepare_frame(
                 imgui.io_mut(),
-                self.refs.deref().borrow().canvas.window(),
+                self.refs.deref().borrow().window.window(),
                 &self.event_pump.mouse_state(),
             );
 
@@ -242,9 +297,9 @@ impl BackendEventLoop for SDL2EventLoop {
         #[cfg(feature = "render-opengl")]
         {
             let mut refs = self.refs.borrow_mut();
-            match refs.canvas.window().gl_create_context() {
+            match refs.window.window().gl_create_context() {
                 Ok(gl_ctx) => {
-                    refs.canvas.window().gl_make_current(&gl_ctx).map_err(|e| GameError::RenderError(e.to_string()))?;
+                    refs.window.window().gl_make_current(&gl_ctx).map_err(|e| GameError::RenderError(e.to_string()))?;
                     refs.gl_context = Some(gl_ctx);
                 }
                 Err(err) => {
@@ -281,7 +336,7 @@ impl BackendEventLoop for SDL2EventLoop {
                 {
                     let refs = &mut *refs.as_ptr();
 
-                    refs.canvas.window().gl_swap_window();
+                    refs.window.window().gl_swap_window();
                 }
 
                 *user_data = Rc::into_raw(refs) as *mut c_void;
@@ -290,6 +345,10 @@ impl BackendEventLoop for SDL2EventLoop {
             let gl_context = GLContext { gles2_mode: false, get_proc_address, swap_buffers, user_data };
 
             return Ok(Box::new(OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))));
+        } else {
+            let mut refs = self.refs.borrow_mut();
+            let window = std::mem::take(&mut refs.window);
+            refs.window = window.make_canvas()?;
         }
 
         SDL2Renderer::new(self.refs.clone())
@@ -317,7 +376,8 @@ impl SDL2Renderer {
 
             let mut texture = refs
                 .borrow_mut()
-                .texture_creator
+                .window
+                .texture_creator()
                 .create_texture_streaming(PixelFormatEnum::RGBA32, font_tex.width, font_tex.height)
                 .map_err(|e| GameError::RenderError(e.to_string()))?;
 
@@ -350,7 +410,7 @@ impl SDL2Renderer {
 
         let imgui_sdl2 = unsafe {
             let refs = &mut *refs.as_ptr();
-            ImguiSdl2::new(&mut imgui, refs.canvas.window())
+            ImguiSdl2::new(&mut imgui, refs.window.window())
         };
 
         Ok(Box::new(SDL2Renderer {
@@ -405,33 +465,37 @@ impl BackendRenderer for SDL2Renderer {
 
     fn clear(&mut self, color: Color) {
         let mut refs = self.refs.borrow_mut();
+        let canvas = refs.window.canvas();
 
-        refs.canvas.set_draw_color(to_sdl(color));
-        refs.canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
-        refs.canvas.clear();
+        canvas.set_draw_color(to_sdl(color));
+        canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+        canvas.clear();
     }
 
     fn present(&mut self) -> GameResult {
         let mut refs = self.refs.borrow_mut();
+        let canvas = refs.window.canvas();
 
-        refs.canvas.present();
+        canvas.present();
 
         Ok(())
     }
 
     fn prepare_draw(&mut self, width: f32, height: f32) -> GameResult {
         let mut refs = self.refs.borrow_mut();
+        let canvas = refs.window.canvas();
 
-        refs.canvas.set_clip_rect(Some(sdl2::rect::Rect::new(0, 0, width as u32, height as u32)));
+        canvas.set_clip_rect(Some(sdl2::rect::Rect::new(0, 0, width as u32, height as u32)));
 
         Ok(())
     }
 
     fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>> {
-        let refs = self.refs.borrow_mut();
+        let mut refs = self.refs.borrow_mut();
 
         let texture = refs
-            .texture_creator
+            .window
+            .texture_creator()
             .create_texture_target(PixelFormatEnum::RGBA32, width as u32, height as u32)
             .map_err(|e| GameError::RenderError(e.to_string()))?;
 
@@ -439,10 +503,11 @@ impl BackendRenderer for SDL2Renderer {
     }
 
     fn create_texture(&mut self, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>> {
-        let refs = self.refs.borrow_mut();
+        let mut refs = self.refs.borrow_mut();
 
         let mut texture = refs
-            .texture_creator
+            .window
+            .texture_creator()
             .create_texture_streaming(PixelFormatEnum::RGBA32, width as u32, height as u32)
             .map_err(|e| GameError::RenderError(e.to_string()))?;
 
@@ -479,7 +544,7 @@ impl BackendRenderer for SDL2Renderer {
     }
 
     fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult {
-        let renderer = self.refs.deref().borrow().canvas.raw();
+        let renderer = self.refs.borrow_mut().window.canvas().raw();
 
         match texture {
             Some(texture) => {
@@ -506,13 +571,14 @@ impl BackendRenderer for SDL2Renderer {
 
     fn draw_rect(&mut self, rect: Rect<isize>, color: Color) -> GameResult<()> {
         let mut refs = self.refs.borrow_mut();
+        let blend = refs.blend_mode;
+        let canvas = refs.window.canvas();
 
         let (r, g, b, a) = color.to_rgba();
 
-        let blend = refs.blend_mode;
-        refs.canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
-        refs.canvas.set_blend_mode(blend);
-        refs.canvas
+        canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
+        canvas.set_blend_mode(blend);
+        canvas
             .fill_rect(sdl2::rect::Rect::new(
                 rect.left as i32,
                 rect.top as i32,
@@ -526,17 +592,18 @@ impl BackendRenderer for SDL2Renderer {
 
     fn draw_outline_rect(&mut self, rect: Rect<isize>, line_width: usize, color: Color) -> GameResult<()> {
         let mut refs = self.refs.borrow_mut();
+        let blend = refs.blend_mode;
+        let canvas = refs.window.canvas();
 
         let (r, g, b, a) = color.to_rgba();
 
-        let blend = refs.blend_mode;
-        refs.canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
-        refs.canvas.set_blend_mode(blend);
+        canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
+        canvas.set_blend_mode(blend);
 
         match line_width {
             0 => {} // no-op
             1 => {
-                refs.canvas
+                canvas
                     .draw_rect(sdl2::rect::Rect::new(
                         rect.left as i32,
                         rect.top as i32,
@@ -563,7 +630,7 @@ impl BackendRenderer for SDL2Renderer {
                     ),
                 ];
 
-                refs.canvas.fill_rects(&rects).map_err(|e| GameError::RenderError(e.to_string()))?;
+                canvas.fill_rects(&rects).map_err(|e| GameError::RenderError(e.to_string()))?;
             }
         }
 
@@ -572,16 +639,17 @@ impl BackendRenderer for SDL2Renderer {
 
     fn set_clip_rect(&mut self, rect: Option<Rect>) -> GameResult {
         let mut refs = self.refs.borrow_mut();
+        let canvas = refs.window.canvas();
 
         if let Some(rect) = &rect {
-            refs.canvas.set_clip_rect(Some(sdl2::rect::Rect::new(
+            canvas.set_clip_rect(Some(sdl2::rect::Rect::new(
                 rect.left as i32,
                 rect.top as i32,
                 rect.width() as u32,
                 rect.height() as u32,
             )));
         } else {
-            refs.canvas.set_clip_rect(None);
+            canvas.set_clip_rect(None);
         }
 
         Ok(())
@@ -602,19 +670,20 @@ impl BackendRenderer for SDL2Renderer {
 
     fn prepare_imgui(&mut self, ui: &Ui) -> GameResult {
         let refs = self.refs.borrow_mut();
-        self.imgui_event.borrow_mut().prepare_render(ui, refs.canvas.window());
+        self.imgui_event.borrow_mut().prepare_render(ui, refs.window.window());
 
         Ok(())
     }
 
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult {
         let mut refs = self.refs.borrow_mut();
+        let canvas = refs.window.canvas();
 
         for draw_list in draw_data.draw_lists() {
             for cmd in draw_list.commands() {
                 match cmd {
                     DrawCmd::Elements { count, cmd_params } => {
-                        refs.canvas.set_clip_rect(Some(sdl2::rect::Rect::new(
+                        canvas.set_clip_rect(Some(sdl2::rect::Rect::new(
                             cmd_params.clip_rect[0] as i32,
                             cmd_params.clip_rect[1] as i32,
                             (cmd_params.clip_rect[2] - cmd_params.clip_rect[0]) as u32,
@@ -630,7 +699,7 @@ impl BackendRenderer for SDL2Renderer {
                             let v0 = vtx_buffer.get_unchecked(cmd_params.vtx_offset);
 
                             sdl2_sys::SDL_RenderGeometryRaw(
-                                refs.canvas.raw(),
+                                canvas.raw(),
                                 tex_ptr,
                                 v0.pos.as_ptr(),
                                 mem::size_of::<DrawVert>() as _,
@@ -645,7 +714,7 @@ impl BackendRenderer for SDL2Renderer {
                             );
                         }
 
-                        refs.canvas.set_clip_rect(None);
+                        canvas.set_clip_rect(None);
                     }
                     DrawCmd::ResetRenderState => {}
                     DrawCmd::RawCallback { callback, raw_cmd } => unsafe { callback(draw_list.raw(), raw_cmd) },
@@ -686,7 +755,7 @@ impl BackendRenderer for SDL2Renderer {
         unsafe {
             // potential danger: we assume that the layout of VertexData is the same as SDL_Vertex
             sdl2_sys::SDL_RenderGeometry(
-                refs.canvas.raw(),
+                refs.window.canvas().raw(),
                 texture_ptr,
                 vertices.as_ptr() as *const sdl2_sys::SDL_Vertex,
                 vertices.len() as i32,
@@ -725,14 +794,16 @@ impl BackendTexture for SDL2Texture {
             None => Ok(()),
             Some(texture) => {
                 let mut refs = self.refs.borrow_mut();
+                let blend = refs.blend_mode;
+                let canvas = refs.window.canvas();
                 for command in &self.commands {
                     match command {
                         SpriteBatchCommand::DrawRect(src, dest) => {
                             texture.set_color_mod(255, 255, 255);
                             texture.set_alpha_mod(255);
-                            texture.set_blend_mode(refs.blend_mode);
+                            texture.set_blend_mode(blend);
 
-                            refs.canvas
+                            canvas
                                 .copy(
                                     texture,
                                     Some(sdl2::rect::Rect::new(
@@ -754,9 +825,9 @@ impl BackendTexture for SDL2Texture {
                             let (r, g, b, a) = color.to_rgba();
                             texture.set_color_mod(r, g, b);
                             texture.set_alpha_mod(a);
-                            texture.set_blend_mode(refs.blend_mode);
+                            texture.set_blend_mode(blend);
 
-                            refs.canvas
+                            canvas
                                 .copy(
                                     texture,
                                     Some(sdl2::rect::Rect::new(
@@ -777,9 +848,9 @@ impl BackendTexture for SDL2Texture {
                         SpriteBatchCommand::DrawRectFlip(src, dest, flip_x, flip_y) => {
                             texture.set_color_mod(255, 255, 255);
                             texture.set_alpha_mod(255);
-                            texture.set_blend_mode(refs.blend_mode);
+                            texture.set_blend_mode(blend);
 
-                            refs.canvas
+                            canvas
                                 .copy_ex(
                                     texture,
                                     Some(sdl2::rect::Rect::new(
