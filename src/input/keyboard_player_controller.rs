@@ -1,11 +1,11 @@
 use crate::bitfield;
-use crate::input::player_controller::PlayerController;
-use crate::player::TargetPlayer;
-use crate::shared_game_state::SharedGameState;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::keyboard;
 use crate::framework::keyboard::ScanCode;
+use crate::input::player_controller::PlayerController;
+use crate::player::TargetPlayer;
+use crate::shared_game_state::SharedGameState;
 
 bitfield! {
   #[derive(Clone, Copy)]
@@ -25,6 +25,7 @@ bitfield! {
   pub escape, set_escape: 10;
   pub enter, set_enter: 11;
   pub skip, set_skip: 12;
+  pub strafe, set_strafe: 13;
 }
 
 #[derive(Clone)]
@@ -37,12 +38,7 @@ pub struct KeyboardController {
 
 impl KeyboardController {
     pub fn new(target: TargetPlayer) -> KeyboardController {
-        KeyboardController {
-            target,
-            state: KeyState(0),
-            old_state: KeyState(0),
-            trigger: KeyState(0),
-        }
+        KeyboardController { target, state: KeyState(0), old_state: KeyState(0), trigger: KeyState(0) }
     }
 }
 
@@ -66,6 +62,7 @@ impl PlayerController for KeyboardController {
         self.state.set_next_weapon(keyboard::is_key_pressed(ctx, keymap.next_weapon));
         self.state.set_enter(keyboard::is_key_pressed(ctx, ScanCode::Return));
         self.state.set_escape(keyboard::is_key_pressed(ctx, ScanCode::Escape));
+        self.state.set_strafe(keyboard::is_key_pressed(ctx, keymap.strafe));
 
         Ok(())
     }
@@ -121,6 +118,10 @@ impl PlayerController for KeyboardController {
         self.state.skip()
     }
 
+    fn strafe(&self) -> bool {
+        self.state.strafe()
+    }
+
     fn trigger_up(&self) -> bool {
         self.trigger.up()
     }
@@ -163,6 +164,10 @@ impl PlayerController for KeyboardController {
 
     fn trigger_skip(&self) -> bool {
         self.trigger.skip()
+    }
+
+    fn trigger_strafe(&self) -> bool {
+        self.trigger.strafe()
     }
 
     fn trigger_menu_ok(&self) -> bool {

@@ -278,6 +278,11 @@ impl PlayerController for TouchPlayerController {
         false
     }
 
+    fn strafe(&self) -> bool {
+        // TODO
+        false
+    }
+
     fn trigger_up(&self) -> bool {
         self.trigger.up()
     }
@@ -319,6 +324,11 @@ impl PlayerController for TouchPlayerController {
     }
 
     fn trigger_skip(&self) -> bool {
+        // TODO
+        false
+    }
+
+    fn trigger_strafe(&self) -> bool {
         // TODO
         false
     }

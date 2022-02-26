@@ -41,6 +41,9 @@ pub trait PlayerController: PlayerControllerClone {
     /// True if "skip" button is down.
     fn skip(&self) -> bool;
 
+    /// True if "strafe" button is down.
+    fn strafe(&self) -> bool;
+
     fn trigger_up(&self) -> bool;
 
     fn trigger_left(&self) -> bool;
@@ -62,6 +65,8 @@ pub trait PlayerController: PlayerControllerClone {
     fn trigger_shoot(&self) -> bool;
 
     fn trigger_skip(&self) -> bool;
+
+    fn trigger_strafe(&self) -> bool;
 
     fn trigger_menu_ok(&self) -> bool;
 

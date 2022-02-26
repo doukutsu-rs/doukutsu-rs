@@ -86,6 +86,7 @@ pub struct Player {
     pub skin: Box<dyn PlayerSkin>,
     pub controller: Box<dyn PlayerController>,
     pub popup: NumberPopup,
+    strafe_up: bool,
     weapon_offset_y: i8,
     splash: bool,
     tick: u8,
@@ -141,6 +142,7 @@ impl Player {
             skin,
             controller: Box::new(DummyPlayerController::new()),
             popup: NumberPopup::new(),
+            strafe_up: false,
             damage_counter: 0,
             damage_taken: 0,
             anim_num: 0,
@@ -202,6 +204,16 @@ impl Player {
             self.booster_switch = BoosterSwitch::None;
         }
 
+        if state.control_flags.control_enabled() {
+            if self.controller.move_up() && self.controller.trigger_strafe() {
+                self.strafe_up = true;
+            } else if !self.controller.strafe() {
+                self.strafe_up = false;
+            }
+        } else {
+            self.strafe_up = false;
+        }
+
         // ground movement
         if self.flags.hit_bottom_wall() || self.flags.hit_right_slope() || self.flags.hit_left_slope() {
             self.booster_switch = BoosterSwitch::None;
@@ -241,12 +253,14 @@ impl Player {
                         self.vel_x += physics.dash_ground;
                     }
 
-                    if self.controller.move_left() {
-                        self.direction = Direction::Left;
-                    }
+                    if !self.controller.strafe() {
+                        if self.controller.move_left() {
+                            self.direction = Direction::Left;
+                        }
 
-                    if self.controller.move_right() {
-                        self.direction = Direction::Right;
+                        if self.controller.move_right() {
+                            self.direction = Direction::Right;
+                        }
                     }
                 }
             }
@@ -310,12 +324,14 @@ impl Player {
                     self.vel_x += physics.dash_air;
                 }
 
-                if self.controller.look_left() {
-                    self.direction = Direction::Left;
-                }
+                if !self.controller.strafe() {
+                    if self.controller.look_left() {
+                        self.direction = Direction::Left;
+                    }
 
-                if self.controller.look_right() {
-                    self.direction = Direction::Right;
+                    if self.controller.look_right() {
+                        self.direction = Direction::Right;
+                    }
                 }
             }
 
@@ -337,7 +353,7 @@ impl Player {
 
         // jumping
         if state.control_flags.control_enabled() {
-            self.up = self.controller.move_up();
+            self.up = self.controller.move_up() || self.strafe_up;
             self.down = self.controller.move_down() && !self.flags.hit_bottom_wall();
 
             if self.controller.trigger_jump()
@@ -674,7 +690,7 @@ impl Player {
                 self.anim_num = 0;
                 self.anim_counter = 0;
             } else if state.control_flags.control_enabled()
-                && self.controller.move_up()
+                && (self.controller.move_up() || self.strafe_up)
                 && (self.controller.move_left() || self.controller.move_right())
             {
                 self.cond.set_fallen(true);
@@ -712,7 +728,7 @@ impl Player {
                 if self.anim_num > 4 || self.anim_num < 1 {
                     self.anim_num = 1;
                 }
-            } else if state.control_flags.control_enabled() && self.controller.move_up() {
+            } else if state.control_flags.control_enabled() && (self.controller.move_up() || self.strafe_up) {
                 if self.cond.fallen() {
                     state.sound_manager.play_sfx(24);
                 }
@@ -731,7 +747,7 @@ impl Player {
                 self.anim_num = 0;
                 self.anim_counter = 0;
             }
-        } else if self.controller.look_up() && self.control_mode == ControlMode::Normal {
+        } else if (self.controller.look_up() || self.strafe_up) && self.control_mode == ControlMode::Normal {
             self.skin.set_state(PlayerAnimationState::FallingLookingUp);
             self.anim_num = 0;
             self.anim_counter = 0;

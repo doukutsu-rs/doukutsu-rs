@@ -54,7 +54,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    5
+    6
 }
 
 #[inline(always)]
@@ -106,6 +106,12 @@ impl Settings {
             self.version = 5;
             self.bgm_volume = default_vol();
             self.sfx_volume = default_vol();
+        }
+
+        if self.version == 5 {
+            self.version = 6;
+            self.player1_key_map.strafe = ScanCode::LShift;
+            self.player2_key_map.strafe = ScanCode::RShift;
         }
 
         if self.version != initial_version {
@@ -175,6 +181,7 @@ pub struct PlayerKeyMap {
     pub skip: ScanCode,
     pub inventory: ScanCode,
     pub map: ScanCode,
+    pub strafe: ScanCode,
 }
 
 #[inline(always)]
@@ -191,6 +198,7 @@ fn p1_default_keymap() -> PlayerKeyMap {
         skip: ScanCode::E,
         inventory: ScanCode::Q,
         map: ScanCode::W,
+        strafe: ScanCode::LShift,
     }
 }
 
@@ -208,5 +216,6 @@ fn p2_default_keymap() -> PlayerKeyMap {
         skip: ScanCode::U,
         inventory: ScanCode::T,
         map: ScanCode::Y,
+        strafe: ScanCode::RShift,
     }
 }
