@@ -47,7 +47,8 @@ impl TargetPlayer {
 enum BoosterSwitch {
     None,
     Up,
-    Sides,
+    Left,
+    Right,
     Down,
 }
 
@@ -205,8 +206,10 @@ impl Player {
         }
 
         if state.control_flags.control_enabled() {
-            if self.controller.move_up() && self.controller.trigger_strafe() {
-                self.strafe_up = true;
+            if self.controller.trigger_strafe() {
+                if self.controller.move_up() {
+                    self.strafe_up = true;
+                }
             } else if !self.controller.strafe() {
                 self.strafe_up = false;
             }
@@ -286,7 +289,7 @@ impl Player {
             if state.control_flags.control_enabled() {
                 if self.controller.trigger_jump() && self.booster_fuel != 0 {
                     if self.equip.has_booster_0_8() {
-                        self.booster_switch = BoosterSwitch::Sides;
+                        self.booster_switch = BoosterSwitch::Up;
 
                         if self.vel_y > 0x100 {
                             self.vel_y /= 2;
@@ -297,11 +300,11 @@ impl Player {
                             self.vel_x = 0;
                             self.vel_y = state.constants.booster.b2_0_up;
                         } else if self.controller.move_left() {
-                            self.booster_switch = BoosterSwitch::Sides;
+                            self.booster_switch = BoosterSwitch::Left;
                             self.vel_x = state.constants.booster.b2_0_left;
                             self.vel_y = 0;
                         } else if self.controller.move_right() {
-                            self.booster_switch = BoosterSwitch::Sides;
+                            self.booster_switch = BoosterSwitch::Right;
                             self.vel_x = state.constants.booster.b2_0_right;
                             self.vel_y = 0;
                         } else if self.controller.move_down() {
@@ -340,7 +343,7 @@ impl Player {
                 && (!self.controller.jump() || self.booster_fuel == 0)
             {
                 match self.booster_switch {
-                    BoosterSwitch::Sides => self.vel_x /= 2,
+                    BoosterSwitch::Left | BoosterSwitch::Right => self.vel_x /= 2,
                     BoosterSwitch::Up => self.vel_y /= 2,
                     _ => (),
                 }
@@ -400,17 +403,32 @@ impl Player {
             && self.booster_switch != BoosterSwitch::None
         {
             match self.booster_switch {
-                BoosterSwitch::Sides => {
+                BoosterSwitch::Left | BoosterSwitch::Right => {
                     if self.flags.hit_left_wall() || self.flags.hit_right_wall() {
                         self.vel_y = -0x100;
                     }
 
-                    if self.direction == Direction::Left {
-                        self.vel_x -= 0x20;
+                    let mut booster_dir = self.direction;
+
+                    if self.controller.strafe() {
+                        if self.controller.move_left() {
+                            self.booster_switch = BoosterSwitch::Left;
+                        } else if self.controller.move_right() {
+                            self.booster_switch = BoosterSwitch::Right;
+                        }
+
+                        if self.booster_switch == BoosterSwitch::Left {
+                            booster_dir = Direction::Left;
+                        } else if self.booster_switch == BoosterSwitch::Right {
+                            booster_dir = Direction::Right;
+                        }
                     }
-                    if self.direction == Direction::Right {
-                        self.vel_x += 0x20;
-                    }
+
+                    self.vel_x += match booster_dir {
+                        Direction::Left => -0x20,
+                        Direction::Right => 0x20,
+                        _ => 0,
+                    };
 
                     if self.controller.trigger_jump() || self.booster_fuel % 3 == 1 {
                         if self.direction == Direction::Left || self.direction == Direction::Right {
@@ -418,7 +436,7 @@ impl Player {
                                 self.x + 0x400,
                                 self.y + 0x400,
                                 CaretType::Exhaust,
-                                self.direction.opposite(),
+                                booster_dir.opposite(),
                             );
                         }
                         state.sound_manager.play_sfx(113);
