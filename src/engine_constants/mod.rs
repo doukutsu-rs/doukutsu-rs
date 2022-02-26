@@ -92,7 +92,6 @@ pub struct CaretConsts {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct TextureSizeTable {
-    r#override: bool,
     sizes: HashMap<String, (u16, u16)>,
 }
 
@@ -1766,6 +1765,20 @@ impl EngineConstants {
     }
 
     pub fn apply_constant_json_files(&mut self) {}
+
+    pub fn load_texture_size_hints(&mut self, ctx: &mut Context) -> GameResult {
+        if let Ok(file) = filesystem::open_find(ctx, &self.base_paths, "/texture_sizes.json") {
+            match serde_json::from_reader::<_, TextureSizeTable>(file) {
+                Ok(tex_overrides) => {
+                    for (key, (x, y)) in tex_overrides.sizes {
+                        self.tex_sizes.insert(key, (x, y));
+                    }
+                }
+                Err(err) => log::warn!("Failed to deserialize texture sizes: {}", err),
+            }
+        }
+        Ok(())
+    }
 
     /// Loads bullet.tbl and arms_level.tbl from CS+ files,
     /// even though they match vanilla 1:1, we should load them for completeness

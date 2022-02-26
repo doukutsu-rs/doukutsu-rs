@@ -316,6 +316,7 @@ impl SharedGameState {
         self.constants.special_treatment_for_csplus_mods(self.mod_path.as_ref());
         self.constants.load_csplus_tables(ctx)?;
         self.constants.load_animated_faces(ctx)?;
+        self.constants.load_texture_size_hints(ctx)?;
         let stages = StageData::load_stage_table(ctx, &self.constants.base_paths)?;
         self.stages = stages;
 
