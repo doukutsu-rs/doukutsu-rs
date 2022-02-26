@@ -2115,9 +2115,11 @@ impl NPC {
     ) -> GameResult {
         match self.action_num {
             0 => {
-                if self.x < (stage.map.width as i32 - 6) * state.tile_size.as_int() * 0x200 {
-                    self.action_num = 1;
-                    self.action_counter = 0;
+                for player in players {
+                    if player.x < (stage.map.width as i32 - 6) * state.tile_size.as_int() * 0x200 {
+                        self.action_num = 1;
+                        self.action_counter = 0;
+                    }
                 }
             }
             1 => {
