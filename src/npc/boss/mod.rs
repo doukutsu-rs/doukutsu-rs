@@ -95,6 +95,9 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
             if part.shock > 0 {
                 part.shock -= 1;
             }
+            part.popup.x = part.x;
+            part.popup.y = part.y;
+            part.popup.tick(state, ())?;
         }
         Ok(())
     }

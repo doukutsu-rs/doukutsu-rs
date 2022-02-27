@@ -5,7 +5,7 @@ use std::rc::Rc;
 use log::info;
 
 use crate::caret::CaretType;
-use crate::common::{Color, Direction, interpolate_fix9_scale, Rect};
+use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
@@ -24,31 +24,31 @@ use crate::components::water_renderer::WaterRenderer;
 use crate::components::whimsical_star::WhimsicalStar;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
-use crate::framework::{filesystem, graphics};
 use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{BlendMode, draw_rect, FilterMode};
+use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
 use crate::framework::ui::Components;
+use crate::framework::{filesystem, graphics};
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::map::WaterParams;
 use crate::menu::pause_menu::PauseMenu;
-use crate::npc::{NPC, NPCLayer};
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
-use crate::physics::{OFFSETS, PhysicalEntity};
+use crate::npc::{NPCLayer, NPC};
+use crate::physics::{PhysicalEntity, OFFSETS};
 use crate::player::{ControlMode, Player, TargetPlayer};
 use crate::rng::XorShift;
-use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
+use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
-use crate::weapon::{Weapon, WeaponType};
 use crate::weapon::bullet::BulletManager;
+use crate::weapon::{Weapon, WeaponType};
 
 pub struct GameScene {
     pub tick: u32,
@@ -213,6 +213,13 @@ impl GameScene {
     fn draw_npc_popup(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         for npc in self.npc_list.iter_alive() {
             npc.popup.draw(state, ctx, &self.frame)?;
+        }
+        Ok(())
+    }
+
+    fn draw_boss_popup(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        for part in self.boss.parts.iter() {
+            part.popup.draw(state, ctx, &self.frame)?;
         }
         Ok(())
     }
@@ -1192,6 +1199,10 @@ impl GameScene {
 
                     npc.life = (npc.life as i32).saturating_sub(bullet.damage as i32).clamp(0, u16::MAX as i32) as u16;
 
+                    if npc.npc_flags.show_damage() {
+                        npc.popup.add_value(-bullet.damage);
+                    }
+
                     if npc.life == 0 {
                         npc.life = npc.id;
 
@@ -1812,6 +1823,7 @@ impl Scene for GameScene {
         self.player1.popup.draw(state, ctx, &self.frame)?;
         self.player2.popup.draw(state, ctx, &self.frame)?;
         self.draw_npc_popup(state, ctx)?;
+        self.draw_boss_popup(state, ctx)?;
 
         if !state.control_flags.credits_running()
             && state.settings.shader_effects
