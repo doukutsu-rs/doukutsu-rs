@@ -7,7 +7,7 @@ use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::save_select_menu::MenuSaveInfo;
-use crate::shared_game_state::{MenuCharacter, SharedGameState};
+use crate::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameState};
 
 pub mod pause_menu;
 pub mod save_select_menu;
@@ -434,6 +434,42 @@ impl Menu {
                         &mut state.texture_set,
                         ctx,
                     )?;
+
+                    // Difficulty
+                    if state.constants.is_cs_plus && !state.settings.original_textures {
+                        let difficulty = GameDifficulty::from_save_value(save.difficulty);
+
+                        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
+                        batch.add_rect(
+                            self.x as f32 + 20.0,
+                            y + 10.0,
+                            &Rect::new_size(
+                                0,
+                                GameDifficulty::get_skinsheet_offset(difficulty).saturating_mul(4 * 16),
+                                16,
+                                16,
+                            ),
+                        );
+                        batch.draw(ctx)?;
+                    } else {
+                        let mut difficulty_name: String = "Difficulty: ".to_owned();
+
+                        match save.difficulty {
+                            0 => difficulty_name.push_str("Normal"),
+                            2 => difficulty_name.push_str("Easy"),
+                            4 => difficulty_name.push_str("Hard"),
+                            _ => difficulty_name.push_str("(unknown)"),
+                        }
+
+                        state.font.draw_text(
+                            difficulty_name.chars(),
+                            self.x as f32 + 20.0,
+                            y + 10.0,
+                            &state.constants,
+                            &mut state.texture_set,
+                            ctx,
+                        )?;
+                    }
 
                     // Weapons
                     let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ArmsImage")?;

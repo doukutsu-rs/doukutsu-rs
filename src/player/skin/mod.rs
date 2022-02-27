@@ -1,5 +1,6 @@
 use crate::bitfield;
 use crate::common::{Color, Direction, Rect};
+use crate::shared_game_state::SharedGameState;
 
 pub mod basic;
 
@@ -92,6 +93,9 @@ pub trait PlayerSkin: PlayerSkinClone {
 
     /// Returns Whimsical Star rect location
     fn get_whimsical_star_rect(&self, index: usize) -> Rect<u16>;
+
+    /// Applies modifications on the skin based on current state
+    fn apply_gamestate(&mut self, state: &SharedGameState);
 }
 
 pub trait PlayerSkinClone {

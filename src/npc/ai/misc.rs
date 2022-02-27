@@ -9,7 +9,7 @@ use crate::npc::list::NPCList;
 use crate::npc::{NPCLayer, NPC};
 use crate::player::Player;
 use crate::rng::RNG;
-use crate::shared_game_state::SharedGameState;
+use crate::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::stage::Stage;
 
 impl NPC {
@@ -137,6 +137,11 @@ impl NPC {
     }
 
     pub(crate) fn tick_n015_chest_closed(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+        if state.difficulty == GameDifficulty::Hard && self.chest_has_missile_flag() {
+            self.cond.set_alive(false);
+            return Ok(());
+        }
+
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -332,6 +337,11 @@ impl NPC {
     }
 
     pub(crate) fn tick_n021_chest_open(&mut self, state: &mut SharedGameState) -> GameResult {
+        if state.difficulty == GameDifficulty::Hard && self.chest_has_missile_flag() {
+            self.cond.set_alive(false);
+            return Ok(());
+        }
+
         if self.action_num == 0 {
             self.action_num = 1;
 
@@ -429,6 +439,11 @@ impl NPC {
     }
 
     pub(crate) fn tick_n032_life_capsule(&mut self, state: &mut SharedGameState) -> GameResult {
+        if state.difficulty == GameDifficulty::Hard {
+            self.cond.set_alive(false);
+            return Ok(());
+        }
+
         self.anim_counter = (self.anim_counter + 1) % 4;
         self.anim_num = self.anim_counter / 2;
         self.anim_rect = state.constants.npc.n032_life_capsule[self.anim_num as usize];
@@ -2608,5 +2623,10 @@ impl NPC {
         self.anim_rect = state.constants.npc.n360_credits_thank_you;
 
         Ok(())
+    }
+
+    fn chest_has_missile_flag(&self) -> bool {
+        let missile_flags: [u16; 9] = [200, 201, 202, 218, 550, 766, 880, 920, 1551];
+        missile_flags.contains(&self.flag_num)
     }
 }
