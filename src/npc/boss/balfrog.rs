@@ -1,10 +1,10 @@
 use crate::framework::error::GameResult;
 
 use crate::caret::CaretType;
-use crate::common::{CDEG_RAD, Direction, Rect};
-use crate::npc::NPC;
+use crate::common::{Direction, Rect, CDEG_RAD};
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
+use crate::npc::NPC;
 use crate::player::Player;
 use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
@@ -29,25 +29,21 @@ impl NPC {
 }
 
 impl BossNPC {
-    pub(crate) fn tick_b02_balfrog(&mut self, state: &mut SharedGameState, players: [&mut Player; 2], npc_list: &NPCList) {
+    pub(crate) fn tick_b02_balfrog(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) {
         match self.parts[0].action_num {
             0 => {
                 self.hurt_sound[0] = 52;
                 self.parts[0].x = 6 * 0x2000 + state.constants.game.tile_offset_x * 0x2000;
                 self.parts[0].y = 12 * 0x2000;
                 self.parts[0].direction = Direction::Right;
-                self.parts[0].display_bounds = Rect {
-                    left: 48 * 0x200,
-                    top: 48 * 0x200,
-                    right: 32 * 0x200,
-                    bottom: 0x2000,
-                };
-                self.parts[0].hit_bounds = Rect {
-                    left: 24 * 0x200,
-                    top: 0x2000,
-                    right: 24 * 0x200,
-                    bottom: 0x2000,
-                };
+                self.parts[0].display_bounds =
+                    Rect { left: 48 * 0x200, top: 48 * 0x200, right: 32 * 0x200, bottom: 0x2000 };
+                self.parts[0].hit_bounds = Rect { left: 24 * 0x200, top: 0x2000, right: 24 * 0x200, bottom: 0x2000 };
                 self.parts[0].size = 3;
                 self.parts[0].exp = 1;
                 self.parts[0].event_num = 1000;
@@ -237,8 +233,7 @@ impl BossNPC {
                     let px = self.parts[0].x + self.parts[0].direction.vector_x() * 2 * 0x2000 - player.x;
                     let py = self.parts[0].y - 0x1000 - player.y;
 
-                    let deg = f64::atan2(py as f64, px as f64)
-                        + self.parts[0].rng.range(-16..16) as f64 * CDEG_RAD;
+                    let deg = f64::atan2(py as f64, px as f64) + self.parts[0].rng.range(-16..16) as f64 * CDEG_RAD;
 
                     let mut npc = NPC::create(108, &state.npc_table);
                     npc.cond.set_alive(true);
@@ -400,11 +395,7 @@ impl BossNPC {
                     let _ = npc_list.spawn(0x100, npc);
                 }
 
-                self.parts[0].x += if (self.parts[0].action_counter / 2 % 2) != 0 {
-                    -0x200
-                } else {
-                    0x200
-                };
+                self.parts[0].x += if (self.parts[0].action_counter / 2 % 2) != 0 { -0x200 } else { 0x200 };
 
                 if self.parts[0].action_counter > 100 {
                     self.parts[0].action_num = 132;
@@ -415,20 +406,12 @@ impl BossNPC {
                 self.parts[0].action_counter += 1;
                 if (self.parts[0].action_counter / 2) & 1 != 0 {
                     self.parts[0].anim_num = 6;
-                    self.parts[0].display_bounds = Rect {
-                        left: 20 * 0x200,
-                        top: 12 * 0x200,
-                        right: 20 * 0x200,
-                        bottom: 12 * 0x200,
-                    };
+                    self.parts[0].display_bounds =
+                        Rect { left: 20 * 0x200, top: 12 * 0x200, right: 20 * 0x200, bottom: 12 * 0x200 };
                 } else {
                     self.parts[0].anim_num = 3;
-                    self.parts[0].display_bounds = Rect {
-                        left: 48 * 0x200,
-                        top: 48 * 0x200,
-                        right: 32 * 0x200,
-                        bottom: 0x2000,
-                    };
+                    self.parts[0].display_bounds =
+                        Rect { left: 48 * 0x200, top: 48 * 0x200, right: 32 * 0x200, bottom: 0x2000 };
                 }
 
                 if (self.parts[0].action_counter % 9) == 0 {
@@ -495,22 +478,12 @@ impl BossNPC {
                 self.hurt_sound[1] = 52;
                 self.parts[1].size = 3;
                 self.parts[1].npc_flags.set_invulnerable(true);
-                self.parts[1].hit_bounds = Rect {
-                    left: 0x2000,
-                    top: 0x2000,
-                    right: 0x2000,
-                    bottom: 0x2000,
-                };
+                self.parts[1].hit_bounds = Rect { left: 0x2000, top: 0x2000, right: 0x2000, bottom: 0x2000 };
 
                 self.hurt_sound[2] = 52;
                 self.parts[2].size = 3;
                 self.parts[2].npc_flags.set_invulnerable(true);
-                self.parts[2].hit_bounds = Rect {
-                    left: 24 * 0x200,
-                    top: 0x2000,
-                    right: 24 * 0x200,
-                    bottom: 0x2000,
-                };
+                self.parts[2].hit_bounds = Rect { left: 24 * 0x200, top: 0x2000, right: 24 * 0x200, bottom: 0x2000 };
             }
             1 => {
                 self.parts[1].x = self.parts[0].x + self.parts[0].direction.vector_x() * 24 * 0x200;
