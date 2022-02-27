@@ -13,7 +13,7 @@ use crate::menu::settings_menu::SettingsMenu;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::jukebox_scene::JukeboxScene;
 use crate::scene::Scene;
-use crate::shared_game_state::{MenuCharacter, SharedGameState, TileSize};
+use crate::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -200,6 +200,7 @@ impl Scene for TitleScene {
                 MenuSelectionResult::Selected(0, _) => {
                     state.mod_path = None;
                     self.save_select_menu.init(state, ctx)?;
+                    self.save_select_menu.set_skip_difficulty_menu(false);
                     self.current_menu = CurrentMenu::SaveSelectMenu;
                 }
                 MenuSelectionResult::Selected(1, _) => {
@@ -263,6 +264,7 @@ impl Scene for TitleScene {
                             state.mod_path = Some(mod_info.path.clone());
                             if mod_info.save_slot >= 0 {
                                 self.save_select_menu.init(state, ctx)?;
+                                self.save_select_menu.set_skip_difficulty_menu(true);
                                 self.nikumaru_rec.load_counter(state, ctx)?;
                                 self.current_menu = CurrentMenu::SaveSelectMenu;
                             } else {
@@ -285,6 +287,7 @@ impl Scene for TitleScene {
             }
             CurrentMenu::ChallengeConfirmMenu => match self.confirm_menu.tick(&mut self.controller, state) {
                 MenuSelectionResult::Selected(1, _) => {
+                    state.difficulty = GameDifficulty::Normal;
                     state.reload_resources(ctx)?;
                     state.start_new_game(ctx)?;
                 }
