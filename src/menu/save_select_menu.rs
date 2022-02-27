@@ -33,6 +33,7 @@ pub struct SaveSelectMenu {
     save_menu: Menu,
     difficulty_menu: Menu,
     delete_confirm: Menu,
+    skip_difficulty_menu: bool,
 }
 
 impl SaveSelectMenu {
@@ -43,6 +44,7 @@ impl SaveSelectMenu {
             save_menu: Menu::new(0, 0, 230, 0),
             difficulty_menu: Menu::new(0, 0, 130, 0),
             delete_confirm: Menu::new(0, 0, 75, 0),
+            skip_difficulty_menu: false,
         }
     }
 
@@ -50,6 +52,7 @@ impl SaveSelectMenu {
         self.save_menu = Menu::new(0, 0, 230, 0);
         self.difficulty_menu = Menu::new(0, 0, 130, 0);
         self.delete_confirm = Menu::new(0, 0, 75, 0);
+        self.skip_difficulty_menu = false;
 
         for (iter, save) in self.saves.iter_mut().enumerate() {
             if let Ok(data) = filesystem::user_open(ctx, state.get_save_filename(iter + 1).unwrap_or("".to_string())) {
@@ -90,6 +93,10 @@ impl SaveSelectMenu {
         Ok(())
     }
 
+    pub fn set_skip_difficulty_menu(&mut self, skip: bool) {
+        self.skip_difficulty_menu = skip;
+    }
+
     fn update_sizes(&mut self, state: &SharedGameState) {
         self.save_menu.update_height();
         self.save_menu.x = ((state.canvas_size.0 - self.save_menu.width as f32) / 2.0).floor() as isize;
@@ -117,7 +124,10 @@ impl SaveSelectMenu {
                 MenuSelectionResult::Selected(slot, _) => {
                     state.save_slot = slot + 1;
 
-                    if let Ok(_) =
+                    if self.skip_difficulty_menu {
+                        state.reload_resources(ctx)?;
+                        state.load_or_start_game(ctx)?;
+                    } else if let Ok(_) =
                         filesystem::user_open(ctx, state.get_save_filename(state.save_slot).unwrap_or("".to_string()))
                     {
                         state.reload_resources(ctx)?;
