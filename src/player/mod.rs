@@ -839,13 +839,15 @@ impl Player {
             self.vel_y = -0x400; // -2.0fix9
         }
 
-        self.life = self.life.saturating_sub(hp as u16);
+        let final_hp = state.get_damage(hp);
+
+        self.life = self.life.saturating_sub(final_hp as u16);
 
         if self.equip.has_whimsical_star() && self.stars > 0 {
             self.stars -= 1;
         }
 
-        self.damage = self.damage.saturating_add(hp as u16);
+        self.damage = self.damage.saturating_add(final_hp as u16);
         if self.popup.value > 0 {
             self.popup.set_value(-(self.damage as i16));
         } else {

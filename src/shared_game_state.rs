@@ -1,4 +1,4 @@
-use std::ops::Div;
+use std::{cmp, ops::Div};
 
 use bitvec::vec::BitVec;
 use chrono::{Datelike, Local};
@@ -63,6 +63,49 @@ impl TimingMode {
             TimingMode::_50Hz => 50,
             TimingMode::_60Hz => 60,
             TimingMode::FrameSynchronized => 0,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub enum GameDifficulty {
+    Easy,
+    Normal,
+    Hard,
+}
+
+impl GameDifficulty {
+    pub fn from_index(index: usize) -> GameDifficulty {
+        match index {
+            0 => GameDifficulty::Easy,
+            1 => GameDifficulty::Normal,
+            2 => GameDifficulty::Hard,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn from_save_value(val: u8) -> GameDifficulty {
+        match val {
+            0 => GameDifficulty::Normal,
+            2 => GameDifficulty::Easy,
+            4 => GameDifficulty::Hard,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_save_value(self) -> u8 {
+        match self {
+            GameDifficulty::Normal => 0,
+            GameDifficulty::Easy => 2,
+            GameDifficulty::Hard => 4,
+        }
+    }
+
+    pub fn get_skinsheet_offset(difficulty: GameDifficulty) -> u16 {
+        match difficulty {
+            GameDifficulty::Easy => 1,   // Yellow Quote
+            GameDifficulty::Normal => 0, // Good Quote
+            GameDifficulty::Hard => 2,   // Human Quote
         }
     }
 }
@@ -187,6 +230,7 @@ pub struct SharedGameState {
     pub sound_manager: SoundManager,
     pub settings: Settings,
     pub save_slot: usize,
+    pub difficulty: GameDifficulty,
     pub shutdown: bool,
 }
 
@@ -283,6 +327,7 @@ impl SharedGameState {
             sound_manager,
             settings,
             save_slot: 1,
+            difficulty: GameDifficulty::Normal,
             shutdown: false,
         })
     }
@@ -583,5 +628,32 @@ impl SharedGameState {
         } else {
             return "/290.rec".to_string();
         }
+    }
+
+    pub fn get_damage(&self, hp: i32) -> i32 {
+        match self.difficulty {
+            GameDifficulty::Easy => cmp::max(hp / 2, 1),
+            GameDifficulty::Normal | GameDifficulty::Hard => hp,
+        }
+    }
+
+    pub fn get_skinsheet_offset(&self) -> u16 {
+        if !self.constants.is_cs_plus || self.settings.original_textures {
+            return 0;
+        }
+
+        if self.settings.seasonal_textures {
+            let season = Season::current();
+
+            if season == Season::Halloween {
+                return 3; // Edgy Quote
+            }
+
+            if season == Season::Christmas {
+                return 4; // Furry Quote
+            }
+        }
+
+        GameDifficulty::get_skinsheet_offset(self.difficulty)
     }
 }

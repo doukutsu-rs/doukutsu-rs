@@ -1,10 +1,11 @@
 use std::fmt;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use lazy_static::lazy_static;
 use num_traits::{abs, Num};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeTupleStruct;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::bitfield;
 use crate::texture_set::G_MAG;
@@ -390,6 +391,11 @@ pub fn interpolate_fix9_scale(old_val: i32, val: i32, frame_delta: f64) -> f32 {
         let mag = G_MAG as f32;
         (interpolated * mag / 512.0).floor() / mag
     }
+}
+
+pub fn get_timestamp() -> u64 {
+    let now = SystemTime::now();
+    now.duration_since(UNIX_EPOCH).unwrap().as_secs() as u64
 }
 
 /// A RGBA color in the `sRGB` color space represented as `f32`'s in the range `[0.0-1.0]`

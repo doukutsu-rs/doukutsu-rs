@@ -3,13 +3,13 @@ use std::io;
 use byteorder::{ReadBytesExt, WriteBytesExt, BE, LE};
 use num_traits::{clamp, FromPrimitive};
 
-use crate::common::{Direction, FadeState};
+use crate::common::{get_timestamp, Direction, FadeState};
 use crate::framework::context::Context;
 use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::GameResult;
 use crate::player::ControlMode;
 use crate::scene::game_scene::GameScene;
-use crate::shared_game_state::SharedGameState;
+use crate::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::weapon::{WeaponLevel, WeaponType};
 
 pub struct WeaponData {
@@ -44,6 +44,8 @@ pub struct GameProfile {
     pub teleporter_slots: [TeleporterSlotData; 8],
     pub map_flags: [u8; 128],
     pub flags: [u8; 1000],
+    pub timestamp: u64,
+    pub difficulty: u8,
 }
 
 impl GameProfile {
@@ -144,6 +146,11 @@ impl GameProfile {
         game_scene.inventory_player2 = game_scene.inventory_player1.clone();
 
         game_scene.player1.cond.0 = 0x80;
+
+        state.difficulty = GameDifficulty::from_save_value(self.difficulty);
+
+        game_scene.player1.skin.apply_gamestate(state);
+        game_scene.player2.skin.apply_gamestate(state);
     }
 
     pub fn dump(state: &mut SharedGameState, game_scene: &mut GameScene) -> GameProfile {
@@ -228,6 +235,9 @@ impl GameProfile {
             }
         }
 
+        let timestamp = get_timestamp();
+        let difficulty = state.difficulty.to_save_value();
+
         GameProfile {
             current_map,
             current_song,
@@ -247,6 +257,8 @@ impl GameProfile {
             teleporter_slots,
             map_flags,
             flags,
+            timestamp,
+            difficulty,
         }
     }
 
@@ -290,6 +302,11 @@ impl GameProfile {
 
         data.write_u32::<BE>(0x464c4147)?;
         data.write(&self.flags)?;
+
+        data.write_u32::<LE>(0)?; // unused(?) CS+ space
+
+        data.write_u64::<LE>(self.timestamp)?;
+        data.write_u8(self.difficulty)?;
 
         Ok(())
     }
@@ -363,6 +380,11 @@ impl GameProfile {
         let mut flags = [0u8; 1000];
         data.read_exact(&mut flags)?;
 
+        data.read_u32::<LE>().unwrap_or(0); // unused(?) CS+ space
+
+        let timestamp = data.read_u64::<LE>().unwrap_or(0);
+        let difficulty = data.read_u8().unwrap_or(0);
+
         Ok(GameProfile {
             current_map,
             current_song,
@@ -382,6 +404,8 @@ impl GameProfile {
             teleporter_slots,
             map_flags,
             flags,
+            timestamp,
+            difficulty,
         })
     }
 }

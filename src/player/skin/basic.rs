@@ -81,6 +81,7 @@ pub struct BasicPlayerSkin {
     direction: Direction,
     metadata: SkinMeta,
     tick: u16,
+    skinsheet_offset: u16,
 }
 
 impl BasicPlayerSkin {
@@ -111,7 +112,15 @@ impl BasicPlayerSkin {
             direction: Direction::Left,
             metadata,
             tick: 0,
+            skinsheet_offset: state.get_skinsheet_offset(),
         }
+    }
+
+    fn get_y_offset_by(&self, y: u16) -> u16 {
+        return self
+            .skinsheet_offset
+            .saturating_mul(self.metadata.frame_size_height.saturating_mul(4))
+            .saturating_add(y);
     }
 }
 
@@ -143,9 +152,13 @@ impl PlayerSkin for BasicPlayerSkin {
 
         let y_offset = if direction == Direction::Left { 0 } else { self.metadata.frame_size_height }
             + match self.appearance {
-                PlayerAppearanceState::Default => 0,
-                PlayerAppearanceState::MimigaMask => self.metadata.frame_size_height.saturating_mul(2),
-                PlayerAppearanceState::Custom(i) => (i as u16).saturating_mul(self.metadata.frame_size_height),
+                PlayerAppearanceState::Default => self.get_y_offset_by(0),
+                PlayerAppearanceState::MimigaMask => {
+                    self.get_y_offset_by(self.metadata.frame_size_height.saturating_mul(2))
+                }
+                PlayerAppearanceState::Custom(i) => {
+                    self.get_y_offset_by((i as u16).saturating_mul(self.metadata.frame_size_height))
+                }
             };
 
         Rect::new_size(
@@ -240,5 +253,9 @@ impl PlayerSkin for BasicPlayerSkin {
         rect.top += (8 * index) as u16;
         rect.bottom = rect.top + 8;
         return rect;
+    }
+
+    fn apply_gamestate(&mut self, state: &SharedGameState) {
+        self.skinsheet_offset = state.get_skinsheet_offset();
     }
 }
