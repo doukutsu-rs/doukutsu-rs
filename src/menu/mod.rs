@@ -437,18 +437,13 @@ impl Menu {
 
                     // Difficulty
                     if state.constants.is_cs_plus && !state.settings.original_textures {
-                        let difficulty = GameDifficulty::from_save_value(save.difficulty);
+                        let difficulty = GameDifficulty::from_primitive(save.difficulty);
 
                         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
                         batch.add_rect(
                             self.x as f32 + 20.0,
                             y + 10.0,
-                            &Rect::new_size(
-                                0,
-                                GameDifficulty::get_skinsheet_offset(difficulty).saturating_mul(4 * 16),
-                                16,
-                                16,
-                            ),
+                            &Rect::new_size(0, (difficulty as u16).saturating_mul(2 * 16), 16, 16),
                         );
                         batch.draw(ctx)?;
                     } else {

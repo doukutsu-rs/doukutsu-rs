@@ -119,7 +119,7 @@ impl BasicPlayerSkin {
     fn get_y_offset_by(&self, y: u16) -> u16 {
         return self
             .skinsheet_offset
-            .saturating_mul(self.metadata.frame_size_height.saturating_mul(4))
+            .saturating_mul(self.metadata.frame_size_height.saturating_mul(2))
             .saturating_add(y);
     }
 }

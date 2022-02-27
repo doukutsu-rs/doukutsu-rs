@@ -147,7 +147,7 @@ impl GameProfile {
 
         game_scene.player1.cond.0 = 0x80;
 
-        state.difficulty = GameDifficulty::from_save_value(self.difficulty);
+        state.difficulty = GameDifficulty::from_primitive(self.difficulty);
 
         game_scene.player1.skin.apply_gamestate(state);
         game_scene.player2.skin.apply_gamestate(state);
@@ -236,7 +236,7 @@ impl GameProfile {
         }
 
         let timestamp = get_timestamp();
-        let difficulty = state.difficulty.to_save_value();
+        let difficulty = state.difficulty as u8;
 
         GameProfile {
             current_map,

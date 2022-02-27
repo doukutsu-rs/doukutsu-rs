@@ -67,46 +67,16 @@ impl TimingMode {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone, num_derive::FromPrimitive)]
 pub enum GameDifficulty {
-    Easy,
-    Normal,
-    Hard,
+    Normal = 0,
+    Easy = 2,
+    Hard = 4,
 }
 
 impl GameDifficulty {
-    pub fn from_index(index: usize) -> GameDifficulty {
-        match index {
-            0 => GameDifficulty::Easy,
-            1 => GameDifficulty::Normal,
-            2 => GameDifficulty::Hard,
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn from_save_value(val: u8) -> GameDifficulty {
-        match val {
-            0 => GameDifficulty::Normal,
-            2 => GameDifficulty::Easy,
-            4 => GameDifficulty::Hard,
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn to_save_value(self) -> u8 {
-        match self {
-            GameDifficulty::Normal => 0,
-            GameDifficulty::Easy => 2,
-            GameDifficulty::Hard => 4,
-        }
-    }
-
-    pub fn get_skinsheet_offset(difficulty: GameDifficulty) -> u16 {
-        match difficulty {
-            GameDifficulty::Easy => 1,   // Yellow Quote
-            GameDifficulty::Normal => 0, // Good Quote
-            GameDifficulty::Hard => 2,   // Human Quote
-        }
+    pub fn from_primitive(val: u8) -> GameDifficulty {
+        return num_traits::FromPrimitive::from_u8(val).unwrap_or(GameDifficulty::Normal);
     }
 }
 
@@ -654,6 +624,6 @@ impl SharedGameState {
             }
         }
 
-        GameDifficulty::get_skinsheet_offset(self.difficulty)
+        return self.difficulty as u16;
     }
 }
