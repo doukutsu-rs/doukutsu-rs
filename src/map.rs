@@ -302,7 +302,7 @@ impl Map {
         self.attrib[*self.tiles.get(self.width as usize * y + x).unwrap_or(&0u8) as usize]
     }
 
-    pub fn find_water_regions(&self) -> Vec<(WaterRegionType, Rect<u16>)> {
+    pub fn find_water_regions(&self, water_params: &WaterParams) -> Vec<(WaterRegionType, Rect<u16>, u8)> {
         let mut result = Vec::new();
 
         if self.height == 0 || self.width == 0 {
@@ -310,7 +310,7 @@ impl Map {
         }
 
         let mut walked = vec![false; self.width as usize * self.height as usize];
-        let mut rects = Vec::<Rect<u16>>::new();
+        let mut rects = Vec::<(Rect<u16>, u8)>::new();
 
         for x in 0..self.width {
             for y in 0..self.height {
@@ -324,6 +324,9 @@ impl Map {
                 if !WATER_TILES.contains(&attr) {
                     continue;
                 }
+
+                let color_tile_idx = self.tiles[idx];
+                let region_color = water_params.get_entry(color_tile_idx).color_middle;
 
                 walked[idx] = true;
                 let mut rect = Rect::new(x, y, x, y);
@@ -371,7 +374,12 @@ impl Map {
                             return;
                         }
 
-                        if walked[self.width as usize * ey as usize + ex as usize] {
+                        let idx = self.width as usize * ey as usize + ex as usize;
+                        if walked[idx] {
+                            return;
+                        }
+
+                        if water_params.get_entry(self.tiles[idx]).color_middle != region_color {
                             return;
                         }
 
@@ -395,20 +403,20 @@ impl Map {
                     }
                 }
 
-                rects.push(rect);
+                rects.push((rect, color_tile_idx));
             }
         }
 
         walked.fill(false);
 
-        for mut rect in rects {
+        for (mut rect, color_idx) in rects {
             let line = rect.top;
             let line_up = rect.top - 1;
             let min_x = rect.left;
             let max_x = rect.right;
 
             rect.top += 1;
-            result.push((WaterRegionType::WaterDepth, rect));
+            result.push((WaterRegionType::WaterDepth, rect, color_idx));
 
             let mut x = min_x;
             let mut length = 0;
@@ -430,6 +438,7 @@ impl Map {
                     result.push((
                         if make_water_line { WaterRegionType::WaterLine } else { WaterRegionType::WaterDepth },
                         bounds,
+                        color_idx,
                     ));
                     length = 0;
                 } else {
@@ -445,6 +454,7 @@ impl Map {
                         result.push((
                             if make_water_line { WaterRegionType::WaterLine } else { WaterRegionType::WaterDepth },
                             bounds,
+                            color_idx,
                         ));
                     }
 
@@ -512,6 +522,16 @@ pub struct WaterParamEntry {
     pub color_bottom: Color,
 }
 
+impl Default for WaterParamEntry {
+    fn default() -> Self {
+        Self {
+            color_top: Color::from_rgba(102, 153, 204, 150),
+            color_middle: Color::from_rgba(102, 153, 204, 75),
+            color_bottom: Color::from_rgba(102, 153, 204, 75),
+        }
+    }
+}
+
 pub struct WaterParams {
     entries: HashMap<u8, WaterParamEntry>,
 }
@@ -572,7 +592,8 @@ impl WaterParams {
                     let entry = WaterParamEntry { color_top, color_middle, color_bottom };
 
                     for i in tile_min..=tile_max {
-                        self.entries.insert(i, entry);
+                        let e = self.entries.entry(i);
+                        e.or_insert(entry);
                     }
                 }
                 Err(e) => return Err(GameError::IOError(Arc::new(e))),

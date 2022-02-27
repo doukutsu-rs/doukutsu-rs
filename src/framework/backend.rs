@@ -17,6 +17,8 @@ pub struct VertexData {
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum BackendShader {
+    /// (scale, t, (frame_x, frame_y))
+    WaterFill(f32, f32, (f32, f32)),
     Fill,
     Texture,
 }

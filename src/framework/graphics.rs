@@ -10,6 +10,7 @@ pub enum FilterMode {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BlendMode {
+    None,
     /// When combining two fragments, add their values together, saturating
     /// at 1.0
     Add,

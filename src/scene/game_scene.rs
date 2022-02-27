@@ -121,7 +121,8 @@ impl GameScene {
                 water_params.load_from(water_param_file)?;
                 info!("Loaded water parameters file.");
 
-                water_renderer.initialize(stage.map.find_water_regions());
+                let regions = stage.map.find_water_regions(&water_params);
+                water_renderer.initialize(regions, &water_params);
             }
         }
 

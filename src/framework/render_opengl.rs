@@ -16,6 +16,7 @@ use crate::framework::gl;
 use crate::framework::gl::types::*;
 use crate::framework::graphics::BlendMode;
 use crate::framework::util::{field_offset, return_param};
+use crate::GameError;
 
 pub struct GLContext {
     pub gles2_mode: bool,
@@ -29,8 +30,7 @@ pub struct OpenGLTexture {
     height: u16,
     texture_id: u32,
     framebuffer_id: u32,
-    locs: Locs,
-    program: GLuint,
+    shader: RenderShader,
     vbo: GLuint,
     vertices: Vec<VertexData>,
     context_active: Arc<RefCell<bool>>,
@@ -181,41 +181,9 @@ impl BackendTexture for OpenGLTexture {
                 gl.gl.Enable(gl::BLEND);
                 gl.gl.Disable(gl::DEPTH_TEST);
 
+                self.shader.bind_attrib_pointer(gl, self.vbo);
+
                 gl.gl.BindTexture(gl::TEXTURE_2D, self.texture_id);
-                gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.vbo);
-                gl.gl.UseProgram(self.program);
-                gl.gl.EnableVertexAttribArray(self.locs.position);
-                gl.gl.EnableVertexAttribArray(self.locs.uv);
-                gl.gl.EnableVertexAttribArray(self.locs.color);
-
-                gl.gl.VertexAttribPointer(
-                    self.locs.position,
-                    2,
-                    gl::FLOAT,
-                    gl::FALSE,
-                    mem::size_of::<VertexData>() as _,
-                    field_offset::<VertexData, _, _>(|v| &v.position) as _,
-                );
-
-                gl.gl.VertexAttribPointer(
-                    self.locs.uv,
-                    2,
-                    gl::FLOAT,
-                    gl::FALSE,
-                    mem::size_of::<VertexData>() as _,
-                    field_offset::<VertexData, _, _>(|v| &v.uv) as _,
-                );
-
-                gl.gl.VertexAttribPointer(
-                    self.locs.color,
-                    4,
-                    gl::UNSIGNED_BYTE,
-                    gl::TRUE,
-                    mem::size_of::<VertexData>() as _,
-                    field_offset::<VertexData, _, _>(|v| &v.color) as _,
-                );
-
-                gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.vbo);
                 gl.gl.BufferData(
                     gl::ARRAY_BUFFER,
                     (self.vertices.len() * mem::size_of::<VertexData>()) as _,
@@ -257,7 +225,7 @@ impl Drop for OpenGLTexture {
     }
 }
 
-fn check_shader_compile_status(shader: u32, gl: &Gl) -> bool {
+fn check_shader_compile_status(shader: u32, gl: &Gl) -> GameResult {
     unsafe {
         let mut status: GLint = 0;
         gl.gl.GetShaderiv(shader, gl::COMPILE_STATUS, (&mut status) as *mut _);
@@ -276,13 +244,11 @@ fn check_shader_compile_status(shader: u32, gl: &Gl) -> bool {
             );
 
             let data = String::from_utf8_lossy(&data);
-            log::error!("Failed to compile shader {}: {}", shader, data);
-
-            return false;
+            return Err(GameError::RenderError(format!("Failed to compile shader {}: {}", shader, data)));
         }
     }
 
-    true
+    Ok(())
 }
 
 const VERTEX_SHADER_BASIC: &str = r"
@@ -327,6 +293,51 @@ varying vec4 Frag_Color;
 void main()
 {
     gl_FragColor = Frag_Color;
+}
+
+";
+
+const FRAGMENT_SHADER_WATER: &str = r"
+#version 110
+
+uniform mat4 ProjMtx;
+uniform sampler2D Texture;
+uniform float Time;
+uniform float Scale;
+uniform vec2 FrameOffset;
+varying vec4 Frag_Color;
+
+void main()
+{
+    vec2 resolution_inv = vec2(ProjMtx[0][0], -ProjMtx[1][1]) * 0.5;
+    vec2 uv = gl_FragCoord.xy * resolution_inv;
+    vec2 wave = uv;
+    wave.x += sin((-FrameOffset.y * resolution_inv.y + uv.x * 16.0) + Time / 20.0) * Scale * resolution_inv.x;
+    wave.y -= cos((-FrameOffset.x * resolution_inv.x + uv.y * 16.0) + Time / 5.0) * Scale * resolution_inv.y;
+    float off = 0.35 * Scale * resolution_inv.y;
+    float off2 = 2.0 * off;
+
+    vec3 color = texture2D(Texture, wave).rgb * 0.25;
+    color += texture2D(Texture, wave + vec2(0, off)).rgb * 0.125;
+    color += texture2D(Texture, wave + vec2(0, -off)).rgb * 0.125;
+
+    color.rg += texture2D(Texture, wave + vec2(-off, -off)).rg * 0.0625;
+    color.rg += texture2D(Texture, wave + vec2(-off, 0)).rg * 0.125;
+    color.rg += texture2D(Texture, wave + vec2(-off, off)).rg * 0.0625;
+    color.b += texture2D(Texture, wave + vec2(-off2, -off)).b * 0.0625;
+    color.b += texture2D(Texture, wave + vec2(-off2, 0)).b * 0.125;
+    color.b += texture2D(Texture, wave + vec2(-off2, off)).b * 0.0625;
+
+    color.rg += texture2D(Texture, wave + vec2(off, off)).gb * 0.0625;
+    color.rg += texture2D(Texture, wave + vec2(off, 0)).gb * 0.125;
+    color.rg += texture2D(Texture, wave + vec2(off, -off)).gb * 0.0625;
+    color.b += texture2D(Texture, wave + vec2(off2, off)).r * 0.0625;
+    color.b += texture2D(Texture, wave + vec2(off2, 0)).r * 0.125;
+    color.b += texture2D(Texture, wave + vec2(off2, -off)).r * 0.0625;
+
+    color *= (1.0 - Frag_Color.a);
+    color += Frag_Color.rgb * Frag_Color.a;
+    gl_FragColor = vec4(color, 1.0);
 }
 
 ";
@@ -384,20 +395,131 @@ void main()
 ";
 
 #[derive(Copy, Clone)]
-struct Locs {
+struct RenderShader {
+    program_id: GLuint,
     texture: GLint,
     proj_mtx: GLint,
+    scale: GLint,
+    time: GLint,
+    frame_offset: GLint,
     position: GLuint,
     uv: GLuint,
     color: GLuint,
 }
 
-struct ImguiData {
+impl Default for RenderShader {
+    fn default() -> Self {
+        Self { program_id: 0, texture: 0, proj_mtx: 0, scale: 0, time: 0, frame_offset: 0, position: 0, uv: 0, color: 0 }
+    }
+}
+
+impl RenderShader {
+    fn compile(gl: &Gl, vertex_shader: &str, fragment_shader: &str) -> GameResult<RenderShader> {
+        let mut shader = RenderShader::default();
+        unsafe {
+            shader.program_id = gl.gl.CreateProgram();
+
+            unsafe fn cleanup(shader: &mut RenderShader, gl: &Gl, vert: GLuint, frag: GLuint) {
+                if vert != 0 {
+                    gl.gl.DeleteShader(vert);
+                }
+
+                if frag != 0 {
+                    gl.gl.DeleteShader(frag);
+                }
+
+                if shader.program_id != 0 {
+                    gl.gl.DeleteProgram(shader.program_id);
+                    shader.program_id = 0;
+                }
+
+                *shader = RenderShader::default();
+            }
+
+            let vert_shader = gl.gl.CreateShader(gl::VERTEX_SHADER);
+            let frag_shader = gl.gl.CreateShader(gl::FRAGMENT_SHADER);
+
+            let vert_sources = [vertex_shader.as_ptr() as *const GLchar];
+            let frag_sources = [fragment_shader.as_ptr() as *const GLchar];
+            let vert_sources_len = [vertex_shader.len() as GLint - 1];
+            let frag_sources_len = [fragment_shader.len() as GLint - 1];
+
+            gl.gl.ShaderSource(vert_shader, 1, vert_sources.as_ptr(), vert_sources_len.as_ptr());
+            gl.gl.ShaderSource(frag_shader, 1, frag_sources.as_ptr(), frag_sources_len.as_ptr());
+
+            gl.gl.CompileShader(vert_shader);
+            gl.gl.CompileShader(frag_shader);
+
+            if let Err(e) = check_shader_compile_status(vert_shader, gl) {
+                cleanup(&mut shader, gl, vert_shader, frag_shader);
+                return Err(e);
+            }
+
+            if let Err(e) = check_shader_compile_status(frag_shader, gl) {
+                cleanup(&mut shader, gl, vert_shader, frag_shader);
+                return Err(e);
+            }
+
+            gl.gl.AttachShader(shader.program_id, vert_shader);
+            gl.gl.AttachShader(shader.program_id, frag_shader);
+            gl.gl.LinkProgram(shader.program_id);
+
+            shader.texture = gl.gl.GetUniformLocation(shader.program_id, b"Texture\0".as_ptr() as _);
+            shader.proj_mtx = gl.gl.GetUniformLocation(shader.program_id, b"ProjMtx\0".as_ptr() as _);
+            shader.scale = gl.gl.GetUniformLocation(shader.program_id, b"Scale\0".as_ptr() as _) as _;
+            shader.time = gl.gl.GetUniformLocation(shader.program_id, b"Time\0".as_ptr() as _) as _;
+            shader.frame_offset = gl.gl.GetUniformLocation(shader.program_id, b"FrameOffset\0".as_ptr() as _) as _;
+            shader.position = gl.gl.GetAttribLocation(shader.program_id, b"Position\0".as_ptr() as _) as _;
+            shader.uv = gl.gl.GetAttribLocation(shader.program_id, b"UV\0".as_ptr() as _) as _;
+            shader.color = gl.gl.GetAttribLocation(shader.program_id, b"Color\0".as_ptr() as _) as _;
+        }
+
+        Ok(shader)
+    }
+
+    unsafe fn bind_attrib_pointer(&self, gl: &Gl, vbo: GLuint) -> GameResult {
+        gl.gl.UseProgram(self.program_id);
+        gl.gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl.gl.EnableVertexAttribArray(self.position);
+        gl.gl.EnableVertexAttribArray(self.uv);
+        gl.gl.EnableVertexAttribArray(self.color);
+
+        gl.gl.VertexAttribPointer(
+            self.position,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            mem::size_of::<VertexData>() as _,
+            field_offset::<VertexData, _, _>(|v| &v.position) as _,
+        );
+
+        gl.gl.VertexAttribPointer(
+            self.uv,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            mem::size_of::<VertexData>() as _,
+            field_offset::<VertexData, _, _>(|v| &v.uv) as _,
+        );
+
+        gl.gl.VertexAttribPointer(
+            self.color,
+            4,
+            gl::UNSIGNED_BYTE,
+            gl::TRUE,
+            mem::size_of::<VertexData>() as _,
+            field_offset::<VertexData, _, _>(|v| &v.color) as _,
+        );
+
+        Ok(())
+    }
+}
+
+struct RenderData {
     initialized: bool,
-    program_tex: GLuint,
-    program_fill: GLuint,
-    tex_locs: Locs,
-    fill_locs: Locs,
+    tex_shader: RenderShader,
+    fill_shader: RenderShader,
+    fill_water_shader: RenderShader,
     vbo: GLuint,
     ebo: GLuint,
     font_texture: GLuint,
@@ -407,14 +529,13 @@ struct ImguiData {
     last_size: (u32, u32),
 }
 
-impl ImguiData {
+impl RenderData {
     fn new() -> Self {
-        ImguiData {
+        RenderData {
             initialized: false,
-            program_tex: 0,
-            program_fill: 0,
-            tex_locs: Locs { texture: 0, proj_mtx: 0, position: 0, uv: 0, color: 0 },
-            fill_locs: Locs { texture: 0, proj_mtx: 0, position: 0, uv: 0, color: 0 },
+            tex_shader: RenderShader::default(),
+            fill_shader: RenderShader::default(),
+            fill_water_shader: RenderShader::default(),
             vbo: 0,
             ebo: 0,
             font_texture: 0,
@@ -431,76 +552,23 @@ impl ImguiData {
         let vshdr_basic = if gles2_mode { VERTEX_SHADER_BASIC_GLES } else { VERTEX_SHADER_BASIC };
         let fshdr_tex = if gles2_mode { FRAGMENT_SHADER_TEXTURED_GLES } else { FRAGMENT_SHADER_TEXTURED };
         let fshdr_fill = if gles2_mode { FRAGMENT_SHADER_COLOR_GLES } else { FRAGMENT_SHADER_COLOR };
-
-        let vert_sources = [vshdr_basic.as_ptr() as *const GLchar];
-        let frag_sources_tex = [fshdr_tex.as_ptr() as *const GLchar];
-        let frag_sources_fill = [fshdr_fill.as_ptr() as *const GLchar];
-        let vert_sources_len = [vshdr_basic.len() as GLint - 1];
-        let frag_sources_tex_len = [fshdr_tex.len() as GLint - 1];
-        let frag_sources_fill_len = [fshdr_fill.len() as GLint - 1];
+        let fshdr_fill_water = if gles2_mode { FRAGMENT_SHADER_COLOR_GLES } else { FRAGMENT_SHADER_WATER };
 
         unsafe {
-            self.program_tex = gl.gl.CreateProgram();
-            self.program_fill = gl.gl.CreateProgram();
-            let vert_shader = gl.gl.CreateShader(gl::VERTEX_SHADER);
-            let frag_shader_tex = gl.gl.CreateShader(gl::FRAGMENT_SHADER);
-            let frag_shader_fill = gl.gl.CreateShader(gl::FRAGMENT_SHADER);
-
-            gl.gl.ShaderSource(vert_shader, 1, vert_sources.as_ptr(), vert_sources_len.as_ptr());
-            gl.gl.ShaderSource(frag_shader_tex, 1, frag_sources_tex.as_ptr(), frag_sources_tex_len.as_ptr());
-            gl.gl.ShaderSource(frag_shader_fill, 1, frag_sources_fill.as_ptr(), frag_sources_fill_len.as_ptr());
-
-            gl.gl.CompileShader(vert_shader);
-            gl.gl.CompileShader(frag_shader_tex);
-            gl.gl.CompileShader(frag_shader_fill);
-
-            if !check_shader_compile_status(vert_shader, gl) {
-                gl.gl.DeleteShader(vert_shader);
-            }
-
-            if !check_shader_compile_status(frag_shader_tex, gl) {
-                gl.gl.DeleteShader(frag_shader_tex);
-            }
-
-            if !check_shader_compile_status(frag_shader_fill, gl) {
-                gl.gl.DeleteShader(frag_shader_fill);
-            }
-
-            gl.gl.AttachShader(self.program_tex, vert_shader);
-            gl.gl.AttachShader(self.program_tex, frag_shader_tex);
-            gl.gl.LinkProgram(self.program_tex);
-
-            gl.gl.AttachShader(self.program_fill, vert_shader);
-            gl.gl.AttachShader(self.program_fill, frag_shader_fill);
-            gl.gl.LinkProgram(self.program_fill);
-
-            self.tex_locs = Locs {
-                texture: gl.gl.GetUniformLocation(self.program_tex, b"Texture\0".as_ptr() as _),
-                proj_mtx: gl.gl.GetUniformLocation(self.program_tex, b"ProjMtx\0".as_ptr() as _),
-                position: gl.gl.GetAttribLocation(self.program_tex, b"Position\0".as_ptr() as _) as _,
-                uv: gl.gl.GetAttribLocation(self.program_tex, b"UV\0".as_ptr() as _) as _,
-                color: gl.gl.GetAttribLocation(self.program_tex, b"Color\0".as_ptr() as _) as _,
-            };
-
-            self.fill_locs = Locs {
-                texture: gl.gl.GetUniformLocation(self.program_fill, b"Texture\0".as_ptr() as _),
-                proj_mtx: gl.gl.GetUniformLocation(self.program_fill, b"ProjMtx\0".as_ptr() as _),
-                position: gl.gl.GetAttribLocation(self.program_fill, b"Position\0".as_ptr() as _) as _,
-                uv: gl.gl.GetAttribLocation(self.program_fill, b"UV\0".as_ptr() as _) as _,
-                color: gl.gl.GetAttribLocation(self.program_fill, b"Color\0".as_ptr() as _) as _,
-            };
+            self.tex_shader =
+                RenderShader::compile(gl, vshdr_basic, fshdr_tex).unwrap_or_else(|_| RenderShader::default());
+            self.fill_shader =
+                RenderShader::compile(gl, vshdr_basic, fshdr_fill).unwrap_or_else(|_| RenderShader::default());
+            self.fill_water_shader =
+                RenderShader::compile(gl, vshdr_basic, fshdr_fill_water).unwrap_or_else(|_| RenderShader::default());
 
             self.vbo = return_param(|x| gl.gl.GenBuffers(1, x));
             self.ebo = return_param(|x| gl.gl.GenBuffers(1, x));
-
-            let mut current_texture = 0;
-            gl.gl.GetIntegerv(gl::TEXTURE_BINDING_2D, &mut current_texture);
 
             self.font_texture = return_param(|x| gl.gl.GenTextures(1, x));
             gl.gl.BindTexture(gl::TEXTURE_2D, self.font_texture);
             gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as _);
             gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _);
-            //gl.gl.PixelStorei(gl::UNPACK_ROW_LENGTH, 0);
 
             {
                 let mut atlas = imgui.fonts();
@@ -591,7 +659,7 @@ pub fn load_gl(gl_context: &mut GLContext) -> &'static Gl {
 pub struct OpenGLRenderer {
     refs: GLContext,
     imgui: UnsafeCell<imgui::Context>,
-    imgui_data: ImguiData,
+    render_data: RenderData,
     context_active: Arc<RefCell<bool>>,
     def_matrix: [[f32; 4]; 4],
     curr_matrix: [[f32; 4]; 4],
@@ -602,7 +670,7 @@ impl OpenGLRenderer {
         OpenGLRenderer {
             refs,
             imgui,
-            imgui_data: ImguiData::new(),
+            render_data: RenderData::new(),
             context_active: Arc::new(RefCell::new(true)),
             def_matrix: [[0.0; 4]; 4],
             curr_matrix: [[0.0; 4]; 4],
@@ -615,8 +683,8 @@ impl OpenGLRenderer {
         let gles2 = self.refs.gles2_mode;
         let gl = load_gl(&mut self.refs);
 
-        if !self.imgui_data.initialized {
-            self.imgui_data.init(gles2, imgui, gl);
+        if !self.render_data.initialized {
+            self.render_data.init(gles2, imgui, gl);
         }
 
         Some((&mut self.refs, gl))
@@ -649,8 +717,6 @@ impl BackendRenderer for OpenGLRenderer {
             }
         }
 
-        let ImguiData { program_tex, surf_texture, tex_locs: Locs { proj_mtx, .. }, .. } = self.imgui_data;
-
         unsafe {
             if let Some((_, gl)) = self.get_context() {
                 gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
@@ -660,8 +726,8 @@ impl BackendRenderer for OpenGLRenderer {
                 let matrix =
                     [[2.0f32, 0.0, 0.0, 0.0], [0.0, -2.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0], [-1.0, 1.0, 0.0, 1.0]];
 
-                gl.gl.UseProgram(program_tex);
-                gl.gl.UniformMatrix4fv(proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+                self.render_data.tex_shader.bind_attrib_pointer(gl, self.render_data.vbo);
+                gl.gl.UniformMatrix4fv(self.render_data.tex_shader.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
 
                 let color = (255, 255, 255, 255);
                 let vertices = vec![
@@ -673,7 +739,12 @@ impl BackendRenderer for OpenGLRenderer {
                     VertexData { position: (1.0, 1.0), uv: (1.0, 0.0), color },
                 ];
 
-                self.draw_arrays_tex_id(gl::TRIANGLES, vertices, surf_texture, BackendShader::Texture)?;
+                self.draw_arrays_tex_id(
+                    gl::TRIANGLES,
+                    vertices,
+                    self.render_data.surf_texture,
+                    BackendShader::Texture,
+                )?;
 
                 gl.gl.Finish();
             }
@@ -690,10 +761,10 @@ impl BackendRenderer for OpenGLRenderer {
         if let Some((_, gl)) = self.get_context() {
             unsafe {
                 let (width_u, height_u) = (width as u32, height as u32);
-                if self.imgui_data.last_size != (width_u, height_u) {
-                    self.imgui_data.last_size = (width_u, height_u);
+                if self.render_data.last_size != (width_u, height_u) {
+                    self.render_data.last_size = (width_u, height_u);
                     gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
-                    gl.gl.BindTexture(gl::TEXTURE_2D, self.imgui_data.surf_texture);
+                    gl.gl.BindTexture(gl::TEXTURE_2D, self.render_data.surf_texture);
 
                     gl.gl.TexImage2D(
                         gl::TEXTURE_2D,
@@ -710,7 +781,7 @@ impl BackendRenderer for OpenGLRenderer {
                     gl.gl.BindTexture(gl::TEXTURE_2D, 0 as _);
                 }
 
-                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.imgui_data.surf_framebuffer);
+                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.surf_framebuffer);
                 gl.gl.ClearColor(0.0, 0.0, 0.0, 0.0);
                 gl.gl.Clear(gl::COLOR_BUFFER_BIT);
 
@@ -730,11 +801,29 @@ impl BackendRenderer for OpenGLRenderer {
 
                 gl.gl.BindBuffer(gl::ARRAY_BUFFER, 0);
                 gl.gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
-                gl.gl.UseProgram(self.imgui_data.program_fill);
-                gl.gl.UniformMatrix4fv(self.imgui_data.fill_locs.proj_mtx, 1, gl::FALSE, self.def_matrix.as_ptr() as _);
-                gl.gl.UseProgram(self.imgui_data.program_tex);
-                gl.gl.Uniform1i(self.imgui_data.tex_locs.texture, 0);
-                gl.gl.UniformMatrix4fv(self.imgui_data.tex_locs.proj_mtx, 1, gl::FALSE, self.def_matrix.as_ptr() as _);
+                gl.gl.UseProgram(self.render_data.fill_shader.program_id);
+                gl.gl.UniformMatrix4fv(
+                    self.render_data.fill_shader.proj_mtx,
+                    1,
+                    gl::FALSE,
+                    self.curr_matrix.as_ptr() as _,
+                );
+                gl.gl.UseProgram(self.render_data.fill_water_shader.program_id);
+                gl.gl.Uniform1i(self.render_data.fill_water_shader.texture, 0);
+                gl.gl.UniformMatrix4fv(
+                    self.render_data.fill_water_shader.proj_mtx,
+                    1,
+                    gl::FALSE,
+                    self.curr_matrix.as_ptr() as _,
+                );
+                gl.gl.UseProgram(self.render_data.tex_shader.program_id);
+                gl.gl.Uniform1i(self.render_data.tex_shader.texture, 0);
+                gl.gl.UniformMatrix4fv(
+                    self.render_data.tex_shader.proj_mtx,
+                    1,
+                    gl::FALSE,
+                    self.curr_matrix.as_ptr() as _,
+                );
             }
 
             Ok(())
@@ -787,9 +876,8 @@ impl BackendRenderer for OpenGLRenderer {
                     width,
                     height,
                     vertices: Vec::new(),
-                    locs: self.imgui_data.tex_locs,
-                    program: self.imgui_data.program_tex,
-                    vbo: self.imgui_data.vbo,
+                    shader: self.render_data.tex_shader,
+                    vbo: self.render_data.vbo,
                     context_active: self.context_active.clone(),
                 }))
             }
@@ -827,9 +915,8 @@ impl BackendRenderer for OpenGLRenderer {
                     width,
                     height,
                     vertices: Vec::new(),
-                    locs: self.imgui_data.tex_locs,
-                    program: self.imgui_data.program_tex,
-                    vbo: self.imgui_data.vbo,
+                    shader: self.render_data.tex_shader,
+                    vbo: self.render_data.vbo,
                     context_active: self.context_active.clone(),
                 }))
             }
@@ -842,16 +929,22 @@ impl BackendRenderer for OpenGLRenderer {
         if let Some((_, gl)) = self.get_context() {
             match blend {
                 BlendMode::Add => unsafe {
+                    gl.gl.Enable(gl::BLEND);
                     gl.gl.BlendEquation(gl::FUNC_ADD);
                     gl.gl.BlendFunc(gl::ONE, gl::ONE);
                 },
                 BlendMode::Alpha => unsafe {
+                    gl.gl.Enable(gl::BLEND);
                     gl.gl.BlendEquation(gl::FUNC_ADD);
                     gl.gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
                 },
                 BlendMode::Multiply => unsafe {
+                    gl.gl.Enable(gl::BLEND);
                     gl.gl.BlendEquation(gl::FUNC_ADD);
                     gl.gl.BlendFuncSeparate(gl::ZERO, gl::SRC_COLOR, gl::ZERO, gl::SRC_ALPHA);
+                },
+                BlendMode::None => unsafe {
+                    gl.gl.Disable(gl::BLEND);
                 },
             }
 
@@ -877,17 +970,24 @@ impl BackendRenderer for OpenGLRenderer {
                         [-1.0, -1.0, 0.0, 1.0],
                     ];
 
-                    gl.gl.UseProgram(self.imgui_data.program_fill);
+                    gl.gl.UseProgram(self.render_data.fill_shader.program_id);
                     gl.gl.UniformMatrix4fv(
-                        self.imgui_data.fill_locs.proj_mtx,
+                        self.render_data.fill_shader.proj_mtx,
                         1,
                         gl::FALSE,
                         self.curr_matrix.as_ptr() as _,
                     );
-                    gl.gl.UseProgram(self.imgui_data.program_tex);
-                    gl.gl.Uniform1i(self.imgui_data.tex_locs.texture, 0);
+                    gl.gl.UseProgram(self.render_data.fill_water_shader.program_id);
                     gl.gl.UniformMatrix4fv(
-                        self.imgui_data.tex_locs.proj_mtx,
+                        self.render_data.fill_water_shader.proj_mtx,
+                        1,
+                        gl::FALSE,
+                        self.curr_matrix.as_ptr() as _,
+                    );
+                    gl.gl.UseProgram(self.render_data.tex_shader.program_id);
+                    gl.gl.Uniform1i(self.render_data.tex_shader.texture, 0);
+                    gl.gl.UniformMatrix4fv(
+                        self.render_data.tex_shader.proj_mtx,
                         1,
                         gl::FALSE,
                         self.curr_matrix.as_ptr() as _,
@@ -898,23 +998,30 @@ impl BackendRenderer for OpenGLRenderer {
                 } else {
                     self.curr_matrix = self.def_matrix;
 
-                    gl.gl.UseProgram(self.imgui_data.program_fill);
+                    gl.gl.UseProgram(self.render_data.fill_shader.program_id);
                     gl.gl.UniformMatrix4fv(
-                        self.imgui_data.fill_locs.proj_mtx,
+                        self.render_data.fill_shader.proj_mtx,
                         1,
                         gl::FALSE,
-                        self.def_matrix.as_ptr() as _,
+                        self.curr_matrix.as_ptr() as _,
                     );
-                    gl.gl.UseProgram(self.imgui_data.program_tex);
-                    gl.gl.Uniform1i(self.imgui_data.tex_locs.texture, 0);
+                    gl.gl.UseProgram(self.render_data.fill_water_shader.program_id);
                     gl.gl.UniformMatrix4fv(
-                        self.imgui_data.tex_locs.proj_mtx,
+                        self.render_data.fill_water_shader.proj_mtx,
                         1,
                         gl::FALSE,
-                        self.def_matrix.as_ptr() as _,
+                        self.curr_matrix.as_ptr() as _,
                     );
-                    gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.imgui_data.surf_framebuffer);
-                    gl.gl.Viewport(0, 0, self.imgui_data.last_size.0 as _, self.imgui_data.last_size.1 as _);
+                    gl.gl.UseProgram(self.render_data.tex_shader.program_id);
+                    gl.gl.Uniform1i(self.render_data.tex_shader.texture, 0);
+                    gl.gl.UniformMatrix4fv(
+                        self.render_data.tex_shader.proj_mtx,
+                        1,
+                        gl::FALSE,
+                        self.curr_matrix.as_ptr() as _,
+                    );
+                    gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.surf_framebuffer);
+                    gl.gl.Viewport(0, 0, self.render_data.last_size.0 as _, self.render_data.last_size.1 as _);
                 }
             }
 
@@ -928,7 +1035,7 @@ impl BackendRenderer for OpenGLRenderer {
         unsafe {
             if let Some(gl) = &GL_PROC {
                 let color = color.to_rgba();
-                let mut uv = self.imgui_data.font_tex_size;
+                let mut uv = self.render_data.font_tex_size;
                 uv.0 = 0.0 / uv.0;
                 uv.1 = 0.0 / uv.1;
 
@@ -941,45 +1048,10 @@ impl BackendRenderer for OpenGLRenderer {
                     VertexData { position: (rect.right as _, rect.bottom as _), uv, color },
                 ];
 
-                if gl.gl.BindSampler.is_loaded() {
-                    gl.gl.BindSampler(0, 0);
-                }
+                self.render_data.fill_shader.bind_attrib_pointer(gl, self.render_data.vbo);
 
-                gl.gl.UseProgram(self.imgui_data.program_fill);
-                gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.imgui_data.vbo);
-                gl.gl.EnableVertexAttribArray(self.imgui_data.fill_locs.position);
-                gl.gl.EnableVertexAttribArray(self.imgui_data.fill_locs.uv);
-                gl.gl.EnableVertexAttribArray(self.imgui_data.fill_locs.color);
-
-                gl.gl.VertexAttribPointer(
-                    self.imgui_data.fill_locs.position,
-                    2,
-                    gl::FLOAT,
-                    gl::FALSE,
-                    mem::size_of::<VertexData>() as _,
-                    field_offset::<VertexData, _, _>(|v| &v.position) as _,
-                );
-
-                gl.gl.VertexAttribPointer(
-                    self.imgui_data.fill_locs.uv,
-                    2,
-                    gl::FLOAT,
-                    gl::FALSE,
-                    mem::size_of::<VertexData>() as _,
-                    field_offset::<VertexData, _, _>(|v| &v.uv) as _,
-                );
-
-                gl.gl.VertexAttribPointer(
-                    self.imgui_data.fill_locs.color,
-                    4,
-                    gl::UNSIGNED_BYTE,
-                    gl::TRUE,
-                    mem::size_of::<VertexData>() as _,
-                    field_offset::<VertexData, _, _>(|v| &v.color) as _,
-                );
-
-                gl.gl.BindTexture(gl::TEXTURE_2D, self.imgui_data.font_texture);
-                gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.imgui_data.vbo);
+                gl.gl.BindTexture(gl::TEXTURE_2D, self.render_data.font_texture);
+                gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.render_data.vbo);
                 gl.gl.BufferData(
                     gl::ARRAY_BUFFER,
                     (vertices.len() * mem::size_of::<VertexData>()) as _,
@@ -1010,7 +1082,7 @@ impl BackendRenderer for OpenGLRenderer {
                     gl.gl.Enable(gl::SCISSOR_TEST);
                     gl.gl.Scissor(
                         rect.left as GLint,
-                        self.imgui_data.last_size.1 as GLint - rect.bottom as GLint,
+                        self.render_data.last_size.1 as GLint - rect.bottom as GLint,
                         rect.width() as GLint,
                         rect.height() as GLint,
                     );
@@ -1069,23 +1141,21 @@ impl BackendRenderer for OpenGLRenderer {
                     [-1.0, 1.0, 0.0, 1.0],
                 ];
 
-                gl.gl.UseProgram(self.imgui_data.program_tex);
-                gl.gl.Uniform1i(self.imgui_data.tex_locs.texture, 0);
-                gl.gl.UniformMatrix4fv(self.imgui_data.tex_locs.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+                gl.gl.UseProgram(self.render_data.tex_shader.program_id);
+                gl.gl.Uniform1i(self.render_data.tex_shader.texture, 0);
+                gl.gl.UniformMatrix4fv(self.render_data.tex_shader.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
 
                 if gl.gl.BindSampler.is_loaded() {
                     gl.gl.BindSampler(0, 0);
                 }
 
-                // let vao = return_param(|x| gl.gl.GenVertexArrays(1, x));
-                //gl.gl.BindVertexArray(vao);
-                gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.imgui_data.vbo);
-                gl.gl.EnableVertexAttribArray(self.imgui_data.tex_locs.position);
-                gl.gl.EnableVertexAttribArray(self.imgui_data.tex_locs.uv);
-                gl.gl.EnableVertexAttribArray(self.imgui_data.tex_locs.color);
+                gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.render_data.vbo);
+                gl.gl.EnableVertexAttribArray(self.render_data.tex_shader.position);
+                gl.gl.EnableVertexAttribArray(self.render_data.tex_shader.uv);
+                gl.gl.EnableVertexAttribArray(self.render_data.tex_shader.color);
 
                 gl.gl.VertexAttribPointer(
-                    self.imgui_data.tex_locs.position,
+                    self.render_data.tex_shader.position,
                     2,
                     gl::FLOAT,
                     gl::FALSE,
@@ -1094,7 +1164,7 @@ impl BackendRenderer for OpenGLRenderer {
                 );
 
                 gl.gl.VertexAttribPointer(
-                    self.imgui_data.tex_locs.uv,
+                    self.render_data.tex_shader.uv,
                     2,
                     gl::FLOAT,
                     gl::FALSE,
@@ -1103,7 +1173,7 @@ impl BackendRenderer for OpenGLRenderer {
                 );
 
                 gl.gl.VertexAttribPointer(
-                    self.imgui_data.tex_locs.color,
+                    self.render_data.tex_shader.color,
                     4,
                     gl::UNSIGNED_BYTE,
                     gl::TRUE,
@@ -1115,7 +1185,7 @@ impl BackendRenderer for OpenGLRenderer {
                     let vtx_buffer = draw_list.vtx_buffer();
                     let idx_buffer = draw_list.idx_buffer();
 
-                    gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.imgui_data.vbo);
+                    gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.render_data.vbo);
                     gl.gl.BufferData(
                         gl::ARRAY_BUFFER,
                         (vtx_buffer.len() * mem::size_of::<DrawVert>()) as _,
@@ -1123,7 +1193,7 @@ impl BackendRenderer for OpenGLRenderer {
                         gl::STREAM_DRAW,
                     );
 
-                    gl.gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.imgui_data.ebo);
+                    gl.gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.render_data.ebo);
                     gl.gl.BufferData(
                         gl::ELEMENT_ARRAY_BUFFER,
                         (idx_buffer.len() * mem::size_of::<DrawIdx>()) as _,
@@ -1163,7 +1233,6 @@ impl BackendRenderer for OpenGLRenderer {
                 }
 
                 gl.gl.Disable(gl::SCISSOR_TEST);
-                //gl.gl.DeleteVertexArrays(1, &vao);
             }
         }
 
@@ -1214,78 +1283,23 @@ impl OpenGLRenderer {
         &mut self,
         vert_type: GLenum,
         vertices: Vec<VertexData>,
-        texture: u32,
+        mut texture: u32,
         shader: BackendShader,
     ) -> GameResult<()> {
         if let Some(gl) = &GL_PROC {
             match shader {
                 BackendShader::Fill => {
-                    gl.gl.UseProgram(self.imgui_data.program_fill);
-                    gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.imgui_data.vbo);
-                    gl.gl.EnableVertexAttribArray(self.imgui_data.fill_locs.position);
-                    gl.gl.EnableVertexAttribArray(self.imgui_data.fill_locs.uv);
-                    gl.gl.EnableVertexAttribArray(self.imgui_data.fill_locs.color);
-
-                    gl.gl.VertexAttribPointer(
-                        self.imgui_data.fill_locs.position,
-                        2,
-                        gl::FLOAT,
-                        gl::FALSE,
-                        mem::size_of::<VertexData>() as _,
-                        field_offset::<VertexData, _, _>(|v| &v.position) as _,
-                    );
-
-                    gl.gl.VertexAttribPointer(
-                        self.imgui_data.fill_locs.uv,
-                        2,
-                        gl::FLOAT,
-                        gl::FALSE,
-                        mem::size_of::<VertexData>() as _,
-                        field_offset::<VertexData, _, _>(|v| &v.uv) as _,
-                    );
-
-                    gl.gl.VertexAttribPointer(
-                        self.imgui_data.fill_locs.color,
-                        4,
-                        gl::UNSIGNED_BYTE,
-                        gl::TRUE,
-                        mem::size_of::<VertexData>() as _,
-                        field_offset::<VertexData, _, _>(|v| &v.color) as _,
-                    );
+                    self.render_data.fill_shader.bind_attrib_pointer(gl, self.render_data.vbo)?;
                 }
                 BackendShader::Texture => {
-                    gl.gl.UseProgram(self.imgui_data.program_tex);
-                    gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.imgui_data.vbo);
-                    gl.gl.EnableVertexAttribArray(self.imgui_data.tex_locs.position);
-                    gl.gl.EnableVertexAttribArray(self.imgui_data.tex_locs.uv);
-                    gl.gl.EnableVertexAttribArray(self.imgui_data.tex_locs.color);
-
-                    gl.gl.VertexAttribPointer(
-                        self.imgui_data.tex_locs.position,
-                        2,
-                        gl::FLOAT,
-                        gl::FALSE,
-                        mem::size_of::<VertexData>() as _,
-                        field_offset::<VertexData, _, _>(|v| &v.position) as _,
-                    );
-
-                    gl.gl.VertexAttribPointer(
-                        self.imgui_data.tex_locs.uv,
-                        2,
-                        gl::FLOAT,
-                        gl::FALSE,
-                        mem::size_of::<VertexData>() as _,
-                        field_offset::<VertexData, _, _>(|v| &v.uv) as _,
-                    );
-
-                    gl.gl.VertexAttribPointer(
-                        self.imgui_data.tex_locs.color,
-                        4,
-                        gl::UNSIGNED_BYTE,
-                        gl::TRUE,
-                        mem::size_of::<VertexData>() as _,
-                        field_offset::<VertexData, _, _>(|v| &v.color) as _,
-                    );
+                    self.render_data.tex_shader.bind_attrib_pointer(gl, self.render_data.vbo)?;
+                }
+                BackendShader::WaterFill(scale, t, frame_pos) => {
+                    self.render_data.fill_water_shader.bind_attrib_pointer(gl, self.render_data.vbo)?;
+                    gl.gl.Uniform1f(self.render_data.fill_water_shader.scale, scale);
+                    gl.gl.Uniform1f(self.render_data.fill_water_shader.time, t);
+                    gl.gl.Uniform2f(self.render_data.fill_water_shader.frame_offset, frame_pos.0, frame_pos.1);
+                    texture = self.render_data.surf_texture;
                 }
             }
 

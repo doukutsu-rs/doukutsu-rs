@@ -1,15 +1,18 @@
+use std::cell::RefCell;
+
 use crate::common::{Color, Rect};
 use crate::entity::GameEntity;
 use crate::frame::Frame;
-use crate::framework::backend::{BackendShader, VertexData};
+use crate::framework::backend::{BackendShader, SpriteBatchCommand, VertexData};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
-use crate::map::WaterRegionType;
+use crate::graphics::BlendMode;
+use crate::map::{WaterParamEntry, WaterParams, WaterRegionType};
+use crate::npc::list::NPCList;
+use crate::physics::PhysicalEntity;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
-use crate::physics::PhysicalEntity;
-use crate::npc::list::NPCList;
 
 const TENSION: f32 = 0.03;
 const DAMPENING: f32 = 0.01;
@@ -37,10 +40,11 @@ pub struct DynamicWater {
     y: u16,
     end_x: u16,
     columns: Vec<DynamicWaterColumn>,
+    color: WaterParamEntry,
 }
 
 impl DynamicWater {
-    pub fn new(x: u16, y: u16, length: u16) -> DynamicWater {
+    pub fn new(x: u16, y: u16, length: u16, color: WaterParamEntry) -> DynamicWater {
         let mut columns = Vec::new();
         let count = length as usize * 8 + 1;
 
@@ -48,7 +52,7 @@ impl DynamicWater {
             columns.push(DynamicWaterColumn::new());
         }
 
-        DynamicWater { x, y, end_x: x + length, columns }
+        DynamicWater { x, y, end_x: x + length, columns, color }
     }
 
     pub fn tick(&mut self) {
@@ -92,25 +96,26 @@ impl DynamicWater {
 }
 
 pub struct WaterRenderer {
-    depth_regions: Vec<Rect<u16>>,
-    surf_regions: Vec<Rect<u16>>,
+    depth_regions: Vec<(Rect<u16>, WaterParamEntry)>,
     water_surfaces: Vec<DynamicWater>,
+    t: RefCell<f32>,
 }
 
 impl WaterRenderer {
     pub fn new() -> WaterRenderer {
-        WaterRenderer { depth_regions: Vec::new(), surf_regions: Vec::new(), water_surfaces: Vec::new() }
+        WaterRenderer { depth_regions: Vec::new(), water_surfaces: Vec::new(), t: RefCell::new(0.0) }
     }
 
-    pub fn initialize(&mut self, regions: Vec<(WaterRegionType, Rect<u16>)>) {
-        for (reg_type, bounds) in regions {
+    pub fn initialize(&mut self, regions: Vec<(WaterRegionType, Rect<u16>, u8)>, water_params: &WaterParams) {
+        for (reg_type, bounds, color_idx) in regions {
+            let color = water_params.get_entry(color_idx);
+
             match reg_type {
                 WaterRegionType::WaterLine => {
-                    self.surf_regions.push(bounds);
-                    self.water_surfaces.push(DynamicWater::new(bounds.left, bounds.top, bounds.width() + 1));
+                    self.water_surfaces.push(DynamicWater::new(bounds.left, bounds.top, bounds.width() + 1, *color));
                 }
                 WaterRegionType::WaterDepth => {
-                    self.depth_regions.push(bounds);
+                    self.depth_regions.push((bounds, *color));
                 }
             }
         }
@@ -119,10 +124,6 @@ impl WaterRenderer {
 
 impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
     fn tick(&mut self, state: &mut SharedGameState, (players, npc_list): (&[&Player], &NPCList)) -> GameResult<()> {
-        if !state.settings.shader_effects {
-            return Ok(());
-        }
-
         for surf in &mut self.water_surfaces {
             let line_x = surf.x as f32 * 16.0;
             let line_y = surf.y as f32 * 16.0;
@@ -169,39 +170,48 @@ impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult<()> {
-        let mut out_rect = Rect::new(0, 0, 0, 0);
-        let (o_x, o_y) = frame.xy_interpolated(state.frame_time);
-        let water_color_top = Color::from_rgba(102, 153, 204, 150);
-        let water_color = Color::from_rgba(102, 153, 204, 75);
-
-        for region in &self.depth_regions {
-            out_rect.left = ((region.left as f32 * 16.0 - o_x - 8.0) * state.scale) as isize;
-            out_rect.top = ((region.top as f32 * 16.0 - o_y - 8.0) * state.scale) as isize;
-            out_rect.right = ((region.right as f32 * 16.0 - o_x + 8.0) * state.scale) as isize;
-            out_rect.bottom = ((region.bottom as f32 * 16.0 - o_y + 8.0) * state.scale) as isize;
-            graphics::draw_rect(ctx, out_rect, water_color)?;
-        }
-
-        if !state.settings.shader_effects || !graphics::supports_vertex_draw(ctx)? {
-            for region in &self.surf_regions {
-                out_rect.left = ((region.left as f32 * 16.0 - o_x - 8.0) * state.scale) as isize;
-                out_rect.top = ((region.top as f32 * 16.0 - o_y - 5.0) * state.scale) as isize;
-                out_rect.right = ((region.right as f32 * 16.0 - o_x + 8.0) * state.scale) as isize;
-                out_rect.bottom = ((region.bottom as f32 * 16.0 - o_y + 8.0) * state.scale) as isize;
-                graphics::draw_rect(ctx, out_rect, water_color)?;
-            }
-
+        if !graphics::supports_vertex_draw(ctx)? {
             return Ok(());
         }
 
-        let uv = (0.0, 0.0);
-        let color_top_rgba = water_color_top.to_rgba();
-        let color_mid_rgba = water_color.to_rgba();
-        let color_btm_rgba = water_color.to_rgba();
+        graphics::set_render_target(ctx, state.lightmap_canvas.as_ref())?;
+        graphics::clear(ctx, Color::from_rgba(0, 0, 0, 0));
+        graphics::set_blend_mode(ctx, BlendMode::None)?;
+
+        let (o_x, o_y) = frame.xy_interpolated(state.frame_time);
+        let uv = (0.5, 0.5);
+        let mut t_ref = self.t.borrow_mut();
+        let t = *t_ref;
+        *t_ref += state.frame_time as f32;
+        let shader = BackendShader::WaterFill(state.scale, t, (o_x, o_y));
+
+        for (region, color) in &self.depth_regions {
+            let color_mid_rgba = color.color_middle.to_rgba();
+            let color_btm_rgba = color.color_bottom.to_rgba();
+            let mut vertices = vec![];
+            vertices.reserve(6);
+
+            let left = (region.left as f32 * 16.0 - o_x - 8.0) * state.scale;
+            let top = (region.top as f32 * 16.0 - o_y - 8.0) * state.scale;
+            let right = (region.right as f32 * 16.0 - o_x + 8.0) * state.scale;
+            let bottom = (region.bottom as f32 * 16.0 - o_y + 8.0) * state.scale;
+
+            vertices.push(VertexData { position: (left, bottom), uv, color: color_btm_rgba });
+            vertices.push(VertexData { position: (left, top), uv, color: color_mid_rgba });
+            vertices.push(VertexData { position: (right, top), uv, color: color_mid_rgba });
+            vertices.push(VertexData { position: (left, bottom), uv, color: color_btm_rgba });
+            vertices.push(VertexData { position: (right, top), uv, color: color_mid_rgba });
+            vertices.push(VertexData { position: (right, bottom), uv, color: color_btm_rgba });
+
+            graphics::draw_triangle_list(ctx, vertices, None, shader)?;
+        }
 
         for surf in &self.water_surfaces {
             let pos_x = surf.x as f32 * 16.0;
             let pos_y = surf.y as f32 * 16.0;
+            let color_top_rgba = surf.color.color_top.to_rgba();
+            let color_mid_rgba = surf.color.color_middle.to_rgba();
+            let color_btm_rgba = surf.color.color_bottom.to_rgba();
 
             if (pos_x - o_x - 16.0) > state.canvas_size.0
                 || (pos_x - o_x + 16.0 + surf.end_x as f32 * 16.0) < 0.0
@@ -238,7 +248,19 @@ impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
                 vertices.push(VertexData { position: (x_right, bottom), uv, color: color_btm_rgba });
             }
 
-            graphics::draw_triangle_list(ctx, vertices, None, BackendShader::Fill)?;
+            graphics::draw_triangle_list(ctx, vertices, None, shader)?;
+        }
+
+        graphics::set_blend_mode(ctx, BlendMode::Alpha)?;
+        graphics::set_render_target(ctx, None)?;
+
+        {
+            let canvas = state.lightmap_canvas.as_mut().unwrap();
+            let rect = Rect { left: 0.0, top: 0.0, right: state.screen_size.0, bottom: state.screen_size.1 };
+
+            canvas.clear();
+            canvas.add(SpriteBatchCommand::DrawRect(rect, rect));
+            canvas.draw()?;
         }
 
         Ok(())

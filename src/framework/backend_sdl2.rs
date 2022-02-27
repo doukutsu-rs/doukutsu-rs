@@ -538,6 +538,7 @@ impl BackendRenderer for SDL2Renderer {
             BlendMode::Add => sdl2::render::BlendMode::Add,
             BlendMode::Alpha => sdl2::render::BlendMode::Blend,
             BlendMode::Multiply => sdl2::render::BlendMode::Mod,
+            BlendMode::None => sdl2::render::BlendMode::None,
         };
 
         Ok(())
@@ -737,6 +738,8 @@ impl BackendRenderer for SDL2Renderer {
     ) -> GameResult<()> {
         let mut refs = self.refs.borrow_mut();
         if shader == BackendShader::Fill {
+            texture = None;
+        } else if let BackendShader::WaterFill(..) = shader {
             texture = None;
         }
 
