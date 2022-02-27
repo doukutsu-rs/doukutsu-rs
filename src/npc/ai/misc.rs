@@ -137,7 +137,7 @@ impl NPC {
     }
 
     pub(crate) fn tick_n015_chest_closed(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
-        if state.difficulty == GameDifficulty::Hard && self.chest_has_missile_flag() {
+        if state.difficulty == GameDifficulty::Hard && state.constants.missile_flags.contains(&self.flag_num) {
             self.cond.set_alive(false);
             return Ok(());
         }
@@ -337,7 +337,7 @@ impl NPC {
     }
 
     pub(crate) fn tick_n021_chest_open(&mut self, state: &mut SharedGameState) -> GameResult {
-        if state.difficulty == GameDifficulty::Hard && self.chest_has_missile_flag() {
+        if state.difficulty == GameDifficulty::Hard && state.constants.missile_flags.contains(&self.flag_num) {
             self.cond.set_alive(false);
             return Ok(());
         }
@@ -2623,10 +2623,5 @@ impl NPC {
         self.anim_rect = state.constants.npc.n360_credits_thank_you;
 
         Ok(())
-    }
-
-    fn chest_has_missile_flag(&self) -> bool {
-        let missile_flags: [u16; 9] = [200, 201, 202, 218, 550, 766, 880, 920, 1551];
-        missile_flags.contains(&self.flag_num)
     }
 }

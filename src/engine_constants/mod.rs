@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Cursor, Read};
 
-use byteorder::{LE, ReadBytesExt};
+use byteorder::{ReadBytesExt, LE};
 use case_insensitive_hashmap::CaseInsensitiveHashMap;
 use xmltree::Element;
 
@@ -304,6 +304,7 @@ pub struct EngineConstants {
     pub credit_illustration_paths: Vec<String>,
     pub animated_face_table: Vec<AnimatedFace>,
     pub string_table: HashMap<String, String>,
+    pub missile_flags: Vec<u16>,
 }
 
 impl Clone for EngineConstants {
@@ -333,6 +334,7 @@ impl Clone for EngineConstants {
             credit_illustration_paths: self.credit_illustration_paths.clone(),
             animated_face_table: self.animated_face_table.clone(),
             string_table: self.string_table.clone(),
+            missile_flags: self.missile_flags.clone(),
         }
     }
 }
@@ -1608,6 +1610,7 @@ impl EngineConstants {
             ],
             animated_face_table: vec![AnimatedFace { face_id: 0, anim_id: 0, anim_frames: vec![(0, 0)] }],
             string_table: HashMap::new(),
+            missile_flags: vec![200, 201, 202, 218, 550, 766, 880, 920, 1551],
         }
     }
 

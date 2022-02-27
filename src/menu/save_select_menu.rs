@@ -149,8 +149,18 @@ impl SaveSelectMenu {
                 MenuSelectionResult::Selected(4, _) | MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::SaveMenu;
                 }
-                MenuSelectionResult::Selected(item, _) => {
-                    state.difficulty = GameDifficulty::from_index(item - 1);
+                MenuSelectionResult::Selected(1, _) => {
+                    state.difficulty = GameDifficulty::Easy;
+                    state.reload_resources(ctx)?;
+                    state.load_or_start_game(ctx)?;
+                }
+                MenuSelectionResult::Selected(2, _) => {
+                    state.difficulty = GameDifficulty::Normal;
+                    state.reload_resources(ctx)?;
+                    state.load_or_start_game(ctx)?;
+                }
+                MenuSelectionResult::Selected(3, _) => {
+                    state.difficulty = GameDifficulty::Hard;
                     state.reload_resources(ctx)?;
                     state.load_or_start_game(ctx)?;
                 }
