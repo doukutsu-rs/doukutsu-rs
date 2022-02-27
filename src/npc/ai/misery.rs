@@ -1258,8 +1258,8 @@ impl NPC {
 
                 if self.x < 0
                     || self.y < 0
-                    || self.x > (stage.map.width as i32 * state.tile_size.as_int())
-                    || self.y > (stage.map.height as i32 * state.tile_size.as_int())
+                    || self.x > (stage.map.width as i32 * state.tile_size.as_int() * 0x200)
+                    || self.y > (stage.map.height as i32 * state.tile_size.as_int() * 0x200)
                 {
                     self.vanish(state);
                     return Ok(());

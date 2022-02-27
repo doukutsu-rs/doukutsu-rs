@@ -313,9 +313,9 @@ impl NPC {
                         npc.x = self.x;
                         npc.y = self.y;
 
-                        let angle = f64::atan2((player.y - 0x1400 - self.y) as f64, (player.x - self.x) as f64);
-                        npc.vel_x = (2048.0 * angle.cos()) as i32;
-                        npc.vel_y = (2048.0 * angle.sin()) as i32;
+                        let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64);
+                        npc.vel_x = (-2048.0 * angle.cos()) as i32;
+                        npc.vel_y = (-2048.0 * angle.sin()) as i32;
 
                         let _ = npc_list.spawn(0x100, npc);
 
@@ -354,10 +354,12 @@ impl NPC {
 
                         let mut npc = NPC::create(277, &state.npc_table);
                         npc.cond.set_alive(true);
+                        npc.x = self.x;
+                        npc.y = self.y;
 
-                        let angle = f64::atan2((player.y - 0x1400 - self.y) as f64, (player.x - self.x) as f64);
-                        npc.vel_x = (2048.0 * angle.cos()) as i32;
-                        npc.vel_y = (2048.0 * angle.sin()) as i32;
+                        let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64);
+                        npc.vel_x = (-2048.0 * angle.cos()) as i32;
+                        npc.vel_y = (-2048.0 * angle.sin()) as i32;
 
                         let _ = npc_list.spawn(0x100, npc);
 
@@ -437,7 +439,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n277_red_demon_projectile(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n277_red_demon_projectile(
+        &mut self,
+        state: &mut SharedGameState,
+        npc_list: &NPCList,
+    ) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
         }
@@ -446,7 +452,7 @@ impl NPC {
             self.x += self.vel_x;
             self.y += self.vel_y;
 
-            if self.flags.any_flag() {
+            if self.flags.hit_anything() {
                 let mut npc = NPC::create(4, &state.npc_table);
                 npc.cond.set_alive(true);
                 npc.x = self.x;

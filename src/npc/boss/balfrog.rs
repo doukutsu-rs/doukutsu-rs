@@ -33,7 +33,7 @@ impl BossNPC {
         match self.parts[0].action_num {
             0 => {
                 self.hurt_sound[0] = 52;
-                self.parts[0].x = 6 * 0x2000;
+                self.parts[0].x = 6 * 0x2000 + state.constants.game.tile_offset_x * 0x2000;
                 self.parts[0].y = 12 * 0x2000;
                 self.parts[0].direction = Direction::Right;
                 self.parts[0].display_bounds = Rect {
