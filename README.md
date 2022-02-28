@@ -73,33 +73,34 @@ Extract data folder from romfs, Requires a hacked console and a recent and legal
 <details>
   <summary>Freeware Data:</summary>
 
-  ![Japanese Freeware](https://i.imgur.com/eZ0V5rK.png)
+  ![JP Freeware 2](https://user-images.githubusercontent.com/53099651/155924461-c63afc93-a41f-4cfd-ac9f-8f021cebcb04.png)
   
-  ![Toroko_Fight Freeware](https://i.imgur.com/m2xMQ7f.png)
+  ![Toroko Fight Freeware](https://user-images.githubusercontent.com/53099651/155924215-d492907a-ed0e-4323-bd46-61745b8fb32a.png)
   
-  ![No lighting Freeware](https://i.imgur.com/MnMDPgA.png)
+  ![No Lighting Freeware](https://user-images.githubusercontent.com/53099651/155923814-621cf29e-bb20-4680-a96d-f049aaef1f88.png)
   
 </details>
 
 <details>
   <summary>CS+ PC Data:</summary>
 
-  ![CS+ with enhanced graphics](https://i.imgur.com/YaPAs70.png)
+  ![CS+ Sand Zone](https://user-images.githubusercontent.com/53099651/155923620-db230077-0df5-4de4-b086-be6b4dcbc6df.png)
   
-  ![CS+ Showoff OuterWall](https://i.imgur.com/7XSW0tO.png)
+  ![CS+ Showoff Outer Wall](https://user-images.githubusercontent.com/53099651/155920013-3967cd03-8d69-4fc5-8f1d-fe659ff2e953.png)
   
-  ![CS+ Challenge support](https://i.imgur.com/Vv8i2sv.png)
+  ![CS+ Challenge](https://user-images.githubusercontent.com/53099651/155919381-7e8159a0-a7cf-461a-8be2-2ce864631299.png)
   
 </details>
 
 <details>
   <summary>CS+ Switch Data:</summary>
   
-  ![Balcony Switch](https://i.imgur.com/xsl2a4C.png)
+  ![Balcony Switch](https://user-images.githubusercontent.com/53099651/155918810-063c0f06-2d48-485f-8367-6337525deab7.png)
   
-  ![Almond Switch](https://i.imgur.com/32ZB3Pt.png)
+  ![Almond Switch](https://user-images.githubusercontent.com/53099651/155918761-7b97dcd7-884c-4929-ad6c-9694e42bd5ff.png)
   
-  ![Hell Switch](https://i.imgur.com/R6T4y6w.png)
+  ![Hell Switch](https://user-images.githubusercontent.com/53099651/155918602-62268274-c529-41c2-a87e-0c31e7874b94.png)
+
   
   </details
   
