@@ -118,7 +118,7 @@ for:
 
     build_script:
       - export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_BUILD_VERSION
-      - RUSTFLAGS="-C link-arg=-fuse-ld=lld -C link-arg=-s" CARGO_INCREMENTAL=1 cargo build --release --bin doukutsu-rs
+      - RUSTFLAGS="-C link-arg=-s" CARGO_INCREMENTAL=1 cargo build --release --bin doukutsu-rs
       - mkdir release
       - cp LICENSE ./release/LICENSE
       - cp -a target/release/doukutsu-rs ./release/doukutsu-rs.x86_64.elf
