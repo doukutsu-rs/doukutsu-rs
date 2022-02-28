@@ -163,7 +163,7 @@ pub fn supports_vertex_draw(ctx: &Context) -> GameResult<bool> {
 
 pub fn draw_triangle_list(
     ctx: &mut Context,
-    vertices: Vec<VertexData>,
+    vertices: &[VertexData],
     texture: Option<&Box<dyn BackendTexture>>,
     shader: BackendShader,
 ) -> GameResult {

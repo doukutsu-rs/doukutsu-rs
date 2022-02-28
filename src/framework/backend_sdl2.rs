@@ -732,7 +732,7 @@ impl BackendRenderer for SDL2Renderer {
 
     fn draw_triangle_list(
         &mut self,
-        vertices: Vec<VertexData>,
+        vertices: &[VertexData],
         mut texture: Option<&Box<dyn BackendTexture>>,
         shader: BackendShader,
     ) -> GameResult<()> {

@@ -311,6 +311,7 @@ void main()
 {
     vec2 resolution_inv = vec2(ProjMtx[0][0], -ProjMtx[1][1]) * 0.5;
     vec2 uv = gl_FragCoord.xy * resolution_inv;
+    uv.y += 1.0;
     vec2 wave = uv;
     wave.x += sin((-FrameOffset.y * resolution_inv.y + uv.x * 16.0) + Time / 20.0) * Scale * resolution_inv.x;
     wave.y -= cos((-FrameOffset.x * resolution_inv.x + uv.y * 16.0) + Time / 5.0) * Scale * resolution_inv.y;
@@ -596,6 +597,8 @@ impl RenderData {
             gl.gl.BindTexture(gl::TEXTURE_2D, texture_id);
             gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as _);
             gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _);
+            gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as _);
+            gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as _);
 
             gl.gl.TexImage2D(
                 gl::TEXTURE_2D,
@@ -730,7 +733,7 @@ impl BackendRenderer for OpenGLRenderer {
                 gl.gl.UniformMatrix4fv(self.render_data.tex_shader.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
 
                 let color = (255, 255, 255, 255);
-                let vertices = vec![
+                let vertices = [
                     VertexData { position: (0.0, 1.0), uv: (0.0, 0.0), color },
                     VertexData { position: (0.0, 0.0), uv: (0.0, 1.0), color },
                     VertexData { position: (1.0, 0.0), uv: (1.0, 1.0), color },
@@ -741,7 +744,7 @@ impl BackendRenderer for OpenGLRenderer {
 
                 self.draw_arrays_tex_id(
                     gl::TRIANGLES,
-                    vertices,
+                    &vertices,
                     self.render_data.surf_texture,
                     BackendShader::Texture,
                 )?;
@@ -1245,7 +1248,7 @@ impl BackendRenderer for OpenGLRenderer {
 
     fn draw_triangle_list(
         &mut self,
-        vertices: Vec<VertexData>,
+        vertices: &[VertexData],
         texture: Option<&Box<dyn BackendTexture>>,
         shader: BackendShader,
     ) -> GameResult<()> {
@@ -1257,7 +1260,7 @@ impl OpenGLRenderer {
     fn draw_arrays(
         &mut self,
         vert_type: GLenum,
-        vertices: Vec<VertexData>,
+        vertices: &[VertexData],
         texture: Option<&Box<dyn BackendTexture>>,
         shader: BackendShader,
     ) -> GameResult<()> {
@@ -1282,7 +1285,7 @@ impl OpenGLRenderer {
     unsafe fn draw_arrays_tex_id(
         &mut self,
         vert_type: GLenum,
-        vertices: Vec<VertexData>,
+        vertices: &[VertexData],
         mut texture: u32,
         shader: BackendShader,
     ) -> GameResult<()> {

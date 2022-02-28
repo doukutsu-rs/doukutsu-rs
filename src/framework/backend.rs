@@ -72,7 +72,7 @@ pub trait BackendRenderer {
 
     fn draw_triangle_list(
         &mut self,
-        vertices: Vec<VertexData>,
+        vertices: &[VertexData],
         texture: Option<&Box<dyn BackendTexture>>,
         shader: BackendShader,
     ) -> GameResult;
