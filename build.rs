@@ -20,7 +20,7 @@ fn main() {
     // }
 
     if target.contains("darwin") {
-        println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.12");
+        println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.15");
         println!("cargo:rustc-link-arg=-weak_framework");
         println!("cargo:rustc-link-arg=GameController");
         println!("cargo:rustc-link-arg=-weak_framework");

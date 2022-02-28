@@ -21,7 +21,7 @@ environment:
       target: x86_64-apple-darwin
       target_name: macos
       job_name: mac-x64
-      appveyor_build_worker_image: macOS
+      appveyor_build_worker_image: macos-monterey
     - channel: stable
       target: x86_64-unknown-linux-gnu
       target_name: linux
@@ -67,7 +67,7 @@ for:
   -
     matrix:
       only:
-        - appveyor_build_worker_image: macOS
+        - appveyor_build_worker_image: macos-monterey
         
     install:
       - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -yv --default-toolchain $channel --default-host $target
