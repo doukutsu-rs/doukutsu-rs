@@ -53,6 +53,7 @@ for:
 
     build_script:
       - set DRS_BUILD_VERSION_OVERRIDE=%APPVEYOR_BUILD_VERSION%
+      - set CARGO_INCREMENTAL=1
       - cargo build --release --bin doukutsu-rs
       - mkdir release
       - copy LICENSE release\LICENSE
@@ -88,7 +89,7 @@ for:
       - appveyor DownloadFile https://github.com/doukutsu-rs/game-data/archive/master.zip -FileName ../game-data.zip
       - 7z x ../game-data.zip
       - mv game-data-master data
-      - cargo bundle --release
+      - CARGO_INCREMENTAL=1 cargo bundle --release
       - mkdir release
       - cp LICENSE ./release/LICENSE
       - cp -a target/release/bundle/osx/doukutsu-rs.app ./release/doukutsu-rs.app
@@ -120,7 +121,7 @@ for:
       - appveyor DownloadFile https://github.com/doukutsu-rs/game-data/archive/master.zip -FileName ../game-data.zip
       - 7z x ../game-data.zip
       - mv game-data-master data
-      - cargo build --release --bin doukutsu-rs
+      - RUSTFLAGS="-C link-args=-fuse-ld=lld" CARGO_INCREMENTAL=1 cargo build --release --bin doukutsu-rs
       - mkdir release
       - cp LICENSE ./release/LICENSE
       - cp -a target/release/doukutsu-rs ./release/doukutsu-rs.x86_64.elf
