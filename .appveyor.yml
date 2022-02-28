@@ -118,13 +118,13 @@ for:
 
     build_script:
       - export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_BUILD_VERSION
-      - appveyor DownloadFile https://github.com/doukutsu-rs/game-data/archive/master.zip -FileName ../game-data.zip
-      - 7z x ../game-data.zip
-      - mv game-data-master data
-      - RUSTFLAGS="-C link-args=-fuse-ld=lld" CARGO_INCREMENTAL=1 cargo build --release --bin doukutsu-rs
+      - RUSTFLAGS="-C link-arg=-fuse-ld=lld -C link-arg=-s" CARGO_INCREMENTAL=1 cargo build --release --bin doukutsu-rs
       - mkdir release
       - cp LICENSE ./release/LICENSE
       - cp -a target/release/doukutsu-rs ./release/doukutsu-rs.x86_64.elf
       - cd release
+      - appveyor DownloadFile https://github.com/doukutsu-rs/game-data/archive/master.zip -FileName ../game-data.zip
+      - 7z x ../game-data.zip
+      - mv game-data-master data
       - 7z a ../doukutsu-rs_$target_name.zip *
       - appveyor PushArtifact ../doukutsu-rs_$target_name.zip
