@@ -20,7 +20,7 @@ use crate::components::nikumaru::NikumaruCounter;
 use crate::components::stage_select::StageSelect;
 use crate::components::text_boxes::TextBoxes;
 use crate::components::tilemap::{TileLayer, Tilemap};
-use crate::components::water_renderer::WaterRenderer;
+use crate::components::water_renderer::{WaterLayer, WaterRenderer};
 use crate::components::whimsical_star::WhimsicalStar;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
@@ -111,6 +111,7 @@ impl GameScene {
     pub fn from_stage(state: &mut SharedGameState, ctx: &mut Context, stage: Stage, id: usize) -> GameResult<Self> {
         let mut water_params = WaterParams::new();
         let mut water_renderer = WaterRenderer::new();
+        let mut tilemap = Tilemap::new();
 
         if !state.settings.original_textures {
             if let Ok(water_param_file) = filesystem::open_find(
@@ -122,7 +123,8 @@ impl GameScene {
                 info!("Loaded water parameters file.");
 
                 let regions = stage.map.find_water_regions(&water_params);
-                water_renderer.initialize(regions, &water_params);
+                water_renderer.initialize(regions, &water_params, &stage);
+                tilemap.no_water = true;
             }
         }
 
@@ -153,7 +155,7 @@ impl GameScene {
             nikumaru: NikumaruCounter::new(),
             whimsical_star: WhimsicalStar::new(),
             background: Background::new(),
-            tilemap: Tilemap::new(),
+            tilemap,
             text_boxes: TextBoxes::new(),
             fade: Fade::new(),
             frame: Frame::new(),
@@ -1816,9 +1818,10 @@ impl Scene for GameScene {
             self.whimsical_star.draw(state, ctx, &self.frame)?;
         }
 
-        self.water_renderer.draw(state, ctx, &self.frame)?;
+        self.water_renderer.draw(state, ctx, &self.frame, WaterLayer::Back)?;
         self.tilemap.draw(state, ctx, &self.frame, TileLayer::Foreground, stage_textures_ref, &self.stage)?;
         self.tilemap.draw(state, ctx, &self.frame, TileLayer::Snack, stage_textures_ref, &self.stage)?;
+        self.water_renderer.draw(state, ctx, &self.frame, WaterLayer::Front)?;
 
         self.draw_carets(state, ctx)?;
         self.player1.popup.draw(state, ctx, &self.frame)?;

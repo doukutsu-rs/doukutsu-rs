@@ -8,6 +8,7 @@ use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 pub struct Tilemap {
     tick: u32,
     prev_tick: u32,
+    pub no_water: bool,
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -20,7 +21,7 @@ pub enum TileLayer {
 
 impl Tilemap {
     pub fn new() -> Self {
-        Tilemap { tick: 0, prev_tick: 0 }
+        Tilemap { tick: 0, prev_tick: 0, no_water: false }
     }
 
     pub fn tick(&mut self) -> GameResult {
@@ -160,7 +161,7 @@ impl Tilemap {
 
         batch.draw(ctx)?;
 
-        if layer == TileLayer::Foreground && stage.data.background_type == BackgroundType::Water {
+        if !self.no_water && layer == TileLayer::Foreground && stage.data.background_type == BackgroundType::Water {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &textures.background)?;
             let rect_top = Rect { left: 0, top: 0, right: 32, bottom: 16 };
             let rect_middle = Rect { left: 0, top: 16, right: 32, bottom: 48 };
