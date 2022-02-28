@@ -1,10 +1,14 @@
 version: "0.99.0.{build}-{branch}"
 
+skip_commits:
+  files:
+    - README.md
+
 environment:
   global:
     PROJECT_NAME: doukutsu-rs
   matrix:
-    - channel: nightly
+    - channel: stable
       target: x86_64-pc-windows-msvc
       target_name: win64
       job_name: windows-x64
@@ -13,11 +17,16 @@ environment:
 #      target: i686-pc-windows-msvc
 #      target_name: win32
 #      job_name: windows-x32
-    - channel: nightly
+    - channel: stable
       target: x86_64-apple-darwin
       target_name: macos
       job_name: mac-x64
-      appveyor_build_worker_image: macos
+      appveyor_build_worker_image: macOS
+    - channel: stable
+      target: x86_64-unknown-linux-gnu
+      target_name: linux
+      job_name: linux-x64
+      appveyor_build_worker_image: Ubuntu
 
 matrix:
   fast_finish: true
@@ -46,7 +55,8 @@ for:
       - set DRS_BUILD_VERSION_OVERRIDE=%APPVEYOR_BUILD_VERSION%
       - cargo build --release --bin doukutsu-rs
       - mkdir release
-      - copy target\release\doukutsu-rs.exe release
+      - copy LICENSE release\LICENSE
+      - copy target\release\doukutsu-rs.exe release\doukutsu-rs.x86_64.exe
       - cd release
       - appveyor DownloadFile https://github.com/doukutsu-rs/game-data/archive/master.zip -FileName ../game-data.zip
       - 7z x ../game-data.zip
@@ -57,7 +67,7 @@ for:
   -
     matrix:
       only:
-        - appveyor_build_worker_image: macos
+        - appveyor_build_worker_image: macOS
         
     install:
       - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -yv --default-toolchain $channel --default-host $target
@@ -80,7 +90,40 @@ for:
       - mv game-data-master data
       - cargo bundle --release
       - mkdir release
+      - cp LICENSE ./release/LICENSE
       - cp -a target/release/bundle/osx/doukutsu-rs.app ./release/doukutsu-rs.app
+      - cd release
+      - 7z a ../doukutsu-rs_$target_name.zip *
+      - appveyor PushArtifact ../doukutsu-rs_$target_name.zip
+
+  -
+    matrix:
+      only:
+        - appveyor_build_worker_image: Ubuntu
+
+    install:
+      - sudo apt-get update && sudo apt-get -y install libasound2-dev libudev-dev libgl1-mesa-dev pkg-config
+      - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -yv --default-toolchain $channel --default-host $target
+      - export PATH=$PATH:$HOME/.cargo/bin
+      - rustup update
+      - rustup default $channel
+      - rustc -vV
+      - cargo -vV
+
+    cache:
+      - '$HOME/.cache/sccache -> Cargo.toml'
+      - '$HOME/.cargo -> Cargo.toml'
+      - 'target -> Cargo.toml'
+
+    build_script:
+      - export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_BUILD_VERSION
+      - appveyor DownloadFile https://github.com/doukutsu-rs/game-data/archive/master.zip -FileName ../game-data.zip
+      - 7z x ../game-data.zip
+      - mv game-data-master data
+      - cargo build --release --bin doukutsu-rs
+      - mkdir release
+      - cp LICENSE ./release/LICENSE
+      - cp -a target/release/doukutsu-rs ./release/doukutsu-rs.x86_64.elf
       - cd release
       - 7z a ../doukutsu-rs_$target_name.zip *
       - appveyor PushArtifact ../doukutsu-rs_$target_name.zip
