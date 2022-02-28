@@ -51,7 +51,18 @@ Tools required:
 13. Load `Doukutsu.exe` in Booster's Lab - you can ignore the fact it tries to apply any patches or renames .pbm to .bmp, d-rs doesn't care.
 14. Select `File` -> `Export mapdata` -> `stage.tbl`
 15. Close Booster's Lab, saving isn't necessary.
-16. That's all, you have everything to use it with doukutsu-rs now.
+16. Optionally delete leftover files and folders - `.boostlab`, `ScriptSource`, `tsc_def.txt`
+17. That's all, you have everything to use it with doukutsu-rs now.
+
+If you followed the above steps, the directory structure should look like this:
+
+`data/`:
+
+![files in /data/](https://media.discordapp.net/attachments/745322954660905103/947915770376102008/unknown.png?width=844&height=629)
+
+`data/Org`:
+![files in /data/Org/](https://media.discordapp.net/attachments/745322954660905103/947915770690687016/unknown.png)
+
 </details>
     
 - https://github.com/doukutsu-rs/game-data - Pre-extracted freeware game data, graphics converted to .png, already
