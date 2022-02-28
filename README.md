@@ -1,4 +1,4 @@
-# dokutsu-rs  
+# doukutsu-rs  
 A fully playable re-implementation of Cave Story's (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/).
 
 [Download latest Nightly builds](https://github.com/doukutsu-rs/doukutsu-rs/actions) (Requires being logged in to GitHub)
