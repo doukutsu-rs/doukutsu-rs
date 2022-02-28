@@ -98,12 +98,12 @@ impl DynamicWater {
 pub struct WaterRenderer {
     depth_regions: Vec<(Rect<u16>, WaterParamEntry)>,
     water_surfaces: Vec<DynamicWater>,
-    t: RefCell<f32>,
+    t: RefCell<u32>,
 }
 
 impl WaterRenderer {
     pub fn new() -> WaterRenderer {
-        WaterRenderer { depth_regions: Vec::new(), water_surfaces: Vec::new(), t: RefCell::new(0.0) }
+        WaterRenderer { depth_regions: Vec::new(), water_surfaces: Vec::new(), t: RefCell::new(0) }
     }
 
     pub fn initialize(&mut self, regions: Vec<(WaterRegionType, Rect<u16>, u8)>, water_params: &WaterParams) {
@@ -166,6 +166,9 @@ impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
             surf.tick();
         }
 
+        let mut t_ref = self.t.borrow_mut();
+        *t_ref = t_ref.wrapping_add(1);
+
         Ok(())
     }
 
@@ -180,9 +183,7 @@ impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
 
         let (o_x, o_y) = frame.xy_interpolated(state.frame_time);
         let uv = (0.5, 0.5);
-        let mut t_ref = self.t.borrow_mut();
-        let t = *t_ref;
-        *t_ref += state.frame_time as f32;
+        let t = *self.t.borrow_mut() as f32 + state.frame_time as f32;
         let shader = BackendShader::WaterFill(state.scale, t, (o_x, o_y));
 
         for (region, color) in &self.depth_regions {
