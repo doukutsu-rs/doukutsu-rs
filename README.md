@@ -1,51 +1,111 @@
-# doukutsu-rs
-
-![Release](https://github.com/doukutsu-rs/doukutsu-rs/workflows/Release/badge.svg)
+# dokutsu-rs  
+A fully playable re-implementation of Cave Story's (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/).
 
 [Download latest Nightly builds](https://github.com/doukutsu-rs/doukutsu-rs/actions) (Requires being logged in to GitHub)
 
-A fully playable re-implementation of Cave Story (Doukutsu Monogatari) engine written in [Rust](https://www.rust-lang.org/).
+[Join our Discord server!](https://discord.gg/fbRsNNB)
 
-[Join the Discord server](https://discord.gg/fbRsNNB)
+---
 
-#### Data files
+## Data files
 
-This repository does not contain any copyrighted files. 
+*This repository does not contain any copyrighted files. Doukutsu-rs should not be redistributed bundled with data files taken from any commercial port released by Nicalis Inc. without their explicit permission.*
 
-For better user experience, AppVeyor builds are distributed with slightly modified freeware game files.
+### Compatibility Graph
 
-*doukutsu-rs* should work fine with pre-extracted and tweaked data files from [this repository](https://github.com/doukutsu-rs/game-data), [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) extracted freeware data files and [Cave Story+](https://www.nicalis.com/games/cavestory+) data files.
+Port | Support | Versions | Notes
+:------------ | :-------------| :-------------| :-------------
+Freeware | Full |  All | Fully Playable
+CS+ Steam/Epic/Humble | Full | All | Missing Features
+CS+ Switch/ GOG | Full | All | Missing Features
+WiiWare | Semi | All | Missing Files
+WiiWare Demo | No | N/A | Imcompatible Files
+DsiWare | No | All | Incompatible Sprites
+3DS Eshop | No  | All | Incompatible Sprites
+CS3D | No  | All | Incompatible Files
 
-Vanilla Cave Story does not work yet because some important data files have been embedded inside the executable. and we don't have a loader/extractor implemented yet.
+### Where to get Data? / Where do i put Doukutsu-rs
+Every port of Cave Story has a **Data** folder which contains game assets and files required for Doukutsu-rs to run, place either besides eachother.
 
-##### Where to get them?
+**Freeware**  
+Vanilla Freeware embeds important files into the executable so until an extractor is implemented, any of the options below should give you a working Freeware Data.
 
-**Freeware**
-
+- https://ci.appveyor.com/project/alula/doukutsu-rs AppVeyor builds are distributed with slightly modified freeware game files.
 - https://github.com/doukutsu-rs/game-data - Freeware game data distributed with CI builds, based on those two below.
-- https://github.com/nxengine/nxengine-evo/releases/download/v2.6.4/NXEngine-v2.6.4-Win32.zip - copy `NXEngine-evo-2.6.4-xxx/data` from the archive to runtime directory
+- https://github.com/nxengine/nxengine-evo/releases/download/v2.6.4/NXEngine-v2.6.4-Win32.zip - copy `NXEngine-evo-2.6.4-xxx/data` from the archive to runtime directory.
 
-**Cave Story+ (not fully supported)**
+**CS+ PC**  
+No extra steps should be required.
 
-- Original version (first released in 2011 on Steam)
-  - PC release (Steam) - Copy `data` folder from installation directory ([guide for Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=760447682)) to the runtime directory.
-  - PC release (Epic Games Store) - Essentially the same thing as with Steam version.
-  - PC release (Humble Bundle) - Essentially the same thing as with Steam version.
-  - PC release (GOG) - Essentially the same thing as with Steam version.
-- Remastered version (first released in 2017 on Switch)
-  - Switch release - (tested only with eShop version) Extract `data` directory from romfs. Requires a hacked console and a recent and legal copy of the game. If you don't know how, look in Google how to exactly do that because the methods really differ.
+_Where can i find my CS+ Folder?_
+<details>
+  <summary>Steam</summary>
+Follow these instructions.
+  
+  ![image](https://user-images.githubusercontent.com/53099651/155904982-eb6032d8-7a4d-4af7-ae6f-b69041ecfaa4.png)
 
-#### Mandatory screenshots
+  
+</details>
 
-**Freeware data files:**
+<details>
+  <summary>Epic</summary>
+  Check your default installation directory.
 
-![Japanese Freeware](https://i.imgur.com/eZ0V5rK.png)
+![image](https://user-images.githubusercontent.com/53099651/155905035-0080eace-bd98-4cf5-9628-c98334ea768c.png)
 
-**Cave Story+ data files:**
 
-![CS+ with enhanced graphics](https://i.imgur.com/YaPAs70.png)
+</details>
 
-#### Credits
+<details>
+  <summary>GOG</summary>
+  Check your default installation directory.
+  
+  ![image](https://user-images.githubusercontent.com/53099651/155906494-1e53f174-f12f-41be-ab53-8745cdf735b5.png)
+
+</details>
+
+**CS+ Switch**
+Extract data folder from romfs, Requires a hacked console and a recent and legal copy of the game, search for a guide to walk you through this as instructions vary.
+
+## Mandatory screenshots
+
+
+<details>
+  <summary>Freeware Data:</summary>
+
+  ![Japanese Freeware](https://i.imgur.com/eZ0V5rK.png)
+  
+  ![Toroko_Fight Freeware](https://i.imgur.com/m2xMQ7f.png)
+  
+  ![No lighting Freeware](https://i.imgur.com/MnMDPgA.png)
+  
+</details>
+
+<details>
+  <summary>CS+ PC Data:</summary>
+
+  ![CS+ with enhanced graphics](https://i.imgur.com/YaPAs70.png)
+  
+  ![CS+ Showoff OuterWall](https://i.imgur.com/7XSW0tO.png)
+  
+  ![CS+ Challenge support](https://i.imgur.com/Vv8i2sv.png)
+  
+</details>
+
+<details>
+  <summary>CS+ Switch Data:</summary>
+  
+  ![Balcony Switch](https://i.imgur.com/xsl2a4C.png)
+  
+  ![Almond Switch](https://i.imgur.com/32ZB3Pt.png)
+  
+  ![Hell Switch](https://i.imgur.com/R6T4y6w.png)
+  
+  </details
+  
+---
+
+## Credits
 
 - Studio Pixel/Nicalis for Cave Story 
 - [@Daedily](https://twitter.com/Daedliy) - brand artwork (Icon / Banner / Server)
