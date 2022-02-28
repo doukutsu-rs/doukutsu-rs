@@ -232,7 +232,6 @@ pub struct TextScriptConsts {
     pub text_shadow: bool,
     pub text_speed_normal: u8,
     pub text_speed_fast: u8,
-    pub fade_ticks: i8,
 }
 
 #[derive(Debug)]
@@ -1501,7 +1500,6 @@ impl EngineConstants {
                 text_shadow: false,
                 text_speed_normal: 4,
                 text_speed_fast: 1,
-                fade_ticks: 15,
             },
             title: TitleConsts {
                 intro_text: "Studio Pixel presents".to_owned(),
@@ -1684,7 +1682,6 @@ impl EngineConstants {
         self.textscript.text_shadow = true;
         self.textscript.text_speed_normal = 1;
         self.textscript.text_speed_fast = 0;
-        self.textscript.fade_ticks = 21;
         self.soundtracks.insert("Famitracks".to_owned(), "/base/ogg17/".to_owned());
         self.soundtracks.insert("Ridiculon".to_owned(), "/base/ogg_ridic/".to_owned());
         self.game.tile_offset_x = 3;

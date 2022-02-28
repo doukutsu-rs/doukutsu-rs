@@ -145,7 +145,7 @@ impl GameEntity<(&[&Player], &NPCList)> for WaterRenderer {
                         .clamp(0, surf.columns.len() as i32) as usize;
 
                     for col in &mut surf.columns[col_idx_left..=col_idx_right] {
-                        col.speed = (obj.vel_y() as f32 / 512.0) * (obj.hit_rect_size() as f32 * 0.25).clamp(0.1, 1.0);
+                        col.speed = (obj.vel_y() as f32 / 1024.0) * (obj.hit_rect_size() as f32 * 0.25).clamp(0.1, 1.0);
                     }
                 }
             };

@@ -1223,7 +1223,8 @@ impl TextScriptVM {
                 let fade_type = read_cur_varint(&mut cursor)? as usize;
 
                 if let Some(direction) = FadeDirection::from_int(fade_type) {
-                    state.fade_state = FadeState::FadeOut(-15, direction.opposite());
+                    let fade_ticks = (state.canvas_size.0 / 20.0) as i8;
+                    state.fade_state = FadeState::FadeOut(-fade_ticks, direction.opposite());
                 }
 
                 exec_state = TextScriptExecutionState::WaitFade(event, cursor.position() as u32);
