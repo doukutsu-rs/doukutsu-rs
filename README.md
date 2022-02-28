@@ -17,14 +17,14 @@ Port | Support | Versions | Notes
 :------------ | :-------------| :-------------| :-------------
 Freeware | Full |  All | Fully Playable
 CS+ Steam/Epic/Humble | Full | All | Missing Features
-CS+ Switch/ GOG | Full | All | Missing Features
+CS+ Switch/GOG | Full | All | Missing Features
 WiiWare | Semi | All | Missing Files
 WiiWare Demo | No | N/A | Imcompatible Files
 DsiWare | No | All | Incompatible Sprites
 3DS Eshop | No  | All | Incompatible Sprites
 CS3D | No  | All | Incompatible Files
 
-### Where to get Data? / Where do i put Doukutsu-rs
+### Where to get Data? / Where do i put Doukutsu-rs?
 Every port of Cave Story has a **Data** folder which contains game assets and files required for Doukutsu-rs to run, place either besides eachother.
 
 **Freeware**  
@@ -64,7 +64,7 @@ Follow these instructions.
 
 </details>
 
-**CS+ Switch**
+**CS+ Switch**  
 Extract data folder from romfs, Requires a hacked console and a recent and legal copy of the game, search for a guide to walk you through this as instructions vary.
 
 ## Mandatory screenshots
