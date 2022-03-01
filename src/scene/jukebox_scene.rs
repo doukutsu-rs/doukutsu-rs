@@ -156,8 +156,8 @@ impl Scene for JukeboxScene {
 
         let block_size = 32.0;
         let buffer = 4.0;
-        let init_x = (state.canvas_size.0 / 2.0) - (block_size * 4.0) - 10.0;
-        let init_y = (state.canvas_size.1 / 2.0) - (block_size * 2.0);
+        let init_x = (state.canvas_size.0 / 2.0).floor() - (block_size * 4.0) - 10.0;
+        let init_y = (state.canvas_size.1 / 2.0).floor() - (block_size * 2.0);
 
         let num_songs = self.song_list.len();
         let mut rect = Rect { left: 0_u16, top: 0, right: 0, bottom: 0 };
