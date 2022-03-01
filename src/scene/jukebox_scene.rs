@@ -18,6 +18,7 @@ pub struct JukeboxScene {
     selected_song: u16,
     song_list: Vec<String>,
     soundtracks: Vec<String>,
+    selected_soundtrack: usize,
     controller: CombinedMenuController,
     background: Background,
     frame: Frame,
@@ -50,6 +51,7 @@ impl JukeboxScene {
             selected_song: 0,
             song_list: Vec::new(),
             soundtracks: Vec::new(),
+            selected_soundtrack: 0,
             controller: CombinedMenuController::new(),
             background: Background::new(),
             frame: Frame::new(),
@@ -82,7 +84,10 @@ impl Scene for JukeboxScene {
         }
 
         self.soundtracks = soundtrack_entries.clone();
-        state.settings.soundtrack = "Organya".to_owned();
+
+        let selected_soundtrack_index =
+            self.soundtracks.iter().position(|s| s == &state.settings.soundtrack).unwrap_or(0);
+        self.selected_soundtrack = selected_soundtrack_index;
 
         Ok(())
     }
@@ -126,14 +131,14 @@ impl Scene for JukeboxScene {
         }
 
         if self.controller.trigger_shift_left() {
-            self.soundtracks.rotate_left(1);
-            state.settings.soundtrack = self.soundtracks.last().unwrap().to_string();
+            self.selected_soundtrack = self.selected_soundtrack.checked_sub(1).unwrap_or(self.soundtracks.len() - 1);
+            state.settings.soundtrack = self.soundtracks[self.selected_soundtrack].to_string();
             state.sound_manager.reload_songs(&state.constants, &state.settings, ctx)?;
         }
 
         if self.controller.trigger_shift_right() {
-            self.soundtracks.rotate_right(1);
-            state.settings.soundtrack = self.soundtracks.last().unwrap().to_string();
+            self.selected_soundtrack = (self.selected_soundtrack + 1) % self.soundtracks.len();
+            state.settings.soundtrack = self.soundtracks[self.selected_soundtrack].to_string();
             state.sound_manager.reload_songs(&state.constants, &state.settings, ctx)?;
         }
 
@@ -266,6 +271,21 @@ impl Scene for JukeboxScene {
         state.font.draw_text(
             text.chars(),
             ((state.canvas_size.0 - width) / 2.0).floor(),
+            20.0,
+            &state.constants,
+            &mut state.texture_set,
+            ctx,
+        )?;
+
+        // Write chevrons
+
+        let left_chevron = "<";
+        let right_chevron = ">";
+
+        state.font.draw_text(left_chevron.chars(), init_x, 20.0, &state.constants, &mut state.texture_set, ctx)?;
+        state.font.draw_text(
+            right_chevron.chars(),
+            state.canvas_size.0 - init_x - state.font.text_width(right_chevron.chars(), &state.constants),
             20.0,
             &state.constants,
             &mut state.texture_set,
