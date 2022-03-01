@@ -11,8 +11,8 @@ use std::rc::Rc;
 use num_traits::{clamp, FromPrimitive};
 
 use crate::bitfield;
-use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::common::Direction::{Left, Right};
+use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::frame::UpdateTarget;
@@ -1223,8 +1223,7 @@ impl TextScriptVM {
                 let fade_type = read_cur_varint(&mut cursor)? as usize;
 
                 if let Some(direction) = FadeDirection::from_int(fade_type) {
-                    let fade_ticks = (state.canvas_size.0 / 20.0) as i8;
-                    state.fade_state = FadeState::FadeOut(-fade_ticks, direction.opposite());
+                    state.fade_state = FadeState::FadeOut(-15, direction.opposite());
                 }
 
                 exec_state = TextScriptExecutionState::WaitFade(event, cursor.position() as u32);
