@@ -608,7 +608,7 @@ impl SharedGameState {
     }
 
     pub fn get_skinsheet_offset(&self) -> u16 {
-        if !self.constants.is_cs_plus || self.settings.original_textures {
+        if !self.constants.is_cs_plus {
             return 0;
         }
 

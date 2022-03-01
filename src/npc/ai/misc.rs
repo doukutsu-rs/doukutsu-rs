@@ -2573,7 +2573,14 @@ impl NPC {
             }
         }
 
+        let quote_offset = if self.spritesheet_id == 16 {
+            state.get_skinsheet_offset() * state.tile_size.as_int() as u16 * 2
+        } else {
+            0
+        };
         self.anim_rect = state.constants.npc.n355_quote_and_curly_on_balrog[self.anim_num as usize];
+        self.anim_rect.top += quote_offset;
+        self.anim_rect.bottom += quote_offset;
 
         Ok(())
     }

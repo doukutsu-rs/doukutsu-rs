@@ -436,7 +436,7 @@ impl Menu {
                     )?;
 
                     // Difficulty
-                    if state.constants.is_cs_plus && !state.settings.original_textures {
+                    if state.constants.is_cs_plus {
                         let difficulty = GameDifficulty::from_primitive(save.difficulty);
 
                         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
