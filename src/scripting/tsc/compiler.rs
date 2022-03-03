@@ -116,7 +116,6 @@ impl TextScript {
                     iter.next();
                 }
                 _ => {
-                    allow_next_event = false;
                     char_buf.push(chr);
 
                     iter.next();
