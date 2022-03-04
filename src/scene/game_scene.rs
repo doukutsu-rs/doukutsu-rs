@@ -17,6 +17,7 @@ use crate::components::hud::HUD;
 use crate::components::inventory::InventoryUI;
 use crate::components::map_system::MapSystem;
 use crate::components::nikumaru::NikumaruCounter;
+use crate::components::replay::Replay;
 use crate::components::stage_select::StageSelect;
 use crate::components::text_boxes::TextBoxes;
 use crate::components::tilemap::{TileLayer, Tilemap};
@@ -44,7 +45,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
-use crate::shared_game_state::{SharedGameState, TileSize};
+use crate::shared_game_state::{ReplayState, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
 use crate::weapon::bullet::BulletManager;
@@ -83,6 +84,7 @@ pub struct GameScene {
     pub intro_mode: bool,
     pub pause_menu: PauseMenu,
     pub stage_textures: Rc<RefCell<StageTexturePaths>>,
+    pub replay: Replay,
     map_name_counter: u16,
     skip_counter: u16,
     inventory_dim: f32,
@@ -170,6 +172,7 @@ impl GameScene {
             map_name_counter: 0,
             skip_counter: 0,
             inventory_dim: 0.0,
+            replay: Replay::new(),
         })
     }
 
@@ -1621,10 +1624,22 @@ impl Scene for GameScene {
         self.pause_menu.init(state, ctx)?;
         self.whimsical_star.init(&self.player1);
 
+        if state.mod_path.is_some() && state.replay_state == ReplayState::Recording {
+            self.replay.start_recording(state);
+        }
+
+        if state.mod_path.is_some() && state.replay_state == ReplayState::Playback {
+            self.replay.start_playback(state, ctx)?;
+        }
+
         Ok(())
     }
 
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        if !self.pause_menu.is_paused() && state.replay_state == ReplayState::Playback {
+            self.replay.tick(state, (ctx, &mut self.player1))?;
+        }
+
         self.player1.controller.update(state, ctx)?;
         self.player1.controller.update_trigger();
         self.player2.controller.update(state, ctx)?;
@@ -1656,6 +1671,10 @@ impl Scene for GameScene {
         if self.pause_menu.is_paused() {
             self.pause_menu.tick(state, ctx)?;
             return Ok(());
+        }
+
+        if state.replay_state == ReplayState::Recording {
+            self.replay.tick(state, (ctx, &mut self.player1))?;
         }
 
         match state.textscript_vm.state {
@@ -1982,6 +2001,8 @@ impl Scene for GameScene {
         if state.settings.debug_outlines {
             self.draw_debug_outlines(state, ctx)?;
         }
+
+        self.replay.draw(state, ctx, &self.frame)?;
 
         self.pause_menu.draw(state, ctx)?;
 

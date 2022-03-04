@@ -13,7 +13,7 @@ use crate::menu::settings_menu::SettingsMenu;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::jukebox_scene::JukeboxScene;
 use crate::scene::Scene;
-use crate::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameState, TileSize};
+use crate::shared_game_state::{GameDifficulty, MenuCharacter, ReplayState, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -168,6 +168,7 @@ impl Scene for TitleScene {
 
         self.confirm_menu.push_entry(MenuEntry::Disabled("".to_owned()));
         self.confirm_menu.push_entry(MenuEntry::Active("Start".to_owned()));
+        self.confirm_menu.push_entry(MenuEntry::Disabled("No Replay".to_owned()));
         self.confirm_menu.push_entry(MenuEntry::Active("< Back".to_owned()));
         self.confirm_menu.selected = 1;
 
@@ -176,6 +177,8 @@ impl Scene for TitleScene {
 
         self.nikumaru_rec.load_counter(state, ctx)?;
         self.update_menu_cursor(state, ctx)?;
+
+        state.replay_state = ReplayState::None;
 
         Ok(())
     }
@@ -272,6 +275,11 @@ impl Scene for TitleScene {
                                 self.confirm_menu.width =
                                     (state.font.text_width(mod_name.chars(), &state.constants).max(50.0) + 32.0) as u16;
                                 self.confirm_menu.entries[0] = MenuEntry::Disabled(mod_name);
+                                self.confirm_menu.entries[2] = if state.has_replay_data(ctx) {
+                                    MenuEntry::Active("Replay Best".to_owned())
+                                } else {
+                                    MenuEntry::Disabled("No Replay".to_owned())
+                                };
                                 self.nikumaru_rec.load_counter(state, ctx)?;
                                 self.current_menu = CurrentMenu::ChallengeConfirmMenu;
                             }
@@ -288,10 +296,17 @@ impl Scene for TitleScene {
             CurrentMenu::ChallengeConfirmMenu => match self.confirm_menu.tick(&mut self.controller, state) {
                 MenuSelectionResult::Selected(1, _) => {
                     state.difficulty = GameDifficulty::Normal;
+                    state.replay_state = ReplayState::Recording;
                     state.reload_resources(ctx)?;
                     state.start_new_game(ctx)?;
                 }
-                MenuSelectionResult::Selected(2, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(2, _) => {
+                    state.difficulty = GameDifficulty::Normal;
+                    state.replay_state = ReplayState::Playback;
+                    state.reload_resources(ctx)?;
+                    state.start_new_game(ctx)?;
+                }
+                MenuSelectionResult::Selected(3, _) | MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::ChallengesMenu;
                 }
                 _ => (),

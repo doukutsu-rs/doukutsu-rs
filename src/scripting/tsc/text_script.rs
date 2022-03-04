@@ -26,6 +26,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::scripting::tsc::bytecode_utils::read_cur_varint;
 use crate::scripting::tsc::encryption::decrypt_tsc;
 use crate::scripting::tsc::opcodes::TSCOpCode;
+use crate::shared_game_state::ReplayState;
 use crate::shared_game_state::SharedGameState;
 use crate::weapon::WeaponType;
 
@@ -1121,6 +1122,7 @@ impl TextScriptVM {
                 new_scene.player2.flags.set_hit_bottom_wall(false);
                 new_scene.frame.wait = game_scene.frame.wait;
                 new_scene.nikumaru = game_scene.nikumaru;
+                new_scene.replay = game_scene.replay.clone();
 
                 let skip = state.textscript_vm.flags.cutscene_skip();
                 state.control_flags.set_tick_world(true);
@@ -1688,7 +1690,11 @@ impl TextScriptVM {
                 );
             }
             TSCOpCode::STC => {
-                game_scene.nikumaru.save_counter(state, ctx)?;
+                let new_record = game_scene.nikumaru.save_counter(state, ctx)?;
+
+                if new_record && state.replay_state == ReplayState::Recording {
+                    game_scene.replay.stop_recording(state, ctx)?;
+                }
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }

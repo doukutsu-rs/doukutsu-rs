@@ -7,8 +7,8 @@ use crate::framework::error::GameResult;
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::Inventory;
 use crate::player::Player;
-use crate::shared_game_state::SharedGameState;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState};
+use crate::shared_game_state::SharedGameState;
 use crate::weapon::{WeaponLevel, WeaponType};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -62,13 +62,12 @@ impl InventoryUI {
         inventory.get_item_idx(self.selected_item as usize).map(|i| i.0 + 6000).unwrap_or(6000)
     }
 
-    fn exit(&mut self, state: &mut SharedGameState, player: &mut Player, inventory: &mut Inventory) {
+    fn exit(&mut self, state: &mut SharedGameState, _player: &mut Player, inventory: &mut Inventory) {
         self.focus = InventoryFocus::None;
         inventory.current_item = 0;
         self.text_y_pos = 16;
         state.textscript_vm.reset();
         state.textscript_vm.set_mode(ScriptMode::Map);
-        player.controller.update_trigger();
     }
 }
 

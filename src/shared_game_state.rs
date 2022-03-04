@@ -135,6 +135,13 @@ pub enum MenuCharacter {
 }
 
 #[derive(PartialEq, Eq, Copy, Clone)]
+pub enum ReplayState {
+    None,
+    Recording,
+    Playback,
+}
+
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum TileSize {
     Tile8x8,
     Tile16x16,
@@ -201,6 +208,7 @@ pub struct SharedGameState {
     pub settings: Settings,
     pub save_slot: usize,
     pub difficulty: GameDifficulty,
+    pub replay_state: ReplayState,
     pub shutdown: bool,
 }
 
@@ -298,6 +306,7 @@ impl SharedGameState {
             settings,
             save_slot: 1,
             difficulty: GameDifficulty::Normal,
+            replay_state: ReplayState::None,
             shutdown: false,
         })
     }
@@ -591,13 +600,17 @@ impl SharedGameState {
         }
     }
 
-    pub fn get_290_filename(&self) -> String {
+    pub fn get_rec_filename(&self) -> String {
         if let Some(mod_path) = &self.mod_path {
             let name = self.mod_list.get_name_from_path(mod_path.to_string());
-            return format!("/{}.rec", name);
+            return format!("/{}", name);
         } else {
-            return "/290.rec".to_string();
+            return "/290".to_string();
         }
+    }
+
+    pub fn has_replay_data(&self, ctx: &mut Context) -> bool {
+        filesystem::user_exists(ctx, [self.get_rec_filename(), ".rep".to_string()].join(""))
     }
 
     pub fn get_damage(&self, hp: i32) -> i32 {

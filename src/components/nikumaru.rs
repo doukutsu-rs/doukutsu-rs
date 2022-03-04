@@ -25,7 +25,7 @@ impl NikumaruCounter {
     }
 
     fn load_time(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<u32> {
-        if let Ok(mut data) = filesystem::user_open(ctx, state.get_290_filename()) {
+        if let Ok(mut data) = filesystem::user_open(ctx, [state.get_rec_filename(), ".rec".to_string()].join("")) {
             let mut ticks: [u32; 4] = [0; 4];
 
             for iter in 0..=3 {
@@ -54,9 +54,11 @@ impl NikumaruCounter {
     }
 
     fn save_time(&mut self, new_time: u32, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if let Ok(mut data) =
-            filesystem::open_options(ctx, state.get_290_filename(), OpenOptions::new().write(true).create(true))
-        {
+        if let Ok(mut data) = filesystem::open_options(
+            ctx,
+            [state.get_rec_filename(), ".rec".to_string()].join(""),
+            OpenOptions::new().write(true).create(true),
+        ) {
             let mut ticks: [u32; 4] = [new_time; 4];
             let mut random_list: [u8; 4] = [0; 4];
 
@@ -90,12 +92,13 @@ impl NikumaruCounter {
         Ok(())
     }
 
-    pub fn save_counter(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+    pub fn save_counter(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<bool> {
         let old_record = self.load_time(state, ctx)? as usize;
         if self.tick < old_record || old_record == 0 {
             self.save_time(self.tick as u32, state, ctx)?;
+            return Ok(true);
         }
-        Ok(())
+        Ok(false)
     }
 }
 
