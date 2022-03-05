@@ -81,8 +81,6 @@ doukutsu-rs can be used as drop-in replacement for `CaveStory+.exe`. No modifica
 
 The `data` folder is in the same place across all platforms.
 
-![image](https://user-images.githubusercontent.com/53099651/155904982-eb6032d8-7a4d-4af7-ae6f-b69041ecfaa4.png)
-
 If you want to use doukutsu-rs as a substitute for Mac version of Cave Story+ (which at moment of writing doesn't work
 on 10.15+ anymore), do the following:
 
@@ -96,6 +94,7 @@ on 10.15+ anymore), do the following:
 6. Copy the doukutsu-rs executable and rename it to `Cave Story+`.
 7. Launch the game from Steam and enjoy!
 
+![image](https://user-images.githubusercontent.com/53099651/155904982-eb6032d8-7a4d-4af7-ae6f-b69041ecfaa4.png)
 </details>
 
 <details>
@@ -117,14 +116,16 @@ Check your default installation directory.
 <details>
 <summary>Humble Bundle</summary>
 
-We haven't tested it so no screenshots, but it very likely works. Feel free to PR screenshots to this guide.
+The archive from Humble Bundle contains the necessary `data` folder, in the same folder as `CaveStory+.exe`.
+
+![image](https://user-images.githubusercontent.com/96957561/156861929-7fa03951-442b-4277-b673-474189411103.png)
 </details>
 
 **Remastered version (first released in 2017 on Switch)**
 
 Note that this version is **incompatible** with saves from the original version.
 
-Intercharging the save files may result in spawning in wrong locations, softlocks, etc.
+Interchanging the save files may result in spawning in wrong locations, softlocks, graphical glitches, or other issues.
 
 <details>
 <summary>Nintendo Switch</summary>
