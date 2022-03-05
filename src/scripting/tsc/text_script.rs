@@ -1596,6 +1596,7 @@ impl TextScriptVM {
                 state.control_flags.set_tick_world(false);
                 state.control_flags.set_control_enabled(false);
                 state.control_flags.set_interactions_disabled(true);
+                state.textscript_vm.flags.set_cutscene_skip(false);
 
                 exec_state = TextScriptExecutionState::Ended;
             }

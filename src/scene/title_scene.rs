@@ -179,6 +179,7 @@ impl Scene for TitleScene {
         self.update_menu_cursor(state, ctx)?;
 
         state.replay_state = ReplayState::None;
+        state.textscript_vm.flags.set_cutscene_skip(false);
 
         Ok(())
     }
