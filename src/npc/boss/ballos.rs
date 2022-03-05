@@ -1951,7 +1951,7 @@ impl BossNPC {
                 npc.cond.set_alive(true);
                 npc.x = self.parts[0].x + self.parts[0].rng.range(-40..40) * 0x200;
                 npc.y = self.parts[0].y + self.parts[0].rng.range(0..40) * 0x200;
-                npc.direction = Direction::Up;
+                npc.direction = Direction::Bottom;
                 let _ = npc_list.spawn(0x100, npc);
             }
         }

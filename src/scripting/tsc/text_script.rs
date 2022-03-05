@@ -1597,7 +1597,7 @@ impl TextScriptVM {
                 state.control_flags.set_control_enabled(false);
                 state.control_flags.set_interactions_disabled(true);
 
-                exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
+                exec_state = TextScriptExecutionState::Ended;
             }
             TSCOpCode::SVP => {
                 exec_state = TextScriptExecutionState::SaveProfile(event, cursor.position() as u32);

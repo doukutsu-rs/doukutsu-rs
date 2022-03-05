@@ -26,20 +26,12 @@ impl NPC {
                     _ => 0,
                 };
 
-                self.anim_counter += 1;
-                if self.anim_counter > 8 {
-                    self.anim_counter = 0;
-                    self.anim_num = (self.anim_num + 1) % 3;
-                    self.anim_rect = state.constants.npc.n002_behemoth
-                        [self.anim_num as usize + if self.direction == Direction::Right { 7 } else { 0 }];
-                }
+                self.animate(8, 0, 3);
 
                 if self.shock > 0 {
                     self.action_counter = 0;
                     self.action_num = 1;
                     self.anim_num = 4;
-                    self.anim_rect = state.constants.npc.n002_behemoth
-                        [self.anim_num as usize + if self.direction == Direction::Right { 7 } else { 0 }];
                 }
             }
             1 => {
@@ -53,8 +45,6 @@ impl NPC {
                         self.anim_num = 6;
                         self.anim_counter = 0;
                         self.damage = 5;
-                        self.anim_rect = state.constants.npc.n002_behemoth
-                            [self.anim_num as usize + if self.direction == Direction::Right { 7 } else { 0 }];
                     } else {
                         self.action_num = 0;
                         self.anim_counter = 0;
@@ -83,9 +73,6 @@ impl NPC {
                         state.sound_manager.play_sfx(26);
                         state.quake_counter = 8;
                     }
-
-                    self.anim_rect = state.constants.npc.n002_behemoth
-                        [self.anim_num as usize + if self.direction == Direction::Right { 7 } else { 0 }];
                 }
             }
             _ => (),
@@ -98,6 +85,9 @@ impl NPC {
 
         self.x += self.vel_x;
         self.y += self.vel_y;
+
+        self.anim_rect = state.constants.npc.n002_behemoth
+            [self.anim_num as usize + if self.direction == Direction::Right { 7 } else { 0 }];
 
         Ok(())
     }
