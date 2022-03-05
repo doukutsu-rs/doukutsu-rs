@@ -395,7 +395,7 @@ impl BossNPC {
                 self.parts[2].action_counter3 = 128;
 
                 self.parts[6] = self.parts[1].clone();
-                self.parts[6].action_counter3 = 1;
+                self.parts[6].action_counter2 = 1;
 
                 self.parts[7] = self.parts[1].clone();
                 self.parts[7].action_counter2 = 1;
