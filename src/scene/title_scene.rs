@@ -125,8 +125,8 @@ impl TitleScene {
     }
 }
 
-// asset copyright for freeware version
-static COPYRIGHT_PIXEL: &str = "2004.12  Studio Pixel";
+static COPYRIGHT_PIXEL: &str = "2004.12  Studio Pixel"; // Freeware
+static COPYRIGHT_NICALIS: &str = "@2022 NICALIS INC."; // Nicalis font uses @ for copyright
 
 impl Scene for TitleScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -337,7 +337,12 @@ impl Scene for TitleScene {
         }
 
         self.draw_text_centered(&VERSION_BANNER, state.canvas_size.1 - 15.0, state, ctx)?;
-        self.draw_text_centered(COPYRIGHT_PIXEL, state.canvas_size.1 - 30.0, state, ctx)?;
+
+        if state.constants.is_cs_plus {
+            self.draw_text_centered(COPYRIGHT_NICALIS, state.canvas_size.1 - 30.0, state, ctx)?;
+        } else {
+            self.draw_text_centered(COPYRIGHT_PIXEL, state.canvas_size.1 - 30.0, state, ctx)?;
+        }
 
         self.nikumaru_rec.draw(state, ctx, &self.frame)?;
 
