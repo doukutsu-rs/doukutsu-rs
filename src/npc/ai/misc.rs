@@ -24,8 +24,8 @@ impl NPC {
 
         self.anim_rect.left = 0;
         self.anim_rect.top = 0;
-        self.anim_rect.right = 16;
-        self.anim_rect.bottom = 16;
+        self.anim_rect.right = 0;
+        self.anim_rect.bottom = 0;
 
         Ok(())
     }
