@@ -1985,7 +1985,7 @@ impl Scene for GameScene {
             draw_rect(ctx, rect, Color::from_rgb(128, 128, 160))?;
 
             rect.left = ((state.canvas_size.0 - w) * state.scale) as isize;
-            rect.right = rect.left + (w * state.scale) as isize;
+            rect.right = rect.left + (w * state.scale).ceil() as isize;
             draw_rect(ctx, rect, Color::from_rgb(128, 128, 160))?;
 
             state.font.draw_text_with_shadow(
