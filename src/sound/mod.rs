@@ -156,12 +156,14 @@ impl SoundManager {
         let _ = self.tx.send(PlaybackMessage::SetSampleVolume(volume.powf(3.0)));
     }
 
-    pub fn reload_songs(
-        &mut self,
-        constants: &EngineConstants,
-        settings: &Settings,
-        ctx: &mut Context,
-    ) -> GameResult {
+    pub fn set_sfx_samples(&self, id: u8, data: Vec<i16>) {
+        if self.no_audio {
+            return;
+        }
+        let _ = self.tx.send(PlaybackMessage::SetSampleData(id, data));
+    }
+
+    pub fn reload_songs(&mut self, constants: &EngineConstants, settings: &Settings, ctx: &mut Context) -> GameResult {
         let prev_song = self.prev_song_id;
         let current_song = self.current_song_id;
 
@@ -420,6 +422,40 @@ impl SoundManager {
 
         Ok(())
     }
+
+    pub fn load_custom_sound_effects(&self, ctx: &mut Context, roots: &Vec<String>) -> GameResult {
+        for path in roots.iter().rev() {
+            let wavs = filesystem::read_dir(ctx, [path, "sfx/"].join(""))?
+                .filter(|f| f.to_string_lossy().to_lowercase().ends_with(".wav"));
+
+            for filename in wavs {
+                if let Ok(mut file) = filesystem::open(ctx, &filename) {
+                    let wav = wav::WavSample::read_from(&mut file)?;
+                    let id = filename
+                        .file_stem()
+                        .unwrap_or_default()
+                        .to_str()
+                        .unwrap_or_default()
+                        .parse::<u8>()
+                        .unwrap_or(0);
+                    if id == 0 {
+                        continue;
+                    }
+                    let step = (wav.format.channels * 2) as usize;
+                    let data = wav
+                        .data
+                        .chunks_exact(2)
+                        .into_iter()
+                        .step_by(step)
+                        .map(|a| i16::from_ne_bytes([a[0], a[1]]))
+                        .collect();
+
+                    self.set_sfx_samples(id, data);
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 pub(in crate::sound) enum PlaybackMessage {
@@ -440,6 +476,7 @@ pub(in crate::sound) enum PlaybackMessage {
     RestoreState,
     SetSampleParams(u8, PixToneParameters),
     SetOrgInterpolation(InterpolationMode),
+    SetSampleData(u8, Vec<i16>),
 }
 
 #[derive(PartialEq, Eq)]
@@ -643,6 +680,9 @@ where
                     }
                     Ok(PlaybackMessage::SetOrgInterpolation(interpolation)) => {
                         org_engine.interpolation = interpolation;
+                    }
+                    Ok(PlaybackMessage::SetSampleData(id, data)) => {
+                        pixtone.set_sample_data(id, data);
                     }
                     Err(_) => {
                         break;

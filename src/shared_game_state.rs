@@ -366,6 +366,8 @@ impl SharedGameState {
 
         self.texture_set.unload_all();
 
+        self.sound_manager.load_custom_sound_effects(ctx, &self.constants.base_paths)?;
+
         Ok(())
     }
 
