@@ -73,7 +73,6 @@ pub struct Menu {
     pub height: u16,
     pub selected: usize,
     pub entries: Vec<MenuEntry>,
-    entry_y: u16,
     anim_num: u16,
     anim_wait: u16,
     custom_cursor: Cell<bool>,
@@ -87,7 +86,6 @@ impl Menu {
             width,
             height,
             selected: 0,
-            entry_y: 0,
             anim_num: 0,
             anim_wait: 0,
             entries: Vec::new(),
@@ -204,6 +202,12 @@ impl Menu {
 
         batch.draw(ctx)?;
 
+        let mut entry_y = 0;
+
+        if !self.entries.is_empty() {
+            entry_y = self.entries[0..(self.selected)].iter().map(|e| e.height()).sum::<f64>().max(0.0) as u16;
+        }
+
         if self.custom_cursor.get() {
             if let Ok(batch) = state.texture_set.get_or_load_batch(ctx, &state.constants, "MenuCursor") {
                 rect.left = self.anim_num * 16;
@@ -211,7 +215,7 @@ impl Menu {
                 rect.right = rect.left + 16;
                 rect.bottom = rect.top + 16;
 
-                batch.add_rect(self.x as f32, self.y as f32 + 3.0 + self.entry_y as f32, &rect);
+                batch.add_rect(self.x as f32, self.y as f32 + 3.0 + entry_y as f32, &rect);
 
                 batch.draw(ctx)?;
             } else {
@@ -250,7 +254,7 @@ impl Menu {
 
             batch.add_rect(
                 self.x as f32,
-                self.y as f32 + 4.0 + self.entry_y as f32,
+                self.y as f32 + 4.0 + entry_y as f32,
                 &character_rect[self.anim_num as usize],
             );
 
@@ -526,10 +530,6 @@ impl Menu {
                     break;
                 }
             }
-        }
-
-        if !self.entries.is_empty() {
-            self.entry_y = self.entries[0..(self.selected)].iter().map(|e| e.height()).sum::<f64>().max(0.0) as u16;
         }
 
         let mut y = self.y as f32 + 8.0;
