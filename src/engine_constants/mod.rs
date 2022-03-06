@@ -203,6 +203,13 @@ pub struct AnimatedFace {
     pub anim_frames: Vec<(u16, u16)>,
 }
 
+#[derive(Debug, Clone)]
+pub struct ExtraSoundtrack {
+    pub name: String,
+    pub path: String,
+    pub available: bool,
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct TextScriptConsts {
     pub encoding: TextScriptEncoding,
@@ -298,7 +305,7 @@ pub struct EngineConstants {
     pub font_path: String,
     pub font_scale: f32,
     pub font_space_offset: f32,
-    pub soundtracks: HashMap<String, String>,
+    pub soundtracks: Vec<ExtraSoundtrack>,
     pub music_table: Vec<String>,
     pub organya_paths: Vec<String>,
     pub credit_illustration_paths: Vec<String>,
@@ -1552,7 +1559,12 @@ impl EngineConstants {
             font_path: "csfont.fnt".to_owned(),
             font_scale: 1.0,
             font_space_offset: 0.0,
-            soundtracks: HashMap::new(),
+            soundtracks: vec![
+                ExtraSoundtrack { name: "Remastered".to_owned(), path: "/base/Ogg11/".to_owned(), available: false },
+                ExtraSoundtrack { name: "New".to_owned(), path: "/base/Ogg/".to_owned(), available: false },
+                ExtraSoundtrack { name: "Famitracks".to_owned(), path: "/base/ogg17/".to_owned(), available: false },
+                ExtraSoundtrack { name: "Ridiculon".to_owned(), path: "/base/ogg_ridic/".to_owned(), available: false },
+            ],
             music_table: vec![
                 "xxxx".to_owned(),
                 "wanpaku".to_owned(),
@@ -1639,8 +1651,6 @@ impl EngineConstants {
 
         self.font_path = "csfont.fnt".to_owned();
         self.font_scale = 0.5;
-        self.soundtracks.insert("Remastered".to_owned(), "/base/Ogg11/".to_owned());
-        self.soundtracks.insert("New".to_owned(), "/base/Ogg/".to_owned());
 
         let typewriter_sample = PixToneParameters {
             // fx2 (CS+)
@@ -1688,8 +1698,6 @@ impl EngineConstants {
         self.textscript.text_speed_normal = 1;
         self.textscript.text_speed_fast = 0;
         self.textscript.fade_ticks = 21;
-        self.soundtracks.insert("Famitracks".to_owned(), "/base/ogg17/".to_owned());
-        self.soundtracks.insert("Ridiculon".to_owned(), "/base/ogg_ridic/".to_owned());
         self.game.tile_offset_x = 3;
         self.game.new_game_player_pos = (13, 8);
     }

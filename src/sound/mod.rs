@@ -156,12 +156,7 @@ impl SoundManager {
         let _ = self.tx.send(PlaybackMessage::SetSampleVolume(volume.powf(3.0)));
     }
 
-    pub fn reload_songs(
-        &mut self,
-        constants: &EngineConstants,
-        settings: &Settings,
-        ctx: &mut Context,
-    ) -> GameResult {
+    pub fn reload_songs(&mut self, constants: &EngineConstants, settings: &Settings, ctx: &mut Context) -> GameResult {
         let prev_song = self.prev_song_id;
         let current_song = self.current_song_id;
 
@@ -198,8 +193,10 @@ impl SoundManager {
 
             paths.insert(0, "/Soundtracks/".to_owned() + &settings.soundtrack + "/");
 
-            if let Some(soundtrack) = constants.soundtracks.get(&settings.soundtrack) {
-                paths.insert(0, soundtrack.clone());
+            if let Some(soundtrack) =
+                constants.soundtracks.iter().find(|s| s.available && s.name == settings.soundtrack)
+            {
+                paths.insert(0, soundtrack.path.clone());
             }
 
             let songs_paths = paths.iter().map(|prefix| {
