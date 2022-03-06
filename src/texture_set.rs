@@ -6,7 +6,7 @@ use itertools::Itertools;
 use log::info;
 
 use crate::common;
-use crate::common::{FILE_TYPES, Rect};
+use crate::common::{Rect, FILE_TYPES};
 use crate::engine_constants::EngineConstants;
 use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
@@ -429,10 +429,10 @@ impl TextureSet {
         }
     }
 
-    fn load_image(&self, ctx: &mut Context,  roots: &Vec<String>, path: &str) -> GameResult<Box<dyn BackendTexture>> {
+    fn load_image(&self, ctx: &mut Context, roots: &Vec<String>, path: &str) -> GameResult<Box<dyn BackendTexture>> {
         let img = {
             let mut buf = [0u8; 8];
-            let mut reader = filesystem::open_find(ctx, roots,path)?;
+            let mut reader = filesystem::open_find(ctx, roots, path)?;
             reader.read_exact(&mut buf)?;
             reader.seek(SeekFrom::Start(0))?;
 
@@ -470,7 +470,20 @@ impl TextureSet {
             let size = batch.dimensions();
 
             let orig_dimensions = constants.tex_sizes.get(name).unwrap_or(&size);
-            let scale = orig_dimensions.0 as f32 / size.0 as f32;
+
+            let scale =
+                if f32::abs((orig_dimensions.0 as f32 / size.0 as f32) - (orig_dimensions.1 as f32 / size.1 as f32))
+                    <= f32::EPSILON
+                {
+                    orig_dimensions.0 as f32 / size.0 as f32
+                } else if constants.is_cs_plus && constants.base_paths.iter().any(|p| p.contains("/ogph")) {
+                    1.0
+                } else if constants.is_cs_plus {
+                    0.5
+                } else {
+                    1.0
+                };
+
             let width = (size.0 as f32 * scale) as _;
             let height = (size.1 as f32 * scale) as _;
 
