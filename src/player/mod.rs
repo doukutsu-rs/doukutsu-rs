@@ -457,7 +457,7 @@ impl Player {
                 _ => {}
             }
         } else if self.flags.force_up() {
-            self.vel_y += physics.gravity_air;
+            self.vel_y += physics.gravity_ground;
         } else if self.equip.has_booster_0_8() && self.booster_switch != BoosterSwitch::None && self.vel_y > -0x400 {
             self.vel_y -= 0x20;
 
