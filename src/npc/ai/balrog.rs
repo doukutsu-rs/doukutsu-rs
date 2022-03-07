@@ -275,6 +275,7 @@ impl NPC {
 
                 if self.y < 0 {
                     self.npc_type = 0;
+                    self.spritesheet_id = 20; // NpcSym
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
                 }
