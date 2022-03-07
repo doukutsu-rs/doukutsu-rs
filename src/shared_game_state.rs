@@ -233,6 +233,13 @@ impl SharedGameState {
             info!("NXEngine-evo data files detected.");
         }
 
+        for soundtrack in constants.soundtracks.iter_mut() {
+            if filesystem::exists(ctx, &soundtrack.path) {
+                info!("Enabling soundtrack {} from {}.", soundtrack.name, soundtrack.path);
+                soundtrack.available = true;
+            }
+        }
+
         let season = Season::current();
         constants.rebuild_path_list(None, season, &settings);
 

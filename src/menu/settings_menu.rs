@@ -109,7 +109,8 @@ impl SettingsMenu {
         self.sound.push_entry(MenuEntry::Active(format!("Soundtrack: {}", state.settings.soundtrack)));
         self.sound.push_entry(MenuEntry::Active("< Back".to_owned()));
 
-        let mut soundtrack_entries = state.constants.soundtracks.keys().map(|s| s.to_owned()).collect_vec();
+        let mut soundtrack_entries =
+            state.constants.soundtracks.iter().filter(|s| s.available).map(|s| s.name.to_owned()).collect_vec();
         soundtrack_entries.push("Organya".to_owned());
 
         if let Ok(dir) = filesystem::read_dir(ctx, "/Soundtracks/") {

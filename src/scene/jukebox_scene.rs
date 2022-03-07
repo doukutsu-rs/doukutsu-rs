@@ -68,7 +68,8 @@ impl Scene for JukeboxScene {
 
         self.song_list = state.constants.music_table.iter().filter(|song| !song.contains("fanfale")).cloned().collect();
 
-        let mut soundtrack_entries = state.constants.soundtracks.keys().map(|s| s.to_owned()).collect_vec();
+        let mut soundtrack_entries =
+            state.constants.soundtracks.iter().filter(|s| s.available).map(|s| s.name.to_owned()).collect_vec();
         soundtrack_entries.push("Organya".to_owned());
 
         if let Ok(dir) = filesystem::read_dir(ctx, "/Soundtracks/") {

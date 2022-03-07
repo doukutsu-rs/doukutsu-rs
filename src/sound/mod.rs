@@ -200,8 +200,10 @@ impl SoundManager {
 
             paths.insert(0, "/Soundtracks/".to_owned() + &settings.soundtrack + "/");
 
-            if let Some(soundtrack) = constants.soundtracks.get(&settings.soundtrack) {
-                paths.insert(0, soundtrack.clone());
+            if let Some(soundtrack) =
+                constants.soundtracks.iter().find(|s| s.available && s.name == settings.soundtrack)
+            {
+                paths.insert(0, soundtrack.path.clone());
             }
 
             let songs_paths = paths.iter().map(|prefix| {
