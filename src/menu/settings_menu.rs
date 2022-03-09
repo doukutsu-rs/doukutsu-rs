@@ -240,7 +240,11 @@ impl SettingsMenu {
                 MenuSelectionResult::Selected(4, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.original_textures = !state.settings.original_textures;
-                        state.reload_resources(ctx)?;
+                        if self.on_title {
+                            state.reload_resources(ctx)?;
+                        } else {
+                            state.reload_graphics();
+                        }
                         let _ = state.settings.save(ctx);
 
                         *value = state.settings.original_textures;
