@@ -390,7 +390,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             147 => self.tick_n147_critter_purple(state, players, npc_list),
             148 => self.tick_n148_critter_purple_projectile(state),
             149 => self.tick_n149_horizontal_moving_block(state, players, npc_list),
-            150 => self.tick_n150_quote(state, players, npc_list),
+            150 | 370 => self.tick_n150_quote(state, players, npc_list),
             151 => self.tick_n151_blue_robot_standing(state),
             152 => self.tick_n152_shutter_stuck(),
             153 => self.tick_n153_gaudi(state, players),

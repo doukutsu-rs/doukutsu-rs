@@ -1965,7 +1965,7 @@ impl Scene for GameScene {
         self.falling_island.draw(state, ctx, &self.frame)?;
         self.text_boxes.draw(state, ctx, &self.frame)?;
 
-        if self.skip_counter > 0 {
+        if self.skip_counter > 1 {
             let text = format!("Hold {:?} to skip the cutscene", state.settings.player1_key_map.inventory);
             let width = state.font.text_width(text.chars(), &state.constants);
             let pos_x = state.canvas_size.0 - width - 20.0;

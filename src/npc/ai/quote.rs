@@ -154,6 +154,10 @@ impl NPC {
                 self.action_num = 1;
                 self.anim_num = 0;
 
+                if self.npc_type == 370 {
+                    self.cond.set_alive(players[1].cond.alive());
+                }
+
                 if self.tsc_direction > 10 {
                     let player = &players[state.textscript_vm.executor_player.index()];
                     self.x = player.x;
