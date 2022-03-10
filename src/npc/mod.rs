@@ -390,7 +390,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             147 => self.tick_n147_critter_purple(state, players, npc_list),
             148 => self.tick_n148_critter_purple_projectile(state),
             149 => self.tick_n149_horizontal_moving_block(state, players, npc_list),
-            150 | 370 => self.tick_n150_quote(state, players, npc_list),
+            150 => self.tick_n150_quote(state, players, npc_list),
             151 => self.tick_n151_blue_robot_standing(state),
             152 => self.tick_n152_shutter_stuck(),
             153 => self.tick_n153_gaudi(state, players),
@@ -596,11 +596,12 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             353 => self.tick_n353_bute_sword_flying(state, players),
             354 => self.tick_n354_invisible_deathtrap_wall(state, npc_list, stage),
             355 => self.tick_n355_quote_and_curly_on_balrog(state, npc_list),
-            356 => self.tick_n356_balrog_rescuing(state, npc_list),
+            356 => self.tick_n356_balrog_rescuing(state, players, npc_list),
             357 => self.tick_n357_puppy_ghost(state),
             358 => self.tick_n358_misery_credits(state),
             359 => self.tick_n359_water_droplet_generator(state, players, npc_list),
             360 => self.tick_n360_credits_thank_you(state),
+            370 => self.tick_n370_second_quote(state, players, npc_list),
             _ => {
                 #[cfg(feature = "hooks")]
                 {

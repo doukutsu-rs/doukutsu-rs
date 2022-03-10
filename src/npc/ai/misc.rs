@@ -2532,8 +2532,38 @@ impl NPC {
         npc_list: &NPCList,
     ) -> GameResult {
         if self.action_num == 0 {
-            match self.direction {
-                Direction::Left => {
+            match (self.tsc_direction, self.direction) {
+                // Co-op
+                (4, _) => {
+                    self.spritesheet_id = 16;
+                    self.anim_num = 0;
+
+                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        self.x = npc.x;
+                        self.y = npc.y + 0x1400;
+                    }
+                }
+                (5, _) => {
+                    self.spritesheet_id = 16;
+                    self.anim_num = 2;
+
+                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        self.x = npc.x + 0x1600;
+                        self.y = npc.y - 0x2200;
+                    }
+                }
+                // Curly's position changes when 2P is present
+                (6, Direction::Bottom) => {
+                    self.spritesheet_id = 23;
+                    self.anim_num = 3;
+
+                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        self.x = npc.x + 0x400;
+                        self.y = npc.y - 0x2600;
+                    }
+                }
+                // Normal
+                (_, Direction::Left) => {
                     self.spritesheet_id = 16;
                     self.anim_num = 0;
 
@@ -2542,7 +2572,7 @@ impl NPC {
                         self.y = npc.y + 0x1400;
                     }
                 }
-                Direction::Up => {
+                (_, Direction::Up) => {
                     self.spritesheet_id = 23;
                     self.anim_num = 1;
 
@@ -2551,7 +2581,7 @@ impl NPC {
                         self.y = npc.y + 0x1400;
                     }
                 }
-                Direction::Right => {
+                (_, Direction::Right) => {
                     self.spritesheet_id = 16;
                     self.anim_num = 2;
 
@@ -2560,7 +2590,7 @@ impl NPC {
                         self.y = npc.y - 0x2600;
                     }
                 }
-                Direction::Bottom => {
+                (_, Direction::Bottom) => {
                     self.spritesheet_id = 23;
                     self.anim_num = 3;
 

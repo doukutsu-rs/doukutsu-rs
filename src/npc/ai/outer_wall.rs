@@ -32,6 +32,19 @@ impl NPC {
                     self.target_x = self.x - 0xc00;
                     self.vel_y = 0;
                     self.npc_flags.set_ignore_solidity(true);
+
+                    // Co-op
+                    if players[1].cond.alive() {
+                        let mut npc = NPC::create(370, &state.npc_table);
+                        npc.cond.set_alive(true);
+                        npc.parent_id = self.id;
+                        npc.x = self.x;
+                        npc.y = self.y;
+                        npc.action_num = 200;
+                        npc.direction = Direction::Right;
+
+                        let _ = npc_list.spawn(0xAA, npc);
+                    }
                 }
 
                 self.vel_x += if self.x >= self.target_x { -8 } else { 8 };
@@ -73,6 +86,16 @@ impl NPC {
         if players[0].equip.has_mimiga_mask() && self.anim_num > 1 {
             self.anim_rect.top += 40;
             self.anim_rect.bottom += 40;
+        }
+
+        // Switch uses the extra space on the sprite sheet for 2P's Curly
+        if state.constants.is_switch {
+            if self.anim_num <= 1 {
+                self.anim_rect.top += 8;
+                self.display_bounds.top = 0x2000;
+            } else {
+                self.display_bounds.top = 0x3000;
+            }
         }
 
         Ok(())
