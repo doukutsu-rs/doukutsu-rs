@@ -224,6 +224,17 @@ impl SharedGameState {
             constants.apply_csplus_patches(&sound_manager);
             constants.apply_csplus_nx_patches();
             constants.load_nx_stringtable(ctx)?;
+        } else if filesystem::exists(ctx, "/base/ogph/SellScreen.bmp") {
+            error!("WiiWare DEMO data files detected. !UNSUPPORTED!"); //Missing credits.tsc and crashes due to missing Stage 13 (Start)
+        } else if filesystem::exists(ctx, "/base/strap_a_en.bmp") {
+            info!("WiiWare data files detected."); //Missing Challenges and Remastered Soundtrack but identical to CS+ PC otherwise
+            constants.apply_csplus_patches(&sound_manager);
+        } else if filesystem::exists(ctx, "/root/buid_time.txt") {
+            error!("DSiWare data files detected. !UNSUPPORTED!"); //Freeware 2.0, sprites are arranged VERY differently + separate drowned carets
+        } else if filesystem::exists(ctx, "/darken.tex") || filesystem::exists(ctx, "/darken.png") {
+            error!("EShop data files detected. !UNSUPPORTED!"); //Ditto, drowned carets finally part of mychar, the turning point towards CS+
+        } else if filesystem::exists(ctx, "/data/stage3d/") {
+            error!("CS3D data files detected. !UNSUPPORTED!"); //Sprites are technically all there but filenames differ, + no n3ddta support
         } else if filesystem::exists(ctx, "/base/Nicalis.bmp") || filesystem::exists(ctx, "/base/Nicalis.png") {
             info!("Cave Story+ (PC) data files detected.");
             constants.apply_csplus_patches(&sound_manager);
