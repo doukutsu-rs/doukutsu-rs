@@ -2587,7 +2587,11 @@ impl NPC {
 
                     if let Some(npc) = self.get_parent_ref_mut(npc_list) {
                         self.x = npc.x - 0xe00;
-                        self.y = npc.y - 0x2600;
+                        if state.constants.is_switch {
+                            self.y = npc.y - 0x2200;
+                        } else {
+                            self.y = npc.y - 0x2600;
+                        }
                     }
                 }
                 (_, Direction::Bottom) => {
