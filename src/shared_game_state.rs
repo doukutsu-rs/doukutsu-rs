@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::{cmp, ops::Div};
 
 use bitvec::vec::BitVec;
@@ -17,6 +18,7 @@ use crate::framework::vfs::OpenOptions;
 use crate::framework::{filesystem, graphics};
 #[cfg(feature = "hooks")]
 use crate::hooks::init_hooks;
+use crate::i18n::Locale;
 use crate::input::touch_controls::TouchControls;
 use crate::mod_list::ModList;
 use crate::npc::NPCTable;
@@ -77,6 +79,57 @@ pub enum GameDifficulty {
 impl GameDifficulty {
     pub fn from_primitive(val: u8) -> GameDifficulty {
         return num_traits::FromPrimitive::from_u8(val).unwrap_or(GameDifficulty::Normal);
+    }
+}
+
+#[derive(PartialEq, Eq, Copy, Clone, Hash, num_derive::FromPrimitive, serde::Serialize, serde::Deserialize)]
+pub enum Language {
+    English,
+    Japanese,
+}
+
+impl Language {
+    pub fn to_language_code(self) -> &'static str {
+        match self {
+            Language::English => "en",
+            Language::Japanese => "jp",
+        }
+    }
+
+    pub fn to_string(self) -> String {
+        match self {
+            Language::English => "English".to_string(),
+            Language::Japanese => "Japanese".to_string(),
+        }
+    }
+
+    pub fn font(self) -> FontData {
+        match self {
+            Language::English => FontData::new("csfont.fnt".to_owned(), 0.5, 0.0),
+            // TODO: implement JP font rendering
+            Language::Japanese => FontData::new("0.fnt".to_owned(), 1.0, 0.0),
+        }
+    }
+
+    pub fn from_primitive(val: usize) -> Language {
+        return num_traits::FromPrimitive::from_usize(val).unwrap_or(Language::English);
+    }
+
+    pub fn values() -> Vec<Language> {
+        vec![Language::English, Language::Japanese]
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct FontData {
+    pub path: String,
+    pub scale: f32,
+    pub space_offset: f32,
+}
+
+impl FontData {
+    pub fn new(path: String, scale: f32, space_offset: f32) -> FontData {
+        FontData { path, scale, space_offset }
     }
 }
 
@@ -218,6 +271,8 @@ impl SharedGameState {
         let sound_manager = SoundManager::new(ctx)?;
         let settings = Settings::load(ctx)?;
 
+        constants.load_locales(ctx)?;
+
         if filesystem::exists(ctx, "/base/lighting.tbl") {
             info!("Cave Story+ (Switch) data files detected.");
             ctx.size_hint = (854, 480);
@@ -243,7 +298,13 @@ impl SharedGameState {
         let season = Season::current();
         constants.rebuild_path_list(None, season, &settings);
 
-        let font = BMFontRenderer::load(&constants.base_paths, &constants.font_path, ctx).or_else(|e| {
+        let active_locale = constants.locales.get(&settings.locale.to_string()).unwrap();
+
+        if constants.is_cs_plus {
+            constants.font_scale = active_locale.font.scale;
+        }
+
+        let font = BMFontRenderer::load(&constants.base_paths, &active_locale.font.path, ctx).or_else(|e| {
             log::warn!("Failed to load font, using built-in: {}", e);
             BMFontRenderer::load(&vec!["/".to_owned()], "/builtin/builtin_font.fnt", ctx)
         })?;
@@ -381,6 +442,23 @@ impl SharedGameState {
     pub fn reload_graphics(&mut self) {
         self.constants.rebuild_path_list(self.mod_path.clone(), self.season, &self.settings);
         self.texture_set.unload_all();
+    }
+
+    pub fn reload_fonts(&mut self, ctx: &mut Context) {
+        let active_locale = self.get_active_locale();
+
+        let font = BMFontRenderer::load(&self.constants.base_paths, &active_locale.font.path, ctx)
+            .or_else(|e| {
+                log::warn!("Failed to load font, using built-in: {}", e);
+                BMFontRenderer::load(&vec!["/".to_owned()], "/builtin/builtin_font.fnt", ctx)
+            })
+            .unwrap();
+
+        if self.constants.is_cs_plus {
+            self.constants.font_scale = active_locale.font.scale;
+        }
+
+        self.font = font;
     }
 
     pub fn graphics_reset(&mut self) {
@@ -647,5 +725,18 @@ impl SharedGameState {
         }
 
         return self.difficulty as u16;
+    }
+
+    pub fn get_active_locale(&self) -> &Locale {
+        let active_locale = self.constants.locales.get(&self.settings.locale.to_string()).unwrap();
+        return active_locale;
+    }
+
+    pub fn t(&self, key: &str) -> String {
+        return self.get_active_locale().t(key);
+    }
+
+    pub fn tt(&self, key: &str, args: HashMap<String, String>) -> String {
+        return self.get_active_locale().tt(key, args);
     }
 }

@@ -41,6 +41,7 @@ mod frame;
 mod framework;
 #[cfg(feature = "hooks")]
 mod hooks;
+mod i18n;
 mod input;
 mod inventory;
 mod live_debugger;

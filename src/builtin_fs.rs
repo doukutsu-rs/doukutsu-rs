@@ -1,9 +1,9 @@
-use std::{fmt, io};
 use std::fmt::Debug;
 use std::io::Cursor;
 use std::io::ErrorKind;
 use std::io::SeekFrom;
 use std::path::{Component, Path, PathBuf};
+use std::{fmt, io};
 
 use crate::framework::error::GameError::FilesystemError;
 use crate::framework::error::GameResult;
@@ -68,32 +68,22 @@ enum FSNode {
 impl FSNode {
     fn get_name(&self) -> &'static str {
         match self {
-            FSNode::File(name, _) => { name }
-            FSNode::Directory(name, _) => { name }
+            FSNode::File(name, _) => name,
+            FSNode::Directory(name, _) => name,
         }
     }
 
     fn to_file(&self) -> GameResult<Box<dyn VFile>> {
         match self {
-            FSNode::File(_, buf) => { Ok(BuiltinFile::from(buf)) }
-            FSNode::Directory(name, _) => { Err(FilesystemError(format!("{} is a directory.", name))) }
+            FSNode::File(_, buf) => Ok(BuiltinFile::from(buf)),
+            FSNode::Directory(name, _) => Err(FilesystemError(format!("{} is a directory.", name))),
         }
     }
 
     fn to_metadata(&self) -> Box<dyn VMetadata> {
         match self {
-            FSNode::File(_, buf) => {
-                Box::new(BuiltinMetadata {
-                    is_dir: false,
-                    size: buf.len() as u64,
-                })
-            }
-            FSNode::Directory(_, _) => {
-                Box::new(BuiltinMetadata {
-                    is_dir: true,
-                    size: 0,
-                })
-            }
+            FSNode::File(_, buf) => Box::new(BuiltinMetadata { is_dir: false, size: buf.len() as u64 }),
+            FSNode::Directory(_, _) => Box::new(BuiltinMetadata { is_dir: true, size: 0 }),
         }
     }
 }
@@ -105,24 +95,39 @@ pub struct BuiltinFS {
 impl BuiltinFS {
     pub fn new() -> Self {
         Self {
-            root: vec![
-                FSNode::Directory("builtin", vec![
+            root: vec![FSNode::Directory(
+                "builtin",
+                vec![
                     FSNode::File("builtin_font.fnt", include_bytes!("builtin/builtin_font.fnt")),
                     FSNode::File("builtin_font_0.png", include_bytes!("builtin/builtin_font_0.png")),
                     FSNode::File("builtin_font_1.png", include_bytes!("builtin/builtin_font_1.png")),
-                    FSNode::File("organya-wavetable-doukutsu.bin", include_bytes!("builtin/organya-wavetable-doukutsu.bin")),
+                    FSNode::File(
+                        "organya-wavetable-doukutsu.bin",
+                        include_bytes!("builtin/organya-wavetable-doukutsu.bin"),
+                    ),
                     FSNode::File("touch.png", include_bytes!("builtin/touch.png")),
-                    FSNode::Directory("shaders", vec![
-                        // FSNode::File("basic_150.vert.glsl", include_bytes!("builtin/shaders/basic_150.vert.glsl")),
-                        // FSNode::File("water_150.frag.glsl", include_bytes!("builtin/shaders/water_150.frag.glsl")),
-                        // FSNode::File("basic_es300.vert.glsl", include_bytes!("builtin/shaders/basic_es300.vert.glsl")),
-                        // FSNode::File("water_es300.frag.glsl", include_bytes!("builtin/shaders/water_es300.frag.glsl")),
-                    ]),
-                    FSNode::Directory("lightmap", vec![
-                        FSNode::File("spot.png", include_bytes!("builtin/lightmap/spot.png")),
-                    ]),
-                ])
-            ],
+                    FSNode::Directory(
+                        "shaders",
+                        vec![
+                            // FSNode::File("basic_150.vert.glsl", include_bytes!("builtin/shaders/basic_150.vert.glsl")),
+                            // FSNode::File("water_150.frag.glsl", include_bytes!("builtin/shaders/water_150.frag.glsl")),
+                            // FSNode::File("basic_es300.vert.glsl", include_bytes!("builtin/shaders/basic_es300.vert.glsl")),
+                            // FSNode::File("water_es300.frag.glsl", include_bytes!("builtin/shaders/water_es300.frag.glsl")),
+                        ],
+                    ),
+                    FSNode::Directory(
+                        "lightmap",
+                        vec![FSNode::File("spot.png", include_bytes!("builtin/lightmap/spot.png"))],
+                    ),
+                    FSNode::Directory(
+                        "locale",
+                        vec![
+                            FSNode::File("en.json", include_bytes!("builtin/locale/en.json")),
+                            FSNode::File("jp.json", include_bytes!("builtin/locale/jp.json")),
+                        ],
+                    ),
+                ],
+            )],
         }
     }
 
@@ -177,10 +182,7 @@ impl Debug for BuiltinFS {
 impl VFS for BuiltinFS {
     fn open_options(&self, path: &Path, open_options: OpenOptions) -> GameResult<Box<dyn VFile>> {
         if open_options.write || open_options.create || open_options.append || open_options.truncate {
-            let msg = format!(
-                "Cannot alter file {:?} in root {:?}, filesystem read-only",
-                path, self
-            );
+            let msg = format!("Cannot alter file {:?} in root {:?}, filesystem read-only", path, self);
             return Err(FilesystemError(msg));
         }
 
@@ -207,7 +209,7 @@ impl VFS for BuiltinFS {
         self.get_node(path).map(|v| v.to_metadata())
     }
 
-    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item=GameResult<PathBuf>>>> {
+    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item = GameResult<PathBuf>>>> {
         match self.get_node(path) {
             Ok(FSNode::Directory(_, contents)) => {
                 let mut vec = Vec::new();
@@ -217,12 +219,8 @@ impl VFS for BuiltinFS {
 
                 Ok(Box::new(vec.into_iter()))
             }
-            Ok(FSNode::File(_, _)) => {
-                Err(FilesystemError(format!("Expected a directory, found a file: {:?}", path)))
-            }
-            Err(e) => {
-                Err(e)
-            }
+            Ok(FSNode::File(_, _)) => Err(FilesystemError(format!("Expected a directory, found a file: {:?}", path))),
+            Err(e) => Err(e),
         }
     }
 
@@ -236,12 +234,13 @@ fn test_builtin_fs() {
     let fs = BuiltinFS {
         root: vec![
             FSNode::File("test.txt", &[]),
-            FSNode::Directory("memes", vec![
-                FSNode::File("nothing.txt", &[]),
-                FSNode::Directory("secret stuff", vec![
-                    FSNode::File("passwords.txt", b"12345678"),
-                ]),
-            ]),
+            FSNode::Directory(
+                "memes",
+                vec![
+                    FSNode::File("nothing.txt", &[]),
+                    FSNode::Directory("secret stuff", vec![FSNode::File("passwords.txt", b"12345678")]),
+                ],
+            ),
             FSNode::File("test2.txt", &[]),
         ],
     };

@@ -123,6 +123,11 @@ impl TitleScene {
         }
         Ok(())
     }
+
+    pub fn open_settings_menu(&mut self) -> GameResult {
+        self.current_menu = CurrentMenu::OptionMenu;
+        Ok(())
+    }
 }
 
 static COPYRIGHT_PIXEL: &str = "2004.12  Studio Pixel"; // Freeware
@@ -138,24 +143,24 @@ impl Scene for TitleScene {
         self.controller.add(state.settings.create_player1_controller());
         self.controller.add(state.settings.create_player2_controller());
 
-        self.main_menu.push_entry(MenuEntry::Active("Start Game".to_string()));
+        self.main_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.start")));
         if !state.mod_list.mods.is_empty() {
-            self.main_menu.push_entry(MenuEntry::Active("Challenges".to_string()));
+            self.main_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.challenges")));
         } else {
             self.main_menu.push_entry(MenuEntry::Hidden);
         }
-        self.main_menu.push_entry(MenuEntry::Active("Options".to_string()));
+        self.main_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.options")));
         if cfg!(feature = "editor") {
-            self.main_menu.push_entry(MenuEntry::Active("Editor".to_string()));
+            self.main_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.editor")));
         } else {
             self.main_menu.push_entry(MenuEntry::Hidden);
         }
         if state.constants.is_switch {
-            self.main_menu.push_entry(MenuEntry::Active("Jukebox".to_string()));
+            self.main_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.jukebox")));
         } else {
             self.main_menu.push_entry(MenuEntry::Hidden);
         }
-        self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
+        self.main_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.quit")));
 
         self.settings_menu.init(state, ctx)?;
 
@@ -164,12 +169,12 @@ impl Scene for TitleScene {
         for mod_info in state.mod_list.mods.iter() {
             self.challenges_menu.push_entry(MenuEntry::Active(mod_info.name.clone()));
         }
-        self.challenges_menu.push_entry(MenuEntry::Active("< Back".to_string()));
+        self.challenges_menu.push_entry(MenuEntry::Active(state.t("common.back")));
 
         self.confirm_menu.push_entry(MenuEntry::Disabled("".to_owned()));
-        self.confirm_menu.push_entry(MenuEntry::Active("Start".to_owned()));
-        self.confirm_menu.push_entry(MenuEntry::Disabled("No Replay".to_owned()));
-        self.confirm_menu.push_entry(MenuEntry::Active("< Back".to_owned()));
+        self.confirm_menu.push_entry(MenuEntry::Active(state.t("menus.challenge_menu.start")));
+        self.confirm_menu.push_entry(MenuEntry::Disabled(state.t("menus.challenge_menu.no_replay")));
+        self.confirm_menu.push_entry(MenuEntry::Active(state.t("common.back")));
         self.confirm_menu.selected = 1;
 
         self.controller.update(state, ctx)?;
@@ -277,9 +282,9 @@ impl Scene for TitleScene {
                                     (state.font.text_width(mod_name.chars(), &state.constants).max(50.0) + 32.0) as u16;
                                 self.confirm_menu.entries[0] = MenuEntry::Disabled(mod_name);
                                 self.confirm_menu.entries[2] = if state.has_replay_data(ctx) {
-                                    MenuEntry::Active("Replay Best".to_owned())
+                                    MenuEntry::Active(state.t("menus.challenge_menu.replay_best"))
                                 } else {
-                                    MenuEntry::Disabled("No Replay".to_owned())
+                                    MenuEntry::Disabled(state.t("menus.challenge_menu.no_replay"))
                                 };
                                 self.nikumaru_rec.load_counter(state, ctx)?;
                                 self.current_menu = CurrentMenu::ChallengeConfirmMenu;

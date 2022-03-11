@@ -6,7 +6,7 @@ use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
 use crate::input::touch_player_controller::TouchPlayerController;
 use crate::player::TargetPlayer;
-use crate::shared_game_state::TimingMode;
+use crate::shared_game_state::{Language, TimingMode};
 use crate::sound::InterpolationMode;
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -46,6 +46,7 @@ pub struct Settings {
     #[serde(skip)]
     pub debug_outlines: bool,
     pub fps_counter: bool,
+    pub locale: Language,
 }
 
 fn default_true() -> bool {
@@ -164,6 +165,7 @@ impl Default for Settings {
             infinite_booster: false,
             debug_outlines: false,
             fps_counter: false,
+            locale: Language::English,
         }
     }
 }

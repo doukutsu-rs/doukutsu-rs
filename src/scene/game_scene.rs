@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ops::{Deref, Range};
 use std::rc::Rc;
 
@@ -1966,7 +1967,10 @@ impl Scene for GameScene {
         self.text_boxes.draw(state, ctx, &self.frame)?;
 
         if self.skip_counter > 1 {
-            let text = format!("Hold {:?} to skip the cutscene", state.settings.player1_key_map.inventory);
+            let text = state.tt(
+                "game.cutscene_skip",
+                HashMap::from([("key".to_owned(), format!("{:?}", state.settings.player1_key_map.inventory))]),
+            );
             let width = state.font.text_width(text.chars(), &state.constants);
             let pos_x = state.canvas_size.0 - width - 20.0;
             let pos_y = 0.0;

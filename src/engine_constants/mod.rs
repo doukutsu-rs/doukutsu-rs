@@ -11,10 +11,11 @@ use crate::engine_constants::npcs::NPCConsts;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
+use crate::i18n::Locale;
 use crate::player::ControlMode;
 use crate::scripting::tsc::text_script::TextScriptEncoding;
 use crate::settings::Settings;
-use crate::shared_game_state::Season;
+use crate::shared_game_state::{Language, Season};
 use crate::sound::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
 use crate::sound::SoundManager;
 
@@ -312,6 +313,7 @@ pub struct EngineConstants {
     pub animated_face_table: Vec<AnimatedFace>,
     pub string_table: HashMap<String, String>,
     pub missile_flags: Vec<u16>,
+    pub locales: HashMap<String, Locale>,
 }
 
 impl Clone for EngineConstants {
@@ -342,6 +344,7 @@ impl Clone for EngineConstants {
             animated_face_table: self.animated_face_table.clone(),
             string_table: self.string_table.clone(),
             missile_flags: self.missile_flags.clone(),
+            locales: self.locales.clone(),
         }
     }
 }
@@ -1623,6 +1626,7 @@ impl EngineConstants {
             animated_face_table: vec![AnimatedFace { face_id: 0, anim_id: 0, anim_frames: vec![(0, 0)] }],
             string_table: HashMap::new(),
             missile_flags: vec![200, 201, 202, 218, 550, 766, 880, 920, 1551],
+            locales: HashMap::new(),
         }
     }
 
@@ -1648,9 +1652,6 @@ impl EngineConstants {
         self.title.menu_bottom = Rect { left: 4, top: 12, right: 8, bottom: 16 };
         self.title.menu_left = Rect { left: 0, top: 4, right: 4, bottom: 12 };
         self.title.menu_right = Rect { left: 12, top: 4, right: 16, bottom: 12 };
-
-        self.font_path = "csfont.fnt".to_owned();
-        self.font_scale = 0.5;
 
         let typewriter_sample = PixToneParameters {
             // fx2 (CS+)
@@ -1718,6 +1719,14 @@ impl EngineConstants {
                     _ => {}
                 }
             }
+
+            if settings.locale != Language::English {
+                self.base_paths.insert(0, format!("/base/{}/", settings.locale.to_language_code()));
+            }
+        } else {
+            if settings.locale != Language::English {
+                self.base_paths.insert(0, format!("/{}/", settings.locale.to_language_code()));
+            }
         }
 
         if let Some(mut mod_path) = mod_path {
@@ -1772,6 +1781,15 @@ impl EngineConstants {
                 }
             }
         }
+        Ok(())
+    }
+
+    pub fn load_locales(&mut self, ctx: &mut Context) -> GameResult {
+        for language in Language::values() {
+            self.locales.insert(language.to_string(), Locale::new(ctx, language.to_language_code(), language.font()));
+            log::info!("Loaded locale {} ({}).", language.to_string(), language.to_language_code());
+        }
+
         Ok(())
     }
 

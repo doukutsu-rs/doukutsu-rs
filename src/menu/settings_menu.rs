@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use itertools::Itertools;
 
 use crate::framework::context::Context;
@@ -6,7 +8,8 @@ use crate::framework::filesystem;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
-use crate::shared_game_state::{SharedGameState, TimingMode};
+use crate::scene::title_scene::TitleScene;
+use crate::shared_game_state::{Language, SharedGameState, TimingMode};
 use crate::sound::InterpolationMode;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -17,6 +20,7 @@ enum CurrentMenu {
     GraphicsMenu,
     SoundMenu,
     SoundtrackMenu,
+    LanguageMenu,
 }
 
 pub struct SettingsMenu {
@@ -25,6 +29,7 @@ pub struct SettingsMenu {
     graphics: Menu,
     sound: Menu,
     soundtrack: Menu,
+    language: Menu,
     pub on_title: bool,
 }
 
@@ -36,78 +41,119 @@ impl SettingsMenu {
         let graphics = Menu::new(0, 0, 180, 0);
         let sound = Menu::new(0, 0, 260, 0);
         let soundtrack = Menu::new(0, 0, 260, 0);
+        let language = Menu::new(0, 0, 120, 0);
 
-        SettingsMenu { current: CurrentMenu::MainMenu, main, graphics, sound, soundtrack, on_title: false }
+        SettingsMenu { current: CurrentMenu::MainMenu, main, graphics, sound, soundtrack, language, on_title: false }
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        self.graphics.push_entry(MenuEntry::Toggle("Lighting effects:".to_string(), state.settings.shader_effects));
-        self.graphics.push_entry(MenuEntry::Toggle("Weapon light cone:".to_string(), state.settings.light_cone));
-        self.graphics
-            .push_entry(MenuEntry::Toggle("Motion interpolation:".to_string(), state.settings.motion_interpolation));
-        self.graphics.push_entry(MenuEntry::Toggle("Subpixel scrolling:".to_string(), state.settings.subpixel_coords));
+        self.graphics.push_entry(MenuEntry::Toggle(
+            state.t("menus.options_menu.graphics_menu.lighting_effects"),
+            state.settings.shader_effects,
+        ));
+        self.graphics.push_entry(MenuEntry::Toggle(
+            state.t("menus.options_menu.graphics_menu.weapon_light_cone"),
+            state.settings.light_cone,
+        ));
+        self.graphics.push_entry(MenuEntry::Toggle(
+            state.t("menus.options_menu.graphics_menu.motion_interpolation"),
+            state.settings.motion_interpolation,
+        ));
+        self.graphics.push_entry(MenuEntry::Toggle(
+            state.t("menus.options_menu.graphics_menu.subpixel_scrolling"),
+            state.settings.subpixel_coords,
+        ));
 
         // NS version uses two different maps, therefore we can't dynamically switch between graphics presets.
         if state.constants.supports_og_textures {
             if !state.constants.is_switch || self.on_title {
-                self.graphics
-                    .push_entry(MenuEntry::Toggle("Original textures".to_string(), state.settings.original_textures));
+                self.graphics.push_entry(MenuEntry::Toggle(
+                    state.t("menus.options_menu.graphics_menu.original_textures"),
+                    state.settings.original_textures,
+                ));
             } else {
-                self.graphics.push_entry(MenuEntry::Disabled("Original textures".to_string()));
+                self.graphics
+                    .push_entry(MenuEntry::Disabled(state.t("menus.options_menu.graphics_menu.original_textures")));
             }
         } else {
             self.graphics.push_entry(MenuEntry::Hidden);
         }
 
         if state.constants.is_cs_plus {
-            self.graphics
-                .push_entry(MenuEntry::Toggle("Seasonal textures".to_string(), state.settings.seasonal_textures));
+            self.graphics.push_entry(MenuEntry::Toggle(
+                state.t("menus.options_menu.graphics_menu.seasonal_textures"),
+                state.settings.seasonal_textures,
+            ));
         } else {
             self.graphics.push_entry(MenuEntry::Hidden);
         }
 
-        self.graphics
-            .push_entry(MenuEntry::Disabled(format!("Renderer: {}", ctx.renderer.as_ref().unwrap().renderer_name())));
+        self.graphics.push_entry(MenuEntry::Disabled(format!(
+            "{} {}",
+            state.t("menus.options_menu.graphics_menu.renderer"),
+            ctx.renderer.as_ref().unwrap().renderer_name()
+        )));
 
-        self.graphics.push_entry(MenuEntry::Active("< Back".to_owned()));
+        self.graphics.push_entry(MenuEntry::Active(state.t("common.back")));
 
-        self.main.push_entry(MenuEntry::Active("Graphics...".to_owned()));
-        self.main.push_entry(MenuEntry::Active("Sound...".to_owned()));
+        self.main.push_entry(MenuEntry::Active(state.t("menus.options_menu.graphics")));
+        self.main.push_entry(MenuEntry::Active(state.t("menus.options_menu.sound")));
+
+        self.language.push_entry(MenuEntry::Disabled(state.t("menus.options_menu.language")));
+        for language in Language::values() {
+            self.language.push_entry(MenuEntry::Active(language.to_string()));
+        }
+        self.language.push_entry(MenuEntry::Active(state.t("common.back")));
+
+        if self.on_title {
+            self.main.push_entry(MenuEntry::Active(state.t("menus.options_menu.language")));
+        } else {
+            self.main.push_entry(MenuEntry::Disabled(state.t("menus.options_menu.language")));
+        }
 
         self.main.push_entry(MenuEntry::Options(
-            "Game timing:".to_owned(),
+            state.t("menus.options_menu.game_timing.entry"),
             if state.settings.timing_mode == TimingMode::_50Hz { 0 } else { 1 },
-            vec!["50tps (freeware)".to_owned(), "60tps (CS+)".to_owned()],
+            vec![state.t("menus.options_menu.game_timing.50tps"), state.t("menus.options_menu.game_timing.60tps")],
         ));
 
         self.main.push_entry(MenuEntry::Active(DISCORD_LINK.to_owned()));
 
-        self.main.push_entry(MenuEntry::Active("< Back".to_owned()));
+        self.main.push_entry(MenuEntry::Active(state.t("common.back")));
 
-        self.sound.push_entry(MenuEntry::OptionsBar("Music Volume".to_owned(), state.settings.bgm_volume));
-        self.sound.push_entry(MenuEntry::OptionsBar("Effects Volume".to_owned(), state.settings.sfx_volume));
+        self.sound.push_entry(MenuEntry::OptionsBar(
+            state.t("menus.options_menu.sound_menu.music_volume"),
+            state.settings.bgm_volume,
+        ));
+        self.sound.push_entry(MenuEntry::OptionsBar(
+            state.t("menus.options_menu.sound_menu.effects_volume"),
+            state.settings.sfx_volume,
+        ));
 
         self.sound.push_entry(MenuEntry::DescriptiveOptions(
-            "BGM Interpolation:".to_owned(),
+            state.t("menus.options_menu.sound_menu.bgm_interpolation.entry"),
             state.settings.organya_interpolation as usize,
             vec![
-                "Nearest".to_owned(),
-                "Linear".to_owned(),
-                "Cosine".to_owned(),
-                "Cubic".to_owned(),
-                "Linear+LP".to_owned(),
+                state.t("menus.options_menu.sound_menu.bgm_interpolation.nearest"),
+                state.t("menus.options_menu.sound_menu.bgm_interpolation.linear"),
+                state.t("menus.options_menu.sound_menu.bgm_interpolation.cosine"),
+                state.t("menus.options_menu.sound_menu.bgm_interpolation.cubic"),
+                state.t("menus.options_menu.sound_menu.bgm_interpolation.linear_lp"),
             ],
             vec![
-                "(Fastest, lowest quality)".to_owned(),
-                "(Fast, similar to freeware on Vista+)".to_owned(),
-                "(Cosine interpolation)".to_owned(),
-                "(Cubic interpolation)".to_owned(),
-                "(Slowest, similar to freeware on XP)".to_owned(),
+                state.t("menus.options_menu.sound_menu.bgm_interpolation.nearest_desc"),
+                state.t("menus.options_menu.sound_menu.bgm_interpolation.linear_desc"),
+                state.t("menus.options_menu.sound_menu.bgm_interpolation.cosine_desc"),
+                state.t("menus.options_menu.sound_menu.bgm_interpolation.cubic_desc"),
+                state.t("menus.options_menu.sound_menu.bgm_interpolation.linear_lp_desc"),
             ],
         ));
         self.sound.push_entry(MenuEntry::DisabledWhite("".to_owned()));
-        self.sound.push_entry(MenuEntry::Active(format!("Soundtrack: {}", state.settings.soundtrack)));
-        self.sound.push_entry(MenuEntry::Active("< Back".to_owned()));
+        self.sound.push_entry(MenuEntry::Active(state.tt(
+            "menus.options_menu.sound_menu.soundtrack",
+            HashMap::from([("soundtrack".to_owned(), state.settings.soundtrack.to_owned())]),
+        )));
+        self.sound.push_entry(MenuEntry::Active(state.t("common.back")));
 
         let mut soundtrack_entries =
             state.constants.soundtracks.iter().filter(|s| s.available).map(|s| s.name.to_owned()).collect_vec();
@@ -138,7 +184,7 @@ impl SettingsMenu {
             .unwrap_or(self.soundtrack.width as f32) as u16
             + 32;
 
-        self.soundtrack.push_entry(MenuEntry::Active("< Back".to_owned()));
+        self.soundtrack.push_entry(MenuEntry::Active(state.t("common.back")));
 
         self.update_sizes(state);
 
@@ -161,6 +207,10 @@ impl SettingsMenu {
         self.soundtrack.update_height();
         self.soundtrack.x = ((state.canvas_size.0 - self.soundtrack.width as f32) / 2.0).floor() as isize;
         self.soundtrack.y = ((state.canvas_size.1 - self.soundtrack.height as f32) / 2.0).floor() as isize;
+
+        self.language.update_height();
+        self.language.x = ((state.canvas_size.0 - self.language.width as f32) / 2.0).floor() as isize;
+        self.language.y = ((state.canvas_size.1 - self.language.height as f32) / 2.0).floor() as isize;
     }
 
     pub fn tick(
@@ -180,7 +230,11 @@ impl SettingsMenu {
                 MenuSelectionResult::Selected(1, _) => {
                     self.current = CurrentMenu::SoundMenu;
                 }
-                MenuSelectionResult::Selected(2, toggle) => {
+                MenuSelectionResult::Selected(2, _) => {
+                    self.language.selected = (state.settings.locale as usize) + 1;
+                    self.current = CurrentMenu::LanguageMenu;
+                }
+                MenuSelectionResult::Selected(3, toggle) => {
                     if let MenuEntry::Options(_, value, _) = toggle {
                         match state.settings.timing_mode {
                             TimingMode::_50Hz => {
@@ -196,12 +250,12 @@ impl SettingsMenu {
                         let _ = state.settings.save(ctx);
                     }
                 }
-                MenuSelectionResult::Selected(3, _) => {
+                MenuSelectionResult::Selected(4, _) => {
                     if let Err(e) = webbrowser::open(DISCORD_LINK) {
                         log::warn!("Error opening web browser: {}", e);
                     }
                 }
-                MenuSelectionResult::Selected(4, _) | MenuSelectionResult::Canceled => exit_action(),
+                MenuSelectionResult::Selected(5, _) | MenuSelectionResult::Canceled => exit_action(),
                 _ => (),
             },
             CurrentMenu::GraphicsMenu => match self.graphics.tick(controller, state) {
@@ -320,6 +374,35 @@ impl SettingsMenu {
                 }
                 _ => (),
             },
+            CurrentMenu::LanguageMenu => {
+                let last = self.language.entries.len() - 1;
+
+                match self.language.tick(controller, state) {
+                    MenuSelectionResult::Selected(idx, entry) => {
+                        if let (true, MenuEntry::Active(_)) = (idx != last, entry) {
+                            let new_locale = Language::from_primitive(idx.saturating_sub(1));
+                            if new_locale == state.settings.locale {
+                                self.current = CurrentMenu::MainMenu;
+                            } else {
+                                state.settings.locale = new_locale;
+                                state.reload_fonts(ctx);
+
+                                let _ = state.settings.save(ctx);
+
+                                let mut new_menu = TitleScene::new();
+                                new_menu.open_settings_menu()?;
+                                state.next_scene = Some(Box::new(new_menu));
+                            }
+                        }
+
+                        self.current = CurrentMenu::MainMenu;
+                    }
+                    MenuSelectionResult::Canceled => {
+                        self.current = CurrentMenu::MainMenu;
+                    }
+                    _ => {}
+                }
+            }
             CurrentMenu::SoundtrackMenu => {
                 let last = self.soundtrack.entries.len() - 1;
                 match self.soundtrack.tick(controller, state) {
@@ -350,6 +433,7 @@ impl SettingsMenu {
             CurrentMenu::GraphicsMenu => self.graphics.draw(state, ctx)?,
             CurrentMenu::SoundMenu => self.sound.draw(state, ctx)?,
             CurrentMenu::SoundtrackMenu => self.soundtrack.draw(state, ctx)?,
+            CurrentMenu::LanguageMenu => self.language.draw(state, ctx)?,
         }
 
         Ok(())

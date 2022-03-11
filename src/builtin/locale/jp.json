@@ -1,0 +1,102 @@
+{
+  "common": {
+    "name": "doukutsu-rs",
+    "back": "< Back",
+    "yes": "はい",
+    "no": "いいえ",
+    "on": "オン",
+    "off": "オフ"
+  },
+
+  "menus": {
+    "main_menu": {
+      "start": "Start Game",
+      "challenges": "チャレンジ",
+      "options": "Options",
+      "editor": "Editor",
+      "jukebox": "ジュークボックス",
+      "quit": "Quit"
+    },
+
+    "pause_menu": {
+      "resume": "Resume",
+      "retry": "Retry",
+      "options": "Options",
+      "title": "Title",
+      "title_confirm": "Title?",
+      "quit": "Quit",
+      "quit_confirm": "Quit?"
+    },
+
+    "save_menu": {
+      "new": "New Save",
+      "delete_info": "Press Right to Delete",
+      "delete_confirm": "Delete?"
+    },
+
+    "difficulty_menu": {
+      "title": "Select Difficulty",
+      "easy": "Easy",
+      "normal": "Normal",
+      "hard": "Hard"
+    },
+
+    "challenge_menu": {
+      "start": "Start",
+      "no_replay": "No Replay",
+      "replay_best": "Replay Best"
+    },
+
+    "options_menu": {
+      "graphics": "Graphics...",
+      "graphics_menu": {
+        "lighting_effects": "Lighting effects:",
+        "weapon_light_cone": "Weapon light cone:",
+        "motion_interpolation": "Motion interpolation:",
+        "subpixel_scrolling": "Subpixel scrolling:",
+        "original_textures": "Original textures:",
+        "seasonal_textures": "Seasonal textures:",
+        "renderer": "Renderer:"
+      },
+
+      "sound": "Sound...",
+      "sound_menu": {
+        "music_volume": "BGM音量",
+        "effects_volume": "サウンド音量",
+        "bgm_interpolation": {
+          "entry": "BGM Interpolation:",
+          "linear": "Linear",
+          "linear_desc": "Fast, similar to freeware on Vista+",
+          "cosine": "Cosine",
+          "cosine_desc": "Cosine interpolation",
+          "cubic": "Cubic",
+          "cubic_desc": "Cubic interpolation",
+          "linear_lp": "Linear+LP",
+          "linear_lp_desc": "Slowest, similar to freeware on XP",
+          "nearest": "Nearest",
+          "nearest_desc": "Fastest, lowest quality"
+        },
+        "soundtrack": "Soundtrack: {soundtrack}"
+      },
+
+      "language": "Language...",
+
+      "game_timing": {
+        "entry": "Game timing:",
+        "50tps": "50tps (freeware)",
+        "60tps": "60tps (CS+)"
+      }
+    }
+  },
+
+  "soundtrack": {
+    "organya": "オルガーニャ",
+    "remastered": "リマスター",
+    "new": "New",
+    "famitracks": "ファミトラック"
+  },
+
+  "game": {
+    "cutscene_skip": "{key} を押し続け、カットシーンをスキップ"
+  }
+}
