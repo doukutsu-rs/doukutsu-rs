@@ -224,13 +224,24 @@ impl SharedGameState {
             constants.apply_csplus_patches(&sound_manager);
             constants.apply_csplus_nx_patches();
             constants.load_nx_stringtable(ctx)?;
+        } else if filesystem::exists(ctx, "/base/tsc_def.txt") {
+            error!("\x1b[31m WiiWare DEMO data files detected. !UNSUPPORTED!"); //Missing credits.tsc and crashes due to missing Stage 13 (Start)
+        } else if filesystem::exists(ctx, "/base/strap_a_en.bmp") {
+            info!("\x1b[32m WiiWare data files detected."); //Missing Challenges and Remastered Soundtrack but identical to CS+ PC otherwise
+            constants.apply_csplus_patches(&sound_manager);
+        } else if filesystem::exists(ctx, "/root/buid_time.txt") {
+            error!("\x1b[31m DSiWare data files detected. !UNSUPPORTED!"); //Freeware 2.0, sprites are arranged VERY differently + separate drowned carets
+        } else if filesystem::exists(ctx, "/darken.tex") || filesystem::exists(ctx, "/darken.png") {
+            error!("\x1b[31m EShop data files detected. !UNSUPPORTED!"); //Ditto, drowned carets finally part of mychar, the turning point towards CS+
+        } else if filesystem::exists(ctx, "/data/stage3d/") {
+            error!("\x1b[31m CS3D data files detected. !UNSUPPORTED!"); //Sprites are technically all there but filenames differ, + no n3ddta support
         } else if filesystem::exists(ctx, "/base/Nicalis.bmp") || filesystem::exists(ctx, "/base/Nicalis.png") {
-            info!("Cave Story+ (PC) data files detected.");
+            info!("\x1b[32m Cave Story+ (PC) data files detected.");
             constants.apply_csplus_patches(&sound_manager);
         } else if filesystem::exists(ctx, "/mrmap.bin") {
-            info!("CSE2E data files detected.");
+            info!("\x1b[32m CSE2E data files detected.");
         } else if filesystem::exists(ctx, "/stage.dat") {
-            info!("NXEngine-evo data files detected.");
+            info!("\x1b[32m NXEngine-evo data files detected.");
         }
 
         for soundtrack in constants.soundtracks.iter_mut() {
