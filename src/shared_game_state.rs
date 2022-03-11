@@ -224,7 +224,7 @@ impl SharedGameState {
             constants.apply_csplus_patches(&sound_manager);
             constants.apply_csplus_nx_patches();
             constants.load_nx_stringtable(ctx)?;
-        } else if filesystem::exists(ctx, "/base/tsc_def.txt") {
+        } else if filesystem::exists(ctx, "/base/ogph/SellScreen.bmp") {
             error!("\x1b[31m WiiWare DEMO data files detected. !UNSUPPORTED!"); //Missing credits.tsc and crashes due to missing Stage 13 (Start)
         } else if filesystem::exists(ctx, "/base/strap_a_en.bmp") {
             info!("\x1b[32m WiiWare data files detected."); //Missing Challenges and Remastered Soundtrack but identical to CS+ PC otherwise
