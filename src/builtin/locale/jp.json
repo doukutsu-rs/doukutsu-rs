@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "doukutsu-rs",
-    "back": "< Back",
+    "back": "< 戻る",
     "yes": "はい",
     "no": "いいえ",
     "on": "オン",
@@ -10,79 +10,79 @@
 
   "menus": {
     "main_menu": {
-      "start": "Start Game",
+      "start": "ゲームスタート",
       "challenges": "チャレンジ",
-      "options": "Options",
-      "editor": "Editor",
+      "options": "設定",
+      "editor": "レベルエディタ",
       "jukebox": "ジュークボックス",
-      "quit": "Quit"
+      "quit": "辞める"
     },
 
     "pause_menu": {
-      "resume": "Resume",
-      "retry": "Retry",
-      "options": "Options",
-      "title": "Title",
-      "title_confirm": "Title?",
-      "quit": "Quit",
-      "quit_confirm": "Quit?"
+      "resume": "再開",
+      "retry": "リトライ",
+      "options": "設定",
+      "title": "メインメニュー",
+      "title_confirm": "メインメニュー？",
+      "quit": "辞める",
+      "quit_confirm": "辞める？"
     },
 
     "save_menu": {
-      "new": "New Save",
-      "delete_info": "Press Right to Delete",
-      "delete_confirm": "Delete?"
+      "new": "新しいデータ",
+      "delete_info": "右矢印キーで削除",
+      "delete_confirm": "消去？"
     },
 
     "difficulty_menu": {
-      "title": "Select Difficulty",
-      "easy": "Easy",
-      "normal": "Normal",
-      "hard": "Hard"
+      "title": "難易度選択",
+      "easy": "簡単",
+      "normal": "普通",
+      "hard": "難しい"
     },
 
     "challenge_menu": {
-      "start": "Start",
-      "no_replay": "No Replay",
-      "replay_best": "Replay Best"
+      "start": "スタート",
+      "no_replay": "ノーリプレイ",
+      "replay_best": "ベストプレイを再生"
     },
 
     "options_menu": {
-      "graphics": "Graphics...",
+      "graphics": "グラフィック",
       "graphics_menu": {
-        "lighting_effects": "Lighting effects:",
-        "weapon_light_cone": "Weapon light cone:",
-        "motion_interpolation": "Motion interpolation:",
-        "subpixel_scrolling": "Subpixel scrolling:",
-        "original_textures": "Original textures:",
-        "seasonal_textures": "Seasonal textures:",
-        "renderer": "Renderer:"
+        "lighting_effects": "ライティング効果：",
+        "weapon_light_cone": "兵器のライトコーン：",
+        "motion_interpolation": "モーション補間：",
+        "subpixel_scrolling": "サブピクセルスクロール：",
+        "original_textures": "オリジナルテクスチャ：",
+        "seasonal_textures": "季節ものテクスチャ：",
+        "renderer": "レンダラ："
       },
 
-      "sound": "Sound...",
+      "sound": "サウンド",
       "sound_menu": {
         "music_volume": "BGM音量",
         "effects_volume": "サウンド音量",
         "bgm_interpolation": {
-          "entry": "BGM Interpolation:",
-          "linear": "Linear",
-          "linear_desc": "Fast, similar to freeware on Vista+",
-          "cosine": "Cosine",
-          "cosine_desc": "Cosine interpolation",
-          "cubic": "Cubic",
-          "cubic_desc": "Cubic interpolation",
-          "linear_lp": "Linear+LP",
-          "linear_lp_desc": "Slowest, similar to freeware on XP",
-          "nearest": "Nearest",
-          "nearest_desc": "Fastest, lowest quality"
+          "entry": "BGM内挿：",
+          "linear": "線形補間",
+          "linear_desc": "速い、フリーウェア版に近い（Vista+）",
+          "cosine": "余弦",
+          "cosine_desc": "余弦補間",
+          "cubic": "立方体",
+          "cubic_desc": "立方体補間",
+          "linear_lp": "線形補間+LP",
+          "linear_lp_desc": "最も遅い、フリーウェア版に近い（XP）",
+          "nearest": "最近傍",
+          "nearest_desc": "最速、最低品質"
         },
-        "soundtrack": "Soundtrack: {soundtrack}"
+        "soundtrack": "サウンドトラック： {soundtrack}"
       },
 
-      "language": "Language...",
+      "language": "言語",
 
       "game_timing": {
-        "entry": "Game timing:",
+        "entry": "ゲームのタイミング：",
         "50tps": "50tps (freeware)",
         "60tps": "60tps (CS+)"
       }
@@ -92,7 +92,7 @@
   "soundtrack": {
     "organya": "オルガーニャ",
     "remastered": "リマスター",
-    "new": "New",
+    "new": "新",
     "famitracks": "ファミトラック"
   },
 
