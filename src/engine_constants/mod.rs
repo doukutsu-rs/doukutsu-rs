@@ -1726,6 +1726,12 @@ impl EngineConstants {
                 mod_path.push_str("ogph/");
                 self.base_paths.insert(0, mod_path);
             }
+
+            // Nicalis left a landmine of a file in the original graphics for the nemesis challenge
+            // It has 17 colors defined for a 4-bit color depth bitmap
+            if self.is_cs_plus && !self.is_switch {
+                self.base_paths.retain(|path| !path.contains("ogph/"));
+            }
         }
     }
 
