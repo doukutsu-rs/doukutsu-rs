@@ -9,7 +9,7 @@ in [Rust](https://www.rust-lang.org/).
 
 - [Get stable/beta builds from GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases) (executables only,
   no data files bundled, see below for instructions)
-- [Get nightly builds from AppVeyor](https://ci.appveyor.com/project/alula/doukutsu-rs) (select platform -> Artifacts ->
+- [Get nightly builds from AppVeyor](https://ci.appveyor.com/project/alula/doukutsu-rs) (has latest fixes and improvements, select platform -> Artifacts ->
   download the .zip)
 
 #### Data files

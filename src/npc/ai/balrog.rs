@@ -462,6 +462,11 @@ impl NPC {
                     npc.parent_id = self.id;
 
                     let _ = npc_list.spawn(0x100, npc.clone());
+                    if players[1].cond.alive() {
+                        npc.tsc_direction = 4;
+                        let _ = npc_list.spawn(0x100, npc.clone());
+                        npc.tsc_direction = 0;
+                    }
                     npc.direction = Direction::Up;
                     let _ = npc_list.spawn(0x100, npc);
                 }
@@ -1307,7 +1312,12 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n356_balrog_rescuing(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n356_balrog_rescuing(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+        npc_list: &NPCList,
+    ) -> GameResult {
         match self.action_num {
             0 | 11 => {
                 if self.action_num == 0 {
@@ -1319,6 +1329,11 @@ impl NPC {
                     let mut npc = NPC::create(355, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.parent_id = self.id;
+                    if players[1].cond.alive() {
+                        npc.tsc_direction = 5;
+                        let _ = npc_list.spawn(0xAA, npc.clone());
+                        npc.tsc_direction = 6;
+                    }
                     npc.direction = Direction::Bottom;
                     let _ = npc_list.spawn(0xAA, npc.clone());
                     npc.direction = Direction::Right;

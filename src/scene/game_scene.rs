@@ -1439,6 +1439,11 @@ impl GameScene {
             }
         }
 
+        if state.constants.is_switch {
+            self.player1.has_dog = self.inventory_player1.has_item(14);
+            self.player2.has_dog = self.inventory_player2.has_item(14);
+        }
+
         self.water_renderer.tick(state, (&[&self.player1, &self.player2], &self.npc_list))?;
 
         if self.map_name_counter > 0 {

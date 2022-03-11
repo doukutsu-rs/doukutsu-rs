@@ -514,7 +514,7 @@ pub struct NPCConsts {
     pub n149_horizontal_moving_block: Rect<u16>,
 
     #[serde(default = "default_n150_quote")]
-    pub n150_quote: SafeNPCRect<18>,
+    pub n150_quote: SafeNPCRect<20>,
 
     #[serde(default = "default_n151_blue_robot_standing")]
     pub n151_blue_robot_standing: SafeNPCRect<4>,
@@ -1115,6 +1115,7 @@ pub struct NPCConsts {
     #[serde(default = "default_n360_credits_thank_you")]
     pub n360_credits_thank_you: Rect<u16>,
 
+    // pub n370_second_quote: () // Same as n150_quote
     #[serde(default = "default_b01_omega")]
     pub b01_omega: SafeNPCRect<10>,
 
@@ -2853,7 +2854,7 @@ fn default_n149_horizontal_moving_block() -> Rect<u16> {
     Rect { left: 16, top: 0, right: 48, bottom: 32 }
 }
 
-fn default_n150_quote() -> SafeNPCRect<18> {
+fn default_n150_quote() -> SafeNPCRect<20> {
     SafeNPCRect([
         Rect { left: 0, top: 0, right: 16, bottom: 16 },
         Rect { left: 48, top: 0, right: 64, bottom: 16 },
@@ -2864,6 +2865,7 @@ fn default_n150_quote() -> SafeNPCRect<18> {
         Rect { left: 0, top: 0, right: 16, bottom: 16 },
         Rect { left: 160, top: 0, right: 176, bottom: 16 },
         Rect { left: 112, top: 0, right: 128, bottom: 16 },
+        Rect { left: 96, top: 0, right: 112, bottom: 16 },
         Rect { left: 0, top: 16, right: 16, bottom: 32 },
         Rect { left: 48, top: 16, right: 64, bottom: 32 },
         Rect { left: 144, top: 16, right: 160, bottom: 32 },
@@ -2873,6 +2875,7 @@ fn default_n150_quote() -> SafeNPCRect<18> {
         Rect { left: 0, top: 16, right: 16, bottom: 32 },
         Rect { left: 160, top: 16, right: 176, bottom: 32 },
         Rect { left: 112, top: 16, right: 128, bottom: 32 },
+        Rect { left: 96, top: 16, right: 112, bottom: 32 },
     ])
 }
 

@@ -53,6 +53,29 @@ enum BoosterSwitch {
 }
 
 #[derive(Clone)]
+struct DogStack {
+    pub offset_x: f32,
+    pub speed: f32,
+    pub prev_speed: f32,
+}
+
+impl DogStack {
+    const TENSION: f32 = 0.25;
+    const DAMPENING: f32 = 0.1;
+    const MULT: f32 = 1.2;
+
+    pub fn new() -> DogStack {
+        DogStack { offset_x: 0.0, speed: 0.0, prev_speed: 0.0 }
+    }
+
+    pub fn tick(&mut self) {
+        self.prev_speed = self.speed;
+        self.speed += -self.offset_x * DogStack::TENSION as f32 - self.speed * DogStack::DAMPENING;
+        self.offset_x += self.speed;
+    }
+}
+
+#[derive(Clone)]
 pub struct Player {
     pub x: i32,
     pub y: i32,
@@ -98,6 +121,8 @@ pub struct Player {
     anim_counter: u16,
     anim_rect: Rect<u16>,
     weapon_rect: Rect<u16>,
+    dog_stack: Vec<DogStack>,
+    pub has_dog: bool,
 }
 
 impl Player {
@@ -150,6 +175,8 @@ impl Player {
             anim_counter: 0,
             anim_rect: constants.player.frames_right[0],
             weapon_rect: Rect::new(0, 0, 0, 0),
+            dog_stack: Vec::new(),
+            has_dog: false,
         }
     }
 
@@ -910,6 +937,21 @@ impl GameEntity<&NPCList> for Player {
         self.cond.set_increase_acceleration(false);
         self.tick_animation(state);
 
+        let dog_amount = (3000..=3005).filter(|id| state.get_flag(*id as usize)).count();
+        self.dog_stack.resize(dog_amount, DogStack::new());
+
+        if self.has_dog && self.dog_stack.len() > 0 {
+            if self.vel_x.abs() > 0x100 {
+                self.dog_stack[0].speed = (self.vel_x / 2) as f32;
+            }
+            for i in 1..self.dog_stack.len() {
+                self.dog_stack[i].speed = self.dog_stack[i - 1].prev_speed * DogStack::MULT;
+            }
+            for dog in &mut self.dog_stack {
+                dog.tick();
+            }
+        }
+
         Ok(())
     }
 
@@ -921,10 +963,8 @@ impl GameEntity<&NPCList> for Player {
         let (frame_x, frame_y) = frame.xy_interpolated(state.frame_time);
 
         // hack for stacked dogs
-        if state.constants.is_switch {
-            let dog_amount = (3000..=3005).filter(|id| state.get_flag(*id as usize)).count();
-
-            if dog_amount > 0 {
+        if self.has_dog {
+            if self.dog_stack.len() > 0 {
                 let vec_x = self.direction.vector_x() * 0x800;
                 let vec_y = 0x1400;
 
@@ -939,16 +979,16 @@ impl GameEntity<&NPCList> for Player {
                     };
                     let off_y = entry.display_bounds.top as i32 * 0x200;
 
-                    for i in 1..=(dog_amount as i32) {
+                    for i in (1..=(self.dog_stack.len() as i32)).rev() {
                         batch.add_rect(
                             interpolate_fix9_scale(
-                                self.prev_x - off_x - vec_x * i,
-                                self.x - off_x - vec_x * i,
+                                self.prev_x - off_x - vec_x * i - self.dog_stack[i as usize - 1].offset_x as i32,
+                                self.x - off_x - vec_x * i - self.dog_stack[i as usize - 1].offset_x as i32,
                                 state.frame_time,
                             ) - frame_x,
                             interpolate_fix9_scale(
-                                self.prev_y - off_y - vec_y * i,
-                                self.y - off_y - vec_y * i,
+                                self.prev_y - off_y - vec_y * i - (self.y - self.prev_y) * i,
+                                self.y - off_y - vec_y * i - (self.y - self.prev_y) * i,
                                 state.frame_time,
                             ) - frame_y,
                             &state.constants.npc.n136_puppy_carried[frame_id],
