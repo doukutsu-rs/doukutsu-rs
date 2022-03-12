@@ -979,6 +979,9 @@ impl NPC {
                 self.animate(2, 2, 2);
 
                 for player in players {
+                    if !player.cond.alive() || player.cond.hidden() {
+                        continue;
+                    }
                     if player.y > self.y {
                         self.npc_flags.set_solid_hard(false);
                         self.damage = 127;
@@ -1845,6 +1848,9 @@ impl NPC {
                 self.animate(2, 2, 2);
 
                 for player in players {
+                    if !player.cond.alive() || player.cond.hidden() {
+                        continue;
+                    }
                     if player.y > self.y {
                         self.npc_flags.set_solid_hard(false);
                         self.damage = 127;
