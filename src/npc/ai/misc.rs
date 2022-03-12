@@ -982,6 +982,7 @@ impl NPC {
                     if player.y > self.y {
                         self.npc_flags.set_solid_hard(false);
                         self.damage = 127;
+                        break;
                     } else {
                         self.npc_flags.set_solid_hard(true);
                         self.damage = 0;
@@ -1847,6 +1848,7 @@ impl NPC {
                     if player.y > self.y {
                         self.npc_flags.set_solid_hard(false);
                         self.damage = 127;
+                        break;
                     } else {
                         self.npc_flags.set_solid_hard(true);
                         self.damage = 0;
