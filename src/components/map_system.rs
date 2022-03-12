@@ -7,7 +7,7 @@ use crate::framework::error::GameResult;
 use crate::graphics;
 use crate::player::Player;
 use crate::scripting::tsc::text_script::TextScriptExecutionState;
-use crate::shared_game_state::SharedGameState;
+use crate::shared_game_state::{Language, SharedGameState};
 use crate::stage::Stage;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -80,7 +80,13 @@ impl MapSystem {
         Ok(())
     }
 
-    pub fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context, stage: &Stage, players: [&Player; 2]) -> GameResult {
+    pub fn tick(
+        &mut self,
+        state: &mut SharedGameState,
+        ctx: &mut Context,
+        stage: &Stage,
+        players: [&Player; 2],
+    ) -> GameResult {
         if state.textscript_vm.state == TextScriptExecutionState::MapSystem {
             if self.state == MapSystemState::Hidden {
                 state.control_flags.set_control_enabled(false);
@@ -141,13 +147,11 @@ impl MapSystem {
             }
             MapSystemState::Visible => {
                 for player in &players {
-                    if player.controller.trigger_jump() || player.controller.trigger_shoot()
-                    {
+                    if player.controller.trigger_jump() || player.controller.trigger_shoot() {
                         self.state = MapSystemState::FadeOutBox(8);
                         break;
                     }
                 }
-
             }
             _ => (),
         }
@@ -155,7 +159,13 @@ impl MapSystem {
         Ok(())
     }
 
-    pub fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, stage: &Stage, players: [&Player; 2]) -> GameResult {
+    pub fn draw(
+        &self,
+        state: &mut SharedGameState,
+        ctx: &mut Context,
+        stage: &Stage,
+        players: [&Player; 2],
+    ) -> GameResult {
         if self.state == MapSystemState::Hidden {
             return Ok(());
         }
@@ -177,17 +187,16 @@ impl MapSystem {
             graphics::draw_rect(ctx, rect_black_bar, Color::new(0.0, 0.0, 0.0, 1.0))?;
         }
 
-        let map_name_width = state.font.text_width(stage.data.name.chars(), &state.constants);
+        let map_name = if state.settings.locale == Language::Japanese {
+            stage.data.name_jp.chars()
+        } else {
+            stage.data.name.chars()
+        };
+
+        let map_name_width = state.font.text_width(map_name.clone(), &state.constants);
         let map_name_off_x = (state.canvas_size.0 - map_name_width) / 2.0;
 
-        state.font.draw_text(
-            stage.data.name.chars(),
-            map_name_off_x,
-            9.0,
-            &state.constants,
-            &mut state.texture_set,
-            ctx,
-        )?;
+        state.font.draw_text(map_name, map_name_off_x, 9.0, &state.constants, &mut state.texture_set, ctx)?;
 
         let mut map_rect = Rect::new(0.0, 0.0, self.last_size.0 as f32, self.last_size.1 as f32);
 
@@ -232,12 +241,7 @@ impl MapSystem {
             tex.clear();
             tex.add(SpriteBatchCommand::DrawRect(
                 map_rect,
-                Rect::new_size(
-                    (scr_w - width) / 2.0,
-                    (scr_h - height) / 2.0,
-                    map_rect.width(),
-                    map_rect.height(),
-                ),
+                Rect::new_size((scr_w - width) / 2.0, (scr_h - height) / 2.0, map_rect.width(), map_rect.height()),
             ));
             tex.draw()?;
         }
@@ -258,10 +262,7 @@ impl MapSystem {
                 let plr_x = x_offset + (player.x / tile_div) as f32;
                 let plr_y = y_offset + (player.y / tile_div) as f32;
 
-                batch.add_rect(
-                    plr_x, plr_y,
-                    &PLAYER_RECT,
-                );
+                batch.add_rect(plr_x, plr_y, &PLAYER_RECT);
             }
 
             batch.draw(ctx)?;

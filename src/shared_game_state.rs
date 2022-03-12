@@ -409,7 +409,7 @@ impl SharedGameState {
         self.constants.load_csplus_tables(ctx)?;
         self.constants.load_animated_faces(ctx)?;
         self.constants.load_texture_size_hints(ctx)?;
-        let stages = StageData::load_stage_table(ctx, &self.constants.base_paths)?;
+        let stages = StageData::load_stage_table(ctx, &self.constants.base_paths, self.constants.is_switch)?;
         self.stages = stages;
 
         let npc_tbl = filesystem::open_find(ctx, &self.constants.base_paths, "/npc.tbl")?;

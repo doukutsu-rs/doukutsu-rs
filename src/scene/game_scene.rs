@@ -46,7 +46,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
-use crate::shared_game_state::{ReplayState, SharedGameState, TileSize};
+use crate::shared_game_state::{Language, ReplayState, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
 use crate::weapon::bullet::BulletManager;
@@ -1950,7 +1950,11 @@ impl Scene for GameScene {
             let map_name = if self.stage.data.name == "u" {
                 state.constants.title.intro_text.chars()
             } else {
-                self.stage.data.name.chars()
+                if state.settings.locale == Language::Japanese {
+                    self.stage.data.name_jp.chars()
+                } else {
+                    self.stage.data.name.chars()
+                }
             };
             let width = state.font.text_width(map_name.clone(), &state.constants);
 

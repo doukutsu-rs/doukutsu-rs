@@ -410,7 +410,7 @@ impl Menu {
                 }
                 MenuEntry::NewSave => {
                     state.font.draw_text(
-                        "New Save".chars(),
+                        state.t("menus.save_menu.new").chars(),
                         self.x as f32 + 20.0,
                         y,
                         &state.constants,
