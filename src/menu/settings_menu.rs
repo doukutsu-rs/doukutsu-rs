@@ -192,22 +192,27 @@ impl SettingsMenu {
     }
 
     fn update_sizes(&mut self, state: &SharedGameState) {
+        self.main.update_width(state);
         self.main.update_height();
         self.main.x = ((state.canvas_size.0 - self.main.width as f32) / 2.0).floor() as isize;
         self.main.y = 30 + ((state.canvas_size.1 - self.main.height as f32) / 2.0).floor() as isize;
 
+        self.graphics.update_width(state);
         self.graphics.update_height();
         self.graphics.x = ((state.canvas_size.0 - self.graphics.width as f32) / 2.0).floor() as isize;
         self.graphics.y = 30 + ((state.canvas_size.1 - self.graphics.height as f32) / 2.0).floor() as isize;
 
+        self.sound.update_width(state);
         self.sound.update_height();
         self.sound.x = ((state.canvas_size.0 - self.sound.width as f32) / 2.0).floor() as isize;
         self.sound.y = 30 + ((state.canvas_size.1 - self.sound.height as f32) / 2.0).floor() as isize;
 
+        self.soundtrack.update_width(state);
         self.soundtrack.update_height();
         self.soundtrack.x = ((state.canvas_size.0 - self.soundtrack.width as f32) / 2.0).floor() as isize;
         self.soundtrack.y = ((state.canvas_size.1 - self.soundtrack.height as f32) / 2.0).floor() as isize;
 
+        self.language.update_width(state);
         self.language.update_height();
         self.language.x = ((state.canvas_size.0 - self.language.width as f32) / 2.0).floor() as isize;
         self.language.y = ((state.canvas_size.1 - self.language.height as f32) / 2.0).floor() as isize;

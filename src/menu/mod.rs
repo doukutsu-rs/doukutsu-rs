@@ -97,6 +97,68 @@ impl Menu {
         self.entries.push(entry);
     }
 
+    pub fn update_width(&mut self, state: &SharedGameState) {
+        let mut width = self.width as f32;
+
+        for entry in &self.entries {
+            match entry {
+                MenuEntry::Hidden => {}
+                MenuEntry::Active(entry) | MenuEntry::DisabledWhite(entry) | MenuEntry::Disabled(entry) => {
+                    let entry_width = state.font.text_width(entry.chars(), &state.constants) + 32.0;
+                    width = width.max(entry_width);
+                }
+                MenuEntry::Toggle(entry, _) => {
+                    let mut entry_with_option = entry.clone();
+                    entry_with_option.push_str(" ");
+
+                    let longest_option_width = if state.t("common.off").len() > state.t("common.on").len() {
+                        state.font.text_width(state.t("common.off").chars(), &state.constants)
+                    } else {
+                        state.font.text_width(state.t("common.on").chars(), &state.constants)
+                    };
+
+                    let entry_width = state.font.text_width(entry_with_option.chars(), &state.constants)
+                        + longest_option_width
+                        + 32.0;
+                    width = width.max(entry_width);
+                }
+                MenuEntry::Options(entry, _, options) => {
+                    let mut entry_with_option = entry.clone();
+                    entry_with_option.push_str(" ");
+
+                    let longest_option = options.iter().max_by(|&a, &b| a.len().cmp(&b.len())).unwrap();
+                    entry_with_option.push_str(longest_option);
+
+                    let entry_width = state.font.text_width(entry_with_option.chars(), &state.constants) + 32.0;
+                    width = width.max(entry_width);
+                }
+                MenuEntry::DescriptiveOptions(entry, _, options, descriptions) => {
+                    let mut entry_with_option = entry.clone();
+                    entry_with_option.push_str(" ");
+
+                    let longest_option = options.iter().max_by(|&a, &b| a.len().cmp(&b.len())).unwrap();
+                    entry_with_option.push_str(longest_option);
+
+                    let entry_width = state.font.text_width(entry_with_option.chars(), &state.constants) + 32.0;
+                    width = width.max(entry_width);
+
+                    let longest_description = descriptions.iter().max_by(|&a, &b| a.len().cmp(&b.len())).unwrap();
+                    let description_width = state.font.text_width(longest_description.chars(), &state.constants) + 32.0;
+                    width = width.max(description_width);
+                }
+                MenuEntry::OptionsBar(entry, _) => {
+                    let bar_width = if state.constants.is_switch { 81.0 } else { 109.0 };
+                    let entry_width = state.font.text_width(entry.chars(), &state.constants) + 32.0 + bar_width;
+                    width = width.max(entry_width);
+                }
+                MenuEntry::SaveData(_) => {}
+                MenuEntry::NewSave => {}
+            }
+        }
+
+        self.width = width.max(16.0) as u16;
+    }
+
     pub fn update_height(&mut self) {
         let mut height = 8.0;
 

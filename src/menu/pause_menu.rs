@@ -73,9 +73,12 @@ impl PauseMenu {
     }
 
     fn update_sizes(&mut self, state: &SharedGameState) {
+        self.pause_menu.update_width(state);
         self.pause_menu.update_height();
         self.pause_menu.x = ((state.canvas_size.0 - self.pause_menu.width as f32) / 2.0).floor() as isize;
         self.pause_menu.y = ((state.canvas_size.1 - self.pause_menu.height as f32) / 2.0).floor() as isize;
+
+        self.confirm_menu.update_width(state);
         self.confirm_menu.update_height();
         self.confirm_menu.x = ((state.canvas_size.0 - self.confirm_menu.width as f32) / 2.0).floor() as isize;
         self.confirm_menu.y = ((state.canvas_size.1 - self.confirm_menu.height as f32) / 2.0).floor() as isize;
