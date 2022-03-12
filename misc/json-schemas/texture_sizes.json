@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "JSON schema for texture sizes",
+  "type": "object",
+  "properties": {
+    "sizes": {
+      "description": "List of textures and their sizes to prevent accidental scaling being applied",
+      "type": "object",
+      "patternProperties": {
+        "^.*$": {
+          "description": "Location and Width/Height of texture",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 65535
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 65535
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
