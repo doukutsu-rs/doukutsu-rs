@@ -156,7 +156,8 @@ impl Menu {
             }
         }
 
-        self.width = width.max(16.0) as u16;
+        width = width.max(16.0);
+        self.width = if (width + 4.0) % 8.0 != 0.0 { (width + 4.0 - width % 8.0) as u16 } else { width as u16 };
     }
 
     pub fn update_height(&mut self) {
