@@ -440,7 +440,14 @@ impl Map {
                         bounds,
                         color_idx,
                     ));
-                    length = 0;
+                    if x == max_x - 1 {
+                        length = 1;
+                        let attr_up =
+                            if rect.top > 0 { self.get_attribute(x as usize + 1, line_up as usize) } else { 0x41 };
+                        make_water_line = !SOLID_TILES.contains(&attr_up) && !WATER_TILES.contains(&attr_up);
+                    } else {
+                        length = 0;
+                    }
                 } else {
                     length = 0;
                 }
