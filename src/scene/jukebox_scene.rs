@@ -66,7 +66,13 @@ impl Scene for JukeboxScene {
         self.controller.add(state.settings.create_player1_controller());
         self.controller.add(state.settings.create_player2_controller());
 
-        self.song_list = state.constants.music_table.iter().filter(|song| !song.contains("fanfale")).cloned().collect();
+        self.song_list = state
+            .constants
+            .music_table
+            .iter()
+            .filter(|song| !song.contains("fanfale") && !song.contains("ika"))
+            .cloned()
+            .collect();
 
         let mut soundtrack_entries =
             state.constants.soundtracks.iter().filter(|s| s.available).map(|s| s.name.to_owned()).collect_vec();
