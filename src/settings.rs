@@ -55,7 +55,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    6
+    7
 }
 
 #[inline(always)]
@@ -76,6 +76,11 @@ fn default_speed() -> f64 {
 #[inline(always)]
 fn default_vol() -> f32 {
     1.0
+}
+
+#[inline(always)]
+fn default_locale() -> Language {
+    Language::English
 }
 
 impl Settings {
@@ -113,6 +118,11 @@ impl Settings {
             self.version = 6;
             self.player1_key_map.strafe = ScanCode::LShift;
             self.player2_key_map.strafe = ScanCode::RShift;
+        }
+
+        if self.version == 6 {
+            self.version = 7;
+            self.locale = default_locale();
         }
 
         if self.version != initial_version {
