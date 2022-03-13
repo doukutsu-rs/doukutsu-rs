@@ -13,7 +13,7 @@ use crate::menu::settings_menu::SettingsMenu;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::jukebox_scene::JukeboxScene;
 use crate::scene::Scene;
-use crate::shared_game_state::{GameDifficulty, MenuCharacter, ReplayState, SharedGameState, TileSize};
+use crate::shared_game_state::{GameDifficulty, MenuCharacter, ReplayState, Season, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -99,7 +99,7 @@ impl TitleScene {
 
     pub fn update_menu_cursor(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let minutes = self.nikumaru_rec.tick / (60 * state.settings.timing_mode.get_tps());
-        let song_id: usize;
+        let mut song_id: usize;
 
         if self.nikumaru_rec.shown && minutes < 3 {
             state.menu_character = MenuCharacter::Sue;
@@ -116,6 +116,10 @@ impl TitleScene {
         } else {
             state.menu_character = MenuCharacter::Quote;
             song_id = 24;
+        }
+
+        if state.settings.soundtrack == "New" && Season::current() == Season::PixelBirthday {
+            song_id = 43;
         }
 
         if song_id != state.sound_manager.current_song() {

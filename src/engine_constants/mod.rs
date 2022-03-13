@@ -1609,6 +1609,7 @@ impl EngineConstants {
                 "toroko".to_owned(),
                 "white".to_owned(),
                 "kaze".to_owned(),
+                "ika".to_owned(),
             ],
             organya_paths: vec![
                 "/org/".to_owned(),          // NXEngine

@@ -109,6 +109,7 @@ pub enum Season {
     None,
     Halloween,
     Christmas,
+    PixelBirthday,
 }
 
 impl Season {
@@ -119,6 +120,8 @@ impl Season {
             Season::Halloween
         } else if (now.month() == 12 && now.day() > 23) || (now.month() == 0 && now.day() < 7) {
             Season::Christmas
+        } else if (now.month() == 4 && now.day() == 29) {
+            Season::PixelBirthday
         } else {
             Season::None
         }
