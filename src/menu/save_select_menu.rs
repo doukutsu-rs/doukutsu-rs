@@ -71,20 +71,20 @@ impl SaveSelectMenu {
             }
         }
 
-        self.save_menu.push_entry(MenuEntry::Active("< Back".to_owned()));
-        self.save_menu.push_entry(MenuEntry::Disabled("Press Right to Delete".to_owned()));
+        self.save_menu.push_entry(MenuEntry::Active(state.t("common.back")));
+        self.save_menu.push_entry(MenuEntry::Disabled(state.t("menus.save_menu.delete_info")));
 
-        self.difficulty_menu.push_entry(MenuEntry::Disabled("Select Difficulty".to_owned()));
-        self.difficulty_menu.push_entry(MenuEntry::Active("Easy".to_owned()));
-        self.difficulty_menu.push_entry(MenuEntry::Active("Normal".to_owned()));
-        self.difficulty_menu.push_entry(MenuEntry::Active("Hard".to_owned()));
-        self.difficulty_menu.push_entry(MenuEntry::Active("< Back".to_owned()));
+        self.difficulty_menu.push_entry(MenuEntry::Disabled(state.t("menus.difficulty_menu.title")));
+        self.difficulty_menu.push_entry(MenuEntry::Active(state.t("menus.difficulty_menu.easy")));
+        self.difficulty_menu.push_entry(MenuEntry::Active(state.t("menus.difficulty_menu.normal")));
+        self.difficulty_menu.push_entry(MenuEntry::Active(state.t("menus.difficulty_menu.hard")));
+        self.difficulty_menu.push_entry(MenuEntry::Active(state.t("common.back")));
 
         self.difficulty_menu.selected = 2;
 
-        self.delete_confirm.push_entry(MenuEntry::Disabled("Delete?".to_owned()));
-        self.delete_confirm.push_entry(MenuEntry::Active("Yes".to_owned()));
-        self.delete_confirm.push_entry(MenuEntry::Active("No".to_owned()));
+        self.delete_confirm.push_entry(MenuEntry::Disabled(state.t("menus.save_menu.delete_confirm")));
+        self.delete_confirm.push_entry(MenuEntry::Active(state.t("common.yes")));
+        self.delete_confirm.push_entry(MenuEntry::Active(state.t("common.no")));
 
         self.delete_confirm.selected = 2;
 
@@ -98,13 +98,18 @@ impl SaveSelectMenu {
     }
 
     fn update_sizes(&mut self, state: &SharedGameState) {
+        self.save_menu.update_width(state);
         self.save_menu.update_height();
         self.save_menu.x = ((state.canvas_size.0 - self.save_menu.width as f32) / 2.0).floor() as isize;
         self.save_menu.y = 30 + ((state.canvas_size.1 - self.save_menu.height as f32) / 2.0).floor() as isize;
+
+        self.difficulty_menu.update_width(state);
         self.difficulty_menu.update_height();
         self.difficulty_menu.x = ((state.canvas_size.0 - self.difficulty_menu.width as f32) / 2.0).floor() as isize;
         self.difficulty_menu.y =
             30 + ((state.canvas_size.1 - self.difficulty_menu.height as f32) / 2.0).floor() as isize;
+
+        self.delete_confirm.update_width(state);
         self.delete_confirm.update_height();
         self.delete_confirm.x = ((state.canvas_size.0 - self.delete_confirm.width as f32) / 2.0).floor() as isize;
         self.delete_confirm.y = 30 + ((state.canvas_size.1 - self.delete_confirm.height as f32) / 2.0).floor() as isize

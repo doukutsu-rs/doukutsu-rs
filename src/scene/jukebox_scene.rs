@@ -32,6 +32,7 @@ impl JukeboxScene {
             map: Map { width: 0, height: 0, tiles: vec![], attrib: [0; 0x100], tile_size: TileSize::Tile16x16 },
             data: StageData {
                 name: "".to_string(),
+                name_jp: "".to_string(),
                 map: "".to_string(),
                 boss_no: 0,
                 tileset: Tileset { name: "0".to_string() },

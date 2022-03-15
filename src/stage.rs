@@ -199,6 +199,7 @@ pub struct PxPackStageData {
 #[derive(Debug)]
 pub struct StageData {
     pub name: String,
+    pub name_jp: String,
     pub map: String,
     pub boss_no: u8,
     pub tileset: Tileset,
@@ -214,6 +215,7 @@ impl Clone for StageData {
     fn clone(&self) -> Self {
         StageData {
             name: self.name.clone(),
+            name_jp: self.name_jp.clone(),
             map: self.map.clone(),
             boss_no: self.boss_no,
             tileset: self.tileset.clone(),
@@ -274,8 +276,16 @@ fn from_shift_jis(s: &[u8]) -> String {
     chars.iter().collect()
 }
 
+fn from_csplus_stagetbl(s: &[u8], is_switch: bool) -> String {
+    if is_switch {
+        from_utf8(s).unwrap_or("").trim_matches('\0').to_string()
+    } else {
+        from_shift_jis(s)
+    }
+}
+
 impl StageData {
-    pub fn load_stage_table(ctx: &mut Context, roots: &Vec<String>) -> GameResult<Vec<Self>> {
+    pub fn load_stage_table(ctx: &mut Context, roots: &Vec<String>, is_switch: bool) -> GameResult<Vec<Self>> {
         let stage_tbl_path = "/stage.tbl";
         let stage_sect_path = "/stage.sect";
         let mrmap_bin_path = "/mrmap.bin";
@@ -316,15 +326,17 @@ impl StageData {
                         f.read_exact(&mut name_jap_buf)?;
                         f.read_exact(&mut name_buf)?;
 
-                        let tileset = from_shift_jis(&ts_buf[0..zero_index(&ts_buf)]);
-                        let map = from_shift_jis(&map_buf[0..zero_index(&map_buf)]);
-                        let background = from_shift_jis(&back_buf[0..zero_index(&back_buf)]);
-                        let npc1 = from_shift_jis(&npc1_buf[0..zero_index(&npc1_buf)]);
-                        let npc2 = from_shift_jis(&npc2_buf[0..zero_index(&npc2_buf)]);
-                        let name = from_shift_jis(&name_buf[0..zero_index(&name_buf)]);
+                        let tileset = from_csplus_stagetbl(&ts_buf[0..zero_index(&ts_buf)], is_switch);
+                        let map = from_csplus_stagetbl(&map_buf[0..zero_index(&map_buf)], is_switch);
+                        let background = from_csplus_stagetbl(&back_buf[0..zero_index(&back_buf)], is_switch);
+                        let npc1 = from_csplus_stagetbl(&npc1_buf[0..zero_index(&npc1_buf)], is_switch);
+                        let npc2 = from_csplus_stagetbl(&npc2_buf[0..zero_index(&npc2_buf)], is_switch);
+                        let name = from_csplus_stagetbl(&name_buf[0..zero_index(&name_buf)], is_switch);
+                        let name_jp = from_csplus_stagetbl(&name_jap_buf[0..zero_index(&name_jap_buf)], is_switch);
 
                         let stage = StageData {
                             name: name.clone(),
+                            name_jp: name_jp.clone(),
                             map: map.clone(),
                             boss_no,
                             tileset: Tileset::new(&tileset),
@@ -389,6 +401,7 @@ impl StageData {
 
                 let stage = StageData {
                     name: name.clone(),
+                    name_jp: name.clone(),
                     map: map.clone(),
                     boss_no,
                     tileset: Tileset::new(&tileset),
@@ -447,6 +460,7 @@ impl StageData {
 
                 let stage = StageData {
                     name: name.clone(),
+                    name_jp: name.clone(),
                     map: map.clone(),
                     boss_no,
                     tileset: Tileset::new(&tileset),
@@ -503,6 +517,7 @@ impl StageData {
 
                 let stage = StageData {
                     name: name.clone(),
+                    name_jp: name.clone(),
                     map: map.clone(),
                     boss_no,
                     tileset: Tileset::new(NXENGINE_TILESETS.get(tileset_id).unwrap_or(&"0")),

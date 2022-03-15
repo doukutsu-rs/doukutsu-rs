@@ -1,0 +1,102 @@
+{
+  "common": {
+    "name": "doukutsu-rs",
+    "back": "< 戻る",
+    "yes": "はい",
+    "no": "いいえ",
+    "on": "オン",
+    "off": "オフ"
+  },
+
+  "menus": {
+    "main_menu": {
+      "start": "ゲームスタート",
+      "challenges": "チャレンジ",
+      "options": "設定",
+      "editor": "レベルエディタ",
+      "jukebox": "ジュークボックス",
+      "quit": "辞める"
+    },
+
+    "pause_menu": {
+      "resume": "再開",
+      "retry": "リトライ",
+      "options": "設定",
+      "title": "メインメニュー",
+      "title_confirm": "メインメニュー？",
+      "quit": "辞める",
+      "quit_confirm": "辞める？"
+    },
+
+    "save_menu": {
+      "new": "新しいデータ",
+      "delete_info": "右矢印キーで削除",
+      "delete_confirm": "消去？"
+    },
+
+    "difficulty_menu": {
+      "title": "難易度選択",
+      "easy": "簡単",
+      "normal": "普通",
+      "hard": "難しい"
+    },
+
+    "challenge_menu": {
+      "start": "スタート",
+      "no_replay": "ノーリプレイ",
+      "replay_best": "ベストプレイを再生"
+    },
+
+    "options_menu": {
+      "graphics": "グラフィック",
+      "graphics_menu": {
+        "lighting_effects": "ライティング効果：",
+        "weapon_light_cone": "兵器のライトコーン：",
+        "motion_interpolation": "モーション補間：",
+        "subpixel_scrolling": "サブピクセルスクロール：",
+        "original_textures": "オリジナルテクスチャ：",
+        "seasonal_textures": "季節ものテクスチャ：",
+        "renderer": "レンダラ："
+      },
+
+      "sound": "サウンド",
+      "sound_menu": {
+        "music_volume": "BGM音量",
+        "effects_volume": "サウンド音量",
+        "bgm_interpolation": {
+          "entry": "BGM内挿：",
+          "linear": "線形補間",
+          "linear_desc": "速い、フリーウェア版に近い（Vista+）",
+          "cosine": "余弦",
+          "cosine_desc": "余弦補間",
+          "cubic": "立方体",
+          "cubic_desc": "立方体補間",
+          "linear_lp": "線形補間+LP",
+          "linear_lp_desc": "最も遅い、フリーウェア版に近い（XP）",
+          "nearest": "最近傍",
+          "nearest_desc": "最速、最低品質"
+        },
+        "soundtrack": "サウンドトラック： {soundtrack}"
+      },
+
+      "language": "言語",
+
+      "game_timing": {
+        "entry": "ゲームのタイミング：",
+        "50tps": "50tps (freeware)",
+        "60tps": "60tps (CS+)"
+      }
+    }
+  },
+
+  "soundtrack": {
+    "organya": "オルガーニャ",
+    "remastered": "リマスター",
+    "new": "新",
+    "famitracks": "ファミトラック"
+  },
+
+  "game": {
+    "cutscene_skip": "{key} を押し続け、カットシーンをスキップ"
+  }
+}
