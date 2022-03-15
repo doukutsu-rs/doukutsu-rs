@@ -260,12 +260,14 @@ impl Player {
                 let trigger_only_down = self.controller.trigger_down()
                     && !self.controller.trigger_up()
                     && !self.controller.trigger_left()
-                    && !self.controller.trigger_right();
+                    && !self.controller.trigger_right()
+                    && !self.controller.trigger_shoot();
 
                 let only_down = self.controller.move_down()
                     && !self.controller.move_up()
                     && !self.controller.move_left()
-                    && !self.controller.move_right();
+                    && !self.controller.move_right()
+                    && !self.controller.shoot();
 
                 if trigger_only_down
                     && only_down
