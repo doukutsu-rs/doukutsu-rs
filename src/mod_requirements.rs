@@ -1,5 +1,3 @@
-use byteorder::{ReadBytesExt, WriteBytesExt, LE};
-
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
@@ -10,8 +8,8 @@ pub struct ModRequirements {
     pub version: u32,
 
     pub beat_hell: bool,
-    pub weapons: [u16; 8],
-    pub items: [u16; 32],
+    pub weapons: Vec<u16>,
+    pub items: Vec<u16>,
 }
 
 #[inline(always)]
@@ -21,27 +19,14 @@ fn current_version() -> u32 {
 
 impl ModRequirements {
     pub fn load(ctx: &Context) -> GameResult<ModRequirements> {
-        let mut version = current_version();
-        let mut beat_hell: bool = false;
-        let mut weapons = [0u16; 8];
-        let mut items = [0u16; 32];
-
-        if let Ok(mut file) = filesystem::user_open(ctx, "/mod.req") {
-            version = file.read_u32::<LE>()?;
-            beat_hell = file.read_u16::<LE>()? != 0;
-
-            for weapon in &mut weapons {
-                *weapon = file.read_u16::<LE>()?;
-            }
-
-            for item in &mut items {
-                *item = file.read_u16::<LE>()?;
+        if let Ok(file) = filesystem::user_open(ctx, "/mod_req.json") {
+            match serde_json::from_reader::<_, ModRequirements>(file) {
+                Ok(mod_req) => return Ok(mod_req.upgrade()),
+                Err(err) => log::warn!("Failed to deserialize mod requirements: {}", err),
             }
         }
 
-        let mod_requirements = ModRequirements { version, beat_hell, weapons, items };
-
-        Ok(mod_requirements.upgrade())
+        Ok(ModRequirements::default())
     }
 
     fn upgrade(mut self) -> Self {
@@ -49,68 +34,41 @@ impl ModRequirements {
     }
 
     pub fn save(&self, ctx: &Context) -> GameResult {
-        let mut file = filesystem::user_create(ctx, "/mod.req")?;
-        file.write_u32::<LE>(self.version)?;
-        file.write_u16::<LE>(self.beat_hell as u16)?;
-
-        for weapon in &self.weapons {
-            file.write_u16::<LE>(*weapon)?;
-        }
-
-        for item in &self.items {
-            file.write_u16::<LE>(*item)?;
-        }
+        let file = filesystem::user_create(ctx, "/mod_req.json")?;
+        serde_json::to_writer_pretty(file, self)?;
 
         Ok(())
     }
 
     pub fn append_weapon(&mut self, ctx: &Context, weapon_id: u16) -> GameResult {
-        for i in 0..self.weapons.len() {
-            if self.weapons[i] == weapon_id {
-                return Ok(());
-            }
-
-            if self.weapons[i] == 0 {
-                self.weapons[i] = weapon_id;
-                break;
-            }
+        if self.weapons.contains(&weapon_id) {
+            return Ok(());
         }
 
+        self.weapons.push(weapon_id);
         self.save(ctx)
     }
 
     pub fn append_item(&mut self, ctx: &Context, item_id: u16) -> GameResult {
-        for i in 0..self.items.len() {
-            if self.items[i] == item_id {
-                return Ok(());
-            }
-
-            if self.items[i] == 0 {
-                self.items[i] = item_id;
-                break;
-            }
+        if self.items.contains(&item_id) {
+            return Ok(());
         }
 
+        self.items.push(item_id);
         self.save(ctx)
     }
 
     pub fn has_weapon(&self, weapon_id: u16) -> bool {
-        for weapon in &self.weapons {
-            if *weapon == weapon_id {
-                return true;
-            }
-        }
-
-        false
+        self.weapons.contains(&weapon_id)
     }
 
     pub fn has_item(&self, item_id: u16) -> bool {
-        for item in &self.items {
-            if *item == item_id {
-                return true;
-            }
-        }
+        self.items.contains(&item_id)
+    }
+}
 
-        false
+impl Default for ModRequirements {
+    fn default() -> Self {
+        ModRequirements { version: current_version(), beat_hell: false, weapons: Vec::new(), items: Vec::new() }
     }
 }

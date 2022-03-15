@@ -63,7 +63,7 @@ impl GameProfile {
                 continue;
             }
 
-            state.mod_requirements.append_weapon(ctx, weapon.weapon_id as u16);
+            let _ = state.mod_requirements.append_weapon(ctx, weapon.weapon_id as u16);
             let weapon_type: Option<WeaponType> = FromPrimitive::from_u8(weapon.weapon_id as u8);
 
             if let Some(wtype) = weapon_type {
@@ -83,7 +83,7 @@ impl GameProfile {
 
         for item in self.items.iter().copied() {
             let item_id = item as u16;
-            state.mod_requirements.append_item(ctx, item_id);
+            let _ = state.mod_requirements.append_item(ctx, item_id);
 
             let amount = (item >> 16) as u16;
             if item_id == 0 {
