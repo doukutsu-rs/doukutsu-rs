@@ -4,6 +4,7 @@ use std::iter::Peekable;
 use std::str::Chars;
 
 use crate::framework::filesystem;
+use crate::mod_requirements::ModRequirements;
 use crate::{Context, GameResult};
 
 #[derive(Debug)]
@@ -15,6 +16,18 @@ pub struct ModInfo {
     pub path: String,
     pub name: String,
     pub description: String,
+}
+
+impl ModInfo {
+    pub fn satisfies_requirement(&self, mod_requirements: &ModRequirements) -> bool {
+        match self.requirement {
+            Requirement::Unlocked => true,
+            Requirement::Locked => false,
+            Requirement::RequireHell => mod_requirements.beat_hell,
+            Requirement::RequireItem(item_id) => mod_requirements.has_item(item_id),
+            Requirement::RequireWeapon(weapon_id) => mod_requirements.has_weapon(weapon_id),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -85,7 +98,6 @@ impl ModList {
                                 } else if c == '-' {
                                     requirement = Requirement::Locked;
                                 } else if c == 'I' {
-                                    chars.next();
                                     let mut item_id = String::new();
                                     for c in &mut chars {
                                         if c == ' ' {
@@ -96,7 +108,6 @@ impl ModList {
                                     }
                                     requirement = Requirement::RequireItem(item_id.parse().unwrap_or(0));
                                 } else if c == 'A' {
-                                    chars.next();
                                     let mut weapon_id = String::new();
                                     for c in &mut chars {
                                         if c == ' ' {

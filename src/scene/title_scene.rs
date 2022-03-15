@@ -171,10 +171,23 @@ impl Scene for TitleScene {
 
         self.save_select_menu.init(state, ctx)?;
 
+        let mut selected: usize = 0;
+        let mut mutate_selection = true;
+
         for mod_info in state.mod_list.mods.iter() {
-            self.challenges_menu.push_entry(MenuEntry::Active(mod_info.name.clone()));
+            if mod_info.satisfies_requirement(&state.mod_requirements) {
+                self.challenges_menu.push_entry(MenuEntry::Active(mod_info.name.clone()));
+                mutate_selection = false;
+            } else {
+                self.challenges_menu.push_entry(MenuEntry::Disabled("???".to_owned()));
+
+                if mutate_selection {
+                    selected += 1;
+                }
+            }
         }
         self.challenges_menu.push_entry(MenuEntry::Active(state.t("common.back")));
+        self.challenges_menu.selected = selected;
 
         self.confirm_menu.push_entry(MenuEntry::Disabled("".to_owned()));
         self.confirm_menu.push_entry(MenuEntry::Active(state.t("menus.challenge_menu.start")));

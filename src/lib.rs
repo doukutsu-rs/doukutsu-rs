@@ -49,6 +49,7 @@ mod macros;
 mod map;
 mod menu;
 mod mod_list;
+mod mod_requirements;
 #[cfg(feature = "netplay")]
 mod netplay;
 mod npc;
