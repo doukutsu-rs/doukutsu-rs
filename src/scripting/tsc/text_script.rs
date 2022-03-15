@@ -1485,10 +1485,12 @@ impl TextScriptVM {
 
                 if !game_scene.inventory_player1.has_item(item_id) {
                     game_scene.inventory_player1.add_item(item_id);
+                    state.mod_requirements.append_item(ctx, item_id)?;
                 }
 
                 if !game_scene.inventory_player2.has_item(item_id) {
                     game_scene.inventory_player2.add_item(item_id);
+                    state.mod_requirements.append_item(ctx, item_id)?;
                 }
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1499,10 +1501,12 @@ impl TextScriptVM {
 
                 if game_scene.inventory_player1.has_item_amount(item_id, Ordering::Less, amount) {
                     game_scene.inventory_player1.add_item(item_id);
+                    state.mod_requirements.append_item(ctx, item_id)?;
                 }
 
                 if game_scene.inventory_player2.has_item_amount(item_id, Ordering::Less, amount) {
                     game_scene.inventory_player2.add_item(item_id);
+                    state.mod_requirements.append_item(ctx, item_id)?;
                 }
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1525,6 +1529,7 @@ impl TextScriptVM {
                 if let Some(wtype) = weapon_type {
                     game_scene.inventory_player1.add_weapon(wtype, max_ammo);
                     game_scene.inventory_player2.add_weapon(wtype, max_ammo);
+                    state.mod_requirements.append_weapon(ctx, weapon_id as u16)?;
                 }
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1680,6 +1685,11 @@ impl TextScriptVM {
             }
             TSCOpCode::XX1 => {
                 let mode = read_cur_varint(&mut cursor)?;
+
+                if mode != 0 && !state.mod_requirements.beat_hell {
+                    state.mod_requirements.beat_hell = true;
+                    state.mod_requirements.save(ctx)?;
+                }
 
                 exec_state = TextScriptExecutionState::FallingIsland(
                     event,

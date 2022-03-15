@@ -21,6 +21,7 @@ use crate::hooks::init_hooks;
 use crate::i18n::Locale;
 use crate::input::touch_controls::TouchControls;
 use crate::mod_list::ModList;
+use crate::mod_requirements::ModRequirements;
 use crate::npc::NPCTable;
 use crate::profile::GameProfile;
 use crate::rng::XorShift;
@@ -265,6 +266,7 @@ pub struct SharedGameState {
     pub save_slot: usize,
     pub difficulty: GameDifficulty,
     pub replay_state: ReplayState,
+    pub mod_requirements: ModRequirements,
     pub shutdown: bool,
 }
 
@@ -273,6 +275,7 @@ impl SharedGameState {
         let mut constants = EngineConstants::defaults();
         let sound_manager = SoundManager::new(ctx)?;
         let settings = Settings::load(ctx)?;
+        let mod_requirements = ModRequirements::load(ctx)?;
 
         constants.load_locales(ctx)?;
 
@@ -389,6 +392,7 @@ impl SharedGameState {
             save_slot: 1,
             difficulty: GameDifficulty::Normal,
             replay_state: ReplayState::None,
+            mod_requirements,
             shutdown: false,
         })
     }
