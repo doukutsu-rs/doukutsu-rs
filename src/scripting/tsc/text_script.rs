@@ -567,9 +567,6 @@ impl TextScriptVM {
                         } else if tick == 750 {
                             tick = 900;
                         }
-
-                        state.mod_requirements.beat_hell = true;
-                        state.mod_requirements.save(ctx)?;
                     } else {
                         pos_y += 0x33;
                     }
@@ -1688,6 +1685,11 @@ impl TextScriptVM {
             }
             TSCOpCode::XX1 => {
                 let mode = read_cur_varint(&mut cursor)?;
+
+                if mode != 0 && !state.mod_requirements.beat_hell {
+                    state.mod_requirements.beat_hell = true;
+                    state.mod_requirements.save(ctx)?;
+                }
 
                 exec_state = TextScriptExecutionState::FallingIsland(
                     event,
