@@ -123,6 +123,11 @@ impl TextScript {
             }
         }
 
+        // Some nicalis challenges are very broken
+        if !strict {
+            put_varint(TSCOpCode::_END as i32, &mut bytecode);
+        }
+
         Ok(bytecode)
     }
 

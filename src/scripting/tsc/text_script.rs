@@ -267,7 +267,7 @@ impl TextScriptVM {
 
     pub fn run(state: &mut SharedGameState, game_scene: &mut GameScene, ctx: &mut Context) -> GameResult {
         let scripts_ref = state.textscript_vm.scripts.clone();
-        let scripts = scripts_ref.borrow_mut();
+        let scripts = scripts_ref.borrow();
         let mut cached_event: Option<(u16, &Vec<u8>)> = None;
 
         loop {
@@ -638,8 +638,16 @@ impl TextScriptVM {
                 }
             }
             TSCOpCode::_END => {
-                state.textscript_vm.flags.set_cutscene_skip(false);
-                exec_state = TextScriptExecutionState::Ended;
+                // Vanilla keeps execution going into the next event if no proper end condition is met
+                let scripts_ref = state.textscript_vm.scripts.clone();
+                let scripts = scripts_ref.borrow();
+                let script_list = scripts.scene_script.get_event_ids();
+                if let Some(next_event) = script_list.iter().find(|&&next_event| next_event > event) {
+                    exec_state = TextScriptExecutionState::Running(*next_event, 0 as u32);
+                } else {
+                    state.textscript_vm.flags.set_cutscene_skip(false);
+                    exec_state = TextScriptExecutionState::Ended;
+                }
             }
             TSCOpCode::END => {
                 state.textscript_vm.flags.set_cutscene_skip(false);
