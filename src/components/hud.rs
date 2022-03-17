@@ -30,6 +30,7 @@ pub struct HUD {
     weapon_count: usize,
     current_weapon: isize,
     weapon_types: [u8; 16],
+    shock: bool,
 }
 
 impl HUD {
@@ -55,6 +56,7 @@ impl HUD {
             weapon_count: 0,
             current_weapon: 0,
             weapon_types: [0; 16],
+            shock: false,
         }
     }
 }
@@ -75,6 +77,7 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
         self.max_life = player.max_life;
         self.air = player.air;
         self.air_counter = player.air_counter;
+        self.shock = player.shock_counter / 2 % 2 != 0;
         self.weapon_count = inventory.get_weapon_count();
         self.current_weapon = inventory.get_current_weapon_idx() as isize;
 
@@ -190,38 +193,40 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
             batch.add_rect(bar_offset + weap_x + 48.0, 24.0 + top, &Rect::new_size(80, 48, 16, 8));
         }
 
-        // per
-        batch.add_rect(bar_offset + weap_x + 32.0, 24.0 + top, &Rect::new_size(72, 48, 8, 8));
-        // lv
-        batch.add_rect(num_offset + weap_x, 32.0 + top, &Rect::new_size(80, 80, 16, 8));
-        // xp box
-        batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(0, 72, 40, 8));
+        if !self.shock {
+            // per
+            batch.add_rect(bar_offset + weap_x + 32.0, 24.0 + top, &Rect::new_size(72, 48, 8, 8));
+            // lv
+            batch.add_rect(num_offset + weap_x, 32.0 + top, &Rect::new_size(80, 80, 16, 8));
+            // xp box
+            batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(0, 72, 40, 8));
 
-        if self.max_level {
-            batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(40, 72, 40, 8));
-        } else if self.max_xp > 0 {
-            // xp bar
-            let bar_width = (self.xp as f32 / self.max_xp as f32 * 40.0) as u16;
+            if self.max_level {
+                batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(40, 72, 40, 8));
+            } else if self.max_xp > 0 {
+                // xp bar
+                let bar_width = (self.xp as f32 / self.max_xp as f32 * 40.0) as u16;
 
-            batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(0, 80, bar_width, 8));
-        }
+                batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(0, 80, bar_width, 8));
+            }
 
-        if (self.xp_bar_counter & 0x02) != 0 {
-            batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(40, 80, 40, 8));
-        }
+            if (self.xp_bar_counter & 0x02) != 0 {
+                batch.add_rect(bar_offset + weap_x + 24.0, 32.0 + top, &Rect::new_size(40, 80, 40, 8));
+            }
 
-        if self.max_life != 0 {
-            let yellow_bar_width = (self.life_bar as f32 / self.max_life as f32 * 39.0) as u16;
-            let bar_width = (self.life as f32 / self.max_life as f32 * 39.0) as u16;
+            if self.max_life != 0 {
+                let yellow_bar_width = (self.life_bar as f32 / self.max_life as f32 * 39.0) as u16;
+                let bar_width = (self.life as f32 / self.max_life as f32 * 39.0) as u16;
 
-            // heart/hp number box
-            batch.add_rect(num_offset + 16.0, 40.0 + top, &Rect::new_size(0, 40, 24, 8));
-            // life box
-            batch.add_rect(bar_offset + 40.0, 40.0 + top, &Rect::new_size(24, 40, 40, 8));
-            // yellow bar
-            batch.add_rect(bar_offset + 40.0, 40.0 + top, &Rect::new_size(0, 32, yellow_bar_width, 8));
-            // life
-            batch.add_rect(bar_offset + 40.0, 40.0 + top, &Rect::new_size(0, 24, bar_width, 8));
+                // heart/hp number box
+                batch.add_rect(num_offset + 16.0, 40.0 + top, &Rect::new_size(0, 40, 24, 8));
+                // life box
+                batch.add_rect(bar_offset + 40.0, 40.0 + top, &Rect::new_size(24, 40, 40, 8));
+                // yellow bar
+                batch.add_rect(bar_offset + 40.0, 40.0 + top, &Rect::new_size(0, 32, yellow_bar_width, 8));
+                // life
+                batch.add_rect(bar_offset + 40.0, 40.0 + top, &Rect::new_size(0, 24, bar_width, 8));
+            }
         }
 
         if self.air_counter > 0 {
@@ -242,7 +247,13 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
 
             // First frame of animation is off by one weapon
             // There's probably a more elegant solution than this
-            let first_frame_offset = if self.weapon_x_pos == 32 { -1 } else if self.weapon_x_pos == 0 { 1 } else { 0 };
+            let first_frame_offset = if self.weapon_x_pos == 32 {
+                -1
+            } else if self.weapon_x_pos == 0 {
+                1
+            } else {
+                0
+            };
 
             for a in 0..self.weapon_count {
                 let mut pos_x = ((a as isize - self.current_weapon + first_frame_offset) as f32 * 16.0) + weap_x;
@@ -270,7 +281,6 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
                     batch.add_rect(pos_x + weapon_offset, 16.0 + top, &rect);
                 }
             }
-
         }
 
         batch.draw(ctx)?;
@@ -287,11 +297,13 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
         }
 
         if self.max_ammo != 0 {
-            draw_number(num_offset + weap_x + 64.0, 16.0 + top, self.ammo as usize, Alignment::Right, state, ctx)?;
-            draw_number(num_offset + weap_x + 64.0, 24.0 + top, self.max_ammo as usize, Alignment::Right, state, ctx)?;
+            draw_number(bar_offset + weap_x + 64.0, 16.0 + top, self.ammo as usize, Alignment::Right, state, ctx)?;
+            draw_number(bar_offset + weap_x + 64.0, 24.0 + top, self.max_ammo as usize, Alignment::Right, state, ctx)?;
         }
-        draw_number(num_offset + weap_x + 24.0, 32.0 + top, self.current_level, Alignment::Right, state, ctx)?;
-        draw_number(num_offset + 40.0, 40.0 + top, self.life_bar as usize, Alignment::Right, state, ctx)?;
+        if !self.shock {
+            draw_number(num_offset + weap_x + 24.0, 32.0 + top, self.current_level, Alignment::Right, state, ctx)?;
+            draw_number(num_offset + 40.0, 40.0 + top, self.life_bar as usize, Alignment::Right, state, ctx)?;
+        }
 
         Ok(())
     }
