@@ -1348,6 +1348,9 @@ impl NPC {
                     state.sound_manager.play_sfx(105);
                 }
             }
+            120 => {
+                self.anim_num = 0;
+            }
             _ => (),
         }
 
