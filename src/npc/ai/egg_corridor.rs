@@ -576,7 +576,7 @@ impl NPC {
                     self.tsc_direction = self.direction as u16;
                     self.npc_flags.set_shootable(true);
 
-                    self.x = player.x + self.direction.vector_x() * 16 * 0x2000;
+                    self.x = player.x + self.direction.opposite().vector_x() * 16 * 0x2000;
                     self.vel_x = self.direction.vector_x() * 0x2ff;
                 } else {
                     self.anim_rect = Rect::new(0, 0, 0, 0);
@@ -1234,7 +1234,7 @@ impl NPC {
                     self.tsc_direction = self.direction as u16;
                     self.npc_flags.set_shootable(true);
 
-                    self.x = player.x + self.direction.vector_x() * 16 * 0x2000;
+                    self.x = player.x + self.direction.opposite().vector_x() * 16 * 0x2000;
                     self.vel_x = self.direction.vector_x() * 0x2ff;
                 } else {
                     self.anim_rect = Rect::new(0, 0, 0, 0);
