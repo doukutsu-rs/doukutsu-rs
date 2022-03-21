@@ -1,11 +1,11 @@
 //! Error types and conversion functions.
 
-
 use std::error::Error;
 use std::fmt;
+use std::net::AddrParseError;
 use std::string::FromUtf8Error;
-use std::sync::{Arc, PoisonError};
 use std::sync::mpsc::SendError;
+use std::sync::{Arc, PoisonError};
 
 /// An enum containing all kinds of game framework errors.
 #[derive(Debug, Clone)]
@@ -37,12 +37,14 @@ pub enum GameError {
     ShaderProgramError(String),
     /// Something went wrong with the `gilrs` gamepad-input library.
     GamepadError(String),
-    /// Something went wrong with the `lyon` shape-tesselation library.
-    LyonError(String),
     /// Something went wrong while parsing something.
     ParseError(String),
     /// Something went wrong while converting a value.
     InvalidValue(String),
+    /// Something went wrong while (de)serializing something.
+    SerializationError(String),
+    /// A network related error has occurred.
+    NetworkError(String),
 }
 
 impl fmt::Display for GameError {
@@ -50,11 +52,9 @@ impl fmt::Display for GameError {
         match *self {
             GameError::ConfigError(ref s) => write!(f, "Config error: {}", s),
             GameError::ResourceLoadError(ref s) => write!(f, "Error loading resource: {}", s),
-            GameError::ResourceNotFound(ref s, ref paths) => write!(
-                f,
-                "Resource not found: {}, searched in paths {:?}",
-                s, paths
-            ),
+            GameError::ResourceNotFound(ref s, ref paths) => {
+                write!(f, "Resource not found: {}, searched in paths {:?}", s, paths)
+            }
             GameError::WindowError(ref e) => write!(f, "Window creation error: {}", e),
             _ => write!(f, "GameError {:?}", self),
         }
@@ -146,5 +146,35 @@ impl<T> From<SendError<T>> for GameError {
     fn from(s: SendError<T>) -> GameError {
         let errstr = format!("Send error: {}", s);
         GameError::EventLoopError(errstr)
+    }
+}
+
+#[cfg(feature = "bincode")]
+impl From<bincode::error::DecodeError> for GameError {
+    fn from(s: bincode::error::DecodeError) -> Self {
+        let errstr = format!("Decode error: {}", s);
+        GameError::SerializationError(errstr)
+    }
+}
+
+#[cfg(feature = "bincode")]
+impl From<bincode::error::EncodeError> for GameError {
+    fn from(s: bincode::error::EncodeError) -> Self {
+        let errstr = format!("Encode error: {}", s);
+        GameError::SerializationError(errstr)
+    }
+}
+
+#[cfg(feature = "laminar")]
+impl From<laminar::ErrorKind> for GameError {
+    fn from(s: laminar::ErrorKind) -> Self {
+        GameError::NetworkError(s.to_string())
+    }
+}
+
+impl From<AddrParseError> for GameError {
+    fn from(s: AddrParseError) -> Self {
+        let errstr = format!("Address parse error: {}", s);
+        GameError::ParseError(errstr)
     }
 }

@@ -4,6 +4,10 @@ use crate::framework::error::GameResult;
 use crate::shared_game_state::SharedGameState;
 
 pub trait PlayerController: PlayerControllerClone {
+    fn is_enabled(&self) -> bool;
+
+    fn set_enabled(&mut self, enabled: bool);
+
     fn update(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult;
 
     fn update_trigger(&mut self);

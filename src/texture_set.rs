@@ -13,8 +13,6 @@ use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
 use crate::framework::graphics::{create_texture, FilterMode};
-use crate::settings::Settings;
-use crate::shared_game_state::Season;
 
 pub static mut I_MAG: f32 = 1.0;
 pub static mut G_MAG: f32 = 1.0;

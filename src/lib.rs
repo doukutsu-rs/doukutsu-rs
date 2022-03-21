@@ -302,6 +302,7 @@ pub fn init(options: LaunchOptions) -> GameResult {
 
     mount_vfs(&mut context, Box::new(BuiltinFS::new()));
 
+    #[cfg(feature = "netplay")]
     if options.server_mode {
         log::info!("Running in server mode...");
         context.headless = true;
@@ -312,6 +313,16 @@ pub fn init(options: LaunchOptions) -> GameResult {
     #[cfg(feature = "scripting-lua")]
     {
         state_ref.lua.update_refs(unsafe { (&*game.get()).state.get() }, &mut context as *mut Context);
+    }
+
+    #[cfg(feature = "netplay")]
+    if options.server_mode {
+        unsafe {
+            use crate::netplay::server::Server;
+            use crate::netplay::server_config::ServerConfiguration;
+
+            state_ref.server = Some(Box::new(Server::start(ServerConfiguration::default())?));
+        }
     }
 
     state_ref.next_scene = Some(Box::new(LoadingScene::new()));

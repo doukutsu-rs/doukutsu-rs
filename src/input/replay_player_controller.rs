@@ -32,6 +32,7 @@ pub struct ReplayController {
     pub state: KeyState,
     pub old_state: KeyState,
     trigger: KeyState,
+    enabled: bool,
 }
 
 impl ReplayController {
@@ -41,11 +42,20 @@ impl ReplayController {
             state: KeyState(0),
             old_state: KeyState(0),
             trigger: KeyState(0),
+            enabled: true,
         }
     }
 }
 
 impl PlayerController for ReplayController {
+    fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+
+    fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
+    }
+
     fn update(&mut self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult {
         Ok(())
     }

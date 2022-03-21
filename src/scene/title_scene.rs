@@ -154,11 +154,19 @@ impl Scene for TitleScene {
         } else {
             self.main_menu.push_entry(MenuEntry::Hidden);
         }
+
+        if cfg!(feature = "netplay") {
+            self.main_menu.push_entry(MenuEntry::Active("Netplay".to_string()));
+        } else {
+            self.main_menu.push_entry(MenuEntry::Hidden);
+        }
+
         if state.constants.is_switch {
             self.main_menu.push_entry(MenuEntry::Active("Jukebox".to_string()));
         } else {
             self.main_menu.push_entry(MenuEntry::Hidden);
         }
+
         self.main_menu.push_entry(MenuEntry::Active("Quit".to_string()));
 
         self.settings_menu.init(state, ctx)?;
@@ -226,9 +234,17 @@ impl Scene for TitleScene {
                     }
                 }
                 MenuSelectionResult::Selected(4, _) => {
-                    state.next_scene = Some(Box::new(JukeboxScene::new()));
+                    // aaa
+                    #[cfg(feature = "netplay")]
+                    {
+                        use crate::scene::netplay_scene::NetplayScene;
+                        state.next_scene = Some(Box::new(NetplayScene::new()));
+                    }
                 }
                 MenuSelectionResult::Selected(5, _) => {
+                    state.next_scene = Some(Box::new(JukeboxScene::new()));
+                }
+                MenuSelectionResult::Selected(6, _) => {
                     state.shutdown();
                 }
                 _ => {}

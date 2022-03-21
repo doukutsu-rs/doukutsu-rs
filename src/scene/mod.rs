@@ -8,6 +8,8 @@ pub mod editor_scene;
 pub mod game_scene;
 pub mod jukebox_scene;
 pub mod loading_scene;
+#[cfg(feature = "netplay")]
+pub mod netplay_scene;
 pub mod no_data_scene;
 pub mod title_scene;
 
