@@ -35,6 +35,7 @@ pub enum MainMenuEntry {
     Challenges,
     Options,
     Editor,
+    Netplay,
     Jukebox,
     Quit,
 }
@@ -208,6 +209,10 @@ impl Scene for TitleScene {
             self.main_menu.push_entry(MainMenuEntry::Editor, MenuEntry::Active(state.t("menus.main_menu.editor")));
         }
 
+        if cfg!(feature = "netplay") {
+            self.main_menu.push_entry(MainMenuEntry::Netplay, MenuEntry::Active("Netplay".to_string()));
+        }
+
         if state.constants.is_switch {
             self.main_menu.push_entry(MainMenuEntry::Jukebox, MenuEntry::Active(state.t("menus.main_menu.jukebox")));
         }
@@ -303,6 +308,14 @@ impl Scene for TitleScene {
                     {
                         use crate::scene::editor_scene::EditorScene;
                         state.next_scene = Some(Box::new(EditorScene::new()));
+                    }
+                }
+                MenuSelectionResult::Selected(MainMenuEntry::Netplay, _) => {
+                    // aaa
+                    #[cfg(feature = "netplay")]
+                    {
+                        use crate::scene::netplay_scene::NetplayScene;
+                        state.next_scene = Some(Box::new(NetplayScene::new()));
                     }
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Jukebox, _) => {

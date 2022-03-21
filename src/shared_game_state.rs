@@ -313,6 +313,10 @@ pub struct SharedGameState {
     pub texture_set: TextureSet,
     #[cfg(feature = "scripting-lua")]
     pub lua: LuaScriptingState,
+    #[cfg(feature = "netplay")]
+    pub server: Option<Box<crate::netplay::server::Server>>,
+    #[cfg(feature = "netplay")]
+    pub client: Option<Box<crate::netplay::client::Client>>,
     pub sound_manager: SoundManager,
     pub settings: Settings,
     pub save_slot: usize,
@@ -450,6 +454,10 @@ impl SharedGameState {
             texture_set: TextureSet::new(),
             #[cfg(feature = "scripting-lua")]
             lua: LuaScriptingState::new(),
+            #[cfg(feature = "netplay")]
+            server: None,
+            #[cfg(feature = "netplay")]
+            client: None,
             sound_manager,
             settings,
             save_slot: 1,
@@ -785,20 +793,23 @@ impl SharedGameState {
             }
         }
 
-        if slot == 1 {
-            return Some("/Profile.dat".to_owned());
-        } else {
-            return Some(format!("/Profile{}.dat", slot));
-        }
+        return if slot == 1 { Some("/Profile.dat".to_owned()) } else { Some(format!("/Profile{}.dat", slot)) };
     }
 
     pub fn get_rec_filename(&self) -> String {
-        if let Some(mod_path) = &self.mod_path {
+        return if let Some(mod_path) = &self.mod_path {
             let name = self.mod_list.get_name_from_path(mod_path.to_string());
-            return format!("/{}", name);
+            format!("/{}", name)
         } else {
-            return "/290".to_string();
-        }
+            "/290".to_string()
+        };
+    }
+
+    pub fn is_netplay(&self) -> bool {
+        #[cfg(feature = "netplay")]
+        return self.client.is_some() || self.server.is_some();
+        #[cfg(not(feature = "netplay"))]
+        false
     }
 
     pub fn has_replay_data(&self, ctx: &mut Context) -> bool {

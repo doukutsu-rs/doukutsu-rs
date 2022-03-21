@@ -14,6 +14,7 @@ pub struct TouchPlayerController {
     old_state: KeyState,
     trigger: KeyState,
     prev_touch_len: usize,
+    enabled: bool,
 }
 
 bitfield! {
@@ -37,12 +38,27 @@ bitfield! {
 
 impl TouchPlayerController {
     pub fn new() -> TouchPlayerController {
-        TouchPlayerController { state: KeyState(0), old_state: KeyState(0), trigger: KeyState(0), prev_touch_len: 0 }
+        TouchPlayerController { state: KeyState(0), old_state: KeyState(0), trigger: KeyState(0), prev_touch_len: 0, enabled: true }
     }
 }
 
 impl PlayerController for TouchPlayerController {
+    fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+
+    fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
+    }
+
     fn update(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        if !self.enabled {
+            self.state = KeyState(0);
+            self.old_state = KeyState(0);
+            self.trigger = KeyState(0);
+            return Ok(());
+        }
+
         match state.touch_controls.control_type {
             TouchControlType::None => {}
             TouchControlType::Dialog => {

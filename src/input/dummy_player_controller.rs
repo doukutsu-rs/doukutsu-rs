@@ -5,15 +5,23 @@ use crate::shared_game_state::SharedGameState;
 
 /// A no-op implementation of player controller.
 #[derive(Clone)]
-pub struct DummyPlayerController;
+pub struct DummyPlayerController(bool);
 
 impl DummyPlayerController {
     pub fn new() -> DummyPlayerController {
-        DummyPlayerController
+        DummyPlayerController(true)
     }
 }
 
 impl PlayerController for DummyPlayerController {
+    fn is_enabled(&self) -> bool {
+        self.0
+    }
+
+    fn set_enabled(&mut self, enabled: bool) {
+        self.0 = enabled;
+    }
+
     fn update(&mut self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult {
         Ok(())
     }

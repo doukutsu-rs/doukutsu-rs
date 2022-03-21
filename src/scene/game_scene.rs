@@ -1720,6 +1720,14 @@ impl Scene for GameScene {
     }
 
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        #[cfg(feature = "netplay")]
+            {
+                let state_ref = unsafe { &mut *(state as *mut SharedGameState) };
+                if let Some(server) = &mut state.server {
+                    server.process(state_ref);
+                }
+            }
+
         if !self.pause_menu.is_paused() && state.replay_state == ReplayState::Playback {
             self.replay.tick(state, (ctx, &mut self.player1))?;
         }
@@ -1757,7 +1765,10 @@ impl Scene for GameScene {
 
         if self.pause_menu.is_paused() {
             self.pause_menu.tick(state, ctx)?;
-            return Ok(());
+            
+            if !state.is_netplay() {
+                return Ok(());
+            }
         }
 
         if state.replay_state == ReplayState::Recording {

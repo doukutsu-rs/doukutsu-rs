@@ -34,20 +34,36 @@ pub struct KeyboardController {
     state: KeyState,
     old_state: KeyState,
     trigger: KeyState,
+    enabled: bool,
 }
 
 impl KeyboardController {
     pub fn new(target: TargetPlayer) -> KeyboardController {
-        KeyboardController { target, state: KeyState(0), old_state: KeyState(0), trigger: KeyState(0) }
+        KeyboardController { target, state: KeyState(0), old_state: KeyState(0), trigger: KeyState(0), enabled: true }
     }
 }
 
 impl PlayerController for KeyboardController {
+    fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+
+    fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
+    }
+
     fn update(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let keymap = match self.target {
             TargetPlayer::Player1 => &state.settings.player1_key_map,
             TargetPlayer::Player2 => &state.settings.player2_key_map,
         };
+
+        if !self.enabled {
+            self.state = KeyState(0);
+            self.old_state = KeyState(0);
+            self.trigger = KeyState(0);
+            return Ok(());
+        }
 
         self.state.set_left(keyboard::is_key_pressed(ctx, keymap.left));
         self.state.set_up(keyboard::is_key_pressed(ctx, keymap.up));

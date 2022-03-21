@@ -39,7 +39,7 @@ backend-sdl = ["sdl2", "sdl2-sys"]
 backend-glutin = ["winit", "glutin", "render-opengl"]
 render-opengl = []
 scripting-lua = ["lua-ffi"]
-netplay = ["tokio", "serde_cbor"]
+netplay = ["laminar", "bincode"]
 editor = []
 hooks = ["libc"]
 exe = []
@@ -52,9 +52,11 @@ android = []
 #sdl2 = { path = "./3rdparty/rust-sdl2", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 #sdl2-sys = { path = "./3rdparty/rust-sdl2/sdl2-sys", optional = true, features = ["bundled", "static-link"] }
 bitvec = "0.20"
+bincode = { version = "2.0.0-rc.1", optional = true }
 byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
 chrono = "0.4"
+crossbeam-channel = "0.5"
 cpal = "0.13"
 directories = "3"
 downcast = "0.11"
@@ -63,6 +65,7 @@ glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "8dd457b9adb
 imgui = "0.8.0"
 image = { version = "0.23", default-features = false, features = ["png", "bmp"] }
 itertools = "0.10"
+laminar = { version = "0.5", optional = true }
 lazy_static = "1.4.0"
 lewton = { version = "0.10.2", optional = true }
 libc = { version = "0.2", optional = true }
@@ -76,12 +79,10 @@ sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768
 sdl2-sys = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["bundled", "static-link"] }
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
-serde_cbor = { version = "0.11.2", optional = true }
 serde_json = "1.0"
 simple_logger = { version = "1.16", features = ["colors", "threads"] }
 strum = "0.20"
 strum_macros = "0.20"
-tokio = { version = "1.12.0", features = ["net"], optional = true }
 # remove and replace when drain_filter is in stable
 vec_mut_scan = "0.4"
 webbrowser = "0.5.5"
