@@ -7,10 +7,10 @@ in [Rust](https://www.rust-lang.org/).
 
 ![https://ci.appveyor.com/api/projects/status/github/doukutsu-rs/doukutsu-rs](https://ci.appveyor.com/api/projects/status/github/doukutsu-rs/doukutsu-rs)
 
+- [Get nightly builds from AppVeyor](https://ci.appveyor.com/project/alula/doukutsu-rs) (recommended for now, has latest fixes and improvements, select platform -> Artifacts ->
+  download the .zip)
 - [Get stable/beta builds from GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases) (executables only,
   no data files bundled, see below for instructions)
-- [Get nightly builds from AppVeyor](https://ci.appveyor.com/project/alula/doukutsu-rs) (has latest fixes and improvements, select platform -> Artifacts ->
-  download the .zip)
 
 #### Data files
 
