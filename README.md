@@ -7,8 +7,12 @@ in [Rust](https://www.rust-lang.org/).
 
 ![https://ci.appveyor.com/api/projects/status/github/doukutsu-rs/doukutsu-rs](https://ci.appveyor.com/api/projects/status/github/doukutsu-rs/doukutsu-rs)
 
-- [Get nightly builds from AppVeyor](https://ci.appveyor.com/project/alula/doukutsu-rs) (recommended for now, has latest fixes and improvements, select platform -> Artifacts ->
-  download the .zip)
+- [Get nightly builds from AppVeyor](https://ci.appveyor.com/project/alula/doukutsu-rs) (recommended for now, has latest fixes and improvements)
+  
+  Permalinks to latest builds from `master` branch:
+  - Windows (x86_64): https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_win64.zip?branch=master&job=windows-x64
+  - macOS (Intel, 64-bit, 10.14+) https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_macos.zip?branch=master&job=mac-x64
+  - Linux (x86_64) https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_linux.zip?branch=master&job=linux-x64
 - [Get stable/beta builds from GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases) (executables only,
   no data files bundled, see below for instructions)
 
