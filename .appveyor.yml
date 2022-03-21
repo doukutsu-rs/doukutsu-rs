@@ -18,15 +18,20 @@ environment:
 #      target_name: win32
 #      job_name: windows-x32
     - channel: stable
+      target: x86_64-unknown-linux-gnu
+      target_name: linux
+      job_name: linux-x64
+      appveyor_build_worker_image: Ubuntu
+    - channel: stable
       target: x86_64-apple-darwin
       target_name: macos
       job_name: mac-x64
       appveyor_build_worker_image: macos-monterey
     - channel: stable
-      target: x86_64-unknown-linux-gnu
-      target_name: linux
-      job_name: linux-x64
-      appveyor_build_worker_image: Ubuntu
+      target: aarch64-apple-darwin
+      target_name: macos
+      job_name: mac-arm64
+      appveyor_build_worker_image: macos-monterey
 
 matrix:
   fast_finish: true
