@@ -1145,49 +1145,53 @@ impl NPC {
     }
 
     pub(crate) fn tick_n174_gaudi_armored_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
-        if self.action_num == 0 && self.direction == Direction::Right {
-            self.action_num = 2;
+        match self.action_num {
+            0 | 1 => {
+                if self.direction == Direction::Right {
+                    self.action_num = 2;
+                }
+
+                let mut hit = false;
+
+                if self.flags.hit_left_wall() {
+                    hit = true;
+                    self.vel_x = 0x200;
+                }
+                if self.flags.hit_right_wall() {
+                    hit = true;
+                    self.vel_x = -0x200;
+                }
+                if self.flags.hit_top_wall() {
+                    hit = true;
+                    self.vel_y = 0x200;
+                }
+                if self.flags.hit_bottom_wall() {
+                    hit = true;
+                    self.vel_y = -0x200;
+                }
+
+                if hit {
+                    self.action_num = 2;
+                    self.action_counter2 += 1;
+                    state.sound_manager.play_sfx(31);
+                }
+            }
+            2 => {
+                self.vel_y += 0x40;
+
+                if self.flags.hit_bottom_wall() {
+                    self.action_counter2 += 1;
+                    if self.action_counter2 > 1 {
+                        state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
+                        self.cond.set_alive(false);
+                    }
+                }
+            }
+            _ => (),
         }
 
-        if self.action_num == 1 {
-            self.x += self.vel_x;
-            self.y += self.vel_y;
-
-            let mut hit = false;
-
-            if self.flags.hit_left_wall() {
-                hit = true;
-                self.vel_x = 0x200;
-            }
-            if self.flags.hit_right_wall() {
-                hit = true;
-                self.vel_x = -0x200;
-            }
-            if self.flags.hit_top_wall() {
-                hit = true;
-                self.vel_y = 0x200;
-            }
-            if self.flags.hit_bottom_wall() {
-                hit = true;
-                self.vel_y = -0x200;
-            }
-
-            if hit {
-                self.action_num = 2;
-                self.action_counter3 += 1;
-                state.sound_manager.play_sfx(31);
-            }
-        }
-
-        self.vel_y += 0x40;
         self.x += self.vel_x;
         self.y += self.vel_y;
-
-        self.action_counter3 += 1;
-        if self.flags.hit_bottom_wall() && self.action_counter3 > 1 {
-            state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
-            self.cond.set_alive(false);
-        }
 
         self.vel_y = self.vel_y.clamp(-0x5ff, 0x5ff);
 

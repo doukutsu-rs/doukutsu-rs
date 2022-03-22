@@ -401,6 +401,7 @@ impl NPC {
                     self.anim_num = 2;
                     state.quake_counter = 10;
                     state.sound_manager.play_sfx(72);
+                    self.create_xp_drop_custom(self.x, self.y, 19, state, npc_list);
 
                     npc_list.create_death_smoke(
                         self.x,
