@@ -132,33 +132,26 @@ The archive from Humble Bundle contains the necessary `data` folder, in the same
 <details>
 <summary>WiiWare</summary>
 
-Note: As of writing, the Wiiware DEMO .wad is **incompatible**, but the full versions works fine.  
-
 Tools required:  
 * [ShowMiiWads](https://github.com/WiiDatabase/showmiiwads-mod/releases/tag/v1.5.2)  
 * [QuickBMS](http://aluigi.altervista.org/papers/quickbms.zip)
-* Any of the three full versions of the WiiWare `.wad` ( [How Do i Dump WiiWare `.wads`?](https://wii.guide/dump-wads.html) )
-* The following script as a `.bms` file.
+* A full version WiiWare `.wad` ([Extraction guide](https://wii.guide/dump-wads.html))
+* This `script.bms`:
 ```
 get name FILENAME
 get zsize asize
 comtype lz77wii
 clog name 0 zsize zsize
 ```
-    
-1. Open the folder containing your `.wad` with ShowMiiWads.
+
+1. Run ShowMiiWads and open the folder containing your `.wad`.
 2. Right click the `.wad` and hit `Extract` > `To Folder` and choose an output folder.
 3. Now go to `Tools` > `Unpack u8 Archive`, find your and select `00000002.app` and choose an output folder.
-4. Run QuickBMS with the following command.  
+4. Run QuickBMS with the following command, changing each path to where `script.bms` and `.app` output are located  
   ```
   quickbms.exe -D script_path\script.bms input_path\00000002_app_OUT\data output_path\data
   ```
-5. That's all, you have everything to use it with doukutsu-rs now.  
-
-If you followed the above steps, the directory structure should look like this:  
-`data/base`
-![image](https://user-images.githubusercontent.com/53099651/159585593-43fead24-b041-48f4-8332-be50d712310d.png)
-
+5. Verify `output_path\data` folder contains valid [Cave Story assets](https://user-images.githubusercontent.com/53099651/159585593-43fead24-b041-48f4-8332-be50d712310d.png)
 
 </details>
 
