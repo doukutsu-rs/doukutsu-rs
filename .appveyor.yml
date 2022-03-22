@@ -87,7 +87,7 @@ for:
       - rustup target add $target
       - rustc -vV
       - cargo -vV
-      - cargo install cargo-bundle
+      - cargo install cargo-bundle --force
 
     cache:
       - '$HOME/.cache -> Cargo.toml'
