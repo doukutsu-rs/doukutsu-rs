@@ -108,6 +108,7 @@ for:
       - cp LICENSE ./release/LICENSE
       - cp -a target/$target/release/bundle/osx/doukutsu-rs.app ./release/doukutsu-rs.app
       - cd release
+      - codesign -s - -f ./doukutsu-rs.app/Contents/MacOS/doukutsu-rs
       - 7z a ../doukutsu-rs_$target_name.zip *
       - appveyor PushArtifact ../doukutsu-rs_$target_name.zip
 
