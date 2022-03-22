@@ -9,13 +9,13 @@ fn main() {
     let is_android = cfg!(target_os = "android") || (cfg!(target_os = "linux") && target.contains("android")); // hack
 
     println!("cargo:rerun-if-changed=build.rs");
-    
+
     #[cfg(target_os = "windows")]
     {
-		let mut res = winres::WindowsResource::new();
-		res.set_icon("res/sue.ico");
-		res.compile().unwrap();
-	}
+        let mut res = winres::WindowsResource::new();
+        res.set_icon("res/sue.ico");
+        res.compile().unwrap();
+    }
 
     if target.contains("darwin") {
         println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.15");
