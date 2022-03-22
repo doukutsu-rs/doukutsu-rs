@@ -1,7 +1,7 @@
 use std::env;
 
 #[cfg(target_os = "windows")]
-extern crate windres;
+extern crate winres;
 
 fn main() {
     // let dest = PathBuf::from(&env::var("OUT_DIR").unwrap());
@@ -11,7 +11,11 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     
     #[cfg(target_os = "windows")]
-    windres::Build::new().compile("res/resources.rc").unwrap();
+    {
+		let mut res = winres::WindowsResource::new();
+		res.set_icon("res/sue.ico");
+		res.compile().unwrap();
+	}
 
     if target.contains("darwin") {
         println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.15");
