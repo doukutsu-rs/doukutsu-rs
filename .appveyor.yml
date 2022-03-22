@@ -9,11 +9,6 @@ environment:
     PROJECT_NAME: doukutsu-rs
   matrix:
     - channel: stable
-      target: aarch64-apple-darwin
-      target_name: macos
-      job_name: mac-arm64
-      appveyor_build_worker_image: macos-monterey
-    - channel: stable
       target: x86_64-pc-windows-msvc
       target_name: win64
       job_name: windows-x64
@@ -29,8 +24,13 @@ environment:
       appveyor_build_worker_image: Ubuntu
     - channel: stable
       target: x86_64-apple-darwin
-      target_name: macos
+      target_name: mac-intel
       job_name: mac-x64
+      appveyor_build_worker_image: macos-monterey
+    - channel: stable
+      target: aarch64-apple-darwin
+      target_name: mac-m1
+      job_name: mac-arm64
       appveyor_build_worker_image: macos-monterey
 
 matrix:
@@ -52,8 +52,12 @@ for:
       - cargo -vV
 
     cache:
-      - '%USERPROFILE%\.cache\sccache -> Cargo.toml'
-      - '%USERPROFILE%\.cargo -> Cargo.toml'
+      - '%USERPROFILE%\.cache -> Cargo.toml'
+      - '%USERPROFILE%\.cargo\bin -> Cargo.toml'
+      - '%USERPROFILE%\.cargo\registry\index -> Cargo.toml'
+      - '%USERPROFILE%\.cargo\registry\cache -> Cargo.toml'
+      - '%USERPROFILE%\.cargo\git\db -> Cargo.toml'
+      - '%USERPROFILE%\.rustup -> Cargo.toml'
       - 'target -> Cargo.toml'
 
     build_script:
@@ -86,8 +90,12 @@ for:
       - cargo install cargo-bundle
 
     cache:
-      - '$HOME/.cache/sccache -> Cargo.toml'
-      - '$HOME/.cargo -> Cargo.toml'
+      - '$HOME/.cache -> Cargo.toml'
+      - '$HOME/.cargo/bin -> Cargo.toml'
+      - '$HOME/.cargo/registry/index -> Cargo.toml'
+      - '$HOME/.cargo/registry/cache -> Cargo.toml'
+      - '$HOME/.cargo/git/db -> Cargo.toml'
+      - '$HOME/.rustup -> Cargo.toml'
       - 'target -> Cargo.toml'
 
     build_script:
@@ -118,8 +126,12 @@ for:
       - cargo -vV
 
     cache:
-      - '$HOME/.cache/sccache -> Cargo.toml'
-      - '$HOME/.cargo -> Cargo.toml'
+      - '$HOME/.cache -> Cargo.toml'
+      - '$HOME/.cargo/bin -> Cargo.toml'
+      - '$HOME/.cargo/registry/index -> Cargo.toml'
+      - '$HOME/.cargo/registry/cache -> Cargo.toml'
+      - '$HOME/.cargo/git/db -> Cargo.toml'
+      - '$HOME/.rustup -> Cargo.toml'
       - 'target -> Cargo.toml'
 
     build_script:
