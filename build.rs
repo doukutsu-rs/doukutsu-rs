@@ -1,7 +1,7 @@
 use std::env;
 
-// #[cfg(feature = "generate-gl")]
-// use gl_generator::{Api, Fallbacks, Profile, Registry};
+#[cfg(target_os = "windows")]
+extern crate windres;
 
 fn main() {
     // let dest = PathBuf::from(&env::var("OUT_DIR").unwrap());
@@ -9,15 +9,9 @@ fn main() {
     let is_android = cfg!(target_os = "android") || (cfg!(target_os = "linux") && target.contains("android")); // hack
 
     println!("cargo:rerun-if-changed=build.rs");
-    //
-    // #[cfg(feature = "generate-gl")]
-    // {
-    //     let mut file = File::create(&dest.join("gl_bindings.rs")).unwrap();
-    //
-    //     Registry::new(Api::Gles2, (3, 0), Profile::Core, Fallbacks::All, [])
-    //         .write_bindings(gl_generator::StructGenerator, &mut file)
-    //         .unwrap();
-    // }
+    
+    #[cfg(target_os = "windows")]
+    windres::Build::new().compile("res/resources.rc").unwrap();
 
     if target.contains("darwin") {
         println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.15");
