@@ -14,6 +14,13 @@ in [Rust](https://www.rust-lang.org/).
   - [macOS (Intel, 64-bit, 10.14+)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_mac-intel.zip?branch=master&job=mac-x64)
   - [macOS (Apple M1, 11.0+)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_mac-m1.zip?branch=master&job=mac-arm64)
   - [Linux (x86_64)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_linux.zip?branch=master&job=linux-x64)
+  
+  **macOS note:** If you get a `"doukutsu-rs.app" is damaged and can't be opened` message run the following command in Terminal (it's caused by the fact d-rs isn't notarized):
+  
+  `sudo xattr -rds com.apple.quarantine /path/to/doukutsu-rs.app`
+  
+  Then just provide your user password if prompted (there's no feedback, just type it in and hit Enter) and try to run doukutsu-rs again.
+  
 - [Get stable/beta builds from GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases) (executables only,
   no data files bundled, see below for instructions)
 
