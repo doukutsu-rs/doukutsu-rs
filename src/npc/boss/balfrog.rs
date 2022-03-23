@@ -157,7 +157,7 @@ impl BossNPC {
 
                     let mut npc = NPC::create(110, &state.npc_table);
                     npc.cond.set_alive(true);
-                    npc.x = self.parts[0].rng.range(4..16) as i32 * 0x2000;
+                    npc.x = (self.parts[0].rng.range(4..16) + state.constants.game.tile_offset_x) as i32 * 0x2000;
                     npc.y = self.parts[0].rng.range(0..4) as i32 * 0x2000;
                     npc.direction = Direction::FacingPlayer;
 
@@ -325,7 +325,7 @@ impl BossNPC {
                     let mut npc = NPC::create(110, &state.npc_table);
                     for _ in 0..6 {
                         npc.cond.set_alive(true);
-                        npc.x = self.parts[0].rng.range(4..16) as i32 * 0x2000;
+                        npc.x = (self.parts[0].rng.range(4..16) + state.constants.game.tile_offset_x) as i32 * 0x2000;
                         npc.y = self.parts[0].rng.range(0..4) as i32 * 0x2000;
                         npc.direction = Direction::FacingPlayer;
 
