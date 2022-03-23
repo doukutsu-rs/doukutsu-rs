@@ -1,4 +1,4 @@
-use imgui::{ CollapsingHeader, Condition, ImStr, ImString, Slider, Window};
+use imgui::{CollapsingHeader, Condition, ImStr, ImString, Slider, Window};
 use itertools::Itertools;
 
 use crate::framework::context::Context;
@@ -60,6 +60,19 @@ impl LiveDebugger {
             self.last_stage_id = game_scene.stage_id;
             self.events.clear();
             self.selected_event = -1;
+        }
+
+        if state.settings.god_mode {
+            Window::new("God Mode Enabled [F3]")
+                .resizable(false)
+                .collapsed(true, Condition::Appearing)
+                .position([5.0, 100.0], Condition::FirstUseEver)
+                .size([180.0, 0.0], Condition::FirstUseEver)
+                .build(ui, || {
+                    if ui.button("Disable") {
+                        state.settings.god_mode = false;
+                    }
+                });
         }
 
         if !state.debugger {
