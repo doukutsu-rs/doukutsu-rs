@@ -129,6 +129,32 @@ The archive from Humble Bundle contains the necessary `data` folder, in the same
 ![image](https://user-images.githubusercontent.com/96957561/156861929-7fa03951-442b-4277-b673-474189411103.png)
 </details>
 
+<details>
+<summary>WiiWare</summary>
+
+Tools required:  
+* [ShowMiiWads](https://github.com/WiiDatabase/showmiiwads-mod/releases/tag/v1.5.2)  
+* [QuickBMS](http://aluigi.altervista.org/papers/quickbms.zip)
+* A full version WiiWare `.wad` ([Extraction guide](https://wii.guide/dump-wads.html))
+* This `script.bms`:
+```
+get name FILENAME
+get zsize asize
+comtype lz77wii
+clog name 0 zsize zsize
+```
+
+1. Run ShowMiiWads and open the folder containing your `.wad`.
+2. Right click the `.wad` and hit `Extract` > `To Folder` and choose an output folder.
+3. Now go to `Tools` > `Unpack u8 Archive`, find your and select `00000002.app` and choose an output folder.
+4. Run QuickBMS with the following command, changing each path to where `script.bms` and `.app` output are located  
+  ```
+  quickbms.exe -D script_path\script.bms input_path\00000002_app_OUT\data output_path\data
+  ```
+5. Verify `output_path\data` folder contains valid [Cave Story assets](https://user-images.githubusercontent.com/53099651/159585593-43fead24-b041-48f4-8332-be50d712310d.png)
+
+</details>
+
 **Remastered version (first released in 2017 on Switch)**
 
 Note that this version is **incompatible** with saves from the original version.
