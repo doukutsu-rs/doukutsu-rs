@@ -1,4 +1,4 @@
-# doukutsu-rs
+![doukutsu-rs](./res/sue_crab_banner_github.png)
 
 A fully playable re-implementation of Cave Story (Doukutsu Monogatari) engine written
 in [Rust](https://www.rust-lang.org/).
