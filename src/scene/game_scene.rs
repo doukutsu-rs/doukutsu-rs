@@ -2015,6 +2015,28 @@ impl Scene for GameScene {
             self.draw_debug_outlines(state, ctx)?;
         }
 
+        if state.settings.god_mode {
+            state.font.draw_text_with_shadow(
+                "GOD".chars(),
+                state.canvas_size.0 - 32.0,
+                20.0,
+                &state.constants,
+                &mut state.texture_set,
+                ctx,
+            )?;
+        }
+
+        if state.settings.infinite_booster {
+            state.font.draw_text_with_shadow(
+                "INF.B".chars(),
+                state.canvas_size.0 - 32.0,
+                32.0,
+                &state.constants,
+                &mut state.texture_set,
+                ctx,
+            )?;
+        }
+
         self.replay.draw(state, ctx, &self.frame)?;
 
         self.pause_menu.draw(state, ctx)?;

@@ -62,19 +62,6 @@ impl LiveDebugger {
             self.selected_event = -1;
         }
 
-        if state.settings.god_mode {
-            Window::new("God Mode Enabled [F3]")
-                .resizable(false)
-                .collapsed(true, Condition::Appearing)
-                .position([5.0, 100.0], Condition::FirstUseEver)
-                .size([180.0, 0.0], Condition::FirstUseEver)
-                .build(ui, || {
-                    if ui.button("Disable") {
-                        state.settings.god_mode = false;
-                    }
-                });
-        }
-
         if !state.debugger {
             return Ok(());
         }
