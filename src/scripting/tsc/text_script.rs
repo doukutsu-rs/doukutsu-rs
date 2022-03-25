@@ -22,7 +22,6 @@ use crate::input::touch_controls::TouchControlType;
 use crate::npc::NPC;
 use crate::player::{ControlMode, TargetPlayer};
 use crate::scene::game_scene::GameScene;
-use crate::scene::title_scene::TitleScene;
 use crate::scripting::tsc::bytecode_utils::read_cur_varint;
 use crate::scripting::tsc::encryption::decrypt_tsc;
 use crate::scripting::tsc::opcodes::TSCOpCode;
@@ -1605,13 +1604,17 @@ impl TextScriptVM {
                 exec_state = TextScriptExecutionState::Reset;
             }
             TSCOpCode::ESC => {
-                state.next_scene = Some(Box::new(TitleScene::new()));
                 state.control_flags.set_tick_world(false);
                 state.control_flags.set_control_enabled(false);
                 state.control_flags.set_interactions_disabled(true);
                 state.textscript_vm.flags.set_cutscene_skip(false);
 
-                exec_state = TextScriptExecutionState::Ended;
+                exec_state = TextScriptExecutionState::Running(state.constants.game.intro_event, 0);
+                state.textscript_vm.suspend = true;
+                state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
+
+                state.reset();
+                state.start_intro(ctx)?;
             }
             TSCOpCode::SVP => {
                 exec_state = TextScriptExecutionState::SaveProfile(event, cursor.position() as u32);
