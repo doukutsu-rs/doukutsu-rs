@@ -254,9 +254,7 @@ impl NPC {
                     }
                     Direction::Bottom => {
                         self.vel_y += 0x20;
-                        if self.vel_y > 0x5FF {
-                            self.vel_y = 0x5FF;
-                        }
+                        self.clamp_fall_speed();
 
                         if self.flags.hit_bottom_wall() {
                             self.action_num = 2;

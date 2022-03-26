@@ -114,9 +114,7 @@ impl NPC {
             _ => (),
         }
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -259,9 +257,7 @@ impl NPC {
 
         self.vel_x = clamp(self.vel_x, -0x1ff, 0x1ff);
         self.vel_y += 0x20;
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -551,9 +547,7 @@ impl NPC {
 
         self.vel_x = self.vel_x.clamp(-0x300, 0x300);
 
-        if self.vel_y > 0x5FF {
-            self.vel_y = 0x5FF;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;

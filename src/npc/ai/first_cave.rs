@@ -149,9 +149,7 @@ impl NPC {
         }
 
         self.vel_y += 0x40;
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;

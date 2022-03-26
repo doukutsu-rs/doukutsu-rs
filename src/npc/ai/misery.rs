@@ -120,9 +120,7 @@ impl NPC {
 
                 self.vel_y += 0x40;
 
-                if self.vel_y > 0x5ff {
-                    self.vel_y = 0x5ff;
-                }
+                self.clamp_fall_speed();
 
                 if self.flags.hit_bottom_wall() {
                     state.sound_manager.play_sfx(23);
@@ -1202,9 +1200,7 @@ impl NPC {
             self.vel_y += 0x40;
         }
 
-        if self.vel_y > 0x5FF {
-            self.vel_y = 0x5FF;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;

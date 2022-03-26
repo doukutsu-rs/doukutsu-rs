@@ -81,9 +81,7 @@ impl NPC {
 
         self.vel_y += 0x40;
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -175,9 +173,7 @@ impl NPC {
         }
 
         self.vel_y += 0x40;
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -839,9 +835,7 @@ impl NPC {
         self.anim_rect = state.constants.npc.n203_critter_destroyed_egg_corridor[self.anim_num as usize + dir_offset];
 
         self.vel_y += 0x40;
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;

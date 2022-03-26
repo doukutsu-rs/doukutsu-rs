@@ -96,9 +96,7 @@ impl NPC {
         }
 
         self.vel_y += 0x55;
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -206,9 +204,7 @@ impl NPC {
             return Ok(());
         }
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.y += self.vel_y;
         self.anim_rect = state.constants.npc.n244_lava_drop;
@@ -421,9 +417,7 @@ impl NPC {
         }
 
         self.vel_y += 0x20;
-        if self.vel_y > 0x5FF {
-            self.vel_y = 0x5FF;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;

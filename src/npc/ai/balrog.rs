@@ -166,9 +166,7 @@ impl NPC {
         }
 
         self.vel_y += 0x20;
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -329,9 +327,7 @@ impl NPC {
                 }
 
                 self.vel_y += 0x20;
-                if self.vel_y > 0x5ff {
-                    self.vel_y = 0x5ff;
-                }
+                self.clamp_fall_speed();
             }
             30 => {
                 self.anim_num = 4;
@@ -520,9 +516,7 @@ impl NPC {
             let _ = npc_list.spawn(0x100, npc);
         }
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -799,9 +793,7 @@ impl NPC {
             self.direction = if self.x < player.x { Direction::Right } else { Direction::Left };
         }
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -867,8 +859,10 @@ impl NPC {
                 self.vel_x += 0x10 * self.direction.vector_x();
 
                 let pi = self.get_closest_player_idx_mut(&players);
-                if self.action_counter >= 8 && (players[pi].x - self.x).abs() < 0x1800
-                    && self.y - 0x1800 < players[pi].y && self.y + 0x1000 > players[pi].y
+                if self.action_counter >= 8
+                    && (players[pi].x - self.x).abs() < 0x1800
+                    && self.y - 0x1800 < players[pi].y
+                    && self.y + 0x1000 > players[pi].y
                 {
                     self.action_num = 10;
                     self.anim_num = 5;
@@ -980,9 +974,7 @@ impl NPC {
         self.vel_x = clamp(self.vel_x, -0x400, 0x400);
         self.vel_y += 0x20;
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -1199,9 +1191,7 @@ impl NPC {
         self.vel_y += 0x20;
         self.vel_x = self.vel_x.clamp(-0x300, 0x300);
 
-        if self.vel_y > 0x5FF {
-            self.vel_y = 0x5FF;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;

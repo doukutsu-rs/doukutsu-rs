@@ -12,6 +12,8 @@ use crate::rng::{Xoroshiro32PlusPlus, RNG};
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::weapon::bullet::Bullet;
 
+const MAX_FALL_SPEED: i32 = 0x5FF;
+
 impl NPC {
     /// Initializes the RNG. Called when the [NPC] is being added to an [NPCList].
     pub(crate) fn init_rng(&mut self) {
@@ -164,6 +166,13 @@ impl NPC {
     /// Sets direction of NPC to face towards Player.
     pub fn face_player(&mut self, player: &Player) {
         self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
+    }
+
+    /// Clamps +Y velocity if above `MAX_FALL_SPEED`.
+    pub fn clamp_fall_speed(&mut self) {
+        if self.vel_y > MAX_FALL_SPEED {
+            self.vel_y = MAX_FALL_SPEED;
+        }
     }
 
     /// Returns true if the [NPC] collides with a [Bullet].

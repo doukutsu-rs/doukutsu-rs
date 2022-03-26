@@ -74,8 +74,7 @@ impl BossNPC {
                 self.parts[0].target_y = self.parts[0].y;
                 self.parts[0].display_bounds =
                     Rect { left: 40 * 0x200, top: 40 * 0x200, right: 40 * 0x200, bottom: 0x2000 };
-                self.parts[0].hit_bounds =
-                    Rect { left: 0x1000, top: 24 * 0x200, right: 0x1000, bottom: 0x2000 };
+                self.parts[0].hit_bounds = Rect { left: 0x1000, top: 24 * 0x200, right: 0x1000, bottom: 0x2000 };
 
                 self.parts[1].cond.set_alive(true);
                 self.parts[1].display_bounds =
@@ -93,10 +92,8 @@ impl BossNPC {
                 self.parts[3].direction = Direction::Left;
                 self.parts[3].x = self.parts[0].x + 0x2000;
                 self.parts[3].y = self.parts[0].y;
-                self.parts[3].display_bounds =
-                    Rect { left: 24 * 0x200, top: 0x2000, right: 0x2000, bottom: 0x2000 };
-                self.parts[3].hit_bounds =
-                    Rect { left: 0x1000, top: 0x1000, right: 0x1000, bottom: 0x1000 };
+                self.parts[3].display_bounds = Rect { left: 24 * 0x200, top: 0x2000, right: 0x2000, bottom: 0x2000 };
+                self.parts[3].hit_bounds = Rect { left: 0x1000, top: 0x1000, right: 0x1000, bottom: 0x1000 };
                 self.hurt_sound[3] = 52;
 
                 self.parts[4].cond.set_alive(true);
@@ -309,9 +306,7 @@ impl BossNPC {
                 let player = self.parts[5].get_closest_player_mut(players);
                 self.parts[5].damage = if player.flags.hit_bottom_wall() && self.parts[0].vel_y > 0 { 20 } else { 0 };
                 self.parts[0].vel_y += 0x24;
-                if self.parts[0].vel_y > 0x5ff {
-                    self.parts[0].vel_y = 0x5ff;
-                }
+                self.parts[0].clamp_fall_speed();
 
                 self.parts[0].y += self.parts[0].vel_y;
                 self.parts[0].x += self.parts[0].vel_x;
@@ -416,8 +411,7 @@ impl BossNPC {
             self.parts[5].action_num = 1;
             self.parts[5].npc_flags.set_solid_soft(true);
             self.parts[5].npc_flags.set_ignore_solidity(true);
-            self.parts[5].hit_bounds =
-                Rect { left: 20 * 0x200, top: 36 * 0x200, right: 20 * 0x200, bottom: 0x2000 };
+            self.parts[5].hit_bounds = Rect { left: 20 * 0x200, top: 36 * 0x200, right: 20 * 0x200, bottom: 0x2000 };
         }
 
         self.parts[5].x = self.parts[0].x;

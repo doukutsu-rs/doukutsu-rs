@@ -125,9 +125,7 @@ impl NPC {
 
         self.vel_y += 0x40;
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.y += self.vel_y;
 
@@ -181,9 +179,7 @@ impl NPC {
         }
 
         self.vel_y += 0x40;
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.y += self.vel_y;
 
@@ -211,9 +207,7 @@ impl NPC {
         self.anim_rect = state.constants.npc.n016_save_point[self.anim_num as usize];
 
         self.vel_y += 0x40;
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.y += self.vel_y;
 
@@ -281,9 +275,7 @@ impl NPC {
         }
 
         self.vel_y += 0x40;
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.y += self.vel_y;
 
@@ -603,9 +595,7 @@ impl NPC {
 
         self.anim_rect = state.constants.npc.n073_water_droplet[self.rng.range(0..4) as usize];
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -1021,9 +1011,7 @@ impl NPC {
 
         self.vel_y += 0x20;
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.y += self.vel_y;
 
@@ -1891,9 +1879,7 @@ impl NPC {
         if self.action_num >= 5 {
             self.vel_y += 0x80;
 
-            if self.vel_y > 0x5ff {
-                self.vel_y = 0x5ff;
-            }
+            self.clamp_fall_speed();
 
             self.y += self.vel_y;
         }
@@ -2516,9 +2502,7 @@ impl NPC {
         }
 
         self.vel_y += 0x40;
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         if self.flags.hit_bottom_wall() {
             self.action_num = 2;

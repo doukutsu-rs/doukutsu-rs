@@ -125,9 +125,7 @@ impl NPC {
 
         if self.action_num != 4 {
             self.vel_y += 0x20;
-            if self.vel_y > 0x5ff {
-                self.vel_y = 0x5ff;
-            }
+            self.clamp_fall_speed();
         } else {
             self.vel_x = clamp(self.vel_x + if self.x < player.x { 0x20 } else { -0x20 }, -0x200, 0x200);
             self.vel_y = clamp(self.vel_y + if self.y > self.target_y { -0x10 } else { 0x10 }, -0x200, 0x200);
@@ -186,9 +184,7 @@ impl NPC {
             }
             3 => {
                 self.vel_y += 0x40;
-                if self.vel_y > 0x5ff {
-                    self.vel_y = 0x5ff;
-                }
+                self.clamp_fall_speed();
 
                 if self.flags.hit_bottom_wall() {
                     self.vel_x *= 2;
@@ -334,9 +330,7 @@ impl NPC {
 
         if self.action_num != 4 {
             self.vel_y += 0x40;
-            if self.vel_y > 0x5ff {
-                self.vel_y = 0x5ff;
-            }
+            self.clamp_fall_speed();
         } else {
             self.vel_x = clamp(self.vel_x + if self.x < player.x { 0x20 } else { -0x20 }, -0x200, 0x200);
             self.vel_y = clamp(self.vel_y + if self.y > self.target_y { -0x10 } else { 0x10 }, -0x200, 0x200);
@@ -394,9 +388,7 @@ impl NPC {
             }
             4 => {
                 self.vel_y += 0x20;
-                if self.vel_y > 0x5ff {
-                    self.vel_y = 0x5ff;
-                }
+                self.clamp_fall_speed();
 
                 self.action_counter += 1;
                 if self.action_counter >= 20 && (self.flags.hit_bottom_wall() || self.y > player.y - 0x2000) {
@@ -1084,9 +1076,7 @@ impl NPC {
         }
 
         self.vel_y += 0x40;
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.y += self.vel_y;
 
@@ -1332,9 +1322,7 @@ impl NPC {
 
         self.vel_y += if self.action_num <= 50 { 0x40 } else { 0x20 };
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;

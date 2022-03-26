@@ -263,9 +263,7 @@ impl NPC {
                 }
 
                 self.vel_y += 0x40;
-                if self.vel_y > 0x5ff {
-                    self.vel_y = 0x5ff;
-                }
+                self.clamp_fall_speed();
 
                 if self.flags.hit_bottom_wall() {
                     self.vel_y = 0;
@@ -426,9 +424,7 @@ impl NPC {
                 }
 
                 self.vel_y += 0x40;
-                if self.vel_y > 0x5ff {
-                    self.vel_y = 0x5ff;
-                }
+                self.clamp_fall_speed();
 
                 if self.flags.hit_bottom_wall() {
                     self.vel_y = 0;

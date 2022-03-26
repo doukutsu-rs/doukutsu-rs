@@ -154,9 +154,7 @@ impl NPC {
         self.vel_y += 0x40;
         self.vel_x = self.vel_x.clamp(-0x400, 0x400);
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -258,9 +256,7 @@ impl NPC {
         self.vel_y += 0x40;
         self.vel_x = self.vel_x.clamp(-0x400, 0x400);
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -812,9 +808,7 @@ impl NPC {
 
         if self.action_num > 1 {
             self.vel_y += 0x20;
-            if self.vel_y > 0x5ff {
-                self.vel_y = 0x5ff;
-            }
+            self.clamp_fall_speed();
             self.y += self.vel_y;
         }
 

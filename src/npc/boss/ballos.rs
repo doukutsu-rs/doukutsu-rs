@@ -30,9 +30,7 @@ impl NPC {
         }
 
         self.vel_y += 0x40;
-        if self.vel_y > 0x5FF {
-            self.vel_y = 0x5FF;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -426,9 +424,7 @@ impl NPC {
                 }
 
                 self.vel_y += 0x80;
-                if self.vel_y > 0x5FF {
-                    self.vel_y = 0x5FF;
-                }
+                self.clamp_fall_speed();
 
                 self.animate(1, 4, 5);
 
@@ -525,9 +521,7 @@ impl NPC {
                     npc_list.create_death_smoke(self.x, self.y, 16, 16, state, &self.rng);
                 }
                 self.vel_y += 0x20;
-                if self.vel_y > 0x5FF {
-                    self.vel_y = 0x5FF;
-                }
+                self.clamp_fall_speed();
 
                 self.action_counter;
                 self.x = self.target_x + if self.action_counter & 0x02 != 0 { 0x200 } else { -0x200 };
@@ -775,9 +769,7 @@ impl NPC {
                 }
 
                 self.vel_y += 0x20;
-                if self.vel_y > 0x5FF {
-                    self.vel_y = 0x5FF;
-                }
+                self.clamp_fall_speed();
             }
             1000 | 1001 => {
                 if self.action_num == 1000 {

@@ -463,9 +463,7 @@ impl BossNPC {
         }
 
         self.parts[0].vel_y += 0x40;
-        if self.parts[0].vel_y > 0x5ff {
-            self.parts[0].vel_y = 0x5ff;
-        }
+        self.parts[0].clamp_fall_speed();
 
         self.parts[0].x += self.parts[0].vel_x;
         self.parts[0].y += self.parts[0].vel_y;

@@ -63,9 +63,7 @@ impl NPC {
 
         self.vel_y += 0x20;
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.y += self.vel_y;
 
@@ -235,9 +233,7 @@ impl NPC {
             self.vel_y += 0x40;
             self.vel_x = self.vel_x.clamp(-0x400, 0x400);
 
-            if self.vel_y > 0x5ff {
-                self.vel_y = 0x5ff;
-            }
+            self.clamp_fall_speed();
         }
 
         self.x += self.vel_x;
@@ -351,9 +347,7 @@ impl NPC {
         self.vel_y += 0x40;
         self.vel_x = clamp(self.vel_x, -0x400, 0x400);
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -434,9 +428,7 @@ impl NPC {
             10 => {
                 self.anim_num = 0;
                 self.vel_y += 0x40;
-                if self.vel_y > 0x5FF {
-                    self.vel_y = 0x5FF;
-                }
+                self.clamp_fall_speed();
                 self.y += self.vel_y;
             }
             20 | 21 => {
@@ -558,9 +550,7 @@ impl NPC {
         }
 
         self.vel_y += 0x40;
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -627,9 +617,7 @@ impl NPC {
         }
 
         self.vel_y += 0x20;
-        if self.vel_y > 0x5FF {
-            self.vel_y = 0x5FF;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -723,9 +711,7 @@ impl NPC {
             }
             20 => {
                 self.vel_y += 0x40;
-                if self.vel_y > 0x5FF {
-                    self.vel_y = 0x5FF;
-                }
+                self.clamp_fall_speed();
 
                 self.action_counter += 1;
                 if self.action_counter > 50 {

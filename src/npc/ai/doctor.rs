@@ -456,9 +456,7 @@ impl NPC {
             state.npc_super_pos = (self.x, self.y);
         }
 
-        if self.vel_y > 0x5ff {
-            self.vel_y = 0x5ff;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -967,9 +965,7 @@ impl NPC {
             }
         }
 
-        if self.vel_y > 0x5FF {
-            self.vel_y = 0x5FF;
-        }
+        self.clamp_fall_speed();
 
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -1059,9 +1055,7 @@ impl NPC {
             self.vel_y += self.direction.vector_y() * 0x40;
 
             self.action_counter += 1;
-            if self.vel_y > 0x5FF {
-                self.vel_y = 0x5FF;
-            }
+            self.clamp_fall_speed();
 
             self.x += self.vel_x;
             self.y += self.vel_y;
