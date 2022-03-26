@@ -15,8 +15,8 @@ use sdl2::mouse::{Cursor, SystemCursor};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Texture, TextureCreator, TextureQuery, WindowCanvas};
 use sdl2::video::GLProfile;
-use sdl2::video::WindowContext;
 use sdl2::video::Window;
+use sdl2::video::WindowContext;
 use sdl2::{keyboard, pixels, EventPump, Sdl, VideoSubsystem};
 
 use crate::common::{Color, Rect};
@@ -72,7 +72,9 @@ impl WindowOrCanvas {
         match self {
             WindowOrCanvas::Win(ref window) => window,
             WindowOrCanvas::Canvas(ref canvas, _) => canvas.window(),
-            _ => unsafe { std::hint::unreachable_unchecked(); },
+            _ => unsafe {
+                std::hint::unreachable_unchecked();
+            },
         }
     }
 
@@ -81,7 +83,9 @@ impl WindowOrCanvas {
         match self {
             WindowOrCanvas::Win(ref mut window) => window,
             WindowOrCanvas::Canvas(ref mut canvas, _) => canvas.window_mut(),
-            _ => unsafe { std::hint::unreachable_unchecked(); },
+            _ => unsafe {
+                std::hint::unreachable_unchecked();
+            },
         }
     }
 
@@ -89,7 +93,9 @@ impl WindowOrCanvas {
     pub fn canvas(&mut self) -> &mut WindowCanvas {
         match self {
             WindowOrCanvas::Canvas(ref mut canvas, _) => canvas,
-            _ => unsafe { std::hint::unreachable_unchecked(); },
+            _ => unsafe {
+                std::hint::unreachable_unchecked();
+            },
         }
     }
 
@@ -97,7 +103,9 @@ impl WindowOrCanvas {
     pub fn texture_creator(&mut self) -> &mut TextureCreator<WindowContext> {
         match self {
             WindowOrCanvas::Canvas(_, ref mut texture_creator) => texture_creator,
-            _ => unsafe { std::hint::unreachable_unchecked(); },
+            _ => unsafe {
+                std::hint::unreachable_unchecked();
+            },
         }
     }
 
@@ -230,6 +238,13 @@ impl BackendEventLoop for SDL2EventLoop {
                             let mut mutex = GAME_SUSPENDED.lock().unwrap();
                             *mutex = true;
 
+                            let mut refs = self.refs.borrow_mut();
+                            let window = refs.window.window_mut();
+                            if window.fullscreen_state() == sdl2::video::FullscreenType::True {
+                                window.set_fullscreen(sdl2::video::FullscreenType::Off);
+                                window.subsystem().sdl().mouse().show_cursor(true);
+                            }
+
                             state.sound_manager.pause();
                         }
                         WindowEvent::SizeChanged(width, height) => {
@@ -241,6 +256,12 @@ impl BackendEventLoop for SDL2EventLoop {
                                 }
                             }
                             state.handle_resize(ctx).unwrap();
+                        }
+                        WindowEvent::Maximized => {
+                            let mut refs = self.refs.borrow_mut();
+                            let window = refs.window.window_mut();
+                            window.set_fullscreen(sdl2::video::FullscreenType::True);
+                            window.subsystem().sdl().mouse().show_cursor(false);
                         }
                         _ => {}
                     },
