@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 
+#include "engine_constants.h"
 #include "common.h"
 #include "rng.h"
 #include "caret.h"
@@ -212,11 +213,14 @@ namespace doukutsu_rs::shared_game_state
         std::pair<float, float> canvas_size;
         std::pair<float, float> screen_size;
         std::pair<float, float> preferred_viewport_size;
-        // std::optional<std::shared_ptr<scene::Scene>> next_scene;
+        // std::optional<std::unique_ptr<scene::Scene>> next_scene;
         // scripting::text_script::TextScriptVM textscript_vm;
         // scripting::credit_script::CreditScriptVM creditscript_vm;
 
+        engine_constants::EngineConstants constants;
         sound::SoundManager sound_manager;
         bool shutdown;
+
+        void create_caret(int32_t x, int32_t y, caret::CaretType ctype, common::Direction direct);
     };
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <tuple>
 
 #include "common.h"
@@ -10,7 +11,7 @@ namespace doukutsu_rs::shared_game_state {
 
 namespace doukutsu_rs::physics
 {
-    extern const std::pair<int32_t, int32_t> physics::OFFSETS[64];
+    extern const std::array<std::pair<int32_t, int32_t>, 64> OFFSETS;
 
     class PhysicalEntity
     {

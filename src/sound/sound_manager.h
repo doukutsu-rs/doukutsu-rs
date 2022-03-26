@@ -1,7 +1,22 @@
 #pragma once
 
-#include "../3rdparty/mpsc_channel.h"
 #include <variant>
+
+#include "../3rdparty/mpsc_channel.h"
+#include "../framework/context.h"
+
+namespace doukutsu_rs
+{
+    namespace engine_constants
+    {
+        class EngineConstants;
+    }
+
+    namespace settings
+    {
+        class Settings;
+    }
+};
 
 namespace doukutsu_rs::sound
 {
@@ -128,6 +143,24 @@ namespace doukutsu_rs::sound
         SoundManager(const SoundManager &) = delete;
         SoundManager &operator=(const SoundManager &) = delete;
 
-    public:
+        void pause();
+        void resume();
+        void play_sfx(uint8_t sample_id);
+        void play_sfx_freq(uint8_t sample_id, float freq);
+        void stop_sfx(uint8_t sample_id);
+        void set_org_interpolation(InterpolationMode mode);
+        void set_song_volume(float volume);
+        void set_sfx_volume(float volume);
+        void set_sfx_samples(uint8_t id, std::vector<int16_t> data);
+        void reload_songs(const engine_constants::EngineConstants &constants,
+                          const settings::Settings &settings,
+                          framework::context::Context &ctx);
+        void play_song(uintptr_t song_id, const engine_constants::EngineConstants &constants,
+                       const settings::Settings &settings,
+                       framework::context::Context &ctx);
+        void save_state();
+        void restore_state();
+        void set_speed(float speed);
+        uintptr_t current_song();
     };
 };

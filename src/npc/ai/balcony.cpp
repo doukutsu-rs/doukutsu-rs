@@ -1,5 +1,6 @@
 #include "../../shared_game_state.h"
 #include "../../npc.h"
+#include "../../player.h"
 
 using namespace doukutsu_rs;
 using namespace doukutsu_rs::common;
@@ -60,7 +61,7 @@ void NPC::tick_n254_helicopter(SharedGameState &state, NPCList &npc_list)
         npc_list.spawn(0x100, npc);
 
         // santa
-        auto npc = NPC::create(40, state.npc_table);
+        npc = NPC::create(40, state.npc_table);
         npc.cond.set_alive(true);
         npc.x = this->x - 0x2c00;
         npc.y = this->y - 0x1c00;
@@ -68,7 +69,7 @@ void NPC::tick_n254_helicopter(SharedGameState &state, NPCList &npc_list)
         npc_list.spawn(0x100, npc);
 
         // chaco
-        auto npc = NPC::create(223, state.npc_table);
+        npc = NPC::create(223, state.npc_table);
         npc.cond.set_alive(true);
         npc.x = this->x - 0x4600;
         npc.y = this->y - 0x1c00;

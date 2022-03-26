@@ -1,8 +1,10 @@
 #include "physics.h"
 #include "common.h"
+#include "caret.h"
 #include "shared_game_state.h"
 
 using namespace doukutsu_rs;
+using namespace doukutsu_rs::caret;
 using namespace doukutsu_rs::common;
 using namespace doukutsu_rs::physics;
 
@@ -16,8 +18,8 @@ using namespace doukutsu_rs::physics;
 //  2 | 42 30 13  8  9  7 21 55
 //  3 | 43 31 22 23 24 25 17 56
 //  4 | 57 58 59 60 61 62 63 64
-const std::pair<int32_t, int32_t> physics::OFFSETS[64] = {
-    {0, 0},
+const std::array<std::pair<int32_t, int32_t>, 64> physics::OFFSETS = {
+    std::make_pair(0, 0),
     {1, 0},
     {0, 1},
     {1, 1},

@@ -6,13 +6,23 @@
 #include "common.h"
 #include "rng.h"
 
-namespace doukutsu_rs::shared_game_state
+namespace doukutsu_rs
 {
-    class SharedGameState;
+    namespace shared_game_state
+    {
+        class SharedGameState;
+    }
+
+    namespace player
+    {
+        class Player;
+    }
 }
 
 namespace doukutsu_rs::npc
 {
+    constexpr int MAX_FALL_SPEED = 0x5ff;
+
     struct NPCFlag
     {
         uint16_t value;
@@ -125,6 +135,16 @@ namespace doukutsu_rs::npc
                          hit_bounds(common::Rect<uint32_t>{0, 0, 0, 0}), rng(rng::Xoroshiro32PlusPlus(0)) {}
 
         static NPC create(uint16_t npc_type, NPCTable &table);
+
+        player::Player &get_closest_player_mut(Players &players);
+        player::Player const &get_closest_player_ref(Players const &players) const;
+        void face_player(const player::Player &player);
+
+        void clamp_fall_speed()
+        {
+            if (vel_y > MAX_FALL_SPEED)
+                vel_y = MAX_FALL_SPEED;
+        }
 
     protected:
 #pragma region NPC AI procedures
