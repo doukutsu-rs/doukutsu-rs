@@ -14,8 +14,6 @@ use crate::weapon::bullet::BulletManager;
 
 impl NPC {
     pub(crate) fn tick_n069_pignon(&mut self, state: &mut SharedGameState) -> GameResult {
-        let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
-
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -23,24 +21,18 @@ impl NPC {
                     self.anim_num = 0;
                     self.anim_counter = 0;
                     self.vel_x = 0;
-
-                    self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
                 }
 
                 if self.rng.range(0..100) == 1 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 1;
-
-                    self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
                 }
 
                 if self.rng.range(0..150) == 1 {
                     self.action_num = 3;
                     self.action_counter = 50;
                     self.anim_num = 0;
-
-                    self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
                 }
             }
             2 => {
@@ -48,8 +40,6 @@ impl NPC {
                 if self.action_counter > 8 {
                     self.action_num = 1;
                     self.anim_num = 0;
-
-                    self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
                 }
             }
             3 | 4 => {
@@ -57,8 +47,6 @@ impl NPC {
                     self.action_num = 4;
                     self.anim_num = 2;
                     self.anim_counter = 0;
-
-                    self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
                 }
 
                 if self.action_counter > 0 {
@@ -67,16 +55,7 @@ impl NPC {
                     self.action_num = 0;
                 }
 
-                self.anim_counter += 1;
-                if self.anim_counter > 2 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-                    if self.anim_num > 4 {
-                        self.anim_num = 2;
-                    }
-
-                    self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
-                }
+                self.animate(2, 2, 4);
 
                 if self.flags.hit_left_wall() {
                     self.direction = Direction::Right;
@@ -86,7 +65,7 @@ impl NPC {
                     self.direction = Direction::Left;
                 }
 
-                self.vel_x = self.direction.vector_x() * 0x100; // 0.5fix9
+                self.vel_x = self.direction.vector_x() * 0x100;
             }
             5 => {
                 if self.flags.hit_bottom_wall() {
@@ -100,8 +79,6 @@ impl NPC {
             self.vel_y = -0x200;
             self.anim_num = 5;
             self.action_num = 5;
-
-            self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
         }
 
         self.vel_y += 0x40;
@@ -112,6 +89,9 @@ impl NPC {
 
         self.x += self.vel_x;
         self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 6 };
+        self.anim_rect = state.constants.npc.n069_pignon[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
@@ -137,15 +117,7 @@ impl NPC {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
-        self.anim_counter += 1;
-        if self.anim_counter > 4 {
-            self.anim_counter = 0;
-            self.anim_num += 1;
-        }
-
-        if self.anim_num > 1 {
-            self.anim_num = 0;
-        }
+        self.animate(4, 0, 1);
 
         if self.shock > 0 {
             self.anim_num = 2;
@@ -237,11 +209,7 @@ impl NPC {
                     && (self.y - (0x4000) < player.y)
                     && (self.y + (0x2000) > player.y)
                 {
-                    if self.x > player.x {
-                        self.direction = Direction::Left;
-                    } else {
-                        self.direction = Direction::Right;
-                    }
+                    self.face_player(player);
                 }
             }
             3 => {
@@ -285,10 +253,7 @@ impl NPC {
                 self.anim_num = 0;
 
                 let player = self.get_closest_player_mut(players);
-                if abs(player.x - self.x) < 0x10000
-                    && self.y - 0x6000 < player.y
-                    && self.y + 0x4000 > player.y
-                {
+                if abs(player.x - self.x) < 0x10000 && self.y - 0x6000 < player.y && self.y + 0x4000 > player.y {
                     self.anim_counter = 0;
                     self.action_num = 2;
                 }
@@ -300,17 +265,10 @@ impl NPC {
                     self.npc_flags.set_shootable(false);
                 }
 
-                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+                self.face_player(player);
             }
             2 => {
-                self.anim_counter += 1;
-                if self.anim_counter > 6 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-                    if self.anim_num > 3 {
-                        self.anim_num = 0;
-                    }
-                }
+                self.animate(6, 0, 3);
 
                 let player = self.get_closest_player_mut(players);
                 if abs(player.x - self.x) < 0x2000 {
@@ -322,7 +280,7 @@ impl NPC {
                     state.sound_manager.play_sfx(34);
                 }
 
-                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+                self.face_player(player);
                 self.vel_x = self.direction.vector_x() * 0x100;
             }
             3 => {
@@ -502,7 +460,7 @@ impl NPC {
                 }
 
                 if player.x > self.x - 0x4000 && player.x < self.x + 0x4000 {
-                    self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+                    self.face_player(player);
                 }
             }
             2 => {
@@ -521,7 +479,7 @@ impl NPC {
                 }
 
                 self.damage = 1;
-                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+                self.face_player(player);
                 self.anim_num = 0;
 
                 self.action_counter += 1;
@@ -558,7 +516,7 @@ impl NPC {
                 if (self.vel_x < 0 && self.flags.hit_left_wall()) || (self.vel_x > 0 && self.flags.hit_right_wall()) {
                     self.vel_x *= -1
                 };
-                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+                self.face_player(player);
                 self.anim_num = if self.vel_y < -0x200 {
                     3
                 } else if self.vel_y > 0x200 {
@@ -597,7 +555,7 @@ impl NPC {
                     self.action_num = 210;
                     self.anim_num = 6;
 
-                    self.vel_x = if self.direction == Direction::Left { -0x5FF } else { 0x5FF };
+                    self.vel_x = 0x5FF * self.direction.vector_x();
 
                     state.sound_manager.play_sfx(25);
                     self.npc_flags.set_shootable(false);
@@ -645,7 +603,7 @@ impl NPC {
                 if self.action_num == 300 {
                     self.action_num = 301;
                     self.anim_num = 9;
-                    self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+                    self.face_player(player);
                 }
 
                 self.animate(1, 9, 11);
@@ -852,8 +810,7 @@ impl NPC {
                     self.npc_flags.set_shootable(true);
                 }
 
-                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
-
+                self.face_player(player);
                 self.action_counter += 1;
                 if self.action_counter > 4 {
                     self.action_num = 120;
@@ -877,8 +834,7 @@ impl NPC {
                 if (self.vel_x < 0 && self.flags.hit_left_wall()) || (self.vel_x > 0 && self.flags.hit_right_wall()) {
                     self.vel_x *= -1
                 };
-                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
-
+                self.face_player(player);
                 self.anim_num = if self.vel_y < -0x200 {
                     2
                 } else if self.vel_y > 0x200 {

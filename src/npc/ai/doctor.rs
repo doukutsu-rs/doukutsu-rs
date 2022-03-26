@@ -834,7 +834,7 @@ impl NPC {
                 self.anim_num = 3;
                 self.action_counter += 1;
                 let player = self.get_closest_player_ref(&players);
-                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+                self.face_player(player);
 
                 if self.action_counter > 20 {
                     self.action_num = 41;
@@ -896,7 +896,7 @@ impl NPC {
                     self.y = self.target_y;
 
                     let player = self.get_closest_player_ref(&players);
-                    self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+                    self.face_player(player);
                 }
             }
             103 => {
@@ -926,7 +926,7 @@ impl NPC {
                     self.target_x = self.x;
 
                     let player = self.get_closest_player_ref(&players);
-                    self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+                    self.face_player(player);
                 }
             }
             510 | 511 => {

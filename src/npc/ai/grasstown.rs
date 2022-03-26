@@ -412,7 +412,7 @@ impl NPC {
             }
             5 => {
                 self.animate(1, 2, 4);
-                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+                self.face_player(player);
 
                 self.vel_x += (player.x - self.x).signum() * 0x10;
                 self.vel_y += (self.target_y - self.y).signum() * 0x10;
@@ -841,8 +841,7 @@ impl NPC {
             && self.action_num != 3
             && self.action_counter > 10
             && ((self.shock > 0)
-                || (abs(self.x - player.x) < 0x14000 && abs(self.y - player.y) < 0x8000)
-                    && self.rng.range(0..50) == 2)
+                || (abs(self.x - player.x) < 0x14000 && abs(self.y - player.y) < 0x8000) && self.rng.range(0..50) == 2)
         {
             self.direction = if self.x >= player.x { Direction::Left } else { Direction::Right };
             self.action_num = 10;
@@ -1186,8 +1185,7 @@ impl NPC {
             && self.action_num != 3
             && self.action_counter > 10
             && ((self.shock > 0)
-                || (abs(self.x - player.x) < 0x14000 && abs(self.y - player.y) < 0x8000)
-                    && self.rng.range(0..50) == 2)
+                || (abs(self.x - player.x) < 0x14000 && abs(self.y - player.y) < 0x8000) && self.rng.range(0..50) == 2)
         {
             self.direction = if self.x >= player.x { Direction::Left } else { Direction::Right };
             self.action_num = 10;

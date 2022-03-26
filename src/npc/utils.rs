@@ -161,6 +161,7 @@ impl NPC {
         &players[idx]
     }
 
+    /// Sets direction of NPC to face towards Player.
     pub fn face_player(&mut self, player: &Player) {
         self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
     }

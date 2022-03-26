@@ -266,7 +266,7 @@ impl NPC {
                     self.action_counter3 += 1;
                 }
 
-                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+                self.face_player(player);
             }
             200 | 201 | 202 => {
                 if self.action_num == 200 {
@@ -281,8 +281,7 @@ impl NPC {
                     self.action_counter2 += 1;
                 }
 
-                self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
-
+                self.face_player(player);
                 self.vel_x = 8 * self.vel_x / 9;
                 self.vel_y = 8 * self.vel_y / 9;
 
@@ -308,8 +307,7 @@ impl NPC {
                     self.anim_counter = 0;
                     self.damage = 10;
 
-                    self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
-
+                    self.face_player(player);
                     state.sound_manager.play_sfx(25);
                 }
 
@@ -1580,12 +1578,12 @@ impl BossNPC {
                         player.damage(16, state, npc_list);
                     }
 
-                    for sign in [-1, 1] {
+                    for dir in [Direction::Left, Direction::Right] {
                         let mut npc = NPC::create(332, &state.npc_table);
                         npc.cond.set_alive(true);
-                        npc.x = self.parts[0].x + 0x1800 * sign;
+                        npc.x = self.parts[0].x + 0x1800 * dir.vector_x();
                         npc.y = self.parts[0].y + 0x6800;
-                        npc.direction = if sign == -1 { Direction::Left } else { Direction::Right };
+                        npc.direction = dir;
                         let _ = npc_list.spawn(0x100, npc);
                     }
 
@@ -1668,12 +1666,12 @@ impl BossNPC {
                     npc.y = self.parts[0].y;
                     let _ = npc_list.spawn(0x18, npc);
 
-                    for sign in [-1, 1] {
+                    for dir in [Direction::Left, Direction::Right] {
                         let mut npc = NPC::create(344, &state.npc_table);
                         npc.cond.set_alive(true);
-                        npc.x = self.parts[0].x + 0x3000 * sign;
+                        npc.x = self.parts[0].x + 0x3000 * dir.vector_x();
                         npc.y = self.parts[0].y + 0x4800;
-                        npc.direction = if sign == -1 { Direction::Left } else { Direction::Right };
+                        npc.direction = dir;
                         let _ = npc_list.spawn(0x20, npc);
                     }
                 }
@@ -1774,12 +1772,12 @@ impl BossNPC {
                     npc.y = self.parts[0].y;
                     let _ = npc_list.spawn(0x18, npc);
 
-                    for sign in [-1, 1] {
+                    for dir in [Direction::Left, Direction::Right] {
                         let mut npc = NPC::create(344, &state.npc_table);
                         npc.cond.set_alive(true);
-                        npc.x = self.parts[0].x + 0x3000 * sign;
+                        npc.x = self.parts[0].x + 0x3000 * dir.vector_x();
                         npc.y = self.parts[0].y + 0x4800;
-                        npc.direction = if sign == -1 { Direction::Left } else { Direction::Right };
+                        npc.direction = dir;
                         let _ = npc_list.spawn(0x20, npc);
                     }
                 }

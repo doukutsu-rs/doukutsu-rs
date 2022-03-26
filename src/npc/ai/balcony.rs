@@ -167,7 +167,7 @@ impl NPC {
         }
 
         let player = self.get_closest_player_ref(&players);
-        self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+        self.face_player(player);
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
 
@@ -176,7 +176,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n261_chie_caged(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n261_chie_caged(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -204,7 +208,7 @@ impl NPC {
         }
 
         let player = self.get_closest_player_ref(&players);
-        self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+        self.face_player(player);
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
 
@@ -213,7 +217,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n262_chaco_caged(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n262_chaco_caged(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -241,7 +249,7 @@ impl NPC {
         }
 
         let player = self.get_closest_player_ref(&players);
-        self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
+        self.face_player(player);
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
 
