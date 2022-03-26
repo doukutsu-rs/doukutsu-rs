@@ -242,7 +242,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             _ if npc_hook_ran => Ok(()),
             0 => self.tick_n000_null(),
             1 => self.tick_n001_experience(state, stage),
-            2 => self.tick_n002_behemoth(state),
+            2 => self.tick_n002_behemoth(state, npc_list),
             3 => self.tick_n003_dead_enemy(),
             4 => self.tick_n004_smoke(state),
             5 => self.tick_n005_green_critter(state, players),

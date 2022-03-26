@@ -1,7 +1,7 @@
-use crate::framework::error::GameResult;
 use num_traits::clamp;
 
 use crate::common::Direction;
+use crate::framework::error::GameResult;
 use crate::npc::NPC;
 use crate::player::Player;
 use crate::rng::RNG;
@@ -16,10 +16,11 @@ impl NPC {
                 }
 
                 let player = self.get_closest_player_mut(players);
-                if self.x - (64 * 0x200) < player.x
-                    && self.x + (64 * 0x200) > player.x
-                    && self.y - (64 * 0x200) < player.y
-                    && self.y + (64 * 0x200) > player.y {
+                if self.x - 0x8000 < player.x
+                    && self.x + 0x8000 > player.x
+                    && self.y - 0x8000 < player.y
+                    && self.y + 0x8000 > player.y
+                {
                     self.action_num = 2;
                     self.anim_counter = 0;
                 }
@@ -37,10 +38,11 @@ impl NPC {
             }
             3 => {
                 let player = self.get_closest_player_mut(players);
-                if !(self.x - (64 * 0x200) < player.x
-                    && self.x + (64 * 0x200) > player.x
-                    && self.y - (64 * 0x200) < player.y
-                    && self.y + (64 * 0x200) > player.y) {
+                if !(self.x - 0x8000 < player.x
+                    && self.x + 0x8000 > player.x
+                    && self.y - 0x8000 < player.y
+                    && self.y + 0x8000 > player.y)
+                {
                     self.action_num = 4;
                     self.anim_counter = 0;
                 }
@@ -66,105 +68,81 @@ impl NPC {
         }
         Ok(())
     }
-    
-    pub(crate) fn tick_n064_first_cave_critter(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+
+    pub(crate) fn tick_n064_first_cave_critter(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
                     self.y += 0x600;
                     self.action_num = 1;
                     self.anim_num = 0;
-                    self.anim_rect = state.constants.npc.n064_first_cave_critter[self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
                 }
 
                 let player = self.get_closest_player_mut(players);
-                if self.x > player.x {
-                    self.direction = Direction::Left;
-                } else {
-                    self.direction = Direction::Right;
-                }
+                self.face_player(player);
 
                 if self.target_x < 100 {
                     self.target_x += 1;
                 }
 
                 if self.action_counter >= 8
-                    && self.x - (112 * 0x200) < player.x
-                    && self.x + (112 * 0x200) > player.x
-                    && self.y - (80 * 0x200) < player.y
-                    && self.y + (80 * 0x200) > player.y {
-                    if self.anim_num != 1 {
-                        self.anim_num = 1;
-                        self.anim_rect = state.constants.npc.n064_first_cave_critter[self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-                    }
+                    && self.x - 0xe000 < player.x
+                    && self.x + 0xe000 > player.x
+                    && self.y - 0xa000 < player.y
+                    && self.y + 0xa000 > player.y
+                {
+                    self.anim_num = 1;
                 } else {
                     if self.action_counter < 8 {
                         self.action_counter += 1;
                     }
 
-                    if self.anim_num != 0 {
-                        self.anim_num = 0;
-                        self.anim_rect = state.constants.npc.n064_first_cave_critter[self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-                    }
+                    self.anim_num = 0;
                 }
 
                 if self.shock > 0 {
                     self.action_num = 2;
                     self.action_counter = 0;
 
-                    if self.anim_num != 0 {
-                        self.anim_num = 0;
-                        self.anim_rect = state.constants.npc.n064_first_cave_critter[self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-                    }
+                    self.anim_num = 0;
                 }
 
                 if self.action_counter >= 8
                     && self.target_x >= 100
-                    && self.x - (64 * 0x200) < player.x
-                    && self.x + (64 * 0x200) > player.x
-                    && self.y - (80 * 0x200) < player.y
-                    && self.y + (80 * 0x200) > player.y {
+                    && self.x - 0x8000 < player.x
+                    && self.x + 0x8000 > player.x
+                    && self.y - 0xa000 < player.y
+                    && self.y + 0xa000 > player.y
+                {
                     self.action_num = 2;
                     self.action_counter = 0;
-
-                    if self.anim_num != 0 {
-                        self.anim_num = 0;
-                        self.anim_rect = state.constants.npc.n064_first_cave_critter[self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-                    }
+                    self.anim_num = 0;
                 }
             }
             2 => {
                 self.action_counter += 1;
                 if self.action_counter > 8 {
                     self.action_num = 3;
+                    self.anim_num = 2;
 
-                    if self.anim_num != 2 {
-                        self.anim_num = 2;
-                        self.anim_rect = state.constants.npc.n064_first_cave_critter[self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-                    }
-
+                    self.vel_x = self.direction.vector_x() * 0x100;
                     self.vel_y = -0x5ff;
-                    state.sound_manager.play_sfx(30);
 
-                    if self.direction == Direction::Left {
-                        self.vel_x = -0x100;
-                    } else {
-                        self.vel_x = 0x100;
-                    }
+                    state.sound_manager.play_sfx(30);
                 }
             }
             3 => {
                 if self.flags.hit_bottom_wall() {
                     self.vel_x = 0;
+                    self.anim_num = 0;
                     self.action_counter = 0;
                     self.action_num = 1;
 
                     state.sound_manager.play_sfx(23);
-
-                    if self.anim_num != 0 {
-                        self.anim_num = 0;
-                        self.anim_rect = state.constants.npc.n064_first_cave_critter[self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-                    }
                 }
             }
             _ => (),
@@ -178,10 +156,18 @@ impl NPC {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+
+        self.anim_rect = state.constants.npc.n064_first_cave_critter[self.anim_num as usize + dir_offset];
+
         Ok(())
     }
 
-    pub(crate) fn tick_n065_first_cave_bat(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n065_first_cave_bat(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -230,7 +216,8 @@ impl NPC {
                 self.anim_num = 0;
             }
 
-            self.anim_rect = state.constants.npc.n065_first_cave_bat[self.anim_num as usize + if self.direction == Direction::Right { 4 } else { 0 }];
+            self.anim_rect = state.constants.npc.n065_first_cave_bat
+                [self.anim_num as usize + if self.direction == Direction::Right { 4 } else { 0 }];
         }
 
         Ok(())

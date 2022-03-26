@@ -11,7 +11,7 @@ use crate::shared_game_state::SharedGameState;
 use crate::weapon::bullet::BulletManager;
 
 impl NPC {
-    pub(crate) fn tick_n002_behemoth(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n002_behemoth(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.flags.hit_left_wall() {
             self.direction = Direction::Right;
         } else if self.flags.hit_right_wall() {
@@ -20,11 +20,7 @@ impl NPC {
 
         match self.action_num {
             0 => {
-                self.vel_x = match self.direction {
-                    Direction::Left => -0x100,
-                    Direction::Right => 0x100,
-                    _ => 0,
-                };
+                self.vel_x = self.direction.vector_x() * 0x100;
 
                 self.animate(8, 0, 3);
 
@@ -52,11 +48,7 @@ impl NPC {
                 }
             }
             2 => {
-                self.vel_x = match self.direction {
-                    Direction::Left => -0x400,
-                    Direction::Right => 0x400,
-                    _ => 0,
-                };
+                self.vel_x = self.direction.vector_x() * 0x400;
 
                 self.action_counter += 1;
                 if self.action_counter > 200 {
@@ -68,10 +60,19 @@ impl NPC {
                 if self.anim_counter > 5 {
                     self.anim_counter = 0;
                     self.anim_num += 1;
+
                     if self.anim_num > 6 {
                         self.anim_num = 5;
-                        state.sound_manager.play_sfx(26);
                         state.quake_counter = 8;
+
+                        state.sound_manager.play_sfx(26);
+
+                        let mut npc = NPC::create(4, &state.npc_table);
+                        npc.cond.set_alive(true);
+                        npc.x = self.x;
+                        npc.y = self.y + 0x600;
+
+                        let _ = npc_list.spawn(0x100, npc);
                     }
                 }
             }
@@ -79,6 +80,7 @@ impl NPC {
         }
 
         self.vel_y += 0x40;
+
         if self.vel_y > 0x5ff {
             self.vel_y = 0x5ff;
         }
@@ -86,8 +88,9 @@ impl NPC {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
-        self.anim_rect = state.constants.npc.n002_behemoth
-            [self.anim_num as usize + if self.direction == Direction::Right { 7 } else { 0 }];
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 7 };
+
+        self.anim_rect = state.constants.npc.n002_behemoth[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
@@ -103,17 +106,10 @@ impl NPC {
                     self.y += 0x600;
                     self.action_num = 1;
                     self.anim_num = 0;
-                    self.anim_rect = state.constants.npc.n005_green_critter
-                        [self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
                 }
 
-                let player = self.get_closest_player_mut(players);
-
-                if self.x > player.x {
-                    self.direction = Direction::Left;
-                } else {
-                    self.direction = Direction::Right;
-                }
+                let player = self.get_closest_player_ref(&players);
+                self.face_player(player);
 
                 if self.target_x < 100 {
                     self.target_x += 1;
@@ -125,32 +121,20 @@ impl NPC {
                     && self.y - 0xa000 < player.y
                     && self.y + 0xa000 > player.y
                 {
-                    if self.anim_num != 1 {
-                        self.anim_num = 1;
-                        self.anim_rect = state.constants.npc.n005_green_critter
-                            [self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-                    }
+                    self.anim_num = 1;
                 } else {
                     if self.action_counter < 8 {
                         self.action_counter += 1;
                     }
 
-                    if self.anim_num != 0 {
-                        self.anim_num = 0;
-                        self.anim_rect = state.constants.npc.n005_green_critter
-                            [self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-                    }
+                    self.anim_num = 0;
                 }
 
                 if self.shock > 0 {
                     self.action_num = 2;
                     self.action_counter = 0;
 
-                    if self.anim_num != 0 {
-                        self.anim_num = 0;
-                        self.anim_rect = state.constants.npc.n005_green_critter
-                            [self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-                    }
+                    self.anim_num = 0;
                 }
 
                 if self.action_counter >= 8
@@ -163,32 +147,18 @@ impl NPC {
                     self.action_num = 2;
                     self.action_counter = 0;
 
-                    if self.anim_num != 0 {
-                        self.anim_num = 0;
-                        self.anim_rect = state.constants.npc.n005_green_critter
-                            [self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-                    }
+                    self.anim_num = 0;
                 }
             }
             2 => {
                 self.action_counter += 1;
                 if self.action_counter > 8 {
                     self.action_num = 3;
+                    self.anim_num = 2;
 
-                    if self.anim_num != 2 {
-                        self.anim_num = 2;
-                        self.anim_rect = state.constants.npc.n005_green_critter
-                            [self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-                    }
-
+                    self.vel_x = self.direction.vector_x() * 0x100;
                     self.vel_y = -0x5ff;
                     state.sound_manager.play_sfx(30);
-
-                    if self.direction == Direction::Left {
-                        self.vel_x = -0x100;
-                    } else {
-                        self.vel_x = 0x100;
-                    }
                 }
             }
             3 => {
@@ -196,14 +166,9 @@ impl NPC {
                     self.vel_x = 0;
                     self.action_counter = 0;
                     self.action_num = 1;
+                    self.anim_num = 0;
 
                     state.sound_manager.play_sfx(23);
-
-                    if self.anim_num != 0 {
-                        self.anim_num = 0;
-                        self.anim_rect = state.constants.npc.n005_green_critter
-                            [self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-                    }
                 }
             }
             _ => (),
@@ -216,6 +181,10 @@ impl NPC {
 
         self.x += self.vel_x;
         self.y += self.vel_y;
+
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+
+        self.anim_rect = state.constants.npc.n005_green_critter[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
@@ -248,15 +217,7 @@ impl NPC {
                     self.x += self.vel_x;
                 }
 
-                self.anim_counter += 1;
-                if self.anim_counter > 1 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-
-                    if self.anim_num > 2 {
-                        self.anim_num = 1;
-                    }
-                }
+                self.animate(1, 1, 2);
 
                 if self.flags.hit_left_wall() {
                     self.action_num = 2;
@@ -287,15 +248,7 @@ impl NPC {
                     self.x += self.vel_x;
                 }
 
-                self.anim_counter += 1;
-                if self.anim_counter > 1 {
-                    self.anim_counter = 0;
-                    self.anim_num += 1;
-
-                    if self.anim_num > 2 {
-                        self.anim_num = 1;
-                    }
-                }
+                self.animate(1, 1, 2);
 
                 if self.flags.hit_right_wall() {
                     self.action_num = 4;
@@ -316,8 +269,9 @@ impl NPC {
             _ => (),
         }
 
-        self.anim_rect = state.constants.npc.n006_green_beetle
-            [self.anim_num as usize + if self.direction == Direction::Right { 5 } else { 0 }];
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 5 };
+
+        self.anim_rect = state.constants.npc.n006_green_beetle[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
@@ -338,7 +292,7 @@ impl NPC {
                 self.vel_x -= 0x40;
 
                 let player = self.get_closest_player_mut(players);
-                if self.x < (player.x - 192 * 0x200) {
+                if self.x < (player.x - 0x18000) {
                     self.action_num = 2;
                 }
 
@@ -351,7 +305,7 @@ impl NPC {
                 self.vel_x += 0x40;
 
                 let player = self.get_closest_player_mut(players);
-                if self.x > (player.x + 192 * 0x200) {
+                if self.x > (player.x + 0x18000) {
                     self.action_num = 1;
                 }
 
@@ -370,19 +324,13 @@ impl NPC {
         }
 
         self.vel_x = clamp(self.vel_x, -0x5ff, 0x5ff);
-
         self.x += self.vel_x;
 
-        self.anim_counter += 1;
-        if self.anim_counter > 1 {
-            self.anim_counter = 0;
-            self.anim_num = (self.anim_num + 1) % 2;
-        }
+        self.animate(1, 0, 1);
 
-        if self.anim_counter == 1 {
-            self.anim_rect = state.constants.npc.n007_basil
-                [self.anim_num as usize + if self.direction == Direction::Right { 3 } else { 0 }];
-        }
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+
+        self.anim_rect = state.constants.npc.n007_basil[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
@@ -403,17 +351,8 @@ impl NPC {
                     self.action_num = 1;
                     self.damage = 2;
 
-                    match self.direction {
-                        Direction::Left => {
-                            self.x = player.x + 256 * 0x200;
-                            self.vel_x = -0x2ff;
-                        }
-                        Direction::Right => {
-                            self.x = player.x - 256 * 0x200;
-                            self.vel_x = 0x2ff;
-                        }
-                        _ => (),
-                    }
+                    self.x = player.x + self.direction.opposite().vector_x() * 0x20000;
+                    self.vel_x = self.direction.vector_x() * 0x2ff;
                 } else {
                     self.npc_flags.set_shootable(false);
                     self.anim_rect.left = 0;
@@ -428,14 +367,9 @@ impl NPC {
             1 => {
                 let player = self.get_closest_player_mut(players);
 
-                if self.x > player.x {
-                    self.direction = Direction::Left;
-                    self.vel_x -= 0x10;
-                } else {
-                    self.direction = Direction::Right;
-                    self.vel_x += 0x10;
-                }
+                self.face_player(player);
 
+                self.vel_x += self.direction.vector_x() * 0x10;
                 self.vel_y += if self.y < self.target_y { 8 } else { -8 };
 
                 self.vel_x = clamp(self.vel_x, -0x2ff, 0x2ff);
@@ -452,20 +386,11 @@ impl NPC {
             _ => (),
         }
 
-        self.anim_counter += 1;
-        if self.anim_counter > 1 {
-            self.anim_counter = 0;
-            self.anim_num += 1;
+        self.animate(1, 0, 1);
 
-            if self.anim_num > 1 {
-                self.anim_num = 0;
-            }
-        }
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
 
-        if self.anim_counter == 1 {
-            self.anim_rect = state.constants.npc.n008_blue_beetle
-                [self.anim_num as usize + if self.direction == Direction::Right { 2 } else { 0 }];
-        }
+        self.anim_rect = state.constants.npc.n008_blue_beetle[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
@@ -576,7 +501,7 @@ impl NPC {
                     self.tsc_direction = self.direction as u16;
                     self.npc_flags.set_shootable(true);
 
-                    self.x = player.x + self.direction.opposite().vector_x() * 16 * 0x2000;
+                    self.x = player.x + self.direction.opposite().vector_x() * 0x20000;
                     self.vel_x = self.direction.vector_x() * 0x2ff;
                 } else {
                     self.anim_rect = Rect::new(0, 0, 0, 0);
@@ -618,7 +543,7 @@ impl NPC {
                     self.y += self.vel_y;
                 }
 
-                if player.x > self.x + 400 * 0x200 || player.x < self.x - 400 * 0x200 {
+                if player.x > self.x + 0x32000 || player.x < self.x - 0x32000 {
                     self.action_num = 0;
                     self.vel_x = 0;
                     self.x = self.target_x;
@@ -635,7 +560,7 @@ impl NPC {
             self.action_counter += 1;
         } else {
             self.action_counter2 += 1;
-            if (self.action_counter2 % 8) == 0 && abs(self.x - player.x) < 160 * 0x200 {
+            if (self.action_counter2 % 8) == 0 && abs(self.x - player.x) < 0x14000 {
                 let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64)
                     + self.rng.range(-6..6) as f64 * CDEG_RAD;
 
@@ -670,6 +595,7 @@ impl NPC {
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
+
         self.anim_rect = state.constants.npc.n058_basu[self.anim_num as usize + dir_offset];
 
         Ok(())
@@ -1234,7 +1160,7 @@ impl NPC {
                     self.tsc_direction = self.direction as u16;
                     self.npc_flags.set_shootable(true);
 
-                    self.x = player.x + self.direction.opposite().vector_x() * 16 * 0x2000;
+                    self.x = player.x + self.direction.opposite().vector_x() * 0x20000;
                     self.vel_x = self.direction.vector_x() * 0x2ff;
                 } else {
                     self.anim_rect = Rect::new(0, 0, 0, 0);
@@ -1276,7 +1202,7 @@ impl NPC {
                     self.y += self.vel_y;
                 }
 
-                if player.x > self.x + 400 * 0x200 || player.x < self.x - 400 * 0x200 {
+                if player.x > self.x + 0x32000 || player.x < self.x - 0x32000 {
                     self.action_num = 0;
                     self.vel_x = 0;
                     self.x = self.target_x;
@@ -1293,7 +1219,7 @@ impl NPC {
             self.action_counter += 1;
         } else {
             self.action_counter2 += 1;
-            if (self.action_counter2 % 8) == 0 && abs(self.x - player.x) < 160 * 0x200 {
+            if (self.action_counter2 % 8) == 0 && abs(self.x - player.x) < 0x14000 {
                 let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64)
                     + self.rng.range(-6..6) as f64 * CDEG_RAD;
 

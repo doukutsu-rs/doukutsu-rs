@@ -8,7 +8,6 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::input::touch_controls::TouchControlType;
 use crate::map::Map;
 use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;

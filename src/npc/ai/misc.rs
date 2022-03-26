@@ -573,7 +573,7 @@ impl NPC {
             self.anim_num = self.anim_counter / 2;
 
             let player = self.get_closest_player_mut(players);
-            if self.anim_num % 2 == 0 && (player.x - self.x).abs() < 480 * 0x200 {
+            if self.anim_num % 2 == 0 && (player.x - self.x).abs() < 0x3c000 {
                 self.action_counter = self.action_counter.wrapping_add(1);
 
                 let mut droplet = NPC::create(73, &state.npc_table);
@@ -723,8 +723,8 @@ impl NPC {
 
                 {
                     let i = self.get_closest_player_idx_mut(&players);
-                    if (players[i].x - self.x).abs() < 480 * 0x200
-                        && (players[i].y - self.y).abs() < 240 * 0x200
+                    if (players[i].x - self.x).abs() < 0x3c000
+                        && (players[i].y - self.y).abs() < 0x1e000
                         && self.rng.range(0..5) == 1
                     {
                         let mut particle = NPC::create(199, &state.npc_table);
@@ -741,7 +741,7 @@ impl NPC {
                         continue;
                     }
 
-                    if (player.y - self.y).abs() < 0x1000 && player.x < self.x && player.x > self.x - 96 * 0x200 {
+                    if (player.y - self.y).abs() < 0x1000 && player.x < self.x && player.x > self.x - 0xc000 {
                         player.vel_x -= 0x88;
                         player.cond.set_increase_acceleration(true);
                     }
@@ -783,8 +783,8 @@ impl NPC {
 
                 {
                     let i = self.get_closest_player_idx_mut(&players);
-                    if (players[i].x - self.x).abs() < 480 * 0x200
-                        && (players[i].y - self.y).abs() < 240 * 0x200
+                    if (players[i].x - self.x).abs() < 0x3c000
+                        && (players[i].y - self.y).abs() < 0x1e000
                         && self.rng.range(0..5) == 1
                     {
                         let mut particle = NPC::create(199, &state.npc_table);
@@ -801,7 +801,7 @@ impl NPC {
                         continue;
                     }
 
-                    if (player.x - self.x).abs() < 0x1000 && player.y < self.y && player.y > self.y - 96 * 0x200 {
+                    if (player.x - self.x).abs() < 0x1000 && player.y < self.y && player.y > self.y - 0xc000 {
                         player.vel_y -= 0x88;
                     }
                 }
@@ -842,8 +842,8 @@ impl NPC {
 
                 {
                     let i = self.get_closest_player_idx_mut(&players);
-                    if (players[i].x - self.x).abs() < 480 * 0x200
-                        && (players[i].y - self.y).abs() < 240 * 0x200
+                    if (players[i].x - self.x).abs() < 0x3c000
+                        && (players[i].y - self.y).abs() < 0x1e000
                         && self.rng.range(0..5) == 1
                     {
                         let mut particle = NPC::create(199, &state.npc_table);
@@ -856,7 +856,7 @@ impl NPC {
                 }
 
                 for player in players {
-                    if (player.y - self.y).abs() < 0x1000 && player.x > self.x && player.x < self.x + 96 * 0x200 {
+                    if (player.y - self.y).abs() < 0x1000 && player.x > self.x && player.x < self.x + 0xc000 {
                         player.vel_x += 0x88;
                         player.cond.set_increase_acceleration(true);
                     }
@@ -898,8 +898,8 @@ impl NPC {
 
                 {
                     let i = self.get_closest_player_idx_mut(&players);
-                    if (players[i].x - self.x).abs() < 480 * 0x200
-                        && (players[i].y - self.y).abs() < 240 * 0x200
+                    if (players[i].x - self.x).abs() < 0x3c000
+                        && (players[i].y - self.y).abs() < 0x1e000
                         && self.rng.range(0..5) == 1
                     {
                         let mut particle = NPC::create(199, &state.npc_table);
@@ -912,7 +912,7 @@ impl NPC {
                 }
 
                 for player in players {
-                    if (player.x - self.x).abs() < 0x1000 && player.y > self.y && player.y < self.y + 96 * 0x200 {
+                    if (player.x - self.x).abs() < 0x1000 && player.y > self.y && player.y < self.y + 0xc000 {
                         player.vel_y += 0x88;
                     }
                 }
@@ -1160,10 +1160,10 @@ impl NPC {
                 self.npc_flags.set_rear_and_top_not_hurt(false);
                 self.damage = 0;
                 let player = self.get_closest_player_mut(players);
-                if (player.x < self.x + 25 * 0x200)
-                    && (player.x > self.x - 25 * 0x2000)
-                    && (player.y < self.y + 25 * 0x200)
-                    && (player.y > self.y - 25 * 0x200)
+                if (player.x < self.x + 0x3200)
+                    && (player.x > self.x - 0x32000)
+                    && (player.y < self.y + 0x3200)
+                    && (player.y > self.y - 0x3200)
                 {
                     self.action_num = 11;
                     self.action_counter = 0;
@@ -1211,10 +1211,10 @@ impl NPC {
                 self.damage = 0;
 
                 let player = self.get_closest_player_mut(players);
-                if (player.x > self.x - 25 * 0x200)
-                    && (player.x < self.x + 25 * 0x2000)
-                    && (player.y < self.y + 25 * 0x200)
-                    && (player.y > self.y - 25 * 0x200)
+                if (player.x > self.x - 0x3200)
+                    && (player.x < self.x + 0x32000)
+                    && (player.y < self.y + 0x3200)
+                    && (player.y > self.y - 0x3200)
                 {
                     self.action_num = 21;
                     self.action_counter = 0;
@@ -1304,10 +1304,10 @@ impl NPC {
                 self.npc_flags.set_rear_and_top_not_hurt(false);
                 self.damage = 0;
                 let player = self.get_closest_player_mut(players);
-                if (player.y < self.y + 25 * 0x200)
-                    && (player.y > self.y - 25 * 0x2000)
-                    && (player.x < self.x + 25 * 0x200)
-                    && (player.x > self.x - 25 * 0x200)
+                if (player.y < self.y + 0x3200)
+                    && (player.y > self.y - 0x32000)
+                    && (player.x < self.x + 0x3200)
+                    && (player.x > self.x - 0x3200)
                 {
                     self.action_num = 11;
                     self.action_counter = 0;
@@ -1355,10 +1355,10 @@ impl NPC {
                 self.damage = 0;
 
                 let player = self.get_closest_player_mut(players);
-                if (player.y > self.y - 25 * 0x200)
-                    && (player.y < self.y + 25 * 0x2000)
-                    && (player.x < self.x + 25 * 0x200)
-                    && (player.x > self.x - 25 * 0x200)
+                if (player.y > self.y - 0x3200)
+                    && (player.y < self.y + 0x32000)
+                    && (player.x < self.x + 0x3200)
+                    && (player.x > self.x - 0x3200)
                 {
                     self.action_num = 21;
                     self.action_counter = 0;
@@ -2646,15 +2646,15 @@ impl NPC {
         npc_list: &NPCList,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
-        if (player.x - self.x).abs() < 320 * 0x200
-            && player.y < self.y + 320 * 0x200
-            && player.y > self.y - 160 * 0x200
+        if (player.x - self.x).abs() < 0x28000
+            && player.y < self.y + 0x28000
+            && player.y > self.y - 0x12c00
             && self.rng.range(0..100) == 2
         {
             let mut npc = NPC::create(73, &state.npc_table);
             npc.cond.set_alive(true);
             npc.x = self.x + self.rng.range(-6..6) * 0x200;
-            npc.y = self.y - 7 * 0x200;
+            npc.y = self.y - 0xe00;
 
             let _ = npc_list.spawn(0, npc);
         }

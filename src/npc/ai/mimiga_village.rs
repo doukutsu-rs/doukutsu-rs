@@ -166,10 +166,10 @@ impl NPC {
 
         if self.action_num == 1 {
             let player = self.get_closest_player_mut(players);
-            if (self.x - (48 * 0x200) < player.x)
-                && (self.x + (48 * 0x200) > player.x)
-                && (self.y - (48 * 0x200) < player.y)
-                && (self.y + (48 * 0x200) > player.y)
+            if (self.x - 0x6000 < player.x)
+                && (self.x + 0x6000 > player.x)
+                && (self.y - 0x6000 < player.y)
+                && (self.y + 0x6000 > player.y)
             {
                 self.anim_num = 1;
             } else {
@@ -232,9 +232,9 @@ impl NPC {
                 }
 
                 let player = self.get_closest_player_mut(players);
-                if (self.x - (32 * 0x200) < player.x)
-                    && (self.x + (32 * 0x200) > player.x)
-                    && (self.y - (32 * 0x200) < player.y)
+                if (self.x - (0x4000) < player.x)
+                    && (self.x + (0x4000) > player.x)
+                    && (self.y - (0x4000) < player.y)
                     && (self.y + (0x2000) > player.y)
                 {
                     if self.x > player.x {
@@ -285,9 +285,9 @@ impl NPC {
                 self.anim_num = 0;
 
                 let player = self.get_closest_player_mut(players);
-                if abs(player.x - self.x) < 128 * 0x200
-                    && self.y - 48 * 0x200 < player.y
-                    && self.y + 32 * 0x200 > player.y
+                if abs(player.x - self.x) < 0x10000
+                    && self.y - 0x6000 < player.y
+                    && self.y + 0x4000 > player.y
                 {
                     self.anim_counter = 0;
                     self.action_num = 2;
@@ -314,7 +314,7 @@ impl NPC {
 
                 let player = self.get_closest_player_mut(players);
                 if abs(player.x - self.x) < 0x2000 {
-                    self.hit_bounds.left = 18 * 0x200;
+                    self.hit_bounds.left = 0x2400;
                     self.action_counter = 0;
                     self.action_num = 3;
                     self.npc_flags.set_shootable(true);

@@ -140,7 +140,7 @@ impl NPC {
                     self.anim_num = 0;
 
                     let mut npc = NPC::create(257, &state.npc_table);
-                    npc.x = self.x + 128 * 0x200;
+                    npc.x = self.x + 0x10000;
                     npc.y = self.y;
                     npc.direction = Direction::Left;
                     npc.cond.set_alive(true);
@@ -150,7 +150,7 @@ impl NPC {
                     let _ = npc_list.spawn(0x80, npc);
                 }
 
-                state.npc_super_pos = (self.x - 24 * 0x200, self.y - 0x1000);
+                state.npc_super_pos = (self.x - 0x3000, self.y - 0x1000);
             }
             17 => {
                 self.vel_x = 0;

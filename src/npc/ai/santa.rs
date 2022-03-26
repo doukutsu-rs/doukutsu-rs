@@ -24,7 +24,7 @@ impl NPC {
                 }
 
                 let player = self.get_closest_player_mut(players);
-                if abs(self.x - player.x) < 32 * 0x200 && self.y - 32 * 0x200 < player.y && self.y + 0x2000 > player.y {
+                if abs(self.x - player.x) < 0x4000 && self.y - 0x4000 < player.y && self.y + 0x2000 > player.y {
                     self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
                 }
             }

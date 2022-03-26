@@ -562,7 +562,7 @@ impl NPC {
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
 
-                    self.y += 10 * 0x200;
+                    self.y += 0x1400;
                     self.action_num = 1;
                     self.anim_num = 3;
                     self.vel_y = -0x100;
@@ -864,13 +864,12 @@ impl NPC {
                     }
                 }
 
-                self.vel_x += 0x10 * self.direction.vector_x(); // 0.03125fix9
+                self.vel_x += 0x10 * self.direction.vector_x();
 
                 let pi = self.get_closest_player_idx_mut(&players);
-                if self.action_counter >= 8 && (players[pi].x - self.x).abs() < 12 * 0x200 // 12.0fix9
-                    && self.y - 12 * 0x200 < players[pi].y && self.y + 0x1000 > players[pi].y
+                if self.action_counter >= 8 && (players[pi].x - self.x).abs() < 0x1800
+                    && self.y - 0x1800 < players[pi].y && self.y + 0x1000 > players[pi].y
                 {
-                    // 12.0fix9 / 8.0fix9
                     self.action_num = 10;
                     self.anim_num = 5;
                     self.vel_y2 = pi as i32;
@@ -899,8 +898,8 @@ impl NPC {
 
                 let pi = self.get_closest_player_idx_mut(&players);
                 if self.action_counter >= 8
-                    && (players[pi].x - self.x).abs() < 12 * 0x200
-                    && self.y - 12 * 0x200 < players[pi].y
+                    && (players[pi].x - self.x).abs() < 0x1800
+                    && self.y - 0x1800 < players[pi].y
                     && self.y + 0x1000 > players[pi].y
                 {
                     self.action_num = 10;

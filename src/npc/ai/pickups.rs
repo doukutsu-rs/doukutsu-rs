@@ -17,7 +17,7 @@ impl NPC {
 
             self.vel_x -= 0x8;
 
-            if self.x < 80 * 0x200 {
+            if self.x < 0xa000 {
                 self.cond.set_alive(false);
                 return Ok(());
             }
@@ -160,7 +160,7 @@ impl NPC {
             }
 
             self.vel_x -= 0x08;
-            if self.x < 80 * 0x200 {
+            if self.x < 0xa000 {
                 self.cond.set_alive(false)
             }
 
@@ -228,7 +228,7 @@ impl NPC {
             }
 
             self.vel_x -= 0x08;
-            if self.x < 80 * 0x200 {
+            if self.x < 0xa000 {
                 self.cond.set_alive(false)
             }
 

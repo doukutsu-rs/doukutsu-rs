@@ -326,7 +326,7 @@ impl SharedGameState {
             BMFontRenderer::load(&vec!["/".to_owned()], "/builtin/builtin_font.fnt", ctx)
         })?;
 
-        let mut mod_list = ModList::load(ctx, &constants.string_table)?;
+        let mod_list = ModList::load(ctx, &constants.string_table)?;
 
         for i in 0..0xffu8 {
             let path = format!("/pxt/fx{:02x}.pxt", i);

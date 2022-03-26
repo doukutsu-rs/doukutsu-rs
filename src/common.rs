@@ -163,7 +163,7 @@ pub enum FadeDirection {
 }
 
 impl FadeDirection {
-    pub fn from_int(val: usize) -> Option<FadeDirection> {
+    pub const fn from_int(val: usize) -> Option<FadeDirection> {
         match val {
             0 => Some(FadeDirection::Left),
             1 => Some(FadeDirection::Up),
@@ -174,7 +174,7 @@ impl FadeDirection {
         }
     }
 
-    pub fn opposite(&self) -> FadeDirection {
+    pub const fn opposite(&self) -> FadeDirection {
         match self {
             FadeDirection::Left => FadeDirection::Right,
             FadeDirection::Up => FadeDirection::Down,
@@ -207,7 +207,7 @@ pub enum Direction {
 pub const FILE_TYPES: [&str; 3] = [".png", ".bmp", ".pbm"];
 
 impl Direction {
-    pub fn from_int(val: usize) -> Option<Direction> {
+    pub const fn from_int(val: usize) -> Option<Direction> {
         match val {
             0 => Some(Direction::Left),
             1 => Some(Direction::Up),
@@ -217,7 +217,7 @@ impl Direction {
         }
     }
 
-    pub fn from_int_facing(val: usize) -> Option<Direction> {
+    pub const fn from_int_facing(val: usize) -> Option<Direction> {
         match val {
             0 => Some(Direction::Left),
             1 => Some(Direction::Up),
@@ -228,33 +228,33 @@ impl Direction {
         }
     }
 
-    pub fn opposite(&self) -> Direction {
+    pub const fn opposite(&self) -> Direction {
         match self {
             Direction::Left => Direction::Right,
             Direction::Up => Direction::Bottom,
             Direction::Right => Direction::Left,
             Direction::Bottom => Direction::Up,
-            Direction::FacingPlayer => unreachable!(),
+            Direction::FacingPlayer => Direction::FacingPlayer,
         }
     }
 
-    pub fn vector_x(&self) -> i32 {
+    pub const fn vector_x(&self) -> i32 {
         match self {
             Direction::Left => -1,
             Direction::Up => 0,
             Direction::Right => 1,
             Direction::Bottom => 0,
-            Direction::FacingPlayer => unreachable!(),
+            Direction::FacingPlayer => 0,
         }
     }
 
-    pub fn vector_y(&self) -> i32 {
+    pub const fn vector_y(&self) -> i32 {
         match self {
             Direction::Left => 0,
             Direction::Up => -1,
             Direction::Right => 0,
             Direction::Bottom => 1,
-            Direction::FacingPlayer => unreachable!(),
+            Direction::FacingPlayer => 0,
         }
     }
 }

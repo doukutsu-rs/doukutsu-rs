@@ -177,7 +177,7 @@ impl NPC {
 
                 if self.action_counter2 < 120 {
                     self.action_counter2 += 1;
-                } else if abs(self.x - player.x) < 0x1000 && self.y < player.y && self.y + 96 * 0x200 > player.y {
+                } else if abs(self.x - player.x) < 0x1000 && self.y < player.y && self.y + 0xc000 > player.y {
                     self.vel_x /= 2;
                     self.vel_y = 0;
                     self.action_num = 3;
@@ -231,9 +231,9 @@ impl NPC {
                 }
 
                 if self.action_counter >= 8
-                    && abs(self.x - player.x) < 96 * 0x200
-                    && self.y - 128 * 0x200 < player.y
-                    && self.y + 48 * 0x200 > player.y
+                    && abs(self.x - player.x) < 0xc000
+                    && self.y - 0x10000 < player.y
+                    && self.y + 0x6000 > player.y
                 {
                     if self.x > player.x {
                         self.direction = Direction::Left;
@@ -257,9 +257,9 @@ impl NPC {
                 }
 
                 if self.action_counter >= 8
-                    && abs(self.x - player.x) < 96 * 0x200
-                    && self.y - 96 * 0x200 < player.y
-                    && self.y + 48 * 0x200 > player.y
+                    && abs(self.x - player.x) < 0xc000
+                    && self.y - 0xc000 < player.y
+                    && self.y + 0x6000 > player.y
                 {
                     self.action_num = 2;
                     self.action_counter = 0;
@@ -370,7 +370,7 @@ impl NPC {
                     self.anim_num = 1;
                 }
 
-                if abs(self.x - player.x) < 0x1000 && self.y - 0x1000 < player.y && self.y + 96 * 0x200 > player.y {
+                if abs(self.x - player.x) < 0x1000 && self.y - 0x1000 < player.y && self.y + 0xc000 > player.y {
                     self.action_num = 3;
                     self.anim_num = 0;
                 }
@@ -385,7 +385,7 @@ impl NPC {
             3 => {
                 self.anim_num = 0;
 
-                if self.shock > 0 || abs(self.x - player.x) > 20 * 0x200 {
+                if self.shock > 0 || abs(self.x - player.x) > 0x2800 {
                     self.action_num = 4;
                     self.action_counter = 0;
                     self.anim_num = 1;
@@ -841,7 +841,7 @@ impl NPC {
             && self.action_num != 3
             && self.action_counter > 10
             && ((self.shock > 0)
-                || (abs(self.x - player.x) < 160 * 0x200 && abs(self.y - player.y) < 64 * 0x200)
+                || (abs(self.x - player.x) < 0x14000 && abs(self.y - player.y) < 0x8000)
                     && self.rng.range(0..50) == 2)
         {
             self.direction = if self.x >= player.x { Direction::Left } else { Direction::Right };
@@ -1055,7 +1055,7 @@ impl NPC {
 
                 let player = self.get_closest_player_mut(players);
 
-                if abs(self.x - player.x) < 32 * 0x200 && self.y - 32 * 0x200 < player.y && self.y + 0x2000 > player.y {
+                if abs(self.x - player.x) < 0x4000 && self.y - 0x4000 < player.y && self.y + 0x2000 > player.y {
                     self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
                 }
             }
@@ -1186,7 +1186,7 @@ impl NPC {
             && self.action_num != 3
             && self.action_counter > 10
             && ((self.shock > 0)
-                || (abs(self.x - player.x) < 160 * 0x200 && abs(self.y - player.y) < 64 * 0x200)
+                || (abs(self.x - player.x) < 0x14000 && abs(self.y - player.y) < 0x8000)
                     && self.rng.range(0..50) == 2)
         {
             self.direction = if self.x >= player.x { Direction::Left } else { Direction::Right };
@@ -1357,7 +1357,7 @@ impl NPC {
             10 => {
                 self.action_num = 11;
                 self.anim_num = 1;
-                self.y -= 5 * 0x200;
+                self.y -= 0xa00;
                 self.display_bounds.top = 0x2000;
                 self.display_bounds.bottom = 0x2000
             }
@@ -1406,7 +1406,7 @@ impl NPC {
                     self.action_num = 41;
                     self.action_counter = 2;
                     self.direction = Direction::Left;
-                    self.y -= 48 * 0x200;
+                    self.y -= 0x6000;
                     self.vel_x = -0x1000;
                 }
 
@@ -1425,8 +1425,8 @@ impl NPC {
         if self.action_counter % 4 == 0 && self.action_num >= 20 {
             state.sound_manager.play_sfx(34);
             state.create_caret(
-                self.x + self.direction.opposite().vector_x() * 10 * 0x200,
-                self.y + 10 * 0x200,
+                self.x + self.direction.opposite().vector_x() * 0x1400,
+                self.y + 0x1400,
                 CaretType::Exhaust,
                 self.direction.opposite(),
             );
@@ -1442,7 +1442,7 @@ impl NPC {
     pub(crate) fn tick_n193_broken_scooter(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
-            self.x += 24 * 0x200;
+            self.x += 0x3000;
         }
 
         self.anim_rect = state.constants.npc.n193_broken_scooter;

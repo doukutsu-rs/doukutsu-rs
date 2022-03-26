@@ -161,6 +161,10 @@ impl NPC {
         &players[idx]
     }
 
+    pub fn face_player(&mut self, player: &Player) {
+        self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
+    }
+
     /// Returns true if the [NPC] collides with a [Bullet].
     pub fn collides_with_bullet(&self, bullet: &Bullet) -> bool {
         (self.npc_flags.shootable()
