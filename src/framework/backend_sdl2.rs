@@ -238,13 +238,6 @@ impl BackendEventLoop for SDL2EventLoop {
                             let mut mutex = GAME_SUSPENDED.lock().unwrap();
                             *mutex = true;
 
-                            let mut refs = self.refs.borrow_mut();
-                            let window = refs.window.window_mut();
-                            if window.fullscreen_state() == sdl2::video::FullscreenType::True {
-                                window.set_fullscreen(sdl2::video::FullscreenType::Off);
-                                window.subsystem().sdl().mouse().show_cursor(true);
-                            }
-
                             state.sound_manager.pause();
                         }
                         WindowEvent::SizeChanged(width, height) => {
@@ -257,18 +250,26 @@ impl BackendEventLoop for SDL2EventLoop {
                             }
                             state.handle_resize(ctx).unwrap();
                         }
-                        WindowEvent::Maximized => {
-                            let mut refs = self.refs.borrow_mut();
-                            let window = refs.window.window_mut();
-                            window.set_fullscreen(sdl2::video::FullscreenType::True);
-                            window.subsystem().sdl().mouse().show_cursor(false);
-                        }
                         _ => {}
                     },
-                    Event::KeyDown { scancode: Some(scancode), repeat, .. } => {
+                    Event::KeyDown { scancode: Some(scancode), repeat, keymod, .. } => {
                         if let Some(drs_scan) = conv_scancode(scancode) {
                             if !repeat {
                                 state.process_debug_keys(drs_scan);
+
+                                if keymod.intersects(keyboard::Mod::RALTMOD | keyboard::Mod::LALTMOD)
+                                    && drs_scan == ScanCode::Return
+                                {
+                                    let mut refs = self.refs.borrow_mut();
+                                    let window = refs.window.window_mut();
+                                    if window.fullscreen_state() == sdl2::video::FullscreenType::Desktop {
+                                        window.set_fullscreen(sdl2::video::FullscreenType::Off);
+                                        window.subsystem().sdl().mouse().show_cursor(true);
+                                    } else {
+                                        window.set_fullscreen(sdl2::video::FullscreenType::Desktop);
+                                        window.subsystem().sdl().mouse().show_cursor(false);
+                                    }
+                                }
                             }
                             ctx.keyboard_context.set_key(drs_scan, true);
                         }
