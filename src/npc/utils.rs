@@ -86,6 +86,7 @@ impl NPC {
             anim_rect: Rect::new(0, 0, 0, 0),
             rng: Xoroshiro32PlusPlus::new(0),
             popup: NumberPopup::new(),
+            splash: false,
         }
     }
 

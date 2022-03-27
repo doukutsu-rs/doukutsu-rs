@@ -126,6 +126,7 @@ pub struct NPC {
     pub hit_bounds: Rect<u32>,
     pub rng: Xoroshiro32PlusPlus,
     pub popup: NumberPopup,
+    pub splash: bool,
 }
 
 impl NPC {
@@ -169,6 +170,7 @@ impl NPC {
             anim_rect: Rect { left: 0, top: 0, right: 0, bottom: 0 },
             rng: Xoroshiro32PlusPlus::new(0),
             popup: NumberPopup::new(),
+            splash: false,
         }
     }
 

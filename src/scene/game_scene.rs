@@ -41,7 +41,7 @@ use crate::npc::list::NPCList;
 use crate::npc::{NPCLayer, NPC};
 use crate::physics::{PhysicalEntity, OFFSETS};
 use crate::player::{ControlMode, Player, TargetPlayer};
-use crate::rng::XorShift;
+use crate::rng::{XorShift, RNG};
 use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
@@ -1086,6 +1086,49 @@ impl GameScene {
         Ok(())
     }
 
+    fn tick_npc_splash(&mut self, state: &mut SharedGameState) {
+        for npc in self.npc_list.iter_alive() {
+            // Water Droplet
+            if npc.npc_type == 73 {
+                continue;
+            }
+
+            if !npc.splash && npc.flags.in_water() {
+                let vertical_splash = !npc.flags.hit_bottom_wall() && npc.vel_y > 0x100;
+                let horizontal_splash = npc.vel_x > 0x200 || npc.vel_x < -0x200;
+
+                if vertical_splash || horizontal_splash {
+                    let mut droplet = NPC::create(73, &state.npc_table);
+                    droplet.cond.set_alive(true);
+                    droplet.y = npc.y;
+                    droplet.direction =
+                        if npc.flags.water_splash_facing_right() { Direction::Right } else { Direction::Left };
+
+                    for _ in 0..7 {
+                        droplet.x = npc.x + (state.effect_rng.range(-8..8) * 0x200) as i32;
+
+                        droplet.vel_x = npc.vel_x + state.effect_rng.range(-0x200..0x200);
+                        droplet.vel_y = match () {
+                            _ if vertical_splash => state.effect_rng.range(-0x200..0x80) - (npc.vel_y / 2),
+                            _ if horizontal_splash => state.effect_rng.range(-0x200..0x80),
+                            _ => 0,
+                        };
+
+                        let _ = self.npc_list.spawn(0x100, droplet.clone());
+                    }
+
+                    state.sound_manager.play_sfx(56);
+                }
+
+                npc.splash = true;
+            }
+
+            if !npc.flags.in_water() {
+                npc.splash = false;
+            }
+        }
+    }
+
     fn tick_npc_bullet_collissions(&mut self, state: &mut SharedGameState) {
         for npc in self.npc_list.iter_alive() {
             if npc.npc_flags.shootable() && npc.npc_flags.interactable() {
@@ -1365,6 +1408,10 @@ impl GameScene {
             if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
                 npc.tick_map_collisions(state, &self.npc_list, &mut self.stage);
             }
+        }
+
+        if !self.water_params.entries.is_empty() {
+            self.tick_npc_splash(state);
         }
 
         self.tick_npc_bullet_collissions(state);

@@ -540,7 +540,7 @@ impl Default for WaterParamEntry {
 }
 
 pub struct WaterParams {
-    entries: HashMap<u8, WaterParamEntry>,
+    pub entries: HashMap<u8, WaterParamEntry>,
 }
 
 impl WaterParams {
