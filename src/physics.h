@@ -5,8 +5,20 @@
 
 #include "common.h"
 
-namespace doukutsu_rs::shared_game_state {
-    class SharedGameState;
+namespace doukutsu_rs
+{
+    namespace npc
+    {
+        class NPCList;
+    }
+    namespace stage
+    {
+        class Stage;
+    }
+    namespace shared_game_state
+    {
+        class SharedGameState;
+    }
 }
 
 namespace doukutsu_rs::physics
@@ -84,6 +96,6 @@ namespace doukutsu_rs::physics
         virtual void test_hit_water(shared_game_state::SharedGameState &state, int32_t x, int32_t y);
         virtual void test_hit_spike(shared_game_state::SharedGameState &state, int32_t x, int32_t y, bool water);
         virtual void test_hit_force(shared_game_state::SharedGameState &state, int32_t x, int32_t y, common::Direction direction, bool water);
-        // virtual void tick_map_collisions(shared_game_state::SharedGameState& state, common::NPCList& npc_list, common::Stage& stage);
+        virtual void tick_map_collisions(shared_game_state::SharedGameState &state, npc::NPCList &npc_list, stage::Stage &stage);
     };
 }

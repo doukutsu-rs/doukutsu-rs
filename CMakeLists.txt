@@ -11,6 +11,7 @@ add_executable(doukutsu_rs
     src/sound/sound_manager.cpp
     src/common.cpp 
     src/main.cpp
+    src/map.cpp
     src/physics.cpp
     src/shared_game_state.cpp
     src/texture_set.cpp)

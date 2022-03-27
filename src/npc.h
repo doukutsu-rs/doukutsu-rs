@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <array>
+#include <optional>
 
 #include "common.h"
 #include "rng.h"
@@ -136,6 +137,8 @@ namespace doukutsu_rs::npc
 
         static NPC create(uint16_t npc_type, NPCTable &table);
 
+        void init_rng();
+
         player::Player &get_closest_player_mut(Players &players);
         player::Player const &get_closest_player_ref(Players const &players) const;
         void face_player(const player::Player &player);
@@ -162,7 +165,12 @@ namespace doukutsu_rs::npc
         std::array<NPC, 512> npcs;
         uint16_t max_npc;
 
+        explicit NPCList();
+
     public:
         bool spawn(uint16_t min_id, NPC npc);
+        bool spawn_at_slot(uint16_t id, NPC npc);
+
+        std::optional<NPC&> get_npc(size_t id);
     };
 };
