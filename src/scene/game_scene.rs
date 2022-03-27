@@ -2076,8 +2076,21 @@ impl Scene for GameScene {
         if state.settings.infinite_booster {
             state.font.draw_text_with_shadow(
                 "INF.B".chars(),
-                state.canvas_size.0 - 32.0,
+                state.canvas_size.0 - 40.0,
                 32.0,
+                &state.constants,
+                &mut state.texture_set,
+                ctx,
+            )?;
+        }
+
+        if state.settings.speed != 1.0 {
+            let x = state.settings.speed;
+            let tick_spd_mod = format!("{:.1}x SPD", x);
+            state.font.draw_text_with_shadow(
+                tick_spd_mod.chars(),
+                state.canvas_size.0 - state.font.text_width(tick_spd_mod.chars(), &state.constants) - 10.0,
+                44.0,
                 &state.constants,
                 &mut state.texture_set,
                 ctx,
