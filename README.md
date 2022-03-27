@@ -180,6 +180,35 @@ data files.
 
 </details>
 
+#### Controls
+
+Same controls as the default for freeware and Cave Story+ keyboard. 
+
+To change, edit `doukutsu-rs\data\settings.json` within your user directory.
+<details>
+<summary>Default Controls</summary>
+
+|              | P1        | P2        |
+|--------------|-----------|-----------|
+| Movement     | `← ↑ ↓ →` | `, L . /` |
+| Jump         | `Z`       | `B`       |
+| Shoot        | `X`       | `N`       |
+| Cycle Weapon | `A and S` | `G and H` |
+| Inventory    | `Q`       | `T`       |
+| Map          | `W`       | `Y`       |
+| Strafe       | `LShift`  | `RShift`  |
+  
+</details>
+
+<details>
+  <summary>Extra Features</summary>
+  
+- `Alt + Enter` - Toggle Fullscreen
+- `F2` (While paused) - Quick Restart
+- `F3 - F12` - Debug keys
+  
+ </details>
+
 #### Screenshots
 
 <details>
