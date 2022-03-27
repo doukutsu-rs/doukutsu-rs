@@ -2063,9 +2063,10 @@ impl Scene for GameScene {
         }
 
         if state.settings.god_mode {
+            let debug_name = "GOD";
             state.font.draw_text_with_shadow(
-                "GOD".chars(),
-                state.canvas_size.0 - state.font.text_width("GOD".chars(), &state.constants) - 10.0,
+                debug_name.chars(),
+                state.canvas_size.0 - state.font.text_width(debug_name.chars(), &state.constants) - 10.0,
                 20.0,
                 &state.constants,
                 &mut state.texture_set,
@@ -2074,9 +2075,10 @@ impl Scene for GameScene {
         }
 
         if state.settings.infinite_booster {
+            let debug_name = "INF.B";
             state.font.draw_text_with_shadow(
-                "INF.B".chars(),
-                state.canvas_size.0 - state.font.text_width("INF.B".chars(), &state.constants) - 10.0,
+                debug_name.chars(),
+                state.canvas_size.0 - state.font.text_width(debug_name.chars(), &state.constants) - 10.0,
                 32.0,
                 &state.constants,
                 &mut state.texture_set,
