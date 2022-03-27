@@ -1105,12 +1105,12 @@ impl GameScene {
                         if npc.flags.water_splash_facing_right() { Direction::Right } else { Direction::Left };
 
                     for _ in 0..7 {
-                        droplet.x = npc.x + (state.effect_rng.range(-8..8) * 0x200) as i32;
+                        droplet.x = npc.x + (state.game_rng.range(-8..8) * 0x200) as i32;
 
-                        droplet.vel_x = npc.vel_x + state.effect_rng.range(-0x200..0x200);
+                        droplet.vel_x = npc.vel_x + state.game_rng.range(-0x200..0x200);
                         droplet.vel_y = match () {
-                            _ if vertical_splash => state.effect_rng.range(-0x200..0x80) - (npc.vel_y / 2),
-                            _ if horizontal_splash => state.effect_rng.range(-0x200..0x80),
+                            _ if vertical_splash => state.game_rng.range(-0x200..0x80) - (npc.vel_y / 2),
+                            _ if horizontal_splash => state.game_rng.range(-0x200..0x80),
                             _ => 0,
                         };
 
