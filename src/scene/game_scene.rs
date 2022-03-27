@@ -2065,7 +2065,7 @@ impl Scene for GameScene {
         if state.settings.god_mode {
             state.font.draw_text_with_shadow(
                 "GOD".chars(),
-                state.canvas_size.0 - 32.0,
+                state.canvas_size.0 - state.font.text_width("GOD".chars(), &state.constants) - 10.0,
                 20.0,
                 &state.constants,
                 &mut state.texture_set,
@@ -2076,7 +2076,7 @@ impl Scene for GameScene {
         if state.settings.infinite_booster {
             state.font.draw_text_with_shadow(
                 "INF.B".chars(),
-                state.canvas_size.0 - 40.0,
+                state.canvas_size.0 - state.font.text_width("INF.B".chars(), &state.constants) - 10.0,
                 32.0,
                 &state.constants,
                 &mut state.texture_set,
@@ -2085,8 +2085,7 @@ impl Scene for GameScene {
         }
 
         if state.settings.speed != 1.0 {
-            let x = state.settings.speed;
-            let tick_spd_mod = format!("{:.1}x SPD", x);
+            let tick_spd_mod = format!("{:.1}x SPD", state.settings.speed);
             state.font.draw_text_with_shadow(
                 tick_spd_mod.chars(),
                 state.canvas_size.0 - state.font.text_width(tick_spd_mod.chars(), &state.constants) - 10.0,
