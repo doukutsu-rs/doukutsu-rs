@@ -104,8 +104,21 @@ impl Background {
                 let offset_x = (self.tick % 640) as i32;
                 let offset_y = ((state.canvas_size.1 - 240.0) / 2.0).floor();
 
-                for x in (0..(state.canvas_size.0 as i32)).step_by(100) {
-                    batch.add_rect(x as f32, offset_y, &Rect::new_size(128, 0, 100, 88));
+                // Sun/Moon with 100px buffers on either side
+                let (width, center) = if state.constants.is_switch {
+                    (427, ((state.canvas_size.0 - 427.0) / 2.0).floor())
+                } else {
+                    (320, ((state.canvas_size.0 - 320.0) / 2.0).floor())
+                };
+
+                for x in (0..(center as i32)).step_by(100) {
+                    batch.add_rect(x as f32, offset_y, &Rect::new_size(0, 0, 100, 88));
+                }
+
+                batch.add_rect(center, offset_y, &Rect::new_size(0, 0, width, 88));
+
+                for x in (center as i32 + width as i32..(state.canvas_size.0 as i32)).step_by(100) {
+                    batch.add_rect(x as f32, offset_y, &Rect::new_size(0, 0, 100, 88));
                 }
 
                 // top / bottom edges
@@ -133,11 +146,6 @@ impl Background {
                             &Rect::new_size(0, 239, 320, 1),
                         );
                     }
-                }
-                if !state.constants.is_switch {
-                    batch.add_rect((state.canvas_size.0 - 320.0) / 2.0, offset_y, &Rect::new_size(0, 0, 320, 88));
-                } else {
-                    batch.add_rect((state.canvas_size.0 - 427.0) / 2.0, offset_y, &Rect::new_size(0, 0, 427, 88));
                 }
 
                 for x in ((-offset_x / 2)..(state.canvas_size.0 as i32)).step_by(320) {
