@@ -105,20 +105,20 @@ impl Background {
                 let offset_y = ((state.canvas_size.1 - 240.0) / 2.0).floor();
 
                 // Sun/Moon with 100px buffers on either side
-                let (width, center) = if state.constants.is_switch {
-                    (427, ((state.canvas_size.0 - 427.0) / 2.0).floor())
+                let (start, width, center) = if state.constants.is_switch {
+                    (0, 427, ((state.canvas_size.0 - 427.0) / 2.0).floor())
                 } else {
-                    (320, ((state.canvas_size.0 - 320.0) / 2.0).floor())
+                    (144, 320, ((state.canvas_size.0 - 320.0) / 2.0).floor())
                 };
 
                 for x in (0..(center as i32)).step_by(100) {
-                    batch.add_rect(x as f32, offset_y, &Rect::new_size(0, 0, 100, 88));
+                    batch.add_rect(x as f32, offset_y, &Rect::new_size(start, 0, 100, 88));
                 }
 
                 batch.add_rect(center, offset_y, &Rect::new_size(0, 0, width, 88));
 
                 for x in (center as i32 + width as i32..(state.canvas_size.0 as i32)).step_by(100) {
-                    batch.add_rect(x as f32, offset_y, &Rect::new_size(0, 0, 100, 88));
+                    batch.add_rect(x as f32, offset_y, &Rect::new_size(start, 0, 100, 88));
                 }
 
                 // top / bottom edges
