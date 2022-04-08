@@ -282,6 +282,20 @@ impl NPC {
                     }
                 }
             }
+            // Curly Clone Grabbed Player (Switch)
+            200 => {
+                self.anim_num = 2;
+                if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                    self.x = parent.x;
+                    self.vel_x = parent.vel_x;
+                    self.y = parent.y;
+                    self.vel_y = parent.vel_y;
+
+                    if parent.action_counter3 == 0 {
+                        self.cond.set_alive(false);
+                    }
+                }
+            }
             _ => (),
         }
 

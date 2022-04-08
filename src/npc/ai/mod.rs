@@ -25,3 +25,4 @@ pub(super) mod santa;
 pub(super) mod sue;
 pub(super) mod toroko;
 pub(super) mod weapon_trail;
+pub(super) mod wind_fortress;

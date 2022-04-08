@@ -1115,6 +1115,30 @@ pub struct NPCConsts {
     #[serde(default = "default_n360_credits_thank_you")]
     pub n360_credits_thank_you: Rect<u16>,
 
+    #[serde(default = "default_n361_flying_gaudi")]
+    pub n361_flying_gaudi: SafeNPCRect<4>,
+
+    #[serde(default = "default_n362_curly_clone")]
+    pub n362_curly_clone: SafeNPCRect<14>,
+
+    #[serde(default = "default_n363_dead_curly_clone")]
+    pub n363_dead_curly_clone: SafeNPCRect<2>,
+
+    #[serde(default = "default_n364_fast_bullet")]
+    pub n364_fast_bullet: SafeNPCRect<4>,
+
+    #[serde(default = "default_n366_zombie_curly_clone")]
+    pub n366_zombie_curly_clone: SafeNPCRect<6>,
+
+    #[serde(default = "default_n367_curly_clone_incubator")]
+    pub n367_curly_clone_incubator: Rect<u16>,
+
+    #[serde(default = "default_n368_gclone")]
+    pub n368_gclone: SafeNPCRect<3>,
+
+    #[serde(default = "default_n369_gclone_curly_clone")]
+    pub n369_gclone_curly_clone: SafeNPCRect<20>,
+
     // pub n370_second_quote: () // Same as n150_quote
     #[serde(default = "default_b01_omega")]
     pub b01_omega: SafeNPCRect<10>,
@@ -4819,6 +4843,98 @@ fn default_n358_misery_credits() -> SafeNPCRect<5> {
 
 fn default_n360_credits_thank_you() -> Rect<u16> {
     Rect { left: 0, top: 176, right: 48, bottom: 184 }
+}
+
+fn default_n361_flying_gaudi() -> SafeNPCRect<4> {
+    SafeNPCRect([
+        Rect { left: 48, top: 45, right: 72, bottom: 69 },
+        Rect { left: 72, top: 45, right: 96, bottom: 69 },
+        Rect { left: 48, top: 69, right: 72, bottom: 93 },
+        Rect { left: 72, top: 69, right: 96, bottom: 93 },
+    ])
+}
+
+fn default_n362_curly_clone() -> SafeNPCRect<14> {
+    SafeNPCRect([
+        Rect { left: 144, top: 0, right: 160, bottom: 16 },
+        Rect { left: 160, top: 0, right: 176, bottom: 16 },
+        Rect { left: 176, top: 0, right: 192, bottom: 16 },
+        Rect { left: 192, top: 0, right: 208, bottom: 16 },
+        Rect { left: 208, top: 0, right: 224, bottom: 16 },
+        Rect { left: 224, top: 0, right: 240, bottom: 16 },
+        Rect { left: 240, top: 0, right: 256, bottom: 16 },
+        Rect { left: 144, top: 16, right: 160, bottom: 32 },
+        Rect { left: 160, top: 16, right: 176, bottom: 32 },
+        Rect { left: 176, top: 16, right: 192, bottom: 32 },
+        Rect { left: 192, top: 16, right: 208, bottom: 32 },
+        Rect { left: 208, top: 16, right: 224, bottom: 32 },
+        Rect { left: 224, top: 16, right: 240, bottom: 32 },
+        Rect { left: 240, top: 16, right: 256, bottom: 32 },
+    ])
+}
+
+fn default_n363_dead_curly_clone() -> SafeNPCRect<2> {
+    SafeNPCRect([
+        Rect { left: 96, top: 96, right: 104, bottom: 104 },
+        Rect { left: 104, top: 96, right: 112, bottom: 104 },
+    ])
+}
+
+fn default_n364_fast_bullet() -> SafeNPCRect<4> {
+    SafeNPCRect([
+        Rect { left: 144, top: 32, right: 160, bottom: 48 },
+        Rect { left: 160, top: 32, right: 176, bottom: 48 },
+        Rect { left: 176, top: 32, right: 192, bottom: 48 },
+        Rect { left: 192, top: 32, right: 208, bottom: 48 },
+    ])
+}
+
+fn default_n366_zombie_curly_clone() -> SafeNPCRect<6> {
+    SafeNPCRect([
+        Rect { left: 272, top: 0, right: 288, bottom: 16 },
+        Rect { left: 288, top: 0, right: 304, bottom: 16 },
+        Rect { left: 304, top: 0, right: 320, bottom: 16 },
+        Rect { left: 272, top: 16, right: 288, bottom: 32 },
+        Rect { left: 288, top: 16, right: 304, bottom: 32 },
+        Rect { left: 304, top: 16, right: 320, bottom: 32 },
+    ])
+}
+
+fn default_n367_curly_clone_incubator() -> Rect<u16> {
+    Rect { left: 256, top: 0, right: 272, bottom: 32 }
+}
+
+fn default_n368_gclone() -> SafeNPCRect<3> {
+    SafeNPCRect([
+        Rect { left: 0, top: 144, right: 24, bottom: 176 },
+        Rect { left: 24, top: 144, right: 48, bottom: 176 },
+        Rect { left: 48, top: 144, right: 72, bottom: 176 },
+    ])
+}
+
+fn default_n369_gclone_curly_clone() -> SafeNPCRect<20> {
+    SafeNPCRect([
+        Rect { left: 144, top: 48, right: 160, bottom: 64 },
+        Rect { left: 160, top: 48, right: 176, bottom: 64 },
+        Rect { left: 176, top: 48, right: 192, bottom: 64 },
+        Rect { left: 192, top: 48, right: 208, bottom: 64 },
+        Rect { left: 208, top: 48, right: 224, bottom: 64 },
+        Rect { left: 224, top: 48, right: 240, bottom: 64 },
+        Rect { left: 240, top: 48, right: 256, bottom: 64 },
+        Rect { left: 256, top: 48, right: 272, bottom: 64 },
+        Rect { left: 272, top: 48, right: 288, bottom: 64 },
+        Rect { left: 288, top: 48, right: 304, bottom: 64 },
+        Rect { left: 144, top: 64, right: 160, bottom: 80 },
+        Rect { left: 160, top: 64, right: 176, bottom: 80 },
+        Rect { left: 176, top: 64, right: 192, bottom: 80 },
+        Rect { left: 192, top: 64, right: 208, bottom: 80 },
+        Rect { left: 208, top: 64, right: 224, bottom: 80 },
+        Rect { left: 224, top: 64, right: 240, bottom: 80 },
+        Rect { left: 240, top: 64, right: 256, bottom: 80 },
+        Rect { left: 256, top: 64, right: 272, bottom: 80 },
+        Rect { left: 272, top: 64, right: 288, bottom: 80 },
+        Rect { left: 288, top: 64, right: 304, bottom: 80 },
+    ])
 }
 
 fn default_b01_omega() -> SafeNPCRect<10> {

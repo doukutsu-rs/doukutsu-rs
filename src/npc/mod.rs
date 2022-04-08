@@ -603,6 +603,15 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             358 => self.tick_n358_misery_credits(state),
             359 => self.tick_n359_water_droplet_generator(state, players, npc_list),
             360 => self.tick_n360_credits_thank_you(state),
+            361 => self.tick_n361_flying_gaudi(state, players),
+            362 => self.tick_n362_curly_clone(state, players, npc_list),
+            363 => self.tick_n363_dead_curly_clone(state, npc_list),
+            364 => self.tick_n364_fast_bullet(state),
+            365 => self.tick_n365_still_curly_clone(state, players, npc_list),
+            366 => self.tick_n366_zombie_curly_clone(state, players),
+            367 => self.tick_n367_curly_clone_incubator(state, players, npc_list),
+            368 => self.tick_n368_gclone(state, players, npc_list),
+            369 => self.tick_n369_gclone_curly_clone(state, players, npc_list),
             370 => self.tick_n370_second_quote(state, players, npc_list),
             _ => {
                 #[cfg(feature = "hooks")]
