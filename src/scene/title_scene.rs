@@ -352,7 +352,7 @@ impl Scene for TitleScene {
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.background.draw(state, ctx, &self.frame, &self.textures, &self.stage)?;
 
-        {
+        if self.current_menu != CurrentMenu::SaveSelectMenu {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Title")?;
             batch.add_rect(
                 ((state.canvas_size.0 - state.constants.title.logo_rect.width() as f32) / 2.0).floor(),

@@ -13,6 +13,7 @@ pub mod pause_menu;
 pub mod save_select_menu;
 pub mod settings_menu;
 
+#[derive(Clone)]
 pub enum MenuEntry {
     Hidden,
     Active(String),
@@ -23,6 +24,7 @@ pub enum MenuEntry {
     DescriptiveOptions(String, usize, Vec<String>, Vec<String>),
     OptionsBar(String, f32),
     SaveData(MenuSaveInfo),
+    SaveDataSingle(MenuSaveInfo),
     NewSave,
 }
 
@@ -38,6 +40,7 @@ impl MenuEntry {
             MenuEntry::DescriptiveOptions(_, _, _, _) => 16.0,
             MenuEntry::OptionsBar(_, _) => 16.0,
             MenuEntry::SaveData(_) => 32.0,
+            MenuEntry::SaveDataSingle(_) => 32.0,
             MenuEntry::NewSave => 32.0,
         }
     }
@@ -53,6 +56,7 @@ impl MenuEntry {
             MenuEntry::DescriptiveOptions(_, _, _, _) => true,
             MenuEntry::OptionsBar(_, _) => true,
             MenuEntry::SaveData(_) => true,
+            MenuEntry::SaveDataSingle(_) => true,
             MenuEntry::NewSave => true,
         }
     }
@@ -76,6 +80,7 @@ pub struct Menu {
     anim_num: u16,
     anim_wait: u16,
     custom_cursor: Cell<bool>,
+    pub draw_cursor: bool,
 }
 
 impl Menu {
@@ -90,6 +95,7 @@ impl Menu {
             anim_wait: 0,
             entries: Vec::new(),
             custom_cursor: Cell::new(true),
+            draw_cursor: true,
         }
     }
 
@@ -152,6 +158,7 @@ impl Menu {
                     width = width.max(entry_width);
                 }
                 MenuEntry::SaveData(_) => {}
+                MenuEntry::SaveDataSingle(_) => {}
                 MenuEntry::NewSave => {}
             }
         }
@@ -271,57 +278,59 @@ impl Menu {
             entry_y = self.entries[0..(self.selected)].iter().map(|e| e.height()).sum::<f64>().max(0.0) as u16;
         }
 
-        if self.custom_cursor.get() {
-            if let Ok(batch) = state.texture_set.get_or_load_batch(ctx, &state.constants, "MenuCursor") {
-                rect.left = self.anim_num * 16;
-                rect.top = 16;
-                rect.right = rect.left + 16;
-                rect.bottom = rect.top + 16;
+        if self.draw_cursor {
+            if self.custom_cursor.get() {
+                if let Ok(batch) = state.texture_set.get_or_load_batch(ctx, &state.constants, "MenuCursor") {
+                    rect.left = self.anim_num * 16;
+                    rect.top = 16;
+                    rect.right = rect.left + 16;
+                    rect.bottom = rect.top + 16;
 
-                batch.add_rect(self.x as f32, self.y as f32 + 3.0 + entry_y as f32, &rect);
+                    batch.add_rect(self.x as f32, self.y as f32 + 3.0 + entry_y as f32, &rect);
+
+                    batch.draw(ctx)?;
+                } else {
+                    self.custom_cursor.set(false);
+                }
+            }
+
+            if !self.custom_cursor.get() {
+                let menu_texture: &str;
+                let character_rect: [Rect<u16>; 4];
+
+                match state.menu_character {
+                    MenuCharacter::Quote => {
+                        menu_texture = "MyChar";
+                        character_rect = state.constants.title.cursor_quote;
+                    }
+                    MenuCharacter::Curly => {
+                        menu_texture = "Npc/NpcRegu";
+                        character_rect = state.constants.title.cursor_curly;
+                    }
+                    MenuCharacter::Toroko => {
+                        menu_texture = "Npc/NpcRegu";
+                        character_rect = state.constants.title.cursor_toroko;
+                    }
+                    MenuCharacter::King => {
+                        menu_texture = "Npc/NpcRegu";
+                        character_rect = state.constants.title.cursor_king;
+                    }
+                    MenuCharacter::Sue => {
+                        menu_texture = "Npc/NpcRegu";
+                        character_rect = state.constants.title.cursor_sue;
+                    }
+                }
+
+                let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, menu_texture)?;
+
+                batch.add_rect(
+                    self.x as f32,
+                    self.y as f32 + 4.0 + entry_y as f32,
+                    &character_rect[self.anim_num as usize],
+                );
 
                 batch.draw(ctx)?;
-            } else {
-                self.custom_cursor.set(false);
             }
-        }
-
-        if !self.custom_cursor.get() {
-            let menu_texture: &str;
-            let character_rect: [Rect<u16>; 4];
-
-            match state.menu_character {
-                MenuCharacter::Quote => {
-                    menu_texture = "MyChar";
-                    character_rect = state.constants.title.cursor_quote;
-                }
-                MenuCharacter::Curly => {
-                    menu_texture = "Npc/NpcRegu";
-                    character_rect = state.constants.title.cursor_curly;
-                }
-                MenuCharacter::Toroko => {
-                    menu_texture = "Npc/NpcRegu";
-                    character_rect = state.constants.title.cursor_toroko;
-                }
-                MenuCharacter::King => {
-                    menu_texture = "Npc/NpcRegu";
-                    character_rect = state.constants.title.cursor_king;
-                }
-                MenuCharacter::Sue => {
-                    menu_texture = "Npc/NpcRegu";
-                    character_rect = state.constants.title.cursor_sue;
-                }
-            }
-
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, menu_texture)?;
-
-            batch.add_rect(
-                self.x as f32,
-                self.y as f32 + 4.0 + entry_y as f32,
-                &character_rect[self.anim_num as usize],
-            );
-
-            batch.draw(ctx)?;
         }
 
         y = self.y as f32 + 8.0;
@@ -481,7 +490,7 @@ impl Menu {
                         ctx,
                     )?;
                 }
-                MenuEntry::SaveData(save) => {
+                MenuEntry::SaveData(save) | MenuEntry::SaveDataSingle(save) => {
                     let name = &state.stages[save.current_map as usize].name;
                     let bar_width = (save.life as f32 / save.max_life as f32 * 39.0) as u16;
                     let right_edge = self.x as f32 + self.width as f32 - 4.0;

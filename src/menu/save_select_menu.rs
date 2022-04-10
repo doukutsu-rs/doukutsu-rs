@@ -26,13 +26,16 @@ pub enum CurrentMenu {
     SaveMenu,
     DifficultyMenu,
     DeleteConfirm,
+    LoadConfirm,
 }
 pub struct SaveSelectMenu {
     pub saves: [MenuSaveInfo; 3],
     current_menu: CurrentMenu,
     save_menu: Menu,
+    save_detailed: Menu,
     difficulty_menu: Menu,
     delete_confirm: Menu,
+    load_confirm: Menu,
     skip_difficulty_menu: bool,
 }
 
@@ -42,16 +45,20 @@ impl SaveSelectMenu {
             saves: [MenuSaveInfo::default(); 3],
             current_menu: CurrentMenu::SaveMenu,
             save_menu: Menu::new(0, 0, 230, 0),
+            save_detailed: Menu::new(0, 0, 230, 0),
             difficulty_menu: Menu::new(0, 0, 130, 0),
             delete_confirm: Menu::new(0, 0, 75, 0),
+            load_confirm: Menu::new(0, 0, 75, 0),
             skip_difficulty_menu: false,
         }
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &Context) -> GameResult {
         self.save_menu = Menu::new(0, 0, 230, 0);
+        self.save_detailed = Menu::new(0, 0, 230, 0);
         self.difficulty_menu = Menu::new(0, 0, 130, 0);
         self.delete_confirm = Menu::new(0, 0, 75, 0);
+        self.load_confirm = Menu::new(0, 0, 75, 0);
         self.skip_difficulty_menu = false;
 
         for (iter, save) in self.saves.iter_mut().enumerate() {
@@ -72,7 +79,6 @@ impl SaveSelectMenu {
         }
 
         self.save_menu.push_entry(MenuEntry::Active(state.t("common.back")));
-        self.save_menu.push_entry(MenuEntry::Disabled(state.t("menus.save_menu.delete_info")));
 
         self.difficulty_menu.push_entry(MenuEntry::Disabled(state.t("menus.difficulty_menu.title")));
         self.difficulty_menu.push_entry(MenuEntry::Active(state.t("menus.difficulty_menu.easy")));
@@ -88,6 +94,15 @@ impl SaveSelectMenu {
 
         self.delete_confirm.selected = 2;
 
+        self.load_confirm.push_entry(MenuEntry::Active(state.t("menus.main_menu.start")));
+        self.load_confirm.push_entry(MenuEntry::Active(state.t("menus.save_menu.delete_confirm")));
+        self.load_confirm.push_entry(MenuEntry::Active(state.t("common.back")));
+
+        self.save_detailed.draw_cursor = false;
+        if let MenuEntry::SaveData(save) = self.save_menu.entries[0] {
+            self.save_detailed.push_entry(MenuEntry::SaveDataSingle(save));
+        }
+
         self.update_sizes(state);
 
         Ok(())
@@ -101,7 +116,7 @@ impl SaveSelectMenu {
         self.save_menu.update_width(state);
         self.save_menu.update_height();
         self.save_menu.x = ((state.canvas_size.0 - self.save_menu.width as f32) / 2.0).floor() as isize;
-        self.save_menu.y = 30 + ((state.canvas_size.1 - self.save_menu.height as f32) / 2.0).floor() as isize;
+        self.save_menu.y = ((state.canvas_size.1 - self.save_menu.height as f32) / 2.0).floor() as isize;
 
         self.difficulty_menu.update_width(state);
         self.difficulty_menu.update_height();
@@ -112,7 +127,17 @@ impl SaveSelectMenu {
         self.delete_confirm.update_width(state);
         self.delete_confirm.update_height();
         self.delete_confirm.x = ((state.canvas_size.0 - self.delete_confirm.width as f32) / 2.0).floor() as isize;
-        self.delete_confirm.y = 30 + ((state.canvas_size.1 - self.delete_confirm.height as f32) / 2.0).floor() as isize
+        self.delete_confirm.y = 30 + ((state.canvas_size.1 - self.delete_confirm.height as f32) / 2.0).floor() as isize;
+
+        self.load_confirm.update_width(state);
+        self.load_confirm.update_height();
+        self.load_confirm.x = ((state.canvas_size.0 - self.load_confirm.width as f32) / 2.0).floor() as isize;
+        self.load_confirm.y = 30 + ((state.canvas_size.1 - self.load_confirm.height as f32) / 2.0).floor() as isize;
+
+        self.save_detailed.update_width(state);
+        self.save_detailed.update_height();
+        self.save_detailed.x = ((state.canvas_size.0 - self.save_detailed.width as f32) / 2.0).floor() as isize;
+        self.save_detailed.y = -40 + ((state.canvas_size.1 - self.save_detailed.height as f32) / 2.0).floor() as isize;
     }
 
     pub fn tick(
@@ -129,23 +154,20 @@ impl SaveSelectMenu {
                 MenuSelectionResult::Selected(slot, _) => {
                     state.save_slot = slot + 1;
 
-                    if self.skip_difficulty_menu {
-                        state.reload_resources(ctx)?;
-                        state.load_or_start_game(ctx)?;
-                    } else if let Ok(_) =
+                    if let Ok(_) =
                         filesystem::user_open(ctx, state.get_save_filename(state.save_slot).unwrap_or("".to_string()))
                     {
+                        if let MenuEntry::SaveData(save) = self.save_menu.entries[slot] {
+                            self.save_detailed.entries[0] = MenuEntry::SaveDataSingle(save);
+                        }
+                        self.current_menu = CurrentMenu::LoadConfirm;
+                        self.load_confirm.selected = 0;
+                    } else if self.skip_difficulty_menu {
                         state.reload_resources(ctx)?;
                         state.load_or_start_game(ctx)?;
                     } else {
                         self.difficulty_menu.selected = 2;
                         self.current_menu = CurrentMenu::DifficultyMenu;
-                    }
-                }
-                MenuSelectionResult::Right(slot, _, _) => {
-                    if slot <= 2 {
-                        self.current_menu = CurrentMenu::DeleteConfirm;
-                        self.delete_confirm.selected = 2;
                     }
                 }
                 _ => (),
@@ -182,6 +204,21 @@ impl SaveSelectMenu {
                     self.current_menu = CurrentMenu::SaveMenu;
                 }
                 MenuSelectionResult::Selected(2, _) | MenuSelectionResult::Canceled => {
+                    self.current_menu = CurrentMenu::LoadConfirm;
+                    self.load_confirm.selected = 0;
+                }
+                _ => (),
+            },
+            CurrentMenu::LoadConfirm => match self.load_confirm.tick(controller, state) {
+                MenuSelectionResult::Selected(0, _) => {
+                    state.reload_resources(ctx)?;
+                    state.load_or_start_game(ctx)?;
+                }
+                MenuSelectionResult::Selected(1, _) => {
+                    self.current_menu = CurrentMenu::DeleteConfirm;
+                    self.delete_confirm.selected = 2;
+                }
+                MenuSelectionResult::Selected(2, _) | MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::SaveMenu;
                 }
                 _ => (),
@@ -200,7 +237,12 @@ impl SaveSelectMenu {
                 self.difficulty_menu.draw(state, ctx)?;
             }
             CurrentMenu::DeleteConfirm => {
+                self.save_detailed.draw(state, ctx)?;
                 self.delete_confirm.draw(state, ctx)?;
+            }
+            CurrentMenu::LoadConfirm => {
+                self.save_detailed.draw(state, ctx)?;
+                self.load_confirm.draw(state, ctx)?;
             }
         }
         Ok(())
