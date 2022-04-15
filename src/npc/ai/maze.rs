@@ -755,9 +755,7 @@ impl NPC {
                 } else {
                     self.anim_num = if self.direction != Direction::Left { 1 } else { 0 };
 
-                    self.anim_rect.top += self.action_counter3 / 8;
                     self.y = ((self.action_counter3 as i32 / 8) * 0x200) + self.target_y;
-                    self.anim_rect.left -= if (self.action_counter3 & 0x02) != 0 { 1 } else { 0 };
                 }
                 if self.action_counter3 % 3 == 2 {
                     let mut npc = NPC::create(161, &state.npc_table);
@@ -786,6 +784,11 @@ impl NPC {
         state.npc_super_pos = (self.x, -512000);
 
         self.anim_rect = state.constants.npc.n162_puu_black_dead[self.anim_num as usize];
+
+        if self.action_num == 2 && self.action_counter3 <= 240 {
+            self.anim_rect.top += self.action_counter3 / 8;
+            self.anim_rect.left -= if (self.action_counter3 & 0x02) != 0 { 1 } else { 0 };
+        }
 
         Ok(())
     }

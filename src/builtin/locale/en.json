@@ -60,15 +60,15 @@
         "vsync_mode": {
           "entry": "V-Sync:",
           "uncapped": "Uncapped",
-          "uncapped_desc": "No V-Sync, game runs at uncapped frame rate.",
+          "uncapped_desc": "V-Sync Off.",
           "vsync": "Enabled",
-          "vsync_desc": "Frame rate is synchronized to V-Sync interval.",
-          "vrr_1x": "Variable Refresh Rate - 1x game tick",
-          "vrr_1x_desc": "Synced to 1*TPS, uses (G-/Free)Sync if available.",
-          "vrr_2x": "Variable Refresh Rate - 2x game tick",
-          "vrr_2x_desc": "Synced to 2*TPS, uses (G-/Free)Sync if available.",
-          "vrr_3x": "Variable Refresh Rate - 3x game tick",
-          "vrr_3x_desc": "Synced to 3*TPS, uses (G-/Free)Sync if available."
+          "vsync_desc": "V-Sync On.",
+          "vrr_1x": "Variable Refresh Rate (1x)",
+          "vrr_1x_desc": "Uses (G-/Free)Sync if available.",
+          "vrr_2x": "Variable Refresh Rate (2x)",
+          "vrr_2x_desc": "Uses (G-/Free)Sync if available.",
+          "vrr_3x": "Variable Refresh Rate (3x)",
+          "vrr_3x_desc": "Uses (G-/Free)Sync if available."
         }
       },
 

@@ -283,7 +283,7 @@ impl SettingsMenu {
                 _ => (),
             },
             CurrentMenu::GraphicsMenu => match self.graphics.tick(controller, state) {
-                MenuSelectionResult::Selected(0, toggle) => {
+                MenuSelectionResult::Selected(0, toggle) | MenuSelectionResult::Right(0, toggle, _) => {
                     if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
                         let (new_mode, new_value) = match *value {
                             0 => (VSyncMode::VSync, 1),
@@ -295,7 +295,24 @@ impl SettingsMenu {
 
                         *value = new_value;
                         state.settings.vsync_mode = new_mode;
-                        graphics::set_vsync_mode(ctx, new_mode);
+                        graphics::set_vsync_mode(ctx, new_mode)?;
+
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Left(0, toggle, _) => {
+                    if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
+                        let (new_mode, new_value) = match *value {
+                            0 => (VSyncMode::VRRTickSync3x, 4),
+                            1 => (VSyncMode::Uncapped, 0),
+                            2 => (VSyncMode::VSync, 1),
+                            3 => (VSyncMode::VRRTickSync1x, 2),
+                            _ => (VSyncMode::VRRTickSync2x, 3),
+                        };
+
+                        *value = new_value;
+                        state.settings.vsync_mode = new_mode;
+                        graphics::set_vsync_mode(ctx, new_mode)?;
 
                         let _ = state.settings.save(ctx);
                     }
