@@ -8,7 +8,7 @@ use std::cell::UnsafeCell;
 use std::env;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use directories::ProjectDirs;
 use lazy_static::lazy_static;
@@ -18,6 +18,7 @@ use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem::{mount_user_vfs, mount_vfs};
 use crate::framework::graphics;
+use crate::framework::graphics::VSyncMode;
 use crate::framework::ui::UI;
 use crate::framework::vfs::PhysicalFS;
 use crate::scene::loading_scene::LoadingScene;
@@ -84,7 +85,9 @@ pub struct Game {
     start_time: Instant,
     last_tick: u128,
     next_tick: u128,
-    loops: u64,
+    loops: u32,
+    next_tick_draw: u128,
+    present: bool,
     fps: Fps,
 }
 
@@ -98,6 +101,8 @@ impl Game {
             last_tick: 0,
             next_tick: 0,
             loops: 0,
+            next_tick_draw: 0,
+            present: true,
             fps: Fps::new(),
         };
 
@@ -144,6 +149,7 @@ impl Game {
                     for _ in 0..self.loops {
                         scene.tick(state_ref, ctx)?;
                     }
+                    self.fps.tick_count = self.fps.tick_count.saturating_add(self.loops as u32);
                 }
                 TimingMode::FrameSynchronized => {
                     scene.tick(state_ref, ctx)?;
@@ -155,6 +161,40 @@ impl Game {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         let state_ref = unsafe { &mut *self.state.get() };
+
+        match ctx.vsync_mode {
+            VSyncMode::Uncapped | VSyncMode::VSync => {
+                self.present = true;
+            }
+            _ => unsafe {
+                self.present = false;
+
+                let divisor = match ctx.vsync_mode {
+                    VSyncMode::VRRTickSync1x => 1,
+                    VSyncMode::VRRTickSync2x => 2,
+                    VSyncMode::VRRTickSync3x => 3,
+                    _ => std::hint::unreachable_unchecked(),
+                };
+
+                let delta = (state_ref.settings.timing_mode.get_delta() / divisor) as u64;
+
+                let now = self.start_time.elapsed().as_nanos();
+                if now > self.next_tick_draw + delta as u128 * 4 {
+                    self.next_tick_draw = now;
+                }
+
+                while self.start_time.elapsed().as_nanos() >= self.next_tick_draw {
+                    self.next_tick_draw += delta as u128;
+                    self.present = true;
+                }
+            },
+        }
+
+        if !self.present {
+            std::thread::sleep(Duration::from_millis(2));
+            self.loops = 0;
+            return Ok(());
+        }
 
         if ctx.headless {
             self.loops = 0;
@@ -197,7 +237,7 @@ impl Game {
             }
 
             if state_ref.settings.fps_counter {
-                self.fps.act(state_ref, ctx, self.last_tick)?;
+                self.fps.act(state_ref, ctx, self.start_time.elapsed().as_nanos())?;
             }
 
             self.ui.draw(state_ref, ctx, scene)?;

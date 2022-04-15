@@ -5,7 +5,7 @@ use std::ffi::c_void;
 use std::ops::Deref;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use imgui::internal::RawWrapper;
 use imgui::{ConfigFlags, DrawCmd, DrawData, DrawIdx, DrawVert, Key, MouseCursor, TextureId, Ui};
@@ -32,6 +32,7 @@ use crate::framework::ui::init_imgui;
 use crate::Game;
 use crate::GameError::RenderError;
 use crate::GAME_SUSPENDED;
+use crate::graphics::VSyncMode;
 
 pub struct SDL2Backend {
     context: Sdl,
@@ -315,7 +316,7 @@ impl BackendEventLoop for SDL2EventLoop {
         }
     }
 
-    fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
+    fn new_renderer(&self, ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>> {
         #[cfg(feature = "render-opengl")]
         {
             let mut refs = self.refs.borrow_mut();
@@ -364,7 +365,7 @@ impl BackendEventLoop for SDL2EventLoop {
                 *user_data = Rc::into_raw(refs) as *mut c_void;
             }
 
-            let gl_context = GLContext { gles2_mode: false, get_proc_address, swap_buffers, user_data };
+            let gl_context = GLContext { gles2_mode: false, is_sdl: true, get_proc_address, swap_buffers, user_data, ctx };
 
             return Ok(Box::new(OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))));
         } else {

@@ -11,6 +11,7 @@ use crate::menu::{Menu, MenuSelectionResult};
 use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::{Language, SharedGameState, TimingMode};
 use crate::sound::InterpolationMode;
+use crate::{graphics, VSyncMode};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
@@ -47,6 +48,24 @@ impl SettingsMenu {
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        self.graphics.push_entry(MenuEntry::DescriptiveOptions(
+            state.t("menus.options_menu.graphics_menu.vsync_mode.entry"),
+            state.settings.vsync_mode as usize,
+            vec![
+                state.t("menus.options_menu.graphics_menu.vsync_mode.uncapped"),
+                state.t("menus.options_menu.graphics_menu.vsync_mode.vsync"),
+                state.t("menus.options_menu.graphics_menu.vsync_mode.vrr_1x"),
+                state.t("menus.options_menu.graphics_menu.vsync_mode.vrr_2x"),
+                state.t("menus.options_menu.graphics_menu.vsync_mode.vrr_3x"),
+            ],
+            vec![
+                state.t("menus.options_menu.graphics_menu.vsync_mode.uncapped_desc"),
+                state.t("menus.options_menu.graphics_menu.vsync_mode.vsync_desc"),
+                state.t("menus.options_menu.graphics_menu.vsync_mode.vrr_1x_desc"),
+                state.t("menus.options_menu.graphics_menu.vsync_mode.vrr_2x_desc"),
+                state.t("menus.options_menu.graphics_menu.vsync_mode.vrr_3x_desc"),
+            ],
+        ));
         self.graphics.push_entry(MenuEntry::Toggle(
             state.t("menus.options_menu.graphics_menu.lighting_effects"),
             state.settings.shader_effects,
@@ -265,6 +284,23 @@ impl SettingsMenu {
             },
             CurrentMenu::GraphicsMenu => match self.graphics.tick(controller, state) {
                 MenuSelectionResult::Selected(0, toggle) => {
+                    if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
+                        let (new_mode, new_value) = match *value {
+                            0 => (VSyncMode::VSync, 1),
+                            1 => (VSyncMode::VRRTickSync1x, 2),
+                            2 => (VSyncMode::VRRTickSync2x, 3),
+                            3 => (VSyncMode::VRRTickSync3x, 4),
+                            _ => (VSyncMode::Uncapped, 0),
+                        };
+
+                        *value = new_value;
+                        state.settings.vsync_mode = new_mode;
+                        graphics::set_vsync_mode(ctx, new_mode);
+
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Selected(1, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.shader_effects = !state.settings.shader_effects;
                         let _ = state.settings.save(ctx);
@@ -272,7 +308,7 @@ impl SettingsMenu {
                         *value = state.settings.shader_effects;
                     }
                 }
-                MenuSelectionResult::Selected(1, toggle) => {
+                MenuSelectionResult::Selected(2, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.light_cone = !state.settings.light_cone;
                         let _ = state.settings.save(ctx);
@@ -280,7 +316,7 @@ impl SettingsMenu {
                         *value = state.settings.light_cone;
                     }
                 }
-                MenuSelectionResult::Selected(2, toggle) => {
+                MenuSelectionResult::Selected(3, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.motion_interpolation = !state.settings.motion_interpolation;
                         let _ = state.settings.save(ctx);
@@ -288,7 +324,7 @@ impl SettingsMenu {
                         *value = state.settings.motion_interpolation;
                     }
                 }
-                MenuSelectionResult::Selected(3, toggle) => {
+                MenuSelectionResult::Selected(4, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.subpixel_coords = !state.settings.subpixel_coords;
                         let _ = state.settings.save(ctx);
@@ -296,7 +332,7 @@ impl SettingsMenu {
                         *value = state.settings.subpixel_coords;
                     }
                 }
-                MenuSelectionResult::Selected(4, toggle) => {
+                MenuSelectionResult::Selected(5, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.original_textures = !state.settings.original_textures;
                         if self.on_title {
@@ -309,7 +345,7 @@ impl SettingsMenu {
                         *value = state.settings.original_textures;
                     }
                 }
-                MenuSelectionResult::Selected(5, toggle) => {
+                MenuSelectionResult::Selected(6, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.seasonal_textures = !state.settings.seasonal_textures;
                         state.reload_graphics();
@@ -318,7 +354,7 @@ impl SettingsMenu {
                         *value = state.settings.seasonal_textures;
                     }
                 }
-                MenuSelectionResult::Selected(7, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(8, _) | MenuSelectionResult::Canceled => {
                     self.current = CurrentMenu::MainMenu
                 }
                 _ => (),
@@ -366,6 +402,8 @@ impl SettingsMenu {
                         if let MenuEntry::Active(soundtrack) = entry {
                             if soundtrack == &state.settings.soundtrack {
                                 active_soundtrack_index = idx;
+                                let _ = state.settings.save(ctx);
+                                break;
                             }
                         }
                     }

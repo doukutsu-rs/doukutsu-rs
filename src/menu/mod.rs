@@ -37,7 +37,7 @@ impl MenuEntry {
             MenuEntry::Disabled(_) => 16.0,
             MenuEntry::Toggle(_, _) => 16.0,
             MenuEntry::Options(_, _, _) => 16.0,
-            MenuEntry::DescriptiveOptions(_, _, _, _) => 16.0,
+            MenuEntry::DescriptiveOptions(_, _, _, _) => 32.0,
             MenuEntry::OptionsBar(_, _) => 16.0,
             MenuEntry::SaveData(_) => 32.0,
             MenuEntry::SaveDataSingle(_) => 32.0,

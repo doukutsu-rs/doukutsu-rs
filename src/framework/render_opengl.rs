@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::cell::{RefCell, UnsafeCell};
 use std::ffi::{c_void, CStr};
+use std::hint::unreachable_unchecked;
 use std::mem;
 use std::mem::MaybeUninit;
 use std::ptr::null;
@@ -10,19 +11,23 @@ use imgui::{DrawCmd, DrawCmdParams, DrawData, DrawIdx, DrawVert, TextureId, Ui};
 
 use crate::common::{Color, Rect};
 use crate::framework::backend::{BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData};
+use crate::framework::context::Context;
+use crate::framework::error::GameError;
 use crate::framework::error::GameError::RenderError;
 use crate::framework::error::GameResult;
 use crate::framework::gl;
 use crate::framework::gl::types::*;
 use crate::framework::graphics::BlendMode;
 use crate::framework::util::{field_offset, return_param};
-use crate::GameError;
+use crate::graphics::VSyncMode;
 
 pub struct GLContext {
     pub gles2_mode: bool,
+    pub is_sdl: bool,
     pub get_proc_address: unsafe fn(user_data: &mut *mut c_void, name: &str) -> *const c_void,
     pub swap_buffers: unsafe fn(user_data: &mut *mut c_void),
     pub user_data: *mut c_void,
+    pub ctx: *mut Context,
 }
 
 pub struct OpenGLTexture {
@@ -410,7 +415,17 @@ struct RenderShader {
 
 impl Default for RenderShader {
     fn default() -> Self {
-        Self { program_id: 0, texture: 0, proj_mtx: 0, scale: 0, time: 0, frame_offset: 0, position: 0, uv: 0, color: 0 }
+        Self {
+            program_id: 0,
+            texture: 0,
+            proj_mtx: 0,
+            scale: 0,
+            time: 0,
+            frame_offset: 0,
+            position: 0,
+            uv: 0,
+            color: 0,
+        }
     }
 }
 
@@ -754,6 +769,34 @@ impl BackendRenderer for OpenGLRenderer {
 
             if let Some((context, _)) = self.get_context() {
                 (context.swap_buffers)(&mut context.user_data);
+            }
+        }
+
+        Ok(())
+    }
+
+    fn set_vsync_mode(&mut self, mode: VSyncMode) -> GameResult {
+        if !self.refs.is_sdl {
+            return Ok(());
+        }
+
+        #[cfg(feature = "backend-sdl")]
+        unsafe {
+            let ctx = &mut *self.refs.ctx;
+
+            match mode {
+                VSyncMode::Uncapped => {
+                    sdl2_sys::SDL_GL_SetSwapInterval(0);
+                },
+                VSyncMode::VSync => {
+                    sdl2_sys::SDL_GL_SetSwapInterval(1);
+                }
+                _ => {
+                    if sdl2_sys::SDL_GL_SetSwapInterval(-1) == -1 {
+                        log::warn!("Failed to enable variable refresh rate, falling back to non-V-Sync.");
+                        sdl2_sys::SDL_GL_SetSwapInterval(0);
+                    }
+                }
             }
         }
 

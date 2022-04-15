@@ -137,23 +137,28 @@ impl FontData {
 pub struct Fps {
     pub frame_count: u32,
     pub fps: u32,
+    pub tick_count: u32,
+    pub tps: u32,
     last_capture: u128,
 }
 
 impl Fps {
     pub fn new() -> Fps {
-        Fps { frame_count: 0, fps: 0, last_capture: 0 }
+        Fps { frame_count: 0, fps: 0, tick_count: 0, tps: 0, last_capture: 0 }
     }
 
     pub fn act(&mut self, state: &mut SharedGameState, ctx: &mut Context, time: u128) -> GameResult {
         if time - self.last_capture > 1000000000 {
             self.fps = self.frame_count;
             self.frame_count = 0;
+            self.tps = self.tick_count;
+            self.tick_count = 0;
             self.last_capture = time;
         } else {
-            self.frame_count += 1;
+            self.frame_count = self.frame_count.saturating_add(1);
         }
         draw_number(state.canvas_size.0 - 8.0, 8.0, self.fps as usize, Alignment::Right, state, ctx)?;
+        draw_number(state.canvas_size.0 - 8.0, 16.0, self.tps as usize, Alignment::Right, state, ctx)?;
         Ok(())
     }
 }

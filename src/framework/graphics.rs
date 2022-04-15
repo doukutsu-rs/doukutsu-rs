@@ -23,6 +23,20 @@ pub enum BlendMode {
     Multiply,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum VSyncMode {
+    /// No V-Sync - uncapped frame rate
+    Uncapped,
+    /// Synchronized to V-Sync
+    VSync,
+    /// Variable Refresh Rate - Synchronized to game tick interval
+    VRRTickSync1x,
+    /// Variable Refresh Rate - Synchronized to 2 * game tick interval
+    VRRTickSync2x,
+    /// Variable Refresh Rate - Synchronized to 3 * game tick interval
+    VRRTickSync3x,
+}
+
 pub fn clear(ctx: &mut Context, color: Color) {
     if let Some(renderer) = &mut ctx.renderer {
         renderer.clear(color)
@@ -30,8 +44,17 @@ pub fn clear(ctx: &mut Context, color: Color) {
 }
 
 pub fn present(ctx: &mut Context) -> GameResult {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         renderer.present()?;
+    }
+
+    Ok(())
+}
+
+pub fn set_vsync_mode(ctx: &mut Context, mode: VSyncMode) -> GameResult {
+    if let Some(renderer) = &mut ctx.renderer {
+        ctx.vsync_mode = mode;
+        renderer.set_vsync_mode(mode);
     }
 
     Ok(())
@@ -43,7 +66,7 @@ pub fn renderer_initialized(ctx: &mut Context) -> bool {
 }
 
 pub fn create_texture_mutable(ctx: &mut Context, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>> {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         return renderer.create_texture_mutable(width, height);
     }
 
@@ -51,7 +74,7 @@ pub fn create_texture_mutable(ctx: &mut Context, width: u16, height: u16) -> Gam
 }
 
 pub fn create_texture(ctx: &mut Context, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>> {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         return renderer.create_texture(width, height, data);
     }
 
@@ -72,7 +95,7 @@ pub fn screen_insets_scaled(ctx: &mut Context, scale: f32) -> (f32, f32, f32, f3
 }
 
 pub fn set_render_target(ctx: &mut Context, texture: Option<&Box<dyn BackendTexture>>) -> GameResult {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         return renderer.set_render_target(texture);
     }
 
@@ -80,7 +103,7 @@ pub fn set_render_target(ctx: &mut Context, texture: Option<&Box<dyn BackendText
 }
 
 pub fn set_blend_mode(ctx: &mut Context, blend: BlendMode) -> GameResult {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         return renderer.set_blend_mode(blend);
     }
 
@@ -88,7 +111,7 @@ pub fn set_blend_mode(ctx: &mut Context, blend: BlendMode) -> GameResult {
 }
 
 pub fn draw_rect(ctx: &mut Context, rect: Rect, color: Color) -> GameResult {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         return renderer.draw_rect(rect, color);
     }
 
@@ -97,7 +120,7 @@ pub fn draw_rect(ctx: &mut Context, rect: Rect, color: Color) -> GameResult {
 
 #[allow(unused)]
 pub fn draw_outline_rect(ctx: &mut Context, rect: Rect, line_width: usize, color: Color) -> GameResult {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         return renderer.draw_outline_rect(rect, line_width, color);
     }
 
@@ -105,7 +128,7 @@ pub fn draw_outline_rect(ctx: &mut Context, rect: Rect, line_width: usize, color
 }
 
 pub fn set_clip_rect(ctx: &mut Context, rect: Option<Rect>) -> GameResult {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         return renderer.set_clip_rect(rect);
     }
 
@@ -130,7 +153,7 @@ pub fn imgui_texture_id(ctx: &Context, texture: &Box<dyn BackendTexture>) -> Gam
 }
 
 pub fn prepare_imgui(ctx: &mut Context, ui: &imgui::Ui) -> GameResult {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         return renderer.prepare_imgui(ui);
     }
 
@@ -138,7 +161,7 @@ pub fn prepare_imgui(ctx: &mut Context, ui: &imgui::Ui) -> GameResult {
 }
 
 pub fn render_imgui(ctx: &mut Context, draw_data: &imgui::DrawData) -> GameResult {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         return renderer.render_imgui(draw_data);
     }
 
@@ -146,7 +169,7 @@ pub fn render_imgui(ctx: &mut Context, draw_data: &imgui::DrawData) -> GameResul
 }
 
 pub fn prepare_draw(ctx: &mut Context) -> GameResult {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         return renderer.prepare_draw(ctx.screen_size.0, ctx.screen_size.1);
     }
 
@@ -167,7 +190,7 @@ pub fn draw_triangle_list(
     texture: Option<&Box<dyn BackendTexture>>,
     shader: BackendShader,
 ) -> GameResult {
-    if let Some(renderer) = ctx.renderer.as_mut() {
+    if let Some(renderer) = &mut ctx.renderer {
         return renderer.draw_triangle_list(vertices, texture, shader);
     }
 

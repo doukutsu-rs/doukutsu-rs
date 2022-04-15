@@ -6,6 +6,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::BlendMode;
 use crate::Game;
+use crate::graphics::VSyncMode;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -30,7 +31,7 @@ pub trait Backend {
 pub trait BackendEventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context);
 
-    fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>>;
+    fn new_renderer(&self, ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>>;
 }
 
 pub trait BackendRenderer {
@@ -39,6 +40,8 @@ pub trait BackendRenderer {
     fn clear(&mut self, color: Color);
 
     fn present(&mut self) -> GameResult;
+
+    fn set_vsync_mode(&mut self, _mode: VSyncMode) -> GameResult { Ok(()) }
 
     fn prepare_draw(&mut self, _width: f32, _height: f32) -> GameResult {
         Ok(())

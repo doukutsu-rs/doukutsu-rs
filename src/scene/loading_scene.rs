@@ -1,5 +1,6 @@
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::graphics;
 use crate::scene::no_data_scene::NoDataScene;
 use crate::scene::Scene;
 use crate::shared_game_state::SharedGameState;
@@ -43,6 +44,8 @@ impl Scene for LoadingScene {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        graphics::set_vsync_mode(ctx, state.settings.vsync_mode)?;
+
         match state.texture_set.get_or_load_batch(ctx, &state.constants, "Loading") {
             Ok(batch) => {
                 batch.add(

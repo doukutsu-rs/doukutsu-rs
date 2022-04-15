@@ -319,7 +319,7 @@ impl BackendEventLoop for GlutinEventLoop {
         });
     }
 
-    fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
+    fn new_renderer(&self, _ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>> {
         let mut imgui = imgui::Context::create();
         imgui.io_mut().display_size = [640.0, 480.0];
 

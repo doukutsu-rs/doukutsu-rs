@@ -2,6 +2,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::{user_create, user_open};
 use crate::framework::keyboard::ScanCode;
+use crate::graphics::VSyncMode;
 use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
 use crate::input::touch_player_controller::TouchPlayerController;
@@ -47,6 +48,8 @@ pub struct Settings {
     pub debug_outlines: bool,
     pub fps_counter: bool,
     pub locale: Language,
+    #[serde(default = "default_vsync")]
+    pub vsync_mode: VSyncMode,
 }
 
 fn default_true() -> bool {
@@ -55,7 +58,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    7
+    8
 }
 
 #[inline(always)]
@@ -81,6 +84,11 @@ fn default_vol() -> f32 {
 #[inline(always)]
 fn default_locale() -> Language {
     Language::English
+}
+
+#[inline(always)]
+fn default_vsync() -> VSyncMode {
+    VSyncMode::VSync
 }
 
 impl Settings {
@@ -123,6 +131,11 @@ impl Settings {
         if self.version == 6 {
             self.version = 7;
             self.locale = default_locale();
+        }
+
+        if self.version == 7 {
+            self.version = 8;
+            self.vsync_mode = default_vsync();
         }
 
         if self.version != initial_version {
@@ -176,6 +189,7 @@ impl Default for Settings {
             debug_outlines: false,
             fps_counter: false,
             locale: Language::English,
+            vsync_mode: VSyncMode::VSync,
         }
     }
 }

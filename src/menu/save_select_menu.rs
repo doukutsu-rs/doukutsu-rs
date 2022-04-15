@@ -158,7 +158,8 @@ impl SaveSelectMenu {
                         filesystem::user_open(ctx, state.get_save_filename(state.save_slot).unwrap_or("".to_string()))
                     {
                         if let MenuEntry::SaveData(save) = self.save_menu.entries[slot] {
-                            self.save_detailed.entries[0] = MenuEntry::SaveDataSingle(save);
+                            self.save_detailed.entries.clear();
+                            self.save_detailed.push_entry(MenuEntry::SaveDataSingle(save));
                         }
                         self.current_menu = CurrentMenu::LoadConfirm;
                         self.load_confirm.selected = 0;

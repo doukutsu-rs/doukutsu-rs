@@ -7,7 +7,6 @@
     "on": "オン",
     "off": "オフ"
   },
-
   "menus": {
     "main_menu": {
       "start": "ゲームスタート",
@@ -17,7 +16,6 @@
       "jukebox": "ジュークボックス",
       "quit": "辞める"
     },
-
     "pause_menu": {
       "resume": "再開",
       "retry": "リトライ",
@@ -27,26 +25,22 @@
       "quit": "辞める",
       "quit_confirm": "辞める？"
     },
-
     "save_menu": {
       "new": "新しいデータ",
       "delete_info": "右矢印キーで削除",
       "delete_confirm": "消去？"
     },
-
     "difficulty_menu": {
       "title": "難易度選択",
       "easy": "簡単",
       "normal": "普通",
       "hard": "難しい"
     },
-
     "challenge_menu": {
       "start": "スタート",
       "no_replay": "ノーリプレイ",
       "replay_best": "ベストプレイを再生"
     },
-
     "options_menu": {
       "graphics": "グラフィック",
       "graphics_menu": {
@@ -56,9 +50,21 @@
         "subpixel_scrolling": "サブピクセルスクロール：",
         "original_textures": "オリジナルテクスチャ：",
         "seasonal_textures": "季節ものテクスチャ：",
-        "renderer": "レンダラ："
+        "renderer": "レンダラ：",
+        "vsync_mode": {
+          "entry": "V-Sync:",
+          "uncapped": "Uncapped",
+          "uncapped_desc": "No V-Sync, game runs at uncapped frame rate.",
+          "vsync": "Enabled",
+          "vsync_desc": "Frame rate is synchronized to V-Sync interval.",
+          "vrr_1x": "Variable Refresh Rate - 1x game tick",
+          "vrr_1x_desc": "Synced to 1*TPS, uses (G-/Free)Sync if available.",
+          "vrr_2x": "Variable Refresh Rate - 2x game tick",
+          "vrr_2x_desc": "Synced to 2*TPS, uses (G-/Free)Sync if available.",
+          "vrr_3x": "Variable Refresh Rate - 3x game tick",
+          "vrr_3x_desc": "Synced to 3*TPS, uses (G-/Free)Sync if available."
+        }
       },
-
       "sound": "サウンド",
       "sound_menu": {
         "music_volume": "BGM音量",
@@ -78,9 +84,7 @@
         },
         "soundtrack": "サウンドトラック： {soundtrack}"
       },
-
       "language": "言語",
-
       "game_timing": {
         "entry": "ゲームのタイミング：",
         "50tps": "50tps (freeware)",
@@ -88,14 +92,12 @@
       }
     }
   },
-
   "soundtrack": {
     "organya": "オルガーニャ",
     "remastered": "リマスター",
     "new": "新",
     "famitracks": "ファミトラック"
   },
-
   "game": {
     "cutscene_skip": "{key} を押し続け、カットシーンをスキップ"
   }
