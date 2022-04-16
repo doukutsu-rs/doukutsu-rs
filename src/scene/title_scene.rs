@@ -369,10 +369,12 @@ impl Scene for TitleScene {
                 CurrentMenu::OptionMenu => (state.t("menus.main_menu.options")),
                 _ => "OOPS!".to_string(),
             };
-            state.font.draw_text_with_shadow(
+            state.font.draw_colored_text_with_shadow_scaled(
                 window_title.chars(),
                 state.canvas_size.0 / 2.0 - state.font.text_width(window_title.chars(), &state.constants) / 2.0,
-                state.canvas_size.0 / 12.0 - state.font.line_height(&state.constants), //im sure there is a better way to shift this into place
+                state.font.line_height(&state.constants), //im sure there is a better way to shift this into place
+                1.0,
+                (0xff, 0xff, 0xff, 0xff),
                 &state.constants,
                 &mut state.texture_set,
                 ctx,
