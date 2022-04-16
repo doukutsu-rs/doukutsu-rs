@@ -362,8 +362,7 @@ impl Scene for TitleScene {
 
             batch.draw(ctx)?;
         } else {
-            let selected_menu = self.current_menu;
-            let window_title = match selected_menu {
+            let window_title = match self.current_menu {
                 CurrentMenu::ChallengesMenu => (state.t("menus.main_menu.challenges")),
                 CurrentMenu::ChallengeConfirmMenu | CurrentMenu::SaveSelectMenu => (state.t("menus.main_menu.start")),
                 CurrentMenu::OptionMenu => (state.t("menus.main_menu.options")),
@@ -379,7 +378,6 @@ impl Scene for TitleScene {
                 &mut state.texture_set,
                 ctx,
             )?;
-
         }
 
         self.draw_text_centered(&VERSION_BANNER, state.canvas_size.1 - 15.0, state, ctx)?;
