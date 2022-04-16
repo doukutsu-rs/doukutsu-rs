@@ -352,7 +352,7 @@ impl Scene for TitleScene {
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.background.draw(state, ctx, &self.frame, &self.textures, &self.stage)?;
 
-        if self.current_menu != CurrentMenu::SaveSelectMenu {
+        if self.current_menu == CurrentMenu::MainMenu {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Title")?;
             batch.add_rect(
                 ((state.canvas_size.0 - state.constants.title.logo_rect.width() as f32) / 2.0).floor(),
@@ -361,6 +361,23 @@ impl Scene for TitleScene {
             );
 
             batch.draw(ctx)?;
+        } else {
+            let selected_menu = self.current_menu;
+            let window_title = match selected_menu {
+                CurrentMenu::ChallengesMenu => (state.t("menus.main_menu.challenges")),
+                CurrentMenu::ChallengeConfirmMenu | CurrentMenu::SaveSelectMenu => (state.t("menus.main_menu.start")),
+                CurrentMenu::OptionMenu => (state.t("menus.main_menu.options")),
+                _ => "OOPS!".to_string(),
+            };
+            state.font.draw_text_with_shadow(
+                window_title.chars(),
+                state.canvas_size.0 / 2.0 - state.font.text_width(window_title.chars(), &state.constants) / 2.0,
+                state.canvas_size.0 / 12.0 - state.font.line_height(&state.constants), //im sure there is a better way to shift this into place
+                &state.constants,
+                &mut state.texture_set,
+                ctx,
+            )?;
+
         }
 
         self.draw_text_centered(&VERSION_BANNER, state.canvas_size.1 - 15.0, state, ctx)?;
