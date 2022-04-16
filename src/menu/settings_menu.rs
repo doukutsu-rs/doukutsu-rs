@@ -167,7 +167,6 @@ impl SettingsMenu {
                 state.t("menus.options_menu.sound_menu.bgm_interpolation.linear_lp_desc"),
             ],
         ));
-        self.sound.push_entry(MenuEntry::DisabledWhite("".to_owned()));
         self.sound.push_entry(MenuEntry::Active(state.tt(
             "menus.options_menu.sound_menu.soundtrack",
             HashMap::from([("soundtrack".to_owned(), state.settings.soundtrack.to_owned())]),
@@ -412,7 +411,7 @@ impl SettingsMenu {
                         let _ = state.settings.save(ctx);
                     }
                 }
-                MenuSelectionResult::Selected(4, _) => {
+                MenuSelectionResult::Selected(3, _) => {
                     let mut active_soundtrack_index = 0;
 
                     for (idx, entry) in self.soundtrack.entries.iter().enumerate() {
@@ -429,7 +428,7 @@ impl SettingsMenu {
 
                     self.current = CurrentMenu::SoundtrackMenu
                 }
-                MenuSelectionResult::Selected(5, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(4, _) | MenuSelectionResult::Canceled => {
                     self.current = CurrentMenu::MainMenu
                 }
                 _ => (),
@@ -470,7 +469,7 @@ impl SettingsMenu {
                         if let (true, MenuEntry::Active(name)) = (idx != last, entry) {
                             state.settings.soundtrack = name.to_owned();
                             let _ = state.settings.save(ctx);
-                            self.sound.entries[4] =
+                            self.sound.entries[3] =
                                 MenuEntry::Active(format!("Soundtrack: {}", state.settings.soundtrack));
                             state.sound_manager.reload_songs(&state.constants, &state.settings, ctx)?;
                         }
