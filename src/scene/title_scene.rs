@@ -366,7 +366,7 @@ impl Scene for TitleScene {
                 CurrentMenu::ChallengesMenu => (state.t("menus.main_menu.challenges")),
                 CurrentMenu::ChallengeConfirmMenu | CurrentMenu::SaveSelectMenu => (state.t("menus.main_menu.start")),
                 CurrentMenu::OptionMenu => (state.t("menus.main_menu.options")),
-                _ => unreachable!(),
+                CurrentMenu::MainMenu => unreachable!(),
             };
             state.font.draw_colored_text_with_shadow_scaled(
                 window_title.chars(),

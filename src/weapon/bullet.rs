@@ -726,10 +726,10 @@ impl Bullet {
             );
         }
 
-        self.action_counter -= 1;
         if self.action_counter == 0 {
             self.cond.set_alive(false);
         }
+        self.action_counter = self.action_counter.saturating_sub(1);
     }
 
     fn tick_bubble_1(&mut self, state: &mut SharedGameState) {
@@ -1368,10 +1368,10 @@ impl Bullet {
             );
         }
 
-        self.action_counter -= 1;
         if self.action_counter == 0 {
             self.cond.set_alive(false);
         }
+        self.action_counter = self.action_counter.saturating_sub(1);
     }
 
     fn tick_nemesis(&mut self, state: &mut SharedGameState, npc_list: &NPCList) {

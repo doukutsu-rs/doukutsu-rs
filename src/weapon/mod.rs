@@ -131,14 +131,14 @@ impl Weapon {
         self.experience = self.experience.saturating_add(exp);
 
         if self.level == WeaponLevel::Level3 {
-            if self.experience > lvl_table[2] {
+            if self.experience >= lvl_table[2] {
                 self.experience = lvl_table[2];
 
                 if player.equip.has_whimsical_star() && player.stars < 3 {
                     player.stars += 1;
                 }
             }
-        } else if self.experience > lvl_table[curr_level_idx] {
+        } else if self.experience >= lvl_table[curr_level_idx] {
             self.level = self.level.next();
             self.experience = 0;
 
