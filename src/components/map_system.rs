@@ -5,6 +5,7 @@ use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::graphics;
+use crate::input::touch_controls::TouchControlType;
 use crate::player::Player;
 use crate::scripting::tsc::text_script::TextScriptExecutionState;
 use crate::shared_game_state::{Language, SharedGameState};
@@ -87,8 +88,11 @@ impl MapSystem {
         stage: &Stage,
         players: [&Player; 2],
     ) -> GameResult {
+        let touch_rect = Rect::new_size(0, 0, state.canvas_size.0 as isize, state.canvas_size.1 as isize);
+
         if state.textscript_vm.state == TextScriptExecutionState::MapSystem {
             if self.state == MapSystemState::Hidden {
+                state.touch_controls.control_type = TouchControlType::None;
                 state.control_flags.set_control_enabled(false);
                 self.state = MapSystemState::FadeInBox(0);
             }
@@ -139,7 +143,10 @@ impl MapSystem {
                 }
 
                 for player in &players {
-                    if player.controller.trigger_jump() || player.controller.trigger_shoot() {
+                    if player.controller.trigger_jump()
+                        || player.controller.trigger_shoot()
+                        || state.touch_controls.consume_click_in(touch_rect)
+                    {
                         self.state = MapSystemState::FadeOutBox(8);
                         break;
                     }
@@ -147,7 +154,10 @@ impl MapSystem {
             }
             MapSystemState::Visible => {
                 for player in &players {
-                    if player.controller.trigger_jump() || player.controller.trigger_shoot() {
+                    if player.controller.trigger_jump()
+                        || player.controller.trigger_shoot()
+                        || state.touch_controls.consume_click_in(touch_rect)
+                    {
                         self.state = MapSystemState::FadeOutBox(8);
                         break;
                     }

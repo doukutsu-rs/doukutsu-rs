@@ -132,26 +132,7 @@ The archive from Humble Bundle contains the necessary `data` folder, in the same
 <details>
 <summary>WiiWare</summary>
 
-Tools required:  
-* [ShowMiiWads](https://github.com/WiiDatabase/showmiiwads-mod/releases/tag/v1.5.2)  
-* [QuickBMS](http://aluigi.altervista.org/papers/quickbms.zip)
-* A full version WiiWare `.wad` ([Extraction guide](https://wii.guide/dump-wads.html))
-* This `script.bms`:
-```
-get name FILENAME
-get zsize asize
-comtype lz77wii
-clog name 0 zsize zsize
-```
-
-1. Run ShowMiiWads and open the folder containing your `.wad`.
-2. Right click the `.wad` and hit `Extract` > `To Folder` and choose an output folder.
-3. Now go to `Tools` > `Unpack u8 Archive`, find your and select `00000002.app` and choose an output folder.
-4. Run QuickBMS with the following command, changing each path to where `script.bms` and `.app` output are located  
-  ```
-  quickbms.exe -D script_path\script.bms input_path\00000002_app_OUT\data output_path\data
-  ```
-5. Verify `output_path\data` folder contains valid [Cave Story assets](https://user-images.githubusercontent.com/53099651/159585593-43fead24-b041-48f4-8332-be50d712310d.png)
+Extract the `.wad` in order to get valid [Cave Story assets](https://user-images.githubusercontent.com/53099651/159585593-43fead24-b041-48f4-8332-be50d712310d.png)
 
 </details>
 
@@ -164,19 +145,7 @@ Interchanging the save files may result in spawning in wrong locations, softlock
 <details>
 <summary>Nintendo Switch</summary>
 
-(Only 1.2+ has been tested, earlier versions may not work properly due to lack of 2P/Original Graphics support.)
-
-Your interest is only in `data` directory placed in romfs.
-
-Requires a hackable/modchipped console. If you got your Switch early, it's likely that it's hackable so give it a shot -
-just be very careful to not get your console banned. There's tons of guides you can easily find online so we won't cover
-it there.
-
-You can dump the ROM (or just dump the romfs directly but it's just a bit slow so we recommend doing it on PC instead)
-using [nxdumptool](https://github.com/DarkMatterCore/nxdumptool).
-
-Once you got the keys and ROM dumped you can use the romfs extraction feature in Ryujinx or yuzu emulators to grab the
-data files.
+Extract the `data` folder directly from the ROM. 
 
 </details>
 
@@ -185,8 +154,6 @@ data files.
 Same controls as the default for freeware and Cave Story+ keyboard. 
 
 To change, edit `doukutsu-rs\data\settings.json` within your user directory.
-<details>
-<summary>Default Controls</summary>
 
 |              | P1        | P2        |
 |--------------|-----------|-----------|
@@ -198,16 +165,9 @@ To change, edit `doukutsu-rs\data\settings.json` within your user directory.
 | Map          | `W`       | `Y`       |
 | Strafe       | `LShift`  | `RShift`  |
   
-</details>
-
-<details>
-  <summary>Extra Features</summary>
-  
 - `Alt + Enter` - Toggle Fullscreen
 - `F2` (While paused) - Quick Restart
-- `F3 - F12` - Debug keys
-  
- </details>
+
 
 #### Screenshots
 

@@ -20,7 +20,6 @@ use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 mod player_hit;
-pub mod player_list;
 pub mod skin;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]

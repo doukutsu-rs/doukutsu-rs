@@ -26,12 +26,12 @@ bitfield! {
     pub right, set_right: 1;
     pub up, set_up: 2;
     pub down, set_down: 3;
-    pub map, set_map: 4;
+    pub map, _: 4;
     pub inventory, set_inventory: 5;
     pub jump, set_jump: 6;
     pub shoot, set_shoot: 7;
-    pub next_weapon, set_next_weapon: 8;
-    pub prev_weapon, set_prev_weapon: 9;
+    pub next_weapon, _: 8;
+    pub prev_weapon, _: 9;
     pub pause, set_pause: 10;
 }
 

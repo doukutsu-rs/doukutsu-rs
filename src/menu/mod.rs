@@ -13,6 +13,7 @@ pub mod pause_menu;
 pub mod save_select_menu;
 pub mod settings_menu;
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub enum MenuEntry {
     Hidden,

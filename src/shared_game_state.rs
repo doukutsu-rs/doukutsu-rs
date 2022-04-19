@@ -284,6 +284,7 @@ impl SharedGameState {
 
         constants.load_locales(ctx)?;
 
+        #[cfg(not(target_os = "android"))]
         if filesystem::exists(ctx, "/base/lighting.tbl") {
             info!("Cave Story+ (Switch) data files detected.");
             ctx.size_hint = (854, 480);

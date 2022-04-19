@@ -29,7 +29,7 @@ impl ModRequirements {
         Ok(ModRequirements::default())
     }
 
-    fn upgrade(mut self) -> Self {
+    fn upgrade(self) -> Self {
         self
     }
 

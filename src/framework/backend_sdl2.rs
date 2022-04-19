@@ -29,10 +29,10 @@ use crate::framework::graphics::BlendMode;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
 use crate::framework::ui::init_imgui;
+use crate::graphics::VSyncMode;
 use crate::Game;
 use crate::GameError::RenderError;
 use crate::GAME_SUSPENDED;
-use crate::graphics::VSyncMode;
 
 pub struct SDL2Backend {
     context: Sdl,
@@ -256,6 +256,7 @@ impl BackendEventLoop for SDL2EventLoop {
                     Event::KeyDown { scancode: Some(scancode), repeat, keymod, .. } => {
                         if let Some(drs_scan) = conv_scancode(scancode) {
                             if !repeat {
+                                #[cfg(debug_assertions)]
                                 state.process_debug_keys(drs_scan);
 
                                 if keymod.intersects(keyboard::Mod::RALTMOD | keyboard::Mod::LALTMOD)
@@ -365,7 +366,8 @@ impl BackendEventLoop for SDL2EventLoop {
                 *user_data = Rc::into_raw(refs) as *mut c_void;
             }
 
-            let gl_context = GLContext { gles2_mode: false, is_sdl: true, get_proc_address, swap_buffers, user_data, ctx };
+            let gl_context =
+                GLContext { gles2_mode: false, is_sdl: true, get_proc_address, swap_buffers, user_data, ctx };
 
             return Ok(Box::new(OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))));
         } else {
