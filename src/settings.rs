@@ -50,6 +50,7 @@ pub struct Settings {
     pub locale: Language,
     #[serde(default = "default_vsync")]
     pub vsync_mode: VSyncMode,
+    pub debug_mode: bool,
 }
 
 fn default_true() -> bool {
@@ -58,7 +59,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    8
+    9
 }
 
 #[inline(always)]
@@ -138,6 +139,11 @@ impl Settings {
             self.vsync_mode = default_vsync();
         }
 
+        if self.version == 8 {
+            self.version = 9;
+            self.debug_mode = false;
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -190,6 +196,7 @@ impl Default for Settings {
             fps_counter: false,
             locale: Language::English,
             vsync_mode: VSyncMode::VSync,
+            debug_mode: false,
         }
     }
 }

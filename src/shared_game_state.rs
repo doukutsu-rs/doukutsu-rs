@@ -404,6 +404,10 @@ impl SharedGameState {
     }
 
     pub fn process_debug_keys(&mut self, key_code: ScanCode) {
+        if !self.settings.debug_mode {
+            return;
+        }
+
         match key_code {
             ScanCode::F3 => self.settings.god_mode = !self.settings.god_mode,
             ScanCode::F4 => self.settings.infinite_booster = !self.settings.infinite_booster,
