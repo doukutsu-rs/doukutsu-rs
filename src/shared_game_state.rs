@@ -404,6 +404,7 @@ impl SharedGameState {
     }
 
     pub fn process_debug_keys(&mut self, key_code: ScanCode) {
+        #[cfg(not(debug_assertions))]
         if !self.settings.debug_mode {
             return;
         }

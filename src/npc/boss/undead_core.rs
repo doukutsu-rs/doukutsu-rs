@@ -562,7 +562,7 @@ impl BossNPC {
                     self.parts[5].anim_num = 0;
                 }
 
-                if self.parts[0].life + 150 < self.parts[0].action_counter
+                if self.parts[0].life + 150 < self.parts[19].action_counter
                     || self.parts[0].action_counter > 400
                     || self.parts[0].life < 200
                 {
