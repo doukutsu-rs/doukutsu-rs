@@ -1,7 +1,7 @@
 use std::cell::{Cell, UnsafeCell};
 use std::mem::MaybeUninit;
 
-use crate::framework::error::{GameResult, GameError};
+use crate::framework::error::{GameError, GameResult};
 
 use crate::npc::NPC;
 
@@ -15,6 +15,7 @@ pub struct NPCList {
     // from theoretically performing some optimizations that might break the code.
     npcs: Box<UnsafeCell<[NPC; NPC_LIST_MAX_CAP]>>,
     max_npc: Cell<u16>,
+    seed: i32,
 }
 
 #[allow(dead_code)]
@@ -31,6 +32,7 @@ impl NPCList {
                 parts_uninit
             })),
             max_npc: Cell::new(0),
+            seed: 0,
         };
 
         unsafe {
@@ -40,6 +42,10 @@ impl NPCList {
         }
 
         map
+    }
+
+    pub fn set_rng_seed(&mut self, seed: i32) {
+        self.seed = seed;
     }
 
     /// Inserts NPC into list in first available slot after given ID.
@@ -60,7 +66,7 @@ impl NPCList {
                     npc.tsc_direction = npc.direction as u16;
                 }
 
-                npc.init_rng();
+                npc.init_rng(self.seed);
 
                 *npc_ref = npc;
 
@@ -89,7 +95,7 @@ impl NPCList {
             npc.tsc_direction = npc.direction as u16;
         }
 
-        npc.init_rng();
+        npc.init_rng(self.seed);
 
         unsafe {
             let npc_ref = self.npcs_mut().get_unchecked_mut(id as usize);
@@ -105,9 +111,7 @@ impl NPCList {
 
     /// Returns a mutable reference to NPC from this list.
     pub fn get_npc<'a: 'b, 'b>(&'a self, id: usize) -> Option<&'b mut NPC> {
-        unsafe {
-            self.npcs_mut().get_mut(id)
-        }
+        unsafe { self.npcs_mut().get_mut(id) }
     }
 
     /// Returns an iterator that iterates over allocated (not up to it's capacity) NPC slots.
@@ -156,10 +160,7 @@ pub struct NPCListMutableIterator<'a> {
 
 impl<'a> NPCListMutableIterator<'a> {
     pub fn new(map: &'a NPCList) -> NPCListMutableIterator<'a> {
-        NPCListMutableIterator {
-            index: 0,
-            map,
-        }
+        NPCListMutableIterator { index: 0, map }
     }
 }
 
@@ -185,10 +186,7 @@ pub struct NPCListMutableAliveIterator<'a> {
 
 impl<'a> NPCListMutableAliveIterator<'a> {
     pub fn new(map: &'a NPCList) -> NPCListMutableAliveIterator<'a> {
-        NPCListMutableAliveIterator {
-            index: 0,
-            map,
-        }
+        NPCListMutableAliveIterator { index: 0, map }
     }
 }
 

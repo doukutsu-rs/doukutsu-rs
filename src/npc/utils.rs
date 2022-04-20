@@ -16,13 +16,14 @@ const MAX_FALL_SPEED: i32 = 0x5FF;
 
 impl NPC {
     /// Initializes the RNG. Called when the [NPC] is being added to an [NPCList].
-    pub(crate) fn init_rng(&mut self) {
+    pub(crate) fn init_rng(&mut self, seed: i32) {
         self.rng = Xoroshiro32PlusPlus::new(
             (self.id as u32)
                 .wrapping_sub(self.npc_type as u32)
                 .rotate_right(5)
                 .wrapping_sub(self.flag_num as u32)
                 .rotate_right((self.event_num % 13) as u32)
+                .wrapping_add(seed.abs() as u32)
                 .wrapping_mul(214013)
                 .rotate_right(13)
                 .wrapping_add(2531011)

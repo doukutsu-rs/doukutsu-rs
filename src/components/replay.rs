@@ -22,6 +22,7 @@ pub struct Replay {
     pub controller: ReplayController,
     tick: usize,
     resume_tick: usize,
+    is_active: bool,
 }
 
 impl Replay {
@@ -34,11 +35,15 @@ impl Replay {
             controller: ReplayController::new(),
             tick: 0,
             resume_tick: 0,
+            is_active: false,
         }
     }
 
-    pub fn start_recording(&mut self, state: &mut SharedGameState) {
-        self.rng_seed = state.game_rng.dump_state();
+    pub fn initialize_recording(&mut self, state: &mut SharedGameState) {
+        if !self.is_active {
+            self.rng_seed = state.game_rng.dump_state();
+            self.is_active = true;
+        }
     }
 
     pub fn stop_recording(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -47,10 +52,13 @@ impl Replay {
         Ok(())
     }
 
-    pub fn start_playback(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        state.replay_state = ReplayState::Playback;
-        self.read_replay(state, ctx)?;
-        state.game_rng.load_state(self.rng_seed);
+    pub fn initialize_playback(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        if !self.is_active {
+            state.replay_state = ReplayState::Playback;
+            self.read_replay(state, ctx)?;
+            state.game_rng.load_state(self.rng_seed);
+            self.is_active = true;
+        }
         Ok(())
     }
 

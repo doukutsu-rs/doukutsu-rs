@@ -927,11 +927,7 @@ impl NPC {
                     && self.y - 0x4000 < player.y
                     && self.y + 0x2000 > player.y
                 {
-                    if self.x <= player.x {
-                        self.direction = Direction::Right;
-                    } else {
-                        self.direction = Direction::Left;
-                    }
+                    self.face_player(player);
                 }
             }
             2 => {
@@ -963,11 +959,7 @@ impl NPC {
 
                     let player = self.get_closest_player_mut(players);
 
-                    if self.x <= player.x {
-                        self.direction = Direction::Right;
-                    } else {
-                        self.direction = Direction::Left;
-                    }
+                    self.face_player(player);
                 }
 
                 self.animate(2, 2, 5);

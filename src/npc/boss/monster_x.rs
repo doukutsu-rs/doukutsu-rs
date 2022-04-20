@@ -175,8 +175,7 @@ impl BossNPC {
                 self.parts[3].life = 60;
                 self.parts[3].size = 2;
                 self.parts[3].target_x = 0;
-                self.parts[3].display_bounds =
-                    Rect { left: 0x1000, top: 0x1000, right: 0x1000, bottom: 0x1000 };
+                self.parts[3].display_bounds = Rect { left: 0x1000, top: 0x1000, right: 0x1000, bottom: 0x1000 };
                 self.parts[3].hit_bounds =
                     Rect { left: 5 * 0x200, top: 5 * 0x200, right: 5 * 0x200, bottom: 5 * 0x200 };
                 self.parts[3].npc_flags.set_ignore_solidity(true);
@@ -200,8 +199,7 @@ impl BossNPC {
                 self.parts[7].anim_num = 0;
                 self.parts[7].display_bounds =
                     Rect { left: 52 * 0x200, top: 24 * 0x200, right: 52 * 0x200, bottom: 24 * 0x200 };
-                self.parts[7].hit_bounds =
-                    Rect { left: 0x1000, top: 24 * 0x200, right: 0x1000, bottom: 0x2000 };
+                self.parts[7].hit_bounds = Rect { left: 0x1000, top: 24 * 0x200, right: 0x1000, bottom: 0x2000 };
                 self.parts[7].npc_flags.set_ignore_solidity(true);
 
                 self.parts[9].cond.set_alive(true);
@@ -212,8 +210,7 @@ impl BossNPC {
                 self.parts[9].direction = Direction::Up;
                 self.parts[9].display_bounds =
                     Rect { left: 36 * 0x200, top: 0x1000, right: 36 * 0x200, bottom: 24 * 0x200 };
-                self.parts[9].hit_bounds =
-                    Rect { left: 28 * 0x200, top: 0x1000, right: 28 * 0x200, bottom: 0x2000 };
+                self.parts[9].hit_bounds = Rect { left: 28 * 0x200, top: 0x1000, right: 28 * 0x200, bottom: 0x2000 };
                 self.hurt_sound[9] = 52;
                 self.parts[9].npc_flags.set_rear_and_top_not_hurt(true);
                 self.parts[9].npc_flags.set_ignore_solidity(true);
@@ -260,10 +257,6 @@ impl BossNPC {
                 self.parts[16].anim_num = 3;
                 self.parts[16].display_bounds.left = 42 * 0x200;
                 self.parts[16].display_bounds.right = 30 * 0x200;
-
-                for npc in &mut self.parts {
-                    npc.init_rng();
-                }
             }
             10 | 11 => {
                 if self.parts[0].action_num == 10 {

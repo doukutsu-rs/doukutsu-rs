@@ -1592,12 +1592,16 @@ impl GameScene {
 
 impl Scene for GameScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let seed = (self.player1.max_life as i32)
-            .wrapping_add(self.player1.x as i32)
-            .wrapping_add(self.player1.y as i32)
-            .wrapping_add(self.stage_id as i32)
-            .rotate_right(7);
-        state.game_rng = XorShift::new(seed);
+        if state.mod_path.is_some() && state.replay_state == ReplayState::Recording {
+            self.replay.initialize_recording(state);
+        }
+
+        if state.mod_path.is_some() && state.replay_state == ReplayState::Playback {
+            self.replay.initialize_playback(state, ctx)?;
+        }
+
+        self.npc_list.set_rng_seed(state.game_rng.next());
+        self.boss.init_rng(state.game_rng.next());
         state.textscript_vm.set_scene_script(self.stage.load_text_script(
             &state.constants.base_paths,
             &state.constants,
@@ -1676,14 +1680,6 @@ impl Scene for GameScene {
 
         self.pause_menu.init(state, ctx)?;
         self.whimsical_star.init(&self.player1);
-
-        if state.mod_path.is_some() && state.replay_state == ReplayState::Recording {
-            self.replay.start_recording(state);
-        }
-
-        if state.mod_path.is_some() && state.replay_state == ReplayState::Playback {
-            self.replay.start_playback(state, ctx)?;
-        }
 
         Ok(())
     }

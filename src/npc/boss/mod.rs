@@ -46,9 +46,13 @@ impl BossNPC {
 
         parts[0].cond.set_alive(true);
 
-        for (i, part) in parts.iter_mut().enumerate() {
+        BossNPC { boss_type: 0, parts, hurt_sound: [0; 20], death_sound: [0; 20] }
+    }
+
+    pub fn init_rng(&mut self, seed: i32) {
+        for (i, part) in self.parts.iter_mut().enumerate() {
             part.rng.load_state(
-                ((i as u32)
+                ((seed.abs() as u32 + i as u32)
                     .wrapping_add(3271284409)
                     .rotate_left(5)
                     .wrapping_mul(3815776271)
@@ -57,8 +61,6 @@ impl BossNPC {
                     & 0xffffffff) as u32,
             );
         }
-
-        BossNPC { boss_type: 0, parts, hurt_sound: [0; 20], death_sound: [0; 20] }
     }
 }
 

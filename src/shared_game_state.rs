@@ -360,7 +360,7 @@ impl SharedGameState {
             skip_flags: bitvec::bitvec![0; 64],
             map_flags: bitvec::bitvec![0; 64],
             fade_state: FadeState::Hidden,
-            game_rng: XorShift::new(0),
+            game_rng: XorShift::new(chrono::Local::now().timestamp() as i32),
             effect_rng: XorShift::new(123),
             tile_size: TileSize::Tile16x16,
             quake_counter: 0,
@@ -593,7 +593,7 @@ impl SharedGameState {
         self.control_flags.0 = 0;
         self.game_flags = bitvec::bitvec![0; 8000];
         self.fade_state = FadeState::Hidden;
-        self.game_rng = XorShift::new(0);
+        self.game_rng = XorShift::new(chrono::Local::now().timestamp() as i32);
         self.teleporter_slots.clear();
         self.quake_counter = 0;
         self.carets.clear();
