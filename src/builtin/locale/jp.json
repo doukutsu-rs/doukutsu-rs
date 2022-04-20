@@ -39,7 +39,8 @@
     "challenge_menu": {
       "start": "スタート",
       "no_replay": "ノーリプレイ",
-      "replay_best": "ベストプレイを再生"
+      "replay_best": "ベストプレイを再生",
+      "delete_replay": "リプレイを削除"
     },
     "options_menu": {
       "graphics": "グラフィック",

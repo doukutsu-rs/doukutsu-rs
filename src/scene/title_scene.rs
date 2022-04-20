@@ -192,6 +192,7 @@ impl Scene for TitleScene {
         self.confirm_menu.push_entry(MenuEntry::Disabled("".to_owned()));
         self.confirm_menu.push_entry(MenuEntry::Active(state.t("menus.challenge_menu.start")));
         self.confirm_menu.push_entry(MenuEntry::Disabled(state.t("menus.challenge_menu.no_replay")));
+        self.confirm_menu.push_entry(MenuEntry::Hidden);
         self.confirm_menu.push_entry(MenuEntry::Active(state.t("common.back")));
         self.confirm_menu.selected = 1;
 
@@ -301,11 +302,16 @@ impl Scene for TitleScene {
                                 self.confirm_menu.width =
                                     (state.font.text_width(mod_name.chars(), &state.constants).max(50.0) + 32.0) as u16;
                                 self.confirm_menu.entries[0] = MenuEntry::Disabled(mod_name);
-                                self.confirm_menu.entries[2] = if state.has_replay_data(ctx) {
-                                    MenuEntry::Active(state.t("menus.challenge_menu.replay_best"))
+                                if state.has_replay_data(ctx) {
+                                    self.confirm_menu.entries[2] =
+                                        MenuEntry::Active(state.t("menus.challenge_menu.replay_best"));
+                                    self.confirm_menu.entries[3] =
+                                        MenuEntry::Active(state.t("menus.challenge_menu.delete_replay"));
                                 } else {
-                                    MenuEntry::Disabled(state.t("menus.challenge_menu.no_replay"))
-                                };
+                                    self.confirm_menu.entries[2] =
+                                        MenuEntry::Disabled(state.t("menus.challenge_menu.no_replay"));
+                                    self.confirm_menu.entries[3] = MenuEntry::Hidden;
+                                }
                                 self.nikumaru_rec.load_counter(state, ctx)?;
                                 self.current_menu = CurrentMenu::ChallengeConfirmMenu;
                             }
@@ -332,7 +338,11 @@ impl Scene for TitleScene {
                     state.reload_resources(ctx)?;
                     state.start_new_game(ctx)?;
                 }
-                MenuSelectionResult::Selected(3, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(3, _) => {
+                    state.delete_replay_data(ctx)?;
+                    self.current_menu = CurrentMenu::ChallengesMenu;
+                }
+                MenuSelectionResult::Selected(4, _) | MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::ChallengesMenu;
                 }
                 _ => (),

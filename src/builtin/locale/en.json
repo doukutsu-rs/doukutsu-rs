@@ -44,7 +44,8 @@
     "challenge_menu": {
       "start": "Start",
       "no_replay": "No Replay",
-      "replay_best": "Replay Best"
+      "replay_best": "Replay Best",
+      "delete_replay": "Delete Replay"
     },
 
     "options_menu": {

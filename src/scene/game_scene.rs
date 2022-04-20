@@ -41,7 +41,7 @@ use crate::npc::list::NPCList;
 use crate::npc::{NPCLayer, NPC};
 use crate::physics::{PhysicalEntity, OFFSETS};
 use crate::player::{ControlMode, Player, TargetPlayer};
-use crate::rng::{XorShift, RNG};
+use crate::rng::RNG;
 use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;

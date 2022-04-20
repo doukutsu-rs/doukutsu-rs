@@ -729,6 +729,13 @@ impl SharedGameState {
         filesystem::user_exists(ctx, [self.get_rec_filename(), ".rep".to_string()].join(""))
     }
 
+    pub fn delete_replay_data(&self, ctx: &mut Context) -> GameResult {
+        if self.has_replay_data(ctx) {
+            filesystem::user_delete(ctx, [self.get_rec_filename(), ".rep".to_string()].join(""))?;
+        }
+        Ok(())
+    }
+
     pub fn get_damage(&self, hp: i32) -> i32 {
         match self.difficulty {
             GameDifficulty::Easy => cmp::max(hp / 2, 1),
