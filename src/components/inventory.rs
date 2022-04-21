@@ -1,5 +1,6 @@
 use crate::common::Rect;
 use crate::components::draw_common::{draw_number, Alignment};
+use crate::components::hud::HUD;
 use crate::entity::GameEntity;
 use crate::frame::Frame;
 use crate::framework::context::Context;
@@ -62,20 +63,25 @@ impl InventoryUI {
         inventory.get_item_idx(self.selected_item as usize).map(|i| i.0 + 6000).unwrap_or(6000)
     }
 
-    fn exit(&mut self, state: &mut SharedGameState, _player: &mut Player, inventory: &mut Inventory) {
+    fn get_weapon_event_number(&self, inventory: &Inventory) -> u16 {
+        inventory.get_current_weapon().map(|w| w.wtype as u16 + 1000).unwrap_or(1000)
+    }
+
+    fn exit(&mut self, state: &mut SharedGameState, _player: &mut Player, inventory: &mut Inventory, hud: &mut HUD) {
         self.focus = InventoryFocus::None;
         inventory.current_item = 0;
         self.text_y_pos = 16;
+        hud.weapon_x_pos = 32;
         state.textscript_vm.reset();
         state.textscript_vm.set_mode(ScriptMode::Map);
     }
 }
 
-impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
+impl GameEntity<(&mut Context, &mut Player, &mut Inventory, &mut HUD)> for InventoryUI {
     fn tick(
         &mut self,
         state: &mut SharedGameState,
-        (ctx, player, inventory): (&mut Context, &mut Player, &mut Inventory),
+        (ctx, player, inventory, hud): (&mut Context, &mut Player, &mut Inventory, &mut HUD),
     ) -> GameResult<()> {
         let (off_left, off_top, off_right, _) = crate::framework::graphics::screen_insets_scaled(ctx, state.scale);
         let mut slot_rect =
@@ -86,10 +92,11 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
         if state.control_flags.control_enabled()
             && (player.controller.trigger_inventory()
                 || player.controller.trigger_menu_back()
+                || (player.controller.trigger_menu_ok() && self.focus == InventoryFocus::Weapons)
                 || (state.settings.touch_controls && state.touch_controls.consume_click_in(slot_rect)))
         {
             state.control_flags.set_ok_button_disabled(false);
-            self.exit(state, player, inventory);
+            self.exit(state, player, inventory, hud);
             return Ok(());
         }
 
@@ -124,10 +131,6 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
             }
         }
 
-        fn get_weapon_event_number(inventory: &Inventory) -> u16 {
-            inventory.get_current_weapon().map(|w| w.wtype as u16 + 1000).unwrap_or(1000)
-        }
-
         self.selected_item = inventory.current_item;
         self.selected_weapon = inventory.current_weapon;
 
@@ -137,21 +140,21 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
             InventoryFocus::None => {
                 self.focus = InventoryFocus::Weapons;
                 state.control_flags.set_ok_button_disabled(false);
-                state.textscript_vm.start_script(get_weapon_event_number(inventory));
+                state.textscript_vm.start_script(self.get_weapon_event_number(inventory));
             }
             InventoryFocus::Weapons if state.control_flags.control_enabled() => {
                 if player.controller.trigger_left() {
                     state.sound_manager.play_sfx(4);
                     inventory.prev_weapon();
                     state.control_flags.set_ok_button_disabled(false);
-                    state.textscript_vm.start_script(get_weapon_event_number(inventory));
+                    state.textscript_vm.start_script(self.get_weapon_event_number(inventory));
                 }
 
                 if player.controller.trigger_right() {
                     state.sound_manager.play_sfx(4);
                     inventory.next_weapon();
                     state.control_flags.set_ok_button_disabled(false);
-                    state.textscript_vm.start_script(get_weapon_event_number(inventory));
+                    state.textscript_vm.start_script(self.get_weapon_event_number(inventory));
                 }
 
                 if player.controller.trigger_up() || player.controller.trigger_down() {
@@ -161,6 +164,8 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
                 }
             }
             InventoryFocus::Items if self.item_count != 0 && state.control_flags.control_enabled() => {
+                let mut moved_cursor = false;
+
                 if player.controller.trigger_left() {
                     state.sound_manager.play_sfx(1);
 
@@ -171,23 +176,23 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
                     }
 
                     state.control_flags.set_ok_button_disabled(false);
-                    state.textscript_vm.start_script(self.get_item_event_number(inventory));
+                    moved_cursor = true;
                 }
 
                 if player.controller.trigger_right() {
                     match () {
-                        _ if self.selected_item == self.item_count + 1 => {
+                        _ if self.selected_item + 1 == self.item_count => {
                             self.selected_item = count_x * (self.selected_item / count_x);
                         }
                         _ if (self.selected_item % count_x) + 1 == count_x => {
-                            self.selected_item = self.selected_item.saturating_sub(count_x) + 1;
+                            self.selected_item = self.selected_item.saturating_sub(count_x - 1);
                         }
                         _ => self.selected_item += 1,
                     }
 
                     state.sound_manager.play_sfx(1);
                     state.control_flags.set_ok_button_disabled(false);
-                    state.textscript_vm.start_script(self.get_item_event_number(inventory));
+                    moved_cursor = true;
                 }
 
                 if player.controller.trigger_up() {
@@ -196,13 +201,13 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
 
                         state.sound_manager.play_sfx(4);
                         state.control_flags.set_ok_button_disabled(false);
-                        state.textscript_vm.start_script(get_weapon_event_number(inventory));
+                        state.textscript_vm.start_script(self.get_weapon_event_number(inventory));
                     } else {
                         self.selected_item -= count_x;
 
                         state.sound_manager.play_sfx(1);
                         state.control_flags.set_ok_button_disabled(false);
-                        state.textscript_vm.start_script(self.get_item_event_number(inventory));
+                        moved_cursor = true;
                     }
                 }
 
@@ -212,21 +217,26 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
 
                         state.sound_manager.play_sfx(4);
                         state.control_flags.set_ok_button_disabled(false);
-                        state.textscript_vm.start_script(get_weapon_event_number(inventory));
+                        moved_cursor = true;
                     } else {
                         self.selected_item += count_x;
 
                         state.sound_manager.play_sfx(1);
                         state.control_flags.set_ok_button_disabled(false);
-                        state.textscript_vm.start_script(self.get_item_event_number(inventory));
+                        moved_cursor = true;
                     }
+                }
+
+                self.selected_item = self.selected_item.min(self.item_count - 1);
+
+                if moved_cursor {
+                    state.textscript_vm.start_script(self.get_item_event_number(inventory));
                 }
 
                 if !state.control_flags.ok_button_disabled() && player.controller.trigger_menu_ok() {
                     state.textscript_vm.start_script(self.get_item_event_number_action(inventory));
                 }
 
-                self.selected_item = self.selected_item.min(self.item_count - 1);
                 inventory.current_item = self.selected_item;
             }
             _ => {}
@@ -244,8 +254,8 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory)> for InventoryUI {
                     state.sound_manager.play_sfx(4);
                     self.selected_weapon = i;
                     inventory.current_weapon = i;
-                    state.textscript_vm.start_script(get_weapon_event_number(inventory));
-                    self.exit(state, player, inventory);
+                    state.textscript_vm.start_script(self.get_weapon_event_number(inventory));
+                    self.exit(state, player, inventory, hud);
                 }
             }
 

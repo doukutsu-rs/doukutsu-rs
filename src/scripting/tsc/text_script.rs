@@ -1523,6 +1523,8 @@ impl TextScriptVM {
 
                 game_scene.inventory_player1.consume_item(item_id);
                 game_scene.inventory_player2.consume_item(item_id);
+                game_scene.inventory_player1.current_item = 0;
+                game_scene.inventory_player2.current_item = 0;
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }

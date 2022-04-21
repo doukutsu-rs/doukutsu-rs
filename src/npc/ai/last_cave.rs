@@ -226,8 +226,8 @@ impl NPC {
                 }
 
                 self.anim_num = 0;
-                if self.anim_counter > 0 {
-                    self.anim_counter -= 1;
+                if self.action_counter > 0 {
+                    self.action_counter -= 1;
                     return Ok(());
                 }
 

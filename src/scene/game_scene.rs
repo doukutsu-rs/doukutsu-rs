@@ -1478,6 +1478,7 @@ impl GameScene {
 
             if state.textscript_vm.state == TextScriptExecutionState::Ended {
                 if self.player1.controller.trigger_inventory() {
+                    self.inventory_player1.current_item = 0;
                     state.textscript_vm.set_mode(ScriptMode::Inventory);
                     self.player1.cond.set_interacted(false);
                 } else if self.player1.controller.trigger_map() && self.inventory_player1.has_item(2) {
@@ -1771,7 +1772,8 @@ impl Scene for GameScene {
                 TextScriptVM::run(state, self, ctx)?;
             }
             ScriptMode::Inventory => {
-                self.inventory_ui.tick(state, (ctx, &mut self.player1, &mut self.inventory_player1))?;
+                self.inventory_ui
+                    .tick(state, (ctx, &mut self.player1, &mut self.inventory_player1, &mut self.hud_player1))?;
 
                 TextScriptVM::run(state, self, ctx)?;
             }
@@ -1984,7 +1986,10 @@ impl Scene for GameScene {
 
         self.map_system.draw(state, ctx, &self.stage, [&self.player1, &self.player2])?;
         self.fade.draw(state, ctx, &self.frame)?;
-        self.nikumaru.draw(state, ctx, &self.frame)?;
+
+        if state.textscript_vm.mode == ScriptMode::Map {
+            self.nikumaru.draw(state, ctx, &self.frame)?;
+        }
 
         if state.textscript_vm.mode == ScriptMode::Map
             && state.textscript_vm.state != TextScriptExecutionState::MapSystem
