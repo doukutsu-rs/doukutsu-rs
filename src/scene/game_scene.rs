@@ -1381,8 +1381,23 @@ impl GameScene {
             ),
         )?;
 
-        self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
-        self.player2.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+        if self.player1.noclip == true { //toggles noclip for each player
+            self.player1.physical = false;
+            self.player1.control_mode = ControlMode::IronHead;
+        } else {
+            self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+            self.player1.physical = true;
+            self.player1.control_mode = ControlMode::Normal;
+        }
+
+        if self.player2.noclip == true {
+            self.player2.physical = false;
+            self.player2.control_mode = ControlMode::IronHead;
+        } else {
+            self.player2.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+            self.player2.physical = true;
+            self.player2.control_mode = ControlMode::Normal;
+        }
 
         self.player1.tick_npc_collisions(
             TargetPlayer::Player1,

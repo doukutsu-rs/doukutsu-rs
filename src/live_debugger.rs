@@ -147,6 +147,17 @@ impl LiveDebugger {
                 if ui.button("NPC Inspector") {
                     self.npc_inspector_visible = !self.npc_inspector_visible;
                 }
+                ui.same_line();
+
+                if state.textscript_vm.state == TextScriptExecutionState::Ended {
+                    if ui.button("Save"){
+                        state.save_game(game_scene, ctx); //Value goes unused??
+                    }
+                }
+                ui.checkbox("Player 1 noclip", &mut game_scene.player1.noclip);
+                ui.same_line();
+                ui.checkbox("Player 2 noclip", &mut game_scene.player2.noclip);
+
             });
 
         if self.map_selector_visible {
