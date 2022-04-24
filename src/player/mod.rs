@@ -814,7 +814,6 @@ impl Player {
                 self.skin.set_state(PlayerAnimationState::Jumping);
                 self.anim_num = 3;
             }
-            self.anim_num = 1;
             self.anim_counter = 0;
         }
 

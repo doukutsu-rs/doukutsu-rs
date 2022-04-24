@@ -643,6 +643,13 @@ impl SharedGameState {
         self.shutdown = true;
     }
 
+    // Stops SFX 40/41/58 (CPS and CSS)
+    pub fn stop_noise(&mut self) {
+        self.sound_manager.stop_sfx(40);
+        self.sound_manager.stop_sfx(41);
+        self.sound_manager.stop_sfx(58);
+    }
+
     pub fn set_flag(&mut self, id: usize, value: bool) {
         if id < self.game_flags.len() {
             self.game_flags.set(id, value);

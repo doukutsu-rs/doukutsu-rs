@@ -101,9 +101,7 @@ impl PauseMenu {
 
         // Shortcut for quick restart
         if ctx.keyboard_context.is_key_pressed(ScanCode::F2) {
-            state.sound_manager.stop_sfx(40);
-            state.sound_manager.stop_sfx(41);
-            state.sound_manager.stop_sfx(58);
+            state.stop_noise();
             state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
             state.load_or_start_game(ctx)?;
         }
@@ -118,9 +116,7 @@ impl PauseMenu {
                     }
                 }
                 MenuSelectionResult::Selected(1, _) => {
-                    state.sound_manager.stop_sfx(40);
-                    state.sound_manager.stop_sfx(41);
-                    state.sound_manager.stop_sfx(58);
+                    state.stop_noise();
                     state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
                     state.load_or_start_game(ctx)?;
                 }
@@ -151,6 +147,7 @@ impl PauseMenu {
             CurrentMenu::ConfirmMenu => match self.confirm_menu.tick(&mut self.controller, state) {
                 MenuSelectionResult::Selected(1, _) => match self.pause_menu.selected {
                     3 => {
+                        state.stop_noise();
                         state.textscript_vm.flags.set_cutscene_skip(false);
                         state.next_scene = Some(Box::new(TitleScene::new()));
                     }
