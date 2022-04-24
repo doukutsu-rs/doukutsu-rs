@@ -176,9 +176,10 @@ impl Weapon {
         self.empty_counter = self.empty_counter.saturating_sub(1);
         self.refire_timer = self.refire_timer.saturating_sub(1);
 
-        if self.refire_timer > 0 {
-            return;
-        } else if player.controller.trigger_shoot() {
+        if player.controller.trigger_shoot() {
+            if self.refire_timer > 0 {
+                return;
+            }
             self.refire_timer = 4;
         }
 
