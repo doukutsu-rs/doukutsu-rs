@@ -1381,11 +1381,11 @@ impl GameScene {
             ),
         )?;
         //decides if the player is tangible or not
-        if state.settings.noclip == false {
-            if self.player1.physical == true {
+        if !state.settings.noclip {
+            if self.player1.physical {
                 self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
             }
-            if self.player2.physical == true {
+            if self.player2.physical {
                 self.player2.tick_map_collisions(state, &self.npc_list, &mut self.stage);
             }
         }

@@ -667,7 +667,7 @@ impl Player {
             }
         }
         //Toggles bonk particles
-        if state.settings.noclip == false {
+        if !state.settings.noclip {
             if self.vel_y < -0x200 && self.flags.hit_top_wall() {
                 state.create_caret(
                     self.x,
