@@ -526,7 +526,15 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n046_hv_trigger(&mut self, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n046_hv_trigger(
+        &mut self,
+        state: &mut SharedGameState,
+        players: [&mut Player; 2],
+    ) -> GameResult {
+        // Nicalis
+        if state.constants.is_cs_plus && self.tsc_direction != 0 {
+            self.direction = Direction::Right;
+        }
         self.npc_flags.set_event_when_touched(true);
 
         let player = self.get_closest_player_mut(players);

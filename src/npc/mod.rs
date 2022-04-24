@@ -288,7 +288,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             43 => self.tick_n043_chalkboard(state),
             44 => self.tick_n044_polish(state, npc_list),
             45 => self.tick_n045_baby(state),
-            46 => self.tick_n046_hv_trigger(players),
+            46 => self.tick_n046_hv_trigger(state, players),
             47 => self.tick_n047_sandcroc(state, players),
             48 => self.tick_n048_omega_projectiles(state),
             49 => self.tick_n049_skullhead(state, players, npc_list),

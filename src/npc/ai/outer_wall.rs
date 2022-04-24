@@ -107,6 +107,11 @@ impl NPC {
         players: [&mut Player; 2],
         npc_list: &NPCList,
     ) -> GameResult {
+        // Nicalis
+        if state.constants.is_cs_plus && self.tsc_direction != 0 {
+            self.direction = Direction::Right;
+        }
+
         let player = self.get_closest_player_ref(&players);
 
         match self.action_num {

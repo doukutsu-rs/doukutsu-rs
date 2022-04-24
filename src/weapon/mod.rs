@@ -71,6 +71,7 @@ pub struct Weapon {
     pub experience: u16,
     pub ammo: u16,
     pub max_ammo: u16,
+    refire_timer: u16,
     empty_counter: u16,
     counter1: u16,
     counter2: u16,
@@ -78,7 +79,7 @@ pub struct Weapon {
 
 impl Weapon {
     pub fn new(wtype: WeaponType, level: WeaponLevel, experience: u16, ammo: u16, max_ammo: u16) -> Weapon {
-        Weapon { wtype, level, experience, ammo, max_ammo, empty_counter: 0, counter1: 0, counter2: 0 }
+        Weapon { wtype, level, experience, ammo, max_ammo, refire_timer: 0, empty_counter: 0, counter1: 0, counter2: 0 }
     }
 
     /// Consume a specified amount of bullets, returns true if there was enough ammo.
@@ -103,6 +104,11 @@ impl Weapon {
             state.create_caret(x, y, CaretType::EmptyText, Direction::Left);
             self.empty_counter = 50;
         }
+    }
+
+    /// Set refire timer
+    pub fn set_refire_timer(&mut self) {
+        self.refire_timer = 4;
     }
 
     /// Refill a specified amount of bullets.
@@ -168,6 +174,13 @@ impl Weapon {
         }
 
         self.empty_counter = self.empty_counter.saturating_sub(1);
+        self.refire_timer = self.refire_timer.saturating_sub(1);
+
+        if self.refire_timer > 0 {
+            return;
+        } else if player.controller.trigger_shoot() {
+            self.refire_timer = 4;
+        }
 
         // todo lua hook
 

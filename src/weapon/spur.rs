@@ -128,7 +128,7 @@ impl Weapon {
                 }
                 Direction::Left => {
                     bullet_manager.create_bullet(
-                        player.x - 0x1800,
+                        player.x - 0xC00,
                         player.y + 0x600,
                         btype,
                         player_id,
@@ -139,7 +139,7 @@ impl Weapon {
                 }
                 Direction::Right => {
                     bullet_manager.create_bullet(
-                        player.x + 0x1800,
+                        player.x + 0xC00,
                         player.y + 0x600,
                         btype,
                         player_id,

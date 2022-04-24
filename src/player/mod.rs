@@ -322,7 +322,8 @@ impl Player {
                         if self.vel_y > 0x100 {
                             self.vel_y /= 2;
                         }
-                    } else if state.settings.infinite_booster || self.equip.has_booster_2_0() {
+                    }
+                    if state.settings.infinite_booster || self.equip.has_booster_2_0() {
                         if self.controller.move_up() {
                             self.booster_switch = BoosterSwitch::Up;
                             self.vel_x = 0;
@@ -806,12 +807,14 @@ impl Player {
             self.anim_num = 0;
             self.anim_counter = 0;
         } else {
-            self.skin.set_state(if self.vel_y > 0 {
-                PlayerAnimationState::Jumping
+            if self.vel_y > 0 {
+                self.skin.set_state(PlayerAnimationState::Falling);
+                self.anim_num = 1;
             } else {
-                PlayerAnimationState::Falling
-            });
-            self.anim_num = 0;
+                self.skin.set_state(PlayerAnimationState::Jumping);
+                self.anim_num = 3;
+            }
+            self.anim_num = 1;
             self.anim_counter = 0;
         }
 
