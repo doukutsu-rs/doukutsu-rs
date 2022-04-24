@@ -625,6 +625,7 @@ impl Menu {
                         || state.touch_controls.consume_click_in(entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(18);
+                    self.selected = idx;
                     return MenuSelectionResult::Selected(idx, entry);
                 }
                 MenuEntry::Options(_, _, _) | MenuEntry::OptionsBar(_, _)

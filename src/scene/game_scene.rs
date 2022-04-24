@@ -1391,16 +1391,16 @@ impl GameScene {
                 &self.npc_list,
                 &mut self.boss,
                 &mut self.inventory_player1,
-                );
+            );
             self.player2.tick_npc_collisions(
                 TargetPlayer::Player2,
                 state,
                 &self.npc_list,
                 &mut self.boss,
                 &mut self.inventory_player2,
-                );
+            );
         }
-        
+
         for npc in self.npc_list.iter_alive() {
             if !npc.npc_flags.ignore_solidity() {
                 npc.tick_map_collisions(state, &self.npc_list, &mut self.stage);
@@ -1697,8 +1697,11 @@ impl Scene for GameScene {
         self.player2.controller.update(state, ctx)?;
         self.player2.controller.update_trigger();
 
-        state.touch_controls.control_type =
-            if state.control_flags.control_enabled() { TouchControlType::Controls } else { TouchControlType::None };
+        state.touch_controls.control_type = if state.control_flags.control_enabled() && !self.pause_menu.is_paused() {
+            TouchControlType::Controls
+        } else {
+            TouchControlType::None
+        };
 
         if state.settings.touch_controls {
             state.touch_controls.interact_icon = false;
