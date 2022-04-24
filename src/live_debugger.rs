@@ -21,6 +21,7 @@ pub struct LiveDebugger {
     events_visible: bool,
     flags_visible: bool,
     npc_inspector_visible: bool,
+    hotkey_list_visible: bool,
     last_stage_id: usize,
     stages: Vec<ImString>,
     selected_stage: i32,
@@ -38,6 +39,7 @@ impl LiveDebugger {
             events_visible: false,
             flags_visible: false,
             npc_inspector_visible: false,
+            hotkey_list_visible: false,
             last_stage_id: usize::MAX,
             stages: Vec::new(),
             selected_stage: -1,
@@ -156,6 +158,10 @@ impl LiveDebugger {
                 } else if ui.button("Busy") {
                 }
 
+                ui.same_line();
+                if ui.button("Hotkey List") {
+                    self.hotkey_list_visible = !self.hotkey_list_visible;
+                }
                 ui.checkbox("noclip", &mut state.settings.noclip);
             });
 
@@ -392,6 +398,35 @@ impl LiveDebugger {
                 });
         }
 
+        if self.hotkey_list_visible {
+            Window::new("Hotkeys")
+                .position([400.0, 5.0], Condition::FirstUseEver)
+                .size([300.0, 240.0], Condition::FirstUseEver)
+                .resizable(false)
+                .build(ui, || {
+                    let key = vec![
+                        "ESC + F2 > Quick Reset",
+                        "F3  > Godmode",
+                        "F4  > Infinite Booster Fuel",
+                        "F5  > Toggle Subpixel Scrolling",
+                        "F6  > Toggle Motion Interpolation",
+                        "F7  > Reset TPS",
+                        "F8  > Decrease TPS",
+                        "F9  > Increase TPS",
+                        "F10 > Debug Overlay",
+                        "F11 > Toggle FPS Counter",
+                        "F12 > Toggle Debugger",
+                    ];
+                    for hotkeys in key.iter() {
+                        match hotkeys {
+                            _ => "",
+                        };
+                        ui.bullet();
+                        ui.same_line();
+                        ui.text(format!("{}", hotkeys));
+                    }
+                });
+        }
         let mut remove = -1;
         for (idx, (_, title, contents)) in self.text_windows.iter().enumerate() {
             let mut opened = true;
