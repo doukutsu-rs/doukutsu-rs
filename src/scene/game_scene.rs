@@ -1382,29 +1382,25 @@ impl GameScene {
         )?;
         //decides if the player is tangible or not
         if !state.settings.noclip {
-            if self.player1.physical {
-                self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
-            }
-            if self.player2.physical {
-                self.player2.tick_map_collisions(state, &self.npc_list, &mut self.stage);
-            }
+            self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+            self.player2.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+
+            self.player1.tick_npc_collisions(
+                TargetPlayer::Player1,
+                state,
+                &self.npc_list,
+                &mut self.boss,
+                &mut self.inventory_player1,
+                );
+            self.player2.tick_npc_collisions(
+                TargetPlayer::Player2,
+                state,
+                &self.npc_list,
+                &mut self.boss,
+                &mut self.inventory_player2,
+                );
         }
-
-        self.player1.tick_npc_collisions(
-            TargetPlayer::Player1,
-            state,
-            &self.npc_list,
-            &mut self.boss,
-            &mut self.inventory_player1,
-        );
-        self.player2.tick_npc_collisions(
-            TargetPlayer::Player2,
-            state,
-            &self.npc_list,
-            &mut self.boss,
-            &mut self.inventory_player2,
-        );
-
+        
         for npc in self.npc_list.iter_alive() {
             if !npc.npc_flags.ignore_solidity() {
                 npc.tick_map_collisions(state, &self.npc_list, &mut self.stage);
