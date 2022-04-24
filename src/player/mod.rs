@@ -96,7 +96,6 @@ pub struct Player {
     pub hit_bounds: Rect<u32>,
     pub control_mode: ControlMode,
     pub physical: bool,
-    pub noclip: bool,
     pub question: bool,
     pub booster_fuel: u32,
     pub up: bool,
@@ -152,7 +151,6 @@ impl Player {
             hit_bounds: skin.get_hit_bounds(),
             control_mode: constants.player.control_mode,
             physical: true,
-            noclip: false,
             question: false,
             booster_fuel: 0,
             splash: false,
@@ -625,7 +623,6 @@ impl Player {
     fn tick_ironhead(&mut self, state: &mut SharedGameState) -> GameResult {
         self.up = false;
         self.down = false;
-
         if state.control_flags.control_enabled() {
             if self.controller.move_left() || self.controller.move_right() {
                 if self.controller.move_left() {
@@ -652,6 +649,10 @@ impl Player {
             } else {
                 self.vel_y = 0;
             }
+            if state.settings.noclip {
+                self.target_x = self.x + self.camera_target_x;
+                self.target_y = self.y + self.camera_target_y;
+            }
         } else {
             if self.vel_x > 0x7f || self.vel_x < -0x7f {
                 self.vel_x += 0x80 * -self.vel_x.signum();
@@ -665,25 +666,26 @@ impl Player {
                 self.vel_y = 0;
             }
         }
+        //Toggles bonk particles
+        if state.settings.noclip == false {
+            if self.vel_y < -0x200 && self.flags.hit_top_wall() {
+                state.create_caret(
+                    self.x,
+                    self.y - self.hit_bounds.top as i32,
+                    CaretType::LittleParticles,
+                    Direction::FacingPlayer,
+                );
+            }
 
-        if self.vel_y < -0x200 && self.flags.hit_top_wall() {
-            state.create_caret(
-                self.x,
-                self.y - self.hit_bounds.top as i32,
-                CaretType::LittleParticles,
-                Direction::FacingPlayer,
-            );
+            if self.vel_y > 0x200 && self.flags.hit_bottom_wall() {
+                state.create_caret(
+                    self.x,
+                    self.y + self.hit_bounds.bottom as i32,
+                    CaretType::LittleParticles,
+                    Direction::FacingPlayer,
+                );
+            }
         }
-
-        if self.vel_y > 0x200 && self.flags.hit_bottom_wall() {
-            state.create_caret(
-                self.x,
-                self.y + self.hit_bounds.bottom as i32,
-                CaretType::LittleParticles,
-                Direction::FacingPlayer,
-            );
-        }
-
         self.vel_x = self.vel_x.clamp(-0x400, 0x400);
         self.vel_y = self.vel_y.clamp(-0x400, 0x400);
 
@@ -930,9 +932,10 @@ impl GameEntity<&NPCList> for Player {
             self.damage_taken = 0;
         }
 
-        match self.control_mode {
-            ControlMode::Normal => self.tick_normal(state, npc_list)?,
-            ControlMode::IronHead => self.tick_ironhead(state)?,
+        match (self.control_mode, state.settings.noclip) {
+            (_, true) => self.tick_ironhead(state)?,
+            (ControlMode::Normal, _) => self.tick_normal(state, npc_list)?,
+            (ControlMode::IronHead, _) => self.tick_ironhead(state)?,
         }
 
         self.popup.x = self.x;

@@ -1380,23 +1380,14 @@ impl GameScene {
                 &mut self.flash,
             ),
         )?;
-
-        if self.player1.noclip == true { //toggles noclip for each player
-            self.player1.physical = false;
-            self.player1.control_mode = ControlMode::IronHead;
-        } else {
-            self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
-            self.player1.physical = true;
-            self.player1.control_mode = ControlMode::Normal;
-        }
-
-        if self.player2.noclip == true {
-            self.player2.physical = false;
-            self.player2.control_mode = ControlMode::IronHead;
-        } else {
-            self.player2.tick_map_collisions(state, &self.npc_list, &mut self.stage);
-            self.player2.physical = true;
-            self.player2.control_mode = ControlMode::Normal;
+        //decides if the player is tangible or not
+        if state.settings.noclip == false {
+            if self.player1.physical == true {
+                self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+            }
+            if self.player2.physical == true {
+                self.player2.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+            }
         }
 
         self.player1.tick_npc_collisions(
@@ -2108,6 +2099,18 @@ impl Scene for GameScene {
                 tick_spd_mod.chars(),
                 state.canvas_size.0 - state.font.text_width(tick_spd_mod.chars(), &state.constants) - 10.0,
                 44.0,
+                &state.constants,
+                &mut state.texture_set,
+                ctx,
+            )?;
+        }
+
+        if state.settings.noclip {
+            let debug_name = "NOCLIP";
+            state.font.draw_text_with_shadow(
+                debug_name.chars(),
+                state.canvas_size.0 - state.font.text_width(debug_name.chars(), &state.constants) - 10.0,
+                56.0,
                 &state.constants,
                 &mut state.texture_set,
                 ctx,

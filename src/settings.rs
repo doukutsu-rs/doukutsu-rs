@@ -51,6 +51,7 @@ pub struct Settings {
     #[serde(default = "default_vsync")]
     pub vsync_mode: VSyncMode,
     pub debug_mode: bool,
+    pub noclip: bool,
 }
 
 fn default_true() -> bool {
@@ -197,6 +198,7 @@ impl Default for Settings {
             locale: Language::English,
             vsync_mode: VSyncMode::VSync,
             debug_mode: false,
+            noclip: false,
         }
     }
 }

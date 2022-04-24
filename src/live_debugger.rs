@@ -70,7 +70,7 @@ impl LiveDebugger {
             .resizable(false)
             .collapsed(true, Condition::FirstUseEver)
             .position([5.0, 5.0], Condition::FirstUseEver)
-            .size([400.0, 190.0], Condition::FirstUseEver)
+            .size([400.0, 235.0], Condition::FirstUseEver)
             .build(ui, || {
                 ui.text(format!(
                     "Player position: ({:.1},{:.1}), velocity: ({:.1},{:.1})",
@@ -150,14 +150,13 @@ impl LiveDebugger {
                 ui.same_line();
 
                 if state.textscript_vm.state == TextScriptExecutionState::Ended {
-                    if ui.button("Save"){
-                        state.save_game(game_scene, ctx); //Value goes unused??
+                    if ui.button("Save") {
+                        let _ = state.save_game(game_scene, ctx);
                     }
+                } else if ui.button("Busy") {
                 }
-                ui.checkbox("Player 1 noclip", &mut game_scene.player1.noclip);
-                ui.same_line();
-                ui.checkbox("Player 2 noclip", &mut game_scene.player2.noclip);
 
+                ui.checkbox("noclip", &mut state.settings.noclip);
             });
 
         if self.map_selector_visible {
