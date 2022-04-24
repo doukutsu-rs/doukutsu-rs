@@ -1380,25 +1380,27 @@ impl GameScene {
                 &mut self.flash,
             ),
         )?;
+        //decides if the player is tangible or not
+        if !state.settings.noclip {
+            self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+            self.player2.tick_map_collisions(state, &self.npc_list, &mut self.stage);
 
-        self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
-        self.player2.tick_map_collisions(state, &self.npc_list, &mut self.stage);
-
-        self.player1.tick_npc_collisions(
-            TargetPlayer::Player1,
-            state,
-            &self.npc_list,
-            &mut self.boss,
-            &mut self.inventory_player1,
-        );
-        self.player2.tick_npc_collisions(
-            TargetPlayer::Player2,
-            state,
-            &self.npc_list,
-            &mut self.boss,
-            &mut self.inventory_player2,
-        );
-
+            self.player1.tick_npc_collisions(
+                TargetPlayer::Player1,
+                state,
+                &self.npc_list,
+                &mut self.boss,
+                &mut self.inventory_player1,
+                );
+            self.player2.tick_npc_collisions(
+                TargetPlayer::Player2,
+                state,
+                &self.npc_list,
+                &mut self.boss,
+                &mut self.inventory_player2,
+                );
+        }
+        
         for npc in self.npc_list.iter_alive() {
             if !npc.npc_flags.ignore_solidity() {
                 npc.tick_map_collisions(state, &self.npc_list, &mut self.stage);
@@ -2093,6 +2095,18 @@ impl Scene for GameScene {
                 tick_spd_mod.chars(),
                 state.canvas_size.0 - state.font.text_width(tick_spd_mod.chars(), &state.constants) - 10.0,
                 44.0,
+                &state.constants,
+                &mut state.texture_set,
+                ctx,
+            )?;
+        }
+
+        if state.settings.noclip {
+            let debug_name = "NOCLIP";
+            state.font.draw_text_with_shadow(
+                debug_name.chars(),
+                state.canvas_size.0 - state.font.text_width(debug_name.chars(), &state.constants) - 10.0,
+                56.0,
                 &state.constants,
                 &mut state.texture_set,
                 ctx,
