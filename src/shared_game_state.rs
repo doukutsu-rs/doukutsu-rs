@@ -272,6 +272,7 @@ pub struct SharedGameState {
     pub difficulty: GameDifficulty,
     pub replay_state: ReplayState,
     pub mod_requirements: ModRequirements,
+    pub tutorial_counter: u16,
     pub shutdown: bool,
 }
 
@@ -399,6 +400,7 @@ impl SharedGameState {
             difficulty: GameDifficulty::Normal,
             replay_state: ReplayState::None,
             mod_requirements,
+            tutorial_counter: 0,
             shutdown: false,
         })
     }
@@ -510,6 +512,7 @@ impl SharedGameState {
         self.control_flags.set_tick_world(true);
         self.fade_state = FadeState::Hidden;
         self.textscript_vm.state = TextScriptExecutionState::Running(self.constants.game.new_game_event, 0);
+        self.tutorial_counter = 300;
 
         self.next_scene = Some(Box::new(next_scene));
 

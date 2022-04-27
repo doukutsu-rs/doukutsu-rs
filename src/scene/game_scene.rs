@@ -1747,6 +1747,7 @@ impl Scene for GameScene {
                     self.skip_counter += 1;
                     if self.skip_counter >= CUTSCENE_SKIP_WAIT {
                         state.textscript_vm.flags.set_cutscene_skip(true);
+                        state.tutorial_counter = 0;
                     }
                 } else if self.skip_counter > 0 {
                     self.skip_counter -= 1;
@@ -1800,6 +1801,13 @@ impl Scene for GameScene {
 
         if state.control_flags.tick_world() {
             self.tick = self.tick.wrapping_add(1);
+        }
+
+        if state.tutorial_counter > 0 {
+            state.tutorial_counter = state.tutorial_counter.saturating_sub(1);
+            if state.control_flags.control_enabled() {
+                state.tutorial_counter = 0;
+            }
         }
 
         Ok(())
@@ -2030,7 +2038,7 @@ impl Scene for GameScene {
         self.falling_island.draw(state, ctx, &self.frame)?;
         self.text_boxes.draw(state, ctx, &self.frame)?;
 
-        if self.skip_counter > 1 {
+        if self.skip_counter > 1 || state.tutorial_counter > 0 {
             let text = state.tt(
                 "game.cutscene_skip",
                 HashMap::from([("key".to_owned(), format!("{:?}", state.settings.player1_key_map.inventory))]),
