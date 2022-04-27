@@ -63,7 +63,7 @@ impl NikumaruCounter {
             let mut random_list: [u8; 4] = [0; 4];
 
             for iter in 0..=3 {
-                random_list[iter] = state.game_rng.range(0..250) as u8 + iter as u8;
+                random_list[iter] = state.effect_rng.range(0..250) as u8 + iter as u8;
 
                 ticks[iter] = u32::from_le_bytes([
                     ticks[iter].to_le_bytes()[0].wrapping_add(random_list[iter]),

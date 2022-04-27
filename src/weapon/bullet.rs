@@ -204,7 +204,7 @@ impl Bullet {
 
         if self.action_num == 0 {
             self.action_num = 1;
-            self.anim_num = state.game_rng.range(0..2) as u16;
+            self.anim_num = state.effect_rng.range(0..2) as u16;
 
             match self.direction {
                 Direction::Left => self.vel_x = -0x600,
@@ -235,7 +235,7 @@ impl Bullet {
 
         if self.action_num == 0 {
             self.action_num = 1;
-            self.anim_num = state.game_rng.range(0..2) as u16;
+            self.anim_num = state.effect_rng.range(0..2) as u16;
 
             match self.direction {
                 Direction::Left => {
@@ -1959,8 +1959,8 @@ impl PhysicalEntity for Bullet {
                         npc.y = (y * 16 + 8) * 0x200;
 
                         for _ in 0..4 {
-                            npc.vel_x = state.game_rng.range(-0x200..0x200) as i32;
-                            npc.vel_y = state.game_rng.range(-0x200..0x200) as i32;
+                            npc.vel_x = npc.rng.range(-0x200..0x200) as i32;
+                            npc.vel_y = npc.rng.range(-0x200..0x200) as i32;
 
                             let _ = npc_list.spawn(0x100, npc.clone());
                         }

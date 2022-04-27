@@ -1130,9 +1130,9 @@ impl NPC {
                 }
 
                 if player.x > self.x + 0x28000
-                    && player.x < self.x - 0x28000
-                    && player.y > self.y + 0x1e000
-                    && player.y < self.y - 0x1e000
+                    || player.x < self.x - 0x28000
+                    || player.y > self.y + 0x1e000
+                    || player.y < self.y - 0x1e000
                 {
                     self.action_num = 0;
                 }

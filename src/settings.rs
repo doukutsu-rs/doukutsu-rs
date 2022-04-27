@@ -51,6 +51,7 @@ pub struct Settings {
     #[serde(default = "default_vsync")]
     pub vsync_mode: VSyncMode,
     pub debug_mode: bool,
+    #[serde(skip)]
     pub noclip: bool,
 }
 
