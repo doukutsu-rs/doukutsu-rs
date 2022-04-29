@@ -107,8 +107,7 @@ impl Language {
     pub fn font(self) -> FontData {
         match self {
             Language::English => FontData::new("csfont.fnt".to_owned(), 0.5, 0.0),
-            // TODO: implement JP font rendering
-            Language::Japanese => FontData::new("0.fnt".to_owned(), 1.0, 0.0),
+            Language::Japanese => FontData::new("csfontjp.fnt".to_owned(), 0.5, 0.0),
         }
     }
 

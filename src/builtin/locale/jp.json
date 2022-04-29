@@ -11,7 +11,7 @@
     "main_menu": {
       "start": "ゲームスタート",
       "challenges": "チャレンジ",
-      "options": "設定",
+      "options": "オプション",
       "editor": "レベルエディタ",
       "jukebox": "ジュークボックス",
       "quit": "辞める"
