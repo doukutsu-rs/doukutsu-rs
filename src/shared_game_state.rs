@@ -317,10 +317,10 @@ impl SharedGameState {
             }
         }
 
+        constants.load_locales(ctx)?;
+
         let season = Season::current();
         constants.rebuild_path_list(None, season, &settings);
-
-        constants.load_locales(ctx)?;
 
         let active_locale = constants.locales.get(&settings.locale.to_string()).unwrap();
 

@@ -1796,12 +1796,11 @@ impl EngineConstants {
 
         for language in Language::values() {
             // Only Switch 1.3+ data contains an entirely valid JP font
-            let font =
-                if language == Language::Japanese && filesystem::exists_find(ctx, &self.base_paths, "/credit_jp.tsc") {
-                    FontData::new("csfontjp.fnt".to_owned(), 0.5, 0.0)
-                } else {
-                    language.font()
-                };
+            let font = if language == Language::Japanese && filesystem::exists(ctx, "/base/credit_jp.tsc") {
+                FontData::new("csfontjp.fnt".to_owned(), 0.5, 0.0)
+            } else {
+                language.font()
+            };
             self.locales.insert(language.to_string(), Locale::new(ctx, language.to_language_code(), font));
             log::info!("Loaded locale {} ({}).", language.to_string(), language.to_language_code());
         }
