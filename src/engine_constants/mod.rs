@@ -15,7 +15,7 @@ use crate::i18n::Locale;
 use crate::player::ControlMode;
 use crate::scripting::tsc::text_script::TextScriptEncoding;
 use crate::settings::Settings;
-use crate::shared_game_state::{Language, Season};
+use crate::shared_game_state::{FontData, Language, Season};
 use crate::sound::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
 use crate::sound::SoundManager;
 
@@ -1792,8 +1792,17 @@ impl EngineConstants {
     }
 
     pub fn load_locales(&mut self, ctx: &mut Context) -> GameResult {
+        self.locales.clear();
+
         for language in Language::values() {
-            self.locales.insert(language.to_string(), Locale::new(ctx, language.to_language_code(), language.font()));
+            // Only Switch 1.3+ data contains an entirely valid JP font
+            let font =
+                if language == Language::Japanese && filesystem::exists_find(ctx, &self.base_paths, "/credit_jp.tsc") {
+                    FontData::new("csfontjp.fnt".to_owned(), 0.5, 0.0)
+                } else {
+                    language.font()
+                };
+            self.locales.insert(language.to_string(), Locale::new(ctx, language.to_language_code(), font));
             log::info!("Loaded locale {} ({}).", language.to_string(), language.to_language_code());
         }
 

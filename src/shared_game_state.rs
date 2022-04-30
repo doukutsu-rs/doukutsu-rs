@@ -107,7 +107,8 @@ impl Language {
     pub fn font(self) -> FontData {
         match self {
             Language::English => FontData::new("csfont.fnt".to_owned(), 0.5, 0.0),
-            Language::Japanese => FontData::new("csfontjp.fnt".to_owned(), 0.5, 0.0),
+            // Use default as fallback if no proper JP font is found
+            Language::Japanese => FontData::new("0.fnt".to_owned(), 1.0, 0.0),
         }
     }
 
@@ -282,8 +283,6 @@ impl SharedGameState {
         let settings = Settings::load(ctx)?;
         let mod_requirements = ModRequirements::load(ctx)?;
 
-        constants.load_locales(ctx)?;
-
         #[cfg(not(target_os = "android"))]
         if filesystem::exists(ctx, "/base/lighting.tbl") {
             info!("Cave Story+ (Switch) data files detected.");
@@ -320,6 +319,8 @@ impl SharedGameState {
 
         let season = Season::current();
         constants.rebuild_path_list(None, season, &settings);
+
+        constants.load_locales(ctx)?;
 
         let active_locale = constants.locales.get(&settings.locale.to_string()).unwrap();
 
