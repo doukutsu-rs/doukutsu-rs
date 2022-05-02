@@ -79,7 +79,6 @@ impl TouchControls {
         texture_set: &mut TextureSet,
         ctx: &mut Context,
     ) -> GameResult {
-        let batch = texture_set.get_or_load_batch(ctx, constants, "builtin/touch")?;
         let color = (255, 255, 255, 160);
 
         let (left, top, right, bottom) = screen_insets_scaled(ctx, scale);
@@ -87,6 +86,7 @@ impl TouchControls {
         match self.control_type {
             TouchControlType::None => {}
             TouchControlType::Dialog => {
+                let batch = texture_set.get_or_load_batch(ctx, constants, "builtin/touch")?;
                 // Fast-Forward
                 batch.add_rect_tinted(
                     canvas_size.0 - (4.0 + 48.0) + 8.0 - right,
@@ -98,6 +98,7 @@ impl TouchControls {
                 batch.draw(ctx)?;
             }
             TouchControlType::Controls => {
+                let batch = texture_set.get_or_load_batch(ctx, constants, "builtin/touch")?;
                 // Movement
                 for x in 0..3 {
                     for y in 0..3 {
