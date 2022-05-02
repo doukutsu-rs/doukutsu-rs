@@ -79,54 +79,73 @@ impl TouchControls {
         texture_set: &mut TextureSet,
         ctx: &mut Context,
     ) -> GameResult {
-        if self.control_type == TouchControlType::Controls {
-            let batch = texture_set.get_or_load_batch(ctx, constants, "builtin/touch")?;
-            let color = (255, 255, 255, 160);
+        let batch = texture_set.get_or_load_batch(ctx, constants, "builtin/touch")?;
+        let color = (255, 255, 255, 160);
 
-            let (left, top, right, bottom) = screen_insets_scaled(ctx, scale);
+        let (left, top, right, bottom) = screen_insets_scaled(ctx, scale);
 
-            for x in 0..3 {
-                for y in 0..3 {
-                    let mut icon_x = x;
-                    let icon_y = y;
+        match self.control_type {
+            TouchControlType::None => {}
+            TouchControlType::Dialog => {
+                // Fast-Forward
+                batch.add_rect_tinted(
+                    canvas_size.0 - (4.0 + 48.0) + 8.0 - right,
+                    4.0 + 8.0 + top,
+                    color,
+                    &Rect::new_size(2 * 32, 3 * 32, 32, 32),
+                );
 
-                    if self.interact_icon && x == 1 && y == 2 {
-                        icon_x = 3;
-                    }
-
-                    batch.add_rect_tinted(
-                        4.0 + 48.0 * x as f32 + 8.0 + left,
-                        (canvas_size.1 - 4.0 - 48.0 * 3.0) + 48.0 * y as f32 + 8.0 - bottom,
-                        color,
-                        &Rect::new_size(icon_x * 32, icon_y * 32, 32, 32),
-                    );
-                }
+                batch.draw(ctx)?;
             }
+            TouchControlType::Controls => {
+                // Movement
+                for x in 0..3 {
+                    for y in 0..3 {
+                        let mut icon_x = x;
+                        let icon_y = y;
 
-            batch.add_rect_tinted(
-                canvas_size.0 - (4.0 + 48.0) + 8.0 - right,
-                canvas_size.1 - (4.0 + 48.0) + 8.0 - bottom,
-                color,
-                &Rect::new_size(3 * 32, 32, 32, 32),
-            );
+                        if self.interact_icon && x == 1 && y == 2 {
+                            icon_x = 3;
+                        }
 
-            batch.add_rect_tinted(
-                canvas_size.0 - (4.0 + 48.0) + 8.0 - right,
-                canvas_size.1 - (4.0 + 48.0) * 2.0 + 8.0 - bottom,
-                color,
-                &Rect::new_size(3 * 32, 0, 32, 32),
-            );
+                        batch.add_rect_tinted(
+                            4.0 + 48.0 * x as f32 + 8.0 + left,
+                            (canvas_size.1 - 4.0 - 48.0 * 3.0) + 48.0 * y as f32 + 8.0 - bottom,
+                            color,
+                            &Rect::new_size(icon_x * 32, icon_y * 32, 32, 32),
+                        );
+                    }
+                }
 
-            batch.add_rect_tinted(
-                canvas_size.0 - (4.0 + 48.0) + 8.0 - right,
-                4.0 + 8.0 + top,
-                color,
-                &Rect::new_size(0, 3 * 32, 32, 32),
-            );
+                // Jump
+                batch.add_rect_tinted(
+                    canvas_size.0 - (4.0 + 48.0) + 8.0 - right,
+                    canvas_size.1 - (4.0 + 48.0) + 8.0 - bottom,
+                    color,
+                    &Rect::new_size(3 * 32, 32, 32, 32),
+                );
 
-            batch.add_rect_tinted(4.0, 4.0, color, &Rect::new_size(32, 3 * 32, 32, 32));
+                // Shoot
+                batch.add_rect_tinted(
+                    canvas_size.0 - (4.0 + 48.0) + 8.0 - right,
+                    canvas_size.1 - (4.0 + 48.0) * 2.0 + 8.0 - bottom,
+                    color,
+                    &Rect::new_size(3 * 32, 0, 32, 32),
+                );
 
-            batch.draw(ctx)?;
+                // Inventory
+                batch.add_rect_tinted(
+                    canvas_size.0 - (4.0 + 48.0) + 8.0 - right,
+                    4.0 + 8.0 + top,
+                    color,
+                    &Rect::new_size(0, 3 * 32, 32, 32),
+                );
+
+                // Pause
+                batch.add_rect_tinted(4.0, 4.0, color, &Rect::new_size(32, 3 * 32, 32, 32));
+
+                batch.draw(ctx)?;
+            }
         }
 
         Ok(())

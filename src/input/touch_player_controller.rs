@@ -49,7 +49,12 @@ impl PlayerController for TouchPlayerController {
                 self.state.set_jump(
                     state
                         .touch_controls
-                        .point_in(Rect::new_size(0, 0, state.canvas_size.0 as isize, state.canvas_size.1 as isize))
+                        .point_in(Rect::new_size(
+                            0,
+                            state.canvas_size.1 as isize / 2,
+                            state.canvas_size.0 as isize,
+                            state.canvas_size.1 as isize / 2,
+                        ))
                         .is_some(),
                 );
 
@@ -57,6 +62,18 @@ impl PlayerController for TouchPlayerController {
                     self.prev_touch_len = state.touch_controls.points.len();
                     self.old_state.set_jump(false);
                 }
+
+                let (_, top, right, _) = screen_insets_scaled(ctx, state.scale);
+
+                let top = 4 + top as isize;
+                let right = 4 + right as isize;
+
+                self.state.set_inventory(
+                    state
+                        .touch_controls
+                        .point_in(Rect::new_size(state.canvas_size.0 as isize - 48 - right, top, 48, 48))
+                        .is_some(),
+                );
             }
             TouchControlType::Controls => {
                 let (left, _top, right, bottom) = screen_insets_scaled(ctx, state.scale);
@@ -218,7 +235,7 @@ impl PlayerController for TouchPlayerController {
                 );
 
                 self.state.set_pause(
-                    self.state.pause() || state.touch_controls.point_in(Rect::new_size(0, 0, 20, 20)).is_some(),
+                    self.state.pause() || state.touch_controls.point_in(Rect::new_size(0, 0, 40, 40)).is_some(),
                 );
             }
         }

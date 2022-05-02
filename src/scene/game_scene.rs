@@ -1743,6 +1743,7 @@ impl Scene for GameScene {
             | TextScriptExecutionState::FallingIsland(_, _, _, _, _, _)
                 if !state.control_flags.control_enabled() && !state.textscript_vm.flags.cutscene_skip() =>
             {
+                state.touch_controls.control_type = TouchControlType::Dialog;
                 if self.player1.controller.inventory() {
                     self.skip_counter += 1;
                     if self.skip_counter >= CUTSCENE_SKIP_WAIT {
@@ -2041,7 +2042,11 @@ impl Scene for GameScene {
         if self.skip_counter > 1 || state.tutorial_counter > 0 {
             let text = state.tt(
                 "game.cutscene_skip",
-                HashMap::from([("key".to_owned(), format!("{:?}", state.settings.player1_key_map.inventory))]),
+                HashMap::from(if !state.settings.touch_controls {
+                    [("key".to_owned(), format!("{:?}", state.settings.player1_key_map.inventory))]
+                } else {
+                    [("key".to_owned(), ">>".to_owned())]
+                }),
             );
             let width = state.font.text_width(text.chars(), &state.constants);
             let pos_x = state.canvas_size.0 - width - 20.0;
