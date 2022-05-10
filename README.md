@@ -17,8 +17,7 @@ in [Rust](https://www.rust-lang.org/).
   
   **macOS note:** If you get a `"doukutsu-rs" can't be opened` message, right-click doukutsu-rs.app and click open.
   
-- [Get stable/beta builds from GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases) (executables only,
-  no data files bundled, see below for instructions)
+- [Get stable/beta builds from GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases) (Includes Android builds)
 
 #### Data files
 
