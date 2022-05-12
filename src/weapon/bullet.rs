@@ -1549,12 +1549,8 @@ impl Bullet {
                     Direction::FacingPlayer => unreachable!(),
                 },
                 38 => match self.direction {
-                    Direction::Left | Direction::Right => {
-                        self.enemy_hit_height = 0x800;
-                    }
-                    Direction::Up | Direction::Bottom => {
-                        self.enemy_hit_width = 0x800;
-                    }
+                    Direction::Left | Direction::Right => self.enemy_hit_height = 0x800,
+                    Direction::Up | Direction::Bottom => self.enemy_hit_width = 0x800,
                     Direction::FacingPlayer => unreachable!(),
                 },
                 39 => {

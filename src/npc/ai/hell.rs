@@ -586,14 +586,15 @@ impl NPC {
                 self.face_player(player);
                 self.animate(40, 0, 1);
 
-                self.action_counter += 1;
                 if player.x > self.x - 0x28000
                     && player.x < self.x + 0x28000
                     && player.y > self.y - 0x14000
                     && player.y < self.y + 0x14000
-                    && self.action_counter > 50
                 {
-                    self.action_num = 10
+                    self.action_counter += 1;
+                    if self.action_counter > 50 {
+                        self.action_num = 10
+                    }
                 }
             }
             10 | 11 => {

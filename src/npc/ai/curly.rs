@@ -889,7 +889,7 @@ impl NPC {
                 self.target_x = player.x;
 
                 if player.up {
-                    self.target_y = player.y + if grounded { -0x1400 } else { 0x1000 };
+                    self.target_y = player.y + if grounded { -0x1800 } else { 0x1000 };
                     self.anim_num = if grounded { 1 } else { 2 };
                     self.direction = if grounded { Direction::Up } else { Direction::Bottom };
                 } else if player.down && !grounded {
@@ -926,56 +926,41 @@ impl NPC {
         npc_list: &NPCList,
         bullet_manager: &mut BulletManager,
     ) -> GameResult {
-        if self.action_num == 0 {
-            if let Some(npc) = self.get_parent_ref_mut(npc_list) {
-                let player = &players[0];
+        if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+            let player = &players[0];
 
-                self.direction = npc.direction;
-                self.x = npc.x;
-                self.y = npc.y;
+            self.direction = npc.direction;
+            self.x = npc.x;
+            self.y = npc.y;
 
-                match self.direction {
-                    Direction::Right => {
-                        self.x += 0x1000;
-                    }
-                    Direction::Left => {
-                        self.x -= 0x1000;
-                    }
-                    Direction::Up => {
-                        self.y -= 0x1400;
-                    }
-                    Direction::Bottom => {
-                        self.y += 0x1400;
-                    }
-                    _ => (),
+            match self.direction {
+                Direction::Right => {
+                    self.x += 0x1000;
                 }
-
-                if player.controller.trigger_shoot()
-                    && state.control_flags.control_enabled()
-                    && bullet_manager.count_bullets_multi(&[43], TargetPlayer::Player1) < 2
-                {
-                    bullet_manager.create_bullet(
-                        npc.x,
-                        npc.y,
-                        43,
-                        TargetPlayer::Player1,
-                        self.direction,
-                        &state.constants,
-                    );
-                    state.create_caret(npc.x, npc.y, CaretType::Shoot, self.direction);
-                    state.sound_manager.play_sfx(117);
+                Direction::Left => {
+                    self.x -= 0x1000;
                 }
-
-                let mut dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
-                if self.direction == Direction::Up {
-                    dir_offset += 2
-                };
-                if self.direction == Direction::Bottom {
-                    dir_offset += 1
-                };
-
-                self.anim_rect = state.constants.npc.n321_curly_nemesis[dir_offset];
+                Direction::Up => {
+                    self.y -= 0x1400;
+                }
+                Direction::Bottom => {
+                    self.y += 0x1400;
+                }
+                _ => (),
             }
+
+            if player.controller.trigger_shoot()
+                && state.control_flags.control_enabled()
+                && bullet_manager.count_bullets_multi(&[43], TargetPlayer::Player1) < 2
+            {
+                bullet_manager.create_bullet(npc.x, npc.y, 43, TargetPlayer::Player1, self.direction, &state.constants);
+                state.create_caret(npc.x, npc.y, CaretType::Shoot, Direction::Left);
+                state.sound_manager.play_sfx(117);
+            }
+
+            let dir_offset = if player.direction == Direction::Right { 0 } else { 3 };
+
+            self.anim_rect = state.constants.npc.n321_curly_nemesis[npc.anim_num as usize + dir_offset];
         }
 
         Ok(())

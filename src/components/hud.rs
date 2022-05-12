@@ -8,6 +8,7 @@ use crate::framework::graphics::screen_insets_scaled;
 use crate::inventory::Inventory;
 use crate::player::Player;
 use crate::shared_game_state::SharedGameState;
+use crate::weapon::WeaponType;
 
 pub struct HUD {
     pub alignment: Alignment,
@@ -111,12 +112,26 @@ impl GameEntity<(&Player, &mut Inventory)> for HUD {
             if player.controller.trigger_next_weapon() {
                 state.sound_manager.play_sfx(4);
                 inventory.next_weapon();
+
+                if let Some(weapon) = inventory.get_current_weapon_mut() {
+                    if weapon.wtype == WeaponType::Spur {
+                        weapon.reset_xp();
+                    }
+                }
+
                 self.weapon_x_pos = 32;
             }
 
             if player.controller.trigger_prev_weapon() {
                 state.sound_manager.play_sfx(4);
                 inventory.prev_weapon();
+
+                if let Some(weapon) = inventory.get_current_weapon_mut() {
+                    if weapon.wtype == WeaponType::Spur {
+                        weapon.reset_xp();
+                    }
+                }
+
                 self.weapon_x_pos = 0;
             }
         }
