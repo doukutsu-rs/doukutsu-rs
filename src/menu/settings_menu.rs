@@ -378,7 +378,7 @@ impl SettingsMenu {
             CurrentMenu::SoundMenu => match self.sound.tick(controller, state) {
                 MenuSelectionResult::Left(0, bgm, direction) | MenuSelectionResult::Right(0, bgm, direction) => {
                     if let MenuEntry::OptionsBar(_, value) = bgm {
-                        *value = (*value + (direction as f32 * 0.1)).clamp(0.0, 1.0);
+                        *value = (*value * 10.0 + (direction as f32)).clamp(0.0, 10.0) / 10.0;
                         state.settings.bgm_volume = *value;
                         state.sound_manager.set_song_volume(*value);
 
@@ -387,7 +387,7 @@ impl SettingsMenu {
                 }
                 MenuSelectionResult::Left(1, sfx, direction) | MenuSelectionResult::Right(1, sfx, direction) => {
                     if let MenuEntry::OptionsBar(_, value) = sfx {
-                        *value = (*value + (direction as f32 * 0.1)).clamp(0.0, 1.0);
+                        *value = (*value * 10.0 + (direction as f32)).clamp(0.0, 10.0) / 10.0;
                         state.settings.sfx_volume = *value;
                         state.sound_manager.set_sfx_volume(*value);
 
