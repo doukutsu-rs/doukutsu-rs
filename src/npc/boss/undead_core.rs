@@ -1047,8 +1047,8 @@ impl BossNPC {
 
             let angle = (angle / 2) as f64 * CDEG_RAD;
 
-            part.x = base.x + 0x30 * (angle.cos() * -512.0) as i32 - 0x1000;
-            part.y = base.y + 0x50 * (angle.sin() * -512.0) as i32;
+            part.x = base.x + 0x30 * (angle.cos() * 512.0) as i32 - 0x1000;
+            part.y = base.y + 0x50 * (angle.sin() * 512.0) as i32;
         }
 
         part.anim_rect = state.constants.npc.b07_undead_core[part.anim_num as usize + 12];
