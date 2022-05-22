@@ -16,6 +16,7 @@ pub struct ModInfo {
     pub path: String,
     pub name: String,
     pub description: String,
+    pub valid: bool,
 }
 
 impl ModInfo {
@@ -147,11 +148,13 @@ impl ModList {
                     }
                 }
 
+                let mut valid = false;
                 let mut name = String::new();
                 let mut description = String::new();
                 let mut save_slot = -1;
 
                 if let Ok(file) = filesystem::open(ctx, [&path, "/mod.txt"].join("")) {
+                    valid = true;
                     let reader = BufReader::new(file);
                     let mut lines = reader.lines();
                     if let Some(line) = lines.nth(1) {
@@ -164,9 +167,12 @@ impl ModList {
                     if let Some(line) = lines.next() {
                         description = line.unwrap_or("No Description".to_string()).to_string();
                     }
+                } else {
+                    name = path.clone();
+                    description = "mod.txt not found".to_string();
                 }
 
-                mods.push(ModInfo { id, requirement, priority, save_slot, path, name, description })
+                mods.push(ModInfo { id, requirement, priority, save_slot, path, name, description, valid })
             }
         }
 

@@ -175,6 +175,10 @@ impl Scene for TitleScene {
         let mut mutate_selection = true;
 
         for mod_info in state.mod_list.mods.iter() {
+            if !mod_info.valid {
+                self.challenges_menu.push_entry(MenuEntry::Disabled(mod_info.path.clone()));
+                continue;
+            }
             if mod_info.satisfies_requirement(&state.mod_requirements) {
                 self.challenges_menu.push_entry(MenuEntry::Active(mod_info.name.clone()));
                 mutate_selection = false;
