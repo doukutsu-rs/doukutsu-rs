@@ -52,7 +52,7 @@
       "graphics": "Graphics...",
       "graphics_menu": {
         "window_mode": {
-          "entry": "Screen mode:",
+          "entry": "Display mode:",
           "windowed": "Windowed",
           "fullscreen": "Fullscreen"
         },
