@@ -51,6 +51,11 @@
     "options_menu": {
       "graphics": "Graphics...",
       "graphics_menu": {
+        "window_mode": {
+          "entry": "Screen mode:",
+          "windowed": "Windowed",
+          "fullscreen": "Fullscreen"
+        },
         "lighting_effects": "Lighting effects:",
         "weapon_light_cone": "Weapon light cone:",
         "motion_interpolation": "Motion interpolation:",

@@ -9,7 +9,7 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
 use crate::scene::title_scene::TitleScene;
-use crate::shared_game_state::{Language, SharedGameState, TimingMode};
+use crate::shared_game_state::{Language, SharedGameState, TimingMode, WindowMode};
 use crate::sound::InterpolationMode;
 use crate::{graphics, VSyncMode};
 
@@ -48,6 +48,23 @@ impl SettingsMenu {
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        #[cfg(not(target_os = "android"))]
+        self.graphics.push_entry(MenuEntry::Options(
+            state.t("menus.options_menu.graphics_menu.window_mode.entry"),
+            state.settings.window_mode as usize,
+            vec![
+                state.t("menus.options_menu.graphics_menu.window_mode.windowed"),
+                state.t("menus.options_menu.graphics_menu.window_mode.fullscreen"),
+            ],
+        ));
+
+        #[cfg(target_os = "android")]
+        {
+            let entry_text = state.t("menus.options_menu.graphics_menu.window_mode.entry") + " N/A";
+            self.graphics.push_entry(MenuEntry::Disabled(entry_text));
+            self.graphics.selected += 1;
+        }
+
         self.graphics.push_entry(MenuEntry::DescriptiveOptions(
             state.t("menus.options_menu.graphics_menu.vsync_mode.entry"),
             state.settings.vsync_mode as usize,
@@ -282,7 +299,23 @@ impl SettingsMenu {
                 _ => (),
             },
             CurrentMenu::GraphicsMenu => match self.graphics.tick(controller, state) {
-                MenuSelectionResult::Selected(0, toggle) | MenuSelectionResult::Right(0, toggle, _) => {
+                MenuSelectionResult::Selected(0, toggle)
+                | MenuSelectionResult::Right(0, toggle, _)
+                | MenuSelectionResult::Left(0, toggle, _) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        let (new_mode, new_value) = match *value {
+                            0 => (WindowMode::Fullscreen, 1),
+                            1 => (WindowMode::Windowed, 0),
+                            _ => unreachable!(),
+                        };
+
+                        *value = new_value;
+                        state.settings.window_mode = new_mode;
+
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Selected(1, toggle) | MenuSelectionResult::Right(1, toggle, _) => {
                     if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
                         let (new_mode, new_value) = match *value {
                             0 => (VSyncMode::VSync, 1),
@@ -299,7 +332,7 @@ impl SettingsMenu {
                         let _ = state.settings.save(ctx);
                     }
                 }
-                MenuSelectionResult::Left(0, toggle, _) => {
+                MenuSelectionResult::Left(1, toggle, _) => {
                     if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
                         let (new_mode, new_value) = match *value {
                             0 => (VSyncMode::VRRTickSync3x, 4),
@@ -316,7 +349,7 @@ impl SettingsMenu {
                         let _ = state.settings.save(ctx);
                     }
                 }
-                MenuSelectionResult::Selected(1, toggle) => {
+                MenuSelectionResult::Selected(2, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.shader_effects = !state.settings.shader_effects;
                         let _ = state.settings.save(ctx);
@@ -324,7 +357,7 @@ impl SettingsMenu {
                         *value = state.settings.shader_effects;
                     }
                 }
-                MenuSelectionResult::Selected(2, toggle) => {
+                MenuSelectionResult::Selected(3, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.light_cone = !state.settings.light_cone;
                         let _ = state.settings.save(ctx);
@@ -332,7 +365,7 @@ impl SettingsMenu {
                         *value = state.settings.light_cone;
                     }
                 }
-                MenuSelectionResult::Selected(3, toggle) => {
+                MenuSelectionResult::Selected(4, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.motion_interpolation = !state.settings.motion_interpolation;
                         let _ = state.settings.save(ctx);
@@ -340,7 +373,7 @@ impl SettingsMenu {
                         *value = state.settings.motion_interpolation;
                     }
                 }
-                MenuSelectionResult::Selected(4, toggle) => {
+                MenuSelectionResult::Selected(5, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.subpixel_coords = !state.settings.subpixel_coords;
                         let _ = state.settings.save(ctx);
@@ -348,7 +381,7 @@ impl SettingsMenu {
                         *value = state.settings.subpixel_coords;
                     }
                 }
-                MenuSelectionResult::Selected(5, toggle) => {
+                MenuSelectionResult::Selected(6, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.original_textures = !state.settings.original_textures;
                         if self.on_title {
@@ -361,7 +394,7 @@ impl SettingsMenu {
                         *value = state.settings.original_textures;
                     }
                 }
-                MenuSelectionResult::Selected(6, toggle) => {
+                MenuSelectionResult::Selected(7, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.seasonal_textures = !state.settings.seasonal_textures;
                         state.reload_graphics();
@@ -370,7 +403,7 @@ impl SettingsMenu {
                         *value = state.settings.seasonal_textures;
                     }
                 }
-                MenuSelectionResult::Selected(8, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(9, _) | MenuSelectionResult::Canceled => {
                     self.current = CurrentMenu::MainMenu
                 }
                 _ => (),

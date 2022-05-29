@@ -44,6 +44,29 @@ pub enum TimingMode {
     FrameSynchronized,
 }
 
+#[derive(PartialEq, Eq, Copy, Clone, serde::Serialize, serde::Deserialize)]
+pub enum WindowMode {
+    Windowed,
+    Fullscreen,
+}
+
+impl WindowMode {
+    #[cfg(feature = "backend-sdl")]
+    pub fn get_sdl2_fullscreen_type(&self) -> sdl2::video::FullscreenType {
+        match self {
+            WindowMode::Windowed => sdl2::video::FullscreenType::Off,
+            WindowMode::Fullscreen => sdl2::video::FullscreenType::Desktop,
+        }
+    }
+
+    pub fn should_display_mouse_cursor(&self) -> bool {
+        match self {
+            WindowMode::Windowed => true,
+            WindowMode::Fullscreen => false,
+        }
+    }
+}
+
 impl TimingMode {
     pub fn get_delta(self) -> usize {
         match self {

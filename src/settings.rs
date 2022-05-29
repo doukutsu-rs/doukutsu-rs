@@ -7,7 +7,7 @@ use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
 use crate::input::touch_player_controller::TouchPlayerController;
 use crate::player::TargetPlayer;
-use crate::shared_game_state::{Language, TimingMode};
+use crate::shared_game_state::{Language, TimingMode, WindowMode};
 use crate::sound::InterpolationMode;
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -48,6 +48,8 @@ pub struct Settings {
     pub debug_outlines: bool,
     pub fps_counter: bool,
     pub locale: Language,
+    #[serde(default = "default_window_mode")]
+    pub window_mode: WindowMode,
     #[serde(default = "default_vsync")]
     pub vsync_mode: VSyncMode,
     pub debug_mode: bool,
@@ -61,12 +63,17 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    9
+    10
 }
 
 #[inline(always)]
 fn default_timing() -> TimingMode {
     TimingMode::_50Hz
+}
+
+#[inline(always)]
+fn default_window_mode() -> WindowMode {
+    WindowMode::Windowed
 }
 
 #[inline(always)]
@@ -146,6 +153,11 @@ impl Settings {
             self.debug_mode = false;
         }
 
+        if self.version == 9 {
+            self.version = 10;
+            self.window_mode = default_window_mode();
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -197,6 +209,7 @@ impl Default for Settings {
             debug_outlines: false,
             fps_counter: false,
             locale: Language::English,
+            window_mode: WindowMode::Windowed,
             vsync_mode: VSyncMode::VSync,
             debug_mode: false,
             noclip: false,
