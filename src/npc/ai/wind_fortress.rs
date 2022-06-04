@@ -509,9 +509,12 @@ impl NPC {
             npc.cond.set_alive(true);
             npc.x = self.x;
             npc.y = self.y;
-            *self = npc;
+
+            let _ = npc_list.spawn(0x100, npc.clone());
+
             state.sound_manager.play_sfx(72);
             npc_list.create_death_smoke(self.x, self.y, 0, 1, state, &self.rng);
+            self.cond.set_alive(false);
         }
 
         self.anim_rect = state.constants.npc.n367_curly_clone_incubator;
