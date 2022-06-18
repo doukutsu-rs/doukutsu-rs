@@ -222,30 +222,15 @@ impl SaveSelectMenu {
                 }
                 MenuSelectionResult::Selected(1, _) => {
                     state.difficulty = GameDifficulty::Easy;
-                    if state.constants.is_cs_plus {
-                        self.current_menu = CurrentMenu::CoopMenu;
-                    } else {
-                        state.reload_resources(ctx)?;
-                        state.load_or_start_game(ctx)?;  
-                    }
+                    self.current_menu = CurrentMenu::CoopMenu;
                 }
                 MenuSelectionResult::Selected(2, _) => {
                     state.difficulty = GameDifficulty::Normal;
-                    if state.constants.is_cs_plus {
-                        self.current_menu = CurrentMenu::CoopMenu;
-                    } else {
-                        state.reload_resources(ctx)?;
-                        state.load_or_start_game(ctx)?;  
-                    }
+                    self.current_menu = CurrentMenu::CoopMenu;
                 }
                 MenuSelectionResult::Selected(3, _) => {
                     state.difficulty = GameDifficulty::Hard;
-                    if state.constants.is_cs_plus {
-                        self.current_menu = CurrentMenu::CoopMenu;
-                    } else {
-                        state.reload_resources(ctx)?;
-                        state.load_or_start_game(ctx)?;  
-                    }
+                    self.current_menu = CurrentMenu::CoopMenu;
                 }
                 _ => (),
             },
