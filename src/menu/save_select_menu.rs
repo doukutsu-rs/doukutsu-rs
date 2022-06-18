@@ -301,7 +301,6 @@ impl SaveSelectMenu {
                         state.num_player = PlayerNumber::One;
                         self.init(state, ctx);
                     }
-                    println!("{}", state.num_player as u16);
                 }
                 MenuSelectionResult::Selected(3, _) => {
                     state.player2_skin += 2;
