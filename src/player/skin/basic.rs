@@ -258,4 +258,7 @@ impl PlayerSkin for BasicPlayerSkin {
     fn apply_gamestate(&mut self, state: &SharedGameState) {
         self.skinsheet_offset = state.get_skinsheet_offset();
     }
+    fn set_skinsheet_offset(&mut self, offset: u16) {
+        self.skinsheet_offset = offset;
+    }
 }

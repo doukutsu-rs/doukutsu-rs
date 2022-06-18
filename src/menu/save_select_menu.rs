@@ -5,7 +5,7 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
 use crate::profile::GameProfile;
-use crate::shared_game_state::{GameDifficulty, SharedGameState};
+use crate::shared_game_state::{GameDifficulty, PlayerNumber, SharedGameState};
 
 #[derive(Clone, Copy)]
 pub struct MenuSaveInfo {
@@ -25,8 +25,10 @@ impl Default for MenuSaveInfo {
 pub enum CurrentMenu {
     SaveMenu,
     DifficultyMenu,
+    CoopMenu,
     DeleteConfirm,
     LoadConfirm,
+    PlayerSkin,
 }
 pub struct SaveSelectMenu {
     pub saves: [MenuSaveInfo; 3],
@@ -34,6 +36,8 @@ pub struct SaveSelectMenu {
     save_menu: Menu,
     save_detailed: Menu,
     difficulty_menu: Menu,
+    coop_menu: Menu,
+    skin_menu: Menu,
     delete_confirm: Menu,
     load_confirm: Menu,
     skip_difficulty_menu: bool,
@@ -47,6 +51,8 @@ impl SaveSelectMenu {
             save_menu: Menu::new(0, 0, 230, 0),
             save_detailed: Menu::new(0, 0, 230, 0),
             difficulty_menu: Menu::new(0, 0, 130, 0),
+            coop_menu: Menu::new(0, 0, 130, 0),
+            skin_menu: Menu::new(0, 0, 130, 0),
             delete_confirm: Menu::new(0, 0, 75, 0),
             load_confirm: Menu::new(0, 0, 75, 0),
             skip_difficulty_menu: false,
@@ -57,6 +63,8 @@ impl SaveSelectMenu {
         self.save_menu = Menu::new(0, 0, 230, 0);
         self.save_detailed = Menu::new(0, 0, 230, 0);
         self.difficulty_menu = Menu::new(0, 0, 130, 0);
+        self.coop_menu = Menu::new(0, 0, 130, 0);
+        self.skin_menu = Menu::new(0, 0, 130, 0);
         self.delete_confirm = Menu::new(0, 0, 75, 0);
         self.load_confirm = Menu::new(0, 0, 75, 0);
         self.skip_difficulty_menu = false;
@@ -88,6 +96,19 @@ impl SaveSelectMenu {
 
         self.difficulty_menu.selected = 2;
 
+        self.coop_menu.push_entry(MenuEntry::Disabled(state.t("menus.coop_menu.title")));
+        self.coop_menu.push_entry(MenuEntry::Active(state.t("menus.coop_menu.one")));
+        self.coop_menu.push_entry(MenuEntry::Active(state.t("menus.coop_menu.two")));
+        self.coop_menu.push_entry(MenuEntry::Active(state.t("common.back")));
+
+        self.coop_menu.selected = 1;
+
+        self.skin_menu.push_entry(MenuEntry::Disabled(state.t("menus.skin_menu.title")));
+        self.skin_menu.push_entry(MenuEntry::PlayerSkin);
+        self.skin_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.start")));
+        self.skin_menu.push_entry(MenuEntry::Active(state.t("common.back")));
+        self.skin_menu.selected = 1;
+
         self.delete_confirm.push_entry(MenuEntry::Disabled(state.t("menus.save_menu.delete_confirm")));
         self.delete_confirm.push_entry(MenuEntry::Active(state.t("common.yes")));
         self.delete_confirm.push_entry(MenuEntry::Active(state.t("common.no")));
@@ -96,9 +117,19 @@ impl SaveSelectMenu {
 
         self.load_confirm.push_entry(MenuEntry::Active(state.t("menus.main_menu.start")));
         self.load_confirm.push_entry(MenuEntry::Active(state.t("menus.save_menu.delete_confirm")));
+        if state.num_player == PlayerNumber::One {
+            self.load_confirm.push_entry(MenuEntry::Active(state.t("menus.coop_menu.one")));
+            self.load_confirm.push_entry(MenuEntry::Hidden);
+        } else {
+            self.load_confirm.push_entry(MenuEntry::Active(state.t("menus.coop_menu.two")));
+            if state.constants.is_cs_plus {
+                self.load_confirm.push_entry(MenuEntry::PlayerSkin);
+            }
+        }
         self.load_confirm.push_entry(MenuEntry::Active(state.t("common.back")));
 
         self.save_detailed.draw_cursor = false;
+
         if let MenuEntry::SaveData(save) = self.save_menu.entries[0] {
             self.save_detailed.push_entry(MenuEntry::SaveDataSingle(save));
         }
@@ -122,6 +153,18 @@ impl SaveSelectMenu {
         self.difficulty_menu.update_height();
         self.difficulty_menu.x = ((state.canvas_size.0 - self.difficulty_menu.width as f32) / 2.0).floor() as isize;
         self.difficulty_menu.y =
+            30 + ((state.canvas_size.1 - self.difficulty_menu.height as f32) / 2.0).floor() as isize;
+
+        self.coop_menu.update_width(state);
+        self.coop_menu.update_height();
+        self.coop_menu.x = ((state.canvas_size.0 - self.difficulty_menu.width as f32) / 2.3).floor() as isize;
+        self.coop_menu.y =
+            30 + ((state.canvas_size.1 - self.difficulty_menu.height as f32) / 2.0).floor() as isize;
+
+        self.skin_menu.update_width(state);
+        self.skin_menu.update_height();
+        self.skin_menu.x = ((state.canvas_size.0 - self.difficulty_menu.width as f32) / 2.3).floor() as isize;
+        self.skin_menu.y =
             30 + ((state.canvas_size.1 - self.difficulty_menu.height as f32) / 2.0).floor() as isize;
 
         self.delete_confirm.update_width(state);
@@ -179,16 +222,62 @@ impl SaveSelectMenu {
                 }
                 MenuSelectionResult::Selected(1, _) => {
                     state.difficulty = GameDifficulty::Easy;
-                    state.reload_resources(ctx)?;
-                    state.load_or_start_game(ctx)?;
+                    if state.constants.is_cs_plus {
+                        self.current_menu = CurrentMenu::CoopMenu;
+                    } else {
+                        state.reload_resources(ctx)?;
+                        state.load_or_start_game(ctx)?;  
+                    }
                 }
                 MenuSelectionResult::Selected(2, _) => {
                     state.difficulty = GameDifficulty::Normal;
-                    state.reload_resources(ctx)?;
-                    state.load_or_start_game(ctx)?;
+                    if state.constants.is_cs_plus {
+                        self.current_menu = CurrentMenu::CoopMenu;
+                    } else {
+                        state.reload_resources(ctx)?;
+                        state.load_or_start_game(ctx)?;  
+                    }
                 }
                 MenuSelectionResult::Selected(3, _) => {
                     state.difficulty = GameDifficulty::Hard;
+                    if state.constants.is_cs_plus {
+                        self.current_menu = CurrentMenu::CoopMenu;
+                    } else {
+                        state.reload_resources(ctx)?;
+                        state.load_or_start_game(ctx)?;  
+                    }
+                }
+                _ => (),
+            },
+            CurrentMenu::CoopMenu => match self.coop_menu.tick(controller, state) {
+                MenuSelectionResult::Selected(3, _) | MenuSelectionResult::Canceled => {
+                    self.current_menu = CurrentMenu::DifficultyMenu;
+                }
+                MenuSelectionResult::Selected(1, _) => {
+                    state.num_player = PlayerNumber::One;
+                    state.reload_resources(ctx)?;
+                    state.load_or_start_game(ctx)?;  
+                } 
+                MenuSelectionResult::Selected(2, _) => {
+                    if state.constants.is_cs_plus {
+                        self.current_menu = CurrentMenu::PlayerSkin;
+                    } else {
+                        state.num_player = PlayerNumber::Two;
+                        state.reload_resources(ctx)?;
+                        state.load_or_start_game(ctx)?;  
+                    }
+                }
+                _ => (),
+            },
+            CurrentMenu::PlayerSkin => match self.skin_menu.tick(controller, state) {
+                MenuSelectionResult::Selected(3, _) | MenuSelectionResult::Canceled => {
+                    self.current_menu = CurrentMenu::DifficultyMenu;
+                }
+                MenuSelectionResult::Selected(1, _)  =>{
+                    state.player2_skin += 2;
+                }
+                MenuSelectionResult::Selected(2, _)  =>{
+                    state.num_player = PlayerNumber::Two;
                     state.reload_resources(ctx)?;
                     state.load_or_start_game(ctx)?;
                 }
@@ -219,7 +308,20 @@ impl SaveSelectMenu {
                     self.current_menu = CurrentMenu::DeleteConfirm;
                     self.delete_confirm.selected = 2;
                 }
-                MenuSelectionResult::Selected(2, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(2, _) => {
+                    if state.num_player == PlayerNumber::One {
+                        state.num_player = PlayerNumber::Two;
+                        self.init(state, ctx);
+                    } else {
+                        state.num_player = PlayerNumber::One;
+                        self.init(state, ctx);
+                    }
+                    println!("{}", state.num_player as u16);
+                }
+                MenuSelectionResult::Selected(3, _) => {
+                    state.player2_skin += 2;
+                }
+                MenuSelectionResult::Selected(4, _) | MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::SaveMenu;
                 }
                 _ => (),
@@ -236,6 +338,12 @@ impl SaveSelectMenu {
             }
             CurrentMenu::DifficultyMenu => {
                 self.difficulty_menu.draw(state, ctx)?;
+            }
+            CurrentMenu::CoopMenu => {
+                self.coop_menu.draw(state, ctx)?;
+            }
+            CurrentMenu::PlayerSkin => {
+                self.skin_menu.draw(state, ctx)?;
             }
             CurrentMenu::DeleteConfirm => {
                 self.save_detailed.draw(state, ctx)?;
