@@ -5,7 +5,7 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
 use crate::profile::GameProfile;
-use crate::shared_game_state::{GameDifficulty, PlayerNumber, SharedGameState};
+use crate::shared_game_state::{GameDifficulty, PlayerCount, SharedGameState};
 
 #[derive(Clone, Copy)]
 pub struct MenuSaveInfo {
@@ -117,15 +117,6 @@ impl SaveSelectMenu {
 
         self.load_confirm.push_entry(MenuEntry::Active(state.t("menus.main_menu.start")));
         self.load_confirm.push_entry(MenuEntry::Active(state.t("menus.save_menu.delete_confirm")));
-        if state.num_player == PlayerNumber::One {
-            self.load_confirm.push_entry(MenuEntry::Active(state.t("menus.coop_menu.one")));
-            self.load_confirm.push_entry(MenuEntry::Hidden);
-        } else {
-            self.load_confirm.push_entry(MenuEntry::Active(state.t("menus.coop_menu.two")));
-            if state.constants.is_cs_plus {
-                self.load_confirm.push_entry(MenuEntry::PlayerSkin);
-            }
-        }
         self.load_confirm.push_entry(MenuEntry::Active(state.t("common.back")));
 
         self.save_detailed.draw_cursor = false;
@@ -236,10 +227,10 @@ impl SaveSelectMenu {
             },
             CurrentMenu::CoopMenu => match self.coop_menu.tick(controller, state) {
                 MenuSelectionResult::Selected(3, _) | MenuSelectionResult::Canceled => {
-                    self.current_menu = CurrentMenu::DifficultyMenu;
+                    self.current_menu = CurrentMenu::SaveMenu;
                 }
                 MenuSelectionResult::Selected(1, _) => {
-                    state.num_player = PlayerNumber::One;
+                    state.player_count = PlayerCount::One;
                     state.reload_resources(ctx)?;
                     state.load_or_start_game(ctx)?;  
                 } 
@@ -247,7 +238,7 @@ impl SaveSelectMenu {
                     if state.constants.is_cs_plus {
                         self.current_menu = CurrentMenu::PlayerSkin;
                     } else {
-                        state.num_player = PlayerNumber::Two;
+                        state.player_count = PlayerCount::Two;
                         state.reload_resources(ctx)?;
                         state.load_or_start_game(ctx)?;  
                     }
@@ -256,13 +247,13 @@ impl SaveSelectMenu {
             },
             CurrentMenu::PlayerSkin => match self.skin_menu.tick(controller, state) {
                 MenuSelectionResult::Selected(3, _) | MenuSelectionResult::Canceled => {
-                    self.current_menu = CurrentMenu::DifficultyMenu;
+                    self.current_menu = CurrentMenu::CoopMenu;
                 }
                 MenuSelectionResult::Selected(1, _)  =>{
                     state.player2_skin += 2;
                 }
                 MenuSelectionResult::Selected(2, _)  =>{
-                    state.num_player = PlayerNumber::Two;
+                    state.player_count = PlayerCount::Two;
                     state.reload_resources(ctx)?;
                     state.load_or_start_game(ctx)?;
                 }
@@ -286,26 +277,13 @@ impl SaveSelectMenu {
             },
             CurrentMenu::LoadConfirm => match self.load_confirm.tick(controller, state) {
                 MenuSelectionResult::Selected(0, _) => {
-                    state.reload_resources(ctx)?;
-                    state.load_or_start_game(ctx)?;
+                    self.current_menu = CurrentMenu::CoopMenu;
                 }
                 MenuSelectionResult::Selected(1, _) => {
                     self.current_menu = CurrentMenu::DeleteConfirm;
                     self.delete_confirm.selected = 2;
                 }
-                MenuSelectionResult::Selected(2, _) => {
-                    if state.num_player == PlayerNumber::One {
-                        state.num_player = PlayerNumber::Two;
-                        self.init(state, ctx);
-                    } else {
-                        state.num_player = PlayerNumber::One;
-                        self.init(state, ctx);
-                    }
-                }
-                MenuSelectionResult::Selected(3, _) => {
-                    state.player2_skin += 2;
-                }
-                MenuSelectionResult::Selected(4, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(2, _) | MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::SaveMenu;
                 }
                 _ => (),
