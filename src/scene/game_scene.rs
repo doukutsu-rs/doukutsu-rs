@@ -46,7 +46,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
-use crate::shared_game_state::{Language, ReplayState, SharedGameState, TileSize};
+use crate::shared_game_state::{Language, ReplayState, PlayerCount, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
 use crate::weapon::bullet::BulletManager;
@@ -180,10 +180,10 @@ impl GameScene {
     pub fn display_map_name(&mut self, ticks: u16) {
         self.map_name_counter = ticks;
     }
-
-    pub fn add_player2(&mut self) {
+    pub fn add_player2(&mut self, state: &mut SharedGameState) {
         self.player2.cond.set_alive(true);
         self.player2.cond.set_hidden(self.player1.cond.hidden());
+        self.player2.skin.set_skinsheet_offset(state.player2_skin);
         self.player2.x = self.player1.x;
         self.player2.y = self.player1.y;
         self.player2.vel_x = self.player1.vel_x;
@@ -1597,6 +1597,11 @@ impl Scene for GameScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         if state.mod_path.is_some() && state.replay_state == ReplayState::Recording {
             self.replay.initialize_recording(state);
+        }
+        if state.player_count == PlayerCount::Two {
+            self.add_player2(state);
+        } else {
+            self.drop_player2();
         }
 
         if state.mod_path.is_some() && state.replay_state == ReplayState::Playback {

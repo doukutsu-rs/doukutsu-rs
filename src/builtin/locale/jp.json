@@ -36,6 +36,15 @@
       "normal": "普通",
       "hard": "難しい"
     },
+    "coop_menu": {
+      "title": "プレイヤー数を選択",
+      "one":"1人プレイ",
+      "two": "2人プレイ"
+    },
+    "skin_menu": {
+      "title": "プレーヤー2の外観を選択します",
+      "label": "外観:"
+    },
     "challenge_menu": {
       "start": "スタート",
       "no_replay": "ノーリプレイ",

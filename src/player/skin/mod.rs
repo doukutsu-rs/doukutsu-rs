@@ -96,6 +96,9 @@ pub trait PlayerSkin: PlayerSkinClone {
 
     /// Applies modifications on the skin based on current state
     fn apply_gamestate(&mut self, state: &SharedGameState);
+
+    /// Sets the spritesheet's offset
+    fn set_skinsheet_offset(&mut self, offset: u16);
 }
 
 pub trait PlayerSkinClone {

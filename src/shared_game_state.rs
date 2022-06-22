@@ -77,6 +77,12 @@ pub enum GameDifficulty {
     Hard = 4,
 }
 
+#[derive(PartialEq, Eq, Copy, Clone, num_derive::FromPrimitive)]
+pub enum PlayerCount {
+    One,
+    Two,
+}
+
 impl GameDifficulty {
     pub fn from_primitive(val: u8) -> GameDifficulty {
         return num_traits::FromPrimitive::from_u8(val).unwrap_or(GameDifficulty::Normal);
@@ -270,6 +276,8 @@ pub struct SharedGameState {
     pub settings: Settings,
     pub save_slot: usize,
     pub difficulty: GameDifficulty,
+    pub player_count: PlayerCount,
+    pub player2_skin: u16,
     pub replay_state: ReplayState,
     pub mod_requirements: ModRequirements,
     pub tutorial_counter: u16,
@@ -397,6 +405,8 @@ impl SharedGameState {
             settings,
             save_slot: 1,
             difficulty: GameDifficulty::Normal,
+            player_count: PlayerCount::One,
+            player2_skin: 0,
             replay_state: ReplayState::None,
             mod_requirements,
             tutorial_counter: 0,

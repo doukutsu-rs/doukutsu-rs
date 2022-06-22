@@ -41,6 +41,16 @@
       "hard": "Hard"
     },
 
+    "coop_menu": {
+      "title": "Select Number of Players",
+      "one": "Single Player",
+      "two": "Two Players"
+    },
+    "skin_menu": {
+      "title": "Select Player 2's appearance",
+      "label": "Appearance:"
+    },
+
     "challenge_menu": {
       "start": "Start",
       "no_replay": "No Replay",

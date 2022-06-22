@@ -142,7 +142,7 @@ impl LiveDebugger {
                         game_scene.drop_player2();
                     }
                 } else if ui.button("Add Player 2") {
-                    game_scene.add_player2();
+                    game_scene.add_player2(state);
                 }
                 ui.same_line();
 

@@ -12,6 +12,7 @@ use crate::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameState};
 pub mod pause_menu;
 pub mod save_select_menu;
 pub mod settings_menu;
+pub mod coop_menu;
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -27,6 +28,7 @@ pub enum MenuEntry {
     SaveData(MenuSaveInfo),
     SaveDataSingle(MenuSaveInfo),
     NewSave,
+    PlayerSkin,
 }
 
 impl MenuEntry {
@@ -43,6 +45,7 @@ impl MenuEntry {
             MenuEntry::SaveData(_) => 32.0,
             MenuEntry::SaveDataSingle(_) => 32.0,
             MenuEntry::NewSave => 32.0,
+            MenuEntry::PlayerSkin => 24.0,
         }
     }
 
@@ -59,6 +62,7 @@ impl MenuEntry {
             MenuEntry::SaveData(_) => true,
             MenuEntry::SaveDataSingle(_) => true,
             MenuEntry::NewSave => true,
+            MenuEntry::PlayerSkin=> true,
         }
     }
 }
@@ -161,6 +165,7 @@ impl Menu {
                 MenuEntry::SaveData(_) => {}
                 MenuEntry::SaveDataSingle(_) => {}
                 MenuEntry::NewSave => {}
+                MenuEntry::PlayerSkin => {}
             }
         }
 
@@ -491,6 +496,24 @@ impl Menu {
                         ctx,
                     )?;
                 }
+                MenuEntry::PlayerSkin => {
+                    state.font.draw_text(
+                        state.t("menus.skin_menu.label").chars(),
+                        self.x as f32 + 20.0,
+                        y,
+                        &state.constants,
+                        &mut state.texture_set,
+                        ctx,
+                    )?;
+
+                    let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
+                    batch.add_rect(
+                        self.x as f32 + 88.0,
+                        y - 4.0,
+                        &Rect::new_size(0, (state.player2_skin).saturating_mul(2 * 16), 16, 16),
+                    );
+                    batch.draw(ctx)?;   
+                }
                 MenuEntry::SaveData(save) | MenuEntry::SaveDataSingle(save) => {
                     let name = &state.stages[save.current_map as usize].name;
                     let bar_width = (save.life as f32 / save.max_life as f32 * 39.0) as u16;
@@ -621,6 +644,7 @@ impl Menu {
                 | MenuEntry::DescriptiveOptions(_, _, _, _)
                 | MenuEntry::SaveData(_)
                 | MenuEntry::NewSave
+                | MenuEntry::PlayerSkin
                     if (self.selected == idx && controller.trigger_ok())
                         || state.touch_controls.consume_click_in(entry_bounds) =>
                 {
