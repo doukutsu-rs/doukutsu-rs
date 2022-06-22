@@ -325,12 +325,14 @@ impl Scene for TitleScene {
                                 self.nikumaru_rec.load_counter(state, ctx)?;
                                 self.current_menu = CurrentMenu::ChallengeConfirmMenu;
                             }
+                            state.reload_graphics();
                         }
                     }
                     MenuSelectionResult::Canceled => {
                         state.mod_path = None;
                         self.nikumaru_rec.load_counter(state, ctx)?;
                         self.current_menu = CurrentMenu::MainMenu;
+                        state.reload_graphics();
                     }
                     _ => (),
                 }
