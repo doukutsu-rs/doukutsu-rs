@@ -12,6 +12,7 @@ use crate::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameState};
 pub mod pause_menu;
 pub mod save_select_menu;
 pub mod settings_menu;
+pub mod coop_menu;
 
 #[allow(dead_code)]
 #[derive(Clone)]

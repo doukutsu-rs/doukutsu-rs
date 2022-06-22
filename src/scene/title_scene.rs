@@ -9,6 +9,7 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::input::touch_controls::TouchControlType;
 use crate::map::Map;
 use crate::menu::save_select_menu::SaveSelectMenu;
+use crate::menu::coop_menu::PlayerCountMenu;
 use crate::menu::settings_menu::SettingsMenu;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::jukebox_scene::JukeboxScene;
@@ -25,6 +26,7 @@ enum CurrentMenu {
     SaveSelectMenu,
     ChallengesMenu,
     ChallengeConfirmMenu,
+    PlayerCountMenu,
 }
 
 pub struct TitleScene {
@@ -35,6 +37,7 @@ pub struct TitleScene {
     save_select_menu: SaveSelectMenu,
     challenges_menu: Menu,
     confirm_menu: Menu,
+    coop_menu: PlayerCountMenu,
     settings_menu: SettingsMenu,
     background: Background,
     frame: Frame,
@@ -75,6 +78,7 @@ impl TitleScene {
             save_select_menu: SaveSelectMenu::new(),
             challenges_menu: Menu::new(0, 0, 150, 0),
             confirm_menu: Menu::new(0, 0, 150, 0),
+            coop_menu: PlayerCountMenu::new(),
             settings_menu,
             background: Background::new(),
             frame: Frame::new(),
@@ -170,6 +174,8 @@ impl Scene for TitleScene {
         self.settings_menu.init(state, ctx)?;
 
         self.save_select_menu.init(state, ctx)?;
+
+        self.coop_menu.init(state, ctx)?;
 
         let mut selected: usize = 0;
         let mut mutate_selection = true;
@@ -333,8 +339,7 @@ impl Scene for TitleScene {
                 MenuSelectionResult::Selected(1, _) => {
                     state.difficulty = GameDifficulty::Normal;
                     state.replay_state = ReplayState::Recording;
-                    state.reload_resources(ctx)?;
-                    state.start_new_game(ctx)?;
+                    self.current_menu = CurrentMenu::PlayerCountMenu;
                 }
                 MenuSelectionResult::Selected(2, _) => {
                     state.difficulty = GameDifficulty::Normal;
@@ -350,6 +355,18 @@ impl Scene for TitleScene {
                     self.current_menu = CurrentMenu::ChallengesMenu;
                 }
                 _ => (),
+            }
+            CurrentMenu::PlayerCountMenu => {
+                let cm = &mut self.current_menu;
+                let rm = CurrentMenu::ChallengeConfirmMenu;
+                self.coop_menu.tick(
+                    &mut || {
+                        *cm = rm;
+                    },
+                    &mut self.controller,
+                    state,
+                    ctx,
+                )?;
             },
         }
 
@@ -381,6 +398,7 @@ impl Scene for TitleScene {
                 CurrentMenu::ChallengeConfirmMenu | CurrentMenu::SaveSelectMenu => (state.t("menus.main_menu.start")),
                 CurrentMenu::OptionMenu => (state.t("menus.main_menu.options")),
                 CurrentMenu::MainMenu => unreachable!(),
+                CurrentMenu::PlayerCountMenu => (state.t("menus.main_menu.start")),
             };
             state.font.draw_colored_text_with_shadow_scaled(
                 window_title.chars(),
@@ -410,6 +428,7 @@ impl Scene for TitleScene {
             CurrentMenu::ChallengeConfirmMenu => self.confirm_menu.draw(state, ctx)?,
             CurrentMenu::OptionMenu => self.settings_menu.draw(state, ctx)?,
             CurrentMenu::SaveSelectMenu => self.save_select_menu.draw(state, ctx)?,
+            CurrentMenu::PlayerCountMenu => self.coop_menu.draw(state, ctx)?,
         }
 
         Ok(())
