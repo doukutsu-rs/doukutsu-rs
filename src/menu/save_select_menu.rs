@@ -2,11 +2,11 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::menu::MenuEntry;
 use crate::menu::coop_menu::PlayerCountMenu;
+use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
 use crate::profile::GameProfile;
-use crate::shared_game_state::{GameDifficulty, PlayerCount, SharedGameState};
+use crate::shared_game_state::{GameDifficulty, SharedGameState};
 
 #[derive(Clone, Copy)]
 pub struct MenuSaveInfo {
@@ -63,7 +63,7 @@ impl SaveSelectMenu {
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &Context) -> GameResult {
         self.save_menu = Menu::new(0, 0, 230, 0);
         self.save_detailed = Menu::new(0, 0, 230, 0);
-        self.coop_menu.init(state, ctx)?;
+        self.coop_menu.init(state)?;
         self.difficulty_menu = Menu::new(0, 0, 130, 0);
         self.delete_confirm = Menu::new(0, 0, 75, 0);
         self.load_confirm = Menu::new(0, 0, 75, 0);
@@ -212,7 +212,7 @@ impl SaveSelectMenu {
                     state,
                     ctx,
                 )?;
-            },
+            }
             CurrentMenu::DeleteConfirm => match self.delete_confirm.tick(controller, state) {
                 MenuSelectionResult::Selected(1, _) => {
                     state.sound_manager.play_sfx(17); // Player Death sfx

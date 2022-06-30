@@ -8,8 +8,8 @@ use crate::framework::error::GameResult;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::input::touch_controls::TouchControlType;
 use crate::map::Map;
-use crate::menu::save_select_menu::SaveSelectMenu;
 use crate::menu::coop_menu::PlayerCountMenu;
+use crate::menu::save_select_menu::SaveSelectMenu;
 use crate::menu::settings_menu::SettingsMenu;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::jukebox_scene::JukeboxScene;
@@ -175,7 +175,7 @@ impl Scene for TitleScene {
 
         self.save_select_menu.init(state, ctx)?;
 
-        self.coop_menu.init(state, ctx)?;
+        self.coop_menu.init(state)?;
 
         let mut selected: usize = 0;
         let mut mutate_selection = true;
@@ -357,7 +357,7 @@ impl Scene for TitleScene {
                     self.current_menu = CurrentMenu::ChallengesMenu;
                 }
                 _ => (),
-            }
+            },
             CurrentMenu::PlayerCountMenu => {
                 let cm = &mut self.current_menu;
                 let rm = CurrentMenu::ChallengeConfirmMenu;
@@ -369,7 +369,7 @@ impl Scene for TitleScene {
                     state,
                     ctx,
                 )?;
-            },
+            }
         }
 
         self.confirm_menu.update_width(state);
