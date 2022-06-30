@@ -465,7 +465,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n038_fireplace(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n038_fireplace(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 => {
                 self.anim_counter = (self.anim_counter + 1) % 16;
@@ -475,6 +475,14 @@ impl NPC {
             10 | 11 => {
                 if self.action_num == 10 {
                     self.action_num = 11;
+                    npc_list.create_death_smoke(
+                        self.x,
+                        self.y,
+                        self.display_bounds.right as usize,
+                        8,
+                        state,
+                        &self.rng,
+                    );
                 }
 
                 self.anim_rect.left = 0;

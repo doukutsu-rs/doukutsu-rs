@@ -280,7 +280,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             35 => self.tick_n035_mannan(state, npc_list),
             36 => self.tick_n036_balrog_hover(state, players, npc_list),
             37 => self.tick_n037_sign(state),
-            38 => self.tick_n038_fireplace(state),
+            38 => self.tick_n038_fireplace(state, npc_list),
             39 => self.tick_n039_save_sign(state),
             40 => self.tick_n040_santa(state, players),
             41 => self.tick_n041_busted_door(state),
