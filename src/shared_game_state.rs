@@ -337,19 +337,19 @@ impl SharedGameState {
 
         let font = BMFontRenderer::load(&constants.base_paths, &active_locale.font.path, ctx).or_else(|e| {
             log::warn!("Failed to load font, using built-in: {}", e);
-            BMFontRenderer::load(&vec!["/".to_owned()], "/builtin/builtin_font.fnt", ctx)
+            BMFontRenderer::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx)
         })?;
 
         let mod_list = ModList::load(ctx, &constants.string_table)?;
 
         for i in 0..0xffu8 {
-            let path = format!("/pxt/fx{:02x}.pxt", i);
+            let path = format!("pxt/fx{:02x}.pxt", i);
             if let Ok(file) = filesystem::open_find(ctx, &constants.base_paths, path) {
                 sound_manager.set_sample_params_from_file(i, file)?;
                 continue;
             }
 
-            let path = format!("/PixTone/{:03}.pxt", i);
+            let path = format!("PixTone/{:03}.pxt", i);
             if let Ok(file) = filesystem::open_find(ctx, &constants.base_paths, path) {
                 sound_manager.set_sample_params_from_file(i, file)?;
                 continue;
@@ -452,23 +452,23 @@ impl SharedGameState {
         let stages = StageData::load_stage_table(ctx, &self.constants.base_paths, self.constants.is_switch)?;
         self.stages = stages;
 
-        let npc_tbl = filesystem::open_find(ctx, &self.constants.base_paths, "/npc.tbl")?;
+        let npc_tbl = filesystem::open_find(ctx, &self.constants.base_paths, "npc.tbl")?;
         let npc_table = NPCTable::load_from(npc_tbl)?;
         self.npc_table = npc_table;
 
-        let head_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "/Head.tsc")?;
+        let head_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "Head.tsc")?;
         let head_script = TextScript::load_from(head_tsc, &self.constants)?;
         self.textscript_vm.set_global_script(head_script);
 
-        let arms_item_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "/ArmsItem.tsc")?;
+        let arms_item_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "ArmsItem.tsc")?;
         let arms_item_script = TextScript::load_from(arms_item_tsc, &self.constants)?;
         self.textscript_vm.set_inventory_script(arms_item_script);
 
-        let stage_select_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "/StageSelect.tsc")?;
+        let stage_select_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "StageSelect.tsc")?;
         let stage_select_script = TextScript::load_from(stage_select_tsc, &self.constants)?;
         self.textscript_vm.set_stage_select_script(stage_select_script);
 
-        let credit_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "/Credit.tsc")?;
+        let credit_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "Credit.tsc")?;
         let credit_script = CreditScript::load_from(credit_tsc, &self.constants)?;
         self.creditscript_vm.set_script(credit_script);
 
@@ -490,7 +490,7 @@ impl SharedGameState {
         let font = BMFontRenderer::load(&self.constants.base_paths, &active_locale.font.path, ctx)
             .or_else(|e| {
                 log::warn!("Failed to load font, using built-in: {}", e);
-                BMFontRenderer::load(&vec!["/".to_owned()], "/builtin/builtin_font.fnt", ctx)
+                BMFontRenderer::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx)
             })
             .unwrap();
 

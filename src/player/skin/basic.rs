@@ -88,7 +88,7 @@ impl BasicPlayerSkin {
     pub fn new(texture_name: String, state: &SharedGameState, ctx: &mut Context) -> BasicPlayerSkin {
         let mut metadata = DEFAULT_SKINMETA.clone();
 
-        let meta_path = format!("/{}.dskinmeta", texture_name);
+        let meta_path = format!("{}.dskinmeta", texture_name);
 
         if let Ok(file) = filesystem::open_find(ctx, &state.constants.base_paths, &meta_path) {
             match serde_json::from_reader::<File, SkinMeta>(file) {
