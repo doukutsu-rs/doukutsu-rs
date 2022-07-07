@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use std::mem::{transmute, MaybeUninit};
 use std::ops::Deref;
 
 use crate::common::{interpolate_fix9_scale, Direction};
@@ -33,16 +33,20 @@ pub struct BossNPC {
 
 impl BossNPC {
     pub fn new() -> BossNPC {
-        let mut parts = unsafe {
-            let mut parts_uninit: [NPC; 20] = MaybeUninit::uninit().assume_init();
+        let mut parts: [NPC; 20] = unsafe {
+            const PART: MaybeUninit<NPC> = MaybeUninit::uninit();
+            let mut parts_uninit: [MaybeUninit<NPC>; 20] = [PART; 20];
 
             for part in &mut parts_uninit {
-                *part = NPC::empty();
-                part.cond.set_drs_boss(true);
+                part.write(NPC::empty());
             }
 
-            parts_uninit
+            transmute(parts_uninit)
         };
+
+        for part in &mut parts {
+            part.cond.set_drs_boss(true);
+        }
 
         parts[0].cond.set_alive(true);
 

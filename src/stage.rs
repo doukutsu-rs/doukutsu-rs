@@ -548,13 +548,13 @@ impl Stage {
     pub fn load(roots: &Vec<String>, data: &StageData, ctx: &mut Context) -> GameResult<Self> {
         let mut data = data.clone();
 
-        if let Ok(pxpack_file) = filesystem::open_find(ctx, roots, ["/Stage/", &data.map, ".pxpack"].join("")) {
+        if let Ok(pxpack_file) = filesystem::open_find(ctx, roots, ["Stage/", &data.map, ".pxpack"].join("")) {
             let map = Map::load_pxpack(pxpack_file, roots, &mut data, ctx)?;
             let stage = Self { map, data };
 
             return Ok(stage);
-        } else if let Ok(map_file) = filesystem::open_find(ctx, roots, ["/Stage/", &data.map, ".pxm"].join("")) {
-            let attrib_file = filesystem::open_find(ctx, roots, ["/Stage/", &data.tileset.name, ".pxa"].join(""))?;
+        } else if let Ok(map_file) = filesystem::open_find(ctx, roots, ["Stage/", &data.map, ".pxm"].join("")) {
+            let attrib_file = filesystem::open_find(ctx, roots, ["Stage/", &data.tileset.name, ".pxa"].join(""))?;
 
             let map = Map::load_pxm(map_file, attrib_file)?;
 
@@ -572,14 +572,14 @@ impl Stage {
         constants: &EngineConstants,
         ctx: &mut Context,
     ) -> GameResult<TextScript> {
-        let tsc_file = filesystem::open_find(ctx, roots, ["/Stage/", &self.data.map, ".tsc"].join(""))?;
+        let tsc_file = filesystem::open_find(ctx, roots, ["Stage/", &self.data.map, ".tsc"].join(""))?;
         let text_script = TextScript::load_from(tsc_file, constants)?;
 
         Ok(text_script)
     }
 
     pub fn load_npcs(&self, roots: &Vec<String>, ctx: &mut Context) -> GameResult<Vec<NPCData>> {
-        let pxe_file = filesystem::open_find(ctx, roots, ["/Stage/", &self.data.map, ".pxe"].join(""))?;
+        let pxe_file = filesystem::open_find(ctx, roots, ["Stage/", &self.data.map, ".pxe"].join(""))?;
         let npc_data = NPCData::load_from(pxe_file)?;
 
         Ok(npc_data)

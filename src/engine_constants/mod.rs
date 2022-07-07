@@ -1811,7 +1811,7 @@ impl EngineConstants {
     pub fn apply_constant_json_files(&mut self) {}
 
     pub fn load_texture_size_hints(&mut self, ctx: &mut Context) -> GameResult {
-        if let Ok(file) = filesystem::open_find(ctx, &self.base_paths, "/texture_sizes.json") {
+        if let Ok(file) = filesystem::open_find(ctx, &self.base_paths, "texture_sizes.json") {
             match serde_json::from_reader::<_, TextureSizeTable>(file) {
                 Ok(tex_overrides) => {
                     for (key, (x, y)) in tex_overrides.sizes {
@@ -1828,7 +1828,7 @@ impl EngineConstants {
     /// even though they match vanilla 1:1, we should load them for completeness
     /// or if any crazy person uses it for a CS+ mod...
     pub fn load_csplus_tables(&mut self, ctx: &mut Context) -> GameResult {
-        if let Ok(mut file) = filesystem::open_find(ctx, &self.base_paths, "/bullet.tbl") {
+        if let Ok(mut file) = filesystem::open_find(ctx, &self.base_paths, "bullet.tbl") {
             let mut data = Vec::new();
             file.read_to_end(&mut data)?;
             let bullets = data.len() / 0x2A;
@@ -1859,7 +1859,7 @@ impl EngineConstants {
             log::info!("Loaded bullet.tbl.");
         }
 
-        if let Ok(mut file) = filesystem::open_find(ctx, &self.base_paths, "/arms_level.tbl") {
+        if let Ok(mut file) = filesystem::open_find(ctx, &self.base_paths, "arms_level.tbl") {
             let mut data = Vec::new();
             file.read_to_end(&mut data)?;
             let mut f = Cursor::new(data);
@@ -1887,7 +1887,7 @@ impl EngineConstants {
         // Bugfix for Malco cutscene - this face should be used but the original tsc has the wrong ID
         self.animated_face_table.push(AnimatedFace { face_id: 5, anim_id: 4, anim_frames: vec![(4, 0)] });
 
-        if let Ok(file) = filesystem::open_find(ctx, &self.base_paths, "/faceanm.dat") {
+        if let Ok(file) = filesystem::open_find(ctx, &self.base_paths, "faceanm.dat") {
             let buf = BufReader::new(file);
             let mut face_id = 1;
             let mut anim_id = 0;

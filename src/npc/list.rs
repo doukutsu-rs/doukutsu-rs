@@ -1,5 +1,5 @@
 use std::cell::{Cell, UnsafeCell};
-use std::mem::MaybeUninit;
+use std::mem::{transmute, MaybeUninit};
 
 use crate::framework::error::{GameError, GameResult};
 
@@ -23,13 +23,14 @@ impl NPCList {
     pub fn new() -> NPCList {
         let map = NPCList {
             npcs: Box::new(UnsafeCell::new(unsafe {
-                let mut parts_uninit: [NPC; NPC_LIST_MAX_CAP] = MaybeUninit::uninit().assume_init();
+                const PART: MaybeUninit<NPC> = MaybeUninit::uninit();
+                let mut parts_uninit: [MaybeUninit<NPC>; NPC_LIST_MAX_CAP] = [PART; NPC_LIST_MAX_CAP];
 
                 for part in &mut parts_uninit {
-                    *part = NPC::empty();
+                    part.write(NPC::empty());
                 }
 
-                parts_uninit
+                transmute(parts_uninit)
             })),
             max_npc: Cell::new(0),
             seed: 0,
