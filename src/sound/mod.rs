@@ -36,10 +36,12 @@ mod wav;
 mod wave_bank;
 
 pub struct SoundManager {
+    soundbank: Option<SoundBank>,
     tx: Sender<PlaybackMessage>,
     prev_song_id: usize,
     current_song_id: usize,
     no_audio: bool,
+    load_failed: bool,
     stream: Option<cpal::Stream>,
 }
 
@@ -68,31 +70,100 @@ impl SoundManager {
             log::info!("Running in headless mode, skipping initialization.");
 
             return Ok(SoundManager {
+                soundbank: None,
                 tx: tx.clone(),
                 prev_song_id: 0,
                 current_song_id: 0,
                 no_audio: true,
+                load_failed: false,
                 stream: None,
             });
         }
 
-        let host = cpal::default_host();
-        let device =
-            host.default_output_device().ok_or_else(|| AudioError("Error initializing audio device.".to_owned()))?;
-        let config = device.default_output_config()?;
-
         let bnk = wave_bank::SoundBank::load_from(filesystem::open(ctx, "/builtin/organya-wavetable-doukutsu.bin")?)?;
+        Ok(SoundManager::bootstrap(&bnk, tx, rx)?)
+    }
+
+    fn bootstrap(
+        soundbank: &SoundBank,
+        tx: Sender<PlaybackMessage>,
+        rx: Receiver<PlaybackMessage>,
+    ) -> GameResult<SoundManager> {
+        let mut sound_manager = SoundManager {
+            soundbank: Some(soundbank.to_owned()),
+            tx,
+            prev_song_id: 0,
+            current_song_id: 0,
+            no_audio: false,
+            load_failed: false,
+            stream: None,
+        };
+
+        let host = cpal::default_host();
+
+        let device_result =
+            host.default_output_device().ok_or_else(|| AudioError("Error initializing audio device.".to_owned()));
+
+        if device_result.is_err() {
+            log::error!("{}", device_result.err().unwrap().to_string());
+            sound_manager.load_failed = true;
+            return Ok(sound_manager);
+        }
+
+        let device = device_result.unwrap();
+
+        let config_result = device.default_output_config();
+
+        if config_result.is_err() {
+            log::error!("{}", config_result.err().unwrap().to_string());
+            sound_manager.load_failed = true;
+            return Ok(sound_manager);
+        }
+
+        let config = config_result.unwrap();
+
         let res = match config.sample_format() {
-            cpal::SampleFormat::F32 => run::<f32>(rx, bnk, device, config.into()),
-            cpal::SampleFormat::I16 => run::<i16>(rx, bnk, device, config.into()),
-            cpal::SampleFormat::U16 => run::<u16>(rx, bnk, device, config.into()),
+            cpal::SampleFormat::F32 => run::<f32>(rx, soundbank.to_owned(), device, config.into()),
+            cpal::SampleFormat::I16 => run::<i16>(rx, soundbank.to_owned(), device, config.into()),
+            cpal::SampleFormat::U16 => run::<u16>(rx, soundbank.to_owned(), device, config.into()),
         };
 
         if let Err(res) = &res {
             log::error!("Error initializing audio: {}", res);
         }
 
-        Ok(SoundManager { tx: tx.clone(), prev_song_id: 0, current_song_id: 0, no_audio: false, stream: res.ok() })
+        sound_manager.stream = res.ok();
+        Ok(sound_manager)
+    }
+
+    pub fn reload(&mut self) -> GameResult<()> {
+        if self.no_audio {
+            log::info!("Skipping sound manager reload because audio is not enabled.");
+            return Ok(());
+        }
+
+        log::info!("Reloading sound manager.");
+
+        let (tx, rx): (Sender<PlaybackMessage>, Receiver<PlaybackMessage>) = mpsc::channel();
+        let soundbank = self.soundbank.take().unwrap();
+        *self = SoundManager::bootstrap(&soundbank, tx, rx)?;
+
+        Ok(())
+    }
+
+    fn send(&mut self, message: PlaybackMessage) -> GameResult<()> {
+        if self.no_audio {
+            return Ok(());
+        }
+
+        if self.tx.send(message).is_err() {
+            if !self.load_failed {
+                log::error!("Error sending message to audio thread. Press Ctrl + F3 to reload sound manager.");
+                self.reload()?;
+            }
+        }
+
+        Ok(())
     }
 
     pub fn pause(&mut self) {
@@ -107,60 +178,62 @@ impl SoundManager {
         }
     }
 
-    pub fn play_sfx(&self, id: u8) {
+    pub fn play_sfx(&mut self, id: u8) {
         if self.no_audio {
             return;
         }
-        let _ = self.tx.send(PlaybackMessage::PlaySample(id));
+
+        self.send(PlaybackMessage::PlaySample(id)).unwrap();
     }
 
     pub fn loop_sfx(&self, id: u8) {
         if self.no_audio {
             return;
         }
-        let _ = self.tx.send(PlaybackMessage::LoopSample(id));
+
+        self.tx.send(PlaybackMessage::LoopSample(id)).unwrap();
     }
 
-    pub fn loop_sfx_freq(&self, id: u8, freq: f32) {
+    pub fn loop_sfx_freq(&mut self, id: u8, freq: f32) {
         if self.no_audio {
             return;
         }
-        let _ = self.tx.send(PlaybackMessage::LoopSampleFreq(id, freq));
+        self.send(PlaybackMessage::LoopSampleFreq(id, freq)).unwrap();
     }
 
-    pub fn stop_sfx(&self, id: u8) {
+    pub fn stop_sfx(&mut self, id: u8) {
         if self.no_audio {
             return;
         }
-        let _ = self.tx.send(PlaybackMessage::StopSample(id));
+        self.send(PlaybackMessage::StopSample(id)).unwrap();
     }
 
-    pub fn set_org_interpolation(&self, interpolation: InterpolationMode) {
+    pub fn set_org_interpolation(&mut self, interpolation: InterpolationMode) {
         if self.no_audio {
             return;
         }
-        let _ = self.tx.send(PlaybackMessage::SetOrgInterpolation(interpolation));
+        self.send(PlaybackMessage::SetOrgInterpolation(interpolation)).unwrap();
     }
 
-    pub fn set_song_volume(&self, volume: f32) {
+    pub fn set_song_volume(&mut self, volume: f32) {
         if self.no_audio {
             return;
         }
-        let _ = self.tx.send(PlaybackMessage::SetSongVolume(volume.powf(3.0)));
+        self.send(PlaybackMessage::SetSongVolume(volume.powf(3.0))).unwrap();
     }
 
-    pub fn set_sfx_volume(&self, volume: f32) {
+    pub fn set_sfx_volume(&mut self, volume: f32) {
         if self.no_audio {
             return;
         }
-        let _ = self.tx.send(PlaybackMessage::SetSampleVolume(volume.powf(3.0)));
+        self.send(PlaybackMessage::SetSampleVolume(volume.powf(3.0))).unwrap();
     }
 
-    pub fn set_sfx_samples(&self, id: u8, data: Vec<i16>) {
+    pub fn set_sfx_samples(&mut self, id: u8, data: Vec<i16>) {
         if self.no_audio {
             return;
         }
-        let _ = self.tx.send(PlaybackMessage::SetSampleData(id, data));
+        self.send(PlaybackMessage::SetSampleData(id, data)).unwrap();
     }
 
     pub fn reload_songs(&mut self, constants: &EngineConstants, settings: &Settings, ctx: &mut Context) -> GameResult {
@@ -192,9 +265,9 @@ impl SoundManager {
             self.prev_song_id = self.current_song_id;
             self.current_song_id = 0;
 
-            self.tx.send(PlaybackMessage::SetOrgInterpolation(settings.organya_interpolation))?;
-            self.tx.send(PlaybackMessage::SaveState)?;
-            self.tx.send(PlaybackMessage::Stop)?;
+            self.send(PlaybackMessage::SetOrgInterpolation(settings.organya_interpolation)).unwrap();
+            self.send(PlaybackMessage::SaveState).unwrap();
+            self.send(PlaybackMessage::Stop).unwrap();
         } else if let Some(song_name) = constants.music_table.get(song_id) {
             let mut paths = constants.organya_paths.clone();
 
@@ -234,10 +307,11 @@ impl SoundManager {
 
                                     self.prev_song_id = self.current_song_id;
                                     self.current_song_id = song_id;
-                                    self.tx
-                                        .send(PlaybackMessage::SetOrgInterpolation(settings.organya_interpolation))?;
-                                    self.tx.send(PlaybackMessage::SaveState)?;
-                                    self.tx.send(PlaybackMessage::PlayOrganyaSong(Box::new(org)))?;
+                                    let _ = self
+                                        .send(PlaybackMessage::SetOrgInterpolation(settings.organya_interpolation))
+                                        .unwrap();
+                                    self.send(PlaybackMessage::SaveState).unwrap();
+                                    self.send(PlaybackMessage::PlayOrganyaSong(Box::new(org))).unwrap();
 
                                     return Ok(());
                                 }
@@ -259,8 +333,8 @@ impl SoundManager {
 
                                     self.prev_song_id = self.current_song_id;
                                     self.current_song_id = song_id;
-                                    self.tx.send(PlaybackMessage::SaveState)?;
-                                    self.tx.send(PlaybackMessage::PlayOggSongSinglePart(Box::new(song)))?;
+                                    self.send(PlaybackMessage::SaveState).unwrap();
+                                    self.send(PlaybackMessage::PlayOggSongSinglePart(Box::new(song))).unwrap();
 
                                     return Ok(());
                                 }
@@ -293,11 +367,12 @@ impl SoundManager {
 
                                     self.prev_song_id = self.current_song_id;
                                     self.current_song_id = song_id;
-                                    self.tx.send(PlaybackMessage::SaveState)?;
-                                    self.tx.send(PlaybackMessage::PlayOggSongMultiPart(
+                                    self.send(PlaybackMessage::SaveState).unwrap();
+                                    self.send(PlaybackMessage::PlayOggSongMultiPart(
                                         Box::new(song_intro),
                                         Box::new(song_loop),
-                                    ))?;
+                                    ))
+                                    .unwrap();
 
                                     return Ok(());
                                 }
@@ -319,7 +394,7 @@ impl SoundManager {
             return Ok(());
         }
 
-        self.tx.send(PlaybackMessage::SaveState)?;
+        self.send(PlaybackMessage::SaveState).unwrap();
         self.prev_song_id = self.current_song_id;
 
         Ok(())
@@ -330,13 +405,13 @@ impl SoundManager {
             return Ok(());
         }
 
-        self.tx.send(PlaybackMessage::RestoreState)?;
+        self.send(PlaybackMessage::RestoreState).unwrap();
         self.current_song_id = self.prev_song_id;
 
         Ok(())
     }
 
-    pub fn set_speed(&self, speed: f32) -> GameResult {
+    pub fn set_speed(&mut self, speed: f32) -> GameResult {
         if self.no_audio {
             return Ok(());
         }
@@ -345,7 +420,7 @@ impl SoundManager {
             return Err(InvalidValue("Speed must be bigger than 0.0!".to_owned()));
         }
 
-        self.tx.send(PlaybackMessage::SetSpeed(speed))?;
+        self.send(PlaybackMessage::SetSpeed(speed)).unwrap();
 
         Ok(())
     }
@@ -354,7 +429,7 @@ impl SoundManager {
         self.current_song_id
     }
 
-    pub fn set_sample_params_from_file<R: io::Read>(&self, id: u8, data: R) -> GameResult {
+    pub fn set_sample_params_from_file<R: io::Read>(&mut self, id: u8, data: R) -> GameResult {
         if self.no_audio {
             return Ok(());
         }
@@ -415,17 +490,17 @@ impl SoundManager {
         self.set_sample_params(id, params)
     }
 
-    pub fn set_sample_params(&self, id: u8, params: PixToneParameters) -> GameResult {
+    pub fn set_sample_params(&mut self, id: u8, params: PixToneParameters) -> GameResult {
         if self.no_audio {
             return Ok(());
         }
 
-        self.tx.send(PlaybackMessage::SetSampleParams(id, params))?;
+        self.send(PlaybackMessage::SetSampleParams(id, params)).unwrap();
 
         Ok(())
     }
 
-    pub fn load_custom_sound_effects(&self, ctx: &mut Context, roots: &Vec<String>) -> GameResult {
+    pub fn load_custom_sound_effects(&mut self, ctx: &mut Context, roots: &Vec<String>) -> GameResult {
         for path in roots.iter().rev() {
             let wavs = filesystem::read_dir(ctx, [path, "sfx/"].join(""))?
                 .filter(|f| f.to_string_lossy().to_lowercase().ends_with(".wav"));
@@ -542,7 +617,7 @@ where
 
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
-    let stream = device.build_output_stream(
+    let stream_result = device.build_output_stream(
         &config,
         move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
             loop {
@@ -763,9 +838,14 @@ where
             }
         },
         err_fn,
-    )?;
+    );
 
-    stream.play()?;
+    if stream_result.is_err() {
+        return Err(GameError::AudioError(stream_result.err().unwrap().to_string()));
+    }
+
+    let stream = stream_result.unwrap();
+    let _ = stream.play();
 
     Ok(stream)
 }

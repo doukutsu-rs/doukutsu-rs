@@ -287,21 +287,21 @@ pub struct SharedGameState {
 impl SharedGameState {
     pub fn new(ctx: &mut Context) -> GameResult<SharedGameState> {
         let mut constants = EngineConstants::defaults();
-        let sound_manager = SoundManager::new(ctx)?;
+        let mut sound_manager = SoundManager::new(ctx)?;
         let settings = Settings::load(ctx)?;
         let mod_requirements = ModRequirements::load(ctx)?;
 
         if filesystem::exists(ctx, "/base/lighting.tbl") {
             info!("Cave Story+ (Switch) data files detected.");
             ctx.size_hint = (854, 480);
-            constants.apply_csplus_patches(&sound_manager);
+            constants.apply_csplus_patches(&mut sound_manager);
             constants.apply_csplus_nx_patches();
             constants.load_nx_stringtable(ctx)?;
         } else if filesystem::exists(ctx, "/base/ogph/SellScreen.bmp") {
             error!("WiiWare DEMO data files detected. !UNSUPPORTED!"); //Missing credits.tsc and crashes due to missing Stage 13 (Start)
         } else if filesystem::exists(ctx, "/base/strap_a_en.bmp") {
             info!("WiiWare data files detected."); //Missing Challenges and Remastered Soundtrack but identical to CS+ PC otherwise
-            constants.apply_csplus_patches(&sound_manager);
+            constants.apply_csplus_patches(&mut sound_manager);
         } else if filesystem::exists(ctx, "/root/buid_time.txt") {
             error!("DSiWare data files detected. !UNSUPPORTED!"); //Freeware 2.0, sprites are arranged VERY differently + separate drowned carets
         } else if filesystem::exists(ctx, "/darken.tex") || filesystem::exists(ctx, "/darken.png") {
@@ -310,7 +310,7 @@ impl SharedGameState {
             error!("CS3D data files detected. !UNSUPPORTED!"); //Sprites are technically all there but filenames differ, + no n3ddta support
         } else if filesystem::exists(ctx, "/base/Nicalis.bmp") || filesystem::exists(ctx, "/base/Nicalis.png") {
             info!("Cave Story+ (PC) data files detected.");
-            constants.apply_csplus_patches(&sound_manager);
+            constants.apply_csplus_patches(&mut sound_manager);
         } else if filesystem::exists(ctx, "/mrmap.bin") {
             info!("CSE2E data files detected.");
         } else if filesystem::exists(ctx, "/stage.dat") {
@@ -414,7 +414,12 @@ impl SharedGameState {
         })
     }
 
-    pub fn process_debug_keys(&mut self, key_code: ScanCode) {
+    pub fn process_debug_keys(&mut self, ctx: &mut Context, key_code: ScanCode) {
+        if key_code == ScanCode::F3 && ctx.keyboard_context.active_mods().ctrl() {
+            let _ = self.sound_manager.reload();
+            return;
+        }
+
         #[cfg(not(debug_assertions))]
         if !self.settings.debug_mode {
             return;

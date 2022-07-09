@@ -3,6 +3,7 @@ use std::io;
 
 use crate::sound::wav;
 
+#[derive(Clone)]
 pub struct SoundBank {
     pub wave100: Box<[u8; 25600]>,
 

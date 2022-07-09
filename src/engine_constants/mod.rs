@@ -1631,7 +1631,7 @@ impl EngineConstants {
         }
     }
 
-    pub fn apply_csplus_patches(&mut self, sound_manager: &SoundManager) {
+    pub fn apply_csplus_patches(&mut self, sound_manager: &mut SoundManager) {
         log::info!("Applying Cave Story+ constants patches...");
 
         self.is_cs_plus = true;

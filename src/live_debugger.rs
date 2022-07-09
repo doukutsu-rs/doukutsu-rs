@@ -416,6 +416,7 @@ impl LiveDebugger {
                         "F10 > Debug Overlay",
                         "F11 > Toggle FPS Counter",
                         "F12 > Toggle Debugger",
+                        "Ctrl + F3 > Reload Sound Manager",
                     ];
                     for hotkeys in key.iter() {
                         match hotkeys {
