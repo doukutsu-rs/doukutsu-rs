@@ -520,7 +520,7 @@ impl TextScriptVM {
                     break;
                 }
                 TextScriptExecutionState::WaitStanding(event, ip) => {
-                    if game_scene.player1.flags.hit_bottom_wall() {
+                    if game_scene.player1.flags.hit_bottom_wall() || game_scene.player2.flags.hit_bottom_wall() {
                         state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
                     }
                     break;
@@ -692,6 +692,7 @@ impl TextScriptVM {
                 state.control_flags.set_control_enabled(false);
 
                 game_scene.player1.shock_counter = 0;
+                game_scene.player2.shock_counter = 0;
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
@@ -701,6 +702,9 @@ impl TextScriptVM {
 
                 game_scene.player1.up = false;
                 game_scene.player1.shock_counter = 0;
+
+                game_scene.player2.up = false;
+                game_scene.player2.shock_counter = 0;
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
@@ -964,6 +968,7 @@ impl TextScriptVM {
             }
             TSCOpCode::MM0 => {
                 game_scene.player1.vel_x = 0;
+                game_scene.player2.vel_x = 0;
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
@@ -1215,6 +1220,7 @@ impl TextScriptVM {
                 let mode: Option<ControlMode> = FromPrimitive::from_u8(control_mode);
                 if let Some(mode) = mode {
                     game_scene.player1.control_mode = mode;
+                    game_scene.player2.control_mode = mode;
                 }
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
@@ -1351,8 +1357,12 @@ impl TextScriptVM {
                         npc.tsc_direction = tsc_direction as u16;
 
                         if direction == Direction::FacingPlayer {
-                            npc.direction =
-                                if game_scene.player1.x < npc.x { Direction::Left } else { Direction::Right };
+                            let player = match state.textscript_vm.executor_player {
+                                TargetPlayer::Player1 => &game_scene.player1,
+                                TargetPlayer::Player2 => &game_scene.player2,
+                            };
+
+                            npc.direction = if player.x < npc.x { Direction::Left } else { Direction::Right };
                         } else if tsc_direction != 5 {
                             npc.direction = direction;
                         }
@@ -1404,8 +1414,12 @@ impl TextScriptVM {
                         npc.tsc_direction = tsc_direction as u16;
 
                         if direction == Direction::FacingPlayer {
-                            npc.direction =
-                                if game_scene.player1.x < npc.x { Direction::Left } else { Direction::Right };
+                            let player = match state.textscript_vm.executor_player {
+                                TargetPlayer::Player1 => &game_scene.player1,
+                                TargetPlayer::Player2 => &game_scene.player2,
+                            };
+
+                            npc.direction = if player.x < npc.x { Direction::Left } else { Direction::Right };
                         } else if tsc_direction != 5 {
                             npc.direction = direction;
                         }
@@ -1441,8 +1455,12 @@ impl TextScriptVM {
                         npc.tsc_direction = tsc_direction as u16;
 
                         if direction == Direction::FacingPlayer {
-                            npc.direction =
-                                if game_scene.player1.x < npc.x { Direction::Left } else { Direction::Right };
+                            let player = match state.textscript_vm.executor_player {
+                                TargetPlayer::Player1 => &game_scene.player1,
+                                TargetPlayer::Player2 => &game_scene.player2,
+                            };
+
+                            npc.direction = if player.x < npc.x { Direction::Left } else { Direction::Right };
                         } else if tsc_direction != 5 {
                             npc.direction = direction;
                         }
@@ -1468,7 +1486,12 @@ impl TextScriptVM {
                 npc.tsc_direction = tsc_direction as u16;
 
                 if direction == Direction::FacingPlayer {
-                    npc.direction = if game_scene.player1.x < npc.x { Direction::Left } else { Direction::Right };
+                    let player = match state.textscript_vm.executor_player {
+                        TargetPlayer::Player1 => &game_scene.player1,
+                        TargetPlayer::Player2 => &game_scene.player2,
+                    };
+
+                    npc.direction = if player.x < npc.x { Direction::Left } else { Direction::Right };
                 } else {
                     npc.direction = direction;
                 }
@@ -1584,6 +1607,7 @@ impl TextScriptVM {
                 let mask = read_cur_varint(&mut cursor)? as u16;
 
                 game_scene.player1.equip.0 |= mask;
+                game_scene.player2.equip.0 |= mask;
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
@@ -1591,6 +1615,7 @@ impl TextScriptVM {
                 let mask = read_cur_varint(&mut cursor)? as u16;
 
                 game_scene.player1.equip.0 &= !mask;
+                game_scene.player2.equip.0 &= !mask;
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }

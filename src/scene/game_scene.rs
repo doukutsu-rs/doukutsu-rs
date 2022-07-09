@@ -46,7 +46,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
-use crate::shared_game_state::{Language, ReplayState, PlayerCount, SharedGameState, TileSize};
+use crate::shared_game_state::{Language, PlayerCount, ReplayState, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
 use crate::weapon::bullet::BulletManager;
@@ -1427,6 +1427,7 @@ impl GameScene {
                     && !self.player2.cond.hidden()
                     && (self.player1.x - self.player2.x).abs() < 240 * 0x200
                     && (self.player1.y - self.player2.y).abs() < 200 * 0x200
+                    && self.player1.control_mode != ControlMode::IronHead
                 {
                     self.frame.target_x = (self.player1.target_x * 2 + self.player2.target_x) / 3;
                     self.frame.target_y = (self.player1.target_y * 2 + self.player2.target_y) / 3;
