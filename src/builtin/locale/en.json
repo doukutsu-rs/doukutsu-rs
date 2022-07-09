@@ -63,6 +63,12 @@
       "graphics_menu": {
         "lighting_effects": "Lighting effects:",
         "weapon_light_cone": "Weapon light cone:",
+        "screen_shake": {
+          "entry": "Screen shake intensity:",
+          "full": "1x",
+          "half": "0.5x",
+          "off": "Off"
+        },
         "motion_interpolation": "Motion interpolation:",
         "subpixel_scrolling": "Subpixel scrolling:",
         "original_textures": "Original textures:",

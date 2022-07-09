@@ -38,7 +38,7 @@
     },
     "coop_menu": {
       "title": "プレイヤー数を選択",
-      "one":"1人プレイ",
+      "one": "1人プレイ",
       "two": "2人プレイ"
     },
     "skin_menu": {
@@ -56,6 +56,12 @@
       "graphics_menu": {
         "lighting_effects": "ライティング効果：",
         "weapon_light_cone": "兵器のライトコーン：",
+        "screen_shake": {
+          "entry": "画面の揺れ：",
+          "full": "1x",
+          "half": "0.5x",
+          "off": "オフ"
+        },
         "motion_interpolation": "モーション補間：",
         "subpixel_scrolling": "サブピクセルスクロール：",
         "original_textures": "オリジナルテクスチャ：",

@@ -7,7 +7,7 @@ use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
 use crate::input::touch_player_controller::TouchPlayerController;
 use crate::player::TargetPlayer;
-use crate::shared_game_state::{Language, TimingMode};
+use crate::shared_game_state::{Language, ScreenShakeIntensity, TimingMode};
 use crate::sound::InterpolationMode;
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -50,6 +50,8 @@ pub struct Settings {
     pub locale: Language,
     #[serde(default = "default_vsync")]
     pub vsync_mode: VSyncMode,
+    #[serde(default = "default_screen_shake_intensity")]
+    pub screen_shake_intensity: ScreenShakeIntensity,
     pub debug_mode: bool,
     #[serde(skip)]
     pub noclip: bool,
@@ -61,7 +63,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    9
+    10
 }
 
 #[inline(always)]
@@ -92,6 +94,11 @@ fn default_locale() -> Language {
 #[inline(always)]
 fn default_vsync() -> VSyncMode {
     VSyncMode::VSync
+}
+
+#[inline(always)]
+fn default_screen_shake_intensity() -> ScreenShakeIntensity {
+    ScreenShakeIntensity::Full
 }
 
 impl Settings {
@@ -146,6 +153,11 @@ impl Settings {
             self.debug_mode = false;
         }
 
+        if self.version == 9 {
+            self.version = 10;
+            self.screen_shake_intensity = default_screen_shake_intensity();
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -198,6 +210,7 @@ impl Default for Settings {
             fps_counter: false,
             locale: Language::English,
             vsync_mode: VSyncMode::VSync,
+            screen_shake_intensity: ScreenShakeIntensity::Full,
             debug_mode: false,
             noclip: false,
         }

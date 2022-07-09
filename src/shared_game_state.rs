@@ -127,6 +127,23 @@ impl Language {
     }
 }
 
+#[derive(PartialEq, Eq, Copy, Clone, num_derive::FromPrimitive, serde::Serialize, serde::Deserialize)]
+pub enum ScreenShakeIntensity {
+    Full,
+    Half,
+    Off,
+}
+
+impl ScreenShakeIntensity {
+    pub fn to_val(self) -> f64 {
+        match self {
+            ScreenShakeIntensity::Full => 1.0,
+            ScreenShakeIntensity::Half => 0.5,
+            ScreenShakeIntensity::Off => 0.0,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct FontData {
     pub path: String,

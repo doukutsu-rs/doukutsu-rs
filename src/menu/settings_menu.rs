@@ -9,7 +9,7 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
 use crate::scene::title_scene::TitleScene;
-use crate::shared_game_state::{Language, SharedGameState, TimingMode};
+use crate::shared_game_state::{Language, ScreenShakeIntensity, SharedGameState, TimingMode};
 use crate::sound::InterpolationMode;
 use crate::{graphics, VSyncMode};
 
@@ -73,6 +73,15 @@ impl SettingsMenu {
         self.graphics.push_entry(MenuEntry::Toggle(
             state.t("menus.options_menu.graphics_menu.weapon_light_cone"),
             state.settings.light_cone,
+        ));
+        self.graphics.push_entry(MenuEntry::Options(
+            state.t("menus.options_menu.graphics_menu.screen_shake.entry"),
+            state.settings.screen_shake_intensity as usize,
+            vec![
+                state.t("menus.options_menu.graphics_menu.screen_shake.full"),
+                state.t("menus.options_menu.graphics_menu.screen_shake.half"),
+                state.t("menus.options_menu.graphics_menu.screen_shake.off"),
+            ],
         ));
         self.graphics.push_entry(MenuEntry::Toggle(
             state.t("menus.options_menu.graphics_menu.motion_interpolation"),
@@ -218,7 +227,7 @@ impl SettingsMenu {
         self.graphics.update_width(state);
         self.graphics.update_height();
         self.graphics.x = ((state.canvas_size.0 - self.graphics.width as f32) / 2.0).floor() as isize;
-        self.graphics.y = 30 + ((state.canvas_size.1 - self.graphics.height as f32) / 2.0).floor() as isize;
+        self.graphics.y = 20 + ((state.canvas_size.1 - self.graphics.height as f32) / 2.0).floor() as isize;
 
         self.sound.update_width(state);
         self.sound.update_height();
@@ -332,7 +341,35 @@ impl SettingsMenu {
                         *value = state.settings.light_cone;
                     }
                 }
-                MenuSelectionResult::Selected(3, toggle) => {
+                MenuSelectionResult::Selected(3, toggle) | MenuSelectionResult::Right(3, toggle, _) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        let (new_intensity, new_value) = match *value {
+                            0 => (ScreenShakeIntensity::Half, 1),
+                            1 => (ScreenShakeIntensity::Off, 2),
+                            _ => (ScreenShakeIntensity::Full, 0),
+                        };
+
+                        *value = new_value;
+                        state.settings.screen_shake_intensity = new_intensity;
+
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Left(3, toggle, _) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        let (new_intensity, new_value) = match *value {
+                            0 => (ScreenShakeIntensity::Off, 2),
+                            1 => (ScreenShakeIntensity::Full, 0),
+                            _ => (ScreenShakeIntensity::Half, 1),
+                        };
+
+                        *value = new_value;
+                        state.settings.screen_shake_intensity = new_intensity;
+
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Selected(4, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.motion_interpolation = !state.settings.motion_interpolation;
                         let _ = state.settings.save(ctx);
@@ -340,7 +377,7 @@ impl SettingsMenu {
                         *value = state.settings.motion_interpolation;
                     }
                 }
-                MenuSelectionResult::Selected(4, toggle) => {
+                MenuSelectionResult::Selected(5, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.subpixel_coords = !state.settings.subpixel_coords;
                         let _ = state.settings.save(ctx);
@@ -348,7 +385,7 @@ impl SettingsMenu {
                         *value = state.settings.subpixel_coords;
                     }
                 }
-                MenuSelectionResult::Selected(5, toggle) => {
+                MenuSelectionResult::Selected(6, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.original_textures = !state.settings.original_textures;
                         if self.on_title {
@@ -361,7 +398,7 @@ impl SettingsMenu {
                         *value = state.settings.original_textures;
                     }
                 }
-                MenuSelectionResult::Selected(6, toggle) => {
+                MenuSelectionResult::Selected(7, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.seasonal_textures = !state.settings.seasonal_textures;
                         state.reload_graphics();
@@ -370,7 +407,7 @@ impl SettingsMenu {
                         *value = state.settings.seasonal_textures;
                     }
                 }
-                MenuSelectionResult::Selected(8, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(9, _) | MenuSelectionResult::Canceled => {
                     self.current = CurrentMenu::MainMenu
                 }
                 _ => (),

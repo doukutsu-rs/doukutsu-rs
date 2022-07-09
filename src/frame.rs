@@ -95,10 +95,11 @@ impl Frame {
             screen_width += 10.0;
         }
 
-        if self.wait == 0 { // prevent zero division
+        if self.wait == 0 {
+            // prevent zero division
             self.wait = 1;
         }
-        
+
         let tile_size = state.tile_size.as_int();
 
         if (stage.map.width as usize).saturating_sub(1) * (tile_size as usize) < screen_width as usize {
@@ -131,18 +132,26 @@ impl Frame {
             }
         }
 
+        let intensity = state.settings.screen_shake_intensity.to_val();
+
         if state.super_quake_counter > 0 {
             state.super_quake_counter -= 1;
 
-            self.x += state.effect_rng.range(-0x300..0x300) * 5 as i32;
-            self.y += state.effect_rng.range(-0x300..0x300) * 3 as i32;
+            let new_x = state.effect_rng.range(-0x300..0x300) * 5;
+            let new_y = state.effect_rng.range(-0x300..0x300) * 3;
+
+            self.x += (f64::from(new_x) * intensity).round() as i32;
+            self.y += (f64::from(new_y) * intensity).round() as i32;
         }
 
         if state.quake_counter > 0 {
             state.quake_counter -= 1;
 
-            self.x += state.effect_rng.range(-0x300..0x300) as i32;
-            self.y += state.effect_rng.range(-0x300..0x300) as i32;
+            let new_x = state.effect_rng.range(-0x300..0x300) as i32;
+            let new_y = state.effect_rng.range(-0x300..0x300) as i32;
+
+            self.x += (f64::from(new_x) * intensity).round() as i32;
+            self.y += (f64::from(new_y) * intensity).round() as i32;
         }
     }
 }
