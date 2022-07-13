@@ -30,6 +30,7 @@ use crate::framework::keyboard::ScanCode;
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
 use crate::framework::ui::init_imgui;
 use crate::graphics::VSyncMode;
+use crate::shared_game_state::WindowMode;
 use crate::Game;
 use crate::GameError::RenderError;
 use crate::GAME_SUSPENDED;
@@ -139,6 +140,7 @@ struct SDL2Context {
     window: WindowOrCanvas,
     gl_context: Option<sdl2::video::GLContext>,
     blend_mode: sdl2::render::BlendMode,
+    fullscreen_type: sdl2::video::FullscreenType,
 }
 
 impl SDL2EventLoop {
@@ -167,6 +169,7 @@ impl SDL2EventLoop {
                 window: WindowOrCanvas::Win(window),
                 gl_context: None,
                 blend_mode: sdl2::render::BlendMode::Blend,
+                fullscreen_type: sdl2::video::FullscreenType::Off,
             })),
             opengl_available: RefCell::new(opengl_available),
         };
@@ -261,15 +264,25 @@ impl BackendEventLoop for SDL2EventLoop {
                                 if keymod.intersects(keyboard::Mod::RALTMOD | keyboard::Mod::LALTMOD)
                                     && drs_scan == ScanCode::Return
                                 {
+                                    let new_mode = match state.settings.window_mode {
+                                        WindowMode::Windowed => WindowMode::Fullscreen,
+                                        WindowMode::Fullscreen => WindowMode::Windowed,
+                                    };
+                                    let fullscreen_type = new_mode.get_sdl2_fullscreen_type();
+
                                     let mut refs = self.refs.borrow_mut();
                                     let window = refs.window.window_mut();
-                                    if window.fullscreen_state() == sdl2::video::FullscreenType::Desktop {
-                                        window.set_fullscreen(sdl2::video::FullscreenType::Off);
-                                        window.subsystem().sdl().mouse().show_cursor(true);
-                                    } else {
-                                        window.set_fullscreen(sdl2::video::FullscreenType::Desktop);
-                                        window.subsystem().sdl().mouse().show_cursor(false);
-                                    }
+
+                                    window.set_fullscreen(fullscreen_type);
+                                    window
+                                        .subsystem()
+                                        .sdl()
+                                        .mouse()
+                                        .show_cursor(new_mode.should_display_mouse_cursor());
+
+                                    refs.fullscreen_type = fullscreen_type;
+
+                                    state.settings.window_mode = new_mode;
                                 }
                             }
                             ctx.keyboard_context.set_key(drs_scan, true);
@@ -294,6 +307,24 @@ impl BackendEventLoop for SDL2EventLoop {
                 if *mutex {
                     std::thread::sleep(Duration::from_millis(10));
                     continue;
+                }
+            }
+
+            {
+                if state.settings.window_mode.get_sdl2_fullscreen_type() != self.refs.borrow().fullscreen_type {
+                    let mut refs = self.refs.borrow_mut();
+                    let window = refs.window.window_mut();
+
+                    let fullscreen_type = state.settings.window_mode.get_sdl2_fullscreen_type();
+
+                    window.set_fullscreen(fullscreen_type);
+                    window
+                        .subsystem()
+                        .sdl()
+                        .mouse()
+                        .show_cursor(state.settings.window_mode.should_display_mouse_cursor());
+
+                    refs.fullscreen_type = fullscreen_type;
                 }
             }
 

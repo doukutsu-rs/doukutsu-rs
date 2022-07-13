@@ -54,6 +54,11 @@
     "options_menu": {
       "graphics": "グラフィック",
       "graphics_menu": {
+        "window_mode": {
+          "entry": "画面表示：",
+          "windowed": "ウィンドウ",
+          "fullscreen": "フルスクリーン"
+        },
         "lighting_effects": "ライティング効果：",
         "weapon_light_cone": "兵器のライトコーン：",
         "screen_shake": {

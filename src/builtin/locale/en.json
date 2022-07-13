@@ -61,6 +61,11 @@
     "options_menu": {
       "graphics": "Graphics...",
       "graphics_menu": {
+        "window_mode": {
+          "entry": "Display mode:",
+          "windowed": "Windowed",
+          "fullscreen": "Fullscreen"
+        },
         "lighting_effects": "Lighting effects:",
         "weapon_light_cone": "Weapon light cone:",
         "screen_shake": {
