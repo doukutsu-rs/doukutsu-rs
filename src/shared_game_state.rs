@@ -36,6 +36,7 @@ use crate::settings::Settings;
 use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::texture_set::TextureSet;
+use crate::vanilla::VanillaExtractor;
 
 #[derive(PartialEq, Eq, Copy, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TimingMode {
@@ -330,6 +331,14 @@ impl SharedGameState {
         let mut sound_manager = SoundManager::new(ctx)?;
         let settings = Settings::load(ctx)?;
         let mod_requirements = ModRequirements::load(ctx)?;
+
+        let vanilla_extractor = VanillaExtractor::from(ctx, "Doukutsu.exe".to_string());
+        if vanilla_extractor.is_some() {
+            let result = vanilla_extractor.unwrap().extract_data();
+            if result.is_err() {
+                error!("Failed to extract vanilla data: {}", result.unwrap_err());
+            }
+        }
 
         if filesystem::exists(ctx, "/base/lighting.tbl") {
             info!("Cave Story+ (Switch) data files detected.");

@@ -71,6 +71,7 @@ lua-ffi = { git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "e0b2ff596
 num-derive = "0.3.2"
 num-traits = "0.2.12"
 paste = "1.0.0"
+pelite = "0.9.1"
 sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 sdl2-sys = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["bundled", "static-link"] }
 serde = { version = "1", features = ["derive"] }

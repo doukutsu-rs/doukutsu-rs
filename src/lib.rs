@@ -38,6 +38,7 @@ mod editor;
 mod encoding;
 mod engine_constants;
 mod entity;
+mod exe_parser;
 mod frame;
 mod framework;
 #[cfg(feature = "hooks")]
@@ -65,6 +66,7 @@ mod shared_game_state;
 mod sound;
 mod stage;
 mod texture_set;
+mod vanilla;
 mod weapon;
 
 pub struct LaunchOptions {
