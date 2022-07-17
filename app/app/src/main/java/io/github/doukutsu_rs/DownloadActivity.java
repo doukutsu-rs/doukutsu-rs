@@ -26,7 +26,7 @@ public class DownloadActivity extends AppCompatActivity {
         setContentView(R.layout.activity_download);
         txtProgress = findViewById(R.id.txtProgress);
         progressBar = findViewById(R.id.progressBar);
-        basePath = getFilesDir().getAbsolutePath() + "/data/";
+        basePath = getFilesDir().getAbsolutePath() + "/";
 
         downloadThread = new DownloadThread();
         downloadThread.start();
@@ -39,7 +39,7 @@ public class DownloadActivity extends AppCompatActivity {
     }
 
     private class DownloadThread extends Thread {
-        private static final String DOWNLOAD_URL = "https://github.com/doukutsu-rs/game-data/archive/refs/heads/master.zip";
+        private static final String DOWNLOAD_URL = "https://www.cavestory.org/downloads/cavestoryen.zip";
 
         @Override
         public void run() {
@@ -101,8 +101,8 @@ public class DownloadActivity extends AppCompatActivity {
                         String entryName = entry.getName();
 
                         // strip prefix
-                        if (entryName.startsWith("game-data-master/")) {
-                            entryName = entryName.substring("game-data-master/".length());
+                        if (entryName.startsWith("CaveStory/")) {
+                            entryName = entryName.substring("CaveStory/".length());
                         }
 
                         txtProgress.setText("Unpacking: " + entryName);

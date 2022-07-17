@@ -8,15 +8,16 @@ in [Rust](https://www.rust-lang.org/).
 ![https://ci.appveyor.com/api/projects/status/github/doukutsu-rs/doukutsu-rs](https://ci.appveyor.com/api/projects/status/github/doukutsu-rs/doukutsu-rs)
 
 - [Get nightly builds from AppVeyor](https://ci.appveyor.com/project/alula/doukutsu-rs) (recommended for now, has latest fixes and improvements)
-  
+
   Permalinks to latest builds from `master` branch:
+
   - [Windows (x86_64)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_win64.zip?branch=master&job=windows-x64)
   - [macOS (Intel, 64-bit, 10.14+)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_mac-intel.zip?branch=master&job=mac-x64)
   - [macOS (Apple M1, 11.0+)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_mac-m1.zip?branch=master&job=mac-arm64)
   - [Linux (x86_64)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_linux.zip?branch=master&job=linux-x64)
-  
+
   **macOS note:** If you get a `"doukutsu-rs" can't be opened` message, right-click doukutsu-rs.app and click open.
-  
+
 - [Get stable/beta builds from GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases) (Includes Android builds)
 
 #### Data files
@@ -24,58 +25,23 @@ in [Rust](https://www.rust-lang.org/).
 In order to work doukutsu-rs needs to be paired with supported data files. This repository does not contain any data
 files.
 
-doukutsu-rs works fine with pre-extracted freeware data from [this repository](https://github.com/doukutsu-rs/game-data)
-builds or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) or from a supported copy
-of [Cave Story+](https://www.nicalis.com/games/cavestory+).
+doukutsu-rs works fine with freeware data files or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) or from a
+supported copy of [Cave Story+](https://www.nicalis.com/games/cavestory+).
 
 #### Supported game editions and data file acquisition guides
 
 **Freeware**
 
-- Vanilla freeware can't be just used without additional work, because some important data files are embedded inside the
-  executable. An automatic extractor might be available in future.
-  
+doukutsu-rs works out of the box when it's placed in the same directory as the original Doukutsu.exe executable. On the initial
+startup, doukutsu-rs will automatically extract the additional resources that are embedded in the vanilla game into the `data`
+directory. Until that is done, both doukutsu-rs and the vanilla executable have to exist in the directory.
+
 <details>
-<summary>Manual extraction guide</summary>
+<summary>Example root directory</summary>
 
-Tools required:
-- Windows version of the game (1.0.0.6), original Japanese or with Aeon Genesis patch.  
-- [Resource Hacker](http://www.angusj.com/resourcehacker/#download)
-- [Booster's Lab](https://www.cavestory.org/download/editors.php)
-    
-1. Open Doukutsu.exe in Resource Hacker.
-2. Click on `ORG` group, select `Action` -> `Save [ORG] group to an .RC file`.
-3. Navigate to `data` folder and create a folder named `Org` and save the .RC file there.
-4. Click on `BITMAP` group, select `Action` -> `Save [BITMAP] group to an .RC file`.
-5. Save them in `data` folder (**NOT** in `Org` folder).
-6. Go to file explorer and navigate to `data` folder.
-7. Delete Bitmap.rc
-8. Go to `Org` folder.
-9. Delete Org.rc
-10. Rename extension of all files from `.bin` to `.org` - you won't have music if you don't do that!
-11. Close Resource Hacker.
-12. Open Booster's Lab
-13. Load `Doukutsu.exe` in Booster's Lab - you can ignore the fact it tries to apply any patches or renames .pbm to .bmp, d-rs doesn't care.
-14. Select `File` -> `Export mapdata` -> `stage.tbl`
-15. Close Booster's Lab, saving isn't necessary.
-16. Optionally delete leftover files and folders - `.boostlab`, `ScriptSource`, `tsc_def.txt`
-17. That's all, you have everything to use it with doukutsu-rs now.
-
-If you followed the above steps, the directory structure should look like this:
-
-`data/`:
-
-![files in /data/](https://media.discordapp.net/attachments/745322954660905103/947915770376102008/unknown.png?width=844&height=629)
-
-`data/Org`:
-![files in /data/Org/](https://media.discordapp.net/attachments/745322954660905103/947915770690687016/unknown.png)
+![example root directory with doukutsu-rs and vanilla Cave Story](https://i.imgur.com/3dJ7WMB.png)
 
 </details>
-    
-- https://github.com/doukutsu-rs/game-data - Pre-extracted freeware game data, graphics converted to .png, already
-  distributed with AppVeyor builds for your convenience. (recommended)
-- https://github.com/nxengine/nxengine-evo/releases/download/v2.6.5-1/NXEngine-Evo-v2.6.5-1-Win64.zip -
-  copy `NXEngine-evo-2.6.5-1-xxx/data` from the archive to runtime directory
 
 **Cave Story+**
 
@@ -92,8 +58,8 @@ If you want to use doukutsu-rs as a substitute for Mac version of Cave Story+ (w
 on 10.15+ anymore), do the following:
 
 1. Find the doukutsu-rs executable:
-    - In AppVeyor builds, it's in `doukutsu-rs.app/Contents/MacOS/doukutsu-rs`
-    - In your own builds, it's in `target/(release|debug)/doukutsu-rs`
+   - In AppVeyor builds, it's in `doukutsu-rs.app/Contents/MacOS/doukutsu-rs`
+   - In your own builds, it's in `target/(release|debug)/doukutsu-rs`
 2. Open Steam Library, select `Cave Story+`, press the `Manage` button (gear icon) and select `Properties...`
 3. Select `Local Files` and press `Browse...`.
 4. Open the `Cave Story+.app` bundle and navigate to `Contents/MacOS` directory.
@@ -102,6 +68,7 @@ on 10.15+ anymore), do the following:
 7. Launch the game from Steam and enjoy!
 
 ![image](https://user-images.githubusercontent.com/53099651/155904982-eb6032d8-7a4d-4af7-ae6f-b69041ecfaa4.png)
+
 </details>
 
 <details>
@@ -110,6 +77,7 @@ on 10.15+ anymore), do the following:
 Check your default installation directory.
 
 ![image](https://user-images.githubusercontent.com/53099651/155905035-0080eace-bd98-4cf5-9628-c98334ea768c.png)
+
 </details>
 
 <details>
@@ -118,6 +86,7 @@ Check your default installation directory.
 Check your default installation directory.
 
 ![image](https://user-images.githubusercontent.com/53099651/155906494-1e53f174-f12f-41be-ab53-8745cdf735b5.png)
+
 </details>
 
 <details>
@@ -126,6 +95,7 @@ Check your default installation directory.
 The archive from Humble Bundle contains the necessary `data` folder, in the same folder as `CaveStory+.exe`.
 
 ![image](https://user-images.githubusercontent.com/96957561/156861929-7fa03951-442b-4277-b673-474189411103.png)
+
 </details>
 
 <details>
@@ -144,18 +114,18 @@ Interchanging the save files may result in spawning in wrong locations, softlock
 <details>
 <summary>Nintendo Switch</summary>
 
-Extract the `data` folder directly from the ROM. 
+Extract the `data` folder directly from the ROM.
 
 </details>
 
 #### Controls
 
-Same controls as the default for freeware and Cave Story+ keyboard. 
+Same controls as the default for freeware and Cave Story+ keyboard.
 
 To change, edit `doukutsu-rs\data\settings.json` within your user directory.
 
 |              | P1        | P2        |
-|--------------|-----------|-----------|
+| ------------ | --------- | --------- |
 | Movement     | `← ↑ ↓ →` | `, L . /` |
 | Jump         | `Z`       | `B`       |
 | Shoot        | `X`       | `N`       |
@@ -163,10 +133,9 @@ To change, edit `doukutsu-rs\data\settings.json` within your user directory.
 | Inventory    | `Q`       | `T`       |
 | Map          | `W`       | `Y`       |
 | Strafe       | `LShift`  | `RShift`  |
-  
+
 - `Alt + Enter` - Toggle Fullscreen
 - `F2` (While paused) - Quick Restart
-
 
 #### Screenshots
 
