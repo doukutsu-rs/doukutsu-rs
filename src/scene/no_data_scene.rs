@@ -20,7 +20,7 @@ impl NoDataScene {
 }
 
 #[cfg(target_os = "android")]
-static REL_URL: &str = "https://github.com/doukutsu-rs/game-data/releases";
+static REL_URL: &str = "https://github.com/doukutsu-rs/doukutsu-rs#data-files";
 
 impl Scene for NoDataScene {
     #[allow(unused)]
