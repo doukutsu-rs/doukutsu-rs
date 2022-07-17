@@ -101,7 +101,9 @@ The archive from Humble Bundle contains the necessary `data` folder, in the same
 <details>
 <summary>WiiWare</summary>
 
-Extract the `.wad` in order to get valid [Cave Story assets](https://user-images.githubusercontent.com/53099651/159585593-43fead24-b041-48f4-8332-be50d712310d.png)
+1. [Dump Your WiiWare ``.wad``](https://wii.guide/dump-wads.html)  
+2. [Extract and decompress the ``data`` folder](https://docs.google.com/document/d/1hDNDgNl0cUDlFOQ_BUOq3QCGb7S0xfUxRoob-hfM-DY)  
+Example of a [valid uncompressed ``data`` folder](https://user-images.githubusercontent.com/53099651/159585593-43fead24-b041-48f4-8332-be50d712310d.png)
 
 </details>
 
