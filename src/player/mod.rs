@@ -122,6 +122,7 @@ pub struct Player {
     weapon_rect: Rect<u16>,
     dog_stack: Vec<DogStack>,
     pub has_dog: bool,
+    pub teleport_counter: u16,
 }
 
 impl Player {
@@ -176,6 +177,7 @@ impl Player {
             weapon_rect: Rect::new(0, 0, 0, 0),
             dog_stack: Vec::new(),
             has_dog: false,
+            teleport_counter: 0,
         }
     }
 
@@ -904,6 +906,14 @@ impl Player {
 
                 let _ = npc_list.spawn(0x100, npc.clone());
             }
+        }
+    }
+
+    pub fn update_teleport_counter(&mut self, state: &SharedGameState) {
+        self.teleport_counter += 1;
+
+        if self.teleport_counter == (state.settings.timing_mode.get_tps() * 4) as u16 {
+            self.teleport_counter = 0;
         }
     }
 }

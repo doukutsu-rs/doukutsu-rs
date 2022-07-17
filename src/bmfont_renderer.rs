@@ -132,12 +132,12 @@ impl BMFontRenderer {
                         offset_x + (glyph.xoffset as f32 * constants.font_scale),
                         y + (glyph.yoffset as f32 * constants.font_scale),
                         color,
-                        constants.font_scale,
-                        constants.font_scale,
+                        constants.font_scale * scale,
+                        constants.font_scale * scale,
                         &Rect::new_size(glyph.x as u16, glyph.y as u16, glyph.width as u16, glyph.height as u16),
                     );
 
-                    offset_x += glyph.xadvance as f32 * constants.font_scale;
+                    offset_x += glyph.xadvance as f32 * constants.font_scale * scale;
                 }
             }
 

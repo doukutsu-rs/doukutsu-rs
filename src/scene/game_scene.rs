@@ -98,8 +98,7 @@ pub enum LightingMode {
     Ambient,
 }
 
-const P2_LEFT_TEXT: &str = "< P2";
-const P2_RIGHT_TEXT: &str = "P2 >";
+const P2_OFFSCREEN_TEXT: &'static str = "P2";
 const CUTSCENE_SKIP_WAIT: u16 = 50;
 
 impl GameScene {
@@ -1438,6 +1437,30 @@ impl GameScene {
                     self.frame.target_x = self.player1.target_x;
                     self.frame.target_y = self.player1.target_y;
                 }
+
+                if self.player2.cond.alive() && !self.player2.cond.hidden() {
+                    if self.player2.x + 0x1000 < self.frame.x
+                        || self.player2.x - 0x1000 > self.frame.x + state.canvas_size.0 as i32 * 0x200
+                        || self.player2.y + 0x1000 < self.frame.y
+                        || self.player2.y - 0x1000 > self.frame.y + state.canvas_size.1 as i32 * 0x200
+                    {
+                        self.player2.update_teleport_counter(state);
+
+                        if self.player2.teleport_counter == 0 {
+                            self.player2.x = self.player1.x;
+                            self.player2.y = self.player1.y;
+
+                            let mut npc = NPC::create(4, &state.npc_table);
+                            npc.x = self.player2.x;
+                            npc.y = self.player2.y;
+                            npc.cond.set_alive(true);
+
+                            let _ = self.npc_list.spawn(0x100, npc);
+                        }
+                    } else {
+                        self.player2.teleport_counter = 0;
+                    }
+                }
             }
             UpdateTarget::NPC(npc_id) => {
                 if let Some(npc) = self.npc_list.get_npc(npc_id as usize) {
@@ -1949,55 +1972,156 @@ impl Scene for GameScene {
                 self.boss_life_bar.draw(state, ctx, &self.frame)?;
 
                 if self.player2.cond.alive() && !self.player2.cond.hidden() {
-                    let y = interpolate_fix9_scale(
-                        self.player2.prev_y - self.frame.prev_y,
-                        self.player2.y - self.frame.y,
-                        state.frame_time,
-                    );
-                    let y = y.clamp(8.0, state.canvas_size.1 - 8.0 - state.font.line_height(&state.constants));
+                    if self.player2.teleport_counter < state.settings.timing_mode.get_tps() as u16 * 3
+                        || self.player2.teleport_counter % 5 != 0
+                    {
+                        if self.player2.y + 0x1000 < self.frame.y {
+                            let scale = 1.0 + (self.frame.y as f32 / self.player2.y as f32 / 2.0 - 0.5).clamp(0.0, 2.0);
 
-                    if self.player2.x + 0x1000 < self.frame.x {
-                        state.font.draw_colored_text(
-                            P2_LEFT_TEXT.chars(),
-                            9.0,
-                            y + 1.0,
-                            (0, 0, 130, 255),
-                            &state.constants,
-                            &mut state.texture_set,
-                            ctx,
-                        )?;
+                            let x = interpolate_fix9_scale(
+                                self.player2.prev_x - self.frame.prev_x,
+                                self.player2.x - self.frame.x,
+                                state.frame_time,
+                            );
 
-                        state.font.draw_colored_text(
-                            P2_LEFT_TEXT.chars(),
-                            8.0,
-                            y,
-                            (96, 96, 255, 255),
-                            &state.constants,
-                            &mut state.texture_set,
-                            ctx,
-                        )?;
-                    } else if self.player2.x - 0x1000 > self.frame.x + state.canvas_size.0 as i32 * 0x200 {
-                        let width = state.font.text_width(P2_RIGHT_TEXT.chars(), &state.constants);
+                            let x = x.clamp(
+                                8.0,
+                                state.canvas_size.0 - 8.0 * scale - state.font.line_height(&state.constants),
+                            );
 
-                        state.font.draw_colored_text(
-                            P2_RIGHT_TEXT.chars(),
-                            state.canvas_size.0 - width - 8.0 + 1.0,
-                            y + 1.0,
-                            (0, 0, 130, 255),
-                            &state.constants,
-                            &mut state.texture_set,
-                            ctx,
-                        )?;
+                            state.font.draw_colored_text_scaled(
+                                P2_OFFSCREEN_TEXT.chars(),
+                                x + 1.0,
+                                9.0,
+                                scale,
+                                (0, 0, 130, 255),
+                                &state.constants,
+                                &mut state.texture_set,
+                                ctx,
+                            )?;
 
-                        state.font.draw_colored_text(
-                            P2_RIGHT_TEXT.chars(),
-                            state.canvas_size.0 - width - 8.0,
-                            y,
-                            (96, 96, 255, 255),
-                            &state.constants,
-                            &mut state.texture_set,
-                            ctx,
-                        )?;
+                            state.font.draw_colored_text_scaled(
+                                P2_OFFSCREEN_TEXT.chars(),
+                                x,
+                                8.0,
+                                scale,
+                                (96, 96, 255, 255),
+                                &state.constants,
+                                &mut state.texture_set,
+                                ctx,
+                            )?;
+                        } else if self.player2.y - 0x1000 > self.frame.y + state.canvas_size.1 as i32 * 0x200 {
+                            let scale = 1.0
+                                + (self.player2.y as f32 / (self.frame.y as f32 + state.canvas_size.1 * 0x200 as f32)
+                                    - 0.5)
+                                    .clamp(0.0, 2.0);
+
+                            let x = interpolate_fix9_scale(
+                                self.player2.prev_x - self.frame.prev_x,
+                                self.player2.x - self.frame.x,
+                                state.frame_time,
+                            );
+
+                            let x = x.clamp(
+                                8.0,
+                                state.canvas_size.0 - 8.0 * scale - state.font.line_height(&state.constants),
+                            );
+
+                            state.font.draw_colored_text_scaled(
+                                P2_OFFSCREEN_TEXT.chars(),
+                                x + 1.0,
+                                state.canvas_size.1 - 8.0 * scale - state.font.line_height(&state.constants),
+                                scale,
+                                (0, 0, 130, 255),
+                                &state.constants,
+                                &mut state.texture_set,
+                                ctx,
+                            )?;
+
+                            state.font.draw_colored_text_scaled(
+                                P2_OFFSCREEN_TEXT.chars(),
+                                x,
+                                state.canvas_size.1 - 8.0 * scale - state.font.line_height(&state.constants) - 1.0,
+                                scale,
+                                (96, 96, 255, 255),
+                                &state.constants,
+                                &mut state.texture_set,
+                                ctx,
+                            )?;
+                        } else if self.player2.x + 0x1000 < self.frame.x {
+                            let scale = 1.0 + (self.frame.x as f32 / self.player2.x as f32 / 2.0 - 0.5).clamp(0.0, 2.0);
+
+                            let y = interpolate_fix9_scale(
+                                self.player2.prev_y - self.frame.prev_y,
+                                self.player2.y - self.frame.y,
+                                state.frame_time,
+                            );
+                            let y = y.clamp(
+                                8.0,
+                                state.canvas_size.1 - 8.0 * scale - state.font.line_height(&state.constants),
+                            );
+
+                            state.font.draw_colored_text_scaled(
+                                P2_OFFSCREEN_TEXT.chars(),
+                                9.0,
+                                y + 1.0,
+                                scale,
+                                (0, 0, 130, 255),
+                                &state.constants,
+                                &mut state.texture_set,
+                                ctx,
+                            )?;
+
+                            state.font.draw_colored_text_scaled(
+                                P2_OFFSCREEN_TEXT.chars(),
+                                8.0,
+                                y,
+                                scale,
+                                (96, 96, 255, 255),
+                                &state.constants,
+                                &mut state.texture_set,
+                                ctx,
+                            )?;
+                        } else if self.player2.x - 0x1000 > self.frame.x + state.canvas_size.0 as i32 * 0x200 {
+                            let scale = 1.0
+                                + (self.player2.x as f32 / (self.frame.x as f32 + state.canvas_size.0 * 0x200 as f32)
+                                    - 0.5)
+                                    .clamp(0.0, 2.0);
+
+                            let y = interpolate_fix9_scale(
+                                self.player2.prev_y - self.frame.prev_y,
+                                self.player2.y - self.frame.y,
+                                state.frame_time,
+                            );
+                            let y = y.clamp(
+                                8.0,
+                                state.canvas_size.1 - 8.0 * scale - state.font.line_height(&state.constants),
+                            );
+
+                            let width = state.font.text_width(P2_OFFSCREEN_TEXT.chars(), &state.constants);
+
+                            state.font.draw_colored_text_scaled(
+                                P2_OFFSCREEN_TEXT.chars(),
+                                state.canvas_size.0 - width - 8.0 * scale + 1.0,
+                                y + 1.0,
+                                scale,
+                                (0, 0, 130, 255),
+                                &state.constants,
+                                &mut state.texture_set,
+                                ctx,
+                            )?;
+
+                            state.font.draw_colored_text_scaled(
+                                P2_OFFSCREEN_TEXT.chars(),
+                                state.canvas_size.0 - width - 8.0 * scale,
+                                y,
+                                scale,
+                                (96, 96, 255, 255),
+                                &state.constants,
+                                &mut state.texture_set,
+                                ctx,
+                            )?;
+                        }
                     }
                 }
             }
