@@ -38,6 +38,7 @@ impl GameEntity<()> for TextBoxes {
             let animation = state.textscript_vm.face % 1000 / 100;
 
             if state.constants.textscript.animated_face_pics
+                && !state.settings.original_textures
                 && (self.animated_face.anim_id != animation || self.animated_face.face_id != face_num)
             {
                 self.animated_face = state
@@ -154,8 +155,11 @@ impl GameEntity<()> for TextBoxes {
             let face_num = state.textscript_vm.face % 100;
             let animation_frame = self.animated_face.anim_frames.first().unwrap().0 as usize;
 
-            let tex_name =
-                if state.constants.textscript.animated_face_pics { SWITCH_FACE_TEX[animation_frame] } else { FACE_TEX };
+            let tex_name = if state.constants.textscript.animated_face_pics && !state.settings.original_textures {
+                SWITCH_FACE_TEX[animation_frame]
+            } else {
+                FACE_TEX
+            };
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, tex_name)?;
 
             let face_x = (4.0 + (6 - self.slide_in) as f32 * 8.0) - 52.0;
