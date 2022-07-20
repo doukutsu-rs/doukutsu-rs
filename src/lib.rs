@@ -11,6 +11,8 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use directories::ProjectDirs;
+use framework::gamepad;
+use gilrs::EventType;
 use lazy_static::lazy_static;
 
 use crate::builtin_fs::BuiltinFS;
@@ -110,6 +112,34 @@ impl Game {
     }
 
     fn update(&mut self, ctx: &mut Context) -> GameResult {
+        {
+            let state_ref = unsafe { &mut *self.state.get() };
+
+            if let Some(gilrs) = &mut state_ref.gilrs {
+                while let Some(e) = gilrs.next_event() {
+                    let gamepad = gilrs.gamepad(e.id);
+
+                    match e.event {
+                        EventType::Connected => {
+                            log::info!("Gamepad connected: {} (ID: {})", gamepad.name(), gamepad.id());
+
+                            let axis_sensitivity = state_ref.settings.get_gamepad_axis_sensitivity(gamepad.id());
+                            gamepad::add_gamepad(ctx, &gamepad, axis_sensitivity);
+
+                            // TODO: replace the controller of all players that use this gamepad from keyboard to gamepad
+                        }
+                        EventType::Disconnected => {
+                            log::info!("Gamepad disconnected: {} (ID: {})", gamepad.name(), gamepad.id());
+                            gamepad::remove_gamepad(ctx, &gamepad);
+
+                            // TODO: fall back to keyboard for all players that use this gamepad
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+
         if let Some(scene) = &mut self.scene {
             let state_ref = unsafe { &mut *self.state.get() };
 

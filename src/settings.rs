@@ -1,8 +1,11 @@
+use gilrs::{Axis, Button, GamepadId};
+
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::{user_create, user_open};
 use crate::framework::keyboard::ScanCode;
 use crate::graphics::VSyncMode;
+use crate::input::gamepad_player_controller::GamepadController;
 use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
 use crate::input::touch_player_controller::TouchPlayerController;
@@ -34,10 +37,22 @@ pub struct Settings {
     pub timing_mode: TimingMode,
     #[serde(default = "default_interpolation")]
     pub organya_interpolation: InterpolationMode,
+    #[serde(default = "default_controller_type")]
+    pub player1_controller_type: ControllerType,
+    #[serde(default = "default_controller_type")]
+    pub player2_controller_type: ControllerType,
     #[serde(default = "p1_default_keymap")]
     pub player1_key_map: PlayerKeyMap,
     #[serde(default = "p2_default_keymap")]
     pub player2_key_map: PlayerKeyMap,
+    #[serde(default = "player_default_controller_button_map")]
+    pub player1_controller_button_map: PlayerControllerButtonMap,
+    #[serde(default = "player_default_controller_button_map")]
+    pub player2_controller_button_map: PlayerControllerButtonMap,
+    #[serde(default = "default_controller_axis_sensitivity")]
+    pub player1_controller_axis_sensitivity: f64,
+    #[serde(default = "default_controller_axis_sensitivity")]
+    pub player2_controller_axis_sensitivity: f64,
     #[serde(skip, default = "default_speed")]
     pub speed: f64,
     #[serde(skip)]
@@ -65,7 +80,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    11
+    12
 }
 
 #[inline(always)]
@@ -106,6 +121,11 @@ fn default_vsync() -> VSyncMode {
 #[inline(always)]
 fn default_screen_shake_intensity() -> ScreenShakeIntensity {
     ScreenShakeIntensity::Full
+}
+
+#[inline(always)]
+fn default_controller_type() -> ControllerType {
+    ControllerType::Keyboard
 }
 
 impl Settings {
@@ -170,6 +190,16 @@ impl Settings {
             self.window_mode = default_window_mode();
         }
 
+        if self.version == 11 {
+            self.version = 12;
+            self.player1_controller_type = default_controller_type();
+            self.player2_controller_type = default_controller_type();
+            self.player1_controller_button_map = player_default_controller_button_map();
+            self.player2_controller_button_map = player_default_controller_button_map();
+            self.player1_controller_axis_sensitivity = default_controller_axis_sensitivity();
+            self.player2_controller_axis_sensitivity = default_controller_axis_sensitivity();
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -189,11 +219,27 @@ impl Settings {
             return Box::new(TouchPlayerController::new());
         }
 
-        Box::new(KeyboardController::new(TargetPlayer::Player1))
+        match self.player1_controller_type {
+            ControllerType::Keyboard => Box::new(KeyboardController::new(TargetPlayer::Player1)),
+            ControllerType::Gamepad(id) => Box::new(GamepadController::new(id, TargetPlayer::Player1)),
+        }
     }
 
     pub fn create_player2_controller(&self) -> Box<dyn PlayerController> {
-        Box::new(KeyboardController::new(TargetPlayer::Player2))
+        match self.player2_controller_type {
+            ControllerType::Keyboard => Box::new(KeyboardController::new(TargetPlayer::Player2)),
+            ControllerType::Gamepad(id) => Box::new(GamepadController::new(id, TargetPlayer::Player2)),
+        }
+    }
+
+    pub fn get_gamepad_axis_sensitivity(&self, id: GamepadId) -> f64 {
+        if self.player1_controller_type == ControllerType::Gamepad(id) {
+            self.player1_controller_axis_sensitivity
+        } else if self.player2_controller_type == ControllerType::Gamepad(id) {
+            self.player2_controller_axis_sensitivity
+        } else {
+            default_controller_axis_sensitivity()
+        }
     }
 }
 
@@ -213,8 +259,14 @@ impl Default for Settings {
             sfx_volume: 1.0,
             timing_mode: default_timing(),
             organya_interpolation: InterpolationMode::Linear,
+            player1_controller_type: default_controller_type(),
+            player2_controller_type: default_controller_type(),
             player1_key_map: p1_default_keymap(),
             player2_key_map: p2_default_keymap(),
+            player1_controller_button_map: player_default_controller_button_map(),
+            player2_controller_button_map: player_default_controller_button_map(),
+            player1_controller_axis_sensitivity: default_controller_axis_sensitivity(),
+            player2_controller_axis_sensitivity: default_controller_axis_sensitivity(),
             speed: 1.0,
             god_mode: false,
             infinite_booster: false,
@@ -280,4 +332,56 @@ fn p2_default_keymap() -> PlayerKeyMap {
         map: ScanCode::Y,
         strafe: ScanCode::RShift,
     }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Eq, PartialEq)]
+pub enum ControllerType {
+    Keyboard,
+    Gamepad(GamepadId),
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum PlayerControllerInputType {
+    ButtonInput(Button),
+    AxisInput(Axis),
+    Either(Button, Axis),
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct PlayerControllerButtonMap {
+    pub left: PlayerControllerInputType,
+    pub up: PlayerControllerInputType,
+    pub right: PlayerControllerInputType,
+    pub down: PlayerControllerInputType,
+    pub prev_weapon: PlayerControllerInputType,
+    pub next_weapon: PlayerControllerInputType,
+    pub jump: PlayerControllerInputType,
+    pub shoot: PlayerControllerInputType,
+    pub skip: PlayerControllerInputType,
+    pub inventory: PlayerControllerInputType,
+    pub map: PlayerControllerInputType,
+    pub strafe: PlayerControllerInputType,
+}
+
+#[inline(always)]
+pub fn player_default_controller_button_map() -> PlayerControllerButtonMap {
+    PlayerControllerButtonMap {
+        left: PlayerControllerInputType::Either(Button::DPadLeft, Axis::LeftStickX),
+        up: PlayerControllerInputType::Either(Button::DPadUp, Axis::LeftStickY),
+        right: PlayerControllerInputType::Either(Button::DPadRight, Axis::LeftStickX),
+        down: PlayerControllerInputType::Either(Button::DPadDown, Axis::LeftStickY),
+        prev_weapon: PlayerControllerInputType::ButtonInput(Button::LeftTrigger),
+        next_weapon: PlayerControllerInputType::ButtonInput(Button::RightTrigger),
+        jump: PlayerControllerInputType::ButtonInput(Button::East),
+        shoot: PlayerControllerInputType::ButtonInput(Button::South),
+        skip: PlayerControllerInputType::ButtonInput(Button::LeftTrigger2),
+        strafe: PlayerControllerInputType::ButtonInput(Button::RightTrigger2),
+        inventory: PlayerControllerInputType::ButtonInput(Button::North),
+        map: PlayerControllerInputType::ButtonInput(Button::West),
+    }
+}
+
+#[inline(always)]
+pub fn default_controller_axis_sensitivity() -> f64 {
+    0.3
 }
