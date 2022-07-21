@@ -15,7 +15,7 @@ use crate::framework::error::GameResult;
 use crate::framework::graphics::{create_texture_mutable, set_render_target};
 use crate::framework::keyboard::ScanCode;
 use crate::framework::vfs::OpenOptions;
-use crate::framework::{filesystem, gamepad, graphics};
+use crate::framework::{filesystem, graphics};
 #[cfg(feature = "hooks")]
 use crate::hooks::init_hooks;
 use crate::i18n::Locale;
@@ -37,8 +37,6 @@ use crate::sound::SoundManager;
 use crate::stage::StageData;
 use crate::texture_set::TextureSet;
 use crate::vanilla::VanillaExtractor;
-
-use gilrs::Gilrs;
 
 #[derive(PartialEq, Eq, Copy, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TimingMode {
@@ -289,7 +287,6 @@ pub struct SharedGameState {
     pub super_quake_counter: u16,
     pub teleporter_slots: Vec<(u16, u16)>,
     pub carets: Vec<Caret>,
-    pub gilrs: Option<Gilrs>,
     pub touch_controls: TouchControls,
     pub mod_path: Option<String>,
     pub mod_list: ModList,
@@ -334,16 +331,6 @@ impl SharedGameState {
         let mut sound_manager = SoundManager::new(ctx)?;
         let settings = Settings::load(ctx)?;
         let mod_requirements = ModRequirements::load(ctx)?;
-        let mut gilrs = Gilrs::new().ok();
-
-        if let Some(gilrs) = &mut gilrs {
-            for (id, gamepad) in gilrs.gamepads() {
-                log::info!("Found gamepad {} (ID {})", gamepad.name(), id);
-
-                let axis_sensitivity = settings.get_gamepad_axis_sensitivity(id);
-                gamepad::add_gamepad(ctx, &gamepad, axis_sensitivity);
-            }
-        }
 
         let vanilla_extractor = VanillaExtractor::from(ctx, "Doukutsu.exe".to_string());
         if vanilla_extractor.is_some() {
@@ -437,7 +424,6 @@ impl SharedGameState {
             super_quake_counter: 0,
             teleporter_slots: Vec::with_capacity(8),
             carets: Vec::with_capacity(32),
-            gilrs,
             touch_controls: TouchControls::new(),
             mod_path: None,
             mod_list,

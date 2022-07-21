@@ -59,7 +59,6 @@ cpal = "0.13"
 directories = "3"
 downcast = "0.11"
 funty = "=1.1.0" # https://github.com/bitvecto-rs/bitvec/issues/105
-gilrs = { version = "0.9.0", features = ["serde-serialize"] }
 glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "8dd457b9adb7dbac7ade337246b6356c784272d9", optional = true, default_features = false, features = ["x11"] }
 imgui = "0.8.0"
 image = { version = "0.23", default-features = false, features = ["png", "bmp"] }

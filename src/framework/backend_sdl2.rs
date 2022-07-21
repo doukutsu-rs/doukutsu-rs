@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 
 use imgui::internal::RawWrapper;
 use imgui::{ConfigFlags, DrawCmd, DrawData, DrawIdx, DrawVert, Key, MouseCursor, TextureId, Ui};
+use sdl2::controller::GameController;
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Scancode;
 use sdl2::mouse::{Cursor, SystemCursor};
@@ -17,7 +18,7 @@ use sdl2::render::{Texture, TextureCreator, TextureQuery, WindowCanvas};
 use sdl2::video::GLProfile;
 use sdl2::video::Window;
 use sdl2::video::WindowContext;
-use sdl2::{keyboard, pixels, EventPump, Sdl, VideoSubsystem};
+use sdl2::{controller, keyboard, pixels, EventPump, GameControllerSubsystem, Sdl, VideoSubsystem};
 
 use crate::common::{Color, Rect};
 use crate::framework::backend::{
@@ -25,6 +26,7 @@ use crate::framework::backend::{
 };
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
+use crate::framework::gamepad::{Axis, Button};
 use crate::framework::graphics::BlendMode;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
@@ -42,6 +44,8 @@ pub struct SDL2Backend {
 
 impl SDL2Backend {
     pub fn new(size_hint: (u16, u16)) -> GameResult<Box<dyn Backend>> {
+        sdl2::hint::set("SDL_JOYSTICK_THREAD", "1");
+
         let context = sdl2::init().map_err(GameError::WindowError)?;
 
         let backend = SDL2Backend { context, size_hint };
@@ -141,12 +145,15 @@ struct SDL2Context {
     gl_context: Option<sdl2::video::GLContext>,
     blend_mode: sdl2::render::BlendMode,
     fullscreen_type: sdl2::video::FullscreenType,
+    game_controller: GameControllerSubsystem,
 }
 
 impl SDL2EventLoop {
     pub fn new(sdl: &Sdl, size_hint: (u16, u16)) -> GameResult<Box<dyn BackendEventLoop>> {
         let event_pump = sdl.event_pump().map_err(GameError::WindowError)?;
         let video = sdl.video().map_err(GameError::WindowError)?;
+        let game_controller = sdl.game_controller().map_err(GameError::GamepadError)?;
+
         let gl_attr = video.gl_attr();
 
         gl_attr.set_context_profile(GLProfile::Compatibility);
@@ -160,8 +167,8 @@ impl SDL2EventLoop {
         window.opengl();
 
         let window = window.build().map_err(|e| GameError::WindowError(e.to_string()))?;
-
         let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
+
         let event_loop = SDL2EventLoop {
             event_pump,
             refs: Rc::new(RefCell::new(SDL2Context {
@@ -170,6 +177,7 @@ impl SDL2EventLoop {
                 gl_context: None,
                 blend_mode: sdl2::render::BlendMode::Blend,
                 fullscreen_type: sdl2::video::FullscreenType::Off,
+                game_controller,
             })),
             opengl_available: RefCell::new(opengl_available),
         };
@@ -291,6 +299,39 @@ impl BackendEventLoop for SDL2EventLoop {
                     Event::KeyUp { scancode: Some(scancode), .. } => {
                         if let Some(drs_scan) = conv_scancode(scancode) {
                             ctx.keyboard_context.set_key(drs_scan, false);
+                        }
+                    }
+                    Event::ControllerDeviceAdded { which, .. } => {
+                        let game_controller = &self.refs.borrow().game_controller;
+
+                        if game_controller.is_game_controller(which) {
+                            let controller = game_controller.open(which).unwrap();
+                            log::info!("Connected gamepad: {} (ID: {})", controller.name(), controller.instance_id());
+
+                            let axis_sensitivity = state.settings.get_gamepad_axis_sensitivity(which);
+                            ctx.gamepad_context.add_gamepad(controller, axis_sensitivity);
+                        }
+                    }
+                    Event::ControllerDeviceRemoved { which, .. } => {
+                        let game_controller = &self.refs.borrow().game_controller;
+                        log::info!("Disconnected gamepad with ID {}", which);
+                        ctx.gamepad_context.remove_gamepad(which);
+                    }
+                    Event::ControllerAxisMotion { which, axis, value, .. } => {
+                        if let Some(drs_axis) = conv_gamepad_axis(axis) {
+                            let new_value = (value as f64) / i16::MAX as f64;
+                            ctx.gamepad_context.set_axis_value(which, drs_axis, new_value);
+                            ctx.gamepad_context.update_axes(which);
+                        }
+                    }
+                    Event::ControllerButtonDown { which, button, .. } => {
+                        if let Some(drs_button) = conv_gamepad_button(button) {
+                            ctx.gamepad_context.set_button(which, drs_button, true);
+                        }
+                    }
+                    Event::ControllerButtonUp { which, button, .. } => {
+                        if let Some(drs_button) = conv_gamepad_button(button) {
+                            ctx.gamepad_context.set_button(which, drs_button, false);
                         }
                     }
                     _ => {}
@@ -1096,6 +1137,39 @@ fn conv_scancode(code: keyboard::Scancode) -> Option<ScanCode> {
         Scancode::Mail => Some(ScanCode::Mail),
         Scancode::Calculator => Some(ScanCode::Calculator),
         Scancode::Sleep => Some(ScanCode::Sleep),
+        _ => None,
+    }
+}
+
+fn conv_gamepad_button(code: controller::Button) -> Option<Button> {
+    match code {
+        controller::Button::A => Some(Button::South),
+        controller::Button::B => Some(Button::East),
+        controller::Button::X => Some(Button::West),
+        controller::Button::Y => Some(Button::North),
+        controller::Button::Back => Some(Button::Back),
+        controller::Button::Guide => Some(Button::Guide),
+        controller::Button::Start => Some(Button::Start),
+        controller::Button::LeftStick => Some(Button::LeftStick),
+        controller::Button::RightStick => Some(Button::RightStick),
+        controller::Button::LeftShoulder => Some(Button::LeftShoulder),
+        controller::Button::RightShoulder => Some(Button::RightShoulder),
+        controller::Button::DPadUp => Some(Button::DPadUp),
+        controller::Button::DPadDown => Some(Button::DPadDown),
+        controller::Button::DPadLeft => Some(Button::DPadLeft),
+        controller::Button::DPadRight => Some(Button::DPadRight),
+        _ => None,
+    }
+}
+
+fn conv_gamepad_axis(code: controller::Axis) -> Option<Axis> {
+    match code {
+        controller::Axis::LeftX => Some(Axis::LeftX),
+        controller::Axis::LeftY => Some(Axis::LeftY),
+        controller::Axis::RightX => Some(Axis::RightX),
+        controller::Axis::RightY => Some(Axis::RightY),
+        controller::Axis::TriggerLeft => Some(Axis::TriggerLeft),
+        controller::Axis::TriggerRight => Some(Axis::TriggerRight),
         _ => None,
     }
 }

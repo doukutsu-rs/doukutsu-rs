@@ -1,8 +1,7 @@
-use gilrs::{Axis, Button, GamepadId};
-
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::{user_create, user_open};
+use crate::framework::gamepad::{Axis, Button};
 use crate::framework::keyboard::ScanCode;
 use crate::graphics::VSyncMode;
 use crate::input::gamepad_player_controller::GamepadController;
@@ -232,7 +231,7 @@ impl Settings {
         }
     }
 
-    pub fn get_gamepad_axis_sensitivity(&self, id: GamepadId) -> f64 {
+    pub fn get_gamepad_axis_sensitivity(&self, id: u32) -> f64 {
         if self.player1_controller_type == ControllerType::Gamepad(id) {
             self.player1_controller_axis_sensitivity
         } else if self.player2_controller_type == ControllerType::Gamepad(id) {
@@ -337,7 +336,7 @@ fn p2_default_keymap() -> PlayerKeyMap {
 #[derive(serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub enum ControllerType {
     Keyboard,
-    Gamepad(GamepadId),
+    Gamepad(u32),
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -366,16 +365,16 @@ pub struct PlayerControllerButtonMap {
 #[inline(always)]
 pub fn player_default_controller_button_map() -> PlayerControllerButtonMap {
     PlayerControllerButtonMap {
-        left: PlayerControllerInputType::Either(Button::DPadLeft, Axis::LeftStickX),
-        up: PlayerControllerInputType::Either(Button::DPadUp, Axis::LeftStickY),
-        right: PlayerControllerInputType::Either(Button::DPadRight, Axis::LeftStickX),
-        down: PlayerControllerInputType::Either(Button::DPadDown, Axis::LeftStickY),
-        prev_weapon: PlayerControllerInputType::ButtonInput(Button::LeftTrigger),
-        next_weapon: PlayerControllerInputType::ButtonInput(Button::RightTrigger),
-        jump: PlayerControllerInputType::ButtonInput(Button::East),
-        shoot: PlayerControllerInputType::ButtonInput(Button::South),
-        skip: PlayerControllerInputType::ButtonInput(Button::LeftTrigger2),
-        strafe: PlayerControllerInputType::ButtonInput(Button::RightTrigger2),
+        left: PlayerControllerInputType::Either(Button::DPadLeft, Axis::LeftX),
+        up: PlayerControllerInputType::Either(Button::DPadUp, Axis::LeftY),
+        right: PlayerControllerInputType::Either(Button::DPadRight, Axis::LeftX),
+        down: PlayerControllerInputType::Either(Button::DPadDown, Axis::LeftY),
+        prev_weapon: PlayerControllerInputType::ButtonInput(Button::LeftShoulder),
+        next_weapon: PlayerControllerInputType::ButtonInput(Button::RightShoulder),
+        jump: PlayerControllerInputType::ButtonInput(Button::South),
+        shoot: PlayerControllerInputType::ButtonInput(Button::East),
+        skip: PlayerControllerInputType::AxisInput(Axis::TriggerLeft),
+        strafe: PlayerControllerInputType::AxisInput(Axis::TriggerRight),
         inventory: PlayerControllerInputType::ButtonInput(Button::North),
         map: PlayerControllerInputType::ButtonInput(Button::West),
     }

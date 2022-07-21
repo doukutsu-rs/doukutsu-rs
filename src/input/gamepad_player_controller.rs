@@ -1,12 +1,10 @@
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::gamepad::{self, AxisDirection};
+use crate::framework::gamepad::{self, AxisDirection, Button};
 use crate::input::player_controller::PlayerController;
 use crate::player::TargetPlayer;
 use crate::shared_game_state::SharedGameState;
 use crate::{bitfield, settings::PlayerControllerInputType};
-
-use gilrs::{Button, GamepadId};
 
 bitfield! {
     #[derive(Clone, Copy)]
@@ -31,7 +29,7 @@ bitfield! {
 
 #[derive(Clone)]
 pub struct GamepadController {
-    gamepad_id: GamepadId,
+    gamepad_id: u32,
     target: TargetPlayer,
     state: KeyState,
     old_state: KeyState,
@@ -39,7 +37,7 @@ pub struct GamepadController {
 }
 
 impl GamepadController {
-    pub fn new(gamepad_id: GamepadId, target: TargetPlayer) -> GamepadController {
+    pub fn new(gamepad_id: u32, target: TargetPlayer) -> GamepadController {
         GamepadController { gamepad_id, target, state: KeyState(0), old_state: KeyState(0), trigger: KeyState(0) }
     }
 }
@@ -51,41 +49,35 @@ impl PlayerController for GamepadController {
             TargetPlayer::Player2 => &state.settings.player2_controller_button_map,
         };
 
-        if let Some(gilrs) = &state.gilrs {
-            if let Some(gamepad) = gilrs.connected_gamepad(self.gamepad_id) {
-                gamepad::update_axes(ctx, &gamepad);
-
-                self.state.set_up(gamepad::is_active(ctx, &gamepad, &button_map.up, AxisDirection::Up));
-                self.state.set_down(gamepad::is_active(ctx, &gamepad, &button_map.down, AxisDirection::Down));
-                self.state.set_left(gamepad::is_active(ctx, &gamepad, &button_map.left, AxisDirection::Left));
-                self.state.set_right(gamepad::is_active(ctx, &gamepad, &button_map.right, AxisDirection::Right));
-                self.state.set_map(gamepad::is_active(ctx, &gamepad, &button_map.map, AxisDirection::None));
-                self.state.set_inventory(gamepad::is_active(ctx, &gamepad, &button_map.inventory, AxisDirection::None));
-                self.state.set_jump(gamepad::is_active(ctx, &gamepad, &button_map.jump, AxisDirection::None));
-                self.state.set_shoot(gamepad::is_active(ctx, &gamepad, &button_map.shoot, AxisDirection::None));
-                self.state.set_next_weapon(gamepad::is_active(
-                    ctx,
-                    &gamepad,
-                    &button_map.next_weapon,
-                    AxisDirection::None,
-                ));
-                self.state.set_prev_weapon(gamepad::is_active(
-                    ctx,
-                    &gamepad,
-                    &button_map.prev_weapon,
-                    AxisDirection::None,
-                ));
-                self.state.set_escape(gamepad::is_active(
-                    ctx,
-                    &gamepad,
-                    &PlayerControllerInputType::ButtonInput(Button::Start),
-                    AxisDirection::None,
-                ));
-                self.state.set_enter(gamepad::is_active(ctx, &gamepad, &button_map.jump, AxisDirection::None));
-                self.state.set_skip(gamepad::is_active(ctx, &gamepad, &button_map.skip, AxisDirection::None));
-                self.state.set_strafe(gamepad::is_active(ctx, &gamepad, &button_map.strafe, AxisDirection::None));
-            }
-        }
+        self.state.set_up(gamepad::is_active(ctx, self.gamepad_id, &button_map.up, AxisDirection::Up));
+        self.state.set_down(gamepad::is_active(ctx, self.gamepad_id, &button_map.down, AxisDirection::Down));
+        self.state.set_left(gamepad::is_active(ctx, self.gamepad_id, &button_map.left, AxisDirection::Left));
+        self.state.set_right(gamepad::is_active(ctx, self.gamepad_id, &button_map.right, AxisDirection::Right));
+        self.state.set_map(gamepad::is_active(ctx, self.gamepad_id, &button_map.map, AxisDirection::None));
+        self.state.set_inventory(gamepad::is_active(ctx, self.gamepad_id, &button_map.inventory, AxisDirection::None));
+        self.state.set_jump(gamepad::is_active(ctx, self.gamepad_id, &button_map.jump, AxisDirection::None));
+        self.state.set_shoot(gamepad::is_active(ctx, self.gamepad_id, &button_map.shoot, AxisDirection::None));
+        self.state.set_next_weapon(gamepad::is_active(
+            ctx,
+            self.gamepad_id,
+            &button_map.next_weapon,
+            AxisDirection::None,
+        ));
+        self.state.set_prev_weapon(gamepad::is_active(
+            ctx,
+            self.gamepad_id,
+            &button_map.prev_weapon,
+            AxisDirection::None,
+        ));
+        self.state.set_escape(gamepad::is_active(
+            ctx,
+            self.gamepad_id,
+            &PlayerControllerInputType::ButtonInput(Button::Start),
+            AxisDirection::None,
+        ));
+        self.state.set_enter(gamepad::is_active(ctx, self.gamepad_id, &button_map.jump, AxisDirection::None));
+        self.state.set_skip(gamepad::is_active(ctx, self.gamepad_id, &button_map.skip, AxisDirection::Either));
+        self.state.set_strafe(gamepad::is_active(ctx, self.gamepad_id, &button_map.strafe, AxisDirection::Either));
 
         Ok(())
     }

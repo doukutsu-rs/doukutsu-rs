@@ -1773,7 +1773,7 @@ impl Scene for GameScene {
                 if !state.control_flags.control_enabled() && !state.textscript_vm.flags.cutscene_skip() =>
             {
                 state.touch_controls.control_type = TouchControlType::Dialog;
-                if self.player1.controller.inventory() {
+                if self.player1.controller.skip() {
                     self.skip_counter += 1;
                     if self.skip_counter >= CUTSCENE_SKIP_WAIT {
                         state.textscript_vm.flags.set_cutscene_skip(true);
