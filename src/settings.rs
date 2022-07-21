@@ -199,6 +199,22 @@ impl Settings {
             self.player2_controller_axis_sensitivity = default_controller_axis_sensitivity();
         }
 
+        if self.version == 12 {
+            self.version = 13;
+
+            if self.player1_key_map.skip == ScanCode::E {
+                self.player1_key_map.skip = ScanCode::Q;
+            }
+
+            if self.player2_key_map.skip == ScanCode::U {
+                self.player2_key_map.skip = ScanCode::T;
+            }
+
+            // reset controller mappings since we've updated enums
+            self.player1_controller_button_map = player_default_controller_button_map();
+            self.player2_controller_button_map = player_default_controller_button_map();
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -308,7 +324,7 @@ fn p1_default_keymap() -> PlayerKeyMap {
         next_weapon: ScanCode::S,
         jump: ScanCode::Z,
         shoot: ScanCode::X,
-        skip: ScanCode::E,
+        skip: ScanCode::Q,
         inventory: ScanCode::Q,
         map: ScanCode::W,
         strafe: ScanCode::LShift,
@@ -326,7 +342,7 @@ fn p2_default_keymap() -> PlayerKeyMap {
         next_weapon: ScanCode::H,
         jump: ScanCode::B,
         shoot: ScanCode::N,
-        skip: ScanCode::U,
+        skip: ScanCode::T,
         inventory: ScanCode::T,
         map: ScanCode::Y,
         strafe: ScanCode::RShift,
