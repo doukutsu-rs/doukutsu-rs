@@ -79,7 +79,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    12
+    13
 }
 
 #[inline(always)]
