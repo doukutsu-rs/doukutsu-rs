@@ -133,7 +133,7 @@ impl Tilemap {
                     TileLayer::Foreground => {
                         let attr = stage.map.attrib[tile as usize];
 
-                        if attr < 0x40 || attr >= 0x80 || attr == 0x43 {
+                        if attr < 0x40 || attr >= 0x80 {
                             continue;
                         }
 
