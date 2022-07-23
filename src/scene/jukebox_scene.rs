@@ -11,6 +11,7 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::map::Map;
 use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
+use crate::settings::ControllerType;
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
 pub struct JukeboxScene {
@@ -284,20 +285,45 @@ impl Scene for JukeboxScene {
             ctx,
         )?;
 
-        // Write chevrons
+        // Write soundtrack switch indicators
 
-        let left_chevron = "<";
-        let right_chevron = ">";
+        if state.settings.touch_controls || state.settings.player1_controller_type == ControllerType::Keyboard {
+            let prev_chevron = "<";
+            let next_chevron = ">";
 
-        state.font.draw_text(left_chevron.chars(), init_x, 20.0, &state.constants, &mut state.texture_set, ctx)?;
-        state.font.draw_text(
-            right_chevron.chars(),
-            state.canvas_size.0 - init_x - state.font.text_width(right_chevron.chars(), &state.constants),
-            20.0,
-            &state.constants,
-            &mut state.texture_set,
-            ctx,
-        )?;
+            state.font.draw_text(prev_chevron.chars(), init_x, 20.0, &state.constants, &mut state.texture_set, ctx)?;
+            state.font.draw_text(
+                next_chevron.chars(),
+                state.canvas_size.0 - init_x - state.font.text_width(next_chevron.chars(), &state.constants),
+                20.0,
+                &state.constants,
+                &mut state.texture_set,
+                ctx,
+            )?;
+        } else {
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "buttons")?;
+
+            let gamepad_sprite_offset = match state.settings.player1_controller_type {
+                ControllerType::Keyboard => 1,
+                ControllerType::Gamepad(index) => ctx.gamepad_context.get_gamepad_sprite_offset(index as usize),
+            };
+
+            let prev_rect = state
+                .settings
+                .player1_controller_button_map
+                .prev_weapon
+                .get_rect(gamepad_sprite_offset, &state.constants);
+            let next_rect = state
+                .settings
+                .player1_controller_button_map
+                .next_weapon
+                .get_rect(gamepad_sprite_offset, &state.constants);
+
+            batch.add_rect(init_x, 15.0, &prev_rect);
+            batch.add_rect(state.canvas_size.0 - init_x - next_rect.width() as f32, 15.0, &next_rect);
+
+            batch.draw(ctx)?;
+        }
 
         Ok(())
     }
