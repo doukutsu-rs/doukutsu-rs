@@ -458,8 +458,6 @@ impl TextScriptVM {
                     }
                 }
                 TextScriptExecutionState::WaitConfirmation(event, ip, no_event, wait, selection) => {
-                    state.textscript_vm.flags.set_cutscene_skip(false);
-
                     if wait > 0 {
                         state.textscript_vm.state =
                             TextScriptExecutionState::WaitConfirmation(event, ip, no_event, wait - 1, selection);
