@@ -133,6 +133,7 @@ pub struct TextScriptVM {
     pub current_illustration: Option<String>,
     pub illustration_state: IllustrationState,
     prev_char: char,
+    pub substitution_rect_map: HashMap<char, Rect<u16>>,
 }
 
 pub struct Scripts {
@@ -199,6 +200,7 @@ impl TextScriptVM {
             current_illustration: None,
             illustration_state: IllustrationState::Hidden,
             prev_char: '\x00',
+            substitution_rect_map: HashMap::new(),
         }
     }
 
@@ -232,6 +234,10 @@ impl TextScriptVM {
     pub fn set_stage_select_script(&mut self, script: TextScript) {
         let mut scripts = self.scripts.borrow_mut();
         scripts.stage_select_script = script;
+    }
+
+    pub fn set_substitution_rect_map(&mut self, rect_map: HashMap<char, Rect<u16>>) {
+        self.substitution_rect_map = rect_map;
     }
 
     pub fn reset(&mut self) {
@@ -347,8 +353,11 @@ impl TextScriptVM {
                                 state.textscript_vm.prev_char = chr;
                                 state.textscript_vm.line_1.push(chr);
 
-                                let text_len =
-                                    state.font.text_width(state.textscript_vm.line_1.iter().copied(), &state.constants);
+                                let text_len = state.font.text_width_with_rects(
+                                    state.textscript_vm.line_1.iter().copied(),
+                                    &state.textscript_vm.substitution_rect_map,
+                                    &state.constants,
+                                );
                                 if text_len >= 284.0 {
                                     state.textscript_vm.current_line = TextScriptLine::Line2;
                                 }
@@ -357,8 +366,11 @@ impl TextScriptVM {
                                 state.textscript_vm.prev_char = chr;
                                 state.textscript_vm.line_2.push(chr);
 
-                                let text_len =
-                                    state.font.text_width(state.textscript_vm.line_2.iter().copied(), &state.constants);
+                                let text_len = state.font.text_width_with_rects(
+                                    state.textscript_vm.line_2.iter().copied(),
+                                    &state.textscript_vm.substitution_rect_map,
+                                    &state.constants,
+                                );
                                 if text_len >= 284.0 {
                                     state.textscript_vm.current_line = TextScriptLine::Line3;
                                 }
@@ -367,8 +379,11 @@ impl TextScriptVM {
                                 state.textscript_vm.prev_char = chr;
                                 state.textscript_vm.line_3.push(chr);
 
-                                let text_len =
-                                    state.font.text_width(state.textscript_vm.line_3.iter().copied(), &state.constants);
+                                let text_len = state.font.text_width_with_rects(
+                                    state.textscript_vm.line_3.iter().copied(),
+                                    &state.textscript_vm.substitution_rect_map,
+                                    &state.constants,
+                                );
                                 if text_len >= 284.0 {
                                     new_line = true;
                                 }

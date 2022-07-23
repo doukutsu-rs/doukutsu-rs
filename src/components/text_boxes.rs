@@ -225,21 +225,25 @@ impl GameEntity<()> for TextBoxes {
         for (idx, line) in lines.iter().enumerate() {
             if !line.is_empty() {
                 if state.constants.textscript.text_shadow {
-                    state.font.draw_text_with_shadow(
+                    state.font.draw_text_with_shadow_and_rects(
                         line.iter().copied(),
                         left_pos + text_offset + 14.0,
                         top_pos + 10.0 + idx as f32 * 16.0 - y_offset,
                         &state.constants,
                         &mut state.texture_set,
+                        &state.textscript_vm.substitution_rect_map,
+                        Some("TextBox".into()),
                         ctx,
                     )?;
                 } else {
-                    state.font.draw_text(
+                    state.font.draw_text_with_rects(
                         line.iter().copied(),
                         left_pos + text_offset + 14.0,
                         top_pos + 10.0 + idx as f32 * 16.0 - y_offset,
                         &state.constants,
                         &mut state.texture_set,
+                        &state.textscript_vm.substitution_rect_map,
+                        Some("TextBox".into()),
                         ctx,
                     )?;
                 }
@@ -251,15 +255,27 @@ impl GameEntity<()> for TextBoxes {
             if tick > 10 {
                 let (mut x, y) = match state.textscript_vm.current_line {
                     TextScriptLine::Line1 => (
-                        state.font.text_width(state.textscript_vm.line_1.iter().copied(), &state.constants),
+                        state.font.text_width_with_rects(
+                            state.textscript_vm.line_1.iter().copied(),
+                            &state.textscript_vm.substitution_rect_map,
+                            &state.constants,
+                        ),
                         top_pos + 10.0,
                     ),
                     TextScriptLine::Line2 => (
-                        state.font.text_width(state.textscript_vm.line_2.iter().copied(), &state.constants),
+                        state.font.text_width_with_rects(
+                            state.textscript_vm.line_2.iter().copied(),
+                            &state.textscript_vm.substitution_rect_map,
+                            &state.constants,
+                        ),
                         top_pos + 10.0 + 16.0,
                     ),
                     TextScriptLine::Line3 => (
-                        state.font.text_width(state.textscript_vm.line_3.iter().copied(), &state.constants),
+                        state.font.text_width_with_rects(
+                            state.textscript_vm.line_3.iter().copied(),
+                            &state.textscript_vm.substitution_rect_map,
+                            &state.constants,
+                        ),
                         top_pos + 10.0 + 32.0,
                     ),
                 };

@@ -267,7 +267,11 @@ impl BMFontRenderer {
             for chr in iter {
                 if let Some(glyph) = self.font.chars.get(&chr) {
                     if let Some(rect) = rect_map.get(&chr) {
-                        sprite_rects.push((offset_x, self.line_height(constants) - rect.height() as f32 / 2.0, rect));
+                        sprite_rects.push((
+                            offset_x,
+                            y + self.line_height(constants) / 2.0 - rect.height() as f32 / 2.0,
+                            rect,
+                        ));
                         offset_x += rect.width() as f32;
                     } else {
                         batch.add_rect_scaled_tinted(
@@ -308,7 +312,11 @@ impl BMFontRenderer {
 
                 for (chr, glyph) in chars.iter() {
                     if let Some(rect) = rect_map.get(&chr) {
-                        sprite_rects.push((offset_x, self.line_height(constants) - rect.height() as f32 / 2.0, rect));
+                        sprite_rects.push((
+                            offset_x,
+                            y + self.line_height(constants) / 2.0 - rect.height() as f32 / 2.0,
+                            rect,
+                        ));
                         offset_x += rect.width() as f32;
                     } else {
                         if glyph.page == page {
