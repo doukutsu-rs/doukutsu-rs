@@ -11,6 +11,7 @@ use crate::engine_constants::npcs::NPCConsts;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
+use crate::framework::gamepad::{Axis, Button};
 use crate::i18n::Locale;
 use crate::player::ControlMode;
 use crate::scripting::tsc::text_script::TextScriptEncoding;
@@ -288,6 +289,29 @@ impl Clone for TitleConsts {
 }
 
 #[derive(Debug)]
+pub struct GamepadConsts {
+    pub button_rects: HashMap<Button, [Rect<u16>; 4]>,
+    pub axis_rects: HashMap<Axis, [Rect<u16>; 4]>,
+}
+
+impl Clone for GamepadConsts {
+    fn clone(&self) -> GamepadConsts {
+        GamepadConsts { button_rects: self.button_rects.clone(), axis_rects: self.axis_rects.clone() }
+    }
+}
+
+impl GamepadConsts {
+    fn rects(base: Rect<u16>) -> [Rect<u16>; 4] {
+        [
+            base,
+            Rect::new(base.left + 64, base.top, base.right + 64, base.bottom),
+            Rect::new(base.left + 128, base.top, base.right + 128, base.bottom),
+            Rect::new(base.left + 192, base.top, base.right + 192, base.bottom),
+        ]
+    }
+}
+
+#[derive(Debug)]
 pub struct EngineConstants {
     pub base_paths: Vec<String>,
     pub is_cs_plus: bool,
@@ -315,6 +339,7 @@ pub struct EngineConstants {
     pub string_table: HashMap<String, String>,
     pub missile_flags: Vec<u16>,
     pub locales: HashMap<String, Locale>,
+    pub gamepad: GamepadConsts,
 }
 
 impl Clone for EngineConstants {
@@ -346,6 +371,7 @@ impl Clone for EngineConstants {
             string_table: self.string_table.clone(),
             missile_flags: self.missile_flags.clone(),
             locales: self.locales.clone(),
+            gamepad: self.gamepad.clone(),
         }
     }
 }
@@ -1358,6 +1384,7 @@ impl EngineConstants {
                 "bkSunset" => (320, 240), // nxengine
                 "bkSunset480fix" => (480, 272), // nxengine
                 "bkWater" => (32, 48),
+                "buttons" => (256, 256),
                 "Bullet" => (320, 176),
                 "Caret" => (320, 240),
                 "casts" => (320, 240),
@@ -1630,6 +1657,30 @@ impl EngineConstants {
             string_table: HashMap::new(),
             missile_flags: vec![200, 201, 202, 218, 550, 766, 880, 920, 1551],
             locales: HashMap::new(),
+            gamepad: GamepadConsts {
+                button_rects: HashMap::from([
+                    (Button::North, GamepadConsts::rects(Rect::new(0, 0, 32, 16))),
+                    (Button::South, GamepadConsts::rects(Rect::new(0, 16, 32, 32))),
+                    (Button::East, GamepadConsts::rects(Rect::new(0, 32, 32, 48))),
+                    (Button::West, GamepadConsts::rects(Rect::new(0, 48, 32, 64))),
+                    (Button::DPadDown, GamepadConsts::rects(Rect::new(0, 64, 32, 80))),
+                    (Button::DPadUp, GamepadConsts::rects(Rect::new(0, 80, 32, 96))),
+                    (Button::DPadRight, GamepadConsts::rects(Rect::new(0, 96, 32, 112))),
+                    (Button::DPadLeft, GamepadConsts::rects(Rect::new(0, 112, 32, 128))),
+                    (Button::LeftShoulder, GamepadConsts::rects(Rect::new(32, 32, 64, 48))),
+                    (Button::RightShoulder, GamepadConsts::rects(Rect::new(32, 48, 64, 64))),
+                    (Button::Start, GamepadConsts::rects(Rect::new(32, 96, 64, 112))),
+                    (Button::Guide, GamepadConsts::rects(Rect::new(32, 112, 64, 128))),
+                ]),
+                axis_rects: HashMap::from([
+                    (Axis::LeftX, GamepadConsts::rects(Rect::new(32, 0, 64, 16))),
+                    (Axis::LeftY, GamepadConsts::rects(Rect::new(32, 0, 64, 16))),
+                    (Axis::RightX, GamepadConsts::rects(Rect::new(32, 16, 64, 32))),
+                    (Axis::RightY, GamepadConsts::rects(Rect::new(32, 16, 64, 32))),
+                    (Axis::TriggerLeft, GamepadConsts::rects(Rect::new(32, 64, 64, 80))),
+                    (Axis::TriggerRight, GamepadConsts::rects(Rect::new(32, 80, 64, 96))),
+                ]),
+            },
         }
     }
 
@@ -1709,6 +1760,7 @@ impl EngineConstants {
     pub fn rebuild_path_list(&mut self, mod_path: Option<String>, season: Season, settings: &Settings) {
         self.base_paths.clear();
         self.base_paths.push("/".to_owned());
+        self.base_paths.push("/builtin/builtin_data/".to_owned());
 
         if self.is_cs_plus {
             self.base_paths.insert(0, "/base/".to_owned());

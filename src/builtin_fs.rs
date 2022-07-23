@@ -107,6 +107,10 @@ impl BuiltinFS {
                     ),
                     FSNode::File("touch.png", include_bytes!("builtin/touch.png")),
                     FSNode::Directory(
+                        "builtin_data",
+                        vec![FSNode::File("buttons.png", include_bytes!("builtin/builtin_data/buttons.png"))],
+                    ),
+                    FSNode::Directory(
                         "shaders",
                         vec![
                             // FSNode::File("basic_150.vert.glsl", include_bytes!("builtin/shaders/basic_150.vert.glsl")),

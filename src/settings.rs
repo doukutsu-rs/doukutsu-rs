@@ -1,7 +1,7 @@
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::{user_create, user_open};
-use crate::framework::gamepad::{Axis, Button};
+use crate::framework::gamepad::{Axis, AxisDirection, Button, PlayerControllerInputType};
 use crate::framework::keyboard::ScanCode;
 use crate::graphics::VSyncMode;
 use crate::input::gamepad_player_controller::GamepadController;
@@ -79,7 +79,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    13
+    14
 }
 
 #[inline(always)]
@@ -211,6 +211,14 @@ impl Settings {
             }
 
             // reset controller mappings since we've updated enums
+            self.player1_controller_button_map = player_default_controller_button_map();
+            self.player2_controller_button_map = player_default_controller_button_map();
+        }
+
+        if self.version == 13 {
+            self.version = 14;
+
+            // reset controller mappings again since we have new enums
             self.player1_controller_button_map = player_default_controller_button_map();
             self.player2_controller_button_map = player_default_controller_button_map();
         }
@@ -356,13 +364,6 @@ pub enum ControllerType {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub enum PlayerControllerInputType {
-    ButtonInput(Button),
-    AxisInput(Axis),
-    Either(Button, Axis),
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct PlayerControllerButtonMap {
     pub left: PlayerControllerInputType,
     pub up: PlayerControllerInputType,
@@ -381,16 +382,16 @@ pub struct PlayerControllerButtonMap {
 #[inline(always)]
 pub fn player_default_controller_button_map() -> PlayerControllerButtonMap {
     PlayerControllerButtonMap {
-        left: PlayerControllerInputType::Either(Button::DPadLeft, Axis::LeftX),
-        up: PlayerControllerInputType::Either(Button::DPadUp, Axis::LeftY),
-        right: PlayerControllerInputType::Either(Button::DPadRight, Axis::LeftX),
-        down: PlayerControllerInputType::Either(Button::DPadDown, Axis::LeftY),
+        left: PlayerControllerInputType::Either(Button::DPadLeft, Axis::LeftX, AxisDirection::Left),
+        up: PlayerControllerInputType::Either(Button::DPadUp, Axis::LeftY, AxisDirection::Up),
+        right: PlayerControllerInputType::Either(Button::DPadRight, Axis::LeftX, AxisDirection::Right),
+        down: PlayerControllerInputType::Either(Button::DPadDown, Axis::LeftY, AxisDirection::Down),
         prev_weapon: PlayerControllerInputType::ButtonInput(Button::LeftShoulder),
         next_weapon: PlayerControllerInputType::ButtonInput(Button::RightShoulder),
         jump: PlayerControllerInputType::ButtonInput(Button::South),
         shoot: PlayerControllerInputType::ButtonInput(Button::East),
-        skip: PlayerControllerInputType::AxisInput(Axis::TriggerLeft),
-        strafe: PlayerControllerInputType::AxisInput(Axis::TriggerRight),
+        skip: PlayerControllerInputType::AxisInput(Axis::TriggerLeft, AxisDirection::Either),
+        strafe: PlayerControllerInputType::AxisInput(Axis::TriggerRight, AxisDirection::Either),
         inventory: PlayerControllerInputType::ButtonInput(Button::North),
         map: PlayerControllerInputType::ButtonInput(Button::West),
     }

@@ -46,6 +46,7 @@ use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
+use crate::settings::ControllerType;
 use crate::shared_game_state::{Language, PlayerCount, ReplayState, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
@@ -2170,15 +2171,30 @@ impl Scene for GameScene {
         self.text_boxes.draw(state, ctx, &self.frame)?;
 
         if self.skip_counter > 1 || state.tutorial_counter > 0 {
-            let text = state.tt(
-                "game.cutscene_skip",
-                HashMap::from(if !state.settings.touch_controls {
-                    [("key".to_owned(), format!("{:?}", state.settings.player1_key_map.inventory))]
+            let key = {
+                if state.settings.touch_controls {
+                    ">>".to_owned()
                 } else {
-                    [("key".to_owned(), ">>".to_owned())]
-                }),
-            );
-            let width = state.font.text_width(text.chars(), &state.constants);
+                    match state.settings.player1_controller_type {
+                        ControllerType::Keyboard => format!("{:?}", state.settings.player1_key_map.skip),
+                        ControllerType::Gamepad(_) => "=".to_owned(),
+                    }
+                }
+            };
+
+            let text = state.tt("game.cutscene_skip", HashMap::from([("key".to_owned(), key)]));
+
+            let gamepad_sprite_offset = match state.settings.player1_controller_type {
+                ControllerType::Keyboard => 1,
+                ControllerType::Gamepad(index) => ctx.gamepad_context.get_gamepad_sprite_offset(index as usize),
+            };
+
+            let rect_map = HashMap::from([(
+                '=',
+                state.settings.player1_controller_button_map.skip.get_rect(gamepad_sprite_offset, &state.constants),
+            )]);
+
+            let width = state.font.text_width_with_rects(text.chars(), &rect_map, &state.constants);
             let pos_x = state.canvas_size.0 - width - 20.0;
             let pos_y = 0.0;
             let line_height = state.font.line_height(&state.constants);
@@ -2199,12 +2215,14 @@ impl Scene for GameScene {
             rect.right = rect.left + (w * state.scale).ceil() as isize;
             draw_rect(ctx, rect, Color::from_rgb(128, 128, 160))?;
 
-            state.font.draw_text_with_shadow(
+            state.font.draw_text_with_shadow_and_rects(
                 text.chars(),
                 pos_x + 10.0,
                 pos_y + 5.0,
                 &state.constants,
                 &mut state.texture_set,
+                &rect_map,
+                Some("buttons".into()),
                 ctx,
             )?;
         }

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use sdl2::controller::GameController;
 use serde::{Deserialize, Serialize};
 
-use crate::{framework::context::Context, settings::PlayerControllerInputType};
+use crate::{common::Rect, engine_constants::EngineConstants, framework::context::Context};
 
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 #[repr(u32)]
@@ -16,7 +16,13 @@ pub enum Axis {
     TriggerRight,
 }
 
-#[derive(Clone, Debug)]
+impl Axis {
+    pub fn get_rect(&self, offset: usize, constants: &EngineConstants) -> Rect<u16> {
+        constants.gamepad.axis_rects.get(self).unwrap()[offset]
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum AxisDirection {
     None,
     Either,
@@ -58,8 +64,32 @@ pub enum Button {
     DPadRight,
 }
 
+impl Button {
+    pub fn get_rect(&self, offset: usize, constants: &EngineConstants) -> Rect<u16> {
+        constants.gamepad.button_rects.get(self).unwrap()[offset]
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub enum PlayerControllerInputType {
+    ButtonInput(Button),
+    AxisInput(Axis, AxisDirection),
+    Either(Button, Axis, AxisDirection),
+}
+
+impl PlayerControllerInputType {
+    pub fn get_rect(&self, offset: usize, constants: &EngineConstants) -> Rect<u16> {
+        match self {
+            PlayerControllerInputType::ButtonInput(button) => button.get_rect(offset, constants),
+            PlayerControllerInputType::AxisInput(axis, _) => axis.get_rect(offset, constants),
+            PlayerControllerInputType::Either(button, axis, _) => button.get_rect(offset, constants),
+        }
+    }
+}
+
 pub struct GamepadData {
     controller: GameController,
+    controller_type: Option<sdl2_sys::SDL_GameControllerType>,
 
     left_x: f64,
     left_y: f64,
@@ -78,6 +108,7 @@ impl GamepadData {
     pub(crate) fn new(game_controller: GameController, axis_sensitivity: f64) -> Self {
         GamepadData {
             controller: game_controller,
+            controller_type: None,
 
             left_x: 0.0,
             left_y: 0.0,
@@ -91,6 +122,26 @@ impl GamepadData {
             pressed_buttons_set: HashSet::with_capacity(16),
             axis_values: HashMap::with_capacity(8),
         }
+    }
+
+    pub(crate) fn set_gamepad_type(&mut self, controller_type: sdl2_sys::SDL_GameControllerType) {
+        self.controller_type = Some(controller_type);
+    }
+
+    pub(crate) fn get_gamepad_sprite_offset(&self) -> usize {
+        if let Some(controller_type) = self.controller_type {
+            return match controller_type {
+                sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_PS3
+                | sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_PS4
+                | sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_PS5 => 0,
+                sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_XBOX360
+                | sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_XBOXONE => 1,
+                sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO => 3,
+                _ => 1,
+            };
+        }
+
+        1
     }
 }
 
@@ -123,6 +174,20 @@ impl GamepadContext {
         self.gamepads.retain(|data| data.controller.instance_id() != gamepad_id);
     }
 
+    pub(crate) fn set_gamepad_type(&mut self, gamepad_id: u32, controller_type: sdl2_sys::SDL_GameControllerType) {
+        if let Some(gamepad) = self.get_gamepad_mut(gamepad_id) {
+            gamepad.set_gamepad_type(controller_type);
+        }
+    }
+
+    pub(crate) fn get_gamepad_sprite_offset(&self, gamepad_index: usize) -> usize {
+        if let Some(gamepad) = self.get_gamepad_by_index(gamepad_index) {
+            return gamepad.get_gamepad_sprite_offset();
+        }
+
+        1
+    }
+
     pub(crate) fn set_button(&mut self, gamepad_id: u32, button: Button, pressed: bool) {
         if let Some(gamepad) = self.get_gamepad_mut(gamepad_id) {
             if pressed {
@@ -139,18 +204,15 @@ impl GamepadContext {
         }
     }
 
-    pub(crate) fn is_active(
-        &self,
-        gamepad_index: u32,
-        input_type: &PlayerControllerInputType,
-        axis_direction: AxisDirection,
-    ) -> bool {
+    pub(crate) fn is_active(&self, gamepad_index: u32, input_type: &PlayerControllerInputType) -> bool {
         match input_type {
             PlayerControllerInputType::ButtonInput(button) => self.is_button_active(gamepad_index, *button),
-            PlayerControllerInputType::AxisInput(axis) => self.is_axis_active(gamepad_index, *axis, axis_direction),
-            PlayerControllerInputType::Either(button, axis) => {
+            PlayerControllerInputType::AxisInput(axis, axis_direction) => {
+                self.is_axis_active(gamepad_index, *axis, *axis_direction)
+            }
+            PlayerControllerInputType::Either(button, axis, axis_direction) => {
                 self.is_button_active(gamepad_index, *button)
-                    || self.is_axis_active(gamepad_index, *axis, axis_direction)
+                    || self.is_axis_active(gamepad_index, *axis, *axis_direction)
             }
         }
     }
@@ -212,13 +274,16 @@ pub fn remove_gamepad(context: &mut Context, gamepad_id: u32) {
     context.gamepad_context.remove_gamepad(gamepad_id);
 }
 
-pub fn is_active(
-    ctx: &Context,
-    gamepad_index: u32,
-    input_type: &PlayerControllerInputType,
-    axis_direction: AxisDirection,
-) -> bool {
-    ctx.gamepad_context.is_active(gamepad_index, input_type, axis_direction)
+pub fn set_gamepad_type(context: &mut Context, gamepad_id: u32, controller_type: sdl2_sys::SDL_GameControllerType) {
+    context.gamepad_context.set_gamepad_type(gamepad_id, controller_type);
+}
+
+pub fn get_gamepad_sprite_offset(context: &Context, gamepad_index: usize) -> usize {
+    context.gamepad_context.get_gamepad_sprite_offset(gamepad_index)
+}
+
+pub fn is_active(ctx: &Context, gamepad_index: u32, input_type: &PlayerControllerInputType) -> bool {
+    ctx.gamepad_context.is_active(gamepad_index, input_type)
 }
 
 pub fn is_button_active(ctx: &Context, gamepad_index: u32, button: Button) -> bool {

@@ -306,10 +306,17 @@ impl BackendEventLoop for SDL2EventLoop {
 
                         if game_controller.is_game_controller(which) {
                             let controller = game_controller.open(which).unwrap();
-                            log::info!("Connected gamepad: {} (ID: {})", controller.name(), controller.instance_id());
+                            let id = controller.instance_id();
+
+                            log::info!("Connected gamepad: {} (ID: {})", controller.name(), id);
 
                             let axis_sensitivity = state.settings.get_gamepad_axis_sensitivity(which);
                             ctx.gamepad_context.add_gamepad(controller, axis_sensitivity);
+
+                            unsafe {
+                                let controller_type = sdl2_sys::SDL_GameControllerTypeForIndex(id as _);
+                                ctx.gamepad_context.set_gamepad_type(id, controller_type);
+                            }
                         }
                     }
                     Event::ControllerDeviceRemoved { which, .. } => {
