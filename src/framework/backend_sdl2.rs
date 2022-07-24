@@ -237,21 +237,8 @@ impl BackendEventLoop for SDL2EventLoop {
                         state.shutdown();
                     }
                     Event::Window { win_event, .. } => match win_event {
-                        WindowEvent::FocusGained | WindowEvent::Shown => {
-                            {
-                                let mut mutex = GAME_SUSPENDED.lock().unwrap();
-                                *mutex = false;
-                            }
-
-                            state.sound_manager.resume();
-                            game.loops = 0;
-                        }
-                        WindowEvent::FocusLost | WindowEvent::Hidden => {
-                            let mut mutex = GAME_SUSPENDED.lock().unwrap();
-                            *mutex = true;
-
-                            state.sound_manager.pause();
-                        }
+                        WindowEvent::FocusGained | WindowEvent::Shown => {}
+                        WindowEvent::FocusLost | WindowEvent::Hidden => {}
                         WindowEvent::SizeChanged(width, height) => {
                             ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
 
