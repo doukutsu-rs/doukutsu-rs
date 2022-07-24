@@ -9,10 +9,10 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::save_select_menu::MenuSaveInfo;
 use crate::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameState};
 
+pub mod coop_menu;
 pub mod pause_menu;
 pub mod save_select_menu;
 pub mod settings_menu;
-pub mod coop_menu;
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -62,40 +62,40 @@ impl MenuEntry {
             MenuEntry::SaveData(_) => true,
             MenuEntry::SaveDataSingle(_) => true,
             MenuEntry::NewSave => true,
-            MenuEntry::PlayerSkin=> true,
+            MenuEntry::PlayerSkin => true,
         }
     }
 }
 
-pub enum MenuSelectionResult<'a> {
+pub enum MenuSelectionResult<'a, T: std::cmp::PartialEq> {
     None,
     Canceled,
-    Selected(usize, &'a mut MenuEntry),
-    Left(usize, &'a mut MenuEntry, i16),
-    Right(usize, &'a mut MenuEntry, i16),
+    Selected(T, &'a mut MenuEntry),
+    Left(T, &'a mut MenuEntry, i16),
+    Right(T, &'a mut MenuEntry, i16),
 }
 
-pub struct Menu {
+pub struct Menu<T: std::cmp::PartialEq> {
     pub x: isize,
     pub y: isize,
     pub width: u16,
     pub height: u16,
-    pub selected: usize,
-    pub entries: Vec<MenuEntry>,
+    pub selected: T,
+    pub entries: Vec<(T, MenuEntry)>,
     anim_num: u16,
     anim_wait: u16,
     custom_cursor: Cell<bool>,
     pub draw_cursor: bool,
 }
 
-impl Menu {
-    pub fn new(x: isize, y: isize, width: u16, height: u16) -> Menu {
+impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
+    pub fn new(x: isize, y: isize, width: u16, height: u16) -> Menu<T> {
         Menu {
             x,
             y,
             width,
             height,
-            selected: 0,
+            selected: T::default(),
             anim_num: 0,
             anim_wait: 0,
             entries: Vec::new(),
@@ -104,14 +104,23 @@ impl Menu {
         }
     }
 
-    pub fn push_entry(&mut self, entry: MenuEntry) {
-        self.entries.push(entry);
+    pub fn push_entry(&mut self, id: T, entry: MenuEntry) {
+        self.entries.push((id, entry));
+    }
+
+    pub fn set_entry(&mut self, id: T, entry: MenuEntry) {
+        for i in 0..self.entries.len() {
+            if self.entries[i].0 == id {
+                self.entries[i].1 = entry;
+                return;
+            }
+        }
     }
 
     pub fn update_width(&mut self, state: &SharedGameState) {
         let mut width = self.width as f32;
 
-        for entry in &self.entries {
+        for (_, entry) in &self.entries {
             match entry {
                 MenuEntry::Hidden => {}
                 MenuEntry::Active(entry) | MenuEntry::DisabledWhite(entry) | MenuEntry::Disabled(entry) => {
@@ -176,7 +185,7 @@ impl Menu {
     pub fn update_height(&mut self) {
         let mut height = 8.0;
 
-        for entry in &self.entries {
+        for (_, entry) in &self.entries {
             height += entry.height();
         }
 
@@ -281,7 +290,17 @@ impl Menu {
         let mut entry_y = 0;
 
         if !self.entries.is_empty() {
-            entry_y = self.entries[0..(self.selected)].iter().map(|e| e.height()).sum::<f64>().max(0.0) as u16;
+            let mut sum = 0.0;
+
+            for (id, entry) in &self.entries {
+                if *id == self.selected {
+                    break;
+                }
+
+                sum += entry.height();
+            }
+
+            entry_y = sum as u16;
         }
 
         if self.draw_cursor {
@@ -340,7 +359,7 @@ impl Menu {
         }
 
         y = self.y as f32 + 8.0;
-        for entry in &self.entries {
+        for (_, entry) in &self.entries {
             match entry {
                 MenuEntry::Active(name) | MenuEntry::DisabledWhite(name) => {
                     state.font.draw_text(
@@ -512,7 +531,7 @@ impl Menu {
                         y - 4.0,
                         &Rect::new_size(0, (state.player2_skin).saturating_mul(2 * 16), 16, 16),
                     );
-                    batch.draw(ctx)?;   
+                    batch.draw(ctx)?;
                 }
                 MenuEntry::SaveData(save) | MenuEntry::SaveDataSingle(save) => {
                     let name = &state.stages[save.current_map as usize].name;
@@ -597,7 +616,7 @@ impl Menu {
         &mut self,
         controller: &mut CombinedMenuController,
         state: &mut SharedGameState,
-    ) -> MenuSelectionResult {
+    ) -> MenuSelectionResult<T> {
         if controller.trigger_back() {
             state.sound_manager.play_sfx(5);
             return MenuSelectionResult::Canceled;
@@ -605,21 +624,25 @@ impl Menu {
 
         if (controller.trigger_up() || controller.trigger_down()) && !self.entries.is_empty() {
             state.sound_manager.play_sfx(1);
+
+            let mut selected = self.entries.iter().position(|(idx, _)| *idx == self.selected).ok_or(0).unwrap();
+
             loop {
                 if controller.trigger_down() {
-                    self.selected += 1;
-                    if self.selected == self.entries.len() {
-                        self.selected = 0;
+                    selected += 1;
+                    if selected == self.entries.len() {
+                        selected = 0;
                     }
                 } else {
-                    if self.selected == 0 {
-                        self.selected = self.entries.len();
+                    if selected == 0 {
+                        selected = self.entries.len();
                     }
-                    self.selected -= 1;
+                    selected -= 1;
                 }
 
-                if let Some(entry) = self.entries.get(self.selected) {
+                if let Some((id, entry)) = self.entries.get(selected) {
                     if entry.selectable() {
+                        self.selected = *id;
                         break;
                     }
                 } else {
@@ -629,7 +652,8 @@ impl Menu {
         }
 
         let mut y = self.y as f32 + 8.0;
-        for (idx, entry) in self.entries.iter_mut().enumerate() {
+        for (id, entry) in self.entries.iter_mut() {
+            let idx = *id;
             let entry_bounds = Rect::new_size(self.x, y as isize, self.width as isize, entry.height() as isize);
             let right_entry_bounds =
                 Rect::new_size(self.x + self.width as isize, y as isize, self.width as isize, entry.height() as isize);

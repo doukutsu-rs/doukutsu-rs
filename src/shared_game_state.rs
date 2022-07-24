@@ -94,7 +94,7 @@ impl WindowMode {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, num_derive::FromPrimitive)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, num_derive::FromPrimitive)]
 pub enum GameDifficulty {
     Normal = 0,
     Easy = 2,
@@ -113,7 +113,7 @@ impl GameDifficulty {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Hash, num_derive::FromPrimitive, serde::Serialize, serde::Deserialize)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Hash, num_derive::FromPrimitive, serde::Serialize, serde::Deserialize)]
 pub enum Language {
     English,
     Japanese,

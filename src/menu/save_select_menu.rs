@@ -33,15 +33,68 @@ pub enum CurrentMenu {
     DeleteConfirm,
     LoadConfirm,
 }
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum SaveMenuEntry {
+    Load(usize),
+    New(usize),
+    Back,
+}
+
+impl Default for SaveMenuEntry {
+    fn default() -> Self {
+        SaveMenuEntry::Load(0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum DifficultyMenuEntry {
+    Title,
+    Difficulty(GameDifficulty),
+    Back,
+}
+
+impl Default for DifficultyMenuEntry {
+    fn default() -> Self {
+        DifficultyMenuEntry::Difficulty(GameDifficulty::Normal)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum DeleteConfirmMenuEntry {
+    Title,
+    Yes,
+    No,
+}
+
+impl Default for DeleteConfirmMenuEntry {
+    fn default() -> Self {
+        DeleteConfirmMenuEntry::No
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum LoadConfirmMenuEntry {
+    Start,
+    Delete,
+    Back,
+}
+
+impl Default for LoadConfirmMenuEntry {
+    fn default() -> Self {
+        LoadConfirmMenuEntry::Start
+    }
+}
+
 pub struct SaveSelectMenu {
     pub saves: [MenuSaveInfo; 3],
     current_menu: CurrentMenu,
-    save_menu: Menu,
-    save_detailed: Menu,
-    difficulty_menu: Menu,
+    save_menu: Menu<SaveMenuEntry>,
+    save_detailed: Menu<usize>,
+    difficulty_menu: Menu<DifficultyMenuEntry>,
     coop_menu: PlayerCountMenu,
-    delete_confirm: Menu,
-    load_confirm: Menu,
+    delete_confirm: Menu<DeleteConfirmMenuEntry>,
+    load_confirm: Menu<LoadConfirmMenuEntry>,
     skip_difficulty_menu: bool,
 }
 
@@ -69,6 +122,8 @@ impl SaveSelectMenu {
         self.load_confirm = Menu::new(0, 0, 75, 0);
         self.skip_difficulty_menu = false;
 
+        let mut should_mutate_selection = true;
+
         for (iter, save) in self.saves.iter_mut().enumerate() {
             if let Ok(data) = filesystem::user_open(ctx, state.get_save_filename(iter + 1).unwrap_or("".to_string())) {
                 let loaded_save = GameProfile::load_from_save(data)?;
@@ -80,38 +135,60 @@ impl SaveSelectMenu {
                 save.weapon_id = loaded_save.weapon_data.map(|weapon| weapon.weapon_id);
                 save.difficulty = loaded_save.difficulty;
 
-                self.save_menu.push_entry(MenuEntry::SaveData(*save));
+                self.save_menu.push_entry(SaveMenuEntry::Load(iter), MenuEntry::SaveData(*save));
+
+                if should_mutate_selection {
+                    should_mutate_selection = false;
+                    self.save_menu.selected = SaveMenuEntry::Load(iter);
+                }
             } else {
-                self.save_menu.push_entry(MenuEntry::NewSave);
+                self.save_menu.push_entry(SaveMenuEntry::New(iter), MenuEntry::NewSave);
+
+                if should_mutate_selection {
+                    should_mutate_selection = false;
+                    self.save_menu.selected = SaveMenuEntry::New(iter);
+                }
             }
         }
 
-        self.save_menu.push_entry(MenuEntry::Active(state.t("common.back")));
+        self.save_menu.push_entry(SaveMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
-        self.difficulty_menu.push_entry(MenuEntry::Disabled(state.t("menus.difficulty_menu.title")));
-        self.difficulty_menu.push_entry(MenuEntry::Active(state.t("menus.difficulty_menu.easy")));
-        self.difficulty_menu.push_entry(MenuEntry::Active(state.t("menus.difficulty_menu.normal")));
-        self.difficulty_menu.push_entry(MenuEntry::Active(state.t("menus.difficulty_menu.hard")));
-        self.difficulty_menu.push_entry(MenuEntry::Active(state.t("common.back")));
+        self.difficulty_menu
+            .push_entry(DifficultyMenuEntry::Title, MenuEntry::Disabled(state.t("menus.difficulty_menu.title")));
+        self.difficulty_menu.push_entry(
+            DifficultyMenuEntry::Difficulty(GameDifficulty::Easy),
+            MenuEntry::Active(state.t("menus.difficulty_menu.easy")),
+        );
+        self.difficulty_menu.push_entry(
+            DifficultyMenuEntry::Difficulty(GameDifficulty::Normal),
+            MenuEntry::Active(state.t("menus.difficulty_menu.normal")),
+        );
+        self.difficulty_menu.push_entry(
+            DifficultyMenuEntry::Difficulty(GameDifficulty::Hard),
+            MenuEntry::Active(state.t("menus.difficulty_menu.hard")),
+        );
+        self.difficulty_menu.push_entry(DifficultyMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
-        self.difficulty_menu.selected = 2;
+        self.difficulty_menu.selected = DifficultyMenuEntry::Difficulty(GameDifficulty::Normal);
 
         //self.coop_menu.init(state, ctx);
 
-        self.delete_confirm.push_entry(MenuEntry::Disabled(state.t("menus.save_menu.delete_confirm")));
-        self.delete_confirm.push_entry(MenuEntry::Active(state.t("common.yes")));
-        self.delete_confirm.push_entry(MenuEntry::Active(state.t("common.no")));
+        self.delete_confirm
+            .push_entry(DeleteConfirmMenuEntry::Title, MenuEntry::Disabled(state.t("menus.save_menu.delete_confirm")));
+        self.delete_confirm.push_entry(DeleteConfirmMenuEntry::Yes, MenuEntry::Active(state.t("common.yes")));
+        self.delete_confirm.push_entry(DeleteConfirmMenuEntry::No, MenuEntry::Active(state.t("common.no")));
 
-        self.delete_confirm.selected = 2;
+        self.delete_confirm.selected = DeleteConfirmMenuEntry::No;
 
-        self.load_confirm.push_entry(MenuEntry::Active(state.t("menus.main_menu.start")));
-        self.load_confirm.push_entry(MenuEntry::Active(state.t("menus.save_menu.delete_confirm")));
-        self.load_confirm.push_entry(MenuEntry::Active(state.t("common.back")));
+        self.load_confirm.push_entry(LoadConfirmMenuEntry::Start, MenuEntry::Active(state.t("menus.main_menu.start")));
+        self.load_confirm
+            .push_entry(LoadConfirmMenuEntry::Delete, MenuEntry::Active(state.t("menus.save_menu.delete_confirm")));
+        self.load_confirm.push_entry(LoadConfirmMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
         self.save_detailed.draw_cursor = false;
 
-        if let MenuEntry::SaveData(save) = self.save_menu.entries[0] {
-            self.save_detailed.push_entry(MenuEntry::SaveDataSingle(save));
+        if let (_, MenuEntry::SaveData(save)) = self.save_menu.entries[0] {
+            self.save_detailed.push_entry(0, MenuEntry::SaveDataSingle(save));
         }
 
         self.update_sizes(state);
@@ -161,42 +238,40 @@ impl SaveSelectMenu {
         self.update_sizes(state);
         match self.current_menu {
             CurrentMenu::SaveMenu => match self.save_menu.tick(controller, state) {
-                MenuSelectionResult::Selected(3, _) | MenuSelectionResult::Canceled => exit_action(),
-                MenuSelectionResult::Selected(slot, _) => {
+                MenuSelectionResult::Selected(SaveMenuEntry::Back, _) | MenuSelectionResult::Canceled => exit_action(),
+                MenuSelectionResult::Selected(SaveMenuEntry::New(slot), _) => {
+                    state.save_slot = slot + 1;
+
+                    if self.skip_difficulty_menu {
+                        self.current_menu = CurrentMenu::PlayerCountMenu;
+                    } else {
+                        self.difficulty_menu.selected = DifficultyMenuEntry::Difficulty(GameDifficulty::Normal);
+                        self.current_menu = CurrentMenu::DifficultyMenu;
+                    }
+                }
+                MenuSelectionResult::Selected(SaveMenuEntry::Load(slot), _) => {
                     state.save_slot = slot + 1;
 
                     if let Ok(_) =
                         filesystem::user_open(ctx, state.get_save_filename(state.save_slot).unwrap_or("".to_string()))
                     {
-                        if let MenuEntry::SaveData(save) = self.save_menu.entries[slot] {
+                        if let (_, MenuEntry::SaveData(save)) = self.save_menu.entries[slot] {
                             self.save_detailed.entries.clear();
-                            self.save_detailed.push_entry(MenuEntry::SaveDataSingle(save));
+                            self.save_detailed.push_entry(0, MenuEntry::SaveDataSingle(save));
                         }
+
                         self.current_menu = CurrentMenu::LoadConfirm;
-                        self.load_confirm.selected = 0;
-                    } else if self.skip_difficulty_menu {
-                        self.current_menu = CurrentMenu::PlayerCountMenu;
-                    } else {
-                        self.difficulty_menu.selected = 2;
-                        self.current_menu = CurrentMenu::DifficultyMenu;
+                        self.load_confirm.selected = LoadConfirmMenuEntry::Start;
                     }
                 }
                 _ => (),
             },
             CurrentMenu::DifficultyMenu => match self.difficulty_menu.tick(controller, state) {
-                MenuSelectionResult::Selected(4, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(DifficultyMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::SaveMenu;
                 }
-                MenuSelectionResult::Selected(1, _) => {
-                    state.difficulty = GameDifficulty::Easy;
-                    self.current_menu = CurrentMenu::PlayerCountMenu;
-                }
-                MenuSelectionResult::Selected(2, _) => {
-                    state.difficulty = GameDifficulty::Normal;
-                    self.current_menu = CurrentMenu::PlayerCountMenu;
-                }
-                MenuSelectionResult::Selected(3, _) => {
-                    state.difficulty = GameDifficulty::Hard;
+                MenuSelectionResult::Selected(DifficultyMenuEntry::Difficulty(difficulty), _) => {
+                    state.difficulty = difficulty;
                     self.current_menu = CurrentMenu::PlayerCountMenu;
                 }
                 _ => (),
@@ -214,30 +289,33 @@ impl SaveSelectMenu {
                 )?;
             }
             CurrentMenu::DeleteConfirm => match self.delete_confirm.tick(controller, state) {
-                MenuSelectionResult::Selected(1, _) => {
-                    state.sound_manager.play_sfx(17); // Player Death sfx
-                    filesystem::user_delete(
-                        ctx,
-                        state.get_save_filename(self.save_menu.selected + 1).unwrap_or("".to_string()),
-                    )?;
-                    self.save_menu.entries[self.save_menu.selected] = MenuEntry::NewSave;
+                MenuSelectionResult::Selected(DeleteConfirmMenuEntry::Yes, _) => {
+                    match self.save_menu.selected {
+                        SaveMenuEntry::Load(slot) => {
+                            state.sound_manager.play_sfx(17); // Player Death sfx
+                            filesystem::user_delete(ctx, state.get_save_filename(slot + 1).unwrap_or("".to_string()))?;
+                        }
+                        _ => (),
+                    }
+
+                    self.save_menu.set_entry(self.save_menu.selected, MenuEntry::NewSave);
                     self.current_menu = CurrentMenu::SaveMenu;
                 }
-                MenuSelectionResult::Selected(2, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(DeleteConfirmMenuEntry::No, _) | MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::LoadConfirm;
-                    self.load_confirm.selected = 0;
+                    self.load_confirm.selected = LoadConfirmMenuEntry::Start;
                 }
                 _ => (),
             },
             CurrentMenu::LoadConfirm => match self.load_confirm.tick(controller, state) {
-                MenuSelectionResult::Selected(0, _) => {
+                MenuSelectionResult::Selected(LoadConfirmMenuEntry::Start, _) => {
                     self.current_menu = CurrentMenu::PlayerCountMenu;
                 }
-                MenuSelectionResult::Selected(1, _) => {
+                MenuSelectionResult::Selected(LoadConfirmMenuEntry::Delete, _) => {
                     self.current_menu = CurrentMenu::DeleteConfirm;
-                    self.delete_confirm.selected = 2;
+                    self.delete_confirm.selected = DeleteConfirmMenuEntry::No;
                 }
-                MenuSelectionResult::Selected(2, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(LoadConfirmMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::SaveMenu;
                 }
                 _ => (),

@@ -19,13 +19,41 @@ enum CurrentMenu {
     ConfirmMenu,
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum PauseMenuEntry {
+    Resume,
+    Retry,
+    Options,
+    Title,
+    Quit,
+}
+
+impl Default for PauseMenuEntry {
+    fn default() -> Self {
+        PauseMenuEntry::Resume
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum ConfirmMenuEntry {
+    Empty,
+    Yes,
+    No,
+}
+
+impl Default for ConfirmMenuEntry {
+    fn default() -> Self {
+        ConfirmMenuEntry::Yes
+    }
+}
+
 pub struct PauseMenu {
     is_paused: bool,
     current_menu: CurrentMenu,
     settings_menu: SettingsMenu,
     controller: CombinedMenuController,
-    pause_menu: Menu,
-    confirm_menu: Menu,
+    pause_menu: Menu<PauseMenuEntry>,
+    confirm_menu: Menu<ConfirmMenuEntry>,
     tick: u32,
 }
 
@@ -48,17 +76,17 @@ impl PauseMenu {
         self.controller.add(state.settings.create_player1_controller());
         self.controller.add(state.settings.create_player2_controller());
 
-        self.pause_menu.push_entry(MenuEntry::Active(state.t("menus.pause_menu.resume")));
-        self.pause_menu.push_entry(MenuEntry::Active(state.t("menus.pause_menu.retry")));
-        self.pause_menu.push_entry(MenuEntry::Active(state.t("menus.pause_menu.options")));
-        self.pause_menu.push_entry(MenuEntry::Active(state.t("menus.pause_menu.title")));
-        self.pause_menu.push_entry(MenuEntry::Active(state.t("menus.pause_menu.quit")));
+        self.pause_menu.push_entry(PauseMenuEntry::Resume, MenuEntry::Active(state.t("menus.pause_menu.resume")));
+        self.pause_menu.push_entry(PauseMenuEntry::Retry, MenuEntry::Active(state.t("menus.pause_menu.retry")));
+        self.pause_menu.push_entry(PauseMenuEntry::Options, MenuEntry::Active(state.t("menus.pause_menu.options")));
+        self.pause_menu.push_entry(PauseMenuEntry::Title, MenuEntry::Active(state.t("menus.pause_menu.title")));
+        self.pause_menu.push_entry(PauseMenuEntry::Quit, MenuEntry::Active(state.t("menus.pause_menu.quit")));
 
-        self.confirm_menu.push_entry(MenuEntry::Disabled("".to_owned()));
-        self.confirm_menu.push_entry(MenuEntry::Active(state.t("common.yes")));
-        self.confirm_menu.push_entry(MenuEntry::Active(state.t("common.no")));
+        self.confirm_menu.push_entry(ConfirmMenuEntry::Empty, MenuEntry::Disabled("".to_owned()));
+        self.confirm_menu.push_entry(ConfirmMenuEntry::Yes, MenuEntry::Active(state.t("common.yes")));
+        self.confirm_menu.push_entry(ConfirmMenuEntry::No, MenuEntry::Active(state.t("common.no")));
 
-        self.confirm_menu.selected = 1;
+        self.confirm_menu.selected = ConfirmMenuEntry::Yes;
 
         self.update_sizes(state);
 
@@ -108,27 +136,33 @@ impl PauseMenu {
 
         match self.current_menu {
             CurrentMenu::PauseMenu => match self.pause_menu.tick(&mut self.controller, state) {
-                MenuSelectionResult::Selected(0, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(PauseMenuEntry::Resume, _) | MenuSelectionResult::Canceled => {
                     // double tap prevention
                     if self.tick >= 3 {
                         self.tick = 0;
                         self.is_paused = false;
                     }
                 }
-                MenuSelectionResult::Selected(1, _) => {
+                MenuSelectionResult::Selected(PauseMenuEntry::Retry, _) => {
                     state.stop_noise();
                     state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
                     state.load_or_start_game(ctx)?;
                 }
-                MenuSelectionResult::Selected(2, _) => {
+                MenuSelectionResult::Selected(PauseMenuEntry::Options, _) => {
                     self.current_menu = CurrentMenu::OptionsMenu;
                 }
-                MenuSelectionResult::Selected(3, _) => {
-                    self.confirm_menu.entries[0] = MenuEntry::Disabled(state.t("menus.pause_menu.title_confirm"));
+                MenuSelectionResult::Selected(PauseMenuEntry::Title, _) => {
+                    self.confirm_menu.set_entry(
+                        ConfirmMenuEntry::Empty,
+                        MenuEntry::Disabled(state.t("menus.pause_menu.title_confirm")),
+                    );
                     self.current_menu = CurrentMenu::ConfirmMenu;
                 }
-                MenuSelectionResult::Selected(4, _) => {
-                    self.confirm_menu.entries[0] = MenuEntry::Disabled(state.t("menus.pause_menu.quit_confirm"));
+                MenuSelectionResult::Selected(PauseMenuEntry::Quit, _) => {
+                    self.confirm_menu.set_entry(
+                        ConfirmMenuEntry::Empty,
+                        MenuEntry::Disabled(state.t("menus.pause_menu.quit_confirm")),
+                    );
                     self.current_menu = CurrentMenu::ConfirmMenu;
                 }
                 _ => (),
@@ -145,18 +179,18 @@ impl PauseMenu {
                 )?;
             }
             CurrentMenu::ConfirmMenu => match self.confirm_menu.tick(&mut self.controller, state) {
-                MenuSelectionResult::Selected(1, _) => match self.pause_menu.selected {
-                    3 => {
+                MenuSelectionResult::Selected(ConfirmMenuEntry::Yes, _) => match self.pause_menu.selected {
+                    PauseMenuEntry::Title => {
                         state.stop_noise();
                         state.textscript_vm.flags.set_cutscene_skip(false);
                         state.next_scene = Some(Box::new(TitleScene::new()));
                     }
-                    4 => {
+                    PauseMenuEntry::Quit => {
                         state.shutdown();
                     }
                     _ => (),
                 },
-                MenuSelectionResult::Selected(2, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(ConfirmMenuEntry::No, _) | MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::PauseMenu;
                 }
                 _ => (),

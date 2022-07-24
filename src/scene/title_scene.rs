@@ -29,14 +29,57 @@ enum CurrentMenu {
     PlayerCountMenu,
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum MainMenuEntry {
+    Start,
+    Challenges,
+    Options,
+    Editor,
+    Jukebox,
+    Quit,
+}
+
+impl Default for MainMenuEntry {
+    fn default() -> Self {
+        MainMenuEntry::Start
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ChallengesMenuEntry {
+    Back,
+    Challenge(usize),
+}
+
+impl Default for ChallengesMenuEntry {
+    fn default() -> Self {
+        ChallengesMenuEntry::Back
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ConfirmMenuEntry {
+    Title,
+    StartChallenge,
+    ReplayBest,
+    DeleteReplay,
+    Back,
+}
+
+impl Default for ConfirmMenuEntry {
+    fn default() -> Self {
+        ConfirmMenuEntry::StartChallenge
+    }
+}
+
 pub struct TitleScene {
     tick: usize,
     controller: CombinedMenuController,
     current_menu: CurrentMenu,
-    main_menu: Menu,
+    main_menu: Menu<MainMenuEntry>,
     save_select_menu: SaveSelectMenu,
-    challenges_menu: Menu,
-    confirm_menu: Menu,
+    challenges_menu: Menu<ChallengesMenuEntry>,
+    confirm_menu: Menu<ConfirmMenuEntry>,
     coop_menu: PlayerCountMenu,
     settings_menu: SettingsMenu,
     background: Background,
@@ -152,24 +195,24 @@ impl Scene for TitleScene {
         self.controller.add(state.settings.create_player1_controller());
         self.controller.add(state.settings.create_player2_controller());
 
-        self.main_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.start")));
+        self.main_menu.push_entry(MainMenuEntry::Start, MenuEntry::Active(state.t("menus.main_menu.start")));
+
         if !state.mod_list.mods.is_empty() {
-            self.main_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.challenges")));
-        } else {
-            self.main_menu.push_entry(MenuEntry::Hidden);
+            self.main_menu
+                .push_entry(MainMenuEntry::Challenges, MenuEntry::Active(state.t("menus.main_menu.challenges")));
         }
-        self.main_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.options")));
+
+        self.main_menu.push_entry(MainMenuEntry::Options, MenuEntry::Active(state.t("menus.main_menu.options")));
+
         if cfg!(feature = "editor") {
-            self.main_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.editor")));
-        } else {
-            self.main_menu.push_entry(MenuEntry::Hidden);
+            self.main_menu.push_entry(MainMenuEntry::Editor, MenuEntry::Active(state.t("menus.main_menu.editor")));
         }
+
         if state.constants.is_switch {
-            self.main_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.jukebox")));
-        } else {
-            self.main_menu.push_entry(MenuEntry::Hidden);
+            self.main_menu.push_entry(MainMenuEntry::Jukebox, MenuEntry::Active(state.t("menus.main_menu.jukebox")));
         }
-        self.main_menu.push_entry(MenuEntry::Active(state.t("menus.main_menu.quit")));
+
+        self.main_menu.push_entry(MainMenuEntry::Quit, MenuEntry::Active(state.t("menus.main_menu.quit")));
 
         self.settings_menu.init(state, ctx)?;
 
@@ -177,34 +220,39 @@ impl Scene for TitleScene {
 
         self.coop_menu.init(state)?;
 
-        let mut selected: usize = 0;
+        let mut selected = ChallengesMenuEntry::Back;
         let mut mutate_selection = true;
 
-        for mod_info in state.mod_list.mods.iter() {
+        for (idx, mod_info) in state.mod_list.mods.iter().enumerate() {
             if !mod_info.valid {
-                self.challenges_menu.push_entry(MenuEntry::Disabled(mod_info.path.clone()));
+                self.challenges_menu
+                    .push_entry(ChallengesMenuEntry::Challenge(idx), MenuEntry::Disabled(mod_info.path.clone()));
                 continue;
             }
             if mod_info.satisfies_requirement(&state.mod_requirements) {
-                self.challenges_menu.push_entry(MenuEntry::Active(mod_info.name.clone()));
-                mutate_selection = false;
-            } else {
-                self.challenges_menu.push_entry(MenuEntry::Disabled("???".to_owned()));
+                self.challenges_menu
+                    .push_entry(ChallengesMenuEntry::Challenge(idx), MenuEntry::Active(mod_info.name.clone()));
 
                 if mutate_selection {
-                    selected += 1;
+                    selected = ChallengesMenuEntry::Challenge(idx);
+                    mutate_selection = false;
                 }
+            } else {
+                self.challenges_menu
+                    .push_entry(ChallengesMenuEntry::Challenge(idx), MenuEntry::Disabled("???".to_owned()));
             }
         }
-        self.challenges_menu.push_entry(MenuEntry::Active(state.t("common.back")));
+        self.challenges_menu.push_entry(ChallengesMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
         self.challenges_menu.selected = selected;
 
-        self.confirm_menu.push_entry(MenuEntry::Disabled("".to_owned()));
-        self.confirm_menu.push_entry(MenuEntry::Active(state.t("menus.challenge_menu.start")));
-        self.confirm_menu.push_entry(MenuEntry::Disabled(state.t("menus.challenge_menu.no_replay")));
-        self.confirm_menu.push_entry(MenuEntry::Hidden);
-        self.confirm_menu.push_entry(MenuEntry::Active(state.t("common.back")));
-        self.confirm_menu.selected = 1;
+        self.confirm_menu.push_entry(ConfirmMenuEntry::Title, MenuEntry::Disabled("".to_owned()));
+        self.confirm_menu
+            .push_entry(ConfirmMenuEntry::StartChallenge, MenuEntry::Active(state.t("menus.challenge_menu.start")));
+        self.confirm_menu
+            .push_entry(ConfirmMenuEntry::ReplayBest, MenuEntry::Disabled(state.t("menus.challenge_menu.no_replay")));
+        self.confirm_menu.push_entry(ConfirmMenuEntry::DeleteReplay, MenuEntry::Hidden);
+        self.confirm_menu.push_entry(ConfirmMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.confirm_menu.selected = ConfirmMenuEntry::StartChallenge;
 
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
@@ -237,19 +285,19 @@ impl Scene for TitleScene {
 
         match self.current_menu {
             CurrentMenu::MainMenu => match self.main_menu.tick(&mut self.controller, state) {
-                MenuSelectionResult::Selected(0, _) => {
+                MenuSelectionResult::Selected(MainMenuEntry::Start, _) => {
                     state.mod_path = None;
                     self.save_select_menu.init(state, ctx)?;
                     self.save_select_menu.set_skip_difficulty_menu(false);
                     self.current_menu = CurrentMenu::SaveSelectMenu;
                 }
-                MenuSelectionResult::Selected(1, _) => {
+                MenuSelectionResult::Selected(MainMenuEntry::Challenges, _) => {
                     self.current_menu = CurrentMenu::ChallengesMenu;
                 }
-                MenuSelectionResult::Selected(2, _) => {
+                MenuSelectionResult::Selected(MainMenuEntry::Options, _) => {
                     self.current_menu = CurrentMenu::OptionMenu;
                 }
-                MenuSelectionResult::Selected(3, _) => {
+                MenuSelectionResult::Selected(MainMenuEntry::Editor, _) => {
                     // this comment is just there because rustfmt removes parenthesis around the match case and breaks compilation
                     #[cfg(feature = "editor")]
                     {
@@ -257,10 +305,10 @@ impl Scene for TitleScene {
                         state.next_scene = Some(Box::new(EditorScene::new()));
                     }
                 }
-                MenuSelectionResult::Selected(4, _) => {
+                MenuSelectionResult::Selected(MainMenuEntry::Jukebox, _) => {
                     state.next_scene = Some(Box::new(JukeboxScene::new()));
                 }
-                MenuSelectionResult::Selected(5, _) => {
+                MenuSelectionResult::Selected(MainMenuEntry::Quit, _) => {
                     state.shutdown();
                 }
                 _ => {}
@@ -292,68 +340,70 @@ impl Scene for TitleScene {
                     ctx,
                 )?;
             }
-            CurrentMenu::ChallengesMenu => {
-                let last_idx = self.challenges_menu.entries.len() - 1;
-                match self.challenges_menu.tick(&mut self.controller, state) {
-                    MenuSelectionResult::Selected(idx, _) => {
-                        if last_idx == idx {
-                            state.mod_path = None;
+            CurrentMenu::ChallengesMenu => match self.challenges_menu.tick(&mut self.controller, state) {
+                MenuSelectionResult::Selected(ChallengesMenuEntry::Challenge(idx), _) => {
+                    if let Some(mod_info) = state.mod_list.mods.get(idx) {
+                        state.mod_path = Some(mod_info.path.clone());
+                        if mod_info.save_slot >= 0 {
+                            self.save_select_menu.init(state, ctx)?;
+                            self.save_select_menu.set_skip_difficulty_menu(true);
                             self.nikumaru_rec.load_counter(state, ctx)?;
-                            self.current_menu = CurrentMenu::MainMenu;
-                        } else if let Some(mod_info) = state.mod_list.mods.get(idx) {
-                            state.mod_path = Some(mod_info.path.clone());
-                            if mod_info.save_slot >= 0 {
-                                self.save_select_menu.init(state, ctx)?;
-                                self.save_select_menu.set_skip_difficulty_menu(true);
-                                self.nikumaru_rec.load_counter(state, ctx)?;
-                                self.current_menu = CurrentMenu::SaveSelectMenu;
+                            self.current_menu = CurrentMenu::SaveSelectMenu;
+                        } else {
+                            let mod_name = mod_info.name.clone();
+                            self.confirm_menu.width =
+                                (state.font.text_width(mod_name.chars(), &state.constants).max(50.0) + 32.0) as u16;
+
+                            self.confirm_menu.set_entry(ConfirmMenuEntry::Title, MenuEntry::Disabled(mod_name));
+
+                            if state.has_replay_data(ctx) {
+                                self.confirm_menu.set_entry(
+                                    ConfirmMenuEntry::ReplayBest,
+                                    MenuEntry::Active(state.t("menus.challenge_menu.replay_best")),
+                                );
+                                self.confirm_menu.set_entry(
+                                    ConfirmMenuEntry::DeleteReplay,
+                                    MenuEntry::Active(state.t("menus.challenge_menu.delete_replay")),
+                                );
                             } else {
-                                let mod_name = mod_info.name.clone();
-                                self.confirm_menu.width =
-                                    (state.font.text_width(mod_name.chars(), &state.constants).max(50.0) + 32.0) as u16;
-                                self.confirm_menu.entries[0] = MenuEntry::Disabled(mod_name);
-                                if state.has_replay_data(ctx) {
-                                    self.confirm_menu.entries[2] =
-                                        MenuEntry::Active(state.t("menus.challenge_menu.replay_best"));
-                                    self.confirm_menu.entries[3] =
-                                        MenuEntry::Active(state.t("menus.challenge_menu.delete_replay"));
-                                } else {
-                                    self.confirm_menu.entries[2] =
-                                        MenuEntry::Disabled(state.t("menus.challenge_menu.no_replay"));
-                                    self.confirm_menu.entries[3] = MenuEntry::Hidden;
-                                }
-                                self.nikumaru_rec.load_counter(state, ctx)?;
-                                self.current_menu = CurrentMenu::ChallengeConfirmMenu;
+                                self.confirm_menu.set_entry(
+                                    ConfirmMenuEntry::ReplayBest,
+                                    MenuEntry::Disabled(state.t("menus.challenge_menu.no_replay")),
+                                );
+                                self.confirm_menu.set_entry(ConfirmMenuEntry::DeleteReplay, MenuEntry::Hidden);
                             }
-                            state.reload_graphics();
+
+                            self.nikumaru_rec.load_counter(state, ctx)?;
+                            self.current_menu = CurrentMenu::ChallengeConfirmMenu;
                         }
-                    }
-                    MenuSelectionResult::Canceled => {
-                        state.mod_path = None;
-                        self.nikumaru_rec.load_counter(state, ctx)?;
-                        self.current_menu = CurrentMenu::MainMenu;
                         state.reload_graphics();
                     }
-                    _ => (),
                 }
-            }
+                MenuSelectionResult::Selected(ChallengesMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
+                    state.mod_path = None;
+                    self.nikumaru_rec.load_counter(state, ctx)?;
+                    self.current_menu = CurrentMenu::MainMenu;
+                    state.reload_graphics();
+                }
+                _ => (),
+            },
             CurrentMenu::ChallengeConfirmMenu => match self.confirm_menu.tick(&mut self.controller, state) {
-                MenuSelectionResult::Selected(1, _) => {
+                MenuSelectionResult::Selected(ConfirmMenuEntry::StartChallenge, _) => {
                     state.difficulty = GameDifficulty::Normal;
                     state.replay_state = ReplayState::Recording;
                     self.current_menu = CurrentMenu::PlayerCountMenu;
                 }
-                MenuSelectionResult::Selected(2, _) => {
+                MenuSelectionResult::Selected(ConfirmMenuEntry::ReplayBest, _) => {
                     state.difficulty = GameDifficulty::Normal;
                     state.replay_state = ReplayState::Playback;
                     state.reload_resources(ctx)?;
                     state.start_new_game(ctx)?;
                 }
-                MenuSelectionResult::Selected(3, _) => {
+                MenuSelectionResult::Selected(ConfirmMenuEntry::DeleteReplay, _) => {
                     state.delete_replay_data(ctx)?;
                     self.current_menu = CurrentMenu::ChallengesMenu;
                 }
-                MenuSelectionResult::Selected(4, _) | MenuSelectionResult::Canceled => {
+                MenuSelectionResult::Selected(ConfirmMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::ChallengesMenu;
                 }
                 _ => (),
