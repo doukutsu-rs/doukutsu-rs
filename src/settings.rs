@@ -34,6 +34,8 @@ pub struct Settings {
     pub sfx_volume: f32,
     #[serde(default = "default_timing")]
     pub timing_mode: TimingMode,
+    #[serde(default = "default_pause_on_focus_loss")]
+    pub pause_on_focus_loss: bool,
     #[serde(default = "default_interpolation")]
     pub organya_interpolation: InterpolationMode,
     #[serde(default = "default_controller_type")]
@@ -79,7 +81,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    14
+    15
 }
 
 #[inline(always)]
@@ -125,6 +127,11 @@ fn default_screen_shake_intensity() -> ScreenShakeIntensity {
 #[inline(always)]
 fn default_controller_type() -> ControllerType {
     ControllerType::Keyboard
+}
+
+#[inline(always)]
+fn default_pause_on_focus_loss() -> bool {
+    true
 }
 
 impl Settings {
@@ -223,6 +230,11 @@ impl Settings {
             self.player2_controller_button_map = player_default_controller_button_map();
         }
 
+        if self.version == 14 {
+            self.version = 15;
+            self.pause_on_focus_loss = default_pause_on_focus_loss();
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -281,6 +293,7 @@ impl Default for Settings {
             bgm_volume: 1.0,
             sfx_volume: 1.0,
             timing_mode: default_timing(),
+            pause_on_focus_loss: default_pause_on_focus_loss(),
             organya_interpolation: InterpolationMode::Linear,
             player1_controller_type: default_controller_type(),
             player2_controller_type: default_controller_type(),

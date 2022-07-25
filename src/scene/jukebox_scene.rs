@@ -24,6 +24,7 @@ pub struct JukeboxScene {
     frame: Frame,
     stage: Stage,
     textures: StageTexturePaths,
+    previous_pause_on_focus_loss_setting: bool,
 }
 
 impl JukeboxScene {
@@ -58,6 +59,7 @@ impl JukeboxScene {
             frame: Frame::new(),
             stage: fake_stage,
             textures,
+            previous_pause_on_focus_loss_setting: true,
         }
     }
 }
@@ -96,6 +98,9 @@ impl Scene for JukeboxScene {
         let selected_soundtrack_index =
             self.soundtracks.iter().position(|s| s == &state.settings.soundtrack).unwrap_or(0);
         self.selected_soundtrack = selected_soundtrack_index;
+
+        self.previous_pause_on_focus_loss_setting = state.settings.pause_on_focus_loss;
+        state.settings.pause_on_focus_loss = false;
 
         Ok(())
     }
@@ -151,6 +156,7 @@ impl Scene for JukeboxScene {
         }
 
         if self.controller.trigger_back() {
+            state.settings.pause_on_focus_loss = self.previous_pause_on_focus_loss_setting;
             state.next_scene = Some(Box::new(TitleScene::new()));
         }
 

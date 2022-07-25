@@ -105,11 +105,17 @@
         },
         "soundtrack": "サウンドトラック： {soundtrack}"
       },
+
       "language": "言語",
-      "game_timing": {
-        "entry": "ゲームのタイミング：",
-        "50tps": "50tps (freeware)",
-        "60tps": "60tps (CS+)"
+
+      "behavior": "動作",
+      "behavior_menu": {
+        "game_timing": {
+          "entry": "ゲームのタイミング：",
+          "50tps": "50tps (freeware)",
+          "60tps": "60tps (CS+)"
+        },
+        "pause_on_focus_loss": "フォーカスが外れた時のポーズ："
       }
     }
   },

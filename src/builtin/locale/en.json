@@ -116,10 +116,14 @@
 
       "language": "Language...",
 
-      "game_timing": {
-        "entry": "Game timing:",
-        "50tps": "50tps (freeware)",
-        "60tps": "60tps (CS+)"
+      "behavior": "Behavior...",
+      "behavior_menu": {
+        "game_timing": {
+          "entry": "Game timing:",
+          "50tps": "50tps (freeware)",
+          "60tps": "60tps (CS+)"
+        },
+        "pause_on_focus_loss": "Pause on focus loss:"
       }
     }
   },

@@ -22,6 +22,7 @@ enum CurrentMenu {
     SoundMenu,
     SoundtrackMenu,
     LanguageMenu,
+    BehaviorMenu,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -29,7 +30,7 @@ enum MainMenuEntry {
     Graphics,
     Sound,
     Language,
-    GameTiming,
+    Behavior,
     DiscordLink,
     Back,
 }
@@ -101,6 +102,19 @@ impl Default for LanguageMenuEntry {
     }
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum BehaviorMenuEntry {
+    GameTiming,
+    PauseOnFocusLoss,
+    Back,
+}
+
+impl Default for BehaviorMenuEntry {
+    fn default() -> Self {
+        BehaviorMenuEntry::GameTiming
+    }
+}
+
 pub struct SettingsMenu {
     current: CurrentMenu,
     main: Menu<MainMenuEntry>,
@@ -108,6 +122,7 @@ pub struct SettingsMenu {
     sound: Menu<SoundMenuEntry>,
     soundtrack: Menu<SoundtrackMenuEntry>,
     language: Menu<LanguageMenuEntry>,
+    behavior: Menu<BehaviorMenuEntry>,
     pub on_title: bool,
 }
 
@@ -120,8 +135,18 @@ impl SettingsMenu {
         let sound = Menu::new(0, 0, 260, 0);
         let soundtrack = Menu::new(0, 0, 260, 0);
         let language = Menu::new(0, 0, 120, 0);
+        let behavior = Menu::new(0, 0, 220, 0);
 
-        SettingsMenu { current: CurrentMenu::MainMenu, main, graphics, sound, soundtrack, language, on_title: false }
+        SettingsMenu {
+            current: CurrentMenu::MainMenu,
+            main,
+            graphics,
+            sound,
+            soundtrack,
+            language,
+            behavior,
+            on_title: false,
+        }
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
@@ -251,14 +276,7 @@ impl SettingsMenu {
             self.main.push_entry(MainMenuEntry::Language, MenuEntry::Active(state.t("menus.options_menu.language")));
         }
 
-        self.main.push_entry(
-            MainMenuEntry::GameTiming,
-            MenuEntry::Options(
-                state.t("menus.options_menu.game_timing.entry"),
-                if state.settings.timing_mode == TimingMode::_50Hz { 0 } else { 1 },
-                vec![state.t("menus.options_menu.game_timing.50tps"), state.t("menus.options_menu.game_timing.60tps")],
-            ),
-        );
+        self.main.push_entry(MainMenuEntry::Behavior, MenuEntry::Active(state.t("menus.options_menu.behavior")));
 
         self.main.push_entry(MainMenuEntry::DiscordLink, MenuEntry::Active(DISCORD_LINK.to_owned()));
 
@@ -334,6 +352,28 @@ impl SettingsMenu {
 
         self.soundtrack.push_entry(SoundtrackMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
+        self.behavior.push_entry(
+            BehaviorMenuEntry::GameTiming,
+            MenuEntry::Options(
+                state.t("menus.options_menu.behavior_menu.game_timing.entry"),
+                if state.settings.timing_mode == TimingMode::_50Hz { 0 } else { 1 },
+                vec![
+                    state.t("menus.options_menu.behavior_menu.game_timing.50tps"),
+                    state.t("menus.options_menu.behavior_menu.game_timing.60tps"),
+                ],
+            ),
+        );
+
+        self.behavior.push_entry(
+            BehaviorMenuEntry::PauseOnFocusLoss,
+            MenuEntry::Toggle(
+                state.t("menus.options_menu.behavior_menu.pause_on_focus_loss"),
+                state.settings.pause_on_focus_loss,
+            ),
+        );
+
+        self.behavior.push_entry(BehaviorMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+
         self.update_sizes(state);
 
         Ok(())
@@ -364,6 +404,11 @@ impl SettingsMenu {
         self.language.update_height();
         self.language.x = ((state.canvas_size.0 - self.language.width as f32) / 2.0).floor() as isize;
         self.language.y = ((state.canvas_size.1 - self.language.height as f32) / 2.0).floor() as isize;
+
+        self.behavior.update_width(state);
+        self.behavior.update_height();
+        self.behavior.x = ((state.canvas_size.0 - self.behavior.width as f32) / 2.0).floor() as isize;
+        self.behavior.y = 30 + ((state.canvas_size.1 - self.behavior.height as f32) / 2.0).floor() as isize;
     }
 
     pub fn tick(
@@ -387,21 +432,8 @@ impl SettingsMenu {
                     self.language.selected = LanguageMenuEntry::Language(state.settings.locale);
                     self.current = CurrentMenu::LanguageMenu;
                 }
-                MenuSelectionResult::Selected(MainMenuEntry::GameTiming, toggle) => {
-                    if let MenuEntry::Options(_, value, _) = toggle {
-                        match state.settings.timing_mode {
-                            TimingMode::_50Hz => {
-                                state.settings.timing_mode = TimingMode::_60Hz;
-                                *value = 1;
-                            }
-                            TimingMode::_60Hz => {
-                                state.settings.timing_mode = TimingMode::_50Hz;
-                                *value = 0;
-                            }
-                            _ => {}
-                        }
-                        let _ = state.settings.save(ctx);
-                    }
+                MenuSelectionResult::Selected(MainMenuEntry::Behavior, _) => {
+                    self.current = CurrentMenu::BehaviorMenu;
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::DiscordLink, _) => {
                     if let Err(e) = webbrowser::open(DISCORD_LINK) {
@@ -655,6 +687,36 @@ impl SettingsMenu {
                 }
                 _ => (),
             },
+            CurrentMenu::BehaviorMenu => match self.behavior.tick(controller, state) {
+                MenuSelectionResult::Selected(BehaviorMenuEntry::GameTiming, toggle) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        match state.settings.timing_mode {
+                            TimingMode::_50Hz => {
+                                state.settings.timing_mode = TimingMode::_60Hz;
+                                *value = 1;
+                            }
+                            TimingMode::_60Hz => {
+                                state.settings.timing_mode = TimingMode::_50Hz;
+                                *value = 0;
+                            }
+                            _ => {}
+                        }
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Selected(BehaviorMenuEntry::PauseOnFocusLoss, toggle) => {
+                    if let MenuEntry::Toggle(_, value) = toggle {
+                        state.settings.pause_on_focus_loss = !state.settings.pause_on_focus_loss;
+                        let _ = state.settings.save(ctx);
+
+                        *value = state.settings.pause_on_focus_loss;
+                    }
+                }
+                MenuSelectionResult::Selected(BehaviorMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
+                    self.current = CurrentMenu::MainMenu;
+                }
+                _ => (),
+            },
         }
         Ok(())
     }
@@ -666,6 +728,7 @@ impl SettingsMenu {
             CurrentMenu::SoundMenu => self.sound.draw(state, ctx)?,
             CurrentMenu::SoundtrackMenu => self.soundtrack.draw(state, ctx)?,
             CurrentMenu::LanguageMenu => self.language.draw(state, ctx)?,
+            CurrentMenu::BehaviorMenu => self.behavior.draw(state, ctx)?,
         }
 
         Ok(())
