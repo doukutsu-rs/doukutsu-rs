@@ -116,7 +116,11 @@ Interchanging the save files may result in spawning in wrong locations, softlock
 <details>
 <summary>Nintendo Switch</summary>
 
-Extract the `data` folder directly from the ROM.
+Extract the `data` folder (contained in `romfs`) from your console using tool such as [nxdumptool](https://github.com/DarkMatterCore/nxdumptool).
+
+**Important notes:**
+- doukutsu-rs doesn't rely on the original ROM or executable, you just need the data files, go to `RomFS options` menu to just extract the files to SD card so you don't need to do any extra steps.
+- Ensure you're dumping the files **with update included** (`Use update/DLC` option), as 1.0 isn't supported.
 
 </details>
 
