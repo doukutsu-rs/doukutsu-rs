@@ -4,6 +4,7 @@ use crate::framework::filesystem::{user_create, user_open};
 use crate::framework::gamepad::{Axis, AxisDirection, Button, PlayerControllerInputType};
 use crate::framework::keyboard::ScanCode;
 use crate::graphics::VSyncMode;
+use crate::input::combined_player_controller::CombinedPlayerController;
 use crate::input::gamepad_player_controller::GamepadController;
 use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
@@ -256,14 +257,32 @@ impl Settings {
 
         match self.player1_controller_type {
             ControllerType::Keyboard => Box::new(KeyboardController::new(TargetPlayer::Player1)),
-            ControllerType::Gamepad(id) => Box::new(GamepadController::new(id, TargetPlayer::Player1)),
+            ControllerType::Gamepad(index) => {
+                let keyboard_controller = Box::new(KeyboardController::new(TargetPlayer::Player1));
+                let gamepad_controller = Box::new(GamepadController::new(index, TargetPlayer::Player1));
+
+                let mut combined_player_controller = CombinedPlayerController::new();
+                combined_player_controller.add(keyboard_controller);
+                combined_player_controller.add(gamepad_controller);
+
+                Box::new(combined_player_controller)
+            }
         }
     }
 
     pub fn create_player2_controller(&self) -> Box<dyn PlayerController> {
         match self.player2_controller_type {
             ControllerType::Keyboard => Box::new(KeyboardController::new(TargetPlayer::Player2)),
-            ControllerType::Gamepad(id) => Box::new(GamepadController::new(id, TargetPlayer::Player2)),
+            ControllerType::Gamepad(index) => {
+                let keyboard_controller = Box::new(KeyboardController::new(TargetPlayer::Player2));
+                let gamepad_controller = Box::new(GamepadController::new(index, TargetPlayer::Player2));
+
+                let mut combined_player_controller = CombinedPlayerController::new();
+                combined_player_controller.add(keyboard_controller);
+                combined_player_controller.add(gamepad_controller);
+
+                Box::new(combined_player_controller)
+            }
         }
     }
 
