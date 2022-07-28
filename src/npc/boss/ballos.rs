@@ -345,7 +345,7 @@ impl NPC {
                     self.anim_counter = 0;
                     self.vel_x = 0;
                     self.damage = 10;
-                    self.direction = if self.action_num == 220 { Direction::Left } else { Direction::Right };
+                    self.direction = if self.action_num == 221 { Direction::Left } else { Direction::Right };
                     state.sound_manager.play_sfx(25);
                 }
                 self.vel_y = if self.action_num == 221 { -0x800 } else { 0x800 };
@@ -460,9 +460,9 @@ impl NPC {
                 self.action_counter += 1;
 
                 self.direction = if self.action_counter <= 200 || self.anim_counter >= 20 {
-                    Direction::Right
-                } else {
                     Direction::Left
+                } else {
+                    Direction::Right
                 };
                 self.anim_num = if self.anim_counter & 0x02 != 0 { 4 } else { 5 };
                 self.vel_x += if self.x < self.target_x { 0x40 } else { -0x40 };
@@ -1815,8 +1815,8 @@ impl BossNPC {
                     for _ in 0..256 {
                         let mut npc = NPC::create(4, &state.npc_table);
                         npc.cond.set_alive(true);
-                        npc.x = self.parts[0].rng.range(-60..60) * 0x200;
-                        npc.y = self.parts[0].rng.range(-60..60) * 0x200;
+                        npc.x = self.parts[0].x + self.parts[0].rng.range(-60..60) * 0x200;
+                        npc.y = self.parts[0].y + self.parts[0].rng.range(-60..60) * 0x200;
                         let _ = npc_list.spawn(0, npc);
                     }
                 }
