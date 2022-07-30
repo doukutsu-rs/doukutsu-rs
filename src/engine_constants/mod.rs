@@ -1503,6 +1503,7 @@ impl EngineConstants {
                 "Stage/PrtWhite" => (256, 240),
                 "TextBox" => (244, 144),
                 "Title" => (320, 48),
+                "triangles" => (20, 5),
             },
             textscript: TextScriptConsts {
                 encoding: TextScriptEncoding::ShiftJIS,

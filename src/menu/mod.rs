@@ -14,6 +14,8 @@ pub mod pause_menu;
 pub mod save_select_menu;
 pub mod settings_menu;
 
+const MENU_MIN_PADDING: f32 = 30.0;
+
 #[allow(dead_code)]
 #[derive(Clone)]
 pub enum MenuEntry {
@@ -199,21 +201,30 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
         let mut rect;
         let mut rect2;
 
+        let selected_y = self.get_selected_entry_y() as f32;
+
+        let mut computed_y = (self.y as f32).max(MENU_MIN_PADDING);
+
+        if (selected_y + MENU_MIN_PADDING) > state.canvas_size.1 - MENU_MIN_PADDING {
+            computed_y -= (selected_y + MENU_MIN_PADDING) - (state.canvas_size.1 - MENU_MIN_PADDING) + 4.0;
+        }
+
+        let mut x = self.x as f32;
+        let mut y = computed_y;
+        let mut width = self.width;
+        let mut height = self.height;
+
         rect = state.constants.title.menu_left_top;
-        batch.add_rect(self.x as f32 - rect.width() as f32, self.y as f32 - rect.height() as f32, &rect);
+        batch.add_rect(self.x as f32 - rect.width() as f32, y - rect.height() as f32, &rect);
         rect = state.constants.title.menu_right_top;
-        batch.add_rect(self.x as f32 + self.width as f32, self.y as f32 - rect.height() as f32, &rect);
+        batch.add_rect(self.x as f32 + self.width as f32, y - rect.height() as f32, &rect);
         rect = state.constants.title.menu_left_bottom;
-        batch.add_rect(self.x as f32 - rect.width() as f32, self.y as f32 + self.height as f32, &rect);
+        batch.add_rect(self.x as f32 - rect.width() as f32, y + self.height as f32, &rect);
         rect = state.constants.title.menu_right_bottom;
-        batch.add_rect(self.x as f32 + self.width as f32, self.y as f32 + self.height as f32, &rect);
+        batch.add_rect(self.x as f32 + self.width as f32, y + self.height as f32, &rect);
 
         rect = state.constants.title.menu_top;
         rect2 = state.constants.title.menu_bottom;
-        let mut x = self.x as f32;
-        let mut y = self.y as f32;
-        let mut width = self.width;
-        let mut height = self.height;
 
         while width > 0 {
             rect.right = if width >= rect.width() {
@@ -251,7 +262,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
         }
 
         height = self.height;
-        y = self.y as f32;
+        y = computed_y;
 
         while height > 0 {
             rect = state.constants.title.menu_middle;
@@ -287,22 +298,6 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
 
         batch.draw(ctx)?;
 
-        let mut entry_y = 0;
-
-        if !self.entries.is_empty() {
-            let mut sum = 0.0;
-
-            for (id, entry) in &self.entries {
-                if *id == self.selected {
-                    break;
-                }
-
-                sum += entry.height();
-            }
-
-            entry_y = sum as u16;
-        }
-
         if self.draw_cursor {
             if self.custom_cursor.get() {
                 if let Ok(batch) = state.texture_set.get_or_load_batch(ctx, &state.constants, "MenuCursor") {
@@ -311,7 +306,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
                     rect.right = rect.left + 16;
                     rect.bottom = rect.top + 16;
 
-                    batch.add_rect(self.x as f32, self.y as f32 + 3.0 + entry_y as f32, &rect);
+                    batch.add_rect(self.x as f32, computed_y + 3.0 + selected_y, &rect);
 
                     batch.draw(ctx)?;
                 } else {
@@ -348,17 +343,13 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
 
                 let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, menu_texture)?;
 
-                batch.add_rect(
-                    self.x as f32,
-                    self.y as f32 + 4.0 + entry_y as f32,
-                    &character_rect[self.anim_num as usize],
-                );
+                batch.add_rect(self.x as f32, computed_y + 4.0 + selected_y, &character_rect[self.anim_num as usize]);
 
                 batch.draw(ctx)?;
             }
         }
 
-        y = self.y as f32 + 8.0;
+        y = computed_y + 8.0;
         for (_, entry) in &self.entries {
             match entry {
                 MenuEntry::Active(name) | MenuEntry::DisabledWhite(name) => {
@@ -609,6 +600,20 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
             y += entry.height() as f32;
         }
 
+        if self.height as f32 > state.canvas_size.1 && self.selected != self.entries.last().unwrap().0 {
+            // draw down triangle
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "triangles")?;
+            batch.add_rect(self.x as f32 + 6.0, state.canvas_size.1 - 10.0, &Rect::new_size(0, 0, 5, 5));
+            batch.draw(ctx)?;
+        }
+
+        if computed_y < 0.0 {
+            // draw up triangle
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "triangles")?;
+            batch.add_rect(self.x as f32 + 6.0, 7.0, &Rect::new_size(5, 0, 5, 5));
+            batch.draw(ctx)?;
+        }
+
         Ok(())
     }
 
@@ -719,5 +724,25 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
         }
 
         MenuSelectionResult::None
+    }
+
+    fn get_selected_entry_y(&self) -> u16 {
+        let mut entry_y: u16 = 0;
+
+        if !self.entries.is_empty() {
+            let mut sum = 0.0;
+
+            for (id, entry) in &self.entries {
+                if *id == self.selected {
+                    break;
+                }
+
+                sum += entry.height();
+            }
+
+            entry_y = sum as u16;
+        }
+
+        entry_y
     }
 }
