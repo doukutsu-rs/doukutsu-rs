@@ -1671,7 +1671,9 @@ impl EngineConstants {
                     (Button::LeftShoulder, GamepadConsts::rects(Rect::new(32, 32, 64, 48))),
                     (Button::RightShoulder, GamepadConsts::rects(Rect::new(32, 48, 64, 64))),
                     (Button::Start, GamepadConsts::rects(Rect::new(32, 96, 64, 112))),
-                    (Button::Guide, GamepadConsts::rects(Rect::new(32, 112, 64, 128))),
+                    (Button::Back, GamepadConsts::rects(Rect::new(32, 112, 64, 128))),
+                    (Button::LeftStick, GamepadConsts::rects(Rect::new(32, 0, 64, 16))),
+                    (Button::RightStick, GamepadConsts::rects(Rect::new(32, 16, 64, 32))),
                 ]),
                 axis_rects: HashMap::from([
                     (Axis::LeftX, GamepadConsts::rects(Rect::new(32, 0, 64, 16))),

@@ -86,7 +86,10 @@ pub enum Button {
 
 impl Button {
     pub fn get_rect(&self, offset: usize, constants: &EngineConstants) -> Rect<u16> {
-        constants.gamepad.button_rects.get(self).unwrap()[offset]
+        match self {
+            Button::Guide => Rect::new(0, 0, 0, 0),
+            _ => constants.gamepad.button_rects.get(self).unwrap()[offset],
+        }
     }
 }
 

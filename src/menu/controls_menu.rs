@@ -320,7 +320,21 @@ impl ControlsMenu {
 
         let gamepads = gamepad::get_gamepads(ctx);
 
+        let other_player_controller_type = match self.selected_player {
+            Player::Player1 => state.settings.player2_controller_type,
+            Player::Player2 => state.settings.player1_controller_type,
+        };
+
+        let mut available_gamepads = gamepads.len();
+
         for i in 0..gamepads.len() {
+            if let ControllerType::Gamepad(index) = other_player_controller_type {
+                if index as usize == i {
+                    available_gamepads -= 1;
+                    continue;
+                }
+            }
+
             controllers.push(format!("{} {}", gamepads[i].get_gamepad_name(), i + 1));
         }
 
@@ -330,7 +344,7 @@ impl ControlsMenu {
         };
 
         if let ControllerType::Gamepad(index) = controller_type {
-            if index as usize >= gamepads.len() {
+            if index as usize >= available_gamepads {
                 self.selected_controller = ControllerType::Keyboard;
             } else {
                 self.selected_controller = controller_type;
@@ -687,7 +701,9 @@ impl ControlsMenu {
             },
             CurrentMenu::RebindMenu => match self.rebind.tick(controller, state) {
                 MenuSelectionResult::Selected(RebindMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
-                    self.current = CurrentMenu::ControllerMenu;
+                    if !self.input_busy {
+                        self.current = CurrentMenu::ControllerMenu;
+                    }
                 }
                 MenuSelectionResult::Selected(RebindMenuEntry::Control(control), _) => {
                     if !self.input_busy {
@@ -793,19 +809,17 @@ impl ControlsMenu {
 
         if self.input_busy {
             let pressed_keys = ctx.keyboard_context.pressed_keys();
+            let mut input_busy = pressed_keys.len() > 0;
 
-            if let ControllerType::Gamepad(idx) = self.selected_controller {
-                let pressed_buttons = ctx.gamepad_context.pressed_buttons(idx);
-                let active_axes = ctx.gamepad_context.active_axes(idx);
+            let gamepads = ctx.gamepad_context.get_gamepads();
+            for idx in 0..gamepads.len() {
+                let pressed_gamepad_buttons = ctx.gamepad_context.pressed_buttons(idx as u32);
+                let active_axes = ctx.gamepad_context.active_axes(idx as u32);
 
-                if pressed_keys.is_empty() && pressed_buttons.is_empty() && active_axes.is_empty() {
-                    self.input_busy = false;
-                }
-            } else {
-                if pressed_keys.is_empty() {
-                    self.input_busy = false;
-                }
+                input_busy = input_busy || !pressed_gamepad_buttons.is_empty() || !active_axes.is_empty();
             }
+
+            self.input_busy = input_busy;
         }
 
         Ok(())
