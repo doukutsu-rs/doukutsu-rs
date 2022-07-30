@@ -9,12 +9,19 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::save_select_menu::MenuSaveInfo;
 use crate::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameState};
 
+pub mod controls_menu;
 pub mod coop_menu;
 pub mod pause_menu;
 pub mod save_select_menu;
 pub mod settings_menu;
 
 const MENU_MIN_PADDING: f32 = 30.0;
+
+#[derive(Clone, Debug)]
+pub enum ControlMenuData {
+    String(String),
+    Rect(Rect<u16>),
+}
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -31,6 +38,7 @@ pub enum MenuEntry {
     SaveDataSingle(MenuSaveInfo),
     NewSave,
     PlayerSkin,
+    Control(String, ControlMenuData),
 }
 
 impl MenuEntry {
@@ -48,6 +56,7 @@ impl MenuEntry {
             MenuEntry::SaveDataSingle(_) => 32.0,
             MenuEntry::NewSave => 32.0,
             MenuEntry::PlayerSkin => 24.0,
+            MenuEntry::Control(_, _) => 16.0,
         }
     }
 
@@ -65,6 +74,7 @@ impl MenuEntry {
             MenuEntry::SaveDataSingle(_) => true,
             MenuEntry::NewSave => true,
             MenuEntry::PlayerSkin => true,
+            MenuEntry::Control(_, _) => true,
         }
     }
 }
@@ -88,6 +98,7 @@ pub struct Menu<T: std::cmp::PartialEq> {
     anim_wait: u16,
     custom_cursor: Cell<bool>,
     pub draw_cursor: bool,
+    pub non_interactive: bool,
 }
 
 impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
@@ -103,6 +114,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
             entries: Vec::new(),
             custom_cursor: Cell::new(true),
             draw_cursor: true,
+            non_interactive: false,
         }
     }
 
@@ -177,6 +189,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
                 MenuEntry::SaveDataSingle(_) => {}
                 MenuEntry::NewSave => {}
                 MenuEntry::PlayerSkin => {}
+                MenuEntry::Control(_, _) => {}
             }
         }
 
@@ -594,6 +607,39 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
 
                     draw_number(right_edge - 36.0, y, save.life as usize, Alignment::Right, state, ctx)?;
                 }
+                MenuEntry::Control(name, data) => {
+                    state.font.draw_text(
+                        name.chars(),
+                        self.x as f32 + 20.0,
+                        y,
+                        &state.constants,
+                        &mut state.texture_set,
+                        ctx,
+                    )?;
+
+                    match data {
+                        ControlMenuData::String(value) => {
+                            let text_width = state.font.text_width(value.chars(), &state.constants);
+
+                            state.font.draw_text(
+                                value.chars(),
+                                self.x as f32 + self.width as f32 - 5.0 - text_width,
+                                y,
+                                &state.constants,
+                                &mut state.texture_set,
+                                ctx,
+                            )?;
+                        }
+                        ControlMenuData::Rect(value) => {
+                            let rect_width = value.width() as f32;
+                            let y = y + rect.height() as f32 / 2.0 - state.font.line_height(&state.constants) + 4.0;
+
+                            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "buttons")?;
+                            batch.add_rect(self.x as f32 + self.width as f32 - 5.0 - rect_width, y, &value);
+                            batch.draw(ctx)?;
+                        }
+                    }
+                }
                 _ => {}
             }
 
@@ -622,6 +668,10 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
         controller: &mut CombinedMenuController,
         state: &mut SharedGameState,
     ) -> MenuSelectionResult<T> {
+        if self.non_interactive {
+            return MenuSelectionResult::None;
+        }
+
         if controller.trigger_back() {
             state.sound_manager.play_sfx(5);
             return MenuSelectionResult::Canceled;
@@ -708,6 +758,15 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
                 {
                     state.sound_manager.play_sfx(1);
                     return MenuSelectionResult::Right(self.selected, entry, 1);
+                }
+                MenuEntry::Control(_, _) => {
+                    if self.selected == idx && controller.trigger_ok()
+                        || state.touch_controls.consume_click_in(entry_bounds)
+                    {
+                        state.sound_manager.play_sfx(18);
+                        self.selected = idx;
+                        return MenuSelectionResult::Selected(idx, entry);
+                    }
                 }
                 _ => {}
             }

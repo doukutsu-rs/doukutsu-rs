@@ -13,6 +13,8 @@ use crate::shared_game_state::{Language, ScreenShakeIntensity, SharedGameState, 
 use crate::sound::InterpolationMode;
 use crate::{graphics, VSyncMode};
 
+use super::controls_menu::ControlsMenu;
+
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
 #[allow(unused)]
@@ -20,6 +22,7 @@ enum CurrentMenu {
     MainMenu,
     GraphicsMenu,
     SoundMenu,
+    ControlsMenu,
     SoundtrackMenu,
     LanguageMenu,
     BehaviorMenu,
@@ -29,6 +32,7 @@ enum CurrentMenu {
 enum MainMenuEntry {
     Graphics,
     Sound,
+    Controls,
     Language,
     Behavior,
     DiscordLink,
@@ -123,6 +127,7 @@ pub struct SettingsMenu {
     soundtrack: Menu<SoundtrackMenuEntry>,
     language: Menu<LanguageMenuEntry>,
     behavior: Menu<BehaviorMenuEntry>,
+    controls_menu: ControlsMenu,
     pub on_title: bool,
 }
 
@@ -137,6 +142,8 @@ impl SettingsMenu {
         let language = Menu::new(0, 0, 120, 0);
         let behavior = Menu::new(0, 0, 220, 0);
 
+        let controls_menu = ControlsMenu::new();
+
         SettingsMenu {
             current: CurrentMenu::MainMenu,
             main,
@@ -145,6 +152,7 @@ impl SettingsMenu {
             soundtrack,
             language,
             behavior,
+            controls_menu,
             on_title: false,
         }
     }
@@ -264,6 +272,9 @@ impl SettingsMenu {
         self.main.push_entry(MainMenuEntry::Graphics, MenuEntry::Active(state.t("menus.options_menu.graphics")));
         self.main.push_entry(MainMenuEntry::Sound, MenuEntry::Active(state.t("menus.options_menu.sound")));
 
+        #[cfg(not(target_os = "android"))]
+        self.main.push_entry(MainMenuEntry::Controls, MenuEntry::Active(state.t("menus.options_menu.controls")));
+
         self.language.push_entry(LanguageMenuEntry::Title, MenuEntry::Disabled(state.t("menus.options_menu.language")));
 
         for language in Language::values() {
@@ -374,6 +385,8 @@ impl SettingsMenu {
 
         self.behavior.push_entry(BehaviorMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
+        self.controls_menu.init(state, ctx)?;
+
         self.update_sizes(state);
 
         Ok(())
@@ -427,6 +440,9 @@ impl SettingsMenu {
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Sound, _) => {
                     self.current = CurrentMenu::SoundMenu;
+                }
+                MenuSelectionResult::Selected(MainMenuEntry::Controls, _) => {
+                    self.current = CurrentMenu::ControlsMenu;
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Language, _) => {
                     self.language.selected = LanguageMenuEntry::Language(state.settings.locale);
@@ -643,6 +659,17 @@ impl SettingsMenu {
                 }
                 _ => (),
             },
+            CurrentMenu::ControlsMenu => {
+                let cm = &mut self.current;
+                self.controls_menu.tick(
+                    &mut || {
+                        *cm = CurrentMenu::MainMenu;
+                    },
+                    controller,
+                    state,
+                    ctx,
+                )?;
+            }
             CurrentMenu::LanguageMenu => match self.language.tick(controller, state) {
                 MenuSelectionResult::Selected(LanguageMenuEntry::Language(new_locale), entry) => {
                     if let MenuEntry::Active(_) = entry {
@@ -727,6 +754,7 @@ impl SettingsMenu {
             CurrentMenu::GraphicsMenu => self.graphics.draw(state, ctx)?,
             CurrentMenu::SoundMenu => self.sound.draw(state, ctx)?,
             CurrentMenu::SoundtrackMenu => self.soundtrack.draw(state, ctx)?,
+            CurrentMenu::ControlsMenu => self.controls_menu.draw(state, ctx)?,
             CurrentMenu::LanguageMenu => self.language.draw(state, ctx)?,
             CurrentMenu::BehaviorMenu => self.behavior.draw(state, ctx)?,
         }

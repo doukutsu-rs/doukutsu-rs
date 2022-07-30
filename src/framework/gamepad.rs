@@ -33,6 +33,26 @@ pub enum AxisDirection {
 }
 
 impl AxisDirection {
+    pub fn from_axis_data(axis: Axis, value: f64) -> Self {
+        match axis {
+            Axis::LeftX | Axis::RightX => {
+                if value < 0.0 {
+                    AxisDirection::Left
+                } else {
+                    AxisDirection::Right
+                }
+            }
+            Axis::LeftY | Axis::RightY => {
+                if value < 0.0 {
+                    AxisDirection::Up
+                } else {
+                    AxisDirection::Down
+                }
+            }
+            Axis::TriggerLeft | Axis::TriggerRight => AxisDirection::Either,
+        }
+    }
+
     pub fn compare(&self, value: f64, axis_sensitivity: f64) -> bool {
         match self {
             AxisDirection::None => false,
@@ -142,6 +162,26 @@ impl GamepadData {
         }
 
         1
+    }
+
+    pub fn get_gamepad_name(&self) -> String {
+        let name = if let Some(controller_type) = self.controller_type {
+            match controller_type {
+                sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_PS3
+                | sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_PS4
+                | sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_PS5 => "PlayStation Controller".to_string(),
+                sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_XBOX360
+                | sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_XBOXONE => "Xbox Controller".to_string(),
+                sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO => {
+                    "Nintendo Switch Controller".to_string()
+                }
+                _ => "Unknown Controller".to_string(),
+            }
+        } else {
+            "Unknown controller".to_string()
+        };
+
+        name
     }
 }
 
@@ -258,6 +298,28 @@ impl GamepadContext {
             }
         }
     }
+
+    pub(crate) fn get_gamepads(&self) -> &Vec<GamepadData> {
+        &self.gamepads
+    }
+
+    pub(crate) fn pressed_buttons(&self, gamepad_index: u32) -> HashSet<Button> {
+        if let Some(gamepad) = self.get_gamepad_by_index(gamepad_index as usize) {
+            return gamepad.pressed_buttons_set.clone();
+        }
+
+        HashSet::new()
+    }
+
+    pub(crate) fn active_axes(&self, gamepad_index: u32) -> HashMap<Axis, f64> {
+        if let Some(gamepad) = self.get_gamepad_by_index(gamepad_index as usize) {
+            let mut active_axes = gamepad.axis_values.clone();
+            active_axes.retain(|_, v| v.abs() > gamepad.axis_sensitivity);
+            return active_axes;
+        }
+
+        HashMap::new()
+    }
 }
 
 impl Default for GamepadContext {
@@ -292,4 +354,16 @@ pub fn is_button_active(ctx: &Context, gamepad_index: u32, button: Button) -> bo
 
 pub fn is_axis_active(ctx: &Context, gamepad_index: u32, axis: Axis, direction: AxisDirection) -> bool {
     ctx.gamepad_context.is_axis_active(gamepad_index, axis, direction)
+}
+
+pub fn get_gamepads(ctx: &Context) -> &Vec<GamepadData> {
+    ctx.gamepad_context.get_gamepads()
+}
+
+pub fn pressed_buttons(ctx: &Context, gamepad_index: u32) -> HashSet<Button> {
+    ctx.gamepad_context.pressed_buttons(gamepad_index)
+}
+
+pub fn active_axes(ctx: &Context, gamepad_index: u32) -> HashMap<Axis, f64> {
+    ctx.gamepad_context.active_axes(gamepad_index)
 }

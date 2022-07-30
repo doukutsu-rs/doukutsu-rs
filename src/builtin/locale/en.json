@@ -114,6 +114,8 @@
         "soundtrack": "Soundtrack: {soundtrack}"
       },
 
+      "controls": "Controls...",
+
       "language": "Language...",
 
       "behavior": "Behavior...",
@@ -124,6 +126,38 @@
           "60tps": "60tps (CS+)"
         },
         "pause_on_focus_loss": "Pause on focus loss:"
+      }
+    },
+
+    "controls_menu": {
+      "select_player": {
+        "entry": "Select player:",
+        "player_1": "Player 1",
+        "player_2": "Player 2"
+      },
+      "controller": {
+        "entry": "Controller:",
+        "keyboard": "Keyboard"
+      },
+      "rebind": "Rebind...",
+      "rebind_menu": {
+        "up": "Up",
+        "down": "Down",
+        "left": "Left",
+        "right": "Right",
+        "jump": "Jump",
+        "shoot": "Shoot",
+        "prev_weapon": "Previous weapon",
+        "next_weapon": "Next weapon",
+        "inventory": "Inventory",
+        "map": "Map system",
+        "skip": "Skip",
+        "strafe": "Strafe"
+      },
+
+      "rebind_confirm_menu": {
+        "title": "Press button for \"{control}\"",
+        "cancel": "(Esc to cancel)"
       }
     }
   },

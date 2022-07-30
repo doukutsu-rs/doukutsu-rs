@@ -389,7 +389,7 @@ fn p2_default_keymap() -> PlayerKeyMap {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Eq, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Eq, PartialEq, Copy, Clone)]
 pub enum ControllerType {
     Keyboard,
     Gamepad(u32),
