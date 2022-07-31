@@ -388,12 +388,12 @@ impl ControlsMenu {
     }
 
     fn is_key_occupied(&self, scan_code: ScanCode) -> bool {
-        let keymap = match self.selected_player {
+        let other_player_keymap = match self.selected_player {
             Player::Player1 => &self.player2_key_map,
             Player::Player2 => &self.player1_key_map,
         };
 
-        for (_, v) in keymap.iter() {
+        for (_, v) in other_player_keymap.iter() {
             if *v == scan_code {
                 return true;
             }
@@ -406,6 +406,8 @@ impl ControlsMenu {
         if self.selected_control.is_none() {
             return Ok(());
         }
+
+        let mut jump_shoot_swapped = false;
 
         match self.selected_control.unwrap() {
             ControlEntry::Left => match self.selected_player {
@@ -433,12 +435,38 @@ impl ControlsMenu {
                 Player::Player2 => state.settings.player2_key_map.next_weapon = scan_code,
             },
             ControlEntry::Jump => match self.selected_player {
-                Player::Player1 => state.settings.player1_key_map.jump = scan_code,
-                Player::Player2 => state.settings.player2_key_map.jump = scan_code,
+                Player::Player1 => {
+                    if state.settings.player1_key_map.shoot == scan_code {
+                        state.settings.player1_key_map.shoot = state.settings.player1_key_map.jump;
+                        jump_shoot_swapped = true;
+                    }
+
+                    state.settings.player1_key_map.jump = scan_code;
+                }
+                Player::Player2 => {
+                    if state.settings.player2_key_map.shoot == scan_code {
+                        state.settings.player2_key_map.shoot = state.settings.player2_key_map.jump;
+                    }
+
+                    state.settings.player2_key_map.jump = scan_code;
+                }
             },
             ControlEntry::Shoot => match self.selected_player {
-                Player::Player1 => state.settings.player1_key_map.shoot = scan_code,
-                Player::Player2 => state.settings.player2_key_map.shoot = scan_code,
+                Player::Player1 => {
+                    if state.settings.player1_key_map.jump == scan_code {
+                        state.settings.player1_key_map.jump = state.settings.player1_key_map.shoot;
+                        jump_shoot_swapped = true;
+                    }
+
+                    state.settings.player1_key_map.jump = scan_code;
+                }
+                Player::Player2 => {
+                    if state.settings.player2_key_map.jump == scan_code {
+                        state.settings.player2_key_map.jump = state.settings.player2_key_map.shoot;
+                    }
+
+                    state.settings.player2_key_map.shoot = scan_code;
+                }
             },
             ControlEntry::Skip => match self.selected_player {
                 Player::Player1 => state.settings.player1_key_map.skip = scan_code,
@@ -469,6 +497,19 @@ impl ControlsMenu {
             if *entry == self.selected_control.unwrap() {
                 *value = scan_code;
             }
+
+            if jump_shoot_swapped {
+                let map = match self.selected_player {
+                    Player::Player1 => &state.settings.player1_key_map,
+                    Player::Player2 => &state.settings.player2_key_map,
+                };
+
+                if *entry == ControlEntry::Jump {
+                    *value = map.jump;
+                } else if *entry == ControlEntry::Shoot {
+                    *value = map.shoot;
+                }
+            }
         }
 
         Ok(())
@@ -483,6 +524,8 @@ impl ControlsMenu {
         if self.selected_control.is_none() {
             return Ok(());
         }
+
+        let mut jump_shoot_swapped = false;
 
         match self.selected_control.unwrap() {
             ControlEntry::Left => match self.selected_player {
@@ -510,12 +553,44 @@ impl ControlsMenu {
                 Player::Player2 => state.settings.player2_controller_button_map.next_weapon = input_type,
             },
             ControlEntry::Jump => match self.selected_player {
-                Player::Player1 => state.settings.player1_controller_button_map.jump = input_type,
-                Player::Player2 => state.settings.player2_controller_button_map.jump = input_type,
+                Player::Player1 => {
+                    if state.settings.player1_controller_button_map.shoot == input_type {
+                        state.settings.player1_controller_button_map.shoot =
+                            state.settings.player1_controller_button_map.jump;
+                        jump_shoot_swapped = true;
+                    }
+
+                    state.settings.player1_controller_button_map.jump = input_type;
+                }
+                Player::Player2 => {
+                    if state.settings.player2_controller_button_map.shoot == input_type {
+                        state.settings.player2_controller_button_map.shoot =
+                            state.settings.player2_controller_button_map.jump;
+                        jump_shoot_swapped = true;
+                    }
+
+                    state.settings.player2_controller_button_map.jump = input_type;
+                }
             },
             ControlEntry::Shoot => match self.selected_player {
-                Player::Player1 => state.settings.player1_controller_button_map.shoot = input_type,
-                Player::Player2 => state.settings.player2_controller_button_map.shoot = input_type,
+                Player::Player1 => {
+                    if state.settings.player1_controller_button_map.jump == input_type {
+                        state.settings.player1_controller_button_map.jump =
+                            state.settings.player1_controller_button_map.shoot;
+                        jump_shoot_swapped = true;
+                    }
+
+                    state.settings.player1_controller_button_map.jump = input_type;
+                }
+                Player::Player2 => {
+                    if state.settings.player2_controller_button_map.jump == input_type {
+                        state.settings.player2_controller_button_map.jump =
+                            state.settings.player2_controller_button_map.shoot;
+                        jump_shoot_swapped = true;
+                    }
+
+                    state.settings.player2_controller_button_map.shoot = input_type;
+                }
             },
             ControlEntry::Skip => match self.selected_player {
                 Player::Player1 => state.settings.player1_controller_button_map.skip = input_type,
@@ -545,6 +620,19 @@ impl ControlsMenu {
         for (entry, value) in button_map.iter_mut() {
             if *entry == self.selected_control.unwrap() {
                 *value = input_type;
+            }
+
+            if jump_shoot_swapped {
+                let map = match self.selected_player {
+                    Player::Player1 => &state.settings.player1_controller_button_map,
+                    Player::Player2 => &state.settings.player2_controller_button_map,
+                };
+
+                if *entry == ControlEntry::Jump {
+                    *value = map.jump;
+                } else if *entry == ControlEntry::Shoot {
+                    *value = map.shoot;
+                }
             }
         }
 
@@ -651,6 +739,7 @@ impl ControlsMenu {
                     new_menu_controller.add(state.settings.create_player1_controller());
                     new_menu_controller.add(state.settings.create_player2_controller());
                     self.input_busy = true;
+                    self.controller.non_interactive = true;
                     *controller = new_menu_controller;
 
                     self.update_rebind_menu(state, ctx);
@@ -687,6 +776,7 @@ impl ControlsMenu {
                     new_menu_controller.add(state.settings.create_player1_controller());
                     new_menu_controller.add(state.settings.create_player2_controller());
                     self.input_busy = true;
+                    self.controller.non_interactive = true;
                     *controller = new_menu_controller;
 
                     self.update_rebind_menu(state, ctx);
@@ -732,6 +822,7 @@ impl ControlsMenu {
                             if pressed_keys.len() == 1 {
                                 if !self.input_busy {
                                     self.input_busy = true;
+                                    self.rebind.non_interactive = true;
 
                                     let key = **pressed_keys.first().unwrap();
 
@@ -757,6 +848,7 @@ impl ControlsMenu {
                             if pressed_gamepad_buttons.len() == 1 {
                                 if !self.input_busy {
                                     self.input_busy = true;
+                                    self.rebind.non_interactive = true;
 
                                     if self.selected_player.controller_type(state) != self.selected_controller {
                                         state.sound_manager.play_sfx(12);
@@ -779,6 +871,7 @@ impl ControlsMenu {
                             if active_axes.len() == 1 {
                                 if !self.input_busy {
                                     self.input_busy = true;
+                                    self.rebind.non_interactive = true;
 
                                     if self.selected_player.controller_type(state) != self.selected_controller {
                                         state.sound_manager.play_sfx(12);
@@ -820,6 +913,11 @@ impl ControlsMenu {
             }
 
             self.input_busy = input_busy;
+
+            if !self.input_busy {
+                self.controller.non_interactive = false;
+                self.rebind.non_interactive = false;
+            }
         }
 
         Ok(())

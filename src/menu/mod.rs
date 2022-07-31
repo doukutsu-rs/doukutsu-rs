@@ -668,6 +668,16 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
         controller: &mut CombinedMenuController,
         state: &mut SharedGameState,
     ) -> MenuSelectionResult<T> {
+        self.anim_wait += 1;
+        if self.anim_wait > 8 {
+            self.anim_wait = 0;
+
+            self.anim_num += 1;
+            if self.anim_num >= 4 as u16 {
+                self.anim_num = 0;
+            }
+        }
+
         if self.non_interactive {
             return MenuSelectionResult::None;
         }
@@ -769,16 +779,6 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
                     }
                 }
                 _ => {}
-            }
-        }
-
-        self.anim_wait += 1;
-        if self.anim_wait > 8 {
-            self.anim_wait = 0;
-
-            self.anim_num += 1;
-            if self.anim_num >= 4 as u16 {
-                self.anim_num = 0;
             }
         }
 
