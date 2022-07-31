@@ -24,6 +24,8 @@ bitfield! {
   pub enter, set_enter: 11;
   pub skip, set_skip: 12;
   pub strafe, set_strafe: 13;
+  pub menu_ok, set_menu_ok: 14;
+  pub menu_back, set_menu_back: 15;
 }
 
 #[derive(Copy, Clone)]
@@ -154,11 +156,11 @@ impl PlayerController for ReplayController {
     }
 
     fn trigger_menu_ok(&self) -> bool {
-        self.trigger.jump() || self.trigger.enter()
+        self.trigger.menu_ok() || self.trigger.enter()
     }
 
     fn trigger_menu_back(&self) -> bool {
-        self.trigger.shoot() || self.trigger.escape()
+        self.trigger.menu_back() || self.trigger.escape()
     }
 
     fn trigger_menu_pause(&self) -> bool {

@@ -22,9 +22,10 @@ bitfield! {
     pub next_weapon, set_next_weapon: 8;
     pub prev_weapon, set_prev_weapon: 9;
     pub escape, set_escape: 10;
-    pub enter, set_enter: 11;
-    pub skip, set_skip: 12;
-    pub strafe, set_strafe: 13;
+    pub skip, set_skip: 11;
+    pub strafe, set_strafe: 12;
+    pub menu_ok, set_menu_ok: 13;
+    pub menu_back, set_menu_back: 14;
 }
 
 #[derive(Clone)]
@@ -64,9 +65,10 @@ impl PlayerController for GamepadController {
             self.gamepad_id,
             &PlayerControllerInputType::ButtonInput(Button::Start),
         ));
-        self.state.set_enter(gamepad::is_active(ctx, self.gamepad_id, &button_map.jump));
         self.state.set_skip(gamepad::is_active(ctx, self.gamepad_id, &button_map.skip));
         self.state.set_strafe(gamepad::is_active(ctx, self.gamepad_id, &button_map.strafe));
+        self.state.set_menu_ok(gamepad::is_active(ctx, self.gamepad_id, &button_map.menu_ok));
+        self.state.set_menu_back(gamepad::is_active(ctx, self.gamepad_id, &button_map.menu_back));
 
         Ok(())
     }
@@ -175,11 +177,11 @@ impl PlayerController for GamepadController {
     }
 
     fn trigger_menu_ok(&self) -> bool {
-        self.trigger.jump() || self.trigger.enter()
+        self.trigger.menu_ok()
     }
 
     fn trigger_menu_back(&self) -> bool {
-        self.trigger.shoot() || self.trigger.escape()
+        self.trigger.menu_back() || self.trigger.escape()
     }
 
     fn trigger_menu_pause(&self) -> bool {

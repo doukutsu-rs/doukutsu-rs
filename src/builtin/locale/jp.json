@@ -144,7 +144,9 @@
         "inventory": "在庫",
         "map": "マップシステム",
         "skip": "スキップ",
-        "strafe": "ストレイフ"
+        "strafe": "ストレイフ",
+        "menu_ok": "メニュー選択／OK",
+        "menu_back": "メニュー残す／キャンセル"
       },
 
       "rebind_confirm_menu": {

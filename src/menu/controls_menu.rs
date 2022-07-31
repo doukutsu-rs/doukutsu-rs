@@ -55,7 +55,7 @@ enum RebindMenuEntry {
 
 impl Default for RebindMenuEntry {
     fn default() -> Self {
-        RebindMenuEntry::Control(ControlEntry::Up)
+        RebindMenuEntry::Control(ControlEntry::MenuOk)
     }
 }
 
@@ -88,6 +88,8 @@ enum ControlEntry {
     Inventory,
     Map,
     Strafe,
+    MenuOk,
+    MenuBack,
 }
 
 impl ControlEntry {
@@ -105,6 +107,8 @@ impl ControlEntry {
             ControlEntry::Inventory => state.t("menus.controls_menu.rebind_menu.inventory"),
             ControlEntry::Map => state.t("menus.controls_menu.rebind_menu.map"),
             ControlEntry::Strafe => state.t("menus.controls_menu.rebind_menu.strafe"),
+            ControlEntry::MenuOk => state.t("menus.controls_menu.rebind_menu.menu_ok"),
+            ControlEntry::MenuBack => state.t("menus.controls_menu.rebind_menu.menu_back"),
         }
     }
 }
@@ -207,6 +211,8 @@ impl ControlsMenu {
     fn init_key_map(&self, settings_key_map: &PlayerKeyMap) -> Vec<(ControlEntry, ScanCode)> {
         let mut map = Vec::new();
 
+        map.push((ControlEntry::MenuOk, settings_key_map.menu_ok));
+        map.push((ControlEntry::MenuBack, settings_key_map.menu_back));
         map.push((ControlEntry::Up, settings_key_map.up));
         map.push((ControlEntry::Down, settings_key_map.down));
         map.push((ControlEntry::Left, settings_key_map.left));
@@ -229,6 +235,8 @@ impl ControlsMenu {
     ) -> Vec<(ControlEntry, PlayerControllerInputType)> {
         let mut map = Vec::new();
 
+        map.push((ControlEntry::MenuOk, settings_controller_button_map.menu_ok));
+        map.push((ControlEntry::MenuBack, settings_controller_button_map.menu_back));
         map.push((ControlEntry::Up, settings_controller_button_map.up));
         map.push((ControlEntry::Down, settings_controller_button_map.down));
         map.push((ControlEntry::Left, settings_controller_button_map.left));
@@ -407,7 +415,7 @@ impl ControlsMenu {
             return Ok(());
         }
 
-        let mut jump_shoot_swapped = false;
+        let mut did_swap_controls = false;
 
         match self.selected_control.unwrap() {
             ControlEntry::Left => match self.selected_player {
@@ -436,36 +444,34 @@ impl ControlsMenu {
             },
             ControlEntry::Jump => match self.selected_player {
                 Player::Player1 => {
-                    if state.settings.player1_key_map.shoot == scan_code {
-                        state.settings.player1_key_map.shoot = state.settings.player1_key_map.jump;
-                        jump_shoot_swapped = true;
-                    }
-
-                    state.settings.player1_key_map.jump = scan_code;
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player1_key_map.jump,
+                        &mut state.settings.player1_key_map.shoot,
+                        scan_code,
+                    );
                 }
                 Player::Player2 => {
-                    if state.settings.player2_key_map.shoot == scan_code {
-                        state.settings.player2_key_map.shoot = state.settings.player2_key_map.jump;
-                    }
-
-                    state.settings.player2_key_map.jump = scan_code;
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player2_key_map.jump,
+                        &mut state.settings.player2_key_map.shoot,
+                        scan_code,
+                    );
                 }
             },
             ControlEntry::Shoot => match self.selected_player {
                 Player::Player1 => {
-                    if state.settings.player1_key_map.jump == scan_code {
-                        state.settings.player1_key_map.jump = state.settings.player1_key_map.shoot;
-                        jump_shoot_swapped = true;
-                    }
-
-                    state.settings.player1_key_map.jump = scan_code;
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player1_key_map.shoot,
+                        &mut state.settings.player1_key_map.jump,
+                        scan_code,
+                    );
                 }
                 Player::Player2 => {
-                    if state.settings.player2_key_map.jump == scan_code {
-                        state.settings.player2_key_map.jump = state.settings.player2_key_map.shoot;
-                    }
-
-                    state.settings.player2_key_map.shoot = scan_code;
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player2_key_map.shoot,
+                        &mut state.settings.player2_key_map.jump,
+                        scan_code,
+                    );
                 }
             },
             ControlEntry::Skip => match self.selected_player {
@@ -484,6 +490,38 @@ impl ControlsMenu {
                 Player::Player1 => state.settings.player1_key_map.strafe = scan_code,
                 Player::Player2 => state.settings.player2_key_map.strafe = scan_code,
             },
+            ControlEntry::MenuOk => match self.selected_player {
+                Player::Player1 => {
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player1_key_map.menu_ok,
+                        &mut state.settings.player1_key_map.menu_back,
+                        scan_code,
+                    );
+                }
+                Player::Player2 => {
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player2_key_map.menu_ok,
+                        &mut state.settings.player2_key_map.menu_back,
+                        scan_code,
+                    );
+                }
+            },
+            ControlEntry::MenuBack => match self.selected_player {
+                Player::Player1 => {
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player1_key_map.menu_back,
+                        &mut state.settings.player1_key_map.menu_ok,
+                        scan_code,
+                    );
+                }
+                Player::Player2 => {
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player2_key_map.menu_back,
+                        &mut state.settings.player2_key_map.menu_ok,
+                        scan_code,
+                    );
+                }
+            },
         }
 
         state.settings.save(ctx)?;
@@ -498,16 +536,18 @@ impl ControlsMenu {
                 *value = scan_code;
             }
 
-            if jump_shoot_swapped {
+            if did_swap_controls {
                 let map = match self.selected_player {
                     Player::Player1 => &state.settings.player1_key_map,
                     Player::Player2 => &state.settings.player2_key_map,
                 };
 
-                if *entry == ControlEntry::Jump {
-                    *value = map.jump;
-                } else if *entry == ControlEntry::Shoot {
-                    *value = map.shoot;
+                match *entry {
+                    ControlEntry::Jump => *value = map.jump,
+                    ControlEntry::Shoot => *value = map.shoot,
+                    ControlEntry::MenuOk => *value = map.menu_ok,
+                    ControlEntry::MenuBack => *value = map.menu_back,
+                    _ => {}
                 }
             }
         }
@@ -525,7 +565,7 @@ impl ControlsMenu {
             return Ok(());
         }
 
-        let mut jump_shoot_swapped = false;
+        let mut did_swap_controls = false;
 
         match self.selected_control.unwrap() {
             ControlEntry::Left => match self.selected_player {
@@ -554,42 +594,34 @@ impl ControlsMenu {
             },
             ControlEntry::Jump => match self.selected_player {
                 Player::Player1 => {
-                    if state.settings.player1_controller_button_map.shoot == input_type {
-                        state.settings.player1_controller_button_map.shoot =
-                            state.settings.player1_controller_button_map.jump;
-                        jump_shoot_swapped = true;
-                    }
-
-                    state.settings.player1_controller_button_map.jump = input_type;
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player1_controller_button_map.jump,
+                        &mut state.settings.player1_controller_button_map.shoot,
+                        input_type,
+                    );
                 }
                 Player::Player2 => {
-                    if state.settings.player2_controller_button_map.shoot == input_type {
-                        state.settings.player2_controller_button_map.shoot =
-                            state.settings.player2_controller_button_map.jump;
-                        jump_shoot_swapped = true;
-                    }
-
-                    state.settings.player2_controller_button_map.jump = input_type;
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player2_controller_button_map.jump,
+                        &mut state.settings.player2_controller_button_map.shoot,
+                        input_type,
+                    );
                 }
             },
             ControlEntry::Shoot => match self.selected_player {
                 Player::Player1 => {
-                    if state.settings.player1_controller_button_map.jump == input_type {
-                        state.settings.player1_controller_button_map.jump =
-                            state.settings.player1_controller_button_map.shoot;
-                        jump_shoot_swapped = true;
-                    }
-
-                    state.settings.player1_controller_button_map.jump = input_type;
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player1_controller_button_map.shoot,
+                        &mut state.settings.player1_controller_button_map.jump,
+                        input_type,
+                    );
                 }
                 Player::Player2 => {
-                    if state.settings.player2_controller_button_map.jump == input_type {
-                        state.settings.player2_controller_button_map.jump =
-                            state.settings.player2_controller_button_map.shoot;
-                        jump_shoot_swapped = true;
-                    }
-
-                    state.settings.player2_controller_button_map.shoot = input_type;
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player2_controller_button_map.shoot,
+                        &mut state.settings.player2_controller_button_map.jump,
+                        input_type,
+                    );
                 }
             },
             ControlEntry::Skip => match self.selected_player {
@@ -608,6 +640,38 @@ impl ControlsMenu {
                 Player::Player1 => state.settings.player1_controller_button_map.strafe = input_type,
                 Player::Player2 => state.settings.player2_controller_button_map.strafe = input_type,
             },
+            ControlEntry::MenuOk => match self.selected_player {
+                Player::Player1 => {
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player1_controller_button_map.menu_ok,
+                        &mut state.settings.player1_controller_button_map.menu_back,
+                        input_type,
+                    );
+                }
+                Player::Player2 => {
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player2_controller_button_map.menu_ok,
+                        &mut state.settings.player2_controller_button_map.menu_back,
+                        input_type,
+                    );
+                }
+            },
+            ControlEntry::MenuBack => match self.selected_player {
+                Player::Player1 => {
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player1_controller_button_map.menu_back,
+                        &mut state.settings.player1_controller_button_map.menu_ok,
+                        input_type,
+                    );
+                }
+                Player::Player2 => {
+                    did_swap_controls = self.swap_if_same(
+                        &mut state.settings.player2_controller_button_map.menu_back,
+                        &mut state.settings.player2_controller_button_map.menu_ok,
+                        input_type,
+                    );
+                }
+            },
         }
 
         state.settings.save(ctx)?;
@@ -622,21 +686,36 @@ impl ControlsMenu {
                 *value = input_type;
             }
 
-            if jump_shoot_swapped {
+            if did_swap_controls {
                 let map = match self.selected_player {
                     Player::Player1 => &state.settings.player1_controller_button_map,
                     Player::Player2 => &state.settings.player2_controller_button_map,
                 };
 
-                if *entry == ControlEntry::Jump {
-                    *value = map.jump;
-                } else if *entry == ControlEntry::Shoot {
-                    *value = map.shoot;
+                match *entry {
+                    ControlEntry::Jump => *value = map.jump,
+                    ControlEntry::Shoot => *value = map.shoot,
+                    ControlEntry::MenuOk => *value = map.menu_ok,
+                    ControlEntry::MenuBack => *value = map.menu_back,
+                    _ => {}
                 }
             }
         }
 
         Ok(())
+    }
+
+    fn swap_if_same<T: Eq + Copy>(&mut self, fst: &mut T, snd: &mut T, value: T) -> bool {
+        let mut swapped = false;
+
+        if *snd == value {
+            *snd = *fst;
+            swapped = true;
+        }
+
+        *fst = value;
+
+        swapped
     }
 
     fn normalize_gamepad_input(&self, input: PlayerControllerInputType) -> PlayerControllerInputType {
@@ -845,15 +924,24 @@ impl ControlsMenu {
                             let pressed_gamepad_buttons: Vec<_> =
                                 ctx.gamepad_context.pressed_buttons(idx).into_iter().collect();
 
+                            for button in pressed_gamepad_buttons.clone() {
+                                if button == Button::Start {
+                                    state.sound_manager.play_sfx(5);
+                                    self.current = CurrentMenu::RebindMenu;
+                                    return Ok(());
+                                }
+                            }
+
                             if pressed_gamepad_buttons.len() == 1 {
                                 if !self.input_busy {
                                     self.input_busy = true;
                                     self.rebind.non_interactive = true;
 
+                                    let button = *pressed_gamepad_buttons.first().unwrap();
+
                                     if self.selected_player.controller_type(state) != self.selected_controller {
                                         state.sound_manager.play_sfx(12);
                                     } else {
-                                        let button = *pressed_gamepad_buttons.first().unwrap();
                                         let normalized_input = self
                                             .normalize_gamepad_input(PlayerControllerInputType::ButtonInput(button));
 

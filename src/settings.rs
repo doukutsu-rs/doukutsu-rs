@@ -82,7 +82,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    15
+    16
 }
 
 #[inline(always)]
@@ -236,6 +236,20 @@ impl Settings {
             self.pause_on_focus_loss = default_pause_on_focus_loss();
         }
 
+        if self.version == 15 {
+            self.version = 16;
+
+            self.player1_key_map.menu_ok = self.player1_key_map.jump;
+            self.player1_key_map.menu_back = self.player1_key_map.shoot;
+            self.player1_controller_button_map.menu_ok = self.player1_controller_button_map.jump;
+            self.player1_controller_button_map.menu_back = self.player1_controller_button_map.shoot;
+
+            self.player2_key_map.menu_ok = self.player2_key_map.jump;
+            self.player2_key_map.menu_back = self.player2_key_map.shoot;
+            self.player2_controller_button_map.menu_ok = self.player2_controller_button_map.jump;
+            self.player2_controller_button_map.menu_back = self.player2_controller_button_map.shoot;
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -351,6 +365,8 @@ pub struct PlayerKeyMap {
     pub inventory: ScanCode,
     pub map: ScanCode,
     pub strafe: ScanCode,
+    pub menu_ok: ScanCode,
+    pub menu_back: ScanCode,
 }
 
 #[inline(always)]
@@ -368,6 +384,8 @@ fn p1_default_keymap() -> PlayerKeyMap {
         inventory: ScanCode::Q,
         map: ScanCode::W,
         strafe: ScanCode::LShift,
+        menu_ok: ScanCode::Z,
+        menu_back: ScanCode::X,
     }
 }
 
@@ -386,6 +404,8 @@ fn p2_default_keymap() -> PlayerKeyMap {
         inventory: ScanCode::T,
         map: ScanCode::Y,
         strafe: ScanCode::RShift,
+        menu_ok: ScanCode::B,
+        menu_back: ScanCode::N,
     }
 }
 
@@ -409,6 +429,8 @@ pub struct PlayerControllerButtonMap {
     pub inventory: PlayerControllerInputType,
     pub map: PlayerControllerInputType,
     pub strafe: PlayerControllerInputType,
+    pub menu_ok: PlayerControllerInputType,
+    pub menu_back: PlayerControllerInputType,
 }
 
 #[inline(always)]
@@ -426,6 +448,8 @@ pub fn player_default_controller_button_map() -> PlayerControllerButtonMap {
         strafe: PlayerControllerInputType::AxisInput(Axis::TriggerRight, AxisDirection::Either),
         inventory: PlayerControllerInputType::ButtonInput(Button::North),
         map: PlayerControllerInputType::ButtonInput(Button::West),
+        menu_ok: PlayerControllerInputType::ButtonInput(Button::South),
+        menu_back: PlayerControllerInputType::ButtonInput(Button::East),
     }
 }
 

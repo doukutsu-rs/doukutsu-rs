@@ -152,7 +152,9 @@
         "inventory": "Inventory",
         "map": "Map system",
         "skip": "Skip",
-        "strafe": "Strafe"
+        "strafe": "Strafe",
+        "menu_ok": "Menu select/confirm",
+        "menu_back": "Menu back/cancel"
       },
 
       "rebind_confirm_menu": {
