@@ -3,10 +3,11 @@ use std::collections::HashMap;
 use std::ops::{Deref, Range};
 use std::rc::Rc;
 
+use crossbeam_channel::tick;
 use log::info;
 
 use crate::caret::CaretType;
-use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
+use crate::common::{Color, Direction, interpolate_fix9_scale, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
@@ -26,32 +27,32 @@ use crate::components::water_renderer::{WaterLayer, WaterRenderer};
 use crate::components::whimsical_star::WhimsicalStar;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
+use crate::framework::{filesystem, graphics};
 use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
+use crate::framework::graphics::{BlendMode, draw_rect, FilterMode};
 use crate::framework::ui::Components;
-use crate::framework::{filesystem, graphics};
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::map::WaterParams;
 use crate::menu::pause_menu::PauseMenu;
+use crate::npc::{NPC, NPCLayer};
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
-use crate::npc::{NPCLayer, NPC};
-use crate::physics::{PhysicalEntity, OFFSETS};
+use crate::physics::{OFFSETS, PhysicalEntity};
 use crate::player::{ControlMode, Player, TargetPlayer};
 use crate::rng::RNG;
-use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
+use crate::scene::title_scene::TitleScene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::settings::ControllerType;
 use crate::shared_game_state::{Language, PlayerCount, ReplayState, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
-use crate::weapon::bullet::BulletManager;
 use crate::weapon::{Weapon, WeaponType};
+use crate::weapon::bullet::BulletManager;
 
 pub struct GameScene {
     pub tick: u32,
@@ -87,6 +88,7 @@ pub struct GameScene {
     pub pause_menu: PauseMenu,
     pub stage_textures: Rc<RefCell<StageTexturePaths>>,
     pub replay: Replay,
+    pub local_player: TargetPlayer,
     map_name_counter: u16,
     skip_counter: u16,
     inventory_dim: f32,
@@ -174,12 +176,14 @@ impl GameScene {
             skip_counter: 0,
             inventory_dim: 0.0,
             replay: Replay::new(),
+            local_player: TargetPlayer::Player1,
         })
     }
 
     pub fn display_map_name(&mut self, ticks: u16) {
         self.map_name_counter = ticks;
     }
+
     pub fn add_player2(&mut self, state: &mut SharedGameState) {
         self.player2.cond.set_alive(true);
         self.player2.cond.set_hidden(self.player1.cond.hidden());
@@ -1329,7 +1333,7 @@ impl GameScene {
         };
         self.player1.tick(state, &self.npc_list)?;
         self.player2.tick(state, &self.npc_list)?;
-        state.textscript_vm.reset_invicibility = false;
+        state.textscript_vm.reset_invincibility = false;
 
         self.whimsical_star.tick(state, (&self.player1, &mut self.bullet_manager))?;
 
@@ -1616,17 +1620,34 @@ impl GameScene {
 
         Ok(())
     }
+
+    fn local_player(&mut self) -> &Player {
+        if self.local_player == TargetPlayer::Player1 {
+            &self.player1
+        } else {
+            &self.player2
+        }
+    }
 }
 
 impl Scene for GameScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let mut is_server = false;
+        #[cfg(feature = "netplay")]
+        {
+            is_server = state.server.is_some();
+        }
+
         if state.mod_path.is_some() && state.replay_state == ReplayState::Recording {
             self.replay.initialize_recording(state);
         }
-        if state.player_count == PlayerCount::Two {
-            self.add_player2(state);
-        } else {
-            self.drop_player2();
+
+        if !state.is_netplay() {
+            if state.player_count == PlayerCount::Two {
+                self.add_player2(state);
+            } else {
+                self.drop_player2();
+            }
         }
 
         if state.mod_path.is_some() && state.replay_state == ReplayState::Playback {
@@ -1645,8 +1666,10 @@ impl Scene for GameScene {
         #[cfg(feature = "scripting-lua")]
         state.lua.set_game_scene(self as *mut _);
 
-        self.player1.controller = state.settings.create_player1_controller();
-        self.player2.controller = state.settings.create_player2_controller();
+        if !state.is_netplay() {
+            self.player1.controller = state.settings.create_player1_controller();
+            self.player2.controller = state.settings.create_player2_controller();
+        }
 
         let npcs = self.stage.load_npcs(&state.constants.base_paths, ctx)?;
         for npc_data in npcs.iter() {
@@ -1716,17 +1739,30 @@ impl Scene for GameScene {
         self.pause_menu.init(state, ctx)?;
         self.whimsical_star.init(&self.player1);
 
+        #[cfg(feature = "netplay")]
+        {
+            let state_ref = unsafe { &mut *(state as *mut SharedGameState) };
+            if let Some(server) = &mut state.server {
+                server.sync_transfer_stage(state_ref, self, None);
+            }
+        }
+
         Ok(())
     }
 
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let chat = state.chat.clone();
+        chat.borrow_mut().tick(state, ())?;
+
         #[cfg(feature = "netplay")]
-            {
-                let state_ref = unsafe { &mut *(state as *mut SharedGameState) };
-                if let Some(server) = &mut state.server {
-                    server.process(state_ref);
-                }
+        {
+            let state_ref = unsafe { &mut *(state as *mut SharedGameState) };
+            if let Some(server) = &mut state.server {
+                server.process(state_ref, self);
+            } else if let Some(client) = &mut state.client {
+                client.process(state_ref, self, ctx);
             }
+        }
 
         if !self.pause_menu.is_paused() && state.replay_state == ReplayState::Playback {
             self.replay.tick(state, (ctx, &mut self.player1))?;
@@ -1754,18 +1790,18 @@ impl Scene for GameScene {
                 state.next_scene = Some(Box::new(TitleScene::new()));
             }
 
-            if self.player1.controller.trigger_menu_ok() {
+            if self.local_player().controller.trigger_menu_ok() {
                 state.next_scene = Some(Box::new(TitleScene::new()));
             }
         }
 
-        if self.player1.controller.trigger_menu_pause() {
+        if self.local_player().controller.trigger_menu_pause() {
             self.pause_menu.pause(state);
         }
 
         if self.pause_menu.is_paused() {
             self.pause_menu.tick(state, ctx)?;
-            
+
             if !state.is_netplay() {
                 return Ok(());
             }
@@ -1785,7 +1821,7 @@ impl Scene for GameScene {
                 if !state.control_flags.control_enabled() && !state.textscript_vm.flags.cutscene_skip() =>
             {
                 state.touch_controls.control_type = TouchControlType::Dialog;
-                if self.player1.controller.skip() {
+                if self.local_player().controller.skip() {
                     self.skip_counter += 1;
                     if self.skip_counter >= CUTSCENE_SKIP_WAIT {
                         state.textscript_vm.flags.set_cutscene_skip(true);
@@ -2289,6 +2325,9 @@ impl Scene for GameScene {
                 ctx,
             )?;
         }
+
+        let chat = state.chat.clone();
+        chat.borrow().draw(state, ctx, &self.frame)?;
 
         self.replay.draw(state, ctx, &self.frame)?;
 

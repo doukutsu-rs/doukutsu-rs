@@ -30,8 +30,8 @@ use crate::shared_game_state::SharedGameState;
 use crate::weapon::WeaponType;
 
 bitfield! {
+    #[derive(Debug, PartialEq, Copy, Clone, bincode::Encode, bincode::Decode)]
     pub struct TextScriptFlags(u16);
-    impl Debug;
     pub render, set_render: 0;
     pub background_visible, set_background_visible: 1;
     pub fast, set_fast: 4;
@@ -47,7 +47,7 @@ pub enum TextScriptEncoding {
     ShiftJIS,
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, bincode::Encode, bincode::Decode)]
 #[repr(u8)]
 pub enum TextScriptLine {
     Line1 = 0,
@@ -55,14 +55,14 @@ pub enum TextScriptLine {
     Line3,
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, bincode::Encode, bincode::Decode)]
 #[repr(u8)]
 pub enum ConfirmSelection {
     Yes,
     No,
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, bincode::Encode, bincode::Decode)]
 #[repr(u8)]
 pub enum ScriptMode {
     Map,
@@ -82,7 +82,7 @@ impl Not for ConfirmSelection {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, bincode::Encode, bincode::Decode)]
 pub enum TextScriptExecutionState {
     Ended,
     Running(u16, u32),
@@ -100,7 +100,7 @@ pub enum TextScriptExecutionState {
     Reset,
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, bincode::Encode, bincode::Decode)]
 pub enum IllustrationState {
     Hidden,
     Shown,
@@ -121,8 +121,8 @@ pub struct TextScriptVM {
     /// while parsing no one noticed them.
     pub strict_mode: bool,
     pub suspend: bool,
-    /// Requires `constants.textscript.reset_invicibility_on_any_script`
-    pub reset_invicibility: bool,
+    /// Requires `constants.textscript.reset_invincibility_on_any_script`
+    pub reset_invincibility: bool,
     pub numbers: [u16; 4],
     pub face: u16,
     pub item: u16,
@@ -132,10 +132,11 @@ pub struct TextScriptVM {
     pub line_3: Vec<char>,
     pub current_illustration: Option<String>,
     pub illustration_state: IllustrationState,
-    prev_char: char,
+    pub prev_char: char,
     pub substitution_rect_map: HashMap<char, Rect<u16>>,
 }
 
+#[derive(Clone, bincode::Encode, bincode::Decode)]
 pub struct Scripts {
     /// Head.tsc - shared part of map scripts
     pub global_script: TextScript,
@@ -189,7 +190,7 @@ impl TextScriptVM {
             executor_player: TargetPlayer::Player1,
             strict_mode: false,
             suspend: true,
-            reset_invicibility: false,
+            reset_invincibility: false,
             numbers: [0; 4],
             face: 0,
             item: 0,
@@ -264,7 +265,7 @@ impl TextScriptVM {
 
     pub fn start_script(&mut self, event_num: u16) {
         self.reset();
-        self.reset_invicibility = true;
+        self.reset_invincibility = true;
         self.state = TextScriptExecutionState::Running(event_num, 0);
 
         log::info!("Started script: #{:04}", event_num);
@@ -1148,6 +1149,7 @@ impl TextScriptVM {
                 new_scene.frame.wait = game_scene.frame.wait;
                 new_scene.nikumaru = game_scene.nikumaru;
                 new_scene.replay = game_scene.replay.clone();
+                new_scene.local_player = game_scene.local_player;
 
                 let skip = state.textscript_vm.flags.cutscene_skip();
                 state.control_flags.set_tick_world(true);
@@ -1787,6 +1789,7 @@ impl TextScriptVM {
     }
 }
 
+#[derive(bincode::Encode, bincode::Decode)]
 pub struct TextScript {
     pub(in crate::scripting::tsc) event_map: HashMap<u16, Vec<u8>>,
 }

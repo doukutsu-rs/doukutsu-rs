@@ -149,7 +149,6 @@ impl<T> From<SendError<T>> for GameError {
     }
 }
 
-#[cfg(feature = "bincode")]
 impl From<bincode::error::DecodeError> for GameError {
     fn from(s: bincode::error::DecodeError) -> Self {
         let errstr = format!("Decode error: {}", s);
@@ -157,7 +156,6 @@ impl From<bincode::error::DecodeError> for GameError {
     }
 }
 
-#[cfg(feature = "bincode")]
 impl From<bincode::error::EncodeError> for GameError {
     fn from(s: bincode::error::EncodeError) -> Self {
         let errstr = format!("Encode error: {}", s);

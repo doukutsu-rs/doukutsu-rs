@@ -16,7 +16,7 @@ use crate::map::{Map, NPCData};
 use crate::scripting::tsc::text_script::TextScript;
 use crate::GameError;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, bincode::Decode, bincode::Encode)]
 pub struct NpcType {
     name: String,
 }
@@ -37,7 +37,7 @@ impl NpcType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, bincode::Decode, bincode::Encode)]
 pub struct Tileset {
     pub(crate) name: String,
 }
@@ -67,7 +67,7 @@ impl Tileset {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, bincode::Decode, bincode::Encode)]
 pub struct Background {
     name: String,
 }
@@ -92,7 +92,7 @@ impl Background {
     }
 }
 
-#[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone, bincode::Decode, bincode::Encode)]
 pub enum BackgroundType {
     TiledStatic,
     TiledParallax,
@@ -132,7 +132,7 @@ impl From<u8> for BackgroundType {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, bincode::Decode, bincode::Encode)]
 pub enum PxPackScroll {
     Normal,
     ThreeQuarters,
@@ -181,7 +181,7 @@ impl PxPackScroll {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
 pub struct PxPackStageData {
     pub tileset_fg: String,
     pub tileset_mg: String,
@@ -196,7 +196,7 @@ pub struct PxPackStageData {
     pub offset_bg: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, bincode::Decode, bincode::Encode)]
 pub struct StageData {
     pub name: String,
     pub name_jp: String,
@@ -538,7 +538,7 @@ impl StageData {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
 pub struct Stage {
     pub map: Map,
     pub data: StageData,

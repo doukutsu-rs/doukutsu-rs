@@ -210,6 +210,7 @@ impl LiveDebugger {
                                     scene.player2.life = scene.player1.max_life;
                                 }
 
+                                scene.local_player = game_scene.local_player;
                                 state.textscript_vm.suspend = true;
                                 state.textscript_vm.state = TextScriptExecutionState::Running(94, 0);
                                 state.next_scene = Some(Box::new(scene));

@@ -4,12 +4,13 @@ use crate::common::Color;
 use crate::components::background::Background;
 use crate::frame::Frame;
 use crate::framework::context::Context;
-use crate::framework::error::{GameError, GameResult};
+use crate::framework::error::GameResult;
 use crate::framework::ui::Components;
 use crate::map::Map;
-use crate::netplay::client::{Client, ServerInfoFuture};
+use crate::netplay::client::{Client, FutureStruct};
 use crate::netplay::future::RSFuture;
 use crate::netplay::protocol::ServerInfo;
+use crate::scene::game_scene::GameScene;
 use crate::scene::title_scene::TitleScene;
 use crate::shared_game_state::{SharedGameState, TileSize};
 use crate::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
@@ -22,8 +23,8 @@ pub struct NetplayScene {
     textures: StageTexturePaths,
     player_name: String,
     ip: String,
-    client: Option<Client>,
-    info_future: Option<ServerInfoFuture>,
+    info_future: Option<FutureStruct<ServerInfo>>,
+    join_future: Option<FutureStruct<()>>,
 }
 
 impl NetplayScene {
@@ -32,6 +33,7 @@ impl NetplayScene {
             map: Map { width: 0, height: 0, tiles: vec![], attrib: [0; 0x100], tile_size: TileSize::Tile16x16 },
             data: StageData {
                 name: "".to_string(),
+                name_jp: "".to_string(),
                 map: "".to_string(),
                 boss_no: 0,
                 tileset: Tileset { name: "0".to_string() },
@@ -53,8 +55,8 @@ impl NetplayScene {
             textures,
             player_name: "Quote".to_owned(),
             ip: "127.0.0.1:21075".to_owned(),
-            client: None,
             info_future: None,
+            join_future: None,
         }
     }
 }
@@ -64,26 +66,50 @@ impl Scene for NetplayScene {
         Ok(())
     }
 
-    fn tick(&mut self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult {
+    fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.background.tick()?;
 
-        let mut clear = false;
-        if let Some(future) = &mut self.info_future {
-            if let Some(info) = future.poll() {
-                match info.as_ref() {
-                    Ok(info) => {
-                        log::info!("Got server info: {} {}/{}", info.motd, info.players.0, info.players.1);
+        {
+            let mut clear = false;
+            if let Some(future) = &mut self.info_future {
+                if let Some(info) = future.poll() {
+                    match info.as_ref() {
+                        Ok(info) => {
+                            log::info!("Got server info: {} {}/{}", info.motd, info.players.0, info.players.1);
+                        }
+                        Err(e) => {
+                            log::error!("Failed to get server info: {}", e);
+                        }
                     }
-                    Err(e) => {
-                        log::error!("Failed to get server info: {}", e);
-                    }
+                    clear = true;
                 }
-                clear = true;
+            }
+
+            if clear {
+                self.info_future = None;
             }
         }
 
-        if clear {
-            self.info_future = None;
+        {
+            let mut clear = false;
+            if let Some(future) = &mut self.join_future {
+                if let Some(info) = future.poll() {
+                    match info.as_ref() {
+                        Ok(_) => {
+                            state.next_scene = Some(Box::new(GameScene::new(state, ctx, 0)?));
+                            log::info!("Joined.");
+                        }
+                        Err(e) => {
+                            log::error!("Failed to join the game: {}", e);
+                        }
+                    }
+                    clear = true;
+                }
+            }
+
+            if clear {
+                self.join_future = None;
+            }
         }
 
         Ok(())
@@ -111,12 +137,14 @@ impl Scene for NetplayScene {
                 InputText::new(frame, "Address", &mut self.ip).build();
 
                 {
-                    let _t = frame.begin_disabled(self.client.is_some());
+                    let _t = frame.begin_disabled(state.client.is_some());
                     if frame.button("Connect") {
                         match Client::new(&self.ip) {
-                            Ok(mut c) => {
-                                self.info_future = Some(c.get_server_info());
-                                self.client = Some(c);
+                            Ok(c) => {
+                                let mut c = Box::new(c);
+                                //self.info_future = Some(c.get_server_info());
+                                self.join_future = Some(c.join(self.player_name.clone()));
+                                state.client = Some(c);
                             }
                             Err(e) => {
                                 log::error!("Failed to create client: {}", e);

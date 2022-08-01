@@ -146,7 +146,7 @@ impl BMFontRenderer {
             iter.clone(),
             x + 1.0,
             y + 1.0,
-            (0, 0, 0, 150),
+            (20, 20, 20, 150),
             constants,
             texture_set,
             rect_map,
@@ -182,7 +182,7 @@ impl BMFontRenderer {
             x + scale,
             y + scale,
             scale,
-            (0, 0, 0, 150),
+            (20, 20, 20, 150),
             constants,
             texture_set,
             ctx,
@@ -208,7 +208,7 @@ impl BMFontRenderer {
             x + scale,
             y + scale,
             scale,
-            (0, 0, 0, 150),
+            (20, 20, 20, 150),
             constants,
             texture_set,
             rect_map,
@@ -259,12 +259,70 @@ impl BMFontRenderer {
         ctx: &mut Context,
     ) -> GameResult {
         let mut sprite_rects: Vec<(f32, f32, &Rect<u16>)> = Vec::new();
+        let mut curr_color = color;
+        let mut color_flag = false;
+
+        static COLOR_MAP: [(u8, u8, u8, u8); 16] = [
+            (20, 20, 20, 255),
+            (20, 20, 255, 255),
+            (20, 255, 20, 255),
+            (20, 255, 255, 255),
+            (255, 20, 20, 255),
+            (255, 20, 255, 255),
+            (255, 255, 20, 255),
+            (255, 255, 255, 255),
+            (160, 160, 160, 255),
+            (160, 160, 255, 255),
+            (160, 255, 160, 255),
+            (160, 255, 255, 255),
+            (255, 160, 160, 255),
+            (255, 160, 255, 255),
+            (255, 255, 160, 255),
+            (255, 255, 255, 255),
+        ];
+
+        #[inline]
+        fn mult_color(c1: (u8, u8, u8, u8), c2: (u8, u8, u8, u8)) -> (u8, u8, u8, u8) {
+            let r = c1.0 as i32 * c2.0 as i32 / 255;
+            let g = c1.1 as i32 * c2.1 as i32 / 255;
+            let b = c1.2 as i32 * c2.2 as i32 / 255;
+            let a = c1.3 as i32 * c2.3 as i32 / 255;
+
+            (r as u8, g as u8, b as u8, a as u8)
+        }
 
         if self.pages.len() == 1 {
             let batch = texture_set.get_or_load_batch(ctx, constants, self.pages.get(0).unwrap())?;
             let mut offset_x = x;
 
             for chr in iter {
+                if color_flag {
+                    unsafe {
+                        match chr {
+                            '0'..='9' => {
+                                curr_color = mult_color(color, *COLOR_MAP.get_unchecked(chr as usize - '0' as usize))
+                            }
+                            'a'..='f' => {
+                                curr_color =
+                                    mult_color(color, *COLOR_MAP.get_unchecked(chr as usize - 'a' as usize + 10))
+                            }
+                            'A'..='F' => {
+                                curr_color =
+                                    mult_color(color, *COLOR_MAP.get_unchecked(chr as usize - 'A' as usize + 10))
+                            }
+                            _ => curr_color = color,
+                        }
+                    }
+
+                    color_flag = false;
+                    continue;
+                }
+
+                if chr == '§' {
+                    color_flag = true;
+                    continue;
+                }
+
                 if let Some(glyph) = self.font.chars.get(&chr) {
                     if let Some(rect) = rect_map.get(&chr) {
                         sprite_rects.push((
@@ -277,7 +335,7 @@ impl BMFontRenderer {
                         batch.add_rect_scaled_tinted(
                             offset_x + (glyph.xoffset as f32 * constants.font_scale),
                             y + (glyph.yoffset as f32 * constants.font_scale),
-                            color,
+                            curr_color,
                             constants.font_scale * scale,
                             constants.font_scale * scale,
                             &Rect::new_size(glyph.x as u16, glyph.y as u16, glyph.width as u16, glyph.height as u16),
@@ -307,10 +365,39 @@ impl BMFontRenderer {
                     continue;
                 };
 
+                curr_color = color;
+
                 let batch = texture_set.get_or_load_batch(ctx, constants, page_tex)?;
                 let mut offset_x = x;
 
                 for (chr, glyph) in chars.iter() {
+                    if color_flag {
+                        unsafe {
+                            match *chr {
+                                '0'..='9' => {
+                                    curr_color =
+                                        mult_color(color, *COLOR_MAP.get_unchecked(*chr as usize - '0' as usize))
+                                }
+                                'a'..='f' => {
+                                    curr_color =
+                                        mult_color(color, *COLOR_MAP.get_unchecked(*chr as usize - 'a' as usize + 10))
+                                }
+                                'A'..='F' => {
+                                    curr_color =
+                                        mult_color(color, *COLOR_MAP.get_unchecked(*chr as usize - 'A' as usize + 10))
+                                }
+                                _ => curr_color = color,
+                            }
+                        }
+                        color_flag = false;
+                        continue;
+                    }
+
+                    if *chr == '§' {
+                        color_flag = true;
+                        continue;
+                    }
+
                     if let Some(rect) = rect_map.get(&chr) {
                         sprite_rects.push((
                             offset_x,
@@ -323,7 +410,7 @@ impl BMFontRenderer {
                             batch.add_rect_scaled_tinted(
                                 offset_x + (glyph.xoffset as f32 * constants.font_scale),
                                 y + (glyph.yoffset as f32 * constants.font_scale),
-                                color,
+                                curr_color,
                                 constants.font_scale * scale,
                                 constants.font_scale * scale,
                                 &Rect::new_size(

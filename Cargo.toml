@@ -39,7 +39,7 @@ backend-sdl = ["sdl2", "sdl2-sys"]
 backend-glutin = ["winit", "glutin", "render-opengl"]
 render-opengl = []
 scripting-lua = ["lua-ffi"]
-netplay = ["laminar", "bincode"]
+netplay = ["laminar"]
 editor = []
 hooks = ["libc"]
 exe = []
@@ -52,7 +52,7 @@ android = []
 #sdl2 = { path = "./3rdparty/rust-sdl2", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 #sdl2-sys = { path = "./3rdparty/rust-sdl2/sdl2-sys", optional = true, features = ["bundled", "static-link"] }
 bitvec = "0.20"
-bincode = { version = "2.0.0-rc.1", optional = true }
+bincode = { version = "2.0.0-rc.1" }
 byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
 chrono = "0.4"
@@ -60,6 +60,7 @@ crossbeam-channel = "0.5"
 cpal = "0.13"
 directories = "3"
 downcast = "0.11"
+ed25519-dalek = "1.0"
 funty = "=1.1.0" # https://github.com/bitvecto-rs/bitvec/issues/105
 glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "8dd457b9adb7dbac7ade337246b6356c784272d9", optional = true, default_features = false, features = ["x11"] }
 imgui = "0.8.0"
@@ -75,6 +76,7 @@ num-derive = "0.3.2"
 num-traits = "0.2.12"
 paste = "1.0.0"
 pelite = "0.9.1"
+rand = "0.8"
 sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 sdl2-sys = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["bundled", "static-link"] }
 serde = { version = "1", features = ["derive"] }

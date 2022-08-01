@@ -20,16 +20,17 @@ use crate::rng::RNG;
 use crate::shared_game_state::SharedGameState;
 
 mod player_hit;
+mod player_list;
 pub mod skin;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, bincode::Decode, bincode::Encode)]
 #[repr(u8)]
 pub enum ControlMode {
     Normal = 0,
     IronHead,
 }
 
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone, bincode::Decode, bincode::Encode)]
 pub enum TargetPlayer {
     Player1,
     Player2,
@@ -924,7 +925,7 @@ impl GameEntity<&NPCList> for Player {
             return Ok(());
         }
 
-        if state.textscript_vm.reset_invicibility && state.constants.textscript.reset_invicibility_on_any_script {
+        if state.textscript_vm.reset_invincibility && state.constants.textscript.reset_invicibility_on_any_script {
             self.shock_counter = 0;
         }
 

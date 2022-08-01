@@ -3,7 +3,7 @@ use crate::common::Rect;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::screen_insets_scaled;
-use crate::input::player_controller::PlayerController;
+use crate::input::player_controller::{KeyState, PlayerController};
 use crate::input::touch_controls::TouchControlType;
 use crate::shared_game_state::SharedGameState;
 
@@ -14,51 +14,16 @@ pub struct TouchPlayerController {
     old_state: KeyState,
     trigger: KeyState,
     prev_touch_len: usize,
-    enabled: bool,
-}
-
-bitfield! {
-    #[allow(unused)]
-    #[derive(Clone, Copy)]
-    pub struct KeyState(u16);
-    impl Debug;
-
-    pub left, set_left: 0;
-    pub right, set_right: 1;
-    pub up, set_up: 2;
-    pub down, set_down: 3;
-    pub map, _: 4;
-    pub inventory, set_inventory: 5;
-    pub jump, set_jump: 6;
-    pub shoot, set_shoot: 7;
-    pub next_weapon, _: 8;
-    pub prev_weapon, _: 9;
-    pub pause, set_pause: 10;
 }
 
 impl TouchPlayerController {
     pub fn new() -> TouchPlayerController {
-        TouchPlayerController { state: KeyState(0), old_state: KeyState(0), trigger: KeyState(0), prev_touch_len: 0, enabled: true }
+        TouchPlayerController { state: KeyState(0), old_state: KeyState(0), trigger: KeyState(0), prev_touch_len: 0 }
     }
 }
 
 impl PlayerController for TouchPlayerController {
-    fn is_enabled(&self) -> bool {
-        self.enabled
-    }
-
-    fn set_enabled(&mut self, enabled: bool) {
-        self.enabled = enabled;
-    }
-
     fn update(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if !self.enabled {
-            self.state = KeyState(0);
-            self.old_state = KeyState(0);
-            self.trigger = KeyState(0);
-            return Ok(());
-        }
-
         match state.touch_controls.control_type {
             TouchControlType::None => {}
             TouchControlType::Dialog => {
@@ -250,8 +215,8 @@ impl PlayerController for TouchPlayerController {
                             .is_some(),
                 );
 
-                self.state.set_pause(
-                    self.state.pause() || state.touch_controls.point_in(Rect::new_size(0, 0, 40, 40)).is_some(),
+                self.state.set_escape(
+                    self.state.escape() || state.touch_controls.point_in(Rect::new_size(0, 0, 40, 40)).is_some(),
                 );
             }
         }
@@ -375,7 +340,7 @@ impl PlayerController for TouchPlayerController {
     }
 
     fn trigger_menu_pause(&self) -> bool {
-        self.trigger.pause()
+        self.trigger.escape()
     }
 
     fn look_up(&self) -> bool {
@@ -416,5 +381,15 @@ impl PlayerController for TouchPlayerController {
         } else {
             0.0
         }
+    }
+
+    fn dump_state(&self) -> (u16, u16, u16) {
+        (self.state.0, self.old_state.0, self.trigger.0)
+    }
+
+    fn set_state(&mut self, state: (u16, u16, u16)) {
+        self.state = KeyState(state.0);
+        self.old_state = KeyState(state.1);
+        self.trigger = KeyState(state.2);
     }
 }

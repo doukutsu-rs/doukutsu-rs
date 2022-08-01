@@ -17,7 +17,7 @@ use crate::stage::{PxPackScroll, PxPackStageData, StageData};
 static SUPPORTED_PXM_VERSIONS: [u8; 1] = [0x10];
 static SUPPORTED_PXE_VERSIONS: [u8; 2] = [0, 0x10];
 
-#[derive(Clone)]
+#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
 pub struct Map {
     pub width: u16,
     pub height: u16,

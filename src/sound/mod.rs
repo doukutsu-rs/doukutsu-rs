@@ -255,7 +255,13 @@ impl SoundManager {
         settings: &Settings,
         ctx: &mut Context,
     ) -> GameResult {
-        if self.current_song_id == song_id || self.no_audio {
+        if self.current_song_id == song_id {
+            return Ok(());
+        }
+
+        if self.no_audio {
+            self.prev_song_id = self.current_song_id;
+            self.current_song_id = song_id;
             return Ok(());
         }
 
@@ -427,6 +433,10 @@ impl SoundManager {
 
     pub fn current_song(&self) -> usize {
         self.current_song_id
+    }
+
+    pub fn prev_song(&self) -> usize {
+        self.prev_song_id
     }
 
     pub fn set_sample_params_from_file<R: io::Read>(&mut self, id: u8, data: R) -> GameResult {

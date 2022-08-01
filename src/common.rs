@@ -1,6 +1,9 @@
 use std::fmt;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use bincode::de::Decoder;
+use bincode::enc::Encoder;
+use bincode::error::{DecodeError, EncodeError};
 use lazy_static::lazy_static;
 use num_traits::{abs, Num};
 use serde::de::{SeqAccess, Visitor};
@@ -22,7 +25,7 @@ lazy_static! {
 }
 
 bitfield! {
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, bincode::Encode, bincode::Decode)]
     #[repr(C)]
     pub struct Flag(u32);
     impl Debug;
@@ -69,7 +72,7 @@ impl Flag {
 }
 
 bitfield! {
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, bincode::Encode, bincode::Decode)]
     #[repr(C)]
     pub struct Equipment(u16);
     impl Debug;
@@ -95,7 +98,7 @@ bitfield! {
 }
 
 bitfield! {
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, bincode::Encode, bincode::Decode)]
     #[repr(C)]
     pub struct Condition(u16);
     impl Debug;
@@ -115,7 +118,7 @@ bitfield! {
 }
 
 bitfield! {
-    #[derive(Clone, Copy, Serialize, Deserialize)]
+    #[derive(Clone, Copy, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
     #[repr(C)]
     pub struct ControlFlags(u16);
     impl Debug;
@@ -133,7 +136,7 @@ bitfield! {
 }
 
 bitfield! {
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, bincode::Encode, bincode::Decode)]
     #[repr(C)]
     pub struct BulletFlag(u8);
     impl Debug;
@@ -152,7 +155,7 @@ bitfield! {
     pub flag_x80, set_flag_x80: 7; // 0x80, nowhere in code?
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, bincode::Encode, bincode::Decode)]
 #[repr(u8)]
 pub enum FadeDirection {
     Left = 0,
@@ -185,7 +188,7 @@ impl FadeDirection {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, bincode::Encode, bincode::Decode)]
 #[repr(u8)]
 pub enum FadeState {
     Visible,
@@ -194,7 +197,7 @@ pub enum FadeState {
     FadeOut(i8, FadeDirection),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, bincode::Decode, bincode::Encode)]
 #[repr(u8)]
 pub enum Direction {
     Left = 0,
@@ -325,6 +328,28 @@ impl<T: Num + PartialOrd + Copy + Serialize> Default for Rect<T> {
     }
 }
 
+impl<T: Num + PartialOrd + Copy + bincode::Encode> bincode::Encode for Rect<T> {
+    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
+        bincode::Encode::encode(&self.left, encoder)?;
+        bincode::Encode::encode(&self.top, encoder)?;
+        bincode::Encode::encode(&self.right, encoder)?;
+        bincode::Encode::encode(&self.bottom, encoder)?;
+
+        Ok(())
+    }
+}
+
+impl<T: Num + PartialOrd + Copy + bincode::Decode> bincode::Decode for Rect<T> {
+    fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
+        let left: T = bincode::Decode::decode(decoder)?;
+        let top: T = bincode::Decode::decode(decoder)?;
+        let right: T = bincode::Decode::decode(decoder)?;
+        let bottom: T = bincode::Decode::decode(decoder)?;
+
+        Ok(Rect { left, top, right, bottom })
+    }
+}
+
 macro_rules! rect_deserialize {
     ($num_type: ident) => {
         impl<'de> Deserialize<'de> for Rect<$num_type> {
@@ -401,7 +426,7 @@ pub fn get_timestamp() -> u64 {
 /// A RGBA color in the `sRGB` color space represented as `f32`'s in the range `[0.0-1.0]`
 ///
 /// For convenience, [`WHITE`](constant.WHITE.html) and [`BLACK`](constant.BLACK.html) are provided.
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize, bincode::Decode, bincode::Encode)]
 pub struct Color {
     /// Red component
     pub r: f32,

@@ -50,7 +50,7 @@ impl RNG for XorShift {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bincode::Encode, bincode::Decode)]
 pub struct Xoroshiro32PlusPlus(Cell<(u16, u16)>);
 
 impl Xoroshiro32PlusPlus {

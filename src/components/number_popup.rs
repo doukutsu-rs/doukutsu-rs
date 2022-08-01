@@ -5,7 +5,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::shared_game_state::SharedGameState;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, bincode::Encode, bincode::Decode)]
 pub struct NumberPopup {
     pub value: i16,
     pub x: i32,

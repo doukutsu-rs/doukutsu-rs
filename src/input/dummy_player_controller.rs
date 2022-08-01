@@ -1,162 +1,190 @@
+use crate::bitfield;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::input::player_controller::PlayerController;
+use crate::input::player_controller::{KeyState, PlayerController};
 use crate::shared_game_state::SharedGameState;
 
 /// A no-op implementation of player controller.
 #[derive(Clone)]
-pub struct DummyPlayerController(bool);
+pub struct DummyPlayerController {
+    state: KeyState,
+    old_state: KeyState,
+    trigger: KeyState,
+}
 
 impl DummyPlayerController {
     pub fn new() -> DummyPlayerController {
-        DummyPlayerController(true)
+        DummyPlayerController { state: KeyState(0), old_state: KeyState(0), trigger: KeyState(0) }
     }
 }
 
 impl PlayerController for DummyPlayerController {
-    fn is_enabled(&self) -> bool {
-        self.0
-    }
-
-    fn set_enabled(&mut self, enabled: bool) {
-        self.0 = enabled;
-    }
-
     fn update(&mut self, _state: &mut SharedGameState, _ctx: &mut Context) -> GameResult {
         Ok(())
     }
 
-    fn update_trigger(&mut self) {}
+    fn update_trigger(&mut self) {
+        let mut trigger = self.state.0 ^ self.old_state.0;
+        trigger &= self.state.0;
+        self.old_state = self.state;
+        self.trigger = KeyState(trigger);
+    }
 
     fn move_up(&self) -> bool {
-        false
+        self.state.up()
     }
 
     fn move_left(&self) -> bool {
-        false
+        self.state.left()
     }
 
     fn move_down(&self) -> bool {
-        false
+        self.state.down()
     }
 
     fn move_right(&self) -> bool {
-        false
+        self.state.right()
     }
 
     fn prev_weapon(&self) -> bool {
-        false
+        self.state.prev_weapon()
     }
 
     fn next_weapon(&self) -> bool {
-        false
+        self.state.next_weapon()
     }
 
     fn map(&self) -> bool {
-        false
+        self.state.map()
     }
 
     fn inventory(&self) -> bool {
-        false
+        self.state.inventory()
     }
 
     fn jump(&self) -> bool {
-        false
+        self.state.jump()
     }
 
     fn shoot(&self) -> bool {
-        false
+        self.state.shoot()
     }
 
     fn skip(&self) -> bool {
-        false
+        self.state.skip()
     }
 
     fn strafe(&self) -> bool {
-        false
+        self.state.strafe()
     }
 
     fn trigger_up(&self) -> bool {
-        false
+        self.trigger.up()
     }
 
     fn trigger_left(&self) -> bool {
-        false
+        self.trigger.left()
     }
 
     fn trigger_down(&self) -> bool {
-        false
+        self.trigger.down()
     }
 
     fn trigger_right(&self) -> bool {
-        false
+        self.trigger.right()
     }
 
     fn trigger_prev_weapon(&self) -> bool {
-        false
+        self.trigger.prev_weapon()
     }
 
     fn trigger_next_weapon(&self) -> bool {
-        false
+        self.trigger.next_weapon()
     }
 
     fn trigger_map(&self) -> bool {
-        false
+        self.trigger.map()
     }
 
     fn trigger_inventory(&self) -> bool {
-        false
+        self.trigger.inventory()
     }
 
     fn trigger_jump(&self) -> bool {
-        false
+        self.trigger.jump()
     }
 
     fn trigger_shoot(&self) -> bool {
-        false
+        self.trigger.shoot()
     }
 
     fn trigger_skip(&self) -> bool {
-        false
+        self.trigger.skip()
     }
 
     fn trigger_strafe(&self) -> bool {
-        false
+        self.trigger.strafe()
     }
 
     fn trigger_menu_ok(&self) -> bool {
-        false
+        self.trigger.jump() || self.trigger.enter()
     }
 
     fn trigger_menu_back(&self) -> bool {
-        false
+        self.trigger.shoot() || self.trigger.escape()
     }
 
     fn trigger_menu_pause(&self) -> bool {
-        false
+        self.trigger.escape()
     }
 
     fn look_up(&self) -> bool {
-        false
+        self.state.up()
     }
 
     fn look_left(&self) -> bool {
-        false
+        self.state.left()
     }
 
     fn look_down(&self) -> bool {
-        false
+        self.state.down()
     }
 
     fn look_right(&self) -> bool {
-        false
+        self.state.right()
     }
 
     fn move_analog_x(&self) -> f64 {
-        0.0
+        if self.state.left() && self.state.right() {
+            0.0
+        } else if self.state.left() {
+            -1.0
+        } else if self.state.right() {
+            1.0
+        } else {
+            0.0
+        }
     }
 
     fn move_analog_y(&self) -> f64 {
-        0.0
+        if self.state.up() && self.state.down() {
+            0.0
+        } else if self.state.up() {
+            -1.0
+        } else if self.state.down() {
+            1.0
+        } else {
+            0.0
+        }
+    }
+
+    fn dump_state(&self) -> (u16, u16, u16) {
+        (self.state.0, self.old_state.0, self.trigger.0)
+    }
+
+    fn set_state(&mut self, state: (u16, u16, u16)) {
+        self.state = KeyState(state.0);
+        self.old_state = KeyState(state.1);
+        self.trigger = KeyState(state.2);
     }
 }

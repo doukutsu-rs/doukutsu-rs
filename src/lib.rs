@@ -47,6 +47,8 @@ mod i18n;
 mod input;
 mod inventory;
 mod live_debugger;
+#[cfg(feature = "netplay")]
+mod netplay;
 mod macros;
 mod map;
 mod menu;

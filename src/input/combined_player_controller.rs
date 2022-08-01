@@ -160,10 +160,29 @@ impl PlayerController for CombinedPlayerController {
     }
 
     fn move_analog_x(&self) -> f64 {
-        self.controllers.iter().fold(0.0, |acc, cont| acc + cont.move_analog_x()) / self.controllers.len() as f64
+        self.controllers.iter().fold(0.0, |acc, cont| acc + cont.move_analog_x()).clamp(-1.0, 1.0)
     }
 
     fn move_analog_y(&self) -> f64 {
-        self.controllers.iter().fold(0.0, |acc, cont| acc + cont.move_analog_y()) / self.controllers.len() as f64
+        self.controllers.iter().fold(0.0, |acc, cont| acc + cont.move_analog_y()).clamp(-1.0, 1.0)
+    }
+
+    fn dump_state(&self) -> (u16, u16, u16) {
+        let mut state = (0, 0, 0);
+
+        for c in self.controllers.iter() {
+            let s = c.dump_state();
+            state.0 |= s.0;
+            state.1 |= s.1;
+            state.2 |= s.2;
+        }
+
+        state
+    }
+
+    fn set_state(&mut self, state: (u16, u16, u16)) {
+        for c in self.controllers.iter_mut() {
+            c.set_state(state);
+        }
     }
 }

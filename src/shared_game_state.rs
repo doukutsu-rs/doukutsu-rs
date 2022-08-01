@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::{cmp, ops::Div};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use bitvec::vec::BitVec;
 use chrono::{Datelike, Local};
@@ -7,6 +9,7 @@ use chrono::{Datelike, Local};
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState};
+use crate::components::chat::Chat;
 use crate::components::draw_common::{draw_number, Alignment};
 use crate::engine_constants::EngineConstants;
 use crate::framework::backend::BackendTexture;
@@ -250,7 +253,7 @@ pub enum ReplayState {
     Playback,
 }
 
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, bincode::Decode, bincode::Encode)]
 pub enum TileSize {
     Tile8x8,
     Tile16x16,
@@ -283,6 +286,7 @@ pub struct SharedGameState {
     /// RNG used by graphics effects that aren't dependent on game's state.
     pub effect_rng: XorShift,
     pub tile_size: TileSize,
+    pub chat: Rc<RefCell<Chat>>,
     pub quake_counter: u16,
     pub super_quake_counter: u16,
     pub teleporter_slots: Vec<(u16, u16)>,
@@ -424,6 +428,7 @@ impl SharedGameState {
             game_rng: XorShift::new(chrono::Local::now().timestamp() as i32),
             effect_rng: XorShift::new(123),
             tile_size: TileSize::Tile16x16,
+            chat: Rc::new(RefCell::new(Chat::new())),
             quake_counter: 0,
             super_quake_counter: 0,
             teleporter_slots: Vec::with_capacity(8),

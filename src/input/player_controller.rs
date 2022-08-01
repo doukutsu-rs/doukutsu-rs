@@ -1,13 +1,10 @@
+use crate::bitfield;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 
 use crate::shared_game_state::SharedGameState;
 
 pub trait PlayerController: PlayerControllerClone {
-    fn is_enabled(&self) -> bool;
-
-    fn set_enabled(&mut self, enabled: bool);
-
     fn update(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult;
 
     fn update_trigger(&mut self);
@@ -101,6 +98,32 @@ pub trait PlayerController: PlayerControllerClone {
     /// Returns movement analog stick state in Y axis within (-1.0..=1.0) range
     /// In case of non-analog controllers this should return -1.0, 0.0 or 1.0, depending on keys pressed.
     fn move_analog_y(&self) -> f64;
+
+    fn dump_state(&self) -> (u16, u16, u16);
+
+    fn set_state(&mut self, state: (u16, u16, u16));
+}
+
+
+bitfield! {
+  #[derive(Clone, Copy)]
+  pub struct KeyState(u16);
+  impl Debug;
+
+  pub left, set_left: 0;
+  pub right, set_right: 1;
+  pub up, set_up: 2;
+  pub down, set_down: 3;
+  pub map, set_map: 4;
+  pub inventory, set_inventory: 5;
+  pub jump, set_jump: 6;
+  pub shoot, set_shoot: 7;
+  pub next_weapon, set_next_weapon: 8;
+  pub prev_weapon, set_prev_weapon: 9;
+  pub escape, set_escape: 10;
+  pub enter, set_enter: 11;
+  pub skip, set_skip: 12;
+  pub strafe, set_strafe: 13;
 }
 
 pub trait PlayerControllerClone {

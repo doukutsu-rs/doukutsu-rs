@@ -9,7 +9,8 @@ use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::vfs::OpenOptions;
-use crate::input::replay_player_controller::{KeyState, ReplayController};
+use crate::input::player_controller::KeyState;
+use crate::input::replay_player_controller::ReplayController;
 use crate::player::Player;
 use crate::shared_game_state::{ReplayState, SharedGameState};
 
@@ -105,18 +106,18 @@ impl GameEntity<(&mut Context, &mut Player)> for Replay {
             ReplayState::Recording => {
                 // This mimics the KeyState bitfield
                 let inputs = player.controller.move_left() as u16
-                    + ((player.controller.move_right() as u16) << 1)
-                    + ((player.controller.move_up() as u16) << 2)
-                    + ((player.controller.move_down() as u16) << 3)
-                    + ((player.controller.trigger_map() as u16) << 4)
-                    + ((player.controller.trigger_inventory() as u16) << 5)
-                    + (((player.controller.jump() || player.controller.trigger_menu_ok()) as u16) << 6)
-                    + (((player.controller.shoot() || player.controller.trigger_menu_back()) as u16) << 7)
-                    + ((player.controller.next_weapon() as u16) << 8)
-                    + ((player.controller.prev_weapon() as u16) << 9)
-                    + ((player.controller.trigger_menu_ok() as u16) << 11)
-                    + ((player.controller.skip() as u16) << 12)
-                    + ((player.controller.strafe() as u16) << 13);
+                    | ((player.controller.move_right() as u16) << 1)
+                    | ((player.controller.move_up() as u16) << 2)
+                    | ((player.controller.move_down() as u16) << 3)
+                    | ((player.controller.trigger_map() as u16) << 4)
+                    | ((player.controller.trigger_inventory() as u16) << 5)
+                    | (((player.controller.jump() || player.controller.trigger_menu_ok()) as u16) << 6)
+                    | (((player.controller.shoot() || player.controller.trigger_menu_back()) as u16) << 7)
+                    | ((player.controller.next_weapon() as u16) << 8)
+                    | ((player.controller.prev_weapon() as u16) << 9)
+                    | ((player.controller.trigger_menu_ok() as u16) << 11)
+                    | ((player.controller.skip() as u16) << 12)
+                    | ((player.controller.strafe() as u16) << 13);
 
                 self.keylist.push(inputs);
             }

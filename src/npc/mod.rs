@@ -31,7 +31,7 @@ pub mod list;
 pub mod utils;
 
 bitfield! {
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, bincode::Encode, bincode::Decode)]
     pub struct NPCFlag(u16);
     impl Debug;
     /// Represented by 0x01
@@ -68,7 +68,7 @@ bitfield! {
     pub show_damage, set_show_damage: 15;
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialOrd, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialOrd, PartialEq, bincode::Encode, bincode::Decode)]
 #[repr(u8)]
 pub enum NPCLayer {
     Background = 0,
@@ -77,7 +77,7 @@ pub enum NPCLayer {
 }
 
 /// Represents an NPC object.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bincode::Encode, bincode::Decode)]
 #[repr(C)]
 pub struct NPC {
     pub id: u16,
