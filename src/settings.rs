@@ -82,7 +82,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    16
+    17
 }
 
 #[inline(always)]
@@ -250,6 +250,26 @@ impl Settings {
             self.player2_controller_button_map.menu_back = self.player2_controller_button_map.shoot;
         }
 
+        if self.version == 16 {
+            self.version = 17;
+
+            if self.player1_controller_button_map.shoot == PlayerControllerInputType::ButtonInput(Button::East) {
+                self.player1_controller_button_map.shoot = PlayerControllerInputType::ButtonInput(Button::West);
+            }
+
+            if self.player2_controller_button_map.shoot == PlayerControllerInputType::ButtonInput(Button::East) {
+                self.player2_controller_button_map.shoot = PlayerControllerInputType::ButtonInput(Button::West);
+            }
+
+            if self.player1_controller_button_map.map == PlayerControllerInputType::ButtonInput(Button::West) {
+                self.player1_controller_button_map.map = PlayerControllerInputType::ButtonInput(Button::East);
+            }
+
+            if self.player2_controller_button_map.map == PlayerControllerInputType::ButtonInput(Button::West) {
+                self.player2_controller_button_map.map = PlayerControllerInputType::ButtonInput(Button::East);
+            }
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -370,7 +390,7 @@ pub struct PlayerKeyMap {
 }
 
 #[inline(always)]
-fn p1_default_keymap() -> PlayerKeyMap {
+pub fn p1_default_keymap() -> PlayerKeyMap {
     PlayerKeyMap {
         left: ScanCode::Left,
         up: ScanCode::Up,
@@ -390,7 +410,7 @@ fn p1_default_keymap() -> PlayerKeyMap {
 }
 
 #[inline(always)]
-fn p2_default_keymap() -> PlayerKeyMap {
+pub fn p2_default_keymap() -> PlayerKeyMap {
     PlayerKeyMap {
         left: ScanCode::Comma,
         up: ScanCode::L,
@@ -443,11 +463,11 @@ pub fn player_default_controller_button_map() -> PlayerControllerButtonMap {
         prev_weapon: PlayerControllerInputType::ButtonInput(Button::LeftShoulder),
         next_weapon: PlayerControllerInputType::ButtonInput(Button::RightShoulder),
         jump: PlayerControllerInputType::ButtonInput(Button::South),
-        shoot: PlayerControllerInputType::ButtonInput(Button::East),
+        shoot: PlayerControllerInputType::ButtonInput(Button::West),
         skip: PlayerControllerInputType::AxisInput(Axis::TriggerLeft, AxisDirection::Either),
         strafe: PlayerControllerInputType::AxisInput(Axis::TriggerRight, AxisDirection::Either),
         inventory: PlayerControllerInputType::ButtonInput(Button::North),
-        map: PlayerControllerInputType::ButtonInput(Button::West),
+        map: PlayerControllerInputType::ButtonInput(Button::East),
         menu_ok: PlayerControllerInputType::ButtonInput(Button::South),
         menu_back: PlayerControllerInputType::ButtonInput(Button::East),
     }

@@ -37,7 +37,7 @@ impl Context {
 
     pub fn run(&mut self, game: &mut Game) -> GameResult {
         let backend = init_backend(self.headless, self.size_hint)?;
-        let mut event_loop = backend.create_event_loop()?;
+        let mut event_loop = backend.create_event_loop(self)?;
         self.renderer = Some(event_loop.new_renderer(self as *mut Context)?);
 
         event_loop.run(game, self);

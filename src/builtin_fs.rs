@@ -101,6 +101,7 @@ impl BuiltinFS {
                     FSNode::File("builtin_font.fnt", include_bytes!("builtin/builtin_font.fnt")),
                     FSNode::File("builtin_font_0.png", include_bytes!("builtin/builtin_font_0.png")),
                     FSNode::File("builtin_font_1.png", include_bytes!("builtin/builtin_font_1.png")),
+                    FSNode::File("gamecontrollerdb.txt", include_bytes!("builtin/gamecontrollerdb.txt")),
                     FSNode::File(
                         "organya-wavetable-doukutsu.bin",
                         include_bytes!("builtin/organya-wavetable-doukutsu.bin"),

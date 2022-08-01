@@ -4,13 +4,12 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use glutin::{Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, WindowedContext};
 use glutin::event::{ElementState, Event, TouchPhase, VirtualKeyCode, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
+use glutin::{Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, WindowedContext};
 use imgui::{DrawCmdParams, DrawData, DrawIdx, DrawVert};
 
-use crate::{Game, GAME_SUSPENDED};
 use crate::common::Rect;
 use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
@@ -19,6 +18,7 @@ use crate::framework::gl;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
 use crate::input::touch_controls::TouchPoint;
+use crate::{Game, GAME_SUSPENDED};
 
 pub struct GlutinBackend;
 
@@ -29,7 +29,7 @@ impl GlutinBackend {
 }
 
 impl Backend for GlutinBackend {
-    fn create_event_loop(&self) -> GameResult<Box<dyn BackendEventLoop>> {
+    fn create_event_loop(&self, _ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>> {
         #[cfg(target_os = "android")]
         loop {
             match ndk_glue::native_window().as_ref() {
@@ -60,7 +60,8 @@ impl GlutinEventLoop {
             #[cfg(target_os = "android")]
             let windowed_context = windowed_context.with_gl(GlRequest::Specific(Api::OpenGlEs, (2, 0)));
 
-            let windowed_context = windowed_context.with_gl_profile(GlProfile::Core)
+            let windowed_context = windowed_context
+                .with_gl_profile(GlProfile::Core)
                 .with_gl_debug_flag(false)
                 .with_pixel_format(24, 8)
                 .with_vsync(true);
@@ -338,7 +339,7 @@ impl BackendEventLoop for GlutinEventLoop {
                     std::ptr::null()
                 }
             };
-            
+
             *user_data = Rc::into_raw(refs) as *mut c_void;
 
             result

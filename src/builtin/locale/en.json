@@ -160,7 +160,10 @@
       "rebind_confirm_menu": {
         "title": "Press button for \"{control}\"",
         "cancel": "(Esc to cancel)"
-      }
+      },
+
+      "reset_confirm": "Reset...",
+      "reset_confirm_menu_title": "Reset controls?"
     }
   },
 

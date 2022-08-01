@@ -152,7 +152,10 @@
       "rebind_confirm_menu": {
         "title": "新しい「ジャンプ」ボタンを押す",
         "cancel": "(Escキーを押してキャンセル)"
-      }
+      },
+
+      "reset_confirm": "リセット",
+      "reset_confirm_menu_title": "ボタンをリセットしますか？"
     }
   },
 

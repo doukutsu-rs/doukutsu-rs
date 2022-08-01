@@ -37,6 +37,8 @@ use crate::Game;
 use crate::GameError::RenderError;
 use crate::GAME_SUSPENDED;
 
+use super::filesystem;
+
 pub struct SDL2Backend {
     context: Sdl,
     size_hint: (u16, u16),
@@ -55,8 +57,8 @@ impl SDL2Backend {
 }
 
 impl Backend for SDL2Backend {
-    fn create_event_loop(&self) -> GameResult<Box<dyn BackendEventLoop>> {
-        SDL2EventLoop::new(&self.context, self.size_hint)
+    fn create_event_loop(&self, ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>> {
+        SDL2EventLoop::new(&self.context, self.size_hint, ctx)
     }
 }
 
@@ -149,10 +151,13 @@ struct SDL2Context {
 }
 
 impl SDL2EventLoop {
-    pub fn new(sdl: &Sdl, size_hint: (u16, u16)) -> GameResult<Box<dyn BackendEventLoop>> {
+    pub fn new(sdl: &Sdl, size_hint: (u16, u16), ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>> {
         let event_pump = sdl.event_pump().map_err(GameError::WindowError)?;
         let video = sdl.video().map_err(GameError::WindowError)?;
+
         let game_controller = sdl.game_controller().map_err(GameError::GamepadError)?;
+        let mut controller_mappings = filesystem::open(ctx, "/builtin/gamecontrollerdb.txt")?;
+        game_controller.load_mappings_from_read(&mut controller_mappings).unwrap();
 
         let gl_attr = video.gl_attr();
 

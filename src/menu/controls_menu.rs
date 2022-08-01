@@ -5,7 +5,10 @@ use crate::framework::error::GameResult;
 use crate::framework::gamepad::{self, Axis, AxisDirection, Button, PlayerControllerInputType};
 use crate::framework::keyboard::ScanCode;
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::settings::{ControllerType, PlayerControllerButtonMap, PlayerKeyMap};
+use crate::settings::{
+    p1_default_keymap, p2_default_keymap, player_default_controller_button_map, ControllerType,
+    PlayerControllerButtonMap, PlayerKeyMap,
+};
 use crate::shared_game_state::SharedGameState;
 
 use super::{ControlMenuData, Menu, MenuEntry, MenuSelectionResult};
@@ -31,6 +34,7 @@ enum CurrentMenu {
     ControllerMenu,
     RebindMenu,
     ConfirmRebindMenu,
+    ConfirmResetMenu,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -50,12 +54,26 @@ impl Default for ControllerMenuEntry {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 enum RebindMenuEntry {
     Control(ControlEntry),
+    Reset,
     Back,
 }
 
 impl Default for RebindMenuEntry {
     fn default() -> Self {
         RebindMenuEntry::Control(ControlEntry::MenuOk)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum ConfirmResetMenuEntry {
+    Title,
+    Yes,
+    No,
+}
+
+impl Default for ConfirmResetMenuEntry {
+    fn default() -> Self {
+        ConfirmResetMenuEntry::No
     }
 }
 
@@ -118,6 +136,7 @@ pub struct ControlsMenu {
     controller: Menu<ControllerMenuEntry>,
     rebind: Menu<RebindMenuEntry>,
     confirm_rebind: Menu<usize>,
+    confirm_reset: Menu<ConfirmResetMenuEntry>,
 
     selected_player: Player,
     selected_controller: ControllerType,
@@ -136,12 +155,14 @@ impl ControlsMenu {
         let controller = Menu::new(0, 0, 220, 0);
         let rebind = Menu::new(0, 0, 220, 0);
         let confirm_rebind = Menu::new(0, 0, 220, 0);
+        let confirm_reset = Menu::new(0, 0, 160, 0);
 
         ControlsMenu {
             current: CurrentMenu::ControllerMenu,
             controller,
             rebind,
             confirm_rebind,
+            confirm_reset,
 
             selected_player: Player::Player1,
             selected_controller: ControllerType::Keyboard,
@@ -173,6 +194,13 @@ impl ControlsMenu {
         self.controller
             .push_entry(ControllerMenuEntry::Rebind, MenuEntry::Active(state.t("menus.controls_menu.rebind")));
         self.controller.push_entry(ControllerMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+
+        self.confirm_reset.push_entry(
+            ConfirmResetMenuEntry::Title,
+            MenuEntry::Disabled(state.t("menus.controls_menu.reset_confirm_menu_title")),
+        );
+        self.confirm_reset.push_entry(ConfirmResetMenuEntry::Yes, MenuEntry::Active(state.t("common.yes")));
+        self.confirm_reset.push_entry(ConfirmResetMenuEntry::No, MenuEntry::Active(state.t("common.no")));
 
         self.player1_key_map = self.init_key_map(&state.settings.player1_key_map);
         self.player2_key_map = self.init_key_map(&state.settings.player2_key_map);
@@ -206,6 +234,11 @@ impl ControlsMenu {
         self.confirm_rebind.update_height();
         self.confirm_rebind.x = ((state.canvas_size.0 - self.confirm_rebind.width as f32) / 2.0).floor() as isize;
         self.confirm_rebind.y = ((state.canvas_size.1 - self.confirm_rebind.height as f32) / 2.0).floor() as isize;
+
+        self.confirm_reset.update_width(state);
+        self.confirm_reset.update_height();
+        self.confirm_reset.x = ((state.canvas_size.0 - self.confirm_reset.width as f32) / 2.0).floor() as isize;
+        self.confirm_reset.y = ((state.canvas_size.1 - self.confirm_reset.height as f32) / 2.0).floor() as isize;
     }
 
     fn init_key_map(&self, settings_key_map: &PlayerKeyMap) -> Vec<(ControlEntry, ScanCode)> {
@@ -319,6 +352,7 @@ impl ControlsMenu {
             }
         }
 
+        self.rebind.push_entry(RebindMenuEntry::Reset, MenuEntry::Active(state.t("menus.controls_menu.reset_confirm")));
         self.rebind.push_entry(RebindMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
     }
 
@@ -393,6 +427,33 @@ impl ControlsMenu {
             }
             None => {}
         }
+    }
+
+    fn reset_controls(&mut self, state: &mut SharedGameState, ctx: &Context) -> GameResult {
+        match self.selected_player {
+            Player::Player1 => {
+                if self.selected_controller == ControllerType::Keyboard {
+                    state.settings.player1_key_map = p1_default_keymap();
+                    self.player1_key_map = self.init_key_map(&state.settings.player1_key_map);
+                } else {
+                    state.settings.player1_controller_button_map = player_default_controller_button_map();
+                    self.player1_controller_button_map =
+                        self.init_controller_button_map(&state.settings.player1_controller_button_map);
+                }
+            }
+            Player::Player2 => {
+                if self.selected_controller == ControllerType::Keyboard {
+                    state.settings.player2_key_map = p2_default_keymap();
+                    self.player2_key_map = self.init_key_map(&state.settings.player2_key_map);
+                } else {
+                    state.settings.player2_controller_button_map = player_default_controller_button_map();
+                    self.player2_controller_button_map =
+                        self.init_controller_button_map(&state.settings.player2_controller_button_map);
+                }
+            }
+        }
+
+        state.settings.save(ctx)
     }
 
     fn is_key_occupied(&self, scan_code: ScanCode) -> bool {
@@ -882,6 +943,10 @@ impl ControlsMenu {
                         self.current = CurrentMenu::ConfirmRebindMenu;
                     }
                 }
+                MenuSelectionResult::Selected(RebindMenuEntry::Reset, _) => {
+                    self.confirm_reset.selected = ConfirmResetMenuEntry::default();
+                    self.current = CurrentMenu::ConfirmResetMenu;
+                }
                 _ => {}
             },
             CurrentMenu::ConfirmRebindMenu => match self.confirm_rebind.tick(controller, state) {
@@ -986,6 +1051,19 @@ impl ControlsMenu {
                     }
                 }
             },
+            CurrentMenu::ConfirmResetMenu => match self.confirm_reset.tick(controller, state) {
+                MenuSelectionResult::Selected(ConfirmResetMenuEntry::Yes, _) => {
+                    self.reset_controls(state, ctx)?;
+                    self.update_rebind_menu(state, ctx);
+                    self.input_busy = true;
+                    self.rebind.non_interactive = true;
+                    self.current = CurrentMenu::RebindMenu;
+                }
+                MenuSelectionResult::Selected(ConfirmResetMenuEntry::No, _) | MenuSelectionResult::Canceled => {
+                    self.current = CurrentMenu::RebindMenu;
+                }
+                _ => {}
+            },
         }
 
         if self.input_busy {
@@ -1016,6 +1094,7 @@ impl ControlsMenu {
             CurrentMenu::ControllerMenu => self.controller.draw(state, ctx)?,
             CurrentMenu::RebindMenu => self.rebind.draw(state, ctx)?,
             CurrentMenu::ConfirmRebindMenu => self.confirm_rebind.draw(state, ctx)?,
+            CurrentMenu::ConfirmResetMenu => self.confirm_reset.draw(state, ctx)?,
         }
 
         Ok(())

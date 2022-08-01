@@ -1,12 +1,12 @@
-use std::any::Any;
 use imgui::DrawData;
+use std::any::Any;
 
 use crate::common::{Color, Rect};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::BlendMode;
-use crate::Game;
 use crate::graphics::VSyncMode;
+use crate::Game;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -25,7 +25,7 @@ pub enum BackendShader {
 }
 
 pub trait Backend {
-    fn create_event_loop(&self) -> GameResult<Box<dyn BackendEventLoop>>;
+    fn create_event_loop(&self, ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>>;
 }
 
 pub trait BackendEventLoop {
@@ -41,7 +41,9 @@ pub trait BackendRenderer {
 
     fn present(&mut self) -> GameResult;
 
-    fn set_vsync_mode(&mut self, _mode: VSyncMode) -> GameResult { Ok(()) }
+    fn set_vsync_mode(&mut self, _mode: VSyncMode) -> GameResult {
+        Ok(())
+    }
 
     fn prepare_draw(&mut self, _width: f32, _height: f32) -> GameResult {
         Ok(())

@@ -22,7 +22,7 @@ impl NullBackend {
 }
 
 impl Backend for NullBackend {
-    fn create_event_loop(&self) -> GameResult<Box<dyn BackendEventLoop>> {
+    fn create_event_loop(&self, _ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>> {
         Ok(Box::new(NullEventLoop))
     }
 }
