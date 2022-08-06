@@ -907,6 +907,7 @@ impl ControlsMenu {
                     self.main.non_interactive = true;
                     *controller = new_menu_controller;
 
+                    self.selected_controller = ControllerType::Keyboard;
                     self.update_rebind_menu(state, ctx);
 
                     self.current = CurrentMenu::MainMenu;
@@ -927,6 +928,7 @@ impl ControlsMenu {
                     self.main.non_interactive = true;
                     *controller = new_menu_controller;
 
+                    self.selected_controller = ControllerType::Gamepad(idx as u32);
                     self.update_rebind_menu(state, ctx);
 
                     self.current = CurrentMenu::MainMenu;
