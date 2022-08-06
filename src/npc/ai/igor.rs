@@ -96,7 +96,7 @@ impl NPC {
             0 | 1 => {
                 if self.action_num == 0 {
                     self.action_num = 1;
-                    self.action_counter = 0;
+                    self.anim_num = 0;
                     self.anim_counter = 0;
                     self.vel_x = 0;
                 }
@@ -116,11 +116,11 @@ impl NPC {
                     self.anim_num = 2;
                     self.anim_counter = 0;
 
-                    self.vel_x2 += 1;
-                    if self.vel_x2 < 3 || self.life > 150 {
-                        self.action_counter2 = 0;
+                    self.action_counter2 += 1;
+                    if self.action_counter2 < 3 || self.life > 150 {
+                        self.action_counter3 = 0;
                     } else {
-                        self.action_counter2 = 1;
+                        self.action_counter3 = 1;
                     }
 
                     self.face_player(player);
@@ -131,7 +131,7 @@ impl NPC {
 
                 self.vel_x = self.direction.vector_x() * 0x200;
 
-                if self.action_counter2 != 0 {
+                if self.action_counter3 != 0 {
                     if self.action_counter > 16 {
                         self.vel_x = 0;
                         self.action_num = 9;
@@ -247,7 +247,7 @@ impl NPC {
                 if self.action_counter > 132 {
                     self.action_num = 0;
                     self.anim_num = 0;
-                    self.vel_x2 = 0;
+                    self.action_counter2 = 0;
                 }
             }
             _ => (),
