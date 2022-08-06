@@ -1772,6 +1772,7 @@ impl Scene for GameScene {
             TextScriptExecutionState::Running(_, _)
             | TextScriptExecutionState::WaitTicks(_, _, _)
             | TextScriptExecutionState::WaitInput(_, _, _)
+            | TextScriptExecutionState::WaitStanding(_, _)
             | TextScriptExecutionState::Msg(_, _, _, _)
             | TextScriptExecutionState::MsgNewLine(_, _, _, _, _)
             | TextScriptExecutionState::FallingIsland(_, _, _, _, _, _)

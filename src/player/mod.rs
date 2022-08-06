@@ -800,11 +800,17 @@ impl Player {
                 self.anim_num = 0;
                 self.anim_counter = 0;
             }
-        } else if (self.controller.look_up() || self.strafe_up) && self.control_mode == ControlMode::Normal {
+        } else if state.control_flags.control_enabled()
+            && (self.controller.look_up() || self.strafe_up)
+            && self.control_mode == ControlMode::Normal
+        {
             self.skin.set_state(PlayerAnimationState::FallingLookingUp);
             self.anim_num = 0;
             self.anim_counter = 0;
-        } else if self.controller.look_down() && self.control_mode == ControlMode::Normal {
+        } else if state.control_flags.control_enabled()
+            && self.controller.look_down()
+            && self.control_mode == ControlMode::Normal
+        {
             self.skin.set_state(PlayerAnimationState::FallingLookingDown);
             self.anim_num = 0;
             self.anim_counter = 0;
