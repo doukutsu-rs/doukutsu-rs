@@ -316,6 +316,7 @@ pub struct EngineConstants {
     pub base_paths: Vec<String>,
     pub is_cs_plus: bool,
     pub is_switch: bool,
+    pub is_demo: bool,
     pub supports_og_textures: bool,
     pub game: GameConsts,
     pub player: PlayerConsts,
@@ -348,6 +349,7 @@ impl Clone for EngineConstants {
             base_paths: self.base_paths.clone(),
             is_cs_plus: self.is_cs_plus,
             is_switch: self.is_switch,
+            is_demo: self.is_demo,
             supports_og_textures: self.supports_og_textures,
             game: self.game,
             player: self.player,
@@ -382,6 +384,7 @@ impl EngineConstants {
             base_paths: Vec::new(),
             is_cs_plus: false,
             is_switch: false,
+            is_demo: false,
             supports_og_textures: false,
             game: GameConsts {
                 intro_stage: 72,
@@ -1758,6 +1761,16 @@ impl EngineConstants {
         self.textscript.fade_ticks = 21;
         self.game.tile_offset_x = 3;
         self.game.new_game_player_pos = (13, 8);
+    }
+
+    pub fn apply_csdemo_patches(&mut self) {
+        log::info!("Applying Wiiware DEMO-specific Cave Story+ constants patches...");
+
+        self.is_demo = true;
+        self.supports_og_textures = true;
+        self.game.new_game_stage = 11;
+        self.game.new_game_event = 302;
+        self.game.new_game_player_pos = (160, 76);
     }
 
     pub fn rebuild_path_list(&mut self, mod_path: Option<String>, season: Season, settings: &Settings) {
