@@ -136,7 +136,7 @@
         "player_2": "Player 2"
       },
       "controller": {
-        "entry": "Controller:",
+        "entry": "Controller...",
         "keyboard": "Keyboard"
       },
       "rebind": "Rebind...",

@@ -128,7 +128,7 @@
         "player_2": "プレーヤー 2"
       },
       "controller": {
-        "entry": "コントローラ：",
+        "entry": "コントローラ",
         "keyboard": "キーボード"
       },
       "rebind": "再バインド",

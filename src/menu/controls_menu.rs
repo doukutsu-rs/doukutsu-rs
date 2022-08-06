@@ -31,23 +31,37 @@ const FORBIDDEN_SCANCODES: [ScanCode; 12] = [
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[repr(u8)]
 enum CurrentMenu {
-    ControllerMenu,
+    MainMenu,
+    SelectControllerMenu,
     RebindMenu,
     ConfirmRebindMenu,
     ConfirmResetMenu,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-enum ControllerMenuEntry {
+enum MainMenuEntry {
     SelectedPlayer,
     Controller,
     Rebind,
     Back,
 }
 
-impl Default for ControllerMenuEntry {
+impl Default for MainMenuEntry {
     fn default() -> Self {
-        ControllerMenuEntry::SelectedPlayer
+        MainMenuEntry::SelectedPlayer
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum SelectControllerMenuEntry {
+    Keyboard,
+    Gamepad(usize),
+    Back,
+}
+
+impl Default for SelectControllerMenuEntry {
+    fn default() -> Self {
+        SelectControllerMenuEntry::Keyboard
     }
 }
 
@@ -133,7 +147,8 @@ impl ControlEntry {
 
 pub struct ControlsMenu {
     current: CurrentMenu,
-    controller: Menu<ControllerMenuEntry>,
+    main: Menu<MainMenuEntry>,
+    select_controller: Menu<SelectControllerMenuEntry>,
     rebind: Menu<RebindMenuEntry>,
     confirm_rebind: Menu<usize>,
     confirm_reset: Menu<ConfirmResetMenuEntry>,
@@ -152,14 +167,16 @@ pub struct ControlsMenu {
 
 impl ControlsMenu {
     pub fn new() -> ControlsMenu {
-        let controller = Menu::new(0, 0, 220, 0);
+        let main = Menu::new(0, 0, 220, 0);
+        let select_controller = Menu::new(0, 0, 220, 0);
         let rebind = Menu::new(0, 0, 220, 0);
         let confirm_rebind = Menu::new(0, 0, 220, 0);
         let confirm_reset = Menu::new(0, 0, 160, 0);
 
         ControlsMenu {
-            current: CurrentMenu::ControllerMenu,
-            controller,
+            current: CurrentMenu::MainMenu,
+            main,
+            select_controller,
             rebind,
             confirm_rebind,
             confirm_reset,
@@ -178,8 +195,8 @@ impl ControlsMenu {
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        self.controller.push_entry(
-            ControllerMenuEntry::SelectedPlayer,
+        self.main.push_entry(
+            MainMenuEntry::SelectedPlayer,
             MenuEntry::Options(
                 state.t("menus.controls_menu.select_player.entry"),
                 self.selected_player as usize,
@@ -190,10 +207,10 @@ impl ControlsMenu {
             ),
         );
 
-        self.controller.push_entry(ControllerMenuEntry::Controller, MenuEntry::Hidden);
-        self.controller
-            .push_entry(ControllerMenuEntry::Rebind, MenuEntry::Active(state.t("menus.controls_menu.rebind")));
-        self.controller.push_entry(ControllerMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.main
+            .push_entry(MainMenuEntry::Controller, MenuEntry::Active(state.t("menus.controls_menu.controller.entry")));
+        self.main.push_entry(MainMenuEntry::Rebind, MenuEntry::Active(state.t("menus.controls_menu.rebind")));
+        self.main.push_entry(MainMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
         self.confirm_reset.push_entry(
             ConfirmResetMenuEntry::Title,
@@ -220,10 +237,16 @@ impl ControlsMenu {
     }
 
     fn update_sizes(&mut self, state: &SharedGameState) {
-        self.controller.update_width(state);
-        self.controller.update_height();
-        self.controller.x = ((state.canvas_size.0 - self.controller.width as f32) / 2.0).floor() as isize;
-        self.controller.y = ((state.canvas_size.1 - self.controller.height as f32) / 2.0).floor() as isize;
+        self.main.update_width(state);
+        self.main.update_height();
+        self.main.x = ((state.canvas_size.0 - self.main.width as f32) / 2.0).floor() as isize;
+        self.main.y = ((state.canvas_size.1 - self.main.height as f32) / 2.0).floor() as isize;
+
+        self.select_controller.update_width(state);
+        self.select_controller.update_height();
+        self.select_controller.x = ((state.canvas_size.0 - self.select_controller.width as f32) / 2.0).floor() as isize;
+        self.select_controller.y =
+            ((state.canvas_size.1 - self.select_controller.height as f32) / 2.0).floor() as isize;
 
         self.rebind.update_width(state);
         self.rebind.update_height();
@@ -357,8 +380,12 @@ impl ControlsMenu {
     }
 
     fn update_controller_options(&mut self, state: &SharedGameState, ctx: &Context) {
-        let mut controllers = Vec::new();
-        controllers.push(state.t("menus.controls_menu.controller.keyboard"));
+        self.select_controller.entries.clear();
+
+        self.select_controller.push_entry(
+            SelectControllerMenuEntry::Keyboard,
+            MenuEntry::Active(state.t("menus.controls_menu.controller.keyboard")),
+        );
 
         let gamepads = gamepad::get_gamepads(ctx);
 
@@ -377,8 +404,13 @@ impl ControlsMenu {
                 }
             }
 
-            controllers.push(format!("{} {}", gamepads[i].get_gamepad_name(), i + 1));
+            self.select_controller.push_entry(
+                SelectControllerMenuEntry::Gamepad(i),
+                MenuEntry::Active(format!("{} {}", gamepads[i].get_gamepad_name(), i + 1)),
+            );
         }
+
+        self.select_controller.push_entry(SelectControllerMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
         let controller_type = match self.selected_player {
             Player::Player1 => state.settings.player1_controller_type,
@@ -395,19 +427,12 @@ impl ControlsMenu {
             self.selected_controller = controller_type;
         }
 
-        let controller_idx = match self.selected_controller {
-            ControllerType::Keyboard => 0,
-            ControllerType::Gamepad(idx) => idx as usize + 1,
-        };
-
-        self.controller.set_entry(
-            ControllerMenuEntry::Controller,
-            MenuEntry::Options(
-                state.t("menus.controls_menu.controller.entry"),
-                controller_idx as usize,
-                controllers.clone(),
-            ),
-        );
+        match self.selected_controller {
+            ControllerType::Keyboard => self.select_controller.selected = SelectControllerMenuEntry::Keyboard,
+            ControllerType::Gamepad(index) => {
+                self.select_controller.selected = SelectControllerMenuEntry::Gamepad(index as usize)
+            }
+        }
     }
 
     fn update_confirm_controls_menu(&mut self, state: &SharedGameState) {
@@ -831,10 +856,10 @@ impl ControlsMenu {
         self.update_sizes(state);
 
         match self.current {
-            CurrentMenu::ControllerMenu => match self.controller.tick(controller, state) {
-                MenuSelectionResult::Selected(ControllerMenuEntry::SelectedPlayer, toggle)
-                | MenuSelectionResult::Left(ControllerMenuEntry::SelectedPlayer, toggle, _)
-                | MenuSelectionResult::Right(ControllerMenuEntry::SelectedPlayer, toggle, _) => {
+            CurrentMenu::MainMenu => match self.main.tick(controller, state) {
+                MenuSelectionResult::Selected(MainMenuEntry::SelectedPlayer, toggle)
+                | MenuSelectionResult::Left(MainMenuEntry::SelectedPlayer, toggle, _)
+                | MenuSelectionResult::Right(MainMenuEntry::SelectedPlayer, toggle, _) => {
                     if let MenuEntry::Options(_, value, _) = toggle {
                         let (new_player, new_value) = match *value {
                             0 => (Player::Player2, 1),
@@ -851,88 +876,70 @@ impl ControlsMenu {
                         self.update_rebind_menu(state, ctx);
                     }
                 }
-                MenuSelectionResult::Selected(ControllerMenuEntry::Controller, toggle)
-                | MenuSelectionResult::Right(ControllerMenuEntry::Controller, toggle, _) => {
+                MenuSelectionResult::Selected(MainMenuEntry::Controller, _) => {
                     if self.input_busy {
                         return Ok(());
                     }
 
-                    if let MenuEntry::Options(_, value, entries) = toggle {
-                        if *value == entries.len() - 1 {
-                            self.selected_controller = ControllerType::Keyboard;
-                            *value = 0;
-                        } else {
-                            self.selected_controller = ControllerType::Gamepad(*value as u32);
-                            *value = *value + 1;
-                        }
-                    }
-
-                    if self.selected_player == Player::Player1 {
-                        state.settings.player1_controller_type = self.selected_controller;
-                    } else {
-                        state.settings.player2_controller_type = self.selected_controller;
-                    }
-
-                    let _ = state.settings.save(ctx);
-
-                    let mut new_menu_controller = CombinedMenuController::new();
-                    new_menu_controller.add(state.settings.create_player1_controller());
-                    new_menu_controller.add(state.settings.create_player2_controller());
-                    self.input_busy = true;
-                    self.controller.non_interactive = true;
-                    *controller = new_menu_controller;
-
-                    self.update_rebind_menu(state, ctx);
+                    self.update_controller_options(state, ctx);
+                    self.current = CurrentMenu::SelectControllerMenu;
                 }
-                MenuSelectionResult::Left(ControllerMenuEntry::Controller, toggle, _) => {
-                    if self.input_busy {
-                        return Ok(());
-                    }
-
-                    if let MenuEntry::Options(_, value, entries) = toggle {
-                        if *value == 1 {
-                            self.selected_controller = ControllerType::Keyboard;
-                            *value = 0;
-                        } else {
-                            self.selected_controller = ControllerType::Gamepad(*value as u32);
-
-                            if *value == 0 {
-                                *value = entries.len() - 1;
-                            } else {
-                                *value = *value - 1;
-                            }
-                        }
-                    }
-
-                    if self.selected_player == Player::Player1 {
-                        state.settings.player1_controller_type = self.selected_controller;
-                    } else {
-                        state.settings.player2_controller_type = self.selected_controller;
-                    }
-
-                    let _ = state.settings.save(ctx);
-
-                    let mut new_menu_controller = CombinedMenuController::new();
-                    new_menu_controller.add(state.settings.create_player1_controller());
-                    new_menu_controller.add(state.settings.create_player2_controller());
-                    self.input_busy = true;
-                    self.controller.non_interactive = true;
-                    *controller = new_menu_controller;
-
-                    self.update_rebind_menu(state, ctx);
-                }
-                MenuSelectionResult::Selected(ControllerMenuEntry::Rebind, _) => {
+                MenuSelectionResult::Selected(MainMenuEntry::Rebind, _) => {
                     self.current = CurrentMenu::RebindMenu;
                 }
-                MenuSelectionResult::Selected(ControllerMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
-                    exit_action()
+                MenuSelectionResult::Selected(MainMenuEntry::Back, _) | MenuSelectionResult::Canceled => exit_action(),
+                _ => {}
+            },
+            CurrentMenu::SelectControllerMenu => match self.select_controller.tick(controller, state) {
+                MenuSelectionResult::Selected(SelectControllerMenuEntry::Keyboard, _) => {
+                    if self.selected_player == Player::Player1 {
+                        state.settings.player1_controller_type = ControllerType::Keyboard;
+                    } else {
+                        state.settings.player2_controller_type = ControllerType::Keyboard;
+                    }
+
+                    let _ = state.settings.save(ctx);
+
+                    let mut new_menu_controller = CombinedMenuController::new();
+                    new_menu_controller.add(state.settings.create_player1_controller());
+                    new_menu_controller.add(state.settings.create_player2_controller());
+                    self.input_busy = true;
+                    self.main.non_interactive = true;
+                    *controller = new_menu_controller;
+
+                    self.update_rebind_menu(state, ctx);
+
+                    self.current = CurrentMenu::MainMenu;
+                }
+                MenuSelectionResult::Selected(SelectControllerMenuEntry::Gamepad(idx), _) => {
+                    if self.selected_player == Player::Player1 {
+                        state.settings.player1_controller_type = ControllerType::Gamepad(idx as u32);
+                    } else {
+                        state.settings.player2_controller_type = ControllerType::Gamepad(idx as u32);
+                    }
+
+                    let _ = state.settings.save(ctx);
+
+                    let mut new_menu_controller = CombinedMenuController::new();
+                    new_menu_controller.add(state.settings.create_player1_controller());
+                    new_menu_controller.add(state.settings.create_player2_controller());
+                    self.input_busy = true;
+                    self.main.non_interactive = true;
+                    *controller = new_menu_controller;
+
+                    self.update_rebind_menu(state, ctx);
+
+                    self.current = CurrentMenu::MainMenu;
+                }
+                MenuSelectionResult::Selected(SelectControllerMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
+                    self.current = CurrentMenu::MainMenu;
                 }
                 _ => {}
             },
             CurrentMenu::RebindMenu => match self.rebind.tick(controller, state) {
                 MenuSelectionResult::Selected(RebindMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
                     if !self.input_busy {
-                        self.current = CurrentMenu::ControllerMenu;
+                        self.current = CurrentMenu::MainMenu;
                     }
                 }
                 MenuSelectionResult::Selected(RebindMenuEntry::Control(control), _) => {
@@ -1081,7 +1088,7 @@ impl ControlsMenu {
             self.input_busy = input_busy;
 
             if !self.input_busy {
-                self.controller.non_interactive = false;
+                self.main.non_interactive = false;
                 self.rebind.non_interactive = false;
             }
         }
@@ -1091,7 +1098,8 @@ impl ControlsMenu {
 
     pub fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         match self.current {
-            CurrentMenu::ControllerMenu => self.controller.draw(state, ctx)?,
+            CurrentMenu::MainMenu => self.main.draw(state, ctx)?,
+            CurrentMenu::SelectControllerMenu => self.select_controller.draw(state, ctx)?,
             CurrentMenu::RebindMenu => self.rebind.draw(state, ctx)?,
             CurrentMenu::ConfirmRebindMenu => self.confirm_rebind.draw(state, ctx)?,
             CurrentMenu::ConfirmResetMenu => self.confirm_reset.draw(state, ctx)?,
