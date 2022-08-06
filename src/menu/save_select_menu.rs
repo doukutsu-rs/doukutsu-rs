@@ -299,6 +299,11 @@ impl SaveSelectMenu {
                     }
 
                     self.save_menu.set_entry(self.save_menu.selected, MenuEntry::NewSave);
+                    if let SaveMenuEntry::Load(slot) = self.save_menu.selected {
+                        self.save_menu.set_id(self.save_menu.selected, SaveMenuEntry::New(slot));
+                        self.save_menu.selected = SaveMenuEntry::New(slot);
+                    }
+
                     self.current_menu = CurrentMenu::SaveMenu;
                 }
                 MenuSelectionResult::Selected(DeleteConfirmMenuEntry::No, _) | MenuSelectionResult::Canceled => {

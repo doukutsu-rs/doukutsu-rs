@@ -131,6 +131,15 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
         }
     }
 
+    pub fn set_id(&mut self, old_id: T, new_id: T) {
+        for i in 0..self.entries.len() {
+            if self.entries[i].0 == old_id {
+                self.entries[i].0 = new_id;
+                return;
+            }
+        }
+    }
+
     pub fn update_width(&mut self, state: &SharedGameState) {
         let mut width = self.width as f32;
 
