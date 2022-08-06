@@ -442,7 +442,11 @@ impl Scene for TitleScene {
                 40.0,
                 &state.constants.title.logo_rect,
             );
-
+            batch.add_rect(
+                ((state.canvas_size.0 - state.constants.title.logo_splash_rect.width() as f32) / 2.0).floor() + 72.0,
+                88.0,
+                &state.constants.title.logo_splash_rect,
+            );
             batch.draw(ctx)?;
         } else {
             let window_title = match self.current_menu {

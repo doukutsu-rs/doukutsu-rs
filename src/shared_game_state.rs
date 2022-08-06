@@ -526,11 +526,13 @@ impl SharedGameState {
 
         let substitution_rect_map = HashMap::from([('=', self.constants.textscript.textbox_item_marker_rect)]);
         self.textscript_vm.set_substitution_rect_map(substitution_rect_map);
-        /*
-               let credit_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "Credit.tsc")?;
-               let credit_script = CreditScript::load_from(credit_tsc, &self.constants)?;
-               self.creditscript_vm.set_script(credit_script);
-        */
+
+        if filesystem::exists_find(ctx, &self.constants.base_paths, "Credit.tsc") {
+            let credit_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "Credit.tsc")?;
+            let credit_script = CreditScript::load_from(credit_tsc, &self.constants)?;
+            self.creditscript_vm.set_script(credit_script);
+        }
+
         self.texture_set.unload_all();
 
         self.sound_manager.load_custom_sound_effects(ctx, &self.constants.base_paths)?;
