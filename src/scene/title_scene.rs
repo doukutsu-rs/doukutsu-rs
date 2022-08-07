@@ -376,14 +376,12 @@ impl Scene for TitleScene {
                             self.nikumaru_rec.load_counter(state, ctx)?;
                             self.current_menu = CurrentMenu::ChallengeConfirmMenu;
                         }
-                        state.reload_graphics();
                     }
                 }
                 MenuSelectionResult::Selected(ChallengesMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
                     state.mod_path = None;
                     self.nikumaru_rec.load_counter(state, ctx)?;
                     self.current_menu = CurrentMenu::MainMenu;
-                    state.reload_graphics();
                 }
                 _ => (),
             },
@@ -464,12 +462,14 @@ impl Scene for TitleScene {
             )?;
         }
 
-        self.draw_text_centered(&VERSION_BANNER, state.canvas_size.1 - 15.0, state, ctx)?;
+        if self.current_menu == CurrentMenu::MainMenu {
+            self.draw_text_centered(&VERSION_BANNER, state.canvas_size.1 - 15.0, state, ctx)?;
 
-        if state.constants.is_cs_plus {
-            self.draw_text_centered(COPYRIGHT_NICALIS, state.canvas_size.1 - 30.0, state, ctx)?;
-        } else {
-            self.draw_text_centered(COPYRIGHT_PIXEL, state.canvas_size.1 - 30.0, state, ctx)?;
+            if state.constants.is_cs_plus {
+                self.draw_text_centered(COPYRIGHT_NICALIS, state.canvas_size.1 - 30.0, state, ctx)?;
+            } else {
+                self.draw_text_centered(COPYRIGHT_PIXEL, state.canvas_size.1 - 30.0, state, ctx)?;
+            }
         }
 
         self.nikumaru_rec.draw(state, ctx, &self.frame)?;
