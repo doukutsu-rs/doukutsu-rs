@@ -410,6 +410,7 @@ impl NPC {
                     self.anim_num = 2;
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 20;
+                    state.quake_rumble_counter = 20;
                 }
             }
             26 => {
@@ -479,6 +480,7 @@ impl NPC {
                     self.anim_num = 2;
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 20;
+                    state.quake_rumble_counter = 20;
                 }
             }
             102 => {

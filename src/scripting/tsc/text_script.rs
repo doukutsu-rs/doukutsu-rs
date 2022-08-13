@@ -1260,6 +1260,7 @@ impl TextScriptVM {
                 let count = read_cur_varint(&mut cursor)? as u16;
 
                 state.quake_counter = count;
+                state.quake_rumble_counter = count as u32;
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }

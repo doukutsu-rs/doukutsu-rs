@@ -166,4 +166,10 @@ impl PlayerController for CombinedPlayerController {
     fn move_analog_y(&self) -> f64 {
         self.controllers.iter().fold(0.0, |acc, cont| acc + cont.move_analog_y()) / self.controllers.len() as f64
     }
+
+    fn set_rumble(&mut self, low_freq: u16, hi_freq: u16, ticks: u32) {
+        for cont in &mut self.controllers {
+            cont.set_rumble(low_freq, hi_freq, ticks);
+        }
+    }
 }

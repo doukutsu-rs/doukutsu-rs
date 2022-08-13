@@ -118,6 +118,7 @@ impl NPC {
 
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
                 }
             }
             _ => (),

@@ -554,6 +554,7 @@ impl NPC {
                     self.action_num = 3;
                     self.action_counter = 0;
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
 
                     state.sound_manager.play_sfx(26);
                     state.sound_manager.play_sfx(72);
@@ -747,6 +748,7 @@ impl NPC {
             }
             2 => {
                 state.quake_counter = 2;
+                state.quake_rumble_counter = 2;
                 self.action_counter3 += 1;
                 if self.action_counter3 > 240 {
                     self.anim_num = 2;
@@ -891,6 +893,7 @@ impl NPC {
                 if self.action_counter != 0 && self.flags.hit_bottom_wall() {
                     state.sound_manager.play_sfx(35);
                     state.quake_counter = 40;
+                    state.quake_rumble_counter = 40;
                     self.action_num = 0;
                 }
 
@@ -1403,6 +1406,7 @@ impl NPC {
                     state.sound_manager.play_sfx(26);
                 }
                 state.quake_counter = 20;
+                state.quake_rumble_counter = 20;
             }
             20 => {
                 let mut npc = NPC::create(4, &state.npc_table);

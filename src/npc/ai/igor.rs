@@ -188,6 +188,7 @@ impl NPC {
 
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
@@ -459,6 +460,7 @@ impl NPC {
                     self.action_num = 40;
                     self.action_counter = 0;
                     state.quake_counter = 20;
+                    state.quake_rumble_counter = 20;
                     state.sound_manager.play_sfx(26);
                 }
             }

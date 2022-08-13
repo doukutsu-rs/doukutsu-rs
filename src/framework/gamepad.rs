@@ -3,7 +3,15 @@ use std::collections::{HashMap, HashSet};
 use sdl2::controller::GameController;
 use serde::{Deserialize, Serialize};
 
+use crate::shared_game_state::SharedGameState;
 use crate::{common::Rect, engine_constants::EngineConstants, framework::context::Context};
+
+use crate::framework::error::GameResult;
+
+const QUAKE_RUMBLE_LOW_FREQ: u16 = 0x3000;
+const QUAKE_RUMBLE_HI_FREQ: u16 = 0;
+const SUPER_QUAKE_RUMBLE_LOW_FREQ: u16 = 0x5000;
+const SUPER_QUAKE_RUMBLE_HI_FREQ: u16 = 0;
 
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 #[repr(u32)]
@@ -186,6 +194,12 @@ impl GamepadData {
 
         name
     }
+
+    pub fn set_rumble(&mut self, state: &SharedGameState, low_freq: u16, hi_freq: u16, ticks: u32) -> GameResult {
+        let duration_ms = (ticks as f32 / state.settings.timing_mode.get_tps() as f32 * 1000.0) as u32;
+        self.controller.set_rumble(low_freq, hi_freq, duration_ms);
+        Ok(())
+    }
 }
 
 pub struct GamepadContext {
@@ -207,6 +221,10 @@ impl GamepadContext {
 
     fn get_gamepad_mut(&mut self, gamepad_id: u32) -> Option<&mut GamepadData> {
         self.gamepads.iter_mut().find(|gamepad| gamepad.controller.instance_id() == gamepad_id)
+    }
+
+    fn get_gamepad_by_index_mut(&mut self, gamepad_index: usize) -> Option<&mut GamepadData> {
+        self.gamepads.get_mut(gamepad_index)
     }
 
     pub(crate) fn add_gamepad(&mut self, game_controller: GameController, axis_sensitivity: f64) {
@@ -323,6 +341,35 @@ impl GamepadContext {
 
         HashMap::new()
     }
+
+    pub(crate) fn set_rumble(
+        &mut self,
+        gamepad_index: u32,
+        state: &SharedGameState,
+        low_freq: u16,
+        hi_freq: u16,
+        ticks: u32,
+    ) -> GameResult {
+        if let Some(gamepad) = self.get_gamepad_by_index_mut(gamepad_index as usize) {
+            gamepad.set_rumble(state, low_freq, hi_freq, ticks)?;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn set_rumble_all(
+        &mut self,
+        state: &SharedGameState,
+        low_freq: u16,
+        hi_freq: u16,
+        ticks: u32,
+    ) -> GameResult {
+        for gamepad in self.gamepads.iter_mut() {
+            gamepad.set_rumble(state, low_freq, hi_freq, ticks)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl Default for GamepadContext {
@@ -369,4 +416,46 @@ pub fn pressed_buttons(ctx: &Context, gamepad_index: u32) -> HashSet<Button> {
 
 pub fn active_axes(ctx: &Context, gamepad_index: u32) -> HashMap<Axis, f64> {
     ctx.gamepad_context.active_axes(gamepad_index)
+}
+
+pub fn set_rumble(
+    ctx: &mut Context,
+    state: &SharedGameState,
+    gamepad_index: u32,
+    low_freq: u16,
+    hi_freq: u16,
+    ticks: u32,
+) -> GameResult {
+    ctx.gamepad_context.set_rumble(gamepad_index, state, low_freq, hi_freq, ticks)
+}
+
+pub fn set_rumble_all(
+    ctx: &mut Context,
+    state: &SharedGameState,
+    low_freq: u16,
+    hi_freq: u16,
+    ticks: u32,
+) -> GameResult {
+    ctx.gamepad_context.set_rumble_all(state, low_freq, hi_freq, ticks)
+}
+
+pub fn set_quake_rumble(ctx: &mut Context, state: &SharedGameState, gamepad_index: u32, ticks: u32) -> GameResult {
+    set_rumble(ctx, state, gamepad_index, QUAKE_RUMBLE_LOW_FREQ, QUAKE_RUMBLE_HI_FREQ, ticks)
+}
+
+pub fn set_quake_rumble_all(ctx: &mut Context, state: &SharedGameState, ticks: u32) -> GameResult {
+    set_rumble_all(ctx, state, QUAKE_RUMBLE_LOW_FREQ, QUAKE_RUMBLE_LOW_FREQ, ticks)
+}
+
+pub fn set_super_quake_rumble(
+    ctx: &mut Context,
+    state: &SharedGameState,
+    gamepad_index: u32,
+    ticks: u32,
+) -> GameResult {
+    set_rumble(ctx, state, gamepad_index, SUPER_QUAKE_RUMBLE_LOW_FREQ, SUPER_QUAKE_RUMBLE_HI_FREQ, ticks)
+}
+
+pub fn set_super_quake_rumble_all(ctx: &mut Context, state: &SharedGameState, ticks: u32) -> GameResult {
+    set_rumble_all(ctx, state, SUPER_QUAKE_RUMBLE_LOW_FREQ, SUPER_QUAKE_RUMBLE_LOW_FREQ, ticks)
 }

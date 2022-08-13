@@ -592,6 +592,7 @@ impl NPC {
                 }
 
                 state.quake_counter = 2;
+                state.quake_rumble_counter = 2;
 
                 self.action_counter += 1;
                 if self.action_counter % 20 == 0 {

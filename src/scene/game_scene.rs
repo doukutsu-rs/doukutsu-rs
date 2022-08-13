@@ -31,7 +31,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
 use crate::framework::ui::Components;
-use crate::framework::{filesystem, graphics};
+use crate::framework::{filesystem, gamepad, graphics};
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::map::WaterParams;
@@ -1844,6 +1844,16 @@ impl Scene for GameScene {
             if state.control_flags.control_enabled() {
                 state.tutorial_counter = 0;
             }
+        }
+
+        if state.quake_rumble_counter > 0 {
+            gamepad::set_quake_rumble_all(ctx, state, state.quake_rumble_counter)?;
+            state.quake_rumble_counter = 0;
+        }
+
+        if state.super_quake_rumble_counter > 0 {
+            gamepad::set_super_quake_rumble_all(ctx, state, state.super_quake_rumble_counter)?;
+            state.super_quake_rumble_counter = 0;
         }
 
         Ok(())

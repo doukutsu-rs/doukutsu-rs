@@ -321,6 +321,7 @@ impl NPC {
                     self.action_counter = 0;
                     self.damage = 3;
                     state.super_quake_counter = 10;
+                    state.super_quake_rumble_counter = 10;
                     state.sound_manager.play_sfx(26);
                 }
 
@@ -392,6 +393,7 @@ impl NPC {
                     let _ = npc_list.spawn(0x100, npc);
 
                     state.super_quake_counter = 10;
+                    state.super_quake_rumble_counter = 10;
                     state.sound_manager.play_sfx(26);
                 }
 
@@ -950,6 +952,7 @@ impl NPC {
                     self.npc_flags.set_ignore_solidity(true);
                     state.sound_manager.play_sfx(12);
                     state.quake_counter = 10;
+                    state.quake_rumble_counter = 10;
 
                     for _ in 0..4 {
                         let mut npc = NPC::create(4, &state.npc_table);
@@ -1361,6 +1364,7 @@ impl NPC {
                 if self.action_counter > 100 {
                     self.action_counter = 0;
                     state.quake_counter = 20;
+                    state.quake_rumble_counter = 20;
                     state.sound_manager.play_sfx(26);
                     state.sound_manager.play_sfx(12);
 
@@ -1481,6 +1485,7 @@ impl BossNPC {
                     self.parts[0].action_num = 103;
                     self.parts[0].action_counter = 0;
                     state.super_quake_counter = 30;
+                    state.super_quake_rumble_counter = 30;
                     state.sound_manager.play_sfx(44);
 
                     if player.y > self.parts[0].y + 0x6000
@@ -1563,6 +1568,7 @@ impl BossNPC {
                     self.parts[0].action_num = 201;
                     self.parts[0].action_counter = 0;
                     state.super_quake_counter = 30;
+                    state.super_quake_rumble_counter = 30;
                     state.sound_manager.play_sfx(26);
                     state.sound_manager.play_sfx(44);
 
@@ -1619,6 +1625,7 @@ impl BossNPC {
                     self.parts[0].action_num = 222;
                     self.parts[0].action_counter = 0;
                     state.super_quake_counter = 30;
+                    state.super_quake_rumble_counter = 30;
                     state.sound_manager.play_sfx(26);
 
                     for _ in 0..16 {
@@ -1807,6 +1814,7 @@ impl BossNPC {
                     self.parts[0].action_counter = 0;
                     self.parts[0].anim_counter = 0;
                     state.super_quake_counter = 30;
+                    state.super_quake_rumble_counter = 30;
                     state.sound_manager.play_sfx(35);
 
                     self.parts[1].action_num = 102;
@@ -1873,6 +1881,7 @@ impl BossNPC {
             }
             1002 => {
                 state.super_quake_counter = 40;
+                state.super_quake_rumble_counter = 30;
 
                 self.parts[0].action_counter += 1;
 

@@ -1061,6 +1061,7 @@ impl NPC {
                 }
 
                 state.quake_counter = 20;
+                state.quake_rumble_counter = 20;
                 if self.action_counter % 8 == 0 {
                     state.sound_manager.play_sfx(26);
                 }

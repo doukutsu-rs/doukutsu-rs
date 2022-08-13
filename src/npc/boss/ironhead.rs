@@ -295,6 +295,7 @@ impl BossNPC {
                     self.parts[0].target_x = self.parts[0].x;
                     self.parts[0].target_y = self.parts[0].y;
                     state.quake_counter = 20;
+                    state.quake_rumble_counter = 20;
                     for _ in 0..32 {
                         let mut npc = NPC::create(4, &state.npc_table);
                         npc.cond.set_alive(true);

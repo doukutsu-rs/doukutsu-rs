@@ -1013,6 +1013,7 @@ impl NPC {
                         }
 
                         state.quake_counter = 10;
+                        state.quake_rumble_counter = 10;
                         state.sound_manager.play_sfx(26);
                     }
 
@@ -1185,6 +1186,7 @@ impl NPC {
                     self.action_num = 20;
 
                     state.quake_counter = 10;
+                    state.quake_rumble_counter = 10;
                     state.sound_manager.play_sfx(26);
 
                     let mut npc = NPC::create(4, &state.npc_table);
@@ -1236,6 +1238,7 @@ impl NPC {
                     self.action_num = 10;
 
                     state.quake_counter = 10;
+                    state.quake_rumble_counter = 10;
                     state.sound_manager.play_sfx(26);
 
                     let mut npc = NPC::create(4, &state.npc_table);
@@ -1329,6 +1332,7 @@ impl NPC {
                     self.action_num = 20;
 
                     state.quake_counter = 10;
+                    state.quake_rumble_counter = 10;
                     state.sound_manager.play_sfx(26);
 
                     let mut npc = NPC::create(4, &state.npc_table);
@@ -1380,6 +1384,7 @@ impl NPC {
                     self.action_num = 10;
 
                     state.quake_counter = 10;
+                    state.quake_rumble_counter = 10;
                     state.sound_manager.play_sfx(26);
 
                     let mut npc = NPC::create(4, &state.npc_table);
@@ -1880,6 +1885,7 @@ impl NPC {
                         }
 
                         state.quake_counter = 10;
+                        state.quake_rumble_counter = 10;
                         state.sound_manager.play_sfx(26);
                     }
 
@@ -2085,6 +2091,7 @@ impl NPC {
                     self.npc_flags.set_ignore_solidity(true);
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 10;
+                    state.quake_rumble_counter = 10;
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);

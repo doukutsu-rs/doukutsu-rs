@@ -225,4 +225,6 @@ impl PlayerController for KeyboardController {
             0.0
         }
     }
+
+    fn set_rumble(&mut self, _low_freq: u16, _hi_freq: u16, _ticks: u32) {}
 }

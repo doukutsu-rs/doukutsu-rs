@@ -43,6 +43,7 @@ enum MainMenuEntry {
     SelectedPlayer,
     Controller,
     Rebind,
+    Rumble,
     Back,
 }
 
@@ -210,6 +211,7 @@ impl ControlsMenu {
         self.main
             .push_entry(MainMenuEntry::Controller, MenuEntry::Active(state.t("menus.controls_menu.controller.entry")));
         self.main.push_entry(MainMenuEntry::Rebind, MenuEntry::Active(state.t("menus.controls_menu.rebind")));
+        self.main.push_entry(MainMenuEntry::Rumble, MenuEntry::Hidden);
         self.main.push_entry(MainMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
         self.confirm_reset.push_entry(
@@ -417,14 +419,22 @@ impl ControlsMenu {
             Player::Player2 => state.settings.player2_controller_type,
         };
 
+        let rumble = match self.selected_player {
+            Player::Player1 => state.settings.player1_rumble,
+            Player::Player2 => state.settings.player2_rumble,
+        };
+
         if let ControllerType::Gamepad(index) = controller_type {
             if index as usize >= available_gamepads {
                 self.selected_controller = ControllerType::Keyboard;
+                self.main.set_entry(MainMenuEntry::Rumble, MenuEntry::Hidden);
             } else {
                 self.selected_controller = controller_type;
+                self.main.set_entry(MainMenuEntry::Rumble, MenuEntry::Toggle("Rumble".to_string(), rumble));
             }
         } else {
             self.selected_controller = controller_type;
+            self.main.set_entry(MainMenuEntry::Rumble, MenuEntry::Hidden);
         }
 
         match self.selected_controller {
@@ -886,6 +896,50 @@ impl ControlsMenu {
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Rebind, _) => {
                     self.current = CurrentMenu::RebindMenu;
+                }
+                MenuSelectionResult::Selected(MainMenuEntry::Rumble, toggle) => {
+                    if let MenuEntry::Toggle(_, value) = toggle {
+                        match self.selected_player {
+                            Player::Player1 => {
+                                state.settings.player1_rumble = !state.settings.player1_rumble;
+
+                                if state.settings.player1_rumble {
+                                    if let ControllerType::Gamepad(idx) = self.selected_controller {
+                                        gamepad::set_rumble(
+                                            ctx,
+                                            state,
+                                            idx,
+                                            0,
+                                            0x5000,
+                                            (state.settings.timing_mode.get_tps() / 2) as u32,
+                                        )?;
+                                    }
+                                }
+
+                                *value = state.settings.player1_rumble;
+                            }
+                            Player::Player2 => {
+                                state.settings.player2_rumble = !state.settings.player2_rumble;
+
+                                if state.settings.player2_rumble {
+                                    if let ControllerType::Gamepad(idx) = self.selected_controller {
+                                        gamepad::set_rumble(
+                                            ctx,
+                                            state,
+                                            idx,
+                                            0,
+                                            0x5000,
+                                            (state.settings.timing_mode.get_tps() / 2) as u32,
+                                        )?;
+                                    }
+                                }
+
+                                *value = state.settings.player2_rumble;
+                            }
+                        }
+
+                        state.settings.save(ctx)?;
+                    }
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Back, _) | MenuSelectionResult::Canceled => exit_action(),
                 _ => {}

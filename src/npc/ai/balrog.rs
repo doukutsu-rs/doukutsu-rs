@@ -52,6 +52,7 @@ impl NPC {
 
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
                 }
             }
             2 => {
@@ -151,6 +152,7 @@ impl NPC {
 
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
                 }
             }
             5 => {
@@ -276,6 +278,7 @@ impl NPC {
                     self.spritesheet_id = 20; // NpcSym
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
                 }
             }
             20 | 21 => {
@@ -474,6 +477,7 @@ impl NPC {
                 if y <= 34 && stage.change_tile(x, y, 0) {
                     state.sound_manager.play_sfx(44);
                     state.super_quake_counter = 10;
+                    state.super_quake_rumble_counter = 10;
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
@@ -499,6 +503,7 @@ impl NPC {
                 if self.y < -32 * 0x200 {
                     self.npc_type = 0;
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
                 }
             }
             _ => (),
@@ -555,6 +560,7 @@ impl NPC {
                     state.sound_manager.play_sfx(12);
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
 
                     self.y += 0x1400;
                     self.action_num = 1;
@@ -571,6 +577,7 @@ impl NPC {
 
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
                 }
             }
             2 => {
@@ -751,6 +758,7 @@ impl NPC {
                     state.sound_manager.play_sfx(25);
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
 
                     let mut npc_smoke = NPC::create(4, &state.npc_table);
                     npc_smoke.cond.set_alive(true);
@@ -887,6 +895,7 @@ impl NPC {
                     self.action_num = 9;
                     self.anim_num = 8;
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
                     state.sound_manager.play_sfx(26);
                 }
 
@@ -1107,6 +1116,7 @@ impl NPC {
                     self.action_num = 9;
                     self.anim_num = 8;
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
                     state.sound_manager.play_sfx(26);
                 }
                 if self.action_counter > 7

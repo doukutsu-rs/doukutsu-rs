@@ -456,6 +456,7 @@ impl BossNPC {
             }
             1000 => {
                 state.quake_counter = 2;
+                state.quake_rumble_counter = 2;
 
                 self.parts[0].action_counter += 1;
                 if self.parts[0].action_counter % 8 == 0 {
@@ -477,6 +478,7 @@ impl BossNPC {
             }
             1001 => {
                 state.quake_counter = 40;
+                state.quake_rumble_counter = 40;
                 self.parts[0].action_counter += 1;
 
                 if self.parts[0].action_counter > 50 {

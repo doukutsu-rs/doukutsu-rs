@@ -97,6 +97,9 @@ pub trait PlayerController: PlayerControllerClone {
     /// Returns movement analog stick state in Y axis within (-1.0..=1.0) range
     /// In case of non-analog controllers this should return -1.0, 0.0 or 1.0, depending on keys pressed.
     fn move_analog_y(&self) -> f64;
+
+    /// Activates the rumble motors to the specified intensities for a given amount of time (in millis).
+    fn set_rumble(&mut self, low_freq: u16, hi_freq: u16, ticks: u32);
 }
 
 pub trait PlayerControllerClone {

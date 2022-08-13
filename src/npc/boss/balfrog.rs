@@ -177,6 +177,7 @@ impl BossNPC {
                     }
 
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
                     state.sound_manager.play_sfx(26);
                 }
             }
@@ -357,6 +358,7 @@ impl BossNPC {
 
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 60;
+                    state.quake_rumble_counter = 60;
                 }
             }
             130 | 131 => {
@@ -457,6 +459,7 @@ impl BossNPC {
 
                     state.sound_manager.play_sfx(26);
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
                 }
             }
             _ => {}

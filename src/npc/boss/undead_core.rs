@@ -526,6 +526,7 @@ impl BossNPC {
                     self.parts[19].action_counter = self.parts[0].life;
 
                     state.quake_counter = 100;
+                    state.quake_rumble_counter = 100;
                 }
 
                 self.parts[0].action_counter += 1;
@@ -665,6 +666,7 @@ impl BossNPC {
                     self.parts[7].action_num = 5;
 
                     state.quake_counter = 20;
+                    state.quake_rumble_counter = 20;
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
@@ -709,6 +711,7 @@ impl BossNPC {
             }
             1000 => {
                 state.quake_counter = 100;
+                state.quake_rumble_counter = 100;
 
                 self.parts[0].action_counter += 1;
                 if self.parts[0].action_counter % 8 == 0 {
@@ -734,6 +737,8 @@ impl BossNPC {
             }
             1001 => {
                 state.quake_counter = 40;
+                state.quake_rumble_counter = 40;
+
                 self.parts[0].action_counter += 1;
                 if self.parts[0].action_counter > 50 {
                     for i in 0..20 {
@@ -749,6 +754,8 @@ impl BossNPC {
 
         if v19 {
             state.quake_counter = 20;
+            state.quake_rumble_counter = 20;
+
             state.sound_manager.play_sfx(26);
 
             if self.parts[0].action_num == 201 {

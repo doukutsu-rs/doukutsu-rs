@@ -116,6 +116,7 @@ impl BossNPC {
                 self.parts[0].y -= 0x200;
                 self.parts[0].action_counter += 1;
                 state.quake_counter = 2;
+                state.quake_rumble_counter = 2;
 
                 if self.parts[0].action_counter % 4 == 0 {
                     state.sound_manager.play_sfx(26);
@@ -215,6 +216,8 @@ impl BossNPC {
             }
             90 => {
                 state.quake_counter = 2;
+                state.quake_rumble_counter = 2;
+
                 self.parts[0].y += 0x200;
                 self.parts[0].action_counter += 1;
 
@@ -321,10 +324,12 @@ impl BossNPC {
                     state.sound_manager.play_sfx(26);
                     state.sound_manager.play_sfx(12);
                     state.quake_counter = 30;
+                    state.quake_rumble_counter = 30;
                 }
             }
             150 => {
                 state.quake_counter = 2;
+                state.quake_rumble_counter = 2;
 
                 self.parts[0].action_counter += 1;
                 if self.parts[0].action_counter % 12 == 0 {
@@ -345,6 +350,7 @@ impl BossNPC {
             }
             160 => {
                 state.quake_counter = 40;
+                state.quake_rumble_counter = 40;
 
                 self.parts[0].action_counter += 1;
                 if self.parts[0].action_counter > 50 {

@@ -64,6 +64,7 @@ impl NPC {
                     if self.anim_num > 6 {
                         self.anim_num = 5;
                         state.quake_counter = 8;
+                        state.quake_rumble_counter = 8;
 
                         state.sound_manager.play_sfx(26);
 
@@ -1069,6 +1070,7 @@ impl NPC {
                         self.cond.set_explode_die(true);
 
                         state.quake_counter = 20;
+                        state.quake_rumble_counter = 20;
                         state.sound_manager.play_sfx(35);
                         npc_list.create_death_smoke(self.x, self.y, 0x10000, 100 as usize, state, &self.rng);
                     }

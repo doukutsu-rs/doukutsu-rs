@@ -889,6 +889,10 @@ impl Player {
             self.stars -= 1;
         }
 
+        let rumble_intensity =
+            (0x4000 + ((1.0 - (self.life as f32 / self.max_life as f32)) * 0x2000 as f32) as i32).min(0xFFFF) as u16;
+        self.controller.set_rumble(rumble_intensity, rumble_intensity, 20);
+
         self.damage = self.damage.saturating_add(final_hp as u16);
         if self.popup.value > 0 {
             self.popup.set_value(-(self.damage as i16));

@@ -809,6 +809,7 @@ impl NPC {
                         self.cond.set_explode_die(true);
 
                         state.quake_counter = 10;
+                        state.quake_rumble_counter = 10;
                         state.sound_manager.play_sfx(26);
                         npc_list.create_death_smoke(self.x, self.y, 0x6000, 40 as usize, state, &self.rng);
 

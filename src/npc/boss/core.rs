@@ -279,6 +279,7 @@ impl BossNPC {
                     state.sound_manager.loop_sfx_freq(40, 1000.0 / 2205.0);
                     state.sound_manager.loop_sfx_freq(41, 1100.0 / 2205.0);
                     state.quake_counter = 100;
+                    state.quake_rumble_counter = 100;
                     state.npc_super_pos.1 = 1;
                 }
 
@@ -347,6 +348,7 @@ impl BossNPC {
                     self.parts[7].action_num = 200;
 
                     state.quake_counter = 20;
+                    state.quake_rumble_counter = 20;
 
                     state.sound_manager.stop_sfx(40);
                     state.sound_manager.stop_sfx(41);
@@ -406,6 +408,7 @@ impl BossNPC {
 
         if flag {
             state.quake_counter = 20;
+            state.quake_rumble_counter = 20;
             state.sound_manager.play_sfx(26);
 
             self.parts[1].action_num = 100;
