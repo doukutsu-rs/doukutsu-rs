@@ -1773,7 +1773,7 @@ impl EngineConstants {
         self.supports_og_textures = true;
         self.game.new_game_stage = 11;
         self.game.new_game_event = 302;
-        self.game.new_game_player_pos = (160, 76);
+        self.game.new_game_player_pos = (8, 6);
         self.title.logo_splash_rect = Rect { left: 224, top: 0, right: 320, bottom: 48 };
     }
 
