@@ -55,7 +55,8 @@
       "start": "Start",
       "no_replay": "No Replay",
       "replay_best": "Replay Best",
-      "delete_replay": "Delete Replay"
+      "replay_last": "Replay Last",
+      "delete_replay": "Delete Best Replay"
     },
 
     "options_menu": {
@@ -161,6 +162,8 @@
         "title": "Press button for \"{control}\"",
         "cancel": "(Esc to cancel)"
       },
+
+      "rumble": "Rumble:",
 
       "reset_confirm": "Reset...",
       "reset_confirm_menu_title": "Reset controls?"

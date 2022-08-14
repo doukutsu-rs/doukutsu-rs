@@ -14,7 +14,9 @@ use crate::menu::settings_menu::SettingsMenu;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::jukebox_scene::JukeboxScene;
 use crate::scene::Scene;
-use crate::shared_game_state::{GameDifficulty, MenuCharacter, ReplayState, Season, SharedGameState, TileSize};
+use crate::shared_game_state::{
+    GameDifficulty, MenuCharacter, ReplayKind, ReplayState, Season, SharedGameState, TileSize,
+};
 use crate::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -61,7 +63,7 @@ impl Default for ChallengesMenuEntry {
 pub enum ConfirmMenuEntry {
     Title,
     StartChallenge,
-    ReplayBest,
+    Replay(ReplayKind),
     DeleteReplay,
     Back,
 }
@@ -248,8 +250,8 @@ impl Scene for TitleScene {
         self.confirm_menu.push_entry(ConfirmMenuEntry::Title, MenuEntry::Disabled("".to_owned()));
         self.confirm_menu
             .push_entry(ConfirmMenuEntry::StartChallenge, MenuEntry::Active(state.t("menus.challenge_menu.start")));
-        self.confirm_menu
-            .push_entry(ConfirmMenuEntry::ReplayBest, MenuEntry::Disabled(state.t("menus.challenge_menu.no_replay")));
+        self.confirm_menu.push_entry(ConfirmMenuEntry::Replay(ReplayKind::Best), MenuEntry::Hidden);
+        self.confirm_menu.push_entry(ConfirmMenuEntry::Replay(ReplayKind::Last), MenuEntry::Hidden);
         self.confirm_menu.push_entry(ConfirmMenuEntry::DeleteReplay, MenuEntry::Hidden);
         self.confirm_menu.push_entry(ConfirmMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
         self.confirm_menu.selected = ConfirmMenuEntry::StartChallenge;
@@ -356,9 +358,9 @@ impl Scene for TitleScene {
 
                             self.confirm_menu.set_entry(ConfirmMenuEntry::Title, MenuEntry::Disabled(mod_name));
 
-                            if state.has_replay_data(ctx) {
+                            if state.has_replay_data(ctx, ReplayKind::Best) {
                                 self.confirm_menu.set_entry(
-                                    ConfirmMenuEntry::ReplayBest,
+                                    ConfirmMenuEntry::Replay(ReplayKind::Best),
                                     MenuEntry::Active(state.t("menus.challenge_menu.replay_best")),
                                 );
                                 self.confirm_menu.set_entry(
@@ -366,11 +368,19 @@ impl Scene for TitleScene {
                                     MenuEntry::Active(state.t("menus.challenge_menu.delete_replay")),
                                 );
                             } else {
-                                self.confirm_menu.set_entry(
-                                    ConfirmMenuEntry::ReplayBest,
-                                    MenuEntry::Disabled(state.t("menus.challenge_menu.no_replay")),
-                                );
+                                self.confirm_menu
+                                    .set_entry(ConfirmMenuEntry::Replay(ReplayKind::Best), MenuEntry::Hidden);
                                 self.confirm_menu.set_entry(ConfirmMenuEntry::DeleteReplay, MenuEntry::Hidden);
+                            }
+
+                            if state.has_replay_data(ctx, ReplayKind::Last) {
+                                self.confirm_menu.set_entry(
+                                    ConfirmMenuEntry::Replay(ReplayKind::Last),
+                                    MenuEntry::Active(state.t("menus.challenge_menu.replay_last")),
+                                );
+                            } else {
+                                self.confirm_menu
+                                    .set_entry(ConfirmMenuEntry::Replay(ReplayKind::Last), MenuEntry::Hidden);
                             }
 
                             self.nikumaru_rec.load_counter(state, ctx)?;
@@ -391,14 +401,14 @@ impl Scene for TitleScene {
                     state.replay_state = ReplayState::Recording;
                     self.current_menu = CurrentMenu::PlayerCountMenu;
                 }
-                MenuSelectionResult::Selected(ConfirmMenuEntry::ReplayBest, _) => {
+                MenuSelectionResult::Selected(ConfirmMenuEntry::Replay(kind), _) => {
                     state.difficulty = GameDifficulty::Normal;
-                    state.replay_state = ReplayState::Playback;
+                    state.replay_state = ReplayState::Playback(kind);
                     state.reload_resources(ctx)?;
                     state.start_new_game(ctx)?;
                 }
                 MenuSelectionResult::Selected(ConfirmMenuEntry::DeleteReplay, _) => {
-                    state.delete_replay_data(ctx)?;
+                    state.delete_replay_data(ctx, ReplayKind::Best)?;
                     self.current_menu = CurrentMenu::ChallengesMenu;
                 }
                 MenuSelectionResult::Selected(ConfirmMenuEntry::Back, _) | MenuSelectionResult::Canceled => {

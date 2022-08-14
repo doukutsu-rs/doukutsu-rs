@@ -49,7 +49,8 @@
       "start": "スタート",
       "no_replay": "ノーリプレイ",
       "replay_best": "ベストプレイを再生",
-      "delete_replay": "リプレイを削除"
+      "replay_last": "最後のプレイを再生",
+      "delete_replay": "ベストリプレイを削除"
     },
     "options_menu": {
       "graphics": "グラフィック",
@@ -153,6 +154,8 @@
         "title": "新しい「ジャンプ」ボタンを押す",
         "cancel": "(Escキーを押してキャンセル)"
       },
+
+      "rumble": "ランブル",
 
       "reset_confirm": "リセット",
       "reset_confirm_menu_title": "ボタンをリセットしますか？"

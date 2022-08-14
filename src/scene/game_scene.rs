@@ -1633,8 +1633,10 @@ impl Scene for GameScene {
             self.drop_player2();
         }
 
-        if state.mod_path.is_some() && state.replay_state == ReplayState::Playback {
-            self.replay.initialize_playback(state, ctx)?;
+        if state.mod_path.is_some() {
+            if let ReplayState::Playback(replay_kind) = state.replay_state {
+                self.replay.initialize_playback(state, ctx, replay_kind)?;
+            }
         }
 
         self.npc_list.set_rng_seed(state.game_rng.next());
@@ -1724,8 +1726,10 @@ impl Scene for GameScene {
     }
 
     fn tick(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if !self.pause_menu.is_paused() && state.replay_state == ReplayState::Playback {
-            self.replay.tick(state, (ctx, &mut self.player1))?;
+        if !self.pause_menu.is_paused() {
+            if let ReplayState::Playback(_) = state.replay_state {
+                self.replay.tick(state, (ctx, &mut self.player1))?;
+            }
         }
 
         self.player1.controller.update(state, ctx)?;

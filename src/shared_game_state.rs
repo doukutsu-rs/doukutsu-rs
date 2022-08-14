@@ -243,11 +243,26 @@ pub enum MenuCharacter {
     Sue,
 }
 
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+pub enum ReplayKind {
+    Best,
+    Last,
+}
+
+impl ReplayKind {
+    pub fn get_suffix(&self) -> String {
+        match self {
+            ReplayKind::Best => ".rep".to_string(),
+            ReplayKind::Last => ".last.rep".to_string(),
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum ReplayState {
     None,
     Recording,
-    Playback,
+    Playback(ReplayKind),
 }
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -805,13 +820,13 @@ impl SharedGameState {
         }
     }
 
-    pub fn has_replay_data(&self, ctx: &mut Context) -> bool {
-        filesystem::user_exists(ctx, [self.get_rec_filename(), ".rep".to_string()].join(""))
+    pub fn has_replay_data(&self, ctx: &mut Context, replay_kind: ReplayKind) -> bool {
+        filesystem::user_exists(ctx, [self.get_rec_filename(), replay_kind.get_suffix()].join(""))
     }
 
-    pub fn delete_replay_data(&self, ctx: &mut Context) -> GameResult {
-        if self.has_replay_data(ctx) {
-            filesystem::user_delete(ctx, [self.get_rec_filename(), ".rep".to_string()].join(""))?;
+    pub fn delete_replay_data(&self, ctx: &mut Context, replay_kind: ReplayKind) -> GameResult {
+        if self.has_replay_data(ctx, replay_kind) {
+            filesystem::user_delete(ctx, [self.get_rec_filename(), replay_kind.get_suffix()].join(""))?;
         }
         Ok(())
     }

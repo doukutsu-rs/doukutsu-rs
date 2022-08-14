@@ -430,7 +430,8 @@ impl ControlsMenu {
                 self.main.set_entry(MainMenuEntry::Rumble, MenuEntry::Hidden);
             } else {
                 self.selected_controller = controller_type;
-                self.main.set_entry(MainMenuEntry::Rumble, MenuEntry::Toggle("Rumble".to_string(), rumble));
+                self.main
+                    .set_entry(MainMenuEntry::Rumble, MenuEntry::Toggle(state.t("menus.controls_menu.rumble"), rumble));
             }
         } else {
             self.selected_controller = controller_type;

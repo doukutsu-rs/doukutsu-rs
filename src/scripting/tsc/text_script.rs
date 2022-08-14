@@ -1755,8 +1755,8 @@ impl TextScriptVM {
             TSCOpCode::STC => {
                 let new_record = game_scene.nikumaru.save_counter(state, ctx)?;
 
-                if new_record && state.replay_state == ReplayState::Recording {
-                    game_scene.replay.stop_recording(state, ctx)?;
+                if state.replay_state == ReplayState::Recording {
+                    game_scene.replay.stop_recording(state, ctx, new_record)?;
                 }
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);

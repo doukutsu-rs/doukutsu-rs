@@ -11,7 +11,7 @@ use crate::framework::keyboard::ScanCode;
 use crate::framework::vfs::OpenOptions;
 use crate::input::replay_player_controller::{KeyState, ReplayController};
 use crate::player::Player;
-use crate::shared_game_state::{ReplayState, SharedGameState};
+use crate::shared_game_state::{ReplayKind, ReplayState, SharedGameState};
 
 #[derive(Clone)]
 pub struct Replay {
@@ -46,26 +46,42 @@ impl Replay {
         }
     }
 
-    pub fn stop_recording(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+    pub fn stop_recording(
+        &mut self,
+        state: &mut SharedGameState,
+        ctx: &mut Context,
+        is_new_record: bool,
+    ) -> GameResult {
         state.replay_state = ReplayState::None;
-        self.write_replay(state, ctx)?;
+
+        self.write_replay(state, ctx, ReplayKind::Last)?;
+
+        if is_new_record {
+            self.write_replay(state, ctx, ReplayKind::Best)?;
+        }
+
         Ok(())
     }
 
-    pub fn initialize_playback(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+    pub fn initialize_playback(
+        &mut self,
+        state: &mut SharedGameState,
+        ctx: &mut Context,
+        replay_kind: ReplayKind,
+    ) -> GameResult {
         if !self.is_active {
-            state.replay_state = ReplayState::Playback;
-            self.read_replay(state, ctx)?;
+            state.replay_state = ReplayState::Playback(replay_kind);
+            self.read_replay(state, ctx, replay_kind)?;
             state.game_rng.load_state(self.rng_seed);
             self.is_active = true;
         }
         Ok(())
     }
 
-    fn write_replay(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+    fn write_replay(&mut self, state: &mut SharedGameState, ctx: &mut Context, replay_kind: ReplayKind) -> GameResult {
         if let Ok(mut file) = filesystem::open_options(
             ctx,
-            [state.get_rec_filename(), ".rep".to_string()].join(""),
+            [state.get_rec_filename(), replay_kind.get_suffix()].join(""),
             OpenOptions::new().write(true).create(true),
         ) {
             file.write_u16::<LE>(0)?; // Space for versioning replay files
@@ -77,8 +93,9 @@ impl Replay {
         Ok(())
     }
 
-    fn read_replay(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if let Ok(mut file) = filesystem::user_open(ctx, [state.get_rec_filename(), ".rep".to_string()].join("")) {
+    fn read_replay(&mut self, state: &mut SharedGameState, ctx: &mut Context, replay_kind: ReplayKind) -> GameResult {
+        if let Ok(mut file) = filesystem::user_open(ctx, [state.get_rec_filename(), replay_kind.get_suffix()].join(""))
+        {
             self.replay_version = file.read_u16::<LE>()?;
             self.rng_seed = file.read_u64::<LE>()?;
 
@@ -120,7 +137,7 @@ impl GameEntity<(&mut Context, &mut Player)> for Replay {
 
                 self.keylist.push(inputs);
             }
-            ReplayState::Playback => {
+            ReplayState::Playback(_) => {
                 let pause = ctx.keyboard_context.is_key_pressed(ScanCode::Escape) && (self.tick - self.resume_tick > 3);
 
                 let next_input = if pause { 1 << 10 } else { *self.keylist.get(self.tick).unwrap_or(&0) };
@@ -153,7 +170,7 @@ impl GameEntity<(&mut Context, &mut Player)> for Replay {
 
         match state.replay_state {
             ReplayState::None => {}
-            ReplayState::Playback => {
+            ReplayState::Playback(_) => {
                 state.font.draw_text_with_shadow(
                     "PLAY".chars(),
                     x,
