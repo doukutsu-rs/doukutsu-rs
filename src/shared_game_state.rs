@@ -364,7 +364,9 @@ impl SharedGameState {
             constants.apply_csplus_nx_patches();
             constants.load_nx_stringtable(ctx)?;
         } else if filesystem::exists(ctx, "/base/ogph/SellScreen.bmp") {
-            error!("WiiWare DEMO data files detected. !UNSUPPORTED!"); //Missing credits.tsc and crashes due to missing Stage 13 (Start)
+            info!("WiiWare DEMO data files detected.");
+            constants.apply_csplus_patches(&mut sound_manager);
+            constants.apply_csdemo_patches();
         } else if filesystem::exists(ctx, "/base/strap_a_en.bmp") {
             info!("WiiWare data files detected."); //Missing Challenges and Remastered Soundtrack but identical to CS+ PC otherwise
             constants.apply_csplus_patches(&mut sound_manager);
@@ -518,7 +520,10 @@ impl SharedGameState {
 
     pub fn reload_resources(&mut self, ctx: &mut Context) -> GameResult {
         self.constants.rebuild_path_list(self.mod_path.clone(), self.season, &self.settings);
-        self.constants.special_treatment_for_csplus_mods(self.mod_path.as_ref());
+        if !self.constants.is_demo {
+            //TODO find a more elegant way to handle this
+            self.constants.special_treatment_for_csplus_mods(self.mod_path.as_ref());
+        }
         self.constants.load_csplus_tables(ctx)?;
         self.constants.load_animated_faces(ctx)?;
         self.constants.load_texture_size_hints(ctx)?;
@@ -544,9 +549,11 @@ impl SharedGameState {
         let substitution_rect_map = HashMap::from([('=', self.constants.textscript.textbox_item_marker_rect)]);
         self.textscript_vm.set_substitution_rect_map(substitution_rect_map);
 
-        let credit_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "Credit.tsc")?;
-        let credit_script = CreditScript::load_from(credit_tsc, &self.constants)?;
-        self.creditscript_vm.set_script(credit_script);
+        if filesystem::exists_find(ctx, &self.constants.base_paths, "Credit.tsc") {
+            let credit_tsc = filesystem::open_find(ctx, &self.constants.base_paths, "Credit.tsc")?;
+            let credit_script = CreditScript::load_from(credit_tsc, &self.constants)?;
+            self.creditscript_vm.set_script(credit_script);
+        }
 
         self.texture_set.unload_all();
 
