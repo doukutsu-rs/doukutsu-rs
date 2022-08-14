@@ -291,6 +291,7 @@ impl NPC {
                     self.anim_counter = 0;
                     self.x += 0xc00;
                     self.target_x = self.x;
+                    state.sound_manager.play_sfx(29);
                 }
 
                 self.action_counter += 1;

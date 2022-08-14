@@ -929,6 +929,16 @@ impl NPC {
                     self.face_player(player);
                 }
             }
+            501 => {
+                self.anim_num = 9;
+
+                self.action_counter += 1;
+                if self.action_counter / 2 % 2 != 0 {
+                    self.x = self.target_x;
+                } else {
+                    self.x = self.x.wrapping_add(0x200);
+                }
+            }
             510 | 511 => {
                 if self.action_num == 510 {
                     self.action_num = 511;
