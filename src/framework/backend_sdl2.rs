@@ -987,6 +987,34 @@ impl BackendTexture for SDL2Texture {
                                 )
                                 .map_err(|e| GameError::RenderError(e.to_string()))?;
                         }
+                        SpriteBatchCommand::DrawRectFlipTinted(src, dest, flip_x, flip_y, color) => {
+                            let (r, g, b, a) = color.to_rgba();
+                            texture.set_color_mod(r, g, b);
+                            texture.set_alpha_mod(a);
+                            texture.set_blend_mode(blend);
+
+                            canvas
+                                .copy_ex(
+                                    texture,
+                                    Some(sdl2::rect::Rect::new(
+                                        src.left.round() as i32,
+                                        src.top.round() as i32,
+                                        src.width().round() as u32,
+                                        src.height().round() as u32,
+                                    )),
+                                    Some(sdl2::rect::Rect::new(
+                                        dest.left.round() as i32,
+                                        dest.top.round() as i32,
+                                        dest.width().round() as u32,
+                                        dest.height().round() as u32,
+                                    )),
+                                    0.0,
+                                    None,
+                                    *flip_x,
+                                    *flip_y,
+                                )
+                                .map_err(|e| GameError::RenderError(e.to_string()))?;
+                        }
                     }
                 }
 

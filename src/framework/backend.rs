@@ -119,4 +119,5 @@ pub enum SpriteBatchCommand {
     DrawRect(Rect<f32>, Rect<f32>),
     DrawRectFlip(Rect<f32>, Rect<f32>, bool, bool),
     DrawRectTinted(Rect<f32>, Rect<f32>, Color),
+    DrawRectFlipTinted(Rect<f32>, Rect<f32>, bool, bool, Color),
 }

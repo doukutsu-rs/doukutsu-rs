@@ -218,6 +218,10 @@ impl NPC {
 
         Ok(())
     }
+
+    fn is_sue(&self) -> bool {
+        [42, 92, 280, 284].contains(&self.npc_type)
+    }
 }
 
 impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mut Flash, &mut BossNPC)> for NPC {
@@ -658,16 +662,28 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
 
         let (frame_x, frame_y) = frame.xy_interpolated(state.frame_time);
 
-        batch.add_rect(
-            interpolate_fix9_scale(self.prev_x - off_x, self.x - off_x, state.frame_time) + shock - frame_x,
-            interpolate_fix9_scale(
-                self.prev_y - self.display_bounds.top as i32,
-                self.y - self.display_bounds.top as i32,
-                state.frame_time,
-            ) - frame_y,
-            &self.anim_rect,
-        );
-        batch.draw(ctx)?;
+        let final_x = interpolate_fix9_scale(self.prev_x - off_x, self.x - off_x, state.frame_time) + shock - frame_x;
+        let final_y = interpolate_fix9_scale(
+            self.prev_y - self.display_bounds.top as i32,
+            self.y - self.display_bounds.top as i32,
+            state.frame_time,
+        ) - frame_y;
+
+        if self.is_sue() && state.more_rust {
+            // tint sue blue
+            batch.add_rect_tinted(final_x, final_y, (200, 200, 255, 255), &self.anim_rect);
+            batch.draw(ctx)?;
+        } else {
+            batch.add_rect(final_x, final_y, &self.anim_rect);
+            batch.draw(ctx)?;
+        }
+
+        if self.npc_type == 42 && state.more_rust {
+            // draw crab headband
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "crab_band")?;
+            batch.add_rect(final_x, final_y, &self.anim_rect);
+            batch.draw(ctx)?;
+        }
 
         Ok(())
     }

@@ -339,6 +339,7 @@ pub struct SharedGameState {
     pub replay_state: ReplayState,
     pub mod_requirements: ModRequirements,
     pub tutorial_counter: u16,
+    pub more_rust: bool,
     pub shutdown: bool,
 }
 
@@ -427,6 +428,9 @@ impl SharedGameState {
         sound_manager.set_song_volume(settings.bgm_volume);
         sound_manager.set_sfx_volume(settings.sfx_volume);
 
+        let current_time = Local::now();
+        let more_rust = (current_time.month() == 7 && current_time.day() == 7) || settings.more_rust;
+
         #[cfg(feature = "hooks")]
         init_hooks();
 
@@ -480,6 +484,7 @@ impl SharedGameState {
             replay_state: ReplayState::None,
             mod_requirements,
             tutorial_counter: 0,
+            more_rust,
             shutdown: false,
         })
     }

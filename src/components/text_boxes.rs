@@ -164,13 +164,16 @@ impl GameEntity<()> for TextBoxes {
 
             let face_x = (4.0 + (6 - self.slide_in) as f32 * 8.0) - 52.0;
 
-            batch.add_rect_flip(
-                left_pos + 14.0 + face_x,
-                top_pos + 8.0,
-                flip,
-                false,
-                &Rect::new_size((face_num as u16 % 6) * 48, (face_num as u16 / 6) * 48, 48, 48),
-            );
+            let final_x = left_pos + 14.0 + face_x;
+            let final_y = top_pos + 8.0;
+            let rect = Rect::new_size((face_num as u16 % 6) * 48, (face_num as u16 / 6) * 48, 48, 48);
+
+            if face_num >= 1 && face_num <= 4 && state.more_rust {
+                // sue
+                batch.add_rect_flip_tinted(final_x, final_y, flip, false, (200, 200, 255, 255), &rect);
+            } else {
+                batch.add_rect_flip(final_x, final_y, flip, false, &rect);
+            }
 
             batch.draw(ctx)?;
             graphics::set_clip_rect(ctx, None)?;

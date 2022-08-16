@@ -164,6 +164,51 @@ impl BackendTexture for OpenGLTexture {
                 ];
                 self.vertices.extend_from_slice(&vertices);
             }
+            SpriteBatchCommand::DrawRectFlipTinted(mut src, dest, flip_x, flip_y, color) => {
+                if flip_x {
+                    std::mem::swap(&mut src.left, &mut src.right);
+                }
+
+                if flip_y {
+                    std::mem::swap(&mut src.top, &mut src.bottom);
+                }
+
+                let color = color.to_rgba();
+
+                let vertices = [
+                    VertexData {
+                        position: (dest.left, dest.bottom),
+                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
+                        color,
+                    },
+                    VertexData {
+                        position: (dest.left, dest.top),
+                        uv: (src.left * tex_scale_x, src.top * tex_scale_y),
+                        color,
+                    },
+                    VertexData {
+                        position: (dest.right, dest.top),
+                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
+                        color,
+                    },
+                    VertexData {
+                        position: (dest.left, dest.bottom),
+                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
+                        color,
+                    },
+                    VertexData {
+                        position: (dest.right, dest.top),
+                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
+                        color,
+                    },
+                    VertexData {
+                        position: (dest.right, dest.bottom),
+                        uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
+                        color,
+                    },
+                ];
+                self.vertices.extend_from_slice(&vertices);
+            }
         }
     }
 
@@ -787,7 +832,7 @@ impl BackendRenderer for OpenGLRenderer {
             match mode {
                 VSyncMode::Uncapped => {
                     sdl2_sys::SDL_GL_SetSwapInterval(0);
-                },
+                }
                 VSyncMode::VSync => {
                     sdl2_sys::SDL_GL_SetSwapInterval(1);
                 }

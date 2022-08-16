@@ -163,6 +163,7 @@ impl LiveDebugger {
                     self.hotkey_list_visible = !self.hotkey_list_visible;
                 }
                 ui.checkbox("noclip", &mut state.settings.noclip);
+                ui.checkbox("more rust", &mut state.more_rust);
             });
 
         if self.map_selector_visible {

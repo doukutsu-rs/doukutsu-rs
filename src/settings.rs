@@ -78,6 +78,7 @@ pub struct Settings {
     pub debug_mode: bool,
     #[serde(skip)]
     pub noclip: bool,
+    pub more_rust: bool,
 }
 
 fn default_true() -> bool {
@@ -86,7 +87,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    18
+    19
 }
 
 #[inline(always)]
@@ -285,6 +286,11 @@ impl Settings {
             self.player2_rumble = default_rumble();
         }
 
+        if self.version == 18 {
+            self.version = 19;
+            self.more_rust = false;
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -388,6 +394,7 @@ impl Default for Settings {
             screen_shake_intensity: ScreenShakeIntensity::Full,
             debug_mode: false,
             noclip: false,
+            more_rust: false,
         }
     }
 }

@@ -52,6 +52,16 @@ pub trait SpriteBatch {
 
     fn add_rect_tinted(&mut self, x: f32, y: f32, color: (u8, u8, u8, u8), rect: &common::Rect<u16>);
 
+    fn add_rect_flip_tinted(
+        &mut self,
+        x: f32,
+        y: f32,
+        flip_x: bool,
+        flip_y: bool,
+        color: (u8, u8, u8, u8),
+        rect: &common::Rect<u16>,
+    );
+
     fn add_rect_scaled(&mut self, x: f32, y: f32, scale_x: f32, scale_y: f32, rect: &common::Rect<u16>);
 
     fn add_rect_scaled_tinted(
@@ -115,6 +125,17 @@ impl SpriteBatch for DummyBatch {
     fn add_rect_flip(&mut self, _x: f32, _y: f32, _flip_x: bool, _flip_y: bool, _rect: &Rect<u16>) {}
 
     fn add_rect_tinted(&mut self, _x: f32, _y: f32, _color: (u8, u8, u8, u8), _rect: &Rect<u16>) {}
+
+    fn add_rect_flip_tinted(
+        &mut self,
+        _x: f32,
+        _y: f32,
+        _flip_x: bool,
+        _flip_y: bool,
+        _color: (u8, u8, u8, u8),
+        _rect: &Rect<u16>,
+    ) {
+    }
 
     fn add_rect_scaled(&mut self, _x: f32, _y: f32, _scale_x: f32, _scale_y: f32, _rect: &Rect<u16>) {}
 
@@ -284,20 +305,59 @@ impl SpriteBatch for SubBatch {
         scale_y: f32,
         rect: &common::Rect<u16>,
     ) {
-        if (rect.right - rect.left) == 0 || (rect.bottom - rect.top) == 0 {
+        if (rect.right.saturating_sub(rect.left)) == 0 || (rect.bottom.saturating_sub(rect.top)) == 0 {
             return;
         }
 
         let mag = unsafe { I_MAG };
 
         self.batch.add(SpriteBatchCommand::DrawRectTinted(
-            Rect { left: rect.left as f32, top: rect.top as f32, right: rect.right as f32, bottom: rect.bottom as f32 },
+            Rect {
+                left: rect.left as f32 / self.scale_x,
+                top: rect.top as f32 / self.scale_y,
+                right: rect.right as f32 / self.scale_x,
+                bottom: rect.bottom as f32 / self.scale_y,
+            },
             Rect {
                 left: x * mag,
                 top: y * mag,
                 right: (x + rect.width() as f32 * scale_x) * mag,
                 bottom: (y + rect.height() as f32 * scale_y) * mag,
             },
+            color.into(),
+        ));
+    }
+
+    fn add_rect_flip_tinted(
+        &mut self,
+        x: f32,
+        y: f32,
+        flip_x: bool,
+        flip_y: bool,
+        color: (u8, u8, u8, u8),
+        rect: &common::Rect<u16>,
+    ) {
+        if (rect.right.saturating_sub(rect.left)) == 0 || (rect.bottom.saturating_sub(rect.top)) == 0 {
+            return;
+        }
+
+        let mag = unsafe { I_MAG };
+
+        self.batch.add(SpriteBatchCommand::DrawRectFlipTinted(
+            Rect {
+                left: rect.left as f32 / self.scale_x,
+                top: rect.top as f32 / self.scale_y,
+                right: rect.right as f32 / self.scale_x,
+                bottom: rect.bottom as f32 / self.scale_y,
+            },
+            Rect {
+                left: x * mag,
+                top: y * mag,
+                right: (x + rect.width() as f32) * mag,
+                bottom: (y + rect.height() as f32) * mag,
+            },
+            flip_x,
+            flip_y,
             color.into(),
         ));
     }
@@ -390,6 +450,18 @@ impl SpriteBatch for CombinedBatch {
         rect: &Rect<u16>,
     ) {
         self.main_batch.add_rect_scaled_tinted(x, y, color, scale_x, scale_y, rect)
+    }
+
+    fn add_rect_flip_tinted(
+        &mut self,
+        x: f32,
+        y: f32,
+        flip_x: bool,
+        flip_y: bool,
+        color: (u8, u8, u8, u8),
+        rect: &common::Rect<u16>,
+    ) {
+        self.main_batch.add_rect_flip_tinted(x, y, flip_x, flip_y, color, rect)
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {

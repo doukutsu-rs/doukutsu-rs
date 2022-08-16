@@ -111,6 +111,7 @@ impl BuiltinFS {
                         "builtin_data",
                         vec![
                             FSNode::File("buttons.png", include_bytes!("builtin/builtin_data/buttons.png")),
+                            FSNode::File("crab_band.png", include_bytes!("builtin/builtin_data/crab_band.png")),
                             FSNode::File("triangles.png", include_bytes!("builtin/builtin_data/triangles.png")),
                         ],
                     ),
