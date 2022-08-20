@@ -1424,6 +1424,14 @@ impl EngineConstants {
                 "Face4" => (288, 240), // switch
                 "Face5" => (288, 240), // switch
                 "Fade" => (256, 32),
+                "headband/ogph/Casts" => (320, 240),
+                "headband/ogph/Npc/NpcGuest" => (320, 184),
+                "headband/ogph/Npc/NpcMiza" => (320, 240),
+                "headband/ogph/Npc/NpcRegu" => (320, 240),
+                "headband/plus/Casts" => (320, 240),
+                "headband/plus/Npc/NpcGuest" => (320, 184),
+                "headband/plus/Npc/NpcMiza" => (320, 240),
+                "headband/plus/Npc/NpcRegu" => (320, 240),
                 "ItemImage" => (256, 128),
                 "Loading" => (64, 8),
                 "MyChar" => (200, 64),

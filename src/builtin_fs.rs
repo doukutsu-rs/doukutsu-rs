@@ -111,8 +111,76 @@ impl BuiltinFS {
                         "builtin_data",
                         vec![
                             FSNode::File("buttons.png", include_bytes!("builtin/builtin_data/buttons.png")),
-                            FSNode::File("crab_band.png", include_bytes!("builtin/builtin_data/crab_band.png")),
                             FSNode::File("triangles.png", include_bytes!("builtin/builtin_data/triangles.png")),
+                            FSNode::Directory(
+                                "headband",
+                                vec![
+                                    FSNode::Directory(
+                                        "ogph",
+                                        vec![
+                                            FSNode::File(
+                                                "Casts.png",
+                                                include_bytes!("builtin/builtin_data/headband/ogph/Casts.png"),
+                                            ),
+                                            FSNode::Directory(
+                                                "Npc",
+                                                vec![
+                                                    FSNode::File(
+                                                        "NpcGuest.png",
+                                                        include_bytes!(
+                                                            "builtin/builtin_data/headband/ogph/Npc/NpcGuest.png"
+                                                        ),
+                                                    ),
+                                                    FSNode::File(
+                                                        "NpcMiza.png",
+                                                        include_bytes!(
+                                                            "builtin/builtin_data/headband/ogph/Npc/NpcMiza.png"
+                                                        ),
+                                                    ),
+                                                    FSNode::File(
+                                                        "NpcRegu.png",
+                                                        include_bytes!(
+                                                            "builtin/builtin_data/headband/ogph/Npc/NpcRegu.png"
+                                                        ),
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                    FSNode::Directory(
+                                        "plus",
+                                        vec![
+                                            FSNode::File(
+                                                "Casts.png",
+                                                include_bytes!("builtin/builtin_data/headband/plus/casts.png"),
+                                            ),
+                                            FSNode::Directory(
+                                                "Npc",
+                                                vec![
+                                                    FSNode::File(
+                                                        "NpcGuest.png",
+                                                        include_bytes!(
+                                                            "builtin/builtin_data/headband/plus/npc/npcguest.png"
+                                                        ),
+                                                    ),
+                                                    FSNode::File(
+                                                        "NpcMiza.png",
+                                                        include_bytes!(
+                                                            "builtin/builtin_data/headband/plus/npc/npcmiza.png"
+                                                        ),
+                                                    ),
+                                                    FSNode::File(
+                                                        "NpcRegu.png",
+                                                        include_bytes!(
+                                                            "builtin/builtin_data/headband/plus/npc/npcregu.png"
+                                                        ),
+                                                    ),
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            ),
                         ],
                     ),
                     FSNode::Directory(

@@ -222,6 +222,11 @@ impl NPC {
     fn is_sue(&self) -> bool {
         [42, 92, 280, 284].contains(&self.npc_type)
     }
+
+    fn get_headband_spritesheet(&self, state: &SharedGameState, texture_name: &str) -> String {
+        let base_dir = if state.settings.original_textures { "ogph" } else { "plus" };
+        format!("headband/{}/{}", base_dir, texture_name)
+    }
 }
 
 impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mut Flash, &mut BossNPC)> for NPC {
@@ -650,11 +655,9 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             return Ok(());
         }
 
-        let batch = state.texture_set.get_or_load_batch(
-            ctx,
-            &state.constants,
-            &*state.npc_table.get_texture_ref(self.spritesheet_id),
-        )?;
+        let texture_ref = state.npc_table.get_texture_ref(self.spritesheet_id);
+
+        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, &*texture_ref)?;
 
         let off_x =
             if self.direction == Direction::Left { self.display_bounds.left } else { self.display_bounds.right } as i32;
@@ -678,9 +681,10 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             batch.draw(ctx)?;
         }
 
-        if self.npc_type == 42 && state.more_rust {
+        if self.is_sue() && state.more_rust {
             // draw crab headband
-            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "crab_band")?;
+            let headband_spritesheet = self.get_headband_spritesheet(state, &*texture_ref);
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, headband_spritesheet.as_str())?;
             batch.add_rect(final_x, final_y, &self.anim_rect);
             batch.draw(ctx)?;
         }

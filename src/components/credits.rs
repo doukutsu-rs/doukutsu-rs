@@ -65,13 +65,48 @@ impl GameEntity<()> for Credits {
             let y = ((line.cast_id / 13) & 0xff) * 24;
             let rect = Rect::new_size(x, y, 24, 24);
 
-            batch.add_rect(line.pos_x - 24.0, line.pos_y - 8.0, &rect);
+            if state.more_rust && line.cast_id == 1 {
+                // sue with more rust
+                batch.add_rect_tinted(line.pos_x - 24.0, line.pos_y - 8.0, (200, 200, 255, 255), &rect);
+            } else {
+                batch.add_rect(line.pos_x - 24.0, line.pos_y - 8.0, &rect);
+            }
         }
         batch.draw(ctx)?;
 
+        if state.more_rust {
+            // draw sue's headband separately because rust doesn't let me mutate the texture set multiple times at once
+
+            let headband_spritesheet = {
+                let base = if state.settings.original_textures { "ogph" } else { "plus" };
+                format!("headband/{}/Casts", base)
+            };
+
+            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, headband_spritesheet.as_str())?;
+
+            for line in &state.creditscript_vm.lines {
+                if line.cast_id != 1 {
+                    continue;
+                }
+
+                let x = (line.cast_id % 13) * 24;
+                let y = ((line.cast_id / 13) & 0xff) * 24;
+                let rect = Rect::new_size(x, y, 24, 24);
+
+                batch.add_rect(line.pos_x - 24.0, line.pos_y - 8.0, &rect);
+
+                break;
+            }
+
+            batch.draw(ctx)?;
+        }
+
         for line in &state.creditscript_vm.lines {
+            let text =
+                if state.more_rust { line.text.replace("Sue Sakamoto", "Crabby Sue") } else { line.text.clone() };
+
             state.font.draw_text_with_shadow(
-                line.text.chars(),
+                text.chars(),
                 line.pos_x,
                 line.pos_y,
                 &state.constants,
