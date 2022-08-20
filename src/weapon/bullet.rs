@@ -47,26 +47,14 @@ impl BulletManager {
         self.bullets.push(bullet);
     }
 
-    pub fn tick_bullets(
-        &mut self,
-        state: &mut SharedGameState,
-        players: [&Player; 2],
-        npc_list: &NPCList,
-        stage: &mut Stage,
-    ) {
+    pub fn tick_bullets(&mut self, state: &mut SharedGameState, players: [&Player; 2], npc_list: &NPCList) {
         let mut i = 0;
         while i < self.bullets.len() {
             {
                 let bullet = unsafe { self.bullets.get_unchecked_mut(i) };
                 i += 1;
 
-                if bullet.life < 1 {
-                    bullet.cond.set_alive(false);
-                    continue;
-                }
-
                 bullet.tick(state, players, npc_list, &mut self.new_bullets);
-                bullet.tick_map_collisions(state, npc_list, stage);
             }
 
             for bullet in &mut self.new_bullets {
@@ -77,6 +65,18 @@ impl BulletManager {
         }
 
         self.bullets.retain(|b| !b.is_dead());
+    }
+
+    pub fn tick_map_collisions(&mut self, state: &mut SharedGameState, npc_list: &NPCList, stage: &mut Stage) {
+        let mut i = 0;
+        while i < self.bullets.len() {
+            {
+                let bullet = unsafe { self.bullets.get_unchecked_mut(i) };
+                i += 1;
+
+                bullet.tick_map_collisions(state, npc_list, stage);
+            }
+        }
     }
 
     pub fn count_bullets(&self, btype: u16, player_id: TargetPlayer) -> usize {

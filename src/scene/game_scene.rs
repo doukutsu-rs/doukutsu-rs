@@ -1420,9 +1420,26 @@ impl GameScene {
             self.tick_npc_splash(state);
         }
 
+        self.bullet_manager.tick_map_collisions(state, &self.npc_list, &mut self.stage);
+
         self.tick_npc_bullet_collissions(state);
 
-        self.bullet_manager.tick_bullets(state, [&self.player1, &self.player2], &self.npc_list, &mut self.stage);
+        if state.control_flags.control_enabled() {
+            self.inventory_player1.tick_weapons(
+                state,
+                &mut self.player1,
+                TargetPlayer::Player1,
+                &mut self.bullet_manager,
+            );
+            self.inventory_player2.tick_weapons(
+                state,
+                &mut self.player2,
+                TargetPlayer::Player2,
+                &mut self.bullet_manager,
+            );
+        }
+
+        self.bullet_manager.tick_bullets(state, [&self.player1, &self.player2], &self.npc_list);
         state.tick_carets();
 
         match self.frame.update_target {
@@ -1490,19 +1507,6 @@ impl GameScene {
         self.frame.update(state, &self.stage);
 
         if state.control_flags.control_enabled() {
-            self.inventory_player1.tick_weapons(
-                state,
-                &mut self.player1,
-                TargetPlayer::Player1,
-                &mut self.bullet_manager,
-            );
-            self.inventory_player2.tick_weapons(
-                state,
-                &mut self.player2,
-                TargetPlayer::Player2,
-                &mut self.bullet_manager,
-            );
-
             self.hud_player1.tick(state, (&self.player1, &mut self.inventory_player1))?;
             self.hud_player2.tick(state, (&self.player2, &mut self.inventory_player2))?;
             self.boss_life_bar.tick(state, (&self.npc_list, &self.boss))?;

@@ -778,27 +778,26 @@ impl NPC {
                 npc.x = self.x + 0x800;
                 npc.y = self.y;
 
-                // Same as Egg Corridor? Bomb
                 match self.action_counter {
                     0 => {
                         npc.tsc_direction = 0;
-                        let _ = npc_list.spawn(0x100, npc);
+                        let _ = npc_list.spawn(0x180, npc);
                     }
                     50 => {
                         npc.tsc_direction = 1;
-                        let _ = npc_list.spawn(0x100, npc);
+                        let _ = npc_list.spawn(0x180, npc);
                     }
                     100 => {
                         npc.tsc_direction = 2;
-                        let _ = npc_list.spawn(0x100, npc);
+                        let _ = npc_list.spawn(0x180, npc);
                     }
                     150 => {
                         npc.tsc_direction = 3;
-                        let _ = npc_list.spawn(0x100, npc);
+                        let _ = npc_list.spawn(0x180, npc);
                     }
                     200 => {
                         npc.tsc_direction = 4;
-                        let _ = npc_list.spawn(0x100, npc);
+                        let _ = npc_list.spawn(0x180, npc);
                     }
                     250 => {
                         self.hit_bounds.right = 0x6000;
