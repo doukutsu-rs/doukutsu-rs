@@ -1,5 +1,6 @@
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::framework::keyboard::ScanCode;
 use crate::framework::ui::Components;
 use crate::shared_game_state::SharedGameState;
 
@@ -41,6 +42,15 @@ pub trait Scene: downcast::Any {
         _state: &mut SharedGameState,
         _ctx: &mut Context,
         _frame: &mut imgui::Ui,
+    ) -> GameResult {
+        Ok(())
+    }
+
+    fn process_debug_keys(
+        &mut self,
+        _state: &mut SharedGameState,
+        _ctx: &mut Context,
+        _key_code: ScanCode,
     ) -> GameResult {
         Ok(())
     }

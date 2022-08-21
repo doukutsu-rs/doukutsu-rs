@@ -13,7 +13,6 @@ use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{create_texture_mutable, set_render_target};
-use crate::framework::keyboard::ScanCode;
 use crate::framework::vfs::OpenOptions;
 use crate::framework::{filesystem, graphics};
 #[cfg(feature = "hooks")]
@@ -487,40 +486,6 @@ impl SharedGameState {
             more_rust,
             shutdown: false,
         })
-    }
-
-    pub fn process_debug_keys(&mut self, ctx: &mut Context, key_code: ScanCode) {
-        if key_code == ScanCode::F3 && ctx.keyboard_context.active_mods().ctrl() {
-            let _ = self.sound_manager.reload();
-            return;
-        }
-
-        #[cfg(not(debug_assertions))]
-        if !self.settings.debug_mode {
-            return;
-        }
-
-        match key_code {
-            ScanCode::F3 => self.settings.god_mode = !self.settings.god_mode,
-            ScanCode::F4 => self.settings.infinite_booster = !self.settings.infinite_booster,
-            ScanCode::F5 => self.settings.subpixel_coords = !self.settings.subpixel_coords,
-            ScanCode::F6 => self.settings.motion_interpolation = !self.settings.motion_interpolation,
-            ScanCode::F7 => self.set_speed(1.0),
-            ScanCode::F8 => {
-                if self.settings.speed > 0.2 {
-                    self.set_speed(self.settings.speed - 0.1);
-                }
-            }
-            ScanCode::F9 => {
-                if self.settings.speed < 3.0 {
-                    self.set_speed(self.settings.speed + 0.1);
-                }
-            }
-            ScanCode::F10 => self.settings.debug_outlines = !self.settings.debug_outlines,
-            ScanCode::F11 => self.settings.fps_counter = !self.settings.fps_counter,
-            ScanCode::F12 => self.debugger = !self.debugger,
-            _ => {}
-        }
     }
 
     pub fn reload_resources(&mut self, ctx: &mut Context) -> GameResult {

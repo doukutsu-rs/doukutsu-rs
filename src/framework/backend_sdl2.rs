@@ -276,7 +276,9 @@ impl BackendEventLoop for SDL2EventLoop {
                     Event::KeyDown { scancode: Some(scancode), repeat, keymod, .. } => {
                         if let Some(drs_scan) = conv_scancode(scancode) {
                             if !repeat {
-                                state.process_debug_keys(ctx, drs_scan);
+                                if let Some(scene) = &mut game.scene {
+                                    scene.process_debug_keys(state, ctx, drs_scan);
+                                }
 
                                 if keymod.intersects(keyboard::Mod::RALTMOD | keyboard::Mod::LALTMOD)
                                     && drs_scan == ScanCode::Return

@@ -30,6 +30,7 @@ use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
+use crate::framework::keyboard::ScanCode;
 use crate::framework::ui::Components;
 use crate::framework::{filesystem, gamepad, graphics};
 use crate::input::touch_controls::TouchControlType;
@@ -2318,6 +2319,48 @@ impl Scene for GameScene {
         ui: &mut imgui::Ui,
     ) -> GameResult {
         components.live_debugger.run_ingame(self, state, ctx, ui)?;
+        Ok(())
+    }
+
+    fn process_debug_keys(&mut self, state: &mut SharedGameState, ctx: &mut Context, key_code: ScanCode) -> GameResult {
+        if key_code == ScanCode::F3 && ctx.keyboard_context.active_mods().ctrl() {
+            let _ = state.sound_manager.reload();
+            return Ok(());
+        }
+
+        if key_code == ScanCode::S && ctx.keyboard_context.active_mods().ctrl() {
+            let _ = state.save_game(self, ctx);
+            state.sound_manager.play_sfx(18);
+            return Ok(());
+        }
+
+        #[cfg(not(debug_assertions))]
+        if !state.settings.debug_mode {
+            return Ok(());
+        }
+
+        match key_code {
+            ScanCode::F3 => state.settings.god_mode = !state.settings.god_mode,
+            ScanCode::F4 => state.settings.infinite_booster = !state.settings.infinite_booster,
+            ScanCode::F5 => state.settings.subpixel_coords = !state.settings.subpixel_coords,
+            ScanCode::F6 => state.settings.motion_interpolation = !state.settings.motion_interpolation,
+            ScanCode::F7 => state.set_speed(1.0),
+            ScanCode::F8 => {
+                if state.settings.speed > 0.2 {
+                    state.set_speed(state.settings.speed - 0.1);
+                }
+            }
+            ScanCode::F9 => {
+                if state.settings.speed < 3.0 {
+                    state.set_speed(state.settings.speed + 0.1);
+                }
+            }
+            ScanCode::F10 => state.settings.debug_outlines = !state.settings.debug_outlines,
+            ScanCode::F11 => state.settings.fps_counter = !state.settings.fps_counter,
+            ScanCode::F12 => state.debugger = !state.debugger,
+            _ => {}
+        };
+
         Ok(())
     }
 }

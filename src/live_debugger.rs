@@ -154,6 +154,7 @@ impl LiveDebugger {
                 if state.textscript_vm.state == TextScriptExecutionState::Ended {
                     if ui.button("Save") {
                         let _ = state.save_game(game_scene, ctx);
+                        state.sound_manager.play_sfx(18);
                     }
                 } else if ui.button("Busy") {
                 }
@@ -162,7 +163,9 @@ impl LiveDebugger {
                 if ui.button("Hotkey List") {
                     self.hotkey_list_visible = !self.hotkey_list_visible;
                 }
+
                 ui.checkbox("noclip", &mut state.settings.noclip);
+                ui.same_line();
                 ui.checkbox("more rust", &mut state.more_rust);
             });
 
@@ -402,7 +405,7 @@ impl LiveDebugger {
         if self.hotkey_list_visible {
             Window::new("Hotkeys")
                 .position([400.0, 5.0], Condition::FirstUseEver)
-                .size([300.0, 240.0], Condition::FirstUseEver)
+                .size([300.0, 280.0], Condition::FirstUseEver)
                 .resizable(false)
                 .build(ui, || {
                     let key = vec![
@@ -418,6 +421,7 @@ impl LiveDebugger {
                         "F11 > Toggle FPS Counter",
                         "F12 > Toggle Debugger",
                         "Ctrl + F3 > Reload Sound Manager",
+                        "Ctrl + S > Quick Save",
                     ];
                     for hotkeys in key.iter() {
                         match hotkeys {
