@@ -119,11 +119,14 @@ impl NPC {
                     self.action_counter2 += 1;
                     if self.action_counter2 < 3 || self.life > 150 {
                         self.action_counter3 = 0;
+
+                        self.face_player(player);
                     } else {
                         self.action_counter3 = 1;
-                    }
 
-                    self.face_player(player);
+                        self.face_player(player);
+                        self.direction = self.direction.opposite();
+                    }
                 }
 
                 self.action_counter += 1;
@@ -372,6 +375,12 @@ impl NPC {
             }
             _ => (),
         }
+
+        self.vel_y += 0x40;
+        self.clamp_fall_speed();
+
+        self.x += self.vel_x;
+        self.y += self.vel_y;
 
         Ok(())
     }
