@@ -13,11 +13,13 @@ pub struct NumberPopup {
     pub prev_x: i32,
     pub prev_y: i32,
     counter: u16,
+    throttle: u16,
+    value_display: i16,
 }
 
 impl NumberPopup {
     pub fn new() -> NumberPopup {
-        NumberPopup { value: 0, x: 0, y: 0, prev_x: 0, prev_y: 0, counter: 0 }
+        NumberPopup { value: 0, x: 0, y: 0, prev_x: 0, prev_y: 0, counter: 0, throttle: 0, value_display: 0 }
     }
 
     pub fn set_value(&mut self, value: i16) {
@@ -31,25 +33,41 @@ impl NumberPopup {
     pub fn add_value(&mut self, value: i16) {
         self.set_value(self.value + value);
     }
+
+    pub fn set_value_throttled(&mut self, value: i16) {
+        self.throttle = 16;
+        self.set_value(value);
+    }
+
+    pub fn add_value_throttled(&mut self, value: i16) {
+        self.set_value_throttled(self.value + value);
+    }
 }
 
 impl GameEntity<()> for NumberPopup {
     fn tick(&mut self, _state: &mut SharedGameState, _custom: ()) -> GameResult<()> {
-        if self.value == 0 {
+        if self.throttle > 0 {
+            self.throttle = self.throttle.saturating_sub(1);
+        }
+
+        if self.value == 0 || self.throttle > 0 {
             return Ok(());
         }
+
+        self.value_display = self.value;
 
         self.counter += 1;
         if self.counter == 80 {
             self.counter = 0;
             self.value = 0;
+            self.value_display = 0;
         }
 
         Ok(())
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult<()> {
-        if self.value == 0 {
+        if self.value_display == 0 {
             return Ok(());
         }
 
@@ -65,7 +83,7 @@ impl GameEntity<()> for NumberPopup {
         let x = interpolate_fix9_scale(self.prev_x, self.x, state.frame_time) - frame_x;
         let y = interpolate_fix9_scale(self.prev_y, self.y, state.frame_time) - frame_y - y_offset;
 
-        let n = format!("{:+}", self.value);
+        let n = format!("{:+}", self.value_display);
 
         let x = x - n.len() as f32 * 4.0;
 
@@ -78,7 +96,7 @@ impl GameEntity<()> for NumberPopup {
                     batch.add_rect(x + offset as f32 * 8.0, y, &Rect::new_size(40, 48 + clip, 8, 8 - clip));
                 }
                 '0'..='9' => {
-                    let number_set = if self.value < 0 { 64 } else { 56 };
+                    let number_set = if self.value_display < 0 { 64 } else { 56 };
                     let idx = chr as u16 - '0' as u16;
                     batch.add_rect(
                         x + offset as f32 * 8.0,

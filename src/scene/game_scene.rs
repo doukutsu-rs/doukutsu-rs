@@ -1182,7 +1182,7 @@ impl GameScene {
                         }
 
                         if npc.npc_flags.show_damage() {
-                            npc.popup.add_value(-bullet.damage);
+                            npc.popup.add_value_throttled(-bullet.damage);
                         }
                     }
                 } else if !bullet.weapon_flags.no_proj_dissipation()
