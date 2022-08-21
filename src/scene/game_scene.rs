@@ -2358,6 +2358,7 @@ impl Scene for GameScene {
             ScanCode::F10 => state.settings.debug_outlines = !state.settings.debug_outlines,
             ScanCode::F11 => state.settings.fps_counter = !state.settings.fps_counter,
             ScanCode::F12 => state.debugger = !state.debugger,
+            ScanCode::Grave => state.command_line = !state.command_line,
             _ => {}
         };
 

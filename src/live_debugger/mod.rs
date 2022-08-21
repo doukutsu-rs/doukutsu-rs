@@ -7,6 +7,10 @@ use crate::scene::game_scene::GameScene;
 use crate::scripting::tsc::text_script::TextScriptExecutionState;
 use crate::shared_game_state::SharedGameState;
 
+use self::command_line::CommandLineParser;
+
+pub mod command_line;
+
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
 pub enum ScriptType {
@@ -22,6 +26,7 @@ pub struct LiveDebugger {
     flags_visible: bool,
     npc_inspector_visible: bool,
     hotkey_list_visible: bool,
+    command_line_parser: CommandLineParser,
     last_stage_id: usize,
     stages: Vec<ImString>,
     selected_stage: i32,
@@ -40,6 +45,7 @@ impl LiveDebugger {
             flags_visible: false,
             npc_inspector_visible: false,
             hotkey_list_visible: false,
+            command_line_parser: CommandLineParser::new(),
             last_stage_id: usize::MAX,
             stages: Vec::new(),
             selected_stage: -1,
@@ -64,6 +70,60 @@ impl LiveDebugger {
             self.selected_event = -1;
         }
 
+        if state.command_line {
+            let width = state.screen_size.0;
+            let height = 85.0;
+            let x = 0.0 as f32;
+            let y = state.screen_size.1 - height;
+
+            Window::new("Command Line")
+                .position([x, y], Condition::FirstUseEver)
+                .size([width, height], Condition::FirstUseEver)
+                .resizable(false)
+                .collapsible(false)
+                .movable(false)
+                .build(ui, || {
+                    ui.text("Command:");
+                    ui.same_line();
+
+                    ui.input_text("", &mut self.command_line_parser.buffer).build();
+
+                    if ui.is_item_active() {
+                        state.control_flags.set_tick_world(false);
+                    } else {
+                        state.control_flags.set_tick_world(true);
+                    }
+
+                    ui.same_line();
+                    if ui.is_key_released(imgui::Key::Enter) || ui.button("Execute") {
+                        log::info!("Executing command: {}", self.command_line_parser.buffer);
+                        match self.command_line_parser.push(self.command_line_parser.buffer.clone()) {
+                            Some(mut command) => match command.execute(game_scene, state) {
+                                Ok(()) => {
+                                    self.command_line_parser.last_feedback = command.feedback_string();
+                                    self.command_line_parser.last_feedback_color = [0.0, 1.0, 0.0, 1.0];
+                                    state.sound_manager.play_sfx(5);
+                                }
+                                Err(e) => {
+                                    self.command_line_parser.last_feedback = e.to_string();
+                                    self.command_line_parser.last_feedback_color = [1.0, 0.0, 0.0, 1.0];
+                                    state.sound_manager.play_sfx(12);
+                                }
+                            },
+                            None => {
+                                self.command_line_parser.last_feedback = "Invalid command".to_string();
+                                self.command_line_parser.last_feedback_color = [1.0, 0.0, 0.0, 1.0];
+                                state.sound_manager.play_sfx(12);
+                            }
+                        }
+                    }
+                    ui.text_colored(
+                        self.command_line_parser.last_feedback_color,
+                        self.command_line_parser.last_feedback.clone(),
+                    );
+                });
+        }
+
         if !state.debugger {
             return Ok(());
         }
@@ -72,7 +132,7 @@ impl LiveDebugger {
             .resizable(false)
             .collapsed(true, Condition::FirstUseEver)
             .position([5.0, 5.0], Condition::FirstUseEver)
-            .size([400.0, 235.0], Condition::FirstUseEver)
+            .size([400.0, 265.0], Condition::FirstUseEver)
             .build(ui, || {
                 ui.text(format!(
                     "Player position: ({:.1},{:.1}), velocity: ({:.1},{:.1})",
@@ -162,6 +222,10 @@ impl LiveDebugger {
                 ui.same_line();
                 if ui.button("Hotkey List") {
                     self.hotkey_list_visible = !self.hotkey_list_visible;
+                }
+
+                if ui.button("Command Line") {
+                    state.command_line = !state.command_line;
                 }
 
                 ui.checkbox("noclip", &mut state.settings.noclip);
@@ -405,7 +469,7 @@ impl LiveDebugger {
         if self.hotkey_list_visible {
             Window::new("Hotkeys")
                 .position([400.0, 5.0], Condition::FirstUseEver)
-                .size([300.0, 280.0], Condition::FirstUseEver)
+                .size([300.0, 300.0], Condition::FirstUseEver)
                 .resizable(false)
                 .build(ui, || {
                     let key = vec![
@@ -420,6 +484,7 @@ impl LiveDebugger {
                         "F10 > Debug Overlay",
                         "F11 > Toggle FPS Counter",
                         "F12 > Toggle Debugger",
+                        "` > Toggle Command Line",
                         "Ctrl + F3 > Reload Sound Manager",
                         "Ctrl + S > Quick Save",
                     ];
@@ -433,6 +498,7 @@ impl LiveDebugger {
                     }
                 });
         }
+
         let mut remove = -1;
         for (idx, (_, title, contents)) in self.text_windows.iter().enumerate() {
             let mut opened = true;

@@ -1,11 +1,10 @@
 //! Error types and conversion functions.
 
-
 use std::error::Error;
 use std::fmt;
 use std::string::FromUtf8Error;
-use std::sync::{Arc, PoisonError};
 use std::sync::mpsc::SendError;
+use std::sync::{Arc, PoisonError};
 
 /// An enum containing all kinds of game framework errors.
 #[derive(Debug, Clone)]
@@ -43,6 +42,8 @@ pub enum GameError {
     ParseError(String),
     /// Something went wrong while converting a value.
     InvalidValue(String),
+    /// Something went wrong while executing a debug command line command.
+    CommandLineError(String),
 }
 
 impl fmt::Display for GameError {
@@ -50,11 +51,9 @@ impl fmt::Display for GameError {
         match *self {
             GameError::ConfigError(ref s) => write!(f, "Config error: {}", s),
             GameError::ResourceLoadError(ref s) => write!(f, "Error loading resource: {}", s),
-            GameError::ResourceNotFound(ref s, ref paths) => write!(
-                f,
-                "Resource not found: {}, searched in paths {:?}",
-                s, paths
-            ),
+            GameError::ResourceNotFound(ref s, ref paths) => {
+                write!(f, "Resource not found: {}, searched in paths {:?}", s, paths)
+            }
             GameError::WindowError(ref e) => write!(f, "Window creation error: {}", e),
             _ => write!(f, "GameError {:?}", self),
         }

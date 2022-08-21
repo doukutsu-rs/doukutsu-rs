@@ -8,6 +8,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use imgui::internal::RawWrapper;
+use imgui::sys::{ImGuiKey_Backspace, ImGuiKey_Delete, ImGuiKey_Enter};
 use imgui::{ConfigFlags, DrawCmd, DrawData, DrawIdx, DrawVert, Key, MouseCursor, TextureId, Ui};
 use sdl2::controller::GameController;
 use sdl2::event::{Event, WindowEvent};
@@ -424,7 +425,11 @@ impl BackendEventLoop for SDL2EventLoop {
 
         #[cfg(feature = "render-opengl")]
         if *self.opengl_available.borrow() {
-            let imgui = init_imgui()?;
+            let mut imgui = init_imgui()?;
+            let mut key_map = &mut imgui.io_mut().key_map;
+            key_map[ImGuiKey_Backspace as usize] = Scancode::Backspace as u32;
+            key_map[ImGuiKey_Delete as usize] = Scancode::Delete as u32;
+            key_map[ImGuiKey_Enter as usize] = Scancode::Return as u32;
 
             let refs = self.refs.clone();
 
