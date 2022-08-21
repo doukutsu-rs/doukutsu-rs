@@ -1531,6 +1531,8 @@ impl Bullet {
             return;
         }
 
+        self.damage = self.life as i16;
+
         if self.action_num == 0 {
             self.action_num = 1;
 
