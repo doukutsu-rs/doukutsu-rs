@@ -1,6 +1,7 @@
 use num_traits::FromPrimitive;
 
 use crate::framework::error::{GameError::CommandLineError, GameResult};
+use crate::npc::NPC;
 use crate::scene::game_scene::GameScene;
 use crate::shared_game_state::SharedGameState;
 use crate::weapon::WeaponType;
@@ -18,6 +19,7 @@ pub enum CommandLineCommand {
     AddXP(u16),
     RemoveXP(u16),
     SetMaxHP(u16),
+    SpawnNPC(u16),
 }
 
 impl CommandLineCommand {
@@ -127,6 +129,15 @@ impl CommandLineCommand {
                     return Some(CommandLineCommand::SetMaxHP(hp_count.unwrap()));
                 }
             }
+            "spawn_npc" => {
+                if components.len() < 2 {
+                    return None;
+                }
+                let npc_id = components[1].parse::<u16>();
+                if npc_id.is_ok() {
+                    return Some(CommandLineCommand::SpawnNPC(npc_id.unwrap()));
+                }
+            }
             _ => return None,
         }
 
@@ -195,6 +206,13 @@ impl CommandLineCommand {
                 game_scene.player1.max_life = hp_count;
                 game_scene.player1.life = hp_count;
             }
+            CommandLineCommand::SpawnNPC(id) => {
+                let mut npc = NPC::create(id, &state.npc_table);
+                npc.cond.set_alive(true);
+                npc.y = game_scene.player1.y;
+                npc.x = game_scene.player1.x + game_scene.player1.direction.vector_x() * (0x2000 * 3);
+                game_scene.npc_list.spawn(0x100, npc)?;
+            }
         }
 
         Ok(())
@@ -214,6 +232,7 @@ impl CommandLineCommand {
             CommandLineCommand::AddXP(xp_count) => format!("/add_xp {}", xp_count),
             CommandLineCommand::RemoveXP(xp_count) => format!("/remove_xp {}", xp_count),
             CommandLineCommand::SetMaxHP(hp_count) => format!("/set_max_hp {}", hp_count),
+            CommandLineCommand::SpawnNPC(npc_id) => format!("/spawn_npc {}", npc_id),
         }
     }
 
@@ -234,6 +253,7 @@ impl CommandLineCommand {
             CommandLineCommand::AddXP(xp_count) => format!("Added {} XP to current weapon.", xp_count),
             CommandLineCommand::RemoveXP(xp_count) => format!("Removed {} XP from current weapon.", xp_count),
             CommandLineCommand::SetMaxHP(hp_count) => format!("Set max HP of player to {}.", hp_count),
+            CommandLineCommand::SpawnNPC(npc_id) => format!("Spawned NPC ID {} in front of player.", npc_id),
         }
     }
 }
