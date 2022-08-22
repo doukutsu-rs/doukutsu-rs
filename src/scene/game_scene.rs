@@ -1806,7 +1806,7 @@ impl Scene for GameScene {
         self.map_system.tick(state, ctx, &self.stage, [&self.player1, &self.player2])?;
 
         match state.textscript_vm.mode {
-            ScriptMode::Map => {
+            ScriptMode::Map | ScriptMode::Debug => {
                 TextScriptVM::run(state, self, ctx)?;
 
                 match state.textscript_vm.state {
@@ -1991,7 +1991,7 @@ impl Scene for GameScene {
         }
 
         match state.textscript_vm.mode {
-            ScriptMode::Map if state.control_flags.control_enabled() => {
+            ScriptMode::Map | ScriptMode::Debug if state.control_flags.control_enabled() => {
                 self.hud_player1.draw(state, ctx, &self.frame)?;
                 self.hud_player2.draw(state, ctx, &self.frame)?;
                 self.boss_life_bar.draw(state, ctx, &self.frame)?;
@@ -2158,11 +2158,11 @@ impl Scene for GameScene {
         self.map_system.draw(state, ctx, &self.stage, [&self.player1, &self.player2])?;
         self.fade.draw(state, ctx, &self.frame)?;
 
-        if state.textscript_vm.mode == ScriptMode::Map {
+        if state.textscript_vm.mode == ScriptMode::Map || state.textscript_vm.mode == ScriptMode::Debug {
             self.nikumaru.draw(state, ctx, &self.frame)?;
         }
 
-        if state.textscript_vm.mode == ScriptMode::Map
+        if (state.textscript_vm.mode == ScriptMode::Map || state.textscript_vm.mode == ScriptMode::Debug)
             && state.textscript_vm.state != TextScriptExecutionState::MapSystem
             && self.map_name_counter > 0
         {

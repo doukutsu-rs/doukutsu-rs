@@ -68,6 +68,7 @@ pub enum ScriptMode {
     Map,
     Inventory,
     StageSelect,
+    Debug,
 }
 
 impl Not for ConfirmSelection {
@@ -145,12 +146,20 @@ pub struct Scripts {
     pub inventory_script: TextScript,
     /// StageSelect.tsc - used by teleport target selector
     pub stage_select_script: TextScript,
+    /// Debug TSC sink - used by the debug command line
+    pub debug_script: TextScript,
 }
 
 impl Scripts {
     pub fn find_script(&self, mode: ScriptMode, event_num: u16) -> Option<&Vec<u8>> {
         match mode {
-            ScriptMode::Map => {
+            ScriptMode::Map | ScriptMode::Debug => {
+                if mode == ScriptMode::Debug {
+                    if let Some(tsc) = self.debug_script.event_map.get(&event_num) {
+                        return Some(tsc);
+                    }
+                }
+
                 if let Some(tsc) = self.scene_script.event_map.get(&event_num) {
                     return Some(tsc);
                 } else if let Some(tsc) = self.global_script.event_map.get(&event_num) {
@@ -181,6 +190,7 @@ impl TextScriptVM {
                 scene_script: TextScript::new(),
                 inventory_script: TextScript::new(),
                 stage_select_script: TextScript::new(),
+                debug_script: TextScript::new(),
             })),
             state: TextScriptExecutionState::Ended,
             stack: Vec::with_capacity(6),
@@ -234,6 +244,11 @@ impl TextScriptVM {
     pub fn set_stage_select_script(&mut self, script: TextScript) {
         let mut scripts = self.scripts.borrow_mut();
         scripts.stage_select_script = script;
+    }
+
+    pub fn set_debug_script(&mut self, script: TextScript) {
+        let mut scripts = self.scripts.borrow_mut();
+        scripts.debug_script = script;
     }
 
     pub fn set_substitution_rect_map(&mut self, rect_map: HashMap<char, Rect<u16>>) {
@@ -669,6 +684,10 @@ impl TextScriptVM {
                 state.textscript_vm.flags.set_render(false);
                 state.textscript_vm.flags.set_background_visible(false);
                 state.textscript_vm.stack.clear();
+
+                if state.textscript_vm.mode == ScriptMode::Debug {
+                    state.textscript_vm.set_mode(ScriptMode::Map);
+                }
 
                 game_scene.player1.cond.set_interacted(false);
                 game_scene.player2.cond.set_interacted(false);

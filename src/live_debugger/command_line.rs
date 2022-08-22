@@ -3,10 +3,11 @@ use num_traits::FromPrimitive;
 use crate::framework::error::{GameError::CommandLineError, GameResult};
 use crate::npc::NPC;
 use crate::scene::game_scene::GameScene;
+use crate::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptEncoding};
 use crate::shared_game_state::SharedGameState;
 use crate::weapon::WeaponType;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum CommandLineCommand {
     AddItem(u16),
     RemoveItem(u16),
@@ -20,6 +21,7 @@ pub enum CommandLineCommand {
     RemoveXP(u16),
     SetMaxHP(u16),
     SpawnNPC(u16),
+    TSC(String),
 }
 
 impl CommandLineCommand {
@@ -29,6 +31,10 @@ impl CommandLineCommand {
         }
 
         let command = components[0];
+
+        if command.starts_with("<") {
+            return Some(CommandLineCommand::TSC(components.join(" ").replace("\\n", "\n")));
+        }
 
         match command.replacen("/", "", 1).as_str() {
             "add_item" => {
@@ -138,6 +144,14 @@ impl CommandLineCommand {
                     return Some(CommandLineCommand::SpawnNPC(npc_id.unwrap()));
                 }
             }
+            "tsc" => {
+                if components.len() < 2 {
+                    return None;
+                }
+
+                let script = components[1..].join(" ").replace("\\n", "\n");
+                return Some(CommandLineCommand::TSC(script));
+            }
             _ => return None,
         }
 
@@ -145,7 +159,7 @@ impl CommandLineCommand {
     }
 
     pub fn execute(&mut self, game_scene: &mut GameScene, state: &mut SharedGameState) -> GameResult {
-        match *self {
+        match self.clone() {
             CommandLineCommand::AddItem(item_id) => {
                 game_scene.inventory_player1.add_item(item_id);
             }
@@ -213,6 +227,19 @@ impl CommandLineCommand {
                 npc.x = game_scene.player1.x + game_scene.player1.direction.vector_x() * (0x2000 * 3);
                 game_scene.npc_list.spawn(0x100, npc)?;
             }
+            CommandLineCommand::TSC(script) => {
+                log::info!("Executing TSC script: {}", format!("#9999\n{}", script));
+                match TextScript::compile(format!("#9999\n{}", script).as_bytes(), true, TextScriptEncoding::UTF8) {
+                    Ok(text_script) => {
+                        state.textscript_vm.set_debug_script(text_script);
+                        state.textscript_vm.set_mode(ScriptMode::Debug);
+                        state.textscript_vm.start_script(9999);
+                    }
+                    Err(err) => {
+                        return Err(CommandLineError(format!("Error compiling TSC: {}", err)));
+                    }
+                };
+            }
         }
 
         Ok(())
@@ -233,6 +260,7 @@ impl CommandLineCommand {
             CommandLineCommand::RemoveXP(xp_count) => format!("/remove_xp {}", xp_count),
             CommandLineCommand::SetMaxHP(hp_count) => format!("/set_max_hp {}", hp_count),
             CommandLineCommand::SpawnNPC(npc_id) => format!("/spawn_npc {}", npc_id),
+            CommandLineCommand::TSC(script) => format!("/tsc {}", script.replace("\n", "\\n")),
         }
     }
 
@@ -254,6 +282,7 @@ impl CommandLineCommand {
             CommandLineCommand::RemoveXP(xp_count) => format!("Removed {} XP from current weapon.", xp_count),
             CommandLineCommand::SetMaxHP(hp_count) => format!("Set max HP of player to {}.", hp_count),
             CommandLineCommand::SpawnNPC(npc_id) => format!("Spawned NPC ID {} in front of player.", npc_id),
+            CommandLineCommand::TSC(_) => "Executed TSC script.".to_string(),
         }
     }
 }
@@ -283,7 +312,7 @@ impl CommandLineParser {
 
         match command {
             Some(command) => {
-                self.command_history.push(command);
+                self.command_history.push(command.clone());
                 self.cursor = self.command_history.len() - 1;
 
                 Some(command)
