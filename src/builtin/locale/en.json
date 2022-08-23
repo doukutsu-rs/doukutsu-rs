@@ -126,7 +126,12 @@
           "50tps": "50tps (freeware)",
           "60tps": "60tps (CS+)"
         },
-        "pause_on_focus_loss": "Pause on focus loss:"
+        "pause_on_focus_loss": "Pause on focus loss:",
+        "cutscene_skip_method": {
+          "entry": "Cutscene Skip:",
+          "hold": "Hold to Skip",
+          "fastforward": "Fast-Forward"
+        }
       }
     },
 

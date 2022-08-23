@@ -48,7 +48,7 @@ use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::settings::ControllerType;
-use crate::shared_game_state::{Language, PlayerCount, ReplayState, SharedGameState, TileSize};
+use crate::shared_game_state::{CutsceneSkipMode, Language, PlayerCount, ReplayState, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
 use crate::weapon::bullet::BulletManager;
@@ -1782,20 +1782,33 @@ impl Scene for GameScene {
             | TextScriptExecutionState::WaitTicks(_, _, _)
             | TextScriptExecutionState::WaitInput(_, _, _)
             | TextScriptExecutionState::WaitStanding(_, _)
+            | TextScriptExecutionState::WaitFade(_, _)
             | TextScriptExecutionState::Msg(_, _, _, _)
             | TextScriptExecutionState::MsgNewLine(_, _, _, _, _)
             | TextScriptExecutionState::FallingIsland(_, _, _, _, _, _)
-                if !state.control_flags.control_enabled() && !state.textscript_vm.flags.cutscene_skip() =>
+                if !state.control_flags.control_enabled() =>
             {
                 state.touch_controls.control_type = TouchControlType::Dialog;
-                if self.player1.controller.skip() {
-                    self.skip_counter += 1;
-                    if self.skip_counter >= CUTSCENE_SKIP_WAIT {
-                        state.textscript_vm.flags.set_cutscene_skip(true);
-                        state.tutorial_counter = 0;
+                match state.settings.cutscene_skip_mode {
+                    CutsceneSkipMode::Hold if !state.textscript_vm.flags.cutscene_skip() => {
+                        if self.player1.controller.skip() {
+                            self.skip_counter += 1;
+                            if self.skip_counter >= CUTSCENE_SKIP_WAIT {
+                                state.textscript_vm.flags.set_cutscene_skip(true);
+                                state.tutorial_counter = 0;
+                            }
+                        } else if self.skip_counter > 0 {
+                            self.skip_counter -= 1;
+                        }
                     }
-                } else if self.skip_counter > 0 {
-                    self.skip_counter -= 1;
+                    CutsceneSkipMode::FastForward => {
+                        if self.player1.controller.skip() {
+                            state.textscript_vm.flags.set_cutscene_skip(true);
+                        } else {
+                            state.textscript_vm.flags.set_cutscene_skip(false);
+                        }
+                    }
+                    _ => (),
                 }
             }
             _ => {

@@ -118,7 +118,12 @@
           "50tps": "50tps (freeware)",
           "60tps": "60tps (CS+)"
         },
-        "pause_on_focus_loss": "フォーカスが外れた時のポーズ："
+        "pause_on_focus_loss": "フォーカスが外れた時のポーズ：",
+        "cutscene_skip_method": {
+          "entry": "カットシーンをスキップ",
+          "hold": "を押し続け",
+          "fastforward": "はやおくり"
+        }
       }
     },
 

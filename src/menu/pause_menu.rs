@@ -15,7 +15,7 @@ use super::settings_menu::SettingsMenu;
 #[allow(unused)]
 enum CurrentMenu {
     PauseMenu,
-    OptionsMenu,
+    SettingsMenu,
     ConfirmMenu,
 }
 
@@ -23,7 +23,7 @@ enum CurrentMenu {
 enum PauseMenuEntry {
     Resume,
     Retry,
-    Options,
+    Settings,
     Title,
     Quit,
 }
@@ -78,7 +78,7 @@ impl PauseMenu {
 
         self.pause_menu.push_entry(PauseMenuEntry::Resume, MenuEntry::Active(state.t("menus.pause_menu.resume")));
         self.pause_menu.push_entry(PauseMenuEntry::Retry, MenuEntry::Active(state.t("menus.pause_menu.retry")));
-        self.pause_menu.push_entry(PauseMenuEntry::Options, MenuEntry::Active(state.t("menus.pause_menu.options")));
+        self.pause_menu.push_entry(PauseMenuEntry::Settings, MenuEntry::Active(state.t("menus.pause_menu.options")));
         self.pause_menu.push_entry(PauseMenuEntry::Title, MenuEntry::Active(state.t("menus.pause_menu.title")));
         self.pause_menu.push_entry(PauseMenuEntry::Quit, MenuEntry::Active(state.t("menus.pause_menu.quit")));
 
@@ -148,8 +148,8 @@ impl PauseMenu {
                     state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
                     state.load_or_start_game(ctx)?;
                 }
-                MenuSelectionResult::Selected(PauseMenuEntry::Options, _) => {
-                    self.current_menu = CurrentMenu::OptionsMenu;
+                MenuSelectionResult::Selected(PauseMenuEntry::Settings, _) => {
+                    self.current_menu = CurrentMenu::SettingsMenu;
                 }
                 MenuSelectionResult::Selected(PauseMenuEntry::Title, _) => {
                     self.confirm_menu.set_entry(
@@ -167,7 +167,7 @@ impl PauseMenu {
                 }
                 _ => (),
             },
-            CurrentMenu::OptionsMenu => {
+            CurrentMenu::SettingsMenu => {
                 let cm = &mut self.current_menu;
                 self.settings_menu.tick(
                     &mut || {
@@ -219,7 +219,7 @@ impl PauseMenu {
                     self.pause_menu.draw(state, ctx)?;
                     graphics::set_clip_rect(ctx, None)?;
                 }
-                CurrentMenu::OptionsMenu => {
+                CurrentMenu::SettingsMenu => {
                     self.settings_menu.draw(state, ctx)?;
                 }
                 CurrentMenu::ConfirmMenu => {

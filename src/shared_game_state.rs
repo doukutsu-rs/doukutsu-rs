@@ -106,6 +106,12 @@ pub enum PlayerCount {
     Two,
 }
 
+#[derive(PartialEq, Eq, Copy, Clone, serde::Serialize, serde::Deserialize)]
+pub enum CutsceneSkipMode {
+    Hold,
+    FastForward,
+}
+
 impl GameDifficulty {
     pub fn from_primitive(val: u8) -> GameDifficulty {
         return num_traits::FromPrimitive::from_u8(val).unwrap_or(GameDifficulty::Normal);

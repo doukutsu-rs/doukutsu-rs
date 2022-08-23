@@ -9,7 +9,9 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
 use crate::scene::title_scene::TitleScene;
-use crate::shared_game_state::{Language, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
+use crate::shared_game_state::{
+    CutsceneSkipMode, Language, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode,
+};
 use crate::sound::InterpolationMode;
 use crate::{graphics, VSyncMode};
 
@@ -110,6 +112,7 @@ impl Default for LanguageMenuEntry {
 enum BehaviorMenuEntry {
     GameTiming,
     PauseOnFocusLoss,
+    CutsceneSkipMode,
     Back,
 }
 
@@ -380,6 +383,18 @@ impl SettingsMenu {
             MenuEntry::Toggle(
                 state.t("menus.options_menu.behavior_menu.pause_on_focus_loss"),
                 state.settings.pause_on_focus_loss,
+            ),
+        );
+
+        self.behavior.push_entry(
+            BehaviorMenuEntry::CutsceneSkipMode,
+            MenuEntry::Options(
+                state.t("menus.options_menu.behavior_menu.cutscene_skip_method.entry"),
+                if state.settings.cutscene_skip_mode == CutsceneSkipMode::Hold { 0 } else { 1 },
+                vec![
+                    state.t("menus.options_menu.behavior_menu.cutscene_skip_method.hold"),
+                    state.t("menus.options_menu.behavior_menu.cutscene_skip_method.fastforward"),
+                ],
             ),
         );
 
@@ -737,6 +752,21 @@ impl SettingsMenu {
                         let _ = state.settings.save(ctx);
 
                         *value = state.settings.pause_on_focus_loss;
+                    }
+                }
+                MenuSelectionResult::Selected(BehaviorMenuEntry::CutsceneSkipMode, toggle) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        match state.settings.cutscene_skip_mode {
+                            CutsceneSkipMode::Hold => {
+                                state.settings.cutscene_skip_mode = CutsceneSkipMode::FastForward;
+                                *value = 1;
+                            }
+                            CutsceneSkipMode::FastForward => {
+                                state.settings.cutscene_skip_mode = CutsceneSkipMode::Hold;
+                                *value = 0;
+                            }
+                        }
+                        let _ = state.settings.save(ctx);
                     }
                 }
                 MenuSelectionResult::Selected(BehaviorMenuEntry::Back, _) | MenuSelectionResult::Canceled => {

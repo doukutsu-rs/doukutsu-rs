@@ -10,7 +10,7 @@ use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
 use crate::input::touch_player_controller::TouchPlayerController;
 use crate::player::TargetPlayer;
-use crate::shared_game_state::{Language, ScreenShakeIntensity, TimingMode, WindowMode};
+use crate::shared_game_state::{CutsceneSkipMode, Language, ScreenShakeIntensity, TimingMode, WindowMode};
 use crate::sound::InterpolationMode;
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -79,6 +79,8 @@ pub struct Settings {
     #[serde(skip)]
     pub noclip: bool,
     pub more_rust: bool,
+    #[serde(default = "default_cutscene_skip_mode")]
+    pub cutscene_skip_mode: CutsceneSkipMode,
 }
 
 fn default_true() -> bool {
@@ -143,6 +145,11 @@ fn default_pause_on_focus_loss() -> bool {
 #[inline(always)]
 fn default_rumble() -> bool {
     false
+}
+
+#[inline(always)]
+fn default_cutscene_skip_mode() -> CutsceneSkipMode {
+    CutsceneSkipMode::Hold
 }
 
 impl Settings {
@@ -291,6 +298,11 @@ impl Settings {
             self.more_rust = false;
         }
 
+        if self.version == 19 {
+            self.version = 20;
+            self.cutscene_skip_mode = CutsceneSkipMode::Hold;
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -395,6 +407,7 @@ impl Default for Settings {
             debug_mode: false,
             noclip: false,
             more_rust: false,
+            cutscene_skip_mode: CutsceneSkipMode::Hold,
         }
     }
 }
