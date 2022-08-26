@@ -48,7 +48,7 @@ use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::settings::ControllerType;
-use crate::shared_game_state::{CutsceneSkipMode, Language, PlayerCount, ReplayState, SharedGameState, TileSize};
+use crate::shared_game_state::{CutsceneSkipMode, PlayerCount, ReplayState, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
 use crate::weapon::bullet::BulletManager;
@@ -2182,7 +2182,7 @@ impl Scene for GameScene {
             let map_name = if self.stage.data.name == "u" {
                 state.constants.title.intro_text.chars()
             } else {
-                if state.settings.locale == Language::Japanese {
+                if state.constants.is_cs_plus && state.settings.locale == "jp" {
                     self.stage.data.name_jp.chars()
                 } else {
                     self.stage.data.name.chars()

@@ -325,7 +325,6 @@ pub fn exists_find<P: AsRef<path::Path>>(ctx: &Context, roots: &Vec<String>, pat
     false
 }
 
-
 /// Check whether a path points at a file.
 pub fn is_file<P: AsRef<path::Path>>(ctx: &Context, path: P) -> bool {
     ctx.filesystem.is_file(path)
@@ -342,6 +341,26 @@ pub fn is_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> bool {
 /// Lists the base directory if an empty path is given.
 pub fn read_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult<Box<dyn Iterator<Item = path::PathBuf>>> {
     ctx.filesystem.read_dir(path)
+}
+
+pub fn read_dir_find<P: AsRef<path::Path>>(
+    ctx: &Context,
+    roots: &Vec<String>,
+    path: P,
+) -> GameResult<Box<dyn Iterator<Item = path::PathBuf>>> {
+    let mut files = Vec::new();
+
+    for root in roots {
+        let mut full_path = root.to_string();
+        full_path.push_str(path.as_ref().to_string_lossy().as_ref());
+
+        let result = ctx.filesystem.read_dir(full_path);
+        if result.is_ok() {
+            files.push(result.unwrap());
+        }
+    }
+
+    Ok(Box::new(files.into_iter().flatten()))
 }
 
 /// Adds the given (absolute) path to the list of directories

@@ -8,7 +8,7 @@ use crate::graphics;
 use crate::input::touch_controls::TouchControlType;
 use crate::player::Player;
 use crate::scripting::tsc::text_script::TextScriptExecutionState;
-use crate::shared_game_state::{Language, SharedGameState};
+use crate::shared_game_state::SharedGameState;
 use crate::stage::Stage;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -197,7 +197,7 @@ impl MapSystem {
             graphics::draw_rect(ctx, rect_black_bar, Color::new(0.0, 0.0, 0.0, 1.0))?;
         }
 
-        let map_name = if state.settings.locale == Language::Japanese {
+        let map_name = if state.constants.is_cs_plus && state.settings.locale == "jp" {
             stage.data.name_jp.chars()
         } else {
             stage.data.name.chars()

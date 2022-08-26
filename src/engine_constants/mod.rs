@@ -16,7 +16,7 @@ use crate::i18n::Locale;
 use crate::player::ControlMode;
 use crate::scripting::tsc::text_script::TextScriptEncoding;
 use crate::settings::Settings;
-use crate::shared_game_state::{FontData, Language, Season};
+use crate::shared_game_state::{FontData, Season};
 use crate::sound::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
 use crate::sound::SoundManager;
 
@@ -341,7 +341,7 @@ pub struct EngineConstants {
     pub animated_face_table: Vec<AnimatedFace>,
     pub string_table: HashMap<String, String>,
     pub missile_flags: Vec<u16>,
-    pub locales: HashMap<String, Locale>,
+    pub locales: Vec<Locale>,
     pub gamepad: GamepadConsts,
 }
 
@@ -1671,7 +1671,7 @@ impl EngineConstants {
             animated_face_table: vec![AnimatedFace { face_id: 0, anim_id: 0, anim_frames: vec![(0, 0)] }],
             string_table: HashMap::new(),
             missile_flags: vec![200, 201, 202, 218, 550, 766, 880, 920, 1551],
-            locales: HashMap::new(),
+            locales: Vec::new(),
             gamepad: GamepadConsts {
                 button_rects: HashMap::from([
                     (Button::North, GamepadConsts::rects(Rect::new(0, 0, 32, 16))),
@@ -1787,8 +1787,8 @@ impl EngineConstants {
 
     pub fn rebuild_path_list(&mut self, mod_path: Option<String>, season: Season, settings: &Settings) {
         self.base_paths.clear();
-        self.base_paths.push("/".to_owned());
         self.base_paths.push("/builtin/builtin_data/".to_owned());
+        self.base_paths.push("/".to_owned());
 
         if self.is_cs_plus {
             self.base_paths.insert(0, "/base/".to_owned());
@@ -1803,12 +1803,12 @@ impl EngineConstants {
                 }
             }
 
-            if settings.locale != Language::English {
-                self.base_paths.insert(0, format!("/base/{}/", settings.locale.to_language_code()));
+            if settings.locale != "en".to_string() {
+                self.base_paths.insert(0, format!("/base/{}/", settings.locale));
             }
         } else {
-            if settings.locale != Language::English {
-                self.base_paths.insert(0, format!("/{}/", settings.locale.to_language_code()));
+            if settings.locale != "en".to_string() {
+                self.base_paths.insert(0, format!("/{}/", settings.locale));
             }
         }
 
@@ -1876,15 +1876,27 @@ impl EngineConstants {
     pub fn load_locales(&mut self, ctx: &mut Context) -> GameResult {
         self.locales.clear();
 
-        for language in Language::values() {
-            // Only Switch 1.3+ data contains an entirely valid JP font
-            let font = if language == Language::Japanese && filesystem::exists(ctx, "/base/credit_jp.tsc") {
-                FontData::new("csfontjp.fnt".to_owned(), 0.5, 0.0)
-            } else {
-                language.font()
+        let locale_files = filesystem::read_dir_find(ctx, &self.base_paths, "locale/");
+
+        for locale_file in locale_files.unwrap() {
+            if locale_file.extension().unwrap() != "json" {
+                continue;
+            }
+
+            let locale_code = {
+                let filename = locale_file.file_name().unwrap().to_string_lossy();
+                let mut parts = filename.split('.');
+                parts.next().unwrap().to_string()
             };
-            self.locales.insert(language.to_string(), Locale::new(ctx, language.to_language_code(), font));
-            log::info!("Loaded locale {} ({}).", language.to_string(), language.to_language_code());
+
+            let mut locale = Locale::new(ctx, &self.base_paths, &locale_code);
+
+            if locale_code == "jp" && filesystem::exists(ctx, "/base/credit_jp.tsc") {
+                locale.set_font(FontData::new("csfontjp.fnt".to_owned(), 0.5, 0.0));
+            }
+
+            self.locales.push(locale.clone());
+            log::info!("Loaded locale {} ({})", locale_code, locale.name.clone());
         }
 
         Ok(())

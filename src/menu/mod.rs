@@ -101,7 +101,7 @@ pub struct Menu<T: std::cmp::PartialEq> {
     pub non_interactive: bool,
 }
 
-impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
+impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
     pub fn new(x: isize, y: isize, width: u16, height: u16) -> Menu<T> {
         Menu {
             x,
@@ -716,7 +716,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
 
                 if let Some((id, entry)) = self.entries.get(selected) {
                     if entry.selectable() {
-                        self.selected = *id;
+                        self.selected = id.clone();
                         break;
                     }
                 } else {
@@ -727,7 +727,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
 
         let mut y = self.y as f32 + 8.0;
         for (id, entry) in self.entries.iter_mut() {
-            let idx = *id;
+            let idx = id.clone();
             let entry_bounds = Rect::new_size(self.x, y as isize, self.width as isize, entry.height() as isize);
             let right_entry_bounds =
                 Rect::new_size(self.x + self.width as isize, y as isize, self.width as isize, entry.height() as isize);
@@ -747,7 +747,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
                         || state.touch_controls.consume_click_in(entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(18);
-                    self.selected = idx;
+                    self.selected = idx.clone();
                     return MenuSelectionResult::Selected(idx, entry);
                 }
                 MenuEntry::Options(_, _, _) | MenuEntry::OptionsBar(_, _)
@@ -755,35 +755,35 @@ impl<T: std::cmp::PartialEq + std::default::Default + Copy> Menu<T> {
                         || state.touch_controls.consume_click_in(left_entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Left(self.selected, entry, -1);
+                    return MenuSelectionResult::Left(self.selected.clone(), entry, -1);
                 }
                 MenuEntry::Options(_, _, _) | MenuEntry::OptionsBar(_, _)
                     if (self.selected == idx && controller.trigger_right())
                         || state.touch_controls.consume_click_in(right_entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Right(self.selected, entry, 1);
+                    return MenuSelectionResult::Right(self.selected.clone(), entry, 1);
                 }
                 MenuEntry::DescriptiveOptions(_, _, _, _)
                     if (self.selected == idx && controller.trigger_left())
                         || state.touch_controls.consume_click_in(left_entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Left(self.selected, entry, -1);
+                    return MenuSelectionResult::Left(self.selected.clone(), entry, -1);
                 }
                 MenuEntry::DescriptiveOptions(_, _, _, _) | MenuEntry::SaveData(_)
                     if (self.selected == idx && controller.trigger_right())
                         || state.touch_controls.consume_click_in(right_entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Right(self.selected, entry, 1);
+                    return MenuSelectionResult::Right(self.selected.clone(), entry, 1);
                 }
                 MenuEntry::Control(_, _) => {
                     if self.selected == idx && controller.trigger_ok()
                         || state.touch_controls.consume_click_in(entry_bounds)
                     {
                         state.sound_manager.play_sfx(18);
-                        self.selected = idx;
+                        self.selected = idx.clone();
                         return MenuSelectionResult::Selected(idx, entry);
                     }
                 }

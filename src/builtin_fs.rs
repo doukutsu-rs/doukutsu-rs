@@ -181,6 +181,13 @@ impl BuiltinFS {
                                     ),
                                 ],
                             ),
+                            FSNode::Directory(
+                                "locale",
+                                vec![
+                                    FSNode::File("en.json", include_bytes!("builtin/builtin_data/locale/en.json")),
+                                    FSNode::File("jp.json", include_bytes!("builtin/builtin_data/locale/jp.json")),
+                                ],
+                            ),
                         ],
                     ),
                     FSNode::Directory(
@@ -195,13 +202,6 @@ impl BuiltinFS {
                     FSNode::Directory(
                         "lightmap",
                         vec![FSNode::File("spot.png", include_bytes!("builtin/lightmap/spot.png"))],
-                    ),
-                    FSNode::Directory(
-                        "locale",
-                        vec![
-                            FSNode::File("en.json", include_bytes!("builtin/locale/en.json")),
-                            FSNode::File("jp.json", include_bytes!("builtin/locale/jp.json")),
-                        ],
                     ),
                 ],
             )],

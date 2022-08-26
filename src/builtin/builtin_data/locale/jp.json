@@ -1,4 +1,8 @@
 {
+  "name": "Japanese",
+  "font": "csfontjp.fnt",
+  "font_scale": "0.5",
+
   "common": {
     "name": "doukutsu-rs",
     "back": "< 戻る",

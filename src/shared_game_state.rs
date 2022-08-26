@@ -118,44 +118,6 @@ impl GameDifficulty {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug, Hash, num_derive::FromPrimitive, serde::Serialize, serde::Deserialize)]
-pub enum Language {
-    English,
-    Japanese,
-}
-
-impl Language {
-    pub fn to_language_code(self) -> &'static str {
-        match self {
-            Language::English => "en",
-            Language::Japanese => "jp",
-        }
-    }
-
-    pub fn to_string(self) -> String {
-        match self {
-            Language::English => "English".to_string(),
-            Language::Japanese => "Japanese".to_string(),
-        }
-    }
-
-    pub fn font(self) -> FontData {
-        match self {
-            Language::English => FontData::new("csfont.fnt".to_owned(), 0.5, 0.0),
-            // Use default as fallback if no proper JP font is found
-            Language::Japanese => FontData::new("0.fnt".to_owned(), 1.0, 0.0),
-        }
-    }
-
-    pub fn from_primitive(val: usize) -> Language {
-        return num_traits::FromPrimitive::from_usize(val).unwrap_or(Language::English);
-    }
-
-    pub fn values() -> Vec<Language> {
-        vec![Language::English, Language::Japanese]
-    }
-}
-
 #[derive(PartialEq, Eq, Copy, Clone, num_derive::FromPrimitive, serde::Serialize, serde::Deserialize)]
 pub enum ScreenShakeIntensity {
     Full,
@@ -399,12 +361,12 @@ impl SharedGameState {
             }
         }
 
-        constants.load_locales(ctx)?;
-
         let season = Season::current();
         constants.rebuild_path_list(None, season, &settings);
 
-        let active_locale = constants.locales.get(&settings.locale.to_string()).unwrap();
+        constants.load_locales(ctx)?;
+
+        let active_locale = SharedGameState::active_locale(settings.locale.clone(), constants.clone());
 
         if constants.is_cs_plus {
             constants.font_scale = active_locale.font.scale;
@@ -843,9 +805,30 @@ impl SharedGameState {
         return self.difficulty as u16;
     }
 
-    pub fn get_active_locale(&self) -> &Locale {
-        let active_locale = self.constants.locales.get(&self.settings.locale.to_string()).unwrap();
-        return active_locale;
+    fn active_locale(user_locale: String, constants: EngineConstants) -> Locale {
+        let mut active_locale: Option<Locale> = None;
+        let mut en_locale: Option<Locale> = None;
+
+        for locale in &constants.locales {
+            if locale.code == "en" {
+                en_locale = Some(locale.clone());
+            }
+
+            if locale.code == user_locale {
+                active_locale = Some(locale.clone());
+                break;
+            }
+        }
+
+        match active_locale {
+            Some(locale) => locale,
+            None => en_locale.unwrap(),
+        }
+    }
+
+    pub fn get_active_locale(&self) -> Locale {
+        let locale = SharedGameState::active_locale(self.settings.locale.clone(), self.constants.clone());
+        locale.clone()
     }
 
     pub fn t(&self, key: &str) -> String {

@@ -9,9 +9,7 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
 use crate::scene::title_scene::TitleScene;
-use crate::shared_game_state::{
-    CutsceneSkipMode, Language, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode,
-};
+use crate::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
 use crate::sound::InterpolationMode;
 use crate::{graphics, VSyncMode};
 
@@ -95,16 +93,16 @@ impl Default for SoundtrackMenuEntry {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 enum LanguageMenuEntry {
     Title,
-    Language(Language),
+    Language(String),
     Back,
 }
 
 impl Default for LanguageMenuEntry {
     fn default() -> Self {
-        LanguageMenuEntry::Language(Language::English)
+        LanguageMenuEntry::Back
     }
 }
 
@@ -280,8 +278,9 @@ impl SettingsMenu {
 
         self.language.push_entry(LanguageMenuEntry::Title, MenuEntry::Disabled(state.t("menus.options_menu.language")));
 
-        for language in Language::values() {
-            self.language.push_entry(LanguageMenuEntry::Language(language), MenuEntry::Active(language.to_string()));
+        for locale in &state.constants.locales {
+            self.language
+                .push_entry(LanguageMenuEntry::Language(locale.code.clone()), MenuEntry::Active(locale.name.clone()));
         }
 
         self.language.push_entry(LanguageMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
@@ -460,7 +459,6 @@ impl SettingsMenu {
                     self.current = CurrentMenu::ControlsMenu;
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Language, _) => {
-                    self.language.selected = LanguageMenuEntry::Language(state.settings.locale);
                     self.current = CurrentMenu::LanguageMenu;
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Behavior, _) => {

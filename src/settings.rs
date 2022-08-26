@@ -10,7 +10,7 @@ use crate::input::keyboard_player_controller::KeyboardController;
 use crate::input::player_controller::PlayerController;
 use crate::input::touch_player_controller::TouchPlayerController;
 use crate::player::TargetPlayer;
-use crate::shared_game_state::{CutsceneSkipMode, Language, ScreenShakeIntensity, TimingMode, WindowMode};
+use crate::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, TimingMode, WindowMode};
 use crate::sound::InterpolationMode;
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -68,7 +68,7 @@ pub struct Settings {
     #[serde(skip)]
     pub debug_outlines: bool,
     pub fps_counter: bool,
-    pub locale: Language,
+    pub locale: String,
     #[serde(default = "default_window_mode")]
     pub window_mode: WindowMode,
     #[serde(default = "default_vsync")]
@@ -89,7 +89,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    19
+    21
 }
 
 #[inline(always)]
@@ -118,8 +118,8 @@ fn default_vol() -> f32 {
 }
 
 #[inline(always)]
-fn default_locale() -> Language {
-    Language::English
+fn default_locale() -> String {
+    "en".to_string()
 }
 
 #[inline(always)]
@@ -303,6 +303,17 @@ impl Settings {
             self.cutscene_skip_mode = CutsceneSkipMode::Hold;
         }
 
+        if self.version == 20 {
+            self.version = 21;
+
+            self.locale = match self.locale.as_str() {
+                "English" => "en".to_string(),
+                "Japanese" => "jp".to_string(),
+
+                _ => default_locale(),
+            };
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -400,7 +411,7 @@ impl Default for Settings {
             infinite_booster: false,
             debug_outlines: false,
             fps_counter: false,
-            locale: Language::English,
+            locale: default_locale(),
             window_mode: WindowMode::Windowed,
             vsync_mode: VSyncMode::VSync,
             screen_shake_intensity: ScreenShakeIntensity::Full,

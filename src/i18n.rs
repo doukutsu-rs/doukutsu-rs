@@ -5,24 +5,26 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Locale {
-    strings: HashMap<String, String>,
+    pub code: String,
+    pub name: String,
     pub font: FontData,
+    strings: HashMap<String, String>,
 }
 
 impl Locale {
-    pub fn new(ctx: &mut Context, code: &str, font: FontData) -> Locale {
-        let mut filename = "en.json".to_owned();
-
-        if code != "en" && filesystem::exists(ctx, &format!("/builtin/locale/{}.json", code)) {
-            filename = format!("{}.json", code);
-        }
-
-        let file = filesystem::open(ctx, &format!("/builtin/locale/{}", filename)).unwrap();
+    pub fn new(ctx: &mut Context, base_paths: &Vec<String>, code: &str) -> Locale {
+        let file = filesystem::open_find(ctx, base_paths, &format!("locale/{}.json", code)).unwrap();
         let json: serde_json::Value = serde_json::from_reader(file).unwrap();
 
         let strings = Locale::flatten(&json);
 
-        Locale { strings, font }
+        let name = strings["name"].clone();
+
+        let font_name = strings["font"].clone();
+        let font_scale = strings["font_scale"].parse::<f32>().unwrap_or(1.0);
+        let font = FontData::new(font_name, font_scale, 0.0);
+
+        Locale { code: code.to_string(), name, font, strings }
     }
 
     fn flatten(json: &serde_json::Value) -> HashMap<String, String> {
@@ -59,5 +61,9 @@ impl Locale {
         }
 
         string
+    }
+
+    pub fn set_font(&mut self, font: FontData) {
+        self.font = font;
     }
 }
