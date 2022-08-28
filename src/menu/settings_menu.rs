@@ -121,22 +121,16 @@ impl Default for BehaviorMenuEntry {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 enum LinksMenuEntry {
     Title,
-    DiscordLink,
-    GithubLink,
-    DocsLink,
-    TributeLink,
-    GeneralLink,
-    ModdingLink,
-    GetplusLink,
+    Link(&'static str),
     Back,
 }
 
 impl Default for LinksMenuEntry {
     fn default() -> Self {
-        LinksMenuEntry::DiscordLink
+        LinksMenuEntry::Link(DISCORD_LINK)
     }
 }
 
@@ -323,13 +317,13 @@ impl SettingsMenu {
         self.main.push_entry(MainMenuEntry::Links, MenuEntry::Active(state.t("menus.options_menu.links")));
 
         self.links.push_entry(LinksMenuEntry::Title, MenuEntry::Disabled(state.t("menus.options_menu.links")));
-        self.links.push_entry(LinksMenuEntry::DiscordLink, MenuEntry::Active("doukutsu-rs Discord".to_owned()));
-        self.links.push_entry(LinksMenuEntry::GithubLink, MenuEntry::Active("doukutsu-rs GitHub".to_owned()));
-        self.links.push_entry(LinksMenuEntry::DocsLink, MenuEntry::Active("doukutsu-rs Docs".to_owned()));
-        self.links.push_entry(LinksMenuEntry::TributeLink, MenuEntry::Active("Cave Story Tribute Website".to_owned()));
-        self.links.push_entry(LinksMenuEntry::GeneralLink, MenuEntry::Active("Cave Story Discord".to_owned()));
-        self.links.push_entry(LinksMenuEntry::ModdingLink, MenuEntry::Active("Cave Story Modding Community".to_owned()));
-        self.links.push_entry(LinksMenuEntry::GetplusLink, MenuEntry::Active("Get Cave Story+".to_owned()));
+        self.links.push_entry(LinksMenuEntry::Link(DISCORD_LINK), MenuEntry::Active("doukutsu-rs Discord".to_owned()));
+        self.links.push_entry(LinksMenuEntry::Link(GITHUB_LINK), MenuEntry::Active("doukutsu-rs GitHub".to_owned()));
+        self.links.push_entry(LinksMenuEntry::Link(DOCS_LINK), MenuEntry::Active("doukutsu-rs Docs".to_owned()));
+        self.links.push_entry(LinksMenuEntry::Link(TRIBUTE_LINK), MenuEntry::Active("Cave Story Tribute Website".to_owned()));
+        self.links.push_entry(LinksMenuEntry::Link(GENERAL_LINK), MenuEntry::Active("Cave Story Discord".to_owned()));
+        self.links.push_entry(LinksMenuEntry::Link(MODDING_LINK),MenuEntry::Active("Cave Story Modding Community".to_owned()));
+        self.links.push_entry(LinksMenuEntry::Link(GETPLUS_LINK), MenuEntry::Active("Get Cave Story+".to_owned()));
 
         self.main.push_entry(MainMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
@@ -816,38 +810,8 @@ impl SettingsMenu {
                 _ => (),
             },
             CurrentMenu::LinksMenu => match self.links.tick(controller, state) {
-                MenuSelectionResult::Selected(LinksMenuEntry::DiscordLink, _) => {
-                    if let Err(e) = webbrowser::open(DISCORD_LINK) {
-                        log::warn!("Error opening web browser: {}", e);
-                    }
-                }
-                MenuSelectionResult::Selected(LinksMenuEntry::GithubLink, _) => {
-                    if let Err(e) = webbrowser::open(GITHUB_LINK) {
-                        log::warn!("Error opening web browser: {}", e);
-                    }
-                }
-                MenuSelectionResult::Selected(LinksMenuEntry::DocsLink, _) => {
-                    if let Err(e) = webbrowser::open(DOCS_LINK) {
-                        log::warn!("Error opening web browser: {}", e);
-                    }
-                }
-                MenuSelectionResult::Selected(LinksMenuEntry::TributeLink, _) => {
-                    if let Err(e) = webbrowser::open(TRIBUTE_LINK) {
-                        log::warn!("Error opening web browser: {}", e);
-                    }
-                }
-                MenuSelectionResult::Selected(LinksMenuEntry::GeneralLink, _) => {
-                    if let Err(e) = webbrowser::open(GENERAL_LINK) {
-                        log::warn!("Error opening web browser: {}", e);
-                    }
-                }
-                MenuSelectionResult::Selected(LinksMenuEntry::ModdingLink, _) => {
-                    if let Err(e) = webbrowser::open(MODDING_LINK) {
-                        log::warn!("Error opening web browser: {}", e);
-                    }
-                }
-                MenuSelectionResult::Selected(LinksMenuEntry::GetplusLink, _) => {
-                    if let Err(e) = webbrowser::open(GETPLUS_LINK) {
+                MenuSelectionResult::Selected(LinksMenuEntry::Link(url), _) => {
+                    if let Err(e) = webbrowser::open(&url) {
                         log::warn!("Error opening web browser: {}", e);
                     }
                 }
