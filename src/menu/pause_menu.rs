@@ -6,8 +6,9 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
 use crate::scene::title_scene::TitleScene;
-use crate::shared_game_state::{MenuCharacter, SharedGameState};
+use crate::shared_game_state::{MenuCharacter, PlayerCount, SharedGameState};
 
+use super::coop_menu::PlayerCountMenu;
 use super::settings_menu::SettingsMenu;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -15,6 +16,7 @@ use super::settings_menu::SettingsMenu;
 #[allow(unused)]
 enum CurrentMenu {
     PauseMenu,
+    CoopMenu,
     SettingsMenu,
     ConfirmMenu,
 }
@@ -23,6 +25,8 @@ enum CurrentMenu {
 enum PauseMenuEntry {
     Resume,
     Retry,
+    AddPlayer2,
+    DropPlayer2,
     Settings,
     Title,
     Quit,
@@ -51,10 +55,12 @@ pub struct PauseMenu {
     is_paused: bool,
     current_menu: CurrentMenu,
     settings_menu: SettingsMenu,
+    coop_menu: PlayerCountMenu,
     controller: CombinedMenuController,
     pause_menu: Menu<PauseMenuEntry>,
     confirm_menu: Menu<ConfirmMenuEntry>,
     tick: u32,
+    should_update_coop_menu: bool,
 }
 
 impl PauseMenu {
@@ -65,10 +71,12 @@ impl PauseMenu {
             is_paused: false,
             current_menu: CurrentMenu::PauseMenu,
             settings_menu: SettingsMenu::new(),
+            coop_menu: PlayerCountMenu::new(),
             controller: CombinedMenuController::new(),
             pause_menu: main,
             confirm_menu: Menu::new(0, 0, 75, 0),
             tick: 0,
+            should_update_coop_menu: false,
         }
     }
 
@@ -78,6 +86,8 @@ impl PauseMenu {
 
         self.pause_menu.push_entry(PauseMenuEntry::Resume, MenuEntry::Active(state.t("menus.pause_menu.resume")));
         self.pause_menu.push_entry(PauseMenuEntry::Retry, MenuEntry::Active(state.t("menus.pause_menu.retry")));
+        self.pause_menu.push_entry(PauseMenuEntry::AddPlayer2, MenuEntry::Hidden);
+        self.pause_menu.push_entry(PauseMenuEntry::DropPlayer2, MenuEntry::Hidden);
         self.pause_menu.push_entry(PauseMenuEntry::Settings, MenuEntry::Active(state.t("menus.pause_menu.options")));
         self.pause_menu.push_entry(PauseMenuEntry::Title, MenuEntry::Active(state.t("menus.pause_menu.title")));
         self.pause_menu.push_entry(PauseMenuEntry::Quit, MenuEntry::Active(state.t("menus.pause_menu.quit")));
@@ -91,11 +101,14 @@ impl PauseMenu {
         self.update_sizes(state);
 
         self.settings_menu.init(state, ctx)?;
+        self.coop_menu.init(state)?;
 
         self.controller.update(state, ctx)?;
         self.controller.update_trigger();
 
         state.menu_character = MenuCharacter::Quote;
+
+        self.update_coop_menu_items(state);
 
         Ok(())
     }
@@ -110,6 +123,25 @@ impl PauseMenu {
         self.confirm_menu.update_height();
         self.confirm_menu.x = ((state.canvas_size.0 - self.confirm_menu.width as f32) / 2.0).floor() as isize;
         self.confirm_menu.y = ((state.canvas_size.1 - self.confirm_menu.height as f32) / 2.0).floor() as isize;
+    }
+
+    fn update_coop_menu_items(&mut self, state: &SharedGameState) {
+        match state.player_count {
+            PlayerCount::One => {
+                self.pause_menu
+                    .set_entry(PauseMenuEntry::AddPlayer2, MenuEntry::Active(state.t("menus.pause_menu.add_player2")));
+                self.pause_menu.set_entry(PauseMenuEntry::DropPlayer2, MenuEntry::Hidden);
+                self.pause_menu.selected = PauseMenuEntry::AddPlayer2;
+            }
+            PlayerCount::Two => {
+                self.pause_menu.set_entry(PauseMenuEntry::AddPlayer2, MenuEntry::Hidden);
+                self.pause_menu.set_entry(
+                    PauseMenuEntry::DropPlayer2,
+                    MenuEntry::Active(state.t("menus.pause_menu.drop_player2")),
+                );
+                self.pause_menu.selected = PauseMenuEntry::DropPlayer2;
+            }
+        }
     }
 
     pub fn pause(&mut self, state: &mut SharedGameState) {
@@ -134,6 +166,11 @@ impl PauseMenu {
             state.load_or_start_game(ctx)?;
         }
 
+        if self.should_update_coop_menu {
+            self.update_coop_menu_items(state);
+            self.should_update_coop_menu = false;
+        }
+
         match self.current_menu {
             CurrentMenu::PauseMenu => match self.pause_menu.tick(&mut self.controller, state) {
                 MenuSelectionResult::Selected(PauseMenuEntry::Resume, _) | MenuSelectionResult::Canceled => {
@@ -147,6 +184,20 @@ impl PauseMenu {
                     state.stop_noise();
                     state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
                     state.load_or_start_game(ctx)?;
+                }
+                MenuSelectionResult::Selected(PauseMenuEntry::AddPlayer2, _) => {
+                    if !state.constants.is_cs_plus {
+                        state.player_count = PlayerCount::Two;
+                        state.player_count_modified_in_game = true;
+                        self.should_update_coop_menu = true;
+                    } else {
+                        self.current_menu = CurrentMenu::CoopMenu;
+                    }
+                }
+                MenuSelectionResult::Selected(PauseMenuEntry::DropPlayer2, _) => {
+                    state.player_count = PlayerCount::One;
+                    state.player_count_modified_in_game = true;
+                    self.should_update_coop_menu = true;
                 }
                 MenuSelectionResult::Selected(PauseMenuEntry::Settings, _) => {
                     self.current_menu = CurrentMenu::SettingsMenu;
@@ -167,6 +218,20 @@ impl PauseMenu {
                 }
                 _ => (),
             },
+            CurrentMenu::CoopMenu => {
+                let cm = &mut self.current_menu;
+                let should_update = &mut self.should_update_coop_menu;
+
+                self.coop_menu.tick(
+                    &mut || {
+                        *cm = CurrentMenu::PauseMenu;
+                        *should_update = true;
+                    },
+                    &mut self.controller,
+                    state,
+                    ctx,
+                )?;
+            }
             CurrentMenu::SettingsMenu => {
                 let cm = &mut self.current_menu;
                 self.settings_menu.tick(
@@ -218,6 +283,9 @@ impl PauseMenu {
                     graphics::set_clip_rect(ctx, Some(clip_rect))?;
                     self.pause_menu.draw(state, ctx)?;
                     graphics::set_clip_rect(ctx, None)?;
+                }
+                CurrentMenu::CoopMenu => {
+                    self.coop_menu.draw(state, ctx)?;
                 }
                 CurrentMenu::SettingsMenu => {
                     self.settings_menu.draw(state, ctx)?;

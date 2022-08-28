@@ -29,6 +29,7 @@ pub enum SkinMenuEntry {
     Title,
     Skin,
     Start,
+    Add,
     Back,
 }
 
@@ -42,6 +43,7 @@ pub struct PlayerCountMenu {
     current_menu: CurrentMenu,
     coop_menu: Menu<CoopMenuEntry>,
     skin_menu: Menu<SkinMenuEntry>,
+    pub on_title: bool,
 }
 
 impl PlayerCountMenu {
@@ -50,6 +52,7 @@ impl PlayerCountMenu {
             coop_menu: Menu::new(0, 0, 130, 0),
             skin_menu: Menu::new(0, 0, 130, 0),
             current_menu: CurrentMenu::CoopMenu,
+            on_title: false,
         }
     }
     pub fn init(&mut self, state: &mut SharedGameState) -> GameResult {
@@ -65,10 +68,20 @@ impl PlayerCountMenu {
 
         self.skin_menu.push_entry(SkinMenuEntry::Title, MenuEntry::Disabled(state.t("menus.skin_menu.title")));
         self.skin_menu.push_entry(SkinMenuEntry::Skin, MenuEntry::PlayerSkin);
-        self.skin_menu.push_entry(SkinMenuEntry::Start, MenuEntry::Active(state.t("menus.main_menu.start")));
+
+        if self.on_title {
+            self.skin_menu.push_entry(SkinMenuEntry::Start, MenuEntry::Active(state.t("menus.main_menu.start")));
+        } else {
+            self.skin_menu.push_entry(SkinMenuEntry::Add, MenuEntry::Active(state.t("menus.pause_menu.add_player2")));
+        }
+
         self.skin_menu.push_entry(SkinMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
         self.skin_menu.selected = SkinMenuEntry::Skin;
+
+        if !self.on_title && state.constants.is_cs_plus {
+            self.current_menu = CurrentMenu::PlayerSkin;
+        }
 
         self.update_sizes(state);
 
@@ -116,7 +129,11 @@ impl PlayerCountMenu {
             },
             CurrentMenu::PlayerSkin => match self.skin_menu.tick(controller, state) {
                 MenuSelectionResult::Selected(SkinMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
-                    self.current_menu = CurrentMenu::CoopMenu;
+                    if self.on_title {
+                        self.current_menu = CurrentMenu::CoopMenu;
+                    } else {
+                        exit_action();
+                    }
                 }
                 MenuSelectionResult::Selected(SkinMenuEntry::Skin, _) => {
                     state.player2_skin += 2;
@@ -125,6 +142,11 @@ impl PlayerCountMenu {
                     state.player_count = PlayerCount::Two;
                     state.reload_resources(ctx)?;
                     state.load_or_start_game(ctx)?;
+                }
+                MenuSelectionResult::Selected(SkinMenuEntry::Add, _) => {
+                    state.player_count = PlayerCount::Two;
+                    state.player_count_modified_in_game = true;
+                    exit_action();
                 }
                 _ => (),
             },

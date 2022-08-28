@@ -29,7 +29,9 @@
       "title": "Title",
       "title_confirm": "Title?",
       "quit": "Quit",
-      "quit_confirm": "Quit?"
+      "quit_confirm": "Quit?",
+      "add_player2": "Add Player 2",
+      "drop_player2": "Drop Player 2"
     },
 
     "save_menu": {

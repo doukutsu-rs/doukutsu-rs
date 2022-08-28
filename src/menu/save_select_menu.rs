@@ -116,6 +116,7 @@ impl SaveSelectMenu {
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &Context) -> GameResult {
         self.save_menu = Menu::new(0, 0, 230, 0);
         self.save_detailed = Menu::new(0, 0, 230, 0);
+        self.coop_menu.on_title = true;
         self.coop_menu.init(state)?;
         self.difficulty_menu = Menu::new(0, 0, 130, 0);
         self.delete_confirm = Menu::new(0, 0, 75, 0);

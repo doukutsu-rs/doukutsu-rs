@@ -220,6 +220,7 @@ impl Scene for TitleScene {
 
         self.save_select_menu.init(state, ctx)?;
 
+        self.coop_menu.on_title = true;
         self.coop_menu.init(state)?;
 
         let mut selected = ChallengesMenuEntry::Back;

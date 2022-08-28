@@ -27,7 +27,9 @@
       "title": "メインメニュー",
       "title_confirm": "メインメニュー？",
       "quit": "辞める",
-      "quit_confirm": "辞める？"
+      "quit_confirm": "辞める？",
+      "add_player2": "プレーヤー2を追加",
+      "drop_player2": "プレーヤー2を削除"
     },
     "save_menu": {
       "new": "新しいデータ",

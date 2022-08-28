@@ -1737,6 +1737,16 @@ impl Scene for GameScene {
             }
         }
 
+        if state.player_count_modified_in_game {
+            if state.player_count == PlayerCount::Two {
+                self.add_player2(state);
+            } else {
+                self.drop_player2();
+            }
+
+            state.player_count_modified_in_game = false;
+        }
+
         self.player1.controller.update(state, ctx)?;
         self.player1.controller.update_trigger();
         self.player2.controller.update(state, ctx)?;
