@@ -26,6 +26,7 @@ enum CurrentMenu {
     SoundtrackMenu,
     LanguageMenu,
     BehaviorMenu,
+    LinksMenu,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -35,7 +36,7 @@ enum MainMenuEntry {
     Controls,
     Language,
     Behavior,
-    DiscordLink,
+    Links,
     Back,
 }
 
@@ -120,6 +121,25 @@ impl Default for BehaviorMenuEntry {
     }
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum LinksMenuEntry {
+    Title,
+    DiscordLink,
+    GithubLink,
+    DocsLink,
+    TributeLink,
+    GeneralLink,
+    ModdingLink,
+    GetplusLink,
+    Back,
+}
+
+impl Default for LinksMenuEntry {
+    fn default() -> Self {
+        LinksMenuEntry::DiscordLink
+    }
+}
+
 pub struct SettingsMenu {
     current: CurrentMenu,
     main: Menu<MainMenuEntry>,
@@ -128,11 +148,18 @@ pub struct SettingsMenu {
     soundtrack: Menu<SoundtrackMenuEntry>,
     language: Menu<LanguageMenuEntry>,
     behavior: Menu<BehaviorMenuEntry>,
+    links: Menu<LinksMenuEntry>,
     controls_menu: ControlsMenu,
     pub on_title: bool,
 }
 
 static DISCORD_LINK: &str = "https://discord.gg/fbRsNNB";
+static GITHUB_LINK: &str = "https://github.com/doukutsu-rs/doukutsu-rs";
+static DOCS_LINK: &str = "https://doukutsu-rs.gitbook.io/docs/";
+static TRIBUTE_LINK: &str = "https://www.cavestory.org/";
+static GENERAL_LINK: &str = "https://discord.gg/cavestory";
+static MODDING_LINK: &str = "https://discord.gg/xRsWpz6";
+static GETPLUS_LINK: &str = "https://www.nicalis.com/games/cavestory+";
 
 impl SettingsMenu {
     pub fn new() -> SettingsMenu {
@@ -142,6 +169,7 @@ impl SettingsMenu {
         let soundtrack = Menu::new(0, 0, 260, 0);
         let language = Menu::new(0, 0, 120, 0);
         let behavior = Menu::new(0, 0, 220, 0);
+        let links = Menu::new(0, 0, 220, 0);
 
         let controls_menu = ControlsMenu::new();
 
@@ -153,6 +181,7 @@ impl SettingsMenu {
             soundtrack,
             language,
             behavior,
+            links,
             controls_menu,
             on_title: false,
         }
@@ -291,7 +320,16 @@ impl SettingsMenu {
 
         self.main.push_entry(MainMenuEntry::Behavior, MenuEntry::Active(state.t("menus.options_menu.behavior")));
 
-        self.main.push_entry(MainMenuEntry::DiscordLink, MenuEntry::Active(DISCORD_LINK.to_owned()));
+        self.main.push_entry(MainMenuEntry::Links, MenuEntry::Active(state.t("menus.options_menu.links")));
+
+        self.links.push_entry(LinksMenuEntry::Title, MenuEntry::Disabled(state.t("menus.options_menu.links")));
+        self.links.push_entry(LinksMenuEntry::DiscordLink, MenuEntry::Active("doukutsu-rs Discord".to_owned()));
+        self.links.push_entry(LinksMenuEntry::GithubLink, MenuEntry::Active("doukutsu-rs GitHub".to_owned()));
+        self.links.push_entry(LinksMenuEntry::DocsLink, MenuEntry::Active("doukutsu-rs Docs".to_owned()));
+        self.links.push_entry(LinksMenuEntry::TributeLink, MenuEntry::Active("Cave Story Tribute Website".to_owned()));
+        self.links.push_entry(LinksMenuEntry::GeneralLink, MenuEntry::Active("Cave Story Discord".to_owned()));
+        self.links.push_entry(LinksMenuEntry::ModdingLink, MenuEntry::Active("Cave Story Modding Community".to_owned()));
+        self.links.push_entry(LinksMenuEntry::GetplusLink, MenuEntry::Active("Get Cave Story+".to_owned()));
 
         self.main.push_entry(MainMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
@@ -399,6 +437,8 @@ impl SettingsMenu {
 
         self.behavior.push_entry(BehaviorMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
+        self.links.push_entry(LinksMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+
         self.controls_menu.init(state, ctx)?;
 
         self.update_sizes(state);
@@ -436,6 +476,11 @@ impl SettingsMenu {
         self.behavior.update_height();
         self.behavior.x = ((state.canvas_size.0 - self.behavior.width as f32) / 2.0).floor() as isize;
         self.behavior.y = 30 + ((state.canvas_size.1 - self.behavior.height as f32) / 2.0).floor() as isize;
+
+        self.links.update_width(state);
+        self.links.update_height();
+        self.links.x = ((state.canvas_size.0 - self.links.width as f32) / 2.0).floor() as isize;
+        self.links.y = 30 + ((state.canvas_size.1 - self.links.height as f32) / 2.0).floor() as isize;
     }
 
     pub fn tick(
@@ -464,10 +509,8 @@ impl SettingsMenu {
                 MenuSelectionResult::Selected(MainMenuEntry::Behavior, _) => {
                     self.current = CurrentMenu::BehaviorMenu;
                 }
-                MenuSelectionResult::Selected(MainMenuEntry::DiscordLink, _) => {
-                    if let Err(e) = webbrowser::open(DISCORD_LINK) {
-                        log::warn!("Error opening web browser: {}", e);
-                    }
+                MenuSelectionResult::Selected(MainMenuEntry::Links, _) => {
+                    self.current = CurrentMenu::LinksMenu;
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Back, _) | MenuSelectionResult::Canceled => exit_action(),
                 _ => (),
@@ -772,6 +815,47 @@ impl SettingsMenu {
                 }
                 _ => (),
             },
+            CurrentMenu::LinksMenu => match self.links.tick(controller, state) {
+                MenuSelectionResult::Selected(LinksMenuEntry::DiscordLink, _) => {
+                    if let Err(e) = webbrowser::open(DISCORD_LINK) {
+                        log::warn!("Error opening web browser: {}", e);
+                    }
+                }
+                MenuSelectionResult::Selected(LinksMenuEntry::GithubLink, _) => {
+                    if let Err(e) = webbrowser::open(GITHUB_LINK) {
+                        log::warn!("Error opening web browser: {}", e);
+                    }
+                }
+                MenuSelectionResult::Selected(LinksMenuEntry::DocsLink, _) => {
+                    if let Err(e) = webbrowser::open(DOCS_LINK) {
+                        log::warn!("Error opening web browser: {}", e);
+                    }
+                }
+                MenuSelectionResult::Selected(LinksMenuEntry::TributeLink, _) => {
+                    if let Err(e) = webbrowser::open(TRIBUTE_LINK) {
+                        log::warn!("Error opening web browser: {}", e);
+                    }
+                }
+                MenuSelectionResult::Selected(LinksMenuEntry::GeneralLink, _) => {
+                    if let Err(e) = webbrowser::open(GENERAL_LINK) {
+                        log::warn!("Error opening web browser: {}", e);
+                    }
+                }
+                MenuSelectionResult::Selected(LinksMenuEntry::ModdingLink, _) => {
+                    if let Err(e) = webbrowser::open(MODDING_LINK) {
+                        log::warn!("Error opening web browser: {}", e);
+                    }
+                }
+                MenuSelectionResult::Selected(LinksMenuEntry::GetplusLink, _) => {
+                    if let Err(e) = webbrowser::open(GETPLUS_LINK) {
+                        log::warn!("Error opening web browser: {}", e);
+                    }
+                }
+                MenuSelectionResult::Selected(LinksMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
+                    self.current = CurrentMenu::MainMenu;
+                }
+                _ => (),
+            },
         }
         Ok(())
     }
@@ -785,6 +869,7 @@ impl SettingsMenu {
             CurrentMenu::ControlsMenu => self.controls_menu.draw(state, ctx)?,
             CurrentMenu::LanguageMenu => self.language.draw(state, ctx)?,
             CurrentMenu::BehaviorMenu => self.behavior.draw(state, ctx)?,
+            CurrentMenu::LinksMenu => self.links.draw(state, ctx)?,
         }
 
         Ok(())
