@@ -138,7 +138,9 @@
           "hold": "Hold to Skip",
           "fastforward": "Fast-Forward"
         }
-      }
+      },
+
+      "links": "Links..."
     },
 
     "controls_menu": {
