@@ -318,7 +318,18 @@ impl SharedGameState {
         let settings = Settings::load(ctx)?;
         let mod_requirements = ModRequirements::load(ctx)?;
 
-        let vanilla_extractor = VanillaExtractor::from(ctx, "Doukutsu.exe".to_string());
+        let vanilla_ext_exe = match option_env!("VANILLA_EXT_EXE") {
+            Some(exe_name) => exe_name,
+            None => "Doukutsu.exe",
+        };
+
+        let vanilla_ext_outdir = match option_env!("VANILLA_EXT_OUTDIR") {
+            Some(outdir) => outdir,
+            None => "data",
+        };
+
+        let vanilla_extractor =
+            VanillaExtractor::from(ctx, vanilla_ext_exe.to_string(), vanilla_ext_outdir.to_string());
         if vanilla_extractor.is_some() {
             let result = vanilla_extractor.unwrap().extract_data();
             if result.is_err() {

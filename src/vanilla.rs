@@ -18,6 +18,7 @@ use crate::{
 
 pub struct VanillaExtractor {
     exe_buffer: Vec<u8>,
+    data_base_dir: String,
 }
 
 const VANILLA_STAGE_COUNT: u32 = 95;
@@ -26,7 +27,7 @@ const VANILLA_STAGE_OFFSET: u32 = 0x937B0;
 const VANILLA_STAGE_TABLE_SIZE: u32 = VANILLA_STAGE_COUNT * VANILLA_STAGE_ENTRY_SIZE;
 
 impl VanillaExtractor {
-    pub fn from(ctx: &mut Context, exe_name: String) -> Option<Self> {
+    pub fn from(ctx: &mut Context, exe_name: String, data_base_dir: String) -> Option<Self> {
         let mut vanilla_exe_path = env::current_exe().unwrap();
         vanilla_exe_path.pop();
         vanilla_exe_path.push(exe_name);
@@ -37,7 +38,7 @@ impl VanillaExtractor {
 
         log::info!("Found vanilla game executable, attempting to extract resources.");
 
-        if filesystem::exists(ctx, "/data/stage.sect") {
+        if filesystem::exists(ctx, format!("{}/stage.sect", data_base_dir.clone())) {
             log::info!("Vanilla resources are already extracted, not proceeding.");
             return None;
         }
@@ -55,7 +56,7 @@ impl VanillaExtractor {
             return None;
         }
 
-        Some(Self { exe_buffer })
+        Some(Self { exe_buffer, data_base_dir })
     }
 
     pub fn extract_data(&self) -> GameResult {
@@ -96,7 +97,8 @@ impl VanillaExtractor {
         for org in orgs.unwrap().data_files {
             let mut org_path = env::current_exe().unwrap();
             org_path.pop();
-            org_path.push("data/Org/");
+            org_path.push(self.data_base_dir.clone());
+            org_path.push("Org/");
 
             if self.deep_create_dir_if_not_exists(org_path.clone()).is_err() {
                 return Err(ParseError("Failed to create directory structure.".to_string()));
@@ -132,7 +134,7 @@ impl VanillaExtractor {
         for bitmap in bitmaps.unwrap().data_files {
             let mut data_path = env::current_exe().unwrap();
             data_path.pop();
-            data_path.push("data/");
+            data_path.push(self.data_base_dir.clone());
 
             if self.deep_create_dir_if_not_exists(data_path.clone()).is_err() {
                 return Err(ParseError("Failed to create data directory structure.".to_string()));
@@ -182,7 +184,7 @@ impl VanillaExtractor {
 
         let mut stage_tbl_path = env::current_exe().unwrap();
         stage_tbl_path.pop();
-        stage_tbl_path.push("data/");
+        stage_tbl_path.push(self.data_base_dir.clone());
 
         if self.deep_create_dir_if_not_exists(stage_tbl_path.clone()).is_err() {
             return Err(ParseError("Failed to create data directory structure.".to_string()));
