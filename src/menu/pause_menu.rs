@@ -131,7 +131,10 @@ impl PauseMenu {
                 self.pause_menu
                     .set_entry(PauseMenuEntry::AddPlayer2, MenuEntry::Active(state.t("menus.pause_menu.add_player2")));
                 self.pause_menu.set_entry(PauseMenuEntry::DropPlayer2, MenuEntry::Hidden);
-                self.pause_menu.selected = PauseMenuEntry::AddPlayer2;
+
+                if self.pause_menu.selected == PauseMenuEntry::DropPlayer2 {
+                    self.pause_menu.selected = PauseMenuEntry::AddPlayer2;
+                }
             }
             PlayerCount::Two => {
                 self.pause_menu.set_entry(PauseMenuEntry::AddPlayer2, MenuEntry::Hidden);
@@ -139,7 +142,10 @@ impl PauseMenu {
                     PauseMenuEntry::DropPlayer2,
                     MenuEntry::Active(state.t("menus.pause_menu.drop_player2")),
                 );
-                self.pause_menu.selected = PauseMenuEntry::DropPlayer2;
+
+                if self.pause_menu.selected == PauseMenuEntry::AddPlayer2 {
+                    self.pause_menu.selected = PauseMenuEntry::DropPlayer2;
+                }
             }
         }
     }
