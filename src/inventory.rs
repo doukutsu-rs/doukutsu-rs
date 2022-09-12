@@ -6,11 +6,11 @@ use crate::weapon::{Weapon, WeaponLevel, WeaponType};
 use crate::player::{Player, TargetPlayer};
 use crate::weapon::bullet::BulletManager;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, bincode::Encode, bincode::Decode)]
 /// (id, amount)
 pub struct Item(pub u16, pub u16);
 
-#[derive(Clone)]
+#[derive(Clone, bincode::Encode, bincode::Decode)]
 pub struct Inventory {
     pub current_item: u16,
     pub current_weapon: u16,

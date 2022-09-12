@@ -145,6 +145,22 @@ impl NPCList {
         NPC_LIST_MAX_CAP as u16
     }
 
+    pub fn recheck(&self) {
+        let mut max_alive = 0;
+
+        unsafe {
+            for (id, npc) in (&mut *self.npcs.get()).iter_mut().enumerate() {
+                npc.id = id as u16;
+
+                if npc.cond.alive() {
+                    max_alive = npc.id;
+                }
+            }
+        }
+
+        self.max_npc.replace(max_alive);
+    }
+
     unsafe fn npcs<'a: 'b, 'b>(&'a self) -> &'b [NPC; NPC_LIST_MAX_CAP] {
         &*self.npcs.get()
     }

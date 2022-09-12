@@ -19,7 +19,7 @@ mod snake;
 mod spur;
 mod super_missile_launcher;
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone, FromPrimitive)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, FromPrimitive, bincode::Encode, bincode::Decode)]
 #[repr(u8)]
 pub enum WeaponType {
     None = 0,
@@ -35,7 +35,7 @@ pub enum WeaponType {
     Spur = 13,
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, bincode::Encode, bincode::Decode)]
 #[repr(u8)]
 pub enum WeaponLevel {
     None = 0,
@@ -64,7 +64,7 @@ impl WeaponLevel {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, bincode::Encode, bincode::Decode)]
 pub struct Weapon {
     pub wtype: WeaponType,
     pub level: WeaponLevel,

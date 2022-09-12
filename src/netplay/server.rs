@@ -15,6 +15,7 @@ use crate::netplay::common::{make_socket_config, SenderExt};
 use crate::netplay::protocol::{DRSPacket, HelloData, PlayerData, PlayerMove, ServerInfo, StageData, TextScriptData};
 use crate::netplay::server_config::ServerConfiguration;
 use crate::player::TargetPlayer;
+use crate::profile::GameProfile;
 use crate::scene::game_scene::GameScene;
 use crate::SharedGameState;
 
@@ -131,10 +132,10 @@ impl Server {
                                             continue;
                                         }
 
-                                        let mut target = TargetPlayer::Player2;
+                                        let mut target = TargetPlayer::Player1;
                                         for (_, state) in players.iter() {
-                                            if state.target == TargetPlayer::Player2 {
-                                                target = TargetPlayer::Player1;
+                                            if state.target == TargetPlayer::Player1 {
+                                                target = TargetPlayer::Player2;
                                             }
                                         }
 
@@ -245,6 +246,7 @@ impl Server {
             match msg {
                 SyncMessage::SyncStageToPlayer(target) => {
                     self.sync_transfer_stage(state, game_scene, Some(target));
+                    self.sync_flags(state, game_scene, Some(target));
                     self.sync_players(state, game_scene);
                 }
                 SyncMessage::SyncNewPlayer(target) => {
@@ -281,7 +283,7 @@ impl Server {
 
         if self.tick % 300 == 50 {
             for npc in game_scene.npc_list.iter_alive() {
-                let _ = self.broadcast_packet_queue.send((DRSPacket::SyncNPC(npc.clone()), DeliveryType::Reliable));
+                let _ = self.broadcast_packet_queue.send((DRSPacket::SyncNPC(npc.clone()), DeliveryType::Unreliable));
             }
         }
 
@@ -295,6 +297,8 @@ impl Server {
         for target in players {
             let player =
                 if target == TargetPlayer::Player1 { &mut game_scene.player1 } else { &mut game_scene.player2 };
+            let inventory =
+                if target == TargetPlayer::Player1 { &mut game_scene.inventory_player1 } else { &mut game_scene.inventory_player2 };
 
             let (state, old_state, trigger) = player.controller.dump_state();
 
@@ -327,8 +331,11 @@ impl Server {
                 cond: player.cond,
             });
 
+            let inventory_packet = DRSPacket::SyncInventory(target, inventory.clone());
+
             let _ = self.broadcast_packet_queue.send((sync_packet, DeliveryType::Reliable));
             let _ = self.broadcast_packet_queue.send((move_packet, DeliveryType::Reliable));
+            let _ = self.broadcast_packet_queue.send((inventory_packet, DeliveryType::Reliable));
         }
     }
 
@@ -399,5 +406,20 @@ impl Server {
         }
 
         self.sync_tsc(state, game_scene, target);
+    }
+
+    pub fn sync_flags(
+        &mut self,
+        state: &mut SharedGameState,
+        game_scene: &mut GameScene,
+        target: Option<TargetPlayer>,
+    ) {
+        let flags = GameProfile::dump(state, game_scene).flags;
+
+        if let Some(target) = target {
+            let _ = self.send_packet_queue.send((target, DRSPacket::SyncFlags(flags), DeliveryType::Reliable));
+        } else {
+            let _ = self.broadcast_packet_queue.send((DRSPacket::SyncFlags(flags), DeliveryType::Reliable));
+        }
     }
 }

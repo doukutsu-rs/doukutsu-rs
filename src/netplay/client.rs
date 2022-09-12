@@ -347,9 +347,22 @@ impl Client {
                     if let Some(npc_ref) = game_scene.npc_list.get_npc(npc.id as usize) {
                         *npc_ref = npc;
                     }
+                    game_scene.npc_list.recheck();
                 }
                 DRSPacket::SyncControlFlags(flags) => {
                     state.control_flags = flags;
+                }
+                DRSPacket::SyncFlags(flags) => {
+                    for (idx, &flags) in flags.iter().enumerate() {
+                        state.set_flag(idx * 8, flags & 0b00000001 != 0);
+                        state.set_flag(idx * 8 + 1, flags & 0b00000010 != 0);
+                        state.set_flag(idx * 8 + 2, flags & 0b00000100 != 0);
+                        state.set_flag(idx * 8 + 3, flags & 0b00001000 != 0);
+                        state.set_flag(idx * 8 + 4, flags & 0b00010000 != 0);
+                        state.set_flag(idx * 8 + 5, flags & 0b00100000 != 0);
+                        state.set_flag(idx * 8 + 6, flags & 0b01000000 != 0);
+                        state.set_flag(idx * 8 + 7, flags & 0b10000000 != 0);
+                    }
                 }
                 DRSPacket::SyncPlayer(data) => {
                     let player = if data.target == TargetPlayer::Player1 {
@@ -370,6 +383,13 @@ impl Client {
                     player.damage = data.damage;
                     player.air_counter = data.air_counter;
                     player.air = data.air;
+                }
+                DRSPacket::SyncInventory(target, inventory) => {
+                    if target == TargetPlayer::Player1 {
+                        game_scene.inventory_player1 = inventory;
+                    } else {
+                        game_scene.inventory_player2 = inventory;
+                    }
                 }
                 DRSPacket::Move(data) => {
                     let player = if data.target == TargetPlayer::Player1 {

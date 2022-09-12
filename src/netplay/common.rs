@@ -9,6 +9,8 @@ use crate::netplay::protocol::DRSPacket;
 pub fn make_socket_config() -> Config {
     let mut config = Config::default();
     config.idle_connection_timeout = Duration::new(30, 0);
+    config.max_fragments = 128;
+    config.max_packet_size = 128 * 1024;
     config
 }
 

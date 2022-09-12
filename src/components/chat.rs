@@ -8,7 +8,7 @@ use crate::shared_game_state::SharedGameState;
 
 struct MessageData {
     content: String,
-    fade: u8,
+    fade: u16,
 }
 
 pub struct Chat {
@@ -22,7 +22,7 @@ impl Chat {
     }
 
     pub fn push_message(&mut self, content: String) {
-        self.messages.push_front(MessageData { content, fade: 150 });
+        self.messages.push_front(MessageData { content, fade: 300 });
 
         while self.messages.len() > self.max_messages {
             self.messages.pop_back();
@@ -47,7 +47,7 @@ impl GameEntity<()> for Chat {
 
         for message in self.messages.iter() {
             if message.fade > 0 {
-                let fade = message.fade.min(50);
+                let fade = message.fade.min(50) as u8;
 
                 state.font.draw_colored_text_with_shadow_scaled(
                     message.content.chars(),

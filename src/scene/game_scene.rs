@@ -7,7 +7,7 @@ use crossbeam_channel::tick;
 use log::info;
 
 use crate::caret::CaretType;
-use crate::common::{Color, Direction, interpolate_fix9_scale, Rect};
+use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
@@ -27,32 +27,32 @@ use crate::components::water_renderer::{WaterLayer, WaterRenderer};
 use crate::components::whimsical_star::WhimsicalStar;
 use crate::entity::GameEntity;
 use crate::frame::{Frame, UpdateTarget};
-use crate::framework::{filesystem, graphics};
 use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{BlendMode, draw_rect, FilterMode};
+use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
 use crate::framework::ui::Components;
+use crate::framework::{filesystem, graphics};
 use crate::input::touch_controls::TouchControlType;
 use crate::inventory::{Inventory, TakeExperienceResult};
 use crate::map::WaterParams;
 use crate::menu::pause_menu::PauseMenu;
-use crate::npc::{NPC, NPCLayer};
 use crate::npc::boss::BossNPC;
 use crate::npc::list::NPCList;
-use crate::physics::{OFFSETS, PhysicalEntity};
+use crate::npc::{NPCLayer, NPC};
+use crate::physics::{PhysicalEntity, OFFSETS};
 use crate::player::{ControlMode, Player, TargetPlayer};
 use crate::rng::RNG;
-use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
+use crate::scene::Scene;
 use crate::scripting::tsc::credit_script::CreditScriptVM;
 use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::settings::ControllerType;
 use crate::shared_game_state::{Language, PlayerCount, ReplayState, SharedGameState, TileSize};
 use crate::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::texture_set::SpriteBatch;
-use crate::weapon::{Weapon, WeaponType};
 use crate::weapon::bullet::BulletManager;
+use crate::weapon::{Weapon, WeaponType};
 
 pub struct GameScene {
     pub tick: u32,
@@ -1427,11 +1427,11 @@ impl GameScene {
 
         match self.frame.update_target {
             UpdateTarget::Player => {
-                if self.player2.cond.alive()
+                if !state.is_netplay() && (self.player2.cond.alive()
                     && !self.player2.cond.hidden()
                     && (self.player1.x - self.player2.x).abs() < 240 * 0x200
                     && (self.player1.y - self.player2.y).abs() < 200 * 0x200
-                    && self.player1.control_mode != ControlMode::IronHead
+                    && self.player1.control_mode != ControlMode::IronHead)
                 {
                     self.frame.target_x = (self.player1.target_x * 2 + self.player2.target_x) / 3;
                     self.frame.target_y = (self.player1.target_y * 2 + self.player2.target_y) / 3;
@@ -1439,11 +1439,11 @@ impl GameScene {
                     self.frame.target_x = self.frame.target_x.clamp(self.player1.x - 0x8000, self.player1.x + 0x8000);
                     self.frame.target_y = self.frame.target_y.clamp(self.player1.y, self.player1.y);
                 } else {
-                    self.frame.target_x = self.player1.target_x;
-                    self.frame.target_y = self.player1.target_y;
+                    self.frame.target_x = self.local_player().target_x;
+                    self.frame.target_y = self.local_player().target_y;
                 }
 
-                if self.player2.cond.alive() && !self.player2.cond.hidden() {
+                if !state.is_netplay() && self.player2.cond.alive() && !self.player2.cond.hidden() {
                     if self.player2.x + 0x1000 < self.frame.x
                         || self.player2.x - 0x1000 > self.frame.x + state.canvas_size.0 as i32 * 0x200
                         || self.player2.y + 0x1000 < self.frame.y
@@ -1633,9 +1633,11 @@ impl GameScene {
 impl Scene for GameScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let mut is_server = false;
+        let mut is_client = false;
         #[cfg(feature = "netplay")]
         {
             is_server = state.server.is_some();
+            is_client = state.client.is_some();
         }
 
         if state.mod_path.is_some() && state.replay_state == ReplayState::Recording {
@@ -1656,11 +1658,13 @@ impl Scene for GameScene {
 
         self.npc_list.set_rng_seed(state.game_rng.next());
         self.boss.init_rng(state.game_rng.next());
-        state.textscript_vm.set_scene_script(self.stage.load_text_script(
-            &state.constants.base_paths,
-            &state.constants,
-            ctx,
-        )?);
+        if !is_client {
+            state.textscript_vm.set_scene_script(self.stage.load_text_script(
+                &state.constants.base_paths,
+                &state.constants,
+                ctx,
+            )?);
+        }
         state.textscript_vm.suspend = false;
         state.tile_size = self.stage.map.tile_size;
         #[cfg(feature = "scripting-lua")]
@@ -1671,24 +1675,26 @@ impl Scene for GameScene {
             self.player2.controller = state.settings.create_player2_controller();
         }
 
-        let npcs = self.stage.load_npcs(&state.constants.base_paths, ctx)?;
-        for npc_data in npcs.iter() {
-            log::info!("creating npc: {:?}", npc_data);
+        if !is_client {
+            let npcs = self.stage.load_npcs(&state.constants.base_paths, ctx)?;
+            for npc_data in npcs.iter() {
+                log::info!("creating npc: {:?}", npc_data);
 
-            let mut npc = NPC::create_from_data(npc_data, &state.npc_table, state.tile_size);
-            if npc.npc_flags.appear_when_flag_set() {
-                if state.get_flag(npc_data.flag_num as _) {
+                let mut npc = NPC::create_from_data(npc_data, &state.npc_table, state.tile_size);
+                if npc.npc_flags.appear_when_flag_set() {
+                    if state.get_flag(npc_data.flag_num as _) {
+                        npc.cond.set_alive(true);
+                    }
+                } else if npc.npc_flags.hide_unless_flag_set() {
+                    if !state.get_flag(npc_data.flag_num as _) {
+                        npc.cond.set_alive(true);
+                    }
+                } else {
                     npc.cond.set_alive(true);
                 }
-            } else if npc.npc_flags.hide_unless_flag_set() {
-                if !state.get_flag(npc_data.flag_num as _) {
-                    npc.cond.set_alive(true);
-                }
-            } else {
-                npc.cond.set_alive(true);
+
+                self.npc_list.spawn_at_slot(npc_data.id, npc)?;
             }
-
-            self.npc_list.spawn_at_slot(npc_data.id, npc)?;
         }
 
         state.npc_table.stage_textures = self.stage_textures.clone();
@@ -1754,6 +1760,15 @@ impl Scene for GameScene {
         let chat = state.chat.clone();
         chat.borrow_mut().tick(state, ())?;
 
+        if !self.pause_menu.is_paused() && state.replay_state == ReplayState::Playback {
+            self.replay.tick(state, (ctx, &mut self.player1))?;
+        }
+
+        self.player1.controller.update(state, ctx)?;
+        self.player1.controller.update_trigger();
+        self.player2.controller.update(state, ctx)?;
+        self.player2.controller.update_trigger();
+
         #[cfg(feature = "netplay")]
         {
             let state_ref = unsafe { &mut *(state as *mut SharedGameState) };
@@ -1763,15 +1778,6 @@ impl Scene for GameScene {
                 client.process(state_ref, self, ctx);
             }
         }
-
-        if !self.pause_menu.is_paused() && state.replay_state == ReplayState::Playback {
-            self.replay.tick(state, (ctx, &mut self.player1))?;
-        }
-
-        self.player1.controller.update(state, ctx)?;
-        self.player1.controller.update_trigger();
-        self.player2.controller.update(state, ctx)?;
-        self.player2.controller.update_trigger();
 
         state.touch_controls.control_type = if state.control_flags.control_enabled() && !self.pause_menu.is_paused() {
             TouchControlType::Controls

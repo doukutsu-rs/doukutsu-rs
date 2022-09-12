@@ -184,7 +184,7 @@ impl PlayerController for DummyPlayerController {
 
     fn set_state(&mut self, state: (u16, u16, u16)) {
         self.state = KeyState(state.0);
-        self.old_state = KeyState(state.1);
-        self.trigger = KeyState(state.2);
+        //self.old_state = KeyState(state.1);
+        //self.trigger = KeyState(state.2);
     }
 }

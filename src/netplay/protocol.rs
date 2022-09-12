@@ -6,6 +6,7 @@ use crate::scripting::tsc::text_script::{
 use crate::stage::Stage;
 use crate::{GameResult, ScriptMode};
 use crate::components::number_popup::NumberPopup;
+use crate::inventory::Inventory;
 use crate::npc::NPC;
 
 #[derive(Clone, bincode::Decode, bincode::Encode)]
@@ -103,10 +104,12 @@ pub enum DRSPacket {
     ConnectResponse(TargetPlayer),
     Move(PlayerMove),
     SyncControlFlags(ControlFlags),
+    SyncFlags([u8; 1000]),
     SyncStageData(StageData),
     SyncTSCScripts(Scripts),
     SyncTSC(TextScriptData),
     SyncPlayer(PlayerData),
+    SyncInventory(TargetPlayer, Inventory),
     SyncNPC(NPC),
 }
 
