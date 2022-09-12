@@ -680,6 +680,7 @@ impl SettingsMenu {
                             3 => (InterpolationMode::Polyphase, 4),
                             _ => (InterpolationMode::Nearest, 0),
                         };
+                        
                         *value = new_value;
                         state.settings.organya_interpolation = new_mode;
                         state.sound_manager.set_org_interpolation(new_mode);
@@ -691,9 +692,9 @@ impl SettingsMenu {
                         let (new_mode, new_value) = match *value {
                             0 => (InterpolationMode::Polyphase, 4),
                             1 => (InterpolationMode::Nearest, 0),
-                            2 => (InterpolationMode::,Linear, 1),
-                            3 => (InterpolationMode::,Cosine, 2),
-                            _ => (InterpolationMode::,Cubic, 3),
+                            2 => (InterpolationMode::Linear, 1),
+                            3 => (InterpolationMode::Cosine, 2),
+                            _ => (InterpolationMode::Cubic, 3),
                         };
 
                         *value = new_value;
