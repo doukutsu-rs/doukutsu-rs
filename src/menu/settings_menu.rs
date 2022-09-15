@@ -719,6 +719,40 @@ impl SettingsMenu {
                     }
                 }
                 
+                MenuSelectionResult::Selected(SoundMenuEntry::BGMInterpolation, toggle) 
+                | MenuSelectionResult::Right(SoundMenuEntry::BGMInterpolation, toggle, _) => {
+                    if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
+                        let (new_mode, new_value) = match *value {
+                            0 => (InterpolationMode::Linear, 1),
+                            1 => (InterpolationMode::Cosine, 2),
+                            2 => (InterpolationMode::Cubic, 3),
+                            3 => (InterpolationMode::Polyphase, 4),
+                            _ => (InterpolationMode::Nearest, 0),
+                        };
+                        
+                        *value = new_value;
+                        state.settings.organya_interpolation = new_mode;
+                        state.sound_manager.set_org_interpolation(new_mode);
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Left(SoundMenuEntry::BGMInterpolation, toggle, _) => {
+                    if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
+                        let (new_mode, new_value) = match *value {
+                            0 => (InterpolationMode::Polyphase, 4),
+                            1 => (InterpolationMode::Nearest, 0),
+                            2 => (InterpolationMode::Linear, 1),
+                            3 => (InterpolationMode::Cosine, 2),
+                            _ => (InterpolationMode::Cubic, 3),
+                        };
+
+                        *value = new_value;
+                        state.settings.organya_interpolation = new_mode;
+                        state.sound_manager.set_org_interpolation(new_mode);
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                
                 MenuSelectionResult::Selected(SoundMenuEntry::Soundtrack, _) => {
                     let mut active_soundtrack = SoundtrackMenuEntry::Soundtrack(0);
 
