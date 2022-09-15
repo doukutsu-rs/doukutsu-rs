@@ -139,6 +139,12 @@
           "fastforward": "Fast-Forward"
         }
       },
+      
+      "extras": "Extras...",
+      "extras_menu": {
+        "debug": "Debug Mode:",
+        "more_rust": "???"
+      },
 
       "links": "Links..."
     },
