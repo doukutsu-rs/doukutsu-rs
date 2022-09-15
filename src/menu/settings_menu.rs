@@ -26,6 +26,7 @@ enum CurrentMenu {
     SoundtrackMenu,
     LanguageMenu,
     BehaviorMenu,
+    ExtrasMenu,
     LinksMenu,
 }
 
@@ -36,6 +37,7 @@ enum MainMenuEntry {
     Controls,
     Language,
     Behavior,
+    Extras,
     Links,
     Back,
 }
@@ -121,6 +123,19 @@ impl Default for BehaviorMenuEntry {
     }
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum ExtrasMenuEntry {
+    Debug,
+    MoreRust,
+    Back,
+}
+
+impl Default for ExtrasMenuEntry {
+    fn default() -> Self {
+        ExtrasMenuEntry::Debug
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum LinksMenuEntry {
     Title,
@@ -134,6 +149,7 @@ impl Default for LinksMenuEntry {
     }
 }
 
+
 pub struct SettingsMenu {
     current: CurrentMenu,
     main: Menu<MainMenuEntry>,
@@ -142,6 +158,7 @@ pub struct SettingsMenu {
     soundtrack: Menu<SoundtrackMenuEntry>,
     language: Menu<LanguageMenuEntry>,
     behavior: Menu<BehaviorMenuEntry>,
+    extras: Menu<ExtrasMenuEntry>,
     links: Menu<LinksMenuEntry>,
     controls_menu: ControlsMenu,
     pub on_title: bool,
@@ -163,6 +180,7 @@ impl SettingsMenu {
         let soundtrack = Menu::new(0, 0, 260, 0);
         let language = Menu::new(0, 0, 120, 0);
         let behavior = Menu::new(0, 0, 220, 0);
+        let extras = Menu::new(0, 0, 120, 0);
         let links = Menu::new(0, 0, 220, 0);
 
         let controls_menu = ControlsMenu::new();
@@ -175,6 +193,7 @@ impl SettingsMenu {
             soundtrack,
             language,
             behavior,
+            extras,
             links,
             controls_menu,
             on_title: false,
@@ -294,6 +313,7 @@ impl SettingsMenu {
         self.graphics.push_entry(GraphicsMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
         self.main.push_entry(MainMenuEntry::Graphics, MenuEntry::Active(state.t("menus.options_menu.graphics")));
+        
         self.main.push_entry(MainMenuEntry::Sound, MenuEntry::Active(state.t("menus.options_menu.sound")));
 
         #[cfg(not(target_os = "android"))]
@@ -313,6 +333,8 @@ impl SettingsMenu {
         }
 
         self.main.push_entry(MainMenuEntry::Behavior, MenuEntry::Active(state.t("menus.options_menu.behavior")));
+        
+        self.main.push_entry(MainMenuEntry::Extras, MenuEntry::Active(state.t("menus.options_menu.extras")));
 
         self.main.push_entry(MainMenuEntry::Links, MenuEntry::Active(state.t("menus.options_menu.links")));
 
@@ -430,6 +452,24 @@ impl SettingsMenu {
         );
 
         self.behavior.push_entry(BehaviorMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        
+        self.extras.push_entry(
+            ExtrasMenuEntry::Debug,
+            MenuEntry::Toggle(
+                state.t("menus.options_menu.extras_menu.debug"),
+                state.settings.debug_mode,
+            ),
+        );
+        
+        self.extras.push_entry(
+            ExtrasMenuEntry::MoreRust,
+            MenuEntry::Toggle(
+                state.t("menus.options_menu.extras_menu.more_rust"),
+                state.settings.more_rust,
+            ),
+        );
+        
+        self.extras.push_entry(ExtrasMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
         self.links.push_entry(LinksMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
@@ -470,6 +510,11 @@ impl SettingsMenu {
         self.behavior.update_height();
         self.behavior.x = ((state.canvas_size.0 - self.behavior.width as f32) / 2.0).floor() as isize;
         self.behavior.y = 30 + ((state.canvas_size.1 - self.behavior.height as f32) / 2.0).floor() as isize;
+        
+        self.extras.update_width(state);
+        self.extras.update_height();
+        self.extras.x = ((state.canvas_size.0 - self.extras.width as f32) / 2.0).floor() as isize;
+        self.extras.y = 30 + ((state.canvas_size.1 - self.extras.height as f32) / 2.0).floor() as isize;
 
         self.links.update_width(state);
         self.links.update_height();
@@ -502,6 +547,9 @@ impl SettingsMenu {
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Behavior, _) => {
                     self.current = CurrentMenu::BehaviorMenu;
+                }
+                MenuSelectionResult::Selected(MainMenuEntry::Extras, _) => {
+                    self.current = CurrentMenu::ExtrasMenu;
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Links, _) => {
                     self.current = CurrentMenu::LinksMenu;
@@ -670,23 +718,7 @@ impl SettingsMenu {
                         let _ = state.settings.save(ctx);
                     }
                 }
-                MenuSelectionResult::Selected(SoundMenuEntry::BGMInterpolation, toggle) => {
-                    if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
-                        let (new_mode, new_value) = match *value {
-                            0 => (InterpolationMode::Linear, 1),
-                            1 => (InterpolationMode::Cosine, 2),
-                            2 => (InterpolationMode::Cubic, 3),
-                            3 => (InterpolationMode::Polyphase, 4),
-                            _ => (InterpolationMode::Nearest, 0),
-                        };
-
-                        *value = new_value;
-                        state.settings.organya_interpolation = new_mode;
-                        state.sound_manager.set_org_interpolation(new_mode);
-
-                        let _ = state.settings.save(ctx);
-                    }
-                }
+                
                 MenuSelectionResult::Selected(SoundMenuEntry::Soundtrack, _) => {
                     let mut active_soundtrack = SoundtrackMenuEntry::Soundtrack(0);
 
@@ -809,6 +841,28 @@ impl SettingsMenu {
                 }
                 _ => (),
             },
+            CurrentMenu::ExtrasMenu => match self.extras.tick(controller, state) {
+                MenuSelectionResult::Selected(ExtrasMenuEntry::Debug, toggle) => {
+                    if let MenuEntry::Toggle(_, value) = toggle {
+                        state.settings.debug_mode = !state.settings.debug_mode;
+                        let _ = state.settings.save(ctx);
+                        
+                        *value = state.settings.debug_mode;
+                    }
+                }
+                MenuSelectionResult::Selected(ExtrasMenuEntry::MoreRust, toggle) => {
+                    if let MenuEntry::Toggle(_, value) = toggle {
+                        state.settings.more_rust = !state.settings.more_rust;
+                        let _ = state.settings.save(ctx);
+                        
+                        *value = state.settings.more_rust;
+                    }
+                }
+                MenuSelectionResult::Selected(ExtrasMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
+                    self.current = CurrentMenu::MainMenu;
+                }
+                _ => (),
+            },
             CurrentMenu::LinksMenu => match self.links.tick(controller, state) {
                 MenuSelectionResult::Selected(LinksMenuEntry::Link(url), _) => {
                     if let Err(e) = webbrowser::open(&url) {
@@ -833,6 +887,7 @@ impl SettingsMenu {
             CurrentMenu::ControlsMenu => self.controls_menu.draw(state, ctx)?,
             CurrentMenu::LanguageMenu => self.language.draw(state, ctx)?,
             CurrentMenu::BehaviorMenu => self.behavior.draw(state, ctx)?,
+            CurrentMenu::ExtrasMenu => self.extras.draw(state, ctx)?,
             CurrentMenu::LinksMenu => self.links.draw(state, ctx)?,
         }
 
