@@ -131,6 +131,11 @@
           "fastforward": "はやおくり"
         }
       },
+      "extras": "エクストラ",
+      "extras_menu": {
+        "debug": "デバッグモード:",
+        "more_rust": "???"
+      },
       "links": "リンク"
     },
 
