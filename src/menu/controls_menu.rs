@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::gamepad::{self, Axis, AxisDirection, Button, PlayerControllerInputType};
@@ -455,7 +453,7 @@ impl ControlsMenu {
                     0,
                     MenuEntry::DisabledWhite(state.tt(
                         "menus.controls_menu.rebind_confirm_menu.title",
-                        HashMap::from([("control".to_string(), control.to_string(state))]),
+                        &[("control", control.to_string(state).as_str())],
                     )),
                 );
                 self.confirm_rebind

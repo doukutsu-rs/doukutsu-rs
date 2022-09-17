@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::ops::{Deref, Range};
 use std::rc::Rc;
 
@@ -2229,17 +2228,17 @@ impl Scene for GameScene {
                 }
             };
 
-            let text = state.tt("game.cutscene_skip", HashMap::from([("key".to_owned(), key)]));
+            let text = state.tt("game.cutscene_skip", &[("key", key.as_str())]);
 
             let gamepad_sprite_offset = match state.settings.player1_controller_type {
                 ControllerType::Keyboard => 1,
                 ControllerType::Gamepad(index) => ctx.gamepad_context.get_gamepad_sprite_offset(index as usize),
             };
 
-            let rect_map = HashMap::from([(
+            let rect_map = [(
                 '=',
                 state.settings.player1_controller_button_map.skip.get_rect(gamepad_sprite_offset, &state.constants),
-            )]);
+            )];
 
             let width = state.font.text_width_with_rects(text.chars(), &rect_map, &state.constants);
             let pos_x = state.canvas_size.0 - width - 20.0;

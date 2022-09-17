@@ -53,7 +53,7 @@ impl Locale {
         self.strings.get(key).unwrap_or(&key.to_owned()).to_owned()
     }
 
-    pub fn tt(&self, key: &str, args: HashMap<String, String>) -> String {
+    pub fn tt(&self, key: &str, args: &[(&str, &str)]) -> String {
         let mut string = self.t(key);
 
         for (key, value) in args.iter() {

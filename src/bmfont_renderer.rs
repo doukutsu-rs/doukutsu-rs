@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 use crate::bmfont::BMFont;
@@ -65,13 +65,14 @@ impl BMFontRenderer {
     pub fn text_width_with_rects<I: Iterator<Item = char> + Clone>(
         &self,
         iter: I,
-        rect_map: &HashMap<char, Rect<u16>>,
+        rect_map: &[(char, Rect<u16>)],
         constants: &EngineConstants,
     ) -> f32 {
         let mut width = self.text_width(iter.clone(), constants);
 
         for chr in iter {
-            if let Some(rect) = rect_map.get(&chr) {
+            let rect_map_entry = rect_map.iter().find(|(c, _)| *c == chr);
+            if let Some((_, rect)) = rect_map_entry {
                 if let Some(glyph) = self.font.chars.get(&chr) {
                     width += rect.width() as f32;
                     width -= glyph.xadvance as f32 * constants.font_scale;
@@ -101,7 +102,7 @@ impl BMFontRenderer {
         y: f32,
         constants: &EngineConstants,
         texture_set: &mut TextureSet,
-        rect_map: &HashMap<char, Rect<u16>>,
+        rect_map: &[(char, Rect<u16>)],
         sprite_batch_name: Option<&str>,
         ctx: &mut Context,
     ) -> GameResult {
@@ -138,7 +139,7 @@ impl BMFontRenderer {
         y: f32,
         constants: &EngineConstants,
         texture_set: &mut TextureSet,
-        rect_map: &HashMap<char, Rect<u16>>,
+        rect_map: &[(char, Rect<u16>)],
         sprite_batch_name: Option<&str>,
         ctx: &mut Context,
     ) -> GameResult {
@@ -199,7 +200,7 @@ impl BMFontRenderer {
         color: (u8, u8, u8, u8),
         constants: &EngineConstants,
         texture_set: &mut TextureSet,
-        rect_map: &HashMap<char, Rect<u16>>,
+        rect_map: &[(char, Rect<u16>)],
         sprite_batch_name: Option<&str>,
         ctx: &mut Context,
     ) -> GameResult {
@@ -240,9 +241,7 @@ impl BMFontRenderer {
         texture_set: &mut TextureSet,
         ctx: &mut Context,
     ) -> GameResult {
-        let rect_map: HashMap<char, Rect<u16>> = HashMap::new();
-
-        self.draw_colored_text_with_rects_scaled(iter, x, y, scale, color, constants, texture_set, &rect_map, None, ctx)
+        self.draw_colored_text_with_rects_scaled(iter, x, y, scale, color, constants, texture_set, &[], None, ctx)
     }
 
     pub fn draw_colored_text_with_rects_scaled<I: Iterator<Item = char>>(
@@ -254,7 +253,7 @@ impl BMFontRenderer {
         color: (u8, u8, u8, u8),
         constants: &EngineConstants,
         texture_set: &mut TextureSet,
-        rect_map: &HashMap<char, Rect<u16>>,
+        rect_map: &[(char, Rect<u16>)],
         sprite_batch_name: Option<&str>,
         ctx: &mut Context,
     ) -> GameResult {
@@ -266,7 +265,9 @@ impl BMFontRenderer {
 
             for chr in iter {
                 if let Some(glyph) = self.font.chars.get(&chr) {
-                    if let Some(rect) = rect_map.get(&chr) {
+                    let rect_map_entry = rect_map.iter().find(|(c, _)| *c == chr);
+
+                    if let Some((_, rect)) = rect_map_entry {
                         sprite_rects.push((
                             offset_x,
                             y + self.line_height(constants) / 2.0 - rect.height() as f32 / 2.0,
@@ -311,7 +312,9 @@ impl BMFontRenderer {
                 let mut offset_x = x;
 
                 for (chr, glyph) in chars.iter() {
-                    if let Some(rect) = rect_map.get(&chr) {
+                    let rect_map_entry = rect_map.iter().find(|(c, _)| *c == *chr);
+
+                    if let Some((_, rect)) = rect_map_entry {
                         sprite_rects.push((
                             offset_x,
                             y + self.line_height(constants) / 2.0 - rect.height() as f32 / 2.0,
@@ -379,7 +382,7 @@ impl BMFontRenderer {
         color: (u8, u8, u8, u8),
         constants: &EngineConstants,
         texture_set: &mut TextureSet,
-        rect_map: &HashMap<char, Rect<u16>>,
+        rect_map: &[(char, Rect<u16>)],
         sprite_batch_name: Option<&str>,
         ctx: &mut Context,
     ) -> GameResult {

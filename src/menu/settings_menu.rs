@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use itertools::Itertools;
 
 use crate::framework::context::Context;
@@ -320,9 +318,13 @@ impl SettingsMenu {
         self.links.push_entry(LinksMenuEntry::Link(DISCORD_LINK), MenuEntry::Active("doukutsu-rs Discord".to_owned()));
         self.links.push_entry(LinksMenuEntry::Link(GITHUB_LINK), MenuEntry::Active("doukutsu-rs GitHub".to_owned()));
         self.links.push_entry(LinksMenuEntry::Link(DOCS_LINK), MenuEntry::Active("doukutsu-rs Docs".to_owned()));
-        self.links.push_entry(LinksMenuEntry::Link(TRIBUTE_LINK), MenuEntry::Active("Cave Story Tribute Website".to_owned()));
+        self.links
+            .push_entry(LinksMenuEntry::Link(TRIBUTE_LINK), MenuEntry::Active("Cave Story Tribute Website".to_owned()));
         self.links.push_entry(LinksMenuEntry::Link(GENERAL_LINK), MenuEntry::Active("Cave Story Discord".to_owned()));
-        self.links.push_entry(LinksMenuEntry::Link(MODDING_LINK),MenuEntry::Active("Cave Story Modding Community".to_owned()));
+        self.links.push_entry(
+            LinksMenuEntry::Link(MODDING_LINK),
+            MenuEntry::Active("Cave Story Modding Community".to_owned()),
+        );
         self.links.push_entry(LinksMenuEntry::Link(GETPLUS_LINK), MenuEntry::Active("Get Cave Story+".to_owned()));
 
         self.main.push_entry(MainMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
@@ -359,10 +361,12 @@ impl SettingsMenu {
         );
         self.sound.push_entry(
             SoundMenuEntry::Soundtrack,
-            MenuEntry::Active(state.tt(
-                "menus.options_menu.sound_menu.soundtrack",
-                HashMap::from([("soundtrack".to_owned(), state.settings.soundtrack.to_owned())]),
-            )),
+            MenuEntry::Active(
+                state.tt(
+                    "menus.options_menu.sound_menu.soundtrack",
+                    &[("soundtrack", state.settings.soundtrack.as_str())],
+                ),
+            ),
         );
         self.sound.push_entry(SoundMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
 
@@ -670,7 +674,7 @@ impl SettingsMenu {
                         let _ = state.settings.save(ctx);
                     }
                 }
-                 MenuSelectionResult::Selected(SoundMenuEntry::BGMInterpolation, toggle) 
+                MenuSelectionResult::Selected(SoundMenuEntry::BGMInterpolation, toggle)
                 | MenuSelectionResult::Right(SoundMenuEntry::BGMInterpolation, toggle, _) => {
                     if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
                         let (new_mode, new_value) = match *value {
@@ -680,7 +684,7 @@ impl SettingsMenu {
                             3 => (InterpolationMode::Polyphase, 4),
                             _ => (InterpolationMode::Nearest, 0),
                         };
-                        
+
                         *value = new_value;
                         state.settings.organya_interpolation = new_mode;
                         state.sound_manager.set_org_interpolation(new_mode);

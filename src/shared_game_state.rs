@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::{cmp, ops::Div};
 
 use bitvec::vec::BitVec;
@@ -499,7 +498,7 @@ impl SharedGameState {
         let stage_select_script = TextScript::load_from(stage_select_tsc, &self.constants)?;
         self.textscript_vm.set_stage_select_script(stage_select_script);
 
-        let substitution_rect_map = HashMap::from([('=', self.constants.textscript.textbox_item_marker_rect)]);
+        let substitution_rect_map = [('=', self.constants.textscript.textbox_item_marker_rect)];
         self.textscript_vm.set_substitution_rect_map(substitution_rect_map);
 
         if filesystem::exists_find(ctx, &self.constants.base_paths, "Credit.tsc") {
@@ -848,7 +847,7 @@ impl SharedGameState {
         return self.get_active_locale().t(key);
     }
 
-    pub fn tt(&self, key: &str, args: HashMap<String, String>) -> String {
+    pub fn tt(&self, key: &str, args: &[(&str, &str)]) -> String {
         return self.get_active_locale().tt(key, args);
     }
 }

@@ -29,6 +29,8 @@ use crate::shared_game_state::ReplayState;
 use crate::shared_game_state::SharedGameState;
 use crate::weapon::WeaponType;
 
+const TSC_SUBSTITUTION_MAP_SIZE: usize = 1;
+
 bitfield! {
     pub struct TextScriptFlags(u16);
     impl Debug;
@@ -134,7 +136,7 @@ pub struct TextScriptVM {
     pub current_illustration: Option<String>,
     pub illustration_state: IllustrationState,
     prev_char: char,
-    pub substitution_rect_map: HashMap<char, Rect<u16>>,
+    pub substitution_rect_map: [(char, Rect<u16>); TSC_SUBSTITUTION_MAP_SIZE],
 }
 
 pub struct Scripts {
@@ -210,7 +212,7 @@ impl TextScriptVM {
             current_illustration: None,
             illustration_state: IllustrationState::Hidden,
             prev_char: '\x00',
-            substitution_rect_map: HashMap::new(),
+            substitution_rect_map: [('=', Rect::new(0, 0, 0, 0))],
         }
     }
 
@@ -251,7 +253,7 @@ impl TextScriptVM {
         scripts.debug_script = script;
     }
 
-    pub fn set_substitution_rect_map(&mut self, rect_map: HashMap<char, Rect<u16>>) {
+    pub fn set_substitution_rect_map(&mut self, rect_map: [(char, Rect<u16>); TSC_SUBSTITUTION_MAP_SIZE]) {
         self.substitution_rect_map = rect_map;
     }
 
