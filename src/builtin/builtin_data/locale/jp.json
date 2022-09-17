@@ -34,7 +34,8 @@
     "save_menu": {
       "new": "新しいデータ",
       "delete_info": "右矢印キーで削除",
-      "delete_confirm": "消去？"
+      "delete_confirm": "消去？",
+      "invalid_save": "無効な保存"
     },
     "difficulty_menu": {
       "title": "難易度選択",

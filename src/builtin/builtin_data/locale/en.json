@@ -37,7 +37,8 @@
     "save_menu": {
       "new": "New Save",
       "delete_info": "Press Right to Delete",
-      "delete_confirm": "Delete?"
+      "delete_confirm": "Delete?",
+      "invalid_save": "Invalid Save"
     },
 
     "difficulty_menu": {

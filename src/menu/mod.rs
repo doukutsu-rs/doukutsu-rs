@@ -547,16 +547,14 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     batch.draw(ctx)?;
                 }
                 MenuEntry::SaveData(save) | MenuEntry::SaveDataSingle(save) => {
-                    let name = &state.stages[save.current_map as usize].name;
+                    let valid_save = state.stages.get(save.current_map as usize).is_some();
+                    let name = if valid_save {
+                        state.stages.get(save.current_map as usize).unwrap().name.clone()
+                    } else {
+                        state.t("menus.save_menu.invalid_save")
+                    };
                     let bar_width = (save.life as f32 / save.max_life as f32 * 39.0) as u16;
                     let right_edge = self.x as f32 + self.width as f32 - 4.0;
-
-                    // Lifebar
-                    let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
-
-                    batch.add_rect(right_edge - 60.0, y, &Rect::new_size(0, 40, 24, 8));
-                    batch.add_rect(right_edge - 36.0, y, &Rect::new_size(24, 40, 40, 8));
-                    batch.add_rect(right_edge - 36.0, y, &Rect::new_size(0, 24, bar_width, 8));
 
                     state.font.draw_text(
                         name.chars(),
@@ -567,54 +565,63 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         ctx,
                     )?;
 
-                    // Difficulty
-                    if state.constants.is_cs_plus {
-                        let difficulty = GameDifficulty::from_primitive(save.difficulty);
+                    if valid_save {
+                        // Lifebar
+                        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
 
-                        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
-                        batch.add_rect(
-                            self.x as f32 + 20.0,
-                            y + 10.0,
-                            &Rect::new_size(0, (difficulty as u16).saturating_mul(2 * 16), 16, 16),
-                        );
+                        batch.add_rect(right_edge - 60.0, y, &Rect::new_size(0, 40, 24, 8));
+                        batch.add_rect(right_edge - 36.0, y, &Rect::new_size(24, 40, 40, 8));
+                        batch.add_rect(right_edge - 36.0, y, &Rect::new_size(0, 24, bar_width, 8));
+
+                        // Difficulty
+                        if state.constants.is_cs_plus {
+                            let difficulty = GameDifficulty::from_primitive(save.difficulty);
+
+                            let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
+                            batch.add_rect(
+                                self.x as f32 + 20.0,
+                                y + 10.0,
+                                &Rect::new_size(0, (difficulty as u16).saturating_mul(2 * 16), 16, 16),
+                            );
+                            batch.draw(ctx)?;
+                        } else {
+                            let mut difficulty_name: String = "Difficulty: ".to_owned();
+
+                            match save.difficulty {
+                                0 => difficulty_name.push_str("Normal"),
+                                2 => difficulty_name.push_str("Easy"),
+                                4 => difficulty_name.push_str("Hard"),
+                                _ => difficulty_name.push_str("(unknown)"),
+                            }
+
+                            state.font.draw_text(
+                                difficulty_name.chars(),
+                                self.x as f32 + 20.0,
+                                y + 10.0,
+                                &state.constants,
+                                &mut state.texture_set,
+                                ctx,
+                            )?;
+                        }
+
+                        // Weapons
+                        let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ArmsImage")?;
+
+                        for weapon_slot in 0..save.weapon_count {
+                            let wtype = save.weapon_id[weapon_slot];
+                            let pos_x = weapon_slot as f32 * 16.0 - (16 * save.weapon_count.saturating_sub(4)) as f32;
+                            let mut rect = Rect::new(0, 0, 0, 16);
+                            if wtype != 0 {
+                                rect.left = wtype as u16 * 16;
+                                rect.right = rect.left + 16;
+                                batch.add_rect(right_edge + pos_x - 60.0, y + 8.0, &rect);
+                            }
+                        }
+
                         batch.draw(ctx)?;
-                    } else {
-                        let mut difficulty_name: String = "Difficulty: ".to_owned();
 
-                        match save.difficulty {
-                            0 => difficulty_name.push_str("Normal"),
-                            2 => difficulty_name.push_str("Easy"),
-                            4 => difficulty_name.push_str("Hard"),
-                            _ => difficulty_name.push_str("(unknown)"),
-                        }
-
-                        state.font.draw_text(
-                            difficulty_name.chars(),
-                            self.x as f32 + 20.0,
-                            y + 10.0,
-                            &state.constants,
-                            &mut state.texture_set,
-                            ctx,
-                        )?;
+                        draw_number(right_edge - 36.0, y, save.life as usize, Alignment::Right, state, ctx)?;
                     }
-
-                    // Weapons
-                    let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ArmsImage")?;
-
-                    for weapon_slot in 0..save.weapon_count {
-                        let wtype = save.weapon_id[weapon_slot];
-                        let pos_x = weapon_slot as f32 * 16.0 - (16 * save.weapon_count.saturating_sub(4)) as f32;
-                        let mut rect = Rect::new(0, 0, 0, 16);
-                        if wtype != 0 {
-                            rect.left = wtype as u16 * 16;
-                            rect.right = rect.left + 16;
-                            batch.add_rect(right_edge + pos_x - 60.0, y + 8.0, &rect);
-                        }
-                    }
-
-                    batch.draw(ctx)?;
-
-                    draw_number(right_edge - 36.0, y, save.life as usize, Alignment::Right, state, ctx)?;
                 }
                 MenuEntry::Control(name, data) => {
                     state.font.draw_text(
