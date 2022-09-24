@@ -533,7 +533,7 @@ impl NPC {
             }
             20 => {
                 self.vel_x /= 2;
-                self.vel_y += 0x10;
+                self.vel_y += 0x20;
 
                 if self.shock == 0 {
                     self.action_num = 10;
@@ -1275,6 +1275,7 @@ impl NPC {
                     self.anim_num = 1;
                     self.anim_counter = 0;
                     self.damage = 0;
+                    state.sound_manager.play_sfx(23);
 
                     let player = self.get_closest_player_mut(players);
                     if player.x > self.x + 0x12000
@@ -1309,6 +1310,8 @@ impl NPC {
 
                     self.npc_flags.set_shootable(false);
                     self.npc_flags.set_solid_soft(false);
+
+                    state.sound_manager.play_sfx(51);
                 }
 
                 if self.flags.hit_bottom_wall() {

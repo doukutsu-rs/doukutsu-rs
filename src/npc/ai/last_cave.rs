@@ -28,15 +28,11 @@ impl NPC {
                     self.direction = Direction::Right;
                 }
 
-                if self.target_x < 100 {
-                    self.target_x += 1;
-                }
-
                 if self.action_counter >= 8
                     && self.x - 0x12000 < player.x
                     && self.x + 0x12000 > player.x
-                    && self.y - 0xc000 < player.y
-                    && self.y + 0xc000 > player.y
+                    && self.y - 0xa000 < player.y
+                    && self.y + 0xa000 > player.y
                 {
                     self.anim_num = 1;
                 } else {
@@ -55,11 +51,10 @@ impl NPC {
                 }
 
                 if self.action_counter >= 8
-                    && self.target_x >= 100
                     && self.x - 0xc000 < player.x
                     && self.x + 0xc000 > player.x
                     && self.y - 0xa000 < player.y
-                    && self.y + 0xa000 > player.y
+                    && self.y + 0xc000 > player.y
                 {
                     self.action_num = 2;
                     self.action_counter = 0;

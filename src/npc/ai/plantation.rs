@@ -918,7 +918,7 @@ impl NPC {
         }
 
         self.action_counter += 1;
-        if self.action_counter % 5 != 0 {
+        if self.action_counter % 5 == 0 {
             state.sound_manager.play_sfx(110);
         }
 
@@ -975,7 +975,12 @@ impl NPC {
                     self.action_counter2 = 0;
 
                     self.vel_y = -0x600;
-                    self.vel_x = self.direction.vector_x() * 0x200;
+
+                    if self.target_x > self.x {
+                        self.vel_x = 0x200;
+                    } else {
+                        self.vel_x = -0x200;
+                    }
                 }
             }
             12 => {

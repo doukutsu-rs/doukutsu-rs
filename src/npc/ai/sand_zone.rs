@@ -485,7 +485,9 @@ impl NPC {
 
         match self.action_num {
             0 | 1 => {
-                if self.action_num == 0 {
+                let is_in_spawn_radius = (player.x - self.x).abs() < 0x28000 && (player.y - self.y).abs() < 0x28000;
+
+                if self.action_num == 0 && is_in_spawn_radius {
                     self.action_num = 1;
                     self.target_x = self.x;
                     self.target_y = self.y;
@@ -495,16 +497,16 @@ impl NPC {
                     npc.cond.set_alive(true);
                     npc.parent_id = self.id;
                     let _ = npc_list.spawn(0, npc);
-                }
+                } else if self.action_num == 1 || (self.action_num == 0 && is_in_spawn_radius) {
+                    self.direction = if player.x >= self.x { Direction::Right } else { Direction::Left };
+                    self.vel_y += (self.target_y - self.y).signum() * 0x0a;
+                    self.vel_y = clamp(self.vel_y, -0x200, 0x200);
 
-                self.direction = if player.x >= self.x { Direction::Right } else { Direction::Left };
-                self.vel_y += (self.target_y - self.y).signum() * 0x0a;
-                self.vel_y = clamp(self.vel_y, -0x200, 0x200);
-
-                if self.vel_y2 >= 10 {
-                    self.action_num = 2;
-                } else {
-                    self.vel_y2 += 1;
+                    if self.vel_y2 >= 10 {
+                        self.action_num = 2;
+                    } else {
+                        self.vel_y2 += 1;
+                    }
                 }
             }
             2 => {
@@ -1059,6 +1061,8 @@ impl NPC {
                     Direction::Bottom => self.y += 0x80,
                     Direction::FacingPlayer => {}
                 }
+
+                self.action_counter += 1;
 
                 state.quake_counter = 20;
                 state.quake_rumble_counter = 20;

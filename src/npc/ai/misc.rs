@@ -436,8 +436,8 @@ impl NPC {
             return Ok(());
         }
 
-        self.anim_counter = (self.anim_counter + 1) % 4;
-        self.anim_num = self.anim_counter / 2;
+        self.anim_counter = (self.anim_counter + 1) % 6;
+        self.anim_num = self.anim_counter / 3;
         self.anim_rect = state.constants.npc.n032_life_capsule[self.anim_num as usize];
 
         Ok(())
