@@ -1596,6 +1596,8 @@ impl TextScriptVM {
                 state.textscript_vm.numbers[0] = max_ammo;
 
                 if let Some(wtype) = weapon_type {
+                    state.sound_manager.play_sfx(38);
+
                     game_scene.inventory_player1.add_weapon(wtype, max_ammo);
                     game_scene.inventory_player2.add_weapon(wtype, max_ammo);
                     state.mod_requirements.append_weapon(ctx, weapon_id as u16)?;
