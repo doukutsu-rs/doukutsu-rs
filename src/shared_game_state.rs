@@ -6,14 +6,14 @@ use chrono::{Datelike, Local};
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState};
-use crate::components::draw_common::{draw_number, Alignment};
+use crate::components::draw_common::{Alignment, draw_number};
 use crate::engine_constants::EngineConstants;
+use crate::framework::{filesystem, graphics};
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{create_texture_mutable, set_render_target};
 use crate::framework::vfs::OpenOptions;
-use crate::framework::{filesystem, graphics};
 #[cfg(feature = "hooks")]
 use crate::hooks::init_hooks;
 use crate::i18n::Locale;
@@ -24,8 +24,8 @@ use crate::npc::NPCTable;
 use crate::profile::GameProfile;
 use crate::rng::XorShift;
 use crate::scene::game_scene::GameScene;
-use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
+use crate::scene::title_scene::TitleScene;
 #[cfg(feature = "scripting-lua")]
 use crate::scripting::lua::LuaScriptingState;
 use crate::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
@@ -315,7 +315,7 @@ impl SharedGameState {
     pub fn new(ctx: &mut Context) -> GameResult<SharedGameState> {
         let mut constants = EngineConstants::defaults();
         let mut sound_manager = SoundManager::new(ctx)?;
-        let settings = Settings::load(ctx)?;
+        let mut settings = Settings::load(ctx)?;
         let mod_requirements = ModRequirements::load(ctx)?;
 
         let vanilla_ext_exe = match option_env!("VANILLA_EXT_EXE") {
@@ -333,43 +333,59 @@ impl SharedGameState {
         if vanilla_extractor.is_some() {
             let result = vanilla_extractor.unwrap().extract_data();
             if result.is_err() {
-                error!("Failed to extract vanilla data: {}", result.unwrap_err());
+                log::error!("Failed to extract vanilla data: {}", result.unwrap_err());
             }
         }
 
         if filesystem::exists(ctx, "/base/lighting.tbl") {
-            info!("Cave Story+ (Switch) data files detected.");
+            log::info!("Cave Story+ (Switch) data files detected.");
             ctx.size_hint = (854, 480);
             constants.apply_csplus_patches(&mut sound_manager);
             constants.apply_csplus_nx_patches();
             constants.load_nx_stringtable(ctx)?;
         } else if filesystem::exists(ctx, "/base/ogph/SellScreen.bmp") {
-            info!("WiiWare DEMO data files detected.");
+            log::info!("WiiWare DEMO data files detected.");
             constants.apply_csplus_patches(&mut sound_manager);
             constants.apply_csdemo_patches();
         } else if filesystem::exists(ctx, "/base/strap_a_en.bmp") {
-            info!("WiiWare data files detected."); //Missing Challenges and Remastered Soundtrack but identical to CS+ PC otherwise
+            log::info!("WiiWare data files detected."); //Missing Challenges and Remastered Soundtrack but identical to CS+ PC otherwise
             constants.apply_csplus_patches(&mut sound_manager);
         } else if filesystem::exists(ctx, "/root/buid_time.txt") {
-            error!("DSiWare data files detected. !UNSUPPORTED!"); //Freeware 2.0, sprites are arranged VERY differently + separate drowned carets
+            log::error!("DSiWare data files detected. !UNSUPPORTED!"); //Freeware 2.0, sprites are arranged VERY differently + separate drowned carets
         } else if filesystem::exists(ctx, "/darken.tex") || filesystem::exists(ctx, "/darken.png") {
-            error!("EShop data files detected. !UNSUPPORTED!"); //Ditto, drowned carets finally part of mychar, the turning point towards CS+
+            log::error!("EShop data files detected. !UNSUPPORTED!"); //Ditto, drowned carets finally part of mychar, the turning point towards CS+
         } else if filesystem::exists(ctx, "/data/stage3d/") {
-            error!("CS3D data files detected. !UNSUPPORTED!"); //Sprites are technically all there but filenames differ, + no n3ddta support
+            log::error!("CS3D data files detected. !UNSUPPORTED!"); //Sprites are technically all there but filenames differ, + no n3ddta support
         } else if filesystem::exists(ctx, "/base/Nicalis.bmp") || filesystem::exists(ctx, "/base/Nicalis.png") {
-            info!("Cave Story+ (PC) data files detected.");
+            log::info!("Cave Story+ (PC) data files detected.");
             constants.apply_csplus_patches(&mut sound_manager);
         } else if filesystem::exists(ctx, "/mrmap.bin") {
-            info!("CSE2E data files detected.");
+            log::info!("CSE2E data files detected.");
         } else if filesystem::exists(ctx, "/stage.dat") {
-            info!("NXEngine-evo data files detected.");
+            log::info!("NXEngine-evo data files detected.");
         }
 
-        for soundtrack in constants.soundtracks.iter_mut() {
-            if filesystem::exists(ctx, &soundtrack.path) {
-                info!("Enabling soundtrack {} from {}.", soundtrack.name, soundtrack.path);
-                soundtrack.available = true;
+        #[cfg(target_os = "linux")]
+            {
+                if let Ok(preload) = std::env::var("LIBTAS_LIBRARY_PATH") {
+                    if preload != "" {
+                        constants.crime_mode = true;
+                    }
+                }
             }
+
+        if !constants.crime_mode {
+            for soundtrack in constants.soundtracks.iter_mut() {
+                if filesystem::exists(ctx, &soundtrack.path) {
+                    log::info!("Enabling soundtrack {} from {}.", soundtrack.name, soundtrack.path);
+                    soundtrack.available = true;
+                }
+            }
+        } else {
+            // easter egg
+            settings.soundtrack = "Organya".to_owned();
+            settings.original_textures = true;
+            settings.seasonal_textures = false;
         }
 
         let season = Season::current();
@@ -413,13 +429,18 @@ impl SharedGameState {
         #[cfg(feature = "hooks")]
         init_hooks();
 
+        let seed = chrono::Local::now().timestamp() as i32
+            + ((SharedGameState::save_game as usize >> 7)
+            ^ (SharedGameState::save_game as usize >> 13)
+            ^ (SharedGameState::new as usize >> 23)) as i32;
+
         Ok(SharedGameState {
             control_flags: ControlFlags(0),
             game_flags: bitvec::bitvec![0; 8000],
             skip_flags: bitvec::bitvec![0; 64],
             map_flags: bitvec::bitvec![0; 64],
             fade_state: FadeState::Hidden,
-            game_rng: XorShift::new(chrono::Local::now().timestamp() as i32),
+            game_rng: XorShift::new(seed),
             effect_rng: XorShift::new(123),
             tile_size: TileSize::Tile16x16,
             quake_counter: 0,

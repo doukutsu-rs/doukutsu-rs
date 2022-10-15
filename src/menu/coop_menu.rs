@@ -79,7 +79,7 @@ impl PlayerCountMenu {
 
         self.skin_menu.selected = SkinMenuEntry::Skin;
 
-        if !self.on_title && state.constants.is_cs_plus {
+        if !self.on_title && !state.constants.crime_mode && state.constants.is_cs_plus {
             self.current_menu = CurrentMenu::PlayerSkin;
         }
 
