@@ -55,7 +55,7 @@ bitvec = "0.20"
 byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
 chrono = "0.4"
-cpal = "0.13"
+cpal = "0.14"
 directories = "3"
 downcast = "0.11"
 funty = "=1.1.0" # https://github.com/bitvecto-rs/bitvec/issues/105
