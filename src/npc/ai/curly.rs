@@ -67,7 +67,7 @@ impl NPC {
                 self.animate(4, 1, 4);
                 self.x += self.direction.vector_x() * 0x200;
 
-                if abs(self.x - player.x) > 0x2800 {
+                if abs(self.x - player.x) <= 0x2800 {
                     self.action_num = 0;
                 }
             }
