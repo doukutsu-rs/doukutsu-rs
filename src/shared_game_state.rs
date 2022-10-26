@@ -6,14 +6,14 @@ use chrono::{Datelike, Local};
 use crate::bmfont_renderer::BMFontRenderer;
 use crate::caret::{Caret, CaretType};
 use crate::common::{ControlFlags, Direction, FadeState};
-use crate::components::draw_common::{Alignment, draw_number};
+use crate::components::draw_common::{draw_number, Alignment};
 use crate::engine_constants::EngineConstants;
-use crate::framework::{filesystem, graphics};
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{create_texture_mutable, set_render_target};
 use crate::framework::vfs::OpenOptions;
+use crate::framework::{filesystem, graphics};
 #[cfg(feature = "hooks")]
 use crate::hooks::init_hooks;
 use crate::i18n::Locale;
@@ -24,8 +24,8 @@ use crate::npc::NPCTable;
 use crate::profile::GameProfile;
 use crate::rng::XorShift;
 use crate::scene::game_scene::GameScene;
-use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
+use crate::scene::Scene;
 #[cfg(feature = "scripting-lua")]
 use crate::scripting::lua::LuaScriptingState;
 use crate::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
@@ -366,13 +366,13 @@ impl SharedGameState {
         }
 
         #[cfg(target_os = "linux")]
-            {
-                if let Ok(preload) = std::env::var("LIBTAS_LIBRARY_PATH") {
-                    if preload != "" {
-                        constants.crime_mode = true;
-                    }
+        {
+            if let Ok(preload) = std::env::var("LIBTAS_LIBRARY_PATH") {
+                if preload != "" {
+                    constants.crime_mode = true;
                 }
             }
+        }
 
         if !constants.crime_mode {
             for soundtrack in constants.soundtracks.iter_mut() {
@@ -431,8 +431,8 @@ impl SharedGameState {
 
         let seed = chrono::Local::now().timestamp() as i32
             + ((SharedGameState::save_game as usize >> 7)
-            ^ (SharedGameState::save_game as usize >> 13)
-            ^ (SharedGameState::new as usize >> 23)) as i32;
+                ^ (SharedGameState::save_game as usize >> 13)
+                ^ (SharedGameState::new as usize >> 23)) as i32;
 
         Ok(SharedGameState {
             control_flags: ControlFlags(0),
@@ -827,11 +827,11 @@ impl SharedGameState {
             let season = Season::current();
 
             if season == Season::Halloween {
-                return 3; // Edgy Quote
+                return 6; // Edgy Quote
             }
 
             if season == Season::Christmas {
-                return 4; // Furry Quote
+                return 8; // Furry Quote
             }
         }
 
