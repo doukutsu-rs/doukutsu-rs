@@ -464,7 +464,7 @@ impl Player {
                     if self.controller.trigger_jump() || self.booster_fuel % 3 == 1 {
                         if self.direction == Direction::Left || self.direction == Direction::Right {
                             state.create_caret(
-                                self.x + 0x400,
+                                self.x - (0x400 * self.direction.vector_x()),
                                 self.y + 0x400,
                                 CaretType::Exhaust,
                                 booster_dir.opposite(),
