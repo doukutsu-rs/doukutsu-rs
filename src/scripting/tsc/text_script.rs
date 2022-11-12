@@ -794,27 +794,27 @@ impl TextScriptVM {
                             game_scene.player1.vel_y = 0x200;
                             game_scene.player2.vel_y = 0x200;
                         }
-                        Direction::FacingPlayer => {
-                            for npc in game_scene.npc_list.iter_alive() {
-                                if npc.event_num == new_direction as u16 {
-                                    if game_scene.player1.x >= npc.x {
-                                        game_scene.player1.direction = Left;
-                                        game_scene.player1.vel_x = 0x200;
-                                    } else {
-                                        game_scene.player1.direction = Right;
-                                        game_scene.player1.vel_x = -0x200;
-                                    }
-
-                                    if game_scene.player2.x >= npc.x {
-                                        game_scene.player2.direction = Left;
-                                        game_scene.player2.vel_x = 0x200;
-                                    } else {
-                                        game_scene.player2.direction = Right;
-                                        game_scene.player2.vel_x = -0x200;
-                                    }
-                                    break;
-                                }
+                        _ => (),
+                    }
+                } else {
+                    for npc in game_scene.npc_list.iter_alive() {
+                        if npc.event_num == new_direction as u16 {
+                            if game_scene.player1.x >= npc.x {
+                                game_scene.player1.direction = Left;
+                                game_scene.player1.vel_x = 0x200;
+                            } else {
+                                game_scene.player1.direction = Right;
+                                game_scene.player1.vel_x = -0x200;
                             }
+
+                            if game_scene.player2.x >= npc.x {
+                                game_scene.player2.direction = Left;
+                                game_scene.player2.vel_x = 0x200;
+                            } else {
+                                game_scene.player2.direction = Right;
+                                game_scene.player2.vel_x = -0x200;
+                            }
+                            break;
                         }
                     }
                 }
