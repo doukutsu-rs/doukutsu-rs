@@ -1,0 +1,178 @@
+{
+  "name": "Japanese",
+  "font": "csfontjp.fnt",
+  "font_scale": "0.5",
+  "common": {
+    "name": "doukutsu-rs",
+    "back": "< 戻る",
+    "yes": "はい",
+    "no": "いいえ",
+    "on": "オン",
+    "off": "オフ"
+  },
+  "menus": {
+    "main_menu": {
+      "start": "ゲームスタート",
+      "challenges": "チャレンジ",
+      "options": "オプション",
+      "editor": "レベルエディタ",
+      "jukebox": "ジュークボックス",
+      "quit": "辞める"
+    },
+    "pause_menu": {
+      "resume": "再開",
+      "retry": "リトライ",
+      "options": "設定",
+      "title": "メインメニュー",
+      "title_confirm": "メインメニュー？",
+      "quit": "辞める",
+      "quit_confirm": "辞める？",
+      "add_player2": "プレーヤー2を追加",
+      "drop_player2": "プレーヤー2を削除"
+    },
+    "save_menu": {
+      "new": "新しいデータ",
+      "delete_info": "右矢印キーで削除",
+      "delete_confirm": "消去？",
+      "invalid_save": "無効な保存"
+    },
+    "difficulty_menu": {
+      "title": "難易度選択",
+      "easy": "簡単",
+      "normal": "普通",
+      "hard": "難しい"
+    },
+    "coop_menu": {
+      "title": "プレイヤー数を選択",
+      "one": "1人プレイ",
+      "two": "2人プレイ"
+    },
+    "skin_menu": {
+      "title": "プレーヤー2の外観を選択します",
+      "label": "外観:"
+    },
+    "challenge_menu": {
+      "start": "スタート",
+      "no_replay": "ノーリプレイ",
+      "replay_best": "ベストプレイを再生",
+      "replay_last": "最後のプレイを再生",
+      "delete_replay": "ベストリプレイを削除"
+    },
+    "options_menu": {
+      "graphics": "グラフィック",
+      "graphics_menu": {
+        "window_mode": {
+          "entry": "画面表示：",
+          "windowed": "ウィンドウ",
+          "fullscreen": "フルスクリーン"
+        },
+        "lighting_effects": "ライティング効果：",
+        "weapon_light_cone": "兵器のライトコーン：",
+        "screen_shake": {
+          "entry": "画面の揺れ：",
+          "full": "1x",
+          "half": "0.5x",
+          "off": "オフ"
+        },
+        "motion_interpolation": "モーション補間：",
+        "subpixel_scrolling": "サブピクセルスクロール：",
+        "original_textures": "オリジナルテクスチャ：",
+        "seasonal_textures": "季節ものテクスチャ：",
+        "renderer": "レンダラ：",
+        "vsync_mode": {
+          "entry": "V-Sync:",
+          "uncapped": "Uncapped",
+          "uncapped_desc": "V-Sync Off.",
+          "vsync": "Enabled",
+          "vsync_desc": "V-Sync On.",
+          "vrr_1x": "Variable Refresh Rate (1x)",
+          "vrr_1x_desc": "Uses (G-/Free)Sync if available.",
+          "vrr_2x": "Variable Refresh Rate (2x)",
+          "vrr_2x_desc": "Uses (G-/Free)Sync if available.",
+          "vrr_3x": "Variable Refresh Rate (3x)",
+          "vrr_3x_desc": "Uses (G-/Free)Sync if available."
+        }
+      },
+      "sound": "サウンド",
+      "sound_menu": {
+        "music_volume": "BGM音量",
+        "effects_volume": "サウンド音量",
+        "bgm_interpolation": {
+          "entry": "BGM内挿：",
+          "linear": "線形補間",
+          "linear_desc": "速い、フリーウェア版に近い（Vista+）",
+          "cosine": "余弦",
+          "cosine_desc": "余弦補間",
+          "cubic": "立方体",
+          "cubic_desc": "立方体補間",
+          "linear_lp": "線形補間+LP",
+          "linear_lp_desc": "最も遅い、フリーウェア版に近い（XP）",
+          "nearest": "最近傍",
+          "nearest_desc": "最速、最低品質"
+        },
+        "soundtrack": "サウンドトラック： {soundtrack}"
+      },
+      "controls": "ボタン変更",
+      "language": "言語",
+      "behavior": "動作",
+      "behavior_menu": {
+        "game_timing": {
+          "entry": "ゲームのタイミング：",
+          "50tps": "50tps (freeware)",
+          "60tps": "60tps (CS+)"
+        },
+        "pause_on_focus_loss": "フォーカスが外れた時のポーズ：",
+        "cutscene_skip_method": {
+          "entry": "カットシーンをスキップ",
+          "hold": "を押し続け",
+          "fastforward": "はやおくり"
+        }
+      },
+      "links": "リンク"
+    },
+    "controls_menu": {
+      "select_player": {
+        "entry": "プレイヤーを選択：",
+        "player_1": "プレーヤー 1",
+        "player_2": "プレーヤー 2"
+      },
+      "controller": {
+        "entry": "コントローラ",
+        "keyboard": "キーボード"
+      },
+      "rebind": "再バインド",
+      "rebind_menu": {
+        "up": "うえ",
+        "down": "した",
+        "left": "ひだり",
+        "right": "みぎ",
+        "jump": "ジャンプ",
+        "shoot": "ショット",
+        "prev_weapon": "前の武器",
+        "next_weapon": "次の武器",
+        "inventory": "在庫",
+        "map": "マップシステム",
+        "skip": "スキップ",
+        "strafe": "ストレイフ",
+        "menu_ok": "メニュー選択／OK",
+        "menu_back": "メニュー残す／キャンセル"
+      },
+      "rebind_confirm_menu": {
+        "title": "新しい「ジャンプ」ボタンを押す",
+        "cancel": "(Escキーを押してキャンセル)"
+      },
+      "rumble": "ランブル",
+      "reset_confirm": "リセット",
+      "reset_confirm_menu_title": "ボタンをリセットしますか？"
+    }
+  },
+  "soundtrack": {
+    "organya": "オルガーニャ",
+    "remastered": "リマスター",
+    "new": "新",
+    "famitracks": "ファミトラック"
+  },
+  "game": {
+    "cutscene_skip": "{key} を押し続け、カットシーンをスキップ"
+  }
+}

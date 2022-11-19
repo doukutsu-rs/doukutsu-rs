@@ -1,0 +1,178 @@
+{
+  "name": "English",
+  "font": "csfont.fnt",
+  "font_scale": "0.5",
+  "common": {
+    "name": "doukutsu-rs",
+    "back": "< Back",
+    "yes": "Yes",
+    "no": "No",
+    "on": "ON",
+    "off": "OFF"
+  },
+  "menus": {
+    "main_menu": {
+      "start": "Start Game",
+      "challenges": "Challenges",
+      "options": "Options",
+      "editor": "Editor",
+      "jukebox": "Jukebox",
+      "quit": "Quit"
+    },
+    "pause_menu": {
+      "resume": "Resume",
+      "retry": "Retry",
+      "options": "Options",
+      "title": "Title",
+      "title_confirm": "Title?",
+      "quit": "Quit",
+      "quit_confirm": "Quit?",
+      "add_player2": "Add Player 2",
+      "drop_player2": "Drop Player 2"
+    },
+    "save_menu": {
+      "new": "New Save",
+      "delete_info": "Press Right to Delete",
+      "delete_confirm": "Delete?",
+      "invalid_save": "Invalid Save"
+    },
+    "difficulty_menu": {
+      "title": "Select Difficulty",
+      "easy": "Easy",
+      "normal": "Normal",
+      "hard": "Hard"
+    },
+    "coop_menu": {
+      "title": "Select Number of Players",
+      "one": "Single Player",
+      "two": "Two Players"
+    },
+    "skin_menu": {
+      "title": "Select Player 2's appearance",
+      "label": "Appearance:"
+    },
+    "challenge_menu": {
+      "start": "Start",
+      "no_replay": "No Replay",
+      "replay_best": "Replay Best",
+      "replay_last": "Replay Last",
+      "delete_replay": "Delete Best Replay"
+    },
+    "options_menu": {
+      "graphics": "Graphics...",
+      "graphics_menu": {
+        "window_mode": {
+          "entry": "Display mode:",
+          "windowed": "Windowed",
+          "fullscreen": "Fullscreen"
+        },
+        "lighting_effects": "Lighting effects:",
+        "weapon_light_cone": "Weapon light cone:",
+        "screen_shake": {
+          "entry": "Screen shake intensity:",
+          "full": "1x",
+          "half": "0.5x",
+          "off": "Off"
+        },
+        "motion_interpolation": "Motion interpolation:",
+        "subpixel_scrolling": "Subpixel scrolling:",
+        "original_textures": "Original textures:",
+        "seasonal_textures": "Seasonal textures:",
+        "renderer": "Renderer:",
+        "vsync_mode": {
+          "entry": "V-Sync:",
+          "uncapped": "Uncapped",
+          "uncapped_desc": "V-Sync Off.",
+          "vsync": "Enabled",
+          "vsync_desc": "V-Sync On.",
+          "vrr_1x": "Variable Refresh Rate (1x)",
+          "vrr_1x_desc": "Uses (G-/Free)Sync if available.",
+          "vrr_2x": "Variable Refresh Rate (2x)",
+          "vrr_2x_desc": "Uses (G-/Free)Sync if available.",
+          "vrr_3x": "Variable Refresh Rate (3x)",
+          "vrr_3x_desc": "Uses (G-/Free)Sync if available."
+        }
+      },
+      "sound": "Sound...",
+      "sound_menu": {
+        "music_volume": "Music Volume",
+        "effects_volume": "Effects Volume",
+        "bgm_interpolation": {
+          "entry": "BGM Interpolation:",
+          "linear": "Linear",
+          "linear_desc": "Fast, similar to freeware on Vista+",
+          "cosine": "Cosine",
+          "cosine_desc": "Cosine interpolation",
+          "cubic": "Cubic",
+          "cubic_desc": "Cubic interpolation",
+          "linear_lp": "Linear+LP",
+          "linear_lp_desc": "Slowest, similar to freeware on XP",
+          "nearest": "Nearest",
+          "nearest_desc": "Fastest, lowest quality"
+        },
+        "soundtrack": "Soundtrack: {soundtrack}"
+      },
+      "controls": "Controls...",
+      "language": "Language...",
+      "behavior": "Behavior...",
+      "behavior_menu": {
+        "game_timing": {
+          "entry": "Game timing:",
+          "50tps": "50tps (freeware)",
+          "60tps": "60tps (CS+)"
+        },
+        "pause_on_focus_loss": "Pause on focus loss:",
+        "cutscene_skip_method": {
+          "entry": "Cutscene Skip:",
+          "hold": "Hold to Skip",
+          "fastforward": "Fast-Forward"
+        }
+      },
+      "links": "Links..."
+    },
+    "controls_menu": {
+      "select_player": {
+        "entry": "Select player:",
+        "player_1": "Player 1",
+        "player_2": "Player 2"
+      },
+      "controller": {
+        "entry": "Controller...",
+        "keyboard": "Keyboard"
+      },
+      "rebind": "Rebind...",
+      "rebind_menu": {
+        "up": "Up",
+        "down": "Down",
+        "left": "Left",
+        "right": "Right",
+        "jump": "Jump",
+        "shoot": "Shoot",
+        "prev_weapon": "Previous weapon",
+        "next_weapon": "Next weapon",
+        "inventory": "Inventory",
+        "map": "Map system",
+        "skip": "Skip",
+        "strafe": "Strafe",
+        "menu_ok": "Menu select/confirm",
+        "menu_back": "Menu back/cancel"
+      },
+      "rebind_confirm_menu": {
+        "title": "Press button for \"{control}\"",
+        "cancel": "(Esc to cancel)"
+      },
+      "rumble": "Rumble:",
+      "reset_confirm": "Reset...",
+      "reset_confirm_menu_title": "Reset controls?"
+    }
+  },
+  "soundtrack": {
+    "organya": "Organya",
+    "remastered": "Remastered",
+    "new": "New",
+    "famitracks": "Famitracks"
+  },
+  "game": {
+    "cutscene_skip": "Hold {key} to skip the cutscene"
+  }
+}
