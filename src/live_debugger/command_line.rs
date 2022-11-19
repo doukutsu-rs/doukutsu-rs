@@ -21,6 +21,7 @@ pub enum CommandLineCommand {
     RemoveXP(u16),
     SetMaxHP(u16),
     SpawnNPC(u16),
+    TeleportPlayer(f32, f32),
     TSC(String),
 }
 
@@ -43,8 +44,8 @@ impl CommandLineCommand {
                 }
 
                 let item_id = components[1].parse::<u16>();
-                if item_id.is_ok() {
-                    return Some(CommandLineCommand::AddItem(item_id.unwrap()));
+                if let Ok(item_id) = item_id {
+                    return Some(CommandLineCommand::AddItem(item_id));
                 }
             }
             "remove_item" => {
@@ -53,8 +54,8 @@ impl CommandLineCommand {
                 }
 
                 let item_id = components[1].parse::<u16>();
-                if item_id.is_ok() {
-                    return Some(CommandLineCommand::RemoveItem(item_id.unwrap()));
+                if let Ok(item_id) = item_id {
+                    return Some(CommandLineCommand::RemoveItem(item_id));
                 }
             }
             "add_weapon" => {
@@ -65,8 +66,8 @@ impl CommandLineCommand {
                 let weapon_id = components[1].parse::<u16>();
                 let ammo_count = components[2].parse::<u16>();
 
-                if weapon_id.is_ok() && ammo_count.is_ok() {
-                    return Some(CommandLineCommand::AddWeapon(weapon_id.unwrap(), ammo_count.unwrap()));
+                if let (Ok(weapon_id), Ok(ammo_count)) = (weapon_id, ammo_count) {
+                    return Some(CommandLineCommand::AddWeapon(weapon_id, ammo_count));
                 }
             }
             "remove_weapon" => {
@@ -75,8 +76,8 @@ impl CommandLineCommand {
                 }
 
                 let weapon_id = components[1].parse::<u16>();
-                if weapon_id.is_ok() {
-                    return Some(CommandLineCommand::RemoveWeapon(weapon_id.unwrap()));
+                if let Ok(weapon_id) = weapon_id {
+                    return Some(CommandLineCommand::RemoveWeapon(weapon_id));
                 }
             }
             "add_weapon_ammo" => {
@@ -85,8 +86,8 @@ impl CommandLineCommand {
                 }
 
                 let ammo_count = components[1].parse::<u16>();
-                if ammo_count.is_ok() {
-                    return Some(CommandLineCommand::AddWeaponAmmo(ammo_count.unwrap()));
+                if let Ok(ammo_count) = ammo_count {
+                    return Some(CommandLineCommand::AddWeaponAmmo(ammo_count));
                 }
             }
             "set_weapon_max_ammo" => {
@@ -95,8 +96,8 @@ impl CommandLineCommand {
                 }
 
                 let max_ammo_count = components[1].parse::<u16>();
-                if max_ammo_count.is_ok() {
-                    return Some(CommandLineCommand::SetWeaponMaxAmmo(max_ammo_count.unwrap()));
+                if let Ok(max_ammo_count) = max_ammo_count {
+                    return Some(CommandLineCommand::SetWeaponMaxAmmo(max_ammo_count));
                 }
             }
             "refill_ammo" => {
@@ -111,8 +112,8 @@ impl CommandLineCommand {
                 }
 
                 let xp_count = components[1].parse::<u16>();
-                if xp_count.is_ok() {
-                    return Some(CommandLineCommand::AddXP(xp_count.unwrap()));
+                if let Ok(xp_count) = xp_count {
+                    return Some(CommandLineCommand::AddXP(xp_count));
                 }
             }
             "remove_xp" => {
@@ -121,8 +122,8 @@ impl CommandLineCommand {
                 }
 
                 let xp_count = components[1].parse::<u16>();
-                if xp_count.is_ok() {
-                    return Some(CommandLineCommand::RemoveXP(xp_count.unwrap()));
+                if let Ok(xp_count) = xp_count {
+                    return Some(CommandLineCommand::RemoveXP(xp_count));
                 }
             }
             "set_max_hp" => {
@@ -131,8 +132,8 @@ impl CommandLineCommand {
                 }
 
                 let hp_count = components[1].parse::<u16>();
-                if hp_count.is_ok() {
-                    return Some(CommandLineCommand::SetMaxHP(hp_count.unwrap()));
+                if let Ok(hp_count) = hp_count {
+                    return Some(CommandLineCommand::SetMaxHP(hp_count));
                 }
             }
             "spawn_npc" => {
@@ -140,8 +141,18 @@ impl CommandLineCommand {
                     return None;
                 }
                 let npc_id = components[1].parse::<u16>();
-                if npc_id.is_ok() {
-                    return Some(CommandLineCommand::SpawnNPC(npc_id.unwrap()));
+                if let Ok(npc_id) = npc_id {
+                    return Some(CommandLineCommand::SpawnNPC(npc_id));
+                }
+            }
+            "teleport_player" => {
+                if components.len() < 2 {
+                    return None;
+                }
+                let x = components[1].parse::<f32>();
+                let y = components[2].parse::<f32>();
+                if let (Ok(x), Ok(y)) = (x, y) {
+                    return Some(CommandLineCommand::TeleportPlayer(x, y));
                 }
             }
             "tsc" => {
@@ -227,6 +238,12 @@ impl CommandLineCommand {
                 npc.x = game_scene.player1.x + game_scene.player1.direction.vector_x() * (0x2000 * 3);
                 game_scene.npc_list.spawn(0x100, npc)?;
             }
+            CommandLineCommand::TeleportPlayer(x, y) => {
+                game_scene.player1.x = (x * 512.0) as i32;
+                game_scene.player1.y = (y * 512.0) as i32;
+                game_scene.player2.x = game_scene.player1.x;
+                game_scene.player2.y = game_scene.player1.y;
+            }
             CommandLineCommand::TSC(script) => {
                 log::info!("Executing TSC script: {}", format!("#9999\n{}", script));
                 match TextScript::compile(format!("#9999\n{}", script).as_bytes(), true, TextScriptEncoding::UTF8) {
@@ -260,6 +277,7 @@ impl CommandLineCommand {
             CommandLineCommand::RemoveXP(xp_count) => format!("/remove_xp {}", xp_count),
             CommandLineCommand::SetMaxHP(hp_count) => format!("/set_max_hp {}", hp_count),
             CommandLineCommand::SpawnNPC(npc_id) => format!("/spawn_npc {}", npc_id),
+            CommandLineCommand::TeleportPlayer(x, y) => format!("/teleport_player {} {}", x, y),
             CommandLineCommand::TSC(script) => format!("/tsc {}", script.replace("\n", "\\n")),
         }
     }
@@ -282,6 +300,7 @@ impl CommandLineCommand {
             CommandLineCommand::RemoveXP(xp_count) => format!("Removed {} XP from current weapon.", xp_count),
             CommandLineCommand::SetMaxHP(hp_count) => format!("Set max HP of player to {}.", hp_count),
             CommandLineCommand::SpawnNPC(npc_id) => format!("Spawned NPC ID {} in front of player.", npc_id),
+            CommandLineCommand::TeleportPlayer(x, y) => format!("Teleported players to ({}, {}).", x, y),
             CommandLineCommand::TSC(_) => "Executed TSC script.".to_string(),
         }
     }
