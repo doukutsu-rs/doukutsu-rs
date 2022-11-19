@@ -4,10 +4,7 @@ use std::process::exit;
 
 fn main() {
     let args = std::env::args();
-    let mut options = doukutsu_rs::LaunchOptions {
-        server_mode: false,
-        editor: false,
-    };
+    let mut options = doukutsu_rs::game::LaunchOptions { server_mode: false, editor: false };
 
     for arg in args {
         if arg == "--server-mode" {
@@ -24,26 +21,25 @@ fn main() {
         exit(1);
     }
 
-    let result = doukutsu_rs::init(options);
+    let result = doukutsu_rs::game::init(options);
 
     #[cfg(target_os = "windows")]
         unsafe {
-        use winapi::_core::ptr::null_mut;
-        use winapi::um::winuser::MessageBoxW;
-        use winapi::um::winuser::MB_OK;
-        use winapi::shared::ntdef::LPCWSTR;
         use std::ffi::OsStr;
         use std::os::windows::prelude::*;
+        use winapi::_core::ptr::null_mut;
+        use winapi::shared::ntdef::LPCWSTR;
+        use winapi::um::winuser::MessageBoxW;
+        use winapi::um::winuser::MB_OK;
 
         if let Err(e) = result {
-            let title: LPCWSTR = OsStr::new("Error!")
-                .encode_wide().chain(Some(0)).collect::<Vec<u16>>().as_ptr();
+            let title: LPCWSTR = OsStr::new("Error!").encode_wide().chain(Some(0)).collect::<Vec<u16>>().as_ptr();
             let message: LPCWSTR = OsStr::new(format!("Whoops, doukutsu-rs crashed: {}", e).as_str())
-                .encode_wide().chain(Some(0)).collect::<Vec<u16>>().as_ptr();
-            MessageBoxW(null_mut(),
-                        message,
-                        title,
-                        MB_OK);
+                .encode_wide()
+                .chain(Some(0))
+                .collect::<Vec<u16>>()
+                .as_ptr();
+            MessageBoxW(null_mut(), message, title, MB_OK);
             exit(1);
         }
     }

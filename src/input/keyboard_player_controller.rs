@@ -3,9 +3,9 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::keyboard;
 use crate::framework::keyboard::ScanCode;
+use crate::game::shared_game_state::SharedGameState;
 use crate::input::player_controller::PlayerController;
-use crate::player::TargetPlayer;
-use crate::shared_game_state::SharedGameState;
+use crate::game::player::TargetPlayer;
 
 bitfield! {
   #[derive(Clone, Copy)]

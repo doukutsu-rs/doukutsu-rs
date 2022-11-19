@@ -1,11 +1,11 @@
-use crate::common::{interpolate_fix9_scale, Direction, Rect};
+use crate::common::{Direction, interpolate_fix9_scale, Rect};
 use crate::entity::GameEntity;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::player::{Player, TargetPlayer};
-use crate::shared_game_state::SharedGameState;
-use crate::weapon::bullet::{Bullet, BulletManager};
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::SharedGameState;
+use crate::game::player::{Player, TargetPlayer};
+use crate::game::weapon::bullet::{Bullet, BulletManager};
 
 pub struct WhimsicalStar {
     pub star: [Star; 3],

@@ -4,12 +4,13 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use glutin::{Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, WindowedContext};
 use glutin::event::{ElementState, Event, TouchPhase, VirtualKeyCode, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
-use glutin::{Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, WindowedContext};
 use imgui::{DrawCmdParams, DrawData, DrawIdx, DrawVert};
 
+use crate::{Game, GAME_SUSPENDED};
 use crate::common::Rect;
 use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
@@ -18,7 +19,6 @@ use crate::framework::gl;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
 use crate::input::touch_controls::TouchPoint;
-use crate::{Game, GAME_SUSPENDED};
 
 pub struct GlutinBackend;
 
@@ -58,7 +58,7 @@ impl GlutinEventLoop {
             let windowed_context = ContextBuilder::new();
             let windowed_context = windowed_context.with_gl(GlRequest::Specific(Api::OpenGl, (3, 0)));
             #[cfg(target_os = "android")]
-            let windowed_context = windowed_context.with_gl(GlRequest::Specific(Api::OpenGlEs, (2, 0)));
+                let windowed_context = windowed_context.with_gl(GlRequest::Specific(Api::OpenGlEs, (2, 0)));
 
             let windowed_context = windowed_context
                 .with_gl_profile(GlProfile::Core)
@@ -67,10 +67,10 @@ impl GlutinEventLoop {
                 .with_vsync(true);
 
             #[cfg(target_os = "windows")]
-            {
-                use glutin::platform::windows::WindowBuilderExtWindows;
-                window = window.with_drag_and_drop(false);
-            }
+                {
+                    use glutin::platform::windows::WindowBuilderExtWindows;
+                    window = window.with_drag_and_drop(false);
+                }
 
             window = window.with_title("doukutsu-rs");
 
@@ -159,10 +159,10 @@ impl BackendEventLoop for GlutinEventLoop {
 
             match event {
                 Event::WindowEvent { event: WindowEvent::CloseRequested, window_id }
-                    if window_id == window.window().id() =>
-                {
-                    state_ref.shutdown();
-                }
+                if window_id == window.window().id() =>
+                    {
+                        state_ref.shutdown();
+                    }
                 Event::Resumed => {
                     {
                         let mut mutex = GAME_SUSPENDED.lock().unwrap();
@@ -187,74 +187,74 @@ impl BackendEventLoop for GlutinEventLoop {
                     }
 
                     #[cfg(target_os = "android")]
-                    unsafe {
+                        unsafe {
                         window.surface_destroyed();
                     }
 
                     state_ref.sound_manager.pause();
                 }
                 Event::WindowEvent { event: WindowEvent::Resized(size), window_id }
-                    if window_id == window.window().id() =>
-                {
-                    if let Some(renderer) = &ctx.renderer {
-                        if let Ok(imgui) = renderer.imgui() {
-                            imgui.io_mut().display_size = [size.width as f32, size.height as f32];
+                if window_id == window.window().id() =>
+                    {
+                        if let Some(renderer) = &ctx.renderer {
+                            if let Ok(imgui) = renderer.imgui() {
+                                imgui.io_mut().display_size = [size.width as f32, size.height as f32];
+                            }
+
+                            ctx.real_screen_size = (size.width, size.height);
+                            ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
+                            state_ref.handle_resize(ctx).unwrap();
                         }
-
-                        ctx.real_screen_size = (size.width, size.height);
-                        ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
-                        state_ref.handle_resize(ctx).unwrap();
                     }
-                }
                 Event::WindowEvent { event: WindowEvent::Touch(touch), window_id }
-                    if window_id == window.window().id() =>
-                {
-                    let mut controls = &mut state_ref.touch_controls;
-                    let scale = state_ref.scale as f64;
-                    let loc_x = (touch.location.x * ctx.screen_size.0 as f64 / ctx.real_screen_size.0 as f64) / scale;
-                    let loc_y = (touch.location.y * ctx.screen_size.1 as f64 / ctx.real_screen_size.1 as f64) / scale;
+                if window_id == window.window().id() =>
+                    {
+                        let mut controls = &mut state_ref.touch_controls;
+                        let scale = state_ref.scale as f64;
+                        let loc_x = (touch.location.x * ctx.screen_size.0 as f64 / ctx.real_screen_size.0 as f64) / scale;
+                        let loc_y = (touch.location.y * ctx.screen_size.1 as f64 / ctx.real_screen_size.1 as f64) / scale;
 
-                    match touch.phase {
-                        TouchPhase::Started | TouchPhase::Moved => {
-                            if let Some(point) = controls.points.iter_mut().find(|p| p.id == touch.id) {
-                                point.last_position = point.position;
-                                point.position = (loc_x, loc_y);
-                            } else {
-                                controls.touch_id_counter = controls.touch_id_counter.wrapping_add(1);
+                        match touch.phase {
+                            TouchPhase::Started | TouchPhase::Moved => {
+                                if let Some(point) = controls.points.iter_mut().find(|p| p.id == touch.id) {
+                                    point.last_position = point.position;
+                                    point.position = (loc_x, loc_y);
+                                } else {
+                                    controls.touch_id_counter = controls.touch_id_counter.wrapping_add(1);
 
-                                let point = TouchPoint {
-                                    id: touch.id,
-                                    touch_id: controls.touch_id_counter,
-                                    position: (loc_x, loc_y),
-                                    last_position: (0.0, 0.0),
-                                };
-                                controls.points.push(point);
+                                    let point = TouchPoint {
+                                        id: touch.id,
+                                        touch_id: controls.touch_id_counter,
+                                        position: (loc_x, loc_y),
+                                        last_position: (0.0, 0.0),
+                                    };
+                                    controls.points.push(point);
 
-                                if touch.phase == TouchPhase::Started {
-                                    controls.clicks.push(point);
+                                    if touch.phase == TouchPhase::Started {
+                                        controls.clicks.push(point);
+                                    }
                                 }
                             }
-                        }
-                        TouchPhase::Ended | TouchPhase::Cancelled => {
-                            controls.points.retain(|p| p.id != touch.id);
-                            controls.clicks.retain(|p| p.id != touch.id);
+                            TouchPhase::Ended | TouchPhase::Cancelled => {
+                                controls.points.retain(|p| p.id != touch.id);
+                                controls.clicks.retain(|p| p.id != touch.id);
+                            }
                         }
                     }
-                }
                 Event::WindowEvent { event: WindowEvent::KeyboardInput { input, .. }, window_id }
-                    if window_id == window.window().id() =>
-                {
-                    if let Some(keycode) = input.virtual_keycode {
-                        if let Some(drs_scan) = conv_keycode(keycode) {
-                            let key_state = match input.state {
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            };
+                if window_id == window.window().id() =>
+                    {
+                        if let Some(keycode) = input.virtual_keycode {
+                            if let Some(drs_scan) = conv_keycode(keycode) {
+                                let key_state = match input.state {
+                                    ElementState::Pressed => true,
+                                    ElementState::Released => false,
+                                };
 
-                            ctx.keyboard_context.set_key(drs_scan, key_state);
+                                ctx.keyboard_context.set_key(drs_scan, key_state);
+                            }
                         }
                     }
-                }
                 Event::RedrawRequested(id) if id == window.window().id() => {
                     {
                         let mutex = GAME_SUSPENDED.lock().unwrap();
@@ -264,16 +264,16 @@ impl BackendEventLoop for GlutinEventLoop {
                     }
 
                     #[cfg(not(target_os = "android"))]
-                    {
-                        if let Err(err) = game.draw(ctx) {
-                            log::error!("Failed to draw frame: {}", err);
+                        {
+                            if let Err(err) = game.draw(ctx) {
+                                log::error!("Failed to draw frame: {}", err);
+                            }
+
+                            window.window().request_redraw();
                         }
 
-                        window.window().request_redraw();
-                    }
-
                     #[cfg(target_os = "android")]
-                    request_android_redraw();
+                        request_android_redraw();
                 }
                 Event::MainEventsCleared => {
                     if state_ref.shutdown {
@@ -292,20 +292,20 @@ impl BackendEventLoop for GlutinEventLoop {
                     game.update(ctx).unwrap();
 
                     #[cfg(target_os = "android")]
-                    {
-                        match get_insets() {
-                            Ok(insets) => {
-                                ctx.screen_insets = insets;
+                        {
+                            match get_insets() {
+                                Ok(insets) => {
+                                    ctx.screen_insets = insets;
+                                }
+                                Err(e) => {
+                                    log::error!("Failed to update insets: {}", e);
+                                }
                             }
-                            Err(e) => {
-                                log::error!("Failed to update insets: {}", e);
-                            }
-                        }
 
-                        if let Err(err) = game.draw(ctx) {
-                            log::error!("Failed to draw frame: {}", err);
+                            if let Err(err) = game.draw(ctx) {
+                                log::error!("Failed to draw frame: {}", err);
+                            }
                         }
-                    }
 
                     if state_ref.next_scene.is_some() {
                         mem::swap(&mut game.scene, &mut state_ref.next_scene);
@@ -320,7 +320,7 @@ impl BackendEventLoop for GlutinEventLoop {
         });
     }
 
-    fn new_renderer(&self, _ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>> {
+    fn new_renderer(&self, ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>> {
         let mut imgui = imgui::Context::create();
         imgui.io_mut().display_size = [640.0, 480.0];
 
@@ -359,7 +359,7 @@ impl BackendEventLoop for GlutinEventLoop {
             *user_data = Rc::into_raw(refs) as *mut c_void;
         }
 
-        let gl_context = GLContext { gles2_mode: true, get_proc_address, swap_buffers, user_data };
+        let gl_context = GLContext { gles2_mode: true, is_sdl: false, get_proc_address, swap_buffers, user_data, ctx };
 
         Ok(Box::new(OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))))
     }

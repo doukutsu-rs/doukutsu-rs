@@ -1,11 +1,11 @@
 use crate::common::Rect;
 use crate::entity::GameEntity;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::npc::boss::BossNPC;
-use crate::npc::list::NPCList;
-use crate::shared_game_state::SharedGameState;
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::SharedGameState;
+use crate::game::npc::boss::BossNPC;
+use crate::game::npc::list::NPCList;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]

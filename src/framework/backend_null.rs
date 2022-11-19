@@ -11,7 +11,7 @@ use crate::framework::backend::{
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::BlendMode;
-use crate::Game;
+use crate::game::Game;
 
 pub struct NullBackend;
 

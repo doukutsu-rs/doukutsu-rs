@@ -2,7 +2,7 @@ use std::fmt;
 use std::io;
 use std::io::ErrorKind;
 
-use byteorder::{ReadBytesExt, LE};
+use byteorder::{LE, ReadBytesExt};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct RiffChunk {
@@ -76,7 +76,7 @@ impl WavSample {
             b"RIFF" => {}
             b"RIFX" => return Err(io::Error::new(ErrorKind::InvalidData, "Cannot handle RIFX data!".to_owned())),
             _ => {
-                return Err(io::Error::new(ErrorKind::InvalidData, format!("Expected RIFF signature, found {}", riff)))
+                return Err(io::Error::new(ErrorKind::InvalidData, format!("Expected RIFF signature, found {}", riff)));
             }
         }
 

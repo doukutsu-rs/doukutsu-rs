@@ -1,12 +1,12 @@
-use imgui::DrawData;
 use std::any::Any;
+
+use imgui::DrawData;
 
 use crate::common::{Color, Rect};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::BlendMode;
-use crate::graphics::VSyncMode;
-use crate::Game;
+use crate::framework::graphics::{BlendMode, VSyncMode};
+use crate::game::Game;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -102,14 +102,14 @@ pub fn init_backend(headless: bool, size_hint: (u16, u16)) -> GameResult<Box<dyn
     }
 
     #[cfg(all(feature = "backend-glutin"))]
-    {
-        return crate::framework::backend_glutin::GlutinBackend::new();
-    }
+        {
+            return crate::framework::backend_glutin::GlutinBackend::new();
+        }
 
     #[cfg(feature = "backend-sdl")]
-    {
-        return crate::framework::backend_sdl2::SDL2Backend::new(size_hint);
-    }
+        {
+            return crate::framework::backend_sdl2::SDL2Backend::new(size_hint);
+        }
 
     log::warn!("No backend compiled in, using null backend instead.");
     crate::framework::backend_null::NullBackend::new()

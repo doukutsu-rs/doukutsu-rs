@@ -1,18 +1,18 @@
 use std::cell::RefCell;
 
 use crate::common::{Color, Rect};
-use crate::frame::Frame;
 use crate::framework::backend::{BackendShader, SpriteBatchCommand, VertexData};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
-use crate::graphics::BlendMode;
-use crate::map::{WaterParamEntry, WaterParams, WaterRegionType};
-use crate::npc::list::NPCList;
-use crate::physics::PhysicalEntity;
-use crate::player::Player;
-use crate::shared_game_state::SharedGameState;
-use crate::stage::{BackgroundType, Stage};
+use crate::framework::graphics::BlendMode;
+use crate::game::frame::Frame;
+use crate::game::map::{WaterParamEntry, WaterParams, WaterRegionType};
+use crate::game::physics::PhysicalEntity;
+use crate::game::shared_game_state::SharedGameState;
+use crate::game::stage::{BackgroundType, Stage};
+use crate::game::npc::list::NPCList;
+use crate::game::player::Player;
 
 const TENSION: f32 = 0.03;
 const DAMPENING: f32 = 0.01;

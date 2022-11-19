@@ -1,9 +1,9 @@
 [package]
 name = "doukutsu-rs"
 description = "A re-implementation of Cave Story (Doukutsu Monogatari) engine"
-version = "0.99.0"
+version = "0.100.0"
 authors = ["Alula", "dawnDus"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 crate-type = ["lib"]
@@ -25,7 +25,7 @@ opt-level = 3
 [package.metadata.bundle]
 name = "doukutsu-rs"
 identifier = "io.github.doukutsu_rs"
-version = "0.99.0"
+version = "0.100.0"
 resources = ["data"]
 copyright = "Copyright (c) 2020-2022 doukutsu-rs dev team"
 category = "Game"
@@ -33,15 +33,14 @@ osx_minimum_system_version = "10.12"
 
 [features]
 default = ["default-base", "backend-sdl", "render-opengl", "exe"]
-default-base = ["scripting-lua", "ogg-playback", "netplay"]
+default-base = ["ogg-playback"]
 ogg-playback = ["lewton"]
 backend-sdl = ["sdl2", "sdl2-sys"]
 backend-glutin = ["winit", "glutin", "render-opengl"]
 render-opengl = []
 scripting-lua = ["lua-ffi"]
-netplay = ["tokio", "serde_cbor"]
+netplay = ["serde_cbor"]
 editor = []
-hooks = ["libc"]
 exe = []
 android = []
 
@@ -51,42 +50,40 @@ android = []
 #winit = { path = "./3rdparty/winit", optional = true, default_features = false, features = ["x11"] }
 #sdl2 = { path = "./3rdparty/rust-sdl2", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 #sdl2-sys = { path = "./3rdparty/rust-sdl2/sdl2-sys", optional = true, features = ["bundled", "static-link"] }
-bitvec = "0.20"
 byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
 chrono = "0.4"
-cpal = "0.13"
+cpal = "0.14"
 directories = "3"
 downcast = "0.11"
-funty = "=1.1.0" # https://github.com/bitvecto-rs/bitvec/issues/105
-glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "8dd457b9adb7dbac7ade337246b6356c784272d9", optional = true, default_features = false, features = ["x11"] }
-imgui = "0.8.0"
-image = { version = "0.23", default-features = false, features = ["png", "bmp"] }
+#glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "8dd457b9adb7dbac7ade337246b6356c784272d9", optional = true, default_features = false, features = ["x11"] }
+glutin = { version = "0.30", optional = true, default_features = false, features = ["x11"] }
+imgui = "0.8"
+image = { version = "0.24", default-features = false, features = ["png", "bmp"] }
 itertools = "0.10"
-lazy_static = "1.4.0"
-lewton = { version = "0.10.2", optional = true }
-libc = { version = "0.2", optional = true }
+lazy_static = "1.4"
+lewton = { version = "0.10", optional = true }
 log = "0.4"
 lua-ffi = { git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "e0b2ff5960f7ef9974aa9675cebe4907bee0134f", optional = true }
-num-derive = "0.3.2"
-num-traits = "0.2.12"
-paste = "1.0.0"
-pelite = "0.9.1"
+num-derive = "0.3"
+num-traits = "0.2"
+paste = "1.0"
+pelite = ">=0.9.2"
 sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 sdl2-sys = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["bundled", "static-link"] }
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
-serde_cbor = { version = "0.11.2", optional = true }
+serde_cbor = { version = "0.11", optional = true }
 serde_json = "1.0"
 simple_logger = { version = "1.16", features = ["colors", "threads"] }
-strum = "0.20"
-strum_macros = "0.20"
-tokio = { version = "1.12.0", features = ["net"], optional = true }
+strum = "0.24"
+strum_macros = "0.24"
 # remove and replace when drain_filter is in stable
 vec_mut_scan = "0.4"
-webbrowser = "0.5.5"
-winit = { git = "https://github.com/alula/winit.git", rev = "6acf76ff192dd8270aaa119b9f35716c03685f9f", optional = true, default_features = false, features = ["x11"] }
-xmltree = "0.10.3"
+webbrowser = "0.8"
+#winit = { git = "https://github.com/alula/winit.git", rev = "6acf76ff192dd8270aaa119b9f35716c03685f9f", optional = true, default_features = false, features = ["x11"] }
+winit = { version = "0.27", optional = true, default_features = false, features = ["x11"] }
+xmltree = "0.10"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3", features = ["winuser"] }
@@ -95,10 +92,10 @@ winapi = { version = "0.3", features = ["winuser"] }
 winres = "0.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc = "0.2.7"
+objc = "0.2"
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk = "0.3"
-ndk-glue = "0.3"
-ndk-sys = "0.2"
-jni = "0.19"
+ndk = "0.7"
+ndk-glue = "0.7"
+ndk-sys = "0.4"
+jni = "0.20"

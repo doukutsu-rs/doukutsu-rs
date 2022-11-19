@@ -1,7 +1,7 @@
 use crate::common::Rect;
-use crate::shared_game_state::SharedGameState;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::game::shared_game_state::SharedGameState;
 
 #[derive(Debug, EnumIter, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum Alignment {

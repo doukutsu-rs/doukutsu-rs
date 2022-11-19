@@ -2,8 +2,8 @@ use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::ops::Index;
 
-use serde::de::{Error, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
+use serde::de::{Error, SeqAccess, Visitor};
 
 use crate::common::Rect;
 use crate::macros::fmt::Formatter;
@@ -14,8 +14,8 @@ pub struct SafeNPCRect<const T: usize>(pub [Rect<u16>; T]);
 impl<const T: usize> Serialize for SafeNPCRect<T> {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
+        where
+            S: serde::Serializer,
     {
         self.0.serialize(serializer)
     }
@@ -31,8 +31,8 @@ impl<'de, const T: usize> Visitor<'de> for SafeNPCRectArrayVisitor<T> {
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-    where
-        A: SeqAccess<'de>,
+        where
+            A: SeqAccess<'de>,
     {
         let mut rects = [Rect::default(); T];
         for (i, rect) in rects.iter_mut().enumerate() {
@@ -46,8 +46,8 @@ impl<'de, const T: usize> Visitor<'de> for SafeNPCRectArrayVisitor<T> {
 
 impl<'de, const T: usize> Deserialize<'de> for SafeNPCRect<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
+        where
+            D: Deserializer<'de>,
     {
         deserializer.deserialize_seq(SafeNPCRectArrayVisitor(PhantomData)).map(SafeNPCRect)
     }

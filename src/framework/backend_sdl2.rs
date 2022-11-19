@@ -7,9 +7,10 @@ use std::ptr::{null, null_mut};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
+use imgui::{ConfigFlags, DrawCmd, DrawData, DrawIdx, DrawVert, Key, MouseCursor, TextureId, Ui};
 use imgui::internal::RawWrapper;
 use imgui::sys::{ImGuiKey_Backspace, ImGuiKey_Delete, ImGuiKey_Enter};
-use imgui::{ConfigFlags, DrawCmd, DrawData, DrawIdx, DrawVert, Key, MouseCursor, TextureId, Ui};
+use sdl2::{controller, EventPump, GameControllerSubsystem, keyboard, pixels, Sdl, VideoSubsystem};
 use sdl2::controller::GameController;
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Scancode;
@@ -19,7 +20,6 @@ use sdl2::render::{Texture, TextureCreator, TextureQuery, WindowCanvas};
 use sdl2::video::GLProfile;
 use sdl2::video::Window;
 use sdl2::video::WindowContext;
-use sdl2::{controller, keyboard, pixels, EventPump, GameControllerSubsystem, Sdl, VideoSubsystem};
 
 use crate::common::{Color, Rect};
 use crate::framework::backend::{
@@ -27,18 +27,15 @@ use crate::framework::backend::{
 };
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
+use crate::framework::filesystem;
 use crate::framework::gamepad::{Axis, Button};
 use crate::framework::graphics::BlendMode;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
 use crate::framework::ui::init_imgui;
-use crate::graphics::VSyncMode;
-use crate::shared_game_state::WindowMode;
-use crate::Game;
-use crate::GameError::RenderError;
-use crate::GAME_SUSPENDED;
-
-use super::filesystem;
+use crate::game::Game;
+use crate::game::GAME_SUSPENDED;
+use crate::game::shared_game_state::WindowMode;
 
 pub struct SDL2Backend {
     context: Sdl,
@@ -170,7 +167,7 @@ impl SDL2EventLoop {
         window.resizable();
 
         #[cfg(feature = "render-opengl")]
-        window.opengl();
+            window.opengl();
 
         let window = window.build().map_err(|e| GameError::WindowError(e.to_string()))?;
         let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
@@ -212,7 +209,7 @@ impl BackendEventLoop for SDL2EventLoop {
 
         loop {
             #[cfg(target_os = "macos")]
-            unsafe {
+                unsafe {
                 use objc::*;
 
                 // no UB: fields are initialized by SDL_GetWindowWMInfo
@@ -409,19 +406,19 @@ impl BackendEventLoop for SDL2EventLoop {
 
     fn new_renderer(&self, ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>> {
         #[cfg(feature = "render-opengl")]
-        {
-            let mut refs = self.refs.borrow_mut();
-            match refs.window.window().gl_create_context() {
-                Ok(gl_ctx) => {
-                    refs.window.window().gl_make_current(&gl_ctx).map_err(|e| GameError::RenderError(e.to_string()))?;
-                    refs.gl_context = Some(gl_ctx);
-                }
-                Err(err) => {
-                    *self.opengl_available.borrow_mut() = false;
-                    log::error!("Failed to initialize OpenGL context, falling back to SDL2 renderer: {}", err);
+            {
+                let mut refs = self.refs.borrow_mut();
+                match refs.window.window().gl_create_context() {
+                    Ok(gl_ctx) => {
+                        refs.window.window().gl_make_current(&gl_ctx).map_err(|e| GameError::RenderError(e.to_string()))?;
+                        refs.gl_context = Some(gl_ctx);
+                    }
+                    Err(err) => {
+                        *self.opengl_available.borrow_mut() = false;
+                        log::error!("Failed to initialize OpenGL context, falling back to SDL2 renderer: {}", err);
+                    }
                 }
             }
-        }
 
         #[cfg(feature = "render-opengl")]
         if *self.opengl_available.borrow() {
@@ -671,7 +668,7 @@ impl BackendRenderer for SDL2Renderer {
                 let sdl2_texture = texture
                     .as_any()
                     .downcast_ref::<SDL2Texture>()
-                    .ok_or(RenderError("This texture was not created by SDL2 backend.".to_string()))?;
+                    .ok_or(GameError::RenderError("This texture was not created by SDL2 backend.".to_string()))?;
 
                 unsafe {
                     if let Some(target) = &sdl2_texture.texture {
@@ -866,7 +863,7 @@ impl BackendRenderer for SDL2Renderer {
             texture
                 .as_any()
                 .downcast_ref::<SDL2Texture>()
-                .ok_or(RenderError("This texture was not created by SDL2 backend.".to_string()))?
+                .ok_or(GameError::RenderError("This texture was not created by SDL2 backend.".to_string()))?
                 .texture
                 .as_ref()
                 .map_or(null_mut(), |t| t.raw())

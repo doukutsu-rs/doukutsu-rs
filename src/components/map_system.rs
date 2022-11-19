@@ -4,12 +4,12 @@ use crate::common::{Color, Rect};
 use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::graphics;
+use crate::framework::graphics;
+use crate::game::shared_game_state::SharedGameState;
+use crate::game::stage::Stage;
 use crate::input::touch_controls::TouchControlType;
-use crate::player::Player;
-use crate::scripting::tsc::text_script::TextScriptExecutionState;
-use crate::shared_game_state::SharedGameState;
-use crate::stage::Stage;
+use crate::game::player::Player;
+use crate::game::scripting::tsc::text_script::TextScriptExecutionState;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum MapSystemState {

@@ -1,7 +1,6 @@
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-
-use crate::shared_game_state::SharedGameState;
+use crate::game::shared_game_state::SharedGameState;
 
 pub trait PlayerController: PlayerControllerClone {
     fn update(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult;

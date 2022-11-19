@@ -1,11 +1,11 @@
 use crate::common::{Color, Rect};
 use crate::entity::GameEntity;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
-use crate::scripting::tsc::text_script::IllustrationState;
-use crate::shared_game_state::SharedGameState;
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::SharedGameState;
+use crate::game::scripting::tsc::text_script::IllustrationState;
 
 pub struct Credits {}
 

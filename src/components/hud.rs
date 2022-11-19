@@ -1,14 +1,14 @@
 use crate::common::Rect;
-use crate::components::draw_common::{draw_number, Alignment};
+use crate::components::draw_common::{Alignment, draw_number};
 use crate::entity::GameEntity;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::screen_insets_scaled;
-use crate::inventory::Inventory;
-use crate::player::Player;
-use crate::shared_game_state::SharedGameState;
-use crate::weapon::WeaponType;
+use crate::game::frame::Frame;
+use crate::game::inventory::Inventory;
+use crate::game::shared_game_state::SharedGameState;
+use crate::game::player::Player;
+use crate::game::weapon::WeaponType;
 
 pub struct HUD {
     pub alignment: Alignment,

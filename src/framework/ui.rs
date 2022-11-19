@@ -5,11 +5,10 @@ use imgui::sys::*;
 
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{imgui_context, render_imgui};
-use crate::graphics::prepare_imgui;
+use crate::framework::graphics::{imgui_context, prepare_imgui, render_imgui};
+use crate::game::shared_game_state::SharedGameState;
 use crate::live_debugger::LiveDebugger;
 use crate::scene::Scene;
-use crate::shared_game_state::SharedGameState;
 
 pub struct UI {
     pub components: Components,
@@ -23,11 +22,7 @@ pub struct Components {
 pub fn init_imgui() -> GameResult<imgui::Context> {
     let mut imgui = imgui::Context::create();
     imgui.set_ini_filename(None);
-    imgui.fonts().add_font(&[
-        FontSource::DefaultFontData {
-            config: Some(FontConfig::default()),
-        },
-    ]);
+    imgui.fonts().add_font(&[FontSource::DefaultFontData { config: Some(FontConfig::default()) }]);
 
     imgui.style_mut().window_padding = [4.0, 6.0];
     imgui.style_mut().frame_padding = [8.0, 6.0];
@@ -109,16 +104,11 @@ pub fn init_imgui() -> GameResult<imgui::Context> {
 
 impl UI {
     pub fn new(_ctx: &mut Context) -> GameResult<Self> {
-        Ok(Self {
-            components: Components {
-                live_debugger: LiveDebugger::new(),
-            },
-            last_frame: Instant::now(),
-        })
+        Ok(Self { components: Components { live_debugger: LiveDebugger::new() }, last_frame: Instant::now() })
     }
 
     pub fn draw(&mut self, state: &mut SharedGameState, ctx: &mut Context, scene: &mut Box<dyn Scene>) -> GameResult {
-        let ctx2 = unsafe { &mut *(ctx as *const Context as *mut Context)};
+        let ctx2 = unsafe { &mut *(ctx as *const Context as *mut Context) };
         let imgui = imgui_context(ctx)?;
         let io = imgui.io_mut();
         let now = Instant::now();

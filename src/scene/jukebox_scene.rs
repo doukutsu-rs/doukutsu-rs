@@ -3,17 +3,18 @@ use itertools::Itertools;
 use crate::common::Color;
 use crate::common::Rect;
 use crate::components::background::Background;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
+use crate::game::frame::Frame;
+use crate::game::map::Map;
+use crate::game::settings::ControllerType;
+use crate::game::shared_game_state::{SharedGameState, TileSize};
+use crate::game::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::map::Map;
-use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
-use crate::settings::ControllerType;
-use crate::shared_game_state::{SharedGameState, TileSize};
-use crate::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
+use crate::scene::title_scene::TitleScene;
+
 pub struct JukeboxScene {
     selected_song: u16,
     song_list: Vec<String>,
@@ -38,7 +39,7 @@ impl JukeboxScene {
                 boss_no: 0,
                 tileset: Tileset { name: "0".to_string() },
                 pxpack_data: None,
-                background: crate::stage::Background::new("bkMoon"),
+                background: crate::game::stage::Background::new("bkMoon"),
                 background_type: BackgroundType::Outside,
                 background_color: Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
                 npc1: NpcType::new("0"),
@@ -113,16 +114,16 @@ impl Scene for JukeboxScene {
 
         let mut song = self.selected_song as i16
             + if self.controller.trigger_right() {
-                1
-            } else if self.controller.trigger_left() {
-                -1
-            } else if self.controller.trigger_down() {
-                8
-            } else if self.controller.trigger_up() {
-                -8
-            } else {
-                0
-            };
+            1
+        } else if self.controller.trigger_left() {
+            -1
+        } else if self.controller.trigger_down() {
+            8
+        } else if self.controller.trigger_up() {
+            -8
+        } else {
+            0
+        };
 
         if song < 0 {
             song += self.song_list.len() as i16;

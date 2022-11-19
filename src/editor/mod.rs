@@ -4,12 +4,12 @@ use std::rc::Rc;
 
 use imgui::{Image, MouseButton, Window, WindowFlags};
 
+use crate::{Context, GameResult, graphics, I_MAG, SharedGameState};
 use crate::common::{Color, Rect};
 use crate::components::background::Background;
 use crate::components::tilemap::{TileLayer, Tilemap};
-use crate::frame::Frame;
-use crate::stage::{Stage, StageTexturePaths};
-use crate::{graphics, Context, GameResult, SharedGameState, I_MAG};
+use crate::game::frame::Frame;
+use crate::game::stage::{Stage, StageTexturePaths};
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum CurrentTool {

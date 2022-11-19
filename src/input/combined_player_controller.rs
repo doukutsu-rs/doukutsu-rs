@@ -1,7 +1,7 @@
 use crate::{
     framework::{context::Context, error::GameResult},
-    shared_game_state::SharedGameState,
 };
+use crate::game::shared_game_state::SharedGameState;
 
 use super::player_controller::PlayerController;
 

@@ -1,13 +1,13 @@
 use std::cell::Cell;
 
 use crate::common::{Color, Rect};
-use crate::components::draw_common::{draw_number, Alignment};
+use crate::components::draw_common::{Alignment, draw_number};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
+use crate::game::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameState};
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::save_select_menu::MenuSaveInfo;
-use crate::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameState};
 
 pub mod controls_menu;
 pub mod coop_menu;
@@ -750,41 +750,41 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                 | MenuEntry::SaveData(_)
                 | MenuEntry::NewSave
                 | MenuEntry::PlayerSkin
-                    if (self.selected == idx && controller.trigger_ok())
-                        || state.touch_controls.consume_click_in(entry_bounds) =>
-                {
-                    state.sound_manager.play_sfx(18);
-                    self.selected = idx.clone();
-                    return MenuSelectionResult::Selected(idx, entry);
-                }
+                if (self.selected == idx && controller.trigger_ok())
+                    || state.touch_controls.consume_click_in(entry_bounds) =>
+                    {
+                        state.sound_manager.play_sfx(18);
+                        self.selected = idx.clone();
+                        return MenuSelectionResult::Selected(idx, entry);
+                    }
                 MenuEntry::Options(_, _, _) | MenuEntry::OptionsBar(_, _)
-                    if (self.selected == idx && controller.trigger_left())
-                        || state.touch_controls.consume_click_in(left_entry_bounds) =>
-                {
-                    state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Left(self.selected.clone(), entry, -1);
-                }
+                if (self.selected == idx && controller.trigger_left())
+                    || state.touch_controls.consume_click_in(left_entry_bounds) =>
+                    {
+                        state.sound_manager.play_sfx(1);
+                        return MenuSelectionResult::Left(self.selected.clone(), entry, -1);
+                    }
                 MenuEntry::Options(_, _, _) | MenuEntry::OptionsBar(_, _)
-                    if (self.selected == idx && controller.trigger_right())
-                        || state.touch_controls.consume_click_in(right_entry_bounds) =>
-                {
-                    state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Right(self.selected.clone(), entry, 1);
-                }
+                if (self.selected == idx && controller.trigger_right())
+                    || state.touch_controls.consume_click_in(right_entry_bounds) =>
+                    {
+                        state.sound_manager.play_sfx(1);
+                        return MenuSelectionResult::Right(self.selected.clone(), entry, 1);
+                    }
                 MenuEntry::DescriptiveOptions(_, _, _, _)
-                    if (self.selected == idx && controller.trigger_left())
-                        || state.touch_controls.consume_click_in(left_entry_bounds) =>
-                {
-                    state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Left(self.selected.clone(), entry, -1);
-                }
+                if (self.selected == idx && controller.trigger_left())
+                    || state.touch_controls.consume_click_in(left_entry_bounds) =>
+                    {
+                        state.sound_manager.play_sfx(1);
+                        return MenuSelectionResult::Left(self.selected.clone(), entry, -1);
+                    }
                 MenuEntry::DescriptiveOptions(_, _, _, _) | MenuEntry::SaveData(_)
-                    if (self.selected == idx && controller.trigger_right())
-                        || state.touch_controls.consume_click_in(right_entry_bounds) =>
-                {
-                    state.sound_manager.play_sfx(1);
-                    return MenuSelectionResult::Right(self.selected.clone(), entry, 1);
-                }
+                if (self.selected == idx && controller.trigger_right())
+                    || state.touch_controls.consume_click_in(right_entry_bounds) =>
+                    {
+                        state.sound_manager.play_sfx(1);
+                        return MenuSelectionResult::Right(self.selected.clone(), entry, 1);
+                    }
                 MenuEntry::Control(_, _) => {
                     if self.selected == idx && controller.trigger_ok()
                         || state.touch_controls.consume_click_in(entry_bounds)

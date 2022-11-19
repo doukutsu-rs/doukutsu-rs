@@ -4,8 +4,7 @@ use std::rc::Rc;
 
 use log::info;
 
-use crate::caret::CaretType;
-use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
+use crate::common::{Color, Direction, interpolate_fix9_scale, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
@@ -24,34 +23,35 @@ use crate::components::tilemap::{TileLayer, Tilemap};
 use crate::components::water_renderer::{WaterLayer, WaterRenderer};
 use crate::components::whimsical_star::WhimsicalStar;
 use crate::entity::GameEntity;
-use crate::frame::{Frame, UpdateTarget};
+use crate::framework::{filesystem, gamepad, graphics};
 use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
+use crate::framework::graphics::{BlendMode, draw_rect, FilterMode};
 use crate::framework::keyboard::ScanCode;
 use crate::framework::ui::Components;
-use crate::framework::{filesystem, gamepad, graphics};
+use crate::game::caret::CaretType;
+use crate::game::frame::{Frame, UpdateTarget};
+use crate::game::inventory::{Inventory, TakeExperienceResult};
+use crate::game::map::WaterParams;
+use crate::game::physics::{OFFSETS, PhysicalEntity};
+use crate::game::settings::ControllerType;
+use crate::game::shared_game_state::{CutsceneSkipMode, PlayerCount, ReplayState, SharedGameState, TileSize};
+use crate::game::stage::{BackgroundType, Stage, StageTexturePaths};
+use crate::graphics::texture_set::SpriteBatch;
 use crate::input::touch_controls::TouchControlType;
-use crate::inventory::{Inventory, TakeExperienceResult};
-use crate::map::WaterParams;
 use crate::menu::pause_menu::PauseMenu;
-use crate::npc::boss::BossNPC;
-use crate::npc::list::NPCList;
-use crate::npc::{NPCLayer, NPC};
-use crate::physics::{PhysicalEntity, OFFSETS};
-use crate::player::{ControlMode, Player, TargetPlayer};
-use crate::rng::RNG;
-use crate::scene::title_scene::TitleScene;
+use crate::game::npc::{NPC, NPCLayer};
+use crate::game::npc::boss::BossNPC;
+use crate::game::npc::list::NPCList;
+use crate::game::player::{ControlMode, Player, TargetPlayer};
 use crate::scene::Scene;
-use crate::scripting::tsc::credit_script::CreditScriptVM;
-use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
-use crate::settings::ControllerType;
-use crate::shared_game_state::{CutsceneSkipMode, PlayerCount, ReplayState, SharedGameState, TileSize};
-use crate::stage::{BackgroundType, Stage, StageTexturePaths};
-use crate::texture_set::SpriteBatch;
-use crate::weapon::bullet::BulletManager;
-use crate::weapon::{Weapon, WeaponType};
+use crate::scene::title_scene::TitleScene;
+use crate::game::scripting::tsc::credit_script::CreditScriptVM;
+use crate::game::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
+use crate::util::rng::RNG;
+use crate::game::weapon::{Weapon, WeaponType};
+use crate::game::weapon::bullet::BulletManager;
 
 pub struct GameScene {
     pub tick: u32,
@@ -199,14 +199,14 @@ impl GameScene {
             if npc.layer != layer
                 || npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
                 || npc.x
-                    > (self.frame.x
-                        + 128 * 0x200
-                        + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
-                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
+                > (self.frame.x
+                + 128 * 0x200
+                + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+                && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
                 || npc.y
-                    > (self.frame.y
-                        + 128 * 0x200
-                        + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
+                > (self.frame.y
+                + 128 * 0x200
+                + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
             {
                 continue;
             }
@@ -420,45 +420,45 @@ impl GameScene {
                         && y >= bymth
                         && y <= bypth)
                         || ((tile == 0x50 || tile == 0x70)
-                            && x >= bxmth
-                            && x <= bxpth
-                            && y <= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 + tfq)
-                            && y >= bymth)
+                        && x >= bxmth
+                        && x <= bxpth
+                        && y <= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 + tfq)
+                        && y >= bymth)
                         || ((tile == 0x51 || tile == 0x71)
-                            && x >= bxmth
-                            && x <= bxpth
-                            && y <= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 - tfq)
-                            && y >= bymth)
+                        && x >= bxmth
+                        && x <= bxpth
+                        && y <= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 - tfq)
+                        && y >= bymth)
                         || ((tile == 0x52 || tile == 0x72)
-                            && x >= bxmth
-                            && x <= bxpth
-                            && y <= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 - tfq)
-                            && y >= bymth)
+                        && x >= bxmth
+                        && x <= bxpth
+                        && y <= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 - tfq)
+                        && y >= bymth)
                         || ((tile == 0x53 || tile == 0x73)
-                            && x >= bxmth
-                            && x <= bxpth
-                            && y <= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 + tfq)
-                            && y >= bymth)
+                        && x >= bxmth
+                        && x <= bxpth
+                        && y <= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 + tfq)
+                        && y >= bymth)
                         || ((tile == 0x54 || tile == 0x74)
-                            && x >= bxmth
-                            && x <= bxpth
-                            && y >= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 - tfq)
-                            && y <= bypth)
+                        && x >= bxmth
+                        && x <= bxpth
+                        && y >= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 - tfq)
+                        && y <= bypth)
                         || ((tile == 0x55 || tile == 0x75)
-                            && x >= bxmth
-                            && x <= bxpth
-                            && y >= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 + tfq)
-                            && y <= bypth)
+                        && x >= bxmth
+                        && x <= bxpth
+                        && y >= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 + tfq)
+                        && y <= bypth)
                         || ((tile == 0x56 || tile == 0x76)
-                            && x >= bxmth
-                            && x <= bxpth
-                            && y >= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 + tfq)
-                            && y <= bypth)
+                        && x >= bxmth
+                        && x <= bxpth
+                        && y >= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 + tfq)
+                        && y <= bypth)
                         || ((tile == 0x57 || tile == 0x77)
-                            && x >= bxmth
-                            && x <= bxpth
-                            && y >= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 - tfq)
-                            && y <= bypth)
+                        && x >= bxmth
+                        && x <= bxpth
+                        && y >= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 - tfq)
+                        && y <= bypth)
                     {
                         continue 'ray;
                     }
@@ -501,14 +501,14 @@ impl GameScene {
         for npc in self.npc_list.iter_alive() {
             if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
                 || npc.x
-                    > (self.frame.x
-                        + 128 * 0x200
-                        + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
-                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
+                > (self.frame.x
+                + 128 * 0x200
+                + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+                && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
                 || npc.y
-                    > (self.frame.y
-                        + 128 * 0x200
-                        + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
+                > (self.frame.y
+                + 128 * 0x200
+                + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
             {
                 continue;
             }
@@ -520,7 +520,7 @@ impl GameScene {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
 
             'cc: for (player, inv) in
-                [(&self.player1, &self.inventory_player1), (&self.player2, &self.inventory_player2)].iter()
+            [(&self.player1, &self.inventory_player1), (&self.player2, &self.inventory_player2)].iter()
             {
                 if player.cond.alive() && !player.cond.hidden() && inv.get_current_weapon().is_some() {
                     if state.settings.light_cone {
@@ -615,15 +615,15 @@ impl GameScene {
             for npc in self.npc_list.iter_alive() {
                 if npc.cond.hidden()
                     || (npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
-                        || npc.x
-                            > (self.frame.x
-                                + 128 * 0x200
-                                + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
-                            && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
-                        || npc.y
-                            > (self.frame.y
-                                + 128 * 0x200
-                                + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200))
+                    || npc.x
+                    > (self.frame.x
+                    + 128 * 0x200
+                    + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
+                    || npc.y
+                    > (self.frame.y
+                    + 128 * 0x200
+                    + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200))
                 {
                     continue;
                 }
@@ -1236,10 +1236,10 @@ impl GameScene {
                     && (npc.y - npc.hit_bounds.top as i32) < (bullet.y + bullet.enemy_hit_height as i32)
                     && (npc.y + npc.hit_bounds.bottom as i32) > (bullet.y - bullet.enemy_hit_height as i32))
                     || (npc.npc_flags.invulnerable()
-                        && (npc.x - npc.hit_bounds.right as i32) < (bullet.x + bullet.hit_bounds.right as i32)
-                        && (npc.x + npc.hit_bounds.right as i32) > (bullet.x - bullet.hit_bounds.left as i32)
-                        && (npc.y - npc.hit_bounds.top as i32) < (bullet.y + bullet.hit_bounds.bottom as i32)
-                        && (npc.y + npc.hit_bounds.bottom as i32) > (bullet.y - bullet.hit_bounds.top as i32));
+                    && (npc.x - npc.hit_bounds.right as i32) < (bullet.x + bullet.hit_bounds.right as i32)
+                    && (npc.x + npc.hit_bounds.right as i32) > (bullet.x - bullet.hit_bounds.left as i32)
+                    && (npc.y - npc.hit_bounds.top as i32) < (bullet.y + bullet.hit_bounds.bottom as i32)
+                    && (npc.y + npc.hit_bounds.bottom as i32) > (bullet.y - bullet.hit_bounds.top as i32));
 
                 if !hit {
                     continue;
@@ -1544,10 +1544,10 @@ impl GameScene {
     ) -> GameResult {
         if entity.x() < (self.frame.x - 128 - entity.display_bounds().width() as i32 * 0x200)
             || entity.x()
-                > (self.frame.x + 128 + (state.canvas_size.0 as i32 + entity.display_bounds().width() as i32) * 0x200)
-                && entity.y() < (self.frame.y - 128 - entity.display_bounds().height() as i32 * 0x200)
+            > (self.frame.x + 128 + (state.canvas_size.0 as i32 + entity.display_bounds().width() as i32) * 0x200)
+            && entity.y() < (self.frame.y - 128 - entity.display_bounds().height() as i32 * 0x200)
             || entity.y()
-                > (self.frame.y + 128 + (state.canvas_size.1 as i32 + entity.display_bounds().height() as i32) * 0x200)
+            > (self.frame.y + 128 + (state.canvas_size.1 as i32 + entity.display_bounds().height() as i32) * 0x200)
         {
             return Ok(());
         }
@@ -1653,7 +1653,7 @@ impl Scene for GameScene {
         state.textscript_vm.suspend = false;
         state.tile_size = self.stage.map.tile_size;
         #[cfg(feature = "scripting-lua")]
-        state.lua.set_game_scene(self as *mut _);
+            state.lua.set_game_scene(self as *mut _);
 
         self.player1.controller = state.settings.create_player1_controller();
         self.player2.controller = state.settings.create_player2_controller();
@@ -1702,24 +1702,24 @@ impl Scene for GameScene {
             _ if self.intro_mode => LightingMode::None,
             _ if !state.constants.is_switch
                 && (self.stage.data.background_type == BackgroundType::Black
-                    || self.stage.data.background.name() == "bkBlack") =>
-            {
-                LightingMode::Ambient
-            }
+                || self.stage.data.background.name() == "bkBlack") =>
+                {
+                    LightingMode::Ambient
+                }
             _ if state.constants.is_switch
                 && (self.stage.data.background_type == BackgroundType::Black
-                    || self.stage.data.background.name() == "bkBlack") =>
-            {
-                LightingMode::None
-            }
+                || self.stage.data.background.name() == "bkBlack") =>
+                {
+                    LightingMode::None
+                }
             _ if self.stage.data.background.name() == "bkFall" => LightingMode::None,
             _ if self.stage.data.background_type != BackgroundType::Black
                 && self.stage.data.background_type != BackgroundType::Outside
                 && self.stage.data.background_type != BackgroundType::OutsideWind
                 && self.stage.data.background.name() != "bkBlack" =>
-            {
-                LightingMode::BackgroundOnly
-            }
+                {
+                    LightingMode::BackgroundOnly
+                }
             _ => LightingMode::None,
         };
 
@@ -1795,31 +1795,31 @@ impl Scene for GameScene {
             | TextScriptExecutionState::Msg(_, _, _, _)
             | TextScriptExecutionState::MsgNewLine(_, _, _, _, _)
             | TextScriptExecutionState::FallingIsland(_, _, _, _, _, _)
-                if !state.control_flags.control_enabled() =>
-            {
-                state.touch_controls.control_type = TouchControlType::Dialog;
-                match state.settings.cutscene_skip_mode {
-                    CutsceneSkipMode::Hold if !state.textscript_vm.flags.cutscene_skip() => {
-                        if self.player1.controller.skip() {
-                            self.skip_counter += 1;
-                            if self.skip_counter >= CUTSCENE_SKIP_WAIT {
-                                state.textscript_vm.flags.set_cutscene_skip(true);
-                                state.tutorial_counter = 0;
+            if !state.control_flags.control_enabled() =>
+                {
+                    state.touch_controls.control_type = TouchControlType::Dialog;
+                    match state.settings.cutscene_skip_mode {
+                        CutsceneSkipMode::Hold if !state.textscript_vm.flags.cutscene_skip() => {
+                            if self.player1.controller.skip() {
+                                self.skip_counter += 1;
+                                if self.skip_counter >= CUTSCENE_SKIP_WAIT {
+                                    state.textscript_vm.flags.set_cutscene_skip(true);
+                                    state.tutorial_counter = 0;
+                                }
+                            } else if self.skip_counter > 0 {
+                                self.skip_counter -= 1;
                             }
-                        } else if self.skip_counter > 0 {
-                            self.skip_counter -= 1;
                         }
-                    }
-                    CutsceneSkipMode::FastForward => {
-                        if self.player1.controller.skip() {
-                            state.textscript_vm.flags.set_cutscene_skip(true);
-                        } else {
-                            state.textscript_vm.flags.set_cutscene_skip(false);
+                        CutsceneSkipMode::FastForward => {
+                            if self.player1.controller.skip() {
+                                state.textscript_vm.flags.set_cutscene_skip(true);
+                            } else {
+                                state.textscript_vm.flags.set_cutscene_skip(false);
+                            }
                         }
+                        _ => (),
                     }
-                    _ => (),
                 }
-            }
             _ => {
                 self.skip_counter = 0;
             }
@@ -1864,7 +1864,7 @@ impl Scene for GameScene {
         self.text_boxes.tick(state, ())?;
 
         #[cfg(feature = "scripting-lua")]
-        state.lua.scene_tick();
+            state.lua.scene_tick();
 
         if state.control_flags.tick_world() {
             self.tick = self.tick.wrapping_add(1);
@@ -1938,13 +1938,13 @@ impl Scene for GameScene {
 
         self.inventory_dim += 0.1
             * if state.textscript_vm.mode == ScriptMode::Inventory
-                || state.textscript_vm.state == TextScriptExecutionState::MapSystem
-                || self.pause_menu.is_paused()
-            {
-                state.frame_time as f32
-            } else {
-                -(state.frame_time as f32)
-            };
+            || state.textscript_vm.state == TextScriptExecutionState::MapSystem
+            || self.pause_menu.is_paused()
+        {
+            state.frame_time as f32
+        } else {
+            -(state.frame_time as f32)
+        };
 
         self.inventory_dim = self.inventory_dim.clamp(0.0, 1.0);
         self.background.draw_tick()?;
@@ -2060,8 +2060,8 @@ impl Scene for GameScene {
                         } else if self.player2.y - 0x1000 > self.frame.y + state.canvas_size.1 as i32 * 0x200 {
                             let scale = 1.0
                                 + (self.player2.y as f32 / (self.frame.y as f32 + state.canvas_size.1 * 0x200 as f32)
-                                    - 0.5)
-                                    .clamp(0.0, 2.0);
+                                - 0.5)
+                                .clamp(0.0, 2.0);
 
                             let x = interpolate_fix9_scale(
                                 self.player2.prev_x - self.frame.prev_x,
@@ -2132,8 +2132,8 @@ impl Scene for GameScene {
                         } else if self.player2.x - 0x1000 > self.frame.x + state.canvas_size.0 as i32 * 0x200 {
                             let scale = 1.0
                                 + (self.player2.x as f32 / (self.frame.x as f32 + state.canvas_size.0 * 0x200 as f32)
-                                    - 0.5)
-                                    .clamp(0.0, 2.0);
+                                - 0.5)
+                                .clamp(0.0, 2.0);
 
                             let y = interpolate_fix9_scale(
                                 self.player2.prev_y - self.frame.prev_y,

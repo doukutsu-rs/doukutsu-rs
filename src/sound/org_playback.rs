@@ -4,11 +4,11 @@ use std::mem::MaybeUninit;
 
 use crate::sound::fir::FIR;
 use crate::sound::fir::FIR_STEP;
+use crate::sound::InterpolationMode;
 use crate::sound::organya::{Song as Organya, Version};
 use crate::sound::stuff::*;
 use crate::sound::wav::*;
 use crate::sound::wave_bank::SoundBank;
-use crate::sound::InterpolationMode;
 
 #[derive(Clone)]
 pub struct FIRData {

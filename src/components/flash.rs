@@ -1,10 +1,10 @@
 use crate::common::{Color, Rect};
 use crate::entity::GameEntity;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
-use crate::shared_game_state::SharedGameState;
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::SharedGameState;
 
 pub enum FlashState {
     None,
@@ -83,7 +83,7 @@ impl GameEntity<()> for Flash {
                     left: 0,
                     top: ((cen_y - width) * state.scale) as isize,
                     right: (state.canvas_size.0 * state.scale) as isize,
-                    bottom: ((cen_y + width) * state.scale) as isize
+                    bottom: ((cen_y + width) * state.scale) as isize,
                 };
 
                 graphics::draw_rect(ctx, rect, WHITE)?;
@@ -93,7 +93,7 @@ impl GameEntity<()> for Flash {
                         left: ((cen_x - width) * state.scale) as isize,
                         top: 0,
                         right: ((cen_x + width) * state.scale) as isize,
-                        bottom: (state.canvas_size.1 * state.scale) as isize
+                        bottom: (state.canvas_size.1 * state.scale) as isize,
                     };
 
                     graphics::draw_rect(ctx, rect, WHITE)?;

@@ -128,7 +128,7 @@ pub trait VFS: Debug {
     fn metadata(&self, path: &Path) -> GameResult<Box<dyn VMetadata>>;
 
     /// Retrieve all file and directory entries in the given directory.
-    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item = GameResult<PathBuf>>>>;
+    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item=GameResult<PathBuf>>>>;
 
     /// Retrieve the actual location of the VFS root, if available.
     fn to_path_buf(&self) -> Option<PathBuf>;
@@ -376,7 +376,7 @@ impl VFS for PhysicalFS {
     }
 
     /// Retrieve the path entries in this path
-    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item = GameResult<PathBuf>>>> {
+    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item=GameResult<PathBuf>>>> {
         self.create_root()?;
         let p = self.to_absolute(path)?;
         // This is inconvenient because path() returns the full absolute
@@ -511,7 +511,7 @@ impl VFS for OverlayFS {
     }
 
     /// Retrieve the path entries in this path
-    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item = GameResult<PathBuf>>>> {
+    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item=GameResult<PathBuf>>>> {
         // This is tricky 'cause we have to actually merge iterators together...
         // Doing it the simple and stupid way works though.
         let mut v = Vec::new();

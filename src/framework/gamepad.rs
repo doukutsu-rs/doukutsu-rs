@@ -3,10 +3,9 @@ use std::collections::{HashMap, HashSet};
 use sdl2::controller::GameController;
 use serde::{Deserialize, Serialize};
 
-use crate::shared_game_state::SharedGameState;
 use crate::{common::Rect, engine_constants::EngineConstants, framework::context::Context};
-
 use crate::framework::error::GameResult;
+use crate::game::shared_game_state::SharedGameState;
 
 const QUAKE_RUMBLE_LOW_FREQ: u16 = 0x3000;
 const QUAKE_RUMBLE_HI_FREQ: u16 = 0;

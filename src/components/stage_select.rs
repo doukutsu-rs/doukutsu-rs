@@ -1,13 +1,12 @@
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
-
 use crate::common::Rect;
 use crate::entity::GameEntity;
-use crate::frame::Frame;
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::SharedGameState;
 use crate::input::touch_controls::TouchControlType;
-use crate::player::Player;
-use crate::shared_game_state::SharedGameState;
-use crate::scripting::tsc::text_script::ScriptMode;
+use crate::game::player::Player;
+use crate::game::scripting::tsc::text_script::ScriptMode;
 
 pub struct StageSelect {
     pub current_teleport_slot: u8,

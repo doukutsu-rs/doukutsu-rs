@@ -1,13 +1,12 @@
 use crate::common::{Color, Rect};
 use crate::engine_constants::AnimatedFace;
 use crate::entity::GameEntity;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::graphics;
-use crate::graphics::draw_rect;
-use crate::scripting::tsc::text_script::{ConfirmSelection, TextScriptExecutionState, TextScriptLine};
-use crate::shared_game_state::SharedGameState;
+use crate::framework::graphics;
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::SharedGameState;
+use crate::game::scripting::tsc::text_script::{ConfirmSelection, TextScriptExecutionState, TextScriptLine};
 
 pub struct TextBoxes {
     pub slide_in: u8,
@@ -284,7 +283,7 @@ impl GameEntity<()> for TextBoxes {
                 };
                 x += left_pos + text_offset + 14.0;
 
-                draw_rect(
+                graphics::draw_rect(
                     ctx,
                     Rect::new_size(
                         (x * state.scale) as isize,

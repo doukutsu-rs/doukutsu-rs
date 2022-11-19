@@ -1,10 +1,10 @@
-use crate::framework::backend::{init_backend, BackendRenderer};
+use crate::framework::backend::{BackendRenderer, init_backend};
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::Filesystem;
 use crate::framework::gamepad::GamepadContext;
+use crate::framework::graphics::VSyncMode;
 use crate::framework::keyboard::KeyboardContext;
-use crate::graphics::VSyncMode;
-use crate::Game;
+use crate::game::Game;
 
 pub struct Context {
     pub headless: bool,

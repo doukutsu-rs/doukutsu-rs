@@ -1,9 +1,9 @@
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::game::shared_game_state::{PlayerCount, SharedGameState};
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
-use crate::shared_game_state::{PlayerCount, SharedGameState};
+use crate::menu::MenuEntry;
 
 pub enum CurrentMenu {
     CoopMenu,

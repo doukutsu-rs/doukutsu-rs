@@ -1,7 +1,10 @@
 use crate::common::{Color, Rect};
-use crate::frame::Frame;
-use crate::stage::{BackgroundType, Stage, StageTexturePaths};
-use crate::{graphics, Context, GameResult, SharedGameState};
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
+use crate::framework::graphics;
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::SharedGameState;
+use crate::game::stage::{BackgroundType, Stage, StageTexturePaths};
 
 pub struct Background {
     pub tick: usize,

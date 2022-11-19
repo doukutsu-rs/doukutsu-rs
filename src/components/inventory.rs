@@ -1,16 +1,16 @@
 use crate::common::Rect;
-use crate::components::draw_common::{draw_number, Alignment};
+use crate::components::draw_common::{Alignment, draw_number};
 use crate::components::hud::HUD;
 use crate::entity::GameEntity;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::game::frame::Frame;
+use crate::game::inventory::Inventory;
+use crate::game::shared_game_state::SharedGameState;
 use crate::input::touch_controls::TouchControlType;
-use crate::inventory::Inventory;
-use crate::player::Player;
-use crate::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState};
-use crate::shared_game_state::SharedGameState;
-use crate::weapon::{WeaponLevel, WeaponType};
+use crate::game::player::Player;
+use crate::game::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState};
+use crate::game::weapon::{WeaponLevel, WeaponType};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
@@ -91,9 +91,9 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory, &mut HUD)> for Inven
 
         if state.control_flags.control_enabled()
             && (player.controller.trigger_inventory()
-                || player.controller.trigger_menu_back()
-                || (player.controller.trigger_menu_ok() && self.focus == InventoryFocus::Weapons)
-                || (state.settings.touch_controls && state.touch_controls.consume_click_in(slot_rect)))
+            || player.controller.trigger_menu_back()
+            || (player.controller.trigger_menu_ok() && self.focus == InventoryFocus::Weapons)
+            || (state.settings.touch_controls && state.touch_controls.consume_click_in(slot_rect)))
         {
             state.control_flags.set_ok_button_disabled(false);
             self.exit(state, player, inventory, hud);

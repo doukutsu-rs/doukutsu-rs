@@ -1,9 +1,9 @@
 use crate::common::{interpolate_fix9_scale, Rect};
 use crate::entity::GameEntity;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::shared_game_state::SharedGameState;
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::SharedGameState;
 
 #[derive(Debug, Copy, Clone)]
 pub struct NumberPopup {

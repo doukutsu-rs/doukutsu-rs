@@ -3,9 +3,10 @@ use std::io::{BufRead, BufReader};
 use std::iter::Peekable;
 use std::str::Chars;
 
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::mod_requirements::ModRequirements;
-use crate::{Context, GameResult};
 
 #[derive(Debug)]
 pub struct ModInfo {

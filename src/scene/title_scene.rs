@@ -2,22 +2,22 @@ use crate::common::{Color, VERSION_BANNER};
 use crate::components::background::Background;
 use crate::components::nikumaru::NikumaruCounter;
 use crate::entity::GameEntity;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::game::frame::Frame;
+use crate::game::map::Map;
+use crate::game::shared_game_state::{
+    GameDifficulty, MenuCharacter, ReplayKind, ReplayState, Season, SharedGameState, TileSize,
+};
+use crate::game::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::input::touch_controls::TouchControlType;
-use crate::map::Map;
+use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::menu::coop_menu::PlayerCountMenu;
 use crate::menu::save_select_menu::SaveSelectMenu;
 use crate::menu::settings_menu::SettingsMenu;
-use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::jukebox_scene::JukeboxScene;
 use crate::scene::Scene;
-use crate::shared_game_state::{
-    GameDifficulty, MenuCharacter, ReplayKind, ReplayState, Season, SharedGameState, TileSize,
-};
-use crate::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
@@ -102,7 +102,7 @@ impl TitleScene {
                 boss_no: 0,
                 tileset: Tileset { name: "0".to_string() },
                 pxpack_data: None,
-                background: crate::stage::Background::new("bkMoon"),
+                background: crate::game::stage::Background::new("bkMoon"),
                 background_type: BackgroundType::Outside,
                 background_color: Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
                 npc1: NpcType::new("0"),
@@ -184,7 +184,8 @@ impl TitleScene {
     }
 }
 
-static COPYRIGHT_PIXEL: &str = "2004.12  Studio Pixel"; // Freeware
+static COPYRIGHT_PIXEL: &str = "2004.12  Studio Pixel";
+// Freeware
 static COPYRIGHT_NICALIS: &str = "@2022 NICALIS INC."; // Nicalis font uses @ for copyright
 
 impl Scene for TitleScene {
@@ -303,10 +304,10 @@ impl Scene for TitleScene {
                 MenuSelectionResult::Selected(MainMenuEntry::Editor, _) => {
                     // this comment is just there because rustfmt removes parenthesis around the match case and breaks compilation
                     #[cfg(feature = "editor")]
-                    {
-                        use crate::scene::editor_scene::EditorScene;
-                        state.next_scene = Some(Box::new(EditorScene::new()));
-                    }
+                        {
+                            use crate::scene::editor_scene::EditorScene;
+                            state.next_scene = Some(Box::new(EditorScene::new()));
+                        }
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Jukebox, _) => {
                     state.next_scene = Some(Box::new(JukeboxScene::new()));
@@ -459,11 +460,11 @@ impl Scene for TitleScene {
             batch.draw(ctx)?;
         } else {
             let window_title = match self.current_menu {
-                CurrentMenu::ChallengesMenu => (state.t("menus.main_menu.challenges")),
-                CurrentMenu::ChallengeConfirmMenu | CurrentMenu::SaveSelectMenu => (state.t("menus.main_menu.start")),
-                CurrentMenu::OptionMenu => (state.t("menus.main_menu.options")),
+                CurrentMenu::ChallengesMenu => state.t("menus.main_menu.challenges"),
+                CurrentMenu::ChallengeConfirmMenu | CurrentMenu::SaveSelectMenu => state.t("menus.main_menu.start"),
+                CurrentMenu::OptionMenu => state.t("menus.main_menu.options"),
                 CurrentMenu::MainMenu => unreachable!(),
-                CurrentMenu::PlayerCountMenu => (state.t("menus.main_menu.start")),
+                CurrentMenu::PlayerCountMenu => state.t("menus.main_menu.start"),
             };
             state.font.draw_colored_text_with_shadow_scaled(
                 window_title.chars(),

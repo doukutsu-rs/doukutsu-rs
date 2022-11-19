@@ -17,9 +17,9 @@ use crate::framework::error::GameError::RenderError;
 use crate::framework::error::GameResult;
 use crate::framework::gl;
 use crate::framework::gl::types::*;
-use crate::framework::graphics::BlendMode;
+use crate::framework::graphics::{BlendMode, VSyncMode};
 use crate::framework::util::{field_offset, return_param};
-use crate::graphics::VSyncMode;
+use crate::game::GAME_SUSPENDED;
 
 pub struct GLContext {
     pub gles2_mode: bool,
@@ -774,7 +774,7 @@ impl BackendRenderer for OpenGLRenderer {
 
     fn present(&mut self) -> GameResult {
         {
-            let mutex = crate::GAME_SUSPENDED.lock().unwrap();
+            let mutex = GAME_SUSPENDED.lock().unwrap();
             if *mutex {
                 return Ok(());
             }
@@ -826,7 +826,7 @@ impl BackendRenderer for OpenGLRenderer {
         }
 
         #[cfg(feature = "backend-sdl")]
-        unsafe {
+            unsafe {
             let ctx = &mut *self.refs.ctx;
 
             match mode {

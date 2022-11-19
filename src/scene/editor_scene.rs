@@ -4,14 +4,14 @@ use std::rc::Rc;
 use downcast::Downcast;
 use imgui::{Condition, MenuItem, TabItem, TabItemFlags, Window};
 
+use crate::{Context, GameResult, Scene, SharedGameState};
 use crate::editor::{CurrentTool, EditorInstance};
 use crate::framework::keyboard;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::ui::Components;
+use crate::game::stage::Stage;
 use crate::scene::game_scene::GameScene;
 use crate::scene::title_scene::TitleScene;
-use crate::stage::Stage;
-use crate::{Context, GameResult, Scene, SharedGameState};
 
 struct ErrorList {
     errors: Vec<String>,

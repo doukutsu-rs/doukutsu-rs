@@ -2,11 +2,11 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::framework::keyboard::ScanCode;
+use crate::game::shared_game_state::{MenuCharacter, PlayerCount, SharedGameState};
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
+use crate::menu::MenuEntry;
 use crate::scene::title_scene::TitleScene;
-use crate::shared_game_state::{MenuCharacter, PlayerCount, SharedGameState};
 
 use super::coop_menu::PlayerCountMenu;
 use super::settings_menu::SettingsMenu;

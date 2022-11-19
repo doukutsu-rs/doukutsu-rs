@@ -2,12 +2,12 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::gamepad::{self, Axis, AxisDirection, Button, PlayerControllerInputType};
 use crate::framework::keyboard::ScanCode;
-use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::settings::{
-    p1_default_keymap, p2_default_keymap, player_default_controller_button_map, ControllerType,
+use crate::game::settings::{
+    ControllerType, p1_default_keymap, p2_default_keymap, player_default_controller_button_map,
     PlayerControllerButtonMap, PlayerKeyMap,
 };
-use crate::shared_game_state::SharedGameState;
+use crate::game::shared_game_state::SharedGameState;
+use crate::input::combined_menu_controller::CombinedMenuController;
 
 use super::{ControlMenuData, Menu, MenuEntry, MenuSelectionResult};
 

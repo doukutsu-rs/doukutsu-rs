@@ -1,11 +1,11 @@
 use num_traits::FromPrimitive;
 
 use crate::framework::error::{GameError::CommandLineError, GameResult};
-use crate::npc::NPC;
+use crate::game::shared_game_state::SharedGameState;
+use crate::game::npc::NPC;
 use crate::scene::game_scene::GameScene;
-use crate::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptEncoding};
-use crate::shared_game_state::SharedGameState;
-use crate::weapon::WeaponType;
+use crate::game::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptEncoding};
+use crate::game::weapon::WeaponType;
 
 #[derive(Clone)]
 pub enum CommandLineCommand {

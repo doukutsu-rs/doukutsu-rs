@@ -1,15 +1,15 @@
 use itertools::Itertools;
 
+use crate::framework::{filesystem, graphics};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::filesystem;
+use crate::framework::graphics::VSyncMode;
+use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
+use crate::menu::MenuEntry;
 use crate::scene::title_scene::TitleScene;
-use crate::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
 use crate::sound::InterpolationMode;
-use crate::{graphics, VSyncMode};
 
 use super::controls_menu::ControlsMenu;
 
@@ -181,7 +181,7 @@ impl SettingsMenu {
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         #[cfg(not(target_os = "android"))]
-        self.graphics.push_entry(
+            self.graphics.push_entry(
             GraphicsMenuEntry::WindowMode,
             MenuEntry::Options(
                 state.t("menus.options_menu.graphics_menu.window_mode.entry"),
@@ -295,7 +295,7 @@ impl SettingsMenu {
         self.main.push_entry(MainMenuEntry::Sound, MenuEntry::Active(state.t("menus.options_menu.sound")));
 
         #[cfg(not(target_os = "android"))]
-        self.main.push_entry(MainMenuEntry::Controls, MenuEntry::Active(state.t("menus.options_menu.controls")));
+            self.main.push_entry(MainMenuEntry::Controls, MenuEntry::Active(state.t("menus.options_menu.controls")));
 
         self.language.push_entry(LanguageMenuEntry::Title, MenuEntry::Disabled(state.t("menus.options_menu.language")));
 

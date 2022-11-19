@@ -3,8 +3,8 @@
 use std::error::Error;
 use std::fmt;
 use std::string::FromUtf8Error;
-use std::sync::mpsc::SendError;
 use std::sync::{Arc, PoisonError};
+use std::sync::mpsc::SendError;
 
 /// An enum containing all kinds of game framework errors.
 #[derive(Debug, Clone)]

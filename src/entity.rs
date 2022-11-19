@@ -1,8 +1,8 @@
 use crate::common::interpolate_fix9_scale;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::shared_game_state::SharedGameState;
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::SharedGameState;
 
 pub trait GameEntity<C> {
     fn tick(&mut self, state: &mut SharedGameState, custom: C) -> GameResult;

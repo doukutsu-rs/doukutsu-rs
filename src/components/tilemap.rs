@@ -1,9 +1,9 @@
 use crate::common::Rect;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::shared_game_state::{SharedGameState, TileSize};
-use crate::stage::{BackgroundType, Stage, StageTexturePaths};
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::{SharedGameState, TileSize};
+use crate::game::stage::{BackgroundType, Stage, StageTexturePaths};
 
 pub struct Tilemap {
     tick: u32,

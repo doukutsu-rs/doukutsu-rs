@@ -3,7 +3,7 @@ use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::screen_insets_scaled;
-use crate::texture_set::TextureSet;
+use crate::graphics::texture_set::TextureSet;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum TouchControlType {

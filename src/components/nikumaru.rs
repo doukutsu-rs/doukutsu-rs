@@ -1,17 +1,17 @@
-use byteorder::{ReadBytesExt, WriteBytesExt, LE};
+use byteorder::{LE, ReadBytesExt, WriteBytesExt};
 
 use crate::common::Rect;
-use crate::components::draw_common::{draw_number, draw_number_zeros, Alignment};
+use crate::components::draw_common::{Alignment, draw_number, draw_number_zeros};
 use crate::entity::GameEntity;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::framework::vfs::OpenOptions;
-use crate::player::Player;
-use crate::rng::RNG;
-use crate::scripting::tsc::text_script::TextScriptExecutionState;
-use crate::shared_game_state::{SharedGameState, TimingMode};
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::{SharedGameState, TimingMode};
+use crate::game::player::Player;
+use crate::game::scripting::tsc::text_script::TextScriptExecutionState;
+use crate::util::rng::RNG;
 
 #[derive(Clone, Copy)]
 pub struct NikumaruCounter {

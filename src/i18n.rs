@@ -1,7 +1,8 @@
+use std::collections::HashMap;
+
 use crate::framework::context::Context;
 use crate::framework::filesystem;
-use crate::shared_game_state::FontData;
-use std::collections::HashMap;
+use crate::game::shared_game_state::FontData;
 
 #[derive(Debug, Clone)]
 pub struct Locale {

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Cursor, Read};
 
-use byteorder::{ReadBytesExt, LE};
+use byteorder::{LE, ReadBytesExt};
 use case_insensitive_hashmap::CaseInsensitiveHashMap;
 use xmltree::Element;
 
@@ -12,11 +12,11 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::framework::gamepad::{Axis, Button};
+use crate::game::settings::Settings;
+use crate::game::shared_game_state::{FontData, Season};
 use crate::i18n::Locale;
-use crate::player::ControlMode;
-use crate::scripting::tsc::text_script::TextScriptEncoding;
-use crate::settings::Settings;
-use crate::shared_game_state::{FontData, Season};
+use crate::game::player::ControlMode;
+use crate::game::scripting::tsc::text_script::TextScriptEncoding;
 use crate::sound::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
 use crate::sound::SoundManager;
 

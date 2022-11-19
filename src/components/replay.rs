@@ -1,17 +1,17 @@
 use std::io::{Cursor, Read};
 
-use byteorder::{ReadBytesExt, WriteBytesExt, LE};
+use byteorder::{LE, ReadBytesExt, WriteBytesExt};
 
 use crate::entity::GameEntity;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::vfs::OpenOptions;
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::{ReplayKind, ReplayState, SharedGameState};
 use crate::input::replay_player_controller::{KeyState, ReplayController};
-use crate::player::Player;
-use crate::shared_game_state::{ReplayKind, ReplayState, SharedGameState};
+use crate::game::player::Player;
 
 #[derive(Clone)]
 pub struct Replay {

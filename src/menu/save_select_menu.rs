@@ -1,12 +1,12 @@
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
+use crate::game::profile::GameProfile;
+use crate::game::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::input::combined_menu_controller::CombinedMenuController;
+use crate::menu::{Menu, MenuSelectionResult};
 use crate::menu::coop_menu::PlayerCountMenu;
 use crate::menu::MenuEntry;
-use crate::menu::{Menu, MenuSelectionResult};
-use crate::profile::GameProfile;
-use crate::shared_game_state::{GameDifficulty, SharedGameState};
 
 #[derive(Clone, Copy)]
 pub struct MenuSaveInfo {
@@ -23,6 +23,7 @@ impl Default for MenuSaveInfo {
         MenuSaveInfo { current_map: 0, max_life: 0, life: 0, weapon_count: 0, weapon_id: [0; 8], difficulty: 0 }
     }
 }
+
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
 #[allow(unused)]
@@ -254,7 +255,7 @@ impl SaveSelectMenu {
                     state.save_slot = slot + 1;
 
                     if let Ok(_) =
-                        filesystem::user_open(ctx, state.get_save_filename(state.save_slot).unwrap_or("".to_string()))
+                    filesystem::user_open(ctx, state.get_save_filename(state.save_slot).unwrap_or("".to_string()))
                     {
                         if let (_, MenuEntry::SaveData(save)) = self.save_menu.entries[slot] {
                             self.save_detailed.entries.clear();

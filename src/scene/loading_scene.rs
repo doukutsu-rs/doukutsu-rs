@@ -1,9 +1,9 @@
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::graphics;
+use crate::framework::graphics;
+use crate::game::shared_game_state::SharedGameState;
 use crate::scene::no_data_scene::NoDataScene;
 use crate::scene::Scene;
-use crate::shared_game_state::SharedGameState;
 
 pub struct LoadingScene {
     tick: usize,

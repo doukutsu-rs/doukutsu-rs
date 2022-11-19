@@ -2,12 +2,12 @@ use std::ops::Deref;
 
 use crate::common::{Color, Rect};
 use crate::entity::GameEntity;
-use crate::frame::Frame;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::graphics;
-use crate::scripting::tsc::text_script::TextScriptExecutionState;
-use crate::shared_game_state::SharedGameState;
+use crate::framework::graphics;
+use crate::game::frame::Frame;
+use crate::game::shared_game_state::SharedGameState;
+use crate::game::scripting::tsc::text_script::TextScriptExecutionState;
 
 pub struct FallingIsland {}
 
