@@ -487,19 +487,6 @@ impl Scene for TitleScene {
             }
         }
 
-        if state.constants.crime_mode {
-            state.font.draw_colored_text_with_shadow_scaled(
-                "* TAS MODE *".chars(),
-                5.0,
-                5.0,
-                1.0,
-                (0xff, 0, 0, 0xff),
-                &state.constants,
-                &mut state.texture_set,
-                ctx,
-            )?;
-        }
-
         self.nikumaru_rec.draw(state, ctx, &self.frame)?;
 
         match self.current_menu {

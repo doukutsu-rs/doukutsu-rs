@@ -365,27 +365,11 @@ impl SharedGameState {
             log::info!("NXEngine-evo data files detected.");
         }
 
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(preload) = std::env::var("LIBTAS_LIBRARY_PATH") {
-                if preload != "" {
-                    constants.crime_mode = true;
-                }
+        for soundtrack in constants.soundtracks.iter_mut() {
+            if filesystem::exists(ctx, &soundtrack.path) {
+                log::info!("Enabling soundtrack {} from {}.", soundtrack.name, soundtrack.path);
+                soundtrack.available = true;
             }
-        }
-
-        if !constants.crime_mode {
-            for soundtrack in constants.soundtracks.iter_mut() {
-                if filesystem::exists(ctx, &soundtrack.path) {
-                    log::info!("Enabling soundtrack {} from {}.", soundtrack.name, soundtrack.path);
-                    soundtrack.available = true;
-                }
-            }
-        } else {
-            // easter egg
-            settings.soundtrack = "Organya".to_owned();
-            settings.original_textures = true;
-            settings.seasonal_textures = false;
         }
 
         let season = Season::current();
@@ -429,10 +413,7 @@ impl SharedGameState {
         #[cfg(feature = "hooks")]
         init_hooks();
 
-        let seed = chrono::Local::now().timestamp() as i32
-            + ((SharedGameState::save_game as usize >> 7)
-                ^ (SharedGameState::save_game as usize >> 13)
-                ^ (SharedGameState::new as usize >> 23)) as i32;
+        let seed = chrono::Local::now().timestamp() as i32;
 
         Ok(SharedGameState {
             control_flags: ControlFlags(0),

@@ -253,7 +253,7 @@ impl SettingsMenu {
         );
 
         // NS version uses two different maps, therefore we can't dynamically switch between graphics presets.
-        if !state.constants.crime_mode && state.constants.supports_og_textures {
+        if state.constants.supports_og_textures {
             if !state.constants.is_switch || self.on_title {
                 self.graphics.push_entry(
                     GraphicsMenuEntry::OriginalTextures,

@@ -319,7 +319,6 @@ pub struct EngineConstants {
     pub is_cs_plus: bool,
     pub is_switch: bool,
     pub is_demo: bool,
-    pub crime_mode: bool,
     pub supports_og_textures: bool,
     pub game: GameConsts,
     pub player: PlayerConsts,
@@ -353,7 +352,6 @@ impl Clone for EngineConstants {
             is_cs_plus: self.is_cs_plus,
             is_switch: self.is_switch,
             is_demo: self.is_demo,
-            crime_mode: self.crime_mode,
             supports_og_textures: self.supports_og_textures,
             game: self.game,
             player: self.player,
@@ -389,7 +387,6 @@ impl EngineConstants {
             is_cs_plus: false,
             is_switch: false,
             is_demo: false,
-            crime_mode: false,
             supports_og_textures: false,
             game: GameConsts {
                 intro_stage: 72,
