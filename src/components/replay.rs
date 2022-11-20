@@ -12,6 +12,7 @@ use crate::game::frame::Frame;
 use crate::game::shared_game_state::{ReplayKind, ReplayState, SharedGameState};
 use crate::input::replay_player_controller::{KeyState, ReplayController};
 use crate::game::player::Player;
+use crate::graphics::font::Font;
 
 #[derive(Clone)]
 pub struct Replay {
@@ -171,17 +172,14 @@ impl GameEntity<(&mut Context, &mut Player)> for Replay {
         match state.replay_state {
             ReplayState::None => {}
             ReplayState::Playback(_) => {
-                state.font.draw_text_with_shadow(
-                    "PLAY".chars(),
-                    x,
-                    y,
-                    &state.constants,
-                    &mut state.texture_set,
-                    ctx,
-                )?;
+                state.font.builder()
+                    .position(x, y)
+                    .draw("PLAY", ctx, &state.constants, &mut state.texture_set)?;
             }
             ReplayState::Recording => {
-                state.font.draw_text_with_shadow("REC".chars(), x, y, &state.constants, &mut state.texture_set, ctx)?;
+                state.font.builder()
+                    .position(x, y)
+                    .draw("REC", ctx, &state.constants, &mut state.texture_set)?;
             }
         }
 

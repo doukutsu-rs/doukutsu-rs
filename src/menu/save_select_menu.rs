@@ -127,7 +127,7 @@ impl SaveSelectMenu {
         let mut should_mutate_selection = true;
 
         for (iter, save) in self.saves.iter_mut().enumerate() {
-            if let Ok(data) = filesystem::user_open(ctx, state.get_save_filename(iter + 1).unwrap_or("".to_string())) {
+            if let Ok(data) = filesystem::user_open(ctx, state.get_save_filename(iter + 1).unwrap_or(String::new())) {
                 let loaded_save = GameProfile::load_from_save(data)?;
 
                 save.current_map = loaded_save.current_map;
@@ -153,39 +153,39 @@ impl SaveSelectMenu {
             }
         }
 
-        self.save_menu.push_entry(SaveMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.save_menu.push_entry(SaveMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.difficulty_menu
-            .push_entry(DifficultyMenuEntry::Title, MenuEntry::Disabled(state.t("menus.difficulty_menu.title")));
+            .push_entry(DifficultyMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.difficulty_menu.title").to_owned()));
         self.difficulty_menu.push_entry(
             DifficultyMenuEntry::Difficulty(GameDifficulty::Easy),
-            MenuEntry::Active(state.t("menus.difficulty_menu.easy")),
+            MenuEntry::Active(state.loc.t("menus.difficulty_menu.easy").to_owned()),
         );
         self.difficulty_menu.push_entry(
             DifficultyMenuEntry::Difficulty(GameDifficulty::Normal),
-            MenuEntry::Active(state.t("menus.difficulty_menu.normal")),
+            MenuEntry::Active(state.loc.t("menus.difficulty_menu.normal").to_owned()),
         );
         self.difficulty_menu.push_entry(
             DifficultyMenuEntry::Difficulty(GameDifficulty::Hard),
-            MenuEntry::Active(state.t("menus.difficulty_menu.hard")),
+            MenuEntry::Active(state.loc.t("menus.difficulty_menu.hard").to_owned()),
         );
-        self.difficulty_menu.push_entry(DifficultyMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.difficulty_menu.push_entry(DifficultyMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.difficulty_menu.selected = DifficultyMenuEntry::Difficulty(GameDifficulty::Normal);
 
         //self.coop_menu.init(state, ctx);
 
         self.delete_confirm
-            .push_entry(DeleteConfirmMenuEntry::Title, MenuEntry::Disabled(state.t("menus.save_menu.delete_confirm")));
-        self.delete_confirm.push_entry(DeleteConfirmMenuEntry::Yes, MenuEntry::Active(state.t("common.yes")));
-        self.delete_confirm.push_entry(DeleteConfirmMenuEntry::No, MenuEntry::Active(state.t("common.no")));
+            .push_entry(DeleteConfirmMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.save_menu.delete_confirm").to_owned()));
+        self.delete_confirm.push_entry(DeleteConfirmMenuEntry::Yes, MenuEntry::Active(state.loc.t("common.yes").to_owned()));
+        self.delete_confirm.push_entry(DeleteConfirmMenuEntry::No, MenuEntry::Active(state.loc.t("common.no").to_owned()));
 
         self.delete_confirm.selected = DeleteConfirmMenuEntry::No;
 
-        self.load_confirm.push_entry(LoadConfirmMenuEntry::Start, MenuEntry::Active(state.t("menus.main_menu.start")));
+        self.load_confirm.push_entry(LoadConfirmMenuEntry::Start, MenuEntry::Active(state.loc.t("menus.main_menu.start").to_owned()));
         self.load_confirm
-            .push_entry(LoadConfirmMenuEntry::Delete, MenuEntry::Active(state.t("menus.save_menu.delete_confirm")));
-        self.load_confirm.push_entry(LoadConfirmMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+            .push_entry(LoadConfirmMenuEntry::Delete, MenuEntry::Active(state.loc.t("menus.save_menu.delete_confirm").to_owned()));
+        self.load_confirm.push_entry(LoadConfirmMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.save_detailed.draw_cursor = false;
 
@@ -255,7 +255,7 @@ impl SaveSelectMenu {
                     state.save_slot = slot + 1;
 
                     if let Ok(_) =
-                    filesystem::user_open(ctx, state.get_save_filename(state.save_slot).unwrap_or("".to_string()))
+                    filesystem::user_open(ctx, state.get_save_filename(state.save_slot).unwrap_or(String::new()))
                     {
                         if let (_, MenuEntry::SaveData(save)) = self.save_menu.entries[slot] {
                             self.save_detailed.entries.clear();
@@ -295,7 +295,7 @@ impl SaveSelectMenu {
                     match self.save_menu.selected {
                         SaveMenuEntry::Load(slot) => {
                             state.sound_manager.play_sfx(17); // Player Death sfx
-                            filesystem::user_delete(ctx, state.get_save_filename(slot + 1).unwrap_or("".to_string()))?;
+                            filesystem::user_delete(ctx, state.get_save_filename(slot + 1).unwrap_or(String::new()))?;
                         }
                         _ => (),
                     }

@@ -1,13 +1,14 @@
 use itertools::Itertools;
 
-use crate::framework::{filesystem, graphics};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::VSyncMode;
+use crate::framework::{filesystem, graphics};
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
+use crate::graphics::font::Font;
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::menu::{Menu, MenuSelectionResult};
 use crate::menu::MenuEntry;
+use crate::menu::{Menu, MenuSelectionResult};
 use crate::scene::title_scene::TitleScene;
 use crate::sound::InterpolationMode;
 
@@ -181,14 +182,14 @@ impl SettingsMenu {
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         #[cfg(not(target_os = "android"))]
-            self.graphics.push_entry(
+        self.graphics.push_entry(
             GraphicsMenuEntry::WindowMode,
             MenuEntry::Options(
-                state.t("menus.options_menu.graphics_menu.window_mode.entry"),
+                state.loc.t("menus.options_menu.graphics_menu.window_mode.entry").to_owned(),
                 state.settings.window_mode as usize,
                 vec![
-                    state.t("menus.options_menu.graphics_menu.window_mode.windowed"),
-                    state.t("menus.options_menu.graphics_menu.window_mode.fullscreen"),
+                    state.loc.t("menus.options_menu.graphics_menu.window_mode.windowed").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.window_mode.fullscreen").to_owned(),
                 ],
             ),
         );
@@ -196,58 +197,61 @@ impl SettingsMenu {
         self.graphics.push_entry(
             GraphicsMenuEntry::VSyncMode,
             MenuEntry::DescriptiveOptions(
-                state.t("menus.options_menu.graphics_menu.vsync_mode.entry"),
+                state.loc.t("menus.options_menu.graphics_menu.vsync_mode.entry").to_owned(),
                 state.settings.vsync_mode as usize,
                 vec![
-                    state.t("menus.options_menu.graphics_menu.vsync_mode.uncapped"),
-                    state.t("menus.options_menu.graphics_menu.vsync_mode.vsync"),
-                    state.t("menus.options_menu.graphics_menu.vsync_mode.vrr_1x"),
-                    state.t("menus.options_menu.graphics_menu.vsync_mode.vrr_2x"),
-                    state.t("menus.options_menu.graphics_menu.vsync_mode.vrr_3x"),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.uncapped").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vsync").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_1x").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_2x").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_3x").to_owned(),
                 ],
                 vec![
-                    state.t("menus.options_menu.graphics_menu.vsync_mode.uncapped_desc"),
-                    state.t("menus.options_menu.graphics_menu.vsync_mode.vsync_desc"),
-                    state.t("menus.options_menu.graphics_menu.vsync_mode.vrr_1x_desc"),
-                    state.t("menus.options_menu.graphics_menu.vsync_mode.vrr_2x_desc"),
-                    state.t("menus.options_menu.graphics_menu.vsync_mode.vrr_3x_desc"),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.uncapped_desc").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vsync_desc").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_1x_desc").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_2x_desc").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_3x_desc").to_owned(),
                 ],
             ),
         );
         self.graphics.push_entry(
             GraphicsMenuEntry::LightingEffects,
             MenuEntry::Toggle(
-                state.t("menus.options_menu.graphics_menu.lighting_effects"),
+                state.loc.t("menus.options_menu.graphics_menu.lighting_effects").to_owned(),
                 state.settings.shader_effects,
             ),
         );
         self.graphics.push_entry(
             GraphicsMenuEntry::WeaponLightCone,
-            MenuEntry::Toggle(state.t("menus.options_menu.graphics_menu.weapon_light_cone"), state.settings.light_cone),
+            MenuEntry::Toggle(
+                state.loc.t("menus.options_menu.graphics_menu.weapon_light_cone").to_owned(),
+                state.settings.light_cone,
+            ),
         );
         self.graphics.push_entry(
             GraphicsMenuEntry::ScreenShake,
             MenuEntry::Options(
-                state.t("menus.options_menu.graphics_menu.screen_shake.entry"),
+                state.loc.t("menus.options_menu.graphics_menu.screen_shake.entry").to_owned(),
                 state.settings.screen_shake_intensity as usize,
                 vec![
-                    state.t("menus.options_menu.graphics_menu.screen_shake.full"),
-                    state.t("menus.options_menu.graphics_menu.screen_shake.half"),
-                    state.t("menus.options_menu.graphics_menu.screen_shake.off"),
+                    state.loc.t("menus.options_menu.graphics_menu.screen_shake.full").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.screen_shake.half").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.screen_shake.off").to_owned(),
                 ],
             ),
         );
         self.graphics.push_entry(
             GraphicsMenuEntry::MotionInterpolation,
             MenuEntry::Toggle(
-                state.t("menus.options_menu.graphics_menu.motion_interpolation"),
+                state.loc.t("menus.options_menu.graphics_menu.motion_interpolation").to_owned(),
                 state.settings.motion_interpolation,
             ),
         );
         self.graphics.push_entry(
             GraphicsMenuEntry::SubpixelScrolling,
             MenuEntry::Toggle(
-                state.t("menus.options_menu.graphics_menu.subpixel_scrolling"),
+                state.loc.t("menus.options_menu.graphics_menu.subpixel_scrolling").to_owned(),
                 state.settings.subpixel_coords,
             ),
         );
@@ -258,14 +262,14 @@ impl SettingsMenu {
                 self.graphics.push_entry(
                     GraphicsMenuEntry::OriginalTextures,
                     MenuEntry::Toggle(
-                        state.t("menus.options_menu.graphics_menu.original_textures"),
+                        state.loc.t("menus.options_menu.graphics_menu.original_textures").to_owned(),
                         state.settings.original_textures,
                     ),
                 );
             } else {
                 self.graphics.push_entry(
                     GraphicsMenuEntry::OriginalTextures,
-                    MenuEntry::Disabled(state.t("menus.options_menu.graphics_menu.original_textures")),
+                    MenuEntry::Disabled(state.loc.t("menus.options_menu.graphics_menu.original_textures").to_owned()),
                 );
             }
         }
@@ -274,7 +278,7 @@ impl SettingsMenu {
             self.graphics.push_entry(
                 GraphicsMenuEntry::SeasonalTextures,
                 MenuEntry::Toggle(
-                    state.t("menus.options_menu.graphics_menu.seasonal_textures"),
+                    state.loc.t("menus.options_menu.graphics_menu.seasonal_textures").to_owned(),
                     state.settings.seasonal_textures,
                 ),
             );
@@ -284,37 +288,47 @@ impl SettingsMenu {
             GraphicsMenuEntry::Renderer,
             MenuEntry::Disabled(format!(
                 "{} {}",
-                state.t("menus.options_menu.graphics_menu.renderer"),
+                state.loc.t("menus.options_menu.graphics_menu.renderer").to_owned(),
                 ctx.renderer.as_ref().unwrap().renderer_name()
             )),
         );
 
-        self.graphics.push_entry(GraphicsMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.graphics.push_entry(GraphicsMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
-        self.main.push_entry(MainMenuEntry::Graphics, MenuEntry::Active(state.t("menus.options_menu.graphics")));
-        self.main.push_entry(MainMenuEntry::Sound, MenuEntry::Active(state.t("menus.options_menu.sound")));
+        self.main
+            .push_entry(MainMenuEntry::Graphics, MenuEntry::Active(state.loc.t("menus.options_menu.graphics").to_owned()));
+        self.main.push_entry(MainMenuEntry::Sound, MenuEntry::Active(state.loc.t("menus.options_menu.sound").to_owned()));
 
         #[cfg(not(target_os = "android"))]
-            self.main.push_entry(MainMenuEntry::Controls, MenuEntry::Active(state.t("menus.options_menu.controls")));
+        self.main
+            .push_entry(MainMenuEntry::Controls, MenuEntry::Active(state.loc.t("menus.options_menu.controls").to_owned()));
 
-        self.language.push_entry(LanguageMenuEntry::Title, MenuEntry::Disabled(state.t("menus.options_menu.language")));
+        self.language.push_entry(
+            LanguageMenuEntry::Title,
+            MenuEntry::Disabled(state.loc.t("menus.options_menu.language").to_owned()),
+        );
 
         for locale in &state.constants.locales {
             self.language
                 .push_entry(LanguageMenuEntry::Language(locale.code.clone()), MenuEntry::Active(locale.name.clone()));
         }
 
-        self.language.push_entry(LanguageMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.language.push_entry(LanguageMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         if self.on_title {
-            self.main.push_entry(MainMenuEntry::Language, MenuEntry::Active(state.t("menus.options_menu.language")));
+            self.main.push_entry(
+                MainMenuEntry::Language,
+                MenuEntry::Active(state.loc.t("menus.options_menu.language").to_owned()),
+            );
         }
 
-        self.main.push_entry(MainMenuEntry::Behavior, MenuEntry::Active(state.t("menus.options_menu.behavior")));
+        self.main
+            .push_entry(MainMenuEntry::Behavior, MenuEntry::Active(state.loc.t("menus.options_menu.behavior").to_owned()));
 
-        self.main.push_entry(MainMenuEntry::Links, MenuEntry::Active(state.t("menus.options_menu.links")));
+        self.main.push_entry(MainMenuEntry::Links, MenuEntry::Active(state.loc.t("menus.options_menu.links").to_owned()));
 
-        self.links.push_entry(LinksMenuEntry::Title, MenuEntry::Disabled(state.t("menus.options_menu.links")));
+        self.links
+            .push_entry(LinksMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.options_menu.links").to_owned()));
         self.links.push_entry(LinksMenuEntry::Link(DISCORD_LINK), MenuEntry::Active("doukutsu-rs Discord".to_owned()));
         self.links.push_entry(LinksMenuEntry::Link(GITHUB_LINK), MenuEntry::Active("doukutsu-rs GitHub".to_owned()));
         self.links.push_entry(LinksMenuEntry::Link(DOCS_LINK), MenuEntry::Active("doukutsu-rs Docs".to_owned()));
@@ -327,35 +341,35 @@ impl SettingsMenu {
         );
         self.links.push_entry(LinksMenuEntry::Link(GETPLUS_LINK), MenuEntry::Active("Get Cave Story+".to_owned()));
 
-        self.main.push_entry(MainMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.main.push_entry(MainMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.sound.push_entry(
             SoundMenuEntry::MusicVolume,
-            MenuEntry::OptionsBar(state.t("menus.options_menu.sound_menu.music_volume"), state.settings.bgm_volume),
+            MenuEntry::OptionsBar(state.loc.t("menus.options_menu.sound_menu.music_volume").to_owned(), state.settings.bgm_volume),
         );
         self.sound.push_entry(
             SoundMenuEntry::EffectsVolume,
-            MenuEntry::OptionsBar(state.t("menus.options_menu.sound_menu.effects_volume"), state.settings.sfx_volume),
+            MenuEntry::OptionsBar(state.loc.t("menus.options_menu.sound_menu.effects_volume").to_owned(), state.settings.sfx_volume),
         );
 
         self.sound.push_entry(
             SoundMenuEntry::BGMInterpolation,
             MenuEntry::DescriptiveOptions(
-                state.t("menus.options_menu.sound_menu.bgm_interpolation.entry"),
+                state.loc.t("menus.options_menu.sound_menu.bgm_interpolation.entry").to_owned(),
                 state.settings.organya_interpolation as usize,
                 vec![
-                    state.t("menus.options_menu.sound_menu.bgm_interpolation.nearest"),
-                    state.t("menus.options_menu.sound_menu.bgm_interpolation.linear"),
-                    state.t("menus.options_menu.sound_menu.bgm_interpolation.cosine"),
-                    state.t("menus.options_menu.sound_menu.bgm_interpolation.cubic"),
-                    state.t("menus.options_menu.sound_menu.bgm_interpolation.linear_lp"),
+                    state.loc.t("menus.options_menu.sound_menu.bgm_interpolation.nearest").to_owned(),
+                    state.loc.t("menus.options_menu.sound_menu.bgm_interpolation.linear").to_owned(),
+                    state.loc.t("menus.options_menu.sound_menu.bgm_interpolation.cosine").to_owned(),
+                    state.loc.t("menus.options_menu.sound_menu.bgm_interpolation.cubic").to_owned(),
+                    state.loc.t("menus.options_menu.sound_menu.bgm_interpolation.linear_lp").to_owned(),
                 ],
                 vec![
-                    state.t("menus.options_menu.sound_menu.bgm_interpolation.nearest_desc"),
-                    state.t("menus.options_menu.sound_menu.bgm_interpolation.linear_desc"),
-                    state.t("menus.options_menu.sound_menu.bgm_interpolation.cosine_desc"),
-                    state.t("menus.options_menu.sound_menu.bgm_interpolation.cubic_desc"),
-                    state.t("menus.options_menu.sound_menu.bgm_interpolation.linear_lp_desc"),
+                    state.loc.t("menus.options_menu.sound_menu.bgm_interpolation.nearest_desc").to_owned(),
+                    state.loc.t("menus.options_menu.sound_menu.bgm_interpolation.linear_desc").to_owned(),
+                    state.loc.t("menus.options_menu.sound_menu.bgm_interpolation.cosine_desc").to_owned(),
+                    state.loc.t("menus.options_menu.sound_menu.bgm_interpolation.cubic_desc").to_owned(),
+                    state.loc.t("menus.options_menu.sound_menu.bgm_interpolation.linear_lp_desc").to_owned(),
                 ],
             ),
         );
@@ -368,7 +382,7 @@ impl SettingsMenu {
                 ),
             ),
         );
-        self.sound.push_entry(SoundMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.sound.push_entry(SoundMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         let mut soundtrack_entries =
             state.constants.soundtracks.iter().filter(|s| s.available).map(|s| s.name.to_owned()).collect_vec();
@@ -394,21 +408,21 @@ impl SettingsMenu {
 
         self.soundtrack.width = soundtrack_entries
             .into_iter()
-            .map(|str| state.font.text_width(str.chars(), &state.constants))
+            .map(|str| state.font.builder().compute_width(&str))
             .max_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap())
             .unwrap_or(self.soundtrack.width as f32) as u16
             + 32;
 
-        self.soundtrack.push_entry(SoundtrackMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.soundtrack.push_entry(SoundtrackMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.behavior.push_entry(
             BehaviorMenuEntry::GameTiming,
             MenuEntry::Options(
-                state.t("menus.options_menu.behavior_menu.game_timing.entry"),
+                state.loc.t("menus.options_menu.behavior_menu.game_timing.entry").to_owned(),
                 if state.settings.timing_mode == TimingMode::_50Hz { 0 } else { 1 },
                 vec![
-                    state.t("menus.options_menu.behavior_menu.game_timing.50tps"),
-                    state.t("menus.options_menu.behavior_menu.game_timing.60tps"),
+                    state.loc.t("menus.options_menu.behavior_menu.game_timing.50tps").to_owned(),
+                    state.loc.t("menus.options_menu.behavior_menu.game_timing.60tps").to_owned(),
                 ],
             ),
         );
@@ -416,7 +430,7 @@ impl SettingsMenu {
         self.behavior.push_entry(
             BehaviorMenuEntry::PauseOnFocusLoss,
             MenuEntry::Toggle(
-                state.t("menus.options_menu.behavior_menu.pause_on_focus_loss"),
+                state.loc.t("menus.options_menu.behavior_menu.pause_on_focus_loss").to_owned(),
                 state.settings.pause_on_focus_loss,
             ),
         );
@@ -424,18 +438,18 @@ impl SettingsMenu {
         self.behavior.push_entry(
             BehaviorMenuEntry::CutsceneSkipMode,
             MenuEntry::Options(
-                state.t("menus.options_menu.behavior_menu.cutscene_skip_method.entry"),
+                state.loc.t("menus.options_menu.behavior_menu.cutscene_skip_method.entry").to_owned(),
                 if state.settings.cutscene_skip_mode == CutsceneSkipMode::Hold { 0 } else { 1 },
                 vec![
-                    state.t("menus.options_menu.behavior_menu.cutscene_skip_method.hold"),
-                    state.t("menus.options_menu.behavior_menu.cutscene_skip_method.fastforward"),
+                    state.loc.t("menus.options_menu.behavior_menu.cutscene_skip_method.hold").to_owned(),
+                    state.loc.t("menus.options_menu.behavior_menu.cutscene_skip_method.fastforward").to_owned(),
                 ],
             ),
         );
 
-        self.behavior.push_entry(BehaviorMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.behavior.push_entry(BehaviorMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
-        self.links.push_entry(LinksMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.links.push_entry(LinksMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.controls_menu.init(state, ctx)?;
 
@@ -747,7 +761,7 @@ impl SettingsMenu {
                             self.current = CurrentMenu::MainMenu;
                         } else {
                             state.settings.locale = new_locale;
-                            state.reload_fonts(ctx);
+                            state.update_locale(ctx);
 
                             let _ = state.settings.save(ctx);
 

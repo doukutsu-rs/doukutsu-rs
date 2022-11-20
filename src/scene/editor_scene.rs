@@ -4,11 +4,13 @@ use std::rc::Rc;
 use downcast::Downcast;
 use imgui::{Condition, MenuItem, TabItem, TabItemFlags, Window};
 
-use crate::{Context, GameResult, Scene, SharedGameState};
 use crate::editor::{CurrentTool, EditorInstance};
+use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::framework::keyboard;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::ui::Components;
+use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::scene::game_scene::GameScene;
 use crate::scene::title_scene::TitleScene;
@@ -181,14 +183,13 @@ impl Scene for EditorScene {
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         if let Some(scene) = &self.subscene {
             scene.draw(state, ctx)?;
-            state.font.draw_text(
-                "Press [ESC] to return.".chars(),
-                4.0,
-                4.0,
+
+            state.font.builder().position(4.0, 4.0).draw(
+                "Press [ESC] to return.",
+                ctx,
                 &state.constants,
                 &mut state.texture_set,
-                ctx,
-            )?;
+            );
             return Ok(());
         }
 

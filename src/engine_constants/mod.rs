@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Cursor, Read};
 
-use byteorder::{LE, ReadBytesExt};
+use byteorder::{ReadBytesExt, LE};
 use case_insensitive_hashmap::CaseInsensitiveHashMap;
 use xmltree::Element;
 
@@ -12,11 +12,11 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::framework::gamepad::{Axis, Button};
+use crate::game::player::ControlMode;
+use crate::game::scripting::tsc::text_script::TextScriptEncoding;
 use crate::game::settings::Settings;
 use crate::game::shared_game_state::{FontData, Season};
 use crate::i18n::Locale;
-use crate::game::player::ControlMode;
-use crate::game::scripting::tsc::text_script::TextScriptEncoding;
 use crate::sound::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
 use crate::sound::SoundManager;
 
@@ -332,7 +332,6 @@ pub struct EngineConstants {
     pub title: TitleConsts,
     pub inventory_dim_color: Color,
     pub font_path: String,
-    pub font_scale: f32,
     pub font_space_offset: f32,
     pub soundtracks: Vec<ExtraSoundtrack>,
     pub music_table: Vec<String>,
@@ -365,7 +364,6 @@ impl Clone for EngineConstants {
             title: self.title.clone(),
             inventory_dim_color: self.inventory_dim_color,
             font_path: self.font_path.clone(),
-            font_scale: self.font_scale,
             font_space_offset: self.font_space_offset,
             soundtracks: self.soundtracks.clone(),
             music_table: self.music_table.clone(),
@@ -1604,7 +1602,6 @@ impl EngineConstants {
             },
             inventory_dim_color: Color::from_rgba(0, 0, 0, 0),
             font_path: "csfont.fnt".to_owned(),
-            font_scale: 1.0,
             font_space_offset: 0.0,
             soundtracks: vec![
                 ExtraSoundtrack { name: "Remastered".to_owned(), path: "/base/Ogg11/".to_owned(), available: false },
@@ -1664,7 +1661,7 @@ impl EngineConstants {
                 "/Resource/ORG/".to_owned(), // CSE2E
             ],
             credit_illustration_paths: vec![
-                "".to_owned(),
+                String::new(),
                 "Resource/BITMAP/".to_owned(), // CSE2E
                 "endpic/".to_owned(),          // NXEngine
             ],

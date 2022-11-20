@@ -16,7 +16,7 @@ bench = false
 required-features = ["exe"]
 
 [profile.release]
-lto = "off"
+lto = "thin"
 panic = "abort"
 
 [profile.dev.package."*"]
@@ -71,6 +71,7 @@ paste = "1.0"
 pelite = ">=0.9.2"
 sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 sdl2-sys = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["bundled", "static-link"] }
+rc-box = "1.2.0"
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_cbor = { version = "0.11", optional = true }

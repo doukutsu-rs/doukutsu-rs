@@ -12,6 +12,21 @@ pub struct Locale {
     strings: HashMap<String, String>,
 }
 
+impl Default for Locale {
+    fn default() -> Self {
+        Locale {
+            code: "en".to_owned(),
+            name: "English".to_owned(),
+            font: FontData {
+                path: String::new(),
+                scale: 1.0,
+                space_offset: 0.0
+            },
+            strings: HashMap::new(),
+        }
+    }
+}
+
 impl Locale {
     pub fn new(ctx: &mut Context, base_paths: &Vec<String>, code: &str) -> Locale {
         let file = filesystem::open_find(ctx, base_paths, &format!("locale/{}.json", code)).unwrap();
@@ -50,12 +65,16 @@ impl Locale {
         strings
     }
 
-    pub fn t(&self, key: &str) -> String {
-        self.strings.get(key).unwrap_or(&key.to_owned()).to_owned()
+    pub fn t<'a: 'b, 'b>(&'a self, key: &'b str) -> &'b str {
+        if let Some(str) = self.strings.get(key) {
+            str
+        } else {
+            key
+        }
     }
 
     pub fn tt(&self, key: &str, args: &[(&str, &str)]) -> String {
-        let mut string = self.t(key);
+        let mut string = self.t(key).to_owned();
 
         for (key, value) in args.iter() {
             string = string.replace(&format!("{{{}}}", key), &value);

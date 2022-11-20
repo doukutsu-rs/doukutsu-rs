@@ -10,12 +10,13 @@ use crate::game::shared_game_state::{
     GameDifficulty, MenuCharacter, ReplayKind, ReplayState, Season, SharedGameState, TileSize,
 };
 use crate::game::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
+use crate::graphics::font::Font;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::input::touch_controls::TouchControlType;
-use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::menu::coop_menu::PlayerCountMenu;
 use crate::menu::save_select_menu::SaveSelectMenu;
 use crate::menu::settings_menu::SettingsMenu;
+use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::jukebox_scene::JukeboxScene;
 use crate::scene::Scene;
 
@@ -96,9 +97,9 @@ impl TitleScene {
         let fake_stage = Stage {
             map: Map { width: 0, height: 0, tiles: vec![], attrib: [0; 0x100], tile_size: TileSize::Tile16x16 },
             data: StageData {
-                name: "".to_string(),
-                name_jp: "".to_string(),
-                map: "".to_string(),
+                name: String::new(),
+                name_jp: String::new(),
+                map: String::new(),
                 boss_no: 0,
                 tileset: Tileset { name: "0".to_string() },
                 pxpack_data: None,
@@ -134,15 +135,11 @@ impl TitleScene {
     }
 
     fn draw_text_centered(&self, text: &str, y: f32, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        let width = state.font.text_width(text.chars(), &state.constants);
-        state.font.draw_text(
-            text.chars(),
-            ((state.canvas_size.0 - width) / 2.0).floor(),
-            y,
-            &state.constants,
-            &mut state.texture_set,
-            ctx,
-        )?;
+        state.font.builder()
+            .center(state.canvas_size.0)
+            .y(y)
+            .shadow(true)
+            .draw(text, ctx, &state.constants, &mut state.texture_set)?;
 
         Ok(())
     }
@@ -198,24 +195,29 @@ impl Scene for TitleScene {
         self.controller.add(state.settings.create_player1_controller());
         self.controller.add(state.settings.create_player2_controller());
 
-        self.main_menu.push_entry(MainMenuEntry::Start, MenuEntry::Active(state.t("menus.main_menu.start")));
+        self.main_menu.push_entry(MainMenuEntry::Start, MenuEntry::Active(state.loc.t("menus.main_menu.start").to_owned()));
 
         if !state.mod_list.mods.is_empty() {
-            self.main_menu
-                .push_entry(MainMenuEntry::Challenges, MenuEntry::Active(state.t("menus.main_menu.challenges")));
+            self.main_menu.push_entry(
+                MainMenuEntry::Challenges,
+                MenuEntry::Active(state.loc.t("menus.main_menu.challenges").to_owned()),
+            );
         }
 
-        self.main_menu.push_entry(MainMenuEntry::Options, MenuEntry::Active(state.t("menus.main_menu.options")));
+        self.main_menu
+            .push_entry(MainMenuEntry::Options, MenuEntry::Active(state.loc.t("menus.main_menu.options").to_owned()));
 
         if cfg!(feature = "editor") {
-            self.main_menu.push_entry(MainMenuEntry::Editor, MenuEntry::Active(state.t("menus.main_menu.editor")));
+            self.main_menu
+                .push_entry(MainMenuEntry::Editor, MenuEntry::Active(state.loc.t("menus.main_menu.editor").to_owned()));
         }
 
         if state.constants.is_switch {
-            self.main_menu.push_entry(MainMenuEntry::Jukebox, MenuEntry::Active(state.t("menus.main_menu.jukebox")));
+            self.main_menu
+                .push_entry(MainMenuEntry::Jukebox, MenuEntry::Active(state.loc.t("menus.main_menu.jukebox").to_owned()));
         }
 
-        self.main_menu.push_entry(MainMenuEntry::Quit, MenuEntry::Active(state.t("menus.main_menu.quit")));
+        self.main_menu.push_entry(MainMenuEntry::Quit, MenuEntry::Active(state.loc.t("menus.main_menu.quit").to_owned()));
 
         self.settings_menu.init(state, ctx)?;
 
@@ -246,16 +248,19 @@ impl Scene for TitleScene {
                     .push_entry(ChallengesMenuEntry::Challenge(idx), MenuEntry::Disabled("???".to_owned()));
             }
         }
-        self.challenges_menu.push_entry(ChallengesMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.challenges_menu
+            .push_entry(ChallengesMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
         self.challenges_menu.selected = selected;
 
-        self.confirm_menu.push_entry(ConfirmMenuEntry::Title, MenuEntry::Disabled("".to_owned()));
-        self.confirm_menu
-            .push_entry(ConfirmMenuEntry::StartChallenge, MenuEntry::Active(state.t("menus.challenge_menu.start")));
+        self.confirm_menu.push_entry(ConfirmMenuEntry::Title, MenuEntry::Disabled(String::new()));
+        self.confirm_menu.push_entry(
+            ConfirmMenuEntry::StartChallenge,
+            MenuEntry::Active(state.loc.t("menus.challenge_menu.start").to_owned()),
+        );
         self.confirm_menu.push_entry(ConfirmMenuEntry::Replay(ReplayKind::Best), MenuEntry::Hidden);
         self.confirm_menu.push_entry(ConfirmMenuEntry::Replay(ReplayKind::Last), MenuEntry::Hidden);
         self.confirm_menu.push_entry(ConfirmMenuEntry::DeleteReplay, MenuEntry::Hidden);
-        self.confirm_menu.push_entry(ConfirmMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.confirm_menu.push_entry(ConfirmMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
         self.confirm_menu.selected = ConfirmMenuEntry::StartChallenge;
 
         self.controller.update(state, ctx)?;
@@ -304,10 +309,10 @@ impl Scene for TitleScene {
                 MenuSelectionResult::Selected(MainMenuEntry::Editor, _) => {
                     // this comment is just there because rustfmt removes parenthesis around the match case and breaks compilation
                     #[cfg(feature = "editor")]
-                        {
-                            use crate::scene::editor_scene::EditorScene;
-                            state.next_scene = Some(Box::new(EditorScene::new()));
-                        }
+                    {
+                        use crate::scene::editor_scene::EditorScene;
+                        state.next_scene = Some(Box::new(EditorScene::new()));
+                    }
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Jukebox, _) => {
                     state.next_scene = Some(Box::new(JukeboxScene::new()));
@@ -356,18 +361,18 @@ impl Scene for TitleScene {
                         } else {
                             let mod_name = mod_info.name.clone();
                             self.confirm_menu.width =
-                                (state.font.text_width(mod_name.chars(), &state.constants).max(50.0) + 32.0) as u16;
+                                (state.font.builder().compute_width(&mod_name).max(50.0) + 32.0) as u16;
 
                             self.confirm_menu.set_entry(ConfirmMenuEntry::Title, MenuEntry::Disabled(mod_name));
 
                             if state.has_replay_data(ctx, ReplayKind::Best) {
                                 self.confirm_menu.set_entry(
                                     ConfirmMenuEntry::Replay(ReplayKind::Best),
-                                    MenuEntry::Active(state.t("menus.challenge_menu.replay_best")),
+                                    MenuEntry::Active(state.loc.t("menus.challenge_menu.replay_best").to_owned()),
                                 );
                                 self.confirm_menu.set_entry(
                                     ConfirmMenuEntry::DeleteReplay,
-                                    MenuEntry::Active(state.t("menus.challenge_menu.delete_replay")),
+                                    MenuEntry::Active(state.loc.t("menus.challenge_menu.delete_replay").to_owned()),
                                 );
                             } else {
                                 self.confirm_menu
@@ -378,7 +383,7 @@ impl Scene for TitleScene {
                             if state.has_replay_data(ctx, ReplayKind::Last) {
                                 self.confirm_menu.set_entry(
                                     ConfirmMenuEntry::Replay(ReplayKind::Last),
-                                    MenuEntry::Active(state.t("menus.challenge_menu.replay_last")),
+                                    MenuEntry::Active(state.loc.t("menus.challenge_menu.replay_last").to_owned()),
                                 );
                             } else {
                                 self.confirm_menu
@@ -460,22 +465,19 @@ impl Scene for TitleScene {
             batch.draw(ctx)?;
         } else {
             let window_title = match self.current_menu {
-                CurrentMenu::ChallengesMenu => state.t("menus.main_menu.challenges"),
-                CurrentMenu::ChallengeConfirmMenu | CurrentMenu::SaveSelectMenu => state.t("menus.main_menu.start"),
-                CurrentMenu::OptionMenu => state.t("menus.main_menu.options"),
+                CurrentMenu::ChallengesMenu => state.loc.t("menus.main_menu.challenges"),
+                CurrentMenu::ChallengeConfirmMenu | CurrentMenu::SaveSelectMenu => state.loc.t("menus.main_menu.start"),
+                CurrentMenu::OptionMenu => state.loc.t("menus.main_menu.options"),
                 CurrentMenu::MainMenu => unreachable!(),
-                CurrentMenu::PlayerCountMenu => state.t("menus.main_menu.start"),
+                CurrentMenu::PlayerCountMenu => state.loc.t("menus.main_menu.start"),
             };
-            state.font.draw_colored_text_with_shadow_scaled(
-                window_title.chars(),
-                state.canvas_size.0 / 2.0 - state.font.text_width(window_title.chars(), &state.constants) / 2.0,
-                state.font.line_height(&state.constants), //im sure there is a better way to shift this into place
-                1.0,
-                (0xff, 0xff, 0xff, 0xff),
-                &state.constants,
-                &mut state.texture_set,
-                ctx,
-            )?;
+            state
+                .font
+                .builder()
+                .shadow(true)
+                .position(0.0, state.font.line_height())
+                .center(state.canvas_size.0)
+                .draw(&window_title, ctx, &state.constants, &mut state.texture_set)?;
         }
 
         if self.current_menu == CurrentMenu::MainMenu {

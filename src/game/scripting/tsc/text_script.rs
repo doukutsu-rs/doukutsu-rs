@@ -26,6 +26,7 @@ use crate::game::scripting::tsc::opcodes::TSCOpCode;
 use crate::game::shared_game_state::ReplayState;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::weapon::WeaponType;
+use crate::graphics::font::{Font, Symbols};
 use crate::input::touch_controls::TouchControlType;
 use crate::scene::game_scene::GameScene;
 
@@ -354,6 +355,10 @@ impl TextScriptVM {
                         cursor.seek(SeekFrom::Start(ip as u64))?;
 
                         let chr = std::char::from_u32(read_cur_varint(&mut cursor)? as u32).unwrap_or('\u{fffd}');
+                        let builder = state.font.builder().with_symbols(Some(Symbols {
+                            symbols: &state.textscript_vm.substitution_rect_map,
+                            texture: "",
+                        }));
 
                         match chr {
                             '\n' if state.textscript_vm.current_line == TextScriptLine::Line1 => {
@@ -370,11 +375,7 @@ impl TextScriptVM {
                                 state.textscript_vm.prev_char = chr;
                                 state.textscript_vm.line_1.push(chr);
 
-                                let text_len = state.font.text_width_with_rects(
-                                    state.textscript_vm.line_1.iter().copied(),
-                                    &state.textscript_vm.substitution_rect_map,
-                                    &state.constants,
-                                );
+                                let text_len = builder.compute_width_iter(state.textscript_vm.line_1.iter().copied());
                                 if text_len >= 284.0 {
                                     state.textscript_vm.current_line = TextScriptLine::Line2;
                                 }
@@ -383,11 +384,7 @@ impl TextScriptVM {
                                 state.textscript_vm.prev_char = chr;
                                 state.textscript_vm.line_2.push(chr);
 
-                                let text_len = state.font.text_width_with_rects(
-                                    state.textscript_vm.line_2.iter().copied(),
-                                    &state.textscript_vm.substitution_rect_map,
-                                    &state.constants,
-                                );
+                                let text_len = builder.compute_width_iter(state.textscript_vm.line_2.iter().copied());
                                 if text_len >= 284.0 {
                                     state.textscript_vm.current_line = TextScriptLine::Line3;
                                 }
@@ -396,11 +393,7 @@ impl TextScriptVM {
                                 state.textscript_vm.prev_char = chr;
                                 state.textscript_vm.line_3.push(chr);
 
-                                let text_len = state.font.text_width_with_rects(
-                                    state.textscript_vm.line_3.iter().copied(),
-                                    &state.textscript_vm.substitution_rect_map,
-                                    &state.constants,
-                                );
+                                let text_len = builder.compute_width_iter(state.textscript_vm.line_3.iter().copied());
                                 if text_len >= 284.0 {
                                     new_line = true;
                                 }
@@ -414,9 +407,9 @@ impl TextScriptVM {
                                 0
                             } else if remaining != 2
                                 && (game_scene.player1.controller.jump()
-                                || game_scene.player1.controller.shoot()
-                                || game_scene.player2.controller.jump()
-                                || game_scene.player2.controller.shoot())
+                                    || game_scene.player1.controller.shoot()
+                                    || game_scene.player2.controller.jump()
+                                    || game_scene.player2.controller.shoot())
                             {
                                 state.constants.textscript.text_speed_fast
                             } else {
@@ -640,7 +633,7 @@ impl TextScriptVM {
         cursor.seek(SeekFrom::Start(ip as u64))?;
 
         let op: TSCOpCode = if let Some(op) =
-        FromPrimitive::from_i32(read_cur_varint(&mut cursor).unwrap_or_else(|_| TSCOpCode::END as i32))
+            FromPrimitive::from_i32(read_cur_varint(&mut cursor).unwrap_or_else(|_| TSCOpCode::END as i32))
         {
             op
         } else {
@@ -700,7 +693,7 @@ impl TextScriptVM {
                 state.textscript_vm.set_mode(ScriptMode::StageSelect);
 
                 let event_num = if let Some(slot) =
-                state.teleporter_slots.get(game_scene.stage_select.current_teleport_slot as usize)
+                    state.teleporter_slots.get(game_scene.stage_select.current_teleport_slot as usize)
                 {
                     1000 + slot.0
                 } else {

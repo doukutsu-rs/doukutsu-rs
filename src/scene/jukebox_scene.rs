@@ -11,9 +11,10 @@ use crate::game::map::Map;
 use crate::game::settings::ControllerType;
 use crate::game::shared_game_state::{SharedGameState, TileSize};
 use crate::game::stage::{BackgroundType, NpcType, Stage, StageData, StageTexturePaths, Tileset};
+use crate::graphics::font::Font;
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
+use crate::scene::Scene;
 
 pub struct JukeboxScene {
     selected_song: u16,
@@ -33,9 +34,9 @@ impl JukeboxScene {
         let fake_stage = Stage {
             map: Map { width: 0, height: 0, tiles: vec![], attrib: [0; 0x100], tile_size: TileSize::Tile16x16 },
             data: StageData {
-                name: "".to_string(),
-                name_jp: "".to_string(),
-                map: "".to_string(),
+                name: String::new(),
+                name_jp: String::new(),
+                map: String::new(),
                 boss_no: 0,
                 tileset: Tileset { name: "0".to_string() },
                 pxpack_data: None,
@@ -114,16 +115,16 @@ impl Scene for JukeboxScene {
 
         let mut song = self.selected_song as i16
             + if self.controller.trigger_right() {
-            1
-        } else if self.controller.trigger_left() {
-            -1
-        } else if self.controller.trigger_down() {
-            8
-        } else if self.controller.trigger_up() {
-            -8
-        } else {
-            0
-        };
+                1
+            } else if self.controller.trigger_left() {
+                -1
+            } else if self.controller.trigger_down() {
+                8
+            } else if self.controller.trigger_up() {
+                -8
+            } else {
+                0
+            };
 
         if song < 0 {
             song += self.song_list.len() as i16;
@@ -281,15 +282,11 @@ impl Scene for JukeboxScene {
         // Write Soundtrack name
 
         let text = &state.settings.soundtrack;
-
-        let width = state.font.text_width(text.chars(), &state.constants);
-        state.font.draw_text(
-            text.chars(),
-            ((state.canvas_size.0 - width) / 2.0).floor(),
-            20.0,
+        state.font.builder().center(state.canvas_size.0).y(20.0).shadow(true).draw(
+            text,
+            ctx,
             &state.constants,
             &mut state.texture_set,
-            ctx,
         )?;
 
         // Write soundtrack switch indicators
@@ -297,15 +294,19 @@ impl Scene for JukeboxScene {
         if state.settings.touch_controls || state.settings.player1_controller_type == ControllerType::Keyboard {
             let prev_chevron = "<";
             let next_chevron = ">";
+            let next_chev_width = state.font.builder().compute_width(next_chevron);
 
-            state.font.draw_text(prev_chevron.chars(), init_x, 20.0, &state.constants, &mut state.texture_set, ctx)?;
-            state.font.draw_text(
-                next_chevron.chars(),
-                state.canvas_size.0 - init_x - state.font.text_width(next_chevron.chars(), &state.constants),
-                20.0,
+            state.font.builder().position(init_x, 20.0).draw(
+                prev_chevron,
+                ctx,
                 &state.constants,
                 &mut state.texture_set,
+            )?;
+            state.font.builder().position(state.canvas_size.0 - init_x - next_chev_width, 20.0).draw(
+                next_chevron,
                 ctx,
+                &state.constants,
+                &mut state.texture_set,
             )?;
         } else {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "buttons")?;

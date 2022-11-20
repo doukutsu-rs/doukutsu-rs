@@ -3,15 +3,15 @@ use std::{cmp, ops::Div};
 use chrono::{Datelike, Local};
 
 use crate::common::{ControlFlags, Direction, FadeState};
-use crate::components::draw_common::{Alignment, draw_number};
+use crate::components::draw_common::{draw_number, Alignment};
 use crate::data::vanilla::VanillaExtractor;
 use crate::engine_constants::EngineConstants;
-use crate::framework::{filesystem, graphics};
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{create_texture_mutable, set_render_target};
 use crate::framework::vfs::OpenOptions;
+use crate::framework::{filesystem, graphics};
 use crate::game::caret::{Caret, CaretType};
 use crate::game::npc::NPCTable;
 use crate::game::profile::GameProfile;
@@ -21,15 +21,15 @@ use crate::game::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
 use crate::game::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptExecutionState, TextScriptVM};
 use crate::game::settings::Settings;
 use crate::game::stage::StageData;
-use crate::graphics::bmfont_renderer::BMFontRenderer;
+use crate::graphics::bmfont::BMFont;
 use crate::graphics::texture_set::TextureSet;
 use crate::i18n::Locale;
 use crate::input::touch_controls::TouchControls;
 use crate::mod_list::ModList;
 use crate::mod_requirements::ModRequirements;
 use crate::scene::game_scene::GameScene;
-use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
+use crate::scene::Scene;
 use crate::sound::SoundManager;
 use crate::util::bitvec::BitVec;
 use crate::util::rng::XorShift;
@@ -291,7 +291,7 @@ pub struct SharedGameState {
     pub season: Season,
     pub menu_character: MenuCharacter,
     pub constants: EngineConstants,
-    pub font: BMFontRenderer,
+    pub font: BMFont,
     pub texture_set: TextureSet,
     #[cfg(feature = "scripting-lua")]
     pub lua: LuaScriptingState,
@@ -304,6 +304,7 @@ pub struct SharedGameState {
     pub player2_skin: u16,
     pub replay_state: ReplayState,
     pub mod_requirements: ModRequirements,
+    pub loc: Locale,
     pub tutorial_counter: u16,
     pub more_rust: bool,
     pub shutdown: bool,
@@ -375,15 +376,11 @@ impl SharedGameState {
 
         constants.load_locales(ctx)?;
 
-        let active_locale = SharedGameState::active_locale(settings.locale.clone(), constants.clone());
+        let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
 
-        if constants.is_cs_plus {
-            constants.font_scale = active_locale.font.scale;
-        }
-
-        let font = BMFontRenderer::load(&constants.base_paths, &active_locale.font.path, ctx).or_else(|e| {
+        let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
             log::warn!("Failed to load font, using built-in: {}", e);
-            BMFontRenderer::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx)
+            BMFont::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx, 1.0)
         })?;
 
         let mod_list = ModList::load(ctx, &constants.string_table)?;
@@ -460,6 +457,7 @@ impl SharedGameState {
             player2_skin: 0,
             replay_state: ReplayState::None,
             mod_requirements,
+            loc: locale,
             tutorial_counter: 0,
             more_rust,
             shutdown: false,
@@ -515,19 +513,17 @@ impl SharedGameState {
         self.texture_set.unload_all();
     }
 
-    pub fn reload_fonts(&mut self, ctx: &mut Context) {
-        let active_locale = self.get_active_locale();
+    pub fn update_locale(&mut self, ctx: &mut Context) {
+        if let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) {
+            self.loc = locale;
+        }
 
-        let font = BMFontRenderer::load(&self.constants.base_paths, &active_locale.font.path, ctx)
+        let font = BMFont::load(&self.constants.base_paths, &self.loc.font.path, ctx, self.loc.font.scale)
             .or_else(|e| {
                 log::warn!("Failed to load font, using built-in: {}", e);
-                BMFontRenderer::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx)
+                BMFont::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx, 1.0)
             })
             .unwrap();
-
-        if self.constants.is_cs_plus {
-            self.constants.font_scale = active_locale.font.scale;
-        }
 
         self.font = font;
     }
@@ -539,7 +535,7 @@ impl SharedGameState {
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
         self.reset();
         #[cfg(feature = "scripting-lua")]
-            self.lua.reload_scripts(ctx)?;
+        self.lua.reload_scripts(ctx)?;
 
         let mut next_scene = GameScene::new(self, ctx, self.constants.game.new_game_stage as usize)?;
         next_scene.player1.cond.set_alive(true);
@@ -561,7 +557,7 @@ impl SharedGameState {
 
     pub fn start_intro(&mut self, ctx: &mut Context) -> GameResult {
         #[cfg(feature = "scripting-lua")]
-            self.lua.reload_scripts(ctx)?;
+        self.lua.reload_scripts(ctx)?;
 
         let start_stage_id = self.constants.game.intro_stage as usize;
 
@@ -613,7 +609,7 @@ impl SharedGameState {
                         profile.apply(self, &mut next_scene, ctx);
 
                         #[cfg(feature = "scripting-lua")]
-                            self.lua.reload_scripts(ctx)?;
+                        self.lua.reload_scripts(ctx)?;
 
                         self.next_scene = Some(Box::new(next_scene));
                         return Ok(());
@@ -813,37 +809,24 @@ impl SharedGameState {
         return self.difficulty as u16;
     }
 
-    fn active_locale(user_locale: String, constants: EngineConstants) -> Locale {
-        let mut active_locale: Option<Locale> = None;
-        let mut en_locale: Option<Locale> = None;
+    fn get_locale(constants: &EngineConstants, user_locale: &str) -> Option<Locale> {
+        let mut out_locale = None;
 
         for locale in &constants.locales {
             if locale.code == "en" {
-                en_locale = Some(locale.clone());
+                out_locale = Some(locale.clone());
             }
 
             if locale.code == user_locale {
-                active_locale = Some(locale.clone());
+                out_locale = Some(locale.clone());
                 break;
             }
         }
 
-        match active_locale {
-            Some(locale) => locale,
-            None => en_locale.unwrap(),
-        }
-    }
-
-    pub fn get_active_locale(&self) -> Locale {
-        let locale = SharedGameState::active_locale(self.settings.locale.clone(), self.constants.clone());
-        locale.clone()
-    }
-
-    pub fn t(&self, key: &str) -> String {
-        return self.get_active_locale().t(key);
+        out_locale
     }
 
     pub fn tt(&self, key: &str, args: &[(&str, &str)]) -> String {
-        return self.get_active_locale().tt(key, args);
+        return self.loc.tt(key, args);
     }
 }

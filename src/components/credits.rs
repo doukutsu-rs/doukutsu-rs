@@ -4,8 +4,9 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::game::frame::Frame;
-use crate::game::shared_game_state::SharedGameState;
 use crate::game::scripting::tsc::text_script::IllustrationState;
+use crate::game::shared_game_state::SharedGameState;
+use crate::graphics::font::Font;
 
 pub struct Credits {}
 
@@ -102,16 +103,22 @@ impl GameEntity<()> for Credits {
         }
 
         for line in &state.creditscript_vm.lines {
-            let text =
-                if state.more_rust { line.text.replace("Sue Sakamoto", "Crabby Sue") } else { line.text.clone() };
+            let mut text_ovr = None;
 
-            state.font.draw_text_with_shadow(
-                text.chars(),
-                line.pos_x,
-                line.pos_y,
+            if state.more_rust {
+                text_ovr = Some(line.text.replace("Sue Sakamoto", "Crabby Sue"));
+            }
+
+            let mut text = line.text.as_str();
+            if let Some(ovr) = text_ovr.as_ref() {
+                text = ovr.as_str();
+            }
+
+            state.font.builder().position(line.pos_x, line.pos_y).shadow(true).draw(
+                text,
+                ctx,
                 &state.constants,
                 &mut state.texture_set,
-                ctx,
             )?;
         }
 

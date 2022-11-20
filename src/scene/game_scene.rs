@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use log::info;
 
-use crate::common::{Color, Direction, interpolate_fix9_scale, Rect};
+use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
@@ -23,35 +23,36 @@ use crate::components::tilemap::{TileLayer, Tilemap};
 use crate::components::water_renderer::{WaterLayer, WaterRenderer};
 use crate::components::whimsical_star::WhimsicalStar;
 use crate::entity::GameEntity;
-use crate::framework::{filesystem, gamepad, graphics};
 use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{BlendMode, draw_rect, FilterMode};
+use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
 use crate::framework::keyboard::ScanCode;
 use crate::framework::ui::Components;
+use crate::framework::{filesystem, gamepad, graphics};
 use crate::game::caret::CaretType;
 use crate::game::frame::{Frame, UpdateTarget};
 use crate::game::inventory::{Inventory, TakeExperienceResult};
 use crate::game::map::WaterParams;
-use crate::game::physics::{OFFSETS, PhysicalEntity};
+use crate::game::npc::boss::BossNPC;
+use crate::game::npc::list::NPCList;
+use crate::game::npc::{NPCLayer, NPC};
+use crate::game::physics::{PhysicalEntity, OFFSETS};
+use crate::game::player::{ControlMode, Player, TargetPlayer};
+use crate::game::scripting::tsc::credit_script::CreditScriptVM;
+use crate::game::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
 use crate::game::settings::ControllerType;
 use crate::game::shared_game_state::{CutsceneSkipMode, PlayerCount, ReplayState, SharedGameState, TileSize};
 use crate::game::stage::{BackgroundType, Stage, StageTexturePaths};
+use crate::game::weapon::bullet::BulletManager;
+use crate::game::weapon::{Weapon, WeaponType};
+use crate::graphics::font::{Font, Symbols};
 use crate::graphics::texture_set::SpriteBatch;
 use crate::input::touch_controls::TouchControlType;
 use crate::menu::pause_menu::PauseMenu;
-use crate::game::npc::{NPC, NPCLayer};
-use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
-use crate::game::player::{ControlMode, Player, TargetPlayer};
-use crate::scene::Scene;
 use crate::scene::title_scene::TitleScene;
-use crate::game::scripting::tsc::credit_script::CreditScriptVM;
-use crate::game::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
+use crate::scene::Scene;
 use crate::util::rng::RNG;
-use crate::game::weapon::{Weapon, WeaponType};
-use crate::game::weapon::bullet::BulletManager;
 
 pub struct GameScene {
     pub tick: u32,
@@ -199,14 +200,14 @@ impl GameScene {
             if npc.layer != layer
                 || npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
                 || npc.x
-                > (self.frame.x
-                + 128 * 0x200
-                + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
-                && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
+                    > (self.frame.x
+                        + 128 * 0x200
+                        + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
                 || npc.y
-                > (self.frame.y
-                + 128 * 0x200
-                + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
+                    > (self.frame.y
+                        + 128 * 0x200
+                        + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
             {
                 continue;
             }
@@ -420,45 +421,45 @@ impl GameScene {
                         && y >= bymth
                         && y <= bypth)
                         || ((tile == 0x50 || tile == 0x70)
-                        && x >= bxmth
-                        && x <= bxpth
-                        && y <= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 + tfq)
-                        && y >= bymth)
+                            && x >= bxmth
+                            && x <= bxpth
+                            && y <= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 + tfq)
+                            && y >= bymth)
                         || ((tile == 0x51 || tile == 0x71)
-                        && x >= bxmth
-                        && x <= bxpth
-                        && y <= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 - tfq)
-                        && y >= bymth)
+                            && x >= bxmth
+                            && x <= bxpth
+                            && y <= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 - tfq)
+                            && y >= bymth)
                         || ((tile == 0x52 || tile == 0x72)
-                        && x >= bxmth
-                        && x <= bxpth
-                        && y <= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 - tfq)
-                        && y >= bymth)
+                            && x >= bxmth
+                            && x <= bxpth
+                            && y <= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 - tfq)
+                            && y >= bymth)
                         || ((tile == 0x53 || tile == 0x73)
-                        && x >= bxmth
-                        && x <= bxpth
-                        && y <= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 + tfq)
-                        && y >= bymth)
+                            && x >= bxmth
+                            && x <= bxpth
+                            && y <= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 + tfq)
+                            && y >= bymth)
                         || ((tile == 0x54 || tile == 0x74)
-                        && x >= bxmth
-                        && x <= bxpth
-                        && y >= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 - tfq)
-                        && y <= bypth)
+                            && x >= bxmth
+                            && x <= bxpth
+                            && y >= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 - tfq)
+                            && y <= bypth)
                         || ((tile == 0x55 || tile == 0x75)
-                        && x >= bxmth
-                        && x <= bxpth
-                        && y >= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 + tfq)
-                        && y <= bypth)
+                            && x >= bxmth
+                            && x <= bxpth
+                            && y >= ((by as f32 * tf) + (x - bx as f32 * tf) / 2.0 + tfq)
+                            && y <= bypth)
                         || ((tile == 0x56 || tile == 0x76)
-                        && x >= bxmth
-                        && x <= bxpth
-                        && y >= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 + tfq)
-                        && y <= bypth)
+                            && x >= bxmth
+                            && x <= bxpth
+                            && y >= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 + tfq)
+                            && y <= bypth)
                         || ((tile == 0x57 || tile == 0x77)
-                        && x >= bxmth
-                        && x <= bxpth
-                        && y >= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 - tfq)
-                        && y <= bypth)
+                            && x >= bxmth
+                            && x <= bxpth
+                            && y >= ((by as f32 * tf) - (x - bx as f32 * tf) / 2.0 - tfq)
+                            && y <= bypth)
                     {
                         continue 'ray;
                     }
@@ -501,14 +502,14 @@ impl GameScene {
         for npc in self.npc_list.iter_alive() {
             if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
                 || npc.x
-                > (self.frame.x
-                + 128 * 0x200
-                + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
-                && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
+                    > (self.frame.x
+                        + 128 * 0x200
+                        + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
                 || npc.y
-                > (self.frame.y
-                + 128 * 0x200
-                + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
+                    > (self.frame.y
+                        + 128 * 0x200
+                        + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200)
             {
                 continue;
             }
@@ -520,7 +521,7 @@ impl GameScene {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "builtin/lightmap/spot")?;
 
             'cc: for (player, inv) in
-            [(&self.player1, &self.inventory_player1), (&self.player2, &self.inventory_player2)].iter()
+                [(&self.player1, &self.inventory_player1), (&self.player2, &self.inventory_player2)].iter()
             {
                 if player.cond.alive() && !player.cond.hidden() && inv.get_current_weapon().is_some() {
                     if state.settings.light_cone {
@@ -615,15 +616,15 @@ impl GameScene {
             for npc in self.npc_list.iter_alive() {
                 if npc.cond.hidden()
                     || (npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
-                    || npc.x
-                    > (self.frame.x
-                    + 128 * 0x200
-                    + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
-                    && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
-                    || npc.y
-                    > (self.frame.y
-                    + 128 * 0x200
-                    + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200))
+                        || npc.x
+                            > (self.frame.x
+                                + 128 * 0x200
+                                + (state.canvas_size.0 as i32 + npc.display_bounds.width() as i32) * 0x200)
+                            && npc.y < (self.frame.y - 128 * 0x200 - npc.display_bounds.height() as i32 * 0x200)
+                        || npc.y
+                            > (self.frame.y
+                                + 128 * 0x200
+                                + (state.canvas_size.1 as i32 + npc.display_bounds.height() as i32) * 0x200))
                 {
                     continue;
                 }
@@ -1236,10 +1237,10 @@ impl GameScene {
                     && (npc.y - npc.hit_bounds.top as i32) < (bullet.y + bullet.enemy_hit_height as i32)
                     && (npc.y + npc.hit_bounds.bottom as i32) > (bullet.y - bullet.enemy_hit_height as i32))
                     || (npc.npc_flags.invulnerable()
-                    && (npc.x - npc.hit_bounds.right as i32) < (bullet.x + bullet.hit_bounds.right as i32)
-                    && (npc.x + npc.hit_bounds.right as i32) > (bullet.x - bullet.hit_bounds.left as i32)
-                    && (npc.y - npc.hit_bounds.top as i32) < (bullet.y + bullet.hit_bounds.bottom as i32)
-                    && (npc.y + npc.hit_bounds.bottom as i32) > (bullet.y - bullet.hit_bounds.top as i32));
+                        && (npc.x - npc.hit_bounds.right as i32) < (bullet.x + bullet.hit_bounds.right as i32)
+                        && (npc.x + npc.hit_bounds.right as i32) > (bullet.x - bullet.hit_bounds.left as i32)
+                        && (npc.y - npc.hit_bounds.top as i32) < (bullet.y + bullet.hit_bounds.bottom as i32)
+                        && (npc.y + npc.hit_bounds.bottom as i32) > (bullet.y - bullet.hit_bounds.top as i32));
 
                 if !hit {
                     continue;
@@ -1544,10 +1545,10 @@ impl GameScene {
     ) -> GameResult {
         if entity.x() < (self.frame.x - 128 - entity.display_bounds().width() as i32 * 0x200)
             || entity.x()
-            > (self.frame.x + 128 + (state.canvas_size.0 as i32 + entity.display_bounds().width() as i32) * 0x200)
-            && entity.y() < (self.frame.y - 128 - entity.display_bounds().height() as i32 * 0x200)
+                > (self.frame.x + 128 + (state.canvas_size.0 as i32 + entity.display_bounds().width() as i32) * 0x200)
+                && entity.y() < (self.frame.y - 128 - entity.display_bounds().height() as i32 * 0x200)
             || entity.y()
-            > (self.frame.y + 128 + (state.canvas_size.1 as i32 + entity.display_bounds().height() as i32) * 0x200)
+                > (self.frame.y + 128 + (state.canvas_size.1 as i32 + entity.display_bounds().height() as i32) * 0x200)
         {
             return Ok(());
         }
@@ -1597,16 +1598,14 @@ impl GameScene {
         self.draw_debug_object(npc, state, ctx)?;
 
         let text = format!("{}:{}:{}", npc.id, npc.npc_type, npc.action_num);
-        state.font.draw_colored_text_with_shadow_scaled(
-            text.chars(),
-            ((npc.x - self.frame.x) / 0x200) as f32,
-            ((npc.y - self.frame.y) / 0x200) as f32,
-            0.5,
-            (255, 255, 0, 255),
-            &state.constants,
-            &mut state.texture_set,
-            ctx,
-        )?;
+        state
+            .font
+            .builder()
+            .position(((npc.x - self.frame.x) / 0x200) as f32, ((npc.y - self.frame.y) / 0x200) as f32)
+            .scale(0.5)
+            .shadow(true)
+            .color((255, 255, 0, 255))
+            .draw(&text, ctx, &state.constants, &mut state.texture_set)?;
 
         Ok(())
     }
@@ -1653,7 +1652,7 @@ impl Scene for GameScene {
         state.textscript_vm.suspend = false;
         state.tile_size = self.stage.map.tile_size;
         #[cfg(feature = "scripting-lua")]
-            state.lua.set_game_scene(self as *mut _);
+        state.lua.set_game_scene(self as *mut _);
 
         self.player1.controller = state.settings.create_player1_controller();
         self.player2.controller = state.settings.create_player2_controller();
@@ -1702,24 +1701,24 @@ impl Scene for GameScene {
             _ if self.intro_mode => LightingMode::None,
             _ if !state.constants.is_switch
                 && (self.stage.data.background_type == BackgroundType::Black
-                || self.stage.data.background.name() == "bkBlack") =>
-                {
-                    LightingMode::Ambient
-                }
+                    || self.stage.data.background.name() == "bkBlack") =>
+            {
+                LightingMode::Ambient
+            }
             _ if state.constants.is_switch
                 && (self.stage.data.background_type == BackgroundType::Black
-                || self.stage.data.background.name() == "bkBlack") =>
-                {
-                    LightingMode::None
-                }
+                    || self.stage.data.background.name() == "bkBlack") =>
+            {
+                LightingMode::None
+            }
             _ if self.stage.data.background.name() == "bkFall" => LightingMode::None,
             _ if self.stage.data.background_type != BackgroundType::Black
                 && self.stage.data.background_type != BackgroundType::Outside
                 && self.stage.data.background_type != BackgroundType::OutsideWind
                 && self.stage.data.background.name() != "bkBlack" =>
-                {
-                    LightingMode::BackgroundOnly
-                }
+            {
+                LightingMode::BackgroundOnly
+            }
             _ => LightingMode::None,
         };
 
@@ -1795,31 +1794,31 @@ impl Scene for GameScene {
             | TextScriptExecutionState::Msg(_, _, _, _)
             | TextScriptExecutionState::MsgNewLine(_, _, _, _, _)
             | TextScriptExecutionState::FallingIsland(_, _, _, _, _, _)
-            if !state.control_flags.control_enabled() =>
-                {
-                    state.touch_controls.control_type = TouchControlType::Dialog;
-                    match state.settings.cutscene_skip_mode {
-                        CutsceneSkipMode::Hold if !state.textscript_vm.flags.cutscene_skip() => {
-                            if self.player1.controller.skip() {
-                                self.skip_counter += 1;
-                                if self.skip_counter >= CUTSCENE_SKIP_WAIT {
-                                    state.textscript_vm.flags.set_cutscene_skip(true);
-                                    state.tutorial_counter = 0;
-                                }
-                            } else if self.skip_counter > 0 {
-                                self.skip_counter -= 1;
-                            }
-                        }
-                        CutsceneSkipMode::FastForward => {
-                            if self.player1.controller.skip() {
+                if !state.control_flags.control_enabled() =>
+            {
+                state.touch_controls.control_type = TouchControlType::Dialog;
+                match state.settings.cutscene_skip_mode {
+                    CutsceneSkipMode::Hold if !state.textscript_vm.flags.cutscene_skip() => {
+                        if self.player1.controller.skip() {
+                            self.skip_counter += 1;
+                            if self.skip_counter >= CUTSCENE_SKIP_WAIT {
                                 state.textscript_vm.flags.set_cutscene_skip(true);
-                            } else {
-                                state.textscript_vm.flags.set_cutscene_skip(false);
+                                state.tutorial_counter = 0;
                             }
+                        } else if self.skip_counter > 0 {
+                            self.skip_counter -= 1;
                         }
-                        _ => (),
                     }
+                    CutsceneSkipMode::FastForward => {
+                        if self.player1.controller.skip() {
+                            state.textscript_vm.flags.set_cutscene_skip(true);
+                        } else {
+                            state.textscript_vm.flags.set_cutscene_skip(false);
+                        }
+                    }
+                    _ => (),
                 }
+            }
             _ => {
                 self.skip_counter = 0;
             }
@@ -1864,7 +1863,7 @@ impl Scene for GameScene {
         self.text_boxes.tick(state, ())?;
 
         #[cfg(feature = "scripting-lua")]
-            state.lua.scene_tick();
+        state.lua.scene_tick();
 
         if state.control_flags.tick_world() {
             self.tick = self.tick.wrapping_add(1);
@@ -1938,13 +1937,13 @@ impl Scene for GameScene {
 
         self.inventory_dim += 0.1
             * if state.textscript_vm.mode == ScriptMode::Inventory
-            || state.textscript_vm.state == TextScriptExecutionState::MapSystem
-            || self.pause_menu.is_paused()
-        {
-            state.frame_time as f32
-        } else {
-            -(state.frame_time as f32)
-        };
+                || state.textscript_vm.state == TextScriptExecutionState::MapSystem
+                || self.pause_menu.is_paused()
+            {
+                state.frame_time as f32
+            } else {
+                -(state.frame_time as f32)
+            };
 
         self.inventory_dim = self.inventory_dim.clamp(0.0, 1.0);
         self.background.draw_tick()?;
@@ -2031,37 +2030,22 @@ impl Scene for GameScene {
                                 state.frame_time,
                             );
 
-                            let x = x.clamp(
-                                8.0,
-                                state.canvas_size.0 - 8.0 * scale - state.font.line_height(&state.constants),
-                            );
+                            let x = x.clamp(8.0, state.canvas_size.0 - 8.0 * scale - state.font.line_height());
 
-                            state.font.draw_colored_text_scaled(
-                                P2_OFFSCREEN_TEXT.chars(),
-                                x + 1.0,
-                                9.0,
-                                scale,
-                                (0, 0, 130, 255),
-                                &state.constants,
-                                &mut state.texture_set,
-                                ctx,
-                            )?;
-
-                            state.font.draw_colored_text_scaled(
-                                P2_OFFSCREEN_TEXT.chars(),
-                                x,
-                                8.0,
-                                scale,
-                                (96, 96, 255, 255),
-                                &state.constants,
-                                &mut state.texture_set,
-                                ctx,
-                            )?;
+                            state
+                                .font
+                                .builder()
+                                .position(x, 8.0)
+                                .scale(scale)
+                                .shadow_color((0, 0, 130, 255))
+                                .color((96, 96, 255, 255))
+                                .shadow(true)
+                                .draw(P2_OFFSCREEN_TEXT, ctx, &state.constants, &mut state.texture_set)?;
                         } else if self.player2.y - 0x1000 > self.frame.y + state.canvas_size.1 as i32 * 0x200 {
                             let scale = 1.0
                                 + (self.player2.y as f32 / (self.frame.y as f32 + state.canvas_size.1 * 0x200 as f32)
-                                - 0.5)
-                                .clamp(0.0, 2.0);
+                                    - 0.5)
+                                    .clamp(0.0, 2.0);
 
                             let x = interpolate_fix9_scale(
                                 self.player2.prev_x - self.frame.prev_x,
@@ -2069,32 +2053,17 @@ impl Scene for GameScene {
                                 state.frame_time,
                             );
 
-                            let x = x.clamp(
-                                8.0,
-                                state.canvas_size.0 - 8.0 * scale - state.font.line_height(&state.constants),
-                            );
+                            let x = x.clamp(8.0, state.canvas_size.0 - 8.0 * scale - state.font.line_height());
 
-                            state.font.draw_colored_text_scaled(
-                                P2_OFFSCREEN_TEXT.chars(),
-                                x + 1.0,
-                                state.canvas_size.1 - 8.0 * scale - state.font.line_height(&state.constants),
-                                scale,
-                                (0, 0, 130, 255),
-                                &state.constants,
-                                &mut state.texture_set,
-                                ctx,
-                            )?;
-
-                            state.font.draw_colored_text_scaled(
-                                P2_OFFSCREEN_TEXT.chars(),
-                                x,
-                                state.canvas_size.1 - 8.0 * scale - state.font.line_height(&state.constants) - 1.0,
-                                scale,
-                                (96, 96, 255, 255),
-                                &state.constants,
-                                &mut state.texture_set,
-                                ctx,
-                            )?;
+                            state
+                                .font
+                                .builder()
+                                .position(x, state.canvas_size.1 - 8.0 * scale - state.font.line_height())
+                                .scale(scale)
+                                .shadow_color((0, 0, 130, 255))
+                                .color((96, 96, 255, 255))
+                                .shadow(true)
+                                .draw(P2_OFFSCREEN_TEXT, ctx, &state.constants, &mut state.texture_set)?;
                         } else if self.player2.x + 0x1000 < self.frame.x {
                             let scale = 1.0 + (self.frame.x as f32 / self.player2.x as f32 / 2.0 - 0.5).clamp(0.0, 2.0);
 
@@ -2103,71 +2072,41 @@ impl Scene for GameScene {
                                 self.player2.y - self.frame.y,
                                 state.frame_time,
                             );
-                            let y = y.clamp(
-                                8.0,
-                                state.canvas_size.1 - 8.0 * scale - state.font.line_height(&state.constants),
-                            );
+                            let y = y.clamp(8.0, state.canvas_size.1 - 8.0 * scale - state.font.line_height());
 
-                            state.font.draw_colored_text_scaled(
-                                P2_OFFSCREEN_TEXT.chars(),
-                                9.0,
-                                y + 1.0,
-                                scale,
-                                (0, 0, 130, 255),
-                                &state.constants,
-                                &mut state.texture_set,
-                                ctx,
-                            )?;
-
-                            state.font.draw_colored_text_scaled(
-                                P2_OFFSCREEN_TEXT.chars(),
-                                8.0,
-                                y,
-                                scale,
-                                (96, 96, 255, 255),
-                                &state.constants,
-                                &mut state.texture_set,
-                                ctx,
-                            )?;
+                            state
+                                .font
+                                .builder()
+                                .position(8.0, y)
+                                .scale(scale)
+                                .shadow_color((0, 0, 130, 255))
+                                .color((96, 96, 255, 255))
+                                .shadow(true)
+                                .draw(P2_OFFSCREEN_TEXT, ctx, &state.constants, &mut state.texture_set)?;
                         } else if self.player2.x - 0x1000 > self.frame.x + state.canvas_size.0 as i32 * 0x200 {
                             let scale = 1.0
                                 + (self.player2.x as f32 / (self.frame.x as f32 + state.canvas_size.0 * 0x200 as f32)
-                                - 0.5)
-                                .clamp(0.0, 2.0);
+                                    - 0.5)
+                                    .clamp(0.0, 2.0);
 
                             let y = interpolate_fix9_scale(
                                 self.player2.prev_y - self.frame.prev_y,
                                 self.player2.y - self.frame.y,
                                 state.frame_time,
                             );
-                            let y = y.clamp(
-                                8.0,
-                                state.canvas_size.1 - 8.0 * scale - state.font.line_height(&state.constants),
-                            );
+                            let y = y.clamp(8.0, state.canvas_size.1 - 8.0 * scale - state.font.line_height());
 
-                            let width = state.font.text_width(P2_OFFSCREEN_TEXT.chars(), &state.constants);
+                            let width = state.font.builder().compute_width(P2_OFFSCREEN_TEXT);
 
-                            state.font.draw_colored_text_scaled(
-                                P2_OFFSCREEN_TEXT.chars(),
-                                state.canvas_size.0 - width - 8.0 * scale + 1.0,
-                                y + 1.0,
-                                scale,
-                                (0, 0, 130, 255),
-                                &state.constants,
-                                &mut state.texture_set,
-                                ctx,
-                            )?;
-
-                            state.font.draw_colored_text_scaled(
-                                P2_OFFSCREEN_TEXT.chars(),
-                                state.canvas_size.0 - width - 8.0 * scale,
-                                y,
-                                scale,
-                                (96, 96, 255, 255),
-                                &state.constants,
-                                &mut state.texture_set,
-                                ctx,
-                            )?;
+                            state
+                                .font
+                                .builder()
+                                .shadow_color((0, 0, 130, 255))
+                                .color((96, 96, 255, 255))
+                                .shadow(true)
+                                .position(state.canvas_size.0 - width - 8.0 * scale, y)
+                                .scale(scale)
+                                .draw(P2_OFFSCREEN_TEXT, ctx, &state.constants, &mut state.texture_set)?;
                         }
                     }
                 }
@@ -2189,23 +2128,20 @@ impl Scene for GameScene {
             && self.map_name_counter > 0
         {
             let map_name = if self.stage.data.name == "u" {
-                state.constants.title.intro_text.chars()
+                state.constants.title.intro_text.as_str()
             } else {
                 if state.constants.is_cs_plus && state.settings.locale == "jp" {
-                    self.stage.data.name_jp.chars()
+                    self.stage.data.name_jp.as_str()
                 } else {
-                    self.stage.data.name.chars()
+                    self.stage.data.name.as_str()
                 }
             };
-            let width = state.font.text_width(map_name.clone(), &state.constants);
 
-            state.font.draw_text_with_shadow(
+            state.font.builder().shadow(true).y(80.0).center(state.canvas_size.0).draw(
                 map_name,
-                ((state.canvas_size.0 - width) / 2.0).floor(),
-                80.0,
+                ctx,
                 &state.constants,
                 &mut state.texture_set,
-                ctx,
             )?;
         }
 
@@ -2235,15 +2171,19 @@ impl Scene for GameScene {
                 ControllerType::Gamepad(index) => ctx.gamepad_context.get_gamepad_sprite_offset(index as usize),
             };
 
-            let rect_map = [(
-                '=',
-                state.settings.player1_controller_button_map.skip.get_rect(gamepad_sprite_offset, &state.constants),
-            )];
+            let symbols = Symbols {
+                symbols: &[(
+                    '=',
+                    state.settings.player1_controller_button_map.skip.get_rect(gamepad_sprite_offset, &state.constants),
+                )],
+                texture: "buttons",
+            };
 
-            let width = state.font.text_width_with_rects(text.chars(), &rect_map, &state.constants);
+            // let width = state.font.text_width_with_rects(text.chars(), &rect_map, &state.constants);
+            let width = state.font.builder().with_symbols(Some(symbols)).compute_width(&text);
             let pos_x = state.canvas_size.0 - width - 20.0;
             let pos_y = 0.0;
-            let line_height = state.font.line_height(&state.constants);
+            let line_height = state.font.line_height();
             let w = (self.skip_counter as f32 / CUTSCENE_SKIP_WAIT as f32) * (width + 20.0) / 2.0;
             let mut rect = Rect::new_size(
                 (pos_x * state.scale) as isize,
@@ -2261,15 +2201,11 @@ impl Scene for GameScene {
             rect.right = rect.left + (w * state.scale).ceil() as isize;
             draw_rect(ctx, rect, Color::from_rgb(128, 128, 160))?;
 
-            state.font.draw_text_with_shadow_and_rects(
-                text.chars(),
-                pos_x + 10.0,
-                pos_y + 5.0,
+            state.font.builder().position(pos_x + 10.0, pos_y + 5.0).shadow(true).with_symbols(Some(symbols)).draw(
+                &text,
+                ctx,
                 &state.constants,
                 &mut state.texture_set,
-                &rect_map,
-                Some("buttons".into()),
-                ctx,
             )?;
         }
 
@@ -2279,50 +2215,46 @@ impl Scene for GameScene {
 
         if state.settings.god_mode {
             let debug_name = "GOD";
-            state.font.draw_text_with_shadow(
-                debug_name.chars(),
-                state.canvas_size.0 - state.font.text_width(debug_name.chars(), &state.constants) - 10.0,
-                20.0,
-                &state.constants,
-                &mut state.texture_set,
-                ctx,
-            )?;
+            state
+                .font
+                .builder()
+                .x(state.canvas_size.0 - state.font.builder().compute_width(debug_name) - 10.0)
+                .y(20.0)
+                .shadow(true)
+                .draw(debug_name, ctx, &state.constants, &mut state.texture_set)?;
         }
 
         if state.settings.infinite_booster {
             let debug_name = "INF.B";
-            state.font.draw_text_with_shadow(
-                debug_name.chars(),
-                state.canvas_size.0 - state.font.text_width(debug_name.chars(), &state.constants) - 10.0,
-                32.0,
-                &state.constants,
-                &mut state.texture_set,
-                ctx,
-            )?;
+            state
+                .font
+                .builder()
+                .x(state.canvas_size.0 - state.font.builder().compute_width(debug_name) - 10.0)
+                .y(32.0)
+                .shadow(true)
+                .draw(debug_name, ctx, &state.constants, &mut state.texture_set)?;
         }
 
         if state.settings.speed != 1.0 {
-            let tick_spd_mod = format!("{:.1}x SPD", state.settings.speed);
-            state.font.draw_text_with_shadow(
-                tick_spd_mod.chars(),
-                state.canvas_size.0 - state.font.text_width(tick_spd_mod.chars(), &state.constants) - 10.0,
-                44.0,
-                &state.constants,
-                &mut state.texture_set,
-                ctx,
-            )?;
+            let debug_name = &format!("{:.1}x SPD", state.settings.speed);
+            state
+                .font
+                .builder()
+                .x(state.canvas_size.0 - state.font.builder().compute_width(debug_name) - 10.0)
+                .y(44.0)
+                .shadow(true)
+                .draw(debug_name, ctx, &state.constants, &mut state.texture_set)?;
         }
 
         if state.settings.noclip {
             let debug_name = "NOCLIP";
-            state.font.draw_text_with_shadow(
-                debug_name.chars(),
-                state.canvas_size.0 - state.font.text_width(debug_name.chars(), &state.constants) - 10.0,
-                56.0,
-                &state.constants,
-                &mut state.texture_set,
-                ctx,
-            )?;
+            state
+                .font
+                .builder()
+                .x(state.canvas_size.0 - state.font.builder().compute_width(debug_name) - 10.0)
+                .y(56.0)
+                .shadow(true)
+                .draw(debug_name, ctx, &state.constants, &mut state.texture_set)?;
         }
 
         self.replay.draw(state, ctx, &self.frame)?;

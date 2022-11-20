@@ -59,23 +59,23 @@ impl PlayerCountMenu {
         self.coop_menu = Menu::new(0, 0, 130, 0);
         self.skin_menu = Menu::new(0, 0, 130, 0);
 
-        self.coop_menu.push_entry(CoopMenuEntry::Title, MenuEntry::Disabled(state.t("menus.coop_menu.title")));
-        self.coop_menu.push_entry(CoopMenuEntry::One, MenuEntry::Active(state.t("menus.coop_menu.one")));
-        self.coop_menu.push_entry(CoopMenuEntry::Two, MenuEntry::Active(state.t("menus.coop_menu.two")));
-        self.coop_menu.push_entry(CoopMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.coop_menu.push_entry(CoopMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.coop_menu.title").to_owned()));
+        self.coop_menu.push_entry(CoopMenuEntry::One, MenuEntry::Active(state.loc.t("menus.coop_menu.one").to_owned()));
+        self.coop_menu.push_entry(CoopMenuEntry::Two, MenuEntry::Active(state.loc.t("menus.coop_menu.two").to_owned()));
+        self.coop_menu.push_entry(CoopMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.coop_menu.selected = CoopMenuEntry::One;
 
-        self.skin_menu.push_entry(SkinMenuEntry::Title, MenuEntry::Disabled(state.t("menus.skin_menu.title")));
+        self.skin_menu.push_entry(SkinMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.skin_menu.title").to_owned()));
         self.skin_menu.push_entry(SkinMenuEntry::Skin, MenuEntry::PlayerSkin);
 
         if self.on_title {
-            self.skin_menu.push_entry(SkinMenuEntry::Start, MenuEntry::Active(state.t("menus.main_menu.start")));
+            self.skin_menu.push_entry(SkinMenuEntry::Start, MenuEntry::Active(state.loc.t("menus.main_menu.start").to_owned()));
         } else {
-            self.skin_menu.push_entry(SkinMenuEntry::Add, MenuEntry::Active(state.t("menus.pause_menu.add_player2")));
+            self.skin_menu.push_entry(SkinMenuEntry::Add, MenuEntry::Active(state.loc.t("menus.pause_menu.add_player2").to_owned()));
         }
 
-        self.skin_menu.push_entry(SkinMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.skin_menu.push_entry(SkinMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.skin_menu.selected = SkinMenuEntry::Skin;
 

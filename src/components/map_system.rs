@@ -5,11 +5,12 @@ use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
-use crate::game::shared_game_state::SharedGameState;
-use crate::game::stage::Stage;
-use crate::input::touch_controls::TouchControlType;
 use crate::game::player::Player;
 use crate::game::scripting::tsc::text_script::TextScriptExecutionState;
+use crate::game::shared_game_state::SharedGameState;
+use crate::game::stage::Stage;
+use crate::graphics::font::Font;
+use crate::input::touch_controls::TouchControlType;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum MapSystemState {
@@ -185,7 +186,7 @@ impl MapSystem {
         }
 
         let (scr_w, scr_h) = (state.canvas_size.0 * state.scale, state.canvas_size.1 * state.scale);
-        let text_height = state.font.line_height(&state.constants);
+        let text_height = state.font.line_height();
         let rect_black_bar = Rect::new_size(
             0,
             (7.0 * state.scale) as _,
@@ -198,15 +199,17 @@ impl MapSystem {
         }
 
         let map_name = if state.constants.is_cs_plus && state.settings.locale == "jp" {
-            stage.data.name_jp.chars()
+            stage.data.name_jp.as_str()
         } else {
-            stage.data.name.chars()
+            stage.data.name.as_str()
         };
 
-        let map_name_width = state.font.text_width(map_name.clone(), &state.constants);
-        let map_name_off_x = (state.canvas_size.0 - map_name_width) / 2.0;
-
-        state.font.draw_text(map_name, map_name_off_x, 9.0, &state.constants, &mut state.texture_set, ctx)?;
+        state.font.builder().center(state.canvas_size.0).y(9.0).draw(
+            map_name,
+            ctx,
+            &state.constants,
+            &mut state.texture_set,
+        )?;
 
         let mut map_rect = Rect::new(0.0, 0.0, self.last_size.0 as f32, self.last_size.1 as f32);
 

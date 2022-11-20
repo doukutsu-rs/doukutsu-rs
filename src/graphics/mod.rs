@@ -1,3 +1,3 @@
 pub mod bmfont;
-pub mod bmfont_renderer;
+pub mod font;
 pub mod texture_set;

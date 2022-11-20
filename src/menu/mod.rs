@@ -1,11 +1,12 @@
 use std::cell::Cell;
 
 use crate::common::{Color, Rect};
-use crate::components::draw_common::{Alignment, draw_number};
+use crate::components::draw_common::{draw_number, Alignment};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::game::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameState};
+use crate::graphics::font::Font;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::save_select_menu::MenuSaveInfo;
 
@@ -147,22 +148,21 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
             match entry {
                 MenuEntry::Hidden => {}
                 MenuEntry::Active(entry) | MenuEntry::DisabledWhite(entry) | MenuEntry::Disabled(entry) => {
-                    let entry_width = state.font.text_width(entry.chars(), &state.constants) + 32.0;
+                    let entry_width = state.font.builder().compute_width(&entry) + 32.0;
                     width = width.max(entry_width);
                 }
                 MenuEntry::Toggle(entry, _) => {
                     let mut entry_with_option = entry.clone();
                     entry_with_option.push_str(" ");
 
-                    let longest_option_width = if state.t("common.off").len() > state.t("common.on").len() {
-                        state.font.text_width(state.t("common.off").chars(), &state.constants)
+                    let longest_option_width = if state.loc.t("common.off").len() > state.loc.t("common.on").len() {
+                        state.font.builder().compute_width(state.loc.t("common.off"))
                     } else {
-                        state.font.text_width(state.t("common.on").chars(), &state.constants)
+                        state.font.builder().compute_width(state.loc.t("common.on"))
                     };
 
-                    let entry_width = state.font.text_width(entry_with_option.chars(), &state.constants)
-                        + longest_option_width
-                        + 32.0;
+                    let entry_width =
+                        state.font.builder().compute_width(&entry_with_option) + longest_option_width + 32.0;
                     width = width.max(entry_width);
                 }
                 MenuEntry::Options(entry, _, options) => {
@@ -172,7 +172,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     let longest_option = options.iter().max_by(|&a, &b| a.len().cmp(&b.len())).unwrap();
                     entry_with_option.push_str(longest_option);
 
-                    let entry_width = state.font.text_width(entry_with_option.chars(), &state.constants) + 32.0;
+                    let entry_width = state.font.builder().compute_width(&entry_with_option) + 32.0;
                     width = width.max(entry_width);
                 }
                 MenuEntry::DescriptiveOptions(entry, _, options, descriptions) => {
@@ -182,16 +182,16 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     let longest_option = options.iter().max_by(|&a, &b| a.len().cmp(&b.len())).unwrap();
                     entry_with_option.push_str(longest_option);
 
-                    let entry_width = state.font.text_width(entry_with_option.chars(), &state.constants) + 32.0;
+                    let entry_width = state.font.builder().compute_width(&entry_with_option) + 32.0;
                     width = width.max(entry_width);
 
                     let longest_description = descriptions.iter().max_by(|&a, &b| a.len().cmp(&b.len())).unwrap();
-                    let description_width = state.font.text_width(longest_description.chars(), &state.constants) + 32.0;
+                    let description_width = state.font.builder().compute_width(longest_description) + 32.0;
                     width = width.max(description_width);
                 }
                 MenuEntry::OptionsBar(entry, _) => {
                     let bar_width = if state.constants.is_switch { 81.0 } else { 109.0 };
-                    let entry_width = state.font.text_width(entry.chars(), &state.constants) + 32.0 + bar_width;
+                    let entry_width = state.font.builder().compute_width(entry) + 32.0 + bar_width;
                     width = width.max(entry_width);
                 }
                 MenuEntry::SaveData(_) => {}
@@ -375,112 +375,62 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
         for (_, entry) in &self.entries {
             match entry {
                 MenuEntry::Active(name) | MenuEntry::DisabledWhite(name) => {
-                    state.font.draw_text(
-                        name.chars(),
-                        self.x as f32 + 20.0,
-                        y,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 20.0, y)
+                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
                 }
                 MenuEntry::Disabled(name) => {
-                    state.font.draw_colored_text(
-                        name.chars(),
-                        self.x as f32 + 20.0,
-                        y,
-                        (0xa0, 0xa0, 0xff, 0xff),
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 20.0, y)
+                        .color((0xa0, 0xa0, 0xff, 0xff))
+                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
                 }
                 MenuEntry::Toggle(name, value) => {
                     let value_text = if *value { "ON" } else { "OFF" };
-                    let name_text_len = state.font.text_width(name.chars(), &state.constants);
+                    let name_text_len = state.font.builder().compute_width(name);
 
-                    state.font.draw_text(
-                        name.chars(),
-                        self.x as f32 + 20.0,
-                        y,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 20.0, y)
+                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
 
-                    state.font.draw_text(
-                        value_text.chars(),
-                        self.x as f32 + 25.0 + name_text_len,
-                        y,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 25.0 + name_text_len, y)
+                        .draw(value_text, ctx, &state.constants, &mut state.texture_set)?;
                 }
                 MenuEntry::Options(name, index, value) => {
                     let value_text = if let Some(text) = value.get(*index) { text } else { "???" };
-                    let name_text_len = state.font.text_width(name.chars(), &state.constants);
+                    let name_text_len = state.font.builder().compute_width(name);
 
-                    state.font.draw_text(
-                        name.chars(),
-                        self.x as f32 + 20.0,
-                        y,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 20.0, y)
+                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
 
-                    state.font.draw_text(
-                        value_text.chars(),
-                        self.x as f32 + 25.0 + name_text_len,
-                        y,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 25.0 + name_text_len, y)
+                        .draw(value_text, ctx, &state.constants, &mut state.texture_set)?;
                 }
                 MenuEntry::DescriptiveOptions(name, index, value, description) => {
                     let value_text = if let Some(text) = value.get(*index) { text } else { "???" };
                     let description_text = if let Some(text) = description.get(*index) { text } else { "???" };
-                    let name_text_len = state.font.text_width(name.chars(), &state.constants);
+                    let name_text_len = state.font.builder().compute_width(name);
 
-                    state.font.draw_text(
-                        name.chars(),
-                        self.x as f32 + 20.0,
-                        y,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 20.0, y)
+                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
 
-                    state.font.draw_text(
-                        value_text.chars(),
-                        self.x as f32 + 25.0 + name_text_len,
-                        y,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 25.0 + name_text_len, y)
+                        .draw(value_text, ctx, &state.constants, &mut state.texture_set)?;
 
-                    state.font.draw_colored_text(
-                        description_text.chars(),
-                        self.x as f32 + 20.0,
-                        y + 16.0,
-                        (0xc0, 0xc0, 0xff, 0xff),
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 20.0, y + 16.0)
+                        .color((0xc0, 0xc0, 0xff, 0xff))
+                        .draw(description_text, ctx, &state.constants, &mut state.texture_set)?;
                 }
                 MenuEntry::OptionsBar(name, percent) => {
-                    state.font.draw_text(
-                        name.chars(),
-                        self.x as f32 + 20.0,
-                        y,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 20.0, y)
+                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
 
                     if state.constants.is_switch || state.constants.is_cs_plus {
                         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ui")?;
@@ -519,24 +469,14 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     }
                 }
                 MenuEntry::NewSave => {
-                    state.font.draw_text(
-                        state.t("menus.save_menu.new").chars(),
-                        self.x as f32 + 20.0,
-                        y,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 20.0, y)
+                        .draw(state.loc.t("menus.save_menu.new"), ctx, &state.constants, &mut state.texture_set)?;
                 }
                 MenuEntry::PlayerSkin => {
-                    state.font.draw_text(
-                        state.t("menus.skin_menu.label").chars(),
-                        self.x as f32 + 20.0,
-                        y,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 20.0, y)
+                        .draw(state.loc.t("menus.skin_menu.label"), ctx, &state.constants, &mut state.texture_set)?;
 
                     let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
                     batch.add_rect(
@@ -549,21 +489,16 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                 MenuEntry::SaveData(save) | MenuEntry::SaveDataSingle(save) => {
                     let valid_save = state.stages.get(save.current_map as usize).is_some();
                     let name = if valid_save {
-                        state.stages.get(save.current_map as usize).unwrap().name.clone()
+                        state.stages.get(save.current_map as usize).unwrap().name.as_str()
                     } else {
-                        state.t("menus.save_menu.invalid_save")
+                        state.loc.t("menus.save_menu.invalid_save")
                     };
                     let bar_width = (save.life as f32 / save.max_life as f32 * 39.0) as u16;
                     let right_edge = self.x as f32 + self.width as f32 - 4.0;
 
-                    state.font.draw_text(
-                        name.chars(),
-                        self.x as f32 + 20.0,
-                        y,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 20.0, y)
+                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
 
                     if valid_save {
                         // Lifebar
@@ -594,14 +529,9 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                                 _ => difficulty_name.push_str("(unknown)"),
                             }
 
-                            state.font.draw_text(
-                                difficulty_name.chars(),
-                                self.x as f32 + 20.0,
-                                y + 10.0,
-                                &state.constants,
-                                &mut state.texture_set,
-                                ctx,
-                            )?;
+                            state.font.builder()
+                                .position(self.x as f32 + 20.0, y + 10.0)
+                                .draw(difficulty_name.as_str(), ctx, &state.constants, &mut state.texture_set)?;
                         }
 
                         // Weapons
@@ -624,31 +554,21 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     }
                 }
                 MenuEntry::Control(name, data) => {
-                    state.font.draw_text(
-                        name.chars(),
-                        self.x as f32 + 20.0,
-                        y,
-                        &state.constants,
-                        &mut state.texture_set,
-                        ctx,
-                    )?;
+                    state.font.builder()
+                        .position(self.x as f32 + 20.0, y)
+                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
 
                     match data {
                         ControlMenuData::String(value) => {
-                            let text_width = state.font.text_width(value.chars(), &state.constants);
+                            let text_width = state.font.builder().compute_width(value);
 
-                            state.font.draw_text(
-                                value.chars(),
-                                self.x as f32 + self.width as f32 - 5.0 - text_width,
-                                y,
-                                &state.constants,
-                                &mut state.texture_set,
-                                ctx,
-                            )?;
+                            state.font.builder()
+                                .position(self.x as f32 + self.width as f32 - 5.0 - text_width, y)
+                                .draw(value, ctx, &state.constants, &mut state.texture_set)?;
                         }
                         ControlMenuData::Rect(value) => {
                             let rect_width = value.width() as f32;
-                            let y = y + rect.height() as f32 / 2.0 - state.font.line_height(&state.constants) + 4.0;
+                            let y = y + rect.height() as f32 / 2.0 - state.font.line_height() + 4.0;
 
                             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "buttons")?;
                             batch.add_rect(self.x as f32 + self.width as f32 - 5.0 - rect_width, y, &value);
@@ -750,41 +670,41 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                 | MenuEntry::SaveData(_)
                 | MenuEntry::NewSave
                 | MenuEntry::PlayerSkin
-                if (self.selected == idx && controller.trigger_ok())
-                    || state.touch_controls.consume_click_in(entry_bounds) =>
-                    {
-                        state.sound_manager.play_sfx(18);
-                        self.selected = idx.clone();
-                        return MenuSelectionResult::Selected(idx, entry);
-                    }
+                    if (self.selected == idx && controller.trigger_ok())
+                        || state.touch_controls.consume_click_in(entry_bounds) =>
+                {
+                    state.sound_manager.play_sfx(18);
+                    self.selected = idx.clone();
+                    return MenuSelectionResult::Selected(idx, entry);
+                }
                 MenuEntry::Options(_, _, _) | MenuEntry::OptionsBar(_, _)
-                if (self.selected == idx && controller.trigger_left())
-                    || state.touch_controls.consume_click_in(left_entry_bounds) =>
-                    {
-                        state.sound_manager.play_sfx(1);
-                        return MenuSelectionResult::Left(self.selected.clone(), entry, -1);
-                    }
+                    if (self.selected == idx && controller.trigger_left())
+                        || state.touch_controls.consume_click_in(left_entry_bounds) =>
+                {
+                    state.sound_manager.play_sfx(1);
+                    return MenuSelectionResult::Left(self.selected.clone(), entry, -1);
+                }
                 MenuEntry::Options(_, _, _) | MenuEntry::OptionsBar(_, _)
-                if (self.selected == idx && controller.trigger_right())
-                    || state.touch_controls.consume_click_in(right_entry_bounds) =>
-                    {
-                        state.sound_manager.play_sfx(1);
-                        return MenuSelectionResult::Right(self.selected.clone(), entry, 1);
-                    }
+                    if (self.selected == idx && controller.trigger_right())
+                        || state.touch_controls.consume_click_in(right_entry_bounds) =>
+                {
+                    state.sound_manager.play_sfx(1);
+                    return MenuSelectionResult::Right(self.selected.clone(), entry, 1);
+                }
                 MenuEntry::DescriptiveOptions(_, _, _, _)
-                if (self.selected == idx && controller.trigger_left())
-                    || state.touch_controls.consume_click_in(left_entry_bounds) =>
-                    {
-                        state.sound_manager.play_sfx(1);
-                        return MenuSelectionResult::Left(self.selected.clone(), entry, -1);
-                    }
+                    if (self.selected == idx && controller.trigger_left())
+                        || state.touch_controls.consume_click_in(left_entry_bounds) =>
+                {
+                    state.sound_manager.play_sfx(1);
+                    return MenuSelectionResult::Left(self.selected.clone(), entry, -1);
+                }
                 MenuEntry::DescriptiveOptions(_, _, _, _) | MenuEntry::SaveData(_)
-                if (self.selected == idx && controller.trigger_right())
-                    || state.touch_controls.consume_click_in(right_entry_bounds) =>
-                    {
-                        state.sound_manager.play_sfx(1);
-                        return MenuSelectionResult::Right(self.selected.clone(), entry, 1);
-                    }
+                    if (self.selected == idx && controller.trigger_right())
+                        || state.touch_controls.consume_click_in(right_entry_bounds) =>
+                {
+                    state.sound_manager.play_sfx(1);
+                    return MenuSelectionResult::Right(self.selected.clone(), entry, 1);
+                }
                 MenuEntry::Control(_, _) => {
                     if self.selected == idx && controller.trigger_ok()
                         || state.touch_controls.consume_click_in(entry_bounds)

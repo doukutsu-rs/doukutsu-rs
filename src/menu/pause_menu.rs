@@ -84,17 +84,17 @@ impl PauseMenu {
         self.controller.add(state.settings.create_player1_controller());
         self.controller.add(state.settings.create_player2_controller());
 
-        self.pause_menu.push_entry(PauseMenuEntry::Resume, MenuEntry::Active(state.t("menus.pause_menu.resume")));
-        self.pause_menu.push_entry(PauseMenuEntry::Retry, MenuEntry::Active(state.t("menus.pause_menu.retry")));
+        self.pause_menu.push_entry(PauseMenuEntry::Resume, MenuEntry::Active(state.loc.t("menus.pause_menu.resume").to_owned()));
+        self.pause_menu.push_entry(PauseMenuEntry::Retry, MenuEntry::Active(state.loc.t("menus.pause_menu.retry").to_owned()));
         self.pause_menu.push_entry(PauseMenuEntry::AddPlayer2, MenuEntry::Hidden);
         self.pause_menu.push_entry(PauseMenuEntry::DropPlayer2, MenuEntry::Hidden);
-        self.pause_menu.push_entry(PauseMenuEntry::Settings, MenuEntry::Active(state.t("menus.pause_menu.options")));
-        self.pause_menu.push_entry(PauseMenuEntry::Title, MenuEntry::Active(state.t("menus.pause_menu.title")));
-        self.pause_menu.push_entry(PauseMenuEntry::Quit, MenuEntry::Active(state.t("menus.pause_menu.quit")));
+        self.pause_menu.push_entry(PauseMenuEntry::Settings, MenuEntry::Active(state.loc.t("menus.pause_menu.options").to_owned()));
+        self.pause_menu.push_entry(PauseMenuEntry::Title, MenuEntry::Active(state.loc.t("menus.pause_menu.title").to_owned()));
+        self.pause_menu.push_entry(PauseMenuEntry::Quit, MenuEntry::Active(state.loc.t("menus.pause_menu.quit").to_owned()));
 
-        self.confirm_menu.push_entry(ConfirmMenuEntry::Empty, MenuEntry::Disabled("".to_owned()));
-        self.confirm_menu.push_entry(ConfirmMenuEntry::Yes, MenuEntry::Active(state.t("common.yes")));
-        self.confirm_menu.push_entry(ConfirmMenuEntry::No, MenuEntry::Active(state.t("common.no")));
+        self.confirm_menu.push_entry(ConfirmMenuEntry::Empty, MenuEntry::Disabled(String::new()));
+        self.confirm_menu.push_entry(ConfirmMenuEntry::Yes, MenuEntry::Active(state.loc.t("common.yes").to_owned()));
+        self.confirm_menu.push_entry(ConfirmMenuEntry::No, MenuEntry::Active(state.loc.t("common.no").to_owned()));
 
         self.confirm_menu.selected = ConfirmMenuEntry::Yes;
 
@@ -129,7 +129,7 @@ impl PauseMenu {
         match state.player_count {
             PlayerCount::One => {
                 self.pause_menu
-                    .set_entry(PauseMenuEntry::AddPlayer2, MenuEntry::Active(state.t("menus.pause_menu.add_player2")));
+                    .set_entry(PauseMenuEntry::AddPlayer2, MenuEntry::Active(state.loc.t("menus.pause_menu.add_player2").to_owned()));
                 self.pause_menu.set_entry(PauseMenuEntry::DropPlayer2, MenuEntry::Hidden);
 
                 if self.pause_menu.selected == PauseMenuEntry::DropPlayer2 {
@@ -140,7 +140,7 @@ impl PauseMenu {
                 self.pause_menu.set_entry(PauseMenuEntry::AddPlayer2, MenuEntry::Hidden);
                 self.pause_menu.set_entry(
                     PauseMenuEntry::DropPlayer2,
-                    MenuEntry::Active(state.t("menus.pause_menu.drop_player2")),
+                    MenuEntry::Active(state.loc.t("menus.pause_menu.drop_player2").to_owned()),
                 );
 
                 if self.pause_menu.selected == PauseMenuEntry::AddPlayer2 {
@@ -211,14 +211,14 @@ impl PauseMenu {
                 MenuSelectionResult::Selected(PauseMenuEntry::Title, _) => {
                     self.confirm_menu.set_entry(
                         ConfirmMenuEntry::Empty,
-                        MenuEntry::Disabled(state.t("menus.pause_menu.title_confirm")),
+                        MenuEntry::Disabled(state.loc.t("menus.pause_menu.title_confirm").to_owned()),
                     );
                     self.current_menu = CurrentMenu::ConfirmMenu;
                 }
                 MenuSelectionResult::Selected(PauseMenuEntry::Quit, _) => {
                     self.confirm_menu.set_entry(
                         ConfirmMenuEntry::Empty,
-                        MenuEntry::Disabled(state.t("menus.pause_menu.quit_confirm")),
+                        MenuEntry::Disabled(state.loc.t("menus.pause_menu.quit_confirm").to_owned()),
                     );
                     self.current_menu = CurrentMenu::ConfirmMenu;
                 }

@@ -59,8 +59,8 @@ pub static SUPPORTED_SKINMETA_VERSIONS: [u8; 1] = [1];
 lazy_static! {
     pub static ref DEFAULT_SKINMETA: SkinMeta = SkinMeta {
         name: "Player".to_string(),
-        description: "".to_string(),
-        author: "".to_string(),
+        description: String::new(),
+        author: String::new(),
         gun_offset_x: 0,
         gun_offset_y: 0,
         frame_size_width: 16,

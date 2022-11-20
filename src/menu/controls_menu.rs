@@ -3,7 +3,7 @@ use crate::framework::error::GameResult;
 use crate::framework::gamepad::{self, Axis, AxisDirection, Button, PlayerControllerInputType};
 use crate::framework::keyboard::ScanCode;
 use crate::game::settings::{
-    ControllerType, p1_default_keymap, p2_default_keymap, player_default_controller_button_map,
+    p1_default_keymap, p2_default_keymap, player_default_controller_button_map, ControllerType,
     PlayerControllerButtonMap, PlayerKeyMap,
 };
 use crate::game::shared_game_state::SharedGameState;
@@ -126,21 +126,22 @@ enum ControlEntry {
 impl ControlEntry {
     fn to_string(&self, state: &SharedGameState) -> String {
         match self {
-            ControlEntry::Left => state.t("menus.controls_menu.rebind_menu.left"),
-            ControlEntry::Up => state.t("menus.controls_menu.rebind_menu.up"),
-            ControlEntry::Right => state.t("menus.controls_menu.rebind_menu.right"),
-            ControlEntry::Down => state.t("menus.controls_menu.rebind_menu.down"),
-            ControlEntry::PrevWeapon => state.t("menus.controls_menu.rebind_menu.prev_weapon"),
-            ControlEntry::NextWeapon => state.t("menus.controls_menu.rebind_menu.next_weapon"),
-            ControlEntry::Jump => state.t("menus.controls_menu.rebind_menu.jump"),
-            ControlEntry::Shoot => state.t("menus.controls_menu.rebind_menu.shoot"),
-            ControlEntry::Skip => state.t("menus.controls_menu.rebind_menu.skip"),
-            ControlEntry::Inventory => state.t("menus.controls_menu.rebind_menu.inventory"),
-            ControlEntry::Map => state.t("menus.controls_menu.rebind_menu.map"),
-            ControlEntry::Strafe => state.t("menus.controls_menu.rebind_menu.strafe"),
-            ControlEntry::MenuOk => state.t("menus.controls_menu.rebind_menu.menu_ok"),
-            ControlEntry::MenuBack => state.t("menus.controls_menu.rebind_menu.menu_back"),
+            ControlEntry::Left => state.loc.t("menus.controls_menu.rebind_menu.left"),
+            ControlEntry::Up => state.loc.t("menus.controls_menu.rebind_menu.up"),
+            ControlEntry::Right => state.loc.t("menus.controls_menu.rebind_menu.right"),
+            ControlEntry::Down => state.loc.t("menus.controls_menu.rebind_menu.down"),
+            ControlEntry::PrevWeapon => state.loc.t("menus.controls_menu.rebind_menu.prev_weapon"),
+            ControlEntry::NextWeapon => state.loc.t("menus.controls_menu.rebind_menu.next_weapon"),
+            ControlEntry::Jump => state.loc.t("menus.controls_menu.rebind_menu.jump"),
+            ControlEntry::Shoot => state.loc.t("menus.controls_menu.rebind_menu.shoot"),
+            ControlEntry::Skip => state.loc.t("menus.controls_menu.rebind_menu.skip"),
+            ControlEntry::Inventory => state.loc.t("menus.controls_menu.rebind_menu.inventory"),
+            ControlEntry::Map => state.loc.t("menus.controls_menu.rebind_menu.map"),
+            ControlEntry::Strafe => state.loc.t("menus.controls_menu.rebind_menu.strafe"),
+            ControlEntry::MenuOk => state.loc.t("menus.controls_menu.rebind_menu.menu_ok"),
+            ControlEntry::MenuBack => state.loc.t("menus.controls_menu.rebind_menu.menu_back"),
         }
+        .to_owned()
     }
 }
 
@@ -197,27 +198,34 @@ impl ControlsMenu {
         self.main.push_entry(
             MainMenuEntry::SelectedPlayer,
             MenuEntry::Options(
-                state.t("menus.controls_menu.select_player.entry"),
+                state.loc.t("menus.controls_menu.select_player.entry").to_owned(),
                 self.selected_player as usize,
                 vec![
-                    state.t("menus.controls_menu.select_player.player_1"),
-                    state.t("menus.controls_menu.select_player.player_2"),
+                    state.loc.t("menus.controls_menu.select_player.player_1").to_owned(),
+                    state.loc.t("menus.controls_menu.select_player.player_2").to_owned(),
                 ],
             ),
         );
 
-        self.main
-            .push_entry(MainMenuEntry::Controller, MenuEntry::Active(state.t("menus.controls_menu.controller.entry")));
-        self.main.push_entry(MainMenuEntry::Rebind, MenuEntry::Active(state.t("menus.controls_menu.rebind")));
+        self.main.push_entry(
+            MainMenuEntry::Controller,
+            MenuEntry::Active(state.loc.t("menus.controls_menu.controller.entry").to_owned()),
+        );
+        self.main.push_entry(
+            MainMenuEntry::Rebind,
+            MenuEntry::Active(state.loc.t("menus.controls_menu.rebind").to_owned()),
+        );
         self.main.push_entry(MainMenuEntry::Rumble, MenuEntry::Hidden);
-        self.main.push_entry(MainMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.main.push_entry(MainMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.confirm_reset.push_entry(
             ConfirmResetMenuEntry::Title,
-            MenuEntry::Disabled(state.t("menus.controls_menu.reset_confirm_menu_title")),
+            MenuEntry::Disabled(state.loc.t("menus.controls_menu.reset_confirm_menu_title").to_owned()),
         );
-        self.confirm_reset.push_entry(ConfirmResetMenuEntry::Yes, MenuEntry::Active(state.t("common.yes")));
-        self.confirm_reset.push_entry(ConfirmResetMenuEntry::No, MenuEntry::Active(state.t("common.no")));
+        self.confirm_reset
+            .push_entry(ConfirmResetMenuEntry::Yes, MenuEntry::Active(state.loc.t("common.yes").to_owned()));
+        self.confirm_reset
+            .push_entry(ConfirmResetMenuEntry::No, MenuEntry::Active(state.loc.t("common.no").to_owned()));
 
         self.player1_key_map = self.init_key_map(&state.settings.player1_key_map);
         self.player2_key_map = self.init_key_map(&state.settings.player2_key_map);
@@ -375,8 +383,11 @@ impl ControlsMenu {
             }
         }
 
-        self.rebind.push_entry(RebindMenuEntry::Reset, MenuEntry::Active(state.t("menus.controls_menu.reset_confirm")));
-        self.rebind.push_entry(RebindMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.rebind.push_entry(
+            RebindMenuEntry::Reset,
+            MenuEntry::Active(state.loc.t("menus.controls_menu.reset_confirm").to_owned()),
+        );
+        self.rebind.push_entry(RebindMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
     }
 
     fn update_controller_options(&mut self, state: &SharedGameState, ctx: &Context) {
@@ -384,7 +395,7 @@ impl ControlsMenu {
 
         self.select_controller.push_entry(
             SelectControllerMenuEntry::Keyboard,
-            MenuEntry::Active(state.t("menus.controls_menu.controller.keyboard")),
+            MenuEntry::Active(state.loc.t("menus.controls_menu.controller.keyboard").to_owned()),
         );
 
         let gamepads = gamepad::get_gamepads(ctx);
@@ -410,7 +421,8 @@ impl ControlsMenu {
             );
         }
 
-        self.select_controller.push_entry(SelectControllerMenuEntry::Back, MenuEntry::Active(state.t("common.back")));
+        self.select_controller
+            .push_entry(SelectControllerMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         let controller_type = match self.selected_player {
             Player::Player1 => state.settings.player1_controller_type,
@@ -428,8 +440,10 @@ impl ControlsMenu {
                 self.main.set_entry(MainMenuEntry::Rumble, MenuEntry::Hidden);
             } else {
                 self.selected_controller = controller_type;
-                self.main
-                    .set_entry(MainMenuEntry::Rumble, MenuEntry::Toggle(state.t("menus.controls_menu.rumble"), rumble));
+                self.main.set_entry(
+                    MainMenuEntry::Rumble,
+                    MenuEntry::Toggle(state.loc.t("menus.controls_menu.rumble").to_owned(), rumble),
+                );
             }
         } else {
             self.selected_controller = controller_type;
@@ -456,8 +470,10 @@ impl ControlsMenu {
                         &[("control", control.to_string(state).as_str())],
                     )),
                 );
-                self.confirm_rebind
-                    .push_entry(1, MenuEntry::Disabled(state.t("menus.controls_menu.rebind_confirm_menu.cancel")));
+                self.confirm_rebind.push_entry(
+                    1,
+                    MenuEntry::Disabled(state.loc.t("menus.controls_menu.rebind_confirm_menu.cancel").to_owned()),
+                );
             }
             None => {}
         }

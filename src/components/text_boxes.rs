@@ -5,8 +5,9 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::game::frame::Frame;
-use crate::game::shared_game_state::SharedGameState;
 use crate::game::scripting::tsc::text_script::{ConfirmSelection, TextScriptExecutionState, TextScriptLine};
+use crate::game::shared_game_state::SharedGameState;
+use crate::graphics::font::{Font, Symbols};
 
 pub struct TextBoxes {
     pub slide_in: u8,
@@ -226,60 +227,36 @@ impl GameEntity<()> for TextBoxes {
         graphics::set_clip_rect(ctx, Some(clip_rect))?;
         for (idx, line) in lines.iter().enumerate() {
             if !line.is_empty() {
-                if state.constants.textscript.text_shadow {
-                    state.font.draw_text_with_shadow_and_rects(
-                        line.iter().copied(),
-                        left_pos + text_offset + 14.0,
-                        top_pos + 10.0 + idx as f32 * 16.0 - y_offset,
-                        &state.constants,
-                        &mut state.texture_set,
-                        &state.textscript_vm.substitution_rect_map,
-                        Some("TextBox".into()),
-                        ctx,
-                    )?;
-                } else {
-                    state.font.draw_text_with_rects(
-                        line.iter().copied(),
-                        left_pos + text_offset + 14.0,
-                        top_pos + 10.0 + idx as f32 * 16.0 - y_offset,
-                        &state.constants,
-                        &mut state.texture_set,
-                        &state.textscript_vm.substitution_rect_map,
-                        Some("TextBox".into()),
-                        ctx,
-                    )?;
-                }
+                let symbols = Symbols { symbols: &state.textscript_vm.substitution_rect_map, texture: "TextBox" };
+
+                state
+                    .font
+                    .builder()
+                    .position(left_pos + text_offset + 14.0, top_pos + 10.0 + idx as f32 * 16.0 - y_offset)
+                    .shadow(state.constants.textscript.text_shadow)
+                    .with_symbols(Some(symbols))
+                    .draw_iter(line.iter().copied(), ctx, &state.constants, &mut state.texture_set)?;
             }
         }
         graphics::set_clip_rect(ctx, None)?;
 
         if let TextScriptExecutionState::WaitInput(_, _, tick) = state.textscript_vm.state {
             if tick > 10 {
+                let builder = state
+                    .font
+                    .builder()
+                    .with_symbols(Some(Symbols { symbols: &state.textscript_vm.substitution_rect_map, texture: "" }));
+
                 let (mut x, y) = match state.textscript_vm.current_line {
-                    TextScriptLine::Line1 => (
-                        state.font.text_width_with_rects(
-                            state.textscript_vm.line_1.iter().copied(),
-                            &state.textscript_vm.substitution_rect_map,
-                            &state.constants,
-                        ),
-                        top_pos + 10.0,
-                    ),
-                    TextScriptLine::Line2 => (
-                        state.font.text_width_with_rects(
-                            state.textscript_vm.line_2.iter().copied(),
-                            &state.textscript_vm.substitution_rect_map,
-                            &state.constants,
-                        ),
-                        top_pos + 10.0 + 16.0,
-                    ),
-                    TextScriptLine::Line3 => (
-                        state.font.text_width_with_rects(
-                            state.textscript_vm.line_3.iter().copied(),
-                            &state.textscript_vm.substitution_rect_map,
-                            &state.constants,
-                        ),
-                        top_pos + 10.0 + 32.0,
-                    ),
+                    TextScriptLine::Line1 => {
+                        (builder.compute_width_iter(state.textscript_vm.line_1.iter().copied()), top_pos + 10.0)
+                    }
+                    TextScriptLine::Line2 => {
+                        (builder.compute_width_iter(state.textscript_vm.line_2.iter().copied()), top_pos + 10.0 + 16.0)
+                    }
+                    TextScriptLine::Line3 => {
+                        (builder.compute_width_iter(state.textscript_vm.line_3.iter().copied()), top_pos + 10.0 + 32.0)
+                    }
                 };
                 x += left_pos + text_offset + 14.0;
 
@@ -289,7 +266,7 @@ impl GameEntity<()> for TextBoxes {
                         (x * state.scale) as isize,
                         (y * state.scale) as isize,
                         (5.0 * state.scale) as isize,
-                        (state.font.line_height(&state.constants) * state.scale) as isize,
+                        (state.font.line_height() * state.scale) as isize,
                     ),
                     Color::from_rgb(255, 255, 255),
                 )?;
