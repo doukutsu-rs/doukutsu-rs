@@ -128,17 +128,17 @@ Extract the `data` folder (contained in `romfs`) from your console using tool su
 
 Same controls as the default for freeware and Cave Story+ keyboard.
 
-To change, edit `doukutsu-rs\data\settings.json` within your user directory.
+To change, use the control customization menu or edit `doukutsu-rs\data\settings.json` within your user directory.
 
-|              | P1        | P2        |
-| ------------ | --------- | --------- |
-| Movement     | `← ↑ ↓ →` | `, L . /` |
-| Jump         | `Z`       | `B`       |
-| Shoot        | `X`       | `N`       |
-| Cycle Weapon | `A and S` | `G and H` |
-| Inventory    | `Q`       | `T`       |
-| Map          | `W`       | `Y`       |
-| Strafe       | `LShift`  | `RShift`  |
+|                           | P1        | P2        |
+| ------------------------- | --------- | --------- |
+| Movement                  | `← ↑ ↓ →` | `, L . /` |
+| Jump                      | `Z`       | `B`       |
+| Shoot                     | `X`       | `N`       |
+| Cycle Weapon              | `A and S` | `G and H` |
+| Inventory / Skip cutscene | `Q`       | `T`       |
+| Map                       | `W`       | `Y`       |
+| Strafe                    | `LShift`  | `RShift`  |
 
 - `Alt + Enter` - Toggle Fullscreen
 - `F2` (While paused) - Quick Restart
