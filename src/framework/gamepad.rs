@@ -1,16 +1,56 @@
 use std::collections::{HashMap, HashSet};
 
-use sdl2::controller::GameController;
 use serde::{Deserialize, Serialize};
 
-use crate::{common::Rect, engine_constants::EngineConstants, framework::context::Context};
+use crate::framework::backend::BackendGamepad;
 use crate::framework::error::GameResult;
 use crate::game::shared_game_state::SharedGameState;
+use crate::{common::Rect, engine_constants::EngineConstants, framework::context::Context};
 
 const QUAKE_RUMBLE_LOW_FREQ: u16 = 0x3000;
 const QUAKE_RUMBLE_HI_FREQ: u16 = 0;
 const SUPER_QUAKE_RUMBLE_LOW_FREQ: u16 = 0x5000;
 const SUPER_QUAKE_RUMBLE_HI_FREQ: u16 = 0;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[repr(u32)]
+pub enum GamepadType {
+    Unknown,
+    Xbox360,
+    XboxOne,
+    PS3,
+    PS4,
+    NintendoSwitchPro,
+    Virtual,
+    PS5,
+    AmazonLuma,
+    GoogleStadia,
+    NVIDIAShield,
+    NintendoSwitchJoyConLeft,
+    NintendoSwitchJoyConRight,
+    NintendoSwitchJoyConPair,
+}
+
+impl GamepadType {
+    pub fn get_name(&self) -> &str {
+        match self {
+            GamepadType::Unknown => "Unknown controller",
+            GamepadType::Xbox360 => "Xbox 360 controller",
+            GamepadType::XboxOne => "Xbox One controller",
+            GamepadType::PS3 => "PlayStation 3 controller",
+            GamepadType::PS4 => "PlayStation 4 controller",
+            GamepadType::NintendoSwitchPro => "Nintendo Switch Pro controller",
+            GamepadType::Virtual => "Virtual controller",
+            GamepadType::PS5 => "PlayStation 5 controller",
+            GamepadType::AmazonLuma => "Amazon Luma controller",
+            GamepadType::GoogleStadia => "Google Stadia controller",
+            GamepadType::NVIDIAShield => "NVIDIA Shield controller",
+            GamepadType::NintendoSwitchJoyConLeft => "Nintendo Switch Joy-Con (left)",
+            GamepadType::NintendoSwitchJoyConRight => "Nintendo Switch Joy-Con (right)",
+            GamepadType::NintendoSwitchJoyConPair => "Nintendo Switch Joy-Con (pair)",
+        }
+    }
+}
 
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 #[repr(u32)]
@@ -118,8 +158,8 @@ impl PlayerControllerInputType {
 }
 
 pub struct GamepadData {
-    controller: GameController,
-    controller_type: Option<sdl2_sys::SDL_GameControllerType>,
+    controller: Box<dyn BackendGamepad>,
+    controller_type: GamepadType,
 
     left_x: f64,
     left_y: f64,
@@ -135,10 +175,10 @@ pub struct GamepadData {
 }
 
 impl GamepadData {
-    pub(crate) fn new(game_controller: GameController, axis_sensitivity: f64) -> Self {
+    pub(crate) fn new(game_controller: Box<dyn BackendGamepad>, axis_sensitivity: f64) -> Self {
         GamepadData {
             controller: game_controller,
-            controller_type: None,
+            controller_type: GamepadType::Unknown,
 
             left_x: 0.0,
             left_y: 0.0,
@@ -154,50 +194,29 @@ impl GamepadData {
         }
     }
 
-    pub(crate) fn set_gamepad_type(&mut self, controller_type: sdl2_sys::SDL_GameControllerType) {
-        self.controller_type = Some(controller_type);
+    pub(crate) fn set_gamepad_type(&mut self, controller_type: GamepadType) {
+        self.controller_type = controller_type;
     }
 
     pub(crate) fn get_gamepad_sprite_offset(&self) -> usize {
-        if let Some(controller_type) = self.controller_type {
-            return match controller_type {
-                sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_PS3
-                | sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_PS4
-                | sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_PS5 => 0,
-                sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_XBOX360
-                | sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_XBOXONE => 1,
-                sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO => 3,
-                _ => 1,
-            };
+        match self.controller_type {
+            GamepadType::PS3 | GamepadType::PS4 | GamepadType::PS5 => 0,
+            GamepadType::Xbox360 | GamepadType::XboxOne => 1,
+            GamepadType::NintendoSwitchPro
+            | GamepadType::NintendoSwitchJoyConLeft
+            | GamepadType::NintendoSwitchJoyConRight
+            | GamepadType::NintendoSwitchJoyConPair => 3,
+            _ => 1,
         }
-
-        1
     }
 
     pub fn get_gamepad_name(&self) -> String {
-        let name = if let Some(controller_type) = self.controller_type {
-            match controller_type {
-                sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_PS3
-                | sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_PS4
-                | sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_PS5 => "PlayStation Controller".to_string(),
-                sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_XBOX360
-                | sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_XBOXONE => "Xbox Controller".to_string(),
-                sdl2_sys::SDL_GameControllerType::SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO => {
-                    "Nintendo Switch Controller".to_string()
-                }
-                _ => "Unknown Controller".to_string(),
-            }
-        } else {
-            "Unknown controller".to_string()
-        };
-
-        name
+        self.controller_type.get_name().to_owned()
     }
 
     pub fn set_rumble(&mut self, state: &SharedGameState, low_freq: u16, hi_freq: u16, ticks: u32) -> GameResult {
         let duration_ms = (ticks as f32 / state.settings.timing_mode.get_tps() as f32 * 1000.0) as u32;
-        self.controller.set_rumble(low_freq, hi_freq, duration_ms);
-        Ok(())
+        self.controller.set_rumble(low_freq, hi_freq, duration_ms)
     }
 }
 
@@ -226,7 +245,7 @@ impl GamepadContext {
         self.gamepads.get_mut(gamepad_index)
     }
 
-    pub(crate) fn add_gamepad(&mut self, game_controller: GameController, axis_sensitivity: f64) {
+    pub(crate) fn add_gamepad(&mut self, game_controller: Box<dyn BackendGamepad>, axis_sensitivity: f64) {
         self.gamepads.push(GamepadData::new(game_controller, axis_sensitivity));
     }
 
@@ -234,7 +253,7 @@ impl GamepadContext {
         self.gamepads.retain(|data| data.controller.instance_id() != gamepad_id);
     }
 
-    pub(crate) fn set_gamepad_type(&mut self, gamepad_id: u32, controller_type: sdl2_sys::SDL_GameControllerType) {
+    pub(crate) fn set_gamepad_type(&mut self, gamepad_id: u32, controller_type: GamepadType) {
         if let Some(gamepad) = self.get_gamepad_mut(gamepad_id) {
             gamepad.set_gamepad_type(controller_type);
         }
@@ -377,7 +396,7 @@ impl Default for GamepadContext {
     }
 }
 
-pub fn add_gamepad(context: &mut Context, game_controller: GameController, axis_sensitivity: f64) {
+pub fn add_gamepad(context: &mut Context, game_controller: Box<dyn BackendGamepad>, axis_sensitivity: f64) {
     context.gamepad_context.add_gamepad(game_controller, axis_sensitivity);
 }
 
@@ -385,7 +404,7 @@ pub fn remove_gamepad(context: &mut Context, gamepad_id: u32) {
     context.gamepad_context.remove_gamepad(gamepad_id);
 }
 
-pub fn set_gamepad_type(context: &mut Context, gamepad_id: u32, controller_type: sdl2_sys::SDL_GameControllerType) {
+pub fn set_gamepad_type(context: &mut Context, gamepad_id: u32, controller_type: GamepadType) {
     context.gamepad_context.set_gamepad_type(gamepad_id, controller_type);
 }
 
