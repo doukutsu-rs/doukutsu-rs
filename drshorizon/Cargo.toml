@@ -1,0 +1,10 @@
+[package]
+name = "drshorizon"
+description = "doukutsu-rs targeted for Nintendo Switch"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+doukutsu-rs = { path = "../", default-features = false, features = ["default-base"] }

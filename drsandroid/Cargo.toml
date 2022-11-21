@@ -1,14 +1,14 @@
 [package]
 name = "drsandroid"
+description = "doukutsu-rs targeted for Android"
 version = "0.1.0"
-authors = ["Alula"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-ndk = "0.3"
-ndk-glue = "0.3"
-ndk-sys = "0.2"
-doukutsu-rs = { path = "../", default-features = false, features = ["default-base", "backend-glutin"] }
+ndk = "0.7"
+ndk-glue = "0.7"
+ndk-sys = "0.4"
+doukutsu-rs = { path = "../", default-features = false, features = ["default-base", "backend-glutin", "webbrowser"] }

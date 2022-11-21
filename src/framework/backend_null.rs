@@ -27,10 +27,23 @@ impl Backend for NullBackend {
     }
 }
 
+#[cfg(target_os = "horizon")]
+#[repr(C)]
+pub struct PrintConsole {}
+
+#[cfg(target_os = "horizon")]
+extern "C" { fn consoleUpdate(unk: *mut PrintConsole); }
+
 pub struct NullEventLoop;
 
 impl BackendEventLoop for NullEventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
+        println!("BackendEventLoop::run");
+        #[cfg(target_os = "horizon")]
+            unsafe {
+            consoleUpdate(std::ptr::null_mut());
+        }
+
         let state_ref = unsafe { &mut *game.state.get() };
 
         ctx.screen_size = (640.0, 480.0);
@@ -54,6 +67,11 @@ impl BackendEventLoop for NullEventLoop {
             std::thread::sleep(std::time::Duration::from_millis(10));
 
             game.draw(ctx).unwrap();
+
+            #[cfg(target_os = "horizon")]
+            unsafe {
+                consoleUpdate(std::ptr::null_mut());
+            }
         }
     }
 

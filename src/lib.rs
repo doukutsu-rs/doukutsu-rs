@@ -1,3 +1,5 @@
+//#![cfg_attr(target_os = "horizon", feature(restricted_std))]
+
 #[macro_use]
 extern crate log;
 extern crate strum;

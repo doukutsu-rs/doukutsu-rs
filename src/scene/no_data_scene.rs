@@ -29,6 +29,7 @@ impl Scene for NoDataScene {
         #[cfg(target_os = "android")]
         {
             use crate::common::Rect;
+            use crate::util::browser;
 
             if !self.flag {
                 self.flag = true;
@@ -39,7 +40,7 @@ impl Scene for NoDataScene {
 
             let screen = Rect::new(0, 0, state.canvas_size.0 as isize, state.canvas_size.1 as isize);
             if state.touch_controls.consume_click_in(screen) {
-                if let Err(err) = webbrowser::open(REL_URL) {
+                if let Err(err) = browser::open(REL_URL) {
                     self.err = err.to_string();
                 }
             }
