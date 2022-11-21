@@ -95,6 +95,12 @@ pub trait BackendTexture {
     fn as_any(&self) -> &dyn Any;
 }
 
+pub trait BackendGamepad {
+    fn set_rumble(&mut self, low_freq: u16, high_freq: u16, duration_ms: u32) -> GameResult;
+
+    fn instance_id(&self) -> u32;
+}
+
 #[allow(unreachable_code)]
 pub fn init_backend(headless: bool, size_hint: (u16, u16)) -> GameResult<Box<dyn Backend>> {
     if headless {

@@ -24,15 +24,15 @@ pub mod caret;
 pub mod frame;
 pub mod inventory;
 pub mod map;
+pub mod npc;
 pub mod physics;
+pub mod player;
 pub mod profile;
+pub mod scripting;
 pub mod settings;
 pub mod shared_game_state;
 pub mod stage;
-pub mod npc;
-pub mod player;
 pub mod weapon;
-pub mod scripting;
 
 pub struct LaunchOptions {
     pub server_mode: bool,

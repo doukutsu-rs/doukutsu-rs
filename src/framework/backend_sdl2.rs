@@ -22,13 +22,11 @@ use sdl2::video::Window;
 use sdl2::video::WindowContext;
 
 use crate::common::{Color, Rect};
-use crate::framework::backend::{
-    Backend, BackendEventLoop, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData,
-};
+use crate::framework::backend::{Backend, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData};
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
-use crate::framework::gamepad::{Axis, Button};
+use crate::framework::gamepad::{Axis, Button, GamepadType};
 use crate::framework::graphics::BlendMode;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
@@ -320,10 +318,10 @@ impl BackendEventLoop for SDL2EventLoop {
                             log::info!("Connected gamepad: {} (ID: {})", controller.name(), id);
 
                             let axis_sensitivity = state.settings.get_gamepad_axis_sensitivity(which);
-                            ctx.gamepad_context.add_gamepad(controller, axis_sensitivity);
+                            ctx.gamepad_context.add_gamepad(SDL2Gamepad::new(controller), axis_sensitivity);
 
                             unsafe {
-                                let controller_type = sdl2_sys::SDL_GameControllerTypeForIndex(id as _);
+                                let controller_type = get_game_controller_type(sdl2_sys::SDL_GameControllerTypeForIndex(id as _));
                                 ctx.gamepad_context.set_gamepad_type(id, controller_type);
                             }
                         }
@@ -468,6 +466,46 @@ impl BackendEventLoop for SDL2EventLoop {
         }
 
         SDL2Renderer::new(self.refs.clone())
+    }
+}
+
+fn get_game_controller_type(ctype: sdl2_sys::SDL_GameControllerType) -> GamepadType {
+    match ctype as i32 {
+        1 => GamepadType::Xbox360,
+        2 => GamepadType::XboxOne,
+        3 => GamepadType::PS3,
+        4 => GamepadType::PS4,
+        5 => GamepadType::NintendoSwitchPro,
+        6 => GamepadType::Virtual,
+        7 => GamepadType::PS5,
+        8 => GamepadType::AmazonLuma,
+        9 => GamepadType::GoogleStadia,
+        10 => GamepadType::NVIDIAShield,
+        11 => GamepadType::NintendoSwitchJoyConLeft,
+        12 => GamepadType::NintendoSwitchJoyConRight,
+        13 => GamepadType::NintendoSwitchJoyConPair,
+        _ => GamepadType::Unknown,
+    }
+}
+
+struct SDL2Gamepad {
+    inner: GameController,
+}
+
+impl SDL2Gamepad {
+    pub fn new(inner: GameController) -> Box<dyn BackendGamepad> {
+        Box::new(SDL2Gamepad { inner })
+    }
+}
+
+impl BackendGamepad for SDL2Gamepad {
+    fn set_rumble(&mut self, low_freq: u16, high_freq: u16, duration_ms: u32) -> GameResult {
+        self.inner.set_rumble(low_freq, high_freq, duration_ms)
+            .map_err(|e| GameError::GamepadError(e.to_string()))
+    }
+
+    fn instance_id(&self) -> u32 {
+        self.inner.instance_id()
     }
 }
 
