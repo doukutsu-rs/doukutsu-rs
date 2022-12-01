@@ -109,5 +109,5 @@ jni = "0.20"
 
 [target.'cfg(target_os = "horizon")'.dependencies]
 #deko3d = { path = "./3rdparty/deko3d" }
-cpal = { git = "https://github.com/doukutsu-rs/cpal", branch = "master" }
+cpal = { git = "https://github.com/doukutsu-rs/cpal", branch = "horizon" }
 deko3d = { git = "https://github.com/doukutsu-rs/deko3d-rs", branch = "master" }
