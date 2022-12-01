@@ -35,6 +35,7 @@ enum CurrentMenu {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum MainMenuEntry {
     Start,
+    Challenge(usize),
     Challenges,
     Options,
     Editor,
@@ -90,6 +91,7 @@ pub struct TitleScene {
     nikumaru_rec: NikumaruCounter,
     stage: Stage,
     textures: StageTexturePaths,
+    curly_story_selected : bool,
 }
 
 impl TitleScene {
@@ -131,6 +133,7 @@ impl TitleScene {
             nikumaru_rec: NikumaruCounter::new(),
             stage: fake_stage,
             textures,
+            curly_story_selected: false,
         }
     }
 
@@ -198,6 +201,26 @@ impl Scene for TitleScene {
         self.main_menu.push_entry(MainMenuEntry::Start, MenuEntry::Active(state.loc.t("menus.main_menu.start").to_owned()));
 
         if !state.mod_list.mods.is_empty() {
+            for (idx, mod_info) in state.mod_list.mods.iter().enumerate() {
+                if mod_info.id.clone() == "csmod_03" {
+                    if !mod_info.valid {
+                        self.main_menu
+                            .push_entry(MainMenuEntry::Challenge(idx), MenuEntry::Disabled(mod_info.path.clone()));
+                        continue;
+                    }
+                    if mod_info.satisfies_requirement(&state.mod_requirements) {
+                        self.main_menu
+                            .push_entry(MainMenuEntry::Challenge(idx), MenuEntry::Active(mod_info.name.clone()));
+
+                    } else {
+                        self.main_menu
+                            .push_entry(MainMenuEntry::Challenge(idx), MenuEntry::Disabled("???".to_owned()));
+                    }
+                }
+            }
+        }
+
+        if !state.mod_list.mods.is_empty() {
             self.main_menu.push_entry(
                 MainMenuEntry::Challenges,
                 MenuEntry::Active(state.loc.t("menus.main_menu.challenges").to_owned()),
@@ -230,22 +253,24 @@ impl Scene for TitleScene {
         let mut mutate_selection = true;
 
         for (idx, mod_info) in state.mod_list.mods.iter().enumerate() {
-            if !mod_info.valid {
-                self.challenges_menu
-                    .push_entry(ChallengesMenuEntry::Challenge(idx), MenuEntry::Disabled(mod_info.path.clone()));
-                continue;
-            }
-            if mod_info.satisfies_requirement(&state.mod_requirements) {
-                self.challenges_menu
-                    .push_entry(ChallengesMenuEntry::Challenge(idx), MenuEntry::Active(mod_info.name.clone()));
-
-                if mutate_selection {
-                    selected = ChallengesMenuEntry::Challenge(idx);
-                    mutate_selection = false;
+            if mod_info.id.clone() != "csmod_03" {
+                if !mod_info.valid {
+                    self.challenges_menu
+                        .push_entry(ChallengesMenuEntry::Challenge(idx), MenuEntry::Disabled(mod_info.path.clone()));
+                    continue;
                 }
-            } else {
-                self.challenges_menu
-                    .push_entry(ChallengesMenuEntry::Challenge(idx), MenuEntry::Disabled("???".to_owned()));
+                if mod_info.satisfies_requirement(&state.mod_requirements) {
+                    self.challenges_menu
+                        .push_entry(ChallengesMenuEntry::Challenge(idx), MenuEntry::Active(mod_info.name.clone()));
+
+                    if mutate_selection {
+                        selected = ChallengesMenuEntry::Challenge(idx);
+                        mutate_selection = false;
+                    }
+                } else {
+                    self.challenges_menu
+                        .push_entry(ChallengesMenuEntry::Challenge(idx), MenuEntry::Disabled("???".to_owned()));
+                }
             }
         }
         self.challenges_menu
@@ -300,7 +325,56 @@ impl Scene for TitleScene {
                     self.save_select_menu.set_skip_difficulty_menu(false);
                     self.current_menu = CurrentMenu::SaveSelectMenu;
                 }
+                MenuSelectionResult::Selected(MainMenuEntry::Challenge(idx), _) => {
+                    self.curly_story_selected = true;
+                    if let Some(mod_info) = state.mod_list.mods.get(idx) {
+                        state.mod_path = Some(mod_info.path.clone());
+                        if mod_info.save_slot >= 0 {
+                            self.save_select_menu.init(state, ctx)?;
+                            self.save_select_menu.set_skip_difficulty_menu(true);
+                            self.nikumaru_rec.load_counter(state, ctx)?;
+                            state.reload_graphics();
+                            self.current_menu = CurrentMenu::SaveSelectMenu;
+                        } else {
+                            let mod_name = mod_info.name.clone();
+                            self.confirm_menu.width =
+                                (state.font.builder().compute_width(&mod_name).max(50.0) + 32.0) as u16;
+
+                            self.confirm_menu.set_entry(ConfirmMenuEntry::Title, MenuEntry::Disabled(mod_name));
+
+                            if state.has_replay_data(ctx, ReplayKind::Best) {
+                                self.confirm_menu.set_entry(
+                                    ConfirmMenuEntry::Replay(ReplayKind::Best),
+                                    MenuEntry::Active(state.loc.t("menus.challenge_menu.replay_best").to_owned()),
+                                );
+                                self.confirm_menu.set_entry(
+                                    ConfirmMenuEntry::DeleteReplay,
+                                    MenuEntry::Active(state.loc.t("menus.challenge_menu.delete_replay").to_owned()),
+                                );
+                            } else {
+                                self.confirm_menu
+                                    .set_entry(ConfirmMenuEntry::Replay(ReplayKind::Best), MenuEntry::Hidden);
+                                self.confirm_menu.set_entry(ConfirmMenuEntry::DeleteReplay, MenuEntry::Hidden);
+                            }
+
+                            if state.has_replay_data(ctx, ReplayKind::Last) {
+                                self.confirm_menu.set_entry(
+                                    ConfirmMenuEntry::Replay(ReplayKind::Last),
+                                    MenuEntry::Active(state.loc.t("menus.challenge_menu.replay_last").to_owned()),
+                                );
+                            } else {
+                                self.confirm_menu
+                                    .set_entry(ConfirmMenuEntry::Replay(ReplayKind::Last), MenuEntry::Hidden);
+                            }
+
+                            self.nikumaru_rec.load_counter(state, ctx)?;
+                            state.reload_graphics();
+                            self.current_menu = CurrentMenu::ChallengeConfirmMenu;
+                        }
+                    }
+                }
                 MenuSelectionResult::Selected(MainMenuEntry::Challenges, _) => {
+                    self.curly_story_selected = false;
                     self.current_menu = CurrentMenu::ChallengesMenu;
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Options, _) => {
@@ -339,7 +413,7 @@ impl Scene for TitleScene {
             }
             CurrentMenu::SaveSelectMenu => {
                 let cm = &mut self.current_menu;
-                let rm = if state.mod_path.is_none() { CurrentMenu::MainMenu } else { CurrentMenu::ChallengesMenu };
+                let rm = if state.mod_path.is_none() || self.curly_story_selected { CurrentMenu::MainMenu } else { CurrentMenu::ChallengesMenu };
                 self.save_select_menu.tick(
                     &mut || {
                         *cm = rm;
@@ -357,6 +431,7 @@ impl Scene for TitleScene {
                             self.save_select_menu.init(state, ctx)?;
                             self.save_select_menu.set_skip_difficulty_menu(true);
                             self.nikumaru_rec.load_counter(state, ctx)?;
+                            state.reload_graphics();
                             self.current_menu = CurrentMenu::SaveSelectMenu;
                         } else {
                             let mod_name = mod_info.name.clone();
@@ -391,6 +466,7 @@ impl Scene for TitleScene {
                             }
 
                             self.nikumaru_rec.load_counter(state, ctx)?;
+                            state.reload_graphics();
                             self.current_menu = CurrentMenu::ChallengeConfirmMenu;
                         }
                     }
@@ -419,7 +495,14 @@ impl Scene for TitleScene {
                     self.current_menu = CurrentMenu::ChallengesMenu;
                 }
                 MenuSelectionResult::Selected(ConfirmMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
-                    self.current_menu = CurrentMenu::ChallengesMenu;
+                    if !self.curly_story_selected {
+                        self.current_menu = CurrentMenu::ChallengesMenu;
+                    }
+                    else {
+                        self.current_menu = CurrentMenu::MainMenu;
+                    }
+                    state.mod_path = None;
+                    state.reload_graphics();
                 }
                 _ => (),
             },

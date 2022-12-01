@@ -240,7 +240,11 @@ impl SaveSelectMenu {
         self.update_sizes(state);
         match self.current_menu {
             CurrentMenu::SaveMenu => match self.save_menu.tick(controller, state) {
-                MenuSelectionResult::Selected(SaveMenuEntry::Back, _) | MenuSelectionResult::Canceled => exit_action(),
+                MenuSelectionResult::Selected(SaveMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
+                    exit_action();
+                    state.mod_path = None;
+                    state.reload_graphics();
+                }
                 MenuSelectionResult::Selected(SaveMenuEntry::New(slot), _) => {
                     state.save_slot = slot + 1;
 
