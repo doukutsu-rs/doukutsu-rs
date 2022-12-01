@@ -4,7 +4,18 @@ description = "doukutsu-rs targeted for Nintendo Switch"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+opt-level = 3
+#incremental = true
+
+[profile.dev.package."*"]
+opt-level = 3
+overflow-checks = false
+incremental = true
+[profile.dev.package."doukutsu-rs"]
+opt-level = 3
+overflow-checks = false
+incremental = true
 
 [dependencies]
-doukutsu-rs = { path = "../", default-features = false, features = ["default-base"] }
+doukutsu-rs = { path = "../", default-features = false, features = ["default-base", "backend-horizon"] }

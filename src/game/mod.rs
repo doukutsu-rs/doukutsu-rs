@@ -265,7 +265,7 @@ pub fn init(options: LaunchOptions) -> GameResult {
     log::info!("Resource directory: {:?}", resource_dir);
     log::info!("Initializing engine...");
 
-    let mut context = Context::new();
+    let mut context = Box::pin(Context::new());
     #[cfg(not(any(target_os = "android", target_os = "horizon")))]
     mount_vfs(&mut context, Box::new(PhysicalFS::new(&resource_dir, true)));
 
@@ -294,6 +294,23 @@ pub fn init(options: LaunchOptions) -> GameResult {
         mount_vfs(&mut context, Box::new(PhysicalFS::new(&data_path, true)));
         mount_user_vfs(&mut context, Box::new(PhysicalFS::new(&user_path, false)));
     }
+    #[cfg(target_os = "horizon")]
+    {
+        let mut data_path = PathBuf::from("sdmc:/switch/doukutsu-rs/data");
+        let mut user_path = PathBuf::from("sdmc:/switch/doukutsu-rs/user");
+
+        let _ = std::fs::create_dir_all(&data_path);
+        let _ = std::fs::create_dir_all(&user_path);
+
+        log::info!("Mounting VFS");
+        mount_vfs(&mut context, Box::new(PhysicalFS::new(&data_path, true)));
+        if crate::framework::backend_horizon::mount_romfs() {
+            mount_vfs(&mut context, Box::new(PhysicalFS::new_lowercase(&PathBuf::from("romfs:/data"))));
+        }
+        log::info!("Mounting user VFS");
+        mount_user_vfs(&mut context, Box::new(PhysicalFS::new(&user_path, false)));
+        log::info!("ok");
+    }
 
     #[cfg(not(any(target_os = "android", target_os = "horizon")))]
     {
@@ -308,6 +325,7 @@ pub fn init(options: LaunchOptions) -> GameResult {
         }
     }
 
+    log::info!("Mounting built-in FS");
     mount_vfs(&mut context, Box::new(BuiltinFS::new()));
 
     if options.server_mode {
@@ -315,15 +333,15 @@ pub fn init(options: LaunchOptions) -> GameResult {
         context.headless = true;
     }
 
-    let game = UnsafeCell::new(Game::new(&mut context)?);
-    let state_ref = unsafe { &mut *((&mut *game.get()).state.get()) };
+    let mut game = Box::pin(Game::new(&mut context)?);
     #[cfg(feature = "scripting-lua")]
     {
-        state_ref.lua.update_refs(unsafe { (&*game.get()).state.get() }, &mut context as *mut Context);
+        game.state.get().lua.update_refs(unsafe { &mut *game.state.get() }, &mut context as *mut Context);
     }
 
-    state_ref.next_scene = Some(Box::new(LoadingScene::new()));
-    context.run(unsafe { &mut *game.get() })?;
+    game.state.get_mut().next_scene = Some(Box::new(LoadingScene::new()));
+    log::info!("Starting main loop...");
+    context.run(game.as_mut().get_mut())?;
 
     Ok(())
 }

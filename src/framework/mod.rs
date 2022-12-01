@@ -3,6 +3,8 @@
 pub mod backend;
 #[cfg(feature = "backend-glutin")]
 pub mod backend_glutin;
+#[cfg(feature = "backend-horizon")]
+pub mod backend_horizon;
 pub mod backend_null;
 #[cfg(feature = "backend-sdl")]
 pub mod backend_sdl2;

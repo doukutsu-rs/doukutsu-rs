@@ -8,6 +8,7 @@
   "exe-suffix": ".elf",
   "features": "+a57,+strict-align,+crc,+crypto",
   "has-rpath": false,
+  "has-thread-local": false,
   "linker": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc",
   "linker-flavor": "gcc",
   "llvm-target": "aarch64-unknown-none",
@@ -26,14 +27,18 @@
       "-L",
       "/opt/devkitpro/portlibs/switch/lib",
       "-L",
-      "/opt/devkitpro/libnx/lib"
+      "/opt/devkitpro/libnx/lib",
+      "-I",
+      "/opt/devkitpro/libnx/include"
     ]
   },
   "relocation-model": "pic",
   "requires-uwtable": true,
   "target-c-int-width": "32",
   "target-endian": "little",
-  "target-family": ["unix"],
+  "target-family": [
+    "unix"
+  ],
   "target-pointer-width": "64",
   "trap-unreachable": true,
   "vendor": "nintendo"

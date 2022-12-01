@@ -1,5 +1,7 @@
+use crate::common::Color;
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
+use crate::framework::graphics;
 use crate::game::shared_game_state::SharedGameState;
 use crate::graphics::font::Font;
 use crate::scene::Scene;
@@ -49,6 +51,8 @@ impl Scene for NoDataScene {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        graphics::clear(ctx, Color::from_rgb(30, 0, 0));
+
         state.font.builder().center(state.canvas_size.0).y(10.0).color((255, 100, 100, 255)).draw(
             "doukutsu-rs internal error",
             ctx,
@@ -63,36 +67,57 @@ impl Scene for NoDataScene {
             &mut state.texture_set,
         )?;
 
+        let mut y = 60.0;
         #[cfg(target_os = "android")]
         {
             let yellow = (255, 255, 0, 255);
-            state.font.builder().center(state.canvas_size.0).y(60.0).color(yellow).draw(
+            state.font.builder().center(state.canvas_size.0).y(y).color(yellow).draw(
                 "It's likely that you haven't extracted the game data properly.",
                 ctx,
                 &state.constants,
                 &mut state.texture_set,
             )?;
-            state.font.builder().center(state.canvas_size.0).y(80.0).color(yellow).draw(
+            y += 20.0;
+            state.font.builder().center(state.canvas_size.0).y(y).color(yellow).draw(
                 "Click here to open the guide.",
                 ctx,
                 &state.constants,
                 &mut state.texture_set,
             )?;
-            state.font.builder().center(state.canvas_size.0).y(100.0).color(yellow).draw(
+            y += 20.0;
+            state.font.builder().center(state.canvas_size.0).y(y).color(yellow).draw(
                 REL_URL,
                 ctx,
                 &state.constants,
                 &mut state.texture_set,
             )?;
+            y += 20.0;
         }
 
         {
-            state.font.builder().center(state.canvas_size.0).y(140.0).draw(
-                &self.err,
-                ctx,
-                &state.constants,
-                &mut state.texture_set,
-            )?;
+            // put max 80 chars per line
+            let mut lines = Vec::new();
+            let mut line = String::new();
+
+            for word in self.err.split(' ') {
+                if line.len() + word.len() > 80 {
+                    lines.push(line);
+                    line = String::new();
+                }
+                line.push_str(word);
+                line.push(' ');
+            }
+            lines.push(line);
+
+            for line in lines {
+                state.font.builder().center(state.canvas_size.0).y(y).draw(
+                    &line,
+                    ctx,
+                    &state.constants,
+                    &mut state.texture_set,
+                )?;
+                y += 20.0;
+            }
         }
 
         Ok(())

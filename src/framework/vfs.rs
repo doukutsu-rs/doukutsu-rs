@@ -128,7 +128,7 @@ pub trait VFS: Debug {
     fn metadata(&self, path: &Path) -> GameResult<Box<dyn VMetadata>>;
 
     /// Retrieve all file and directory entries in the given directory.
-    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item=GameResult<PathBuf>>>>;
+    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item = GameResult<PathBuf>>>>;
 
     /// Retrieve the actual location of the VFS root, if available.
     fn to_path_buf(&self) -> Option<PathBuf>;
@@ -156,6 +156,7 @@ pub trait VMetadata {
 pub struct PhysicalFS {
     root: PathBuf,
     readonly: bool,
+    lowercase: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -214,7 +215,11 @@ fn sanitize_path(path: &path::Path) -> Option<PathBuf> {
 impl PhysicalFS {
     /// Creates a new PhysicalFS
     pub fn new(root: &Path, readonly: bool) -> Self {
-        PhysicalFS { root: root.into(), readonly }
+        PhysicalFS { root: root.into(), readonly, lowercase: false }
+    }
+
+    pub fn new_lowercase(root: &Path) -> Self {
+        PhysicalFS { root: root.into(), readonly: true, lowercase: true }
     }
 
     /// Takes a given path (&str) and returns
@@ -222,7 +227,11 @@ impl PhysicalFS {
     /// absolute path you get when appending it
     /// to this filesystem's root.
     fn to_absolute(&self, p: &Path) -> GameResult<PathBuf> {
-        if let Some(safe_path) = sanitize_path(p) {
+        if let Some(mut safe_path) = sanitize_path(p) {
+            if self.lowercase {
+                safe_path = PathBuf::from(p.to_string_lossy().to_lowercase())
+            }
+
             let mut root_path = self.root.clone();
             root_path.push(safe_path.clone());
 
@@ -376,7 +385,7 @@ impl VFS for PhysicalFS {
     }
 
     /// Retrieve the path entries in this path
-    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item=GameResult<PathBuf>>>> {
+    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item = GameResult<PathBuf>>>> {
         self.create_root()?;
         let p = self.to_absolute(path)?;
         // This is inconvenient because path() returns the full absolute
@@ -511,7 +520,7 @@ impl VFS for OverlayFS {
     }
 
     /// Retrieve the path entries in this path
-    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item=GameResult<PathBuf>>>> {
+    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item = GameResult<PathBuf>>>> {
         // This is tricky 'cause we have to actually merge iterators together...
         // Doing it the simple and stupid way works though.
         let mut v = Vec::new();

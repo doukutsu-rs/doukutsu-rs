@@ -21,13 +21,14 @@ panic = "abort"
 
 [profile.dev.package."*"]
 opt-level = 3
+overflow-checks = false
 
 [package.metadata.bundle]
 name = "doukutsu-rs"
 identifier = "io.github.doukutsu_rs"
 version = "0.100.0"
 resources = ["data"]
-copyright = "Copyright (c) 2020-2022 doukutsu-rs dev team"
+copyright = "Copyright (c) 2020-2022 doukutsu-rs contributors"
 category = "Game"
 osx_minimum_system_version = "10.12"
 
@@ -37,6 +38,7 @@ default-base = ["ogg-playback"]
 ogg-playback = ["lewton"]
 backend-sdl = ["sdl2", "sdl2-sys"]
 backend-glutin = ["winit", "glutin", "render-opengl"]
+backend-horizon = []
 render-opengl = []
 scripting-lua = ["lua-ffi"]
 netplay = ["serde_cbor"]
@@ -50,10 +52,11 @@ android = []
 #winit = { path = "./3rdparty/winit", optional = true, default_features = false, features = ["x11"] }
 #sdl2 = { path = "./3rdparty/rust-sdl2", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 #sdl2-sys = { path = "./3rdparty/rust-sdl2/sdl2-sys", optional = true, features = ["bundled", "static-link"] }
+cpal = { path = "./3rdparty/cpal" }
 byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-cpal = "0.14"
+#cpal = "0.14"
 directories = "3"
 downcast = "0.11"
 #glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "8dd457b9adb7dbac7ade337246b6356c784272d9", optional = true, default_features = false, features = ["x11"] }
@@ -102,3 +105,5 @@ ndk-sys = "0.4"
 jni = "0.20"
 
 [target.'cfg(target_os = "horizon")'.dependencies]
+#deko3d = { path = "./3rdparty/deko3d" }
+deko3d = { git = "https://github.com/doukutsu-rs/deko3d-rs", branch = "master" }
