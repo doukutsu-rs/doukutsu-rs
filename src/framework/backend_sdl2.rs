@@ -7,10 +7,9 @@ use std::ptr::{null, null_mut};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use imgui::{ConfigFlags, DrawCmd, DrawData, DrawIdx, DrawVert, Key, MouseCursor, TextureId, Ui};
 use imgui::internal::RawWrapper;
 use imgui::sys::{ImGuiKey_Backspace, ImGuiKey_Delete, ImGuiKey_Enter};
-use sdl2::{controller, EventPump, GameControllerSubsystem, keyboard, pixels, Sdl, VideoSubsystem};
+use imgui::{ConfigFlags, DrawCmd, DrawData, DrawIdx, DrawVert, Key, MouseCursor, TextureId, Ui};
 use sdl2::controller::GameController;
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Scancode;
@@ -20,9 +19,13 @@ use sdl2::render::{Texture, TextureCreator, TextureQuery, WindowCanvas};
 use sdl2::video::GLProfile;
 use sdl2::video::Window;
 use sdl2::video::WindowContext;
+use sdl2::{controller, keyboard, pixels, EventPump, GameControllerSubsystem, Sdl, VideoSubsystem};
 
 use crate::common::{Color, Rect};
-use crate::framework::backend::{Backend, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData};
+use crate::framework::backend::{
+    Backend, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand,
+    VertexData,
+};
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
@@ -31,9 +34,9 @@ use crate::framework::graphics::BlendMode;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
 use crate::framework::ui::init_imgui;
+use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
 use crate::game::GAME_SUSPENDED;
-use crate::game::shared_game_state::WindowMode;
 
 pub struct SDL2Backend {
     context: Sdl,
@@ -165,7 +168,7 @@ impl SDL2EventLoop {
         window.resizable();
 
         #[cfg(feature = "render-opengl")]
-            window.opengl();
+        window.opengl();
 
         let window = window.build().map_err(|e| GameError::WindowError(e.to_string()))?;
         let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
@@ -207,7 +210,7 @@ impl BackendEventLoop for SDL2EventLoop {
 
         loop {
             #[cfg(target_os = "macos")]
-                unsafe {
+            unsafe {
                 use objc::*;
 
                 // no UB: fields are initialized by SDL_GetWindowWMInfo
@@ -321,7 +324,8 @@ impl BackendEventLoop for SDL2EventLoop {
                             ctx.gamepad_context.add_gamepad(SDL2Gamepad::new(controller), axis_sensitivity);
 
                             unsafe {
-                                let controller_type = get_game_controller_type(sdl2_sys::SDL_GameControllerTypeForIndex(id as _));
+                                let controller_type =
+                                    get_game_controller_type(sdl2_sys::SDL_GameControllerTypeForIndex(id as _));
                                 ctx.gamepad_context.set_gamepad_type(id, controller_type);
                             }
                         }
@@ -404,19 +408,19 @@ impl BackendEventLoop for SDL2EventLoop {
 
     fn new_renderer(&self, ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>> {
         #[cfg(feature = "render-opengl")]
-            {
-                let mut refs = self.refs.borrow_mut();
-                match refs.window.window().gl_create_context() {
-                    Ok(gl_ctx) => {
-                        refs.window.window().gl_make_current(&gl_ctx).map_err(|e| GameError::RenderError(e.to_string()))?;
-                        refs.gl_context = Some(gl_ctx);
-                    }
-                    Err(err) => {
-                        *self.opengl_available.borrow_mut() = false;
-                        log::error!("Failed to initialize OpenGL context, falling back to SDL2 renderer: {}", err);
-                    }
+        {
+            let mut refs = self.refs.borrow_mut();
+            match refs.window.window().gl_create_context() {
+                Ok(gl_ctx) => {
+                    refs.window.window().gl_make_current(&gl_ctx).map_err(|e| GameError::RenderError(e.to_string()))?;
+                    refs.gl_context = Some(gl_ctx);
+                }
+                Err(err) => {
+                    *self.opengl_available.borrow_mut() = false;
+                    log::error!("Failed to initialize OpenGL context, falling back to SDL2 renderer: {}", err);
                 }
             }
+        }
 
         #[cfg(feature = "render-opengl")]
         if *self.opengl_available.borrow() {
@@ -500,8 +504,8 @@ impl SDL2Gamepad {
 
 impl BackendGamepad for SDL2Gamepad {
     fn set_rumble(&mut self, low_freq: u16, high_freq: u16, duration_ms: u32) -> GameResult {
-        self.inner.set_rumble(low_freq, high_freq, duration_ms)
-            .map_err(|e| GameError::GamepadError(e.to_string()))
+        let _ = self.inner.set_rumble(low_freq, high_freq, duration_ms);
+        Ok(())
     }
 
     fn instance_id(&self) -> u32 {
