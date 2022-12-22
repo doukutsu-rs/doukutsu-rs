@@ -3,9 +3,9 @@ use itertools::Itertools;
 
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::game::scripting::tsc::text_script::TextScriptExecutionState;
 use crate::game::shared_game_state::SharedGameState;
 use crate::scene::game_scene::GameScene;
-use crate::game::scripting::tsc::text_script::TextScriptExecutionState;
 
 use self::command_line::CommandLineParser;
 
@@ -187,22 +187,22 @@ impl LiveDebugger {
                 }
 
                 #[cfg(feature = "scripting-lua")]
-                    {
-                        ui.same_line();
-                        if ui.button("Reload Lua Scripts") {
-                            if let Err(err) = state.lua.reload_scripts(ctx) {
-                                log::error!("Error reloading scripts: {:?}", err);
-                                self.error = Some(ImString::new(err.to_string()));
-                            }
+                {
+                    ui.same_line();
+                    if ui.button("Reload Lua Scripts") {
+                        if let Err(err) = state.lua.reload_scripts(ctx) {
+                            log::error!("Error reloading scripts: {:?}", err);
+                            self.error = Some(ImString::new(err.to_string()));
                         }
                     }
+                }
 
                 if game_scene.player2.cond.alive() {
                     if ui.button("Drop Player 2") {
                         game_scene.drop_player2();
                     }
                 } else if ui.button("Add Player 2") {
-                    game_scene.add_player2(state);
+                    game_scene.add_player2(state, ctx);
                 }
                 ui.same_line();
 
@@ -216,7 +216,8 @@ impl LiveDebugger {
                         let _ = state.save_game(game_scene, ctx);
                         state.sound_manager.play_sfx(18);
                     }
-                } else if ui.button("Busy") {}
+                } else if ui.button("Busy") {
+                }
 
                 ui.same_line();
                 if ui.button("Hotkey List") {

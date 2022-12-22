@@ -337,6 +337,7 @@ pub struct EngineConstants {
     pub music_table: Vec<String>,
     pub organya_paths: Vec<String>,
     pub credit_illustration_paths: Vec<String>,
+    pub player_skin_paths: Vec<String>,
     pub animated_face_table: Vec<AnimatedFace>,
     pub string_table: HashMap<String, String>,
     pub missile_flags: Vec<u16>,
@@ -369,6 +370,7 @@ impl Clone for EngineConstants {
             music_table: self.music_table.clone(),
             organya_paths: self.organya_paths.clone(),
             credit_illustration_paths: self.credit_illustration_paths.clone(),
+            player_skin_paths: self.player_skin_paths.clone(),
             animated_face_table: self.animated_face_table.clone(),
             string_table: self.string_table.clone(),
             missile_flags: self.missile_flags.clone(),
@@ -1666,6 +1668,7 @@ impl EngineConstants {
                 "Resource/BITMAP/".to_owned(), // CSE2E
                 "endpic/".to_owned(),          // NXEngine
             ],
+            player_skin_paths: vec!["MyChar".to_owned()],
             animated_face_table: vec![AnimatedFace { face_id: 0, anim_id: 0, anim_frames: vec![(0, 0)] }],
             string_table: HashMap::new(),
             missile_flags: vec![200, 201, 202, 218, 550, 766, 880, 920, 1551],
@@ -1770,6 +1773,7 @@ impl EngineConstants {
         self.textscript.fade_ticks = 21;
         self.game.tile_offset_x = 3;
         self.game.new_game_player_pos = (13, 8);
+        self.player_skin_paths.push("mychar_p2".to_owned());
     }
 
     pub fn apply_csdemo_patches(&mut self) {

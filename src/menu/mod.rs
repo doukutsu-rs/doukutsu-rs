@@ -512,13 +512,14 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         &mut state.texture_set,
                     )?;
 
-                    let spritesheet_name = if state.player2_uses_p2_skinsheet { "mychar_p2" } else { "MyChar" };
+                    let spritesheet_name =
+                        state.constants.player_skin_paths[state.player2_skin_location.texture_index as usize].as_str();
 
                     let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, spritesheet_name)?;
                     batch.add_rect(
                         self.x as f32 + 88.0,
                         y - 4.0,
-                        &Rect::new_size(0, (state.player2_skin).saturating_mul(2 * 16), 16, 16),
+                        &Rect::new_size(0, (state.player2_skin_location.offset).saturating_mul(2 * 16), 16, 16),
                     );
                     batch.draw(ctx)?;
                 }

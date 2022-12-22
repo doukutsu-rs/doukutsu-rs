@@ -142,20 +142,26 @@ impl PlayerCountMenu {
                     }
                 }
                 MenuSelectionResult::Selected(SkinMenuEntry::Skin, _) => {
-                    state.player2_skin += 2;
+                    state.player2_skin_location.offset += 2;
 
-                    if state.player2_uses_p2_skinsheet && state.player2_skin == 2 {
-                        state.player2_skin += 2;
+                    if state.player2_skin_location.texture_index == 1 && state.player2_skin_location.offset == 2 {
+                        state.player2_skin_location.offset += 2;
                     }
 
-                    let current_skin_spritesheet = if state.player2_uses_p2_skinsheet { "mychar_p2" } else { "mychar" };
+                    let current_skin_spritesheet_name =
+                        state.constants.player_skin_paths[state.player2_skin_location.texture_index as usize].as_str();
 
-                    if let Some(tex_size) = state.constants.tex_sizes.get(current_skin_spritesheet) {
+                    if let Some(tex_size) = state.constants.tex_sizes.get(current_skin_spritesheet_name) {
                         // TODO: should probably have a way to figure out the height from the spritesheet ahead of time
 
-                        if state.player2_skin * 2 * 16 >= tex_size.1 {
-                            state.player2_skin = 0;
-                            state.player2_uses_p2_skinsheet = !state.player2_uses_p2_skinsheet;
+                        if state.player2_skin_location.offset * 2 * 16 >= tex_size.1 {
+                            state.player2_skin_location.offset = 0;
+
+                            if state.player2_skin_location.texture_index == 1 {
+                                state.player2_skin_location.texture_index = 0;
+                            } else {
+                                state.player2_skin_location.texture_index = 1;
+                            }
                         }
                     }
                 }

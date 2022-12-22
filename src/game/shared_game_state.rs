@@ -251,6 +251,24 @@ impl TileSize {
     }
 }
 
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub struct PlayerSkinLocation {
+    pub texture_index: u16,
+    pub offset: u16,
+}
+
+impl PlayerSkinLocation {
+    pub const fn new(texture_index: u16, offset: u16) -> PlayerSkinLocation {
+        PlayerSkinLocation { texture_index, offset }
+    }
+}
+
+impl Default for PlayerSkinLocation {
+    fn default() -> PlayerSkinLocation {
+        PlayerSkinLocation::new(0, 0)
+    }
+}
+
 pub struct SharedGameState {
     pub control_flags: ControlFlags,
     pub game_flags: BitVec,
@@ -301,8 +319,7 @@ pub struct SharedGameState {
     pub difficulty: GameDifficulty,
     pub player_count: PlayerCount,
     pub player_count_modified_in_game: bool,
-    pub player2_skin: u16,
-    pub player2_uses_p2_skinsheet: bool,
+    pub player2_skin_location: PlayerSkinLocation,
     pub replay_state: ReplayState,
     pub mod_requirements: ModRequirements,
     pub loc: Locale,
@@ -455,8 +472,7 @@ impl SharedGameState {
             difficulty: GameDifficulty::Normal,
             player_count: PlayerCount::One,
             player_count_modified_in_game: false,
-            player2_skin: 0,
-            player2_uses_p2_skinsheet: false,
+            player2_skin_location: PlayerSkinLocation::default(),
             replay_state: ReplayState::None,
             mod_requirements,
             loc: locale,
