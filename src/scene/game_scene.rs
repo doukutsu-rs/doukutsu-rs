@@ -138,13 +138,19 @@ impl GameScene {
             Rc::new(RefCell::new(textures))
         };
 
+        let mut player2 = Player::new(state, ctx);
+
+        if state.player2_uses_p2_skinsheet {
+            player2.load_skin("mychar_p2".to_owned(), state, ctx);
+        }
+
         Ok(Self {
             tick: 0,
             stage,
             water_params,
             water_renderer,
             player1: Player::new(state, ctx),
-            player2: Player::new(state, ctx),
+            player2: player2,
             inventory_player1: Inventory::new(),
             inventory_player2: Inventory::new(),
             boss_life_bar: BossLifeBar::new(),

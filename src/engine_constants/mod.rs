@@ -1433,6 +1433,7 @@ impl EngineConstants {
                 "ItemImage" => (256, 128),
                 "Loading" => (64, 8),
                 "MyChar" => (200, 64),
+                "mychar_p2" => (200, 384), // switch
                 "Npc/Npc0" => (32, 32),
                 "Npc/NpcAlmo1" => (320, 240),
                 "Npc/NpcAlmo2" => (320, 240),

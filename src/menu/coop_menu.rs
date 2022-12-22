@@ -2,8 +2,8 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::game::shared_game_state::{PlayerCount, SharedGameState};
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::menu::{Menu, MenuSelectionResult};
 use crate::menu::MenuEntry;
+use crate::menu::{Menu, MenuSelectionResult};
 
 pub enum CurrentMenu {
     CoopMenu,
@@ -59,20 +59,26 @@ impl PlayerCountMenu {
         self.coop_menu = Menu::new(0, 0, 130, 0);
         self.skin_menu = Menu::new(0, 0, 130, 0);
 
-        self.coop_menu.push_entry(CoopMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.coop_menu.title").to_owned()));
+        self.coop_menu
+            .push_entry(CoopMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.coop_menu.title").to_owned()));
         self.coop_menu.push_entry(CoopMenuEntry::One, MenuEntry::Active(state.loc.t("menus.coop_menu.one").to_owned()));
         self.coop_menu.push_entry(CoopMenuEntry::Two, MenuEntry::Active(state.loc.t("menus.coop_menu.two").to_owned()));
         self.coop_menu.push_entry(CoopMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.coop_menu.selected = CoopMenuEntry::One;
 
-        self.skin_menu.push_entry(SkinMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.skin_menu.title").to_owned()));
+        self.skin_menu
+            .push_entry(SkinMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.skin_menu.title").to_owned()));
         self.skin_menu.push_entry(SkinMenuEntry::Skin, MenuEntry::PlayerSkin);
 
         if self.on_title {
-            self.skin_menu.push_entry(SkinMenuEntry::Start, MenuEntry::Active(state.loc.t("menus.main_menu.start").to_owned()));
+            self.skin_menu
+                .push_entry(SkinMenuEntry::Start, MenuEntry::Active(state.loc.t("menus.main_menu.start").to_owned()));
         } else {
-            self.skin_menu.push_entry(SkinMenuEntry::Add, MenuEntry::Active(state.loc.t("menus.pause_menu.add_player2").to_owned()));
+            self.skin_menu.push_entry(
+                SkinMenuEntry::Add,
+                MenuEntry::Active(state.loc.t("menus.pause_menu.add_player2").to_owned()),
+            );
         }
 
         self.skin_menu.push_entry(SkinMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
@@ -137,6 +143,21 @@ impl PlayerCountMenu {
                 }
                 MenuSelectionResult::Selected(SkinMenuEntry::Skin, _) => {
                     state.player2_skin += 2;
+
+                    if state.player2_uses_p2_skinsheet && state.player2_skin == 2 {
+                        state.player2_skin += 2;
+                    }
+
+                    let current_skin_spritesheet = if state.player2_uses_p2_skinsheet { "mychar_p2" } else { "mychar" };
+
+                    if let Some(tex_size) = state.constants.tex_sizes.get(current_skin_spritesheet) {
+                        // TODO: should probably have a way to figure out the height from the spritesheet ahead of time
+
+                        if state.player2_skin * 2 * 16 >= tex_size.1 {
+                            state.player2_skin = 0;
+                            state.player2_uses_p2_skinsheet = !state.player2_uses_p2_skinsheet;
+                        }
+                    }
                 }
                 MenuSelectionResult::Selected(SkinMenuEntry::Start, _) => {
                     state.player_count = PlayerCount::Two;

@@ -375,62 +375,90 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
         for (_, entry) in &self.entries {
             match entry {
                 MenuEntry::Active(name) | MenuEntry::DisabledWhite(name) => {
-                    state.font.builder()
-                        .position(self.x as f32 + 20.0, y)
-                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 20.0, y).draw(
+                        name,
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
                 }
                 MenuEntry::Disabled(name) => {
-                    state.font.builder()
-                        .position(self.x as f32 + 20.0, y)
-                        .color((0xa0, 0xa0, 0xff, 0xff))
-                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 20.0, y).color((0xa0, 0xa0, 0xff, 0xff)).draw(
+                        name,
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
                 }
                 MenuEntry::Toggle(name, value) => {
                     let value_text = if *value { "ON" } else { "OFF" };
                     let name_text_len = state.font.builder().compute_width(name);
 
-                    state.font.builder()
-                        .position(self.x as f32 + 20.0, y)
-                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 20.0, y).draw(
+                        name,
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
 
-                    state.font.builder()
-                        .position(self.x as f32 + 25.0 + name_text_len, y)
-                        .draw(value_text, ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 25.0 + name_text_len, y).draw(
+                        value_text,
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
                 }
                 MenuEntry::Options(name, index, value) => {
                     let value_text = if let Some(text) = value.get(*index) { text } else { "???" };
                     let name_text_len = state.font.builder().compute_width(name);
 
-                    state.font.builder()
-                        .position(self.x as f32 + 20.0, y)
-                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 20.0, y).draw(
+                        name,
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
 
-                    state.font.builder()
-                        .position(self.x as f32 + 25.0 + name_text_len, y)
-                        .draw(value_text, ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 25.0 + name_text_len, y).draw(
+                        value_text,
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
                 }
                 MenuEntry::DescriptiveOptions(name, index, value, description) => {
                     let value_text = if let Some(text) = value.get(*index) { text } else { "???" };
                     let description_text = if let Some(text) = description.get(*index) { text } else { "???" };
                     let name_text_len = state.font.builder().compute_width(name);
 
-                    state.font.builder()
-                        .position(self.x as f32 + 20.0, y)
-                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 20.0, y).draw(
+                        name,
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
 
-                    state.font.builder()
-                        .position(self.x as f32 + 25.0 + name_text_len, y)
-                        .draw(value_text, ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 25.0 + name_text_len, y).draw(
+                        value_text,
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
 
-                    state.font.builder()
+                    state
+                        .font
+                        .builder()
                         .position(self.x as f32 + 20.0, y + 16.0)
                         .color((0xc0, 0xc0, 0xff, 0xff))
                         .draw(description_text, ctx, &state.constants, &mut state.texture_set)?;
                 }
                 MenuEntry::OptionsBar(name, percent) => {
-                    state.font.builder()
-                        .position(self.x as f32 + 20.0, y)
-                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 20.0, y).draw(
+                        name,
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
 
                     if state.constants.is_switch || state.constants.is_cs_plus {
                         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ui")?;
@@ -469,16 +497,24 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     }
                 }
                 MenuEntry::NewSave => {
-                    state.font.builder()
-                        .position(self.x as f32 + 20.0, y)
-                        .draw(state.loc.t("menus.save_menu.new"), ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 20.0, y).draw(
+                        state.loc.t("menus.save_menu.new"),
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
                 }
                 MenuEntry::PlayerSkin => {
-                    state.font.builder()
-                        .position(self.x as f32 + 20.0, y)
-                        .draw(state.loc.t("menus.skin_menu.label"), ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 20.0, y).draw(
+                        state.loc.t("menus.skin_menu.label"),
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
 
-                    let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "MyChar")?;
+                    let spritesheet_name = if state.player2_uses_p2_skinsheet { "mychar_p2" } else { "MyChar" };
+
+                    let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, spritesheet_name)?;
                     batch.add_rect(
                         self.x as f32 + 88.0,
                         y - 4.0,
@@ -496,9 +532,12 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     let bar_width = (save.life as f32 / save.max_life as f32 * 39.0) as u16;
                     let right_edge = self.x as f32 + self.width as f32 - 4.0;
 
-                    state.font.builder()
-                        .position(self.x as f32 + 20.0, y)
-                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 20.0, y).draw(
+                        name,
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
 
                     if valid_save {
                         // Lifebar
@@ -529,9 +568,12 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                                 _ => difficulty_name.push_str("(unknown)"),
                             }
 
-                            state.font.builder()
-                                .position(self.x as f32 + 20.0, y + 10.0)
-                                .draw(difficulty_name.as_str(), ctx, &state.constants, &mut state.texture_set)?;
+                            state.font.builder().position(self.x as f32 + 20.0, y + 10.0).draw(
+                                difficulty_name.as_str(),
+                                ctx,
+                                &state.constants,
+                                &mut state.texture_set,
+                            )?;
                         }
 
                         // Weapons
@@ -554,15 +596,20 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     }
                 }
                 MenuEntry::Control(name, data) => {
-                    state.font.builder()
-                        .position(self.x as f32 + 20.0, y)
-                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
+                    state.font.builder().position(self.x as f32 + 20.0, y).draw(
+                        name,
+                        ctx,
+                        &state.constants,
+                        &mut state.texture_set,
+                    )?;
 
                     match data {
                         ControlMenuData::String(value) => {
                             let text_width = state.font.builder().compute_width(value);
 
-                            state.font.builder()
+                            state
+                                .font
+                                .builder()
                                 .position(self.x as f32 + self.width as f32 - 5.0 - text_width, y)
                                 .draw(value, ctx, &state.constants, &mut state.texture_set)?;
                         }
