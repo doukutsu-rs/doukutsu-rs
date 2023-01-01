@@ -57,6 +57,7 @@ byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 #cpal = "0.14"
+cpal = { git = "https://github.com/doukutsu-rs/cpal", branch = "horizon" }
 directories = "3"
 downcast = "0.11"
 #glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "8dd457b9adb7dbac7ade337246b6356c784272d9", optional = true, default_features = false, features = ["x11"] }
@@ -89,9 +90,6 @@ webbrowser = { version = "0.8", optional = true }
 winit = { version = "0.27", optional = true, default_features = false, features = ["x11"] }
 xmltree = "0.10"
 
-[target.'cfg(not(target_os = "horizon"))'.dependencies]
-cpal = "0.14"
-
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3", features = ["winuser"] }
 
@@ -109,5 +107,4 @@ jni = "0.20"
 
 [target.'cfg(target_os = "horizon")'.dependencies]
 #deko3d = { path = "./3rdparty/deko3d" }
-cpal = { git = "https://github.com/doukutsu-rs/cpal", branch = "horizon" }
 deko3d = { git = "https://github.com/doukutsu-rs/deko3d-rs", branch = "master" }

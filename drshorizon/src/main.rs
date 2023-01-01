@@ -24,11 +24,11 @@ extern "C" {
 
 fn main() {
     unsafe {
-        if socketInitialize(std::ptr::null()) == 0 {
-            nxlinkConnectToHost(true, true);
-        }
+        // if socketInitialize(std::ptr::null()) == 0 {
+        //     nxlinkConnectToHost(true, true);
+        // }
 
-        appletSetCpuBoostMode(ApmCpuBoostMode::FastLoad);
+        // appletSetCpuBoostMode(ApmCpuBoostMode::FastLoad);
 
         std::env::set_var("RUST_BACKTRACE", "full");
 
