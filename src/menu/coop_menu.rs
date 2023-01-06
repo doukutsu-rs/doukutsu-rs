@@ -144,10 +144,6 @@ impl PlayerCountMenu {
                 MenuSelectionResult::Selected(SkinMenuEntry::Skin, _) => {
                     state.player2_skin_location.offset += 2;
 
-                    if state.player2_skin_location.texture_index == 1 && state.player2_skin_location.offset == 2 {
-                        state.player2_skin_location.offset += 2;
-                    }
-
                     let current_skin_spritesheet_name =
                         state.constants.player_skin_paths[state.player2_skin_location.texture_index as usize].as_str();
 
