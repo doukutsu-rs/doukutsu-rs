@@ -122,6 +122,14 @@ Extract the `data` folder (contained in `romfs`) from your console using tool su
 - doukutsu-rs doesn't rely on the original ROM or executable, you just need the data files, go to `RomFS options` menu to just extract the files to SD card so you don't need to do any extra steps.
 - Ensure you're dumping the files **with update included** (`Use update/DLC` option), as 1.0 isn't supported.
 
+**Nintendo Switch homebrew port specific info**
+
+If you're running the homebrew port (drshorizon.nro) on your Switch, you can avoid the dumping step, doukutsu-rs will 
+automatically detect and mount the data files if you run it over Cave Story+ in Title Override mode (hold `R` while starting CS+ and launch d-rs from hbmenu).
+
+You can put your own data files in `/switch/doukutsu-rs/data` directory on SD Card, which will be overlayed over RomFS if 
+you run it in setup described above.
+
 </details>
 
 #### Controls

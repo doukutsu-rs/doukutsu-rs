@@ -11,6 +11,7 @@ use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
 use crate::scene::title_scene::TitleScene;
 use crate::sound::InterpolationMode;
+use crate::util::browser;
 
 use super::controls_menu::ControlsMenu;
 
@@ -295,13 +296,18 @@ impl SettingsMenu {
 
         self.graphics.push_entry(GraphicsMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
+        self.main.push_entry(
+            MainMenuEntry::Graphics,
+            MenuEntry::Active(state.loc.t("menus.options_menu.graphics").to_owned()),
+        );
         self.main
-            .push_entry(MainMenuEntry::Graphics, MenuEntry::Active(state.loc.t("menus.options_menu.graphics").to_owned()));
-        self.main.push_entry(MainMenuEntry::Sound, MenuEntry::Active(state.loc.t("menus.options_menu.sound").to_owned()));
+            .push_entry(MainMenuEntry::Sound, MenuEntry::Active(state.loc.t("menus.options_menu.sound").to_owned()));
 
         #[cfg(not(target_os = "android"))]
-        self.main
-            .push_entry(MainMenuEntry::Controls, MenuEntry::Active(state.loc.t("menus.options_menu.controls").to_owned()));
+        self.main.push_entry(
+            MainMenuEntry::Controls,
+            MenuEntry::Active(state.loc.t("menus.options_menu.controls").to_owned()),
+        );
 
         self.language.push_entry(
             LanguageMenuEntry::Title,
@@ -322,10 +328,13 @@ impl SettingsMenu {
             );
         }
 
-        self.main
-            .push_entry(MainMenuEntry::Behavior, MenuEntry::Active(state.loc.t("menus.options_menu.behavior").to_owned()));
+        self.main.push_entry(
+            MainMenuEntry::Behavior,
+            MenuEntry::Active(state.loc.t("menus.options_menu.behavior").to_owned()),
+        );
 
-        self.main.push_entry(MainMenuEntry::Links, MenuEntry::Active(state.loc.t("menus.options_menu.links").to_owned()));
+        self.main
+            .push_entry(MainMenuEntry::Links, MenuEntry::Active(state.loc.t("menus.options_menu.links").to_owned()));
 
         self.links
             .push_entry(LinksMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.options_menu.links").to_owned()));
@@ -345,11 +354,17 @@ impl SettingsMenu {
 
         self.sound.push_entry(
             SoundMenuEntry::MusicVolume,
-            MenuEntry::OptionsBar(state.loc.t("menus.options_menu.sound_menu.music_volume").to_owned(), state.settings.bgm_volume),
+            MenuEntry::OptionsBar(
+                state.loc.t("menus.options_menu.sound_menu.music_volume").to_owned(),
+                state.settings.bgm_volume,
+            ),
         );
         self.sound.push_entry(
             SoundMenuEntry::EffectsVolume,
-            MenuEntry::OptionsBar(state.loc.t("menus.options_menu.sound_menu.effects_volume").to_owned(), state.settings.sfx_volume),
+            MenuEntry::OptionsBar(
+                state.loc.t("menus.options_menu.sound_menu.effects_volume").to_owned(),
+                state.settings.sfx_volume,
+            ),
         );
 
         self.sound.push_entry(
@@ -845,7 +860,7 @@ impl SettingsMenu {
             },
             CurrentMenu::LinksMenu => match self.links.tick(controller, state) {
                 MenuSelectionResult::Selected(LinksMenuEntry::Link(url), _) => {
-                    if let Err(e) = webbrowser::open(&url) {
+                    if let Err(e) = browser::open(&url) {
                         log::warn!("Error opening web browser: {}", e);
                     }
                 }

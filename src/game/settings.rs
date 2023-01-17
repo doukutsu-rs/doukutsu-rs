@@ -39,9 +39,9 @@ pub struct Settings {
     pub pause_on_focus_loss: bool,
     #[serde(default = "default_interpolation")]
     pub organya_interpolation: InterpolationMode,
-    #[serde(default = "default_controller_type")]
+    #[serde(default = "default_p1_controller_type")]
     pub player1_controller_type: ControllerType,
-    #[serde(default = "default_controller_type")]
+    #[serde(default = "default_p2_controller_type")]
     pub player2_controller_type: ControllerType,
     #[serde(default = "p1_default_keymap")]
     pub player1_key_map: PlayerKeyMap,
@@ -133,8 +133,21 @@ fn default_screen_shake_intensity() -> ScreenShakeIntensity {
 }
 
 #[inline(always)]
-fn default_controller_type() -> ControllerType {
-    ControllerType::Keyboard
+fn default_p1_controller_type() -> ControllerType {
+    if cfg!(any(target_os = "horizon")) {
+        ControllerType::Gamepad(0)
+    } else {
+        ControllerType::Keyboard
+    }
+}
+
+#[inline(always)]
+fn default_p2_controller_type() -> ControllerType {
+    if cfg!(any(target_os = "horizon")) {
+        ControllerType::Gamepad(1)
+    } else {
+        ControllerType::Keyboard
+    }
 }
 
 #[inline(always)]
@@ -216,8 +229,8 @@ impl Settings {
 
         if self.version == 11 {
             self.version = 12;
-            self.player1_controller_type = default_controller_type();
-            self.player2_controller_type = default_controller_type();
+            self.player1_controller_type = default_p1_controller_type();
+            self.player2_controller_type = default_p2_controller_type();
             self.player1_controller_button_map = player_default_controller_button_map();
             self.player2_controller_button_map = player_default_controller_button_map();
             self.player1_controller_axis_sensitivity = default_controller_axis_sensitivity();
@@ -396,8 +409,8 @@ impl Default for Settings {
             timing_mode: default_timing(),
             pause_on_focus_loss: default_pause_on_focus_loss(),
             organya_interpolation: InterpolationMode::Linear,
-            player1_controller_type: default_controller_type(),
-            player2_controller_type: default_controller_type(),
+            player1_controller_type: default_p1_controller_type(),
+            player2_controller_type: default_p2_controller_type(),
             player1_key_map: p1_default_keymap(),
             player2_key_map: p2_default_keymap(),
             player1_controller_button_map: player_default_controller_button_map(),

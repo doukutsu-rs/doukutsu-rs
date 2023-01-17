@@ -345,12 +345,13 @@ impl SharedGameState {
             None => "data",
         };
 
-        let vanilla_extractor =
-            VanillaExtractor::from(ctx, vanilla_ext_exe.to_string(), vanilla_ext_outdir.to_string());
-        if vanilla_extractor.is_some() {
-            let result = vanilla_extractor.unwrap().extract_data();
-            if result.is_err() {
-                log::error!("Failed to extract vanilla data: {}", result.unwrap_err());
+        #[cfg(not(target_os = "horizon"))]
+        if let Some(vanilla_extractor) =
+            VanillaExtractor::from(ctx, vanilla_ext_exe.to_string(), vanilla_ext_outdir.to_string())
+        {
+            let result = vanilla_extractor.extract_data();
+            if let Err(e) = result {
+                log::error!("Failed to extract vanilla data: {}", e);
             }
         }
 

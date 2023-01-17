@@ -1,0 +1,45 @@
+{
+  "arch": "aarch64",
+  "data-layout": "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128",
+  "dynamic-linking": true,
+  "disable-redzone": true,
+  "env": "newlib",
+  "executables": true,
+  "exe-suffix": ".elf",
+  "features": "+a57,+strict-align,+crc,+crypto",
+  "has-rpath": false,
+  "has-thread-local": false,
+  "linker": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc",
+  "linker-flavor": "gcc",
+  "llvm-target": "aarch64-unknown-none",
+  "max-atomic-width": 128,
+  "no-default-libraries": false,
+  "os": "horizon",
+  "panic-strategy": "abort",
+  "position-independent-executables": true,
+  "pre-link-args": {
+    "gcc": [
+      "-fPIC",
+      "-specs",
+      "aarch64_nintendo_switch.specs",
+      "-T",
+      "aarch64_nintendo_switch.ld",
+      "-L",
+      "/opt/devkitpro/portlibs/switch/lib",
+      "-L",
+      "/opt/devkitpro/libnx/lib",
+      "-I",
+      "/opt/devkitpro/libnx/include"
+    ]
+  },
+  "relocation-model": "pic",
+  "requires-uwtable": true,
+  "target-c-int-width": "32",
+  "target-endian": "little",
+  "target-family": [
+    "unix"
+  ],
+  "target-pointer-width": "64",
+  "trap-unreachable": true,
+  "vendor": "nintendo"
+}

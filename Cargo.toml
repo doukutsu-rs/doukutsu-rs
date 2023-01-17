@@ -21,22 +21,24 @@ panic = "abort"
 
 [profile.dev.package."*"]
 opt-level = 3
+overflow-checks = false
 
 [package.metadata.bundle]
 name = "doukutsu-rs"
 identifier = "io.github.doukutsu_rs"
 version = "0.100.0"
 resources = ["data"]
-copyright = "Copyright (c) 2020-2022 doukutsu-rs dev team"
+copyright = "Copyright (c) 2020-2022 doukutsu-rs contributors"
 category = "Game"
 osx_minimum_system_version = "10.12"
 
 [features]
-default = ["default-base", "backend-sdl", "render-opengl", "exe"]
+default = ["default-base", "backend-sdl", "render-opengl", "exe", "webbrowser"]
 default-base = ["ogg-playback"]
 ogg-playback = ["lewton"]
 backend-sdl = ["sdl2", "sdl2-sys"]
 backend-glutin = ["winit", "glutin", "render-opengl"]
+backend-horizon = []
 render-opengl = []
 scripting-lua = ["lua-ffi"]
 netplay = ["serde_cbor"]
@@ -50,10 +52,12 @@ android = []
 #winit = { path = "./3rdparty/winit", optional = true, default_features = false, features = ["x11"] }
 #sdl2 = { path = "./3rdparty/rust-sdl2", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 #sdl2-sys = { path = "./3rdparty/rust-sdl2/sdl2-sys", optional = true, features = ["bundled", "static-link"] }
+#cpal = { path = "./3rdparty/cpal" }
 byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
-chrono = "0.4"
-cpal = "0.14"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+#cpal = "0.14"
+cpal = { git = "https://github.com/doukutsu-rs/cpal", branch = "horizon" }
 directories = "3"
 downcast = "0.11"
 #glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "8dd457b9adb7dbac7ade337246b6356c784272d9", optional = true, default_features = false, features = ["x11"] }
@@ -68,7 +72,7 @@ lua-ffi = { git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "e0b2ff596
 num-derive = "0.3"
 num-traits = "0.2"
 paste = "1.0"
-pelite = ">=0.9.2"
+pelite = { version = ">=0.9.2", default-features = false, features = ["std"] }
 sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 sdl2-sys = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["bundled", "static-link"] }
 rc-box = "1.2.0"
@@ -81,7 +85,7 @@ strum = "0.24"
 strum_macros = "0.24"
 # remove and replace when drain_filter is in stable
 vec_mut_scan = "0.4"
-webbrowser = "0.8"
+webbrowser = { version = "0.8", optional = true }
 #winit = { git = "https://github.com/alula/winit.git", rev = "6acf76ff192dd8270aaa119b9f35716c03685f9f", optional = true, default_features = false, features = ["x11"] }
 winit = { version = "0.27", optional = true, default_features = false, features = ["x11"] }
 xmltree = "0.10"
@@ -100,3 +104,7 @@ ndk = "0.7"
 ndk-glue = "0.7"
 ndk-sys = "0.4"
 jni = "0.20"
+
+[target.'cfg(target_os = "horizon")'.dependencies]
+#deko3d = { path = "./3rdparty/deko3d" }
+deko3d = { git = "https://github.com/doukutsu-rs/deko3d-rs", branch = "master" }
