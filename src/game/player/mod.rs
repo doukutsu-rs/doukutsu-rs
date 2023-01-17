@@ -3,7 +3,7 @@ use std::clone::Clone;
 use num_derive::FromPrimitive;
 use num_traits::clamp;
 
-use crate::common::{Condition, Direction, Equipment, Flag, interpolate_fix9_scale, Rect};
+use crate::common::{interpolate_fix9_scale, Condition, Direction, Equipment, Flag, Rect};
 use crate::components::number_popup::NumberPopup;
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
@@ -12,8 +12,8 @@ use crate::game::caret::CaretType;
 use crate::game::frame::Frame;
 use crate::game::npc::list::NPCList;
 use crate::game::npc::NPC;
-use crate::game::player::skin::{PlayerAnimationState, PlayerAppearanceState, PlayerSkin};
 use crate::game::player::skin::basic::BasicPlayerSkin;
+use crate::game::player::skin::{PlayerAnimationState, PlayerAppearanceState, PlayerSkin};
 use crate::game::shared_game_state::SharedGameState;
 use crate::input::dummy_player_controller::DummyPlayerController;
 use crate::input::player_controller::PlayerController;
@@ -187,6 +187,12 @@ impl Player {
         } else {
             0
         }
+    }
+
+    pub fn load_skin(&mut self, texture_name: String, state: &mut SharedGameState, ctx: &mut Context) {
+        self.skin = Box::new(BasicPlayerSkin::new(texture_name, state, ctx));
+        self.display_bounds = self.skin.get_display_bounds();
+        self.hit_bounds = self.skin.get_hit_bounds();
     }
 
     fn tick_normal(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
@@ -402,10 +408,10 @@ impl Player {
         // stop interacting when moved
         if state.control_flags.control_enabled()
             && (self.controller.move_left()
-            || self.controller.move_right()
-            || self.controller.move_up()
-            || self.controller.jump()
-            || self.controller.shoot())
+                || self.controller.move_right()
+                || self.controller.move_up()
+                || self.controller.jump()
+                || self.controller.shoot())
         {
             self.cond.set_interacted(false);
         }
@@ -524,8 +530,8 @@ impl Player {
             if (self.flags.hit_bottom_wall() && self.flags.hit_right_higher_half() && self.vel_x < 0)
                 || (self.flags.hit_bottom_wall() && self.flags.hit_left_higher_half() && self.vel_x > 0)
                 || (self.flags.hit_bottom_wall()
-                && self.flags.hit_left_lower_half()
-                && self.flags.hit_right_lower_half())
+                    && self.flags.hit_left_lower_half()
+                    && self.flags.hit_right_lower_half())
             {
                 self.vel_y = 0x400; // 2.0fix9
             }
@@ -533,9 +539,9 @@ impl Player {
 
         let max_move = if self.flags.in_water()
             && !(self.flags.force_left()
-            || self.flags.force_up()
-            || self.flags.force_right()
-            || self.flags.force_down())
+                || self.flags.force_up()
+                || self.flags.force_right()
+                || self.flags.force_down())
         {
             state.constants.player.water_physics.max_move
         } else {

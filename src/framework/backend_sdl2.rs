@@ -497,14 +497,15 @@ struct SDL2Gamepad {
 }
 
 impl SDL2Gamepad {
-    fn new(inner: GameController) -> Box<dyn BackendGamepad> {
+    pub fn new(inner: GameController) -> Box<dyn BackendGamepad> {
         Box::new(SDL2Gamepad { inner })
     }
 }
 
 impl BackendGamepad for SDL2Gamepad {
     fn set_rumble(&mut self, low_freq: u16, high_freq: u16, duration_ms: u32) -> GameResult {
-        self.inner.set_rumble(low_freq, high_freq, duration_ms).map_err(|e| GameError::GamepadError(e.to_string()))
+        let _ = self.inner.set_rumble(low_freq, high_freq, duration_ms);
+        Ok(())
     }
 
     fn instance_id(&self) -> u32 {

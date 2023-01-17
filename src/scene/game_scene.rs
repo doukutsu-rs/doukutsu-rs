@@ -138,13 +138,21 @@ impl GameScene {
             Rc::new(RefCell::new(textures))
         };
 
+        let mut player2 = Player::new(state, ctx);
+
+        if state.player2_skin_location.texture_index != 0 {
+            let skinsheet_name =
+                state.constants.player_skin_paths[state.player2_skin_location.texture_index as usize].as_str();
+            player2.load_skin(skinsheet_name.to_owned(), state, ctx);
+        }
+
         Ok(Self {
             tick: 0,
             stage,
             water_params,
             water_renderer,
             player1: Player::new(state, ctx),
-            player2: Player::new(state, ctx),
+            player2: player2,
             inventory_player1: Inventory::new(),
             inventory_player2: Inventory::new(),
             boss_life_bar: BossLifeBar::new(),
@@ -181,10 +189,16 @@ impl GameScene {
     pub fn display_map_name(&mut self, ticks: u16) {
         self.map_name_counter = ticks;
     }
-    pub fn add_player2(&mut self, state: &mut SharedGameState) {
+
+    pub fn add_player2(&mut self, state: &mut SharedGameState, ctx: &mut Context) {
         self.player2.cond.set_alive(true);
         self.player2.cond.set_hidden(self.player1.cond.hidden());
-        self.player2.skin.set_skinsheet_offset(state.player2_skin);
+
+        let skinsheet_name =
+            state.constants.player_skin_paths[state.player2_skin_location.texture_index as usize].as_str();
+        self.player2.load_skin(skinsheet_name.to_owned(), state, ctx);
+        self.player2.skin.set_skinsheet_offset(state.player2_skin_location.offset);
+
         self.player2.x = self.player1.x;
         self.player2.y = self.player1.y;
         self.player2.vel_x = self.player1.vel_x;
@@ -1631,7 +1645,7 @@ impl Scene for GameScene {
             self.replay.initialize_recording(state);
         }
         if state.player_count == PlayerCount::Two {
-            self.add_player2(state);
+            self.add_player2(state, ctx);
         } else {
             self.drop_player2();
         }
@@ -1737,7 +1751,7 @@ impl Scene for GameScene {
 
         if state.player_count_modified_in_game {
             if state.player_count == PlayerCount::Two {
-                self.add_player2(state);
+                self.add_player2(state, ctx);
             } else {
                 self.drop_player2();
             }
