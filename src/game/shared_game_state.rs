@@ -151,11 +151,12 @@ pub struct Fps {
     pub tick_count: u32,
     pub tps: u32,
     last_capture: u128,
+    should_draw: bool,
 }
 
 impl Fps {
     pub fn new() -> Fps {
-        Fps { frame_count: 0, fps: 0, tick_count: 0, tps: 0, last_capture: 0 }
+        Fps { frame_count: 0, fps: 0, tick_count: 0, tps: 0, last_capture: 0, should_draw: true }
     }
 
     pub fn act(&mut self, state: &mut SharedGameState, ctx: &mut Context, time: u128) -> GameResult {
@@ -168,8 +169,13 @@ impl Fps {
         } else {
             self.frame_count = self.frame_count.saturating_add(1);
         }
-        draw_number(state.canvas_size.0 - 8.0, 8.0, self.fps as usize, Alignment::Right, state, ctx)?;
-        draw_number(state.canvas_size.0 - 8.0, 16.0, self.tps as usize, Alignment::Right, state, ctx)?;
+
+        if self.should_draw {
+            let first = draw_number(state.canvas_size.0 - 8.0, 8.0, self.fps as usize, Alignment::Right, state, ctx);
+            let second = draw_number(state.canvas_size.0 - 8.0, 16.0, self.tps as usize, Alignment::Right, state, ctx);
+            self.should_draw = first.is_ok() && second.is_ok();
+        }
+
         Ok(())
     }
 }
