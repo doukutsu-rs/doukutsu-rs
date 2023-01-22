@@ -17,6 +17,7 @@ environment:
       target: i686-pc-windows-msvc
       target_name: win32
       job_name: windows-x32
+      appveyor_build_worker_image: Visual Studio 2019
     - channel: stable
       target: x86_64-unknown-linux-gnu
       target_name: linux
