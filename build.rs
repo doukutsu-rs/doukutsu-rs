@@ -15,6 +15,11 @@ fn main() {
         let mut res = winres::WindowsResource::new();
         res.set_icon("res/sue.ico");
         res.compile().unwrap();
+
+        if target.contains("i686") {
+            // yet another hack
+            println!("cargo:rustc-link-arg=/FORCE:MULTIPLE");
+        }
     }
 
     if target.contains("darwin") {
