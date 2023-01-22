@@ -100,10 +100,14 @@ impl Scene for NoDataScene {
             let mut line = String::new();
 
             for word in self.err.split(' ') {
-                if line.len() + word.len() > 80 {
+                let combined_word = line.clone() + " " + word;
+                let line_length = state.font.compute_width(&mut combined_word.chars(), None);
+
+                if line_length > state.canvas_size.0 as f32 {
                     lines.push(line);
                     line = String::new();
                 }
+
                 line.push_str(word);
                 line.push(' ');
             }
