@@ -1531,7 +1531,7 @@ impl GameScene {
                     self.inventory_player1.current_item = 0;
                     state.textscript_vm.set_mode(ScriptMode::Inventory);
                     self.player1.cond.set_interacted(false);
-                } else if self.player1.controller.trigger_map() && self.inventory_player1.has_item(2) {
+                } else if self.player1.controller.trigger_map() && self.player1.equip.has_map() {
                     state.textscript_vm.state = TextScriptExecutionState::MapSystem;
                 }
             }
