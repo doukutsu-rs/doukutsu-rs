@@ -11,10 +11,11 @@ in [Rust](https://www.rust-lang.org/).
 
   Permalinks to latest builds from `master` branch:
 
-  - [Windows (x86_64)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_win64.zip?branch=master&job=windows-x64)
+  - [Windows (64-bit)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_win64.zip?branch=master&job=windows-x64)
+  - [Windows (32-bit)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_win32.zip?branch=master&job=windows-x32)
   - [macOS (Intel, 64-bit, 10.14+)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_mac-intel.zip?branch=master&job=mac-x64)
   - [macOS (Apple M1, 11.0+)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_mac-m1.zip?branch=master&job=mac-arm64)
-  - [Linux (x86_64)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_linux.zip?branch=master&job=linux-x64)
+  - [Linux (64-bit)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_linux.zip?branch=master&job=linux-x64)
 
   **macOS note:** If you get a `"doukutsu-rs" can't be opened` message, right-click doukutsu-rs.app and click open.
 
@@ -101,9 +102,9 @@ The archive from Humble Bundle contains the necessary `data` folder, in the same
 <details>
 <summary>WiiWare</summary>
 
-1. [Dump Your WiiWare ``.wad``](https://wii.guide/dump-wads.html)  
-2. [Extract and decompress the ``data`` folder](https://docs.google.com/document/d/1hDNDgNl0cUDlFOQ_BUOq3QCGb7S0xfUxRoob-hfM-DY)  
-Example of a [valid uncompressed ``data`` folder](https://user-images.githubusercontent.com/53099651/159585593-43fead24-b041-48f4-8332-be50d712310d.png)
+1. [Dump Your WiiWare `.wad`](https://wii.guide/dump-wads.html)
+2. [Extract and decompress the `data` folder](https://docs.google.com/document/d/1hDNDgNl0cUDlFOQ_BUOq3QCGb7S0xfUxRoob-hfM-DY)
+   Example of a [valid uncompressed `data` folder](https://user-images.githubusercontent.com/53099651/159585593-43fead24-b041-48f4-8332-be50d712310d.png)
 
 </details>
 
@@ -119,15 +120,16 @@ Interchanging the save files may result in spawning in wrong locations, softlock
 Extract the `data` folder (contained in `romfs`) from your console using tool such as [nxdumptool](https://github.com/DarkMatterCore/nxdumptool).
 
 **Important notes:**
+
 - doukutsu-rs doesn't rely on the original ROM or executable, you just need the data files, go to `RomFS options` menu to just extract the files to SD card so you don't need to do any extra steps.
 - Ensure you're dumping the files **with update included** (`Use update/DLC` option), as 1.0 isn't supported.
 
 **Nintendo Switch homebrew port specific info**
 
-If you're running the homebrew port (drshorizon.nro) on your Switch, you can avoid the dumping step, doukutsu-rs will 
+If you're running the homebrew port (drshorizon.nro) on your Switch, you can avoid the dumping step, doukutsu-rs will
 automatically detect and mount the data files if you run it over Cave Story+ in Title Override mode (hold `R` while starting CS+ and launch d-rs from hbmenu).
 
-You can put your own data files in `/switch/doukutsu-rs/data` directory on SD Card, which will be overlayed over RomFS if 
+You can put your own data files in `/switch/doukutsu-rs/data` directory on SD Card, which will be overlayed over RomFS if
 you run it in setup described above.
 
 </details>
