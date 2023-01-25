@@ -64,6 +64,7 @@ for:
     build_script:
       #- set DRS_BUILD_VERSION_OVERRIDE=%APPVEYOR_BUILD_VERSION%
       - if "%APPVEYOR_REPO_TAG%" == "true" (set DRS_BUILD_VERSION_OVERRIDE=%APPVEYOR_REPO_TAG_NAME%) else (set DRS_BUILD_VERSION_OVERRIDE=%APPVEYOR_BUILD_VERSION%)
+      - set DRS_BUILD_VERSION_OVERRIDE=0.100.0-beta5
       - set CARGO_INCREMENTAL=1
       - cargo build --release --bin doukutsu-rs
       - mkdir release
@@ -107,6 +108,7 @@ for:
     build_script:
       #- export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_BUILD_VERSION
       - if [ "$APPVEYOR_REPO_TAG" = "true" ]; then export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_REPO_TAG_NAME; else export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_BUILD_VERSION; fi
+      - export DRS_BUILD_VERSION_OVERRIDE=0.100.0-beta5
       - CARGO_INCREMENTAL=1 cargo bundle --release --target $target
       - mkdir release
       - cp LICENSE ./release/LICENSE
@@ -142,6 +144,7 @@ for:
     build_script:
       #- export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_BUILD_VERSION
       - if [ "$APPVEYOR_REPO_TAG" = "true" ]; then export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_REPO_TAG_NAME; else export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_BUILD_VERSION; fi
+      - export DRS_BUILD_VERSION_OVERRIDE=0.100.0-beta5
       - RUSTFLAGS="-C link-arg=-s" CARGO_INCREMENTAL=1 cargo build --release --bin doukutsu-rs
       - mkdir release
       - cp LICENSE ./release/LICENSE
