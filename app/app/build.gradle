@@ -4,21 +4,23 @@ plugins {
 }
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "30.0.3"
-    ndkVersion "22.1.7171670"
+    namespace "io.github.doukutsu_rs"
+    compileSdkVersion 33
+    buildToolsVersion "33.0.0"
+    ndkVersion "25.0.8775105"
 
     defaultConfig {
         applicationId "io.github.doukutsu_rs"
         minSdkVersion 24
-        targetSdkVersion 30
-        versionCode 1
-        versionName "1.0"
+        targetSdkVersion 33
+        versionCode 2
+        versionName "0.100.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
             abiFilters 'x86', 'arm64-v8a', 'armeabi-v7a'
+            stl = "c++_shared"
         }
 
         externalNativeBuild {
@@ -61,12 +63,10 @@ android {
 }
 
 dependencies {
-    implementation 'com.android.support:support-annotations:28.0.0'
-    implementation 'com.android.support:appcompat-v7:28.0.0'
-    implementation 'com.android.support:design:28.0.0'
-    implementation 'com.android.support.constraint:constraint-layout:2.0.1'
-    implementation 'android.arch.navigation:navigation-fragment:1.0.0'
-    implementation 'android.arch.navigation:navigation-ui:1.0.0'
+    implementation 'androidx.annotation:annotation:1.5.0'
+    implementation 'androidx.appcompat:appcompat:1.6.0'
+    implementation 'com.google.android.material:material:1.8.0-rc01'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.1'
 }
 
 println("cargo target: ${project.buildDir.getAbsolutePath()}/rust-target")

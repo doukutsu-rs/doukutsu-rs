@@ -4,6 +4,10 @@ description = "doukutsu-rs targeted for Android"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+opt-level = 3
+incremental = true
+
 [lib]
 crate-type = ["cdylib"]
 

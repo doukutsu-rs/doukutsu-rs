@@ -293,8 +293,8 @@ pub struct HorizonEventLoop {
 const GAMEPAD_KEYMAP: [Button; 16] = [
     Button::South,
     Button::East,
-    Button::North,
     Button::West,
+    Button::North,
     Button::LeftStick,
     Button::RightStick,
     Button::LeftShoulder,
@@ -351,6 +351,14 @@ impl HorizonEventLoop {
                 let button = GAMEPAD_KEYMAP[i];
                 let mask = 1 << i;
 
+                if i == 8 {
+                    ctx.gamepad_context.set_axis_value(id as u32, Axis::TriggerLeft, if buttons_down & mask != 0 { 1.0 } else { 0.0 });
+                    continue;
+                } else if i == 9 {
+                    ctx.gamepad_context.set_axis_value(id as u32, Axis::TriggerRight, if buttons_down & mask != 0 { 1.0 } else { 0.0 });
+                    continue;
+                }
+
                 if buttons_down & mask != 0 {
                     ctx.gamepad_context.set_button(id as u32, button, true);
                 }
@@ -363,10 +371,11 @@ impl HorizonEventLoop {
             let analog_x = pad.sticks[0].x as f64 / 32768.0;
             let analog_y = -pad.sticks[0].y as f64 / 32768.0;
 
-            ctx.gamepad_context.set_axis_value(id as u32, Axis::LeftX, analog_x.clamp(0.0, 1.0));
-            ctx.gamepad_context.set_axis_value(id as u32, Axis::LeftY, analog_y.clamp(0.0, 1.0));
-            ctx.gamepad_context.set_axis_value(id as u32, Axis::RightX, (-analog_x).clamp(0.0, 1.0));
-            ctx.gamepad_context.set_axis_value(id as u32, Axis::RightY, (-analog_y).clamp(0.0, 1.0));
+            ctx.gamepad_context.set_axis_value(id as u32, Axis::LeftX, (analog_x).clamp(-1.0, 1.0));
+            ctx.gamepad_context.set_axis_value(id as u32, Axis::LeftY, (analog_y).clamp(-1.0, 1.0));
+            ctx.gamepad_context.set_axis_value(id as u32, Axis::RightX, (analog_x).clamp(-1.0, 1.0));
+            ctx.gamepad_context.set_axis_value(id as u32, Axis::RightY, (analog_y).clamp(-1.0, 1.0));
+            ctx.gamepad_context.update_axes(id as u32);
         }
     }
 }

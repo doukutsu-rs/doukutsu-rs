@@ -4,7 +4,6 @@ use std::str::FromStr;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 
-use cpal::Sample;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 #[cfg(feature = "ogg-playback")]
 use lewton::inside_ogg::OggStreamReader;
@@ -123,9 +122,17 @@ impl SoundManager {
         let config = config_result.unwrap();
 
         let res = match config.sample_format() {
-            cpal::SampleFormat::F32 => run::<f32>(rx, soundbank.to_owned(), device, config.into()),
+            cpal::SampleFormat::I8 => run::<i8>(rx, soundbank.to_owned(), device, config.into()),
             cpal::SampleFormat::I16 => run::<i16>(rx, soundbank.to_owned(), device, config.into()),
+            cpal::SampleFormat::I32 => run::<i32>(rx, soundbank.to_owned(), device, config.into()),
+            cpal::SampleFormat::I64 => run::<i64>(rx, soundbank.to_owned(), device, config.into()),
+            cpal::SampleFormat::U8 => run::<u8>(rx, soundbank.to_owned(), device, config.into()),
             cpal::SampleFormat::U16 => run::<u16>(rx, soundbank.to_owned(), device, config.into()),
+            cpal::SampleFormat::U32 => run::<u32>(rx, soundbank.to_owned(), device, config.into()),
+            cpal::SampleFormat::U64 => run::<u64>(rx, soundbank.to_owned(), device, config.into()),
+            cpal::SampleFormat::F32 => run::<f32>(rx, soundbank.to_owned(), device, config.into()),
+            cpal::SampleFormat::F64 => run::<f64>(rx, soundbank.to_owned(), device, config.into()),
+            _ => Err(AudioError("Unsupported sample format.".to_owned())),
         };
 
         if let Err(res) = &res {
@@ -584,7 +591,7 @@ fn run<T>(
     config: cpal::StreamConfig,
 ) -> GameResult<cpal::Stream>
     where
-        T: cpal::Sample,
+        T: cpal::SizedSample + cpal::FromSample<u16>,
 {
     let sample_rate = config.sample_rate.0 as f32;
     let channels = config.channels as usize;
@@ -821,8 +828,8 @@ fn run<T>(
                     ) as u16
                         ^ 0x8000;
 
-                    frame[0] = Sample::from::<u16>(&sample_l);
-                    frame[1] = Sample::from::<u16>(&sample_r);
+                    frame[0] = T::from_sample(sample_l);
+                    frame[1] = T::from_sample(sample_r);
                 } else {
                     let sample = clamp(
                         ((((bgm_sample_l ^ 0x8000) as i16) + ((bgm_sample_r ^ 0x8000) as i16)) as f32 * bgm_vol / 2.0)
@@ -833,11 +840,12 @@ fn run<T>(
                     ) as u16
                         ^ 0x8000;
 
-                    frame[0] = Sample::from::<u16>(&sample);
+                    frame[0] = T::from_sample(sample);
                 }
             }
         },
         err_fn,
+        None
     );
 
     if stream_result.is_err() {

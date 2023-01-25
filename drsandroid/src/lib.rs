@@ -3,5 +3,5 @@
 pub fn android_main() {
     let options = doukutsu_rs::game::LaunchOptions { server_mode: false, editor: false };
 
-    doukutsu_rs::init(options).unwrap();
+    doukutsu_rs::game::init(options).unwrap();
 }

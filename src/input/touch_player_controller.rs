@@ -291,8 +291,7 @@ impl PlayerController for TouchPlayerController {
     }
 
     fn skip(&self) -> bool {
-        // TODO
-        false
+        self.state.inventory()
     }
 
     fn strafe(&self) -> bool {
@@ -341,8 +340,7 @@ impl PlayerController for TouchPlayerController {
     }
 
     fn trigger_skip(&self) -> bool {
-        // TODO
-        false
+        self.trigger.inventory()
     }
 
     fn trigger_strafe(&self) -> bool {

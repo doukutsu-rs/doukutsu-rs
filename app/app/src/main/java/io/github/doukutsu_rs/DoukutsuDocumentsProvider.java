@@ -3,6 +3,7 @@ package io.github.doukutsu_rs;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MatrixCursor.RowBuilder;
+import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract.Document;
@@ -16,6 +17,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+
+import static android.os.Build.VERSION.SDK_INT;
 
 public class DoukutsuDocumentsProvider extends DocumentsProvider {
     private final static String[] DEFAULT_ROOT_PROJECTION =
@@ -187,7 +190,13 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
         File newPath = new File(file.getParentFile().getAbsolutePath() + "/" + displayName);
 
         try {
-            Files.move(file.toPath(), newPath.toPath());
+            if (SDK_INT >= Build.VERSION_CODES.O) {
+                Files.move(file.toPath(), newPath.toPath());
+            } else {
+                if (!file.renameTo(newPath)) {
+                    throw new IOException("Couldn't rename file: " + file.getAbsolutePath());
+                }
+            }
         } catch (IOException e) {
             throw new FileNotFoundException(e.getMessage());
         }
@@ -205,8 +214,18 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
             File[] files = file.listFiles();
             if (files != null) {
                 for (File f : files) {
-                    if (!Files.isSymbolicLink(f.toPath())) {
-                        deleteRecursive(f);
+                    if (SDK_INT >= Build.VERSION_CODES.O) {
+                        if (!Files.isSymbolicLink(f.toPath())) {
+                            deleteRecursive(f);
+                        }
+                    } else {
+                        try {
+                            if (!f.getAbsolutePath().equals(f.getCanonicalPath())) {
+                                deleteRecursive(f);
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }

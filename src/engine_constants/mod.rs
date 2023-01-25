@@ -308,7 +308,7 @@ impl GamepadConsts {
             base,
             Rect::new(base.left + 64, base.top, base.right + 64, base.bottom),
             Rect::new(base.left + 128, base.top, base.right + 128, base.bottom),
-            Rect::new(base.left + 192, base.top, base.right + 192, base.bottom),
+            Rect::new(base.left + 64, base.top + 128, base.right + 64, base.bottom + 128),
         ]
     }
 }

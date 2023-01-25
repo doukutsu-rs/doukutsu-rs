@@ -56,12 +56,10 @@ android = []
 byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-#cpal = "0.14"
-cpal = { git = "https://github.com/doukutsu-rs/cpal", branch = "horizon" }
+cpal = { git = "https://github.com/doukutsu-rs/cpal", rev = "9d269d8724102404e73a61e9def0c0cbc921b676" }
 directories = "3"
 downcast = "0.11"
-#glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "8dd457b9adb7dbac7ade337246b6356c784272d9", optional = true, default_features = false, features = ["x11"] }
-glutin = { version = "0.30", optional = true, default_features = false, features = ["x11"] }
+glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "2dd95f042e6e090d36f577cbea125560dd99bd27", optional = true, default_features = false, features = ["x11"] }
 imgui = "0.8"
 image = { version = "0.24", default-features = false, features = ["png", "bmp"] }
 itertools = "0.10"
@@ -86,8 +84,7 @@ strum_macros = "0.24"
 # remove and replace when drain_filter is in stable
 vec_mut_scan = "0.4"
 webbrowser = { version = "0.8", optional = true }
-#winit = { git = "https://github.com/alula/winit.git", rev = "6acf76ff192dd8270aaa119b9f35716c03685f9f", optional = true, default_features = false, features = ["x11"] }
-winit = { version = "0.27", optional = true, default_features = false, features = ["x11"] }
+winit = { git = "https://github.com/doukutsu-rs/winit.git", rev = "878f206d19af01b0977277929eee5e32667453c0", optional = true, default_features = false, features = ["x11"] }
 xmltree = "0.10"
 
 [target.'cfg(target_os = "windows")'.dependencies]

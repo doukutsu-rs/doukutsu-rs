@@ -48,8 +48,8 @@ impl Default for MainMenuEntry {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 enum GraphicsMenuEntry {
-    WindowMode,
     VSyncMode,
+    WindowMode,
     LightingEffects,
     WeaponLightCone,
     ScreenShake,
@@ -63,7 +63,7 @@ enum GraphicsMenuEntry {
 
 impl Default for GraphicsMenuEntry {
     fn default() -> Self {
-        GraphicsMenuEntry::WindowMode
+        GraphicsMenuEntry::VSyncMode
     }
 }
 
@@ -182,19 +182,6 @@ impl SettingsMenu {
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        #[cfg(not(target_os = "android"))]
-        self.graphics.push_entry(
-            GraphicsMenuEntry::WindowMode,
-            MenuEntry::Options(
-                state.loc.t("menus.options_menu.graphics_menu.window_mode.entry").to_owned(),
-                state.settings.window_mode as usize,
-                vec![
-                    state.loc.t("menus.options_menu.graphics_menu.window_mode.windowed").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.window_mode.fullscreen").to_owned(),
-                ],
-            ),
-        );
-
         self.graphics.push_entry(
             GraphicsMenuEntry::VSyncMode,
             MenuEntry::DescriptiveOptions(
@@ -213,6 +200,18 @@ impl SettingsMenu {
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_1x_desc").to_owned(),
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_2x_desc").to_owned(),
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_3x_desc").to_owned(),
+                ],
+            ),
+        );
+        #[cfg(not(all(target_os = "android", target_os = "horizon")))]
+        self.graphics.push_entry(
+            GraphicsMenuEntry::WindowMode,
+            MenuEntry::Options(
+                state.loc.t("menus.options_menu.graphics_menu.window_mode.entry").to_owned(),
+                state.settings.window_mode as usize,
+                vec![
+                    state.loc.t("menus.options_menu.graphics_menu.window_mode.windowed").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.window_mode.fullscreen").to_owned(),
                 ],
             ),
         );

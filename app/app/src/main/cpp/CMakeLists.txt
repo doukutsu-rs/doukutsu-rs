@@ -1,8 +1,8 @@
 # Sets the minimum version of CMake required to build your native library.
 # This ensures that a certain set of CMake features is available to
 # your build.
-
-cmake_minimum_required(VERSION 3.10)
+project(doukutsu-rs)
+cmake_minimum_required(VERSION 3.18)
 
 # Copy shared STL files to Android Studio output directory so they can be
 # packaged in the APK.
@@ -21,7 +21,7 @@ cmake_minimum_required(VERSION 3.10)
 function(configure_shared_stl lib_path so_base)
   message("Configuring STL ${so_base} for ${ANDROID_ABI}")
   configure_file(
-    "${ANDROID_NDK}/sources/cxx-stl/${lib_path}/libs/${ANDROID_ABI}/lib${so_base}.so"
+    "${ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_HOST_TAG}/sysroot/usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/lib${so_base}.so"
     "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${so_base}.so"
     COPYONLY)
 endfunction()
@@ -50,4 +50,4 @@ endif()
 # and CMake builds them for you. When you build your app, Gradle
 # automatically packages shared libraries with your APK.
 
-#add_library(dummy SHARED dummy.cpp)
+add_library(dummy SHARED dummy.cpp)

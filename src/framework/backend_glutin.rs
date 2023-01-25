@@ -10,7 +10,8 @@ use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
 use imgui::{DrawCmdParams, DrawData, DrawIdx, DrawVert};
 
-use crate::{Game, GAME_SUSPENDED};
+use crate::game::Game;
+use crate::game::GAME_SUSPENDED;
 use crate::common::Rect;
 use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
@@ -112,18 +113,21 @@ fn request_android_redraw() {
 #[cfg(target_os = "android")]
 fn get_insets() -> GameResult<(f32, f32, f32, f32)> {
     unsafe {
+        use jni::objects::JObject;
+        use jni::JavaVM;
+
         let vm_ptr = ndk_glue::native_activity().vm();
-        let vm = unsafe { jni::JavaVM::from_raw(vm_ptr) }?;
+        let vm = JavaVM::from_raw(vm_ptr)?;
         let vm_env = vm.attach_current_thread()?;
 
         //let class = vm_env.find_class("io/github/doukutsu_rs/MainActivity")?;
-        let class = vm_env.new_global_ref(ndk_glue::native_activity().activity())?;
+        let class = vm_env.new_global_ref(JObject::from_raw(ndk_glue::native_activity().activity()))?;
         let field = vm_env.get_field(class.as_obj(), "displayInsets", "[I")?.to_jni().l as jni::sys::jintArray;
 
         let mut elements = [0; 4];
         vm_env.get_int_array_region(field, 0, &mut elements)?;
 
-        vm_env.delete_local_ref(field.into());
+        vm_env.delete_local_ref(JObject::from_raw(field));
 
         Ok((elements[0] as f32, elements[1] as f32, elements[2] as f32, elements[3] as f32))
     }
