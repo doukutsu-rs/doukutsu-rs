@@ -53,13 +53,13 @@ for:
       - cargo -vV
 
     cache:
-      - '%USERPROFILE%\.cache -> Cargo.toml'
-      - '%USERPROFILE%\.cargo\bin -> Cargo.toml'
-      - '%USERPROFILE%\.cargo\registry\index -> Cargo.toml'
-      - '%USERPROFILE%\.cargo\registry\cache -> Cargo.toml'
-      - '%USERPROFILE%\.cargo\git\db -> Cargo.toml'
-      - '%USERPROFILE%\.rustup -> Cargo.toml'
-      - 'target -> Cargo.toml'
+      - '%USERPROFILE%\.cache'
+      - '%USERPROFILE%\.cargo\bin'
+      - '%USERPROFILE%\.cargo\registry\index'
+      - '%USERPROFILE%\.cargo\registry\cache'
+      - '%USERPROFILE%\.cargo\git\db'
+      - '%USERPROFILE%\.rustup'
+      - 'target'
 
     build_script:
       #- set DRS_BUILD_VERSION_OVERRIDE=%APPVEYOR_BUILD_VERSION%
@@ -96,13 +96,13 @@ for:
       - cargo install cargo-bundle --force
 
     cache:
-      - '$HOME/.cache -> Cargo.toml'
-      - '$HOME/.cargo/bin -> Cargo.toml'
-      - '$HOME/.cargo/registry/index -> Cargo.toml'
-      - '$HOME/.cargo/registry/cache -> Cargo.toml'
-      - '$HOME/.cargo/git/db -> Cargo.toml'
-      - '$HOME/.rustup -> Cargo.toml'
-      - 'target -> Cargo.toml'
+      - '$HOME/.cache'
+      - '$HOME/.cargo/bin'
+      - '$HOME/.cargo/registry/index'
+      - '$HOME/.cargo/registry/cache'
+      - '$HOME/.cargo/git/db'
+      - '$HOME/.rustup'
+      - 'target'
 
     build_script:
       #- export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_BUILD_VERSION
@@ -131,13 +131,13 @@ for:
       - cargo -vV
 
     cache:
-      - '$HOME/.cache -> Cargo.toml'
-      - '$HOME/.cargo/bin -> Cargo.toml'
-      - '$HOME/.cargo/registry/index -> Cargo.toml'
-      - '$HOME/.cargo/registry/cache -> Cargo.toml'
-      - '$HOME/.cargo/git/db -> Cargo.toml'
-      - '$HOME/.rustup -> Cargo.toml'
-      - 'target -> Cargo.toml'
+      - '$HOME/.cache'
+      - '$HOME/.cargo/bin'
+      - '$HOME/.cargo/registry/index'
+      - '$HOME/.cargo/registry/cache'
+      - '$HOME/.cargo/git/db'
+      - '$HOME/.rustup'
+      - 'target'
 
     build_script:
       #- export DRS_BUILD_VERSION_OVERRIDE=$APPVEYOR_BUILD_VERSION
