@@ -87,7 +87,7 @@ strum = "0.24"
 strum_macros = "0.24"
 # remove and replace when drain_filter is in stable
 vec_mut_scan = "0.4"
-webbrowser = { version = "0.8", optional = true }
+webbrowser = { version = "0.8.4", optional = true }
 winit = { git = "https://github.com/doukutsu-rs/winit.git", rev = "878f206d19af01b0977277929eee5e32667453c0", optional = true, default_features = false, features = ["x11"] }
 xmltree = "0.10"
 
