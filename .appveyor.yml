@@ -44,11 +44,11 @@ for:
         - appveyor_build_worker_image: Visual Studio 2019
 
     init:
-      - ps: >-
-        if ($env:APPVEYOR_REPO_TAG -eq "true")
-        {
-          Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME"
-        }
+      - ps: |
+              if ($env:APPVEYOR_REPO_TAG -eq "true")
+              {
+                Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME"
+              }
 
     install:
       - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
@@ -85,11 +85,11 @@ for:
         - appveyor_build_worker_image: macos-monterey
     
     init:
-      - ps: >-
-        if ($env:APPVEYOR_REPO_TAG -eq "true")
-        {
-          Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME"
-        }
+      - ps: |
+              if ($env:APPVEYOR_REPO_TAG -eq "true")
+              {
+                Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME"
+              }
 
     install:
       - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -yv --default-toolchain $channel
@@ -127,11 +127,11 @@ for:
         - appveyor_build_worker_image: Ubuntu
 
     init:
-      - ps: >-
-        if ($env:APPVEYOR_REPO_TAG -eq "true")
-        {
-          Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME"
-        }
+      - ps: |
+              if ($env:APPVEYOR_REPO_TAG -eq "true")
+              {
+                Update-AppveyorBuild -Version "$env:APPVEYOR_REPO_TAG_NAME"
+              }
 
     install:
       - sudo apt-get update && sudo apt-get -y install libasound2-dev libudev-dev libgl1-mesa-dev pkg-config
