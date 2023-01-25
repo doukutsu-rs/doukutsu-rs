@@ -19,6 +19,7 @@ fn main() {
         if target.contains("i686") {
             // yet another hack
             println!("cargo:rustc-link-arg=/FORCE:MULTIPLE");
+            println!("cargo:rustc-link-lib=shlwapi");
         }
     }
 

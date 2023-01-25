@@ -17,6 +17,7 @@ use crate::framework::{
 pub struct VanillaExtractor {
     exe_buffer: Vec<u8>,
     data_base_dir: String,
+    root: PathBuf,
 }
 
 const VANILLA_STAGE_COUNT: u32 = 95;
@@ -26,13 +27,32 @@ const VANILLA_STAGE_TABLE_SIZE: u32 = VANILLA_STAGE_COUNT * VANILLA_STAGE_ENTRY_
 
 impl VanillaExtractor {
     pub fn from(ctx: &mut Context, exe_name: String, data_base_dir: String) -> Option<Self> {
-        let mut vanilla_exe_path = env::current_exe().unwrap();
-        vanilla_exe_path.pop();
-        vanilla_exe_path.push(exe_name);
+        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        let mut vanilla_exe_path = env::current_dir().unwrap();
+
+        #[cfg(target_os = "android")]
+        let mut vanilla_exe_path = PathBuf::from(ndk_glue::native_activity().internal_data_path().to_string_lossy().to_string());
+
+        #[cfg(target_os = "horizon")]
+        let mut vanilla_exe_path = PathBuf::from("sdmc:/switch/doukutsu-rs/");
+
+        vanilla_exe_path.push(&exe_name);
+
+        log::info!("Looking for vanilla game executable at {:?}", vanilla_exe_path);
+
+        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        if !vanilla_exe_path.is_file() {
+            vanilla_exe_path = env::current_exe().unwrap();
+            vanilla_exe_path.pop();
+            vanilla_exe_path.push(&exe_name);
+        }
 
         if !vanilla_exe_path.is_file() {
             return None;
         }
+
+        let mut root = vanilla_exe_path.clone();
+        root.pop();
 
         log::info!("Found vanilla game executable, attempting to extract resources.");
 
@@ -54,7 +74,7 @@ impl VanillaExtractor {
             return None;
         }
 
-        Some(Self { exe_buffer, data_base_dir })
+        Some(Self { exe_buffer, data_base_dir, root })
     }
 
     pub fn extract_data(&self) -> GameResult {
@@ -93,8 +113,7 @@ impl VanillaExtractor {
         }
 
         for org in orgs.unwrap().data_files {
-            let mut org_path = env::current_exe().unwrap();
-            org_path.pop();
+            let mut org_path = self.root.clone();
             org_path.push(self.data_base_dir.clone());
             org_path.push("Org/");
 
@@ -130,8 +149,7 @@ impl VanillaExtractor {
         }
 
         for bitmap in bitmaps.unwrap().data_files {
-            let mut data_path = env::current_exe().unwrap();
-            data_path.pop();
+            let mut data_path = self.root.clone();
             data_path.push(self.data_base_dir.clone());
 
             if self.deep_create_dir_if_not_exists(data_path.clone()).is_err() {
@@ -180,8 +198,7 @@ impl VanillaExtractor {
 
         let byte_slice = &self.exe_buffer[start..end];
 
-        let mut stage_tbl_path = env::current_exe().unwrap();
-        stage_tbl_path.pop();
+        let mut stage_tbl_path = self.root.clone();
         stage_tbl_path.push(self.data_base_dir.clone());
 
         if self.deep_create_dir_if_not_exists(stage_tbl_path.clone()).is_err() {

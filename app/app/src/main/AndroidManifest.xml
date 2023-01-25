@@ -1,35 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <application android:allowBackup="true"
+    <application
+        android:allowBackup="true"
         android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Doukutsurs">
-        <activity android:name=".DownloadActivity"
-            android:label="Download"
-            android:screenOrientation="sensorLandscape"
-            android:theme="@style/Theme.Doukutsurs.NoActionBar"></activity>
-        <activity android:name=".MainActivity"
+
+        <activity
+            android:name=".MainActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true"
             android:label="doukutsu-rs"
             android:launchMode="standard"
             android:screenOrientation="sensorLandscape"
-            android:exported="true">
+            android:theme="@style/Theme.Doukutsurs.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-            <meta-data android:name="android.app.lib_name" android:value="drsandroid" />
         </activity>
 
-        <provider android:name=".DoukutsuDocumentsProvider"
+        <activity
+            android:name=".DownloadActivity"
+            android:label="Download"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.Doukutsurs.NoActionBar" />
+
+        <activity
+            android:name=".GameActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true"
+            android:launchMode="standard"
+            android:screenOrientation="sensorLandscape">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="drsandroid" />
+        </activity>
+
+        <provider
+            android:name=".DoukutsuDocumentsProvider"
             android:authorities="${documentsAuthority}"
             android:exported="true"
             android:grantUriPermissions="true"

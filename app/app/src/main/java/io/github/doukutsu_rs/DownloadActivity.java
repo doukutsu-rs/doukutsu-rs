@@ -2,6 +2,7 @@ package io.github.doukutsu_rs;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import androidx.appcompat.app.AppCompatActivity;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -18,6 +19,7 @@ public class DownloadActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private DownloadThread downloadThread;
     private String basePath;
+    private Handler handler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,7 +57,7 @@ public class DownloadActivity extends AppCompatActivity {
 
                 int fileLength = connection.getContentLength();
                 if (fileLength == 0) {
-                    progressBar.setIndeterminate(true);
+                    handler.post(() -> progressBar.setIndeterminate(true));
                 }
 
                 byte[] zipFile;
@@ -81,7 +83,7 @@ public class DownloadActivity extends AppCompatActivity {
                                     ? String.format(Locale.ENGLISH, "Downloading... %d%% (%d/%d KiB, %d KiB/s)", downloaded * 100 / fileLength, downloaded / 1024, fileLength / 1024, speed)
                                     : String.format(Locale.ENGLISH, "Downloading... --%% (%d KiB, %d KiB/s)", downloaded / 1024, speed);
 
-                            txtProgress.setText(text);
+                            handler.post(() -> txtProgress.setText(text));
 
                             downloadedLast = downloaded;
                             last = now;
@@ -105,7 +107,8 @@ public class DownloadActivity extends AppCompatActivity {
                             entryName = entryName.substring("CaveStory/".length());
                         }
 
-                        txtProgress.setText("Unpacking: " + entryName);
+                        final String s = entryName;
+                        handler.post(() -> txtProgress.setText("Unpacking: " + s));
 
                         if (entry.isDirectory()) {
                             new File(basePath + entryName).mkdirs();
@@ -122,14 +125,19 @@ public class DownloadActivity extends AppCompatActivity {
                     }
                 }
 
-                txtProgress.setText("Done!");
+                handler.post(() -> txtProgress.setText("Done!"));
 
-                Intent intent = new Intent(DownloadActivity.this, MainActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_TASK_ON_HOME);
-                startActivity(intent);
-                DownloadActivity.this.finish();
+                handler.post(() -> {
+                    Intent intent = new Intent(DownloadActivity.this, GameActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
+                    DownloadActivity.this.finish();
+                });
             } catch (Exception e) {
-                if (txtProgress != null) txtProgress.setText(e.getMessage());
+                handler.post(() -> { 
+                    if (txtProgress != null) 
+                        txtProgress.setText(e.getMessage());
+                });
                 e.printStackTrace();
             } finally {
                 if (connection != null) connection.disconnect();

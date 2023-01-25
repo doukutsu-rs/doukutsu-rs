@@ -203,7 +203,7 @@ impl SettingsMenu {
                 ],
             ),
         );
-        #[cfg(not(all(target_os = "android", target_os = "horizon")))]
+        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
         self.graphics.push_entry(
             GraphicsMenuEntry::WindowMode,
             MenuEntry::Options(
