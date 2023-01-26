@@ -118,17 +118,13 @@ impl PlayerCountMenu {
             CurrentMenu::CoopMenu => match self.coop_menu.tick(controller, state) {
                 MenuSelectionResult::Selected(CoopMenuEntry::Back, _) | MenuSelectionResult::Canceled => exit_action(),
                 MenuSelectionResult::Selected(CoopMenuEntry::One, _) => {
-                    state.player_count = PlayerCount::One;
-                    state.reload_resources(ctx)?;
-                    state.load_or_start_game(ctx)?;
+                    self.start_game(PlayerCount::One, state, ctx)?;
                 }
                 MenuSelectionResult::Selected(CoopMenuEntry::Two, _) => {
                     if state.constants.is_cs_plus {
                         self.current_menu = CurrentMenu::PlayerSkin;
                     } else {
-                        state.player_count = PlayerCount::Two;
-                        state.reload_resources(ctx)?;
-                        state.load_or_start_game(ctx)?;
+                        self.start_game(PlayerCount::Two, state, ctx)?;
                     }
                 }
                 _ => (),
@@ -178,6 +174,7 @@ impl PlayerCountMenu {
         }
         Ok(())
     }
+
     pub fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         match self.current_menu {
             CurrentMenu::CoopMenu => {
@@ -187,6 +184,13 @@ impl PlayerCountMenu {
                 self.skin_menu.draw(state, ctx)?;
             }
         }
+        Ok(())
+    }
+
+    fn start_game(&mut self, player_count: PlayerCount, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        state.player_count = player_count;
+        state.reload_resources(ctx)?;
+        state.load_or_start_game(ctx)?;
         Ok(())
     }
 }

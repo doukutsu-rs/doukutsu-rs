@@ -4,9 +4,9 @@ use crate::framework::filesystem;
 use crate::game::profile::GameProfile;
 use crate::game::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::menu::{Menu, MenuSelectionResult};
 use crate::menu::coop_menu::PlayerCountMenu;
 use crate::menu::MenuEntry;
+use crate::menu::{Menu, MenuSelectionResult};
 
 #[derive(Clone, Copy)]
 pub struct MenuSaveInfo {
@@ -155,8 +155,10 @@ impl SaveSelectMenu {
 
         self.save_menu.push_entry(SaveMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
-        self.difficulty_menu
-            .push_entry(DifficultyMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.difficulty_menu.title").to_owned()));
+        self.difficulty_menu.push_entry(
+            DifficultyMenuEntry::Title,
+            MenuEntry::Disabled(state.loc.t("menus.difficulty_menu.title").to_owned()),
+        );
         self.difficulty_menu.push_entry(
             DifficultyMenuEntry::Difficulty(GameDifficulty::Easy),
             MenuEntry::Active(state.loc.t("menus.difficulty_menu.easy").to_owned()),
@@ -169,23 +171,34 @@ impl SaveSelectMenu {
             DifficultyMenuEntry::Difficulty(GameDifficulty::Hard),
             MenuEntry::Active(state.loc.t("menus.difficulty_menu.hard").to_owned()),
         );
-        self.difficulty_menu.push_entry(DifficultyMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
+        self.difficulty_menu
+            .push_entry(DifficultyMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.difficulty_menu.selected = DifficultyMenuEntry::Difficulty(GameDifficulty::Normal);
 
         //self.coop_menu.init(state, ctx);
 
+        self.delete_confirm.push_entry(
+            DeleteConfirmMenuEntry::Title,
+            MenuEntry::Disabled(state.loc.t("menus.save_menu.delete_confirm").to_owned()),
+        );
         self.delete_confirm
-            .push_entry(DeleteConfirmMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.save_menu.delete_confirm").to_owned()));
-        self.delete_confirm.push_entry(DeleteConfirmMenuEntry::Yes, MenuEntry::Active(state.loc.t("common.yes").to_owned()));
-        self.delete_confirm.push_entry(DeleteConfirmMenuEntry::No, MenuEntry::Active(state.loc.t("common.no").to_owned()));
+            .push_entry(DeleteConfirmMenuEntry::Yes, MenuEntry::Active(state.loc.t("common.yes").to_owned()));
+        self.delete_confirm
+            .push_entry(DeleteConfirmMenuEntry::No, MenuEntry::Active(state.loc.t("common.no").to_owned()));
 
         self.delete_confirm.selected = DeleteConfirmMenuEntry::No;
 
-        self.load_confirm.push_entry(LoadConfirmMenuEntry::Start, MenuEntry::Active(state.loc.t("menus.main_menu.start").to_owned()));
+        self.load_confirm.push_entry(
+            LoadConfirmMenuEntry::Start,
+            MenuEntry::Active(state.loc.t("menus.main_menu.start").to_owned()),
+        );
+        self.load_confirm.push_entry(
+            LoadConfirmMenuEntry::Delete,
+            MenuEntry::Active(state.loc.t("menus.save_menu.delete_confirm").to_owned()),
+        );
         self.load_confirm
-            .push_entry(LoadConfirmMenuEntry::Delete, MenuEntry::Active(state.loc.t("menus.save_menu.delete_confirm").to_owned()));
-        self.load_confirm.push_entry(LoadConfirmMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
+            .push_entry(LoadConfirmMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.save_detailed.draw_cursor = false;
 
@@ -245,7 +258,7 @@ impl SaveSelectMenu {
                     state.save_slot = slot + 1;
 
                     if self.skip_difficulty_menu {
-                        self.current_menu = CurrentMenu::PlayerCountMenu;
+                        self.confirm_save_slot(state, ctx)?;
                     } else {
                         self.difficulty_menu.selected = DifficultyMenuEntry::Difficulty(GameDifficulty::Normal);
                         self.current_menu = CurrentMenu::DifficultyMenu;
@@ -255,7 +268,7 @@ impl SaveSelectMenu {
                     state.save_slot = slot + 1;
 
                     if let Ok(_) =
-                    filesystem::user_open(ctx, state.get_save_filename(state.save_slot).unwrap_or(String::new()))
+                        filesystem::user_open(ctx, state.get_save_filename(state.save_slot).unwrap_or(String::new()))
                     {
                         if let (_, MenuEntry::SaveData(save)) = self.save_menu.entries[slot] {
                             self.save_detailed.entries.clear();
@@ -274,7 +287,7 @@ impl SaveSelectMenu {
                 }
                 MenuSelectionResult::Selected(DifficultyMenuEntry::Difficulty(difficulty), _) => {
                     state.difficulty = difficulty;
-                    self.current_menu = CurrentMenu::PlayerCountMenu;
+                    self.confirm_save_slot(state, ctx)?;
                 }
                 _ => (),
             },
@@ -316,7 +329,7 @@ impl SaveSelectMenu {
             },
             CurrentMenu::LoadConfirm => match self.load_confirm.tick(controller, state) {
                 MenuSelectionResult::Selected(LoadConfirmMenuEntry::Start, _) => {
-                    self.current_menu = CurrentMenu::PlayerCountMenu;
+                    self.confirm_save_slot(state, ctx)?;
                 }
                 MenuSelectionResult::Selected(LoadConfirmMenuEntry::Delete, _) => {
                     self.current_menu = CurrentMenu::DeleteConfirm;
@@ -352,6 +365,17 @@ impl SaveSelectMenu {
                 self.load_confirm.draw(state, ctx)?;
             }
         }
+        Ok(())
+    }
+
+    fn confirm_save_slot(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        if state.constants.supports_two_player {
+            self.current_menu = CurrentMenu::PlayerCountMenu;
+        } else {
+            state.reload_resources(ctx)?;
+            state.load_or_start_game(ctx)?;
+        }
+
         Ok(())
     }
 }

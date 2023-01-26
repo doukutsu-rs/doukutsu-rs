@@ -135,11 +135,12 @@ impl TitleScene {
     }
 
     fn draw_text_centered(&self, text: &str, y: f32, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        state.font.builder()
-            .center(state.canvas_size.0)
-            .y(y)
-            .shadow(true)
-            .draw(text, ctx, &state.constants, &mut state.texture_set)?;
+        state.font.builder().center(state.canvas_size.0).y(y).shadow(true).draw(
+            text,
+            ctx,
+            &state.constants,
+            &mut state.texture_set,
+        )?;
 
         Ok(())
     }
@@ -195,7 +196,8 @@ impl Scene for TitleScene {
         self.controller.add(state.settings.create_player1_controller());
         self.controller.add(state.settings.create_player2_controller());
 
-        self.main_menu.push_entry(MainMenuEntry::Start, MenuEntry::Active(state.loc.t("menus.main_menu.start").to_owned()));
+        self.main_menu
+            .push_entry(MainMenuEntry::Start, MenuEntry::Active(state.loc.t("menus.main_menu.start").to_owned()));
 
         if !state.mod_list.mods.is_empty() {
             self.main_menu.push_entry(
@@ -213,11 +215,14 @@ impl Scene for TitleScene {
         }
 
         if state.constants.is_switch {
-            self.main_menu
-                .push_entry(MainMenuEntry::Jukebox, MenuEntry::Active(state.loc.t("menus.main_menu.jukebox").to_owned()));
+            self.main_menu.push_entry(
+                MainMenuEntry::Jukebox,
+                MenuEntry::Active(state.loc.t("menus.main_menu.jukebox").to_owned()),
+            );
         }
 
-        self.main_menu.push_entry(MainMenuEntry::Quit, MenuEntry::Active(state.loc.t("menus.main_menu.quit").to_owned()));
+        self.main_menu
+            .push_entry(MainMenuEntry::Quit, MenuEntry::Active(state.loc.t("menus.main_menu.quit").to_owned()));
 
         self.settings_menu.init(state, ctx)?;
 
@@ -297,7 +302,7 @@ impl Scene for TitleScene {
                 MenuSelectionResult::Selected(MainMenuEntry::Start, _) => {
                     state.mod_path = None;
                     self.save_select_menu.init(state, ctx)?;
-                    self.save_select_menu.set_skip_difficulty_menu(false);
+                    self.save_select_menu.set_skip_difficulty_menu(!state.constants.has_difficulty_menu);
                     self.current_menu = CurrentMenu::SaveSelectMenu;
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Challenges, _) => {
