@@ -4,8 +4,8 @@ use crate::framework::graphics;
 use crate::framework::keyboard::ScanCode;
 use crate::game::shared_game_state::{MenuCharacter, PlayerCount, SharedGameState};
 use crate::input::combined_menu_controller::CombinedMenuController;
-use crate::menu::{Menu, MenuSelectionResult};
 use crate::menu::MenuEntry;
+use crate::menu::{Menu, MenuSelectionResult};
 use crate::scene::title_scene::TitleScene;
 
 use super::coop_menu::PlayerCountMenu;
@@ -84,13 +84,20 @@ impl PauseMenu {
         self.controller.add(state.settings.create_player1_controller());
         self.controller.add(state.settings.create_player2_controller());
 
-        self.pause_menu.push_entry(PauseMenuEntry::Resume, MenuEntry::Active(state.loc.t("menus.pause_menu.resume").to_owned()));
-        self.pause_menu.push_entry(PauseMenuEntry::Retry, MenuEntry::Active(state.loc.t("menus.pause_menu.retry").to_owned()));
+        self.pause_menu
+            .push_entry(PauseMenuEntry::Resume, MenuEntry::Active(state.loc.t("menus.pause_menu.resume").to_owned()));
+        self.pause_menu
+            .push_entry(PauseMenuEntry::Retry, MenuEntry::Active(state.loc.t("menus.pause_menu.retry").to_owned()));
         self.pause_menu.push_entry(PauseMenuEntry::AddPlayer2, MenuEntry::Hidden);
         self.pause_menu.push_entry(PauseMenuEntry::DropPlayer2, MenuEntry::Hidden);
-        self.pause_menu.push_entry(PauseMenuEntry::Settings, MenuEntry::Active(state.loc.t("menus.pause_menu.options").to_owned()));
-        self.pause_menu.push_entry(PauseMenuEntry::Title, MenuEntry::Active(state.loc.t("menus.pause_menu.title").to_owned()));
-        self.pause_menu.push_entry(PauseMenuEntry::Quit, MenuEntry::Active(state.loc.t("menus.pause_menu.quit").to_owned()));
+        self.pause_menu.push_entry(
+            PauseMenuEntry::Settings,
+            MenuEntry::Active(state.loc.t("menus.pause_menu.options").to_owned()),
+        );
+        self.pause_menu
+            .push_entry(PauseMenuEntry::Title, MenuEntry::Active(state.loc.t("menus.pause_menu.title").to_owned()));
+        self.pause_menu
+            .push_entry(PauseMenuEntry::Quit, MenuEntry::Active(state.loc.t("menus.pause_menu.quit").to_owned()));
 
         self.confirm_menu.push_entry(ConfirmMenuEntry::Empty, MenuEntry::Disabled(String::new()));
         self.confirm_menu.push_entry(ConfirmMenuEntry::Yes, MenuEntry::Active(state.loc.t("common.yes").to_owned()));
@@ -126,10 +133,16 @@ impl PauseMenu {
     }
 
     fn update_coop_menu_items(&mut self, state: &SharedGameState) {
+        if !state.constants.supports_two_player {
+            return;
+        }
+
         match state.player_count {
             PlayerCount::One => {
-                self.pause_menu
-                    .set_entry(PauseMenuEntry::AddPlayer2, MenuEntry::Active(state.loc.t("menus.pause_menu.add_player2").to_owned()));
+                self.pause_menu.set_entry(
+                    PauseMenuEntry::AddPlayer2,
+                    MenuEntry::Active(state.loc.t("menus.pause_menu.add_player2").to_owned()),
+                );
                 self.pause_menu.set_entry(PauseMenuEntry::DropPlayer2, MenuEntry::Hidden);
 
                 if self.pause_menu.selected == PauseMenuEntry::DropPlayer2 {
