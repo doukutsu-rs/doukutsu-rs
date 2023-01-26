@@ -153,10 +153,12 @@ impl PlayerCountMenu {
                         if state.player2_skin_location.offset * 2 * 16 >= tex_size.1 {
                             state.player2_skin_location.offset = 0;
 
-                            if state.player2_skin_location.texture_index == 1 {
+                            if (state.player2_skin_location.texture_index as usize)
+                                == state.constants.player_skin_paths.len() - 1
+                            {
                                 state.player2_skin_location.texture_index = 0;
                             } else {
-                                state.player2_skin_location.texture_index = 1;
+                                state.player2_skin_location.texture_index += 1;
                             }
                         }
                     }
