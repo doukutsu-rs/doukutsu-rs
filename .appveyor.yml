@@ -11,11 +11,13 @@ environment:
     - channel: stable
       target: x86_64-pc-windows-msvc
       target_name: win64
+      arch_name: x86_64
       job_name: windows-x64
       appveyor_build_worker_image: Visual Studio 2019
     - channel: stable
       target: i686-pc-windows-msvc
       target_name: win32
+      arch_name: i686
       job_name: windows-x32
       appveyor_build_worker_image: Visual Studio 2019
     - channel: stable
@@ -68,7 +70,7 @@ for:
       - cargo build --release --bin doukutsu-rs
       - mkdir release
       - copy LICENSE release\LICENSE
-      - copy target\release\doukutsu-rs.exe release\doukutsu-rs.x86_64.exe
+      - copy target\release\doukutsu-rs.exe release\doukutsu-rs.%arch_name%.exe
       - cd release
       - 7z a ../doukutsu-rs_%target_name%.zip *
       - appveyor PushArtifact ../doukutsu-rs_%target_name%.zip
