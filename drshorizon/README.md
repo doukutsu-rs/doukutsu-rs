@@ -1,3 +1,3 @@
-Experimental. Nothing to see there yet.
+Experimental.
 
 ld script and .specs taken from devkitPro
