@@ -528,7 +528,7 @@ impl TextureSet {
     ) -> GameResult<Box<dyn SpriteBatch>> {
         let path = self
             .find_texture(ctx, &constants.base_paths, name)
-            .ok_or_else(|| GameError::ResourceLoadError(format!("Texture {} does not exist.", name)))?;
+            .ok_or_else(|| GameError::ResourceLoadError(format!("Texture \"{}\" is missing.", name)))?;
 
         let glow_path = self.find_texture(ctx, &constants.base_paths, &[name, ".glow"].join(""));
 
