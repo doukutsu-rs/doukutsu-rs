@@ -25,6 +25,10 @@ impl Backend for NullBackend {
     fn create_event_loop(&self, _ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>> {
         Ok(Box::new(NullEventLoop))
     }
+    
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 pub struct NullEventLoop;
@@ -63,6 +67,10 @@ impl BackendEventLoop for NullEventLoop {
         imgui.fonts().build_alpha8_texture();
 
         Ok(Box::new(NullRenderer(RefCell::new(imgui))))
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -150,5 +158,9 @@ impl BackendRenderer for NullRenderer {
         _shader: BackendShader,
     ) -> GameResult<()> {
         Ok(())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

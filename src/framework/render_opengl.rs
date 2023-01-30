@@ -1207,6 +1207,10 @@ impl BackendRenderer for OpenGLRenderer {
     ) -> GameResult<()> {
         self.draw_arrays(gl::TRIANGLES, vertices, texture, shader)
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 impl OpenGLRenderer {

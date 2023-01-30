@@ -59,6 +59,10 @@ impl Backend for SDL2Backend {
     fn create_event_loop(&self, ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>> {
         SDL2EventLoop::new(&self.context, self.size_hint, ctx)
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 enum WindowOrCanvas {
@@ -194,11 +198,10 @@ impl BackendEventLoop for SDL2EventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
         let state = unsafe { &mut *game.state.get() };
 
-        let (imgui, imgui_sdl2) = unsafe {
-            let renderer: &Box<SDL2Renderer> = std::mem::transmute(ctx.renderer.as_ref().unwrap());
-
-            (&mut *renderer.imgui.as_ptr(), &mut *renderer.imgui_event.as_ptr())
+        let imgui = unsafe {
+            (&*(ctx.renderer.as_ref().unwrap() as *const Box<dyn BackendRenderer>)).imgui().unwrap()
         };
+        let mut imgui_sdl2 = ImguiSdl2::new(imgui, self.refs.deref().borrow().window.window());
 
         {
             let (width, height) = self.refs.deref().borrow().window.window().size();
@@ -471,6 +474,10 @@ impl BackendEventLoop for SDL2EventLoop {
 
         SDL2Renderer::new(self.refs.clone())
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 fn get_game_controller_type(ctype: sdl2_sys::SDL_GameControllerType) -> GamepadType {
@@ -516,7 +523,6 @@ impl BackendGamepad for SDL2Gamepad {
 struct SDL2Renderer {
     refs: Rc<RefCell<SDL2Context>>,
     imgui: Rc<RefCell<imgui::Context>>,
-    imgui_event: Rc<RefCell<ImguiSdl2>>,
     #[allow(unused)] // the rendering pipeline uses pointers to SDL_Texture, and we manually manage the lifetimes
     imgui_font_tex: SDL2Texture,
 }
@@ -566,15 +572,9 @@ impl SDL2Renderer {
         };
         imgui.fonts().tex_id = TextureId::new(imgui_font_tex.texture.as_ref().unwrap().raw() as usize);
 
-        let imgui_sdl2 = unsafe {
-            let refs = &mut *refs.as_ptr();
-            ImguiSdl2::new(&mut imgui, refs.window.window())
-        };
-
         Ok(Box::new(SDL2Renderer {
             refs,
             imgui: Rc::new(RefCell::new(imgui)),
-            imgui_event: Rc::new(RefCell::new(imgui_sdl2)),
             imgui_font_tex,
         }))
     }
@@ -828,8 +828,8 @@ impl BackendRenderer for SDL2Renderer {
     }
 
     fn prepare_imgui(&mut self, ui: &Ui) -> GameResult {
-        let refs = self.refs.borrow_mut();
-        self.imgui_event.borrow_mut().prepare_render(ui, refs.window.window());
+        // let refs = self.refs.borrow_mut();
+        // self.imgui_event.borrow_mut().prepare_render(ui, refs.window.window());
 
         Ok(())
     }
@@ -926,6 +926,10 @@ impl BackendRenderer for SDL2Renderer {
         }
 
         Ok(())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

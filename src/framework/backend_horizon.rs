@@ -283,6 +283,10 @@ impl Backend for HorizonBackend {
 
         Ok(Box::new(HorizonEventLoop { gamepads, active: [false; 8] }))
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 pub struct HorizonEventLoop {
@@ -419,6 +423,10 @@ impl BackendEventLoop for HorizonEventLoop {
         let device = DeviceMaker::new().create();
 
         Deko3DRenderer::new(device, imgui)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -1330,6 +1338,10 @@ impl BackendRenderer for Deko3DRenderer {
         cmdbuf.clear();
 
         Ok(())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

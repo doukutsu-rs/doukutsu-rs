@@ -26,12 +26,16 @@ pub enum BackendShader {
 
 pub trait Backend {
     fn create_event_loop(&self, ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>>;
+
+    fn as_any(&self) -> &dyn Any;
 }
 
 pub trait BackendEventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context);
 
     fn new_renderer(&self, ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>>;
+
+    fn as_any(&self) -> &dyn Any;
 }
 
 pub trait BackendRenderer {
@@ -81,6 +85,8 @@ pub trait BackendRenderer {
         texture: Option<&Box<dyn BackendTexture>>,
         shader: BackendShader,
     ) -> GameResult;
+
+    fn as_any(&self) -> &dyn Any;
 }
 
 pub trait BackendTexture {
