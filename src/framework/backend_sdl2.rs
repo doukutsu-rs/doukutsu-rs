@@ -32,6 +32,7 @@ use crate::framework::filesystem;
 use crate::framework::gamepad::{Axis, Button, GamepadType};
 use crate::framework::graphics::BlendMode;
 use crate::framework::keyboard::ScanCode;
+#[cfg(feature = "render-opengl")]
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
 use crate::framework::ui::init_imgui;
 use crate::game::shared_game_state::WindowMode;
