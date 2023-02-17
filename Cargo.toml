@@ -73,6 +73,7 @@ log = "0.4"
 lua-ffi = { git = "https://github.com/doukutsu-rs/lua-ffi.git", rev = "e0b2ff5960f7ef9974aa9675cebe4907bee0134f", optional = true }
 num-derive = "0.3"
 num-traits = "0.2"
+open = "3.2"
 paste = "1.0"
 pelite = { version = ">=0.9.2", default-features = false, features = ["std"] }
 sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }

@@ -34,6 +34,8 @@ use crate::sound::SoundManager;
 use crate::util::bitvec::BitVec;
 use crate::util::rng::XorShift;
 
+use super::filesystem_container::FilesystemContainer;
+
 #[derive(PartialEq, Eq, Copy, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TimingMode {
     _50Hz,
@@ -314,6 +316,7 @@ pub struct SharedGameState {
     pub lightmap_canvas: Option<Box<dyn BackendTexture>>,
     pub season: Season,
     pub menu_character: MenuCharacter,
+    pub fs_container: Option<FilesystemContainer>,
     pub constants: EngineConstants,
     pub font: BMFont,
     pub texture_set: TextureSet,
@@ -468,6 +471,7 @@ impl SharedGameState {
             lightmap_canvas: None,
             season,
             menu_character: MenuCharacter::Quote,
+            fs_container: None,
             constants,
             font,
             texture_set: TextureSet::new(),

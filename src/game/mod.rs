@@ -1,5 +1,4 @@
 use std::cell::UnsafeCell;
-use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -7,20 +6,19 @@ use lazy_static::lazy_static;
 
 use scripting::tsc::text_script::ScriptMode;
 
-use crate::data::builtin_fs::BuiltinFS;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::filesystem::{mount_user_vfs, mount_vfs};
 use crate::framework::graphics;
 use crate::framework::graphics::VSyncMode;
 use crate::framework::ui::UI;
-use crate::framework::vfs::PhysicalFS;
+use crate::game::filesystem_container::FilesystemContainer;
 use crate::game::shared_game_state::{Fps, SharedGameState, TimingMode};
 use crate::graphics::texture_set::{G_MAG, I_MAG};
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 
 pub mod caret;
+pub mod filesystem_container;
 pub mod frame;
 pub mod inventory;
 pub mod map;
@@ -221,112 +219,10 @@ pub fn init(options: LaunchOptions) -> GameResult {
         .with_level(log::Level::Info.to_level_filter())
         .init();
 
-    #[cfg(not(any(target_os = "android", target_os = "horizon")))]
-    let resource_dir = if let Ok(data_dir) = std::env::var("CAVESTORY_DATA_DIR") {
-        PathBuf::from(data_dir)
-    } else {
-        let mut resource_dir = std::env::current_exe()?;
-        if resource_dir.file_name().is_some() {
-            let _ = resource_dir.pop();
-        }
-
-        #[cfg(target_os = "macos")]
-        {
-            let mut bundle_dir = resource_dir.clone();
-            let _ = bundle_dir.pop();
-            let mut bundle_exec_dir = bundle_dir.clone();
-            let mut csplus_data_dir = bundle_dir.clone();
-            let _ = csplus_data_dir.pop();
-            let _ = csplus_data_dir.pop();
-            let mut csplus_data_base_dir = csplus_data_dir.clone();
-            csplus_data_base_dir.push("data");
-            csplus_data_base_dir.push("base");
-
-            bundle_exec_dir.push("MacOS");
-            bundle_dir.push("Resources");
-
-            if bundle_exec_dir.is_dir() && bundle_dir.is_dir() {
-                log::info!("Running in macOS bundle mode");
-
-                if csplus_data_base_dir.is_dir() {
-                    log::info!("Cave Story+ Steam detected");
-                    resource_dir = csplus_data_dir;
-                } else {
-                    resource_dir = bundle_dir;
-                }
-            }
-        }
-
-        resource_dir.push("data");
-        resource_dir
-    };
-
-    #[cfg(not(any(target_os = "android", target_os = "horizon")))]
-    log::info!("Resource directory: {:?}", resource_dir);
-    log::info!("Initializing engine...");
-
     let mut context = Box::pin(Context::new());
-    #[cfg(not(any(target_os = "android", target_os = "horizon")))]
-    mount_vfs(&mut context, Box::new(PhysicalFS::new(&resource_dir, true)));
 
-    #[cfg(not(any(target_os = "android", target_os = "horizon")))]
-    let project_dirs = match directories::ProjectDirs::from("", "", "doukutsu-rs") {
-        Some(dirs) => dirs,
-        None => {
-            use crate::framework::error::GameError;
-            return Err(GameError::FilesystemError(String::from("No valid home directory path could be retrieved.")));
-        }
-    };
-    #[cfg(target_os = "android")]
-    {
-        let mut data_path =
-            PathBuf::from(ndk_glue::native_activity().internal_data_path().to_string_lossy().to_string());
-        let mut user_path = data_path.clone();
-
-        data_path.push("data");
-        user_path.push("saves");
-
-        let _ = std::fs::create_dir_all(&data_path);
-        let _ = std::fs::create_dir_all(&user_path);
-
-        log::info!("Android data directories: data_path={:?} user_path={:?}", &data_path, &user_path);
-
-        mount_vfs(&mut context, Box::new(PhysicalFS::new(&data_path, true)));
-        mount_user_vfs(&mut context, Box::new(PhysicalFS::new(&user_path, false)));
-    }
-    #[cfg(target_os = "horizon")]
-    {
-        let mut data_path = PathBuf::from("sdmc:/switch/doukutsu-rs/data");
-        let mut user_path = PathBuf::from("sdmc:/switch/doukutsu-rs/user");
-
-        let _ = std::fs::create_dir_all(&data_path);
-        let _ = std::fs::create_dir_all(&user_path);
-
-        log::info!("Mounting VFS");
-        mount_vfs(&mut context, Box::new(PhysicalFS::new(&data_path, true)));
-        if crate::framework::backend_horizon::mount_romfs() {
-            mount_vfs(&mut context, Box::new(PhysicalFS::new_lowercase(&PathBuf::from("romfs:/data"))));
-        }
-        log::info!("Mounting user VFS");
-        mount_user_vfs(&mut context, Box::new(PhysicalFS::new(&user_path, false)));
-        log::info!("ok");
-    }
-
-    #[cfg(not(any(target_os = "android", target_os = "horizon")))]
-    {
-        if crate::framework::filesystem::open(&context, "/.drs_localstorage").is_ok() {
-            let mut user_dir = resource_dir.clone();
-            user_dir.push("_drs_profile");
-
-            let _ = std::fs::create_dir_all(&user_dir);
-            mount_user_vfs(&mut context, Box::new(PhysicalFS::new(&user_dir, false)));
-        } else {
-            mount_user_vfs(&mut context, Box::new(PhysicalFS::new(project_dirs.data_local_dir(), false)));
-        }
-    }
-
-    log::info!("Mounting built-in FS");
-    mount_vfs(&mut context, Box::new(BuiltinFS::new()));
+    let mut fs_container = FilesystemContainer::new();
+    fs_container.mount_fs(&mut context)?;
 
     if options.server_mode {
         log::info!("Running in server mode...");
@@ -338,6 +234,8 @@ pub fn init(options: LaunchOptions) -> GameResult {
     {
         game.state.get().lua.update_refs(unsafe { &mut *game.state.get() }, &mut context as *mut Context);
     }
+
+    game.state.get_mut().fs_container = Some(fs_container);
 
     game.state.get_mut().next_scene = Some(Box::new(LoadingScene::new()));
     log::info!("Starting main loop...");

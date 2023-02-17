@@ -128,7 +128,12 @@
           "fastforward": "Fast-Forward"
         }
       },
-      "links": "Links..."
+      "links": "Links...",
+      "advanced": "Advanced...",
+      "advanced_menu": {
+        "open_user_data": "Open user data directory",
+        "open_game_data": "Open game data directory"
+      }
     },
     "controls_menu": {
       "select_player": {
