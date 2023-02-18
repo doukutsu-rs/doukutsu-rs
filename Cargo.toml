@@ -37,7 +37,7 @@ category = "Game"
 osx_minimum_system_version = "10.12"
 
 [features]
-default = ["default-base", "backend-sdl", "render-opengl", "exe", "webbrowser"]
+default = ["default-base", "backend-sdl", "render-opengl", "exe", "webbrowser", "discord-rpc"]
 default-base = ["ogg-playback"]
 ogg-playback = ["lewton"]
 backend-sdl = ["sdl2", "sdl2-sys"]
@@ -45,6 +45,7 @@ backend-glutin = ["winit", "glutin", "render-opengl"]
 backend-horizon = []
 render-opengl = []
 scripting-lua = ["lua-ffi"]
+discord-rpc = []
 netplay = ["serde_cbor"]
 editor = []
 exe = []
@@ -62,6 +63,7 @@ case_insensitive_hashmap = "1.0.0"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 cpal = { git = "https://github.com/doukutsu-rs/cpal", rev = "9d269d8724102404e73a61e9def0c0cbc921b676" }
 directories = "3"
+discord-rich-presence = "0.2"
 downcast = "0.11"
 glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "2dd95f042e6e090d36f577cbea125560dd99bd27", optional = true, default_features = false, features = ["x11"] }
 imgui = "0.8"

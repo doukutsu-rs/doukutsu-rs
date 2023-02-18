@@ -237,6 +237,12 @@ pub fn init(options: LaunchOptions) -> GameResult {
 
     game.state.get_mut().fs_container = Some(fs_container);
 
+    #[cfg(feature = "discord-rpc")]
+    if game.state.get_mut().settings.discord_rpc {
+        game.state.get_mut().discord_rpc.enabled = true;
+        game.state.get_mut().discord_rpc.start()?;
+    }
+
     game.state.get_mut().next_scene = Some(Box::new(LoadingScene::new()));
     log::info!("Starting main loop...");
     context.run(game.as_mut().get_mut())?;

@@ -104,6 +104,9 @@ impl Scene for JukeboxScene {
         self.previous_pause_on_focus_loss_setting = state.settings.pause_on_focus_loss;
         state.settings.pause_on_focus_loss = false;
 
+        #[cfg(feature = "discord-rpc")]
+        state.discord_rpc.set_in_jukebox()?;
+
         Ok(())
     }
 

@@ -923,6 +923,9 @@ impl Player {
                 let _ = npc_list.spawn(0x100, npc.clone());
             }
         }
+
+        #[cfg(feature = "discord-rpc")]
+        let _ = state.discord_rpc.update_hp(&self);
     }
 
     pub fn update_teleport_counter(&mut self, state: &SharedGameState) {

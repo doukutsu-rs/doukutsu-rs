@@ -1739,6 +1739,17 @@ impl Scene for GameScene {
         self.pause_menu.init(state, ctx)?;
         self.whimsical_star.init(&self.player1);
 
+        #[cfg(feature = "discord-rpc")]
+        {
+            if self.stage.data.map == state.stages[state.constants.game.intro_stage as usize].map {
+                state.discord_rpc.set_initializing()?;
+            } else {
+                state.discord_rpc.update_hp(&self.player1)?;
+                state.discord_rpc.update_stage(&self.stage.data)?;
+                state.discord_rpc.set_in_game()?;
+            }
+        }
+
         Ok(())
     }
 

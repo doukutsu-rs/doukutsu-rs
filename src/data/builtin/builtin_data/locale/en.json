@@ -126,7 +126,8 @@
           "entry": "Cutscene Skip:",
           "hold": "Hold to Skip",
           "fastforward": "Fast-Forward"
-        }
+        },
+        "discord_rpc": "Discord Rich Presence:"
       },
       "links": "Links...",
       "advanced": "Advanced...",

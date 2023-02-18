@@ -9,6 +9,8 @@ extern crate strum_macros;
 mod common;
 mod components;
 mod data;
+#[cfg(feature = "discord-rpc")]
+pub mod discord;
 #[cfg(feature = "editor")]
 mod editor;
 mod engine_constants;

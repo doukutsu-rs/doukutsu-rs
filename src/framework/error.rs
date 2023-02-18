@@ -3,8 +3,8 @@
 use std::error::Error;
 use std::fmt;
 use std::string::FromUtf8Error;
-use std::sync::{Arc, PoisonError};
 use std::sync::mpsc::SendError;
+use std::sync::{Arc, PoisonError};
 
 /// An enum containing all kinds of game framework errors.
 #[derive(Debug, Clone)]
@@ -44,6 +44,8 @@ pub enum GameError {
     InvalidValue(String),
     /// Something went wrong while executing a debug command line command.
     CommandLineError(String),
+    /// Something went wrong while initializing or modifying Discord rich presence values.
+    DiscordRPCError(String),
 }
 
 impl fmt::Display for GameError {

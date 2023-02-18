@@ -268,6 +268,9 @@ impl LiveDebugger {
 
                                 if scene.player1.life == 0 {
                                     scene.player1.life = scene.player1.max_life;
+
+                                    #[cfg(feature = "discord-rpc")]
+                                    let _ = state.discord_rpc.update_hp(&scene.player1);
                                 }
 
                                 scene.player2 = game_scene.player2.clone();

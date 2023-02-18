@@ -81,6 +81,8 @@ pub struct Settings {
     pub more_rust: bool,
     #[serde(default = "default_cutscene_skip_mode")]
     pub cutscene_skip_mode: CutsceneSkipMode,
+    #[serde(default = "default_true")]
+    pub discord_rpc: bool,
 }
 
 fn default_true() -> bool {
@@ -89,7 +91,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    21
+    22
 }
 
 #[inline(always)]
@@ -327,6 +329,11 @@ impl Settings {
             };
         }
 
+        if self.version == 21 {
+            self.version = 22;
+            self.discord_rpc = true;
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -432,6 +439,7 @@ impl Default for Settings {
             noclip: false,
             more_rust: false,
             cutscene_skip_mode: CutsceneSkipMode::Hold,
+            discord_rpc: true,
         }
     }
 }

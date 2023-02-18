@@ -1,11 +1,11 @@
 use num_traits::FromPrimitive;
 
 use crate::framework::error::{GameError::CommandLineError, GameResult};
-use crate::game::shared_game_state::SharedGameState;
 use crate::game::npc::NPC;
-use crate::scene::game_scene::GameScene;
 use crate::game::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptEncoding};
+use crate::game::shared_game_state::SharedGameState;
 use crate::game::weapon::WeaponType;
+use crate::scene::game_scene::GameScene;
 
 #[derive(Clone)]
 pub enum CommandLineCommand {
@@ -230,6 +230,9 @@ impl CommandLineCommand {
             CommandLineCommand::SetMaxHP(hp_count) => {
                 game_scene.player1.max_life = hp_count;
                 game_scene.player1.life = hp_count;
+
+                #[cfg(feature = "discord-rpc")]
+                state.discord_rpc.update_hp(&game_scene.player1)?;
             }
             CommandLineCommand::SpawnNPC(id) => {
                 let mut npc = NPC::create(id, &state.npc_table);

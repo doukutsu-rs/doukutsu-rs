@@ -114,6 +114,8 @@ enum BehaviorMenuEntry {
     GameTiming,
     PauseOnFocusLoss,
     CutsceneSkipMode,
+    #[cfg(feature = "discord-rpc")]
+    DiscordRPC,
     Back,
 }
 
@@ -497,6 +499,15 @@ impl SettingsMenu {
                     state.loc.t("menus.options_menu.behavior_menu.cutscene_skip_method.hold").to_owned(),
                     state.loc.t("menus.options_menu.behavior_menu.cutscene_skip_method.fastforward").to_owned(),
                 ],
+            ),
+        );
+
+        #[cfg(feature = "discord-rpc")]
+        self.behavior.push_entry(
+            BehaviorMenuEntry::DiscordRPC,
+            MenuEntry::Toggle(
+                state.loc.t("menus.options_menu.behavior_menu.discord_rpc").to_owned(),
+                state.settings.discord_rpc,
             ),
         );
 
@@ -897,6 +908,26 @@ impl SettingsMenu {
                             }
                         }
                         let _ = state.settings.save(ctx);
+                    }
+                }
+                #[cfg(feature = "discord-rpc")]
+                MenuSelectionResult::Selected(BehaviorMenuEntry::DiscordRPC, toggle) => {
+                    if let MenuEntry::Toggle(_, value) = toggle {
+                        state.settings.discord_rpc = !state.settings.discord_rpc;
+                        let _ = state.settings.save(ctx);
+
+                        *value = state.settings.discord_rpc;
+                        state.discord_rpc.enabled = state.settings.discord_rpc;
+
+                        if state.discord_rpc.enabled {
+                            if !state.discord_rpc.ready {
+                                state.discord_rpc.start()?;
+                            }
+
+                            state.discord_rpc.set_idling()?;
+                        } else {
+                            state.discord_rpc.clear()?;
+                        }
                     }
                 }
                 MenuSelectionResult::Selected(BehaviorMenuEntry::Back, _) | MenuSelectionResult::Canceled => {

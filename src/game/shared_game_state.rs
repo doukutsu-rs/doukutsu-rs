@@ -5,6 +5,8 @@ use chrono::{Datelike, Local};
 use crate::common::{ControlFlags, Direction, FadeState};
 use crate::components::draw_common::{draw_number, Alignment};
 use crate::data::vanilla::VanillaExtractor;
+#[cfg(feature = "discord-rpc")]
+use crate::discord::DiscordRPC;
 use crate::engine_constants::EngineConstants;
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
@@ -334,6 +336,8 @@ pub struct SharedGameState {
     pub loc: Locale,
     pub tutorial_counter: u16,
     pub more_rust: bool,
+    #[cfg(feature = "discord-rpc")]
+    pub discord_rpc: DiscordRPC,
     pub shutdown: bool,
 }
 
@@ -434,6 +438,11 @@ impl SharedGameState {
         let more_rust = (current_time.month() == 7 && current_time.day() == 7) || settings.more_rust;
         let seed = chrono::Local::now().timestamp() as i32;
 
+        let discord_rpc_app_id = match option_env!("DISCORD_RPC_APP_ID") {
+            Some(app_id) => app_id,
+            None => "1076523467337367622",
+        };
+
         Ok(SharedGameState {
             control_flags: ControlFlags(0),
             game_flags: BitVec::with_size(8000),
@@ -489,6 +498,8 @@ impl SharedGameState {
             loc: locale,
             tutorial_counter: 0,
             more_rust,
+            #[cfg(feature = "discord-rpc")]
+            discord_rpc: DiscordRPC::new(discord_rpc_app_id),
             shutdown: false,
         })
     }
@@ -709,6 +720,9 @@ impl SharedGameState {
 
     pub fn shutdown(&mut self) {
         self.shutdown = true;
+
+        #[cfg(feature = "discord-rpc")]
+        self.discord_rpc.dispose();
     }
 
     // Stops SFX 40/41/58 (CPS and CSS)

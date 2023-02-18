@@ -11,8 +11,8 @@ use std::rc::Rc;
 use num_traits::{clamp, FromPrimitive};
 
 use crate::bitfield;
-use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::common::Direction::{Left, Right};
+use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
@@ -1032,6 +1032,9 @@ impl TextScriptVM {
                 game_scene.player2.life += life;
                 game_scene.player2.max_life += life;
 
+                #[cfg(feature = "discord-rpc")]
+                state.discord_rpc.update_hp(&game_scene.player1)?;
+
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
             TSCOpCode::FAC => {
@@ -1533,6 +1536,9 @@ impl TextScriptVM {
 
                 game_scene.player1.life = clamp(game_scene.player1.life + life, 0, game_scene.player1.max_life);
                 game_scene.player2.life = clamp(game_scene.player2.life + life, 0, game_scene.player2.max_life);
+
+                #[cfg(feature = "discord-rpc")]
+                state.discord_rpc.update_hp(&game_scene.player1)?;
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }

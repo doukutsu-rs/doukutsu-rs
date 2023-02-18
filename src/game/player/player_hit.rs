@@ -319,6 +319,9 @@ impl Player {
                     npc.cond.set_alive(false);
 
                     state.sound_manager.play_sfx(20);
+
+                    #[cfg(feature = "discord-rpc")]
+                    let _ = state.discord_rpc.update_hp(&self);
                 }
                 _ => {}
             }

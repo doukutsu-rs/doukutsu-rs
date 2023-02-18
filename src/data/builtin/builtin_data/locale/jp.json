@@ -126,7 +126,8 @@
           "entry": "カットシーンをスキップ",
           "hold": "を押し続け",
           "fastforward": "はやおくり"
-        }
+        },
+        "discord_rpc": "Discord Rich Presence:"
       },
       "links": "リンク",
       "advanced": "詳細設定",

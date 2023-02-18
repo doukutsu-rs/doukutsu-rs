@@ -277,6 +277,9 @@ impl Scene for TitleScene {
         state.replay_state = ReplayState::None;
         state.textscript_vm.flags.set_cutscene_skip(false);
 
+        #[cfg(feature = "discord-rpc")]
+        state.discord_rpc.set_idling()?;
+
         Ok(())
     }
 
