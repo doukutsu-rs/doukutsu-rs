@@ -4,7 +4,7 @@ use discord_rich_presence::{
 };
 
 use crate::framework::error::{GameError, GameResult};
-use crate::game::{player::Player, stage::StageData};
+use crate::game::{player::Player, shared_game_state::GameDifficulty, stage::StageData};
 
 pub enum DiscordRPCState {
     Initializing,
@@ -22,6 +22,7 @@ pub struct DiscordRPC {
     life: u16,
     max_life: u16,
     stage_name: String,
+    difficulty: Option<GameDifficulty>,
 }
 
 impl DiscordRPC {
@@ -35,6 +36,7 @@ impl DiscordRPC {
             life: 0,
             max_life: 0,
             stage_name: String::new(),
+            difficulty: None,
         }
     }
 
@@ -66,10 +68,30 @@ impl DiscordRPC {
 
         log::debug!("Updating Discord RPC state: {} - {}", state, details);
 
+        let mut activity_assets = Assets::new().large_image("drs");
+
+        if self.difficulty.is_some() {
+            let difficulty = self.difficulty.unwrap();
+
+            let asset_name = match difficulty {
+                GameDifficulty::Easy => "deasy",
+                GameDifficulty::Normal => "dnormal",
+                GameDifficulty::Hard => "dhard",
+            };
+
+            let asset_label = match difficulty {
+                GameDifficulty::Easy => "Easy",
+                GameDifficulty::Normal => "Normal",
+                GameDifficulty::Hard => "Hard",
+            };
+
+            activity_assets = activity_assets.small_image(asset_name).small_text(asset_label);
+        }
+
         let activity = Activity::new()
             .state(state.as_str())
             .details(details.as_str())
-            .assets(Assets::new().large_image("drs"))
+            .assets(activity_assets)
             .buttons(vec![Button::new("doukutsu-rs on GitHub", "https://github.com/doukutsu-rs/doukutsu-rs")]);
 
         match self.client.set_activity(activity) {
@@ -89,11 +111,17 @@ impl DiscordRPC {
         self.update()
     }
 
+    pub fn update_difficulty(&mut self, difficulty: GameDifficulty) -> GameResult {
+        self.difficulty = Some(difficulty);
+        self.update()
+    }
+
     pub fn set_initializing(&mut self) -> GameResult {
         self.set_state(DiscordRPCState::Initializing)
     }
 
     pub fn set_idling(&mut self) -> GameResult {
+        self.difficulty = None;
         self.set_state(DiscordRPCState::Idling)
     }
 

@@ -577,6 +577,9 @@ impl SharedGameState {
         #[cfg(feature = "scripting-lua")]
         self.lua.reload_scripts(ctx)?;
 
+        #[cfg(feature = "discord-rpc")]
+        self.discord_rpc.update_difficulty(self.difficulty)?;
+
         let mut next_scene = GameScene::new(self, ctx, self.constants.game.new_game_stage as usize)?;
         next_scene.player1.cond.set_alive(true);
         let (pos_x, pos_y) = self.constants.game.new_game_player_pos;
@@ -650,6 +653,9 @@ impl SharedGameState {
 
                         #[cfg(feature = "scripting-lua")]
                         self.lua.reload_scripts(ctx)?;
+
+                        #[cfg(feature = "discord-rpc")]
+                        self.discord_rpc.update_difficulty(self.difficulty)?;
 
                         self.next_scene = Some(Box::new(next_scene));
                         return Ok(());
