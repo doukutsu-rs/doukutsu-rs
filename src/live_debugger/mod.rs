@@ -27,6 +27,7 @@ pub struct LiveDebugger {
     npc_inspector_visible: bool,
     hotkey_list_visible: bool,
     command_line_parser: CommandLineParser,
+    command_line_focused: bool,
     last_stage_id: usize,
     stages: Vec<ImString>,
     selected_stage: i32,
@@ -46,6 +47,7 @@ impl LiveDebugger {
             npc_inspector_visible: false,
             hotkey_list_visible: false,
             command_line_parser: CommandLineParser::new(),
+            command_line_focused: false,
             last_stage_id: usize::MAX,
             stages: Vec::new(),
             selected_stage: -1,
@@ -83,10 +85,18 @@ impl LiveDebugger {
                 .collapsible(false)
                 .movable(false)
                 .build(ui, || {
-                    ui.text("Command:");
-                    ui.same_line();
+                    self.draw_left_label(ui, "Command:");
+
+                    let iw = ui.push_item_width(state.screen_size.0 - 150.0);
+
+                    if !self.command_line_focused {
+                        ui.set_keyboard_focus_here();
+                        self.command_line_focused = true;
+                    }
 
                     ui.input_text("", &mut self.command_line_parser.buffer).build();
+
+                    iw.pop(ui);
 
                     if ui.is_item_active() {
                         state.control_flags.set_tick_world(false);
@@ -122,6 +132,8 @@ impl LiveDebugger {
                         self.command_line_parser.last_feedback.clone(),
                     );
                 });
+        } else {
+            self.command_line_focused = false;
         }
 
         if !state.debugger {
@@ -543,6 +555,23 @@ impl LiveDebugger {
         }
 
         Ok(())
+    }
+
+    fn draw_left_label(&mut self, ui: &imgui::Ui, text: &str) {
+        self.draw_text_with_top_padding(ui, text, 6.0);
+    }
+
+    fn draw_text_with_top_padding(&mut self, ui: &imgui::Ui, text: &str, padding: f32) {
+        let previous_cursor_pos = ui.cursor_pos();
+        let y = previous_cursor_pos[1] + padding;
+
+        ui.set_cursor_pos([previous_cursor_pos[0], y]);
+        ui.text(text);
+        ui.same_line();
+
+        let mut current_cursor_pos = ui.cursor_pos();
+        current_cursor_pos[1] = previous_cursor_pos[1];
+        ui.set_cursor_pos(current_cursor_pos);
     }
 }
 
