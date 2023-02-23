@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+
 use discord_rich_presence::{
     activity::{Activity, Assets, Button},
     DiscordIpc, DiscordIpcClient,
@@ -23,6 +25,8 @@ pub struct DiscordRPC {
     max_life: u16,
     stage_name: String,
     difficulty: Option<GameDifficulty>,
+
+    can_update: Mutex<bool>,
 }
 
 impl DiscordRPC {
@@ -37,15 +41,22 @@ impl DiscordRPC {
             max_life: 0,
             stage_name: String::new(),
             difficulty: None,
+
+            can_update: Mutex::new(true),
         }
     }
 
     pub fn start(&mut self) -> GameResult {
         log::info!("Starting Discord RPC client...");
 
+        let mut can_update = self.can_update.lock().unwrap();
+        *can_update = false;
+
         match self.client.connect() {
             Ok(_) => {
                 self.ready = true;
+                *can_update = true;
+
                 Ok(())
             }
             Err(e) => Err(GameError::DiscordRPCError(e.to_string())),
@@ -53,9 +64,17 @@ impl DiscordRPC {
     }
 
     fn update(&mut self) -> GameResult {
-        if !self.enabled {
+        if !self.enabled || !self.ready {
             return Ok(());
         }
+
+        let mut can_update = self.can_update.lock().unwrap();
+
+        if !*can_update {
+            return Ok(());
+        }
+
+        *can_update = false;
 
         let (state, details) = match self.state {
             DiscordRPCState::Initializing => ("Initializing...".to_owned(), "Just started playing".to_owned()),
@@ -95,9 +114,14 @@ impl DiscordRPC {
             .buttons(vec![Button::new("doukutsu-rs on GitHub", "https://github.com/doukutsu-rs/doukutsu-rs")]);
 
         match self.client.set_activity(activity) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(GameError::DiscordRPCError(e.to_string())),
-        }
+            Ok(()) => {
+                *can_update = true;
+                log::debug!("Discord RPC state updated successfully");
+            }
+            Err(e) => log::error!("Failed to update Discord RPC state: {}", e),
+        };
+
+        Ok(()) // whatever
     }
 
     pub fn update_stage(&mut self, stage: &StageData) -> GameResult {
