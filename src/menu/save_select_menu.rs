@@ -217,28 +217,28 @@ impl SaveSelectMenu {
 
     fn update_sizes(&mut self, state: &SharedGameState) {
         self.save_menu.update_width(state);
-        self.save_menu.update_height();
+        self.save_menu.update_height(state);
         self.save_menu.x = ((state.canvas_size.0 - self.save_menu.width as f32) / 2.0).floor() as isize;
         self.save_menu.y = ((state.canvas_size.1 - self.save_menu.height as f32) / 2.0).floor() as isize;
 
         self.difficulty_menu.update_width(state);
-        self.difficulty_menu.update_height();
+        self.difficulty_menu.update_height(state);
         self.difficulty_menu.x = ((state.canvas_size.0 - self.difficulty_menu.width as f32) / 2.0).floor() as isize;
         self.difficulty_menu.y =
             30 + ((state.canvas_size.1 - self.difficulty_menu.height as f32) / 2.0).floor() as isize;
 
         self.delete_confirm.update_width(state);
-        self.delete_confirm.update_height();
+        self.delete_confirm.update_height(state);
         self.delete_confirm.x = ((state.canvas_size.0 - self.delete_confirm.width as f32) / 2.0).floor() as isize;
         self.delete_confirm.y = 30 + ((state.canvas_size.1 - self.delete_confirm.height as f32) / 2.0).floor() as isize;
 
         self.load_confirm.update_width(state);
-        self.load_confirm.update_height();
+        self.load_confirm.update_height(state);
         self.load_confirm.x = ((state.canvas_size.0 - self.load_confirm.width as f32) / 2.0).floor() as isize;
         self.load_confirm.y = 30 + ((state.canvas_size.1 - self.load_confirm.height as f32) / 2.0).floor() as isize;
 
         self.save_detailed.update_width(state);
-        self.save_detailed.update_height();
+        self.save_detailed.update_height(state);
         self.save_detailed.x = ((state.canvas_size.0 - self.save_detailed.width as f32) / 2.0).floor() as isize;
         self.save_detailed.y = -40 + ((state.canvas_size.1 - self.save_detailed.height as f32) / 2.0).floor() as isize;
     }

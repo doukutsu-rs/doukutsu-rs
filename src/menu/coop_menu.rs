@@ -96,12 +96,12 @@ impl PlayerCountMenu {
 
     fn update_sizes(&mut self, state: &SharedGameState) {
         self.coop_menu.update_width(state);
-        self.coop_menu.update_height();
+        self.coop_menu.update_height(state);
         self.coop_menu.x = ((state.canvas_size.0 - self.coop_menu.width as f32) / 2.0).floor() as isize;
         self.coop_menu.y = 30 + ((state.canvas_size.1 - self.coop_menu.height as f32) / 2.0).floor() as isize;
 
         self.skin_menu.update_width(state);
-        self.skin_menu.update_height();
+        self.skin_menu.update_height(state);
         self.skin_menu.x = ((state.canvas_size.0 - self.coop_menu.width as f32) / 2.0).floor() as isize;
         self.skin_menu.y = 30 + ((state.canvas_size.1 - self.coop_menu.height as f32) / 2.0).floor() as isize;
     }

@@ -211,10 +211,8 @@ impl ControlsMenu {
             MainMenuEntry::Controller,
             MenuEntry::Active(state.loc.t("menus.controls_menu.controller.entry").to_owned()),
         );
-        self.main.push_entry(
-            MainMenuEntry::Rebind,
-            MenuEntry::Active(state.loc.t("menus.controls_menu.rebind").to_owned()),
-        );
+        self.main
+            .push_entry(MainMenuEntry::Rebind, MenuEntry::Active(state.loc.t("menus.controls_menu.rebind").to_owned()));
         self.main.push_entry(MainMenuEntry::Rumble, MenuEntry::Hidden);
         self.main.push_entry(MainMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
@@ -246,28 +244,28 @@ impl ControlsMenu {
 
     fn update_sizes(&mut self, state: &SharedGameState) {
         self.main.update_width(state);
-        self.main.update_height();
+        self.main.update_height(state);
         self.main.x = ((state.canvas_size.0 - self.main.width as f32) / 2.0).floor() as isize;
         self.main.y = ((state.canvas_size.1 - self.main.height as f32) / 2.0).floor() as isize;
 
         self.select_controller.update_width(state);
-        self.select_controller.update_height();
+        self.select_controller.update_height(state);
         self.select_controller.x = ((state.canvas_size.0 - self.select_controller.width as f32) / 2.0).floor() as isize;
         self.select_controller.y =
             ((state.canvas_size.1 - self.select_controller.height as f32) / 2.0).floor() as isize;
 
         self.rebind.update_width(state);
-        self.rebind.update_height();
+        self.rebind.update_height(state);
         self.rebind.x = ((state.canvas_size.0 - self.rebind.width as f32) / 2.0).floor() as isize;
         self.rebind.y = ((state.canvas_size.1 - self.rebind.height as f32) / 2.0).floor() as isize;
 
         self.confirm_rebind.update_width(state);
-        self.confirm_rebind.update_height();
+        self.confirm_rebind.update_height(state);
         self.confirm_rebind.x = ((state.canvas_size.0 - self.confirm_rebind.width as f32) / 2.0).floor() as isize;
         self.confirm_rebind.y = ((state.canvas_size.1 - self.confirm_rebind.height as f32) / 2.0).floor() as isize;
 
         self.confirm_reset.update_width(state);
-        self.confirm_reset.update_height();
+        self.confirm_reset.update_height(state);
         self.confirm_reset.x = ((state.canvas_size.0 - self.confirm_reset.width as f32) / 2.0).floor() as isize;
         self.confirm_reset.y = ((state.canvas_size.1 - self.confirm_reset.height as f32) / 2.0).floor() as isize;
     }

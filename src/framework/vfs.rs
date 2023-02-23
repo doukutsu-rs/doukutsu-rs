@@ -441,6 +441,11 @@ impl OverlayFS {
     pub fn roots(&self) -> &VecDeque<Box<dyn VFS>> {
         &self.roots
     }
+
+    /// Removes a VFS with a provided root.
+    pub fn remove(&mut self, root: &PathBuf) {
+        self.roots.iter().position(|fs| fs.to_path_buf() == Some(root.clone())).map(|i| self.roots.remove(i));
+    }
 }
 
 impl VFS for OverlayFS {

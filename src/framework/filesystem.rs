@@ -160,7 +160,7 @@ impl Filesystem {
     pub(crate) fn user_read_dir<P: AsRef<path::Path>>(
         &self,
         path: P,
-    ) -> GameResult<Box<dyn Iterator<Item=path::PathBuf>>> {
+    ) -> GameResult<Box<dyn Iterator<Item = path::PathBuf>>> {
         let itr = self
             .user_vfs
             .read_dir(path.as_ref())?
@@ -175,7 +175,7 @@ impl Filesystem {
     pub(crate) fn read_dir<P: AsRef<path::Path>>(
         &self,
         path: P,
-    ) -> GameResult<Box<dyn Iterator<Item=path::PathBuf>>> {
+    ) -> GameResult<Box<dyn Iterator<Item = path::PathBuf>>> {
         let itr = self
             .vfs
             .read_dir(path.as_ref())?
@@ -220,6 +220,14 @@ impl Filesystem {
 
     pub fn mount_user_vfs(&mut self, vfs: Box<dyn vfs::VFS>) {
         self.user_vfs.push_back(vfs);
+    }
+
+    pub fn unmount_vfs(&mut self, root: &PathBuf) {
+        self.vfs.remove(root);
+    }
+
+    pub fn unmount_user_vfs(&mut self, root: &PathBuf) {
+        self.user_vfs.remove(root);
     }
 }
 
@@ -303,7 +311,7 @@ pub fn user_is_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> bool {
 pub fn user_read_dir<P: AsRef<path::Path>>(
     ctx: &Context,
     path: P,
-) -> GameResult<Box<dyn Iterator<Item=path::PathBuf>>> {
+) -> GameResult<Box<dyn Iterator<Item = path::PathBuf>>> {
     ctx.filesystem.user_read_dir(path)
 }
 
@@ -339,7 +347,7 @@ pub fn is_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> bool {
 /// in no particular order.
 ///
 /// Lists the base directory if an empty path is given.
-pub fn read_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult<Box<dyn Iterator<Item=path::PathBuf>>> {
+pub fn read_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult<Box<dyn Iterator<Item = path::PathBuf>>> {
     ctx.filesystem.read_dir(path)
 }
 
@@ -347,7 +355,7 @@ pub fn read_dir_find<P: AsRef<path::Path>>(
     ctx: &Context,
     roots: &Vec<String>,
     path: P,
-) -> GameResult<Box<dyn Iterator<Item=path::PathBuf>>> {
+) -> GameResult<Box<dyn Iterator<Item = path::PathBuf>>> {
     let mut files = Vec::new();
 
     for root in roots {
@@ -382,4 +390,14 @@ pub fn mount_vfs(ctx: &mut Context, vfs: Box<dyn vfs::VFS>) {
 /// Adds a VFS to the list of user data search locations.
 pub fn mount_user_vfs(ctx: &mut Context, vfs: Box<dyn vfs::VFS>) {
     ctx.filesystem.mount_user_vfs(vfs)
+}
+
+/// Unmounts a VFS with a provided root path.
+pub fn unmount_vfs(ctx: &mut Context, root: &PathBuf) {
+    ctx.filesystem.unmount_vfs(root)
+}
+
+/// Unmounts a user VFS with a provided root path.
+pub fn unmount_user_vfs(ctx: &mut Context, root: &PathBuf) {
+    ctx.filesystem.unmount_user_vfs(root)
 }

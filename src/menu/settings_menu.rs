@@ -28,6 +28,7 @@ enum CurrentMenu {
     BehaviorMenu,
     LinksMenu,
     AdvancedMenu,
+    PortableMenu,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -143,12 +144,30 @@ enum AdvancedMenuEntry {
     Title,
     OpenUserData,
     OpenGameData,
+    #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+    MakePortable,
     Back,
 }
 
 impl Default for AdvancedMenuEntry {
     fn default() -> Self {
         AdvancedMenuEntry::OpenUserData
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum PortableMenuEntry {
+    Title,
+    Explanation,
+    RestartQuestion,
+    Yes,
+    No,
+    Spacer,
+}
+
+impl Default for PortableMenuEntry {
+    fn default() -> Self {
+        PortableMenuEntry::No
     }
 }
 
@@ -162,6 +181,7 @@ pub struct SettingsMenu {
     behavior: Menu<BehaviorMenuEntry>,
     links: Menu<LinksMenuEntry>,
     advanced: Menu<AdvancedMenuEntry>,
+    portable: Menu<PortableMenuEntry>,
     controls_menu: ControlsMenu,
     pub on_title: bool,
 }
@@ -184,6 +204,7 @@ impl SettingsMenu {
         let behavior = Menu::new(0, 0, 220, 0);
         let links = Menu::new(0, 0, 220, 0);
         let advanced = Menu::new(0, 0, 220, 0);
+        let portable = Menu::new(0, 0, 220, 0);
 
         let controls_menu = ControlsMenu::new();
 
@@ -198,6 +219,7 @@ impl SettingsMenu {
             links,
             advanced,
             controls_menu,
+            portable,
             on_title: false,
         }
     }
@@ -388,7 +410,55 @@ impl SettingsMenu {
             AdvancedMenuEntry::OpenGameData,
             MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.open_game_data").to_owned()),
         );
+
+        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        if let Some(fs_container) = &state.fs_container {
+            if !fs_container.is_portable && self.on_title {
+                self.advanced.push_entry(
+                    AdvancedMenuEntry::MakePortable,
+                    MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.make_portable").to_owned()),
+                );
+            }
+        }
+
         self.advanced.push_entry(AdvancedMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
+
+        self.portable.center_options = true;
+
+        self.portable.push_entry(
+            PortableMenuEntry::Title,
+            MenuEntry::Title(state.loc.t("menus.options_menu.advanced_menu.make_portable").to_owned(), true, false),
+        );
+
+        self.portable.push_entry(PortableMenuEntry::Spacer, MenuEntry::Spacer(8.0));
+
+        self.portable.push_entry(
+            PortableMenuEntry::Explanation,
+            MenuEntry::LongText(state.loc.t("menus.options_menu.portable_menu.explanation").to_owned(), true, true),
+        );
+
+        self.portable.push_entry(PortableMenuEntry::Spacer, MenuEntry::Spacer(8.0));
+
+        self.portable.push_entry(
+            PortableMenuEntry::RestartQuestion,
+            MenuEntry::LongText(
+                state.loc.t("menus.options_menu.portable_menu.restart_question").to_owned(),
+                true,
+                true,
+            ),
+        );
+
+        self.portable.push_entry(PortableMenuEntry::Spacer, MenuEntry::Spacer(8.0));
+
+        self.portable.push_entry(
+            PortableMenuEntry::Yes,
+            MenuEntry::Active(state.loc.t("menus.options_menu.portable_menu.restart").to_owned()),
+        );
+
+        self.portable.push_entry(
+            PortableMenuEntry::No,
+            MenuEntry::Active(state.loc.t("menus.options_menu.portable_menu.cancel").to_owned()),
+        );
 
         self.main.push_entry(MainMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
@@ -524,44 +594,49 @@ impl SettingsMenu {
 
     fn update_sizes(&mut self, state: &SharedGameState) {
         self.main.update_width(state);
-        self.main.update_height();
+        self.main.update_height(state);
         self.main.x = ((state.canvas_size.0 - self.main.width as f32) / 2.0).floor() as isize;
         self.main.y = 30 + ((state.canvas_size.1 - self.main.height as f32) / 2.0).floor() as isize;
 
         self.graphics.update_width(state);
-        self.graphics.update_height();
+        self.graphics.update_height(state);
         self.graphics.x = ((state.canvas_size.0 - self.graphics.width as f32) / 2.0).floor() as isize;
         self.graphics.y = 20 + ((state.canvas_size.1 - self.graphics.height as f32) / 2.0).floor() as isize;
 
         self.sound.update_width(state);
-        self.sound.update_height();
+        self.sound.update_height(state);
         self.sound.x = ((state.canvas_size.0 - self.sound.width as f32) / 2.0).floor() as isize;
         self.sound.y = 30 + ((state.canvas_size.1 - self.sound.height as f32) / 2.0).floor() as isize;
 
         self.soundtrack.update_width(state);
-        self.soundtrack.update_height();
+        self.soundtrack.update_height(state);
         self.soundtrack.x = ((state.canvas_size.0 - self.soundtrack.width as f32) / 2.0).floor() as isize;
         self.soundtrack.y = ((state.canvas_size.1 - self.soundtrack.height as f32) / 2.0).floor() as isize;
 
         self.language.update_width(state);
-        self.language.update_height();
+        self.language.update_height(state);
         self.language.x = ((state.canvas_size.0 - self.language.width as f32) / 2.0).floor() as isize;
         self.language.y = ((state.canvas_size.1 - self.language.height as f32) / 2.0).floor() as isize;
 
         self.behavior.update_width(state);
-        self.behavior.update_height();
+        self.behavior.update_height(state);
         self.behavior.x = ((state.canvas_size.0 - self.behavior.width as f32) / 2.0).floor() as isize;
         self.behavior.y = 30 + ((state.canvas_size.1 - self.behavior.height as f32) / 2.0).floor() as isize;
 
         self.links.update_width(state);
-        self.links.update_height();
+        self.links.update_height(state);
         self.links.x = ((state.canvas_size.0 - self.links.width as f32) / 2.0).floor() as isize;
         self.links.y = 30 + ((state.canvas_size.1 - self.links.height as f32) / 2.0).floor() as isize;
 
         self.advanced.update_width(state);
-        self.advanced.update_height();
+        self.advanced.update_height(state);
         self.advanced.x = ((state.canvas_size.0 - self.advanced.width as f32) / 2.0).floor() as isize;
         self.advanced.y = 30 + ((state.canvas_size.1 - self.advanced.height as f32) / 2.0).floor() as isize;
+
+        self.portable.update_width(state);
+        self.portable.update_height(state);
+        self.portable.x = ((state.canvas_size.0 - self.portable.width as f32) / 2.0).floor() as isize;
+        self.portable.y = 30 + ((state.canvas_size.1 - self.portable.height as f32) / 2.0).floor() as isize;
     }
 
     pub fn tick(
@@ -957,8 +1032,23 @@ impl SettingsMenu {
                         fs_container.open_game_directory()?;
                     }
                 }
+                MenuSelectionResult::Selected(AdvancedMenuEntry::MakePortable, _) => {
+                    self.current = CurrentMenu::PortableMenu;
+                }
                 MenuSelectionResult::Selected(AdvancedMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
                     self.current = CurrentMenu::MainMenu;
+                }
+                _ => {}
+            },
+            CurrentMenu::PortableMenu => match self.portable.tick(controller, state) {
+                MenuSelectionResult::Selected(PortableMenuEntry::Yes, _) => {
+                    if let Some(fs_container) = &mut state.fs_container {
+                        fs_container.make_portable_user_directory(ctx)?;
+                        state.next_scene = Some(Box::new(TitleScene::new()));
+                    }
+                }
+                MenuSelectionResult::Selected(PortableMenuEntry::No, _) | MenuSelectionResult::Canceled => {
+                    self.current = CurrentMenu::AdvancedMenu;
                 }
                 _ => {}
             },
@@ -977,6 +1067,7 @@ impl SettingsMenu {
             CurrentMenu::BehaviorMenu => self.behavior.draw(state, ctx)?,
             CurrentMenu::LinksMenu => self.links.draw(state, ctx)?,
             CurrentMenu::AdvancedMenu => self.advanced.draw(state, ctx)?,
+            CurrentMenu::PortableMenu => self.portable.draw(state, ctx)?,
         }
 
         Ok(())

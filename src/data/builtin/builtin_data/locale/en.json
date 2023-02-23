@@ -133,7 +133,14 @@
       "advanced": "Advanced...",
       "advanced_menu": {
         "open_user_data": "Open user data directory",
-        "open_game_data": "Open game data directory"
+        "open_game_data": "Open game data directory",
+        "make_portable": "Make portable user directory"
+      },
+      "portable_menu": {
+        "explanation": "This will create a local user data directory and copy your settings and save files.",
+        "restart_question": "Reload the game to use the new location?",
+        "restart": "Save and return to title",
+        "cancel": "Cancel"
       }
     },
     "controls_menu": {

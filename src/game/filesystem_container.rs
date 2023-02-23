@@ -5,7 +5,7 @@ use crate::{
     framework::{
         context::Context,
         error::GameResult,
-        filesystem::{mount_user_vfs, mount_vfs},
+        filesystem::{mount_user_vfs, mount_vfs, unmount_user_vfs},
         vfs::PhysicalFS,
     },
 };
@@ -13,11 +13,13 @@ use crate::{
 pub struct FilesystemContainer {
     pub user_path: PathBuf,
     pub game_path: PathBuf,
+
+    pub is_portable: bool,
 }
 
 impl FilesystemContainer {
     pub fn new() -> Self {
-        Self { user_path: PathBuf::new(), game_path: PathBuf::new() }
+        Self { user_path: PathBuf::new(), game_path: PathBuf::new(), is_portable: false }
     }
 
     pub fn mount_fs(&mut self, context: &mut Context) -> GameResult {
@@ -125,14 +127,15 @@ impl FilesystemContainer {
 
         #[cfg(not(any(target_os = "android", target_os = "horizon")))]
         {
-            if crate::framework::filesystem::open(&context, "/.drs_localstorage").is_ok() {
-                let mut user_dir = resource_dir.clone();
-                user_dir.push("_drs_profile");
+            let mut user_dir = resource_dir.clone();
+            user_dir.pop();
+            user_dir.push("user");
 
-                let _ = std::fs::create_dir_all(&user_dir);
+            if user_dir.is_dir() {
+                // portable mode
                 mount_user_vfs(context, Box::new(PhysicalFS::new(&user_dir, false)));
-
                 self.user_path = user_dir.clone();
+                self.is_portable = true;
             } else {
                 let user_dir = project_dirs.data_local_dir();
                 mount_user_vfs(context, Box::new(PhysicalFS::new(user_dir, false)));
@@ -153,6 +156,39 @@ impl FilesystemContainer {
 
     pub fn open_game_directory(&self) -> GameResult {
         self.open_directory(self.game_path.clone())
+    }
+
+    pub fn make_portable_user_directory(&mut self, ctx: &mut Context) -> GameResult {
+        let mut user_dir = self.game_path.clone();
+        user_dir.pop();
+        user_dir.push("user");
+
+        if user_dir.is_dir() {
+            return Ok(()); // portable directory already exists
+        }
+
+        let _ = std::fs::create_dir_all(user_dir.clone());
+
+        // copy user data from current user dir
+        for entry in std::fs::read_dir(&self.user_path)? {
+            let entry = entry?;
+            let path = entry.path();
+            let file_name = path.file_name().unwrap().to_str().unwrap();
+            let mut new_path = user_dir.clone();
+            new_path.push(file_name);
+            std::fs::copy(path, new_path)?;
+        }
+
+        // unmount old user dir
+        unmount_user_vfs(ctx, &self.user_path);
+
+        // mount new user dir
+        mount_user_vfs(ctx, Box::new(PhysicalFS::new(&user_dir, false)));
+
+        self.user_path = user_dir.clone();
+        self.is_portable = true;
+
+        Ok(())
     }
 
     fn open_directory(&self, path: PathBuf) -> GameResult {

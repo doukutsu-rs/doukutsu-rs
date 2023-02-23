@@ -290,12 +290,12 @@ impl Scene for TitleScene {
         self.controller.update_trigger();
 
         self.main_menu.update_width(state);
-        self.main_menu.update_height();
+        self.main_menu.update_height(state);
         self.main_menu.x = ((state.canvas_size.0 - self.main_menu.width as f32) / 2.0).floor() as isize;
         self.main_menu.y = ((state.canvas_size.1 + 70.0 - self.main_menu.height as f32) / 2.0).floor() as isize;
 
         self.challenges_menu.update_width(state);
-        self.challenges_menu.update_height();
+        self.challenges_menu.update_height(state);
         self.challenges_menu.x = ((state.canvas_size.0 - self.challenges_menu.width as f32) / 2.0).floor() as isize;
         self.challenges_menu.y =
             ((state.canvas_size.1 + 30.0 - self.challenges_menu.height as f32) / 2.0).floor() as isize;
@@ -446,7 +446,7 @@ impl Scene for TitleScene {
         }
 
         self.confirm_menu.update_width(state);
-        self.confirm_menu.update_height();
+        self.confirm_menu.update_height(state);
         self.confirm_menu.x = ((state.canvas_size.0 - self.confirm_menu.width as f32) / 2.0).floor() as isize;
         self.confirm_menu.y = ((state.canvas_size.1 + 30.0 - self.confirm_menu.height as f32) / 2.0).floor() as isize;
 

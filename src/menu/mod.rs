@@ -28,6 +28,8 @@ pub enum ControlMenuData {
 #[derive(Clone)]
 pub enum MenuEntry {
     Hidden,
+    Title(String, bool, bool),    // text, centered, white
+    LongText(String, bool, bool), // text, centered, white
     Active(String),
     DisabledWhite(String),
     Disabled(String),
@@ -40,12 +42,15 @@ pub enum MenuEntry {
     NewSave,
     PlayerSkin,
     Control(String, ControlMenuData),
+    Spacer(f64),
 }
 
 impl MenuEntry {
     pub fn height(&self) -> f64 {
         match self {
             MenuEntry::Hidden => 0.0,
+            MenuEntry::Title(_, _, _) => 16.0,    // individual line
+            MenuEntry::LongText(_, _, _) => 16.0, // individual line
             MenuEntry::Active(_) => 16.0,
             MenuEntry::DisabledWhite(_) => 16.0,
             MenuEntry::Disabled(_) => 16.0,
@@ -58,12 +63,15 @@ impl MenuEntry {
             MenuEntry::NewSave => 32.0,
             MenuEntry::PlayerSkin => 24.0,
             MenuEntry::Control(_, _) => 16.0,
+            MenuEntry::Spacer(height) => *height,
         }
     }
 
     pub fn selectable(&self) -> bool {
         match self {
             MenuEntry::Hidden => false,
+            MenuEntry::Title(_, _, _) => false,
+            MenuEntry::LongText(_, _, _) => false,
             MenuEntry::Active(_) => true,
             MenuEntry::DisabledWhite(_) => false,
             MenuEntry::Disabled(_) => false,
@@ -76,6 +84,7 @@ impl MenuEntry {
             MenuEntry::NewSave => true,
             MenuEntry::PlayerSkin => true,
             MenuEntry::Control(_, _) => true,
+            MenuEntry::Spacer(_) => false,
         }
     }
 }
@@ -95,11 +104,13 @@ pub struct Menu<T: std::cmp::PartialEq> {
     pub height: u16,
     pub selected: T,
     pub entries: Vec<(T, MenuEntry)>,
+    pub height_overrides: Vec<(T, f64)>,
     anim_num: u16,
     anim_wait: u16,
     custom_cursor: Cell<bool>,
     pub draw_cursor: bool,
     pub non_interactive: bool,
+    pub center_options: bool,
 }
 
 impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
@@ -113,9 +124,11 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
             anim_num: 0,
             anim_wait: 0,
             entries: Vec::new(),
+            height_overrides: Vec::new(),
             custom_cursor: Cell::new(true),
             draw_cursor: true,
             non_interactive: false,
+            center_options: false,
         }
     }
 
@@ -149,6 +162,10 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                 MenuEntry::Hidden => {}
                 MenuEntry::Active(entry) | MenuEntry::DisabledWhite(entry) | MenuEntry::Disabled(entry) => {
                     let entry_width = state.font.builder().compute_width(&entry) + 32.0;
+                    width = width.max(entry_width);
+                }
+                MenuEntry::Title(entry, _, _) | MenuEntry::LongText(entry, _, _) => {
+                    let entry_width = state.font.builder().compute_width(&entry).min(state.canvas_size.0) + 32.0;
                     width = width.max(entry_width);
                 }
                 MenuEntry::Toggle(entry, _) => {
@@ -199,18 +216,33 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                 MenuEntry::NewSave => {}
                 MenuEntry::PlayerSkin => {}
                 MenuEntry::Control(_, _) => {}
+                MenuEntry::Spacer(_) => {}
             }
         }
 
-        width = width.max(16.0);
+        width = width.max(16.0).min(state.canvas_size.0 - MENU_MIN_PADDING);
         self.width = if (width + 4.0) % 8.0 != 0.0 { (width + 4.0 - width % 8.0) as u16 } else { width as u16 };
     }
 
-    pub fn update_height(&mut self) {
+    pub fn update_height(&mut self, state: &SharedGameState) {
         let mut height = 8.0;
 
-        for (_, entry) in &self.entries {
-            height += entry.height();
+        for (id, entry) in &self.entries {
+            match entry {
+                MenuEntry::Title(text, _, _) | MenuEntry::LongText(text, _, _) => {
+                    let text_width = state.font.builder().compute_width(text) + 32.0;
+                    let lines = (text_width / state.canvas_size.0).ceil();
+
+                    let actual_entry_height = lines as f64 * entry.height();
+
+                    self.height_overrides.push((id.clone(), actual_entry_height));
+
+                    height += actual_entry_height;
+                }
+                _ => {
+                    height += entry.height();
+                }
+            }
         }
 
         self.height = height.max(16.0) as u16;
@@ -320,6 +352,26 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
 
         batch.draw(ctx)?;
 
+        let options_x = if self.center_options {
+            let mut longest_option_width = 20.0;
+
+            for (_, entry) in &self.entries {
+                match entry {
+                    MenuEntry::Options(text, _, _) | MenuEntry::Active(text) => {
+                        let text_width = state.font.builder().compute_width(text) + 32.0;
+                        if text_width > longest_option_width {
+                            longest_option_width = text_width;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            (state.canvas_size.0 / 2.0) - (longest_option_width / 2.0)
+        } else {
+            self.x as f32
+        };
+
         if self.draw_cursor {
             if self.custom_cursor.get() {
                 if let Ok(batch) = state.texture_set.get_or_load_batch(ctx, &state.constants, "MenuCursor") {
@@ -328,7 +380,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     rect.right = rect.left + 16;
                     rect.bottom = rect.top + 16;
 
-                    batch.add_rect(self.x as f32, computed_y + 3.0 + selected_y, &rect);
+                    batch.add_rect(options_x, computed_y + 3.0 + selected_y, &rect);
 
                     batch.draw(ctx)?;
                 } else {
@@ -365,7 +417,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
 
                 let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, menu_texture)?;
 
-                batch.add_rect(self.x as f32, computed_y + 4.0 + selected_y, &character_rect[self.anim_num as usize]);
+                batch.add_rect(options_x, computed_y + 4.0 + selected_y, &character_rect[self.anim_num as usize]);
 
                 batch.draw(ctx)?;
             }
@@ -375,12 +427,59 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
         for (_, entry) in &self.entries {
             match entry {
                 MenuEntry::Active(name) | MenuEntry::DisabledWhite(name) => {
-                    state.font.builder().position(self.x as f32 + 20.0, y).draw(
+                    state.font.builder().position(options_x + 20.0, y).draw(
                         name,
                         ctx,
                         &state.constants,
                         &mut state.texture_set,
                     )?;
+                }
+                MenuEntry::Title(text, is_centered, is_white) | MenuEntry::LongText(text, is_centered, is_white) => {
+                    let mut lines = Vec::new();
+                    let mut line = String::new();
+
+                    // we should probably abstract this away in some capacity
+                    let separator = match state.loc.code.as_str() {
+                        "jp" => "",
+                        _ => " ",
+                    };
+
+                    for word in text.split(separator) {
+                        let combined_word = line.clone() + separator + word;
+                        let line_length = state.font.builder().compute_width(&combined_word) + 32.0;
+
+                        if line_length > state.canvas_size.0 as f32 {
+                            lines.push(line);
+                            line = String::new();
+                        }
+
+                        line.push_str(word);
+                        line.push_str(separator);
+                    }
+
+                    lines.push(line);
+
+                    let mut local_y = y;
+
+                    for line in lines.iter() {
+                        let x = if *is_centered {
+                            (state.canvas_size.0 as f32 - state.font.builder().compute_width(&line)) / 2.0
+                        } else {
+                            self.x as f32 + 20.0
+                        };
+
+                        let mut builder = state.font.builder().position(x, local_y);
+
+                        if !*is_white {
+                            builder = builder.color((0xa0, 0xa0, 0xff, 0xff));
+                        }
+
+                        builder.draw(&line, ctx, &state.constants, &mut state.texture_set)?;
+
+                        local_y += entry.height() as f32;
+                    }
+
+                    y += entry.height() as f32 * (lines.len() - 1) as f32;
                 }
                 MenuEntry::Disabled(name) => {
                     state.font.builder().position(self.x as f32 + 20.0, y).color((0xa0, 0xa0, 0xff, 0xff)).draw(
@@ -412,14 +511,14 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     let value_text = if let Some(text) = value.get(*index) { text } else { "???" };
                     let name_text_len = state.font.builder().compute_width(name);
 
-                    state.font.builder().position(self.x as f32 + 20.0, y).draw(
+                    state.font.builder().position(options_x + 20.0, y).draw(
                         name,
                         ctx,
                         &state.constants,
                         &mut state.texture_set,
                     )?;
 
-                    state.font.builder().position(self.x as f32 + 25.0 + name_text_len, y).draw(
+                    state.font.builder().position(options_x + 25.0 + name_text_len, y).draw(
                         value_text,
                         ctx,
                         &state.constants,
@@ -780,7 +879,12 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     break;
                 }
 
-                sum += entry.height();
+                let entry_height = match self.height_overrides.iter().find(|(entry_id, _)| *entry_id == *id) {
+                    Some((_, height)) => *height,
+                    None => entry.height(),
+                };
+
+                sum += entry_height;
             }
 
             entry_y = sum as u16;

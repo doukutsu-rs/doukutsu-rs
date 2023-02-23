@@ -133,7 +133,14 @@
       "advanced": "詳細設定",
       "advanced_menu": {
         "open_user_data": "ユーザープロファイルを開く",
-        "open_game_data": "ゲームファイルを開く"
+        "open_game_data": "ゲームファイルを開く",
+        "make_portable": "ポータブルユーザーディレクトリを作成する"
+      },
+      "portable_menu": {
+        "explanation": "ローカルのユーザーデータディレクトリが作成され、設定とセーブファイルがそこにコピーされます。",
+        "restart_question": "新しい場所を使うには、ゲームを再起動しますか？",
+        "restart": "保存してタイトルに戻る",
+        "cancel": "キャンセル"
       }
     },
     "controls_menu": {
