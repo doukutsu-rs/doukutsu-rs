@@ -5,7 +5,7 @@ use discord_rich_presence::{
     DiscordIpc, DiscordIpcClient,
 };
 
-use crate::framework::error::{GameError, GameResult};
+use crate::framework::error::GameResult;
 use crate::game::{player::Player, shared_game_state::GameDifficulty, stage::StageData};
 
 pub enum DiscordRPCState {
@@ -59,7 +59,10 @@ impl DiscordRPC {
 
                 Ok(())
             }
-            Err(e) => Err(GameError::DiscordRPCError(e.to_string())),
+            Err(e) => {
+                log::warn!("Failed to start Discord RPC client (maybe Discord is not running?): {}", e);
+                Ok(())
+            }
         }
     }
 

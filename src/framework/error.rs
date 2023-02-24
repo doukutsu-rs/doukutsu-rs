@@ -44,8 +44,6 @@ pub enum GameError {
     InvalidValue(String),
     /// Something went wrong while executing a debug command line command.
     CommandLineError(String),
-    /// Something went wrong while initializing or modifying Discord rich presence values.
-    DiscordRPCError(String),
 }
 
 impl fmt::Display for GameError {
