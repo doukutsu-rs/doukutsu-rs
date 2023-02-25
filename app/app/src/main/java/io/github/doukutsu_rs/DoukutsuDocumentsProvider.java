@@ -1,5 +1,6 @@
 package io.github.doukutsu_rs;
 
+import android.content.ContentResolver;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MatrixCursor.RowBuilder;
@@ -143,7 +144,13 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
         }
         
         Uri uri = DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, file.getParent());
-        getContext().getContentResolver().notifyChange(uri, null);
+        
+        if (SDK_INT >= Build.VERSION_CODES.R) {
+            getContext().getContentResolver().notifyChange(uri, null, ContentResolver.NOTIFY_INSERT);
+        } else {
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+        
         
         return file.getAbsolutePath();
     }
@@ -158,8 +165,14 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
 
         deleteRecursive(file);
         
+        
         Uri uri = DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, file.getParent());
-        getContext().getContentResolver().notifyChange(uri, null);
+       
+        if (SDK_INT >= Build.VERSION_CODES.R) {
+            getContext().getContentResolver().notifyChange(uri, null, ContentResolver.NOTIFY_DELETE);
+        } else {
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
     }
 
     @Override
@@ -209,8 +222,14 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
             throw new FileNotFoundException(e.getMessage());
         }
 
+
         Uri uri = DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, file.getParent());
-        getContext().getContentResolver().notifyChange(uri, null);
+        
+        if (SDK_INT >= Build.VERSION_CODES.R) {
+            getContext().getContentResolver().notifyChange(uri, null, ContentResolver.NOTIFY_UPDATE);
+        } else {
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
         
         return newPath.getAbsolutePath();
     }
