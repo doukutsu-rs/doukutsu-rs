@@ -3,9 +3,11 @@ package io.github.doukutsu_rs;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MatrixCursor.RowBuilder;
+import android.net.Uri;
 import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
+import android.provider.DocumentsContract;
 import android.provider.DocumentsContract.Document;
 import android.provider.DocumentsContract.Root;
 import android.provider.DocumentsProvider;
@@ -98,7 +100,9 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
                 pushFile(result, file);
             }
         }
-
+        
+        result.setNotificationUri(getContext().getContentResolver(), DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, parentDocumentId));
+        
         return result;
     }
 
@@ -137,7 +141,10 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
         } catch (IOException e) {
             throw new FileNotFoundException("Couldn't create file: " + e.getMessage());
         }
-
+        
+        Uri uri = DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, file.getParent());
+        getContext().getContentResolver().notifyChange(uri, null);
+        
         return file.getAbsolutePath();
     }
 
@@ -150,8 +157,9 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
         }
 
         deleteRecursive(file);
-        // todo refresh this shit
-        // getContext().getContentResolver().refresh()
+        
+        Uri uri = DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, file.getParent());
+        getContext().getContentResolver().notifyChange(uri, null);
     }
 
     @Override
@@ -201,6 +209,9 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
             throw new FileNotFoundException(e.getMessage());
         }
 
+        Uri uri = DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, file.getParent());
+        getContext().getContentResolver().notifyChange(uri, null);
+        
         return newPath.getAbsolutePath();
     }
 
