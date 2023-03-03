@@ -1032,6 +1032,8 @@ impl SettingsMenu {
                         fs_container.open_game_directory()?;
                     }
                 }
+                
+                #[cfg(not(any(target_os = "android", target_os = "horizon")))]
                 MenuSelectionResult::Selected(AdvancedMenuEntry::MakePortable, _) => {
                     self.current = CurrentMenu::PortableMenu;
                 }
