@@ -939,7 +939,13 @@ impl Player {
 
 impl GameEntity<&NPCList> for Player {
     fn tick(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
-        if !self.cond.alive() {
+        if !self.cond.alive() && self.life > 0 {
+            return Ok(());
+        } else if !self.cond.alive() && self.life == 0 {
+            self.popup.x = self.x;
+            self.popup.y = self.y - self.display_bounds.top as i32 + 0x1000;
+            self.popup.tick(state, ())?;
+            
             return Ok(());
         }
 
