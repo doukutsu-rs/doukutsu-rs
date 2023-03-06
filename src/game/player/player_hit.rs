@@ -290,10 +290,12 @@ impl Player {
                         if weapon.wtype == WeaponType::Spur {
                             npc.exp = 0;
                         } else {
-                            if self.popup.value > 0 {
-                                self.popup.add_value(npc.exp as i16);
-                            } else {
-                                self.popup.set_value(npc.exp as i16);
+                            if self.shock_counter == 0 {
+                                if self.popup.value > 0 {
+                                    self.popup.add_value(npc.exp as i16);
+                                } else {
+                                    self.popup.set_value(npc.exp as i16);
+                                }
                             }
                         }
                     }
