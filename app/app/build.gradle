@@ -60,6 +60,18 @@ android {
             path "src/main/cpp/CMakeLists.txt"
         }
     }
+    
+    packagingOptions {
+        jniLibs {
+            excludes += "**/dummy.so"
+        }
+
+        resources {
+            excludes += "kotlin/**"
+            excludes += "/META-INF/kotlinx_*"
+        }
+
+    }
 }
 
 dependencies {
