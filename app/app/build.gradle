@@ -66,11 +66,6 @@ android {
             excludes += "**/dummy.so"
         }
 
-        resources {
-            excludes += "kotlin/**"
-            excludes += "/META-INF/kotlinx_*"
-        }
-
     }
 }
 
