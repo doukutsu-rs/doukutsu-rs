@@ -12,6 +12,8 @@ use crate::framework::keyboard::ScanCode;
 use crate::framework::ui::Components;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
+use crate::graphics::font::Font;
+use crate::scene::Scene;
 use crate::scene::game_scene::GameScene;
 use crate::scene::title_scene::TitleScene;
 
@@ -189,7 +191,8 @@ impl Scene for EditorScene {
                 ctx,
                 &state.constants,
                 &mut state.texture_set,
-            );
+            )?;
+            
             return Ok(());
         }
 
