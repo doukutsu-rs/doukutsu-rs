@@ -2,10 +2,12 @@ use core::mem;
 use std::any::Any;
 use std::cell::{RefCell, UnsafeCell};
 use std::ffi::c_void;
+use std::io::Read;
 use std::ops::Deref;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
+use std::vec::Vec;
 
 use imgui::internal::RawWrapper;
 use imgui::sys::{ImGuiKey_Backspace, ImGuiKey_Delete, ImGuiKey_Enter};
@@ -16,6 +18,8 @@ use sdl2::keyboard::Scancode;
 use sdl2::mouse::{Cursor, SystemCursor};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Texture, TextureCreator, TextureQuery, WindowCanvas};
+use sdl2::rwops::RWops;
+use sdl2::surface::Surface;
 use sdl2::video::GLProfile;
 use sdl2::video::Window;
 use sdl2::video::WindowContext;
@@ -168,14 +172,27 @@ impl SDL2EventLoop {
         gl_attr.set_context_profile(GLProfile::Compatibility);
         gl_attr.set_context_version(2, 1);
 
-        let mut window = video.window("Cave Story (doukutsu-rs)", size_hint.0 as _, size_hint.1 as _);
-        window.position_centered();
-        window.resizable();
-
+        let mut win_builder = video.window("Cave Story (doukutsu-rs)", size_hint.0 as _, size_hint.1 as _);
+        win_builder.position_centered();
+        win_builder.resizable();
+        
         #[cfg(feature = "render-opengl")]
-        window.opengl();
+        win_builder.opengl();
 
-        let window = window.build().map_err(|e| GameError::WindowError(e.to_string()))?;
+        let mut window = win_builder.build().map_err(|e| GameError::WindowError(e.to_string()))?;
+        #[cfg(not(any(target_os = "windows", target_os = "android", target_os = "horizon")))]
+        {
+            let mut file = filesystem::open(&ctx, "/builtin/icon2.bmp").unwrap();
+            let mut buf: Vec<u8> = Vec::new();
+            file.read_to_end(&mut buf)?;
+            
+            let mut rwops = RWops::from_bytes(buf.as_slice()).unwrap();
+            let icon = Surface::load_bmp_rw(&mut rwops).unwrap();
+            
+            window.set_icon(icon);
+        }
+        
+        
         let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
 
         let event_loop = SDL2EventLoop {

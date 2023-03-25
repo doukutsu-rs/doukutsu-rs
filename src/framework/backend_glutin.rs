@@ -1,20 +1,24 @@
 use std::any::Any;
 use std::cell::{RefCell, UnsafeCell};
 use std::ffi::c_void;
+use std::io::Read;
 use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::vec::Vec;
 
 use glutin::event::{ElementState, Event, TouchPhase, VirtualKeyCode, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
 use glutin::{Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, WindowedContext};
 use imgui::{DrawCmdParams, DrawData, DrawIdx, DrawVert};
+use winit::window::Icon;
 
 use crate::common::Rect;
 use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::framework::filesystem;
 use crate::framework::gl;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
@@ -56,11 +60,12 @@ pub struct GlutinEventLoop {
 }
 
 impl GlutinEventLoop {
-    fn get_context(&self, event_loop: &EventLoop<()>) -> &mut WindowedContext<PossiblyCurrent> {
+    fn get_context(&self, ctx: &Context, event_loop: &EventLoop<()>) -> &mut WindowedContext<PossiblyCurrent> {
         let mut refs = unsafe { &mut *self.refs.get() };
 
         if refs.is_none() {
             let mut window = WindowBuilder::new();
+            
             let windowed_context = ContextBuilder::new();
             let windowed_context = windowed_context.with_gl(GlRequest::Specific(Api::OpenGl, (3, 0)));
             #[cfg(target_os = "android")]
@@ -79,7 +84,24 @@ impl GlutinEventLoop {
             }
 
             window = window.with_title("doukutsu-rs");
-
+            
+            #[cfg(not(any(target_os = "windows", target_os = "android", target_os = "horizon")))]
+            {
+                let mut file = filesystem::open(&ctx, "/builtin/icon2.bmp").unwrap();
+                let mut buf: Vec<u8> = Vec::new();
+                file.read_to_end(&mut buf);
+                
+                let mut img = match image::load_from_memory_with_format(buf.as_slice(), image::ImageFormat::Bmp) {
+                    Ok(image) => image.into_rgba8(),
+                    Err(e) => panic!("Cannot set window icon")
+                };
+                
+                let (width, height) = img.dimensions();
+                let icon = Icon::from_rgba(img.into_raw(), width, height).unwrap();
+                
+                window = window.with_window_icon(Some(icon));
+            }
+            
             let windowed_context = windowed_context.build_windowed(window, event_loop).unwrap();
 
             let windowed_context = unsafe { windowed_context.make_current().unwrap() };
@@ -150,8 +172,7 @@ impl BackendEventLoop for GlutinEventLoop {
         let event_loop = EventLoop::new();
         let state_ref = unsafe { &mut *game.state.get() };
         let window: &'static mut WindowedContext<PossiblyCurrent> =
-            unsafe { std::mem::transmute(self.get_context(&event_loop)) };
-
+            unsafe { std::mem::transmute(self.get_context(&ctx, &event_loop)) };        
         {
             let size = window.window().inner_size();
             ctx.real_screen_size = (size.width, size.height);
