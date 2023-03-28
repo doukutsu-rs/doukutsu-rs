@@ -595,21 +595,23 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         graphics::draw_rect(ctx, bar_rect, Color::new(1.0, 1.0, 1.0, 1.0))?;
                     }
                     
-                    
-                    state
-                        .font
-                        .builder()
-                        .x(self.x as f32 - 25.0)
-                        .y(y)
-                        .shadow(true)
-                        .draw("<", ctx, &state.constants, &mut state.texture_set)?;
-                    state
-                        .font
-                        .builder()
-                        .x((self.x + self.width as isize) as f32 + 15.0)
-                        .y(y)
-                        .shadow(true)
-                        .draw(">", ctx, &state.constants, &mut state.texture_set)?;
+                    #[cfg(target_os = "android")]
+                    {
+                        state
+                            .font
+                            .builder()
+                            .x(self.x as f32 - 25.0)
+                            .y(y)
+                            .shadow(true)
+                            .draw("<", ctx, &state.constants, &mut state.texture_set)?;
+                        state
+                            .font
+                            .builder()
+                            .x((self.x + self.width as isize) as f32 + 15.0)
+                            .y(y)
+                            .shadow(true)
+                            .draw(">", ctx, &state.constants, &mut state.texture_set)?;
+                    }
                 }
                 MenuEntry::NewSave => {
                     state.font.builder().position(self.x as f32 + 20.0, y).draw(
