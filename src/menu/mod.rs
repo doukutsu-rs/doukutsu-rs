@@ -594,6 +594,22 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
 
                         graphics::draw_rect(ctx, bar_rect, Color::new(1.0, 1.0, 1.0, 1.0))?;
                     }
+                    
+                    
+                    state
+                        .font
+                        .builder()
+                        .x(self.x as f32 - 25.0)
+                        .y(y)
+                        .shadow(true)
+                        .draw("<", ctx, &state.constants, &mut state.texture_set)?;
+                    state
+                        .font
+                        .builder()
+                        .x((self.x + self.width as isize) as f32 + 15.0)
+                        .y(y)
+                        .shadow(true)
+                        .draw(">", ctx, &state.constants, &mut state.texture_set)?;
                 }
                 MenuEntry::NewSave => {
                     state.font.builder().position(self.x as f32 + 20.0, y).draw(
@@ -829,6 +845,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         || state.touch_controls.consume_click_in(left_entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(1);
+                    self.selected = idx.clone();
                     return MenuSelectionResult::Left(self.selected.clone(), entry, -1);
                 }
                 MenuEntry::Options(_, _, _) | MenuEntry::OptionsBar(_, _)
@@ -836,6 +853,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         || state.touch_controls.consume_click_in(right_entry_bounds) =>
                 {
                     state.sound_manager.play_sfx(1);
+                    self.selected = idx.clone();
                     return MenuSelectionResult::Right(self.selected.clone(), entry, 1);
                 }
                 MenuEntry::DescriptiveOptions(_, _, _, _)
