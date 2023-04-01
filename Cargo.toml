@@ -78,7 +78,7 @@ num-traits = "0.2"
 open = "3.2"
 paste = "1.0"
 pelite = { version = ">=0.9.2", default-features = false, features = ["std"] }
-sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
+sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["image", "unsafe_textures", "bundled", "static-link"] }
 sdl2-sys = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["bundled", "static-link"] }
 rc-box = "1.2.0"
 serde = { version = "1", features = ["derive"] }
