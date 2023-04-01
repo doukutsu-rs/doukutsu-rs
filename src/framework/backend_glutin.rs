@@ -134,7 +134,7 @@ fn get_insets() -> GameResult<(f32, f32, f32, f32)> {
 
         vm_env.delete_local_ref(JObject::from_raw(field));
         
-        //Game always runs with horizontal orientation so top and bottom cutouts not needle and only wastes piece of the screen
+        //Game always runs with horizontal orientation so top and bottom cutouts not needed and only wastes piece of the screen
         elements[1] = 0;
         elements[3] = 0;
         
