@@ -138,6 +138,7 @@ impl GameScene {
             Rc::new(RefCell::new(textures))
         };
 
+		let mut player1 = Player::new(state, ctx);
         let mut player2 = Player::new(state, ctx);
 
         if state.player2_skin_location.texture_index != 0 {
@@ -151,8 +152,8 @@ impl GameScene {
             stage,
             water_params,
             water_renderer,
-            player1: Player::new(state, ctx),
-            player2: player2,
+            player1,
+            player2,
             inventory_player1: Inventory::new(),
             inventory_player2: Inventory::new(),
             boss_life_bar: BossLifeBar::new(),
@@ -1738,6 +1739,11 @@ impl Scene for GameScene {
 
         self.pause_menu.init(state, ctx)?;
         self.whimsical_star.init(&self.player1);
+        
+        if state.constants.is_switch && state.constants.player_skin_paths.len() > 1 {
+        	self.player1.load_skin(state.constants.player_skin_paths[1].as_str().to_owned(), state, ctx);
+        	self.player1.skin.set_skinsheet_offset(2);
+        }
 
         #[cfg(feature = "discord-rpc")]
         {

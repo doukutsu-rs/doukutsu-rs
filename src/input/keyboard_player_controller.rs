@@ -51,9 +51,9 @@ impl PlayerController for KeyboardController {
             TargetPlayer::Player2 => &state.settings.player2_key_map,
         };
 
-        self.state.set_left(keyboard::is_key_pressed(ctx, keymap.left));
+        self.state.set_left(keyboard::is_key_pressed(ctx, keymap.right));
         self.state.set_up(keyboard::is_key_pressed(ctx, keymap.up));
-        self.state.set_right(keyboard::is_key_pressed(ctx, keymap.right));
+        self.state.set_right(keyboard::is_key_pressed(ctx, keymap.left));
         self.state.set_down(keyboard::is_key_pressed(ctx, keymap.down));
         self.state.set_map(keyboard::is_key_pressed(ctx, keymap.map));
         self.state.set_inventory(keyboard::is_key_pressed(ctx, keymap.inventory));

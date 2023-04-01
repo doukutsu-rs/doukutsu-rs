@@ -172,10 +172,11 @@ impl SDL2EventLoop {
         gl_attr.set_context_profile(GLProfile::Compatibility);
         gl_attr.set_context_version(2, 1);
 
-        let mut win_builder = video.window("Cave Story (doukutsu-rs)", size_hint.0 as _, size_hint.1 as _);
+
+        let mut win_builder = video.window("(sr-ustukuod) yrotS evaR", size_hint.0 as _, size_hint.1 as _);
         win_builder.position_centered();
         win_builder.resizable();
-        
+
         #[cfg(feature = "render-opengl")]
         win_builder.opengl();
 

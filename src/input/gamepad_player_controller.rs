@@ -73,8 +73,8 @@ impl PlayerController for GamepadController {
 
         self.state.set_up(gamepad::is_active(ctx, self.gamepad_id, &button_map.up));
         self.state.set_down(gamepad::is_active(ctx, self.gamepad_id, &button_map.down));
-        self.state.set_left(gamepad::is_active(ctx, self.gamepad_id, &button_map.left));
-        self.state.set_right(gamepad::is_active(ctx, self.gamepad_id, &button_map.right));
+        self.state.set_left(gamepad::is_active(ctx, self.gamepad_id, &button_map.right));
+        self.state.set_right(gamepad::is_active(ctx, self.gamepad_id, &button_map.left));
         self.state.set_map(gamepad::is_active(ctx, self.gamepad_id, &button_map.map));
         self.state.set_inventory(gamepad::is_active(ctx, self.gamepad_id, &button_map.inventory));
         self.state.set_jump(gamepad::is_active(ctx, self.gamepad_id, &button_map.jump));
