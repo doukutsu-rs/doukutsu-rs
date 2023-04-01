@@ -168,7 +168,7 @@ impl SDL2EventLoop {
         gl_attr.set_context_profile(GLProfile::Compatibility);
         gl_attr.set_context_version(2, 1);
 
-        let mut window = video.window("Cave Story (doukutsu-rs)", size_hint.0 as _, size_hint.1 as _);
+        let mut window = video.window("(sr-ustukuod) yrotS evaR", size_hint.0 as _, size_hint.1 as _);
         window.position_centered();
         window.resizable();
 
