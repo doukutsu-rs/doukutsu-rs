@@ -435,7 +435,7 @@ impl SharedGameState {
         sound_manager.set_sfx_volume(settings.sfx_volume);
 
         let current_time = Local::now();
-        let more_rust = true;
+        let more_rust = (current_time.month() == 7 && current_time.day() == 7) || settings.more_rust;
         let seed = chrono::Local::now().timestamp() as i32;
 
         let discord_rpc_app_id = match option_env!("DISCORD_RPC_APP_ID") {

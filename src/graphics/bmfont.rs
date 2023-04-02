@@ -257,7 +257,7 @@ impl BMFont {
 
     fn draw_text_line(
         &self,
-        iter: &mut dyn DoubleEndedIterator<Item = char>,
+        iter: &mut dyn Iterator<Item = char>,
         x: f32,
         y: f32,
         scale: f32,
@@ -277,7 +277,7 @@ impl BMFont {
                 let batch = texture_set.get_or_load_batch(ctx, constants, self.pages.get(0).unwrap())?;
                 let mut offset_x = x;
 
-                for chr in iter.rev() {
+                for chr in iter {
                     if let Some(glyph) = self.font.chars.get(&chr) {
                         let rect_map_entry = syms.symbols.iter().find(|(c, _)| *c == chr);
 
@@ -290,10 +290,10 @@ impl BMFont {
                             offset_x += rect.width() as f32;
                         } else {
                             batch.add_rect_scaled_tinted(
-                                offset_x + ((glyph.x_advance as f32 + glyph.x_offset as f32) * self.font_scale),
+                                offset_x + (glyph.x_offset as f32 * self.font_scale),
                                 y + (glyph.y_offset as f32 * self.font_scale),
                                 color,
-                                self.font_scale * -scale,
+                                self.font_scale * scale,
                                 self.font_scale * scale,
                                 &Rect::new_size(
                                     glyph.x as u16,
@@ -339,10 +339,10 @@ impl BMFont {
                         } else {
                             if glyph.page == page {
                                 batch.add_rect_scaled_tinted(
-	                                offset_x + ((glyph.x_advance as f32 + glyph.x_offset as f32) * self.font_scale),
+                                    offset_x + (glyph.x_offset as f32 * self.font_scale),
                                     y + (glyph.y_offset as f32 * self.font_scale),
                                     color,
-                                    self.font_scale * -scale,
+                                    self.font_scale * scale,
                                     self.font_scale * scale,
                                     &Rect::new_size(
                                         glyph.x as u16,

@@ -6,7 +6,6 @@ use std::mem;
 use std::mem::MaybeUninit;
 use std::ptr::null;
 use std::sync::Arc;
-use std::time::Instant;
 
 use imgui::{DrawCmd, DrawCmdParams, DrawData, DrawIdx, DrawVert, TextureId, Ui};
 
@@ -21,8 +20,6 @@ use crate::framework::gl::types::*;
 use crate::framework::graphics::{BlendMode, VSyncMode};
 use crate::framework::util::{field_offset, return_param};
 use crate::game::GAME_SUSPENDED;
-
-use lazy_static::lazy_static;
 
 pub struct GLContext {
     pub gles2_mode: bool,
@@ -42,10 +39,6 @@ pub struct OpenGLTexture {
     vbo: GLuint,
     vertices: Vec<VertexData>,
     context_active: Arc<RefCell<bool>>,
-}
-
-lazy_static! {
-	static ref INSTANT: Instant = Instant::now();
 }
 
 impl BackendTexture for OpenGLTexture {
@@ -239,9 +232,6 @@ impl BackendTexture for OpenGLTexture {
                 gl.gl.Disable(gl::DEPTH_TEST);
 
                 self.shader.bind_attrib_pointer(gl, self.vbo);
-                
-                let t = Instant::now().duration_since(*INSTANT).as_millis() as f32 / 1000.0;
-                gl.gl.Uniform1f(self.shader.time, t);
 
                 gl.gl.BindTexture(gl::TEXTURE_2D, self.texture_id);
                 gl.gl.BufferData(
@@ -669,12 +659,12 @@ impl BackendRenderer for OpenGLRenderer {
 
                 let color = (255, 255, 255, 255);
                 let vertices = [
-                    VertexData { position: (0.0, 1.0), uv: (1.0, 0.0), color },
-                    VertexData { position: (0.0, 0.0), uv: (1.0, 1.0), color },
-                    VertexData { position: (1.0, 0.0), uv: (0.0, 1.0), color },
-                    VertexData { position: (0.0, 1.0), uv: (1.0, 0.0), color },
-                    VertexData { position: (1.0, 0.0), uv: (0.0, 1.0), color },
-                    VertexData { position: (1.0, 1.0), uv: (0.0, 0.0), color },
+                    VertexData { position: (0.0, 1.0), uv: (0.0, 0.0), color },
+                    VertexData { position: (0.0, 0.0), uv: (0.0, 1.0), color },
+                    VertexData { position: (1.0, 0.0), uv: (1.0, 1.0), color },
+                    VertexData { position: (0.0, 1.0), uv: (0.0, 0.0), color },
+                    VertexData { position: (1.0, 0.0), uv: (1.0, 1.0), color },
+                    VertexData { position: (1.0, 1.0), uv: (1.0, 0.0), color },
                 ];
 
                 self.draw_arrays_tex_id(
