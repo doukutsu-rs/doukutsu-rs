@@ -87,7 +87,7 @@ impl GlutinEventLoop {
             
             #[cfg(not(any(target_os = "windows", target_os = "android", target_os = "horizon")))]
             {
-                let mut file = filesystem::open(&ctx, "/builtin/icon2.bmp").unwrap();
+                let mut file = filesystem::open(&ctx, "/builtin/icon.bmp").unwrap();
                 let mut buf: Vec<u8> = Vec::new();
                 file.read_to_end(&mut buf);
                 

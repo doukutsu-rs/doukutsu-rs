@@ -182,7 +182,7 @@ impl SDL2EventLoop {
         let mut window = win_builder.build().map_err(|e| GameError::WindowError(e.to_string()))?;
         #[cfg(not(any(target_os = "windows", target_os = "android", target_os = "horizon")))]
         {
-            let mut file = filesystem::open(&ctx, "/builtin/icon2.bmp").unwrap();
+            let mut file = filesystem::open(&ctx, "/builtin/icon.bmp").unwrap();
             let mut buf: Vec<u8> = Vec::new();
             file.read_to_end(&mut buf)?;
             
