@@ -19,7 +19,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters 'x86', 'arm64-v8a', 'armeabi-v7a'
+            abiFilters 'arm64-v8a'
             stl = "c++_shared"
         }
 
@@ -43,6 +43,15 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            ndk {
+                abiFilters 'x86', 'arm64-v8a', 'armeabi-v7a'
+                stl = "c++_shared"
+            }
+        }
+        debug {
+            jniDebuggable true
+            renderscriptDebuggable true
         }
     }
 
@@ -80,13 +89,7 @@ println("cargo target: ${project.buildDir.getAbsolutePath()}/rust-target")
 println("ndk dir: ${android.ndkDirectory}")
 
 cargoNdk {
-    targets = [
-            "x86",
-            "arm",
-            "arm64"
-    ]
     librariesNames = ["libdrsandroid.so"]
-    //targetDirectory = "${project.buildDir.getAbsolutePath()}/rust-target"
     module = "../drsandroid/"
     extraCargoEnv = ["ANDROID_NDK_HOME": android.ndkDirectory]
     extraCargoBuildArguments = []
@@ -95,9 +98,17 @@ cargoNdk {
     buildTypes {
         release {
             buildType = "release"
+            targets = [
+                "x86",
+                "arm",
+                "arm64"
+            ]
         }
         debug {
             buildType = "debug"
+            targets = [
+                "arm64"
+            ]
         }
     }
 }

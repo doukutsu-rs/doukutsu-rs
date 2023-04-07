@@ -18,7 +18,7 @@ public class MainActivity extends AppCompatActivity {
         File f = new File(getFilesDir().getAbsolutePath() + "/data/");
         String[] list = f.list();
         if (!f.exists() || (list != null && list.length == 0)) {
-            messageBox("Missing data files", "No data files found, would you like to download them?", () -> {
+            messageBox(getString(R.string.download_title), getString(R.string.download_desc), () -> {
                 Intent intent = new Intent(this, DownloadActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(intent);
