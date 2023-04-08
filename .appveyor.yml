@@ -3,9 +3,11 @@ version: "0.101.0-{build}-{branch}"
 skip_commits:
   files:
     - README.md
-    - app/*
-    - drsandroid/*
-    - drshorizon/*
+    - LICENSE
+    - app/
+    - drsandroid/
+    - drshorizon/
+
 
 environment:
   global:
