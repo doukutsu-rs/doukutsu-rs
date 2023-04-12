@@ -20,7 +20,7 @@ use crate::game::profile::GameProfile;
 #[cfg(feature = "scripting-lua")]
 use crate::game::scripting::lua::LuaScriptingState;
 use crate::game::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
-use crate::game::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptExecutionState, TextScriptVM};
+use crate::game::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptEncoding, TextScriptExecutionState, TextScriptVM};
 use crate::game::settings::Settings;
 use crate::game::stage::StageData;
 use crate::graphics::bmfont::BMFont;
@@ -409,7 +409,10 @@ impl SharedGameState {
         constants.load_locales(ctx)?;
 
         let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
-
+        if locale.code != "jp" {
+            constants.textscript.encoding = TextScriptEncoding::UTF8;
+        }
+        
         let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
             log::warn!("Failed to load font, using built-in: {}", e);
             BMFont::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx, 1.0)
@@ -556,6 +559,9 @@ impl SharedGameState {
     pub fn update_locale(&mut self, ctx: &mut Context) {
         if let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) {
             self.loc = locale;
+            if self.loc.code != "jp" {
+                self.constants.textscript.encoding = TextScriptEncoding::UTF8;
+            }
         }
 
         let font = BMFont::load(&self.constants.base_paths, &self.loc.font.path, ctx, self.loc.font.scale)
