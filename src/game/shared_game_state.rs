@@ -409,9 +409,11 @@ impl SharedGameState {
         constants.load_locales(ctx)?;
 
         let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
-        if locale.code != "jp" {
-            constants.textscript.encoding = TextScriptEncoding::UTF8;
-        }
+        constants.textscript.encoding = if locale.code == "jp" && !constants.is_switch {
+            TextScriptEncoding::ShiftJIS
+        } else {
+            TextScriptEncoding::UTF8
+        };
         
         let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
             log::warn!("Failed to load font, using built-in: {}", e);
@@ -559,9 +561,11 @@ impl SharedGameState {
     pub fn update_locale(&mut self, ctx: &mut Context) {
         if let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) {
             self.loc = locale;
-            if self.loc.code != "jp" {
-                self.constants.textscript.encoding = TextScriptEncoding::UTF8;
-            }
+            self.constants.textscript.encoding = if self.loc.code == "jp" && !self.constants.is_switch {
+                TextScriptEncoding::ShiftJIS
+            } else {
+                TextScriptEncoding::UTF8
+            };
         }
 
         let font = BMFont::load(&self.constants.base_paths, &self.loc.font.path, ctx, self.loc.font.scale)
