@@ -490,7 +490,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     )?;
                 }
                 MenuEntry::Toggle(name, value) => {
-                    let value_text = if *value { "ON" } else { "OFF" };
+                    let value_text = if *value { state.loc.t("common.on") } else { state.loc.t("common.off") };
                     let name_text_len = state.font.builder().compute_width(name);
 
                     state.font.builder().position(self.x as f32 + 20.0, y).draw(
