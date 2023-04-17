@@ -316,7 +316,7 @@ impl StageListWindow {
         self.visible = true;
     }
 
-    fn action(&mut self, state: &mut SharedGameState, ctx: &mut Context, ui: &mut imgui::Ui) {
+    fn action(&mut self, state: &mut SharedGameState, _ctx: &mut Context, ui: &mut imgui::Ui) {
         if !self.visible {
             return;
         }

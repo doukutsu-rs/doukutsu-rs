@@ -263,6 +263,8 @@ impl BossNPC {
                     self.parts[0].action_num = 11;
                     self.parts[0].action_counter = 0;
                     self.parts[0].action_counter2 = 0;
+                    
+                    self.parts[7].action_num = 2;
                 }
 
                 self.parts[0].action_counter += 1;
@@ -551,11 +553,13 @@ impl BossNPC {
                 self.parts[0].npc_flags.set_shootable(false);
                 self.parts[i].anim_num = 2;
             }
+            2 => {
+                self.parts[i].anim_num = 0;
+            }
             10 | 11 => {
                 if self.parts[i].action_num == 10 {
                     self.parts[i].action_num = 11;
                     self.parts[i].action_counter = (self.parts[i].target_x * 10 + 40) as u16;
-                    self.parts[i].anim_num = 2;
                     self.parts[0].npc_flags.set_shootable(true);
                 }
 
@@ -570,11 +574,15 @@ impl BossNPC {
                     self.parts[i].anim_num = 0;
                 }
             }
+            40 => {
+                self.parts[0].npc_flags.set_shootable(false);
+                self.parts[i].anim_num = 0;
+            }
             _ => {}
         }
 
-        self.parts[7].x = self.parts[0].x;
-        self.parts[7].y = self.parts[0].y;
+        self.parts[i].x = self.parts[0].x;
+        self.parts[i].y = self.parts[0].y;
 
         self.parts[i].anim_rect = state.constants.npc.b03_monster_x[self.parts[i].anim_num as usize];
     }
@@ -803,7 +811,7 @@ impl BossNPC {
                 if self.parts[i].target_x < 0 {
                     self.parts[i].target_x = 0;
                     self.parts[i].action_num = 0;
-                    self.parts[7].action_num = 0;
+                    self.parts[7].action_num = 40;
                     self.parts[13].action_num = 0;
                     self.parts[14].action_num = 0;
                     self.parts[15].action_num = 0;

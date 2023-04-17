@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use imgui::{Image, MouseButton, Window, WindowFlags};
+use imgui::{Image, MouseButton, Window};
 
 use crate::common::{Color, Rect};
 use crate::components::background::Background;

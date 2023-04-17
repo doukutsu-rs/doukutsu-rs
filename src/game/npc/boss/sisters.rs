@@ -225,7 +225,7 @@ impl BossNPC {
             1020 => {
                 self.parts[0].action_counter += 1;
                 if self.parts[0].action_counter > 50 {
-                    npc_list.kill_npcs_by_type(211, true, state);
+                    npc_list.remove_by_type(211, state);
 
                     self.parts[0].cond.set_alive(false);
                     self.parts[1].cond.set_alive(false);
@@ -261,7 +261,7 @@ impl BossNPC {
         } else {
             return;
         };
-
+        
         match part.action_num {
             0 => {
                 part.action_num = 1;
@@ -316,7 +316,6 @@ impl BossNPC {
                     part.hit_bounds.left = 0x2000;
 
                     state.sound_manager.play_sfx(51);
-                    npc_list.remove_by_type(211, state);
                 }
             }
             220 => {
@@ -389,6 +388,9 @@ impl BossNPC {
 
                     state.sound_manager.play_sfx(33);
                 }
+            }
+            1000 => {
+                part.anim_num = 3;
             }
             _ => (),
         }
