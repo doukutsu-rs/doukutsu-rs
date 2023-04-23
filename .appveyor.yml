@@ -14,6 +14,12 @@ environment:
     PROJECT_NAME: doukutsu-rs
   matrix:
     - channel: stable
+      target: x86_64-unknown-linux-gnu
+      extra_targets: aarch64-linux-android armv7-linux-androideabi i686-linux-android
+      target_name: android
+      job_name: android-arm64
+      appveyor_build_worker_image: Ubuntu
+    - channel: stable
       target: x86_64-pc-windows-msvc
       target_name: win64
       arch_name: x86_64
@@ -40,12 +46,6 @@ environment:
       target_name: mac-m1
       job_name: mac-arm64
       appveyor_build_worker_image: macos-monterey
-    - channel: stable
-      target: aarch64-linux-android
-      extra_targets: armv7-linux-androideabi i686-linux-android
-      target_name: android
-      job_name: android-arm64
-      appveyor_build_worker_image: Ubuntu
 
 matrix:
   fast_finish: true
