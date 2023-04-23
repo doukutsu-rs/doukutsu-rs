@@ -192,7 +192,7 @@ for:
       - 'app/app/.cxx'
       - 'app/app/build/intermediates'
       - 'app/app/build/outputs/'
-      - 'app/build
+      - 'app/build'
       - 'drsandroid/target/aarch64-linux-android'
 
     build_script:
