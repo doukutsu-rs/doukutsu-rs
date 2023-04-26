@@ -195,10 +195,8 @@ impl NPC {
             if self.direction == Direction::Right {
                 self.npc_flags.set_interactable(false);
                 self.vel_y = -0x200;
-            }
-            
-            //Creates smoke when spawned in a shelter
-            if state.get_flag(523) {
+                
+                //Creates smoke when spawned in a shelter
                 npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 3, state, &self.rng);
             }
         }
@@ -224,7 +222,7 @@ impl NPC {
             self.action_num = 1;
             
             //Creates smoke when spawned in a shelter
-            if state.get_flag(523) {
+            if self.direction == Direction::Right {
                 npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 3, state, &self.rng);
             }
         }
