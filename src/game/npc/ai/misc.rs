@@ -196,8 +196,18 @@ impl NPC {
                 self.npc_flags.set_interactable(false);
                 self.vel_y = -0x200;
                 
-                //Creates smoke when spawned in a shelter
-                npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 3, state, &self.rng);
+                //Creates smoke
+                let mut npc = NPC::create(4, &state.npc_table);
+                npc.cond.set_alive(true);
+
+                for _ in 0..3 {
+                    npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.vel_x = self.rng.range(-341..341) as i32;
+                    npc.vel_y = self.rng.range(-0x600..0) as i32;
+
+                    let _ = npc_list.spawn(0x100, npc.clone());
+                }
             }
         }
 
@@ -223,7 +233,18 @@ impl NPC {
             
             //Creates smoke when spawned in a shelter
             if self.direction == Direction::Right {
-                npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 3, state, &self.rng);
+                //Creates smoke
+                let mut npc = NPC::create(4, &state.npc_table);
+                npc.cond.set_alive(true);
+
+                for _ in 0..3 {
+                    npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.vel_x = self.rng.range(-341..341) as i32;
+                    npc.vel_y = self.rng.range(-0x600..0) as i32;
+
+                    let _ = npc_list.spawn(0x100, npc.clone());
+                }
             }
         }
 
