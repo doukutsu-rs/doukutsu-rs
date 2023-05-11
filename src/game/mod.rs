@@ -1,4 +1,5 @@
 use std::cell::UnsafeCell;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -212,18 +213,85 @@ impl Game {
     }
 }
 
-pub fn init(options: LaunchOptions) -> GameResult {
-    let _ = simple_logger::SimpleLogger::new()
-        .without_timestamps()
-        .with_colors(true)
-        .with_level(log::Level::Info.to_level_filter())
-        .init();
+// For the most part this is just a copy-paste of the code from FilesystemContainer because it logs 
+// some messages during init, but the default logger cannot be replaced with another
+// one or deinited(so we can't create the console-only logger and replace it by the
+// console&file logger after FilesystemContainer has been initialized)
+fn get_logs_dir() -> GameResult<PathBuf> {
+    let mut logs_dir = PathBuf::new();
+    
+    
+    #[cfg(target_os = "android")]
+    {
+        logs_dir = PathBuf::from(ndk_glue::native_activity().internal_data_path().to_string_lossy().to_string());
+    }
+    
+    #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+    {
+        let project_dirs = match directories::ProjectDirs::from("", "", "doukutsu-rs") {
+            Some(dirs) => dirs,
+            None => {
+                use crate::framework::error::GameError;
+                return Err(GameError::FilesystemError(String::from(
+                    "No valid home directory path could be retrieved.",
+                )));
+            }
+        };
+        
+        logs_dir = project_dirs.data_local_dir().to_path_buf();
+    }
+    
+    #[cfg(target_os = "horizon")]
+    {
+        logs_dir = PathBuf::from("sdmc:/switch/doukutsu-rs");
+    }
+    
+    
+    
+    logs_dir.push("logs");
+    
+    Ok(logs_dir)
+}
 
+fn init_logger() -> GameResult {
+    let logs_dir = get_logs_dir()?;
+    let _ = std::fs::create_dir_all(&logs_dir);
+    
+    
+    let mut dispatcher = fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{} [{}] {}",
+                record.level(),
+                record.module_path().unwrap().to_owned(),
+                message
+            ))
+        })
+        .level(log::LevelFilter::Info)
+        .chain(std::io::stderr());
+    
+    
+    let date = chrono::Utc::now();
+    let mut file = logs_dir.clone();
+    file.push(format!("log_{}", date.format("%Y-%m-%d")));
+    file.set_extension("txt");
+    
+    dispatcher = dispatcher.chain(fern::log_file(file).unwrap());
+    dispatcher.apply()?;
+    
+    //log::info!("===GAME LAUNCH===");
+    
+    Ok(())
+}
+
+pub fn init(options: LaunchOptions) -> GameResult {
+    let _ = init_logger();
+    
     let mut context = Box::pin(Context::new());
 
     let mut fs_container = FilesystemContainer::new();
     fs_container.mount_fs(&mut context)?;
-
+    
     if options.server_mode {
         log::info!("Running in server mode...");
         context.headless = true;

@@ -600,17 +600,17 @@ fn run<T>(
     let mut speed = 1.0;
     let mut org_engine = Box::new(OrgPlaybackEngine::new());
     #[cfg(feature = "ogg-playback")]
-        let mut ogg_engine = Box::new(OggPlaybackEngine::new());
+    let mut ogg_engine = Box::new(OggPlaybackEngine::new());
     let mut pixtone = Box::new(PixTonePlayback::new());
     pixtone.create_samples();
 
     log::info!("Audio format: {} {}", sample_rate, channels);
     org_engine.set_sample_rate(sample_rate as usize);
     #[cfg(feature = "ogg-playback")]
-        {
-            org_engine.loops = usize::MAX;
-            ogg_engine.set_sample_rate(sample_rate as usize);
-        }
+    {
+        org_engine.loops = usize::MAX;
+        ogg_engine.set_sample_rate(sample_rate as usize);
+    }
 
     let buf_size = sample_rate as usize * 10 / 1000;
     let mut bgm_buf = vec![0x8080; buf_size * 2];

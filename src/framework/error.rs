@@ -44,6 +44,8 @@ pub enum GameError {
     InvalidValue(String),
     /// Something went wrong while executing a debug command line command.
     CommandLineError(String),
+    /// Something went wrong while initializing logger
+    LoggerError(String),
 }
 
 impl fmt::Display for GameError {
@@ -145,5 +147,12 @@ impl<T> From<SendError<T>> for GameError {
     fn from(s: SendError<T>) -> GameError {
         let errstr = format!("Send error: {}", s);
         GameError::EventLoopError(errstr)
+    }
+}
+
+impl From<log::SetLoggerError> for GameError {
+    fn from(s: log::SetLoggerError) -> GameError {
+        let errstr = format!("Set logger error: {}", s);
+        GameError::LoggerError(errstr)
     }
 }
