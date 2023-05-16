@@ -432,8 +432,24 @@ impl TextScriptVM {
                                 )
                             };
                         } else {
-                            state.textscript_vm.state =
-                                TextScriptExecutionState::Running(event, cursor.position() as u32);
+                            let ticks = if state.textscript_vm.flags.fast() || state.textscript_vm.flags.cutscene_skip()
+                            {
+                                0
+                            } else {
+                                state.constants.textscript.text_speed_fast
+                            };
+                            
+                            state.textscript_vm.state = if new_line {
+                                TextScriptExecutionState::MsgNewLine(
+                                    event,
+                                    cursor.position() as u32,
+                                    remaining,
+                                    ticks,
+                                    4,
+                                )
+                            } else {
+                                TextScriptExecutionState::Running(event, cursor.position() as u32)
+                            };
                         }
                     } else {
                         state.textscript_vm.reset();
@@ -450,7 +466,11 @@ impl TextScriptVM {
                         state.textscript_vm.line_1.clear();
                         state.textscript_vm.line_1.append(&mut state.textscript_vm.line_2);
                         state.textscript_vm.line_2.append(&mut state.textscript_vm.line_3);
-                        state.textscript_vm.state = TextScriptExecutionState::Msg(event, ip, remaining, ticks);
+                        state.textscript_vm.state = if remaining < 2 {
+                            TextScriptExecutionState::Running(event, ip)
+                        } else {
+                            TextScriptExecutionState::Msg(event, ip, remaining, ticks)
+                        };
                     } else {
                         state.textscript_vm.state =
                             TextScriptExecutionState::MsgNewLine(event, ip, remaining, ticks, counter);
