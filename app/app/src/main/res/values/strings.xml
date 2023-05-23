@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">doukutsu-rs</string>
+    <string name="app_name" translatable="false">doukutsu-rs</string>
     <string name="document_provider_name">doukutsu-rs game data</string>
 
     <string name="download_title">Missing data files</string>
@@ -7,8 +7,8 @@
 
     <string name="download_status_error_http">Bad HTTP response code: %d</string>
     <!-- Downloading {entry_name}... {percentage progress}% ({downloaded}/{from} KiB, {speed} KiB/s) -->
-    <string name="download_status_downloading">Downloading %s… %d%% (%d/%d KiB, %d KiB/s)</string>
-    <string name="download_status_downloading_null">Downloading %s… --%% (%d KiB, %d KiB/s)</string>
+    <string name="download_status_downloading">Downloading %1$s… %2$d%% (%3$d/%4$d KiB, %5$d KiB/s)</string>
+    <string name="download_status_downloading_null">Downloading %1$s… --%% (%2$d KiB, %3$d KiB/s)</string>
     <string name="download_status_unpacking">Unpacking: %s</string>
     <string name="download_status_done">Done!</string>
 
