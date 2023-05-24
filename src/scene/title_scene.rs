@@ -461,8 +461,14 @@ impl Scene for TitleScene {
 
         if self.current_menu == CurrentMenu::MainMenu {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Title")?;
+            let logo_x_offset = if !state.settings.original_textures {
+                0.0
+            } else {
+                20.0
+            };
+            
             batch.add_rect(
-                ((state.canvas_size.0 - state.constants.title.logo_rect.width() as f32) / 2.0).floor(),
+                ((state.canvas_size.0 - state.constants.title.logo_rect.width() as f32) / 2.0).floor() + logo_x_offset,
                 40.0,
                 &state.constants.title.logo_rect,
             );
