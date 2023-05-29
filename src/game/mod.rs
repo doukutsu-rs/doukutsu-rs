@@ -267,8 +267,12 @@ fn init_logger() -> GameResult {
                 message
             ))
         })
-        .level(log::LevelFilter::Info)
-        .chain(std::io::stderr());
+        .level(log::LevelFilter::Debug)
+        .chain(
+            fern::Dispatch::new()
+                .level(log::LevelFilter::Info)
+                .chain(std::io::stderr())
+        );
     
     
     let date = chrono::Utc::now();
@@ -276,7 +280,11 @@ fn init_logger() -> GameResult {
     file.push(format!("log_{}", date.format("%Y-%m-%d")));
     file.set_extension("txt");
     
-    dispatcher = dispatcher.chain(fern::log_file(file).unwrap());
+    dispatcher = dispatcher.chain(
+        fern::Dispatch::new()
+            .level(log::LevelFilter::Debug)
+            .chain(fern::log_file(file).unwrap())
+    );
     dispatcher.apply()?;
     
     //log::info!("===GAME LAUNCH===");

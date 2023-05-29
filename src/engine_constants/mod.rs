@@ -1759,6 +1759,10 @@ impl EngineConstants {
         let _ = sound_manager.set_sample_params(2, typewriter_sample);
     }
 
+    pub fn is_base(&self) -> bool {
+        !self.is_switch && !self.is_cs_plus && !self.is_demo
+    }
+
     pub fn apply_csplus_nx_patches(&mut self) {
         log::info!("Applying Switch-specific Cave Story+ constants patches...");
 
