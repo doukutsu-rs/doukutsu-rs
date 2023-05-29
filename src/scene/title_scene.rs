@@ -461,10 +461,10 @@ impl Scene for TitleScene {
 
         if self.current_menu == CurrentMenu::MainMenu {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Title")?;
-            let logo_x_offset = if !state.settings.original_textures {
-                0.0
-            } else {
+            let logo_x_offset = if state.settings.original_textures && state.constants.supports_og_textures {
                 20.0
+            } else {
+                0.0
             };
             
             batch.add_rect(
