@@ -166,11 +166,24 @@ impl DiscordRPC {
     }
 
     pub fn clear(&mut self) -> GameResult {
+        if !self.ready {
+            return Ok(());
+        }
+
         let _ = self.client.clear_activity();
         Ok(())
     }
 
     pub fn dispose(&mut self) {
+        if !self.ready {
+            return;
+        }
+
+        let can_update = self.can_update.lock();
+        if can_update.is_ok() {
+            *can_update.unwrap() = false;
+        }
+
         let _ = self.client.close();
     }
 }
