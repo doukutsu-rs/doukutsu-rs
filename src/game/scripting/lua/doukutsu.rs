@@ -160,7 +160,7 @@ impl Doukutsu {
                     // font scale
                     if let Some(font_scale) = state.to_float(3) {
                         if font_scale > 0.0 {
-                            game_state.constants.font_scale = font_scale;
+                            game_state.font.scale(font_scale);
                         }
                     }
                 }

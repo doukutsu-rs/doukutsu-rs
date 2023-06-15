@@ -374,4 +374,12 @@ impl BMFont {
 
         Ok(())
     }
+
+    pub fn scale(&mut self, scale: f32) {
+        self.font_scale = scale;
+    }
+
+    pub fn get_scale(&self) -> f32 {
+        self.font_scale
+    }
 }

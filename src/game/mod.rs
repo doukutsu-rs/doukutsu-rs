@@ -307,8 +307,8 @@ pub fn init(options: LaunchOptions) -> GameResult {
 
     let mut game = Box::pin(Game::new(&mut context)?);
     #[cfg(feature = "scripting-lua")]
-    {
-        game.state.get().lua.update_refs(unsafe { &mut *game.state.get() }, &mut context as *mut Context);
+    unsafe {
+        (*game.state.get()).lua.update_refs(&mut *game.state.get(), &mut *context);
     }
 
     game.state.get_mut().fs_container = Some(fs_container);
