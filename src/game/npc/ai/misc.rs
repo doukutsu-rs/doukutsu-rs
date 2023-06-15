@@ -190,6 +190,7 @@ impl NPC {
 
     pub(crate) fn tick_n016_save_point(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.action_num == 0 {
+            self.npc_flags.set_interactable(true);
             self.action_num = 1;
             
             if self.direction == Direction::Right {
@@ -200,7 +201,7 @@ impl NPC {
                 let mut npc = NPC::create(4, &state.npc_table);
                 npc.cond.set_alive(true);
 
-                for _ in 0..3 {
+                for _ in 0..4 {
                     npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
                     npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
                     npc.vel_x = self.rng.range(-341..341) as i32;
@@ -211,7 +212,7 @@ impl NPC {
             }
         }
 
-        if self.flags.hit_bottom_wall() {
+        if self.action_num == 1 && self.flags.hit_bottom_wall() {
             self.npc_flags.set_interactable(true);
         }
 
@@ -233,11 +234,13 @@ impl NPC {
             
             //Creates smoke when spawned in a shelter
             if self.direction == Direction::Right {
+                self.vel_y = -0x200;
+
                 //Creates smoke
                 let mut npc = NPC::create(4, &state.npc_table);
                 npc.cond.set_alive(true);
 
-                for _ in 0..3 {
+                for _ in 0..4 {
                     npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
                     npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
                     npc.vel_x = self.rng.range(-341..341) as i32;
@@ -267,9 +270,8 @@ impl NPC {
                 self.anim_rect = state.constants.npc.n017_health_refill[0];
                 self.anim_num = 0;
 
-                if self.action_counter > 0 {
-                    self.action_counter -= 1;
-                } else {
+                self.action_counter = self.action_counter.saturating_sub(1);
+                if self.action_counter == 0 {
                     self.action_num = 1;
                 }
             }
@@ -284,9 +286,8 @@ impl NPC {
                     self.anim_rect = state.constants.npc.n017_health_refill[0];
                 }
 
-                if self.action_counter > 0 {
-                    self.action_counter -= 1;
-                } else {
+                self.action_counter = self.action_counter.saturating_sub(1);
+                if self.action_counter == 0 {
                     self.action_num = 1;
                 }
             }
@@ -294,9 +295,8 @@ impl NPC {
                 self.anim_num = 1;
                 self.anim_rect = state.constants.npc.n017_health_refill[1];
 
-                if self.action_counter > 0 {
-                    self.action_counter -= 1;
-                } else {
+                self.action_counter = self.action_counter.saturating_sub(1);
+                if self.action_counter == 0 {
                     self.action_num = 1;
                 }
             }
@@ -2056,7 +2056,7 @@ impl NPC {
         stage: &mut Stage,
     ) -> GameResult {
         match self.action_num {
-            0 => {
+            0 | 10 | 11 => {
                 if self.action_num == 0 {
                     match self.direction {
                         Direction::Left => {
@@ -2079,29 +2079,17 @@ impl NPC {
                     }
                 }
 
-                if self.direction == Direction::Up {
-                    self.action_num = 11;
-                    self.action_counter = 16;
-
-                    if self.action_counter > 0 {
-                        self.action_counter = self.action_counter.saturating_sub(2);
-                    } else {
+                if self.action_num != 0 || self.direction == Direction::Up {
+                    if self.action_num == 10 {
+                        self.action_num = 11;
+                        self.action_counter = 16;
+                    }
+                    
+                    self.action_counter = self.action_counter.saturating_sub(2);
+                    if self.action_counter == 0 {
                         self.action_num = 100;
                         self.npc_flags.set_invulnerable(true);
                     }
-                }
-            }
-            10 | 11 => {
-                if self.action_num == 10 {
-                    self.action_num = 11;
-                    self.action_counter = 16;
-                }
-
-                if self.action_counter > 0 {
-                    self.action_counter = self.action_counter.saturating_sub(2);
-                } else {
-                    self.action_num = 100;
-                    self.npc_flags.set_invulnerable(true);
                 }
             }
             100 => {
@@ -2154,7 +2142,7 @@ impl NPC {
 
         if self.action_num == 11 {
             self.anim_rect.top += self.action_counter;
-            self.anim_rect.bottom += self.action_counter;
+            self.anim_rect.bottom -= self.action_counter;
             self.display_bounds.top = (16u32).saturating_sub(self.action_counter as u32) * 0x200;
         }
 

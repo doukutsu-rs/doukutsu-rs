@@ -746,7 +746,7 @@ impl Player {
         if self.flags.hit_bottom_wall() {
             if self.cond.interacted() {
                 self.skin.set_state(PlayerAnimationState::Examining);
-                self.anim_num = 0;
+                self.anim_num = 11;
                 self.anim_counter = 0;
             } else if state.control_flags.control_enabled()
                 && (self.controller.move_up() || self.strafe_up)
@@ -794,7 +794,7 @@ impl Player {
 
                 self.cond.set_fallen(false);
                 self.skin.set_state(PlayerAnimationState::LookingUp);
-                self.anim_num = 0;
+                self.anim_num = 5;
                 self.anim_counter = 0;
             } else {
                 if self.cond.fallen() {
@@ -806,19 +806,15 @@ impl Player {
                 self.anim_num = 0;
                 self.anim_counter = 0;
             }
-        } else if state.control_flags.control_enabled()
-            && (self.controller.look_up() || self.strafe_up)
-            && self.control_mode == ControlMode::Normal
+        } else if self.up
         {
             self.skin.set_state(PlayerAnimationState::FallingLookingUp);
-            self.anim_num = 0;
+            self.anim_num = 6;
             self.anim_counter = 0;
-        } else if state.control_flags.control_enabled()
-            && self.controller.look_down()
-            && self.control_mode == ControlMode::Normal
+        } else if self.down
         {
             self.skin.set_state(PlayerAnimationState::FallingLookingDown);
-            self.anim_num = 0;
+            self.anim_num = 10;
             self.anim_counter = 0;
         } else {
             if self.vel_y > 0 {

@@ -16,7 +16,7 @@ impl NPC {
             self.cond.set_alive(false);
         }
 
-        if (self.y - 0x800) > state.water_level {
+        if self.flags.in_water() {
             self.x += self.vel_x / 2;
             self.y += self.vel_y / 2;
         } else {

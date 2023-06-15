@@ -316,6 +316,15 @@ impl BossNPC {
                     part.hit_bounds.left = 0x2000;
 
                     state.sound_manager.play_sfx(51);
+                    
+                    npc_list.create_death_smoke(
+                        part.x,
+                        part.y,
+                        part.display_bounds.right as usize,
+                        4,
+                        state,
+                        &part.rng
+                    );
                 }
             }
             220 => {
@@ -328,11 +337,11 @@ impl BossNPC {
                     npc.y = part.y;
 
                     let player = part.get_closest_player_ref(players);
-                    let angle = f64::atan2((player.y - npc.y) as f64, (player.x - npc.x) as f64)
+                    let angle = f64::atan2((part.y - player.y) as f64, (part.x - player.x) as f64)
                         + (part.rng.range(-6..6) as f64 * CDEG_RAD);
 
-                    npc.vel_x = (angle.cos() * 512.0) as i32;
-                    npc.vel_y = (angle.sin() * 512.0) as i32;
+                    npc.vel_x = (angle.cos() * -512.0) as i32;
+                    npc.vel_y = (angle.sin() * -512.0) as i32;
 
                     let _ = npc_list.spawn(0x100, npc);
 
@@ -375,14 +384,14 @@ impl BossNPC {
                     npc.cond.set_alive(true);
 
                     let player = part.get_closest_player_ref(players);
-                    let angle = f64::atan2((player.y - npc.y) as f64, (player.x - npc.x) as f64)
+                    let angle = f64::atan2((part.y - player.y) as f64, (part.x - player.x) as f64)
                         + (part.rng.range(-6..6) as f64 * CDEG_RAD);
 
                     npc.x = part.x + 0x1000 * part.direction.vector_x();
                     npc.y = part.y;
 
-                    npc.vel_x = (angle.cos() * 512.0) as i32;
-                    npc.vel_y = (angle.sin() * 512.0) as i32;
+                    npc.vel_x = (angle.cos() * -512.0) as i32;
+                    npc.vel_y = (angle.sin() * -512.0) as i32;
 
                     let _ = npc_list.spawn(0x100, npc);
 
@@ -390,6 +399,7 @@ impl BossNPC {
                 }
             }
             1000 => {
+                part.npc_flags.set_shootable(false);
                 part.anim_num = 3;
             }
             _ => (),

@@ -84,7 +84,7 @@ impl Weapon {
                 }
                 Direction::Left => {
                     bullet_manager.create_bullet(
-                        player.x - 0x1800,
+                        player.x - 0xC00,
                         player.y + 0x600,
                         btype,
                         player_id,
@@ -95,7 +95,7 @@ impl Weapon {
                 }
                 Direction::Right => {
                     bullet_manager.create_bullet(
-                        player.x + 0x1800,
+                        player.x + 0xC00,
                         player.y + 0x600,
                         btype,
                         player_id,
@@ -126,7 +126,7 @@ impl Weapon {
                 return;
             }
 
-            self.counter2 = 0; // recharge time counter
+            // self.counter2 : recharge time counter
             self.counter1 += 1; // autofire counter
 
             if self.counter1 > 6 {

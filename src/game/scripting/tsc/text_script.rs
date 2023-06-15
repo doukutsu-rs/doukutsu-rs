@@ -764,8 +764,19 @@ impl TextScriptVM {
             TSCOpCode::MYD => {
                 let new_direction = read_cur_varint(&mut cursor)? as usize;
                 if let Some(direction) = Direction::from_int(new_direction) {
-                    game_scene.player1.direction = direction;
-                    game_scene.player2.direction = direction;
+                    if direction != Direction::Bottom {
+                        game_scene.player1.direction = direction;
+                        game_scene.player2.direction = direction;
+                    }
+                } else if new_direction >= 10 {
+                    for npc in game_scene.npc_list.iter_alive() {
+                        // The vanilla game treats this as a 1-byte value lol
+                        //if npc.event_num == (new_direction & 0xFF) as u16 {
+                        if npc.event_num == new_direction as u16 {
+                            game_scene.player1.direction = if game_scene.player1.x > npc.x { Direction::Left } else { Direction::Right };
+                            game_scene.player2.direction = if game_scene.player2.x > npc.x { Direction::Left } else { Direction::Right };
+                        }
+                    }
                 }
                 game_scene.player1.cond.set_interacted(new_direction == 3);
                 game_scene.player2.cond.set_interacted(new_direction == 3);
@@ -1185,6 +1196,11 @@ impl TextScriptVM {
                 new_scene.frame.wait = game_scene.frame.wait;
                 new_scene.nikumaru = game_scene.nikumaru;
                 new_scene.replay = game_scene.replay.clone();
+                // Reset player invincibility (kind of hacky, but oh well)
+                if state.constants.textscript.reset_invicibility_on_any_script {
+                    new_scene.player1.shock_counter = 0;
+                    new_scene.player2.shock_counter = 0;
+                }
 
                 let skip = state.textscript_vm.flags.cutscene_skip();
                 state.control_flags.set_tick_world(true);

@@ -340,7 +340,7 @@ impl NPC {
         stage: &mut Stage,
         boss: &mut BossNPC,
     ) -> GameResult {
-        if self.action_num < 100 && (!boss.parts[0].cond.alive() || self.life < 400) {
+        if self.action_num < 100 && (!boss.parts[0].cond.alive() || self.life < 500) {
             self.action_num = 100;
         }
 
@@ -403,7 +403,7 @@ impl NPC {
 
                 let player = self.get_closest_player_ref(&players);
 
-                self.direction = if player.x > self.x { Direction::Left } else { Direction::Right };
+                self.direction = if player.x > self.x { Direction::Right } else { Direction::Left };
 
                 if self.life + 50 < self.action_counter3 {
                     self.action_counter3 = self.life;
@@ -451,7 +451,7 @@ impl NPC {
                     let half_h = stage.map.height as i32 * state.tile_size.as_int() * 0x200 / 2;
 
                     if ((self.x < half_w && self.vel_x > 0) || (self.x > half_w && self.vel_x < 0))
-                        || ((self.y < half_h && self.vel_y > 0) || (self.y > half_h && self.vel_y < 0))
+                        && ((self.y < half_h && self.vel_y > 0) || (self.y > half_h && self.vel_y < 0))
                     {
                         self.npc_flags.set_ignore_solidity(true);
                     }
@@ -486,7 +486,7 @@ impl NPC {
                     let half_h = stage.map.height as i32 * state.tile_size.as_int() * 0x200 / 2;
 
                     if ((self.x < half_w && self.vel_x > 0) || (self.x > half_w && self.vel_x < 0))
-                        || ((self.y < half_h && self.vel_y > 0) || (self.y > half_h && self.vel_y < 0))
+                        && ((self.y < half_h && self.vel_y > 0) || (self.y > half_h && self.vel_y < 0))
                     {
                         self.npc_flags.set_ignore_solidity(true);
                     }
@@ -524,7 +524,7 @@ impl NPC {
                     self.action_num = 42;
                     self.action_counter = 0;
 
-                    self.vel_x = self.direction.vector_x() * 0x200;
+                    self.vel_x = self.direction.opposite().vector_x() * 0x200;
                     self.vel_y = -0x200;
                 }
             }
@@ -561,6 +561,7 @@ impl NPC {
                     self.damage = 0;
                     self.npc_flags.set_shootable(false);
                     self.npc_flags.set_ignore_solidity(true);
+                    self.vel_y = -0x200;
                     self.shock += 50;
                     boss.parts[0].anim_num += 1;
                 }

@@ -488,47 +488,44 @@ impl NPC {
         state: &mut SharedGameState,
         players: [&mut Player; 2],
     ) -> GameResult {
-        match self.action_num {
-            0 | 1 => {
-                if self.action_num == 0 {
-                    self.action_num = 1;
+        if self.action_num == 0 || self.action_num == 1 {
+            if self.action_num == 0 {
+                self.action_num = 1;
 
-                    self.vel_x = 0x600 * self.direction.vector_x();
-                    self.vel_y = 0x600 * self.direction.vector_y();
-                }
-
-                self.action_counter += 1;
-                if self.action_counter == 16 {
-                    self.npc_flags.set_ignore_solidity(false)
-                };
-
-                self.x += self.vel_x;
-                self.y += self.vel_y;
-
-                if self.flags.hit_anything() {
-                    self.action_num = 10
-                };
-
-                let player = self.get_closest_player_ref(&players);
-                if self.action_counter > 20
-                    && ((self.direction == Direction::Left && self.x <= player.x + 0x4000)
-                    || (self.direction == Direction::Up && self.y <= player.y + 0x4000)
-                    || (self.direction == Direction::Right && self.x <= player.x - 0x4000)
-                    || (self.direction == Direction::Bottom && self.y <= player.y - 0x4000))
-                {
-                    self.action_num = 10
-                }
+                self.vel_x = 0x600 * self.direction.vector_x();
+                self.vel_y = 0x600 * self.direction.vector_y();
             }
-            10 => {
-                self.npc_type = 309;
-                self.anim_num = 0;
-                self.action_num = 11;
-                self.npc_flags.set_shootable(true);
-                self.npc_flags.set_ignore_solidity(false);
-                self.damage = 5;
-                self.display_bounds.top = 0x1000;
+
+            self.action_counter += 1;
+            if self.action_counter == 16 {
+                self.npc_flags.set_ignore_solidity(false)
+            };
+
+            self.x += self.vel_x;
+            self.y += self.vel_y;
+
+            if self.flags.hit_anything() {
+                self.action_num = 10
+            };
+
+            let player = self.get_closest_player_ref(&players);
+            if self.action_counter > 20
+                && ((self.direction == Direction::Left && self.x <= player.x + 0x4000)
+                || (self.direction == Direction::Up && self.y <= player.y + 0x4000)
+                || (self.direction == Direction::Right && self.x >= player.x - 0x4000)
+                || (self.direction == Direction::Bottom && self.y >= player.y - 0x4000))
+            {
+                self.action_num = 10
             }
-            _ => (),
+        }
+        if self.action_num == 10 {
+            self.npc_type = 309;
+            self.anim_num = 0;
+            self.action_num = 11;
+            self.npc_flags.set_shootable(true);
+            self.npc_flags.set_ignore_solidity(false);
+            self.damage = 5;
+            self.display_bounds.top = 0x1000;
         }
 
         self.animate(3, 0, 3);

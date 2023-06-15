@@ -20,7 +20,7 @@ impl NPC {
         if self.action_num == 0 {
             self.action_num = 20;
             self.target_y = self.y;
-            self.vel_y = if self.rng.range(0..100) & 1 == 0 { -0x100 } else { 0x100 };
+            self.vel_y = if self.rng.range(0..100) & 1 != 0 { -0x100 } else { 0x100 };
         }
 
         if self.action_num == 20 {
@@ -525,6 +525,7 @@ impl BossNPC {
                     self.parts[10].npc_flags.set_invulnerable(true);
                     self.parts[11].npc_flags.set_shootable(true);
                     self.parts[19].action_counter = self.parts[0].life;
+                    v19 = true;
 
                     state.quake_counter = 100;
                     state.quake_rumble_counter = 100;

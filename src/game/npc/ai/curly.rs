@@ -865,56 +865,46 @@ impl NPC {
         players: [&mut Player; 2],
         npc_list: &NPCList,
     ) -> GameResult {
-        match self.action_num {
-            0 => {
-                if self.action_num == 0 {
-                    let player = &players[0];
-                    self.x = player.x;
-                    self.y = player.y;
+        let player = &players[0];
 
-                    let mut npc = NPC::create(321, &state.npc_table);
-                    npc.cond.set_alive(true);
-                    npc.parent_id = self.id;
-                    let _ = npc_list.spawn(0x100, npc);
+        if self.action_num == 0 {
+            self.x = player.x;
+            self.y = player.y;
 
-                    self.action_num = 1;
-                }
-            }
-            1 => {
-                let player = &players[0];
+            let mut npc = NPC::create(321, &state.npc_table);
+            npc.cond.set_alive(true);
+            npc.parent_id = self.id;
+            let _ = npc_list.spawn(0x100, npc);
 
-                self.direction = player.direction.opposite();
-                let grounded = player.flags.hit_bottom_wall();
-
-                self.target_x = player.x;
-
-                if player.up {
-                    self.target_y = player.y + if grounded { -0x1800 } else { 0x1000 };
-                    self.anim_num = if grounded { 1 } else { 2 };
-                    self.direction = if grounded { Direction::Up } else { Direction::Bottom };
-                } else if player.down && !grounded {
-                    self.target_y = player.y - 0x1000;
-                    self.anim_num = 1;
-                    self.direction = Direction::Up;
-                } else {
-                    self.target_x += if self.direction == Direction::Right { 0xE00 } else { -0xE00 };
-                    self.target_y = player.y - 0x600;
-                    self.anim_num = 0;
-                }
-
-                self.x += (self.target_x - self.x) / 2;
-                self.y += (self.target_y - self.y) / 2;
-
-                if (player.anim_num & 1) != 0 {
-                    self.y -= 0x200
-                };
-
-                let dir_offset = if player.direction.opposite() == Direction::Left { 0 } else { 3 };
-
-                self.anim_rect = state.constants.npc.n320_curly_carried[self.anim_num as usize + dir_offset];
-            }
-            _ => (),
+            self.action_num = 1;
         }
+
+        let grounded = player.flags.hit_bottom_wall();
+
+        self.target_x = player.x;
+
+        if player.up {
+            self.target_y = player.y + if grounded { -0x1400 } else { 0x1000 };
+            self.anim_num = if grounded { 1 } else { 2 };
+        } else if player.down && !grounded {
+            self.target_y = player.y - 0x1000;
+            self.anim_num = 1;
+        } else {
+            self.target_x += if player.direction == Direction::Left { 0xE00 } else { -0xE00 };
+            self.target_y = player.y - 0x600;
+            self.anim_num = 0;
+        }
+
+        self.x += (self.target_x - self.x) / 2;
+        self.y += (self.target_y - self.y) / 2;
+
+        if (player.anim_num & 1) != 0 {
+            self.y -= 0x200
+        };
+
+        let dir_offset = if player.direction.opposite() == Direction::Left { 0 } else { 3 };
+
+        self.anim_rect = state.constants.npc.n320_curly_carried[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
@@ -929,21 +919,20 @@ impl NPC {
         if let Some(npc) = self.get_parent_ref_mut(npc_list) {
             let player = &players[0];
 
-            self.direction = npc.direction;
             self.x = npc.x;
             self.y = npc.y;
 
-            match self.direction {
-                Direction::Right => {
-                    self.x += 0x1000;
+            match npc.anim_num {
+                0 => {
+                    self.direction = player.direction.opposite();
+                    self.x += 0x1000 * self.direction.vector_x();
                 }
-                Direction::Left => {
-                    self.x -= 0x1000;
-                }
-                Direction::Up => {
+                1 => {
+                    self.direction = Direction::Up;
                     self.y -= 0x1400;
                 }
-                Direction::Bottom => {
+                2 => {
+                    self.direction = Direction::Bottom;
                     self.y += 0x1400;
                 }
                 _ => (),
