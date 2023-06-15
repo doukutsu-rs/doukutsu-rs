@@ -65,7 +65,6 @@ impl TextScript {
                         // One operand codes
                         TSCOpCode::BOA
                         | TSCOpCode::BSL
-                        | TSCOpCode::FOB
                         | TSCOpCode::FOM
                         | TSCOpCode::QUA
                         | TSCOpCode::UNI
@@ -110,6 +109,7 @@ impl TextScript {
                         }
                         // Two operand codes
                         TSCOpCode::FON
+                        | TSCOpCode::FOB
                         | TSCOpCode::MOV
                         | TSCOpCode::AMp
                         | TSCOpCode::NCJ
