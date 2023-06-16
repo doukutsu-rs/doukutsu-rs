@@ -176,6 +176,7 @@ impl NPC {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
+                    self.action_num = 1;
                     self.action_counter = self.rng.range(0..40) as u16;
                 }
                 if self.action_counter > 0 {
@@ -362,13 +363,13 @@ impl NPC {
                     }
 
                     if self.action_num == 231 {
-                        self.direction = if self.action_num == 220 { Direction::Left } else { Direction::Right };
+                        self.face_player(player);
                     }
 
                     self.action_num += 1;
                     self.action_counter = 0;
                     self.damage = 3;
-                    let sign = self.direction.vector_x();
+                    let sign = if self.action_num == 221 { -1 } else { 1 };
 
                     for _ in 0..8 {
                         let mut npc = NPC::create(4, &state.npc_table);
@@ -435,7 +436,7 @@ impl NPC {
                     self.action_counter = 0;
                     self.anim_num = 3;
 
-                    self.direction = if self.action_num == 220 { Direction::Left } else { Direction::Right };
+                    self.face_player(player);
                 }
             }
             242 => {
@@ -520,6 +521,8 @@ impl NPC {
                     self.target_x = self.x;
                     self.vel_x = 0;
                     self.npc_flags.set_shootable(false);
+                    // I think Pixel meant for the smoke radius to be 16 pixels (0x2000) instead of 16 units,
+                    // because as it is, this just gets divided by 0x200 units/px and becomes 0
                     npc_list.create_death_smoke(self.x, self.y, 16, 16, state, &self.rng);
                 }
                 self.vel_y += 0x20;
@@ -657,7 +660,7 @@ impl NPC {
                 }
 
                 if self.action_counter2 < 2 {
-                    self.action_counter2 += 512;
+                    self.action_counter2 += 512 - 2; // Still have to subtract 2 first :)
                 } else {
                     self.action_counter2 -= 2;
                 }
@@ -672,7 +675,7 @@ impl NPC {
                 if self.life < 900 {
                     self.action_num = 22;
                     self.npc_flags.set_shootable(false);
-                    npc_list.create_death_smoke(self.x, self.y, 16, 32, state, &self.rng);
+                    npc_list.create_death_smoke(self.x, self.y, 0x2000, 32, state, &self.rng);
                     state.sound_manager.play_sfx(71);
                 }
 
@@ -686,7 +689,7 @@ impl NPC {
                 self.anim_num = 2;
 
                 if self.action_counter2 < 2 {
-                    self.action_counter2 += 512;
+                    self.action_counter2 += 512 - 2;
                 } else {
                     self.action_counter2 -= 2;
                 }
@@ -699,7 +702,7 @@ impl NPC {
                 self.anim_num = 2;
 
                 if self.action_counter2 < 4 {
-                    self.action_counter2 += 512;
+                    self.action_counter2 += 512 - 4;
                 } else {
                     self.action_counter2 -= 4;
                 }
@@ -753,6 +756,8 @@ impl NPC {
                     self.damage = 5;
                     self.npc_flags.set_ignore_solidity(false);
                     self.npc_flags.set_shootable(false);
+                    npc_list.create_death_smoke(self.x, self.y, 0x2000, 32, state, &self.rng);
+                    state.sound_manager.play_sfx(71);
                 }
 
                 if self.flags.hit_left_wall() {
@@ -793,7 +798,7 @@ impl NPC {
                         self.anim_num = 0;
                     }
                 } else {
-                    npc_list.create_death_smoke(self.x, self.y, 16, 32, state, &self.rng);
+                    npc_list.create_death_smoke(self.x, self.y, 0x2000, 32, state, &self.rng);
                     state.sound_manager.play_sfx(71);
                     self.vanish(state);
                     return Ok(());
@@ -816,6 +821,8 @@ impl NPC {
                     npc.x = self.x - 0x1000;
                     npc.y = self.y + 0x1800;
                     let _ = npc_list.spawn(0x100, npc);
+
+                    state.sound_manager.play_sfx(26);
                 }
                 (Direction::Up, 268) => {
                     let mut npc = NPC::create(4, &state.npc_table);
@@ -829,6 +836,8 @@ impl NPC {
                     npc.x = self.x - 0x1800;
                     npc.y = self.y - 0x1000;
                     let _ = npc_list.spawn(0x100, npc);
+
+                    state.sound_manager.play_sfx(26);
                 }
                 (Direction::Right, 396) => {
                     let mut npc = NPC::create(4, &state.npc_table);
@@ -848,6 +857,8 @@ impl NPC {
                     npc.x = self.x - 0x1000;
                     npc.y = self.y - 0x1800;
                     let _ = npc_list.spawn(0x100, npc);
+
+                    state.sound_manager.play_sfx(26);
                 }
                 (Direction::Bottom, 12) => {
                     let mut npc = NPC::create(4, &state.npc_table);
@@ -861,6 +872,8 @@ impl NPC {
                     npc.x = self.x + 0x1800;
                     npc.y = self.y - 0x1000;
                     let _ = npc_list.spawn(0x100, npc);
+
+                    state.sound_manager.play_sfx(26);
                 }
                 _ => (),
             }
@@ -1017,7 +1030,7 @@ impl NPC {
                 if self.action_counter2 > 0 {
                     self.action_counter2 -= 1;
                 } else {
-                    self.action_counter2 += 0x400;
+                    self.action_counter2 += 0x400 - 1;
                 }
 
                 if boss.parts[0].action_num == 421 {
@@ -1040,7 +1053,7 @@ impl NPC {
                 if self.action_counter2 > 1 {
                     self.action_counter2 -= 2;
                 } else {
-                    self.action_counter2 += 0x400;
+                    self.action_counter2 += 0x400 - 2;
                 }
 
                 if boss.parts[0].action_num == 422 {
@@ -1108,8 +1121,6 @@ impl NPC {
                     self.vel_y = self.target_y - self.y;
                 }
             }
-        } else {
-            self.vel_y = 0;
         }
 
         self.x += self.vel_x;
@@ -1432,7 +1443,7 @@ impl BossNPC {
 
                 self.parts[3].cond.set_alive(true);
                 self.parts[3].cond.set_damage_boss(true);
-                self.parts[3].npc_flags.set_solid_hard(true); // This should be soft -- investigate bug with large soft collision boxes?
+                self.parts[3].npc_flags.set_solid_soft(true);
                 self.parts[3].npc_flags.set_invulnerable(true);
                 self.parts[3].npc_flags.set_ignore_solidity(true);
                 self.parts[3].display_bounds = Rect { left: 0x7800, top: 0x7800, right: 0x7800, bottom: 0x7800 };

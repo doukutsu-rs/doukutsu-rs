@@ -27,12 +27,15 @@ impl NPC {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.anim_num = 1;
-                }
-
-                if self.rng.range(0..150) == 1 {
-                    self.action_num = 3;
-                    self.action_counter = 50;
-                    self.anim_num = 0;
+                } else {
+                    if self.rng.range(0..150) == 1 {
+                        self.direction = self.direction.opposite();
+                    }
+                    if self.rng.range(0..150) == 1 {
+                        self.action_num = 3;
+                        self.action_counter = 50;
+                        self.anim_num = 0;
+                    }
                 }
             }
             2 => {
@@ -49,9 +52,8 @@ impl NPC {
                     self.anim_counter = 0;
                 }
 
-                if self.action_counter > 0 {
-                    self.action_counter -= 1;
-                } else {
+                self.action_counter = self.action_counter.saturating_sub(1);
+                if self.action_counter == 0 {
                     self.action_num = 0;
                 }
 
@@ -371,9 +373,8 @@ impl NPC {
                     self.anim_counter = 0;
                 }
 
-                if self.action_counter > 0 {
-                    self.action_counter -= 1;
-                } else {
+                self.action_counter = self.action_counter.saturating_sub(1);
+                if self.action_counter == 0 {
                     self.action_num = 0;
                 }
 

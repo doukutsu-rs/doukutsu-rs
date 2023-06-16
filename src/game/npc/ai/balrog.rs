@@ -679,7 +679,7 @@ impl NPC {
                     self.vel_x2 -= 1;
                     self.action_counter = 0;
 
-                    let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64)
+                    let angle = f64::atan2((self.y + 0x800 - player.y) as f64, (self.x - player.x) as f64)
                         + self.rng.range(-16..16) as f64 * CDEG_RAD;
 
                     let mut npc = NPC::create(11, &state.npc_table);
@@ -739,7 +739,7 @@ impl NPC {
                     self.anim_num = 3;
                 }
 
-                self.vel_y += ((self.target_y - self.y).signum() | 1) * 0x40;
+                self.vel_y += if self.y < self.target_y { 0x40 } else { -0x40 };
                 self.vel_y = clamp(self.vel_y, -0x200, 0x200);
             }
             6 => {
@@ -1016,9 +1016,8 @@ impl NPC {
                     }
                 }
 
-                if self.action_counter > 0 {
-                    self.action_counter -= 1;
-                } else {
+                self.action_counter = self.action_counter.saturating_sub(1);
+                if self.action_counter == 0 {
                     self.action_num = 2;
                     self.action_counter3 += 1;
                 }
@@ -1247,7 +1246,7 @@ impl NPC {
                     self.x + 0x1000 * self.direction.opposite().vector_x(),
                     self.y,
                     CaretType::Exhaust,
-                    self.direction,
+                    self.direction.opposite(),
                 );
             }
 

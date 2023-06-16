@@ -193,10 +193,10 @@ impl NPC {
 
                 self.vel_x = 0x100 * self.direction.vector_x();
 
-                self.action_counter += 1;
                 if self.action_counter != 0 && self.flags.hit_bottom_wall() {
                     self.action_num = 2;
                 }
+                self.action_counter += 1;
             }
             2 | 3 => {
                 if self.action_num == 2 {
@@ -240,11 +240,11 @@ impl NPC {
             4 => {
                 self.vel_x = 0x100 * self.direction.vector_x();
 
-                self.action_counter += 1;
                 if self.action_counter != 0 && self.flags.hit_bottom_wall() {
                     self.action_num = 5;
                     self.npc_flags.set_interactable(true);
                 }
+                self.action_counter += 1;
             }
             5 => {
                 self.vel_x = 0;

@@ -38,7 +38,8 @@ impl NPC {
                 self.y += self.vel_y;
 
                 let player = self.get_closest_player_mut(players);
-                let direction = f64::atan2(-(self.y - player.y) as f64, -(self.x - player.x) as f64);
+                // Get angle between 0 and 2*PI
+                let direction = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64) + std::f64::consts::PI;
 
                 if direction < radians {
                     if radians - direction < std::f64::consts::PI {

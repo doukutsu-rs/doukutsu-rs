@@ -28,7 +28,7 @@ impl Weapon {
 
         if !self.consume_ammo(1) {
             state.sound_manager.play_sfx(37);
-            // todo spawn "empty" text
+            // The vanilla game doesn't spawn "empty" text for some reason
             return;
         }
 
@@ -36,11 +36,11 @@ impl Weapon {
             match player.direction {
                 Direction::Left => {
                     bullet_manager.create_bullet(player.x - 0x200, player.y - 0x1800, btype, player_id, Direction::Up, &state.constants);
-                    state.create_caret(player.x - 0x200, player.y - 0x1000, CaretType::Shoot, Direction::Left);
+                    state.create_caret(player.x - 0x200, player.y - 0x1800, CaretType::Shoot, Direction::Left);
                 }
                 Direction::Right => {
                     bullet_manager.create_bullet(player.x + 0x200, player.y - 0x1800, btype, player_id, Direction::Up, &state.constants);
-                    state.create_caret(player.x + 0x200, player.y - 0x1000, CaretType::Shoot, Direction::Left);
+                    state.create_caret(player.x + 0x200, player.y - 0x1800, CaretType::Shoot, Direction::Left);
                 }
                 _ => {}
             }
@@ -48,11 +48,11 @@ impl Weapon {
             match player.direction {
                 Direction::Left => {
                     bullet_manager.create_bullet(player.x - 0x200, player.y + 0x1800, btype, player_id, Direction::Bottom, &state.constants);
-                    state.create_caret(player.x - 0x200, player.y + 0x1000, CaretType::Shoot, Direction::Left);
+                    state.create_caret(player.x - 0x200, player.y + 0x1800, CaretType::Shoot, Direction::Left);
                 }
                 Direction::Right => {
                     bullet_manager.create_bullet(player.x + 0x200, player.y + 0x1800, btype, player_id, Direction::Bottom, &state.constants);
-                    state.create_caret(player.x + 0x200, player.y + 0x1000, CaretType::Shoot, Direction::Left);
+                    state.create_caret(player.x + 0x200, player.y + 0x1800, CaretType::Shoot, Direction::Left);
                 }
                 _ => {}
             }

@@ -30,7 +30,7 @@ impl Weapon {
             return;
         }
 
-        self.counter2 = 0; // recharge time counter
+        // self.counter2 : recharge time counter
         self.counter1 += 1; // autofire counter
 
         if self.counter1 > 5 {

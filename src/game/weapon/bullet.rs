@@ -617,21 +617,23 @@ impl Bullet {
             if self.btype == 15 {
                 match self.direction {
                     Direction::Left | Direction::Right => {
-                        self.vel_y = (self.y - player.y).signum() * 0x100;
+                        self.vel_y = if self.y > player.y { 0x100 } else { -0x100 };
                         self.vel_x = self.rng.range(-0x200..0x200);
                     }
                     Direction::Up | Direction::Bottom => {
-                        self.vel_x = (self.x - player.x).signum() * 0x100;
+                        self.vel_x = if self.x > player.x { 0x100 } else { -0x100 };
                         self.vel_y = self.rng.range(-0x200..0x200);
                     }
                     _ => {}
                 }
 
+                // offset by 1 because we 'increment' late
                 self.counter1 = match self.counter2 {
-                    1 => 64,
-                    2 => 51,
-                    _ => 128,
+                    1 => 51,
+                    2 => 128,
+                    _ => 64,
                 };
+                self.counter2 = 0;
             } else {
                 self.counter1 = 128;
             }
@@ -649,10 +651,10 @@ impl Bullet {
             if self.btype == 15 {
                 match self.direction {
                     Direction::Left | Direction::Right => {
-                        self.vel_y = (player.y - self.y).signum() * 0x20;
+                        self.vel_y += if self.y < self.target_y { 0x20 } else { -0x20 };
                     }
                     Direction::Up | Direction::Bottom => {
-                        self.vel_x = (player.x - self.x).signum() * 0x20;
+                        self.vel_x += if self.x < self.target_x { 0x20 } else { -0x20 };
                     }
                     _ => {}
                 }
@@ -938,14 +940,10 @@ impl Bullet {
 
             match self.direction {
                 Direction::Left => {
-                    let val = self.rng.range(10..16);
-                    // what the fuck
-                    self.vel_x = (((val * -0x200).rotate_left(1) & 1) - val * 0x200) / 2;
+                    self.vel_x = (self.rng.range(10..16) * -0x200) / 2;
                 }
                 Direction::Up => {
-                    let val = self.rng.range(10..16);
-                    // what the fuck
-                    self.vel_y = (((val * -0x200).rotate_left(1) & 1) - val * 0x200) / 2;
+                    self.vel_y = (self.rng.range(10..16) * -0x200) / 2;
                 }
                 Direction::Right => {
                     self.vel_x = (self.rng.range(10..16) * 0x200) / 2;
@@ -1256,21 +1254,23 @@ impl Bullet {
             if self.btype == 30 {
                 match self.direction {
                     Direction::Left | Direction::Right => {
-                        self.vel_y = (self.y - player.y).signum() * 0x100;
+                        self.vel_y = if self.y > player.y { 0x100 } else { -0x100 };
                         self.vel_x = self.rng.range(-0x200..0x200);
                     }
                     Direction::Up | Direction::Bottom => {
-                        self.vel_x = (self.x - player.x).signum() * 0x100;
+                        self.vel_x = if self.x > player.x { 0x100 } else { -0x100 };
                         self.vel_y = self.rng.range(-0x200..0x200);
                     }
                     _ => {}
                 }
 
+                // offset by 1 because we 'increment' late
                 self.counter1 = match self.counter2 {
-                    1 => 256,
-                    2 => 170,
-                    _ => 512,
+                    1 => 170,
+                    2 => 512,
+                    _ => 256,
                 };
+                self.counter2 = 0;
             } else {
                 self.counter1 = 512;
             }
@@ -1288,10 +1288,10 @@ impl Bullet {
             if self.btype == 30 {
                 match self.direction {
                     Direction::Left | Direction::Right => {
-                        self.vel_y = (player.y - self.y).signum() * 0x40;
+                        self.vel_y += if self.y < self.target_y { 0x40 } else { -0x40 };
                     }
                     Direction::Up | Direction::Bottom => {
-                        self.vel_x = (player.x - self.x).signum() * 0x40;
+                        self.vel_x += if self.x < self.target_x { 0x40 } else { -0x40 };
                     }
                     _ => {}
                 }

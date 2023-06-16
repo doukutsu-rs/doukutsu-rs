@@ -654,7 +654,7 @@ impl NPC {
                 if self.flags.hit_bottom_wall() {
                     if self.life + 20 > self.action_counter3 {
                         self.animate(10, 1, 2);
-                    } else if player.flags.hit_bottom_wall() && player.x > self.x - 0x6000 && player.x < self.x + 0x6000
+                    } else if player.flags.hit_bottom_wall() && player.x > self.x - 0x6000 && player.x < self.x + 0x6000 && self.anim_num != 6
                     {
                         self.anim_num = 6;
                         state.quake_counter = 10;

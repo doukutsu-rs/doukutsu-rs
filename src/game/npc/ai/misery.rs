@@ -318,7 +318,8 @@ impl NPC {
             27 => {
                 self.action_counter += 1;
                 if self.action_counter == 50 {
-                    self.action_num = 14;
+                    self.action_num = 0;
+                    self.anim_num = 0;
                 }
             }
             30 | 31 => {
@@ -362,6 +363,10 @@ impl NPC {
                     npc.cond.set_alive(true);
 
                     let _ = npc_list.spawn(0x100, npc);
+                }
+
+                if self.action_counter > 50 {
+                    self.action_num = 0;
                 }
             }
             50 => {
@@ -919,7 +924,7 @@ impl NPC {
 
         match self.action_num {
             0 | 1 => {
-                if self.action_num == 9 {
+                if self.action_num == 0 {
                     self.action_num = 1;
                     self.y -= 0x1000;
                     state.sound_manager.play_sfx(29);
@@ -933,7 +938,7 @@ impl NPC {
                 self.anim_num = 9;
             }
             20 | 21 => {
-                if self.action_num == 21 {
+                if self.action_num == 20 {
                     self.action_num = 21;
                     self.action_counter = 0;
                     self.anim_num = 0;
@@ -954,10 +959,10 @@ impl NPC {
 
                 let player = self.get_closest_player_ref(&players);
 
-                self.direction = if player.x > self.x { Direction::Left } else { Direction::Right };
+                self.direction = if player.x > self.x { Direction::Right } else { Direction::Left };
             }
             30 | 31 => {
-                if self.action_num == 31 {
+                if self.action_num == 30 {
                     self.action_num = 31;
                     self.action_counter = 0;
                     self.anim_num = 2;
@@ -996,6 +1001,8 @@ impl NPC {
                     self.action_counter = 0;
                     self.vel_x = 0;
                     self.vel_y = 0;
+
+                    state.sound_manager.play_sfx(103);
 
                     let player = self.get_closest_player_ref(&players);
                     self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
@@ -1045,7 +1052,7 @@ impl NPC {
                 if self.action_counter > 50 {
                     self.action_num = 30;
                     self.vel_y = -0x200;
-                    self.vel_x = self.direction.vector_x() * 0x200;
+                    self.vel_x = self.direction.opposite().vector_x() * 0x200;
                 }
             }
             50 | 51 => {
@@ -1070,17 +1077,17 @@ impl NPC {
 
                     let mut npc = NPC::create(301, &state.npc_table);
                     npc.cond.set_alive(true);
-                    npc.x = self.x + 0x1400 * self.direction.vector_x();
+                    npc.x = self.x + 0x1400 * self.direction.opposite().vector_x();
                     npc.y = self.y;
                     npc.tsc_direction = match ((self.action_counter / 6) & 3, self.direction) {
-                        (0, Direction::Left) => 0x58,
-                        (1, Direction::Left) => 0x6C,
-                        (2, Direction::Left) => 0x94,
-                        (3, Direction::Left) => 0xA8,
-                        (0, _) => 0xD8,
-                        (1, _) => 0xEC,
-                        (2, _) => 0x14,
-                        (3, _) => 0x28,
+                        (0, Direction::Left) => 0xD8,
+                        (1, Direction::Left) => 0xEC,
+                        (2, Direction::Left) => 0x14,
+                        (3, Direction::Left) => 0x28,
+                        (0, _) => 0x58,
+                        (1, _) => 0x6C,
+                        (2, _) => 0x94,
+                        (3, _) => 0xA8,
                         _ => unsafe {
                             unreachable_unchecked();
                         },
