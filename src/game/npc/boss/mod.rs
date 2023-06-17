@@ -100,6 +100,9 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
         for part in &mut self.parts {
             if part.shock > 0 {
                 part.shock -= 1;
+            } else if part.npc_flags.show_damage() && part.popup.value != 0 {
+                // I don't know where the best place to put this is, but let's try putting it here
+                part.popup.update_displayed_value();
             }
             part.popup.x = part.x;
             part.popup.y = part.y;

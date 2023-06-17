@@ -1197,7 +1197,7 @@ impl GameScene {
                         }
 
                         if npc.npc_flags.show_damage() {
-                            npc.popup.add_value_throttled(-bullet.damage);
+                            npc.popup.add_value(-bullet.damage);
                         }
                     }
                 } else if !bullet.weapon_flags.no_proj_dissipation()
@@ -1261,16 +1261,13 @@ impl GameScene {
                 }
 
                 if npc.npc_flags.shootable() {
+                    let shock = npc.shock;
                     if npc.cond.damage_boss() {
                         idx = 0;
                         npc = unsafe { self.boss.parts.get_unchecked_mut(0) };
                     }
 
                     npc.life = (npc.life as i32).saturating_sub(bullet.damage as i32).clamp(0, u16::MAX as i32) as u16;
-
-                    if npc.npc_flags.show_damage() {
-                        npc.popup.add_value(-bullet.damage);
-                    }
 
                     if npc.life == 0 {
                         npc.life = npc.id;
@@ -1295,7 +1292,7 @@ impl GameScene {
                             npc.cond.set_alive(false);
                         }
                     } else {
-                        if npc.shock < 14 {
+                        if shock < 14 {
                             for _ in 0..3 {
                                 state.create_caret(bullet.x, bullet.y, CaretType::HurtParticles, Direction::Left);
                             }
@@ -1303,6 +1300,9 @@ impl GameScene {
                         }
 
                         npc.shock = 8;
+                        if npc.npc_flags.show_damage() {
+                            npc.popup.add_value(-bullet.damage);
+                        }
 
                         npc = unsafe { self.boss.parts.get_unchecked_mut(i) };
                         npc.shock = 8;
@@ -1919,12 +1919,16 @@ impl Scene for GameScene {
         self.frame.prev_y = self.frame.y;
         self.player1.prev_x = self.player1.x;
         self.player1.prev_y = self.player1.y;
-        self.player1.popup.prev_x = self.player1.popup.x;
-        self.player1.popup.prev_y = self.player1.popup.y;
+        self.player1.damage_popup.prev_x = self.player1.damage_popup.x;
+        self.player1.damage_popup.prev_y = self.player1.damage_popup.y;
+        self.player1.exp_popup.prev_x = self.player1.exp_popup.x;
+        self.player1.exp_popup.prev_y = self.player1.exp_popup.y;
         self.player2.prev_x = self.player2.x;
         self.player2.prev_y = self.player2.y;
-        self.player2.popup.prev_x = self.player2.popup.x;
-        self.player2.popup.prev_y = self.player2.popup.y;
+        self.player2.damage_popup.prev_x = self.player2.damage_popup.x;
+        self.player2.damage_popup.prev_y = self.player2.damage_popup.y;
+        self.player2.exp_popup.prev_x = self.player2.exp_popup.x;
+        self.player2.exp_popup.prev_y = self.player2.exp_popup.y;
 
         for npc in self.npc_list.iter_alive() {
             npc.prev_x = npc.x;
@@ -2010,8 +2014,10 @@ impl Scene for GameScene {
         self.water_renderer.draw(state, ctx, &self.frame, WaterLayer::Front)?;
 
         self.draw_carets(state, ctx)?;
-        self.player1.popup.draw(state, ctx, &self.frame)?;
-        self.player2.popup.draw(state, ctx, &self.frame)?;
+        self.player1.exp_popup.draw(state, ctx, &self.frame)?;
+        self.player1.damage_popup.draw(state, ctx, &self.frame)?;
+        self.player2.exp_popup.draw(state, ctx, &self.frame)?;
+        self.player2.damage_popup.draw(state, ctx, &self.frame)?;
         self.draw_npc_popup(state, ctx)?;
         self.draw_boss_popup(state, ctx)?;
 

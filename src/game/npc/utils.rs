@@ -332,6 +332,9 @@ impl NPCList {
             state.set_flag(npc.flag_num as usize, true);
 
             if npc.npc_flags.show_damage() {
+                if npc.popup.value != 0 {
+                    npc.popup.update_displayed_value();
+                }
                 if vanish {
                     npc.vanish(state);
                 }

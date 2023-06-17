@@ -287,16 +287,8 @@ impl Player {
                     inventory.add_xp(npc.exp, self, state);
 
                     if let Some(weapon) = inventory.get_current_weapon() {
-                        if weapon.wtype == WeaponType::Spur {
-                            npc.exp = 0;
-                        } else {
-                            if self.shock_counter == 0 {
-                                if self.popup.value > 0 {
-                                    self.popup.add_value(npc.exp as i16);
-                                } else {
-                                    self.popup.set_value(npc.exp as i16);
-                                }
-                            }
+                        if weapon.wtype != WeaponType::Spur {
+                            self.exp_popup.add_value(npc.exp as i16);
                         }
                     }
 
