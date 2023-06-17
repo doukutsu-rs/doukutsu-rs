@@ -625,6 +625,10 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             _ => Ok(()),
         }?;
 
+        // I don't know where the best place to put this is, but let's try putting it here
+        if self.shock == 0 && self.npc_flags.show_damage() && self.popup.value != 0 {
+            self.popup.update_displayed_value();
+        }
         self.popup.x = self.x;
         self.popup.y = self.y;
         self.popup.tick(state, ())?;

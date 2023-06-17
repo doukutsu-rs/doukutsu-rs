@@ -108,14 +108,13 @@ pub struct Player {
     pub air: u16,
     pub skin: Box<dyn PlayerSkin>,
     pub controller: Box<dyn PlayerController>,
-    pub popup: NumberPopup,
+    pub damage_popup: NumberPopup,
+    pub exp_popup: NumberPopup,
     strafe_up: bool,
     weapon_offset_y: i8,
     splash: bool,
     tick: u8,
     booster_switch: BoosterSwitch,
-    damage_counter: u16,
-    damage_taken: i16,
     pub anim_num: u16,
     anim_counter: u16,
     anim_rect: Rect<u16>,
@@ -167,10 +166,9 @@ impl Player {
             air: 0,
             skin,
             controller: Box::new(DummyPlayerController::new()),
-            popup: NumberPopup::new(),
+            damage_popup: NumberPopup::new(),
+            exp_popup: NumberPopup::new(),
             strafe_up: false,
-            damage_counter: 0,
-            damage_taken: 0,
             anim_num: 0,
             anim_counter: 0,
             anim_rect: constants.player.frames_right[0],
@@ -896,11 +894,8 @@ impl Player {
         self.controller.set_rumble(rumble_intensity, rumble_intensity, 20);
 
         self.damage = self.damage.saturating_add(final_hp as u16);
-        if self.popup.value > 0 {
-            self.popup.set_value(-(self.damage as i16));
-        } else {
-            self.popup.add_value(-(self.damage as i16));
-        }
+        self.damage_popup.add_value(-(self.damage as i16));
+        self.damage_popup.update_displayed_value();
 
         if self.life == 0 {
             state.sound_manager.play_sfx(17);
@@ -937,9 +932,9 @@ impl GameEntity<&NPCList> for Player {
     fn tick(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if !self.cond.alive() {
             if self.life == 0 {
-                self.popup.x = self.x;
-                self.popup.y = self.y - self.display_bounds.top as i32 + 0x1000;
-                self.popup.tick(state, ())?;
+                self.damage_popup.x = self.x;
+                self.damage_popup.y = self.y - self.display_bounds.top as i32 + 0x1000;
+                self.damage_popup.tick(state, ())?;
             }
 
             return Ok(());
@@ -949,18 +944,14 @@ impl GameEntity<&NPCList> for Player {
             self.shock_counter = 0;
         }
 
-        if self.damage_counter != 0 {
-            self.damage_counter -= 1;
-        }
-
         if self.xp_counter != 0 {
             self.xp_counter -= 1;
         }
 
         if self.shock_counter != 0 {
             self.shock_counter -= 1;
-        } else if self.damage_taken != 0 {
-            self.damage_taken = 0;
+        } else if self.exp_popup.value != 0 {
+            self.exp_popup.update_displayed_value();
         }
 
         match (self.control_mode, state.settings.noclip) {
@@ -969,9 +960,12 @@ impl GameEntity<&NPCList> for Player {
             (ControlMode::IronHead, _) => self.tick_ironhead(state)?,
         }
 
-        self.popup.x = self.x;
-        self.popup.y = self.y - self.display_bounds.top as i32 + 0x1000;
-        self.popup.tick(state, ())?;
+        self.damage_popup.x = self.x;
+        self.damage_popup.y = self.y - self.display_bounds.top as i32 + 0x1000;
+        self.damage_popup.tick(state, ())?;
+        self.exp_popup.x = self.x;
+        self.exp_popup.y = self.y - self.display_bounds.top as i32 + 0x1000;
+        self.exp_popup.tick(state, ())?;
 
         self.cond.set_increase_acceleration(false);
         self.tick_animation(state);
