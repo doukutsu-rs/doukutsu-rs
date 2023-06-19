@@ -8,6 +8,7 @@ use lua_ffi::lua_method;
 use crate::common::{Direction, Rect};
 use crate::framework::filesystem;
 use crate::game::scripting::lua::{check_status, DRS_RUNTIME_GLOBAL, LuaScriptingState};
+use crate::game::scripting::tsc::text_script::TextScriptEncoding;
 use crate::scene::game_scene::LightingMode;
 use crate::util::rng::RNG;
 
@@ -156,12 +157,43 @@ impl Doukutsu {
                         game_state.constants.game.new_game_player_pos = (ng_x as i16, ng_y as i16);
                     }
                 }
+                0x1100 => {
+                    // window height
+                    //TODO
+                }
+                0x1101 => {
+                    // window width
+                    //TODO
+                }
+                0x1102 => {
+                    // window title
+                    //TODO
+                }
                 0x2000 => {
                     // font scale
                     if let Some(font_scale) = state.to_float(3) {
                         if font_scale > 0.0 {
                             game_state.font.scale(font_scale);
                         }
+                    }
+                }
+                0x3000 => {
+                    // tsc encoding
+                    if let Some(encoding) = state.to_str(3) {
+                        let enc = TextScriptEncoding::from(encoding.clone());
+
+                        if TextScriptEncoding::invalid_encoding(enc, &game_state) {
+                            log::warn!("{} encoding is invalid", encoding.clone());
+                        } else {
+                            game_state.constants.textscript.encoding = enc;
+                            log::debug!("{} encoding is set", encoding.clone());
+                        }
+                    }
+                }
+                0x3001 => {
+                    // tsc encrypted
+                    if let Some(encrypted) = state.to_bool(3) {
+                        game_state.constants.textscript.encrypted = encrypted;
                     }
                 }
                 _ => {}

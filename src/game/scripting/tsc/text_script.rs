@@ -50,6 +50,27 @@ pub enum TextScriptEncoding {
     ShiftJIS,
 }
 
+impl From<&str> for TextScriptEncoding {
+    fn from(s: &str) -> Self {
+        match s {
+            "utf-8" => Self::UTF8,
+            _ => Self::ShiftJIS,
+        }
+    }
+}
+
+impl TextScriptEncoding {
+    pub fn invalid_encoding(encoding: TextScriptEncoding, state: &SharedGameState) -> bool {
+        let required_encoding = if (state.loc.code == "jp" || state.loc.code == "en") && state.constants.is_base() {
+            TextScriptEncoding::ShiftJIS
+        } else {
+            TextScriptEncoding::UTF8
+        };
+
+        encoding != required_encoding
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
 pub enum TextScriptLine {

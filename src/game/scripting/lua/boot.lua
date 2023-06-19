@@ -56,7 +56,12 @@ __doukutsu_rs_runtime_dont_touch._known_settings = {
     ["doukutsu-rs.new_game.event_id"] = 0x1003,
     ["doukutsu-rs.new_game.stage_id"] = 0x1004,
     ["doukutsu-rs.new_game.pos"] = 0x1005,
+    ["doukutsu-rs.window.height"] = 0x1100,
+    ["doukutsu-rs.window.width"] = 0x1101,
+    ["doukutsu-rs.window.title"] = 0x1102,
     ["doukutsu-rs.font_scale"] = 0x2000,
+    ["doukutsu-rs.tsc.encoding"] = 0x3000,
+    ["doukutsu-rs.tsc.encrypted"] = 0x3001,
 }
 
 __doukutsu_rs_runtime_dont_touch._requires = {}
