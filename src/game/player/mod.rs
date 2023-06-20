@@ -262,19 +262,20 @@ impl Player {
             }
 
             if state.control_flags.control_enabled() {
-                let trigger_only_down = self.controller.trigger_down()
-                    && !self.controller.trigger_up()
-                    && !self.controller.trigger_left()
-                    && !self.controller.trigger_right()
-                    && !self.controller.trigger_shoot();
-
                 let only_down = self.controller.move_down()
                     && !self.controller.move_up()
                     && !self.controller.move_left()
                     && !self.controller.move_right()
-                    && !self.controller.shoot();
+                    && !self.controller.shoot()
+                    && !self.controller.jump()
+                    && !self.controller.prev_weapon()
+                    && !self.controller.next_weapon()
+                    && !self.controller.map()
+                    && !self.controller.inventory()
+                    && !self.controller.strafe();
+                    // Leaving the skip button unchecked as a "feature" :)
 
-                if trigger_only_down
+                if self.controller.trigger_down()
                     && only_down
                     && !self.cond.interacted()
                     && !state.control_flags.interactions_disabled()

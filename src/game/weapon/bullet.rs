@@ -1953,8 +1953,8 @@ impl PhysicalEntity for Bullet {
                         let mut npc = NPC::create(4, &state.npc_table);
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
-                        npc.x = (x * 16 + 8) * 0x200;
-                        npc.y = (y * 16 + 8) * 0x200;
+                        npc.x = (x + ox) * tile_size;
+                        npc.y = (y + oy) * tile_size;
 
                         for _ in 0..4 {
                             npc.vel_x = npc.rng.range(-0x200..0x200) as i32;

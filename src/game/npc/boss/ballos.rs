@@ -1754,7 +1754,7 @@ impl BossNPC {
                     self.parts[0].action_counter = 0;
                     self.parts[0].vel_x = 0;
                     self.parts[0].vel_y = 0;
-                    npc_list.kill_npcs_by_type(339, true, state);
+                    npc_list.kill_npcs_by_type(339, false, state);
                 }
 
                 self.parts[0].y += (0x13E00 - self.parts[0].y) / 8;

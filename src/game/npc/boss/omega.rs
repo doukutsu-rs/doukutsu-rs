@@ -75,6 +75,7 @@ impl BossNPC {
                 self.parts[0].display_bounds =
                     Rect { left: 40 * 0x200, top: 40 * 0x200, right: 40 * 0x200, bottom: 0x2000 };
                 self.parts[0].hit_bounds = Rect { left: 0x1000, top: 24 * 0x200, right: 0x1000, bottom: 0x2000 };
+                self.hurt_sound[0] = 52;
 
                 self.parts[1].cond.set_alive(true);
                 self.parts[1].display_bounds =
@@ -100,6 +101,7 @@ impl BossNPC {
                 self.parts[4].display_bounds = self.parts[3].display_bounds;
                 self.parts[4].hit_bounds = self.parts[3].hit_bounds;
                 self.parts[4].npc_flags = self.parts[3].npc_flags;
+                self.parts[4].x = self.parts[0].x - 0x2000;
                 self.parts[4].y = self.parts[3].y;
                 self.parts[4].direction = Direction::Right;
                 self.hurt_sound[4] = 52;
@@ -166,7 +168,7 @@ impl BossNPC {
             }
             60 => {
                 self.parts[0].action_counter += 1;
-                if self.parts[0].action_counter % 3 == 0 && (20..80).contains(&self.parts[0].action_counter) {
+                if self.parts[0].action_counter % 3 == 0 && (21..80).contains(&self.parts[0].action_counter) {
                     let mut npc = NPC::create(48, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].x;
@@ -195,6 +197,8 @@ impl BossNPC {
                     match self.parts[0].anim_num {
                         1 => self.parts[0].damage = 20,
                         0 => {
+                            state.sound_manager.stop_sfx(102);
+                            state.sound_manager.play_sfx(12);
                             self.parts[0].action_num = 80;
                             self.parts[0].action_counter = 0;
                             self.parts[0].npc_flags.set_shootable(false);
@@ -297,7 +301,7 @@ impl BossNPC {
 
                         state.sound_manager.play_sfx(12);
                         state.sound_manager.play_sfx(25);
-                        state.sound_manager.play_sfx(102);
+                        state.sound_manager.stop_sfx(102);
                     }
                     1 => {
                         self.parts[0].damage = 20;
@@ -427,13 +431,9 @@ impl BossNPC {
             self.parts[0].action_num = 150;
             self.parts[0].action_counter = 0;
             self.parts[0].damage = 0;
-            self.parts[5].damage = 5;
+            self.parts[5].damage = 0;
 
-            for npc in npc_list.iter_alive() {
-                if npc.npc_type == 48 {
-                    npc.cond.set_alive(false);
-                }
-            }
+            npc_list.kill_npcs_by_type(48, true, state);
         }
     }
 }

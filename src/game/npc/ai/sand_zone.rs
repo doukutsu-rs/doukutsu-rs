@@ -13,15 +13,15 @@ use crate::util::rng::RNG;
 impl NPC {
     pub(crate) fn tick_n044_polish(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
-            0 | 1 => {
-                self.anim_num = 0;
-                self.action_num = match self.direction {
-                    Direction::Left => 8,
-                    Direction::Right => 2,
-                    _ => 8,
-                };
-            }
-            2 => {
+            0 | 1 | 2 => {
+                if self.action_num <= 1 {
+                    self.anim_num = 0;
+                    self.action_num = match self.direction {
+                        Direction::Left => 8,
+                        Direction::Right => 2,
+                        _ => 8,
+                    };
+                }
                 self.vel_y += 0x20;
                 if self.vel_y > 0 && self.flags.hit_bottom_wall() {
                     self.vel_y = -0x100;
@@ -575,7 +575,7 @@ impl NPC {
 
         let parent = parent.unwrap();
 
-        let angle = self.vel_x + parent.vel_y2;
+        let angle = (self.vel_x + parent.vel_y2) & 0xFF;
 
         if self.action_num < 2 {
             if self.action_num == 0 {
@@ -773,22 +773,25 @@ impl NPC {
                     self.anim_counter = self.rng.range(0..4) as u16;
                     self.action_counter2 = 120;
 
-                    let mut angle = self.rng.range(0..255);
+                    let angle = self.rng.range(0..255);
 
-                    self.vel_x = ((angle as f64 * CDEG_RAD).cos() * -512.0) as i32;
-                    angle += 0x40;
-                    self.target_x = self.x + 8 * ((angle as f64 * CDEG_RAD).cos() * -512.0) as i32;
-                    self.vel_y = ((angle as f64 * CDEG_RAD).sin() * -512.0) as i32;
-                    angle += 0x40;
-                    self.target_y = self.y + 8 * ((angle as f64 * CDEG_RAD).sin() * -512.0) as i32;
+                    self.vel_x = ((angle as f64 * CDEG_RAD).cos() * 512.0) as i32;
+                    self.target_x = self.x + 8 * (((angle + 0x40) as f64 * CDEG_RAD).cos() * 512.0) as i32;
+
+                    let angle = self.rng.range(0..255);
+                    self.vel_y = ((angle as f64 * CDEG_RAD).sin() * 512.0) as i32;
+                    self.target_y = self.y + 8 * (((angle + 0x40) as f64 * CDEG_RAD).sin() * 512.0) as i32;
                 }
 
                 let player = self.get_closest_player_mut(players);
 
                 self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
 
-                self.vel_x += ((self.target_x - self.x).signum() * 0x10).clamp(-0x200, 0x200);
-                self.vel_y += ((self.target_y - self.y).signum() * 0x10).clamp(-0x200, 0x200);
+                self.vel_x += (self.target_x - self.x).signum() * 0x10;
+                self.vel_y += (self.target_y - self.y).signum() * 0x10;
+
+                self.vel_x = clamp(self.vel_x, -0x200, 0x200);
+                self.vel_y = clamp(self.vel_y, -0x200, 0x200);
 
                 if self.shock != 0 {
                     self.action_num = 2;
@@ -802,7 +805,7 @@ impl NPC {
                 let player = self.get_closest_player_mut(players);
 
                 self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
-                self.vel_x += if self.y <= player.y + 0x4000 {
+                self.vel_x += if self.y <= player.y + 0x6000 {
                     (player.x - self.x).signum() * 0x10
                 } else {
                     (self.x - player.x).signum() * 0x10
@@ -1020,7 +1023,7 @@ impl NPC {
         }
         self.vel_y += 32;
 
-        self.vel_x = self.vel_x.clamp(-0x200, 0x200);
+        self.vel_x = self.vel_x.clamp(-0x1FF, 0x1FF);
 
         self.clamp_fall_speed();
         self.y += self.vel_y;
@@ -1223,13 +1226,14 @@ impl NPC {
                     }
                 }
             }
+            2 => {
+                self.action_counter += 1;
+                if self.action_counter > 8 {
+                    self.action_num = 1;
+                    self.anim_num = 0;
+                }
+            }
             _ => (),
-        }
-
-        self.action_counter += 1;
-        if self.action_counter > 8 {
-            self.action_num = 1;
-            self.anim_num = 0;
         }
 
         self.vel_y += 0x40;
@@ -1237,9 +1241,9 @@ impl NPC {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
-        let anim = if self.direction == Direction::Left { 0 } else { 4 };
+        let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };
 
-        self.anim_rect = state.constants.npc.n130_puppy_sitting[anim];
+        self.anim_rect = state.constants.npc.n130_puppy_sitting[self.anim_num as usize + dir_offset];
 
         Ok(())
     }
@@ -1263,6 +1267,7 @@ impl NPC {
         state: &mut SharedGameState,
         players: [&mut Player; 2],
     ) -> GameResult {
+        let player = self.get_closest_player_mut(players);
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -1277,12 +1282,15 @@ impl NPC {
                     self.anim_num = 1;
                 }
 
-                let player = self.get_closest_player_mut(players);
                 if (self.x - player.x).abs() < 0x8000 && (self.y - player.y).abs() < 0x2000 {
                     self.animate(4, 2, 4);
 
                     if self.anim_num == 4 && self.anim_counter == 0 {
                         state.sound_manager.play_sfx(105);
+                    }
+                } else {
+                    if self.anim_num == 4 {
+                        self.anim_num = 2;
                     }
                 }
             }
@@ -1341,6 +1349,10 @@ impl NPC {
                 self.anim_num = 0;
             }
             _ => (),
+        }
+
+        if self.action_num < 100 {
+            self.face_player(player);
         }
 
         self.vel_y += 0x40;
