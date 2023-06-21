@@ -348,32 +348,11 @@ impl NPCList {
     }
 
     /// Removes NPCs whose event number matches the provided one.
-    pub fn remove_by_event(&self, event_num: u16, state: &mut SharedGameState) {
+    pub fn kill_npcs_by_event(&self, event_num: u16, state: &mut SharedGameState) {
         for npc in self.iter_alive() {
             if npc.event_num == event_num {
                 npc.cond.set_alive(false);
                 state.set_flag(npc.flag_num as usize, true);
-            }
-        }
-    }
-
-    /// Removes NPCs (and creates a smoke effect) whose type IDs match the provided one.
-    pub fn remove_by_type(&self, npc_type: u16, state: &mut SharedGameState) {
-        for npc in self.iter_alive() {
-            if npc.npc_type == npc_type {
-                npc.cond.set_alive(false);
-                state.set_flag(npc.flag_num as usize, true);
-
-                if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
-                    state.sound_manager.play_sfx(table_entry.death_sound);
-                }
-
-                match npc.size {
-                    1 => self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 4, state, &npc.rng),
-                    2 => self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 8, state, &npc.rng),
-                    3 => self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 16, state, &npc.rng),
-                    _ => {}
-                };
             }
         }
     }
