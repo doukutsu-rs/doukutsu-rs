@@ -396,13 +396,14 @@ impl BackendEventLoop for SDL2EventLoop {
                     let window = refs.window.window_mut();
 
                     let fullscreen_type = state.settings.window_mode.get_sdl2_fullscreen_type();
+                    let show_cursor = state.settings.window_mode.should_display_mouse_cursor();
 
                     window.set_fullscreen(fullscreen_type);
                     window
                         .subsystem()
                         .sdl()
                         .mouse()
-                        .show_cursor(state.settings.window_mode.should_display_mouse_cursor());
+                        .show_cursor(show_cursor);
 
                     refs.fullscreen_type = fullscreen_type;
                 }

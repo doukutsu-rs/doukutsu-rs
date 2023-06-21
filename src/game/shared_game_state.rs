@@ -86,6 +86,14 @@ impl WindowMode {
         }
     }
 
+    #[cfg(feature = "backend-glutin")]
+    pub fn get_glutin_fullscreen_type(&self) -> Option<glutin::window::Fullscreen> {
+        match self {
+            WindowMode::Windowed => None,
+            WindowMode::Fullscreen => Some(glutin::window::Fullscreen::Borderless(None)),
+        }
+    }
+
     pub fn should_display_mouse_cursor(&self) -> bool {
         match self {
             WindowMode::Windowed => true,
