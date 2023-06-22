@@ -452,9 +452,8 @@ impl NPC {
                     self.vel_y = -0x800;
                     self.npc_flags.set_ignore_solidity(true);
 
-                    for npc in npc_list.iter_alive().filter(|npc| npc.npc_type == 117 || npc.npc_type == 150) {
-                        npc.cond.set_alive(false)
-                    }
+                    npc_list.kill_npcs_by_type(150, false, state);
+                    npc_list.kill_npcs_by_type(117, false, state);
 
                     let mut npc = NPC::create(355, &state.npc_table);
                     npc.cond.set_alive(true);

@@ -92,11 +92,8 @@ impl NPC {
     }
 
     pub(crate) fn tick_n013_forcefield(&mut self, state: &mut SharedGameState) -> GameResult {
-        self.anim_counter = (self.anim_counter + 1) % 2;
-        if self.anim_counter == 1 {
-            self.anim_num = (self.anim_num + 1) % 4;
-            self.anim_rect = state.constants.npc.n013_forcefield[self.anim_num as usize];
-        }
+        self.anim_num = (self.anim_num + 1) % 4;
+        self.anim_rect = state.constants.npc.n013_forcefield[self.anim_num as usize];
 
         Ok(())
     }

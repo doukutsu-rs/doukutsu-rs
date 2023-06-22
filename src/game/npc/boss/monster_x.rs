@@ -180,11 +180,9 @@ impl BossNPC {
                 self.parts[3].hit_bounds =
                     Rect { left: 5 * 0x200, top: 5 * 0x200, right: 5 * 0x200, bottom: 5 * 0x200 };
                 self.parts[3].npc_flags.set_ignore_solidity(true);
-                self.hurt_sound[3] = 54;
-                self.death_sound[3] = 71;
 
                 self.parts[4] = self.parts[3].clone();
-                self.parts[3].target_x = 1;
+                self.parts[4].target_x = 1;
 
                 self.parts[5] = self.parts[3].clone();
                 self.parts[6] = self.parts[3].clone();
@@ -192,6 +190,11 @@ impl BossNPC {
                 self.parts[6].target_x = 3;
                 self.parts[5].life = 100;
                 self.parts[6].life = 100;
+
+                for i in 3..7 {
+                    self.hurt_sound[i] = 54;
+                    self.death_sound[i] = 71;
+                }
 
                 self.parts[7].cond.set_alive(true);
                 self.parts[7].x = self.parts[0].x;
@@ -202,6 +205,7 @@ impl BossNPC {
                     Rect { left: 52 * 0x200, top: 24 * 0x200, right: 52 * 0x200, bottom: 24 * 0x200 };
                 self.parts[7].hit_bounds = Rect { left: 0x1000, top: 24 * 0x200, right: 0x1000, bottom: 0x2000 };
                 self.parts[7].npc_flags.set_ignore_solidity(true);
+                self.hurt_sound[7] = 52;
 
                 self.parts[9].cond.set_alive(true);
                 self.parts[9].x = self.parts[0].x - 64 * 0x200;
@@ -264,8 +268,6 @@ impl BossNPC {
                     self.parts[0].action_num = 11;
                     self.parts[0].action_counter = 0;
                     self.parts[0].action_counter2 = 0;
-                    
-                    self.parts[7].action_num = 2;
                 }
 
                 self.parts[0].action_counter += 1;
@@ -466,11 +468,9 @@ impl BossNPC {
                     state.sound_manager.play_sfx(52);
                 }
 
-                let mut npc = NPC::create(4, &state.npc_table);
-                npc.cond.set_alive(true);
-                npc.x = self.parts[0].x + self.parts[0].rng.range(-72..72) as i32 * 0x200;
-                npc.y = self.parts[0].y + self.parts[0].rng.range(-64..64) as i32 * 0x200;
-                let _ = npc_list.spawn(0x100, npc);
+                let x = self.parts[0].x + self.parts[0].rng.range(-72..72) as i32 * 0x200;
+                let y = self.parts[0].y + self.parts[0].rng.range(-64..64) as i32 * 0x200;
+                npc_list.create_death_smoke(x, y, 1, 1, state, &self.parts[0].rng);
 
                 if self.parts[0].action_counter > 100 {
                     self.parts[0].action_num = 1001;
@@ -489,16 +489,12 @@ impl BossNPC {
                         part.cond.set_alive(false);
                     }
 
-                    for npc in npc_list.iter_alive() {
-                        if npc.npc_type == 158 {
-                            npc.cond.set_alive(false);
-                        }
-                    }
+                    npc_list.kill_npcs_by_type(158, true, state);
 
                     let mut npc = NPC::create(159, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.parts[0].x;
-                    npc.y = self.parts[1].y - 24 * 0x200;
+                    npc.y = self.parts[0].y - 24 * 0x200;
 
                     let _ = npc_list.spawn(0, npc);
                 }
@@ -552,9 +548,6 @@ impl BossNPC {
         match self.parts[i].action_num {
             0 => {
                 self.parts[0].npc_flags.set_shootable(false);
-                self.parts[i].anim_num = 2;
-            }
-            2 => {
                 self.parts[i].anim_num = 0;
             }
             10 | 11 => {
@@ -565,7 +558,7 @@ impl BossNPC {
                 }
 
                 if self.parts[0].shock > 0 {
-                    self.parts[i].action_counter2 += 1;
+                    self.parts[i].action_counter2 = self.parts[i].action_counter2.wrapping_add(1);
                     if self.parts[i].action_counter2 / 2 % 2 != 0 {
                         self.parts[i].anim_num = 1;
                     } else {
@@ -575,15 +568,15 @@ impl BossNPC {
                     self.parts[i].anim_num = 0;
                 }
             }
-            40 => {
-                self.parts[0].npc_flags.set_shootable(false);
-                self.parts[i].anim_num = 0;
-            }
             _ => {}
         }
 
         self.parts[i].x = self.parts[0].x;
         self.parts[i].y = self.parts[0].y;
+
+        if self.parts[0].action_num <= 10 {
+            self.parts[i].anim_num = 2;
+        }
 
         self.parts[i].anim_rect = state.constants.npc.b03_monster_x[self.parts[i].anim_num as usize];
     }
@@ -812,7 +805,7 @@ impl BossNPC {
                 if self.parts[i].target_x < 0 {
                     self.parts[i].target_x = 0;
                     self.parts[i].action_num = 0;
-                    self.parts[7].action_num = 40;
+                    self.parts[7].action_num = 0;
                     self.parts[13].action_num = 0;
                     self.parts[14].action_num = 0;
                     self.parts[15].action_num = 0;

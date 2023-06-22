@@ -1369,14 +1369,14 @@ impl TextScriptVM {
             TSCOpCode::DNP => {
                 let event_num = read_cur_varint(&mut cursor)? as u16;
 
-                game_scene.npc_list.remove_by_event(event_num, state);
+                game_scene.npc_list.kill_npcs_by_event(event_num, state);
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
             TSCOpCode::DNA => {
                 let npc_remove_type = read_cur_varint(&mut cursor)? as u16;
 
-                game_scene.npc_list.remove_by_type(npc_remove_type, state);
+                game_scene.npc_list.kill_npcs_by_type(npc_remove_type, true, state);
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }

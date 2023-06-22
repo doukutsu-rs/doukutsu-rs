@@ -662,7 +662,7 @@ impl NPC {
                     self.vel_x = 0;
                     self.vel_y = 0;
 
-                    npc_list.remove_by_type(252, state);
+                    npc_list.kill_npcs_by_type(252, true, state);
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);

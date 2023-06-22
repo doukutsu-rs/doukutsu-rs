@@ -81,6 +81,8 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
         ),
     ) -> GameResult {
         if !self.parts[0].cond.alive() {
+            // Kind of hacky but fixes Monster X's damage popup being stuck on screen
+            self.parts[0].popup.tick(state, ())?;
             return Ok(());
         }
 

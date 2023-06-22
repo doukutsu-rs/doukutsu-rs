@@ -1160,7 +1160,7 @@ impl NPC {
                 self.action_counter += 1;
                 if self.action_counter > 250 {
                     self.action_num = 22;
-                    npc_list.remove_by_type(270, state);
+                    npc_list.kill_npcs_by_type(270, false, state);
                 }
             }
             _ => (),

@@ -399,12 +399,12 @@ impl NPC {
             0 | 1 => {
                 if self.action_num == 0 {
                     let deg = self.rng.range(0..255) as f64 * CDEG_RAD;
-                    self.vel_y = (deg.cos() * -512.0) as i32;
-                    self.target_x = self.x + 8 * ((deg + 64.0 * CDEG_RAD).cos() * -512.0) as i32;
+                    self.vel_x = (deg.cos() * 512.0) as i32;
+                    self.target_x = self.x + 8 * ((deg + 64.0 * CDEG_RAD).cos() * 512.0) as i32;
 
                     let deg = self.rng.range(0..255) as f64 * CDEG_RAD;
-                    self.vel_y = (deg.sin() * -512.0) as i32;
-                    self.target_y = self.y + 8 * ((deg + 64.0 * CDEG_RAD).sin() * -512.0) as i32;
+                    self.vel_y = (deg.sin() * 512.0) as i32;
+                    self.target_y = self.y + 8 * ((deg + 64.0 * CDEG_RAD).sin() * 512.0) as i32;
 
                     self.action_num = 1;
                     self.action_counter3 = 120;
@@ -886,9 +886,9 @@ impl NPC {
                     state.sound_manager.play_sfx(25);
                 }
 
+                self.vel_y += 0x10;
                 self.x += self.vel_x;
                 self.y += self.vel_y;
-                self.vel_y += 0x10;
 
                 if self.action_counter != 0 && self.flags.hit_bottom_wall() {
                     state.sound_manager.play_sfx(35);
@@ -915,6 +915,9 @@ impl NPC {
         players: [&mut Player; 2],
         npc_list: &NPCList,
     ) -> GameResult {
+        let player = self.get_closest_player_mut(players);
+        self.face_player(player);
+
         if self.action_num == 0 {
             self.action_num = 1;
             self.action_counter = self.rng.range(0..50) as u16;
@@ -936,14 +939,6 @@ impl NPC {
         self.vel_y = if self.y >= self.target_y { self.vel_y - 0x10 } else { self.vel_y + 0x10 };
         self.vel_y = self.vel_y.clamp(-0x200, 0x200);
         self.y += self.vel_y;
-
-        let player = self.get_closest_player_mut(players);
-
-        if self.x <= player.x {
-            self.direction = Direction::Right;
-        } else {
-            self.direction = Direction::Left;
-        }
 
         if self.direction != Direction::Left {
             if player.y < self.y + 0xA000
@@ -1048,12 +1043,12 @@ impl NPC {
                             self.action_num = 25;
                             self.action_counter = 0;
                             self.anim_num = 2;
-                            self.vel_y = -0x5ff;
+                            self.vel_y = -0x600;
 
                             if self.x >= self.target_x {
-                                self.vel_x = -0x100;
+                                self.vel_x = -0x80;
                             } else {
-                                self.vel_x = 0x100;
+                                self.vel_x = 0x80;
                             }
                         } else {
                             state.sound_manager.play_sfx(30);
@@ -1151,6 +1146,10 @@ impl NPC {
                     self.action_num = 2;
                 }
 
+                // So we're going to move *before* checking collisions, huh?
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+
                 let mut hit = false;
 
                 if self.flags.hit_left_wall() {
@@ -1178,6 +1177,8 @@ impl NPC {
             }
             2 => {
                 self.vel_y += 0x40;
+                self.x += self.vel_x;
+                self.y += self.vel_y;
 
                 if self.flags.hit_bottom_wall() {
                     self.action_counter2 += 1;
@@ -1189,9 +1190,6 @@ impl NPC {
             }
             _ => (),
         }
-
-        self.x += self.vel_x;
-        self.y += self.vel_y;
 
         self.vel_y = self.vel_y.clamp(-0x5ff, 0x5ff);
 
@@ -1277,9 +1275,7 @@ impl NPC {
                 self.action_num = 2;
                 self.action_counter = 0;
             }
-        }
-
-        if self.action_num == 2 {
+        } else if self.action_num == 2 {
             self.animate(3, 0, 1);
 
             self.action_counter += 1;
@@ -1415,7 +1411,7 @@ impl NPC {
 
                 for _ in 0..4 {
                     npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
-                    npc.y = self.y + 0x2000 + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.y = self.y + 0x2000;
                     npc.vel_x = self.rng.range(-0x155..0x155) as i32;
                     npc.vel_y = self.rng.range(-0x600..0) as i32;
 
@@ -1524,9 +1520,7 @@ impl NPC {
                 self.action_num = 2;
                 self.vel_y = 0x300;
             }
-        }
-
-        if self.action_num == 2 {
+        } else if self.action_num == 2 {
             let player = self.get_closest_player_mut(players);
 
             self.action_counter3 += 4;
@@ -1559,24 +1553,22 @@ impl NPC {
             self.action_counter3 = self.tsc_direction;
         }
 
+        let player = self.get_closest_player_mut(players);
+
         if self.action_num == 1 {
             if let Some(parent) = self.get_parent_ref_mut(npc_list) {
                 if parent.npc_type == 187 && parent.cond.alive() {
                     let deg = (self.action_counter3.wrapping_add(parent.action_counter3) & 0xff) as f64 * CDEG_RAD;
 
-                    self.x = parent.x + 20 * (deg.sin() * -512.0) as i32;
-                    self.y = parent.y + 32 * (deg.cos() * -512.0) as i32;
+                    self.x = parent.x + 20 * (deg.sin() * 512.0) as i32;
+                    self.y = parent.y + 32 * (deg.cos() * 512.0) as i32;
                 } else {
                     self.vel_x = self.rng.range(-512..512);
                     self.vel_y = self.rng.range(-512..512);
                     self.action_num = 10;
                 }
             }
-        }
-
-        let player = self.get_closest_player_mut(players);
-
-        if self.action_num == 10 {
+        } else if self.action_num == 10 {
             self.vel_x += if player.x >= self.x { 0x20 } else { -0x20 };
 
             self.vel_y += if player.y >= self.y { 0x20 } else { -0x20 };

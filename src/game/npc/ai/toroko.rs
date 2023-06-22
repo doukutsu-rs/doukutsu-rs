@@ -590,88 +590,89 @@ impl NPC {
         players: [&mut Player; 2],
         npc_list: &NPCList,
     ) -> GameResult {
-        if self.action_num != 1 {
-            if 1 < self.action_num {
-                if self.action_num == 10 {
-                    if (self.flags.0 & 0xf) == 0 {
-                        self.x += self.vel_x;
-                        self.y += self.vel_y;
+        match self.action_num {
+            0 | 1 => {
+                if self.action_num == 0 {
+                    self.action_num = 1;
+                    self.action_counter = 0;
+                }
+                let parent = self.get_parent_ref_mut(npc_list);
+                if let Some(parent) = parent {
+                    let player = self.get_closest_player_mut(players);
+
+                    if parent.direction == Direction::Left {
+                        self.x = parent.x + 0x1400;
                     } else {
-                        self.action_num = 0x14;
-                        self.action_counter = 0;
-
-                        state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
-                        state.sound_manager.play_sfx(0xc);
-
-                        let mut npc = NPC::create(4, &state.npc_table);
-                        npc.cond.set_alive(true);
-                        for _ in 0..4 {
-                            npc.x = self.x;
-                            npc.y = self.y;
-                            npc.vel_x = self.rng.range(-0x200..0x200);
-                            npc.vel_y = self.rng.range(-0x200..0x200);
-
-                            let _ = npc_list.spawn(0x100, npc.clone());
-                        }
+                        self.x = parent.x + -0x1400;
                     }
-                } else if self.action_num == 0x14 {
+
+                    self.y = parent.y + -0x1000;
+                    if (parent.action_num == 0x18) || (parent.action_num == 0x34) {
+                        self.action_num = 10;
+                        if parent.direction == Direction::Left {
+                            self.x = parent.x + -0x2000;
+                        } else {
+                            self.x = parent.x + 0x2000;
+                        }
+                        self.y = parent.y;
+
+                        let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64);
+
+                        self.vel_x = (angle.cos() * -2048.0) as i32;
+                        self.vel_y = (angle.sin() * -2048.0) as i32;
+                        state.sound_manager.play_sfx(0x27);
+                    }
+                }
+            }
+            10 => {
+                if (self.flags.0 & 0xf) == 0 {
                     self.x += self.vel_x;
                     self.y += self.vel_y;
-                    self.action_counter += 1;
-                    if 4 < self.action_counter {
-                        let mut npc = NPC::create(4, &state.npc_table);
-                        npc.cond.set_alive(true);
-                        for _ in 0..4 {
-                            npc.x = self.x;
-                            npc.y = self.y;
-                            npc.vel_x = self.rng.range(-0x200..0x200);
-                            npc.vel_y = self.rng.range(-0x200..0x200);
-
-                            let _ = npc_list.spawn(0x100, npc.clone());
-                        }
-
-                        self.npc_type = 0x8e;
-                        self.anim_num = 0;
-                        self.action_num = 0x14;
-                        self.vel_x = 0;
-                        self.npc_flags.set_invulnerable(false);
-                        self.npc_flags.set_shootable(true);
-                        self.damage = 1;
-                    }
-                }
-            }
-            if self.action_num == 0 {
-                self.action_num = 1;
-                self.action_counter = 0;
-            }
-        } else {
-            let parent = self.get_parent_ref_mut(npc_list);
-            if let Some(parent) = parent {
-                let player = self.get_closest_player_mut(players);
-
-                if parent.direction == Direction::Left {
-                    self.x = parent.x + 0x1400;
                 } else {
-                    self.x = parent.x + -0x1400;
-                }
+                    self.action_num = 0x14;
+                    self.action_counter = 0;
 
-                self.y = parent.y + -0x1000;
-                if (parent.action_num == 0x18) || (parent.action_num == 0x34) {
-                    self.action_num = 10;
-                    if parent.direction == Direction::Left {
-                        self.x = parent.x + -0x2000;
-                    } else {
-                        self.x = parent.x + 0x2000;
+                    state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
+                    state.sound_manager.play_sfx(0xc);
+
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    for _ in 0..4 {
+                        npc.x = self.x;
+                        npc.y = self.y;
+                        npc.vel_x = self.rng.range(-0x200..0x200);
+                        npc.vel_y = self.rng.range(-0x200..0x200);
+
+                        let _ = npc_list.spawn(0x100, npc.clone());
                     }
-                    self.y = parent.y;
-
-                    let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64);
-
-                    self.vel_x = (angle.cos() * -2048.0) as i32;
-                    self.vel_y = (angle.sin() * -2048.0) as i32;
-                    state.sound_manager.play_sfx(0x27);
                 }
             }
+            20 => {
+                self.x += self.vel_x;
+                self.y += self.vel_y;
+                self.action_counter += 1;
+                if 4 < self.action_counter {
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    for _ in 0..4 {
+                        npc.x = self.x;
+                        npc.y = self.y;
+                        npc.vel_x = self.rng.range(-0x200..0x200);
+                        npc.vel_y = self.rng.range(-0x200..0x200);
+
+                        let _ = npc_list.spawn(0x100, npc.clone());
+                    }
+
+                    self.npc_type = 0x8e;
+                    self.anim_num = 0;
+                    self.action_num = 0x14;
+                    self.vel_x = 0;
+                    self.npc_flags.set_invulnerable(false);
+                    self.npc_flags.set_shootable(true);
+                    self.damage = 1;
+                }
+            }
+            _ => (),
         }
 
         self.anim_num += 1;

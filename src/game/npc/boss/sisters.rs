@@ -225,7 +225,7 @@ impl BossNPC {
             1020 => {
                 self.parts[0].action_counter += 1;
                 if self.parts[0].action_counter > 50 {
-                    npc_list.remove_by_type(211, state);
+                    npc_list.kill_npcs_by_type(211, true, state);
 
                     self.parts[0].cond.set_alive(false);
                     self.parts[1].cond.set_alive(false);
