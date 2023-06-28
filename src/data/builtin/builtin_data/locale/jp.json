@@ -113,6 +113,9 @@
         "soundtrack": "サウンドトラック： {soundtrack}"
       },
       "controls": "ボタン変更",
+      "controls_menu": {
+        "display_touch_controls": "タッチコントロールを表示する: "
+      },
       "language": "言語",
       "behavior": "動作",
       "behavior_menu": {
