@@ -190,7 +190,7 @@ impl Game {
 
         if let Some(scene) = &mut self.scene {
             scene.draw(state_ref, ctx)?;
-            if state_ref.settings.touch_controls {
+            if state_ref.settings.touch_controls && state_ref.settings.display_touch_controls {
                 state_ref.touch_controls.draw(
                     state_ref.canvas_size,
                     state_ref.scale,

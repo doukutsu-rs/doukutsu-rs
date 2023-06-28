@@ -345,7 +345,6 @@ impl SettingsMenu {
         self.main
             .push_entry(MainMenuEntry::Sound, MenuEntry::Active(state.loc.t("menus.options_menu.sound").to_owned()));
 
-        #[cfg(not(target_os = "android"))]
         self.main.push_entry(
             MainMenuEntry::Controls,
             MenuEntry::Active(state.loc.t("menus.options_menu.controls").to_owned()),

@@ -28,6 +28,8 @@ pub struct Settings {
     #[serde(default = "default_true")]
     pub motion_interpolation: bool,
     pub touch_controls: bool,
+    #[serde(default = "default_true")]
+    pub display_touch_controls: bool,
     pub soundtrack: String,
     #[serde(default = "default_vol")]
     pub bgm_volume: f32,
@@ -91,7 +93,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    22
+    23
 }
 
 #[inline(always)]
@@ -334,6 +336,11 @@ impl Settings {
             self.discord_rpc = true;
         }
 
+        if self.version == 22 {
+            self.version = 23;
+            self.display_touch_controls = true;
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -410,6 +417,7 @@ impl Default for Settings {
             subpixel_coords: true,
             motion_interpolation: true,
             touch_controls: cfg!(target_os = "android"),
+            display_touch_controls: true,
             soundtrack: "Organya".to_string(),
             bgm_volume: 1.0,
             sfx_volume: 1.0,

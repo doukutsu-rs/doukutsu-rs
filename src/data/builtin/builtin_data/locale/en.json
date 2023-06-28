@@ -113,6 +113,9 @@
         "soundtrack": "Soundtrack: {soundtrack}"
       },
       "controls": "Controls...",
+      "controls_menu": {
+        "display_touch_controls": "Display touch controls:"
+      },
       "language": "Language...",
       "behavior": "Behavior...",
       "behavior_menu": {
