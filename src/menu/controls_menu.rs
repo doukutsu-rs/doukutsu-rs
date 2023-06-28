@@ -42,7 +42,6 @@ enum MainMenuEntry {
     Controller,
     Rebind,
     Rumble,
-    #[cfg(target_os = "android")]
     DisplayTouchControls,
     Back,
 }
@@ -224,14 +223,15 @@ impl ControlsMenu {
             self.main.push_entry(MainMenuEntry::Rumble, MenuEntry::Hidden);
         }
 
-        #[cfg(target_os = "android")]
-        self.main.push_entry(
-            MainMenuEntry::DisplayTouchControls,
-            MenuEntry::Toggle(
-                state.loc.t("menus.options_menu.controls_menu.display_touch_controls").to_owned(),
-                state.settings.display_touch_controls,
-            ),
-        );
+        if state.settings.touch_controls {
+            self.main.push_entry(
+                MainMenuEntry::DisplayTouchControls,
+                MenuEntry::Toggle(
+                    state.loc.t("menus.options_menu.controls_menu.display_touch_controls").to_owned(),
+                    state.settings.display_touch_controls,
+                ),
+            );
+        }
         self.main.push_entry(MainMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.confirm_reset.push_entry(
@@ -972,7 +972,6 @@ impl ControlsMenu {
                         state.settings.save(ctx)?;
                     }
                 }
-                #[cfg(target_os = "android")]
                 MenuSelectionResult::Selected(MainMenuEntry::DisplayTouchControls, toggle) => {
                     if let MenuEntry::Toggle(_, value) = toggle {
                         state.settings.display_touch_controls = !state.settings.display_touch_controls;
