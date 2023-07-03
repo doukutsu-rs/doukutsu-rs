@@ -110,10 +110,6 @@ impl NPC {
                 let player = self.get_closest_player_ref(&players);
                 self.face_player(player);
 
-                if self.target_x < 100 {
-                    self.target_x += 1;
-                }
-
                 if self.action_counter >= 8
                     && self.x - 0xe000 < player.x
                     && self.x + 0xe000 > player.x
@@ -137,11 +133,10 @@ impl NPC {
                 }
 
                 if self.action_counter >= 8
-                    && self.target_x >= 100
                     && self.x - 0x6000 < player.x
                     && self.x + 0x6000 > player.x
                     && self.y - 0xa000 < player.y
-                    && self.y + 0xa000 > player.y
+                    && self.y + 0x6000 > player.y
                 {
                     self.action_num = 2;
                     self.action_counter = 0;
@@ -527,7 +522,7 @@ impl NPC {
                     self.vel_x = -0x200;
                 }
 
-                self.vel_y += ((self.target_y - self.y).signum() | 1) * 0x08;
+                self.vel_y -= ((self.y - self.target_y).signum() | 1) * 0x08;
 
                 self.vel_x = clamp(self.vel_x, -0x2ff, 0x2ff);
                 self.vel_y = clamp(self.vel_y, -0x100, 0x100);
@@ -587,7 +582,7 @@ impl NPC {
             }
         }
 
-        if self.action_counter > 120 && self.action_counter & 0x02 == 1 && self.anim_num == 1 {
+        if self.action_counter > 120 && self.action_counter & 0x02 != 0 && self.anim_num == 1 {
             self.anim_num = 2;
         }
 
@@ -665,7 +660,7 @@ impl NPC {
                 }
 
                 self.action_counter += 1;
-                if (self.action_counter & 1) != 0 {
+                if (self.action_counter & 2) != 0 {
                     self.anim_num = 2;
                 } else {
                     self.anim_num = 3;
@@ -770,10 +765,6 @@ impl NPC {
                     self.direction = Direction::Right;
                 }
 
-                if self.target_x < 100 {
-                    self.target_x += 1;
-                }
-
                 if self.action_counter >= 8
                     && self.x - 0xe000 < player.x
                     && self.x + 0xe000 > player.x
@@ -781,8 +772,11 @@ impl NPC {
                     && self.y + 0xa000 > player.y
                 {
                     self.anim_num = 1;
-                } else if self.action_counter < 8 {
-                    self.action_counter += 1;
+                } else {
+                    if self.action_counter < 8 {
+                        self.action_counter += 1;
+                    }
+                    self.anim_num = 0;
                 }
 
                 if self.shock > 0 {
@@ -792,11 +786,10 @@ impl NPC {
                 }
 
                 if self.action_counter >= 8
-                    && self.target_x >= 100
                     && self.x - 0x6000 < player.x
                     && self.x + 0x6000 > player.x
                     && self.y - 0xa000 < player.y
-                    && self.y + 0xa000 > player.y
+                    && self.y + 0x6000 > player.y
                 {
                     self.action_num = 2;
                     self.action_counter = 0;
@@ -810,7 +803,11 @@ impl NPC {
                     self.anim_num = 2;
 
                     self.vel_y = -0x5ff;
-                    state.sound_manager.play_sfx(30);
+
+                    let player = self.get_closest_player_mut(players);
+                    if !player.cond.hidden() {
+                        state.sound_manager.play_sfx(30);
+                    }
 
                     if self.direction == Direction::Left {
                         self.vel_x = -0x100;
@@ -826,7 +823,10 @@ impl NPC {
                     self.action_num = 1;
                     self.anim_num = 0;
 
-                    state.sound_manager.play_sfx(23);
+                    let player = self.get_closest_player_mut(players);
+                    if !player.cond.hidden() {
+                        state.sound_manager.play_sfx(23);
+                    }
                 }
             }
             _ => (),
@@ -954,7 +954,7 @@ impl NPC {
                 self.vel_y += 0x20;
                 self.action_counter += 1;
 
-                if self.action_counter > 8 && self.flags.any_flag() {
+                if self.action_counter > 8 && self.flags.hit_anything() {
                     self.action_num = 4;
                     self.action_counter = 0;
                     self.damage = 0;
@@ -1185,10 +1185,10 @@ impl NPC {
                     self.vel_x = -0x200;
                 }
 
-                self.vel_y += ((self.target_y - self.y).signum() | 1) * 0x08;
+                self.vel_y -= ((self.y - self.target_y).signum() | 1) * 0x08;
 
                 self.vel_x = clamp(self.vel_x, -0x2ff, 0x2ff);
-                self.vel_y = clamp(self.vel_y, -0x100, 0x100);
+                self.vel_y = clamp(self.vel_y, -0x200, 0x200);
 
                 if self.shock > 0 {
                     self.x += self.vel_x / 2;
@@ -1245,7 +1245,7 @@ impl NPC {
             }
         }
 
-        if self.action_counter > 120 && self.action_counter & 0x02 == 1 && self.anim_num == 1 {
+        if self.action_counter > 120 && self.action_counter & 0x02 != 0 && self.anim_num == 1 {
             self.anim_num = 2;
         }
 

@@ -116,7 +116,7 @@ impl NPC {
                     && self.x - 0x8000 < player.x
                     && self.x + 0x8000 > player.x
                     && self.y - 0xa000 < player.y
-                    && self.y + 0xa000 > player.y
+                    && self.y + 0x6000 > player.y
                 {
                     self.action_num = 2;
                     self.action_counter = 0;
@@ -177,7 +177,7 @@ impl NPC {
                 }
 
                 self.action_counter += 1;
-                if self.action_counter > 50 {
+                if self.action_counter >= 50 {
                     self.action_num = 2;
                     self.action_counter = 0;
                     self.vel_y = 0x300;
