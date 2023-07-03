@@ -141,7 +141,7 @@ impl NPC {
             if (self.x - 0x6000 < player.x)
                 && (self.x + 0x6000 > player.x)
                 && (self.y - 0x6000 < player.y)
-                && (self.y + 0x6000 > player.y)
+                && (self.y + 0x2000 > player.y)
             {
                 self.anim_num = 1;
             } else {
@@ -443,6 +443,7 @@ impl NPC {
             0 | 1 => {
                 if self.action_num == 0 {
                     self.action_num = 1;
+                    self.anim_num = 0;
                     self.y += 0x800;
                 }
 
@@ -807,6 +808,7 @@ impl NPC {
                 }
 
                 self.face_player(player);
+                self.anim_num = 0;
                 self.action_counter += 1;
                 if self.action_counter > 4 {
                     self.action_num = 120;
