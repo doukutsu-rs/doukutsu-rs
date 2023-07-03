@@ -38,7 +38,7 @@ impl BossNPC {
             0 => {
                 self.hurt_sound[0] = 52;
                 self.parts[0].x = 6 * 0x2000 + state.constants.game.tile_offset_x * 0x2000;
-                self.parts[0].y = 12 * 0x2000;
+                self.parts[0].y = 12 * 0x2000 + 0x1000;
                 self.parts[0].direction = Direction::Right;
                 self.parts[0].display_bounds =
                     Rect { left: 48 * 0x200, top: 48 * 0x200, right: 32 * 0x200, bottom: 0x2000 };
@@ -168,7 +168,7 @@ impl BossNPC {
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
                         npc.x = self.parts[0].x + self.parts[0].rng.range(-12..12) as i32 * 0x200;
-                        npc.y = self.parts[0].y + self.parts[0].rng.range(-12..12) as i32 * 0x200;
+                        npc.y = self.parts[0].y + self.parts[0].hit_bounds.bottom as i32;
                         npc.vel_x = self.parts[0].rng.range(-0x155..0x155) as i32;
                         npc.vel_y = self.parts[0].rng.range(-0x600..0) as i32;
 
@@ -211,12 +211,12 @@ impl BossNPC {
             }
             113 => {
                 if self.parts[0].shock != 0 {
-                    self.parts[0].action_counter2 += 1;
                     if (self.parts[0].action_counter2 / 2) & 1 != 0 {
                         self.parts[0].anim_num = 4;
                     } else {
                         self.parts[0].anim_num = 3;
                     }
+                    self.parts[0].action_counter2 += 1;
                 } else {
                     self.parts[0].action_counter2 = 0;
                     self.parts[0].anim_num = 3;
