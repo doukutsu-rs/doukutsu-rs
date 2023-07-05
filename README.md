@@ -29,6 +29,31 @@ files.
 doukutsu-rs works fine with freeware data files or [NXEngine(-evo)](https://github.com/nxengine/nxengine-evo) or from a
 supported copy of [Cave Story+](https://www.nicalis.com/games/cavestory+).
 
+<details>
+  <summary>How to set up data files on Android</summary>
+  
+  If your phone has an app called **"Files"**:
+
+  1. Launch this app.
+  2. Press **☰** on the top left corner.
+  3. Tap on **"doukutsu-rs game data"**.
+  4. Copy your game data files to the opened folder.
+
+
+  If your phone does not have this app:
+  
+  1. Install the **"Material Files"** app from *Hai Zhang* and launch it([Google Play](https://play.google.com/store/apps/details?id=me.zhanghai.android.files) | [F-Droid](https://f-droid.org/en/packages/me.zhanghai.android.files/) | [Github Releases](https://github.com/zhanghai/MaterialFiles/releases)).
+  2. Press **☰** on the top left corner.
+  3. Press **"+ Add storage"**.
+  4. In the window that pops up, press **"External storage"**.
+  5. Press **☰** on the top left corner.
+  6. Tap on **"doukutsu-rs game data"**.
+  7. Press the large blue button at the bottom labelled **"USE THIS FOLDER"**.
+  8. Then click on **☰** in the top left corner again and open.
+  9. Tap on **"files"** above **"+ Add storage"**.
+  10. Copy your game data files to the opened folder.
+</details>
+
 #### Supported game editions and data file acquisition guides
 
 **Freeware**
