@@ -451,6 +451,7 @@ impl SharedGameState {
         let more_rust = (current_time.month() == 7 && current_time.day() == 7) || settings.more_rust;
         let seed = chrono::Local::now().timestamp() as i32;
 
+        #[cfg(feature = "discord-rpc")]
         let discord_rpc_app_id = match option_env!("DISCORD_RPC_APP_ID") {
             Some(app_id) => app_id,
             None => "1076523467337367622",

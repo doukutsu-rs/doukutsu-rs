@@ -218,14 +218,19 @@ impl Game {
 // one or deinited(so we can't create the console-only logger and replace it by the
 // console&file logger after FilesystemContainer has been initialized)
 fn get_logs_dir() -> GameResult<PathBuf> {
-    let mut logs_dir = PathBuf::new();
-    
-    
+    let mut logs_dir: PathBuf;
+
+
     #[cfg(target_os = "android")]
     {
         logs_dir = PathBuf::from(ndk_glue::native_activity().internal_data_path().to_string_lossy().to_string());
     }
-    
+
+    #[cfg(target_os = "horizon")]
+    {
+        logs_dir = PathBuf::from("sdmc:/switch/doukutsu-rs");
+    }
+
     #[cfg(not(any(target_os = "android", target_os = "horizon")))]
     {
         let project_dirs = match directories::ProjectDirs::from("", "", "doukutsu-rs") {
@@ -237,19 +242,13 @@ fn get_logs_dir() -> GameResult<PathBuf> {
                 )));
             }
         };
-        
+
         logs_dir = project_dirs.data_local_dir().to_path_buf();
     }
-    
-    #[cfg(target_os = "horizon")]
-    {
-        logs_dir = PathBuf::from("sdmc:/switch/doukutsu-rs");
-    }
-    
-    
-    
+
     logs_dir.push("logs");
-    
+
+
     Ok(logs_dir)
 }
 
