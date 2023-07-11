@@ -130,7 +130,8 @@
           "hold": "を押し続け",
           "fastforward": "はやおくり"
         },
-        "discord_rpc": "Discord Rich Presence:"
+        "discord_rpc": "Discord Rich Presence:",
+        "allow_strafe": "ストレイフを許可する："
       },
       "links": "リンク",
       "advanced": "詳細設定",

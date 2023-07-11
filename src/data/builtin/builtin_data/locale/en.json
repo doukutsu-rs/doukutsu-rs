@@ -130,7 +130,8 @@
           "hold": "Hold to Skip",
           "fastforward": "Fast-Forward"
         },
-        "discord_rpc": "Discord Rich Presence:"
+        "discord_rpc": "Discord Rich Presence:",
+        "allow_strafe": "Allow strafe:"
       },
       "links": "Links...",
       "advanced": "Advanced...",

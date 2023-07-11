@@ -114,6 +114,7 @@ impl Default for LanguageMenuEntry {
 enum BehaviorMenuEntry {
     GameTiming,
     PauseOnFocusLoss,
+    AllowStrafe,
     CutsceneSkipMode,
     #[cfg(feature = "discord-rpc")]
     DiscordRPC,
@@ -560,6 +561,14 @@ impl SettingsMenu {
         );
 
         self.behavior.push_entry(
+            BehaviorMenuEntry::AllowStrafe,
+            MenuEntry::Toggle(
+                state.loc.t("menus.options_menu.behavior_menu.allow_strafe").to_owned(),
+                state.settings.allow_strafe,
+            ),
+        );
+
+        self.behavior.push_entry(
             BehaviorMenuEntry::CutsceneSkipMode,
             MenuEntry::Options(
                 state.loc.t("menus.options_menu.behavior_menu.cutscene_skip_method.entry").to_owned(),
@@ -969,6 +978,14 @@ impl SettingsMenu {
                         *value = state.settings.pause_on_focus_loss;
                     }
                 }
+                MenuSelectionResult::Selected(BehaviorMenuEntry::AllowStrafe, toggle) => {
+                    if let MenuEntry::Toggle(_, value) = toggle {
+                        state.settings.allow_strafe = !state.settings.allow_strafe;
+                        let _ = state.settings.save(ctx);
+
+                        *value = state.settings.allow_strafe;
+                    }
+                }
                 MenuSelectionResult::Selected(BehaviorMenuEntry::CutsceneSkipMode, toggle) => {
                     if let MenuEntry::Options(_, value, _) = toggle {
                         match state.settings.cutscene_skip_mode {
@@ -1031,7 +1048,7 @@ impl SettingsMenu {
                         fs_container.open_game_directory()?;
                     }
                 }
-                
+
                 #[cfg(not(any(target_os = "android", target_os = "horizon")))]
                 MenuSelectionResult::Selected(AdvancedMenuEntry::MakePortable, _) => {
                     self.current = CurrentMenu::PortableMenu;

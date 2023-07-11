@@ -237,7 +237,7 @@ impl Player {
             self.booster_switch = BoosterSwitch::None;
         }
 
-        if state.control_flags.control_enabled() {
+        if state.control_flags.control_enabled() && state.settings.allow_strafe {
             if self.controller.trigger_strafe() {
                 if self.controller.move_up() {
                     self.strafe_up = true;
@@ -273,7 +273,7 @@ impl Player {
                     && !self.controller.map()
                     && !self.controller.inventory()
                     && !self.controller.strafe();
-                    // Leaving the skip button unchecked as a "feature" :)
+                // Leaving the skip button unchecked as a "feature" :)
 
                 if self.controller.trigger_down()
                     && only_down
@@ -291,7 +291,7 @@ impl Player {
                         self.vel_x += physics.dash_ground;
                     }
 
-                    if !self.controller.strafe() {
+                    if !self.controller.strafe() || !state.settings.allow_strafe {
                         if self.controller.move_left() {
                             self.direction = Direction::Left;
                         }
@@ -363,7 +363,7 @@ impl Player {
                     self.vel_x += physics.dash_air;
                 }
 
-                if !self.controller.strafe() {
+                if !self.controller.strafe() || !state.settings.allow_strafe {
                     if self.controller.look_left() {
                         self.direction = Direction::Left;
                     }
@@ -446,7 +446,7 @@ impl Player {
 
                     let mut booster_dir = self.direction;
 
-                    if self.controller.strafe() {
+                    if self.controller.strafe() && state.settings.allow_strafe {
                         if self.controller.move_left() {
                             self.booster_switch = BoosterSwitch::Left;
                         } else if self.controller.move_right() {
@@ -805,13 +805,11 @@ impl Player {
                 self.anim_num = 0;
                 self.anim_counter = 0;
             }
-        } else if self.up
-        {
+        } else if self.up {
             self.skin.set_state(PlayerAnimationState::FallingLookingUp);
             self.anim_num = 6;
             self.anim_counter = 0;
-        } else if self.down
-        {
+        } else if self.down {
             self.skin.set_state(PlayerAnimationState::FallingLookingDown);
             self.anim_num = 10;
             self.anim_counter = 0;

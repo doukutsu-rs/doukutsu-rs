@@ -85,6 +85,8 @@ pub struct Settings {
     pub cutscene_skip_mode: CutsceneSkipMode,
     #[serde(default = "default_true")]
     pub discord_rpc: bool,
+    #[serde(default = "default_true")]
+    pub allow_strafe: bool,
 }
 
 fn default_true() -> bool {
@@ -93,7 +95,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    23
+    24
 }
 
 #[inline(always)]
@@ -341,6 +343,11 @@ impl Settings {
             self.display_touch_controls = true;
         }
 
+        if self.version == 23 {
+            self.version = 24;
+            self.allow_strafe = true;
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -448,6 +455,7 @@ impl Default for Settings {
             more_rust: false,
             cutscene_skip_mode: CutsceneSkipMode::Hold,
             discord_rpc: true,
+            allow_strafe: true,
         }
     }
 }
