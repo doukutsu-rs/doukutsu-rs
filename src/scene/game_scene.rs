@@ -1792,7 +1792,7 @@ impl Scene for GameScene {
                 state.next_scene = Some(Box::new(TitleScene::new()));
             }
 
-            if self.player1.controller.trigger_menu_ok() {
+            if self.player1.controller.trigger_menu_ok() || self.player1.controller.trigger_menu_pause() {
                 state.next_scene = Some(Box::new(TitleScene::new()));
             }
         }
