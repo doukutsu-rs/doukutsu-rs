@@ -47,8 +47,10 @@ impl Doukutsu {
             let game_state = &mut (*(*self.ptr).state_ptr);
             let ctx = &mut (*(*self.ptr).ctx_ptr);
 
+            let fadeout = if let Some(fadeout_flag) = state.to_bool(3) { fadeout_flag } else { false };
+
             let _ =
-                game_state.sound_manager.play_song(index as usize, &game_state.constants, &game_state.settings, ctx);
+                game_state.sound_manager.play_song(index as usize, &game_state.constants, &game_state.settings, ctx, fadeout);
         }
 
         0

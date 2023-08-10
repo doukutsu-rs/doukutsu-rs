@@ -145,7 +145,7 @@ impl Scene for JukeboxScene {
                 .position(|song_comp| song_comp == &self.song_list[song as usize])
                 .unwrap_or(0);
 
-            state.sound_manager.play_song(song_id, &state.constants, &state.settings, ctx)?;
+            state.sound_manager.play_song(song_id, &state.constants, &state.settings, ctx, false)?;
         }
 
         if self.controller.trigger_shift_left() {

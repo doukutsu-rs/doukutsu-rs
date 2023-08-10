@@ -1345,12 +1345,12 @@ impl TextScriptVM {
             }
             TSCOpCode::CMU => {
                 let song_id = read_cur_varint(&mut cursor)? as usize;
-                state.sound_manager.play_song(song_id, &state.constants, &state.settings, ctx)?;
+                state.sound_manager.play_song(song_id, &state.constants, &state.settings, ctx, false)?;
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
             TSCOpCode::FMU => {
-                state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
+                state.sound_manager.play_song(0, &state.constants, &state.settings, ctx, true)?;
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
@@ -1733,7 +1733,7 @@ impl TextScriptVM {
 
                 exec_state = TextScriptExecutionState::Running(state.constants.game.intro_event, 0);
                 state.textscript_vm.suspend = true;
-                state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
+                state.sound_manager.play_song(0, &state.constants, &state.settings, ctx, false)?;
 
                 state.reset();
                 state.start_intro(ctx)?;

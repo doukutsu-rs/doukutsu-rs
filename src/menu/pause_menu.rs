@@ -181,7 +181,7 @@ impl PauseMenu {
         // Shortcut for quick restart
         if ctx.keyboard_context.is_key_pressed(ScanCode::F2) {
             state.stop_noise();
-            state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
+            state.sound_manager.play_song(0, &state.constants, &state.settings, ctx, false)?;
             state.load_or_start_game(ctx)?;
         }
 
@@ -201,7 +201,7 @@ impl PauseMenu {
                 }
                 MenuSelectionResult::Selected(PauseMenuEntry::Retry, _) => {
                     state.stop_noise();
-                    state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
+                    state.sound_manager.play_song(0, &state.constants, &state.settings, ctx, false)?;
                     state.load_or_start_game(ctx)?;
                 }
                 MenuSelectionResult::Selected(PauseMenuEntry::AddPlayer2, _) => {

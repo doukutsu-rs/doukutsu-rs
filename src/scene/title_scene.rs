@@ -171,7 +171,7 @@ impl TitleScene {
         }
 
         if song_id != state.sound_manager.current_song() {
-            state.sound_manager.play_song(song_id, &state.constants, &state.settings, ctx)?;
+            state.sound_manager.play_song(song_id, &state.constants, &state.settings, ctx, false)?;
         }
         Ok(())
     }

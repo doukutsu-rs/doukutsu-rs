@@ -390,8 +390,8 @@ function doukutsu.playSfxLoop(id)
     __doukutsu_rs:playSfxLoop(id)
 end
 
-function doukutsu.playSong(id)
-    __doukutsu_rs:playSong(id)
+function doukutsu.playSong(id, fadeout)
+    __doukutsu_rs:playSong(id, fadeout)
 end
 
 function doukutsu.players()
@@ -523,7 +523,7 @@ function ModCS.SkipFlag.Get(id)
 end
 
 function ModCS.Organya.Play(id)
-    __doukutsu_rs:playSong(id)
+    __doukutsu_rs:playSong(id, false)
 end
 
 function ModCS.Sound.Play(id, loop)

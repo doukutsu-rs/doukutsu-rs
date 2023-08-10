@@ -247,10 +247,10 @@ impl SoundManager {
         let prev_song = self.prev_song_id;
         let current_song = self.current_song_id;
 
-        self.play_song(0, constants, settings, ctx)?;
-        self.play_song(prev_song, constants, settings, ctx)?;
+        self.play_song(0, constants, settings, ctx, false)?;
+        self.play_song(prev_song, constants, settings, ctx, false)?;
         self.save_state()?;
-        self.play_song(current_song, constants, settings, ctx)?;
+        self.play_song(current_song, constants, settings, ctx, false)?;
 
         Ok(())
     }
@@ -261,6 +261,7 @@ impl SoundManager {
         constants: &EngineConstants,
         settings: &Settings,
         ctx: &mut Context,
+        fadeout: bool,
     ) -> GameResult {
         if self.current_song_id == song_id || self.no_audio {
             return Ok(());
@@ -274,7 +275,12 @@ impl SoundManager {
 
             self.send(PlaybackMessage::SetOrgInterpolation(settings.organya_interpolation)).unwrap();
             self.send(PlaybackMessage::SaveState).unwrap();
-            self.send(PlaybackMessage::Stop).unwrap();
+
+            if fadeout {
+                self.send(PlaybackMessage::FadeoutSong).unwrap();
+            } else {
+                self.send(PlaybackMessage::Stop).unwrap();
+            }
         } else if let Some(song_name) = constants.music_table.get(song_id) {
             let mut paths = constants.organya_paths.clone();
 
@@ -556,6 +562,7 @@ pub(in crate::sound) enum PlaybackMessage {
     SetSpeed(f32),
     SetSongVolume(f32),
     SetSampleVolume(f32),
+    FadeoutSong,
     SaveState,
     RestoreState,
     SetSampleParams(u8, PixToneParameters),
@@ -619,7 +626,9 @@ fn run<T>(
     let mut pxt_index = 0;
     let mut samples = 0;
     let mut bgm_vol = 1.0_f32;
+    let mut bgm_vol_saved = 1.0_f32;
     let mut sfx_vol = 1.0_f32;
+    let mut bgm_fadeout = false;
     pixtone.mix(&mut pxt_buf, sample_rate);
 
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
@@ -628,10 +637,19 @@ fn run<T>(
         &config,
         move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
             loop {
+                if bgm_fadeout && bgm_vol > 0.0 {
+                    bgm_vol -= 0.02;
+                }
+
                 match rx.try_recv() {
                     Ok(PlaybackMessage::PlayOrganyaSong(song)) => {
                         if state == PlaybackState::Stopped {
                             saved_state = PlaybackStateType::None;
+                        }
+
+                        if bgm_fadeout {
+                            bgm_fadeout = false;
+                            bgm_vol = bgm_vol_saved;
                         }
 
                         org_engine.start_song(*song, &bank);
@@ -650,6 +668,11 @@ fn run<T>(
                             saved_state = PlaybackStateType::None;
                         }
 
+                        if bgm_fadeout {
+                            bgm_fadeout = false;
+                            bgm_vol = bgm_vol_saved;
+                        }
+
                         ogg_engine.start_single(data);
 
                         for i in &mut bgm_buf[0..samples] {
@@ -664,6 +687,11 @@ fn run<T>(
                     Ok(PlaybackMessage::PlayOggSongMultiPart(data_intro, data_loop)) => {
                         if state == PlaybackState::Stopped {
                             saved_state = PlaybackStateType::None;
+                        }
+
+                        if bgm_fadeout {
+                            bgm_fadeout = false;
+                            bgm_vol = bgm_vol_saved;
                         }
 
                         ogg_engine.start_multi(data_intro, data_loop);
@@ -711,6 +739,10 @@ fn run<T>(
                         assert!(sfx_vol >= 0.0);
                         sfx_vol = new_volume;
                     }
+                    Ok(PlaybackMessage::FadeoutSong) => {
+                        bgm_fadeout = true;
+                        bgm_vol_saved = bgm_vol;
+                    }
                     Ok(PlaybackMessage::SaveState) => {
                         saved_state = match state {
                             PlaybackState::Stopped => PlaybackStateType::None,
@@ -739,6 +771,9 @@ fn run<T>(
                                 samples = org_engine.render_to(&mut bgm_buf);
                                 bgm_index = 0;
 
+                                bgm_fadeout = false;
+                                bgm_vol = bgm_vol_saved;
+
                                 state = PlaybackState::PlayingOrg;
                             }
                             #[cfg(feature = "ogg-playback")]
@@ -754,6 +789,9 @@ fn run<T>(
                                 }
                                 samples = ogg_engine.render_to(&mut bgm_buf);
                                 bgm_index = 0;
+
+                                bgm_fadeout = false;
+                                bgm_vol = bgm_vol_saved;
 
                                 state = PlaybackState::PlayingOgg;
                             }

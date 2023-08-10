@@ -229,8 +229,9 @@ declare namespace doukutsu {
     /**
      * Changes current music to one with specified ID.
      * If ID equals 0, the music is stopped.
+     * If ID equals 0 and fadeout is true, the music is faded out.
      */
-    function playMusic(id: number): void;
+    function playMusic(id: number, fadeout: boolean = false): void;
 
     /**
      * Returns the value of a certain TSC flag.

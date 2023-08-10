@@ -137,7 +137,7 @@ impl ExtraWidgetsExt for imgui::Ui<'_> {
 
 impl Scene for EditorScene {
     fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
+        state.sound_manager.play_song(0, &state.constants, &state.settings, ctx, false)?;
 
         Ok(())
     }
@@ -164,7 +164,7 @@ impl Scene for EditorScene {
             }
 
             if subscene_ref.is_none() {
-                state.sound_manager.play_song(0, &state.constants, &state.settings, ctx)?;
+                state.sound_manager.play_song(0, &state.constants, &state.settings, ctx, false)?;
             }
 
             return Ok(());

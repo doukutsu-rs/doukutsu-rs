@@ -158,7 +158,7 @@ impl CreditScriptVM {
                         CreditOpCode::ChangeMusic => {
                             let song = read_cur_varint(&mut cursor)? as u16;
 
-                            state.sound_manager.play_song(song as usize, &state.constants, &state.settings, ctx)?;
+                            state.sound_manager.play_song(song as usize, &state.constants, &state.settings, ctx, false)?;
 
                             state.creditscript_vm.state = CreditScriptExecutionState::Running(cursor.position() as u32);
                         }
