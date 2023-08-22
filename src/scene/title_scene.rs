@@ -1,5 +1,6 @@
 use crate::common::{Color, VERSION_BANNER};
 use crate::components::background::Background;
+use crate::components::compact_jukebox::CompactJukebox;
 use crate::components::nikumaru::NikumaruCounter;
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
@@ -88,6 +89,7 @@ pub struct TitleScene {
     background: Background,
     frame: Frame,
     nikumaru_rec: NikumaruCounter,
+    compact_jukebox: CompactJukebox,
     stage: Stage,
     textures: StageTexturePaths,
 }
@@ -129,6 +131,7 @@ impl TitleScene {
             background: Background::new(),
             frame: Frame::new(),
             nikumaru_rec: NikumaruCounter::new(),
+            compact_jukebox: CompactJukebox::new(),
             stage: fake_stage,
             textures,
         }
@@ -145,13 +148,18 @@ impl TitleScene {
         Ok(())
     }
 
-    pub fn update_menu_cursor(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+    pub fn update_menu_cursor(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let minutes = self.nikumaru_rec.tick / (60 * state.settings.timing_mode.get_tps());
         let mut song_id: usize;
 
         if self.nikumaru_rec.shown && minutes < 3 {
             state.menu_character = MenuCharacter::Sue;
+
             song_id = 2;
+
+            if state.constants.is_cs_plus && !state.constants.is_switch {
+                self.compact_jukebox.show();
+            }
         } else if self.nikumaru_rec.shown && minutes < 4 {
             state.menu_character = MenuCharacter::King;
             song_id = 41;
@@ -170,9 +178,14 @@ impl TitleScene {
             song_id = 43;
         }
 
-        if song_id != state.sound_manager.current_song() {
-            state.sound_manager.play_song(song_id, &state.constants, &state.settings, ctx, false)?;
+        if self.compact_jukebox.is_shown() {
+            self.compact_jukebox.change_song(song_id, state, ctx)?;
+        } else {
+            if song_id != state.sound_manager.current_song() {
+                state.sound_manager.play_song(song_id, &state.constants, &state.settings, ctx, false)?;
+            }
         }
+
         Ok(())
     }
 
@@ -300,6 +313,20 @@ impl Scene for TitleScene {
         self.challenges_menu.x = ((state.canvas_size.0 - self.challenges_menu.width as f32) / 2.0).floor() as isize;
         self.challenges_menu.y =
             ((state.canvas_size.1 + 30.0 - self.challenges_menu.height as f32) / 2.0).floor() as isize;
+
+        if self.controller.trigger_left()
+            && self.compact_jukebox.is_shown()
+            && self.current_menu == CurrentMenu::MainMenu
+        {
+            self.compact_jukebox.prev_song(state, ctx)?;
+        }
+
+        if self.controller.trigger_right()
+            && self.compact_jukebox.is_shown()
+            && self.current_menu == CurrentMenu::MainMenu
+        {
+            self.compact_jukebox.next_song(state, ctx)?;
+        }
 
         match self.current_menu {
             CurrentMenu::MainMenu => match self.main_menu.tick(&mut self.controller, state) {
@@ -461,12 +488,9 @@ impl Scene for TitleScene {
 
         if self.current_menu == CurrentMenu::MainMenu {
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "Title")?;
-            let logo_x_offset = if state.settings.original_textures && state.constants.supports_og_textures {
-                20.0
-            } else {
-                0.0
-            };
-            
+            let logo_x_offset =
+                if state.settings.original_textures && state.constants.supports_og_textures { 20.0 } else { 0.0 };
+
             batch.add_rect(
                 ((state.canvas_size.0 - state.constants.title.logo_rect.width() as f32) / 2.0).floor() + logo_x_offset,
                 40.0,
@@ -503,6 +527,8 @@ impl Scene for TitleScene {
             } else {
                 self.draw_text_centered(COPYRIGHT_PIXEL, state.canvas_size.1 - 30.0, state, ctx)?;
             }
+
+            self.compact_jukebox.draw(state, ctx, &self.frame)?;
         }
 
         self.nikumaru_rec.draw(state, ctx, &self.frame)?;

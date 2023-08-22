@@ -1,5 +1,6 @@
 pub mod background;
 pub mod boss_life_bar;
+pub mod compact_jukebox;
 pub mod credits;
 pub mod draw_common;
 pub mod fade;
