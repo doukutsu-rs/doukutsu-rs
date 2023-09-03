@@ -641,6 +641,10 @@ fn run<T>(
                     bgm_vol -= 0.02;
                 }
 
+                if bgm_vol < 0.0 {
+                    bgm_vol = 0.0;
+                }
+
                 match rx.try_recv() {
                     Ok(PlaybackMessage::PlayOrganyaSong(song)) => {
                         if state == PlaybackState::Stopped {
@@ -733,7 +737,11 @@ fn run<T>(
                     }
                     Ok(PlaybackMessage::SetSongVolume(new_volume)) => {
                         assert!(bgm_vol >= 0.0);
-                        bgm_vol = new_volume;
+                        if bgm_fadeout {
+                            bgm_vol_saved = new_volume;
+                        } else {
+                            bgm_vol = new_volume;
+                        }
                     }
                     Ok(PlaybackMessage::SetSampleVolume(new_volume)) => {
                         assert!(sfx_vol >= 0.0);
@@ -771,8 +779,10 @@ fn run<T>(
                                 samples = org_engine.render_to(&mut bgm_buf);
                                 bgm_index = 0;
 
-                                bgm_fadeout = false;
-                                bgm_vol = bgm_vol_saved;
+                                if bgm_fadeout {
+                                    bgm_fadeout = false;
+                                    bgm_vol = bgm_vol_saved;
+                                }
 
                                 state = PlaybackState::PlayingOrg;
                             }
@@ -790,8 +800,10 @@ fn run<T>(
                                 samples = ogg_engine.render_to(&mut bgm_buf);
                                 bgm_index = 0;
 
-                                bgm_fadeout = false;
-                                bgm_vol = bgm_vol_saved;
+                                if bgm_fadeout {
+                                    bgm_fadeout = false;
+                                    bgm_vol = bgm_vol_saved;
+                                }
 
                                 state = PlaybackState::PlayingOgg;
                             }
