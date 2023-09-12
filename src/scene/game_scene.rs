@@ -405,8 +405,8 @@ impl GameScene {
 
         'ray: for (i, deg) in angle.enumerate() {
             let d = deg as f32 * (std::f32::consts::PI / 180.0);
-            let dx = d.cos() * -5.0;
-            let dy = d.sin() * -5.0;
+            let dx = d.cos() * -3.0;
+            let dy = d.sin() * -3.0;
             let m = 1.0 - ((ahalf - i as f32).abs() / ahalf);
             let mut x = px;
             let mut y = py;
@@ -414,9 +414,11 @@ impl GameScene {
             let mut g = bg;
             let mut b = bb;
 
-            for i in 0..40 {
-                x += dx;
-                y += dy;
+            for i in 0..35 {
+                let scale = 0.8 + i as f32 * 0.075;
+                let m = m * (0.25 + i as f32 / 30.0);
+                x += dx * scale;
+                y += dy * scale;
 
                 const ARR: [(i32, i32); 4] = [(0, 0), (0, 1), (1, 0), (1, 1)];
                 for (ox, oy) in ARR.iter() {
@@ -490,7 +492,7 @@ impl GameScene {
                 self.draw_light(
                     x - fx2,
                     y - fy2,
-                    0.15 + i as f32 / 75.0,
+                    0.075 + i as f32 / 60.0,
                     ((r * m) as u8, (g * m) as u8, (b * m) as u8),
                     batch,
                 );

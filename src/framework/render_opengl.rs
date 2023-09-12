@@ -33,6 +33,8 @@ pub struct GLContext {
 pub struct OpenGLTexture {
     width: u16,
     height: u16,
+    width_real: u16,
+    height_real: u16,
     texture_id: u32,
     framebuffer_id: u32,
     shader: RenderShader,
@@ -788,25 +790,28 @@ impl BackendRenderer for OpenGLRenderer {
         }
     }
 
-    fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>> {
+    fn create_texture_mutable(&mut self, width: u16, height: u16, scale: f32) -> GameResult<Box<dyn BackendTexture>> {
         if let Some((_, gl)) = self.get_context() {
             unsafe {
                 let current_texture_id = return_param(|x| gl.gl.GetIntegerv(gl::TEXTURE_BINDING_2D, x)) as u32;
                 let texture_id = return_param(|x| gl.gl.GenTextures(1, x));
 
+                let width_real = (width as f32 * scale) as u16;
+                let height_real = (height as f32 * scale) as u16;
+
                 gl.gl.BindTexture(gl::TEXTURE_2D, texture_id);
-                gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as _);
-                gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as _);
+                gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as _);
+                gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _);
 
                 gl.gl.TexImage2D(
                     gl::TEXTURE_2D,
                     0,
-                    gl::RGBA as _,
-                    width as _,
-                    height as _,
+                    gl::RGBA32F as _,
+                    width_real as _,
+                    height_real as _,
                     0,
                     gl::RGBA,
-                    gl::UNSIGNED_BYTE,
+                    gl::FLOAT,
                     null() as _,
                 );
 
@@ -831,6 +836,8 @@ impl BackendRenderer for OpenGLRenderer {
                     framebuffer_id,
                     width,
                     height,
+                    width_real,
+                    height_real,
                     vertices: Vec::new(),
                     shader: self.render_data.tex_shader,
                     vbo: self.render_data.vbo,
@@ -870,6 +877,8 @@ impl BackendRenderer for OpenGLRenderer {
                     framebuffer_id: 0,
                     width,
                     height,
+                    width_real: width,
+                    height_real: height,
                     vertices: Vec::new(),
                     shader: self.render_data.tex_shader,
                     vbo: self.render_data.vbo,
@@ -950,7 +959,7 @@ impl BackendRenderer for OpenGLRenderer {
                     );
 
                     gl.gl.BindFramebuffer(gl::FRAMEBUFFER, gl_texture.framebuffer_id);
-                    gl.gl.Viewport(0, 0, gl_texture.width as _, gl_texture.height as _);
+                    gl.gl.Viewport(0, 0, gl_texture.width_real as _, gl_texture.height_real as _);
                 } else {
                     self.curr_matrix = self.def_matrix;
 

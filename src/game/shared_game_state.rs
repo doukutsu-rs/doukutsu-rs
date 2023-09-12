@@ -3,17 +3,17 @@ use std::{cmp, ops::Div};
 use chrono::{Datelike, Local};
 
 use crate::common::{ControlFlags, Direction, FadeState};
-use crate::components::draw_common::{draw_number, Alignment};
+use crate::components::draw_common::{Alignment, draw_number};
 use crate::data::vanilla::VanillaExtractor;
 #[cfg(feature = "discord-rpc")]
 use crate::discord::DiscordRPC;
 use crate::engine_constants::EngineConstants;
+use crate::framework::{filesystem, graphics};
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{create_texture_mutable, set_render_target};
+use crate::framework::graphics::{create_texture_mutable, create_texture_mutable_scale, set_render_target};
 use crate::framework::vfs::OpenOptions;
-use crate::framework::{filesystem, graphics};
 use crate::game::caret::{Caret, CaretType};
 use crate::game::npc::NPCTable;
 use crate::game::profile::GameProfile;
@@ -30,8 +30,8 @@ use crate::input::touch_controls::TouchControls;
 use crate::mod_list::ModList;
 use crate::mod_requirements::ModRequirements;
 use crate::scene::game_scene::GameScene;
-use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
+use crate::scene::title_scene::TitleScene;
 use crate::sound::SoundManager;
 use crate::util::bitvec::BitVec;
 use crate::util::rng::XorShift;
@@ -324,6 +324,7 @@ pub struct SharedGameState {
     pub textscript_vm: TextScriptVM,
     pub creditscript_vm: CreditScriptVM,
     pub lightmap_canvas: Option<Box<dyn BackendTexture>>,
+    pub water_canvas: Option<Box<dyn BackendTexture>>,
     pub season: Season,
     pub menu_character: MenuCharacter,
     pub fs_container: Option<FilesystemContainer>,
@@ -368,7 +369,7 @@ impl SharedGameState {
 
         #[cfg(not(target_os = "horizon"))]
         if let Some(vanilla_extractor) =
-            VanillaExtractor::from(ctx, vanilla_ext_exe.to_string(), vanilla_ext_outdir.to_string())
+        VanillaExtractor::from(ctx, vanilla_ext_exe.to_string(), vanilla_ext_outdir.to_string())
         {
             let result = vanilla_extractor.extract_data();
             if let Err(e) = result {
@@ -418,11 +419,11 @@ impl SharedGameState {
 
         let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
         if (locale.code == "jp" || locale.code == "en") && constants.is_base() {
-            constants.textscript.encoding =  TextScriptEncoding::ShiftJIS
+            constants.textscript.encoding = TextScriptEncoding::ShiftJIS
         } else {
-            constants.textscript.encoding =  TextScriptEncoding::UTF8
+            constants.textscript.encoding = TextScriptEncoding::UTF8
         }
-        
+
         let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
             log::warn!("Failed to load font, using built-in: {}", e);
             BMFont::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx, 1.0)
@@ -452,7 +453,7 @@ impl SharedGameState {
         let seed = chrono::Local::now().timestamp() as i32;
 
         #[cfg(feature = "discord-rpc")]
-        let discord_rpc_app_id = match option_env!("DISCORD_RPC_APP_ID") {
+            let discord_rpc_app_id = match option_env!("DISCORD_RPC_APP_ID") {
             Some(app_id) => app_id,
             None => "1076523467337367622",
         };
@@ -492,6 +493,7 @@ impl SharedGameState {
             textscript_vm: TextScriptVM::new(),
             creditscript_vm: CreditScriptVM::new(),
             lightmap_canvas: None,
+            water_canvas: None,
             season,
             menu_character: MenuCharacter::Quote,
             fs_container: None,
@@ -571,9 +573,9 @@ impl SharedGameState {
         if let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) {
             self.loc = locale;
             if (self.loc.code == "jp" || self.loc.code == "en") && self.constants.is_base() {
-                self.constants.textscript.encoding =  TextScriptEncoding::ShiftJIS
+                self.constants.textscript.encoding = TextScriptEncoding::ShiftJIS
             } else {
-                self.constants.textscript.encoding =  TextScriptEncoding::UTF8
+                self.constants.textscript.encoding = TextScriptEncoding::UTF8
             }
         }
 
@@ -594,10 +596,10 @@ impl SharedGameState {
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
         self.reset();
         #[cfg(feature = "scripting-lua")]
-        self.lua.reload_scripts(ctx)?;
+            self.lua.reload_scripts(ctx)?;
 
         #[cfg(feature = "discord-rpc")]
-        self.discord_rpc.update_difficulty(self.difficulty)?;
+            self.discord_rpc.update_difficulty(self.difficulty)?;
 
         let mut next_scene = GameScene::new(self, ctx, self.constants.game.new_game_stage as usize)?;
         next_scene.player1.cond.set_alive(true);
@@ -619,7 +621,7 @@ impl SharedGameState {
 
     pub fn start_intro(&mut self, ctx: &mut Context) -> GameResult {
         #[cfg(feature = "scripting-lua")]
-        self.lua.reload_scripts(ctx)?;
+            self.lua.reload_scripts(ctx)?;
 
         let start_stage_id = self.constants.game.intro_stage as usize;
 
@@ -671,10 +673,10 @@ impl SharedGameState {
                         profile.apply(self, &mut next_scene, ctx);
 
                         #[cfg(feature = "scripting-lua")]
-                        self.lua.reload_scripts(ctx)?;
+                            self.lua.reload_scripts(ctx)?;
 
                         #[cfg(feature = "discord-rpc")]
-                        self.discord_rpc.update_difficulty(self.difficulty)?;
+                            self.discord_rpc.update_difficulty(self.difficulty)?;
 
                         self.next_scene = Some(Box::new(next_scene));
                         return Ok(());
@@ -717,7 +719,8 @@ impl SharedGameState {
 
         // ensure no texture is bound before destroying them.
         set_render_target(ctx, None)?;
-        self.lightmap_canvas = Some(create_texture_mutable(ctx, width, height)?);
+        self.lightmap_canvas = Some(create_texture_mutable_scale(ctx, width, height, 0.125)?);
+        self.water_canvas = Some(create_texture_mutable(ctx, width, height)?);
 
         Ok(())
     }
@@ -747,7 +750,7 @@ impl SharedGameState {
         self.shutdown = true;
 
         #[cfg(feature = "discord-rpc")]
-        self.discord_rpc.dispose();
+            self.discord_rpc.dispose();
     }
 
     // Stops SFX 40/41/58 (CPS and CSS)

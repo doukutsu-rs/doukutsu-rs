@@ -67,7 +67,15 @@ pub fn renderer_initialized(ctx: &mut Context) -> bool {
 
 pub fn create_texture_mutable(ctx: &mut Context, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>> {
     if let Some(renderer) = &mut ctx.renderer {
-        return renderer.create_texture_mutable(width, height);
+        return renderer.create_texture_mutable(width, height, 1.0);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn create_texture_mutable_scale(ctx: &mut Context, width: u16, height: u16, scale: f32) -> GameResult<Box<dyn BackendTexture>> {
+    if let Some(renderer) = &mut ctx.renderer {
+        return renderer.create_texture_mutable(width, height, scale);
     }
 
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))

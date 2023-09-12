@@ -243,7 +243,7 @@ impl WaterRenderer {
             return Ok(());
         }
 
-        graphics::set_render_target(ctx, state.lightmap_canvas.as_ref())?;
+        graphics::set_render_target(ctx, state.water_canvas.as_ref())?;
         graphics::clear(ctx, Color::from_rgba(0, 0, 0, 0));
         graphics::set_blend_mode(ctx, BlendMode::None)?;
 
@@ -346,7 +346,7 @@ impl WaterRenderer {
         graphics::set_render_target(ctx, None)?;
 
         {
-            let canvas = state.lightmap_canvas.as_mut().unwrap();
+            let canvas = state.water_canvas.as_mut().unwrap();
             let rect = Rect { left: 0.0, top: 0.0, right: state.screen_size.0, bottom: state.screen_size.1 };
 
             canvas.clear();

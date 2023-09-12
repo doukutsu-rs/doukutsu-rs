@@ -53,7 +53,7 @@ pub trait BackendRenderer {
         Ok(())
     }
 
-    fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>>;
+    fn create_texture_mutable(&mut self, width: u16, height: u16, scale: f32) -> GameResult<Box<dyn BackendTexture>>;
 
     fn create_texture(&mut self, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>>;
 

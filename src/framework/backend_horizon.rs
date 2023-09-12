@@ -5,19 +5,18 @@ use std::mem;
 use std::pin::Pin;
 use std::ptr::slice_from_raw_parts_mut;
 
+use deko3d::{
+    Barrier, BlendFactor, BlendOp, BlendState, CmdBuf, CmdBufMaker, ColorMask, ColorState, ColorWriteState,
+    CopyBuf, DepthStencilState, DeviceMaker, DK_CMDMEM_ALIGNMENT, DK_MEMBLOCK_ALIGNMENT, DK_SHADER_CODE_ALIGNMENT, DK_SHADER_CODE_UNUSABLE_SIZE, DK_UNIFORM_BUF_ALIGNMENT, Face,
+    Filter, Image, ImageDescriptor, ImageFlags, ImageFormat, ImageLayout, ImageLayoutMaker, ImageRect,
+    ImageView, InvalidateFlags, make_texture_handle, MemBlock, MemBlockFlags, MemBlockMaker, MipFilter, Primitive,
+    QueueFlags, QueueMaker, RasterizerState, ResHandle, Sampler, SamplerDescriptor, Scissor, Shader, ShaderMaker,
+    Stage, StageFlag, SwapchainMaker, Viewport, VtxAttribSize, VtxAttribState,
+    VtxAttribType, VtxBufferState, WrapMode,
+};
 use imgui::{DrawData, TextureId, Ui};
 use itertools::all;
 use lazy_static::lazy_static;
-
-use deko3d::{
-    make_texture_handle, Barrier, BlendFactor, BlendOp, BlendState, CmdBuf, CmdBufMaker, ColorMask, ColorState,
-    ColorWriteState, CopyBuf, DepthStencilState, DeviceMaker, Face, Filter, Image, ImageDescriptor, ImageFlags,
-    ImageFormat, ImageLayout, ImageLayoutMaker, ImageRect, ImageView, InvalidateFlags, MemBlock, MemBlockFlags,
-    MemBlockMaker, MipFilter, Primitive, QueueFlags, QueueMaker, RasterizerState, ResHandle, Sampler,
-    SamplerDescriptor, Scissor, Shader, ShaderMaker, Stage, StageFlag, SwapchainMaker, Viewport, VtxAttribSize,
-    VtxAttribState, VtxAttribType, VtxBufferState, WrapMode, DK_CMDMEM_ALIGNMENT, DK_MEMBLOCK_ALIGNMENT,
-    DK_SHADER_CODE_ALIGNMENT, DK_SHADER_CODE_UNUSABLE_SIZE, DK_UNIFORM_BUF_ALIGNMENT,
-};
 
 use crate::common::{Color, Rect};
 use crate::framework::backend::{
@@ -30,8 +29,8 @@ use crate::framework::gamepad;
 use crate::framework::gamepad::{Axis, Button, GamepadType};
 use crate::framework::graphics::BlendMode;
 use crate::framework::util::field_offset;
-use crate::game::shared_game_state::SharedGameState;
 use crate::game::Game;
+use crate::game::shared_game_state::SharedGameState;
 
 mod nx {
     type NWindow = std::ffi::c_void;
@@ -471,7 +470,8 @@ lazy_static! {
 
 struct Deko3DVertexBuffer {
     buffer: deko3d::MemBlock,
-    capacity: usize, // those two are in bytes
+    capacity: usize,
+    // those two are in bytes
     allocated: usize,
 }
 
@@ -1017,14 +1017,14 @@ impl BackendRenderer for Deko3DRenderer {
         Ok(())
     }
 
-    fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>> {
+    fn create_texture_mutable(&mut self, width: u16, height: u16, scale: f32) -> GameResult<Box<dyn BackendTexture>> {
         let img_total = width as u32 * height as u32 * 4;
         let desc_memory = MemBlockMaker::new(
             &self.device,
             align(std::mem::size_of::<Deko3DTextureDesc>() as u32, DK_MEMBLOCK_ALIGNMENT),
         )
-        .set_flags(MemBlockFlags::CpuUncached | MemBlockFlags::GpuCached)
-        .create();
+            .set_flags(MemBlockFlags::CpuUncached | MemBlockFlags::GpuCached)
+            .create();
 
         let mut desc_cpu = unsafe { &mut *(desc_memory.get_cpu_addr() as *mut Deko3DTextureDesc) };
         desc_cpu.sampler = SamplerDescriptor::new();
@@ -1034,22 +1034,22 @@ impl BackendRenderer for Deko3DRenderer {
         ImageLayoutMaker::new(&self.device)
             .set_flags(ImageFlags::UsageRender | ImageFlags::BlockLinear)
             .set_format(ImageFormat::RGBA8Unorm)
-            .set_dimensions(width as u32, height as u32, 0)
+            .set_dimensions((width as f32 * scale) as u32, (height as f32 * scale) as u32, 0)
             .initialize(&mut layout);
 
         let memory = MemBlockMaker::new(
             &self.device,
             align(layout.get_size() as u32, DK_MEMBLOCK_ALIGNMENT.max(layout.get_alignment())),
         )
-        .set_flags(MemBlockFlags::Image | MemBlockFlags::GpuCached)
-        .create();
+            .set_flags(MemBlockFlags::Image | MemBlockFlags::GpuCached)
+            .create();
 
         let mut image = Image::new();
         image.initialize(&layout, &memory, 0);
 
         desc_cpu.image.initialize(&ImageView::new(&image), false, false);
         desc_cpu.sampler.initialize(
-            &Sampler::new().set_filter(Filter::Nearest, Filter::Nearest, MipFilter::None).set_wrap_mode(
+            &Sampler::new().set_filter(Filter::Linear, Filter::Linear, MipFilter::None).set_wrap_mode(
                 WrapMode::ClampToEdge,
                 WrapMode::ClampToEdge,
                 WrapMode::ClampToEdge,
@@ -1075,8 +1075,8 @@ impl BackendRenderer for Deko3DRenderer {
             &self.device,
             align(std::mem::size_of::<Deko3DTextureDesc>() as u32, DK_MEMBLOCK_ALIGNMENT),
         )
-        .set_flags(MemBlockFlags::CpuUncached | MemBlockFlags::GpuCached)
-        .create();
+            .set_flags(MemBlockFlags::CpuUncached | MemBlockFlags::GpuCached)
+            .create();
 
         let scratch_memory = MemBlockMaker::new(&self.device, align(img_total, DK_MEMBLOCK_ALIGNMENT))
             .set_flags(MemBlockFlags::CpuUncached | MemBlockFlags::GpuCached)
@@ -1107,8 +1107,8 @@ impl BackendRenderer for Deko3DRenderer {
             &self.device,
             align(layout.get_size() as u32, DK_MEMBLOCK_ALIGNMENT.max(layout.get_alignment())),
         )
-        .set_flags(MemBlockFlags::Image | MemBlockFlags::GpuCached)
-        .create();
+            .set_flags(MemBlockFlags::Image | MemBlockFlags::GpuCached)
+            .create();
 
         let mut image = Image::new();
         image.initialize(&layout, &memory, 0);
