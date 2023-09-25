@@ -2308,6 +2308,11 @@ impl Scene for GameScene {
     }
 
     fn process_debug_keys(&mut self, state: &mut SharedGameState, ctx: &mut Context, key_code: ScanCode) -> GameResult {
+        #[cfg(not(debug_assertions))]
+        if !state.settings.debug_mode {
+            return Ok(());
+        }
+
         if key_code == ScanCode::F3 && ctx.keyboard_context.active_mods().ctrl() {
             let _ = state.sound_manager.reload();
             return Ok(());
@@ -2316,11 +2321,6 @@ impl Scene for GameScene {
         if key_code == ScanCode::S && ctx.keyboard_context.active_mods().ctrl() {
             let _ = state.save_game(self, ctx);
             state.sound_manager.play_sfx(18);
-            return Ok(());
-        }
-
-        #[cfg(not(debug_assertions))]
-        if !state.settings.debug_mode {
             return Ok(());
         }
 

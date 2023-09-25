@@ -269,7 +269,6 @@ fn init_logger() -> GameResult {
         .level(log::LevelFilter::Debug)
         .chain(
             fern::Dispatch::new()
-                .level(log::LevelFilter::Info)
                 .chain(std::io::stderr())
         );
     
@@ -281,7 +280,7 @@ fn init_logger() -> GameResult {
     
     dispatcher = dispatcher.chain(
         fern::Dispatch::new()
-            .level(log::LevelFilter::Debug)
+            .level(log::LevelFilter::Info)
             .chain(fern::log_file(file).unwrap())
     );
     dispatcher.apply()?;

@@ -459,7 +459,11 @@ impl TextScriptVM {
                             } else {
                                 state.constants.textscript.text_speed_fast
                             };
-                            
+
+                            if ticks > 0 {
+                                state.sound_manager.play_sfx(2);
+                            }
+
                             state.textscript_vm.state = if new_line {
                                 TextScriptExecutionState::MsgNewLine(
                                     event,
