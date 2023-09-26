@@ -280,6 +280,7 @@ impl NPC {
             0 | 1 => {
                 if self.action_num == 0 {
                     self.action_num = 1;
+                    state.sound_manager.play_sfx(72);
 
                     let player = self.get_closest_player_mut(players);
                     self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
@@ -428,7 +429,7 @@ impl NPC {
                     self.action_counter = 0;
                     self.anim_num = 0;
                     self.action_counter = 0;
-                    self.direction = if self.x < player.x { Direction::Right } else { Direction::Left };
+                    self.direction = if self.x <= player.x { Direction::Right } else { Direction::Left };
                 }
 
                 self.vel_x = self.direction.vector_x() * 0x200;
@@ -495,8 +496,8 @@ impl NPC {
                     let deg = (if self.direction == Direction::Left { 0x88 } else { 0xf8 } + self.rng.range(-16..16))
                         as f64
                         * CDEG_RAD;
-                    let vel_x = (deg.cos() * 1536.0) as i32;
-                    let vel_y = (deg.sin() * 1536.0) as i32;
+                    let vel_x = (deg.cos() * 2560.0) as i32;
+                    let vel_y = (deg.sin() * 2560.0) as i32;
 
                     let mut npc = NPC::create(11, &state.npc_table);
 

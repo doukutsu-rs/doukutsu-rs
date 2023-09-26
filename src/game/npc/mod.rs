@@ -493,7 +493,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             239 => self.tick_n239_cage_bars(state),
             240 => self.tick_n240_mimiga_jailed(state),
             241 => self.tick_n241_critter_red(state, players),
-            242 => self.tick_n242_bat_last_cave(state),
+            242 => self.tick_n242_bat_last_cave(state, stage),
             243 => self.tick_n243_bat_generator(state, npc_list),
             244 => self.tick_n244_lava_drop(state, players),
             245 => self.tick_n245_lava_drop_generator(state, npc_list),

@@ -5,6 +5,7 @@ use crate::game::npc::list::NPCList;
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
+use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
 impl NPC {
@@ -103,7 +104,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n242_bat_last_cave(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n242_bat_last_cave(&mut self, state: &mut SharedGameState, stage: &mut Stage) -> GameResult {
+        if self.x < 0 || self.x > stage.map.width as i32 * state.tile_size.as_int() * 0x200 {
+            self.vanish(state);
+            return Ok(());
+        }
         loop {
             match self.action_num {
                 0 => {
@@ -183,7 +188,7 @@ impl NPC {
 
         if hit {
             for _ in 0..3 {
-                state.create_caret(self.x, self.y, CaretType::Bubble, Direction::Right);
+                state.create_caret(self.x, self.y + 0x800, CaretType::Bubble, Direction::Right);
             }
 
             let player = self.get_closest_player_ref(&players);
@@ -289,7 +294,7 @@ impl NPC {
             10 | 11 => {
                 if self.action_num == 10 {
                     self.action_num = 11;
-                    self.anim_num = 2;
+                    self.anim_num = 3;
                     self.action_counter = 0;
                     self.npc_flags.set_shootable(true);
                 }
@@ -297,6 +302,7 @@ impl NPC {
                 self.action_counter += 1;
                 match self.action_counter {
                     30 | 40 | 50 => {
+                        self.anim_num = 4;
                         let player = self.get_closest_player_ref(&players);
 
                         let mut npc = NPC::create(277, &state.npc_table);
@@ -341,14 +347,15 @@ impl NPC {
                 self.action_counter += 1;
                 match self.action_counter {
                     30 | 40 | 50 => {
+                        self.anim_num = 6;
                         let player = self.get_closest_player_ref(&players);
 
                         let mut npc = NPC::create(277, &state.npc_table);
                         npc.cond.set_alive(true);
                         npc.x = self.x;
-                        npc.y = self.y;
+                        npc.y = self.y - 0x1400;
 
-                        let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64);
+                        let angle = f64::atan2((self.y - 0x1400 - player.y) as f64, (self.x - player.x) as f64);
                         npc.vel_x = (-2048.0 * angle.cos()) as i32;
                         npc.vel_y = (-2048.0 * angle.sin()) as i32;
 

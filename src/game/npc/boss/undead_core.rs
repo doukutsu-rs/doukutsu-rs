@@ -170,8 +170,8 @@ impl NPC {
             self.vel_x += self.direction.vector_x() * 0x15;
             self.target_x += self.vel_x;
 
-            self.x = self.target_x + 4 * ((self.action_counter2 as f64).cos() * -512.0) as i32;
-            self.y = self.target_y + 6 * ((self.action_counter2 as f64).sin() * -512.0) as i32;
+            self.x = self.target_x + 4 * ((self.action_counter2 as f64).cos() * 512.0) as i32;
+            self.y = self.target_y + 6 * ((self.action_counter2 as f64).sin() * 512.0) as i32;
 
             let mut npc = NPC::create(286, &state.npc_table);
             npc.cond.set_alive(true);
@@ -292,12 +292,12 @@ impl NPC {
 
                     npc.x = self.x;
                     npc.y = self.y;
-                    npc.vel_y = self.direction.vector_y() * 0x400;
+                    npc.vel_y = self.direction.opposite().vector_y() * 0x400;
 
                     let _ = npc_list.spawn(0x100, npc);
                 }
 
-                if self.x < 0x2000 || self.x > (stage.map.width as i32 + 1) * state.tile_size.as_int() * 0x200 {
+                if self.x < 0x2000 || self.x > (stage.map.width as i32 - 1) * state.tile_size.as_int() * 0x200 {
                     self.cond.set_alive(false);
                 }
             }
@@ -399,6 +399,10 @@ impl BossNPC {
                 self.parts[7] = self.parts[1].clone();
                 self.parts[7].action_counter2 = 1;
                 self.parts[7].action_counter3 = 128;
+
+                for i in [2, 6, 7] {
+                    self.hurt_sound[i] = self.hurt_sound[1];
+                }
 
                 self.parts[19].action_counter = self.parts[0].life;
 
@@ -1043,7 +1047,7 @@ impl BossNPC {
 
                 part.vel_x += 0x20;
                 part.x += part.vel_x;
-                if part.x > (stage.map.width as i32) * state.tile_size.as_int() * 0x200 + 0x4000 {
+                if part.x > (stage.map.width as i32 + 2) * state.tile_size.as_int() * 0x200 {
                     part.cond.set_alive(false);
                 }
             }

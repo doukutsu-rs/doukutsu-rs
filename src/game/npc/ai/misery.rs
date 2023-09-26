@@ -25,8 +25,8 @@ impl NPC {
                         self.target_y = npc.y;
 
                         let angle = ((self.y - self.target_y) as f64 / (self.x - self.target_x) as f64).atan();
-                        self.vel_x = (angle.cos() * 1024.0) as i32;
-                        self.vel_y = (angle.sin() * 1024.0) as i32;
+                        self.vel_x = (angle.cos() * -1024.0) as i32;
+                        self.vel_y = (angle.sin() * -1024.0) as i32;
                     }
 
                     if self.action_counter2 == 0 {
@@ -144,6 +144,7 @@ impl NPC {
                     npc.cond.set_alive(true);
                     npc.x = self.x;
                     npc.y = self.y - 0x2000;
+                    npc.parent_id = self.id; // This NPC doesn't do anything with its parent...but we'll set it anyways
 
                     let _ = npc_list.spawn(0, npc);
                 }
@@ -270,6 +271,7 @@ impl NPC {
                     let mut npc = NPC::create(66, &state.npc_table);
                     npc.x = self.x;
                     npc.y = self.y - 0x2000;
+                    npc.parent_id = self.id; // This NPC doesn't do anything with its parent...but we'll set it anyways
                     npc.cond.set_alive(true);
 
                     let _ = npc_list.spawn(0, npc);
@@ -612,7 +614,7 @@ impl NPC {
                     }
 
                     let player = self.get_closest_player_ref(&players);
-                    self.action_num = if player.x > self.x - 0xe000 && player.x <= self.x + 0xe000 { 100 } else { 160 };
+                    self.action_num = if player.x >= self.x - 0xe000 && player.x <= self.x + 0xe000 { 100 } else { 160 };
                 }
             }
             160 | 161 => {
@@ -701,7 +703,7 @@ impl NPC {
     }
 
     pub(crate) fn tick_n248_misery_boss_vanishing(&mut self, state: &mut SharedGameState) -> GameResult {
-        if self.flags.any_flag() {
+        if self.flags.hit_anything() {
             self.cond.set_alive(false);
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
         }
@@ -815,7 +817,7 @@ impl NPC {
             self.anim_num = (self.anim_num + 1) & 1;
             self.y += 0x1000;
 
-            if self.flags.any_flag() {
+            if self.flags.hit_anything() {
                 npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 3, state, &self.rng);
                 self.cond.set_alive(false);
             }
@@ -849,10 +851,10 @@ impl NPC {
 
                 if let Some(parent) = self.get_parent_ref_mut(npc_list) {
                     self.x = parent.x
-                        + self.action_counter as i32 * ((self.action_counter2 as f64 * CDEG_RAD).cos() * -512.0) as i32
+                        + self.action_counter as i32 * ((self.action_counter2 as f64 * CDEG_RAD).cos() * 512.0) as i32
                         / 4;
                     self.y = parent.y
-                        + self.action_counter as i32 * ((self.action_counter2 as f64 * CDEG_RAD).sin() * -512.0) as i32
+                        + self.action_counter as i32 * ((self.action_counter2 as f64 * CDEG_RAD).sin() * 512.0) as i32
                         / 4;
 
                     if parent.action_num == 151 {
@@ -1198,6 +1200,7 @@ impl NPC {
 
                 if self.y > stage.map.height as i32 * state.tile_size.as_int() * 0x200 {
                     self.vanish(state);
+                    return Ok(());
                 }
             }
             _ => (),

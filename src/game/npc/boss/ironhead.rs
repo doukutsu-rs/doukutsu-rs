@@ -11,7 +11,7 @@ impl NPC {
     pub(crate) fn tick_n196_ironhead_wall(&mut self, state: &mut SharedGameState) -> GameResult {
         self.x -= 0xC00;
         if self.x <= if !state.constants.is_switch { 0x26000 } else { 0x1E000 } {
-            self.x += if !state.constants.is_switch { 0x2C000 } else { 0x3C000 };
+            self.x += if !state.constants.is_switch { 0x2C000 } else { 0x3B400 };
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 1 };
@@ -158,7 +158,7 @@ impl NPC {
             }
             10 => {
                 self.action_counter += 1;
-                if self.action_counter % 6 == 0 {
+                if self.action_counter % 4 == 1 {
                     let mut npc = NPC::create(335, &state.npc_table);
                     npc.cond.set_alive(true);
                     npc.x = self.x;
@@ -269,19 +269,21 @@ impl BossNPC {
                     self.parts[0].action_num = 100;
                 }
 
-                self.parts[0].action_counter += 1;
-                if [300, 310, 320].contains(&self.parts[0].action_counter) {
-                    state.sound_manager.play_sfx(39);
+                if self.parts[0].direction == Direction::Left {
+                    self.parts[0].action_counter += 1;
+                    if [300, 310, 320].contains(&self.parts[0].action_counter) {
+                        state.sound_manager.play_sfx(39);
 
-                    let mut npc = NPC::create(198, &state.npc_table);
-                    npc.cond.set_alive(true);
-                    npc.x = self.parts[0].x + 0x1400;
-                    npc.y = self.parts[0].y + 0x200;
-                    npc.vel_x = self.parts[0].rng.range(-3..0) * 0x200;
-                    npc.vel_y = self.parts[0].rng.range(-3..3) * 0x200;
-                    npc.direction = Direction::Right;
+                        let mut npc = NPC::create(198, &state.npc_table);
+                        npc.cond.set_alive(true);
+                        npc.x = self.parts[0].x + 0x1400;
+                        npc.y = self.parts[0].y + 0x200;
+                        npc.vel_x = self.parts[0].rng.range(-3..0) * 0x200;
+                        npc.vel_y = self.parts[0].rng.range(-3..3) * 0x200;
+                        npc.direction = Direction::Right;
 
-                    let _ = npc_list.spawn(0x100, npc);
+                        let _ = npc_list.spawn(0x100, npc);
+                    }
                 }
 
                 self.parts[0].animate(2, 0, 7);
