@@ -40,7 +40,7 @@ impl NPC {
             self.anim_counter = 0;
             let anim = self.anim_num as i32 + (self.direction.vector_x() * -1);
             if anim < 0 {
-                self.anim_num = 4;
+                self.anim_num = 3;
             } else if anim > 3 {
                 self.anim_num = 0;
             } else {
@@ -106,7 +106,7 @@ impl NPC {
                     state.sound_manager.play_sfx(103);
                 }
                 self.action_counter += 1;
-                self.anim_num = (self.action_counter + 1) % 2;
+                self.anim_num = 1 - (self.action_counter & 2) / 2;
                 if self.direction == Direction::Left && self.action_counter == 20 {
                     let mut npc = NPC::create(146, &state.npc_table);
                     npc.cond.set_alive(true);
@@ -149,8 +149,8 @@ impl NPC {
 
                 if self.x < 0
                     || self.y < 0
-                    || self.x > (stage.map.width as i32) * state.tile_size.as_int() * 0x200 + 0x4000
-                    || self.y > (stage.map.height as i32) * state.tile_size.as_int() * 0x200 + 0x4000
+                    || self.x > (stage.map.width as i32) * state.tile_size.as_int() * 0x200
+                    || self.y > (stage.map.height as i32) * state.tile_size.as_int() * 0x200
                 {
                     self.vanish(state);
                     return Ok(());
@@ -304,6 +304,7 @@ impl NPC {
                     self.action_counter = 0;
                     self.anim_num = 6;
                     self.anim_counter = 0;
+                    self.vel_y = 0;
                     self.damage = 10;
 
                     self.face_player(player);
@@ -352,6 +353,7 @@ impl NPC {
                 }
                 self.vel_y = if self.action_num == 221 { -0x800 } else { 0x800 };
 
+                self.action_counter += 1;
                 self.anim_num = if self.action_counter & 0x02 != 0 { 8 } else { 9 };
 
                 if (self.y < 0x6000 && self.action_num == 221)
@@ -524,11 +526,12 @@ impl NPC {
                     // I think Pixel meant for the smoke radius to be 16 pixels (0x2000) instead of 16 units,
                     // because as it is, this just gets divided by 0x200 units/px and becomes 0
                     npc_list.create_death_smoke(self.x, self.y, 16, 16, state, &self.rng);
+                    state.sound_manager.play_sfx(72);
                 }
                 self.vel_y += 0x20;
                 self.clamp_fall_speed();
 
-                self.action_counter;
+                self.action_counter += 1;
                 self.x = self.target_x + if self.action_counter & 0x02 != 0 { 0x200 } else { -0x200 };
                 if self.flags.hit_bottom_wall() {
                     self.action_num = 1002;
@@ -950,7 +953,6 @@ impl NPC {
                     self.npc_flags.set_ignore_solidity(false);
                 }
 
-                self.action_counter += 1;
                 if self.action_counter & 0x02 != 0 {
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
@@ -958,6 +960,7 @@ impl NPC {
                     npc.y = self.y;
                     let _ = npc_list.spawn(0x100, npc);
                 }
+                self.action_counter += 1; // This gets incremented after the previous check for some reason
 
                 if self.flags.hit_bottom_wall() {
                     self.action_num = 110;
@@ -981,7 +984,7 @@ impl NPC {
             110 => {
                 self.vel_y += 0x40;
 
-                if self.y > (stage.map.height as i32) * state.tile_size.as_int() * 0x200 + 0x4000 {
+                if self.y > (stage.map.height as i32 + 2) * state.tile_size.as_int() * 0x200 {
                     self.cond.set_alive(false);
                     return Ok(());
                 }
@@ -1013,7 +1016,9 @@ impl NPC {
             0 | 10 => {
                 if self.action_num == 0 {
                     self.action_num = 10;
+                    // self.action_counter2 set by Ballos code, no need to set it here
                     self.action_counter3 = 192;
+                    self.vel_y2 = 0;
                 }
                 if self.action_counter3 >= 448 {
                     self.action_num = 11;
@@ -1069,6 +1074,7 @@ impl NPC {
                 }
             }
             100 => {
+                self.vel_y2 = 0;
                 if boss.parts[0].action_num == 424 {
                     self.action_num = 30;
                 } else if boss.parts[0].action_num == 428 {
@@ -1109,18 +1115,19 @@ impl NPC {
             match self.action_num {
                 20 | 30 => {
                     if self.action_counter2 % 4 == 0 {
-                        self.vel_y = (self.target_y - self.y) / 4;
+                        self.vel_y2 = (self.target_y - self.y) / 4;
                     }
                 }
                 40 | 50 => {
                     if self.action_counter2 & 0x02 == 0 {
-                        self.vel_y = (self.target_y - self.y) / 2;
+                        self.vel_y2 = (self.target_y - self.y) / 2;
                     }
                 }
                 _ => {
-                    self.vel_y = self.target_y - self.y;
+                    self.vel_y2 = self.target_y - self.y;
                 }
             }
+            self.vel_y = self.vel_y2;
         }
 
         self.x += self.vel_x;
@@ -1391,7 +1398,9 @@ impl NPC {
                         if stage.change_tile(x as usize, y as usize, 109) {
                             npc.x = x * state.tile_size.as_int() * 0x200;
                             npc.y = y * state.tile_size.as_int() * 0x200;
-                            let _ = npc_list.spawn(0x100, npc.clone());
+                            let _ = npc_list.spawn(0, npc.clone());
+                            let _ = npc_list.spawn(0, npc.clone());
+                            let _ = npc_list.spawn(0, npc.clone());
                         }
                     }
                 }
@@ -1680,7 +1689,7 @@ impl BossNPC {
                         let mut npc = NPC::create(344, &state.npc_table);
                         npc.cond.set_alive(true);
                         npc.x = self.parts[0].x + 0x3000 * dir.vector_x();
-                        npc.y = self.parts[0].y + 0x4800;
+                        npc.y = self.parts[0].y - 0x4800;
                         npc.direction = dir;
                         let _ = npc_list.spawn(0x20, npc);
                     }
@@ -1786,7 +1795,7 @@ impl BossNPC {
                         let mut npc = NPC::create(344, &state.npc_table);
                         npc.cond.set_alive(true);
                         npc.x = self.parts[0].x + 0x3000 * dir.vector_x();
-                        npc.y = self.parts[0].y + 0x4800;
+                        npc.y = self.parts[0].y - 0x4800;
                         npc.direction = dir;
                         let _ = npc_list.spawn(0x20, npc);
                     }
@@ -1808,7 +1817,7 @@ impl BossNPC {
                     npc.cond.set_alive(true);
                     npc.x = (((self.parts[0].action_counter as i32 / 30) * 2) + 2) * 0x2000;
                     npc.y = 0x2A000;
-                    let _ = npc_list.spawn(0x100, npc);
+                    let _ = npc_list.spawn(0x180, npc);
                 }
 
                 if (self.parts[0].action_counter / 3 % 2) > 0 {
@@ -1962,7 +1971,7 @@ impl BossNPC {
                 npc.x = self.parts[0].x + self.parts[0].rng.range(-40..40) * 0x200;
                 npc.y = self.parts[0].y + self.parts[0].rng.range(0..40) * 0x200;
                 npc.direction = Direction::Bottom;
-                let _ = npc_list.spawn(0x100, npc);
+                let _ = npc_list.spawn(0, npc);
             }
         }
 
