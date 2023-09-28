@@ -24,7 +24,7 @@ impl NPC {
                         self.target_x = npc.x;
                         self.target_y = npc.y;
 
-                        let angle = ((self.y - self.target_y) as f64 / (self.x - self.target_x) as f64).atan();
+                        let angle = f64::atan2((self.y - self.target_y) as f64,  (self.x - self.target_x) as f64);
                         self.vel_x = (angle.cos() * -1024.0) as i32;
                         self.vel_y = (angle.sin() * -1024.0) as i32;
                     }
