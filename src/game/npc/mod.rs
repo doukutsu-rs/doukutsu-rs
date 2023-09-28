@@ -581,7 +581,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             327 => self.tick_n327_sneeze(state, npc_list),
             328 => self.tick_n328_human_transform_machine(state),
             329 => self.tick_n329_laboratory_fan(state),
-            330 => self.tick_n330_rolling(state, stage),
+            330 => self.tick_n330_rolling(state, npc_list, stage),
             331 => self.tick_n331_ballos_bone_projectile(state),
             332 => self.tick_n332_ballos_shockwave(state, npc_list),
             333 => self.tick_n333_ballos_lightning(state, players, npc_list),

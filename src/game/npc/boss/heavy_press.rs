@@ -162,12 +162,12 @@ impl BossNPC {
                     // This relies heavily on the map not being changed
                     // Need to calculate offset from the default starting location
                     for i in 0..5 {
-                        stage.change_tile(i + 8, self.parts[0].action_counter3 as usize, 0);
+                        let extra_smoke = if stage.change_tile(i + 8, self.parts[0].action_counter3 as usize, 0) { 3 } else { 0 };
                         npc_list.create_death_smoke(
                             (i as i32 + 8) * 0x2000,
                             self.parts[0].action_counter3 as i32 * 0x2000,
                             0,
-                            4,
+                            4 + extra_smoke,
                             state,
                             &self.parts[0].rng,
                         );

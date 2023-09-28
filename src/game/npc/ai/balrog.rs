@@ -483,19 +483,22 @@ impl NPC {
                     npc.x = x as i32 * 0x2000;
                     npc.y = y as i32 * 0x2000;
 
-                    let _ = npc_list.spawn(0x100, npc.clone());
-                    let _ = npc_list.spawn(0x100, npc.clone());
+                    let _ = npc_list.spawn(0, npc.clone());
+                    let _ = npc_list.spawn(0, npc.clone());
+                    let _ = npc_list.spawn(0, npc.clone());
 
                     if x > 0 && stage.change_tile(x - 1, y, 0) {
                         npc.x = (x - 1) as i32 * 0x2000;
-                        let _ = npc_list.spawn(0x100, npc.clone());
-                        let _ = npc_list.spawn(0x100, npc.clone());
+                        let _ = npc_list.spawn(0, npc.clone());
+                        let _ = npc_list.spawn(0, npc.clone());
+                        let _ = npc_list.spawn(0, npc.clone());
                     }
 
                     if x < stage.map.width as usize && stage.change_tile(x + 1, y, 0) {
                         npc.x = (x + 1) as i32 * 0x2000;
-                        let _ = npc_list.spawn(0x100, npc.clone());
-                        let _ = npc_list.spawn(0x100, npc);
+                        let _ = npc_list.spawn(0, npc.clone());
+                        let _ = npc_list.spawn(0, npc.clone());
+                        let _ = npc_list.spawn(0, npc);
                     }
                 }
 

@@ -813,12 +813,23 @@ impl NPC {
                         let x = (self.x / (state.tile_size.as_int() * 0x100)) as usize;
                         let y = (self.y / (state.tile_size.as_int() * 0x100)) as usize;
 
+                        let mut change_tile_with_smoke = |x, y| {
+                            if stage.change_tile(x, y, 0) {
+                                let mut npc = NPC::create(4, &state.npc_table);
+                                npc.cond.set_alive(true);
+                                npc.x = (x as i32) * state.tile_size.as_int() * 0x200;
+                                npc.y = (y as i32) * state.tile_size.as_int() * 0x200;
+                                let _ = npc_list.spawn(0, npc.clone());
+                                let _ = npc_list.spawn(0, npc.clone());
+                                let _ = npc_list.spawn(0, npc);
+                            }
+                        };
                         if self.direction == Direction::Left {
-                            stage.change_tile(x / 2, (y + 1) / 2, 0);
-                            stage.change_tile(x / 2, (y - 1) / 2, 0);
+                            change_tile_with_smoke(x / 2, (y + 1) / 2);
+                            change_tile_with_smoke(x / 2, (y - 1) / 2);
                         } else {
-                            stage.change_tile((x + 1) / 2, y / 2, 0);
-                            stage.change_tile((x - 1) / 2, y / 2, 0);
+                            change_tile_with_smoke((x + 1) / 2, y / 2);
+                            change_tile_with_smoke((x - 1) / 2, y / 2);
                         }
                     }
                     _ => (),
@@ -833,12 +844,20 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n330_rolling(&mut self, state: &mut SharedGameState, stage: &mut Stage) -> GameResult {
+    pub(crate) fn tick_n330_rolling(&mut self, state: &mut SharedGameState, npc_list: &NPCList, stage: &mut Stage) -> GameResult {
         match self.action_num {
             0 => {
                 let x = (self.x / (state.tile_size.as_int() * 0x200)) as usize;
                 let y = (self.y / (state.tile_size.as_int() * 0x200)) as usize;
-                stage.change_tile(x, y, 0);
+                if stage.change_tile(x, y, 0) {
+                    let mut npc = NPC::create(4, &state.npc_table);
+                    npc.cond.set_alive(true);
+                    npc.x = (x as i32) * state.tile_size.as_int() * 0x200;
+                    npc.y = (y as i32) * state.tile_size.as_int() * 0x200;
+                    let _ = npc_list.spawn(0, npc.clone());
+                    let _ = npc_list.spawn(0, npc.clone());
+                    let _ = npc_list.spawn(0, npc);
+                }
 
                 self.action_num = if self.direction == Direction::Left { 10 } else { 30 };
             }
