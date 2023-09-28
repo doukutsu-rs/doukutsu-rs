@@ -64,7 +64,7 @@ impl NPC {
                 let _ = npc_list.spawn(0x100, npc);
 
                 // chaco
-                let mut npc = NPC::create(223, &state.npc_table);
+                let mut npc = NPC::create(93, &state.npc_table);
                 npc.cond.set_alive(true);
                 npc.x = self.x - 0x4600;
                 npc.y = self.y - 0x1c00;
@@ -114,6 +114,16 @@ impl NPC {
                 }
             }
             _ => (),
+        }
+
+        if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+            if self.direction == Direction::Left {
+                self.x = parent.x + 0x2400;
+                self.y = parent.y - 0x7200;
+            } else {
+                self.x = parent.x - 0x4000;
+                self.y = parent.y - 0x6800;
+            }
         }
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 4 };

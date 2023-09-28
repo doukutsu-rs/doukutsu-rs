@@ -83,7 +83,7 @@ impl NPC {
                 self.action_num = 1;
 
                 if (self.direction == Direction::Left && player.x > self.x - 0x24000 && player.x < self.x - 0x22000)
-                    || (player.x < self.x + 0x24000 && player.x > self.x + 0x22000)
+                    || (self.direction != Direction::Left && player.x < self.x + 0x24000 && player.x > self.x + 0x22000)
                 {
                     self.action_num = 10;
                 }
@@ -730,7 +730,7 @@ impl NPC {
             _ => (),
         }
 
-        self.animate(1, 0, 2);
+        self.animate(0, 0, 2);
         self.anim_rect = state.constants.npc.n319_mesa_block[self.anim_num as usize];
 
         Ok(())

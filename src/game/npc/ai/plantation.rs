@@ -537,8 +537,8 @@ impl NPC {
             0 | 1 => {
                 if self.action_num == 0 {
                     self.action_num = 1;
-                    self.vel_x = ((self.rng.range(0..255) as f64 * CDEG_RAD).cos() * -512.0) as i32;
-                    self.vel_y = ((self.rng.range(0..255) as f64 * CDEG_RAD).sin() * -512.0) as i32;
+                    self.vel_x = ((self.rng.range(0..255) as f64 * CDEG_RAD).cos() * 512.0) as i32;
+                    self.vel_y = ((self.rng.range(0..255) as f64 * CDEG_RAD).sin() * 512.0) as i32;
 
                     self.action_counter2 = 120;
                     self.vel_y2 = self.rng.range(-32..32) * 0x200;
@@ -902,7 +902,7 @@ impl NPC {
             self.x += self.vel_x;
             self.y += self.vel_y;
 
-            if self.flags.any_flag() {
+            if self.flags.hit_anything() {
                 let mut npc = NPC::create(4, &state.npc_table);
                 npc.cond.set_alive(true);
                 npc.x = self.x;
@@ -994,9 +994,9 @@ impl NPC {
                         let mut npc = NPC::create(273, &state.npc_table);
                         npc.cond.set_alive(true);
                         npc.x = self.x;
-                        npc.y = self.y;
+                        npc.y = self.y - 0x1400;
 
-                        let angle = f64::atan2((player.y - 0x1400 - self.y) as f64, (player.x - self.x) as f64);
+                        let angle = f64::atan2((player.y + 0x1400 - self.y) as f64, (player.x - self.x) as f64);
                         npc.vel_x = (2048.0 * angle.cos()) as i32;
                         npc.vel_y = (2048.0 * angle.sin()) as i32;
 

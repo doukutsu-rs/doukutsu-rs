@@ -250,7 +250,8 @@ impl BossNPC {
                     // Need to calculate offset from the default starting location
                     for i in 0..7 {
                         stage.change_tile(i + 7, 14, 0);
-                        npc_list.create_death_smoke((i as i32 + 7) * 0x2000, 0x1C000, 0, 1, state, &self.parts[0].rng);
+                        // This should be called with an amount of 0, but change_tile also needs to make smoke
+                        npc_list.create_death_smoke((i as i32 + 7) * 0x2000, 0x1C000, 0, 3, state, &self.parts[0].rng);
                         state.sound_manager.play_sfx(12);
                     }
                 }

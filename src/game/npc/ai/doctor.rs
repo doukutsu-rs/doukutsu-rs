@@ -364,8 +364,8 @@ impl NPC {
                     npc.y = self.y;
 
                     for i in (8..256).step_by(16) {
-                        npc.vel_x = ((i as f64 * CDEG_RAD).cos() * -1024.0) as i32;
-                        npc.vel_y = ((i as f64 * CDEG_RAD).sin() * -1024.0) as i32;
+                        npc.vel_x = ((i as f64 * CDEG_RAD).cos() * 1024.0) as i32;
+                        npc.vel_y = ((i as f64 * CDEG_RAD).sin() * 1024.0) as i32;
 
                         let _ = npc_list.spawn(0x100, npc.clone());
                     }
@@ -375,7 +375,6 @@ impl NPC {
                 self.action_counter += 1;
                 if self.action_counter > 50 {
                     self.action_num = 100;
-                    self.anim_num = 0;
                 }
             }
             100 | 101 => {
@@ -507,8 +506,8 @@ impl NPC {
             self.target_x += self.vel_x;
 
             let angle = self.action_counter2 as f64 * CDEG_RAD;
-            self.x = self.target_x + self.action_counter as i32 * (angle.cos() * -512.0) as i32 / 8;
-            self.y = self.target_y + self.action_counter as i32 * (angle.sin() * -512.0) as i32 / 2;
+            self.x = self.target_x + self.action_counter as i32 * (angle.cos() * 512.0) as i32 / 8;
+            self.y = self.target_y + self.action_counter as i32 * (angle.sin() * 512.0) as i32 / 2;
 
             let mut npc = NPC::create(265, &state.npc_table);
             npc.cond.set_alive(true);
@@ -652,7 +651,7 @@ impl NPC {
                 self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
 
                 if self.flags.hit_bottom_wall() {
-                    if self.life + 20 > self.action_counter3 {
+                    if self.life + 20 >= self.action_counter3 {
                         self.animate(10, 1, 2);
                     } else if player.flags.hit_bottom_wall() && player.x > self.x - 0x6000 && player.x < self.x + 0x6000 && self.anim_num != 6
                     {
@@ -900,9 +899,8 @@ impl NPC {
                 }
             }
             103 => {
-                if self.action_counter > 0 {
-                    self.action_counter -= 2;
-                } else {
+                self.action_counter = self.action_counter.saturating_sub(2);
+                if self.action_counter == 0 {
                     self.action_num = 16;
                     self.vel_x = 0;
                     self.vel_y = -0x200;
@@ -936,7 +934,7 @@ impl NPC {
                 if self.action_counter / 2 % 2 != 0 {
                     self.x = self.target_x;
                 } else {
-                    self.x = self.x.wrapping_add(0x200);
+                    self.x = self.target_x.wrapping_add(0x200);
                 }
             }
             510 | 511 => {
@@ -1072,7 +1070,7 @@ impl NPC {
 
             self.x += self.vel_x;
             self.y += self.vel_y;
-            if self.action_counter > 50 || self.flags.any_flag() {
+            if self.action_counter > 50 || self.flags.hit_anything() {
                 self.cond.set_alive(false)
             }
         } else if self.direction == Direction::Right {
