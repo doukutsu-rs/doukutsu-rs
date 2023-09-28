@@ -1075,8 +1075,9 @@ impl TextScriptVM {
                     npc.x = pos_x as i32 * 0x2000;
                     npc.y = pos_y as i32 * 0x2000;
 
-                    let _ = game_scene.npc_list.spawn(0x100, npc.clone());
-                    let _ = game_scene.npc_list.spawn(0x100, npc);
+                    let _ = game_scene.npc_list.spawn(0, npc.clone());
+                    let _ = game_scene.npc_list.spawn(0, npc.clone());
+                    let _ = game_scene.npc_list.spawn(0, npc);
                 }
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
