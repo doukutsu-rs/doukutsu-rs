@@ -238,7 +238,15 @@ impl NPC {
             self.y += self.vel_y;
         }
 
-        self.animate(3, 0, 1);
+        self.anim_counter += 1;
+        if self.anim_counter > 3 {
+            self.anim_counter = 0;
+            self.anim_num += 1;
+        }
+        // Not using self.animate because this check needs to be outside of the previous if statement
+        if self.anim_num > 1 {
+            self.anim_num = 0;
+        }
 
         if self.direction == Direction::Left && self.vel_x > 0 {
             self.anim_num = 2;
