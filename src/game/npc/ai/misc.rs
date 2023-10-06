@@ -98,17 +98,24 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n014_key(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n014_key(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
 
             if self.direction == Direction::Right {
                 self.vel_y = -0x200;
-            }
-        }
 
-        if self.flags.hit_bottom_wall() {
-            self.npc_flags.set_interactable(true);
+                let mut npc = NPC::create(4, &state.npc_table);
+                npc.cond.set_alive(true);
+                for _ in 0..4 {
+                    npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                    npc.vel_x = self.rng.range(-0x155..0x155) as i32;
+                    npc.vel_y = self.rng.range(-0x600..0) as i32;
+
+                    let _ = npc_list.spawn(0x100, npc.clone());
+                }
+            }
         }
 
         self.anim_counter += 1;
@@ -161,7 +168,7 @@ impl NPC {
                 }
 
                 self.anim_num = 0;
-                if self.rng.range(0..30) == 10 {
+                if self.rng.range(0..30) == 0 {
                     self.action_num = 2;
                 }
             }
@@ -416,24 +423,23 @@ impl NPC {
     pub(crate) fn tick_n030_gunsmith(&mut self, state: &mut SharedGameState) -> GameResult {
         if self.direction == Direction::Left {
             match self.action_num {
-                0 => {
-                    self.action_num = 1;
-                    self.anim_counter = 0;
-                    self.anim_rect = state.constants.npc.n030_hermit_gunsmith[0];
-                }
-                1 => {
-                    self.action_num = 1;
-                    self.anim_counter = 0;
+                0 | 1 => {
+                    if self.action_num == 0 {
+                        self.action_num = 1;
+                        self.anim_counter = 0;
+                        self.anim_rect = state.constants.npc.n030_hermit_gunsmith[0];
+                    }
 
                     if self.rng.range(0..120) == 10 {
                         self.action_num = 2;
-                        self.action_counter = 8;
+                        self.action_counter = 0;
                         self.anim_rect = state.constants.npc.n030_hermit_gunsmith[1];
                     }
                 }
                 2 => {
-                    if self.action_counter > 0 {
-                        self.action_counter -= 1;
+                    self.action_counter += 1;
+                    if self.action_counter > 8 {
+                        self.action_num = 1;
                         self.anim_rect = state.constants.npc.n030_hermit_gunsmith[0];
                     }
                 }
@@ -603,11 +609,14 @@ impl NPC {
         npc_list: &NPCList,
     ) -> GameResult {
         if self.direction == Direction::Left {
-            self.anim_counter = (self.anim_counter + 1) % 4;
-            self.anim_num = self.anim_counter / 2;
+            self.animate(1, 0, 2);
+            if self.anim_num > 1 {
+                self.anim_num = 0;
+                return Ok(());
+            }
 
             let player = self.get_closest_player_mut(players);
-            if self.anim_num % 2 == 0 && (player.x - self.x).abs() < 0x3c000 {
+            if (player.x - self.x).abs() < 0x28000 && (player.y - self.y).abs() < 0x1E000 {
                 self.action_counter = self.action_counter.wrapping_add(1);
 
                 let mut droplet = NPC::create(73, &state.npc_table);
@@ -619,7 +628,7 @@ impl NPC {
                 droplet.vel_y = 3 * self.rng.range(-0x200..0x80) as i32;
                 let _ = npc_list.spawn(0x100, droplet.clone());
 
-                if self.action_counter % 2 == 0 {
+                if self.action_counter % 2 == 1 {
                     droplet.vel_x = 2 * self.rng.range(-0x200..0x200) as i32;
                     droplet.vel_y = 3 * self.rng.range(-0x200..0x80) as i32;
                     let _ = npc_list.spawn(0x100, droplet);
@@ -741,7 +750,7 @@ impl NPC {
                     self.action_num = 2;
                 }
 
-                self.anim_num = 1;
+                self.anim_num = 0;
             }
             2 => {
                 self.anim_counter += 1;
@@ -755,7 +764,7 @@ impl NPC {
 
                 {
                     let i = self.get_closest_player_idx_mut(&players);
-                    if (players[i].x - self.x).abs() < 0x3c000
+                    if (players[i].x - self.x).abs() < 0x28000
                         && (players[i].y - self.y).abs() < 0x1e000
                         && self.rng.range(0..5) == 1
                     {
@@ -801,7 +810,7 @@ impl NPC {
                     self.action_num = 2;
                 }
 
-                self.anim_num = 1;
+                self.anim_num = 0;
             }
             2 => {
                 self.anim_counter += 1;
@@ -815,7 +824,7 @@ impl NPC {
 
                 {
                     let i = self.get_closest_player_idx_mut(&players);
-                    if (players[i].x - self.x).abs() < 0x3c000
+                    if (players[i].x - self.x).abs() < 0x28000
                         && (players[i].y - self.y).abs() < 0x1e000
                         && self.rng.range(0..5) == 1
                     {
@@ -860,7 +869,7 @@ impl NPC {
                     self.action_num = 2;
                 }
 
-                self.anim_num = 1;
+                self.anim_num = 0;
             }
             2 => {
                 self.anim_counter += 1;
@@ -874,7 +883,7 @@ impl NPC {
 
                 {
                     let i = self.get_closest_player_idx_mut(&players);
-                    if (players[i].x - self.x).abs() < 0x3c000
+                    if (players[i].x - self.x).abs() < 0x28000
                         && (players[i].y - self.y).abs() < 0x1e000
                         && self.rng.range(0..5) == 1
                     {
@@ -916,7 +925,7 @@ impl NPC {
                     self.action_num = 2;
                 }
 
-                self.anim_num = 1;
+                self.anim_num = 0;
             }
             2 => {
                 self.anim_counter += 1;
@@ -930,7 +939,7 @@ impl NPC {
 
                 {
                     let i = self.get_closest_player_idx_mut(&players);
-                    if (players[i].x - self.x).abs() < 0x3c000
+                    if (players[i].x - self.x).abs() < 0x28000
                         && (players[i].y - self.y).abs() < 0x1e000
                         && self.rng.range(0..5) == 1
                     {
@@ -1217,8 +1226,8 @@ impl NPC {
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
-                    for _ in 0..3 {
-                        npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                    for _ in 0..4 {
+                        npc.x = self.x - 0x2000;
                         npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
                         npc.vel_x = self.rng.range(-0x155..0x155) as i32;
                         npc.vel_y = self.rng.range(-0x600..0) as i32;
@@ -1269,8 +1278,8 @@ impl NPC {
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
-                    for _ in 0..3 {
-                        npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
+                    for _ in 0..4 {
+                        npc.x = self.x + 0x2000;
                         npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
                         npc.vel_x = self.rng.range(-0x155..0x155) as i32;
                         npc.vel_y = self.rng.range(-0x600..0) as i32;
@@ -1363,9 +1372,9 @@ impl NPC {
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
-                    for _ in 0..3 {
+                    for _ in 0..4 {
                         npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
-                        npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.y = self.y - 0x2000;
                         npc.vel_x = self.rng.range(-0x155..0x155) as i32;
                         npc.vel_y = self.rng.range(-0x600..0) as i32;
 
@@ -1415,9 +1424,9 @@ impl NPC {
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
-                    for _ in 0..3 {
+                    for _ in 0..4 {
                         npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
-                        npc.y = self.y + self.rng.range(-12..12) as i32 * 0x200;
+                        npc.y = self.y + 0x2000;
                         npc.vel_x = self.rng.range(-0x155..0x155) as i32;
                         npc.vel_y = self.rng.range(-0x600..0) as i32;
 
@@ -1915,8 +1924,9 @@ impl NPC {
                         state.sound_manager.play_sfx(26);
                     }
 
-                    self.action_num = 1;
+                    self.action_num = 20;
                     self.anim_num = 0;
+                    self.anim_counter = 0;
                     self.damage = 0;
                     self.npc_flags.set_solid_hard(true);
                 }
@@ -1975,7 +1985,7 @@ impl NPC {
         if self.vel_x < 0 && self.x < -0x2000
             || self.vel_x > 0 && self.x > stage.map.width as i32 * state.tile_size.as_int() * 0x200 + 0x2000
         {
-            self.cond.set_alive(false);
+            self.vanish(state);
             return Ok(());
         }
 
@@ -2261,9 +2271,7 @@ impl NPC {
                 }
                 _ => (),
             }
-        }
-
-        if self.action_num == 1 {
+        } else if self.action_num == 1 {
             self.x += self.vel_x;
             self.y += self.vel_y;
 
@@ -2341,24 +2349,28 @@ impl NPC {
     pub(crate) fn tick_n302_camera_focus_marker(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        mut players: [&mut Player; 2],
         npc_list: &NPCList,
         boss: &mut BossNPC,
     ) -> GameResult {
-        let player = &players[state.textscript_vm.executor_player.index()];
+        let player = &mut players[state.textscript_vm.executor_player.index()];
 
         match self.action_num {
             10 => {
                 self.x = player.x;
                 self.y = player.y - 0x4000;
             }
-            20 => match self.direction {
-                Direction::Left => self.x -= 0x400,
-                Direction::Up => self.y -= 0x400,
-                Direction::Right => self.x += 0x400,
-                Direction::Bottom => self.y += 0x400,
-                _ => (),
-            },
+            20 => {
+                match self.direction {
+                    Direction::Left => self.x -= 0x400,
+                    Direction::Up => self.y -= 0x400,
+                    Direction::Right => self.x += 0x400,
+                    Direction::Bottom => self.y += 0x400,
+                    _ => (),
+                }
+                player.x = self.x;
+                player.y = self.y;
+            }
             30 => {
                 self.x = player.x;
                 self.y = player.y + 0xa000;
@@ -2538,16 +2550,18 @@ impl NPC {
             }
         }
 
-        self.vel_y += 0x40;
-        self.clamp_fall_speed();
+        if self.action_num == 1 {
+            self.vel_y += 0x40;
+            self.clamp_fall_speed();
 
-        if self.flags.hit_bottom_wall() {
-            self.action_num = 2;
-            self.anim_num = 1;
-            self.vel_y = 0;
+            if self.flags.hit_bottom_wall() {
+                self.action_num = 2;
+                self.anim_num = 1;
+                self.vel_y = 0;
+            }
+
+            self.y += self.vel_y;
         }
-
-        self.y += self.vel_y;
 
         self.anim_rect = state.constants.npc.n352_ending_characters
             [(2 * self.action_counter2 as usize + self.anim_num as usize) % 28];
@@ -2669,7 +2683,7 @@ impl NPC {
         let player = self.get_closest_player_mut(players);
         if (player.x - self.x).abs() < 0x28000
             && player.y < self.y + 0x28000
-            && player.y > self.y - 0x12c00
+            && player.y > self.y - 0x14000
             && self.rng.range(0..100) == 2
         {
             let mut npc = NPC::create(73, &state.npc_table);

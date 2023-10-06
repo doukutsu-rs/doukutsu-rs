@@ -265,7 +265,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
             11 => self.tick_n011_balrogs_projectile(state),
             12 => self.tick_n012_balrog_cutscene(state, players, npc_list, stage),
             13 => self.tick_n013_forcefield(state),
-            14 => self.tick_n014_key(state),
+            14 => self.tick_n014_key(state, npc_list),
             15 => self.tick_n015_chest_closed(state, npc_list),
             16 => self.tick_n016_save_point(state, npc_list),
             17 => self.tick_n017_health_refill(state, npc_list),
