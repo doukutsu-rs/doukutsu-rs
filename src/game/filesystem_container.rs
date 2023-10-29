@@ -196,7 +196,21 @@ impl FilesystemContainer {
         return Ok(()); // can't open directories on switch
 
         #[cfg(target_os = "android")]
-        return Ok(()); // TODO: figure out how to do this on android
+        unsafe {
+            use jni::objects::{JObject, JValue};
+            use jni::JavaVM;
+
+            let vm_ptr = ndk_glue::native_activity().vm();
+            let vm = JavaVM::from_raw(vm_ptr)?;
+            let vm_env = vm.attach_current_thread()?;
+
+            let class = vm_env.new_global_ref(JObject::from_raw(ndk_glue::native_activity().activity()))?;
+            let method = vm_env.call_method(class.as_obj(), "openDir", "(Ljava/lang/String;)V", &[
+                JValue::from(vm_env.new_string(path.to_str().unwrap()).unwrap())
+            ])?;
+
+            return Ok(());
+        }
 
         #[cfg(not(any(target_os = "android", target_os = "horizon")))]
         open::that(path).map_err(|e| {

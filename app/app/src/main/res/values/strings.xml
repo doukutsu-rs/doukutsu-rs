@@ -6,7 +6,7 @@
     <string name="download_desc">No data files found, would you like to download them?</string>
 
     <string name="download_status_error_http">Bad HTTP response code: %d</string>
-    <!-- Downloading {entry_name}... {percentage progress}% ({downloaded}/{from} KiB, {speed} KiB/s) -->
+    <!-- Downloading {entry_name}… {progress}% ({downloaded_size}/{total_size} KiB, {speed} KiB/s) -->
     <string name="download_status_downloading">Downloading %1$s… %2$d%% (%3$d/%4$d KiB, %5$d KiB/s)</string>
     <string name="download_status_downloading_null">Downloading %1$s… --%% (%2$d KiB, %3$d KiB/s)</string>
     <string name="download_status_unpacking">Unpacking: %s</string>
@@ -14,4 +14,7 @@
 
     <!-- Look {entry_name} on 9th line -->
     <string name="download_entries_base">base game files</string>
+
+    <string name="dir_not_found">Dir not found</string>
+    <string name="no_app_found_to_open_dir">No app found to open dir</string>
 </resources>

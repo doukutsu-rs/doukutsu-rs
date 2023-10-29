@@ -10,16 +10,20 @@ import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
 import android.provider.DocumentsContract.Document;
+import android.provider.DocumentsContract.Path;
 import android.provider.DocumentsContract.Root;
 import android.provider.DocumentsProvider;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
+
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.LinkedList;
 
 import static android.os.Build.VERSION.SDK_INT;
 
@@ -173,6 +177,29 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
         } else {
             getContext().getContentResolver().notifyChange(uri, null);
         }
+    }
+
+    @Override
+    @RequiresApi(Build.VERSION_CODES.O)
+    public Path findDocumentPath(@Nullable String parentDocumentId, String childDocumentId) throws FileNotFoundException {
+        if (parentDocumentId == null) {
+            parentDocumentId = getContext().getFilesDir().getAbsolutePath();
+        }
+
+        File childFile = new File(childDocumentId);
+        if (!childFile.exists()) {
+            throw new FileNotFoundException(childFile.getAbsolutePath()+" doesn't exist");
+        } else if (!isChildDocument(parentDocumentId, childDocumentId)) {
+            throw new FileNotFoundException(childDocumentId+" is not child of "+parentDocumentId);
+        }
+
+        LinkedList<String> path = new LinkedList<>();
+        while (childFile != null && isChildDocument(parentDocumentId, childFile.getAbsolutePath())) {
+            path.addFirst(childFile.getAbsolutePath());
+            childFile = childFile.getParentFile();
+        }
+
+        return new Path(parentDocumentId, path);
     }
 
     @Override

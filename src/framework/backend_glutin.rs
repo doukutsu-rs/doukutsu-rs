@@ -147,7 +147,6 @@ fn get_insets() -> GameResult<(f32, f32, f32, f32)> {
         let vm = JavaVM::from_raw(vm_ptr)?;
         let vm_env = vm.attach_current_thread()?;
 
-        //let class = vm_env.find_class("io/github/doukutsu_rs/MainActivity")?;
         let class = vm_env.new_global_ref(JObject::from_raw(ndk_glue::native_activity().activity()))?;
         let field = vm_env.get_field(class.as_obj(), "displayInsets", "[I")?.to_jni().l as jni::sys::jintArray;
 
@@ -155,11 +154,11 @@ fn get_insets() -> GameResult<(f32, f32, f32, f32)> {
         vm_env.get_int_array_region(field, 0, &mut elements)?;
 
         vm_env.delete_local_ref(JObject::from_raw(field));
-        
+
         //Game always runs with horizontal orientation so top and bottom cutouts not needed and only wastes piece of the screen
         elements[1] = 0;
         elements[3] = 0;
-        
+
         Ok((elements[0] as f32, elements[1] as f32, elements[2] as f32, elements[3] as f32))
     }
 }
