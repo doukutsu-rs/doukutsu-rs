@@ -7,7 +7,7 @@ use crate::common::{Direction, FadeState, get_timestamp};
 use crate::framework::context::Context;
 use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::GameResult;
-use crate::game::player::ControlMode;
+use crate::game::player::{ControlMode, TargetPlayer};
 use crate::game::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::game::weapon::{WeaponLevel, WeaponType};
 use crate::scene::game_scene::GameScene;
@@ -157,19 +157,29 @@ impl GameProfile {
         game_scene.player2.skin.apply_gamestate(state);
     }
 
-    pub fn dump(state: &mut SharedGameState, game_scene: &mut GameScene) -> GameProfile {
+    pub fn dump(state: &mut SharedGameState, game_scene: &mut GameScene, target_player: Option<TargetPlayer>) -> GameProfile {
+        let player = match target_player.unwrap_or(TargetPlayer::Player1) {
+            TargetPlayer::Player1 => &game_scene.player1,
+            TargetPlayer::Player2 => &game_scene.player2,
+        };
+
+        let inventory_player = match target_player.unwrap_or(TargetPlayer::Player1) {
+            TargetPlayer::Player1 => &game_scene.inventory_player1,
+            TargetPlayer::Player2 => &game_scene.inventory_player2,
+        };
+
         let current_map = game_scene.stage_id as u32;
         let current_song = state.sound_manager.current_song() as u32;
-        let pos_x = game_scene.player1.x as i32;
-        let pos_y = game_scene.player1.y as i32;
-        let direction = game_scene.player1.direction;
-        let max_life = game_scene.player1.max_life;
-        let stars = game_scene.player1.stars as u16;
-        let life = game_scene.player1.life;
-        let current_weapon = game_scene.inventory_player1.current_weapon as u32;
-        let current_item = game_scene.inventory_player1.current_item as u32;
-        let equipment = game_scene.player1.equip.0 as u32;
-        let control_mode = game_scene.player1.control_mode as u32;
+        let pos_x = player.x as i32;
+        let pos_y = player.y as i32;
+        let direction = player.direction;
+        let max_life = player.max_life;
+        let stars = player.stars as u16;
+        let life = player.life;
+        let current_weapon = inventory_player.current_weapon as u32;
+        let current_item = inventory_player.current_item as u32;
+        let equipment = player.equip.0 as u32;
+        let control_mode = player.control_mode as u32;
         let counter = 0; // TODO
         let mut weapon_data = [
             WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
@@ -194,7 +204,7 @@ impl GameProfile {
         ];
 
         for (idx, weap) in weapon_data.iter_mut().enumerate() {
-            if let Some(weapon) = game_scene.inventory_player1.get_weapon(idx) {
+            if let Some(weapon) = inventory_player.get_weapon(idx) {
                 weap.weapon_id = weapon.wtype as u32;
                 weap.level = weapon.level as u32;
                 weap.exp = weapon.experience as u32;
@@ -204,7 +214,7 @@ impl GameProfile {
         }
 
         for (idx, item) in items.iter_mut().enumerate() {
-            if let Some(sitem) = game_scene.inventory_player1.get_item_idx(idx) {
+            if let Some(sitem) = inventory_player.get_item_idx(idx) {
                 *item = sitem.0 as u32 + (((sitem.1 - 1) as u32) << 16);
             }
         }

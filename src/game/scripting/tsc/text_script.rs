@@ -643,7 +643,7 @@ impl TextScriptVM {
                     break;
                 }
                 TextScriptExecutionState::SaveProfile(event, ip) => {
-                    state.save_game(game_scene, ctx)?;
+                    state.save_game(game_scene, ctx, Some(state.textscript_vm.executor_player))?;
                     state.textscript_vm.state = TextScriptExecutionState::Running(event, ip);
                     break;
                 }

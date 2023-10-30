@@ -225,7 +225,7 @@ impl LiveDebugger {
 
                 if state.textscript_vm.state == TextScriptExecutionState::Ended {
                     if ui.button("Save") {
-                        let _ = state.save_game(game_scene, ctx);
+                        let _ = state.save_game(game_scene, ctx, None);
                         state.sound_manager.play_sfx(18);
                     }
                 } else if ui.button("Busy") {

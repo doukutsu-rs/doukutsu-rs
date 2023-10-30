@@ -16,6 +16,7 @@ use crate::framework::vfs::OpenOptions;
 use crate::framework::{filesystem, graphics};
 use crate::game::caret::{Caret, CaretType};
 use crate::game::npc::NPCTable;
+use crate::game::player::TargetPlayer;
 use crate::game::profile::GameProfile;
 #[cfg(feature = "scripting-lua")]
 use crate::game::scripting::lua::LuaScriptingState;
@@ -645,10 +646,10 @@ impl SharedGameState {
         Ok(())
     }
 
-    pub fn save_game(&mut self, game_scene: &mut GameScene, ctx: &mut Context) -> GameResult {
+    pub fn save_game(&mut self, game_scene: &mut GameScene, ctx: &mut Context, target_player: Option<TargetPlayer>) -> GameResult {
         if let Some(save_path) = self.get_save_filename(self.save_slot) {
             if let Ok(data) = filesystem::open_options(ctx, save_path, OpenOptions::new().write(true).create(true)) {
-                let profile = GameProfile::dump(self, game_scene);
+                let profile = GameProfile::dump(self, game_scene, target_player);
                 profile.write_save(data)?;
             } else {
                 log::warn!("Cannot open save file.");

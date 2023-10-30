@@ -2319,7 +2319,7 @@ impl Scene for GameScene {
         }
 
         if key_code == ScanCode::S && ctx.keyboard_context.active_mods().ctrl() {
-            let _ = state.save_game(self, ctx);
+            let _ = state.save_game(self, ctx, None);
             state.sound_manager.play_sfx(18);
             return Ok(());
         }
