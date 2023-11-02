@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
             alert.setMessage(message);
             alert.setPositiveButton(android.R.string.yes, (dialog, whichButton) -> yesCallback.run());
             alert.setNegativeButton(android.R.string.no, (dialog, whichButton) -> noCallback.run());
+            alert.setCancelable(false);
             alert.show();
         });
     }
