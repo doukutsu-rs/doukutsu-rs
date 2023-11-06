@@ -1,0 +1,189 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '.gitignore'
+      - '**.md'
+      - 'LICENSE'
+      - 'drshorizon/**'
+      - 'res/**'
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: Linux x86_64
+            os: ubuntu-latest
+            channel: stable
+            target: x86_64-unknown-linux-gnu
+            target_name: linux-x64
+            arch_name: x86_64
+          - name: Windows x64
+            os: windows-latest
+            channel: stable
+            target: x86_64-pc-windows-msvc
+            target_name: windows-x64
+            arch_name: x86_64
+          - name: Windows x32
+            os: windows-latest
+            channel: stable
+            target: i686-pc-windows-msvc
+            target_name: windows-x32
+            arch_name: i686
+          - name: macOS x64 (Intel Macs)
+            os: macos-latest
+            channel: stable
+            target: x86_64-apple-darwin
+            target_name: mac-x64
+          - name: macOS ARM64 (M1 Macs)
+            os: macos-latest
+            channel: stable
+            target: aarch64-apple-darwin
+            target_name: mac-arm64
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: sudo apt install libasound2-dev libudev-dev libgl1-mesa-dev pkg-config
+
+      - name: Set up cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo
+            ~/.rustup
+            target
+          key: ${{ matrix.target_name }}-cargo
+
+      - name: Setup rust toolchain
+        run: |
+          rustup default ${{ matrix.channel }}
+          rustup target add ${{ matrix.target }}
+          
+          rustc -vV
+          cargo -vV
+          
+          if [ "${{ runner.os }}" == "macOS" ]; then
+            cargo install cargo-bundle
+          fi
+
+      - name: Build
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            export DRS_BUILD_VERSION_OVERRIDE="{{ github.ref_name }}"
+          else
+            export DRS_BUILD_VERSION_OVERRIDE="0.101.0-${{ github.run_number }}-${{ github.ref_name }}"
+          fi
+          
+          mkdir release
+          cp LICENSE release
+          
+          if [ "${{ runner.os }}" == "macOS" ]; then
+            CARGO_INCREMENTAL=1 cargo bundle --release --target ${{ matrix.target }}
+            cp -a ./target/${{ matrix.target }}/release/bundle/osx/doukutsu-rs.app release/doukutsu-rs.app
+            codesign -s - -f ./release/doukutsu-rs.app/Contents/MacOS/doukutsu-rs
+          elif [ "${{ runner.os }}" == "Windows" ]; then
+            CARGO_INCREMENTAL=1 cargo build --release --bin doukutsu-rs
+            cp ./target/release/doukutsu-rs.exe release/doukutsu-rs.${{ matrix.arch_name }}.exe
+          elif [ "${{ runner.os }}" == "Linux" ]; then
+            RUSTFLAGS="-C link-args=-s" CARGO_INCREMENTAL=1 cargo build --release --bin doukutsu-rs
+            cp -a ./target/release/doukutsu-rs release/doukutsu-rs.${{ matrix.arch_name }}.elf
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: doukutsu-rs_${{ matrix.target_name }}
+          path: ./release/*
+          if-no-files-found: error
+
+  build_android:
+    name: Android build
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_SIGNING_KEYSTORE: "${{ secrets.ANDROID_SIGNING_KEYSTORE }}"
+      APP_OUTPUTS_DIR: "app/app/build/outputs/apk/release"
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache
+            ~/.cargo
+            ~/.rustup
+            ~/.gradle
+            app/app/.cxx
+            app/app/build
+            drsandroid/target
+          key: android-cargo
+
+      - name: Setup rust toolchain
+        run: |
+          rustup default stable
+          rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android
+          rustc -vV
+          cargo -vV
+          cargo install cargo-ndk
+
+      - name: Build
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            export DRS_BUILD_VERSION_OVERRIDE="{{ github.ref_name }}"
+          else
+            export DRS_BUILD_VERSION_OVERRIDE="0.101.0-${{ github.run_number }}-${{ github.ref_name }}"
+          fi
+          
+          cd app
+          touch local.properties
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
+
+      - name: Sign app
+        if: ${{ env.ANDROID_SIGNING_KEYSTORE != '' }}
+        run: |
+          BUILD_TOOLS=$ANDROID_HOME/build-tools/33.0.0
+          
+          echo "${{ secrets.ANDROID_SIGNING_KEYSTORE }}" | base64 --decode > keystore.jks
+          $BUILD_TOOLS/zipalign -c -v 4 $APP_OUTPUTS_DIR/app-release-unsigned.apk
+          if [ "${{ secrets.ANDROID_SIGNING_KEY_PASS }}" != "" ]; then
+            $BUILD_TOOLS/apksigner sign --ks ./keystore.jks --ks-key-alias "${{ secrets.ANDROID_SIGNING_ALIAS }}" --ks-pass "pass:${{ secrets.ANDROID_SIGNING_KEYSTORE_PASS }}" --key-pass "pass:${{ secrets.ANDROID_SIGNING_KEY_PASS }}" --out $APP_OUTPUTS_DIR/app-signed.apk $APP_OUTPUTS_DIR/app-release-unsigned.apk
+          else
+            $BUILD_TOOLS/apksigner sign --ks ./keystore.jks --ks-key-alias "${{ secrets.ANDROID_SIGNING_ALIAS }}" --ks-pass "pass:${{ secrets.ANDROID_SIGNING_KEYSTORE_PASS }}" --out $APP_OUTPUTS_DIR/app-signed.apk $APP_OUTPUTS_DIR/app-release-unsigned.apk
+          fi
+          
+          rm keystore.jks
+
+      - name: Prepare artifact
+        run: |
+          mkdir release
+          if [ "${{ env.ANDROID_SIGNING_KEYSTORE }}" != "" ]; then
+            mv $APP_OUTPUTS_DIR/app-signed.apk release/doukutsu-rs.apk
+          else
+            cp $APP_OUTPUTS_DIR/app-release-unsigned.apk release/doukutsu-rs.apk
+          fi
+          cp LICENSE ./release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: doukutsu-rs_android
+          path: ./release/*
+          if-no-files-found: error
