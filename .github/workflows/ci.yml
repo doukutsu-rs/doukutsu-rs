@@ -83,7 +83,7 @@ jobs:
           if [ "${{ github.ref_type }}" == "tag" ]; then
             export DRS_BUILD_VERSION_OVERRIDE="{{ github.ref_name }}"
           else
-            export DRS_BUILD_VERSION_OVERRIDE="0.101.0-${{ github.run_number }}-${{ github.ref_name }}"
+            export DRS_BUILD_VERSION_OVERRIDE="0.101.0-$((${{ github.run_number }} + 654))-${{ github.ref_name }}"
           fi
           
           mkdir release
@@ -148,7 +148,7 @@ jobs:
           if [ "${{ github.ref_type }}" == "tag" ]; then
             export DRS_BUILD_VERSION_OVERRIDE="{{ github.ref_name }}"
           else
-            export DRS_BUILD_VERSION_OVERRIDE="0.101.0-${{ github.run_number }}-${{ github.ref_name }}"
+            export DRS_BUILD_VERSION_OVERRIDE="0.101.0-$((${{ github.run_number }} + 654))-${{ github.ref_name }}"
           fi
           
           cd app
