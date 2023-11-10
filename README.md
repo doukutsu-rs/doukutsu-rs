@@ -5,17 +5,17 @@ in [Rust](https://www.rust-lang.org/).
 
 [Join the Discord server](https://discord.gg/fbRsNNB)
 
-![https://ci.appveyor.com/api/projects/status/github/doukutsu-rs/doukutsu-rs](https://ci.appveyor.com/api/projects/status/github/doukutsu-rs/doukutsu-rs)
+![CI](https://github.com/doukutsu-rs/doukutsu-rs/actions/workflows/ci.yml/badge.svg)
 
-- [Get nightly builds from AppVeyor](https://ci.appveyor.com/project/alula/doukutsu-rs) (recommended for now, has latest fixes and improvements)
+- [Get nightly builds](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master?preview) (recommended for now, has latest fixes and improvements)
 
   Permalinks to latest builds from `master` branch:
 
-  - [Windows (64-bit)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_win64.zip?branch=master&job=windows-x64)
-  - [Windows (32-bit)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_win32.zip?branch=master&job=windows-x32)
-  - [macOS (Intel, 64-bit, 10.14+)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_mac-intel.zip?branch=master&job=mac-x64)
-  - [macOS (Apple M1, 11.0+)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_mac-m1.zip?branch=master&job=mac-arm64)
-  - [Linux (64-bit)](https://ci.appveyor.com/api/projects/alula/doukutsu-rs/artifacts/doukutsu-rs_linux.zip?branch=master&job=linux-x64)
+  - [Windows (64-bit)](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master/doukutsu-rs_windows-x64.zip)
+  - [Windows (32-bit)](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master/doukutsu-rs_windows-x32.zip)
+  - [macOS (Intel, 64-bit, 10.14+)](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master/doukutsu-rs_mac-x64.zip)
+  - [macOS (Apple M1, 11.0+)](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master/doukutsu-rs_mac-arm64.zip)
+  - [Linux (64-bit)](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master/doukutsu-rs_linux-x64.zip)
 
   **macOS note:** If you get a `"doukutsu-rs" can't be opened` message, right-click doukutsu-rs.app and click open.
 

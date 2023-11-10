@@ -2,22 +2,28 @@ name: CI
 
 on:
   push:
-    branches:
-      - master
+    branches-ignore:
+      - cpp-rewrite
+      - horizon-os
     paths-ignore:
       - '.gitignore'
       - '**.md'
       - 'LICENSE'
       - 'drshorizon/**'
       - 'res/**'
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  VERSION: "0.101.0"
 
 jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
     strategy:
       fail-fast: true
       matrix:
@@ -57,8 +63,8 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: sudo apt install libasound2-dev libudev-dev libgl1-mesa-dev pkg-config
 
-      - name: Set up cache
-        uses: actions/cache@v3
+      - name: Restore cache
+        uses: actions/cache/restore@v3
         with:
           path: |
             ~/.cargo
@@ -82,8 +88,10 @@ jobs:
         run: |
           if [ "${{ github.ref_type }}" == "tag" ]; then
             export DRS_BUILD_VERSION_OVERRIDE="{{ github.ref_name }}"
+          elif [ "${{ github.ref_name }} == "master"]; then
+            export DRS_BUILD_VERSION_OVERRIDE="$VERSION-$((${{ github.run_number }} + 654))"
           else
-            export DRS_BUILD_VERSION_OVERRIDE="0.101.0-$((${{ github.run_number }} + 654))-${{ github.ref_name }}"
+            export DRS_BUILD_VERSION_OVERRIDE="$VERSION-${GITHUB_SHA:0:7}"
           fi
           
           mkdir release
@@ -108,22 +116,28 @@ jobs:
           path: ./release/*
           if-no-files-found: error
 
+      - name: Save cache
+        if: ${{ github.ref_name == 'master' || github.ref_type == 'tag' }}
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            ~/.cargo
+            ~/.rustup
+            target
+          key: ${{ matrix.target_name }}-cargo
+
   build_android:
     name: Android build
+    if: false
     runs-on: ubuntu-latest
     env:
-      ANDROID_SIGNING_KEYSTORE: "${{ secrets.ANDROID_SIGNING_KEYSTORE }}"
       APP_OUTPUTS_DIR: "app/app/build/outputs/apk/release"
-    defaults:
-      run:
-        shell: bash
     strategy:
       fail-fast: true
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set up cache
-        uses: actions/cache@v3
+      - name: Restore cache
+        uses: actions/cache/restore@v3
         with:
           path: |
             ~/.cache
@@ -147,8 +161,10 @@ jobs:
         run: |
           if [ "${{ github.ref_type }}" == "tag" ]; then
             export DRS_BUILD_VERSION_OVERRIDE="{{ github.ref_name }}"
+          elif [ "${{ github.ref_name }} == "master"]; then
+            export DRS_BUILD_VERSION_OVERRIDE="$VERSION-$((${{ github.run_number }} + 654))"
           else
-            export DRS_BUILD_VERSION_OVERRIDE="0.101.0-$((${{ github.run_number }} + 654))-${{ github.ref_name }}"
+            export DRS_BUILD_VERSION_OVERRIDE="$VERSION-${GITHUB_SHA:0:7}"
           fi
           
           cd app
@@ -157,12 +173,10 @@ jobs:
           ./gradlew assembleRelease
 
       - name: Sign app
-        if: ${{ env.ANDROID_SIGNING_KEYSTORE != '' }}
         run: |
           BUILD_TOOLS=$ANDROID_HOME/build-tools/33.0.0
           
           echo "${{ secrets.ANDROID_SIGNING_KEYSTORE }}" | base64 --decode > keystore.jks
-          $BUILD_TOOLS/zipalign -c -v 4 $APP_OUTPUTS_DIR/app-release-unsigned.apk
           if [ "${{ secrets.ANDROID_SIGNING_KEY_PASS }}" != "" ]; then
             $BUILD_TOOLS/apksigner sign --ks ./keystore.jks --ks-key-alias "${{ secrets.ANDROID_SIGNING_ALIAS }}" --ks-pass "pass:${{ secrets.ANDROID_SIGNING_KEYSTORE_PASS }}" --key-pass "pass:${{ secrets.ANDROID_SIGNING_KEY_PASS }}" --out $APP_OUTPUTS_DIR/app-signed.apk $APP_OUTPUTS_DIR/app-release-unsigned.apk
           else
@@ -174,11 +188,7 @@ jobs:
       - name: Prepare artifact
         run: |
           mkdir release
-          if [ "${{ env.ANDROID_SIGNING_KEYSTORE }}" != "" ]; then
-            mv $APP_OUTPUTS_DIR/app-signed.apk release/doukutsu-rs.apk
-          else
-            cp $APP_OUTPUTS_DIR/app-release-unsigned.apk release/doukutsu-rs.apk
-          fi
+          mv $APP_OUTPUTS_DIR/app-signed.apk release/doukutsu-rs.apk
           cp LICENSE ./release
 
       - name: Upload artifact
@@ -187,3 +197,17 @@ jobs:
           name: doukutsu-rs_android
           path: ./release/*
           if-no-files-found: error
+
+      - name: Save cache
+        if: ${{ github.ref_name == 'master' || github.ref_type == 'tag' }}
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            ~/.cache
+            ~/.cargo
+            ~/.rustup
+            ~/.gradle
+            app/app/.cxx
+            app/app/build
+            drsandroid/target
+          key: android-cargo
