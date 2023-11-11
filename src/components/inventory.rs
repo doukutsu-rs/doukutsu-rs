@@ -163,6 +163,7 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory, &mut HUD)> for Inven
                     }
                 }
 
+                // we should not move from the weapon row if there are no items
                 if (player.controller.trigger_up() || player.controller.trigger_down()) && self.item_count > 0 {
                     self.focus = InventoryFocus::Items;
                     state.control_flags.set_ok_button_disabled(false);
