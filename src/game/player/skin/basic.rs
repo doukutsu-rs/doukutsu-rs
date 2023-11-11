@@ -179,10 +179,15 @@ impl PlayerSkin for BasicPlayerSkin {
         }
     }
 
-    fn set_state(&mut self, state: PlayerAnimationState) {
+    fn set_state(&mut self, state: PlayerAnimationState, curr_tick: u16) {
         if self.state != state {
             self.state = state;
-            self.tick = 0;
+
+            //self.tick = 0; // this should not happen
+            //self.tick = curr_tick; // this should happen instead, but there's a problem with ticking on 4 that results in an instant 1st frame animation.
+            // this dirty hack should fix that.
+            self.tick = if curr_tick % 5 == 4 {u16::MAX} else {curr_tick};
+
         }
     }
 
