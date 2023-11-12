@@ -141,7 +141,12 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory, &mut HUD)> for Inven
                 self.focus = InventoryFocus::Weapons;
                 state.control_flags.set_ok_button_disabled(false);
                 // check weapon count (0 count means we run item script)
-                state.textscript_vm.start_script( if self.weapon_count > 0 {self.get_weapon_event_number(inventory)} else {self.get_item_event_number(inventory)});
+                let event = if self.weapon_count > 0 {
+                    self.get_weapon_event_number(inventory)
+                } else {
+                    self.get_item_event_number(inventory)
+                };
+                state.textscript_vm.start_script(event);
             }
             InventoryFocus::Weapons if state.control_flags.control_enabled() => {
 
