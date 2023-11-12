@@ -744,15 +744,15 @@ impl Player {
 
         if self.flags.hit_bottom_wall() {
             if self.cond.interacted() {
-                self.skin.set_state(PlayerAnimationState::Examining);
                 self.anim_num = 11;
                 self.anim_counter = 0;
+                self.skin.set_state(PlayerAnimationState::Examining, self.anim_counter);
             } else if state.control_flags.control_enabled()
                 && (self.controller.move_up() || self.strafe_up)
                 && (self.controller.move_left() || self.controller.move_right())
             {
                 self.cond.set_fallen(true);
-                self.skin.set_state(PlayerAnimationState::WalkingUp);
+                self.skin.set_state(PlayerAnimationState::WalkingUp, self.anim_counter);
 
                 self.anim_counter += 1;
                 if self.anim_counter > 4 {
@@ -771,7 +771,7 @@ impl Player {
                 && (self.controller.move_left() || self.controller.move_right())
             {
                 self.cond.set_fallen(true);
-                self.skin.set_state(PlayerAnimationState::Walking);
+                self.skin.set_state(PlayerAnimationState::Walking, self.anim_counter);
 
                 self.anim_counter += 1;
                 if self.anim_counter > 4 {
@@ -792,7 +792,7 @@ impl Player {
                 }
 
                 self.cond.set_fallen(false);
-                self.skin.set_state(PlayerAnimationState::LookingUp);
+                self.skin.set_state(PlayerAnimationState::LookingUp, self.anim_counter);
                 self.anim_num = 5;
                 self.anim_counter = 0;
             } else {
@@ -801,24 +801,24 @@ impl Player {
                 }
 
                 self.cond.set_fallen(false);
-                self.skin.set_state(PlayerAnimationState::Idle);
+                self.skin.set_state(PlayerAnimationState::Idle, self.anim_counter);
                 self.anim_num = 0;
                 self.anim_counter = 0;
             }
         } else if self.up {
-            self.skin.set_state(PlayerAnimationState::FallingLookingUp);
+            self.skin.set_state(PlayerAnimationState::FallingLookingUp, self.anim_counter);
             self.anim_num = 6;
             self.anim_counter = 0;
         } else if self.down {
-            self.skin.set_state(PlayerAnimationState::FallingLookingDown);
+            self.skin.set_state(PlayerAnimationState::FallingLookingDown, self.anim_counter);
             self.anim_num = 10;
             self.anim_counter = 0;
         } else {
             if self.vel_y > 0 {
-                self.skin.set_state(PlayerAnimationState::Falling);
+                self.skin.set_state(PlayerAnimationState::Falling, self.anim_counter);
                 self.anim_num = 1;
             } else {
-                self.skin.set_state(PlayerAnimationState::Jumping);
+                self.skin.set_state(PlayerAnimationState::Jumping, self.anim_counter);
                 self.anim_num = 3;
             }
             self.anim_counter = 0;
@@ -859,7 +859,7 @@ impl Player {
 
         if state.constants.is_switch && self.air == 0 && self.flags.in_water() && !state.get_flag(4000) {
             self.skin.set_appearance(PlayerAppearanceState::Default);
-            self.skin.set_state(PlayerAnimationState::Drowned);
+            self.skin.set_state(PlayerAnimationState::Drowned, self.anim_counter);
         }
 
         self.anim_rect = self.skin.animation_frame();

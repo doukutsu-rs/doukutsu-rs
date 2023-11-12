@@ -140,24 +140,36 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory, &mut HUD)> for Inven
             InventoryFocus::None => {
                 self.focus = InventoryFocus::Weapons;
                 state.control_flags.set_ok_button_disabled(false);
-                state.textscript_vm.start_script(self.get_weapon_event_number(inventory));
+                // check weapon count (0 count means we run item script)
+                let event = if self.weapon_count > 0 {
+                    self.get_weapon_event_number(inventory)
+                } else {
+                    self.get_item_event_number(inventory)
+                };
+                state.textscript_vm.start_script(event);
             }
             InventoryFocus::Weapons if state.control_flags.control_enabled() => {
-                if player.controller.trigger_left() {
-                    state.sound_manager.play_sfx(4);
-                    inventory.prev_weapon();
-                    state.control_flags.set_ok_button_disabled(false);
-                    state.textscript_vm.start_script(self.get_weapon_event_number(inventory));
+
+                // if we have no weapons, the TSC should not be refreshed with L/R keystrokes
+                if self.weapon_count > 0
+                {
+                    if player.controller.trigger_left() {
+                        state.sound_manager.play_sfx(4);
+                        inventory.prev_weapon();
+                        state.control_flags.set_ok_button_disabled(false);
+                        state.textscript_vm.start_script(self.get_weapon_event_number(inventory));
+                    }
+    
+                    if player.controller.trigger_right() {
+                        state.sound_manager.play_sfx(4);
+                        inventory.next_weapon();
+                        state.control_flags.set_ok_button_disabled(false);
+                        state.textscript_vm.start_script(self.get_weapon_event_number(inventory));
+                    }
                 }
 
-                if player.controller.trigger_right() {
-                    state.sound_manager.play_sfx(4);
-                    inventory.next_weapon();
-                    state.control_flags.set_ok_button_disabled(false);
-                    state.textscript_vm.start_script(self.get_weapon_event_number(inventory));
-                }
-
-                if player.controller.trigger_up() || player.controller.trigger_down() {
+                // we should not move from the weapon row if there are no items
+                if (player.controller.trigger_up() || player.controller.trigger_down()) && self.item_count > 0 {
                     self.focus = InventoryFocus::Items;
                     state.control_flags.set_ok_button_disabled(false);
                     state.textscript_vm.start_script(self.get_item_event_number(inventory));
@@ -310,8 +322,8 @@ impl GameEntity<(&mut Context, &mut Player, &mut Inventory, &mut HUD)> for Inven
 
         let (item_cursor_frame, weapon_cursor_frame) = match self.focus {
             InventoryFocus::None => (1, 1),
-            InventoryFocus::Weapons => (1, self.tick & 1),
-            InventoryFocus::Items => (self.tick & 1, 1),
+            InventoryFocus::Weapons => (1, (self.tick / 2) % 2), //every-other frame (& 1): this is not what we want, we want every 2 frames.
+            InventoryFocus::Items => ((self.tick / 2) % 2, 1),
         };
 
         batch.add_rect(
