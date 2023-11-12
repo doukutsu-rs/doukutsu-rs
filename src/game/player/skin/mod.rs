@@ -53,7 +53,7 @@ pub trait PlayerSkin: PlayerSkinClone {
     fn tick(&mut self);
 
     /// Sets the current animation state.
-    fn set_state(&mut self, state: PlayerAnimationState, curr_tick: u16);
+    fn set_state(&mut self, state: PlayerAnimationState, tick: u16);
 
     /// Returns current animation state.
     fn get_state(&self) -> PlayerAnimationState;
