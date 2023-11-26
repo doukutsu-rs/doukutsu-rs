@@ -7,6 +7,7 @@ on:
       - horizon-os
     paths-ignore:
       - '.gitignore'
+      - '.github/*'
       - '**.md'
       - 'LICENSE'
       - 'drshorizon/**'
@@ -61,7 +62,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Install dependencies
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: sudo apt install libasound2-dev libudev-dev libgl1-mesa-dev pkg-config
+        run: sudo apt install libasound2-dev libudev-dev libgl1-mesa-dev
 
       - name: Restore cache
         uses: actions/cache/restore@v3
@@ -211,3 +212,49 @@ jobs:
             app/app/build
             drsandroid/target
           key: android-cargo
+
+  update_metadata:
+    name: Update metadata
+    runs-on: ubuntu-latest
+    if: ${{ github.ref_type != 'tag' && always() }}
+    needs: [build, build_android]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: doukutsu-rs/metadata
+          token: ${{ secrets.METADATA_USER_TOKEN }}
+
+      - name: Update metadata
+        id: metadata
+        run: |
+          export FILE="./metadata/nightly.json"
+          if [ "${{ github.ref_name }}" == "master" ]; then
+            export VERSION="${{ env.VERSION }}-$((${{ github.run_number }} + 654))"
+          else
+            export VERSION="${{ env.VERSION }}-${GITHUB_SHA:0:7}"
+          fi
+
+          if [ "${{ needs.build.result }}" == "success" ]; then
+            node ./metadata.js --os linux --arch x86_64 --version $VERSION --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_linux-x64 $FILE
+            node ./metadata.js --os windows --arch x86_64 --version $VERSION --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_windows-x64 $FILE
+            node ./metadata.js --os windows --arch i686 --version $VERSION --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_windows-x32 $FILE
+            node ./metadata.js --os macos --arch x64 --version $VERSION --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_mac-x64 $FILE
+            node ./metadata.js --os macos --arch arm64 --version $VERSION --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_mac-arm64 $FILE
+          fi
+
+          if [ "${{ needs.build_android.result }}" == "success" ]; then
+            node ./metadata.js --os android --version $VERSION --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_android $FILE
+          fi
+
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Upload metadata
+        run: |
+          git config user.name ${{ vars.METADATA_USER_NAME }}
+          git config user.email ${{ vars.METADATA_USER_EMAIL }}
+
+          git add ${{ steps.metadata.outputs.file }}
+          git commit -m "Update nightly builds metadata(CI)"
+          git push

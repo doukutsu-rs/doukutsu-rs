@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  release:
+    types:
+      - released
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  update_metadata:
+    name: Update metadata
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: doukutsu-rs/metadata
+          token: ${{ secrets.METADATA_USER_TOKEN }}
+      - name: Update metadata
+        id: metadata
+        run: |
+          export VERSION="${{ github.event.release.tag_name }}"
+          export FILE="./metadata/stable.json"
+
+          node ./metadata.js --os windows --arch x86_64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.windows.x86_64.$VERSION.exe $FILE
+          node ./metadata.js --os windows --arch i686 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.windows.i686.$VERSION.exe $FILE
+          node ./metadata.js --os macos --arch x86_64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.macos.x86_64.$VERSION.zip $FILE
+          node ./metadata.js --os macos --arch arm64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.macos.arm64.$VERSION.zip $FILE
+          node ./metadata.js --os linux --arch x86_64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.linux.x86_64.$VERSION.elf $FILE
+          node ./metadata.js --os android --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.android.$VERSION.apk $FILE
+
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+      - name: Upload metadata
+        run: |
+          git config user.name ${{ vars.METADATA_USER_NAME }}
+          git config user.email ${{ vars.METADATA_USER_EMAIL }}
+
+          git add ${{ steps.metadata.outputs.file }}
+          git commit -m "Update stable builds metadata(CI)"
+          git push
+
+          
