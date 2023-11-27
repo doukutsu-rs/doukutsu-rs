@@ -237,15 +237,15 @@ jobs:
           fi
 
           if [ "${{ needs.build.result }}" == "success" ]; then
-            node ./metadata.js --os linux --arch x86_64 --version $VERSION --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_linux-x64.zip $FILE
-            node ./metadata.js --os windows --arch x86_64 --version $VERSION --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_windows-x64.zip $FILE
-            node ./metadata.js --os windows --arch i686 --version $VERSION --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_windows-x32.zip $FILE
-            node ./metadata.js --os macos --arch x64 --version $VERSION --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_mac-x64.zip $FILE
-            node ./metadata.js --os macos --arch arm64 --version $VERSION --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_mac-arm64.zip $FILE
+            node ./metadata.js --os linux --arch x86_64 --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_linux-x64.zip $FILE
+            node ./metadata.js --os windows --arch x86_64 --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_windows-x64.zip $FILE
+            node ./metadata.js --os windows --arch i686 --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_windows-x32.zip $FILE
+            node ./metadata.js --os macos --arch x64 --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_mac-x64.zip $FILE
+            node ./metadata.js --os macos --arch arm64 --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_mac-arm64.zip $FILE
           fi
 
           if [ "${{ needs.build_android.result }}" == "success" ]; then
-            node ./metadata.js --os android --version $VERSION --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_android.zip $FILE
+            node ./metadata.js --os android --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_android.zip $FILE
           fi
 
           echo "file=$FILE" >> "$GITHUB_OUTPUT"
