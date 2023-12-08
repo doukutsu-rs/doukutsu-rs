@@ -769,8 +769,15 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
         controller: &mut CombinedMenuController,
         state: &mut SharedGameState,
     ) -> MenuSelectionResult<T> {
+        // the engine does 4 times more ticks during cutscene skipping
+        let max_anim_wait = if state.textscript_vm.flags.cutscene_skip() {
+            32
+        } else {
+            8
+        };
+
         self.anim_wait += 1;
-        if self.anim_wait > 8 {
+        if self.anim_wait > max_anim_wait {
             self.anim_wait = 0;
 
             self.anim_num += 1;
