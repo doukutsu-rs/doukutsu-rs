@@ -177,12 +177,11 @@ jobs:
           BUILD_TOOLS=$ANDROID_HOME/build-tools/33.0.0
           
           echo "${{ secrets.ANDROID_SIGNING_KEYSTORE }}" | base64 --decode > keystore.jks
-          #if [ "${{ secrets.ANDROID_SIGNING_KEY_PASS }}" != "" ]; then
-          #  $BUILD_TOOLS/apksigner sign --ks ./keystore.jks --ks-key-alias "${{ secrets.ANDROID_SIGNING_ALIAS }}" --ks-pass "pass:${{ secrets.ANDROID_SIGNING_KEYSTORE_PASS }}" --key-pass "pass:${{ secrets.ANDROID_SIGNING_KEY_PASS }}" --out $APP_OUTPUTS_DIR/app-signed.apk $APP_OUTPUTS_DIR/app-release-unsigned.apk
-          #else
-          #  $BUILD_TOOLS/apksigner sign --ks ./keystore.jks --ks-key-alias "${{ secrets.ANDROID_SIGNING_ALIAS }}" --ks-pass "pass:${{ secrets.ANDROID_SIGNING_KEYSTORE_PASS }}" --out $APP_OUTPUTS_DIR/app-signed.apk $APP_OUTPUTS_DIR/app-release-unsigned.apk
-          #fi
-          $BUILD_TOOLS/apksigner sign --ks ./keystore.jks --out $APP_OUTPUTS_DIR/app-signed.apk $APP_OUTPUTS_DIR/app-release-unsigned.apk
+          if [ "${{ secrets.ANDROID_SIGNING_KEY_PASS }}" != "" ]; then
+            $BUILD_TOOLS/apksigner sign --ks ./keystore.jks --ks-key-alias "${{ secrets.ANDROID_SIGNING_ALIAS }}" --ks-pass "pass:${{ secrets.ANDROID_SIGNING_KEYSTORE_PASS }}" --key-pass "pass:${{ secrets.ANDROID_SIGNING_KEY_PASS }}" --out $APP_OUTPUTS_DIR/app-signed.apk $APP_OUTPUTS_DIR/app-release-unsigned.apk
+          else
+            $BUILD_TOOLS/apksigner sign --ks ./keystore.jks --ks-key-alias "${{ secrets.ANDROID_SIGNING_ALIAS }}" --ks-pass "pass:${{ secrets.ANDROID_SIGNING_KEYSTORE_PASS }}" --out $APP_OUTPUTS_DIR/app-signed.apk $APP_OUTPUTS_DIR/app-release-unsigned.apk
+          fi
           
           rm keystore.jks
 
