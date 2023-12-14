@@ -129,7 +129,6 @@ jobs:
 
   build_android:
     name: Android build
-    if: false
     runs-on: ubuntu-latest
     env:
       APP_OUTPUTS_DIR: "app/app/build/outputs/apk/release"
