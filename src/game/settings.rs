@@ -328,7 +328,6 @@ impl Settings {
             self.locale = match self.locale.as_str() {
                 "English" => "en".to_string(),
                 "Japanese" => "jp".to_string(),
-
                 _ => default_locale(),
             };
         }
