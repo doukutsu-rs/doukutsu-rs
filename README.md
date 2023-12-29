@@ -18,9 +18,13 @@ in [Rust](https://www.rust-lang.org/).
   - [Linux (64-bit)](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master/doukutsu-rs_linux-x64.zip)
   - [Android (armv7/arm64/x86)](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master/doukutsu-rs_android.zip)
 
-  **macOS note:** If you get a `"doukutsu-rs" can't be opened` message, right-click doukutsu-rs.app and click open.
-
 - [Get stable/beta builds from GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases)
+  
+> [!NOTE]
+> macOS note: If you get a `"doukutsu-rs" can't be opened` message, right-click doukutsu-rs.app and click open.
+
+> [!NOTE]
+> If you get issues with Epic Games Store version, scroll down for instructions.
 
 #### Data files
 
@@ -98,6 +102,15 @@ on 10.15+ anymore), do the following:
 
 </details>
 
+>  [!WARNING]
+> **EPIC GAMES STORE VERSION WARNING**
+> 
+> Nicalis for some reason ships a stray `opengl32.dll` DLL from Windows 7 with the Epic Games Store copies of Cave Story+.
+> 
+> However as the game is 32-bit and the dll is 64-bit it has no effect on the original version, but as it's a core Windows DLL and doukutsu-rs ships 64-bit builds and uses OpenGL, it's makes the game crash on startup.
+> 
+> The fix is to simply delete `opengl32.dll`, as it's not used anyway.
+
 <details>
 <summary>Epic Games Store</summary>
 
@@ -136,9 +149,10 @@ The archive from Humble Bundle contains the necessary `data` folder, in the same
 
 **Remastered version (first released in 2017 on Switch)**
 
-Note that this version is **incompatible** with saves from the original version.
-
-Interchanging the save files may result in spawning in wrong locations, softlocks, graphical glitches, or other issues.
+> [!NOTE]
+> This version is **incompatible** with saves from the original version.
+>
+> Interchanging the save files may result in spawning in wrong locations, softlocks, graphical glitches, or other issues.
 
 <details>
 <summary>Nintendo Switch</summary>
