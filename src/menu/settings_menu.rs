@@ -572,10 +572,11 @@ impl SettingsMenu {
             BehaviorMenuEntry::CutsceneSkipMode,
             MenuEntry::Options(
                 state.loc.t("menus.options_menu.behavior_menu.cutscene_skip_method.entry").to_owned(),
-                if state.settings.cutscene_skip_mode == CutsceneSkipMode::Hold { 0 } else { 1 },
+                state.settings.cutscene_skip_mode as usize,
                 vec![
                     state.loc.t("menus.options_menu.behavior_menu.cutscene_skip_method.hold").to_owned(),
                     state.loc.t("menus.options_menu.behavior_menu.cutscene_skip_method.fastforward").to_owned(),
+                    state.loc.t("menus.options_menu.behavior_menu.cutscene_skip_method.auto").to_owned(),
                 ],
             ),
         );
@@ -986,18 +987,30 @@ impl SettingsMenu {
                         *value = state.settings.allow_strafe;
                     }
                 }
-                MenuSelectionResult::Selected(BehaviorMenuEntry::CutsceneSkipMode, toggle) => {
+                MenuSelectionResult::Selected(BehaviorMenuEntry::CutsceneSkipMode, toggle)
+                | MenuSelectionResult::Right(BehaviorMenuEntry::CutsceneSkipMode, toggle, _) => {
                     if let MenuEntry::Options(_, value, _) = toggle {
-                        match state.settings.cutscene_skip_mode {
-                            CutsceneSkipMode::Hold => {
-                                state.settings.cutscene_skip_mode = CutsceneSkipMode::FastForward;
-                                *value = 1;
-                            }
-                            CutsceneSkipMode::FastForward => {
-                                state.settings.cutscene_skip_mode = CutsceneSkipMode::Hold;
-                                *value = 0;
-                            }
-                        }
+                        let (new_mode, new_value) = match state.settings.cutscene_skip_mode {
+                            CutsceneSkipMode::Hold => (CutsceneSkipMode::FastForward, 1),
+                            CutsceneSkipMode::FastForward => (CutsceneSkipMode::Auto, 2),
+                            CutsceneSkipMode::Auto => (CutsceneSkipMode::Hold, 0),
+                        };
+
+                        state.settings.cutscene_skip_mode = new_mode;
+                        *value = new_value;
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Left(BehaviorMenuEntry::CutsceneSkipMode, toggle, _) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        let (new_mode, new_value) = match state.settings.cutscene_skip_mode {
+                            CutsceneSkipMode::Hold => (CutsceneSkipMode::Auto, 2),
+                            CutsceneSkipMode::FastForward => (CutsceneSkipMode::Hold, 0),
+                            CutsceneSkipMode::Auto => (CutsceneSkipMode::FastForward, 1),
+                        };
+
+                        state.settings.cutscene_skip_mode = new_mode;
+                        *value = new_value;
                         let _ = state.settings.save(ctx);
                     }
                 }

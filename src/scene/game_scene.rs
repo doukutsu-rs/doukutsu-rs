@@ -1841,6 +1841,9 @@ impl Scene for GameScene {
                             state.textscript_vm.flags.set_cutscene_skip(false);
                         }
                     }
+                    CutsceneSkipMode::Auto => {
+                        state.textscript_vm.flags.set_cutscene_skip(true);
+                    }
                     _ => (),
                 }
             }
@@ -2183,7 +2186,7 @@ impl Scene for GameScene {
         self.falling_island.draw(state, ctx, &self.frame)?;
         self.text_boxes.draw(state, ctx, &self.frame)?;
 
-        if self.skip_counter > 1 || state.tutorial_counter > 0 {
+        if (self.skip_counter > 1 || state.tutorial_counter > 0) && (state.settings.cutscene_skip_mode != CutsceneSkipMode::Auto) {
             let key = {
                 if state.settings.touch_controls {
                     ">>".to_owned()

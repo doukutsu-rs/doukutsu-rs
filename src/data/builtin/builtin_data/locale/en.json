@@ -128,7 +128,8 @@
         "cutscene_skip_method": {
           "entry": "Cutscene Skip:",
           "hold": "Hold to Skip",
-          "fastforward": "Fast-Forward"
+          "fastforward": "Fast-Forward",
+          "auto": "Auto"
         },
         "discord_rpc": "Discord Rich Presence:",
         "allow_strafe": "Allow strafe:"

@@ -120,6 +120,7 @@ pub enum PlayerCount {
 pub enum CutsceneSkipMode {
     Hold,
     FastForward,
+    Auto,
 }
 
 impl GameDifficulty {
