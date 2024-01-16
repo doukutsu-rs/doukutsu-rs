@@ -64,7 +64,7 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
         row.add(Root.COLUMN_ROOT_ID, id);
         row.add(Root.COLUMN_ICON, R.mipmap.ic_launcher);
         row.add(Root.COLUMN_TITLE,
-                getContext().getString(R.string.document_provider_name));
+                getContext().getString(R.string.app_name));
         row.add(Root.COLUMN_MIME_TYPES, "*/*");
         row.add(Root.COLUMN_AVAILABLE_BYTES, file.getFreeSpace());
         row.add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_IS_CHILD | Root.FLAG_SUPPORTS_CREATE);

@@ -25,6 +25,8 @@ public class GameActivity extends NativeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        ActivityUtils.hideSystemBars(this);
+
         listener = new OrientationEventListener(this, SensorManager.SENSOR_DELAY_UI) {
             @Override
             public void onOrientationChanged(int orientation) {

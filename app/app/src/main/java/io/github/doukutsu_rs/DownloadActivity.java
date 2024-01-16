@@ -3,9 +3,9 @@ package io.github.doukutsu_rs;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import androidx.appcompat.app.AppCompatActivity;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -28,6 +28,8 @@ public class DownloadActivity extends AppCompatActivity {
         setContentView(R.layout.activity_download);
         txtProgress = findViewById(R.id.txtProgress);
         progressBar = findViewById(R.id.progressBar);
+        ActivityUtils.hideSystemBars(this);
+
         basePath = getFilesDir().getAbsolutePath() + "/";
 
         downloadThread = new DownloadThread();
@@ -50,7 +52,7 @@ public class DownloadActivity extends AppCompatActivity {
             this.filesWhitelist.add("data/");
             this.filesWhitelist.add("Doukutsu.exe");
 
-            //BE CAREFUL, DON'T SET `true` VALUE FOR TRANSLATIONS
+            // DON'T SET `true` VALUE FOR TRANSLATIONS
             this.urls.add(new DownloadEntry(R.string.download_entries_base, "https://www.cavestory.org/downloads/cavestoryen.zip", true));
 
             for (DownloadEntry entry : this.urls) {
