@@ -120,15 +120,15 @@ impl LuaScriptingState {
         let res = state.do_string(BOOT_SCRIPT);
         check_status(res, &mut state)?;
 
-        if filesystem::user_exists(ctx, "/drs-scripts/") {
+        if filesystem::exists(ctx, "/drs-scripts/") {
             let mut script_count = 0;
-            let files = filesystem::user_read_dir(ctx, "/drs-scripts/")?
+            let files = filesystem::read_dir(ctx, "/drs-scripts/")?
                 .filter(|f| f.to_string_lossy().to_lowercase().ends_with(".lua"));
 
             for file in files {
                 let path = file.clone();
 
-                match filesystem::user_open(ctx, file) {
+                match filesystem::open(ctx, file) {
                     Ok(script) => {
                         if LuaScriptingState::load_script(&mut state, &path.to_string_lossy(), script) {
                             script_count += 1;
