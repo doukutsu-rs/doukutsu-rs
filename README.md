@@ -236,5 +236,5 @@ To change, use the control customization menu or edit `doukutsu-rs\data\settings
 - [@Daedily](https://twitter.com/Daedliy) - brand artwork (Icon / Banner / Server), screenshots for this guide.
 - [ggez](https://github.com/ggez/ggez) - parts of it are used in `crate::framework`, notably the VFS code.
 - [Clownacy](https://github.com/Clownacy) - widescreen camera code.
-- [LunarLambda for organism](https://gitdab.com/LunarLambda/organism) - used as basis for our Organya playback engine.
+- [LunarLambda for organism](https://github.com/doukutsu-rs/organism) - used as basis for our Organya playback engine.
 - [Zoroyoshi](http://z.apps.atjp.jp/k12x10/) - k12x10 font we use as built-in font.
