@@ -121,11 +121,15 @@ impl OrgPlaybackEngine {
             }
         }
 
+        // Initialize drums
         for (idx, (track, buf)) in song.tracks[8..].iter().zip(self.track_buffers[128..].iter_mut()).enumerate() {
-            if self.song.version == Version::Extended {
-                *buf = RenderBuffer::new(samples.samples[track.inst.inst as usize].clone());
+            if song.version == Version::Extended {
+                // Check for OOB track count, instruments outside of the sample range will be set to the last valid sample
+                let index = if track.inst.inst as usize >= samples.samples.len() {samples.samples.len() - 1} else {track.inst.inst as usize} ;
+                *buf = RenderBuffer::new(samples.samples[index].clone());
             } else {
-                *buf = RenderBuffer::new(samples.samples[idx].clone());
+                let index = if idx >= samples.samples.len() {samples.samples.len() - 1} else {idx};
+                *buf = RenderBuffer::new(samples.samples[index].clone());
             }
         }
 
