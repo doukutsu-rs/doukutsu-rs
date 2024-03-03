@@ -1,6 +1,6 @@
 ![doukutsu-rs](./res/sue_crab_banner_github.png)
 
-A fully playable re-implementation of Cave Story (Doukutsu Monogatari) engine written
+A fully playable re-implementation of the Cave Story (Doukutsu Monogatari) engine written
 in [Rust](https://www.rust-lang.org/).
 
 [Join the Discord server](https://discord.gg/fbRsNNB)
