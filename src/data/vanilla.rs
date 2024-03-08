@@ -22,8 +22,17 @@ pub struct VanillaExtractor {
 
 const VANILLA_STAGE_COUNT: u32 = 95;
 const VANILLA_STAGE_ENTRY_SIZE: u32 = 0xC8;
-const VANILLA_STAGE_OFFSET: u32 = 0x937B0;
 const VANILLA_STAGE_TABLE_SIZE: u32 = VANILLA_STAGE_COUNT * VANILLA_STAGE_ENTRY_SIZE;
+
+trait RangeExt {
+    fn to_usize(&self) -> std::ops::Range<usize>;
+}
+
+impl RangeExt for Range<u32> {
+    fn to_usize(&self) -> std::ops::Range<usize> {
+        (self.start as usize)..(self.end as usize)
+    }
+}
 
 impl VanillaExtractor {
     pub fn from(ctx: &mut Context, exe_name: String, data_base_dir: String) -> Option<Self> {
@@ -182,21 +191,56 @@ impl VanillaExtractor {
         Ok(())
     }
 
-    fn extract_stage_table(&self, parser: &ExeParser) -> GameResult {
+    fn find_stage_table_offset(&self, parser: &ExeParser) -> Option<Range<u32>> {
         let range = parser.get_named_section_byte_range(".csmap".to_string());
         if range.is_err() {
-            return Err(ParseError("Failed to retrieve stage table from executable.".to_string()));
+            return None;
         }
 
-        let range = match range.unwrap() {
+        let pattern = [
+            // add     esp, 8
+            0x83u8, 0xc4, 0x08,
+            // mov     eax, [ebp+arg_0]
+            0x8b, 0x45, 0x08,
+            // imul    eax, 0C8h
+            0x69, 0xc0, 0xc8, 0x00, 0x00, 0x00,
+            // add     eax, offset gTMT
+            0x05, // 0x??, 0x??, 0x??, 0x??
+        ];
+
+        let text = parser.section_headers.by_name(".text")?;
+        let text_range = text.file_range().to_usize();
+        let text_range_start = text_range.start;
+        let offset = self.exe_buffer[text_range]
+            .windows(pattern.len())
+            .position(|window| window == pattern)?;
+        let offset = text_range_start + offset;
+        let offset = u32::from_le_bytes([
+            self.exe_buffer[offset + 13],
+            self.exe_buffer[offset + 14],
+            self.exe_buffer[offset + 15],
+            self.exe_buffer[offset + 16],
+        ]);
+        log::info!("Found stage table offset: 0x{:X}", offset);
+
+        let section = parser.section_headers.by_rva(offset - parser.image_base)?;
+        let offset_inside_range = offset.checked_sub(section.VirtualAddress + parser.image_base)?;
+        let range = section.file_range();
+        
+        let data_start = range.start + offset_inside_range;
+        let data_end = data_start + VANILLA_STAGE_TABLE_SIZE;
+        Some(data_start..data_end)
+    }
+
+    fn extract_stage_table(&self, parser: &ExeParser) -> GameResult {
+        let range = self.find_stage_table_offset(parser);
+        let range = match range {
             Some(range) => range,
-            None => Range { start: VANILLA_STAGE_OFFSET, end: VANILLA_STAGE_OFFSET + VANILLA_STAGE_TABLE_SIZE },
+            None => return Err(ParseError("Failed to retrieve stage table from executable.".to_string())),
         };
+        let range = range.to_usize();
 
-        let start = range.start as usize;
-        let end = range.end as usize;
-
-        let byte_slice = &self.exe_buffer[start..end];
+        let byte_slice = &self.exe_buffer[range];
 
         let mut stage_tbl_path = self.root.clone();
         stage_tbl_path.push(self.data_base_dir.clone());

@@ -33,6 +33,7 @@ impl ExeResourceDirectory {
 }
 
 pub struct ExeParser<'a> {
+    pub image_base: u32,
     pub resources: Resources<'a>,
     pub section_headers: Box<&'a SectionHeaders>,
 }
@@ -50,8 +51,13 @@ impl<'a> ExeParser<'a> {
                 }
 
                 let section_headers = pe.section_headers();
+                let image_base = pe.nt_headers().OptionalHeader.ImageBase;
 
-                Ok(Self { resources: resources.unwrap(), section_headers: Box::new(section_headers) })
+                Ok(Self { 
+                    image_base,
+                    resources: resources.unwrap(), 
+                    section_headers: Box::new(section_headers) 
+                })
             }
             Err(_) => Err(ParseError("Failed to parse PE file".to_string())),
         };
