@@ -315,8 +315,9 @@ impl GameProfile {
     }
 
     pub fn load_from_save<R: io::Read>(mut data: R) -> GameResult<GameProfile> {
-        // Do041220
-        if data.read_u64::<BE>()? != 0x446f303431323230 {
+        let magic = data.read_u64::<BE>()?;
+        // Do041220, Do041115
+        if magic != 0x446f303431323230 && magic != 0x446f303431313135 {
             return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
