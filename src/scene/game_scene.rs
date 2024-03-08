@@ -1121,7 +1121,7 @@ impl GameScene {
                     droplet.cond.set_alive(true);
                     droplet.y = npc.y;
                     droplet.direction =
-                        if npc.flags.water_splash_facing_right() { Direction::Right } else { Direction::Left };
+                        if npc.flags.bloody_droplets() { Direction::Right } else { Direction::Left };
 
                     for _ in 0..7 {
                         droplet.x = npc.x + (npc.rng.range(-8..8) * 0x200) as i32;

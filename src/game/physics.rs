@@ -708,6 +708,7 @@ pub trait PhysicalEntity {
             self.flags().set_hit_by_spike(true);
             if water {
                 self.flags().set_in_water(true);
+                self.flags().set_bloody_droplets(true);
             }
         }
     }

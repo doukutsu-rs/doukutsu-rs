@@ -559,7 +559,7 @@ impl Player {
                 droplet.cond.set_alive(true);
                 droplet.y = self.y;
                 droplet.direction =
-                    if self.flags.water_splash_facing_right() { Direction::Right } else { Direction::Left };
+                    if self.flags.bloody_droplets() { Direction::Right } else { Direction::Left };
 
                 for _ in 0..7 {
                     droplet.x = self.x + (state.game_rng.range(-8..8) * 0x200) as i32;

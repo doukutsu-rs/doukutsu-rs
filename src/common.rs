@@ -47,7 +47,7 @@ bitfield! {
     pub in_water, set_in_water: 8;
     pub weapon_hit_block, set_weapon_hit_block: 9; // 0x200
     pub hit_by_spike, set_hit_by_spike: 10; // 0x400
-    pub water_splash_facing_right, set_water_splash_facing_right: 11; // 0x800
+    pub bloody_droplets, set_bloody_droplets: 11; // 0x800
     pub force_left, set_force_left: 12; // 0x1000
     pub force_up, set_force_up: 13; // 0x2000
     pub force_right, set_force_right: 14; // 0x4000
