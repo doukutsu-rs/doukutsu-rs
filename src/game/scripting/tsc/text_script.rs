@@ -48,12 +48,15 @@ bitfield! {
 pub enum TextScriptEncoding {
     UTF8 = 0,
     ShiftJIS,
+    GBK,
 }
 
 impl From<&str> for TextScriptEncoding {
     fn from(s: &str) -> Self {
         match s {
             "utf-8" => Self::UTF8,
+            // GBK is a superset to GB2312
+            "gbk" | "gb2312" => Self::GBK,
             _ => Self::ShiftJIS,
         }
     }
@@ -64,7 +67,10 @@ impl TextScriptEncoding {
         let required_encoding = if (state.loc.code == "jp" || state.loc.code == "en") && state.constants.is_base() {
             TextScriptEncoding::ShiftJIS
         } else {
-            TextScriptEncoding::UTF8
+            match state.loc.code.as_str() {
+                "zh" => TextScriptEncoding::GBK,
+                _ => TextScriptEncoding::UTF8,
+            }
         };
 
         encoding != required_encoding
@@ -798,8 +804,10 @@ impl TextScriptVM {
                         // The vanilla game treats this as a 1-byte value lol
                         //if npc.event_num == (new_direction & 0xFF) as u16 {
                         if npc.event_num == new_direction as u16 {
-                            game_scene.player1.direction = if game_scene.player1.x > npc.x { Direction::Left } else { Direction::Right };
-                            game_scene.player2.direction = if game_scene.player2.x > npc.x { Direction::Left } else { Direction::Right };
+                            game_scene.player1.direction =
+                                if game_scene.player1.x > npc.x { Direction::Left } else { Direction::Right };
+                            game_scene.player2.direction =
+                                if game_scene.player2.x > npc.x { Direction::Left } else { Direction::Right };
                         }
                     }
                 }
