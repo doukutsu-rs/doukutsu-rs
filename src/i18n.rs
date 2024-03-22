@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::string;
 
 use crate::framework::context::Context;
 use crate::framework::filesystem;
@@ -9,6 +10,7 @@ pub struct Locale {
     pub code: String,
     pub name: String,
     pub font: FontData,
+    pub encoding: Option<String>,
     strings: HashMap<String, String>,
 }
 
@@ -22,6 +24,7 @@ impl Default for Locale {
                 scale: 1.0,
                 space_offset: 0.0
             },
+            encoding: None,
             strings: HashMap::new(),
         }
     }
@@ -29,7 +32,7 @@ impl Default for Locale {
 
 impl Locale {
     pub fn new(ctx: &mut Context, base_paths: &Vec<String>, code: &str) -> Locale {
-        let file = filesystem::open_find(ctx, base_paths, &format!("locale/{}.json", code)).unwrap();
+        let file = filesystem::open_find(ctx, base_paths, &format!("locale/{code}.json")).unwrap();
         let json: serde_json::Value = serde_json::from_reader(file).unwrap();
 
         let strings = Locale::flatten(&json);
@@ -39,8 +42,10 @@ impl Locale {
         let font_name = strings["font"].clone();
         let font_scale = strings["font_scale"].parse::<f32>().unwrap_or(1.0);
         let font = FontData::new(font_name, font_scale, 0.0);
+        
+        let encoding = strings.get("encoding").cloned();
 
-        Locale { code: code.to_string(), name, font, strings }
+        Locale { code: code.to_string(), name, font, encoding, strings }
     }
 
     fn flatten(json: &serde_json::Value) -> HashMap<String, String> {

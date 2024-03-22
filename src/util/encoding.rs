@@ -2,48 +2,6 @@ use std::io::Cursor;
 
 use byteorder::ReadBytesExt;
 
-/// Decodes UTF-8 character in a less strict way.
-/// http://simonsapin.github.io/wtf-8/#decoding-wtf-8
-pub fn read_cur_wtf8<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, max_bytes: u32) -> (u32, char) {
-    let result: u32;
-    let consumed: u32;
-
-    if max_bytes == 0 {
-        return (0, '\u{fffd}');
-    }
-
-    match cursor.read_u8() {
-        Ok(byte @ 0x00..=0x7f) => {
-            consumed = 1;
-            result = byte as u32;
-        }
-        Ok(byte @ 0xc2..=0xdf) if max_bytes >= 2 => {
-            let byte2 = { if let Ok(n) = cursor.read_u8() { n } else { return (1, '\u{fffd}'); } };
-
-            consumed = 2;
-            result = (byte as u32 & 0x1f) << 6 | (byte2 as u32 & 0x3f);
-        }
-        Ok(byte @ 0xe0..=0xef) if max_bytes >= 3 => {
-            let byte2 = { if let Ok(n) = cursor.read_u8() { n } else { return (1, '\u{fffd}'); } };
-            let byte3 = { if let Ok(n) = cursor.read_u8() { n } else { return (2, '\u{fffd}'); } };
-
-            consumed = 3;
-            result = (byte as u32 & 0x0f) << 12 | (byte2 as u32 & 0x3f) << 6 | (byte3 as u32 & 0x3f);
-        }
-        Ok(byte @ 0xf0..=0xf4) if max_bytes >= 4 => {
-            let byte2 = { if let Ok(n) = cursor.read_u8() { n } else { return (1, '\u{fffd}'); } };
-            let byte3 = { if let Ok(n) = cursor.read_u8() { n } else { return (2, '\u{fffd}'); } };
-            let byte4 = { if let Ok(n) = cursor.read_u8() { n } else { return (3, '\u{fffd}'); } };
-
-            consumed = 4;
-            result = (byte as u32 & 0x07) << 18 | (byte2 as u32 & 0x3f) << 12 | (byte3 as u32 & 0x3f) << 6 | (byte4 as u32 & 0x3f);
-        }
-        _ => { return (1, '\u{fffd}'); }
-    }
-
-    (consumed, std::char::from_u32(result).unwrap_or('\u{fffd}'))
-}
-
 /// Shift-JIS -> Unicode converter.
 pub fn read_cur_shift_jis<T: AsRef<[u8]>>(cursor: &mut Cursor<T>, max_bytes: u32) -> (u32, char) {
     let result: u32;
