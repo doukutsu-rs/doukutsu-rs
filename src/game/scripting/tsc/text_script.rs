@@ -48,15 +48,12 @@ bitfield! {
 pub enum TextScriptEncoding {
     UTF8 = 0,
     ShiftJIS,
-    GBK,
 }
 
 impl From<&str> for TextScriptEncoding {
     fn from(s: &str) -> Self {
         match s {
             "utf-8" => Self::UTF8,
-            // GBK is a superset to GB2312
-            "gbk" | "gb2312" => Self::GBK,
             _ => Self::ShiftJIS,
         }
     }
@@ -67,10 +64,7 @@ impl TextScriptEncoding {
         let required_encoding = if (state.loc.code == "jp" || state.loc.code == "en") && state.constants.is_base() {
             TextScriptEncoding::ShiftJIS
         } else {
-            match state.loc.code.as_str() {
-                "zh" => TextScriptEncoding::GBK,
-                _ => TextScriptEncoding::UTF8,
-            }
+            TextScriptEncoding::UTF8
         };
 
         encoding != required_encoding

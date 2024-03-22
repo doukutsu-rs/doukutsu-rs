@@ -60,6 +60,7 @@ android = []
 #cpal = { path = "./3rdparty/cpal" }
 byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
+charset-normalizer-rs = "1.0.6"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 cpal = { git = "https://github.com/doukutsu-rs/cpal", rev = "9d269d8724102404e73a61e9def0c0cbc921b676" }
 directories = "3"
