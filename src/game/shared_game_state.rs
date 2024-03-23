@@ -430,6 +430,9 @@ impl SharedGameState {
                 constants.textscript.encoding = TextScriptEncoding::UTF8
             }
         }
+        if let Some(state_encoding) = locale.stage_encoding.as_ref() {
+            constants.stage_encoding = Some(state_encoding.as_str().into());
+        }
 
         let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
             log::warn!("Failed to load font, using built-in: {}", e);
@@ -535,7 +538,12 @@ impl SharedGameState {
         self.constants.load_csplus_tables(ctx)?;
         self.constants.load_animated_faces(ctx)?;
         self.constants.load_texture_size_hints(ctx)?;
-        let stages = StageData::load_stage_table(ctx, &self.constants.base_paths, self.constants.is_switch)?;
+        let stages = StageData::load_stage_table(
+            ctx,
+            &self.constants.base_paths,
+            self.constants.is_switch,
+            self.constants.stage_encoding,
+        )?;
         self.stages = stages;
 
         let npc_tbl = filesystem::open_find(ctx, &self.constants.base_paths, "npc.tbl")?;

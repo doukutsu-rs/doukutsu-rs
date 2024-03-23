@@ -345,6 +345,7 @@ pub struct EngineConstants {
     pub missile_flags: Vec<u16>,
     pub locales: Vec<Locale>,
     pub gamepad: GamepadConsts,
+    pub stage_encoding: Option<TextScriptEncoding>,
 }
 
 impl Clone for EngineConstants {
@@ -380,6 +381,7 @@ impl Clone for EngineConstants {
             missile_flags: self.missile_flags.clone(),
             locales: self.locales.clone(),
             gamepad: self.gamepad.clone(),
+            stage_encoding: self.stage_encoding,
         }
     }
 }
@@ -1705,6 +1707,7 @@ impl EngineConstants {
                     (Axis::TriggerRight, GamepadConsts::rects(Rect::new(32, 80, 64, 96))),
                 ]),
             },
+            stage_encoding: None,
         }
     }
 

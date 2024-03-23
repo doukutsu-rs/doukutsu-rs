@@ -11,6 +11,7 @@ pub struct Locale {
     pub name: String,
     pub font: FontData,
     pub encoding: Option<String>,
+    pub stage_encoding: Option<String>,
     strings: HashMap<String, String>,
 }
 
@@ -25,6 +26,7 @@ impl Default for Locale {
                 space_offset: 0.0
             },
             encoding: None,
+            stage_encoding: None,
             strings: HashMap::new(),
         }
     }
@@ -44,8 +46,9 @@ impl Locale {
         let font = FontData::new(font_name, font_scale, 0.0);
         
         let encoding = strings.get("encoding").cloned();
+        let stage_encoding = strings.get("stage_encoding").cloned();
 
-        Locale { code: code.to_string(), name, font, encoding, strings }
+        Locale { code: code.to_string(), name, font, encoding, strings, stage_encoding }
     }
 
     fn flatten(json: &serde_json::Value) -> HashMap<String, String> {

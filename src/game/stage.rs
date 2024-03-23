@@ -14,6 +14,8 @@ use crate::framework::filesystem;
 use crate::game::map::{Map, NPCData};
 use crate::game::scripting::tsc::text_script::TextScript;
 
+use super::scripting::tsc::text_script::TextScriptEncoding;
+
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct NpcType {
     name: String,
@@ -260,11 +262,20 @@ fn zero_index(s: &[u8]) -> usize {
     s.iter().position(|&c| c == b'\0').unwrap_or(s.len())
 }
 
+fn from_encoding(s: &[u8], encoding: Option<TextScriptEncoding>) -> String {
+    let encoding: Option<&encoding_rs::Encoding> = encoding.map(TextScriptEncoding::into);
+    if let Some(encoding) = encoding {
+        encoding.decode_without_bom_handling(s).0.into_owned()
+    } else {
+        from_shift_jis(s)
+    }
+}
+
 fn from_shift_jis(s: &[u8]) -> String {
     encoding_rs::SHIFT_JIS.decode_without_bom_handling(s).0.into_owned()
 }
 
-fn from_csplus_stagetbl(s: &[u8], is_switch: bool) -> String {
+fn from_csplus_stagetbl(s: &[u8], is_switch: bool, encoding: Option<TextScriptEncoding>) -> String {
     if is_switch {
         from_utf8(s).unwrap_or("").trim_matches('\0').to_string()
     } else {
@@ -273,7 +284,12 @@ fn from_csplus_stagetbl(s: &[u8], is_switch: bool) -> String {
 }
 
 impl StageData {
-    pub fn load_stage_table(ctx: &mut Context, roots: &Vec<String>, is_switch: bool) -> GameResult<Vec<Self>> {
+    pub fn load_stage_table(
+        ctx: &mut Context,
+        roots: &Vec<String>,
+        is_switch: bool,
+        encoding: Option<TextScriptEncoding>,
+    ) -> GameResult<Vec<Self>> {
         let stage_tbl_path = "/stage.tbl";
         let stage_sect_path = "/stage.sect";
         let mrmap_bin_path = "/mrmap.bin";
@@ -314,13 +330,14 @@ impl StageData {
                         f.read_exact(&mut name_jap_buf)?;
                         f.read_exact(&mut name_buf)?;
 
-                        let tileset = from_csplus_stagetbl(&ts_buf[0..zero_index(&ts_buf)], is_switch);
-                        let map = from_csplus_stagetbl(&map_buf[0..zero_index(&map_buf)], is_switch);
-                        let background = from_csplus_stagetbl(&back_buf[0..zero_index(&back_buf)], is_switch);
-                        let npc1 = from_csplus_stagetbl(&npc1_buf[0..zero_index(&npc1_buf)], is_switch);
-                        let npc2 = from_csplus_stagetbl(&npc2_buf[0..zero_index(&npc2_buf)], is_switch);
-                        let name = from_csplus_stagetbl(&name_buf[0..zero_index(&name_buf)], is_switch);
-                        let name_jp = from_csplus_stagetbl(&name_jap_buf[0..zero_index(&name_jap_buf)], is_switch);
+                        let tileset = from_csplus_stagetbl(&ts_buf[0..zero_index(&ts_buf)], is_switch, encoding);
+                        let map = from_csplus_stagetbl(&map_buf[0..zero_index(&map_buf)], is_switch, encoding);
+                        let background = from_csplus_stagetbl(&back_buf[0..zero_index(&back_buf)], is_switch, encoding);
+                        let npc1 = from_csplus_stagetbl(&npc1_buf[0..zero_index(&npc1_buf)], is_switch, encoding);
+                        let npc2 = from_csplus_stagetbl(&npc2_buf[0..zero_index(&npc2_buf)], is_switch, encoding);
+                        let name = from_csplus_stagetbl(&name_buf[0..zero_index(&name_buf)], is_switch, encoding);
+                        let name_jp =
+                            from_csplus_stagetbl(&name_jap_buf[0..zero_index(&name_jap_buf)], is_switch, encoding);
 
                         let stage = StageData {
                             name: name.clone(),
@@ -380,12 +397,12 @@ impl StageData {
                     let _ = f.read(&mut lol)?;
                 }
 
-                let tileset = from_shift_jis(&ts_buf[0..zero_index(&ts_buf)]);
-                let map = from_shift_jis(&map_buf[0..zero_index(&map_buf)]);
-                let background = from_shift_jis(&back_buf[0..zero_index(&back_buf)]);
-                let npc1 = from_shift_jis(&npc1_buf[0..zero_index(&npc1_buf)]);
-                let npc2 = from_shift_jis(&npc2_buf[0..zero_index(&npc2_buf)]);
-                let name = from_shift_jis(&name_buf[0..zero_index(&name_buf)]);
+                let tileset = from_encoding(&ts_buf[0..zero_index(&ts_buf)], encoding);
+                let map = from_encoding(&map_buf[0..zero_index(&map_buf)], encoding);
+                let background = from_encoding(&back_buf[0..zero_index(&back_buf)], encoding);
+                let npc1 = from_encoding(&npc1_buf[0..zero_index(&npc1_buf)], encoding);
+                let npc2 = from_encoding(&npc2_buf[0..zero_index(&npc2_buf)], encoding);
+                let name = from_encoding(&name_buf[0..zero_index(&name_buf)], encoding);
 
                 let stage = StageData {
                     name: name.clone(),
@@ -439,12 +456,12 @@ impl StageData {
                 let boss_no = f.read_u8()?;
                 f.read_exact(&mut name_buf)?;
 
-                let tileset = from_shift_jis(&ts_buf[0..zero_index(&ts_buf)]);
-                let map = from_shift_jis(&map_buf[0..zero_index(&map_buf)]);
-                let background = from_shift_jis(&back_buf[0..zero_index(&back_buf)]);
-                let npc1 = from_shift_jis(&npc1_buf[0..zero_index(&npc1_buf)]);
-                let npc2 = from_shift_jis(&npc2_buf[0..zero_index(&npc2_buf)]);
-                let name = from_shift_jis(&name_buf[0..zero_index(&name_buf)]);
+                let tileset = from_encoding(&ts_buf[0..zero_index(&ts_buf)], encoding);
+                let map = from_encoding(&map_buf[0..zero_index(&map_buf)], encoding);
+                let background = from_encoding(&back_buf[0..zero_index(&back_buf)], encoding);
+                let npc1 = from_encoding(&npc1_buf[0..zero_index(&npc1_buf)],encoding);
+                let npc2 = from_encoding(&npc2_buf[0..zero_index(&npc2_buf)],encoding);
+                let name = from_encoding(&name_buf[0..zero_index(&name_buf)],encoding);
 
                 let stage = StageData {
                     name: name.clone(),
