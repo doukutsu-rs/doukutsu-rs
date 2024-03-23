@@ -500,18 +500,21 @@ impl SettingsMenu {
         );
         self.sound.push_entry(
             SoundMenuEntry::Soundtrack,
-            MenuEntry::Active(
-                state.tt(
-                    "menus.options_menu.sound_menu.soundtrack",
-                    &[("soundtrack", state.settings.soundtrack.as_str())],
-                ),
-            ),
+            MenuEntry::Active(state.loc.tt(
+                "menus.options_menu.sound_menu.soundtrack",
+                &[("soundtrack", state.get_localized_soundtrack_name(&state.settings.soundtrack).as_str())],
+            )),
         );
         self.sound.push_entry(SoundMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
-        let mut soundtrack_entries =
-            state.constants.soundtracks.iter().filter(|s| s.available).map(|s| s.name.to_owned()).collect_vec();
-        soundtrack_entries.push("Organya".to_owned());
+        let mut soundtrack_entries = state
+            .constants
+            .soundtracks
+            .iter()
+            .filter(|s| s.available)
+            .map(|s| state.loc.t(format!("soundtrack.{}", s.id).as_str()).to_owned())
+            .collect_vec();
+        soundtrack_entries.push(state.loc.t("soundtrack.organya").to_owned());
 
         if let Ok(dir) = filesystem::read_dir(ctx, "/Soundtracks/") {
             for entry in dir {
@@ -882,7 +885,7 @@ impl SettingsMenu {
 
                     for (id, entry) in &self.soundtrack.entries {
                         if let MenuEntry::Active(soundtrack) = entry {
-                            if soundtrack == &state.settings.soundtrack {
+                            if soundtrack == &state.get_localized_soundtrack_name(&state.settings.soundtrack) {
                                 active_soundtrack = *id;
                                 let _ = state.settings.save(ctx);
                                 break;
@@ -937,12 +940,28 @@ impl SettingsMenu {
             CurrentMenu::SoundtrackMenu => match self.soundtrack.tick(controller, state) {
                 MenuSelectionResult::Selected(SoundtrackMenuEntry::Soundtrack(_), entry) => {
                     if let MenuEntry::Active(name) = entry {
-                        state.settings.soundtrack = name.to_owned();
+                        state.settings.soundtrack = state
+                            .constants
+                            .soundtracks
+                            .iter()
+                            .find(|s| state.loc.t(format!("soundtrack.{}", s.id).as_str()) == name)
+                            .map_or_else(|| name.to_owned(), |s| s.id.clone());
+
+                        if state.settings.soundtrack == "Organya" {
+                            state.settings.soundtrack = "organya".to_owned()
+                        }
+
                         let _ = state.settings.save(ctx);
 
                         self.sound.set_entry(
                             SoundMenuEntry::Soundtrack,
-                            MenuEntry::Active(format!("Soundtrack: {}", state.settings.soundtrack)),
+                            MenuEntry::Active(state.loc.tt(
+                                "menus.options_menu.sound_menu.soundtrack",
+                                &[(
+                                    "soundtrack",
+                                    state.get_localized_soundtrack_name(&state.settings.soundtrack).as_str(),
+                                )],
+                            )),
                         );
                         state.sound_manager.reload_songs(&state.constants, &state.settings, ctx)?;
                     }
