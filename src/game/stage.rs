@@ -1,19 +1,18 @@
 use std::io::{Cursor, Read};
 use std::str::from_utf8;
 
-use byteorder::LE;
 use byteorder::ReadBytesExt;
+use byteorder::LE;
 use log::info;
 
 use crate::common::Color;
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
-use crate::framework::error::{GameError, GameResult};
 use crate::framework::error::GameError::ResourceLoadError;
+use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
 use crate::game::map::{Map, NPCData};
 use crate::game::scripting::tsc::text_script::TextScript;
-use crate::util::encoding::read_cur_shift_jis;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct NpcType {
@@ -262,17 +261,7 @@ fn zero_index(s: &[u8]) -> usize {
 }
 
 fn from_shift_jis(s: &[u8]) -> String {
-    let mut cursor = Cursor::new(s);
-    let mut chars = Vec::new();
-    let mut bytes = s.len() as u32;
-
-    while bytes > 0 {
-        let (consumed, chr) = read_cur_shift_jis(&mut cursor, bytes);
-        chars.push(chr);
-        bytes -= consumed;
-    }
-
-    chars.iter().collect()
+    encoding_rs::SHIFT_JIS.decode_without_bom_handling(s).0.into_owned()
 }
 
 fn from_csplus_stagetbl(s: &[u8], is_switch: bool) -> String {
