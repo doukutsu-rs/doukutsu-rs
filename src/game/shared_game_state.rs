@@ -21,7 +21,9 @@ use crate::game::profile::GameProfile;
 #[cfg(feature = "scripting-lua")]
 use crate::game::scripting::lua::LuaScriptingState;
 use crate::game::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
-use crate::game::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptEncoding, TextScriptExecutionState, TextScriptVM};
+use crate::game::scripting::tsc::text_script::{
+    ScriptMode, TextScript, TextScriptEncoding, TextScriptExecutionState, TextScriptVM,
+};
 use crate::game::settings::Settings;
 use crate::game::stage::StageData;
 use crate::graphics::bmfont::BMFont;
@@ -419,12 +421,16 @@ impl SharedGameState {
         constants.load_locales(ctx)?;
 
         let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
-        if (locale.code == "jp" || locale.code == "en") && constants.is_base() {
-            constants.textscript.encoding =  TextScriptEncoding::ShiftJIS
+        if let Some(encoding) = locale.encoding.as_ref() {
+            constants.textscript.encoding = TextScriptEncoding::from(encoding.as_str())
         } else {
-            constants.textscript.encoding =  TextScriptEncoding::UTF8
+            if (locale.code == "jp" || locale.code == "en") && constants.is_base() {
+                constants.textscript.encoding = TextScriptEncoding::ShiftJIS
+            } else {
+                constants.textscript.encoding = TextScriptEncoding::UTF8
+            }
         }
-        
+
         let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
             log::warn!("Failed to load font, using built-in: {}", e);
             BMFont::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx, 1.0)
@@ -573,9 +579,9 @@ impl SharedGameState {
         if let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) {
             self.loc = locale;
             if (self.loc.code == "jp" || self.loc.code == "en") && self.constants.is_base() {
-                self.constants.textscript.encoding =  TextScriptEncoding::ShiftJIS
+                self.constants.textscript.encoding = TextScriptEncoding::ShiftJIS
             } else {
-                self.constants.textscript.encoding =  TextScriptEncoding::UTF8
+                self.constants.textscript.encoding = TextScriptEncoding::UTF8
             }
         }
 
@@ -647,7 +653,12 @@ impl SharedGameState {
         Ok(())
     }
 
-    pub fn save_game(&mut self, game_scene: &mut GameScene, ctx: &mut Context, target_player: Option<TargetPlayer>) -> GameResult {
+    pub fn save_game(
+        &mut self,
+        game_scene: &mut GameScene,
+        ctx: &mut Context,
+        target_player: Option<TargetPlayer>,
+    ) -> GameResult {
         if let Some(save_path) = self.get_save_filename(self.save_slot) {
             if let Ok(data) = filesystem::open_options(ctx, save_path, OpenOptions::new().write(true).create(true)) {
                 let profile = GameProfile::dump(self, game_scene, target_player);
