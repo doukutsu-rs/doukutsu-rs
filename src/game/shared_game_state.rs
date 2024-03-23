@@ -410,7 +410,7 @@ impl SharedGameState {
 
         for soundtrack in constants.soundtracks.iter_mut() {
             if filesystem::exists(ctx, &soundtrack.path) {
-                log::info!("Enabling soundtrack {} from {}.", soundtrack.name, soundtrack.path);
+                log::info!("Enabling soundtrack {} from {}.", soundtrack.id, soundtrack.path);
                 soundtrack.available = true;
             }
         }
@@ -913,6 +913,18 @@ impl SharedGameState {
         }
 
         out_locale
+    }
+
+    pub fn get_localized_soundtrack_name(&self, id: &str) -> String {
+        if id == "organya" {
+            return self.loc.t("soundtrack.organya").to_owned();
+        }
+
+        self.constants
+            .soundtracks
+            .iter()
+            .find(|s| s.id == id)
+            .map_or_else(|| id.to_owned(), |s| self.loc.t(format!("soundtrack.{}", s.id).as_str()).to_owned())
     }
 
     pub fn tt(&self, key: &str, args: &[(&str, &str)]) -> String {

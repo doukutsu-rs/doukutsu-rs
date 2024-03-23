@@ -3,6 +3,7 @@ use itertools::Itertools;
 use crate::common::Color;
 use crate::common::Rect;
 use crate::components::background::Background;
+use crate::engine_constants::ExtraSoundtrack;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
@@ -16,10 +17,43 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::scene::title_scene::TitleScene;
 use crate::scene::Scene;
 
+#[derive(Clone, Debug)]
+pub enum JukeboxSoundtrackKind {
+    Organya,
+    Extra(ExtraSoundtrack),
+    Custom(String),
+}
+
+impl JukeboxSoundtrackKind {
+    pub fn eq_str(&self, other: &str) -> bool {
+        match self {
+            JukeboxSoundtrackKind::Organya => other == "organya",
+            JukeboxSoundtrackKind::Extra(s) => other == s.id,
+            JukeboxSoundtrackKind::Custom(s) => other == s,
+        }
+    }
+
+    pub fn to_localized_string(&self, state: &mut SharedGameState) -> String {
+        match self {
+            JukeboxSoundtrackKind::Organya => state.loc.t("soundtrack.organya").to_owned(),
+            JukeboxSoundtrackKind::Extra(s) => state.loc.t(format!("soundtrack.{}", s.id).as_str()).to_owned(),
+            JukeboxSoundtrackKind::Custom(s) => s.clone(),
+        }
+    }
+
+    pub fn to_id(&self) -> String {
+        match self {
+            JukeboxSoundtrackKind::Organya => "organya".to_owned(),
+            JukeboxSoundtrackKind::Extra(s) => s.id.clone(),
+            JukeboxSoundtrackKind::Custom(s) => s.clone(),
+        }
+    }
+}
+
 pub struct JukeboxScene {
     selected_song: u16,
     song_list: Vec<String>,
-    soundtracks: Vec<String>,
+    soundtracks: Vec<JukeboxSoundtrackKind>,
     selected_soundtrack: usize,
     controller: CombinedMenuController,
     background: Background,
@@ -79,17 +113,26 @@ impl Scene for JukeboxScene {
             .cloned()
             .collect();
 
-        let mut soundtrack_entries =
-            state.constants.soundtracks.iter().filter(|s| s.available).map(|s| s.name.to_owned()).collect_vec();
-        soundtrack_entries.push("Organya".to_owned());
+        let mut soundtrack_entries = state
+            .constants
+            .soundtracks
+            .iter()
+            .filter(|s| s.available)
+            .map(|s| JukeboxSoundtrackKind::Extra(s.clone()))
+            .collect_vec();
+        soundtrack_entries.push(JukeboxSoundtrackKind::Organya);
 
         if let Ok(dir) = filesystem::read_dir(ctx, "/Soundtracks/") {
             for entry in dir {
                 if filesystem::is_dir(ctx, &entry) {
                     let filename = entry.file_name().unwrap().to_string_lossy().to_string();
 
-                    if !soundtrack_entries.contains(&filename) {
-                        soundtrack_entries.push(filename);
+                    if soundtrack_entries
+                        .iter()
+                        .find(|s| matches!(s, JukeboxSoundtrackKind::Custom(s) if s == &filename))
+                        .is_none()
+                    {
+                        soundtrack_entries.push(JukeboxSoundtrackKind::Custom(filename.clone()));
                     }
                 }
             }
@@ -98,7 +141,7 @@ impl Scene for JukeboxScene {
         self.soundtracks = soundtrack_entries.clone();
 
         let selected_soundtrack_index =
-            self.soundtracks.iter().position(|s| s == &state.settings.soundtrack).unwrap_or(0);
+            self.soundtracks.iter().position(|s| s.eq_str(&state.settings.soundtrack)).unwrap_or(0);
         self.selected_soundtrack = selected_soundtrack_index;
 
         self.previous_pause_on_focus_loss_setting = state.settings.pause_on_focus_loss;
@@ -150,13 +193,13 @@ impl Scene for JukeboxScene {
 
         if self.controller.trigger_shift_left() {
             self.selected_soundtrack = self.selected_soundtrack.checked_sub(1).unwrap_or(self.soundtracks.len() - 1);
-            state.settings.soundtrack = self.soundtracks[self.selected_soundtrack].to_string();
+            state.settings.soundtrack = self.soundtracks[self.selected_soundtrack].to_id();
             state.sound_manager.reload_songs(&state.constants, &state.settings, ctx)?;
         }
 
         if self.controller.trigger_shift_right() {
             self.selected_soundtrack = (self.selected_soundtrack + 1) % self.soundtracks.len();
-            state.settings.soundtrack = self.soundtracks[self.selected_soundtrack].to_string();
+            state.settings.soundtrack = self.soundtracks[self.selected_soundtrack].to_id();
             state.sound_manager.reload_songs(&state.constants, &state.settings, ctx)?;
         }
 
@@ -284,9 +327,9 @@ impl Scene for JukeboxScene {
 
         // Write Soundtrack name
 
-        let text = &state.settings.soundtrack;
+        let text = self.soundtracks[self.selected_soundtrack].to_localized_string(state);
         state.font.builder().center(state.canvas_size.0).y(20.0).shadow(true).draw(
-            text,
+            text.as_str(),
             ctx,
             &state.constants,
             &mut state.texture_set,

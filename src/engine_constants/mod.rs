@@ -207,7 +207,7 @@ pub struct AnimatedFace {
 
 #[derive(Debug, Clone)]
 pub struct ExtraSoundtrack {
-    pub name: String,
+    pub id: String,
     pub path: String,
     pub available: bool,
 }
@@ -1615,10 +1615,10 @@ impl EngineConstants {
             font_path: "csfont.fnt".to_owned(),
             font_space_offset: 0.0,
             soundtracks: vec![
-                ExtraSoundtrack { name: "Remastered".to_owned(), path: "/base/Ogg11/".to_owned(), available: false },
-                ExtraSoundtrack { name: "New".to_owned(), path: "/base/Ogg/".to_owned(), available: false },
-                ExtraSoundtrack { name: "Famitracks".to_owned(), path: "/base/ogg17/".to_owned(), available: false },
-                ExtraSoundtrack { name: "Ridiculon".to_owned(), path: "/base/ogg_ridic/".to_owned(), available: false },
+                ExtraSoundtrack { id: "remastered".to_owned(), path: "/base/Ogg11/".to_owned(), available: false },
+                ExtraSoundtrack { id: "new".to_owned(), path: "/base/Ogg/".to_owned(), available: false },
+                ExtraSoundtrack { id: "famitracks".to_owned(), path: "/base/ogg17/".to_owned(), available: false },
+                ExtraSoundtrack { id: "ridiculon".to_owned(), path: "/base/ogg_ridic/".to_owned(), available: false },
             ],
             music_table: vec![
                 "xxxx".to_owned(),

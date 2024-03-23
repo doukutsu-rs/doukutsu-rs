@@ -11,8 +11,8 @@ use num_traits::clamp;
 
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
-use crate::framework::error::{GameError, GameResult};
 use crate::framework::error::GameError::{AudioError, InvalidValue};
+use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
 use crate::framework::filesystem::File;
 use crate::game::settings::Settings;
@@ -286,20 +286,19 @@ impl SoundManager {
 
             paths.insert(0, "/Soundtracks/".to_owned() + &settings.soundtrack + "/");
 
-            if let Some(soundtrack) =
-            constants.soundtracks.iter().find(|s| s.available && s.name == settings.soundtrack)
+            if let Some(soundtrack) = constants.soundtracks.iter().find(|s| s.available && s.id == settings.soundtrack)
             {
                 paths.insert(0, soundtrack.path.clone());
             }
 
             let songs_paths = paths.iter().map(|prefix| {
                 [
-                        #[cfg(feature = "ogg-playback")]
+                    #[cfg(feature = "ogg-playback")]
                     (
                         SongFormat::OggMultiPart,
                         vec![format!("{}{}_intro.ogg", prefix, song_name), format!("{}{}_loop.ogg", prefix, song_name)],
                     ),
-                        #[cfg(feature = "ogg-playback")]
+                    #[cfg(feature = "ogg-playback")]
                     (SongFormat::OggSinglePart, vec![format!("{}{}.ogg", prefix, song_name)]),
                     (SongFormat::Organya, vec![format!("{}{}.org", prefix, song_name)]),
                 ]
@@ -307,7 +306,7 @@ impl SoundManager {
 
             for songs in songs_paths {
                 for (format, paths) in
-                songs.iter().filter(|(_, paths)| paths.iter().all(|path| filesystem::exists(ctx, path)))
+                    songs.iter().filter(|(_, paths)| paths.iter().all(|path| filesystem::exists(ctx, path)))
                 {
                     match format {
                         SongFormat::Organya => {
@@ -385,7 +384,7 @@ impl SoundManager {
                                         Box::new(song_intro),
                                         Box::new(song_loop),
                                     ))
-                                        .unwrap();
+                                    .unwrap();
 
                                     return Ok(());
                                 }
@@ -597,8 +596,8 @@ fn run<T>(
     device: cpal::Device,
     config: cpal::StreamConfig,
 ) -> GameResult<cpal::Stream>
-    where
-        T: cpal::SizedSample + cpal::FromSample<u16>,
+where
+    T: cpal::SizedSample + cpal::FromSample<u16>,
 {
     let sample_rate = config.sample_rate.0 as f32;
     let channels = config.channels as usize;
@@ -732,7 +731,7 @@ fn run<T>(
                         assert!(new_speed > 0.0);
                         speed = new_speed;
                         #[cfg(feature = "ogg-playback")]
-                            ogg_engine.set_sample_rate((sample_rate / new_speed) as usize);
+                        ogg_engine.set_sample_rate((sample_rate / new_speed) as usize);
                         org_engine.set_sample_rate((sample_rate / new_speed) as usize);
                     }
                     Ok(PlaybackMessage::SetSongVolume(new_volume)) => {
@@ -895,7 +894,7 @@ fn run<T>(
             }
         },
         err_fn,
-        None
+        None,
     );
 
     if stream_result.is_err() {

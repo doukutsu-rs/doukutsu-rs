@@ -95,7 +95,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    24
+    25
 }
 
 #[inline(always)]
@@ -345,6 +345,18 @@ impl Settings {
         if self.version == 23 {
             self.version = 24;
             self.allow_strafe = true;
+        }
+
+        if self.version == 24 {
+            self.version = 25;
+            self.soundtrack = match self.soundtrack.as_str() {
+                "Organya" => "organya".to_owned(),
+                "Remastered" => "remastered".to_owned(),
+                "New" => "new".to_owned(),
+                "Famitracks" => "famitracks".to_owned(),
+                "Ridiculon" => "ridiculon".to_owned(),
+                _ => self.soundtrack.clone(),
+            }
         }
 
         if self.version != initial_version {
