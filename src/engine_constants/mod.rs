@@ -67,7 +67,7 @@ pub struct GameConsts {
     pub tile_offset_x: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CaretConsts {
     pub offsets: [(i32, i32); 18],
     pub bubble_left_rects: Vec<Rect<u16>>,
@@ -95,34 +95,6 @@ pub struct CaretConsts {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct TextureSizeTable {
     sizes: HashMap<String, (u16, u16)>,
-}
-
-impl Clone for CaretConsts {
-    fn clone(&self) -> Self {
-        Self {
-            offsets: self.offsets,
-            bubble_left_rects: self.bubble_left_rects.clone(),
-            bubble_right_rects: self.bubble_right_rects.clone(),
-            projectile_dissipation_left_rects: self.projectile_dissipation_left_rects.clone(),
-            projectile_dissipation_right_rects: self.projectile_dissipation_right_rects.clone(),
-            projectile_dissipation_up_rects: self.projectile_dissipation_up_rects.clone(),
-            shoot_rects: self.shoot_rects.clone(),
-            zzz_rects: self.zzz_rects.clone(),
-            drowned_quote_left_rect: self.drowned_quote_left_rect,
-            drowned_quote_right_rect: self.drowned_quote_right_rect,
-            level_up_rects: self.level_up_rects.clone(),
-            level_down_rects: self.level_down_rects.clone(),
-            hurt_particles_rects: self.hurt_particles_rects.clone(),
-            explosion_rects: self.explosion_rects.clone(),
-            little_particles_rects: self.little_particles_rects.clone(),
-            exhaust_rects: self.exhaust_rects.clone(),
-            question_left_rect: self.question_left_rect,
-            question_right_rect: self.question_right_rect,
-            small_projectile_dissipation: self.small_projectile_dissipation.clone(),
-            empty_text: self.empty_text.clone(),
-            push_jump_key: self.push_jump_key.clone(),
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -175,21 +147,11 @@ pub struct BulletRects {
     pub b042_spur_trail_l3: [Rect<u16>; 6],
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WeaponConsts {
     pub bullet_table: Vec<BulletData>,
     pub bullet_rects: BulletRects,
     pub level_table: [[u16; 3]; 14],
-}
-
-impl Clone for WeaponConsts {
-    fn clone(&self) -> WeaponConsts {
-        WeaponConsts {
-            bullet_table: self.bullet_table.clone(),
-            bullet_rects: self.bullet_rects,
-            level_table: self.level_table,
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -245,7 +207,7 @@ pub struct TextScriptConsts {
     pub fade_ticks: i8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TitleConsts {
     pub intro_text: String,
     pub logo_rect: Rect<u16>,
@@ -266,40 +228,10 @@ pub struct TitleConsts {
     pub cursor_sue: [Rect<u16>; 4],
 }
 
-impl Clone for TitleConsts {
-    fn clone(&self) -> TitleConsts {
-        TitleConsts {
-            intro_text: self.intro_text.clone(),
-            logo_rect: self.logo_rect,
-            logo_splash_rect: self.logo_splash_rect,
-            menu_left_top: self.menu_left_top,
-            menu_right_top: self.menu_right_top,
-            menu_left_bottom: self.menu_left_bottom,
-            menu_right_bottom: self.menu_right_bottom,
-            menu_top: self.menu_top,
-            menu_bottom: self.menu_bottom,
-            menu_middle: self.menu_middle,
-            menu_left: self.menu_left,
-            menu_right: self.menu_right,
-            cursor_quote: self.cursor_quote,
-            cursor_curly: self.cursor_curly,
-            cursor_toroko: self.cursor_toroko,
-            cursor_king: self.cursor_king,
-            cursor_sue: self.cursor_sue,
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GamepadConsts {
     pub button_rects: HashMap<Button, [Rect<u16>; 4]>,
     pub axis_rects: HashMap<Axis, [Rect<u16>; 4]>,
-}
-
-impl Clone for GamepadConsts {
-    fn clone(&self) -> GamepadConsts {
-        GamepadConsts { button_rects: self.button_rects.clone(), axis_rects: self.axis_rects.clone() }
-    }
 }
 
 impl GamepadConsts {
@@ -313,7 +245,7 @@ impl GamepadConsts {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EngineConstants {
     pub base_paths: Vec<String>,
     pub is_cs_plus: bool,
@@ -345,43 +277,6 @@ pub struct EngineConstants {
     pub missile_flags: Vec<u16>,
     pub locales: Vec<Locale>,
     pub gamepad: GamepadConsts,
-}
-
-impl Clone for EngineConstants {
-    fn clone(&self) -> EngineConstants {
-        EngineConstants {
-            base_paths: self.base_paths.clone(),
-            is_cs_plus: self.is_cs_plus,
-            is_switch: self.is_switch,
-            is_demo: self.is_demo,
-            supports_og_textures: self.supports_og_textures,
-            has_difficulty_menu: self.has_difficulty_menu,
-            supports_two_player: self.supports_two_player,
-            game: self.game,
-            player: self.player,
-            booster: self.booster,
-            caret: self.caret.clone(),
-            world: self.world,
-            npc: self.npc,
-            weapon: self.weapon.clone(),
-            tex_sizes: self.tex_sizes.clone(),
-            textscript: self.textscript,
-            title: self.title.clone(),
-            inventory_dim_color: self.inventory_dim_color,
-            font_path: self.font_path.clone(),
-            font_space_offset: self.font_space_offset,
-            soundtracks: self.soundtracks.clone(),
-            music_table: self.music_table.clone(),
-            organya_paths: self.organya_paths.clone(),
-            credit_illustration_paths: self.credit_illustration_paths.clone(),
-            player_skin_paths: self.player_skin_paths.clone(),
-            animated_face_table: self.animated_face_table.clone(),
-            string_table: self.string_table.clone(),
-            missile_flags: self.missile_flags.clone(),
-            locales: self.locales.clone(),
-            gamepad: self.gamepad.clone(),
-        }
-    }
 }
 
 impl EngineConstants {

@@ -50,15 +50,10 @@ pub(crate) struct OrgPlaybackEngine {
     pub interpolation: InterpolationMode,
 }
 
+#[derive(Clone)]
 pub struct SavedOrganyaPlaybackState {
     song: Organya,
     play_pos: i32,
-}
-
-impl Clone for SavedOrganyaPlaybackState {
-    fn clone(&self) -> SavedOrganyaPlaybackState {
-        SavedOrganyaPlaybackState { song: self.song.clone(), play_pos: self.play_pos }
-    }
 }
 
 impl OrgPlaybackEngine {

@@ -44,18 +44,10 @@ pub struct Instrument {
     pub notes: u16,
 }
 
+#[derive(Clone)]
 pub struct Track {
     pub inst: Instrument,
     pub notes: Vec<Note>,
-}
-
-impl Clone for Track {
-    fn clone(&self) -> Track {
-        Track {
-            inst: self.inst,
-            notes: self.notes.clone(),
-        }
-    }
 }
 
 impl std::fmt::Debug for Track {
@@ -74,21 +66,11 @@ pub struct Note {
     pub pan: u8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Song {
     pub version: Version,
     pub time: Timing,
     pub tracks: [Track; 16],
-}
-
-impl Clone for Song {
-    fn clone(&self) -> Song {
-        Song {
-            version: self.version,
-            time: self.time,
-            tracks: self.tracks.clone(),
-        }
-    }
 }
 
 impl Song {

@@ -15,15 +15,9 @@ use crate::game::map::{Map, NPCData};
 use crate::game::scripting::tsc::text_script::TextScript;
 use crate::util::encoding::read_cur_shift_jis;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct NpcType {
     name: String,
-}
-
-impl Clone for NpcType {
-    fn clone(&self) -> Self {
-        Self { name: self.name.clone() }
-    }
 }
 
 impl NpcType {
@@ -36,15 +30,9 @@ impl NpcType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Tileset {
     pub(crate) name: String,
-}
-
-impl Clone for Tileset {
-    fn clone(&self) -> Self {
-        Self { name: self.name.clone() }
-    }
 }
 
 impl Tileset {
@@ -66,15 +54,9 @@ impl Tileset {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Background {
     name: String,
-}
-
-impl Clone for Background {
-    fn clone(&self) -> Self {
-        Self { name: self.name.clone() }
-    }
 }
 
 impl Background {
@@ -195,7 +177,7 @@ pub struct PxPackStageData {
     pub offset_bg: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StageData {
     pub name: String,
     pub name_jp: String,
@@ -208,24 +190,6 @@ pub struct StageData {
     pub background_color: Color,
     pub npc1: NpcType,
     pub npc2: NpcType,
-}
-
-impl Clone for StageData {
-    fn clone(&self) -> Self {
-        StageData {
-            name: self.name.clone(),
-            name_jp: self.name_jp.clone(),
-            map: self.map.clone(),
-            boss_no: self.boss_no,
-            tileset: self.tileset.clone(),
-            pxpack_data: self.pxpack_data.clone(),
-            background: self.background.clone(),
-            background_type: self.background_type,
-            background_color: self.background_color,
-            npc1: self.npc1.clone(),
-            npc2: self.npc2.clone(),
-        }
-    }
 }
 
 const NXENGINE_BACKDROPS: [&str; 15] = [
