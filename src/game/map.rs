@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::io;
-use std::io::{BufRead, BufReader, Cursor, Read};
+use std::io::{BufRead, BufReader, Read};
 use std::sync::Arc;
 
 use byteorder::{ReadBytesExt, LE};
@@ -83,7 +83,7 @@ impl Map {
         }
 
         fn read_string<R: io::Read>(map_data: &mut R) -> GameResult<String> {
-            let mut bytes = map_data.read_u8()? as u32;
+            let bytes = map_data.read_u8()? as u32;
             let mut raw_chars = Vec::new();
             raw_chars.resize(bytes as usize, 0u8);
             map_data.read(&mut raw_chars)?;

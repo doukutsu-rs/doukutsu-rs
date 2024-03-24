@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::string;
 
 use crate::framework::context::Context;
 use crate::framework::filesystem;
@@ -20,11 +19,7 @@ impl Default for Locale {
         Locale {
             code: "en".to_owned(),
             name: "English".to_owned(),
-            font: FontData {
-                path: String::new(),
-                scale: 1.0,
-                space_offset: 0.0
-            },
+            font: FontData { path: String::new(), scale: 1.0, space_offset: 0.0 },
             encoding: None,
             stage_encoding: None,
             strings: HashMap::new(),
@@ -44,7 +39,7 @@ impl Locale {
         let font_name = strings["font"].clone();
         let font_scale = strings["font_scale"].parse::<f32>().unwrap_or(1.0);
         let font = FontData::new(font_name, font_scale, 0.0);
-        
+
         let encoding = strings.get("encoding").cloned();
         let stage_encoding = strings.get("stage_encoding").cloned();
 
