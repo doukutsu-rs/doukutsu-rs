@@ -40,7 +40,9 @@
       "title": "Select Difficulty",
       "easy": "Easy",
       "normal": "Normal",
-      "hard": "Hard"
+      "hard": "Hard",
+      "difficulty_name": "Difficulty: ",
+      "unknown": "(unknown)"
     },
     "coop_menu": {
       "title": "Select Number of Players",
