@@ -59,13 +59,13 @@ jobs:
             target_name: mac-arm64
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install dependencies
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: sudo apt install libasound2-dev libudev-dev libgl1-mesa-dev
 
       - name: Restore cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cargo
@@ -111,7 +111,7 @@ jobs:
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: doukutsu-rs_${{ matrix.target_name }}
           path: ./release/*
@@ -119,7 +119,7 @@ jobs:
 
       - name: Save cache
         if: ${{ github.ref_name == 'master' || github.ref_type == 'tag' }}
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: |
             ~/.cargo
@@ -135,9 +135,9 @@ jobs:
     strategy:
       fail-fast: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Restore cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache
@@ -191,7 +191,7 @@ jobs:
           cp LICENSE ./release
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: doukutsu-rs_android
           path: ./release/*
@@ -199,7 +199,7 @@ jobs:
 
       - name: Save cache
         if: ${{ github.ref_name == 'master' || github.ref_type == 'tag' }}
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: |
             ~/.cache
@@ -219,7 +219,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: doukutsu-rs/metadata
           token: ${{ secrets.METADATA_USER_TOKEN }}
