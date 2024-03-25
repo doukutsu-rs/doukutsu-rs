@@ -17,11 +17,7 @@ impl Default for Locale {
         Locale {
             code: "en".to_owned(),
             name: "English".to_owned(),
-            font: FontData {
-                path: String::new(),
-                scale: 1.0,
-                space_offset: 0.0
-            },
+            font: FontData { path: String::new(), scale: 1.0, space_offset: 0.0 },
             strings: HashMap::new(),
         }
     }
@@ -65,6 +61,7 @@ impl Locale {
         strings
     }
 
+    /// if the key does not exists, return the origin key instead
     pub fn t<'a: 'b, 'b>(&'a self, key: &'b str) -> &'b str {
         if let Some(str) = self.strings.get(key) {
             str
