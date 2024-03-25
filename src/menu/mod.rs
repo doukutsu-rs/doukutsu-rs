@@ -675,15 +675,14 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                             );
                             batch.draw(ctx)?;
                         } else {
-                            let loc = &state.loc;
                             let difficulty = match save.difficulty {
-                                0 => loc.t("menus.difficulty_menu.normal"),
-                                2 => loc.t("menus.difficulty_menu.easy"),
-                                4 => loc.t("menus.difficulty_menu.hard"),
-                                _ => loc.t("menus.difficulty_menu.unknown"),
+                                0 => state.loc.t("menus.difficulty_menu.normal"),
+                                2 => state.loc.t("menus.difficulty_menu.easy"),
+                                4 => state.loc.t("menus.difficulty_menu.hard"),
+                                _ => state.loc.t("menus.difficulty_menu.unknown"),
                             };
                             let difficulty_name =
-                                loc.tt("menus.difficulty_menu.difficulty_name", &[("difficulty", &difficulty)]);
+                                state.loc.tt("menus.difficulty_menu.difficulty_name", &[("difficulty", &difficulty)]);
 
                             state.font.builder().position(self.x as f32 + 20.0, y + 10.0).draw(
                                 &difficulty_name,
