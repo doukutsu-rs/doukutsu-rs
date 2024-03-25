@@ -1996,14 +1996,9 @@ impl TextScriptVM {
     }
 }
 
+#[derive(Clone)]
 pub struct TextScript {
     pub(crate) event_map: HashMap<u16, Vec<u8>>,
-}
-
-impl Clone for TextScript {
-    fn clone(&self) -> Self {
-        Self { event_map: self.event_map.clone() }
-    }
 }
 
 impl Default for TextScript {
