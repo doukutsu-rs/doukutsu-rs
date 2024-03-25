@@ -7,7 +7,6 @@ use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::game::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameState};
 use crate::graphics::font::Font;
-use crate::i18n::Locale;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::save_select_menu::MenuSaveInfo;
 
