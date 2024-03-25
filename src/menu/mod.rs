@@ -594,23 +594,21 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
 
                         graphics::draw_rect(ctx, bar_rect, Color::new(1.0, 1.0, 1.0, 1.0))?;
                     }
-                    
+
                     #[cfg(target_os = "android")]
                     {
-                        state
-                            .font
-                            .builder()
-                            .x(self.x as f32 - 25.0)
-                            .y(y)
-                            .shadow(true)
-                            .draw("<", ctx, &state.constants, &mut state.texture_set)?;
-                        state
-                            .font
-                            .builder()
-                            .x((self.x + self.width as isize) as f32 + 15.0)
-                            .y(y)
-                            .shadow(true)
-                            .draw(">", ctx, &state.constants, &mut state.texture_set)?;
+                        state.font.builder().x(self.x as f32 - 25.0).y(y).shadow(true).draw(
+                            "<",
+                            ctx,
+                            &state.constants,
+                            &mut state.texture_set,
+                        )?;
+                        state.font.builder().x((self.x + self.width as isize) as f32 + 15.0).y(y).shadow(true).draw(
+                            ">",
+                            ctx,
+                            &state.constants,
+                            &mut state.texture_set,
+                        )?;
                     }
                 }
                 MenuEntry::NewSave => {
@@ -677,17 +675,17 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                             );
                             batch.draw(ctx)?;
                         } else {
-                            let mut difficulty_name: String = "Difficulty: ".to_owned();
-
-                            match save.difficulty {
-                                0 => difficulty_name.push_str("Normal"),
-                                2 => difficulty_name.push_str("Easy"),
-                                4 => difficulty_name.push_str("Hard"),
-                                _ => difficulty_name.push_str("(unknown)"),
-                            }
+                            let difficulty = match save.difficulty {
+                                0 => state.loc.t("menus.difficulty_menu.normal"),
+                                2 => state.loc.t("menus.difficulty_menu.easy"),
+                                4 => state.loc.t("menus.difficulty_menu.hard"),
+                                _ => state.loc.t("menus.difficulty_menu.unknown"),
+                            };
+                            let difficulty_name =
+                                state.loc.tt("menus.difficulty_menu.difficulty_name", &[("difficulty", &difficulty)]);
 
                             state.font.builder().position(self.x as f32 + 20.0, y + 10.0).draw(
-                                difficulty_name.as_str(),
+                                &difficulty_name,
                                 ctx,
                                 &state.constants,
                                 &mut state.texture_set,
@@ -770,11 +768,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
         state: &mut SharedGameState,
     ) -> MenuSelectionResult<T> {
         // the engine does 4 times more ticks during cutscene skipping
-        let max_anim_wait = if state.textscript_vm.flags.cutscene_skip() {
-            32
-        } else {
-            8
-        };
+        let max_anim_wait = if state.textscript_vm.flags.cutscene_skip() { 32 } else { 8 };
 
         self.anim_wait += 1;
         if self.anim_wait > max_anim_wait {

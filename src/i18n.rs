@@ -68,6 +68,7 @@ impl Locale {
         strings
     }
 
+    /// if the key does not exists, return the origin key instead
     pub fn t<'a: 'b, 'b>(&'a self, key: &'b str) -> &'b str {
         if let Some(str) = self.strings.get(key) {
             str
