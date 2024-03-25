@@ -676,40 +676,18 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                             );
                             batch.draw(ctx)?;
                         } else {
-                            fn translate_fallback<'a>(result: &'a str, key: &'_ str, fallback: &'a str) -> &'a str {
-                                if result == key {
-                                    return fallback;
-                                }
-                                result
-                            }
-
                             let loc = &state.loc;
                             let difficulty = match save.difficulty {
-                                0 => {
-                                    let key = "menus.difficulty_menu.normal";
-                                    translate_fallback(loc.t(key), key, "Normal")
-                                }
-                                2 => {
-                                    let key = "menus.difficulty_menu.easy";
-                                    translate_fallback(loc.t(key), key, "Easy")
-                                }
-                                4 => {
-                                    let key = "menus.difficulty_menu.hard";
-                                    translate_fallback(loc.t(key), key, "Hard")
-                                }
-                                _ => {
-                                    let key = "menus.difficulty_menu.unknown";
-                                    translate_fallback(loc.t(key), key, "(unknown)")
-                                }
+                                0 => loc.t("menus.difficulty_menu.normal"),
+                                2 => loc.t("menus.difficulty_menu.easy"),
+                                4 => loc.t("menus.difficulty_menu.hard"),
+                                _ => loc.t("menus.difficulty_menu.unknown"),
                             };
-                            let diff_key = "menus.difficulty_menu.difficulty_name";
-                            let result = loc.tt(diff_key, &[("difficulty", &difficulty)]);
-                            let fallback = "Difficulty: ".to_owned() + &difficulty;
                             let difficulty_name =
-                                translate_fallback(&result, diff_key, &fallback);
+                                loc.tt("menus.difficulty_menu.difficulty_name", &[("difficulty", &difficulty)]);
 
                             state.font.builder().position(self.x as f32 + 20.0, y + 10.0).draw(
-                                difficulty_name,
+                                &difficulty_name,
                                 ctx,
                                 &state.constants,
                                 &mut state.texture_set,
