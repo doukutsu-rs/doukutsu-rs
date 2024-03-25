@@ -35,8 +35,7 @@ pub struct Timing {
     pub loop_range: LoopRange,
 }
 
-#[derive(Copy, Clone)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Instrument {
     pub freq: u16,
     pub inst: u8,
