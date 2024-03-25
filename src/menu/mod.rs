@@ -676,12 +676,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                             );
                             batch.draw(ctx)?;
                         } else {
-                            fn translate_fallback<'l: 'a, 'a>(
-                                loc: &'l Locale,
-                                key: &'a str,
-                                fallback: &'a str,
-                            ) -> &'a str {
-                                let result = loc.t(key);
+                            fn translate_fallback<'a>(result: &'a str, key: &'_ str, fallback: &'a str) -> &'a str {
                                 if result == key {
                                     return fallback;
                                 }
@@ -689,35 +684,32 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                             }
 
                             let loc = &state.loc;
-                            let mut difficulty_name =
-                                translate_fallback(loc, "menus.difficulty_menu.difficulty_name", "Difficulty: ")
-                                    .to_owned();
-
-                            match save.difficulty {
-                                0 => difficulty_name.push_str(translate_fallback(
-                                    loc,
-                                    "menus.difficulty_menu.normal",
-                                    "Normal",
-                                )),
-                                2 => difficulty_name.push_str(translate_fallback(
-                                    loc,
-                                    "menus.difficulty_menu.easy",
-                                    "Easy",
-                                )),
-                                4 => difficulty_name.push_str(translate_fallback(
-                                    loc,
-                                    "menus.difficulty_menu.hard",
-                                    "Hard",
-                                )),
-                                _ => difficulty_name.push_str(translate_fallback(
-                                    loc,
-                                    "menus.difficulty_menu.unknown",
-                                    "(unknown)",
-                                )),
-                            }
+                            let difficulty = match save.difficulty {
+                                0 => {
+                                    let key = "menus.difficulty_menu.normal";
+                                    translate_fallback(loc.t(key), key, "Normal")
+                                }
+                                2 => {
+                                    let key = "menus.difficulty_menu.easy";
+                                    translate_fallback(loc.t(key), key, "Easy")
+                                }
+                                4 => {
+                                    let key = "menus.difficulty_menu.hard";
+                                    translate_fallback(loc.t(key), key, "Hard")
+                                }
+                                _ => {
+                                    let key = "menus.difficulty_menu.unknown";
+                                    translate_fallback(loc.t(key), key, "(unknown)")
+                                }
+                            };
+                            let diff_key = "menus.difficulty_menu.difficulty_name";
+                            let result = loc.tt(diff_key, &[("difficulty", &difficulty)]);
+                            let fallback = "Difficulty: ".to_owned() + &difficulty;
+                            let difficulty_name =
+                                translate_fallback(&result, diff_key, &fallback);
 
                             state.font.builder().position(self.x as f32 + 20.0, y + 10.0).draw(
-                                difficulty_name.as_str(),
+                                difficulty_name,
                                 ctx,
                                 &state.constants,
                                 &mut state.texture_set,

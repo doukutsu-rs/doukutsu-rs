@@ -41,7 +41,7 @@
       "easy": "Easy",
       "normal": "Normal",
       "hard": "Hard",
-      "difficulty_name": "Difficulty: ",
+      "difficulty_name": "Difficulty: {difficulty}",
       "unknown": "(unknown)"
     },
     "coop_menu": {
