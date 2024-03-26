@@ -421,23 +421,7 @@ impl SharedGameState {
         constants.load_locales(ctx)?;
 
         let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
-        if let Some(encoding) = locale.encoding.as_ref() {
-            constants.textscript.encoding = TextScriptEncoding::from(encoding.as_str())
-        } else {
-            if (locale.code == "jp" || locale.code == "en") && constants.is_base() {
-                constants.textscript.encoding = TextScriptEncoding::ShiftJIS
-            } else {
-                constants.textscript.encoding = TextScriptEncoding::UTF8
-            }
-        }
-        if let Some(state_encoding) = locale.stage_encoding.as_ref() {
-            constants.stage_encoding = Some(state_encoding.as_str().into());
-        }
-
-        let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
-            log::warn!("Failed to load font, using built-in: {}", e);
-            BMFont::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx, 1.0)
-        })?;
+        let font = Self::try_update_locale(&mut constants, &locale, ctx).unwrap();
 
         let mod_list = ModList::load(ctx, &constants.string_table)?;
 
@@ -583,31 +567,38 @@ impl SharedGameState {
         self.texture_set.unload_all();
     }
 
-    pub fn update_locale(&mut self, ctx: &mut Context) {
-        if let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) {
-            self.loc = locale;
-
-            if let Some(encoding) = self.loc.encoding.as_ref() {
-                self.constants.textscript.encoding = TextScriptEncoding::from(encoding.as_str())
+    pub fn try_update_locale(
+        constants: &mut EngineConstants,
+        locale: &Locale,
+        ctx: &mut Context,
+    ) -> GameResult<BMFont> {
+        if let Some(encoding) = locale.encoding.as_ref() {
+            constants.textscript.encoding = TextScriptEncoding::from(encoding.as_str())
+        } else {
+            if (locale.code == "jp" || locale.code == "en") && constants.is_base() {
+                constants.textscript.encoding = TextScriptEncoding::ShiftJIS
             } else {
-                if (self.loc.code == "jp" || self.loc.code == "en") && self.constants.is_base() {
-                    self.constants.textscript.encoding = TextScriptEncoding::ShiftJIS
-                } else {
-                    self.constants.textscript.encoding = TextScriptEncoding::UTF8
-                }
-            }
-            if let Some(state_encoding) = self.loc.stage_encoding.as_ref() {
-                self.constants.stage_encoding = Some(state_encoding.as_str().into());
+                constants.textscript.encoding = TextScriptEncoding::UTF8
             }
         }
+        if let Some(state_encoding) = locale.stage_encoding.as_ref() {
+            constants.stage_encoding = Some(state_encoding.as_str().into());
+        }
 
-        let font = BMFont::load(&self.constants.base_paths, &self.loc.font.path, ctx, self.loc.font.scale)
-            .or_else(|e| {
-                log::warn!("Failed to load font, using built-in: {}", e);
-                BMFont::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx, 1.0)
-            })
-            .unwrap();
+        let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
+            log::warn!("Failed to load font, using built-in: {}", e);
+            BMFont::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx, 1.0)
+        })?;
 
+        Ok(font)
+    }
+
+    pub fn update_locale(&mut self, ctx: &mut Context) {
+        let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) else {
+            return;
+        };
+        let font = Self::try_update_locale(&mut self.constants, &locale, ctx).unwrap();
+        self.loc = locale;
         self.font = font;
     }
 
