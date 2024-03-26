@@ -522,6 +522,16 @@ impl SharedGameState {
         })
     }
 
+    pub fn reload_stage_table(&mut self, ctx: &mut Context) -> GameResult {
+        let stages = StageData::load_stage_table(
+            ctx,
+            &self.constants.base_paths,
+            self.constants.is_switch,
+        )?;
+        self.stages = stages;
+        Ok(())
+    }
+
     pub fn reload_resources(&mut self, ctx: &mut Context) -> GameResult {
         self.constants.rebuild_path_list(self.mod_path.clone(), self.season, &self.settings);
         if !self.constants.is_demo {
@@ -531,8 +541,7 @@ impl SharedGameState {
         self.constants.load_csplus_tables(ctx)?;
         self.constants.load_animated_faces(ctx)?;
         self.constants.load_texture_size_hints(ctx)?;
-        let stages = StageData::load_stage_table(ctx, &self.constants.base_paths, self.constants.is_switch)?;
-        self.stages = stages;
+        self.reload_stage_table(ctx)?;
 
         let npc_tbl = filesystem::open_find(ctx, &self.constants.base_paths, "npc.tbl")?;
         let npc_table = NPCTable::load_from(npc_tbl)?;
@@ -589,6 +598,7 @@ impl SharedGameState {
             .unwrap();
 
         self.font = font;
+        let _ = self.reload_stage_table(ctx);
     }
 
     pub fn graphics_reset(&mut self) {
