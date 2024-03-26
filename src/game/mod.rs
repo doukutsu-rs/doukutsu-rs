@@ -1,4 +1,6 @@
+use std::backtrace::Backtrace;
 use std::cell::UnsafeCell;
+use std::panic::PanicInfo;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -290,14 +292,27 @@ fn init_logger() -> GameResult {
     Ok(())
 }
 
+fn panic_hook(info: &PanicInfo<'_>) {
+    let backtrace = Backtrace::force_capture();
+    let msg = info.payload().downcast_ref::<&str>().unwrap_or(&"");
+    let location = info.location();
+
+    if location.is_some() {
+        log::error!("Panic occurred in {} with message: '{msg}'\n {backtrace:#}", location.unwrap().to_string());
+    } else {
+        log::error!("Panic occurred with message: '{msg}'\n {backtrace:#}");
+    }
+}
+
 pub fn init(options: LaunchOptions) -> GameResult {
     let _ = init_logger();
-    
+    std::panic::set_hook(Box::new(panic_hook));
+
     let mut context = Box::pin(Context::new());
 
     let mut fs_container = FilesystemContainer::new();
     fs_container.mount_fs(&mut context)?;
-    
+
     if options.server_mode {
         log::info!("Running in server mode...");
         context.headless = true;
