@@ -1,18 +1,17 @@
 use std::collections::HashMap;
 use std::io;
-use std::io::{BufRead, BufReader, Cursor, Read};
+use std::io::{BufRead, BufReader, Read};
 use std::sync::Arc;
 
-use byteorder::{LE, ReadBytesExt};
+use byteorder::{ReadBytesExt, LE};
 
 use crate::common::{Color, Rect};
 use crate::framework::context::Context;
-use crate::framework::error::{GameError, GameResult};
 use crate::framework::error::GameError::ResourceLoadError;
+use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
 use crate::game::shared_game_state::TileSize;
 use crate::game::stage::{PxPackScroll, PxPackStageData, StageData};
-use crate::util::encoding::read_cur_shift_jis;
 
 static SUPPORTED_PXM_VERSIONS: [u8; 1] = [0x10];
 static SUPPORTED_PXE_VERSIONS: [u8; 2] = [0, 0x10];
@@ -84,22 +83,11 @@ impl Map {
         }
 
         fn read_string<R: io::Read>(map_data: &mut R) -> GameResult<String> {
-            let mut bytes = map_data.read_u8()? as u32;
+            let bytes = map_data.read_u8()? as u32;
             let mut raw_chars = Vec::new();
             raw_chars.resize(bytes as usize, 0u8);
             map_data.read(&mut raw_chars)?;
-            let mut raw_chars = Cursor::new(raw_chars);
-
-            let mut chars = Vec::new();
-            chars.reserve(bytes as usize);
-
-            while bytes > 0 {
-                let (consumed, chr) = read_cur_shift_jis(&mut raw_chars, bytes);
-                chars.push(chr);
-                bytes -= consumed;
-            }
-
-            Ok(chars.iter().collect())
+            Ok(encoding_rs::SHIFT_JIS.decode_without_bom_handling(&raw_chars).0.into_owned())
         }
 
         fn skip_string<R: io::Read>(map_data: &mut R) -> GameResult {
@@ -211,7 +199,7 @@ impl Map {
                 log::warn!("Map attribute data is shorter than 256 bytes!");
             }
         } else if let Ok(mut attrib_data) =
-        filesystem::open_find(ctx, roots, ["Stage/", &tileset_fg, ".pxattr"].join(""))
+            filesystem::open_find(ctx, roots, ["Stage/", &tileset_fg, ".pxattr"].join(""))
         {
             attrib_data.read_exact(&mut magic)?;
 
@@ -549,7 +537,7 @@ impl WaterParams {
     }
 
     pub fn load_from<R: io::Read>(&mut self, data: R) -> GameResult {
-        fn next_u8<'a>(s: &mut impl Iterator<Item=&'a str>, error_msg: &str) -> GameResult<u8> {
+        fn next_u8<'a>(s: &mut impl Iterator<Item = &'a str>, error_msg: &str) -> GameResult<u8> {
             match s.next() {
                 None => Err(GameError::ParseError("Out of range.".to_string())),
                 Some(v) => v.trim().parse::<u8>().map_err(|_| GameError::ParseError(error_msg.to_string())),
