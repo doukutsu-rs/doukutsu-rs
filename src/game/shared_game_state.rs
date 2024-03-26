@@ -586,10 +586,18 @@ impl SharedGameState {
     pub fn update_locale(&mut self, ctx: &mut Context) {
         if let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) {
             self.loc = locale;
-            if (self.loc.code == "jp" || self.loc.code == "en") && self.constants.is_base() {
-                self.constants.textscript.encoding = TextScriptEncoding::ShiftJIS
+
+            if let Some(encoding) = self.loc.encoding.as_ref() {
+                self.constants.textscript.encoding = TextScriptEncoding::from(encoding.as_str())
             } else {
-                self.constants.textscript.encoding = TextScriptEncoding::UTF8
+                if (self.loc.code == "jp" || self.loc.code == "en") && self.constants.is_base() {
+                    self.constants.textscript.encoding = TextScriptEncoding::ShiftJIS
+                } else {
+                    self.constants.textscript.encoding = TextScriptEncoding::UTF8
+                }
+            }
+            if let Some(state_encoding) = self.loc.stage_encoding.as_ref() {
+                self.constants.stage_encoding = Some(state_encoding.as_str().into());
             }
         }
 
