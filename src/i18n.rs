@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::framework::context::Context;
 use crate::framework::filesystem;
+use crate::game::scripting::tsc::text_script::TextScriptEncoding;
 use crate::game::shared_game_state::FontData;
 
 #[derive(Debug, Clone)]
@@ -9,6 +10,8 @@ pub struct Locale {
     pub code: String,
     pub name: String,
     pub font: FontData,
+    pub encoding: Option<TextScriptEncoding>,
+    pub stage_encoding: Option<TextScriptEncoding>,
     strings: HashMap<String, String>,
 }
 
@@ -18,6 +21,8 @@ impl Default for Locale {
             code: "en".to_owned(),
             name: "English".to_owned(),
             font: FontData { path: String::new(), scale: 1.0, space_offset: 0.0 },
+            encoding: None,
+            stage_encoding: None,
             strings: HashMap::new(),
         }
     }
@@ -25,7 +30,7 @@ impl Default for Locale {
 
 impl Locale {
     pub fn new(ctx: &mut Context, base_paths: &Vec<String>, code: &str) -> Locale {
-        let file = filesystem::open_find(ctx, base_paths, &format!("locale/{}.json", code)).unwrap();
+        let file = filesystem::open_find(ctx, base_paths, &format!("locale/{code}.json")).unwrap();
         let json: serde_json::Value = serde_json::from_reader(file).unwrap();
 
         let strings = Locale::flatten(&json);
@@ -36,7 +41,18 @@ impl Locale {
         let font_scale = strings["font_scale"].parse::<f32>().unwrap_or(1.0);
         let font = FontData::new(font_name, font_scale, 0.0);
 
-        Locale { code: code.to_string(), name, font, strings }
+        let encoding = if let Some(enc) = strings.get("encoding").clone() {
+            Some(TextScriptEncoding::from(enc.as_str()))
+        } else {
+            None
+        };
+        let stage_encoding = if let Some(enc) = strings.get("stage_encoding").clone() {
+            Some(TextScriptEncoding::from(enc.as_str()))
+        } else {
+            None
+        };
+
+        Locale { code: code.to_string(), name, font, encoding, stage_encoding, strings }
     }
 
     fn flatten(json: &serde_json::Value) -> HashMap<String, String> {

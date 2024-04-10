@@ -66,6 +66,7 @@ cpal = { git = "https://github.com/doukutsu-rs/cpal", rev = "9d269d8724102404e73
 directories = "3"
 discord-rich-presence = { version = "0.2", optional = true }
 downcast = "0.11"
+encoding_rs = "0.8.33"
 fern = "0.6.2"
 glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "2dd95f042e6e090d36f577cbea125560dd99bd27", optional = true, default_features = false, features = ["x11"] }
 imgui = "0.8"

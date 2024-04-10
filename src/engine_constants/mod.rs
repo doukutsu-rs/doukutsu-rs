@@ -277,6 +277,7 @@ pub struct EngineConstants {
     pub missile_flags: Vec<u16>,
     pub locales: Vec<Locale>,
     pub gamepad: GamepadConsts,
+    pub stage_encoding: Option<TextScriptEncoding>,
 }
 
 impl EngineConstants {
@@ -1600,6 +1601,7 @@ impl EngineConstants {
                     (Axis::TriggerRight, GamepadConsts::rects(Rect::new(32, 80, 64, 96))),
                 ]),
             },
+            stage_encoding: None,
         }
     }
 

@@ -421,16 +421,7 @@ impl SharedGameState {
         constants.load_locales(ctx)?;
 
         let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
-        if (locale.code == "jp" || locale.code == "en") && constants.is_base() {
-            constants.textscript.encoding = TextScriptEncoding::ShiftJIS
-        } else {
-            constants.textscript.encoding = TextScriptEncoding::UTF8
-        }
-
-        let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
-            log::warn!("Failed to load font, using built-in: {}", e);
-            BMFont::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx, 1.0)
-        })?;
+        let font = Self::try_update_locale(&mut constants, &locale, ctx).unwrap();
 
         let mod_list = ModList::load(ctx, &constants.string_table)?;
 
@@ -522,6 +513,17 @@ impl SharedGameState {
         })
     }
 
+    pub fn reload_stage_table(&mut self, ctx: &mut Context) -> GameResult {
+        let stages = StageData::load_stage_table(
+            ctx,
+            &self.constants.base_paths,
+            self.constants.is_switch,
+            self.constants.stage_encoding,
+        )?;
+        self.stages = stages;
+        Ok(())
+    }
+
     pub fn reload_resources(&mut self, ctx: &mut Context) -> GameResult {
         self.constants.rebuild_path_list(self.mod_path.clone(), self.season, &self.settings);
         if !self.constants.is_demo {
@@ -531,8 +533,7 @@ impl SharedGameState {
         self.constants.load_csplus_tables(ctx)?;
         self.constants.load_animated_faces(ctx)?;
         self.constants.load_texture_size_hints(ctx)?;
-        let stages = StageData::load_stage_table(ctx, &self.constants.base_paths, self.constants.is_switch)?;
-        self.stages = stages;
+        self.reload_stage_table(ctx)?;
 
         let npc_tbl = filesystem::open_find(ctx, &self.constants.base_paths, "npc.tbl")?;
         let npc_table = NPCTable::load_from(npc_tbl)?;
@@ -571,24 +572,39 @@ impl SharedGameState {
         self.texture_set.unload_all();
     }
 
-    pub fn update_locale(&mut self, ctx: &mut Context) {
-        if let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) {
-            self.loc = locale;
-            if (self.loc.code == "jp" || self.loc.code == "en") && self.constants.is_base() {
-                self.constants.textscript.encoding = TextScriptEncoding::ShiftJIS
+    pub fn try_update_locale(
+        constants: &mut EngineConstants,
+        locale: &Locale,
+        ctx: &mut Context,
+    ) -> GameResult<BMFont> {
+        if let Some(encoding) = locale.encoding {
+            constants.textscript.encoding = encoding
+        } else {
+            if (locale.code == "jp" || locale.code == "en") && constants.is_base() {
+                constants.textscript.encoding = TextScriptEncoding::ShiftJIS
             } else {
-                self.constants.textscript.encoding = TextScriptEncoding::UTF8
+                constants.textscript.encoding = TextScriptEncoding::UTF8
             }
         }
 
-        let font = BMFont::load(&self.constants.base_paths, &self.loc.font.path, ctx, self.loc.font.scale)
-            .or_else(|e| {
-                log::warn!("Failed to load font, using built-in: {}", e);
-                BMFont::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx, 1.0)
-            })
-            .unwrap();
+        constants.stage_encoding = locale.stage_encoding;
 
+        let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
+            log::warn!("Failed to load font, using built-in: {}", e);
+            BMFont::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx, 1.0)
+        })?;
+
+        Ok(font)
+    }
+
+    pub fn update_locale(&mut self, ctx: &mut Context) {
+        let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) else {
+            return;
+        };
+        let font = Self::try_update_locale(&mut self.constants, &locale, ctx).unwrap();
+        self.loc = locale;
         self.font = font;
+        let _ = self.reload_stage_table(ctx);
     }
 
     pub fn graphics_reset(&mut self) {
