@@ -73,15 +73,15 @@ pub enum TextScriptEncoding {
     GB18030,
     GBK,
     BIG5,
-    WINDOWS_1250,
-    WINDOWS_1251,
-    WINDOWS_1252,
-    WINDOWS_1253,
-    WINDOWS_1254,
-    WINDOWS_1255,
-    WINDOWS_1256,
-    WINDOWS_1257,
-    WINDOWS_1258,
+    Win1250,
+    Win1251,
+    Win1252,
+    Win1253,
+    Win1254,
+    Win1255,
+    Win1256,
+    Win1257,
+    Win1258,
 }
 
 impl From<&str> for TextScriptEncoding {
@@ -116,15 +116,15 @@ impl From<&str> for TextScriptEncoding {
             "gbk" => Self::GBK,
             "big5" => Self::BIG5,
 
-            "windows-1250" => Self::WINDOWS_1250,
-            "windows-1251" => Self::WINDOWS_1251,
-            "windows-1252" => Self::WINDOWS_1252,
-            "windows-1253" => Self::WINDOWS_1253,
-            "windows-1254" => Self::WINDOWS_1254,
-            "windows-1255" => Self::WINDOWS_1255,
-            "windows-1256" => Self::WINDOWS_1256,
-            "windows-1257" => Self::WINDOWS_1257,
-            "windows-1258" => Self::WINDOWS_1258,
+            "windows-1250" => Self::Win1250,
+            "windows-1251" => Self::Win1251,
+            "windows-1252" => Self::Win1252,
+            "windows-1253" => Self::Win1253,
+            "windows-1254" => Self::Win1254,
+            "windows-1255" => Self::Win1255,
+            "windows-1256" => Self::Win1256,
+            "windows-1257" => Self::Win1257,
+            "windows-1258" => Self::Win1258,
 
             "utf-16be" => Self::UTF16BE,
             "utf-16le" => Self::UTF16LE,
@@ -163,24 +163,25 @@ impl From<TextScriptEncoding> for &'static encoding_rs::Encoding {
             TextScriptEncoding::GB18030 => encoding_rs::GB18030,
             TextScriptEncoding::GBK => encoding_rs::GBK,
             TextScriptEncoding::BIG5 => encoding_rs::BIG5,
-            TextScriptEncoding::WINDOWS_1250 => encoding_rs::WINDOWS_1250,
-            TextScriptEncoding::WINDOWS_1251 => encoding_rs::WINDOWS_1251,
-            TextScriptEncoding::WINDOWS_1252 => encoding_rs::WINDOWS_1252,
-            TextScriptEncoding::WINDOWS_1253 => encoding_rs::WINDOWS_1253,
-            TextScriptEncoding::WINDOWS_1254 => encoding_rs::WINDOWS_1254,
-            TextScriptEncoding::WINDOWS_1255 => encoding_rs::WINDOWS_1255,
-            TextScriptEncoding::WINDOWS_1256 => encoding_rs::WINDOWS_1256,
-            TextScriptEncoding::WINDOWS_1257 => encoding_rs::WINDOWS_1257,
-            TextScriptEncoding::WINDOWS_1258 => encoding_rs::WINDOWS_1258,
+            TextScriptEncoding::Win1250 => encoding_rs::WINDOWS_1250,
+            TextScriptEncoding::Win1251 => encoding_rs::WINDOWS_1251,
+            TextScriptEncoding::Win1252 => encoding_rs::WINDOWS_1252,
+            TextScriptEncoding::Win1253 => encoding_rs::WINDOWS_1253,
+            TextScriptEncoding::Win1254 => encoding_rs::WINDOWS_1254,
+            TextScriptEncoding::Win1255 => encoding_rs::WINDOWS_1255,
+            TextScriptEncoding::Win1256 => encoding_rs::WINDOWS_1256,
+            TextScriptEncoding::Win1257 => encoding_rs::WINDOWS_1257,
+            TextScriptEncoding::Win1258 => encoding_rs::WINDOWS_1258,
         }
     }
 }
 
 impl TextScriptEncoding {
     pub fn invalid_encoding(encoding: TextScriptEncoding, state: &SharedGameState) -> bool {
-        if state.loc.encoding.as_ref().is_some_and(|s| TextScriptEncoding::from(s.as_str()) == encoding) {
+        if state.loc.encoding.is_some_and(|e| e == encoding) {
             return true;
         }
+
         let required_encoding = if (state.loc.code == "jp" || state.loc.code == "en") && state.constants.is_base() {
             TextScriptEncoding::ShiftJIS
         } else {

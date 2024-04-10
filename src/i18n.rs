@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::framework::context::Context;
 use crate::framework::filesystem;
+use crate::game::scripting::tsc::text_script::TextScriptEncoding;
 use crate::game::shared_game_state::FontData;
 
 #[derive(Debug, Clone)]
@@ -9,8 +10,8 @@ pub struct Locale {
     pub code: String,
     pub name: String,
     pub font: FontData,
-    pub encoding: Option<String>,
-    pub stage_encoding: Option<String>,
+    pub encoding: Option<TextScriptEncoding>,
+    pub stage_encoding: Option<TextScriptEncoding>,
     strings: HashMap<String, String>,
 }
 
@@ -40,10 +41,18 @@ impl Locale {
         let font_scale = strings["font_scale"].parse::<f32>().unwrap_or(1.0);
         let font = FontData::new(font_name, font_scale, 0.0);
 
-        let encoding = strings.get("encoding").cloned();
-        let stage_encoding = strings.get("stage_encoding").cloned();
+        let encoding = if let Some(enc) = strings.get("encoding").clone() {
+            Some(TextScriptEncoding::from(enc.as_str()))
+        } else {
+            None
+        };
+        let stage_encoding = if let Some(enc) = strings.get("stage_encoding").clone() {
+            Some(TextScriptEncoding::from(enc.as_str()))
+        } else {
+            None
+        };
 
-        Locale { code: code.to_string(), name, font, encoding, strings, stage_encoding }
+        Locale { code: code.to_string(), name, font, encoding, stage_encoding, strings }
     }
 
     fn flatten(json: &serde_json::Value) -> HashMap<String, String> {

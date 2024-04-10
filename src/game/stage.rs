@@ -3,7 +3,6 @@ use std::str::from_utf8;
 
 use byteorder::ReadBytesExt;
 use byteorder::LE;
-use log::info;
 
 use crate::common::Color;
 use crate::engine_constants::EngineConstants;
@@ -12,9 +11,7 @@ use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
 use crate::game::map::{Map, NPCData};
-use crate::game::scripting::tsc::text_script::TextScript;
-
-use super::scripting::tsc::text_script::TextScriptEncoding;
+use crate::game::scripting::tsc::text_script::{TextScript, TextScriptEncoding};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct NpcType {
@@ -271,7 +268,7 @@ impl StageData {
 
             for path in roots.iter().rev() {
                 if let Ok(mut file) = filesystem::open(ctx, [path, stage_tbl_path].join("")) {
-                    info!("Loading Cave Story+ stage table from {}", &path);
+                    log::info!("Loading Cave Story+ stage table from {}", &path);
 
                     let mut new_stages = Vec::new();
 
@@ -337,7 +334,7 @@ impl StageData {
             // Cave Story freeware executable dump.
             let mut stages = Vec::new();
 
-            info!("Loading Cave Story freeware exe dump stage table from {}", &stage_sect_path);
+            log::info!("Loading Cave Story freeware exe dump stage table from {}", &stage_sect_path);
 
             let mut data = Vec::new();
             file.read_to_end(&mut data)?;
@@ -394,7 +391,7 @@ impl StageData {
             // Moustache Rider stage table
             let mut stages = Vec::new();
 
-            info!("Loading Moustache Rider stage table from {}", &mrmap_bin_path);
+            log::info!("Loading Moustache Rider stage table from {}", &mrmap_bin_path);
 
             let mut data = Vec::new();
 
@@ -452,7 +449,7 @@ impl StageData {
         } else if let Ok(mut file) = filesystem::open_find(ctx, roots, stage_dat_path) {
             let mut stages = Vec::new();
 
-            info!("Loading NXEngine stage table from {}", &stage_dat_path);
+            log::info!("Loading NXEngine stage table from {}", &stage_dat_path);
 
             let mut data = Vec::new();
 

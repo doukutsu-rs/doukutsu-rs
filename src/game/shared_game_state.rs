@@ -577,8 +577,8 @@ impl SharedGameState {
         locale: &Locale,
         ctx: &mut Context,
     ) -> GameResult<BMFont> {
-        if let Some(encoding) = locale.encoding.as_ref() {
-            constants.textscript.encoding = TextScriptEncoding::from(encoding.as_str())
+        if let Some(encoding) = locale.encoding {
+            constants.textscript.encoding = encoding
         } else {
             if (locale.code == "jp" || locale.code == "en") && constants.is_base() {
                 constants.textscript.encoding = TextScriptEncoding::ShiftJIS
@@ -586,9 +586,8 @@ impl SharedGameState {
                 constants.textscript.encoding = TextScriptEncoding::UTF8
             }
         }
-        if let Some(state_encoding) = locale.stage_encoding.as_ref() {
-            constants.stage_encoding = Some(state_encoding.as_str().into());
-        }
+
+        constants.stage_encoding = locale.stage_encoding;
 
         let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
             log::warn!("Failed to load font, using built-in: {}", e);
