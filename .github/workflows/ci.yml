@@ -103,8 +103,8 @@ jobs:
             cp -a ./target/${{ matrix.target }}/release/bundle/osx/doukutsu-rs.app release/doukutsu-rs.app
             codesign -s - -f ./release/doukutsu-rs.app/Contents/MacOS/doukutsu-rs
           elif [ "${{ runner.os }}" == "Windows" ]; then
-            CARGO_INCREMENTAL=1 cargo build --release --bin doukutsu-rs
-            cp ./target/release/doukutsu-rs.exe release/doukutsu-rs.${{ matrix.arch_name }}.exe
+            CARGO_INCREMENTAL=1 cargo build --release --bin doukutsu-rs --target ${{ matrix.target }}
+            cp ./target/${{ matrix.target }}/release/doukutsu-rs.exe release/doukutsu-rs.${{ matrix.arch_name }}.exe
           elif [ "${{ runner.os }}" == "Linux" ]; then
             RUSTFLAGS="-C link-args=-s" CARGO_INCREMENTAL=1 cargo build --release --bin doukutsu-rs
             cp -a ./target/release/doukutsu-rs release/doukutsu-rs.${{ matrix.arch_name }}.elf
