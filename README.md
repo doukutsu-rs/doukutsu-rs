@@ -222,9 +222,9 @@ To change, use the control customization menu or edit `doukutsu-rs\data\settings
 
 ![Balcony Switch](https://user-images.githubusercontent.com/53099651/155918810-063c0f06-2d48-485f-8367-6337525deab7.png)
 
-![Dogs Switch](https://media.discordapp.net/attachments/745322954660905103/947895408196202617/unknown.png)
+![Dogs Switch](https://github.com/doukutsu-rs/doukutsu-rs/assets/6276139/30ba01ae-375d-4488-98c4-98e3e8c7f187)
 
-![Almond Switch](https://media.discordapp.net/attachments/745322954660905103/947898268631826492/unknown.png)
+![Almond Switch](https://github.com/doukutsu-rs/doukutsu-rs/assets/6276139/42d4b6a3-4fc5-4aaf-9535-462c4c484dc7)
 
 ![Hell Switch](https://user-images.githubusercontent.com/53099651/155918602-62268274-c529-41c2-a87e-0c31e7874b94.png)
 
