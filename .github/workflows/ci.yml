@@ -4,14 +4,14 @@ on:
   push:
     branches-ignore:
       - cpp-rewrite
-      - horizon-os
+      - refactor
     paths-ignore:
-      - '.gitignore'
-      - '.github/*'
-      - '**.md'
-      - 'LICENSE'
-      - 'drshorizon/**'
-      - 'res/**'
+      - ".gitignore"
+      - ".github/*"
+      - "**.md"
+      - "LICENSE"
+      - "drshorizon/**"
+      - "res/**"
   workflow_dispatch:
 
 defaults:
@@ -19,7 +19,7 @@ defaults:
     shell: bash
 
 env:
-  VERSION: "0.101.0"
+  VERSION: "1.0.0"
 
 jobs:
   build:
@@ -77,10 +77,10 @@ jobs:
         run: |
           rustup default ${{ matrix.channel }}
           rustup target add ${{ matrix.target }}
-          
+
           rustc -vV
           cargo -vV
-          
+
           if [ "${{ runner.os }}" == "macOS" ]; then
             cargo install cargo-bundle
           fi
@@ -94,10 +94,10 @@ jobs:
           else
             export DRS_BUILD_VERSION_OVERRIDE="${{ env.VERSION }}-${GITHUB_SHA:0:7}"
           fi
-          
+
           mkdir release
           cp LICENSE release
-          
+
           if [ "${{ runner.os }}" == "macOS" ]; then
             CARGO_INCREMENTAL=1 cargo bundle --release --target ${{ matrix.target }}
             cp -a ./target/${{ matrix.target }}/release/bundle/osx/doukutsu-rs.app release/doukutsu-rs.app
@@ -166,7 +166,7 @@ jobs:
           else
             export DRS_BUILD_VERSION_OVERRIDE="${{ env.VERSION }}-${GITHUB_SHA:0:7}"
           fi
-          
+
           cd app
           chmod +x ./gradlew
           ./gradlew assembleRelease
@@ -174,14 +174,14 @@ jobs:
       - name: Sign app
         run: |
           BUILD_TOOLS=$ANDROID_HOME/build-tools/33.0.0
-          
+
           echo "${{ secrets.ANDROID_SIGNING_KEYSTORE }}" | base64 --decode > keystore.jks
           if [ "${{ secrets.ANDROID_SIGNING_KEY_PASS }}" != "" ]; then
             $BUILD_TOOLS/apksigner sign --ks ./keystore.jks --ks-key-alias "${{ secrets.ANDROID_SIGNING_ALIAS }}" --ks-pass "pass:${{ secrets.ANDROID_SIGNING_KEYSTORE_PASS }}" --key-pass "pass:${{ secrets.ANDROID_SIGNING_KEY_PASS }}" --out $APP_OUTPUTS_DIR/app-signed.apk $APP_OUTPUTS_DIR/app-release-unsigned.apk
           else
             $BUILD_TOOLS/apksigner sign --ks ./keystore.jks --ks-key-alias "${{ secrets.ANDROID_SIGNING_ALIAS }}" --ks-pass "pass:${{ secrets.ANDROID_SIGNING_KEYSTORE_PASS }}" --out $APP_OUTPUTS_DIR/app-signed.apk $APP_OUTPUTS_DIR/app-release-unsigned.apk
           fi
-          
+
           rm keystore.jks
 
       - name: Prepare artifact
