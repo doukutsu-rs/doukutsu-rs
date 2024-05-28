@@ -164,12 +164,12 @@ impl EditorInstance {
     }
 
     fn palette_window(&mut self, state: &mut SharedGameState, ctx: &mut Context, ui: &imgui::Ui) {
-        Window::new("Palette")
+        ui.window("Palette")
             .size([260.0, 260.0], imgui::Condition::Always)
             .position(ui.io().display_size, imgui::Condition::FirstUseEver)
             .position_pivot([1.0, 1.0])
             .resizable(false)
-            .build(ui, || {
+            .build(|| {
                 let name = &self.stage_textures.deref().borrow().tileset_fg;
                 let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, name);
 

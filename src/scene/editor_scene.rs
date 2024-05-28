@@ -237,12 +237,12 @@ impl Scene for EditorScene {
             menu_bar.end();
         }
 
-        Window::new("Toolbar")
+        ui.window("Toolbar")
             .title_bar(false)
             .resizable(false)
             .position([0.0, menu_bar_size.1], Condition::Always)
             .size([menu_bar_size.0, 0.0], Condition::Always)
-            .build(ui, || {
+            .build(|| {
                 if ui.tool_button("Move", self.current_tool == CurrentTool::Move) {
                     self.current_tool = CurrentTool::Move;
                 }
@@ -321,12 +321,12 @@ impl StageListWindow {
             return;
         }
 
-        Window::new("Stage list")
+        ui.window("Stage list")
             .resizable(false)
             .collapsible(false)
             .position_pivot([0.5, 0.5])
             .size([300.0, 352.0], Condition::FirstUseEver)
-            .build(ui, || {
+            .build(|| {
                 let mut stages = Vec::with_capacity(state.stages.len());
                 for stage in state.stages.iter() {
                     stages.push(stage.name.as_str());

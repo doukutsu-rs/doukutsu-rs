@@ -110,17 +110,16 @@ impl UI {
     pub fn draw(&mut self, state: &mut SharedGameState, ctx: &mut Context, scene: &mut Box<dyn Scene>) -> GameResult {
         let ctx2 = unsafe { &mut *(ctx as *const Context as *mut Context) };
         let imgui = imgui_context(ctx)?;
-        let io = imgui.io_mut();
         let now = Instant::now();
-        io.update_delta_time(now - self.last_frame);
+        imgui.io_mut().update_delta_time(now - self.last_frame);
         self.last_frame = now;
 
-        let mut ui = imgui.frame();
+        let mut ui = imgui.new_frame();
 
         scene.imgui_draw(&mut self.components, state, ctx2, &mut ui)?;
 
         prepare_imgui(ctx2, &ui);
-        let draw_data = ui.render();
+        let draw_data = imgui.render();
         render_imgui(ctx2, draw_data)?;
 
         Ok(())

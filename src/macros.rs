@@ -1,6 +1,4 @@
 #[doc(hidden)]
-pub use core::convert::Into;
-#[doc(hidden)]
 pub use core::fmt;
 #[doc(hidden)]
 pub use core::mem::size_of;

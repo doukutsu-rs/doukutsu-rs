@@ -78,25 +78,25 @@ impl LiveDebugger {
             let x = 0.0 as f32;
             let y = state.screen_size.1 - height;
 
-            Window::new("Command Line")
+            ui.window("Command Line")
                 .position([x, y], Condition::FirstUseEver)
                 .size([width, height], Condition::FirstUseEver)
                 .resizable(false)
                 .collapsible(false)
                 .movable(false)
-                .build(ui, || {
+                .build(|| {
                     self.draw_left_label(ui, "Command:");
 
-                    let iw = ui.push_item_width(state.screen_size.0 - 150.0);
+                    {
+                        let _iw = ui.push_item_width(state.screen_size.0 - 150.0);
 
-                    if !self.command_line_focused {
-                        ui.set_keyboard_focus_here();
-                        self.command_line_focused = true;
+                        if !self.command_line_focused {
+                            ui.set_keyboard_focus_here();
+                            self.command_line_focused = true;
+                        }
+
+                        ui.input_text("", &mut self.command_line_parser.buffer).build();
                     }
-
-                    ui.input_text("", &mut self.command_line_parser.buffer).build();
-
-                    iw.pop(ui);
 
                     if ui.is_item_active() {
                         state.control_flags.set_tick_world(false);
@@ -140,12 +140,12 @@ impl LiveDebugger {
             return Ok(());
         }
 
-        Window::new("Debugger")
+        ui.window("Debugger")
             .resizable(false)
             .collapsed(true, Condition::FirstUseEver)
             .position([5.0, 5.0], Condition::FirstUseEver)
             .size([400.0, 265.0], Condition::FirstUseEver)
-            .build(ui, || {
+            .build(|| {
                 ui.text(format!(
                     "Player position: ({:.1},{:.1}), velocity: ({:.1},{:.1})",
                     game_scene.player1.x as f32 / 512.0,
@@ -173,7 +173,7 @@ impl LiveDebugger {
 
                 ui.text(format!("Game speed ({:.1} TPS):", state.current_tps()));
                 let mut speed = state.settings.speed;
-                Slider::new("", 0.1, 3.0).build(ui, &mut speed);
+                ui.slider("", 0.1, 3.0, &mut speed);
                 ui.same_line();
                 if ui.button("Reset") {
                     speed = 1.0
@@ -235,11 +235,11 @@ impl LiveDebugger {
             });
 
         if self.map_selector_visible {
-            Window::new("Map selector")
+            ui.window("Map selector")
                 .resizable(false)
                 .position([80.0, 80.0], Condition::Appearing)
                 .size([240.0, 280.0], Condition::Appearing)
-                .build(ui, || {
+                .build(|| {
                     if self.stages.is_empty() {
                         for s in &state.stages {
                             self.stages.push(ImString::new(s.name.to_owned()));
@@ -296,11 +296,11 @@ impl LiveDebugger {
         }
 
         if self.events_visible {
-            Window::new("TSC Scripts")
+            ui.window("TSC Scripts")
                 .resizable(false)
                 .position([80.0, 80.0], Condition::Appearing)
                 .size([300.0, 320.0], Condition::Appearing)
-                .build(ui, || {
+                .build(|| {
                     if self.events.is_empty() {
                         self.event_ids.clear();
 
@@ -385,10 +385,10 @@ impl LiveDebugger {
         }
 
         if self.flags_visible {
-            Window::new("Flags")
+            ui.window("Flags")
                 .position([80.0, 80.0], Condition::FirstUseEver)
                 .size([280.0, 300.0], Condition::FirstUseEver)
-                .build(ui, || {
+                .build(|| {
                     if CollapsingHeader::new("Control flags").default_open(false).build(ui) {
                         ui.checkbox_flags("Tick world", &mut state.control_flags.0, 1);
                         ui.checkbox_flags("Control enabled", &mut state.control_flags.0, 2);
@@ -417,12 +417,12 @@ impl LiveDebugger {
         }
 
         if self.npc_inspector_visible {
-            Window::new("NPC Inspector")
+            ui.window("NPC Inspector")
                 .position([80.0, 80.0], Condition::FirstUseEver)
                 .size([280.0, 300.0], Condition::FirstUseEver)
                 .scrollable(true)
                 .always_vertical_scrollbar(true)
-                .build(ui, || {
+                .build(|| {
                     for npc in game_scene.npc_list.iter_alive() {
                         if CollapsingHeader::new(&ImString::from(format!("id={} type={}", npc.id, npc.npc_type)))
                             .default_open(false)
@@ -471,11 +471,11 @@ impl LiveDebugger {
         }
 
         if self.hotkey_list_visible {
-            Window::new("Hotkeys")
+            ui.window("Hotkeys")
                 .position([400.0, 5.0], Condition::FirstUseEver)
                 .size([300.0, 300.0], Condition::FirstUseEver)
                 .resizable(false)
-                .build(ui, || {
+                .build(|| {
                     let key = vec![
                         "ESC + F2 > Quick Reset",
                         "F3  > Godmode",
@@ -507,11 +507,11 @@ impl LiveDebugger {
         for (idx, (_, title, contents)) in self.text_windows.iter().enumerate() {
             let mut opened = true;
 
-            Window::new(title)
+            ui.window(title)
                 .position([100.0, 100.0], Condition::FirstUseEver)
                 .size([400.0, 300.0], Condition::FirstUseEver)
                 .opened(&mut opened)
-                .build(ui, || {
+                .build(|| {
                     ui.text_wrapped(contents);
                 });
 
@@ -525,7 +525,7 @@ impl LiveDebugger {
         }
 
         if self.error.is_some() {
-            Window::new("Error!")
+            ui.window("Error!")
                 .resizable(false)
                 .collapsible(false)
                 .position(
@@ -533,7 +533,7 @@ impl LiveDebugger {
                     Condition::Appearing,
                 )
                 .size([300.0, 100.0], Condition::Appearing)
-                .build(ui, || {
+                .build(|| {
                     ui.push_item_width(-1.0);
                     ui.text_wrapped(self.error.as_ref().unwrap());
 
