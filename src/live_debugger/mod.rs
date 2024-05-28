@@ -198,17 +198,6 @@ impl LiveDebugger {
                     self.flags_visible = !self.flags_visible;
                 }
 
-                #[cfg(feature = "scripting-lua")]
-                {
-                    ui.same_line();
-                    if ui.button("Reload Lua Scripts") {
-                        if let Err(err) = state.lua.reload_scripts(ctx) {
-                            log::error!("Error reloading scripts: {:?}", err);
-                            self.error = Some(ImString::new(err.to_string()));
-                        }
-                    }
-                }
-
                 if game_scene.player2.cond.alive() {
                     if ui.button("Drop Player 2") {
                         game_scene.drop_player2();

@@ -1665,8 +1665,6 @@ impl Scene for GameScene {
         )?);
         state.textscript_vm.suspend = false;
         state.tile_size = self.stage.map.tile_size;
-        #[cfg(feature = "scripting-lua")]
-        state.lua.set_game_scene(self as *mut _);
 
         self.player1.controller = state.settings.create_player1_controller();
         self.player2.controller = state.settings.create_player2_controller();
@@ -1889,9 +1887,6 @@ impl Scene for GameScene {
         self.fade.tick(state, ())?;
         self.flash.tick(state, ())?;
         self.text_boxes.tick(state, ())?;
-
-        #[cfg(feature = "scripting-lua")]
-        state.lua.scene_tick();
 
         if state.control_flags.tick_world() {
             self.tick = self.tick.wrapping_add(1);

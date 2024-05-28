@@ -244,10 +244,6 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
     ) -> GameResult {
         #[allow(unused_mut, unused_assignments)]
             let mut npc_hook_ran = false;
-        #[cfg(feature = "scripting-lua")]
-            {
-                npc_hook_ran = state.lua.try_run_npc_hook(self.id, self.npc_type);
-            }
 
         match self.npc_type {
             _ if npc_hook_ran => Ok(()),

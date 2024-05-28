@@ -18,8 +18,6 @@ use crate::game::caret::{Caret, CaretType};
 use crate::game::npc::NPCTable;
 use crate::game::player::TargetPlayer;
 use crate::game::profile::GameProfile;
-#[cfg(feature = "scripting-lua")]
-use crate::game::scripting::lua::LuaScriptingState;
 use crate::game::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
 use crate::game::scripting::tsc::text_script::{
     ScriptMode, TextScript, TextScriptEncoding, TextScriptExecutionState, TextScriptVM,
@@ -334,8 +332,6 @@ pub struct SharedGameState {
     pub constants: EngineConstants,
     pub font: BMFont,
     pub texture_set: TextureSet,
-    #[cfg(feature = "scripting-lua")]
-    pub lua: LuaScriptingState,
     pub sound_manager: SoundManager,
     pub settings: Settings,
     pub save_slot: usize,
@@ -493,8 +489,6 @@ impl SharedGameState {
             constants,
             font,
             texture_set: TextureSet::new(),
-            #[cfg(feature = "scripting-lua")]
-            lua: LuaScriptingState::new(),
             sound_manager,
             settings,
             save_slot: 1,
@@ -613,8 +607,6 @@ impl SharedGameState {
 
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
         self.reset();
-        #[cfg(feature = "scripting-lua")]
-        self.lua.reload_scripts(ctx)?;
 
         #[cfg(feature = "discord-rpc")]
         self.discord_rpc.update_difficulty(self.difficulty)?;
@@ -638,9 +630,6 @@ impl SharedGameState {
     }
 
     pub fn start_intro(&mut self, ctx: &mut Context) -> GameResult {
-        #[cfg(feature = "scripting-lua")]
-        self.lua.reload_scripts(ctx)?;
-
         let start_stage_id = self.constants.game.intro_stage as usize;
 
         if self.stages.len() < start_stage_id {
@@ -694,9 +683,6 @@ impl SharedGameState {
                         let mut next_scene = GameScene::new(self, ctx, profile.current_map as usize)?;
 
                         profile.apply(self, &mut next_scene, ctx);
-
-                        #[cfg(feature = "scripting-lua")]
-                        self.lua.reload_scripts(ctx)?;
 
                         #[cfg(feature = "discord-rpc")]
                         self.discord_rpc.update_difficulty(self.difficulty)?;
