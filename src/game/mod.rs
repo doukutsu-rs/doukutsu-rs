@@ -285,7 +285,7 @@ fn init_logger() -> GameResult {
             .level(log::LevelFilter::Info)
             .chain(fern::log_file(file).unwrap())
     );
-    dispatcher.apply()?;
+    let _ = dispatcher.apply();
     
     //log::info!("===GAME LAUNCH===");
     

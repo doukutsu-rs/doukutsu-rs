@@ -1,12 +1,13 @@
-use std::collections::HashMap;
-use std::io::{BufReader, Read, Seek, SeekFrom};
-
+use drs_framework::io::Read;
+use drs_framework::io::Seek;
+use drs_framework::io::SeekFrom;
 use image::RgbaImage;
 use itertools::Itertools;
 use log::info;
+use std::collections::HashMap;
 
 use crate::common;
-use crate::common::{FILE_TYPES, Rect};
+use crate::common::{Rect, FILE_TYPES};
 use crate::engine_constants::EngineConstants;
 use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
@@ -134,7 +135,8 @@ impl SpriteBatch for DummyBatch {
         _flip_y: bool,
         _color: (u8, u8, u8, u8),
         _rect: &Rect<u16>,
-    ) {}
+    ) {
+    }
 
     fn add_rect_scaled(&mut self, _x: f32, _y: f32, _scale_x: f32, _scale_y: f32, _rect: &Rect<u16>) {}
 
@@ -146,7 +148,8 @@ impl SpriteBatch for DummyBatch {
         _scale_x: f32,
         _scale_y: f32,
         _rect: &Rect<u16>,
-    ) {}
+    ) {
+    }
 
     fn draw(&mut self, _ctx: &mut Context) -> GameResult {
         Ok(())
@@ -504,7 +507,13 @@ impl TextureSet {
             reader.read_exact(&mut buf)?;
             reader.seek(SeekFrom::Start(0))?;
 
-            let image = image::load(BufReader::new(reader), image::guess_format(&buf)?)?;
+            let format = image::guess_format(&buf).map_err(|e| GameError::ParseError(e.to_string()))?;
+
+            let mut buf = Vec::new();
+            reader.read_to_end(&mut buf)?;
+
+            let image =
+                image::load(std::io::Cursor::new(buf), format).map_err(|e| GameError::ParseError(e.to_string()))?;
             let mut rgba = image.to_rgba8();
             if image.color().channel_count() != 4 {
                 TextureSet::make_transparent(&mut rgba);

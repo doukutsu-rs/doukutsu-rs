@@ -1,9 +1,8 @@
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Cursor, Read};
 
-use byteorder::{ReadBytesExt, LE};
 use case_insensitive_hashmap::CaseInsensitiveHashMap;
-use xmltree::Element;
+use drs_framework::error::GameError;
+use drs_framework::io::{Cursor, Read};
 
 use crate::case_insensitive_hashmap;
 use crate::common::{BulletFlag, Color, Rect};
@@ -1756,28 +1755,30 @@ impl EngineConstants {
 
     pub fn load_nx_stringtable(&mut self, ctx: &mut Context) -> GameResult {
         if let Ok(file) = filesystem::open(ctx, "/base/stringtable.sta") {
-            let mut reader = BufReader::new(file);
+            //     let mut reader = BufReader::new(file);
 
-            // Only some versions start with the BOM marker, thankfully the file isn't that large to read twice
-            let mut bom = [0xef, 0xbb, 0xbf];
-            let buf = reader.fill_buf()?;
-            if buf.len() > 3 && buf[0..3] == bom {
-                reader.read_exact(&mut bom)?;
-            }
+            //     // Only some versions start with the BOM marker, thankfully the file isn't that large to read twice
+            //     let mut bom = [0xef, 0xbb, 0xbf];
+            //     let buf = reader.fill_buf()?;
+            //     if buf.len() > 3 && buf[0..3] == bom {
+            //         reader.read_exact(&mut bom)?;
+            //     }
 
-            if let Ok(xml) = Element::parse(reader) {
-                for node in &xml.get_child("category").unwrap().children {
-                    let element = node.as_element().unwrap();
-                    let key = element.attributes.get_key_value("name").unwrap().1.to_string();
-                    let english = element
-                        .get_child("string")
-                        .unwrap()
-                        .get_text()
-                        .unwrap_or(std::borrow::Cow::Borrowed(""))
-                        .to_string();
-                    self.string_table.insert(key, english);
-                }
-            }
+            //     if let Ok(xml) = Element::parse(reader) {
+            //         for node in &xml.get_child("category").unwrap().children {
+            //             let element = node.as_element().unwrap();
+            //             let key = element.attributes.get_key_value("name").unwrap().1.to_string();
+            //             let english = element
+            //                 .get_child("string")
+            //                 .unwrap()
+            //                 .get_text()
+            //                 .unwrap_or(std::borrow::Cow::Borrowed(""))
+            //                 .to_string();
+            //             self.string_table.insert(key, english);
+            //         }
+            //     }
+
+            return Err(GameError::ResourceLoadError("TODO: unimplemented".to_owned()));
         }
         Ok(())
     }
@@ -1814,8 +1815,10 @@ impl EngineConstants {
     pub fn apply_constant_json_files(&mut self) {}
 
     pub fn load_texture_size_hints(&mut self, ctx: &mut Context) -> GameResult {
-        if let Ok(file) = filesystem::open_find(ctx, &self.base_paths, "texture_sizes.json") {
-            match serde_json::from_reader::<_, TextureSizeTable>(file) {
+        if let Ok(mut file) = filesystem::open_find(ctx, &self.base_paths, "texture_sizes.json") {
+            let mut buf = Vec::new();
+            file.read_to_end(&mut buf)?;
+            match serde_json::from_slice::<TextureSizeTable>(&buf) {
                 Ok(tex_overrides) => {
                     for (key, (x, y)) in tex_overrides.sizes {
                         self.tex_sizes.insert(key, (x, y));
@@ -1842,17 +1845,17 @@ impl EngineConstants {
                 let bullet = BulletData {
                     damage: f.read_u8()?,
                     life: f.read_u8()?,
-                    lifetime: f.read_u32::<LE>()? as u16,
-                    flags: BulletFlag(f.read_u32::<LE>()? as u8),
-                    enemy_hit_width: f.read_u32::<LE>()? as u16,
-                    enemy_hit_height: f.read_u32::<LE>()? as u16,
-                    block_hit_width: f.read_u32::<LE>()? as u16,
-                    block_hit_height: f.read_u32::<LE>()? as u16,
+                    lifetime: f.read_u32_le()? as u16,
+                    flags: BulletFlag(f.read_u32_le()? as u8),
+                    enemy_hit_width: f.read_u32_le()? as u16,
+                    enemy_hit_height: f.read_u32_le()? as u16,
+                    block_hit_width: f.read_u32_le()? as u16,
+                    block_hit_height: f.read_u32_le()? as u16,
                     display_bounds: Rect {
-                        left: f.read_u32::<LE>()? as u8,
-                        top: f.read_u32::<LE>()? as u8,
-                        right: f.read_u32::<LE>()? as u8,
-                        bottom: f.read_u32::<LE>()? as u8,
+                        left: f.read_u32_le()? as u8,
+                        top: f.read_u32_le()? as u8,
+                        right: f.read_u32_le()? as u8,
+                        bottom: f.read_u32_le()? as u8,
                     },
                 };
                 new_bullet_table.push(bullet);
@@ -1869,9 +1872,9 @@ impl EngineConstants {
 
             let mut new_level_table = EngineConstants::defaults().weapon.level_table;
             for iter in 0..14 {
-                let level1 = f.read_u32::<LE>()? as u16;
-                let level2 = f.read_u32::<LE>()? as u16;
-                let level3 = f.read_u32::<LE>()? as u16;
+                let level1 = f.read_u32_le()? as u16;
+                let level2 = f.read_u32_le()? as u16;
+                let level3 = f.read_u32_le()? as u16;
                 new_level_table[iter] = [level1, level2, level3];
             }
 
@@ -1890,13 +1893,14 @@ impl EngineConstants {
         // Bugfix for Malco cutscene - this face should be used but the original tsc has the wrong ID
         self.animated_face_table.push(AnimatedFace { face_id: 5, anim_id: 4, anim_frames: vec![(4, 0)] });
 
-        if let Ok(file) = filesystem::open_find(ctx, &self.base_paths, "faceanm.dat") {
-            let buf = BufReader::new(file);
+        if let Ok(mut file) = filesystem::open_find(ctx, &self.base_paths, "faceanm.dat") {
+            let mut buf = String::new();
+            file.read_to_string(&mut buf)?;
             let mut face_id = 1;
             let mut anim_id = 0;
 
             for line in buf.lines() {
-                let line_str = line?.to_owned().replace(",", " ");
+                let line_str = line.replace(",", " ");
                 let mut anim_frames = Vec::new();
 
                 if line_str.find("\\") == None {

@@ -1,8 +1,9 @@
-use std::fmt;
-use std::io;
-use std::io::SeekFrom;
+use core::fmt;
 use std::path;
 use std::path::PathBuf;
+
+use drs_framework::io;
+use drs_framework::io::SeekFrom;
 
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
@@ -37,7 +38,7 @@ impl fmt::Debug for File {
 }
 
 impl io::Read for File {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> GameResult<usize> {
         match *self {
             File::VfsFile(ref mut f) => f.read(buf),
         }
@@ -45,13 +46,13 @@ impl io::Read for File {
 }
 
 impl io::Write for File {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+    fn write(&mut self, buf: &[u8]) -> GameResult<usize> {
         match *self {
             File::VfsFile(ref mut f) => f.write(buf),
         }
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> GameResult<()> {
         match *self {
             File::VfsFile(ref mut f) => f.flush(),
         }
@@ -59,9 +60,31 @@ impl io::Write for File {
 }
 
 impl io::Seek for File {
-    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
+    fn seek(&mut self, pos: SeekFrom) -> GameResult<u64> {
         match *self {
             File::VfsFile(ref mut f) => f.seek(pos),
+        }
+    }
+}
+
+impl std::io::Read for File {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        match *self {
+            File::VfsFile(ref mut f) => f.read(buf).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, "")),
+        }
+    }
+}
+
+impl std::io::Seek for File {
+    fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
+        let pos = match pos {
+            std::io::SeekFrom::Start(n) => SeekFrom::Start(n),
+            std::io::SeekFrom::End(n) => SeekFrom::End(n),
+            std::io::SeekFrom::Current(n) => SeekFrom::Current(n),
+        };
+        
+        match *self {
+            File::VfsFile(ref mut f) => f.seek(pos).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, "")),
         }
     }
 }
@@ -251,7 +274,7 @@ pub fn open_find<P: AsRef<path::Path>>(ctx: &Context, roots: &Vec<String>, path:
         errors.push((PathBuf::from(full_path), result.err().unwrap()));
     }
 
-    Err(GameError::ResourceNotFound("File not found".to_owned(), errors))
+    Err(GameError::ResourceNotFound("File not found".to_owned()))
 }
 
 /// Opens the given path in the user directory and returns the resulting `File`

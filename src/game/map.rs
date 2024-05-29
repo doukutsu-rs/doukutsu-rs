@@ -1,9 +1,5 @@
 use std::collections::HashMap;
-use std::io;
-use std::io::{BufRead, BufReader, Read};
-use std::sync::Arc;
-
-use byteorder::{ReadBytesExt, LE};
+use drs_framework::io::{self, Read};
 
 use crate::common::{Color, Rect};
 use crate::framework::context::Context;
@@ -51,8 +47,8 @@ impl Map {
             return Err(ResourceLoadError(format!("Unsupported PXM version: {:#x}", version)));
         }
 
-        let width = map_data.read_u16::<LE>()?;
-        let height = map_data.read_u16::<LE>()?;
+        let width = map_data.read_u16_le()?;
+        let height = map_data.read_u16_le()?;
         let mut tiles = vec![0u8; (width * height) as usize];
         let mut attrib = [0u8; 0x100];
 
@@ -106,8 +102,8 @@ impl Map {
         skip_string(&mut map_data)?;
         skip_string(&mut map_data)?; // spritesheet
 
-        map_data.read_u16::<LE>()?;
-        map_data.read_u16::<LE>()?;
+        map_data.read_u16_le()?;
+        map_data.read_u16_le()?;
         map_data.read_u8()?;
 
         let bg_color = Color::from_rgb(map_data.read_u8()?, map_data.read_u8()?, map_data.read_u8()?);
@@ -144,8 +140,8 @@ impl Map {
             return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
-        let width_fg = map_data.read_u16::<LE>()?;
-        let height_fg = map_data.read_u16::<LE>()?;
+        let width_fg = map_data.read_u16_le()?;
+        let height_fg = map_data.read_u16_le()?;
         map_data.read_u8()?;
 
         log::info!("Foreground map size: {}x{}", width_fg, height_fg);
@@ -161,8 +157,8 @@ impl Map {
             return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
-        let width_mg = map_data.read_u16::<LE>()?;
-        let height_mg = map_data.read_u16::<LE>()?;
+        let width_mg = map_data.read_u16_le()?;
+        let height_mg = map_data.read_u16_le()?;
 
         log::info!("Middleground map size: {}x{}", width_mg, height_mg);
 
@@ -179,8 +175,8 @@ impl Map {
             return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
-        let width_bg = map_data.read_u16::<LE>()?;
-        let height_bg = map_data.read_u16::<LE>()?;
+        let width_bg = map_data.read_u16_le()?;
+        let height_bg = map_data.read_u16_le()?;
 
         log::info!("Background map size: {}x{}", width_bg, height_bg);
 
@@ -207,8 +203,8 @@ impl Map {
                 return Err(ResourceLoadError("Invalid magic".to_owned()));
             }
 
-            attrib_data.read_u16::<LE>()?;
-            attrib_data.read_u16::<LE>()?;
+            attrib_data.read_u16_le()?;
+            attrib_data.read_u16_le()?;
             attrib_data.read_u8()?;
 
             if attrib_data.read_exact(&mut attrib).is_err() {
@@ -489,16 +485,16 @@ impl NPCData {
             return Err(ResourceLoadError(format!("Unsupported PXE version: {:#x}", version)));
         }
 
-        let count = data.read_u32::<LE>()? as usize;
+        let count = data.read_u32_le()? as usize;
         let mut npcs = Vec::with_capacity(count);
 
         for i in 0..count {
-            let x = data.read_i16::<LE>()?;
-            let y = data.read_i16::<LE>()?;
-            let flag_num = data.read_u16::<LE>()?;
-            let event_num = data.read_u16::<LE>()?;
-            let npc_type = data.read_u16::<LE>()?;
-            let flags = data.read_u16::<LE>()?;
+            let x = data.read_i16_le()?;
+            let y = data.read_i16_le()?;
+            let flag_num = data.read_u16_le()?;
+            let event_num = data.read_u16_le()?;
+            let npc_type = data.read_u16_le()?;
+            let flags = data.read_u16_le()?;
 
             // booster's lab also specifies a layer field in version 0x10, prob for multi-layered maps
             let layer = if version == 0x10 { data.read_u8()? } else { 0 };
@@ -536,7 +532,7 @@ impl WaterParams {
         WaterParams { entries: HashMap::new() }
     }
 
-    pub fn load_from<R: io::Read>(&mut self, data: R) -> GameResult {
+    pub fn load_from<R: io::Read>(&mut self, mut file: R) -> GameResult {
         fn next_u8<'a>(s: &mut impl Iterator<Item = &'a str>, error_msg: &str) -> GameResult<u8> {
             match s.next() {
                 None => Err(GameError::ParseError("Out of range.".to_string())),
@@ -544,54 +540,52 @@ impl WaterParams {
             }
         }
 
-        for line in BufReader::new(data).lines() {
-            match line {
-                Ok(line) => {
-                    let mut splits = line.split(':');
+        let mut buf = String::new();
+        file.read_to_string(&mut buf)?;
 
-                    if splits.clone().count() != 5 {
-                        return Err(GameError::ParseError("Invalid count of delimiters.".to_string()));
-                    }
+        for line in buf.lines() {
+            let mut splits = line.split(':');
 
-                    let tile_min = next_u8(&mut splits, "Invalid minimum tile value.")?;
-                    let tile_max = next_u8(&mut splits, "Invalid maximum tile value.")?;
+            if splits.clone().count() != 5 {
+                return Err(GameError::ParseError("Invalid count of delimiters.".to_string()));
+            }
 
-                    if tile_min > tile_max {
-                        return Err(GameError::ParseError("tile_min > tile_max".to_string()));
-                    }
+            let tile_min = next_u8(&mut splits, "Invalid minimum tile value.")?;
+            let tile_max = next_u8(&mut splits, "Invalid maximum tile value.")?;
 
-                    let mut read_color = || -> GameResult<Color> {
-                        let cstr = splits.next().unwrap().trim();
-                        if !cstr.starts_with('[') || !cstr.ends_with(']') {
-                            return Err(GameError::ParseError("Invalid format of color value.".to_string()));
-                        }
+            if tile_min > tile_max {
+                return Err(GameError::ParseError("tile_min > tile_max".to_string()));
+            }
 
-                        let mut csplits = cstr[1..cstr.len() - 1].split(',');
-
-                        if csplits.clone().count() != 4 {
-                            return Err(GameError::ParseError("Invalid count of delimiters.".to_string()));
-                        }
-
-                        let r = next_u8(&mut csplits, "Invalid red value.")?;
-                        let g = next_u8(&mut csplits, "Invalid green value.")?;
-                        let b = next_u8(&mut csplits, "Invalid blue value.")?;
-                        let a = next_u8(&mut csplits, "Invalid alpha value.")?;
-
-                        Ok(Color::from_rgba(r, g, b, a))
-                    };
-
-                    let color_top = read_color()?;
-                    let color_middle = read_color()?;
-                    let color_bottom = read_color()?;
-
-                    let entry = WaterParamEntry { color_top, color_middle, color_bottom };
-
-                    for i in tile_min..=tile_max {
-                        let e = self.entries.entry(i);
-                        e.or_insert(entry);
-                    }
+            let mut read_color = || -> GameResult<Color> {
+                let cstr = splits.next().unwrap().trim();
+                if !cstr.starts_with('[') || !cstr.ends_with(']') {
+                    return Err(GameError::ParseError("Invalid format of color value.".to_string()));
                 }
-                Err(e) => return Err(GameError::IOError(Arc::new(e))),
+
+                let mut csplits = cstr[1..cstr.len() - 1].split(',');
+
+                if csplits.clone().count() != 4 {
+                    return Err(GameError::ParseError("Invalid count of delimiters.".to_string()));
+                }
+
+                let r = next_u8(&mut csplits, "Invalid red value.")?;
+                let g = next_u8(&mut csplits, "Invalid green value.")?;
+                let b = next_u8(&mut csplits, "Invalid blue value.")?;
+                let a = next_u8(&mut csplits, "Invalid alpha value.")?;
+
+                Ok(Color::from_rgba(r, g, b, a))
+            };
+
+            let color_top = read_color()?;
+            let color_middle = read_color()?;
+            let color_bottom = read_color()?;
+
+            let entry = WaterParamEntry { color_top, color_middle, color_bottom };
+
+            for i in tile_min..=tile_max {
+                let e = self.entries.entry(i);
+                e.or_insert(entry);
             }
         }
 

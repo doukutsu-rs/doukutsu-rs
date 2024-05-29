@@ -1,3 +1,6 @@
+use drs_framework::error::GameError;
+use drs_framework::io::{Read, Write};
+
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::{user_create, user_open};
@@ -173,8 +176,11 @@ fn default_cutscene_skip_mode() -> CutsceneSkipMode {
 
 impl Settings {
     pub fn load(ctx: &Context) -> GameResult<Settings> {
-        if let Ok(file) = user_open(ctx, "/settings.json") {
-            match serde_json::from_reader::<_, Settings>(file) {
+        if let Ok(mut file) = user_open(ctx, "/settings.json") {
+            let mut buf = Vec::new();
+            file.read_to_end(&mut buf)?;
+
+            match serde_json::from_slice::<Settings>(&buf) {
                 Ok(settings) => return Ok(settings.upgrade()),
                 Err(err) => log::warn!("Failed to deserialize settings: {}", err),
             }
@@ -367,8 +373,9 @@ impl Settings {
     }
 
     pub fn save(&self, ctx: &Context) -> GameResult {
-        let file = user_create(ctx, "/settings.json")?;
-        serde_json::to_writer_pretty(file, self)?;
+        let buf = serde_json::to_string_pretty(self).map_err(|e| GameError::ParseError(e.to_string()))?;
+        let mut file = user_create(ctx, "/settings.json")?;
+        file.write(buf.as_bytes());
 
         Ok(())
     }

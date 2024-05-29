@@ -1,0 +1,8 @@
+---
+ColumnLimit: '120'
+FixNamespaceComments: 'true'
+IndentWidth: '4'
+Language: Cpp
+PointerAlignment: Left
+TabWidth: '4'
+UseTab: ForIndentation

@@ -1,3 +1,6 @@
+use drs_framework::error::GameError;
+use drs_framework::io::Write;
+
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
@@ -34,8 +37,9 @@ impl ModRequirements {
     }
 
     pub fn save(&self, ctx: &Context) -> GameResult {
-        let file = filesystem::user_create(ctx, "/mod_req.json")?;
-        serde_json::to_writer_pretty(file, self)?;
+        let buf = serde_json::to_string_pretty(self).map_err(|err| GameError::ParseError(err.to_string()))?;
+        let mut file = filesystem::user_create(ctx, "/mod_req.json")?;
+        file.write_all(buf.as_bytes())?;
 
         Ok(())
     }

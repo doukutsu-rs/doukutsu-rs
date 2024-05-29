@@ -1,6 +1,4 @@
-use std::io;
-
-use byteorder::{BE, LE, ReadBytesExt, WriteBytesExt};
+use drs_framework::io;
 use num_traits::{clamp, FromPrimitive};
 
 use crate::common::{Direction, FadeState, get_timestamp};
@@ -266,75 +264,75 @@ impl GameProfile {
     }
 
     pub fn write_save<W: io::Write>(&self, mut data: W) -> GameResult {
-        data.write_u64::<BE>(0x446f303431323230)?;
+        data.write_u64_be(0x446f303431323230)?;
 
-        data.write_u32::<LE>(self.current_map)?;
-        data.write_u32::<LE>(self.current_song)?;
-        data.write_i32::<LE>(self.pos_x)?;
-        data.write_i32::<LE>(self.pos_y)?;
-        data.write_u32::<LE>(self.direction as u32)?;
-        data.write_u16::<LE>(self.max_life)?;
-        data.write_u16::<LE>(self.stars)?;
-        data.write_u16::<LE>(self.life)?;
-        data.write_u16::<LE>(0)?;
-        data.write_u32::<LE>(self.current_weapon)?;
-        data.write_u32::<LE>(self.current_item)?;
-        data.write_u32::<LE>(self.equipment)?;
-        data.write_u32::<LE>(self.control_mode)?;
-        data.write_u32::<LE>(self.counter)?;
+        data.write_u32_le(self.current_map)?;
+        data.write_u32_le(self.current_song)?;
+        data.write_i32_le(self.pos_x)?;
+        data.write_i32_le(self.pos_y)?;
+        data.write_u32_le(self.direction as u32)?;
+        data.write_u16_le(self.max_life)?;
+        data.write_u16_le(self.stars)?;
+        data.write_u16_le(self.life)?;
+        data.write_u16_le(0)?;
+        data.write_u32_le(self.current_weapon)?;
+        data.write_u32_le(self.current_item)?;
+        data.write_u32_le(self.equipment)?;
+        data.write_u32_le(self.control_mode)?;
+        data.write_u32_le(self.counter)?;
 
         for weapon in &self.weapon_data {
-            data.write_u32::<LE>(weapon.weapon_id)?;
-            data.write_u32::<LE>(weapon.level)?;
-            data.write_u32::<LE>(weapon.exp)?;
-            data.write_u32::<LE>(weapon.max_ammo)?;
-            data.write_u32::<LE>(weapon.ammo)?;
+            data.write_u32_le(weapon.weapon_id)?;
+            data.write_u32_le(weapon.level)?;
+            data.write_u32_le(weapon.exp)?;
+            data.write_u32_le(weapon.max_ammo)?;
+            data.write_u32_le(weapon.ammo)?;
         }
 
         for item in self.items.iter().copied() {
-            data.write_u32::<LE>(item)?;
+            data.write_u32_le(item)?;
         }
 
         for slot in &self.teleporter_slots {
-            data.write_u32::<LE>(slot.index)?;
-            data.write_u32::<LE>(slot.event_num)?;
+            data.write_u32_le(slot.index)?;
+            data.write_u32_le(slot.event_num)?;
         }
 
         let something = [0u8; 0x80];
         data.write(&something)?;
 
-        data.write_u32::<BE>(0x464c4147)?;
+        data.write_u32_be(0x464c4147)?;
         data.write(&self.flags)?;
 
-        data.write_u32::<LE>(0)?; // unused(?) CS+ space
+        data.write_u32_le(0)?; // unused(?) CS+ space
 
-        data.write_u64::<LE>(self.timestamp)?;
+        data.write_u64_le(self.timestamp)?;
         data.write_u8(self.difficulty)?;
 
         Ok(())
     }
 
     pub fn load_from_save<R: io::Read>(mut data: R) -> GameResult<GameProfile> {
-        let magic = data.read_u64::<BE>()?;
+        let magic = data.read_u64_be()?;
         // Do041220, Do041115
         if magic != 0x446f303431323230 && magic != 0x446f303431313135 {
             return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
 
-        let current_map = data.read_u32::<LE>()?;
-        let current_song = data.read_u32::<LE>()?;
-        let pos_x = data.read_i32::<LE>()?;
-        let pos_y = data.read_i32::<LE>()?;
-        let direction = data.read_u32::<LE>()?;
-        let max_life = data.read_u16::<LE>()?;
-        let stars = data.read_u16::<LE>()?;
-        let life = data.read_u16::<LE>()?;
-        let _ = data.read_u16::<LE>()?; // ???
-        let current_weapon = data.read_u32::<LE>()?;
-        let current_item = data.read_u32::<LE>()?;
-        let equipment = data.read_u32::<LE>()?;
-        let control_mode = data.read_u32::<LE>()?;
-        let counter = data.read_u32::<LE>()?;
+        let current_map = data.read_u32_le()?;
+        let current_song = data.read_u32_le()?;
+        let pos_x = data.read_i32_le()?;
+        let pos_y = data.read_i32_le()?;
+        let direction = data.read_u32_le()?;
+        let max_life = data.read_u16_le()?;
+        let stars = data.read_u16_le()?;
+        let life = data.read_u16_le()?;
+        let _ = data.read_u16_le()?; // ???
+        let current_weapon = data.read_u32_le()?;
+        let current_item = data.read_u32_le()?;
+        let equipment = data.read_u32_le()?;
+        let control_mode = data.read_u32_le()?;
+        let counter = data.read_u32_le()?;
         let mut weapon_data = [
             WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
             WeaponData { weapon_id: 0, level: 0, exp: 0, max_ammo: 0, ammo: 0 },
@@ -358,35 +356,35 @@ impl GameProfile {
         ];
 
         for WeaponData { weapon_id, level, exp, max_ammo, ammo } in &mut weapon_data {
-            *weapon_id = data.read_u32::<LE>()?;
-            *level = data.read_u32::<LE>()?;
-            *exp = data.read_u32::<LE>()?;
-            *max_ammo = data.read_u32::<LE>()?;
-            *ammo = data.read_u32::<LE>()?;
+            *weapon_id = data.read_u32_le()?;
+            *level = data.read_u32_le()?;
+            *exp = data.read_u32_le()?;
+            *max_ammo = data.read_u32_le()?;
+            *ammo = data.read_u32_le()?;
         }
 
         for item in &mut items {
-            *item = data.read_u32::<LE>()?;
+            *item = data.read_u32_le()?;
         }
 
         for TeleporterSlotData { index, event_num } in &mut teleporter_slots {
-            *index = data.read_u32::<LE>()?;
-            *event_num = data.read_u32::<LE>()?;
+            *index = data.read_u32_le()?;
+            *event_num = data.read_u32_le()?;
         }
 
         let mut map_flags = [0u8; 0x80];
         data.read_exact(&mut map_flags)?;
 
-        if data.read_u32::<BE>()? != 0x464c4147 {
+        if data.read_u32_be()? != 0x464c4147 {
             return Err(ResourceLoadError("Invalid FLAG signature".to_owned()));
         }
 
         let mut flags = [0u8; 1000];
         data.read_exact(&mut flags)?;
 
-        data.read_u32::<LE>().unwrap_or(0); // unused(?) CS+ space
+        data.read_u32_le().unwrap_or(0); // unused(?) CS+ space
 
-        let timestamp = data.read_u64::<LE>().unwrap_or(0);
+        let timestamp = data.read_u64_le().unwrap_or(0);
         let difficulty = data.read_u8().unwrap_or(0);
 
         Ok(GameProfile {

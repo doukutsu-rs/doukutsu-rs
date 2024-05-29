@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use drs_framework::error::GameError;
+
 use crate::{
     data::builtin_fs::BuiltinFS,
     framework::{
@@ -27,7 +29,7 @@ impl FilesystemContainer {
         let resource_dir = if let Ok(data_dir) = std::env::var("CAVESTORY_DATA_DIR") {
             PathBuf::from(data_dir)
         } else {
-            let mut resource_dir = std::env::current_exe()?;
+            let mut resource_dir = std::env::current_exe().unwrap();
             if resource_dir.file_name().is_some() {
                 let _ = resource_dir.pop();
             }
@@ -170,13 +172,13 @@ impl FilesystemContainer {
         let _ = std::fs::create_dir_all(user_dir.clone());
 
         // copy user data from current user dir
-        for entry in std::fs::read_dir(&self.user_path)? {
-            let entry = entry?;
+        for entry in std::fs::read_dir(&self.user_path).map_err(|e| GameError::FilesystemError(e.to_string()))? {
+            let entry = entry.map_err(|e| GameError::FilesystemError(e.to_string()))?;
             let path = entry.path();
             let file_name = path.file_name().unwrap().to_str().unwrap();
             let mut new_path = user_dir.clone();
             new_path.push(file_name);
-            std::fs::copy(path, new_path)?;
+            std::fs::copy(path, new_path).map_err(|e| GameError::FilesystemError(e.to_string()))?;
         }
 
         // unmount old user dir
@@ -205,9 +207,12 @@ impl FilesystemContainer {
             let vm_env = vm.attach_current_thread()?;
 
             let class = vm_env.new_global_ref(JObject::from_raw(ndk_glue::native_activity().activity()))?;
-            let method = vm_env.call_method(class.as_obj(), "openDir", "(Ljava/lang/String;)V", &[
-                JValue::from(vm_env.new_string(path.to_str().unwrap()).unwrap())
-            ])?;
+            let method = vm_env.call_method(
+                class.as_obj(),
+                "openDir",
+                "(Ljava/lang/String;)V",
+                &[JValue::from(vm_env.new_string(path.to_str().unwrap()).unwrap())],
+            )?;
 
             return Ok(());
         }

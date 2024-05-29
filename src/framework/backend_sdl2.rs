@@ -1,8 +1,8 @@
 use core::mem;
+use drs_framework::io::Read;
 use std::any::Any;
 use std::cell::{RefCell, UnsafeCell};
 use std::ffi::c_void;
-use std::io::Read;
 use std::ops::Deref;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
@@ -163,7 +163,7 @@ impl SDL2EventLoop {
         let event_pump = sdl.event_pump().map_err(GameError::WindowError)?;
         let video = sdl.video().map_err(GameError::WindowError)?;
 
-        let game_controller = sdl.game_controller().map_err(GameError::GamepadError)?;
+        let game_controller = sdl.game_controller().map_err(GameError::WindowError)?;
         let mut controller_mappings = filesystem::open(ctx, "/builtin/gamecontrollerdb.txt")?;
         game_controller.load_mappings_from_read(&mut controller_mappings).unwrap();
 
@@ -185,14 +185,13 @@ impl SDL2EventLoop {
             let mut file = filesystem::open(&ctx, "/builtin/icon.bmp").unwrap();
             let mut buf: Vec<u8> = Vec::new();
             file.read_to_end(&mut buf)?;
-            
+
             let mut rwops = RWops::from_bytes(buf.as_slice()).unwrap();
             let icon = Surface::load_bmp_rw(&mut rwops).unwrap();
-            
+
             window.set_icon(icon);
         }
-        
-        
+
         let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
 
         let event_loop = SDL2EventLoop {
@@ -216,9 +215,7 @@ impl BackendEventLoop for SDL2EventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
         let state = unsafe { &mut *game.state.get() };
 
-        let imgui = unsafe {
-            (&*(ctx.renderer.as_ref().unwrap() as *const Box<dyn BackendRenderer>)).imgui().unwrap()
-        };
+        let imgui = unsafe { (&*(ctx.renderer.as_ref().unwrap() as *const Box<dyn BackendRenderer>)).imgui().unwrap() };
         let mut imgui_sdl2 = ImguiSdl2::new(imgui, self.refs.deref().borrow().window.window());
 
         {
@@ -399,11 +396,7 @@ impl BackendEventLoop for SDL2EventLoop {
                     let show_cursor = state.settings.window_mode.should_display_mouse_cursor();
 
                     window.set_fullscreen(fullscreen_type);
-                    window
-                        .subsystem()
-                        .sdl()
-                        .mouse()
-                        .show_cursor(show_cursor);
+                    window.subsystem().sdl().mouse().show_cursor(show_cursor);
 
                     refs.fullscreen_type = fullscreen_type;
                 }
@@ -591,11 +584,7 @@ impl SDL2Renderer {
         };
         imgui.fonts().tex_id = TextureId::new(imgui_font_tex.texture.as_ref().unwrap().raw() as usize);
 
-        Ok(Box::new(SDL2Renderer {
-            refs,
-            imgui: Rc::new(RefCell::new(imgui)),
-            imgui_font_tex,
-        }))
+        Ok(Box::new(SDL2Renderer { refs, imgui: Rc::new(RefCell::new(imgui)), imgui_font_tex }))
     }
 }
 

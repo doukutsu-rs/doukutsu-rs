@@ -9,7 +9,7 @@ pub mod backend_null;
 #[cfg(feature = "backend-sdl")]
 pub mod backend_sdl2;
 pub mod context;
-pub mod error;
+// pub mod error;
 pub mod filesystem;
 pub mod gamepad;
 #[cfg(feature = "render-opengl")]
@@ -21,3 +21,5 @@ pub mod render_opengl;
 pub mod ui;
 pub mod util;
 pub mod vfs;
+
+pub use drs_framework::error;

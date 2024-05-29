@@ -1,8 +1,5 @@
-use std::io::{Cursor, Read};
+use drs_framework::io::{Cursor, Read};
 use std::str::from_utf8;
-
-use byteorder::ReadBytesExt;
-use byteorder::LE;
 
 use crate::common::Color;
 use crate::engine_constants::EngineConstants;
@@ -288,7 +285,7 @@ impl StageData {
 
                         f.read_exact(&mut ts_buf)?;
                         f.read_exact(&mut map_buf)?;
-                        let bg_type = f.read_u32::<LE>()? as u8;
+                        let bg_type = f.read_u32_le()? as u8;
                         f.read_exact(&mut back_buf)?;
                         f.read_exact(&mut npc1_buf)?;
                         f.read_exact(&mut npc2_buf)?;
@@ -351,7 +348,7 @@ impl StageData {
 
                 f.read_exact(&mut ts_buf)?;
                 f.read_exact(&mut map_buf)?;
-                let bg_type = f.read_u32::<LE>()? as u8;
+                let bg_type = f.read_u32_le()? as u8;
                 f.read_exact(&mut back_buf)?;
                 f.read_exact(&mut npc1_buf)?;
                 f.read_exact(&mut npc2_buf)?;
@@ -395,7 +392,7 @@ impl StageData {
 
             let mut data = Vec::new();
 
-            let count = file.read_u32::<LE>()?;
+            let count = file.read_u32_le()?;
             file.read_to_end(&mut data)?;
 
             if data.len() < count as usize * 0x74 {

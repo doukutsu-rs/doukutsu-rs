@@ -2,7 +2,6 @@
 name = "doukutsu-rs"
 description = "A re-implementation of Cave Story (Doukutsu Monogatari) engine"
 version = "1.0.0"
-authors = ["Alula", "dawnDus"]
 edition = "2021"
 rust-version = "1.65"
 
@@ -52,6 +51,8 @@ exe = []
 android = []
 
 [dependencies]
+drs-framework = { path = "./drs-framework" }
+
 #glutin = { path = "./3rdparty/glutin/glutin", optional = true }
 #winit = { path = "./3rdparty/winit", optional = true, default_features = false, features = ["x11"] }
 #sdl2 = { path = "./3rdparty/rust-sdl2", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }

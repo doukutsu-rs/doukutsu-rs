@@ -1,5 +1,5 @@
+use drs_framework::io::Cursor;
 use std::fmt::Write;
-use std::io::Cursor;
 
 use num_traits::FromPrimitive;
 
@@ -128,7 +128,12 @@ impl TextScript {
                             writeln!(&mut result, "{:?}({}, {})", op, par_a, par_b).unwrap();
                         }
                         // Three operand codes
-                        TSCOpCode::ANP | TSCOpCode::CNP | TSCOpCode::INP | TSCOpCode::TAM | TSCOpCode::CMP | TSCOpCode::INJ => {
+                        TSCOpCode::ANP
+                        | TSCOpCode::CNP
+                        | TSCOpCode::INP
+                        | TSCOpCode::TAM
+                        | TSCOpCode::CMP
+                        | TSCOpCode::INJ => {
                             let par_a = read_cur_varint(&mut cursor)?;
                             let par_b = read_cur_varint(&mut cursor)?;
                             let par_c = read_cur_varint(&mut cursor)?;

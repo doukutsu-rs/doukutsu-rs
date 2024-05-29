@@ -174,11 +174,11 @@ impl VanillaExtractor {
 
             let mut file = file.unwrap();
 
-            file.write_u8(0x42)?; // B
-            file.write_u8(0x4D)?; // M
-            file.write_u32::<LE>(bitmap.bytes.len() as u32 + 0xE)?; // Size of BMP file
-            file.write_u32::<LE>(0)?; // unused null bytes
-            file.write_u32::<LE>(0x76)?; // Bitmap data offset (hardcoded for now, might wanna get the actual offset)
+            file.write_u8(0x42).unwrap(); // B
+            file.write_u8(0x4D).unwrap(); // M
+            file.write_u32::<LE>(bitmap.bytes.len() as u32 + 0xE).unwrap(); // Size of BMP file
+            file.write_u32::<LE>(0).unwrap(); // unused null bytes
+            file.write_u32::<LE>(0x76).unwrap(); // Bitmap data offset (hardcoded for now, might wanna get the actual offset)
 
             let result = file.write_all(&bitmap.bytes);
             if result.is_err() {

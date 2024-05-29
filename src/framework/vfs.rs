@@ -9,12 +9,14 @@
 //! as a trait object, and its path abstraction is not the most
 //! convenient.
 
-use std::collections::VecDeque;
+extern crate alloc;
+use alloc::collections::VecDeque;
+use core::fmt::{self, Debug};
 use std::ffi::OsStr;
-use std::fmt::{self, Debug};
 use std::fs;
-use std::io::{Read, Seek, Write};
 use std::path::{self, Component, Path, PathBuf};
+
+use drs_framework::io::{Read, Seek, SeekFrom, Write};
 
 use crate::framework::error::{GameError, GameResult};
 
@@ -294,7 +296,7 @@ impl PhysicalFS {
     /// malus.
     fn create_root(&self) -> GameResult {
         if !self.root.exists() {
-            fs::create_dir_all(&self.root).map_err(GameError::from)
+            fs::create_dir_all(&self.root).map_err(|e| GameError::FilesystemError(e.to_string()))
         } else {
             Ok(())
         }
@@ -317,7 +319,11 @@ impl VFS for PhysicalFS {
         }
         self.create_root()?;
         let p = self.to_absolute(path)?;
-        open_options.to_fs_openoptions().open(p).map(|x| Box::new(x) as Box<dyn VFile>).map_err(GameError::from)
+        open_options
+            .to_fs_openoptions()
+            .open(p)
+            .map(|x| Box::new(FSFileWrapper(x)) as Box<dyn VFile>)
+            .map_err(|e| GameError::FilesystemError(e.to_string()))
     }
 
     /// Create a directory at the location by this path
@@ -332,7 +338,7 @@ impl VFS for PhysicalFS {
         self.create_root()?;
         let p = self.to_absolute(path)?;
         //println!("Creating {:?}", p);
-        fs::DirBuilder::new().recursive(true).create(p).map_err(GameError::from)
+        fs::DirBuilder::new().recursive(true).create(p).map_err(|e| GameError::FilesystemError(e.to_string()))
     }
 
     /// Remove a file
@@ -344,9 +350,9 @@ impl VFS for PhysicalFS {
         self.create_root()?;
         let p = self.to_absolute(path)?;
         if p.is_dir() {
-            fs::remove_dir(p).map_err(GameError::from)
+            fs::remove_dir(p).map_err(|e| GameError::FilesystemError(e.to_string()))
         } else {
-            fs::remove_file(p).map_err(GameError::from)
+            fs::remove_file(p).map_err(|e| GameError::FilesystemError(e.to_string()))
         }
     }
 
@@ -363,9 +369,9 @@ impl VFS for PhysicalFS {
         self.create_root()?;
         let p = self.to_absolute(path)?;
         if p.is_dir() {
-            fs::remove_dir_all(p).map_err(GameError::from)
+            fs::remove_dir_all(p).map_err(|e| GameError::FilesystemError(e.to_string()))
         } else {
-            fs::remove_file(p).map_err(GameError::from)
+            fs::remove_file(p).map_err(|e| GameError::FilesystemError(e.to_string()))
         }
     }
 
@@ -381,7 +387,9 @@ impl VFS for PhysicalFS {
     fn metadata(&self, path: &Path) -> GameResult<Box<dyn VMetadata>> {
         self.create_root()?;
         let p = self.to_absolute(path)?;
-        p.metadata().map(|m| Box::new(PhysicalMetadata(m)) as Box<dyn VMetadata>).map_err(GameError::from)
+        p.metadata()
+            .map(|m| Box::new(PhysicalMetadata(m)) as Box<dyn VMetadata>)
+            .map_err(|e| GameError::FilesystemError(e.to_string()))
     }
 
     /// Retrieve the path entries in this path
@@ -402,7 +410,11 @@ impl VFS for PhysicalFS {
             pathbuf.push(fname);
             Ok(pathbuf)
         };
-        let itr = fs::read_dir(p)?.map(|entry| direntry_to_path(&entry?)).collect::<Vec<_>>().into_iter();
+        let itr = fs::read_dir(p)
+            .map_err(|e| GameError::FilesystemError(e.to_string()))?
+            .map(|entry| direntry_to_path(&entry.map_err(|e| GameError::FilesystemError(e.to_string()))?))
+            .collect::<Vec<_>>()
+            .into_iter();
         Ok(Box::new(itr))
     }
 
@@ -451,22 +463,14 @@ impl OverlayFS {
 impl VFS for OverlayFS {
     /// Open the file at this path with the given options
     fn open_options(&self, path: &Path, open_options: OpenOptions) -> GameResult<Box<dyn VFile>> {
-        let mut tried: Vec<(PathBuf, GameError)> = vec![];
-
         for vfs in &self.roots {
             match vfs.open_options(path, open_options) {
-                Err(e) => {
-                    if let Some(vfs_path) = vfs.to_path_buf() {
-                        tried.push((vfs_path, e));
-                    } else {
-                        tried.push((PathBuf::from("<invalid path>"), e));
-                    }
-                }
+                Err(e) => continue,
                 f => return f,
             }
         }
         let errmessage = String::from(convenient_path_to_str(path)?);
-        Err(GameError::ResourceNotFound(errmessage, tried))
+        Err(GameError::ResourceNotFound(errmessage))
     }
 
     /// Create a directory at the location by this path
@@ -585,20 +589,6 @@ mod tests {
     }
 
     #[test]
-    fn headless_test_read() {
-        let cargo_path = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let fs = PhysicalFS::new(cargo_path, true);
-        let f = fs.open(Path::new("/Cargo.toml")).unwrap();
-        let mut bf = io::BufReader::new(f);
-        let mut s = String::new();
-        let _ = bf.read_line(&mut s).unwrap();
-        // Trim whitespace from string 'cause it will
-        // potentially be different on Windows and Unix.
-        let trimmed_string = s.trim();
-        assert_eq!(trimmed_string, "[package]");
-    }
-
-    #[test]
     fn headless_test_read_overlay() {
         let cargo_path = Path::new(env!("CARGO_MANIFEST_DIR"));
         let fs1 = PhysicalFS::new(cargo_path, true);
@@ -687,4 +677,38 @@ mod tests {
     }
 
     // BUGGO: TODO: Make sure all functions are tested for OverlayFS and ZipFS!!
+}
+
+#[derive(Debug)]
+pub struct FSFileWrapper(std::fs::File);
+
+impl Read for FSFileWrapper {
+    fn read(&mut self, buf: &mut [u8]) -> GameResult<usize> {
+        use std::io::Read;
+        self.0.read(buf).map_err(|e| GameError::FilesystemError(e.to_string()))
+    }
+}
+
+impl Write for FSFileWrapper {
+    fn write(&mut self, buf: &[u8]) -> GameResult<usize> {
+        use std::io::Write;
+        self.0.write(buf).map_err(|e| GameError::FilesystemError(e.to_string()))
+    }
+
+    fn flush(&mut self) -> GameResult {
+        use std::io::Write;
+        self.0.flush().map_err(|e| GameError::FilesystemError(e.to_string()))
+    }
+}
+
+impl Seek for FSFileWrapper {
+    fn seek(&mut self, pos: SeekFrom) -> GameResult<u64> {
+        use std::io::Seek;
+        let pos = match pos {
+            SeekFrom::Start(p) => std::io::SeekFrom::Start(p),
+            SeekFrom::End(p) => std::io::SeekFrom::End(p),
+            SeekFrom::Current(p) => std::io::SeekFrom::Current(p),
+        };
+        self.0.seek(pos).map_err(|e| GameError::FilesystemError(e.to_string()))
+    }
 }

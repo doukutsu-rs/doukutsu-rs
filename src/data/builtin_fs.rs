@@ -1,13 +1,14 @@
-use std::{fmt, io};
+use std::fmt;
 use std::fmt::Debug;
-use std::io::Cursor;
-use std::io::ErrorKind;
-use std::io::SeekFrom;
+use drs_framework::io::Cursor;
 use std::path::{Component, Path, PathBuf};
+
+use drs_framework::error::{GameError, IOErrorKind};
+use drs_framework::io::{self, SeekFrom};
 
 use crate::framework::error::GameError::FilesystemError;
 use crate::framework::error::GameResult;
-use crate::framework::vfs::{OpenOptions, VFile, VFS, VMetadata};
+use crate::framework::vfs::{OpenOptions, VFile, VMetadata, VFS};
 
 #[derive(Debug)]
 pub struct BuiltinFile(Cursor<&'static [u8]>);
@@ -19,24 +20,24 @@ impl BuiltinFile {
 }
 
 impl io::Read for BuiltinFile {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> GameResult<usize> {
         self.0.read(buf)
     }
 }
 
 impl io::Seek for BuiltinFile {
-    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
+    fn seek(&mut self, pos: SeekFrom) -> GameResult<u64> {
         self.0.seek(pos)
     }
 }
 
 impl io::Write for BuiltinFile {
-    fn write(&mut self, _buf: &[u8]) -> io::Result<usize> {
-        Err(io::Error::new(ErrorKind::PermissionDenied, "Built-in file system is read-only."))
+    fn write(&mut self, _buf: &[u8]) -> GameResult<usize> {
+        Err(GameError::IOError(IOErrorKind::PermissionDenied))
     }
 
-    fn flush(&mut self) -> io::Result<()> {
-        Err(io::Error::new(ErrorKind::PermissionDenied, "Built-in file system is read-only."))
+    fn flush(&mut self) -> GameResult<()> {
+        Err(GameError::IOError(IOErrorKind::PermissionDenied))
     }
 }
 
@@ -278,7 +279,7 @@ impl VFS for BuiltinFS {
         self.get_node(path).map(|v| v.to_metadata())
     }
 
-    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item=GameResult<PathBuf>>>> {
+    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item = GameResult<PathBuf>>>> {
         match self.get_node(path) {
             Ok(FSNode::Directory(_, contents)) => {
                 let mut vec = Vec::new();

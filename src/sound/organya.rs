@@ -1,6 +1,4 @@
-use std::io;
-
-use byteorder::{LE, ReadBytesExt};
+use drs_framework::io;
 
 use crate::framework::error::{GameError, GameResult};
 
@@ -111,11 +109,11 @@ impl Song {
                 _ => return Err(GameError::ResourceLoadError("Invalid magic number".to_string()))
             };
 
-        let wait = f.read_u16::<LE>()?;
+        let wait = f.read_u16_le()?;
         let _bpm = f.read_u8()?;
         let _spb = f.read_u8()?;
-        let start = f.read_i32::<LE>()?;
-        let end = f.read_i32::<LE>()?;
+        let start = f.read_i32_le()?;
+        let end = f.read_i32_le()?;
 
         use std::mem::MaybeUninit as Mu;
 
@@ -124,10 +122,10 @@ impl Song {
         };
 
         for i in &mut insts {
-            let freq = f.read_u16::<LE>()?;
+            let freq = f.read_u16_le()?;
             let inst = f.read_u8()?;
             let pipi = f.read_u8()?;
-            let notes = f.read_u16::<LE>()?;
+            let notes = f.read_u16_le()?;
 
             *i = Mu::new(Instrument {
                 freq,
@@ -163,7 +161,7 @@ impl Song {
             };
 
             for note in &mut notes {
-                note.pos = Mu::new(f.read_i32::<LE>()?);
+                note.pos = Mu::new(f.read_i32_le()?);
             }
 
             for note in &mut notes {

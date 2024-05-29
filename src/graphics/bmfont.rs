@@ -1,17 +1,15 @@
+use drs_framework::io;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::io;
 use std::path::PathBuf;
 
-use byteorder::{LE, ReadBytesExt};
-
-use crate::common::{FILE_TYPES, Rect};
+use crate::common::{Rect, FILE_TYPES};
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
 use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
-use crate::graphics::font::{EMPTY_SYMBOLS, Font, Symbols, TextBuilderFlag};
+use crate::graphics::font::{Font, Symbols, TextBuilderFlag, EMPTY_SYMBOLS};
 use crate::graphics::texture_set::TextureSet;
 
 #[derive(Debug)]
@@ -77,18 +75,18 @@ impl BMFontMetadata {
         }
 
         while let Ok(block_type) = data.read_u8() {
-            let length = data.read_u32::<LE>()?;
+            let length = data.read_u32_le()?;
             match BMFontBlockType::from(block_type) {
                 BMFontBlockType::Info => {
-                    font_size = data.read_i16::<LE>()?;
+                    font_size = data.read_i16_le()?;
 
                     data.seek(io::SeekFrom::Current(length as i64 - 2))?;
                 }
                 BMFontBlockType::Common => {
-                    line_height = data.read_u16::<LE>()?;
-                    base = data.read_u16::<LE>()?;
+                    line_height = data.read_u16_le()?;
+                    base = data.read_u16_le()?;
                     data.seek(io::SeekFrom::Current(4))?;
-                    pages = data.read_u16::<LE>()?;
+                    pages = data.read_u16_le()?;
 
                     data.seek(io::SeekFrom::Current(length as i64 - 10))?;
                 }
@@ -97,14 +95,14 @@ impl BMFontMetadata {
                     chars.reserve(count as usize);
 
                     for _ in 0..count {
-                        let id = data.read_u32::<LE>()?;
-                        let x = data.read_u16::<LE>()?;
-                        let y = data.read_u16::<LE>()?;
-                        let width = data.read_u16::<LE>()?;
-                        let height = data.read_u16::<LE>()?;
-                        let x_offset = data.read_i16::<LE>()?;
-                        let y_offset = data.read_i16::<LE>()?;
-                        let x_advance = data.read_i16::<LE>()?;
+                        let id = data.read_u32_le()?;
+                        let x = data.read_u16_le()?;
+                        let y = data.read_u16_le()?;
+                        let width = data.read_u16_le()?;
+                        let height = data.read_u16_le()?;
+                        let x_offset = data.read_i16_le()?;
+                        let y_offset = data.read_i16_le()?;
+                        let x_advance = data.read_i16_le()?;
                         let page = data.read_u8()?;
                         let channel = data.read_u8()?;
 

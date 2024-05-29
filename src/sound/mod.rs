@@ -1,10 +1,9 @@
-use std::io;
-use std::io::{BufRead, BufReader, Lines};
 use std::str::FromStr;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use drs_framework::io;
 #[cfg(feature = "ogg-playback")]
 use lewton::inside_ogg::OggStreamReader;
 use num_traits::clamp;
@@ -441,16 +440,18 @@ impl SoundManager {
         self.current_song_id
     }
 
-    pub fn set_sample_params_from_file<R: io::Read>(&mut self, id: u8, data: R) -> GameResult {
+    pub fn set_sample_params_from_file<R: io::Read>(&mut self, id: u8, mut file: R) -> GameResult {
         if self.no_audio {
             return Ok(());
         }
 
-        let mut reader = BufReader::new(data).lines();
+        let mut buf = String::new();
+        file.read_to_string(&mut buf)?;
+        let mut reader = buf.lines();
         let mut params = PixToneParameters::empty();
 
-        fn next_string<T: FromStr, R: io::Read>(reader: &mut Lines<BufReader<R>>) -> GameResult<T> {
-            while let Some(Ok(str)) = reader.next() {
+        fn next_string<T: FromStr>(reader: &mut dyn Iterator<Item = &'_ str>) -> GameResult<T> {
+            while let Some(str) = reader.next() {
                 let str = str.trim();
                 if str.is_empty() || str.starts_with('#') {
                     continue;
@@ -472,31 +473,31 @@ impl SoundManager {
         }
 
         for channel in &mut params.channels {
-            channel.enabled = next_string::<u8, R>(&mut reader)? != 0;
-            channel.length = next_string::<u32, R>(&mut reader)?;
+            channel.enabled = next_string::<u8>(&mut reader)? != 0;
+            channel.length = next_string::<u32>(&mut reader)?;
 
-            channel.carrier.waveform_type = next_string::<u8, R>(&mut reader)?;
-            channel.carrier.pitch = next_string::<f32, R>(&mut reader)?;
-            channel.carrier.level = next_string::<i32, R>(&mut reader)?;
-            channel.carrier.offset = next_string::<i32, R>(&mut reader)?;
+            channel.carrier.waveform_type = next_string::<u8>(&mut reader)?;
+            channel.carrier.pitch = next_string::<f32>(&mut reader)?;
+            channel.carrier.level = next_string::<i32>(&mut reader)?;
+            channel.carrier.offset = next_string::<i32>(&mut reader)?;
 
-            channel.frequency.waveform_type = next_string::<u8, R>(&mut reader)?;
-            channel.frequency.pitch = next_string::<f32, R>(&mut reader)?;
-            channel.frequency.level = next_string::<i32, R>(&mut reader)?;
-            channel.frequency.offset = next_string::<i32, R>(&mut reader)?;
+            channel.frequency.waveform_type = next_string::<u8>(&mut reader)?;
+            channel.frequency.pitch = next_string::<f32>(&mut reader)?;
+            channel.frequency.level = next_string::<i32>(&mut reader)?;
+            channel.frequency.offset = next_string::<i32>(&mut reader)?;
 
-            channel.amplitude.waveform_type = next_string::<u8, R>(&mut reader)?;
-            channel.amplitude.pitch = next_string::<f32, R>(&mut reader)?;
-            channel.amplitude.level = next_string::<i32, R>(&mut reader)?;
-            channel.amplitude.offset = next_string::<i32, R>(&mut reader)?;
+            channel.amplitude.waveform_type = next_string::<u8>(&mut reader)?;
+            channel.amplitude.pitch = next_string::<f32>(&mut reader)?;
+            channel.amplitude.level = next_string::<i32>(&mut reader)?;
+            channel.amplitude.offset = next_string::<i32>(&mut reader)?;
 
-            channel.envelope.initial = next_string::<i32, R>(&mut reader)?;
-            channel.envelope.time_a = next_string::<i32, R>(&mut reader)?;
-            channel.envelope.value_a = next_string::<i32, R>(&mut reader)?;
-            channel.envelope.time_b = next_string::<i32, R>(&mut reader)?;
-            channel.envelope.value_b = next_string::<i32, R>(&mut reader)?;
-            channel.envelope.time_c = next_string::<i32, R>(&mut reader)?;
-            channel.envelope.value_c = next_string::<i32, R>(&mut reader)?;
+            channel.envelope.initial = next_string::<i32>(&mut reader)?;
+            channel.envelope.time_a = next_string::<i32>(&mut reader)?;
+            channel.envelope.value_a = next_string::<i32>(&mut reader)?;
+            channel.envelope.time_b = next_string::<i32>(&mut reader)?;
+            channel.envelope.value_b = next_string::<i32>(&mut reader)?;
+            channel.envelope.time_c = next_string::<i32>(&mut reader)?;
+            channel.envelope.value_c = next_string::<i32>(&mut reader)?;
         }
 
         self.set_sample_params(id, params)
@@ -518,8 +519,8 @@ impl SoundManager {
                 .filter(|f| f.to_string_lossy().to_lowercase().ends_with(".wav"));
 
             for filename in wavs {
-                if let Ok(mut file) = filesystem::open(ctx, &filename) {
-                    let wav = wav::WavSample::read_from(&mut file)?;
+                if let Ok(file) = filesystem::open(ctx, &filename) {
+                    let wav = wav::WavSample::read_from(file)?;
                     let id = filename
                         .file_stem()
                         .unwrap_or_default()

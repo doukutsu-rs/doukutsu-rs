@@ -1,15 +1,13 @@
+use drs_framework::io::Cursor;
+use drs_framework::io::{self, Read};
 use std::cell::{Ref, RefCell};
-use std::io;
-use std::io::Cursor;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use byteorder::{LE, ReadBytesExt};
-
 use crate::bitfield;
-use crate::common::{Condition, interpolate_fix9_scale, Rect};
 use crate::common::Direction;
 use crate::common::Flag;
+use crate::common::{interpolate_fix9_scale, Condition, Rect};
 use crate::components::flash::Flash;
 use crate::components::number_popup::NumberPopup;
 use crate::entity::GameEntity;
@@ -243,7 +241,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
         ),
     ) -> GameResult {
         #[allow(unused_mut, unused_assignments)]
-            let mut npc_hook_ran = false;
+        let mut npc_hook_ran = false;
 
         match self.npc_type {
             _ if npc_hook_ran => Ok(()),
@@ -844,11 +842,11 @@ impl NPCTable {
         }
 
         for npc in &mut table.entries {
-            npc.npc_flags.0 = f.read_u16::<LE>()?;
+            npc.npc_flags.0 = f.read_u16_le()?;
         }
 
         for npc in &mut table.entries {
-            npc.life = f.read_u16::<LE>()?;
+            npc.life = f.read_u16_le()?;
         }
 
         for npc in &mut table.entries {
@@ -868,11 +866,11 @@ impl NPCTable {
         }
 
         for npc in &mut table.entries {
-            npc.experience = f.read_u32::<LE>()?;
+            npc.experience = f.read_u32_le()?;
         }
 
         for npc in &mut table.entries {
-            npc.damage = f.read_u32::<LE>()?;
+            npc.damage = f.read_u32_le()?;
         }
 
         for npc in &mut table.entries {

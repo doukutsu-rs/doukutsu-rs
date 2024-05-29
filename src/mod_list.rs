@@ -1,7 +1,8 @@
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader};
 use std::iter::Peekable;
 use std::str::Chars;
+
+use drs_framework::io::Read;
 
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -54,17 +55,18 @@ impl ModList {
     pub fn load(ctx: &mut Context, string_table: &HashMap<String, String>) -> GameResult<ModList> {
         let mut mods = Vec::new();
 
-        if let Ok(file) = filesystem::open(ctx, "/mods.txt") {
-            let reader = BufReader::new(file);
-            let mut lines = reader.lines();
+        if let Ok(mut file) = filesystem::open(ctx, "/mods.txt") {
+            let mut buf = String::new();
+            file.read_to_string(&mut buf)?;
+            let mut lines = buf.lines();
 
-            while let Some(Ok(line)) = lines.next() {
+            while let Some(line) = lines.next() {
                 if line == "=MOD LIST START=" {
                     break;
                 }
             }
 
-            while let Some(Ok(line)) = lines.next() {
+            while let Some(line) = lines.next() {
                 let mut id = String::new();
                 let mut requirement = Requirement::Unlocked;
                 let mut priority = 1000u32;
@@ -154,19 +156,32 @@ impl ModList {
                 let mut description = String::new();
                 let mut save_slot = -1;
 
-                if let Ok(file) = filesystem::open(ctx, [&path, "/mod.txt"].join("")) {
+                if let Ok(mut file) = filesystem::open(ctx, [&path, "/mod.txt"].join("")) {
                     valid = true;
-                    let reader = BufReader::new(file);
-                    let mut lines = reader.lines();
+                    let mut buf = String::new();
+                    file.read_to_string(&mut buf)?;
+                    let mut lines = buf.lines();
+
                     if let Some(line) = lines.nth(1) {
-                        save_slot = line.unwrap_or("-1".to_string()).parse::<i32>().unwrap_or(-1);
+                        save_slot = line.parse::<i32>().unwrap_or(-1);
+                    } else {
+                        save_slot = -1;
                     }
+
                     if let Some(line) = lines.next() {
-                        let read_name = line.unwrap_or("No Mod Name".to_string()).to_string();
-                        name = string_table.get(&read_name).unwrap_or(&read_name).to_string();
+                        if let Some(name_str) = string_table.get(line) {
+                            name = name_str.to_string();
+                        } else {
+                            name = line.to_string();
+                        }
+                    } else {
+                        name = "No Mod Name".to_string();
                     }
+
                     if let Some(line) = lines.next() {
-                        description = line.unwrap_or("No Description".to_string()).to_string();
+                        description = line.to_string();
+                    } else {
+                        description = "No Description".to_string();
                     }
                 } else {
                     name = path.clone();

@@ -1,8 +1,9 @@
-use std::fmt;
-use std::io;
-use std::io::ErrorKind;
+use core::fmt;
 
-use byteorder::{LE, ReadBytesExt};
+use drs_framework::{
+    error::{GameError, GameResult},
+    io,
+};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct RiffChunk {
@@ -58,25 +59,25 @@ impl fmt::Display for WavSample {
 }
 
 impl RiffChunk {
-    pub fn read_from<R: io::Read>(mut f: R) -> io::Result<RiffChunk> {
+    pub fn read_from<R: io::Read>(mut f: R) -> GameResult<RiffChunk> {
         let mut id = [0; 4];
 
         f.read_exact(&mut id)?;
-        let length = f.read_u32::<LE>()?;
+        let length = f.read_u32_le()?;
 
         Ok(RiffChunk { id, length })
     }
 }
 
 impl WavSample {
-    pub fn read_from<R: io::Read>(mut f: R) -> io::Result<WavSample> {
-        let riff = RiffChunk::read_from(&mut f)?;
+    pub fn read_from<R: io::Read>(mut f: R) -> GameResult<WavSample> {
+        let riff = RiffChunk::read_from(f.by_ref())?;
 
         match &riff.id {
             b"RIFF" => {}
-            b"RIFX" => return Err(io::Error::new(ErrorKind::InvalidData, "Cannot handle RIFX data!".to_owned())),
+            b"RIFX" => return Err(GameError::ParseError("Cannot handle RIFX data!".to_owned())),
             _ => {
-                return Err(io::Error::new(ErrorKind::InvalidData, format!("Expected RIFF signature, found {}", riff)));
+                return Err(GameError::ParseError(format!("Expected RIFF signature, found {}", riff)));
             }
         }
 
@@ -85,31 +86,31 @@ impl WavSample {
         f.read_exact(&mut rfmt)?;
 
         if rfmt != *b"WAVE" {
-            return Err(io::Error::new(ErrorKind::InvalidData, "Expected 'WAVE' RIFF chunk.".to_owned()));
+            return Err(GameError::ParseError("Expected 'WAVE' RIFF chunk.".to_owned()));
         }
 
-        let fmt = RiffChunk::read_from(&mut f)?;
+        let fmt = RiffChunk::read_from(f.by_ref())?;
 
         if fmt.id != *b"fmt " {
-            return Err(io::Error::new(ErrorKind::InvalidData, "Expected 'fmt ' RIFF chunk.".to_owned()));
+            return Err(GameError::ParseError("Expected 'fmt ' RIFF chunk.".to_owned()));
         }
 
-        let afmt = f.read_u16::<LE>()?;
+        let afmt = f.read_u16_le()?;
 
         if afmt != 1 {
-            return Err(io::Error::new(ErrorKind::InvalidData, "Only PCM audio data is supported.".to_owned()));
+            return Err(GameError::ParseError("Only PCM audio data is supported.".to_owned()));
         }
 
-        let channels = f.read_u16::<LE>()?;
-        let samples = f.read_u32::<LE>()?;
-        let _brate = f.read_u32::<LE>()?;
-        let _balgn = f.read_u16::<LE>()?;
-        let bits = f.read_u16::<LE>()?;
+        let channels = f.read_u16_le()?;
+        let samples = f.read_u32_le()?;
+        let _brate = f.read_u32_le()?;
+        let _balgn = f.read_u16_le()?;
+        let bits = f.read_u16_le()?;
 
-        let data = RiffChunk::read_from(&mut f)?;
+        let data = RiffChunk::read_from(f.by_ref())?;
 
         if data.id != *b"data" {
-            return Err(io::Error::new(ErrorKind::InvalidData, "Expected 'data' RIFF chunk.".to_owned()));
+            return Err(GameError::ParseError("Expected 'data' RIFF chunk.".to_owned()));
         }
 
         let mut buf = vec![0; data.length as usize];

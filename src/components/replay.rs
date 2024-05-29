@@ -1,6 +1,4 @@
-use std::io::{Cursor, Read};
-
-use byteorder::{LE, ReadBytesExt, WriteBytesExt};
+use drs_framework::io::{Cursor, Read, Write};
 
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
@@ -9,10 +7,10 @@ use crate::framework::filesystem;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::vfs::OpenOptions;
 use crate::game::frame::Frame;
-use crate::game::shared_game_state::{ReplayKind, ReplayState, SharedGameState};
-use crate::input::replay_player_controller::{KeyState, ReplayController};
 use crate::game::player::Player;
+use crate::game::shared_game_state::{ReplayKind, ReplayState, SharedGameState};
 use crate::graphics::font::Font;
+use crate::input::replay_player_controller::{KeyState, ReplayController};
 
 #[derive(Clone)]
 pub struct Replay {
@@ -85,10 +83,10 @@ impl Replay {
             [state.get_rec_filename(), replay_kind.get_suffix()].join(""),
             OpenOptions::new().write(true).create(true),
         ) {
-            file.write_u16::<LE>(0)?; // Space for versioning replay files
-            file.write_u64::<LE>(self.rng_seed)?;
+            file.write_u16_le(0)?; // Space for versioning replay files
+            file.write_u64_le(self.rng_seed)?;
             for input in &self.keylist {
-                file.write_u16::<LE>(*input)?;
+                file.write_u16_le(*input)?;
             }
         }
         Ok(())
@@ -97,8 +95,8 @@ impl Replay {
     fn read_replay(&mut self, state: &mut SharedGameState, ctx: &mut Context, replay_kind: ReplayKind) -> GameResult {
         if let Ok(mut file) = filesystem::user_open(ctx, [state.get_rec_filename(), replay_kind.get_suffix()].join(""))
         {
-            self.replay_version = file.read_u16::<LE>()?;
-            self.rng_seed = file.read_u64::<LE>()?;
+            self.replay_version = file.read_u16_le()?;
+            self.rng_seed = file.read_u64_le()?;
 
             let mut data = Vec::new();
             file.read_to_end(&mut data)?;
@@ -108,7 +106,7 @@ impl Replay {
             let mut f = Cursor::new(data);
 
             for _ in 0..count {
-                inputs.push(f.read_u16::<LE>()?);
+                inputs.push(f.read_u16_le()?);
             }
 
             self.keylist = inputs;
@@ -172,14 +170,10 @@ impl GameEntity<(&mut Context, &mut Player)> for Replay {
         match state.replay_state {
             ReplayState::None => {}
             ReplayState::Playback(_) => {
-                state.font.builder()
-                    .position(x, y)
-                    .draw("PLAY", ctx, &state.constants, &mut state.texture_set)?;
+                state.font.builder().position(x, y).draw("PLAY", ctx, &state.constants, &mut state.texture_set)?;
             }
             ReplayState::Recording => {
-                state.font.builder()
-                    .position(x, y)
-                    .draw("REC", ctx, &state.constants, &mut state.texture_set)?;
+                state.font.builder().position(x, y).draw("REC", ctx, &state.constants, &mut state.texture_set)?;
             }
         }
 
