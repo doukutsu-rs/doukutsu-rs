@@ -485,7 +485,9 @@ impl BackendEventLoop for SDL2EventLoop {
                 GLContext { gles2_mode: false, is_sdl: true, get_proc_address, swap_buffers, user_data, ctx };
 
             return Ok(Box::new(OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))));
-        } else {
+        }
+        
+        {
             let mut refs = self.refs.borrow_mut();
             let window = std::mem::take(&mut refs.window);
             refs.window = window.make_canvas()?;

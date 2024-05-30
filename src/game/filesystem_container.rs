@@ -59,6 +59,11 @@ impl FilesystemContainer {
                 }
             }
 
+            #[cfg(target_vendor = "uwp")]
+            {
+                resource_dir = PathBuf::from("");
+            }
+
             resource_dir.push("data");
             resource_dir
         };
@@ -74,7 +79,7 @@ impl FilesystemContainer {
             self.game_path = resource_dir.clone();
         }
 
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        #[cfg(not(any(target_os = "android", target_os = "horizon", target_vendor = "uwp")))]
         let project_dirs = match directories::ProjectDirs::from("", "", "doukutsu-rs") {
             Some(dirs) => dirs,
             None => {
@@ -124,8 +129,17 @@ impl FilesystemContainer {
             self.user_path = user_path.clone();
             self.game_path = data_path.clone();
         }
+        #[cfg(target_vendor = "uwp")]
+        {
+            use crate::framework::error::GameError;
+            let user_dir = PathBuf::from(sdl2::filesystem::pref_path("", "doukutsu-rs")
+                .map_err(|e| GameError::FilesystemError(e.to_string()))?);
 
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+            mount_user_vfs(context, Box::new(PhysicalFS::new(&user_dir, false)));
+            self.user_path = user_dir;
+        }
+
+        #[cfg(not(any(target_os = "android", target_os = "horizon", target_vendor = "uwp")))]
         {
             let mut user_dir = resource_dir.clone();
             user_dir.pop();
@@ -192,9 +206,6 @@ impl FilesystemContainer {
     }
 
     fn open_directory(&self, path: PathBuf) -> GameResult {
-        #[cfg(target_os = "horizon")]
-        return Ok(()); // can't open directories on switch
-
         #[cfg(target_os = "android")]
         unsafe {
             use jni::objects::{JObject, JValue};
@@ -212,10 +223,12 @@ impl FilesystemContainer {
             return Ok(());
         }
 
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        #[cfg(not(any(target_os = "android", target_os = "horizon", target_vendor = "uwp")))]
         open::that(path).map_err(|e| {
             use crate::framework::error::GameError;
             GameError::FilesystemError(format!("Failed to open directory: {}", e))
-        })
+        })?;
+
+        Ok(())
     }
 }

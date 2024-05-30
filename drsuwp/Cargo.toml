@@ -1,0 +1,17 @@
+[package]
+name = "drsuwp"
+description = "doukutsu-rs targeted for UWP"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+opt-level = 3
+lto = "off"
+codegen-units = 256
+incremental = true
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+doukutsu-rs = { path = "../", default-features = false, features = ["default-base", "backend-sdl"] }

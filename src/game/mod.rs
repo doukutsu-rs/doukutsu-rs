@@ -222,7 +222,6 @@ impl Game {
 fn get_logs_dir() -> GameResult<PathBuf> {
     let mut logs_dir: PathBuf;
 
-
     #[cfg(target_os = "android")]
     {
         logs_dir = PathBuf::from(ndk_glue::native_activity().internal_data_path().to_string_lossy().to_string());
@@ -233,7 +232,14 @@ fn get_logs_dir() -> GameResult<PathBuf> {
         logs_dir = PathBuf::from("sdmc:/switch/doukutsu-rs");
     }
 
-    #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+    #[cfg(target_vendor = "uwp")]
+    {
+        use crate::framework::error::GameError;
+        logs_dir = PathBuf::from(sdl2::filesystem::pref_path("", "doukutsu-rs")
+            .map_err(|e| GameError::FilesystemError(e.to_string()))?);
+    }
+
+    #[cfg(not(any(target_os = "android", target_os = "horizon", target_vendor = "uwp")))]
     {
         let project_dirs = match directories::ProjectDirs::from("", "", "doukutsu-rs") {
             Some(dirs) => dirs,
