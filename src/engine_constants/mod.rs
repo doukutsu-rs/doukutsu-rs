@@ -1575,31 +1575,42 @@ impl EngineConstants {
             string_table: HashMap::new(),
             missile_flags: vec![200, 201, 202, 218, 550, 766, 880, 920, 1551],
             locales: Vec::new(),
-            gamepad: GamepadConsts {
-                button_rects: HashMap::from([
-                    (Button::North, GamepadConsts::rects(Rect::new(0, 0, 32, 16))),
-                    (Button::South, GamepadConsts::rects(Rect::new(0, 16, 32, 32))),
-                    (Button::East, GamepadConsts::rects(Rect::new(0, 32, 32, 48))),
-                    (Button::West, GamepadConsts::rects(Rect::new(0, 48, 32, 64))),
-                    (Button::DPadDown, GamepadConsts::rects(Rect::new(0, 64, 32, 80))),
-                    (Button::DPadUp, GamepadConsts::rects(Rect::new(0, 80, 32, 96))),
-                    (Button::DPadRight, GamepadConsts::rects(Rect::new(0, 96, 32, 112))),
-                    (Button::DPadLeft, GamepadConsts::rects(Rect::new(0, 112, 32, 128))),
-                    (Button::LeftShoulder, GamepadConsts::rects(Rect::new(32, 32, 64, 48))),
-                    (Button::RightShoulder, GamepadConsts::rects(Rect::new(32, 48, 64, 64))),
-                    (Button::Start, GamepadConsts::rects(Rect::new(32, 96, 64, 112))),
-                    (Button::Back, GamepadConsts::rects(Rect::new(32, 112, 64, 128))),
-                    (Button::LeftStick, GamepadConsts::rects(Rect::new(32, 0, 64, 16))),
-                    (Button::RightStick, GamepadConsts::rects(Rect::new(32, 16, 64, 32))),
-                ]),
-                axis_rects: HashMap::from([
-                    (Axis::LeftX, GamepadConsts::rects(Rect::new(32, 0, 64, 16))),
-                    (Axis::LeftY, GamepadConsts::rects(Rect::new(32, 0, 64, 16))),
-                    (Axis::RightX, GamepadConsts::rects(Rect::new(32, 16, 64, 32))),
-                    (Axis::RightY, GamepadConsts::rects(Rect::new(32, 16, 64, 32))),
-                    (Axis::TriggerLeft, GamepadConsts::rects(Rect::new(32, 64, 64, 80))),
-                    (Axis::TriggerRight, GamepadConsts::rects(Rect::new(32, 80, 64, 96))),
-                ]),
+            gamepad: {
+                let mut holder = GamepadConsts {
+                    button_rects: HashMap::from([
+                        (Button::North, GamepadConsts::rects(Rect::new(0, 0, 32, 16))),
+                        (Button::South, GamepadConsts::rects(Rect::new(0, 16, 32, 32))),
+                        (Button::East, GamepadConsts::rects(Rect::new(0, 32, 32, 48))),
+                        (Button::West, GamepadConsts::rects(Rect::new(0, 48, 32, 64))),
+                        (Button::DPadDown, GamepadConsts::rects(Rect::new(0, 64, 32, 80))),
+                        (Button::DPadUp, GamepadConsts::rects(Rect::new(0, 80, 32, 96))),
+                        (Button::DPadRight, GamepadConsts::rects(Rect::new(0, 96, 32, 112))),
+                        (Button::DPadLeft, GamepadConsts::rects(Rect::new(0, 112, 32, 128))),
+                        (Button::LeftShoulder, GamepadConsts::rects(Rect::new(32, 32, 64, 48))),
+                        (Button::RightShoulder, GamepadConsts::rects(Rect::new(32, 48, 64, 64))),
+                        (Button::Start, GamepadConsts::rects(Rect::new(32, 96, 64, 112))),
+                        (Button::Back, GamepadConsts::rects(Rect::new(32, 112, 64, 128))),
+                        (Button::LeftStick, GamepadConsts::rects(Rect::new(32, 0, 64, 16))),
+                        (Button::RightStick, GamepadConsts::rects(Rect::new(32, 16, 64, 32))),
+                    ]),
+                    axis_rects: HashMap::from([
+                        (Axis::LeftX, GamepadConsts::rects(Rect::new(32, 0, 64, 16))),
+                        (Axis::LeftY, GamepadConsts::rects(Rect::new(32, 0, 64, 16))),
+                        (Axis::RightX, GamepadConsts::rects(Rect::new(32, 16, 64, 32))),
+                        (Axis::RightY, GamepadConsts::rects(Rect::new(32, 16, 64, 32))),
+                        (Axis::TriggerLeft, GamepadConsts::rects(Rect::new(32, 64, 64, 80))),
+                        (Axis::TriggerRight, GamepadConsts::rects(Rect::new(32, 80, 64, 96))),
+                    ]),
+                };
+                // Swap x-y and a-b buttons on nintendo map (must be done here to comply with the nicalis button table)
+                let button = holder.button_rects.get(&Button::North).unwrap()[3].clone();
+                holder.button_rects.get_mut(&Button::North).unwrap()[3] = holder.button_rects.get(&Button::West).unwrap()[3];
+                holder.button_rects.get_mut(&Button::West).unwrap()[3] = button;
+                let button = holder.button_rects.get(&Button::South).unwrap()[3].clone();
+                holder.button_rects.get_mut(&Button::South).unwrap()[3] = holder.button_rects.get(&Button::East).unwrap()[3];
+                holder.button_rects.get_mut(&Button::East).unwrap()[3] = button;
+
+                holder
             },
             stage_encoding: None,
         }
