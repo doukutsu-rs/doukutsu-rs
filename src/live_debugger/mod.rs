@@ -1,4 +1,4 @@
-use imgui::{CollapsingHeader, Condition, ImStr, ImString, Slider, Window};
+use imgui::{CollapsingHeader, Condition, ImStr, ImString};
 use itertools::Itertools;
 
 use crate::framework::context::Context;
@@ -173,7 +173,7 @@ impl LiveDebugger {
 
                 ui.text(format!("Game speed ({:.1} TPS):", state.current_tps()));
                 let mut speed = state.settings.speed;
-                ui.slider("", 0.1, 3.0, &mut speed);
+                ui.slider("##Speed", 0.1, 3.0, &mut speed);
                 ui.same_line();
                 if ui.button("Reset") {
                     speed = 1.0
@@ -254,7 +254,7 @@ impl LiveDebugger {
                     let stages: Vec<&ImStr> = self.stages.iter().map(|e| e.as_ref()).collect();
 
                     ui.push_item_width(-1.0);
-                    ui.list_box("", &mut self.selected_stage, &stages, 10);
+                    ui.list_box("##SelectedStage", &mut self.selected_stage, &stages, 10);
 
                     if ui.button("Load") {
                         match GameScene::new(state, ctx, self.selected_stage as usize) {
@@ -338,7 +338,7 @@ impl LiveDebugger {
                     )));
 
                     ui.push_item_width(-1.0);
-                    ui.list_box("", &mut self.selected_event, &events, 10);
+                    ui.list_box("##SelectedEvent", &mut self.selected_event, &events, 10);
 
                     if ui.button("Execute") {
                         assert_eq!(self.event_ids.len(), self.events.len());

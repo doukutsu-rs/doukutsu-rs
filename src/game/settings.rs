@@ -434,7 +434,7 @@ impl Default for Settings {
             light_cone: true,
             subpixel_coords: true,
             motion_interpolation: true,
-            touch_controls: cfg!(target_os = "android"),
+            touch_controls: cfg!(any(target_os = "android", target_os = "ios")),
             display_touch_controls: true,
             soundtrack: "Organya".to_string(),
             bgm_volume: 1.0,

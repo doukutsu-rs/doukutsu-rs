@@ -1,6 +1,0 @@
-[target.aarch64-linux-android]
-rustflags = [
-    "-C", "link-arg=-lc++_static",
-    "-C", "link-arg=-lc++abi",
-    "-C", "link-arg=-lEGL",
-]
