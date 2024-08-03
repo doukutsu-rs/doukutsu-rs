@@ -1,10 +1,11 @@
-use crate::common::{CDEG_RAD, Direction, Rect};
+use crate::common::{Direction, Rect, CDEG_RAD};
 use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
 use crate::game::npc::NPC;
+use crate::game::physics::HitExtents;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
@@ -1430,7 +1431,7 @@ impl BossNPC {
                 self.parts[0].x = 0x28000;
                 self.parts[0].y = -0x8000;
                 self.hurt_sound[0] = 54;
-                self.parts[0].hit_bounds = Rect { left: 0x4000, top: 0x6000, right: 0x4000, bottom: 0x6000 };
+                self.parts[0].hit_bounds = HitExtents { left: 0x4000, top: 0x6000, right: 0x4000, bottom: 0x6000 };
                 self.parts[0].npc_flags.set_ignore_solidity(true);
                 self.parts[0].npc_flags.set_solid_hard(true);
                 self.parts[0].npc_flags.set_event_when_killed(true);
@@ -1445,7 +1446,7 @@ impl BossNPC {
                 self.parts[1].direction = Direction::Left;
                 self.parts[1].npc_flags.set_ignore_solidity(true);
                 self.parts[1].display_bounds = Rect { left: 0x1800, top: 0, right: 0x1800, bottom: 0x2000 };
-                self.parts[1].hit_bounds = Rect { left: 0x1800, top: 0, right: 0x1800, bottom: 0x2000 };
+                self.parts[1].hit_bounds = HitExtents { left: 0x1800, top: 0, right: 0x1800, bottom: 0x2000 };
 
                 self.parts[2] = self.parts[1].clone();
                 self.parts[2].direction = Direction::Right;
@@ -1456,21 +1457,21 @@ impl BossNPC {
                 self.parts[3].npc_flags.set_invulnerable(true);
                 self.parts[3].npc_flags.set_ignore_solidity(true);
                 self.parts[3].display_bounds = Rect { left: 0x7800, top: 0x7800, right: 0x7800, bottom: 0x7800 };
-                self.parts[3].hit_bounds = Rect { left: 0x6000, top: 0x3000, right: 0x6000, bottom: 0x4000 };
+                self.parts[3].hit_bounds = HitExtents { left: 0x6000, top: 0x3000, right: 0x6000, bottom: 0x4000 };
 
                 self.parts[4].cond.set_alive(true);
                 self.parts[4].cond.set_damage_boss(true);
                 self.parts[4].npc_flags.set_solid_soft(true);
                 self.parts[4].npc_flags.set_invulnerable(true);
                 self.parts[4].npc_flags.set_ignore_solidity(true);
-                self.parts[4].hit_bounds = Rect { left: 0x4000, top: 0x1000, right: 0x4000, bottom: 0x1000 };
+                self.parts[4].hit_bounds = HitExtents { left: 0x4000, top: 0x1000, right: 0x4000, bottom: 0x1000 };
 
                 self.parts[5].cond.set_alive(true);
                 self.parts[5].cond.set_damage_boss(true);
                 self.parts[5].npc_flags.set_solid_hard(true);
                 self.parts[5].npc_flags.set_invulnerable(true);
                 self.parts[5].npc_flags.set_ignore_solidity(true);
-                self.parts[5].hit_bounds = Rect { left: 0x4000, top: 0, right: 0x4000, bottom: 0x6000 };
+                self.parts[5].hit_bounds = HitExtents { left: 0x4000, top: 0, right: 0x4000, bottom: 0x6000 };
             }
             100 | 101 => {
                 if self.parts[0].action_num == 100 {

@@ -5,11 +5,11 @@ use crate::engine_constants::{BulletData, EngineConstants};
 use crate::game::caret::CaretType;
 use crate::game::npc::list::NPCList;
 use crate::game::npc::NPC;
-use crate::game::physics::{OFFSETS, PhysicalEntity};
+use crate::game::physics::{HitExtents, PhysicalEntity, OFFSETS};
 use crate::game::player::{Player, TargetPlayer};
 use crate::game::shared_game_state::{SharedGameState, TileSize};
 use crate::game::stage::Stage;
-use crate::util::rng::{RNG, Xoroshiro32PlusPlus, XorShift};
+use crate::util::rng::{XorShift, Xoroshiro32PlusPlus, RNG};
 
 pub struct BulletManager {
     pub bullets: Vec<Bullet>,
@@ -121,7 +121,7 @@ pub struct Bullet {
     pub anim_counter: u16,
     pub action_num: u16,
     pub action_counter: u16,
-    pub hit_bounds: Rect<u32>,
+    pub hit_bounds: HitExtents,
     pub display_bounds: Rect<u32>,
 }
 
@@ -180,12 +180,12 @@ impl Bullet {
                 bullet.display_bounds.right as u32 * 0x200,
                 bullet.display_bounds.bottom as u32 * 0x200,
             ),
-            hit_bounds: Rect::new(
-                bullet.block_hit_width as u32 * 0x200,
-                bullet.block_hit_height as u32 * 0x200,
-                bullet.block_hit_width as u32 * 0x200,
-                bullet.block_hit_height as u32 * 0x200,
-            ),
+            hit_bounds: HitExtents {
+                left: bullet.block_hit_width as u32 * 0x200,
+                top: bullet.block_hit_height as u32 * 0x200,
+                right: bullet.block_hit_width as u32 * 0x200,
+                bottom: bullet.block_hit_height as u32 * 0x200,
+            },
         }
     }
 
@@ -1844,7 +1844,7 @@ impl PhysicalEntity for Bullet {
     }
 
     #[inline(always)]
-    fn hit_bounds(&self) -> &Rect<u32> {
+    fn hit_bounds(&self) -> &HitExtents {
         &self.hit_bounds
     }
 
@@ -1964,7 +1964,7 @@ impl PhysicalEntity for Bullet {
                         }
 
                         if let Some(tile) =
-                        stage.map.tiles.get_mut(stage.map.width as usize * (y + oy) as usize + (x + ox) as usize)
+                            stage.map.tiles.get_mut(stage.map.width as usize * (y + oy) as usize + (x + ox) as usize)
                         {
                             *tile = tile.wrapping_sub(1);
                         }
