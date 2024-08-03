@@ -239,10 +239,6 @@ impl WaterRenderer {
         frame: &Frame,
         layer: WaterLayer,
     ) -> GameResult<()> {
-        if !graphics::supports_vertex_draw(ctx)? {
-            return Ok(());
-        }
-
         graphics::set_render_target(ctx, state.lightmap_canvas.as_ref())?;
         graphics::clear(ctx, Color::from_rgba(0, 0, 0, 0));
         graphics::set_blend_mode(ctx, BlendMode::None)?;
