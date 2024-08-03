@@ -430,14 +430,6 @@ impl BackendEventLoop for SDL2EventLoop {
 
             game.update(ctx).unwrap();
 
-            if game.state.get_mut().next_scene.is_some() {
-                let mut state = game.state.borrow_mut();
-                *game.scene.get_mut() = mem::take(&mut state.next_scene);
-                game.scene.get_mut().as_mut().unwrap().init(&mut state, ctx).unwrap();
-                game.loops = 0;
-                state.frame_time = 0.0;
-            }
-
             imgui_sdl2.prepare_frame(
                 imgui.io_mut(),
                 self.refs.deref().borrow().window.window(),
