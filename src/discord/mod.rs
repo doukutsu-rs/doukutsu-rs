@@ -187,3 +187,9 @@ impl DiscordRPC {
         let _ = self.client.close();
     }
 }
+
+impl Drop for DiscordRPC {
+    fn drop(&mut self) {
+        self.dispose();
+    }
+}

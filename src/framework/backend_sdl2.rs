@@ -1,6 +1,6 @@
 use core::mem;
 use std::any::Any;
-use std::cell::{RefCell, UnsafeCell};
+use std::cell::RefCell;
 use std::ffi::c_void;
 use std::io::Read;
 use std::ops::Deref;
@@ -172,7 +172,7 @@ impl SDL2EventLoop {
         gl_attr.set_context_profile(GLProfile::Compatibility);
         gl_attr.set_context_version(2, 1);
 
-        let mut win_builder = video.window("Cave Story (doukutsu-rs)", size_hint.0 as _, size_hint.1 as _);
+        let mut win_builder = video.window(&ctx.window_title, size_hint.0 as _, size_hint.1 as _);
         win_builder.position_centered();
         win_builder.resizable();
 
@@ -192,7 +192,6 @@ impl SDL2EventLoop {
             window.set_icon(icon);
         }
 
-
         let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
 
         let event_loop = SDL2EventLoop {
@@ -210,18 +209,60 @@ impl SDL2EventLoop {
 
         Ok(Box::new(event_loop))
     }
+
+    fn set_seamless_titlebar(&mut self, enabled: bool) {
+        #[cfg(target_os = "macos")]
+        #[allow(non_upper_case_globals)]
+        unsafe {
+            use objc2::ffi::*;
+            use objc2::*;
+
+            const NSWindowTitleVisible: i32 = 0;
+            const NSWindowTitleHidden: i32 = 1;
+            const NSWindowStyleMaskFullSizeContentView: u32 = 1 << 15;
+
+            // safety: fields are initialized by SDL_GetWindowWMInfo
+            let mut winfo: sdl2_sys::SDL_SysWMinfo = mem::MaybeUninit::zeroed().assume_init();
+            winfo.version.major = sdl2_sys::SDL_MAJOR_VERSION as _;
+            winfo.version.minor = sdl2_sys::SDL_MINOR_VERSION as _;
+            winfo.version.patch = sdl2_sys::SDL_PATCHLEVEL as _;
+
+            let mut whandle = self.refs.deref().borrow().window.window().raw();
+
+            if sdl2_sys::SDL_GetWindowWMInfo(whandle, &mut winfo as *mut _) != sdl2_sys::SDL_bool::SDL_FALSE {
+                let window = winfo.info.x11.display as *mut objc2::runtime::AnyObject;
+
+                if enabled {
+                    let _: () = msg_send![window, setTitlebarAppearsTransparent:YES];
+                    let _: () = msg_send![window, setTitleVisibility:NSWindowTitleHidden];
+                } else {
+                    let _: () = msg_send![window, setTitlebarAppearsTransparent:NO];
+                    let _: () = msg_send![window, setTitleVisibility:NSWindowTitleVisible];
+                }
+
+                let mut style_mask: u32 = msg_send![window, styleMask];
+
+                if enabled {
+                    style_mask |= NSWindowStyleMaskFullSizeContentView;
+                } else {
+                    style_mask &= !NSWindowStyleMaskFullSizeContentView;
+                }
+
+                let _: () = msg_send![window, setStyleMask: style_mask];
+            }
+        }
+
+        let _ = enabled;
+    }
 }
 
 impl BackendEventLoop for SDL2EventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
-        let state = unsafe { &mut *game.state.get() };
-
-        let imgui = unsafe {
-            (&*(ctx.renderer.as_ref().unwrap() as *const Box<dyn BackendRenderer>)).imgui().unwrap()
-        };
+        let imgui = unsafe { (&*(ctx.renderer.as_ref().unwrap() as *const Box<dyn BackendRenderer>)).imgui().unwrap() };
         let mut imgui_sdl2 = ImguiSdl2::new(imgui, self.refs.deref().borrow().window.window());
 
         {
+            let state = game.state.get_mut();
             let (width, height) = self.refs.deref().borrow().window.window().size();
             ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
 
@@ -230,39 +271,16 @@ impl BackendEventLoop for SDL2EventLoop {
         }
 
         loop {
-            #[cfg(target_os = "macos")]
-            unsafe {
-                use objc::*;
-
-                // no UB: fields are initialized by SDL_GetWindowWMInfo
-                let mut winfo: sdl2_sys::SDL_SysWMinfo = mem::MaybeUninit::uninit().assume_init();
-                winfo.version.major = sdl2_sys::SDL_MAJOR_VERSION as _;
-                winfo.version.minor = sdl2_sys::SDL_MINOR_VERSION as _;
-                winfo.version.patch = sdl2_sys::SDL_PATCHLEVEL as _;
-
-                let mut whandle = self.refs.deref().borrow().window.window().raw();
-
-                if sdl2_sys::SDL_GetWindowWMInfo(whandle, &mut winfo as *mut _) != sdl2_sys::SDL_bool::SDL_FALSE {
-                    let window = winfo.info.x11.display as *mut objc::runtime::Object;
-                    let _: () = msg_send![window, setTitlebarAppearsTransparent:1];
-                    let _: () = msg_send![window, setTitleVisibility:1]; // NSWindowTitleHidden
-                    let mut style_mask: u32 = msg_send![window, styleMask];
-
-                    style_mask |= 1 << 15; // NSWindowStyleMaskFullSizeContentView
-
-                    let _: () = msg_send![window, setStyleMask: style_mask];
-                }
-            }
-
             for event in self.event_pump.poll_iter() {
                 imgui_sdl2.handle_event(imgui, &event);
 
                 match event {
                     Event::Quit { .. } => {
-                        state.shutdown();
+                        ctx.shutdown_requested = true;
                     }
                     Event::Window { win_event, .. } => match win_event {
                         WindowEvent::FocusGained | WindowEvent::Shown => {
+                            let state = game.state.get_mut();
                             if state.settings.pause_on_focus_loss {
                                 {
                                     let mut mutex = GAME_SUSPENDED.lock().unwrap();
@@ -274,6 +292,7 @@ impl BackendEventLoop for SDL2EventLoop {
                             }
                         }
                         WindowEvent::FocusLost | WindowEvent::Hidden => {
+                            let state = game.state.get_mut();
                             if state.settings.pause_on_focus_loss {
                                 let mut mutex = GAME_SUSPENDED.lock().unwrap();
                                 *mutex = true;
@@ -282,6 +301,7 @@ impl BackendEventLoop for SDL2EventLoop {
                             }
                         }
                         WindowEvent::SizeChanged(width, height) => {
+                            let state = game.state.get_mut();
                             ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
 
                             if let Some(renderer) = &ctx.renderer {
@@ -296,13 +316,14 @@ impl BackendEventLoop for SDL2EventLoop {
                     Event::KeyDown { scancode: Some(scancode), repeat, keymod, .. } => {
                         if let Some(drs_scan) = conv_scancode(scancode) {
                             if !repeat {
-                                if let Some(scene) = &mut game.scene {
-                                    scene.process_debug_keys(state, ctx, drs_scan);
+                                if let Some(scene) = game.scene.get_mut() {
+                                    scene.process_debug_keys(&mut game.state.borrow_mut(), ctx, drs_scan);
                                 }
 
                                 if keymod.intersects(keyboard::Mod::RALTMOD | keyboard::Mod::LALTMOD)
                                     && drs_scan == ScanCode::Return
                                 {
+                                    let state = game.state.get_mut();
                                     let new_mode = match state.settings.window_mode {
                                         WindowMode::Windowed => WindowMode::Fullscreen,
                                         WindowMode::Fullscreen => WindowMode::Windowed,
@@ -336,6 +357,7 @@ impl BackendEventLoop for SDL2EventLoop {
                         let game_controller = &self.refs.borrow().game_controller;
 
                         if game_controller.is_game_controller(which) {
+                            let state = game.state.get_mut();
                             let controller = game_controller.open(which).unwrap();
                             let id = controller.instance_id();
 
@@ -377,7 +399,7 @@ impl BackendEventLoop for SDL2EventLoop {
                 }
             }
 
-            if state.shutdown {
+            if ctx.shutdown_requested {
                 log::info!("Shutting down...");
                 break;
             }
@@ -391,6 +413,7 @@ impl BackendEventLoop for SDL2EventLoop {
             }
 
             {
+                let state = game.state.get_mut();
                 if state.settings.window_mode.get_sdl2_fullscreen_type() != self.refs.borrow().fullscreen_type {
                     let mut refs = self.refs.borrow_mut();
                     let window = refs.window.window_mut();
@@ -399,11 +422,7 @@ impl BackendEventLoop for SDL2EventLoop {
                     let show_cursor = state.settings.window_mode.should_display_mouse_cursor();
 
                     window.set_fullscreen(fullscreen_type);
-                    window
-                        .subsystem()
-                        .sdl()
-                        .mouse()
-                        .show_cursor(show_cursor);
+                    window.subsystem().sdl().mouse().show_cursor(show_cursor);
 
                     refs.fullscreen_type = fullscreen_type;
                 }
@@ -411,9 +430,10 @@ impl BackendEventLoop for SDL2EventLoop {
 
             game.update(ctx).unwrap();
 
-            if let Some(_) = &state.next_scene {
-                game.scene = mem::take(&mut state.next_scene);
-                game.scene.as_mut().unwrap().init(state, ctx).unwrap();
+            if game.state.get_mut().next_scene.is_some() {
+                let mut state = game.state.borrow_mut();
+                *game.scene.get_mut() = mem::take(&mut state.next_scene);
+                game.scene.get_mut().as_mut().unwrap().init(&mut state, ctx).unwrap();
                 game.loops = 0;
                 state.frame_time = 0.0;
             }
@@ -444,9 +464,10 @@ impl BackendEventLoop for SDL2EventLoop {
             }
         }
 
+        let mut imgui = init_imgui()?;
+
         #[cfg(feature = "render-opengl")]
         if *self.opengl_available.borrow() {
-            let mut imgui = init_imgui()?;
             let mut key_map = &mut imgui.io_mut().key_map;
             key_map[ImGuiKey_Backspace as usize] = Scancode::Backspace as u32;
             key_map[ImGuiKey_Delete as usize] = Scancode::Delete as u32;
@@ -484,14 +505,15 @@ impl BackendEventLoop for SDL2EventLoop {
             let gl_context =
                 GLContext { gles2_mode: false, is_sdl: true, get_proc_address, swap_buffers, user_data, ctx };
 
-            return Ok(Box::new(OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))));
-        } else {
+            return Ok(Box::new(OpenGLRenderer::new(gl_context, imgui)));
+        }
+
+        {
             let mut refs = self.refs.borrow_mut();
             let window = std::mem::take(&mut refs.window);
             refs.window = window.make_canvas()?;
+            return Ok(Box::new(SDL2Renderer::new(self.refs.clone(), imgui)?));
         }
-
-        SDL2Renderer::new(self.refs.clone())
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -548,9 +570,7 @@ struct SDL2Renderer {
 
 impl SDL2Renderer {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(refs: Rc<RefCell<SDL2Context>>) -> GameResult<Box<dyn BackendRenderer>> {
-        let mut imgui = init_imgui()?;
-
+    pub fn new(refs: Rc<RefCell<SDL2Context>>, mut imgui: imgui::Context) -> GameResult<SDL2Renderer> {
         imgui.set_renderer_name("SDL2Renderer".to_owned());
         let imgui_font_tex = {
             let refs = refs.clone();
@@ -591,11 +611,7 @@ impl SDL2Renderer {
         };
         imgui.fonts().tex_id = TextureId::new(imgui_font_tex.texture.as_ref().unwrap().raw() as usize);
 
-        Ok(Box::new(SDL2Renderer {
-            refs,
-            imgui: Rc::new(RefCell::new(imgui)),
-            imgui_font_tex,
-        }))
+        Ok((SDL2Renderer { refs, imgui: Rc::new(RefCell::new(imgui)), imgui_font_tex }))
     }
 }
 
@@ -637,7 +653,7 @@ fn max3(x: f32, y: f32, z: f32) -> f32 {
 
 impl BackendRenderer for SDL2Renderer {
     fn renderer_name(&self) -> String {
-        "SDL2_Renderer (fallback)".to_owned()
+        "*COMPATIBILITY* SDL2_Renderer".to_owned()
     }
 
     fn clear(&mut self, color: Color) {
