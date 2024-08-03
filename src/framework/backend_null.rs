@@ -46,15 +46,7 @@ impl BackendEventLoop for NullEventLoop {
                 break;
             }
 
-            if game.state.get_mut().next_scene.is_some() {
-                mem::swap(game.scene.get_mut(), &mut game.state.get_mut().next_scene);
-                game.state.get_mut().next_scene = None;
-                game.scene.borrow_mut().as_mut().unwrap().init(game.state.get_mut(), ctx).unwrap();
-                game.loops = 0;
-                game.state.get_mut().frame_time = 0.0;
-            }
             std::thread::sleep(std::time::Duration::from_millis(10));
-
             game.draw(ctx).unwrap();
         }
     }
