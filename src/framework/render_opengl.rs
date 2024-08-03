@@ -1215,10 +1215,6 @@ impl BackendRenderer for OpenGLRenderer {
         Ok(())
     }
 
-    fn supports_vertex_draw(&self) -> bool {
-        true
-    }
-
     fn draw_triangle_list(
         &mut self,
         vertices: &[VertexData],

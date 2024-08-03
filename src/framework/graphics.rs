@@ -176,14 +176,6 @@ pub fn prepare_draw(ctx: &mut Context) -> GameResult {
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
 
-pub fn supports_vertex_draw(ctx: &Context) -> GameResult<bool> {
-    if let Some(renderer) = ctx.renderer.as_ref() {
-        return Ok(renderer.supports_vertex_draw());
-    }
-
-    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
-}
-
 pub fn draw_triangle_list(
     ctx: &mut Context,
     vertices: &[VertexData],
