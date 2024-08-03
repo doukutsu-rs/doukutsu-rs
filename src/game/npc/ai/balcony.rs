@@ -1,13 +1,15 @@
 use crate::common::Direction;
 use crate::framework::error::GameResult;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
 impl NPC {
-    pub(crate) fn tick_n254_helicopter(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n254_helicopter(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -84,7 +86,7 @@ impl NPC {
     pub(crate) fn tick_n255_helicopter_blades(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -136,8 +138,7 @@ impl NPC {
     pub(crate) fn tick_n260_shovel_brigade_caged(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -190,7 +191,7 @@ impl NPC {
     pub(crate) fn tick_n261_chie_caged(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -231,7 +232,7 @@ impl NPC {
     pub(crate) fn tick_n262_chaco_caged(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {

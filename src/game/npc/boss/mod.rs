@@ -1,7 +1,7 @@
-use std::mem::{MaybeUninit, transmute};
+use std::mem::{transmute, MaybeUninit};
 use std::ops::Deref;
 
-use crate::common::{Direction, interpolate_fix9_scale};
+use crate::common::{interpolate_fix9_scale, Direction};
 use crate::components::flash::Flash;
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
@@ -68,18 +68,16 @@ impl BossNPC {
     }
 }
 
-impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Flash)> for BossNPC {
-    fn tick(
-        &mut self,
-        state: &mut SharedGameState,
-        (players, npc_list, stage, bullet_manager, flash): (
-            [&mut Player; 2],
-            &NPCList,
-            &mut Stage,
-            &BulletManager,
-            &mut Flash,
-        ),
-    ) -> GameResult {
+pub struct BossNPCContext<'a> {
+    pub players: [&'a mut Player; 2],
+    pub npc_list: &'a NPCList,
+    pub stage: &'a mut Stage,
+    pub bullet_manager: &'a mut BulletManager,
+    pub flash: &'a mut Flash,
+}
+
+impl GameEntity<BossNPCContext<'_>> for BossNPC {
+    fn tick(&mut self, state: &mut SharedGameState, boss_ctx: BossNPCContext) -> GameResult {
         if !self.parts[0].cond.alive() {
             // Kind of hacky but fixes Monster X's damage popup being stuck on screen
             self.parts[0].popup.tick(state, ())?;
@@ -87,15 +85,15 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
         }
 
         match self.boss_type {
-            1 => self.tick_b01_omega(state, players, npc_list, bullet_manager, flash),
-            2 => self.tick_b02_balfrog(state, players, npc_list),
-            3 => self.tick_b03_monster_x(state, players, npc_list, flash),
-            4 => self.tick_b04_core(state, players, npc_list, stage),
-            5 => self.tick_b05_ironhead(state, players, npc_list),
-            6 => self.tick_b06_sisters(state, players, npc_list, flash),
-            7 => self.tick_b07_undead_core(state, npc_list, stage, flash),
-            8 => self.tick_b08_heavy_press(state, npc_list, stage),
-            9 => self.tick_b09_ballos(state, players, npc_list, flash),
+            1 => self.tick_b01_omega(state, boss_ctx),
+            2 => self.tick_b02_balfrog(state, boss_ctx),
+            3 => self.tick_b03_monster_x(state, boss_ctx),
+            4 => self.tick_b04_core(state, boss_ctx),
+            5 => self.tick_b05_ironhead(state, boss_ctx),
+            6 => self.tick_b06_sisters(state, boss_ctx),
+            7 => self.tick_b07_undead_core(state, boss_ctx),
+            8 => self.tick_b08_heavy_press(state, boss_ctx),
+            9 => self.tick_b09_ballos(state, boss_ctx),
             _ => {}
         }
 

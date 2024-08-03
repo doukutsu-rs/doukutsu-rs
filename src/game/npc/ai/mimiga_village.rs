@@ -4,16 +4,13 @@ use num_traits::{abs, clamp};
 
 use crate::common::Direction;
 use crate::framework::error::GameResult;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::{Player, TargetPlayer};
+use crate::game::npc::{NPCContext, NPC};
+use crate::game::player::{TargetPlayer};
 use crate::game::shared_game_state::SharedGameState;
-use crate::game::stage::Stage;
-use crate::game::weapon::bullet::BulletManager;
 use crate::util::rng::RNG;
 
 impl NPC {
-    pub(crate) fn tick_n069_pignon(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n069_pignon(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -96,7 +93,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n071_chinfish(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n071_chinfish(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.target_x = self.x;
@@ -129,7 +126,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n075_kanpachi(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n075_kanpachi(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.anim_num = 0;
@@ -154,7 +155,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n077_yamashita(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n077_yamashita(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.anim_num = 0;
@@ -188,7 +189,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n079_mahin(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n079_mahin(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -237,7 +242,7 @@ impl NPC {
     pub(crate) fn tick_n080_gravekeeper(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -332,7 +337,7 @@ impl NPC {
     pub(crate) fn tick_n081_giant_pignon(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -420,7 +425,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n091_mimiga_cage(&mut self, state: &SharedGameState) -> GameResult {
+    pub(crate) fn tick_n091_mimiga_cage(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.y += 0x2000;
@@ -433,9 +438,7 @@ impl NPC {
     pub(crate) fn tick_n313_ma_pignon(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        bullet_manager: &mut BulletManager,
+        NPCContext { players, npc_list, bullet_manager, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
@@ -716,9 +719,7 @@ impl NPC {
     pub(crate) fn tick_n314_ma_pignon_rock(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        stage: &Stage,
+        NPCContext { players, npc_list, stage, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
@@ -783,8 +784,7 @@ impl NPC {
     pub(crate) fn tick_n315_ma_pignon_clone(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        bullet_manager: &mut BulletManager,
+        NPCContext { players, bullet_manager, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 

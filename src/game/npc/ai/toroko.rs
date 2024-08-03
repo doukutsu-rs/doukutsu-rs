@@ -1,15 +1,16 @@
 use crate::common::Direction;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
-use crate::game::weapon::bullet::BulletManager;
 use crate::util::rng::RNG;
 
 impl NPC {
-    pub(crate) fn tick_n060_toroko(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n060_toroko(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -168,7 +169,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n063_toroko_stick(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n063_toroko_stick(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -273,9 +274,7 @@ impl NPC {
     pub(crate) fn tick_n140_toroko_frenzied(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        bullet_manager: &BulletManager,
+        NPCContext { players, npc_list, bullet_manager, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -587,8 +586,7 @@ impl NPC {
     pub(crate) fn tick_n141_toroko_block_projectile(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -688,7 +686,7 @@ impl NPC {
     pub(crate) fn tick_n142_flower_cub(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             10 | 11 => {
@@ -755,7 +753,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n144_toroko_teleporting_in(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n144_toroko_teleporting_in(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {

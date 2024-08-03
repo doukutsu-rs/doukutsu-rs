@@ -1,18 +1,21 @@
 use crate::common::{Direction, Rect, CDEG_RAD};
-use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::physics::HitExtents;
-use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
-use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
+use super::BossNPCContext;
+
 impl NPC {
-    pub(crate) fn tick_n331_ballos_bone_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n331_ballos_bone_projectile(
+        &mut self,
+        state: &mut SharedGameState,
+        _: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 self.action_num = 1;
@@ -54,7 +57,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n332_ballos_shockwave(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n332_ballos_shockwave(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -94,8 +101,7 @@ impl NPC {
     pub(crate) fn tick_n333_ballos_lightning(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -129,7 +135,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n338_green_devil(&mut self, state: &mut SharedGameState, stage: &mut Stage) -> GameResult {
+    pub(crate) fn tick_n338_green_devil(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { stage, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -172,7 +182,7 @@ impl NPC {
     pub(crate) fn tick_n339_green_devil_generator(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -202,9 +212,7 @@ impl NPC {
     pub(crate) fn tick_n340_ballos(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        flash: &mut Flash,
+        NPCContext { players, npc_list, flash, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
@@ -584,7 +592,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n341_ballos_1_head(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n341_ballos_1_head(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         if let Some(parent) = self.get_parent_ref_mut(npc_list) {
             if parent.action_num == 11 && parent.action_counter > 50 {
                 self.anim_counter += 1;
@@ -610,9 +622,7 @@ impl NPC {
     pub(crate) fn tick_n342_ballos_orbiting_eye(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        boss: &mut BossNPC,
+        NPCContext { players, npc_list, boss, .. }: NPCContext,
     ) -> GameResult {
         if self.action_num < 1000 && boss.parts[0].action_num >= 1000 {
             self.action_num = 1000;
@@ -904,7 +914,7 @@ impl NPC {
     pub(crate) fn tick_n343_ballos_3_cutscene(
         &mut self,
         state: &mut SharedGameState,
-        boss: &mut BossNPC,
+        NPCContext { boss, .. }: NPCContext,
     ) -> GameResult {
         self.action_counter += 1;
         if self.action_counter > 100 {
@@ -919,7 +929,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n344_ballos_3_eyes(&mut self, state: &mut SharedGameState, boss: &mut BossNPC) -> GameResult {
+    pub(crate) fn tick_n344_ballos_3_eyes(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { boss, .. }: NPCContext,
+    ) -> GameResult {
         self.action_counter += 1;
         if self.action_counter > 100 {
             self.cond.set_alive(false);
@@ -936,8 +950,7 @@ impl NPC {
     pub(crate) fn tick_n345_ballos_skull_projectile(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
-        stage: &mut Stage,
+        NPCContext { npc_list, stage, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 100 => {
@@ -1005,9 +1018,7 @@ impl NPC {
     pub(crate) fn tick_n346_ballos_orbiting_platform(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        stage: &mut Stage,
-        boss: &mut BossNPC,
+        NPCContext { players, stage, boss, .. }: NPCContext,
     ) -> GameResult {
         if self.action_num < 1000 && boss.parts[0].action_num >= 1000 {
             self.action_num = 1000;
@@ -1139,7 +1150,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n348_ballos_4_spikes(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n348_ballos_4_spikes(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 self.action_num = 1;
@@ -1165,9 +1176,7 @@ impl NPC {
     pub(crate) fn tick_n350_flying_bute_archer(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        stage: &mut Stage,
+        NPCContext { players, npc_list, stage, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
@@ -1288,7 +1297,7 @@ impl NPC {
     pub(crate) fn tick_n353_bute_sword_flying(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
@@ -1366,8 +1375,7 @@ impl NPC {
     pub(crate) fn tick_n354_invisible_deathtrap_wall(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
-        stage: &mut Stage,
+        NPCContext { npc_list, stage, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 => {
@@ -1416,9 +1424,7 @@ impl BossNPC {
     pub(crate) fn tick_b09_ballos(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        flash: &mut Flash,
+        BossNPCContext { players, npc_list, flash, .. }: BossNPCContext,
     ) {
         let player = self.parts[0].get_closest_player_mut(players);
 

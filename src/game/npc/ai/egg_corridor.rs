@@ -1,17 +1,19 @@
 use num_traits::{abs, clamp};
 
-use crate::common::{CDEG_RAD, Direction, Rect};
+use crate::common::{Direction, Rect, CDEG_RAD};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::{Player, TargetPlayer};
+use crate::game::npc::{NPCContext, NPC};
+use crate::game::player::{TargetPlayer};
 use crate::game::shared_game_state::SharedGameState;
-use crate::game::weapon::bullet::BulletManager;
 use crate::util::rng::RNG;
 
 impl NPC {
-    pub(crate) fn tick_n002_behemoth(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n002_behemoth(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         if self.flags.hit_left_wall() {
             self.direction = Direction::Right;
         } else if self.flags.hit_right_wall() {
@@ -97,7 +99,7 @@ impl NPC {
     pub(crate) fn tick_n005_green_critter(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -181,7 +183,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n006_green_beetle(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n006_green_beetle(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -268,7 +270,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n007_basil(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n007_basil(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 => {
                 let player = self.get_closest_player_mut(players);
@@ -330,7 +336,7 @@ impl NPC {
     pub(crate) fn tick_n008_blue_beetle(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 => {
@@ -387,7 +393,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n025_lift(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n025_lift(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -475,8 +481,7 @@ impl NPC {
     pub(crate) fn tick_n058_basu(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
@@ -593,7 +598,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n084_basu_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n084_basu_projectile(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
@@ -621,8 +626,7 @@ impl NPC {
     pub(crate) fn tick_n200_zombie_dragon(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         if self.action_num < 100 && self.life < 950 {
             self.action_num = 100;
@@ -721,14 +725,18 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n201_zombie_dragon_dead(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n201_zombie_dragon_dead(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         let dir_offset = if self.direction == Direction::Left { 0 } else { 1 };
 
         self.anim_rect = state.constants.npc.n201_zombie_dragon_dead[dir_offset];
         Ok(())
     }
 
-    pub(crate) fn tick_n202_zombie_dragon_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n202_zombie_dragon_projectile(
+        &mut self,
+        state: &mut SharedGameState,
+        _: NPCContext,
+    ) -> GameResult {
         self.y += self.vel_y;
         self.x += self.vel_x;
 
@@ -747,7 +755,7 @@ impl NPC {
     pub(crate) fn tick_n203_critter_destroyed_egg_corridor(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -847,8 +855,7 @@ impl NPC {
     pub(crate) fn tick_n204_small_falling_spike(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -908,9 +915,7 @@ impl NPC {
     pub(crate) fn tick_n205_large_falling_spike(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        bullet_manager: &mut BulletManager,
+        NPCContext { players, npc_list, bullet_manager, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -1003,8 +1008,7 @@ impl NPC {
     pub(crate) fn tick_n206_counter_bomb(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -1104,7 +1108,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n207_counter_bomb_countdown(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n207_counter_bomb_countdown(
+        &mut self,
+        state: &mut SharedGameState,
+        _: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -1138,8 +1146,7 @@ impl NPC {
     pub(crate) fn tick_n208_basu_destroyed_egg_corridor(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
@@ -1258,6 +1265,7 @@ impl NPC {
     pub(crate) fn tick_n209_basu_projectile_destroyed_egg_corridor(
         &mut self,
         state: &mut SharedGameState,
+        _: NPCContext,
     ) -> GameResult {
         self.x += self.vel_x;
         self.y += self.vel_y;
@@ -1286,7 +1294,7 @@ impl NPC {
     pub(crate) fn tick_n210_beetle_destroyed_egg_corridor(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 => {

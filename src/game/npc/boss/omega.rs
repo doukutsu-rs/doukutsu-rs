@@ -1,18 +1,16 @@
 use crate::common::{Direction, Rect};
-use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::physics::HitExtents;
-use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
-use crate::game::weapon::bullet::BulletManager;
 use crate::util::rng::RNG;
 
+use super::BossNPCContext;
+
 impl NPC {
-    pub(crate) fn tick_n048_omega_projectiles(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n048_omega_projectiles(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if (self.flags.hit_left_wall() && self.vel_x < 0) || (self.flags.hit_right_wall() && self.vel_x > 0) {
             self.vel_x = -self.vel_x;
         } else if self.flags.hit_bottom_wall() {
@@ -54,10 +52,7 @@ impl BossNPC {
     pub(crate) fn tick_b01_omega(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        bullet_manager: &BulletManager,
-        flash: &mut Flash,
+        BossNPCContext { players, npc_list, bullet_manager, flash, .. }: BossNPCContext,
     ) {
         match self.parts[0].action_num {
             0 => {

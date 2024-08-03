@@ -1,9 +1,7 @@
-use crate::common::{CDEG_RAD, Direction};
+use crate::common::{Direction, CDEG_RAD};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
@@ -12,7 +10,7 @@ impl NPC {
     pub(crate) fn tick_n361_flying_gaudi(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -82,8 +80,7 @@ impl NPC {
     pub(crate) fn tick_n362_curly_clone(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_ref(&players);
 
@@ -231,7 +228,11 @@ impl NPC {
     }
 
     // Dead Curly Clone
-    pub(crate) fn tick_n363_dead_curly_clone(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n363_dead_curly_clone(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -287,7 +288,7 @@ impl NPC {
     }
 
     // Fast, machine gun-like bullets shot by Curly clone (NPC 362)
-    pub(crate) fn tick_n364_fast_bullet(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n364_fast_bullet(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -336,8 +337,7 @@ impl NPC {
     pub(crate) fn tick_n365_still_curly_clone(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_ref(&players);
 
@@ -411,7 +411,7 @@ impl NPC {
     pub(crate) fn tick_n366_zombie_curly_clone(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_ref(&players);
         if self.x > player.x + 0x28000
@@ -493,8 +493,7 @@ impl NPC {
     pub(crate) fn tick_n367_curly_clone_incubator(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_ref(&players);
 
@@ -525,8 +524,7 @@ impl NPC {
     pub(crate) fn tick_n368_gclone(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
@@ -750,11 +748,10 @@ impl NPC {
     pub(crate) fn tick_n369_gclone_curly_clone(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         // action_counter3 is used to keep track of grabbed player
-        let mut player = self.get_closest_player_mut(players);
+        let player = self.get_closest_player_mut(players);
 
         match self.action_num {
             0 | 1 | 10 => {

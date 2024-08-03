@@ -1,22 +1,23 @@
 use num_traits::{abs, clamp};
 
 use crate::common::{Direction, Rect, CDEG_RAD};
-use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::physics::HitExtents;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
+use super::BossNPCContext;
+
 impl NPC {
     pub(crate) fn tick_n158_fish_missile(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -78,7 +79,7 @@ impl NPC {
     pub(crate) fn tick_n159_monster_x_defeated(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -139,9 +140,7 @@ impl BossNPC {
     pub(crate) fn tick_b03_monster_x(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        flash: &mut Flash,
+        BossNPCContext { players, npc_list, flash, .. }: BossNPCContext,
     ) {
         match self.parts[0].action_num {
             0 => {

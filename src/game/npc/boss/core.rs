@@ -1,16 +1,18 @@
-use crate::common::{CDEG_RAD, Direction};
+use crate::common::{Direction, CDEG_RAD};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
+use super::BossNPCContext;
+
 impl NPC {
-    pub(crate) fn tick_n178_core_blade_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n178_core_blade_projectile(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.flags.hit_anything() {
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
             self.cond.set_alive(false);
@@ -37,7 +39,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n179_core_wisp_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n179_core_wisp_projectile(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.flags.hit_anything() {
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
             self.cond.set_alive(false);
@@ -66,7 +68,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n218_core_giant_ball(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n218_core_giant_ball(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         self.x += self.vel_x;
         self.y += self.vel_y;
 
@@ -86,14 +88,12 @@ impl BossNPC {
     pub(crate) fn tick_b04_core(
         &mut self,
         state: &mut SharedGameState,
-        mut players: [&mut Player; 2],
-        npc_list: &NPCList,
-        stage: &mut Stage,
+        BossNPCContext { mut players, npc_list, stage, .. }: BossNPCContext,
     ) {
         let mut flag = false;
         // i will refactor that one day
         #[allow(mutable_transmutes)]
-            let flash_counter: &mut u16 = unsafe { std::mem::transmute(&self.parts[19].action_counter3) };
+        let flash_counter: &mut u16 = unsafe { std::mem::transmute(&self.parts[19].action_counter3) };
 
         match self.parts[0].action_num {
             0 => {
@@ -180,7 +180,7 @@ impl BossNPC {
                 self.parts[7].x = self.parts[0].x - 0x6000;
                 self.parts[7].y = self.parts[0].y + 0x4000;
 
-                for i in [2,3,6,7] {
+                for i in [2, 3, 6, 7] {
                     self.hurt_sound[i] = 54;
                 }
 

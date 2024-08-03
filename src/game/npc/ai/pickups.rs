@@ -1,13 +1,19 @@
 use crate::common::Direction;
 use crate::framework::error::GameResult;
-use crate::game::npc::NPC;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
-use crate::game::stage::{BackgroundType, Stage};
+use crate::game::stage::BackgroundType;
 use crate::util::rng::RNG;
 
 impl NPC {
-    pub(crate) fn tick_n001_experience(&mut self, state: &mut SharedGameState, stage: &mut Stage) -> GameResult {
-        if stage.data.background_type == BackgroundType::Scrolling || stage.data.background_type == BackgroundType::OutsideWind {
+    pub(crate) fn tick_n001_experience(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { stage, .. }: NPCContext,
+    ) -> GameResult {
+        if stage.data.background_type == BackgroundType::Scrolling
+            || stage.data.background_type == BackgroundType::OutsideWind
+        {
             if self.action_num == 0 {
                 self.action_num = 1;
 
@@ -138,7 +144,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n086_missile_pickup(&mut self, state: &mut SharedGameState, stage: &mut Stage) -> GameResult {
+    pub(crate) fn tick_n086_missile_pickup(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { stage, .. }: NPCContext,
+    ) -> GameResult {
         if self.direction == Direction::Left {
             self.anim_counter += 1;
             if self.anim_counter > 2 {
@@ -152,7 +162,9 @@ impl NPC {
             self.action_counter2 += 1;
         }
 
-        if stage.data.background_type == BackgroundType::Scrolling || stage.data.background_type == BackgroundType::OutsideWind {
+        if stage.data.background_type == BackgroundType::Scrolling
+            || stage.data.background_type == BackgroundType::OutsideWind
+        {
             if self.action_num == 0 {
                 self.action_num = 1;
                 self.vel_x = self.rng.range(0x7f..0x100) as i32;
@@ -206,7 +218,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n087_heart_pickup(&mut self, state: &mut SharedGameState, stage: &mut Stage) -> GameResult {
+    pub(crate) fn tick_n087_heart_pickup(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { stage, .. }: NPCContext,
+    ) -> GameResult {
         if self.direction == Direction::Left {
             self.anim_counter += 1;
             if self.anim_counter > 2 {
@@ -220,7 +236,9 @@ impl NPC {
             self.action_counter2 += 1;
         }
 
-        if stage.data.background_type == BackgroundType::Scrolling || stage.data.background_type == BackgroundType::OutsideWind {
+        if stage.data.background_type == BackgroundType::Scrolling
+            || stage.data.background_type == BackgroundType::OutsideWind
+        {
             if self.action_num == 0 {
                 self.action_num = 1;
                 self.vel_x = self.rng.range(0x7f..0x100) as i32;

@@ -3,19 +3,16 @@ use num_traits::{abs, clamp};
 use crate::common::{Direction, Rect};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::{Player, TargetPlayer};
+use crate::game::npc::{NPCContext, NPC};
+use crate::game::player::{TargetPlayer};
 use crate::game::shared_game_state::SharedGameState;
-use crate::game::weapon::bullet::BulletManager;
 use crate::util::rng::RNG;
 
 impl NPC {
     pub(crate) fn tick_n117_curly(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -126,13 +123,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n118_curly_boss(
-        &mut self,
-        state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        bullet_manager: &BulletManager,
-    ) -> GameResult {
+    pub(crate) fn tick_n118_curly_boss(&mut self, state: &mut SharedGameState, NPCContext { players, npc_list, bullet_manager, .. }: NPCContext) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -269,7 +260,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n123_curly_boss_bullet(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n123_curly_boss_bullet(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             state.create_caret(self.x, self.y, CaretType::Shoot, Direction::Left);
@@ -321,7 +312,7 @@ impl NPC {
     pub(crate) fn tick_n165_curly_collapsed(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -356,8 +347,7 @@ impl NPC {
     pub(crate) fn tick_n180_curly_ai(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_ref(&players);
 
@@ -569,8 +559,7 @@ impl NPC {
     pub(crate) fn tick_n181_curly_ai_machine_gun(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
-        bullet_manager: &mut BulletManager,
+        NPCContext { npc_list, bullet_manager, .. }: NPCContext,
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref_mut(npc_list) {
             if parent.anim_num > 4 {
@@ -581,12 +570,12 @@ impl NPC {
             } else {
                 self.x = parent.x
                     + if parent.direction == Direction::Left {
-                    self.direction = Direction::Left;
-                    -0x1000
-                } else {
-                    self.direction = Direction::Right;
-                    0x1000
-                };
+                        self.direction = Direction::Left;
+                        -0x1000
+                    } else {
+                        self.direction = Direction::Right;
+                        0x1000
+                    };
                 self.y = parent.y;
                 self.anim_num = 0;
             }
@@ -663,8 +652,7 @@ impl NPC {
     pub(crate) fn tick_n182_curly_ai_polar_star(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
-        bullet_manager: &mut BulletManager,
+        NPCContext { npc_list, bullet_manager, .. }: NPCContext,
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref_mut(npc_list) {
             if parent.anim_num > 4 {
@@ -675,12 +663,12 @@ impl NPC {
             } else {
                 self.x = parent.x
                     + if parent.direction == Direction::Left {
-                    self.direction = Direction::Left;
-                    -0x1000
-                } else {
-                    self.direction = Direction::Right;
-                    0x1000
-                };
+                        self.direction = Direction::Left;
+                        -0x1000
+                    } else {
+                        self.direction = Direction::Right;
+                        0x1000
+                    };
                 self.y = parent.y;
                 self.anim_num = 0;
             }
@@ -756,7 +744,7 @@ impl NPC {
     pub(crate) fn tick_n183_curly_air_tank_bubble(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref_mut(npc_list) {
             if self.action_num == 0 {
@@ -783,8 +771,7 @@ impl NPC {
     pub(crate) fn tick_n259_curly_unconscious(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -834,7 +821,7 @@ impl NPC {
     pub(crate) fn tick_n303_curly_machine_gun(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref_mut(npc_list) {
             self.x = parent.x;
@@ -862,8 +849,7 @@ impl NPC {
     pub(crate) fn tick_n320_curly_carried(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         let player = &players[0];
 
@@ -912,9 +898,7 @@ impl NPC {
     pub(crate) fn tick_n321_curly_nemesis(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        bullet_manager: &mut BulletManager,
+        NPCContext { players, npc_list, bullet_manager, .. }: NPCContext,
     ) -> GameResult {
         if let Some(npc) = self.get_parent_ref_mut(npc_list) {
             let player = &players[0];

@@ -1,8 +1,6 @@
 use crate::common::Direction;
 use crate::framework::error::GameResult;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
@@ -10,7 +8,7 @@ impl NPC {
     pub fn tick_n111_quote_teleport_out(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 => {
@@ -83,7 +81,7 @@ impl NPC {
     pub fn tick_n112_quote_teleport_in(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 => {
@@ -145,8 +143,7 @@ impl NPC {
     pub(crate) fn tick_n150_quote(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 => {
@@ -316,8 +313,7 @@ impl NPC {
     pub(crate) fn tick_n370_second_quote(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         if !players[1].cond.alive() {
             self.cond.set_alive(false);

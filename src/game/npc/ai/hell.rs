@@ -1,15 +1,12 @@
 use crate::common::Direction;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
-use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
 impl NPC {
-    pub(crate) fn tick_n337_numahachi(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n337_numahachi(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.y -= 0x1000;
@@ -36,7 +33,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n357_puppy_ghost(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n357_puppy_ghost(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         self.anim_rect = state.constants.npc.n357_puppy_ghost;
 
         match self.action_num {
@@ -75,7 +72,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n309_bute(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n309_bute(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
         match self.action_num {
@@ -136,7 +137,7 @@ impl NPC {
     pub(crate) fn tick_n310_bute_sword(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
@@ -254,8 +255,7 @@ impl NPC {
     pub(crate) fn tick_n311_bute_archer(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_mut(players);
 
@@ -265,7 +265,7 @@ impl NPC {
 
                 if (player.y > self.y - 0x14000 && player.y < self.y + 0x14000)
                     && ((self.direction == Direction::Left && player.x > self.x - 0x28000 && player.x < self.x)
-                    || (self.direction != Direction::Left && player.x > self.x && player.x < self.x + 0x28000))
+                        || (self.direction != Direction::Left && player.x > self.x && player.x < self.x + 0x28000))
                 {
                     self.action_num = 10;
                 }
@@ -356,7 +356,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n312_bute_arrow_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n312_bute_arrow_projectile(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.flags.hit_anything() && self.action_num > 0 && self.action_num < 20 {
             self.action_num = 20;
         }
@@ -437,7 +437,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n316_bute_dead(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n316_bute_dead(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         // (nearly) same as Gaudi death
         match self.action_num {
             0 => {
@@ -486,7 +486,7 @@ impl NPC {
     pub(crate) fn tick_n323_bute_spinning(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         if self.action_num == 0 || self.action_num == 1 {
             if self.action_num == 0 {
@@ -511,9 +511,9 @@ impl NPC {
             let player = self.get_closest_player_ref(&players);
             if self.action_counter > 20
                 && ((self.direction == Direction::Left && self.x <= player.x + 0x4000)
-                || (self.direction == Direction::Up && self.y <= player.y + 0x4000)
-                || (self.direction == Direction::Right && self.x >= player.x - 0x4000)
-                || (self.direction == Direction::Bottom && self.y >= player.y - 0x4000))
+                    || (self.direction == Direction::Up && self.y <= player.y + 0x4000)
+                    || (self.direction == Direction::Right && self.x >= player.x - 0x4000)
+                    || (self.direction == Direction::Bottom && self.y >= player.y - 0x4000))
             {
                 self.action_num = 10
             }
@@ -534,7 +534,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n324_bute_generator(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n324_bute_generator(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         if self.action_num == 10 {
             self.action_num = 11;
             self.action_counter = 0;
@@ -563,8 +567,7 @@ impl NPC {
     pub(crate) fn tick_n317_mesa(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         let player = self.get_closest_player_ref(&players);
 
@@ -644,7 +647,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n318_mesa_dead(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n318_mesa_dead(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         // (nearly) same as Gaudi death
         match self.action_num {
             0 => {
@@ -688,7 +691,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n319_mesa_block(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n319_mesa_block(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 => {
                 if let Some(parent) = self.get_parent_ref_mut(npc_list) {
@@ -739,8 +746,7 @@ impl NPC {
     pub(crate) fn tick_n322_deleet(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
-        stage: &mut Stage,
+        NPCContext { npc_list, stage, .. }: NPCContext,
     ) -> GameResult {
         if self.action_num < 2 && self.life <= 968 {
             self.action_num = 2;
@@ -844,7 +850,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n330_rolling(&mut self, state: &mut SharedGameState, npc_list: &NPCList, stage: &mut Stage) -> GameResult {
+    pub(crate) fn tick_n330_rolling(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, stage, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 => {
                 let x = (self.x / (state.tile_size.as_int() * 0x200)) as usize;

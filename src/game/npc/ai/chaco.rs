@@ -1,13 +1,16 @@
 use crate::common::Direction;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
 impl NPC {
-    pub(crate) fn tick_n093_chaco(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n093_chaco(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -23,9 +26,7 @@ impl NPC {
                 }
 
                 let player = self.get_closest_player_mut(players);
-                if (self.x - player.x).abs() < 0x4000
-                    && self.y - 0x4000 < player.y
-                    && self.y + 0x2000 > player.y {
+                if (self.x - player.x).abs() < 0x4000 && self.y - 0x4000 < player.y && self.y + 0x2000 > player.y {
                     self.direction = if self.x > player.x { Direction::Left } else { Direction::Right };
                 }
             }
