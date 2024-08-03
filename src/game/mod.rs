@@ -138,8 +138,9 @@ impl Game {
     }
 
     pub(crate) fn update(&mut self, ctx: &mut Context) -> GameResult {
+        let state_ref = self.state.get_mut();
+
         if let Some(scene) = self.scene.get_mut() {
-            let state_ref = self.state.get_mut();
 
             let speed = if state_ref.textscript_vm.mode == ScriptMode::Map
                 && state_ref.textscript_vm.flags.cutscene_skip()
@@ -188,6 +189,16 @@ impl Game {
                 }
             }
         }
+
+        let next_scene = std::mem::take(&mut state_ref.next_scene);
+        if let Some(mut next_scene) = next_scene {
+            next_scene.init(state_ref, ctx)?;
+            *self.scene.get_mut() = Some(next_scene);
+            
+            self.loops = 0;
+            state_ref.frame_time = 0.0;
+        }
+
         Ok(())
     }
 

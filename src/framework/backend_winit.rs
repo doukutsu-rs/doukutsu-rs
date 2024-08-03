@@ -281,15 +281,6 @@ impl ApplicationHandler for WinitEventLoop {
         }
 
         window.request_redraw();
-
-        if game.state.get_mut().next_scene.is_some() {
-            let mut state_ref = game.state.borrow_mut();
-            mem::swap(game.scene.get_mut(), &mut state_ref.next_scene);
-            state_ref.next_scene = None;
-            game.scene.borrow_mut().as_mut().unwrap().init(&mut state_ref, ctx).unwrap();
-            game.loops = 0;
-            state_ref.frame_time = 0.0;
-        }
     }
 }
 
