@@ -2,14 +2,16 @@ use num_traits::{abs, clamp};
 
 use crate::common::Direction;
 use crate::framework::error::GameResult;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
 impl NPC {
-    pub(crate) fn tick_n029_cthulhu(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n029_cthulhu(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.anim_num = 0;
@@ -31,7 +33,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n052_sitting_blue_robot(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n052_sitting_blue_robot(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.anim_rect = state.constants.npc.n052_sitting_blue_robot;
@@ -40,7 +42,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n055_kazuma(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n055_kazuma(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -74,7 +76,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n061_king(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n061_king(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -246,7 +252,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n062_kazuma_computer(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n062_kazuma_computer(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -307,7 +313,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n074_jack(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n074_jack(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -359,7 +365,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n145_king_sword(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n145_king_sword(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         if self.action_num == 0 {
             let parent = self.get_parent_ref_mut(npc_list);
             if let Some(parent) = parent {
@@ -387,7 +397,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n151_blue_robot_standing(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n151_blue_robot_standing(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -419,7 +429,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n167_booster_falling(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n167_booster_falling(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 => {
                 self.action_num = 1;
@@ -470,7 +484,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n217_itoh(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n217_itoh(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -560,7 +574,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n278_little_family(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n278_little_family(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -633,7 +647,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n305_small_puppy(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n305_small_puppy(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.y -= 0x2000;
@@ -651,11 +665,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n326_sue_itoh_human_transition(
-        &mut self,
-        state: &mut SharedGameState,
-        npc_list: &NPCList,
-    ) -> GameResult {
+    pub(crate) fn tick_n326_sue_itoh_human_transition(&mut self, state: &mut SharedGameState, NPCContext { npc_list, .. }: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -763,7 +773,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n327_sneeze(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n327_sneeze(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         self.action_counter += 1;
 
         if self.action_num == 0 {

@@ -1,16 +1,16 @@
-use crate::common::{CDEG_RAD, Direction, Rect};
+use crate::common::{Direction, Rect, CDEG_RAD};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::physics::HitExtents;
-use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
+use super::BossNPCContext;
+
 impl NPC {
-    pub(crate) fn tick_n108_balfrog_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n108_balfrog_projectile(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_counter > 300 || (self.flags.0 & 0xff) != 0 {
             self.cond.set_alive(false);
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
@@ -32,8 +32,7 @@ impl BossNPC {
     pub(crate) fn tick_b02_balfrog(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        BossNPCContext { players, npc_list, .. }: BossNPCContext,
     ) {
         match self.parts[0].action_num {
             0 => {
@@ -43,7 +42,8 @@ impl BossNPC {
                 self.parts[0].direction = Direction::Right;
                 self.parts[0].display_bounds =
                     Rect { left: 48 * 0x200, top: 48 * 0x200, right: 32 * 0x200, bottom: 0x2000 };
-                self.parts[0].hit_bounds = HitExtents { left: 24 * 0x200, top: 0x2000, right: 24 * 0x200, bottom: 0x2000 };
+                self.parts[0].hit_bounds =
+                    HitExtents { left: 24 * 0x200, top: 0x2000, right: 24 * 0x200, bottom: 0x2000 };
                 self.parts[0].size = 3;
                 self.parts[0].exp = 1;
                 self.parts[0].event_num = 1000;
@@ -484,7 +484,8 @@ impl BossNPC {
                 self.hurt_sound[2] = 52;
                 self.parts[2].size = 3;
                 self.parts[2].npc_flags.set_invulnerable(true);
-                self.parts[2].hit_bounds = HitExtents { left: 24 * 0x200, top: 0x2000, right: 24 * 0x200, bottom: 0x2000 };
+                self.parts[2].hit_bounds =
+                    HitExtents { left: 24 * 0x200, top: 0x2000, right: 24 * 0x200, bottom: 0x2000 };
             }
             1 => {
                 self.parts[1].x = self.parts[0].x + self.parts[0].direction.vector_x() * 24 * 0x200;
