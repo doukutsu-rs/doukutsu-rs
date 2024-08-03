@@ -1,12 +1,13 @@
 use num_traits::{abs, clamp};
 
-use crate::common::{CDEG_RAD, Direction, Rect};
+use crate::common::{Direction, Rect, CDEG_RAD};
 use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
 use crate::game::npc::NPC;
+use crate::game::physics::HitExtents;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
@@ -39,7 +40,8 @@ impl NPC {
 
                 let player = self.get_closest_player_mut(players);
                 // Get angle between 0 and 2*PI
-                let direction = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64) + std::f64::consts::PI;
+                let direction =
+                    f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64) + std::f64::consts::PI;
 
                 if direction < radians {
                     if radians - direction < std::f64::consts::PI {
@@ -156,7 +158,7 @@ impl BossNPC {
                 self.parts[0].size = 3;
                 self.parts[0].event_num = 1000;
                 self.parts[0].hit_bounds =
-                    Rect { left: 24 * 0x200, top: 24 * 0x200, right: 24 * 0x200, bottom: 24 * 0x200 };
+                    HitExtents { left: 24 * 0x200, top: 24 * 0x200, right: 24 * 0x200, bottom: 24 * 0x200 };
                 self.parts[0].npc_flags.set_ignore_solidity(true);
                 self.parts[0].npc_flags.set_event_when_killed(true);
                 self.parts[0].npc_flags.set_show_damage(true);
@@ -178,7 +180,7 @@ impl BossNPC {
                 self.parts[3].target_x = 0;
                 self.parts[3].display_bounds = Rect { left: 0x1000, top: 0x1000, right: 0x1000, bottom: 0x1000 };
                 self.parts[3].hit_bounds =
-                    Rect { left: 5 * 0x200, top: 5 * 0x200, right: 5 * 0x200, bottom: 5 * 0x200 };
+                    HitExtents { left: 5 * 0x200, top: 5 * 0x200, right: 5 * 0x200, bottom: 5 * 0x200 };
                 self.parts[3].npc_flags.set_ignore_solidity(true);
 
                 self.parts[4] = self.parts[3].clone();
@@ -203,7 +205,7 @@ impl BossNPC {
                 self.parts[7].anim_num = 0;
                 self.parts[7].display_bounds =
                     Rect { left: 52 * 0x200, top: 24 * 0x200, right: 52 * 0x200, bottom: 24 * 0x200 };
-                self.parts[7].hit_bounds = Rect { left: 0x1000, top: 24 * 0x200, right: 0x1000, bottom: 0x2000 };
+                self.parts[7].hit_bounds = HitExtents { left: 0x1000, top: 24 * 0x200, right: 0x1000, bottom: 0x2000 };
                 self.parts[7].npc_flags.set_ignore_solidity(true);
                 self.hurt_sound[7] = 52;
 
@@ -215,7 +217,8 @@ impl BossNPC {
                 self.parts[9].direction = Direction::Up;
                 self.parts[9].display_bounds =
                     Rect { left: 36 * 0x200, top: 0x1000, right: 36 * 0x200, bottom: 24 * 0x200 };
-                self.parts[9].hit_bounds = Rect { left: 28 * 0x200, top: 0x1000, right: 28 * 0x200, bottom: 0x2000 };
+                self.parts[9].hit_bounds =
+                    HitExtents { left: 28 * 0x200, top: 0x1000, right: 28 * 0x200, bottom: 0x2000 };
                 self.hurt_sound[9] = 52;
                 self.parts[9].npc_flags.set_rear_and_top_not_hurt(true);
                 self.parts[9].npc_flags.set_ignore_solidity(true);
