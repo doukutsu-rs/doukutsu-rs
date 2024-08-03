@@ -397,7 +397,7 @@ impl BackendEventLoop for HorizonEventLoop {
 
             game.update(ctx).unwrap();
 
-            if state_ref.shutdown {
+            if ctx.shutdown_requested {
                 log::info!("Shutting down...");
                 break;
             }

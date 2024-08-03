@@ -1,10 +1,9 @@
 [package]
 name = "doukutsu-rs"
 description = "A re-implementation of Cave Story (Doukutsu Monogatari) engine"
-version = "0.101.0"
-authors = ["Alula", "dawnDus"]
+version = "1.0.0"
 edition = "2021"
-rust-version = "1.65"
+rust-version = "1.78"
 
 [lib]
 crate-type = ["lib"]
@@ -31,9 +30,9 @@ codegen-units = 256
 [package.metadata.bundle]
 name = "doukutsu-rs"
 identifier = "io.github.doukutsu_rs"
-version = "0.101.0"
+version = "1.0.0"
 resources = ["data"]
-copyright = "Copyright (c) 2020-2023 doukutsu-rs contributors"
+copyright = "Copyright (c) 2020-2024 doukutsu-rs contributors"
 category = "Game"
 osx_minimum_system_version = "10.12"
 
@@ -42,7 +41,7 @@ default = ["default-base", "backend-sdl", "render-opengl", "exe", "webbrowser", 
 default-base = ["ogg-playback"]
 ogg-playback = ["lewton"]
 backend-sdl = ["sdl2", "sdl2-sys"]
-backend-glutin = ["winit", "glutin", "render-opengl"]
+backend-winit = ["winit", "glutin", "render-opengl"]
 backend-horizon = []
 render-opengl = []
 discord-rpc = ["discord-rich-presence"]
@@ -52,7 +51,7 @@ exe = []
 android = []
 
 [dependencies]
-#glutin = { path = "./3rdparty/glutin/glutin", optional = true }
+glutin = { path = "./3rdparty/glutin/glutin", optional = true }
 #winit = { path = "./3rdparty/winit", optional = true, default_features = false, features = ["x11"] }
 #sdl2 = { path = "./3rdparty/rust-sdl2", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 #sdl2-sys = { path = "./3rdparty/rust-sdl2/sdl2-sys", optional = true, features = ["bundled", "static-link"] }
@@ -66,7 +65,7 @@ discord-rich-presence = { version = "0.2", optional = true }
 downcast = "0.11"
 encoding_rs = "0.8.33"
 fern = "0.6.2"
-glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "2dd95f042e6e090d36f577cbea125560dd99bd27", optional = true, default_features = false, features = ["x11"] }
+#glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "2dd95f042e6e090d36f577cbea125560dd99bd27", optional = true, default_features = false, features = ["x11"] }
 imgui = { git = "https://github.com/imgui-rs/imgui-rs.git", rev = "5d771a83b82c5cc3dd58cca3f969d900369262e6" }
 image = { version = "0.24", default-features = false, features = ["png", "bmp"] }
 itertools = "0.10"
@@ -89,8 +88,8 @@ strum = "0.24"
 strum_macros = "0.24"
 # remove and replace when extract_if is in stable
 vec_mut_scan = "0.4"
-webbrowser = { version = "0.8.6", optional = true }
-winit = { git = "https://github.com/doukutsu-rs/winit.git", rev = "878f206d19af01b0977277929eee5e32667453c0", optional = true, default_features = false, features = ["x11"] }
+webbrowser = { version = "1.0.1", optional = true }
+winit = { version = "0.30.2", optional = true, default_features = false, features = ["x11"] }
 xmltree = "0.10"
 
 #hack to not link SDL_image on Windows(causes a linker error)
@@ -103,8 +102,8 @@ winapi = { version = "0.3", features = ["winuser"] }
 [target.'cfg(target_os = "windows")'.build-dependencies]
 winres = "0.1"
 
-[target.'cfg(target_os = "macos")'.dependencies]
-objc = "0.2"
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
+objc2 = "0.5.2"
 
 [target.'cfg(target_os = "android")'.dependencies]
 ndk = "0.7"
@@ -114,4 +113,4 @@ jni = "0.20"
 
 [target.'cfg(target_os = "horizon")'.dependencies]
 #deko3d = { path = "./3rdparty/deko3d" }
-deko3d = { git = "https://github.com/doukutsu-rs/deko3d-rs", branch = "master" }
+deko3d = { git = "https://github.com/doukutsu-rs/deko3d-rs", rev = "acddd174321c842367971faeb9aebcdb99ddfef3" }

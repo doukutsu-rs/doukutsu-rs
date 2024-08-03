@@ -23,7 +23,7 @@ impl FilesystemContainer {
     }
 
     pub fn mount_fs(&mut self, context: &mut Context) -> GameResult {
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        #[cfg(not(any(target_os = "android", target_os = "ios", target_os = "horizon")))]
         let resource_dir = if let Ok(data_dir) = std::env::var("CAVESTORY_DATA_DIR") {
             PathBuf::from(data_dir)
         } else {
@@ -63,18 +63,18 @@ impl FilesystemContainer {
             resource_dir
         };
 
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        #[cfg(not(any(target_os = "android", target_os = "ios", target_os = "horizon")))]
         log::info!("Resource directory: {:?}", resource_dir);
 
         log::info!("Initializing engine...");
 
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        #[cfg(not(any(target_os = "android", target_os = "ios", target_os = "horizon")))]
         {
             mount_vfs(context, Box::new(PhysicalFS::new(&resource_dir, true)));
             self.game_path = resource_dir.clone();
         }
 
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        #[cfg(not(any(target_os = "android", target_os = "ios", target_os = "horizon")))]
         let project_dirs = match directories::ProjectDirs::from("", "", "doukutsu-rs") {
             Some(dirs) => dirs,
             None => {
@@ -84,6 +84,7 @@ impl FilesystemContainer {
                 )));
             }
         };
+
         #[cfg(target_os = "android")]
         {
             let mut data_path =
@@ -104,6 +105,38 @@ impl FilesystemContainer {
             self.user_path = user_path.clone();
             self.game_path = data_path.clone();
         }
+
+        #[cfg(target_os = "ios")]
+        unsafe {
+            use objc2::*;
+            use objc2::runtime::Object;
+
+            // [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
+            let file_manager: *mut Object = msg_send![class!(NSFileManager), defaultManager];
+            let document_dir: *mut Object = msg_send![file_manager, URLsForDirectory:9 /* NSDocumentDirectory */ inDomains:1 /* NSUserDomainMask */];
+            let document_dir: *mut Object = msg_send![document_dir, lastObject];
+
+            let path = std::ffi::CStr::from_ptr(msg_send![document_dir, fileSystemRepresentation]);
+            let path = std::str::from_utf8(path.to_bytes()).unwrap();
+
+            let mut data_path = PathBuf::from(path);
+            let mut user_path = data_path.clone();
+
+            data_path.push("data");
+            user_path.push("saves");
+
+            let _ = std::fs::create_dir_all(&data_path);
+            let _ = std::fs::create_dir_all(&user_path);
+
+            log::info!("iOS data directories: data_path={:?} user_path={:?}", &data_path, &user_path);
+
+            mount_vfs(context, Box::new(PhysicalFS::new(&data_path, true)));
+            mount_user_vfs(context, Box::new(PhysicalFS::new(&user_path, false)));
+
+            self.user_path = user_path.clone();
+            self.game_path = data_path.clone();
+        }
+
         #[cfg(target_os = "horizon")]
         {
             let mut data_path = PathBuf::from("sdmc:/switch/doukutsu-rs/data");
@@ -125,7 +158,7 @@ impl FilesystemContainer {
             self.game_path = data_path.clone();
         }
 
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        #[cfg(not(any(target_os = "android", target_os = "ios", target_os = "horizon")))]
         {
             let mut user_dir = resource_dir.clone();
             user_dir.pop();
@@ -212,7 +245,22 @@ impl FilesystemContainer {
             return Ok(());
         }
 
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        #[cfg(target_os = "ios")]
+        unsafe {
+            use objc2::*;
+            use objc2::runtime::*;
+
+            let url = "shareddocuments://".to_owned() + &path.to_string_lossy();
+            let url_nsstring: *mut Object = msg_send![class!(NSString), stringWithUTF8String: url.as_ptr() as *const std::os::raw::c_char];
+            
+            let nsurl: *mut Object = msg_send![class!(NSURL), URLWithString: url_nsstring];
+            let shared_app: *mut Object = msg_send![class!(UIApplication), sharedApplication];
+            let _: BOOL = msg_send![shared_app, openURL: nsurl];
+            
+            return Ok(());
+        }
+
+        #[cfg(not(any(target_os = "android", target_os = "ios", target_os = "horizon")))]
         open::that(path).map_err(|e| {
             use crate::framework::error::GameError;
             GameError::FilesystemError(format!("Failed to open directory: {}", e))

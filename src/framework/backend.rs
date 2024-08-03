@@ -119,9 +119,9 @@ pub fn init_backend(headless: bool, size_hint: (u16, u16)) -> GameResult<Box<dyn
         return crate::framework::backend_horizon::HorizonBackend::new();
     }
 
-    #[cfg(all(feature = "backend-glutin"))]
+    #[cfg(all(feature = "backend-winit"))]
     {
-        return crate::framework::backend_glutin::GlutinBackend::new();
+        return crate::framework::backend_winit::WinitBackend::new();
     }
 
     #[cfg(feature = "backend-sdl")]

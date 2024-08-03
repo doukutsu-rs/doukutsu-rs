@@ -1,8 +1,8 @@
 #![allow(unused)]
 
 pub mod backend;
-#[cfg(feature = "backend-glutin")]
-pub mod backend_glutin;
+#[cfg(feature = "backend-winit")]
+pub mod backend_winit;
 #[cfg(feature = "backend-horizon")]
 pub mod backend_horizon;
 pub mod backend_null;

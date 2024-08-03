@@ -1,0 +1,499 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B449CF882AA678FB00509937 /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B449CF872AA678FB00509937 /* Launch Screen.storyboard */; };
+		B449CF8A2AA6902200509937 /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B449CF892AA6902200509937 /* GLKit.framework */; };
+		B4A816142AA583DD00F87BB6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B4A816132AA583DD00F87BB6 /* Assets.xcassets */; };
+		B4A816192AA583DD00F87BB6 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = B4A816182AA583DD00F87BB6 /* main.mm */; };
+		B4A8162B2AA58A9B00F87BB6 /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B4A816202AA5885100F87BB6 /* OpenGLES.framework */; };
+		B4A8162C2AA58AA500F87BB6 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B4A816242AA5889100F87BB6 /* AudioToolbox.framework */; };
+		B4A8162D2AA58AA500F87BB6 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B4A816222AA5885600F87BB6 /* CoreAudio.framework */; };
+		B4A816352AA58C4B00F87BB6 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B4A816342AA58C4B00F87BB6 /* AVFoundation.framework */; };
+		B4A816362AA5980E00F87BB6 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B4A816262AA588B600F87BB6 /* UIKit.framework */; };
+		B4A816382AA5981300F87BB6 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B4A816372AA5981300F87BB6 /* Security.framework */; };
+		B4CD7F9E2C2423700043BFEC /* Cargo.toml in Sources */ = {isa = PBXBuildFile; fileRef = B4CD7F9D2C2423500043BFEC /* Cargo.toml */; settings = {COMPILER_FLAGS = "--lib"; }; };
+		B4CD7FA02C242CB10043BFEC /* libdrsios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B4CD7F942C2422440043BFEC /* libdrsios.a */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXBuildRule section */
+		B4CD7F9F2C2423880043BFEC /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.proxy.script;
+			dependencyFile = "$(DERIVED_FILE_DIR)/$(ARCHS)-$(EXECUTABLE_NAME).d";
+			filePatterns = "*/Cargo.toml";
+			fileType = pattern.proxy;
+			inputFiles = (
+			);
+			isEditable = 1;
+			outputFiles = (
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_NAME)",
+			);
+			runOncePerArchitecture = 0;
+			script = "# generated with cargo-xcode 1.11.0\nset -euo pipefail;\nexport PATH=\"$HOME/.cargo/bin:$PATH:/usr/local/bin:/opt/homebrew/bin\";\n# don't use ios/watchos linker for build scripts and proc macros\nexport CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER=/usr/bin/cc\nexport CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER=/usr/bin/cc\nexport NO_COLOR=1\n\ncase \"$PLATFORM_NAME\" in\n \"macosx\")\n  CARGO_XCODE_TARGET_OS=darwin\n  if [ \"${IS_MACCATALYST-NO}\" = YES ]; then\n   CARGO_XCODE_TARGET_OS=ios-macabi\n  fi\n  ;;\n \"iphoneos\") CARGO_XCODE_TARGET_OS=ios ;;\n \"iphonesimulator\") CARGO_XCODE_TARGET_OS=ios-sim ;;\n \"appletvos\" | \"appletvsimulator\") CARGO_XCODE_TARGET_OS=tvos ;;\n \"watchos\") CARGO_XCODE_TARGET_OS=watchos ;;\n \"watchsimulator\") CARGO_XCODE_TARGET_OS=watchos-sim ;;\n \"xros\") CARGO_XCODE_TARGET_OS=visionos ;;\n \"xrsimulator\") CARGO_XCODE_TARGET_OS=visionos-sim ;;\n *)\n  CARGO_XCODE_TARGET_OS=\"$PLATFORM_NAME\"\n  echo >&2 \"warning: cargo-xcode needs to be updated to handle $PLATFORM_NAME\"\n  ;;\nesac\n\nCARGO_XCODE_TARGET_TRIPLES=\"\"\nCARGO_XCODE_TARGET_FLAGS=\"\"\nLIPO_ARGS=\"\"\nfor arch in $ARCHS; do\n if [[ \"$arch\" == \"arm64\" ]]; then arch=aarch64; fi\n if [[ \"$arch\" == \"i386\" && \"$CARGO_XCODE_TARGET_OS\" != \"ios\" ]]; then arch=i686; fi\n triple=\"${arch}-apple-$CARGO_XCODE_TARGET_OS\"\n CARGO_XCODE_TARGET_TRIPLES+=\" $triple\"\n CARGO_XCODE_TARGET_FLAGS+=\" --target=$triple\"\n LIPO_ARGS+=\"$CARGO_TARGET_DIR/$triple/$CARGO_XCODE_BUILD_PROFILE/$CARGO_XCODE_CARGO_FILE_NAME\n\"\ndone\n\necho >&2 \"Cargo $CARGO_XCODE_BUILD_PROFILE $ACTION for $PLATFORM_NAME $ARCHS =$CARGO_XCODE_TARGET_TRIPLES; using ${SDK_NAMES:-}. \\$PATH is:\"\ntr >&2 : '\\n' <<<\"$PATH\"\n\nif command -v rustup &> /dev/null; then\n for triple in $CARGO_XCODE_TARGET_TRIPLES; do\n  if ! rustup target list --installed | grep -Eq \"^$triple$\"; then\n   echo >&2 \"warning: this build requires rustup toolchain for $triple, but it isn't installed (will try rustup next)\"\n   rustup target add \"$triple\" || {\n    echo >&2 \"warning: can't install $triple, will try nightly -Zbuild-std\";\n    OTHER_INPUT_FILE_FLAGS+=\" -Zbuild-std\";\n    if [ -z \"${RUSTUP_TOOLCHAIN:-}\" ]; then\n     export RUSTUP_TOOLCHAIN=nightly\n    fi\n    break;\n   }\n  fi\n done\nfi\n\nif [ \"$CARGO_XCODE_BUILD_PROFILE\" = release ]; then\n OTHER_INPUT_FILE_FLAGS=\"$OTHER_INPUT_FILE_FLAGS --release\"\nfi\n\nif [ \"$ACTION\" = clean ]; then\n cargo clean --verbose --manifest-path=\"$SCRIPT_INPUT_FILE\" $CARGO_XCODE_TARGET_FLAGS $OTHER_INPUT_FILE_FLAGS;\n rm -f \"$SCRIPT_OUTPUT_FILE_0\"\n exit 0\nfi\n\necho cargo build --manifest-path=\"$SCRIPT_INPUT_FILE\" --features=\"${CARGO_XCODE_FEATURES:-}\" $CARGO_XCODE_TARGET_FLAGS $OTHER_INPUT_FILE_FLAGS --verbose --message-format=short\n{ cargo build --manifest-path=\"$SCRIPT_INPUT_FILE\" --features=\"${CARGO_XCODE_FEATURES:-}\" $CARGO_XCODE_TARGET_FLAGS $OTHER_INPUT_FILE_FLAGS --verbose --message-format=short 2>&1 | sed -E 's/^([^ :]+:[0-9]+:[0-9]+: error)/\\1: /' >&2; } || { echo >&2 \"$SCRIPT_INPUT_FILE: error: cargo-xcode project build failed; $CARGO_XCODE_TARGET_TRIPLES\"; exit 1; }\n\ntr '\\n' '\\0' <<<\"$LIPO_ARGS\" | xargs -0 lipo -create -output \"$SCRIPT_OUTPUT_FILE_0\"\n\nif [ ${LD_DYLIB_INSTALL_NAME:+1} ]; then\n install_name_tool -id \"$LD_DYLIB_INSTALL_NAME\" \"$SCRIPT_OUTPUT_FILE_0\"\nfi\n\nDEP_FILE_DST=\"$DERIVED_FILE_DIR/${ARCHS}-${EXECUTABLE_NAME}.d\"\necho \"\" > \"$DEP_FILE_DST\"\nfor triple in $CARGO_XCODE_TARGET_TRIPLES; do\n BUILT_SRC=\"$CARGO_TARGET_DIR/$triple/$CARGO_XCODE_BUILD_PROFILE/$CARGO_XCODE_CARGO_FILE_NAME\"\n\n # cargo generates a dep file, but for its own path, so append our rename to it\n DEP_FILE_SRC=\"$CARGO_TARGET_DIR/$triple/$CARGO_XCODE_BUILD_PROFILE/$CARGO_XCODE_CARGO_DEP_FILE_NAME\"\n if [ -f \"$DEP_FILE_SRC\" ]; then\n  cat \"$DEP_FILE_SRC\" >> \"$DEP_FILE_DST\"\n fi\n echo >> \"$DEP_FILE_DST\" \"${SCRIPT_OUTPUT_FILE_0/ /\\\\ /}: ${BUILT_SRC/ /\\\\ /}\"\ndone\ncat \"$DEP_FILE_DST\"\n\necho \"success: $ACTION of $SCRIPT_OUTPUT_FILE_0 for $CARGO_XCODE_TARGET_TRIPLES\"\n";
+		};
+/* End PBXBuildRule section */
+
+/* Begin PBXFileReference section */
+		B449CF872AA678FB00509937 /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
+		B449CF892AA6902200509937 /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
+		B4A816012AA583DB00F87BB6 /* doukutsu-rs.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "doukutsu-rs.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B4A816132AA583DD00F87BB6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B4A816182AA583DD00F87BB6 /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
+		B4A816202AA5885100F87BB6 /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
+		B4A816222AA5885600F87BB6 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
+		B4A816242AA5889100F87BB6 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
+		B4A816262AA588B600F87BB6 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		B4A8162E2AA58AA500F87BB6 /* AudioUnit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioUnit.framework; path = System/Library/Frameworks/AudioUnit.framework; sourceTree = SDKROOT; };
+		B4A816322AA58BEE00F87BB6 /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "usr/lib/libc++.tbd"; sourceTree = SDKROOT; };
+		B4A816342AA58C4B00F87BB6 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		B4A816372AA5981300F87BB6 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		B4A816392AA59D8600F87BB6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		B4CD7F942C2422440043BFEC /* libdrsios.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libdrsios.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		B4CD7F9D2C2423500043BFEC /* Cargo.toml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Cargo.toml; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B4A815FE2AA583DB00F87BB6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B4CD7FA02C242CB10043BFEC /* libdrsios.a in Frameworks */,
+				B4A816382AA5981300F87BB6 /* Security.framework in Frameworks */,
+				B4A816362AA5980E00F87BB6 /* UIKit.framework in Frameworks */,
+				B4A816352AA58C4B00F87BB6 /* AVFoundation.framework in Frameworks */,
+				B4A8162C2AA58AA500F87BB6 /* AudioToolbox.framework in Frameworks */,
+				B449CF8A2AA6902200509937 /* GLKit.framework in Frameworks */,
+				B4A8162D2AA58AA500F87BB6 /* CoreAudio.framework in Frameworks */,
+				B4A8162B2AA58A9B00F87BB6 /* OpenGLES.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B4A815F82AA583DB00F87BB6 = {
+			isa = PBXGroup;
+			children = (
+				B4CD7F9D2C2423500043BFEC /* Cargo.toml */,
+				B4A816032AA583DB00F87BB6 /* doukutsu-rs */,
+				B4A816022AA583DB00F87BB6 /* Products */,
+				B4A8161F2AA5885100F87BB6 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		B4A816022AA583DB00F87BB6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B4A816012AA583DB00F87BB6 /* doukutsu-rs.app */,
+				B4CD7F942C2422440043BFEC /* libdrsios.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B4A816032AA583DB00F87BB6 /* doukutsu-rs */ = {
+			isa = PBXGroup;
+			children = (
+				B4A816392AA59D8600F87BB6 /* Info.plist */,
+				B4A816132AA583DD00F87BB6 /* Assets.xcassets */,
+				B4A816182AA583DD00F87BB6 /* main.mm */,
+				B449CF872AA678FB00509937 /* Launch Screen.storyboard */,
+			);
+			path = "doukutsu-rs";
+			sourceTree = "<group>";
+		};
+		B4A8161F2AA5885100F87BB6 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				B449CF892AA6902200509937 /* GLKit.framework */,
+				B4A816372AA5981300F87BB6 /* Security.framework */,
+				B4A816342AA58C4B00F87BB6 /* AVFoundation.framework */,
+				B4A816322AA58BEE00F87BB6 /* libc++.tbd */,
+				B4A8162E2AA58AA500F87BB6 /* AudioUnit.framework */,
+				B4A816262AA588B600F87BB6 /* UIKit.framework */,
+				B4A816242AA5889100F87BB6 /* AudioToolbox.framework */,
+				B4A816222AA5885600F87BB6 /* CoreAudio.framework */,
+				B4A816202AA5885100F87BB6 /* OpenGLES.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B4A816002AA583DB00F87BB6 /* doukutsu-rs */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B4A8161C2AA583DD00F87BB6 /* Build configuration list for PBXNativeTarget "doukutsu-rs" */;
+			buildPhases = (
+				B4A815FD2AA583DB00F87BB6 /* Sources */,
+				B4A815FE2AA583DB00F87BB6 /* Frameworks */,
+				B4A815FF2AA583DB00F87BB6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "doukutsu-rs";
+			productName = "doukutsu-rs";
+			productReference = B4A816012AA583DB00F87BB6 /* doukutsu-rs.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B4CD7F932C2422430043BFEC /* drsios.a */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B4CD7F9A2C2422440043BFEC /* Build configuration list for PBXNativeTarget "drsios.a" */;
+			buildPhases = (
+				B4CD7F902C2422430043BFEC /* Sources */,
+			);
+			buildRules = (
+				B4CD7F9F2C2423880043BFEC /* PBXBuildRule */,
+			);
+			dependencies = (
+			);
+			name = drsios.a;
+			productName = drsios.a;
+			productReference = B4CD7F942C2422440043BFEC /* libdrsios.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B4A815F92AA583DB00F87BB6 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					B4A816002AA583DB00F87BB6 = {
+						CreatedOnToolsVersion = 15.0;
+						LastSwiftMigration = 1500;
+					};
+					B4CD7F932C2422430043BFEC = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = B4A815FC2AA583DB00F87BB6 /* Build configuration list for PBXProject "doukutsu-rs" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B4A815F82AA583DB00F87BB6;
+			productRefGroup = B4A816022AA583DB00F87BB6 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B4A816002AA583DB00F87BB6 /* doukutsu-rs */,
+				B4CD7F932C2422430043BFEC /* drsios.a */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B4A815FF2AA583DB00F87BB6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B449CF882AA678FB00509937 /* Launch Screen.storyboard in Resources */,
+				B4A816142AA583DD00F87BB6 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B4A815FD2AA583DB00F87BB6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B4A816192AA583DD00F87BB6 /* main.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B4CD7F902C2422430043BFEC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B4CD7F9E2C2423700043BFEC /* Cargo.toml in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		B4A8161A2AA583DD00F87BB6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CARGO_TARGET_DIR = "$(PROJECT_TEMP_DIR)/cargo_target";
+				CARGO_XCODE_BUILD_PROFILE = debug;
+				CARGO_XCODE_FEATURES = "";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				RUSTUP_TOOLCHAIN = "";
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		B4A8161B2AA583DD00F87BB6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CARGO_TARGET_DIR = "$(PROJECT_TEMP_DIR)/cargo_target";
+				CARGO_XCODE_BUILD_PROFILE = release;
+				CARGO_XCODE_FEATURES = "";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				RUSTUP_TOOLCHAIN = "";
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		B4A8161D2AA583DD00F87BB6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "doukutsu-rs/Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = "Launch Screen.storyboard";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.github.doukutsu-rs";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TVOS_DEPLOYMENT_TARGET = 12.0;
+			};
+			name = Debug;
+		};
+		B4A8161E2AA583DD00F87BB6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "doukutsu-rs/Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = "Launch Screen.storyboard";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.github.doukutsu-rs";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TVOS_DEPLOYMENT_TARGET = 12.0;
+			};
+			name = Release;
+		};
+		B4CD7F9B2C2422440043BFEC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CARGO_XCODE_CARGO_DEP_FILE_NAME = libdrsios.d;
+				CARGO_XCODE_CARGO_FILE_NAME = libdrsios.a;
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = drsios;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TVOS_DEPLOYMENT_TARGET = 12.0;
+			};
+			name = Debug;
+		};
+		B4CD7F9C2C2422440043BFEC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CARGO_XCODE_CARGO_DEP_FILE_NAME = libdrsios.d;
+				CARGO_XCODE_CARGO_FILE_NAME = libdrsios.a;
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = drsios;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TVOS_DEPLOYMENT_TARGET = 12.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B4A815FC2AA583DB00F87BB6 /* Build configuration list for PBXProject "doukutsu-rs" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B4A8161A2AA583DD00F87BB6 /* Debug */,
+				B4A8161B2AA583DD00F87BB6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B4A8161C2AA583DD00F87BB6 /* Build configuration list for PBXNativeTarget "doukutsu-rs" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B4A8161D2AA583DD00F87BB6 /* Debug */,
+				B4A8161E2AA583DD00F87BB6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B4CD7F9A2C2422440043BFEC /* Build configuration list for PBXNativeTarget "drsios.a" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B4CD7F9B2C2422440043BFEC /* Debug */,
+				B4CD7F9C2C2422440043BFEC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B4A815F92AA583DB00F87BB6 /* Project object */;
+}

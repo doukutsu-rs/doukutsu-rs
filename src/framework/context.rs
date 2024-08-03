@@ -8,7 +8,9 @@ use crate::game::Game;
 
 pub struct Context {
     pub headless: bool,
+    pub shutdown_requested: bool,
     pub size_hint: (u16, u16),
+    pub window_title: String,
     pub(crate) filesystem: Filesystem,
     pub(crate) renderer: Option<Box<dyn BackendRenderer>>,
     pub(crate) gamepad_context: GamepadContext,
@@ -23,7 +25,9 @@ impl Context {
     pub fn new() -> Context {
         Context {
             headless: false,
+            shutdown_requested: false,
             size_hint: (640, 480),
+            window_title: "Game".to_string(),
             filesystem: Filesystem::new(),
             renderer: None,
             gamepad_context: GamepadContext::new(),

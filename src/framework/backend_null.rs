@@ -35,25 +35,23 @@ pub struct NullEventLoop;
 
 impl BackendEventLoop for NullEventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
-        let state_ref = unsafe { &mut *game.state.get() };
-
         ctx.screen_size = (640.0, 480.0);
-        state_ref.handle_resize(ctx).unwrap();
+        game.state.get_mut().handle_resize(ctx).unwrap();
 
         loop {
             game.update(ctx).unwrap();
 
-            if state_ref.shutdown {
+            if ctx.shutdown_requested {
                 log::info!("Shutting down...");
                 break;
             }
 
-            if state_ref.next_scene.is_some() {
-                mem::swap(&mut game.scene, &mut state_ref.next_scene);
-                state_ref.next_scene = None;
-                game.scene.as_mut().unwrap().init(state_ref, ctx).unwrap();
+            if game.state.get_mut().next_scene.is_some() {
+                mem::swap(game.scene.get_mut(), &mut game.state.get_mut().next_scene);
+                game.state.get_mut().next_scene = None;
+                game.scene.borrow_mut().as_mut().unwrap().init(game.state.get_mut(), ctx).unwrap();
                 game.loops = 0;
-                state_ref.frame_time = 0.0;
+                game.state.get_mut().frame_time = 0.0;
             }
             std::thread::sleep(std::time::Duration::from_millis(10));
 
@@ -95,6 +93,13 @@ impl BackendTexture for NullTexture {
 }
 
 pub struct NullRenderer(RefCell<imgui::Context>);
+
+impl NullRenderer {
+    pub fn new(mut imgui: imgui::Context) -> Self {
+        let _ = imgui.fonts().build_alpha8_texture();
+        NullRenderer(RefCell::new(imgui))
+    }
+}
 
 impl BackendRenderer for NullRenderer {
     fn renderer_name(&self) -> String {
