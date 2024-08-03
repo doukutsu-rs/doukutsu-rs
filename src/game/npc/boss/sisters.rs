@@ -1,8 +1,9 @@
-use crate::common::{CDEG_RAD, Direction, Rect, SliceExt};
+use crate::common::{Direction, Rect, SliceExt, CDEG_RAD};
 use crate::components::flash::Flash;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
 use crate::game::npc::NPC;
+use crate::game::physics::HitExtents;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
@@ -24,7 +25,7 @@ impl BossNPC {
                 self.parts[0].x = 0x14000 + (state.constants.game.tile_offset_x * 0x2000);
                 self.parts[0].y = 0x10000;
                 self.parts[0].display_bounds = Rect::new(0x1000, 0x1000, 0x10000, 0x1000);
-                self.parts[0].hit_bounds = Rect::new(0x1000, 0x1000, 0x1000, 0x1000);
+                self.parts[0].hit_bounds = HitExtents { left: 0x1000, top: 0x1000, right: 0x1000, bottom: 0x1000 };
                 self.hurt_sound[0] = 54;
                 self.parts[0].npc_flags.set_ignore_solidity(true);
                 self.parts[0].npc_flags.set_event_when_killed(true);
@@ -37,7 +38,7 @@ impl BossNPC {
                 self.parts[0].target_y = 0x3D;
 
                 self.parts[2].display_bounds = Rect::new(0x2800, 0x2000, 0x2800, 0x2000);
-                self.parts[2].hit_bounds = Rect::new(0x1800, 0x1400, 0x1800, 0x1400);
+                self.parts[2].hit_bounds = HitExtents { left: 0x1800, top: 0x1400, right: 0x1800, bottom: 0x1400 };
                 self.parts[2].npc_flags.set_ignore_solidity(true);
                 self.parts[2].npc_flags.set_invulnerable(true);
                 self.parts[2].parent_id = 3;
@@ -47,7 +48,7 @@ impl BossNPC {
 
                 self.parts[3].cond.set_alive(true);
                 self.parts[3].display_bounds = Rect::new(0x2800, 0x2800, 0x2800, 0x2800);
-                self.parts[3].hit_bounds = Rect::new(0x1800, 0x400, 0x1800, 0x2000);
+                self.parts[3].hit_bounds = HitExtents { left: 0x1800, top: 0x400, right: 0x1800, bottom: 0x2000 };
                 self.parts[3].npc_flags.set_ignore_solidity(true);
                 self.parts[3].parent_id = 0;
                 self.parts[3].damage = 10;
@@ -261,7 +262,7 @@ impl BossNPC {
         } else {
             return;
         };
-        
+
         match part.action_num {
             0 => {
                 part.action_num = 1;
@@ -316,14 +317,14 @@ impl BossNPC {
                     part.hit_bounds.left = 0x2000;
 
                     state.sound_manager.play_sfx(51);
-                    
+
                     npc_list.create_death_smoke(
                         part.x,
                         part.y,
                         part.display_bounds.right as usize,
                         4,
                         state,
-                        &part.rng
+                        &part.rng,
                     );
                 }
             }

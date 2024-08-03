@@ -3,6 +3,7 @@ use crate::framework::error::GameResult;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
 use crate::game::npc::NPC;
+use crate::game::physics::HitExtents;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
@@ -198,7 +199,7 @@ impl BossNPC {
                 self.parts[0].event_num = 1000;
                 self.parts[0].life = 400;
                 self.parts[0].display_bounds = Rect::new(0x5000, 0x1800, 0x3000, 0x1800);
-                self.parts[0].hit_bounds = Rect::new(0x2000, 0x1400, 0x2000, 0x1400);
+                self.parts[0].hit_bounds = HitExtents { left: 0x2000, top: 0x1400, right: 0x2000, bottom: 0x1400 };
             }
             100 | 101 => {
                 if self.parts[0].action_num == 100 {
