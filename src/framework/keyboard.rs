@@ -112,9 +112,6 @@ pub enum ScanCode {
     /// The space bar.
     Space,
 
-    /// The "Compose" key on Linux.
-    Compose,
-
     NonUsHash,
     NonUsBackslash,
     Caret,
@@ -139,8 +136,6 @@ pub enum ScanCode {
     NumpadMultiply,
     NumpadSubtract,
 
-    AbntC1,
-    AbntC2,
     Apostrophe,
     Apps,
     Asterisk,

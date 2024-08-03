@@ -21,6 +21,12 @@ use crate::framework::graphics::{BlendMode, VSyncMode};
 use crate::framework::util::{field_offset, return_param};
 use crate::game::GAME_SUSPENDED;
 
+pub trait GLPlatformFunctions {
+    fn get_proc_address(&self, name: &str) -> *const c_void;
+
+    fn swap_buffers(&self);
+}
+
 pub struct GLContext {
     pub gles2_mode: bool,
     pub is_sdl: bool,
@@ -446,6 +452,7 @@ struct RenderData {
     tex_shader: RenderShader,
     fill_shader: RenderShader,
     fill_water_shader: RenderShader,
+    render_fbo: GLint,
     vbo: GLuint,
     ebo: GLuint,
     font_texture: GLuint,
@@ -462,6 +469,7 @@ impl RenderData {
             tex_shader: RenderShader::default(),
             fill_shader: RenderShader::default(),
             fill_water_shader: RenderShader::default(),
+            render_fbo: 0,
             vbo: 0,
             ebo: 0,
             font_texture: 0,
@@ -481,12 +489,24 @@ impl RenderData {
         let fshdr_fill_water = if gles2_mode { FRAGMENT_SHADER_COLOR_GLES } else { FRAGMENT_SHADER_WATER };
 
         unsafe {
+            // iOS has "unusual" framebuffer setup, where we can't rely on 0 as the system provided render target.
+            self.render_fbo = return_param(|x| gl.gl.GetIntegerv(gl::FRAMEBUFFER_BINDING, x));
+
             self.tex_shader =
-                RenderShader::compile(gl, vshdr_basic, fshdr_tex).unwrap_or_else(|_| RenderShader::default());
+                RenderShader::compile(gl, vshdr_basic, fshdr_tex).unwrap_or_else(|e| {
+                    log::error!("Failed to compile texture shader: {}", e);
+                    RenderShader::default()
+                });
             self.fill_shader =
-                RenderShader::compile(gl, vshdr_basic, fshdr_fill).unwrap_or_else(|_| RenderShader::default());
+                RenderShader::compile(gl, vshdr_basic, fshdr_fill).unwrap_or_else(|e| {
+                    log::error!("Failed to compile fill shader: {}", e);
+                    RenderShader::default()
+                });
             self.fill_water_shader =
-                RenderShader::compile(gl, vshdr_basic, fshdr_fill_water).unwrap_or_else(|_| RenderShader::default());
+                RenderShader::compile(gl, vshdr_basic, fshdr_fill_water).unwrap_or_else(|e| {
+                    log::error!("Failed to compile fill water shader: {}", e);
+                    RenderShader::default()
+                });
 
             self.vbo = return_param(|x| gl.gl.GenBuffers(1, x));
             self.ebo = return_param(|x| gl.gl.GenBuffers(1, x));
@@ -594,10 +614,10 @@ pub struct OpenGLRenderer {
 }
 
 impl OpenGLRenderer {
-    pub fn new(refs: GLContext, imgui: UnsafeCell<imgui::Context>) -> OpenGLRenderer {
+    pub fn new(refs: GLContext, imgui: imgui::Context) -> OpenGLRenderer {
         OpenGLRenderer {
             refs,
-            imgui,
+            imgui: UnsafeCell::new(imgui),
             render_data: RenderData::new(),
             context_active: Arc::new(RefCell::new(true)),
             def_matrix: [[0.0; 4]; 4],
@@ -622,9 +642,9 @@ impl OpenGLRenderer {
 impl BackendRenderer for OpenGLRenderer {
     fn renderer_name(&self) -> String {
         if self.refs.gles2_mode {
-            "OpenGL ES 2.0".to_string()
+            "*COMPATIBILITY* OpenGL ES 2.0".to_string()
         } else {
-            "OpenGL 2.1".to_string()
+            "*COMPATIBILITY* OpenGL 2.1".to_string()
         }
     }
 
@@ -647,7 +667,7 @@ impl BackendRenderer for OpenGLRenderer {
 
         unsafe {
             if let Some((_, gl)) = self.get_context() {
-                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
+                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.render_fbo as _);
                 gl.gl.ClearColor(0.0, 0.0, 0.0, 1.0);
                 gl.gl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
@@ -717,7 +737,7 @@ impl BackendRenderer for OpenGLRenderer {
                 let (width_u, height_u) = (width as u32, height as u32);
                 if self.render_data.last_size != (width_u, height_u) {
                     self.render_data.last_size = (width_u, height_u);
-                    gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
+                    gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.render_fbo as _);
                     gl.gl.BindTexture(gl::TEXTURE_2D, self.render_data.surf_texture);
 
                     gl.gl.TexImage2D(
@@ -820,7 +840,7 @@ impl BackendRenderer for OpenGLRenderer {
                 gl.gl.Viewport(0, 0, width as _, height as _);
                 gl.gl.ClearColor(0.0, 0.0, 0.0, 0.0);
                 gl.gl.Clear(gl::COLOR_BUFFER_BIT);
-                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
+                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.render_fbo as _);
 
                 // todo error checking: glCheckFramebufferStatus()
 

@@ -8,6 +8,7 @@ use crate::game::Game;
 
 pub struct Context {
     pub headless: bool,
+    pub shutdown_requested: bool,
     pub window: WindowParams,
     pub(crate) filesystem: Filesystem,
     pub(crate) renderer: Option<Box<dyn BackendRenderer>>,
@@ -23,6 +24,7 @@ impl Context {
     pub fn new() -> Context {
         Context {
             headless: false,
+            shutdown_requested: false,
             window: WindowParams::default(),
             filesystem: Filesystem::new(),
             renderer: None,
@@ -36,7 +38,7 @@ impl Context {
     }
 
     pub fn run(&mut self, game: &mut Game) -> GameResult {
-        let backend = init_backend(self.headless, self.window)?;
+        let backend = init_backend(self.headless, &self.window)?;
         let mut event_loop = backend.create_event_loop(self)?;
         self.renderer = Some(event_loop.new_renderer(self as *mut Context)?);
 

@@ -23,7 +23,9 @@ defaults:
     shell: bash
 
 env:
-  VERSION: "0.102.0"
+  # TODO: get version from Cargo:
+  # export DRS_CARGO_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "doukutsu-rs").version')      
+  VERSION: "1.0.0"
 
 jobs:
   build:

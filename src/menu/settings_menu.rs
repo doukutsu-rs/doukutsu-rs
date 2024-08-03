@@ -145,7 +145,7 @@ enum AdvancedMenuEntry {
     Title,
     OpenUserData,
     OpenGameData,
-    #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+    #[cfg(not(any(target_os = "android", target_os = "ios", target_os = "horizon")))]
     MakePortable,
     Back,
 }
@@ -247,7 +247,7 @@ impl SettingsMenu {
                 ],
             ),
         );
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        #[cfg(not(any(target_os = "android", target_os = "ios", target_os = "horizon")))]
         self.graphics.push_entry(
             GraphicsMenuEntry::WindowMode,
             MenuEntry::Options(
@@ -413,7 +413,7 @@ impl SettingsMenu {
             MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.open_game_data").to_owned()),
         );
 
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+        #[cfg(not(any(target_os = "android", target_os = "ios", target_os = "horizon")))]
         if let Some(fs_container) = &state.fs_container {
             if !fs_container.is_portable && self.on_title {
                 self.advanced.push_entry(
@@ -1084,7 +1084,7 @@ impl SettingsMenu {
                     }
                 }
 
-                #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+                #[cfg(not(any(target_os = "android", target_os = "ios", target_os = "horizon")))]
                 MenuSelectionResult::Selected(AdvancedMenuEntry::MakePortable, _) => {
                     self.current = CurrentMenu::PortableMenu;
                 }

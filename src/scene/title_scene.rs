@@ -354,7 +354,7 @@ impl Scene for TitleScene {
                     state.next_scene = Some(Box::new(JukeboxScene::new()));
                 }
                 MenuSelectionResult::Selected(MainMenuEntry::Quit, _) => {
-                    state.shutdown();
+                    ctx.shutdown_requested = true;
                 }
                 _ => {}
             },

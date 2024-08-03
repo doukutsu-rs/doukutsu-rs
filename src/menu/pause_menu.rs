@@ -270,7 +270,7 @@ impl PauseMenu {
                         state.next_scene = Some(Box::new(TitleScene::new()));
                     }
                     PauseMenuEntry::Quit => {
-                        state.shutdown();
+                        ctx.shutdown_requested = true;
                     }
                     _ => (),
                 },

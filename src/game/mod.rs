@@ -1,5 +1,5 @@
 use std::backtrace::Backtrace;
-use std::cell::UnsafeCell;
+use std::cell::RefCell;
 use std::panic::PanicInfo;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -41,6 +41,7 @@ pub mod weapon;
 
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None)]
+#[repr(C)]
 pub struct LaunchOptions {
     #[arg(long, hide = cfg!(not(feature = "netplay")))]
     /// Do not create a window and skip audio initialization.
@@ -96,6 +97,7 @@ impl LaunchOptions {
         WindowParams {
             size_hint: (width, height),
             mode: if self.window_fullscreen { WindowMode::Fullscreen } else { WindowMode::Windowed },
+            title: "Cave Story (doukutsu-rs)".to_string(),
         }
     }
 }
@@ -105,8 +107,8 @@ lazy_static! {
 }
 
 pub struct Game {
-    pub(crate) scene: Option<Box<dyn Scene>>,
-    pub(crate) state: UnsafeCell<SharedGameState>,
+    pub(crate) scene: RefCell<Option<Box<dyn Scene>>>,
+    pub(crate) state: RefCell<SharedGameState>,
     ui: UI,
     start_time: Instant,
     last_tick: u128,
@@ -120,9 +122,9 @@ pub struct Game {
 impl Game {
     fn new(ctx: &mut Context) -> GameResult<Game> {
         let s = Game {
-            scene: None,
+            scene: RefCell::new( None),
             ui: UI::new(ctx)?,
-            state: UnsafeCell::new(SharedGameState::new(ctx)?),
+            state: RefCell::new(SharedGameState::new(ctx)?),
             start_time: Instant::now(),
             last_tick: 0,
             next_tick: 0,
@@ -136,34 +138,38 @@ impl Game {
     }
 
     pub(crate) fn update(&mut self, ctx: &mut Context) -> GameResult {
-        if let Some(scene) = &mut self.scene {
-            let state_ref = unsafe { &mut *self.state.get() };
+        if let Some(scene) = self.scene.get_mut() {
+            let state_ref = self.state.get_mut();
 
-            let speed =
-                if state_ref.textscript_vm.mode == ScriptMode::Map && state_ref.textscript_vm.flags.cutscene_skip() {
-                    4.0 * state_ref.settings.speed
-                } else {
-                    1.0 * state_ref.settings.speed
-                };
+            let speed = if state_ref.textscript_vm.mode == ScriptMode::Map
+                && state_ref.textscript_vm.flags.cutscene_skip()
+            {
+                4.0
+            } else {
+                1.0
+            } * state_ref.settings.speed;
 
             match state_ref.settings.timing_mode {
                 TimingMode::_50Hz | TimingMode::_60Hz => {
                     let last_tick = self.next_tick;
 
                     while self.start_time.elapsed().as_nanos() >= self.next_tick && self.loops < 10 {
+                        let delta = state_ref.settings.timing_mode.get_delta();
+
                         if (speed - 1.0).abs() < 0.01 {
-                            self.next_tick += state_ref.settings.timing_mode.get_delta() as u128;
+                            self.next_tick += delta as u128;
                         } else {
-                            self.next_tick += (state_ref.settings.timing_mode.get_delta() as f64 / speed) as u128;
+                            self.next_tick += (delta as f64 / speed) as u128;
                         }
                         self.loops += 1;
                     }
 
                     if self.loops == 10 {
+                        let delta = state_ref.settings.timing_mode.get_delta();
+
                         log::warn!("Frame skip is way too high, a long system lag occurred?");
                         self.last_tick = self.start_time.elapsed().as_nanos();
-                        self.next_tick =
-                            self.last_tick + (state_ref.settings.timing_mode.get_delta() as f64 / speed) as u128;
+                        self.next_tick = self.last_tick + (delta as f64 / speed) as u128;
                         self.loops = 0;
                     }
 
@@ -186,8 +192,6 @@ impl Game {
     }
 
     pub(crate) fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        let state_ref = unsafe { &mut *self.state.get() };
-
         match ctx.vsync_mode {
             VSyncMode::Uncapped | VSyncMode::VSync => {
                 self.present = true;
@@ -202,7 +206,8 @@ impl Game {
                     _ => std::hint::unreachable_unchecked(),
                 };
 
-                let delta = (state_ref.settings.timing_mode.get_delta() / divisor) as u64;
+                let delta = self.state.get_mut().settings.timing_mode.get_delta();
+                let delta = (delta / divisor) as u64;
 
                 let now = self.start_time.elapsed().as_nanos();
                 if now > self.next_tick_draw + delta as u128 * 4 {
@@ -224,11 +229,11 @@ impl Game {
 
         if ctx.headless {
             self.loops = 0;
-            state_ref.frame_time = 1.0;
+            self.state.get_mut().frame_time = 1.0;
             return Ok(());
         }
 
-        if state_ref.settings.timing_mode != TimingMode::FrameSynchronized {
+        if self.state.get_mut().settings.timing_mode != TimingMode::FrameSynchronized {
             let mut elapsed = self.start_time.elapsed().as_nanos();
 
             // Even with the non-monotonic Instant mitigation at the start of the event loop, there's still a chance of it not working.
@@ -239,18 +244,20 @@ impl Game {
 
             let n1 = (elapsed - self.last_tick) as f64;
             let n2 = (self.next_tick - self.last_tick) as f64;
-            state_ref.frame_time = if state_ref.settings.motion_interpolation { n1 / n2 } else { 1.0 };
+            self.state.get_mut().frame_time = if self.state.get_mut().settings.motion_interpolation { n1 / n2 } else { 1.0 };
         }
         unsafe {
-            G_MAG = if state_ref.settings.subpixel_coords { state_ref.scale } else { 1.0 };
-            I_MAG = state_ref.scale;
+            G_MAG = if self.state.get_mut().settings.subpixel_coords { self.state.get_mut().scale } else { 1.0 };
+            I_MAG = self.state.get_mut().scale;
         }
         self.loops = 0;
 
         graphics::prepare_draw(ctx)?;
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
 
-        if let Some(scene) = &mut self.scene {
+        if let Some(scene) = self.scene.get_mut() {
+            let state_ref = self.state.get_mut();
+
             scene.draw(state_ref, ctx)?;
             if state_ref.settings.touch_controls && state_ref.settings.display_touch_controls {
                 state_ref.touch_controls.draw(
