@@ -18,6 +18,7 @@ use crate::entity::GameEntity;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::game::frame::UpdateTarget;
+use crate::game::npc::NPCContext;
 use crate::game::npc::NPC;
 use crate::game::player::{ControlMode, TargetPlayer};
 use crate::game::scripting::tsc::bytecode_utils::read_cur_varint;
@@ -1626,14 +1627,14 @@ impl TextScriptVM {
 
                         npc.tick(
                             state,
-                            (
-                                [&mut game_scene.player1, &mut game_scene.player2],
-                                &game_scene.npc_list,
-                                &mut game_scene.stage,
-                                &mut game_scene.bullet_manager,
-                                &mut game_scene.flash,
-                                &mut game_scene.boss,
-                            ),
+                            NPCContext {
+                                players: [&mut game_scene.player1, &mut game_scene.player2],
+                                npc_list: &game_scene.npc_list,
+                                stage: &mut game_scene.stage,
+                                bullet_manager: &mut game_scene.bullet_manager,
+                                flash: &mut game_scene.flash,
+                                boss: &mut game_scene.boss,
+                            },
                         )?;
                     }
                 }

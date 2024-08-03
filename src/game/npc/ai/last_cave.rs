@@ -1,18 +1,15 @@
 use crate::common::Direction;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
-use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
 impl NPC {
     pub(crate) fn tick_n241_critter_red(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -104,7 +101,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n242_bat_last_cave(&mut self, state: &mut SharedGameState, stage: &mut Stage) -> GameResult {
+    pub(crate) fn tick_n242_bat_last_cave(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { stage, .. }: NPCContext,
+    ) -> GameResult {
         if self.x < 0 || self.x > stage.map.width as i32 * state.tile_size.as_int() * 0x200 {
             self.vanish(state);
             return Ok(());
@@ -148,7 +149,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n243_bat_generator(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n243_bat_generator(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -176,7 +181,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n244_lava_drop(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n244_lava_drop(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         self.vel_y += 0x40;
 
         // idfk why was that there in original code but I'll leave it there in case
@@ -215,7 +224,7 @@ impl NPC {
     pub(crate) fn tick_n245_lava_drop_generator(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -266,8 +275,7 @@ impl NPC {
     pub(crate) fn tick_n276_red_demon(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 | 2 => {
@@ -441,7 +449,7 @@ impl NPC {
     pub(crate) fn tick_n277_red_demon_projectile(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;

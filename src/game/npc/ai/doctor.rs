@@ -1,14 +1,11 @@
-use crate::common::{CDEG_RAD, Direction, Rect};
+use crate::common::{Direction, Rect, CDEG_RAD};
 use crate::framework::error::GameResult;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
-use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
 impl NPC {
-    pub(crate) fn tick_n139_doctor(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n139_doctor(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -119,7 +116,7 @@ impl NPC {
     pub(crate) fn tick_n256_doctor_facing_away(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -208,7 +205,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n257_red_crystal(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n257_red_crystal(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
         }
@@ -263,8 +260,7 @@ impl NPC {
     pub(crate) fn tick_n263_doctor_boss(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 => {
@@ -486,8 +482,7 @@ impl NPC {
     pub(crate) fn tick_n264_doctor_boss_red_projectile(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
-        stage: &mut Stage,
+        NPCContext { npc_list, stage, .. }: NPCContext,
     ) -> GameResult {
         if self.x < 0 || self.x > stage.map.width as i32 * state.tile_size.as_int() * 0x200 {
             self.vanish(state);
@@ -531,7 +526,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n265_doctor_boss_red_projectile_trail(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n265_doctor_boss_red_projectile_trail(
+        &mut self,
+        state: &mut SharedGameState,
+        _: NPCContext,
+    ) -> GameResult {
         self.anim_counter += 1;
         if self.anim_counter > 3 {
             self.anim_counter = 0;
@@ -550,7 +549,7 @@ impl NPC {
     pub(crate) fn tick_n266_doctor_boss_red_projectile_bouncing(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         if self.flags.hit_left_wall() {
             self.vel_x = -self.vel_x;
@@ -599,8 +598,7 @@ impl NPC {
     pub(crate) fn tick_n267_muscle_doctor(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 | 2 => {
@@ -661,7 +659,10 @@ impl NPC {
                 if self.flags.hit_bottom_wall() {
                     if self.life + 20 >= self.action_counter3 {
                         self.animate(10, 1, 2);
-                    } else if player.flags.hit_bottom_wall() && player.x > self.x - 0x6000 && player.x < self.x + 0x6000 && self.anim_num != 6
+                    } else if player.flags.hit_bottom_wall()
+                        && player.x > self.x - 0x6000
+                        && player.x < self.x + 0x6000
+                        && self.anim_num != 6
                     {
                         self.anim_num = 6;
                         state.quake_counter = 10;
@@ -1034,7 +1035,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n269_red_bat_bouncing(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n269_red_bat_bouncing(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.vel_x2 = self.vel_x;
@@ -1068,7 +1069,7 @@ impl NPC {
     pub(crate) fn tick_n270_doctor_red_energy(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         if self.direction == Direction::Bottom || self.direction == Direction::Up {
             self.vel_y += self.direction.vector_y() * 0x40;
@@ -1129,7 +1130,7 @@ impl NPC {
     pub(crate) fn tick_n281_doctor_energy_form(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 => {

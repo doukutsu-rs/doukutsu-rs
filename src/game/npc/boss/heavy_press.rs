@@ -1,18 +1,18 @@
 use crate::common::{Direction, Rect};
 use crate::framework::error::GameResult;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::physics::HitExtents;
 use crate::game::shared_game_state::SharedGameState;
-use crate::game::stage::Stage;
 use crate::util::rng::RNG;
+
+use super::BossNPCContext;
 
 impl NPC {
     pub(crate) fn tick_n325_heavy_press_lightning(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -53,7 +53,11 @@ impl NPC {
 }
 
 impl BossNPC {
-    pub(crate) fn tick_b08_heavy_press(&mut self, state: &mut SharedGameState, npc_list: &NPCList, stage: &mut Stage) {
+    pub(crate) fn tick_b08_heavy_press(
+        &mut self,
+        state: &mut SharedGameState,
+        BossNPCContext { npc_list, stage, .. }: BossNPCContext,
+    ) {
         match self.parts[0].action_num {
             0 => {
                 self.parts[0].action_num = 10;
