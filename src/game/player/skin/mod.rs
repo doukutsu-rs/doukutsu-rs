@@ -1,5 +1,6 @@
 use crate::bitfield;
 use crate::common::{Color, Direction, Rect};
+use crate::game::physics::HitExtents;
 use crate::game::shared_game_state::SharedGameState;
 
 pub mod basic;
@@ -83,7 +84,7 @@ pub trait PlayerSkin: PlayerSkinClone {
     fn get_mask_texture_name(&self) -> &str;
 
     /// Returns hit bounds of skin.
-    fn get_hit_bounds(&self) -> Rect<u32>;
+    fn get_hit_bounds(&self) -> HitExtents;
 
     /// Returns display bounds of skin.
     fn get_display_bounds(&self) -> Rect<u32>;
