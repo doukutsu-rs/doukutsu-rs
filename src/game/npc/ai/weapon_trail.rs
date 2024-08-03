@@ -1,10 +1,10 @@
 use crate::common::Direction;
 use crate::framework::error::GameResult;
-use crate::game::npc::NPC;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
 
 impl NPC {
-    pub(crate) fn tick_n127_machine_gun_trail_l2(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n127_machine_gun_trail_l2(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         self.anim_counter += 1;
         if self.anim_counter > 0 {
             self.anim_counter = 0;
@@ -29,7 +29,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n128_machine_gun_trail_l3(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n128_machine_gun_trail_l3(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         self.anim_counter += 1;
         if self.anim_counter > 0 {
             self.anim_counter = 0;
@@ -76,7 +76,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n129_fireball_snake_trail(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n129_fireball_snake_trail(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         self.anim_counter += 1;
 
         if self.anim_counter > 1 {
