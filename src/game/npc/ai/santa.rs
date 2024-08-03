@@ -2,13 +2,16 @@ use num_traits::abs;
 
 use crate::common::Direction;
 use crate::framework::error::GameResult;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
 impl NPC {
-    pub(crate) fn tick_n040_santa(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n040_santa(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -67,7 +70,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n307_santa_caged(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n307_santa_caged(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {

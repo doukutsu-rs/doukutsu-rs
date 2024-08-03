@@ -1,14 +1,12 @@
-use crate::common::{CDEG_RAD, Direction};
+use crate::common::{Direction, CDEG_RAD};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
 impl NPC {
-    pub(crate) fn tick_n220_shovel_brigade(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n220_shovel_brigade(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -40,7 +38,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n221_shovel_brigade_walking(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n221_shovel_brigade_walking(
+        &mut self,
+        state: &mut SharedGameState,
+        _: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -117,7 +119,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n223_momorin(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n223_momorin(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -162,7 +168,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n224_chie(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n224_chie(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -203,7 +213,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n225_megane(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n225_megane(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
             self.anim_num = 0;
@@ -232,7 +242,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n226_kanpachi_plantation(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n226_kanpachi_plantation(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -285,7 +295,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n228_droll(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n228_droll(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -364,8 +378,7 @@ impl NPC {
     pub(crate) fn tick_n231_rocket(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -476,7 +489,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n232_orangebell(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n232_orangebell(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -530,8 +547,7 @@ impl NPC {
     pub(crate) fn tick_n233_orangebell_bat(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -606,7 +622,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n235_midorin(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n235_midorin(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -687,8 +703,7 @@ impl NPC {
     pub(crate) fn tick_n236_gunfish(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -789,7 +804,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n237_gunfish_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n237_gunfish_projectile(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
         }
@@ -821,7 +836,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n240_mimiga_jailed(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n240_mimiga_jailed(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -893,7 +908,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n273_droll_projectile(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
+    pub(crate) fn tick_n273_droll_projectile(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { npc_list, .. }: NPCContext,
+    ) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
         }
@@ -935,8 +954,7 @@ impl NPC {
     pub(crate) fn tick_n274_droll(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 | 2 => {
@@ -1044,7 +1062,7 @@ impl NPC {
     pub(crate) fn tick_n275_puppy_plantation(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -1091,7 +1109,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n308_stumpy(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n308_stumpy(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 self.action_num = 1;

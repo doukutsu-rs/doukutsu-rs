@@ -1,19 +1,14 @@
 use crate::common::Direction;
 use crate::framework::error::GameResult;
-use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
-use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
 impl NPC {
     pub fn tick_n042_sue(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -225,7 +220,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n092_sue_at_pc(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n092_sue_at_pc(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -282,7 +277,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n280_sue_teleported(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n280_sue_teleported(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -335,10 +330,7 @@ impl NPC {
     pub(crate) fn tick_n284_sue_possessed(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        stage: &mut Stage,
-        boss: &mut BossNPC,
+        NPCContext { players, npc_list, stage, boss, .. }: NPCContext,
     ) -> GameResult {
         if self.action_num < 100 && (!boss.parts[0].cond.alive() || self.life < 500) {
             self.action_num = 100;
