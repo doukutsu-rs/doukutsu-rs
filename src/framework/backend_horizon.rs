@@ -1296,10 +1296,6 @@ impl BackendRenderer for Deko3DRenderer {
         Ok(())
     }
 
-    fn supports_vertex_draw(&self) -> bool {
-        true
-    }
-
     fn draw_triangle_list(
         &mut self,
         vertices: &[VertexData],

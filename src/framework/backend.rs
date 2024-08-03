@@ -77,10 +77,6 @@ pub trait BackendRenderer {
 
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult;
 
-    fn supports_vertex_draw(&self) -> bool {
-        false
-    }
-
     fn draw_triangle_list(
         &mut self,
         vertices: &[VertexData],
