@@ -19,6 +19,8 @@ use crate::input::dummy_player_controller::DummyPlayerController;
 use crate::input::player_controller::PlayerController;
 use crate::util::rng::RNG;
 
+use super::physics::HitExtents;
+
 mod player_hit;
 pub mod skin;
 
@@ -93,7 +95,7 @@ pub struct Player {
     pub equip: Equipment,
     pub direction: Direction,
     pub display_bounds: Rect<u32>,
-    pub hit_bounds: Rect<u32>,
+    pub hit_bounds: HitExtents,
     pub control_mode: ControlMode,
     pub question: bool,
     pub booster_fuel: u32,

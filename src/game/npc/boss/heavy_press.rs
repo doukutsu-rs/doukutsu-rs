@@ -3,6 +3,7 @@ use crate::framework::error::GameResult;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
 use crate::game::npc::NPC;
+use crate::game::physics::HitExtents;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::util::rng::RNG;
@@ -62,7 +63,7 @@ impl BossNPC {
                 self.parts[0].x = 0;
                 self.parts[0].y = 0;
                 self.parts[0].display_bounds = Rect { left: 0x5000, top: 0x7800, right: 0x5000, bottom: 0x7800 };
-                self.parts[0].hit_bounds = Rect { left: 0x6200, top: 0x7800, right: 0x5000, bottom: 0x6000 };
+                self.parts[0].hit_bounds = HitExtents { left: 0x6200, top: 0x7800, right: 0x5000, bottom: 0x6000 };
                 self.hurt_sound[0] = 54;
                 self.parts[0].npc_flags.set_ignore_solidity(true);
                 self.parts[0].npc_flags.set_solid_hard(true);
@@ -139,14 +140,14 @@ impl BossNPC {
                     self.parts[1].cond.set_alive(true);
                     self.parts[1].npc_flags.set_invulnerable(true);
                     self.parts[1].npc_flags.set_ignore_solidity(true);
-                    self.parts[1].hit_bounds = Rect { left: 0x1C00, top: 0x1000, right: 0x1C00, bottom: 0x1000 };
+                    self.parts[1].hit_bounds = HitExtents { left: 0x1C00, top: 0x1000, right: 0x1C00, bottom: 0x1000 };
 
                     self.parts[2] = self.parts[1].clone();
 
                     self.parts[3].cond.set_alive(true);
                     self.parts[3].cond.set_damage_boss(true);
                     self.parts[3].npc_flags.set_shootable(true);
-                    self.parts[3].hit_bounds = Rect { left: 0xC00, top: 0x1000, right: 0xC00, bottom: 0x1000 };
+                    self.parts[3].hit_bounds = HitExtents { left: 0xC00, top: 0x1000, right: 0xC00, bottom: 0x1000 };
 
                     let mut npc = NPC::create(325, &state.npc_table);
                     npc.cond.set_alive(true);
@@ -162,7 +163,8 @@ impl BossNPC {
                     // This relies heavily on the map not being changed
                     // Need to calculate offset from the default starting location
                     for i in 0..5 {
-                        let extra_smoke = if stage.change_tile(i + 8, self.parts[0].action_counter3 as usize, 0) { 3 } else { 0 };
+                        let extra_smoke =
+                            if stage.change_tile(i + 8, self.parts[0].action_counter3 as usize, 0) { 3 } else { 0 };
                         npc_list.create_death_smoke(
                             (i as i32 + 8) * 0x2000,
                             self.parts[0].action_counter3 as i32 * 0x2000,

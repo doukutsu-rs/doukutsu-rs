@@ -279,8 +279,18 @@ impl<T: Num + PartialOrd + Copy> Rect<T> {
         Rect { left: x, top: y, right: x.add(width), bottom: y.add(height) }
     }
 
-    pub fn has_point(&self, x: T, y: T) -> bool {
+    /**
+     * Returns true if the point (x, y) is inside the rectangle (inclusive).
+     */
+    pub fn has_point_incl(&self, x: T, y: T) -> bool {
         self.left.ge(&x) && self.right.le(&x) && self.top.ge(&y) && self.bottom.le(&y)
+    }
+
+    /**
+     * Returns true if the point (x, y) is inside the rectangle (exclusive).
+     */
+    pub fn has_point_excl(&self, x: T, y: T) -> bool {
+        self.left.le(&x) && self.right.gt(&x) && self.top.le(&y) && self.bottom.gt(&y)
     }
 
     pub fn width(&self) -> T {

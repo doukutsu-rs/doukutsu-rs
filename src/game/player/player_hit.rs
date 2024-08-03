@@ -8,7 +8,7 @@ use crate::game::inventory::Inventory;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
 use crate::game::npc::NPC;
-use crate::game::physics::PhysicalEntity;
+use crate::game::physics::{HitExtents, PhysicalEntity};
 use crate::game::player::{ControlMode, Player, TargetPlayer};
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::weapon::WeaponType;
@@ -43,7 +43,7 @@ impl PhysicalEntity for Player {
     }
 
     #[inline(always)]
-    fn hit_bounds(&self) -> &Rect<u32> {
+    fn hit_bounds(&self) -> &HitExtents {
         &self.hit_bounds
     }
 

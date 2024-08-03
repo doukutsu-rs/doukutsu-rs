@@ -4,6 +4,7 @@ use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
 use crate::game::npc::NPC;
+use crate::game::physics::HitExtents;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
@@ -42,7 +43,7 @@ impl BossNPC {
                 self.parts[0].direction = Direction::Right;
                 self.parts[0].display_bounds =
                     Rect { left: 48 * 0x200, top: 48 * 0x200, right: 32 * 0x200, bottom: 0x2000 };
-                self.parts[0].hit_bounds = Rect { left: 24 * 0x200, top: 0x2000, right: 24 * 0x200, bottom: 0x2000 };
+                self.parts[0].hit_bounds = HitExtents { left: 24 * 0x200, top: 0x2000, right: 24 * 0x200, bottom: 0x2000 };
                 self.parts[0].size = 3;
                 self.parts[0].exp = 1;
                 self.parts[0].event_num = 1000;
@@ -478,12 +479,12 @@ impl BossNPC {
                 self.hurt_sound[1] = 52;
                 self.parts[1].size = 3;
                 self.parts[1].npc_flags.set_invulnerable(true);
-                self.parts[1].hit_bounds = Rect { left: 0x2000, top: 0x2000, right: 0x2000, bottom: 0x2000 };
+                self.parts[1].hit_bounds = HitExtents { left: 0x2000, top: 0x2000, right: 0x2000, bottom: 0x2000 };
 
                 self.hurt_sound[2] = 52;
                 self.parts[2].size = 3;
                 self.parts[2].npc_flags.set_invulnerable(true);
-                self.parts[2].hit_bounds = Rect { left: 24 * 0x200, top: 0x2000, right: 24 * 0x200, bottom: 0x2000 };
+                self.parts[2].hit_bounds = HitExtents { left: 24 * 0x200, top: 0x2000, right: 24 * 0x200, bottom: 0x2000 };
             }
             1 => {
                 self.parts[1].x = self.parts[0].x + self.parts[0].direction.vector_x() * 24 * 0x200;

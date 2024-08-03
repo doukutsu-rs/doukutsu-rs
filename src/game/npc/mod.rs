@@ -25,6 +25,8 @@ use crate::game::stage::{Stage, StageTexturePaths};
 use crate::game::weapon::bullet::BulletManager;
 use crate::util::rng::Xoroshiro32PlusPlus;
 
+use super::physics::HitExtents;
+
 pub mod ai;
 pub mod boss;
 pub mod list;
@@ -123,7 +125,7 @@ pub struct NPC {
     pub anim_counter: u16,
     pub anim_rect: Rect<u16>,
     pub display_bounds: Rect<u32>,
-    pub hit_bounds: Rect<u32>,
+    pub hit_bounds: HitExtents,
     pub rng: Xoroshiro32PlusPlus,
     pub popup: NumberPopup,
     pub splash: bool,
@@ -157,7 +159,7 @@ impl NPC {
             direction: Direction::Left,
             tsc_direction: 0,
             display_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 },
-            hit_bounds: Rect { left: 0, top: 0, right: 0, bottom: 0 },
+            hit_bounds: HitExtents { left: 0, top: 0, right: 0, bottom: 0 },
             parent_id: 0,
             action_num: 0,
             anim_num: 0,
@@ -740,7 +742,7 @@ impl PhysicalEntity for NPC {
     }
 
     #[inline(always)]
-    fn hit_bounds(&self) -> &Rect<u32> {
+    fn hit_bounds(&self) -> &HitExtents {
         &self.hit_bounds
     }
 
@@ -909,16 +911,16 @@ impl NPCTable {
         }
     }
 
-    pub fn get_hit_bounds(&self, npc_type: u16) -> Rect<u32> {
+    pub fn get_hit_bounds(&self, npc_type: u16) -> HitExtents {
         if let Some(npc) = self.entries.get(npc_type as usize) {
-            Rect {
+            HitExtents {
                 left: npc.hit_bounds.left as u32 * 0x200,
                 top: npc.hit_bounds.top as u32 * 0x200,
                 right: npc.hit_bounds.right as u32 * 0x200,
                 bottom: npc.hit_bounds.bottom as u32 * 0x200,
             }
         } else {
-            Rect { left: 0, top: 0, right: 0, bottom: 0 }
+            HitExtents { left: 0, top: 0, right: 0, bottom: 0 }
         }
     }
 

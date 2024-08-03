@@ -4,9 +4,10 @@ use crate::common::{Direction, Rect};
 use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::{NPC, NPCLayer};
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
+use crate::game::npc::{NPCLayer, NPC};
+use crate::game::physics::HitExtents;
 use crate::game::player::Player;
 use crate::game::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::game::stage::Stage;
@@ -196,11 +197,11 @@ impl NPC {
         if self.action_num == 0 {
             self.npc_flags.set_interactable(true);
             self.action_num = 1;
-            
+
             if self.direction == Direction::Right {
                 self.npc_flags.set_interactable(false);
                 self.vel_y = -0x200;
-                
+
                 //Creates smoke
                 let mut npc = NPC::create(4, &state.npc_table);
                 npc.cond.set_alive(true);
@@ -235,7 +236,7 @@ impl NPC {
     pub(crate) fn tick_n017_health_refill(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
-            
+
             //Creates smoke when spawned in a shelter
             if self.direction == Direction::Right {
                 self.vel_y = -0x200;
@@ -659,9 +660,9 @@ impl NPC {
         self.action_counter += 1;
         if self.action_counter > 10
             && (self.flags.hit_left_wall()
-            || self.flags.hit_right_wall()
-            || self.flags.hit_bottom_wall()
-            || self.flags.in_water())
+                || self.flags.hit_right_wall()
+                || self.flags.hit_bottom_wall()
+                || self.flags.in_water())
         {
             // hit something
             self.cond.set_alive(false);
@@ -1996,7 +1997,7 @@ impl NPC {
                 // Big Block
                 self.anim_rect = Rect::new(0, 64, 32, 96);
                 self.display_bounds = Rect::new(0x2000, 0x2000, 0x2000, 0x2000);
-                self.hit_bounds = Rect::new(0x1800, 0x1800, 0x1800, 0x1800);
+                self.hit_bounds = HitExtents { left: 0x1800, top: 0x1800, right: 0x1800, bottom: 0x1800 };
             } else {
                 // Small Blocks
                 let scale = state.tile_size.as_int() as u16;
@@ -2080,7 +2081,7 @@ impl NPC {
                             self.npc_flags.set_invulnerable(true);
                             self.anim_num = 1;
                             self.display_bounds = Rect::new(0x1000, 0x1000, 0x1000, 0x1000);
-                            self.hit_bounds = Rect::new(0x1000, 0x1000, 0x1000, 0x1000);
+                            self.hit_bounds = HitExtents { left: 0x1000, top: 0x1000, right: 0x1000, bottom: 0x1000 };
                         }
                         _ => (),
                     }
@@ -2091,7 +2092,7 @@ impl NPC {
                         self.action_num = 11;
                         self.action_counter = 16;
                     }
-                    
+
                     self.action_counter = self.action_counter.saturating_sub(2);
                     if self.action_counter == 0 {
                         self.action_num = 100;
@@ -2204,11 +2205,11 @@ impl NPC {
                     npc.cond.set_alive(true);
                     npc.x = self.x
                         + if player.equip.has_booster_2_0() {
-                        self.rng.range(-14..14)
-                    } else {
-                        self.rng.range(-11..11)
-                    } * state.tile_size.as_int()
-                        * 0x200;
+                            self.rng.range(-14..14)
+                        } else {
+                            self.rng.range(-11..11)
+                        } * state.tile_size.as_int()
+                            * 0x200;
                     npc.y = player.y - 0x1C000;
                     npc.direction = if self.rng.range(0..10) & 1 != 0 { Direction::Left } else { Direction::Right };
 

@@ -4,6 +4,7 @@ use crate::common::{Color, Direction, Rect};
 use crate::framework::context::Context;
 use crate::framework::filesystem;
 use crate::framework::filesystem::File;
+use crate::game::physics::HitExtents;
 use crate::game::player::skin::{PlayerAnimationState, PlayerAppearanceState, PlayerSkin};
 use crate::game::shared_game_state::SharedGameState;
 
@@ -227,10 +228,10 @@ impl PlayerSkin for BasicPlayerSkin {
         ""
     }
 
-    fn get_hit_bounds(&self) -> Rect<u32> {
+    fn get_hit_bounds(&self) -> HitExtents {
         let ubox = &self.metadata.hit_box;
 
-        Rect {
+        HitExtents {
             left: ubox.left as u32 * 0x200,
             top: ubox.top as u32 * 0x200,
             right: ubox.right as u32 * 0x200,
