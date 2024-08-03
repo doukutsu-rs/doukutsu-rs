@@ -1,15 +1,15 @@
 use crate::common::{Direction, Rect};
 use crate::framework::error::GameResult;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::physics::HitExtents;
-use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
+use super::BossNPCContext;
+
 impl NPC {
-    pub(crate) fn tick_n196_ironhead_wall(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n196_ironhead_wall(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         self.x -= 0xC00;
         if self.x <= if !state.constants.is_switch { 0x26000 } else { 0x1E000 } {
             self.x += if !state.constants.is_switch { 0x2C000 } else { 0x3B400 };
@@ -22,7 +22,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n197_porcupine_fish(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n197_porcupine_fish(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 10 => {
                 if self.action_num == 0 {
@@ -66,7 +66,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n198_ironhead_projectile(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n198_ironhead_projectile(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_counter += 1;
             if self.action_counter > 20 {
@@ -97,7 +97,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n335_ikachan(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n335_ikachan(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -146,8 +146,7 @@ impl NPC {
     pub(crate) fn tick_n336_ikachan_generator(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 => {
@@ -178,8 +177,7 @@ impl BossNPC {
     pub(crate) fn tick_b05_ironhead(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
+        BossNPCContext { players, npc_list, .. }: BossNPCContext,
     ) {
         match self.parts[0].action_num {
             0 => {

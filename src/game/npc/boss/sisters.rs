@@ -1,5 +1,4 @@
 use crate::common::{Direction, Rect, SliceExt, CDEG_RAD};
-use crate::components::flash::Flash;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
 use crate::game::npc::NPC;
@@ -8,13 +7,13 @@ use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
+use super::BossNPCContext;
+
 impl BossNPC {
     pub(crate) fn tick_b06_sisters(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        flash: &mut Flash,
+        BossNPCContext { players, npc_list, flash, .. }: BossNPCContext,
     ) {
         match self.parts[0].action_num {
             0 => {

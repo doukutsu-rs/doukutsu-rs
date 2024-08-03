@@ -2,13 +2,16 @@ use num_traits::clamp;
 
 use crate::common::Direction;
 use crate::framework::error::GameResult;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
 impl NPC {
-    pub(crate) fn tick_n059_eye_door(&mut self, state: &mut SharedGameState, players: [&mut Player; 2]) -> GameResult {
+    pub(crate) fn tick_n059_eye_door(
+        &mut self,
+        state: &mut SharedGameState,
+        NPCContext { players, .. }: NPCContext,
+    ) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
@@ -72,7 +75,7 @@ impl NPC {
     pub(crate) fn tick_n064_first_cave_critter(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -164,7 +167,7 @@ impl NPC {
     pub(crate) fn tick_n065_first_cave_bat(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {

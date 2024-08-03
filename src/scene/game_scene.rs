@@ -34,9 +34,9 @@ use crate::game::caret::CaretType;
 use crate::game::frame::{Frame, UpdateTarget};
 use crate::game::inventory::{Inventory, TakeExperienceResult};
 use crate::game::map::WaterParams;
-use crate::game::npc::boss::BossNPC;
+use crate::game::npc::boss::{BossNPC, BossNPCContext};
 use crate::game::npc::list::NPCList;
-use crate::game::npc::{NPCLayer, NPC};
+use crate::game::npc::{NPCContext, NPCLayer, NPC};
 use crate::game::physics::{PhysicalEntity, OFFSETS};
 use crate::game::player::{ControlMode, Player, TargetPlayer};
 use crate::game::scripting::tsc::credit_script::CreditScriptVM;
@@ -1120,8 +1120,7 @@ impl GameScene {
                     let mut droplet = NPC::create(73, &state.npc_table);
                     droplet.cond.set_alive(true);
                     droplet.y = npc.y;
-                    droplet.direction =
-                        if npc.flags.bloody_droplets() { Direction::Right } else { Direction::Left };
+                    droplet.direction = if npc.flags.bloody_droplets() { Direction::Right } else { Direction::Left };
 
                     for _ in 0..7 {
                         droplet.x = npc.x + (npc.rng.range(-8..8) * 0x200) as i32;
@@ -1379,25 +1378,25 @@ impl GameScene {
         for npc in self.npc_list.iter_alive() {
             npc.tick(
                 state,
-                (
-                    [&mut self.player1, &mut self.player2],
-                    &self.npc_list,
-                    &mut self.stage,
-                    &mut self.bullet_manager,
-                    &mut self.flash,
-                    &mut self.boss,
-                ),
+                NPCContext {
+                    players: [&mut self.player1, &mut self.player2],
+                    npc_list: &self.npc_list,
+                    stage: &mut self.stage,
+                    bullet_manager: &mut self.bullet_manager,
+                    flash: &mut self.flash,
+                    boss: &mut self.boss,
+                },
             )?;
         }
         self.boss.tick(
             state,
-            (
-                [&mut self.player1, &mut self.player2],
-                &self.npc_list,
-                &mut self.stage,
-                &self.bullet_manager,
-                &mut self.flash,
-            ),
+            BossNPCContext {
+                players: [&mut self.player1, &mut self.player2],
+                npc_list: &self.npc_list,
+                stage: &mut self.stage,
+                bullet_manager: &mut self.bullet_manager,
+                flash: &mut self.flash,
+            },
         )?;
         //decides if the player is tangible or not
         if !state.settings.noclip {
@@ -2181,7 +2180,9 @@ impl Scene for GameScene {
         self.falling_island.draw(state, ctx, &self.frame)?;
         self.text_boxes.draw(state, ctx, &self.frame)?;
 
-        if (self.skip_counter > 1 || state.tutorial_counter > 0) && (state.settings.cutscene_skip_mode != CutsceneSkipMode::Auto) {
+        if (self.skip_counter > 1 || state.tutorial_counter > 0)
+            && (state.settings.cutscene_skip_mode != CutsceneSkipMode::Auto)
+        {
             let key = {
                 if state.settings.touch_controls {
                     ">>".to_owned()

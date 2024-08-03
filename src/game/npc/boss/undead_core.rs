@@ -1,21 +1,21 @@
 use std::hint::unreachable_unchecked;
 
-use crate::common::{CDEG_RAD, Direction, Rect, SliceExt};
-use crate::components::flash::Flash;
+use crate::common::{Direction, Rect, SliceExt, CDEG_RAD};
 use crate::framework::error::GameResult;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
-use crate::game::npc::NPC;
-use crate::game::player::Player;
+use crate::game::npc::{NPCContext, NPC};
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::util::rng::RNG;
+
+use super::BossNPCContext;
 
 impl NPC {
     pub(crate) fn tick_n282_mini_undead_core_active(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
+        NPCContext { players, .. }: NPCContext,
     ) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 20;
@@ -93,7 +93,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n291_mini_undead_core_inactive(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n291_mini_undead_core_inactive(
+        &mut self,
+        state: &mut SharedGameState,
+        _: NPCContext,
+    ) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 20;
             if self.direction == Direction::Right {
@@ -110,7 +114,7 @@ impl NPC {
     pub(crate) fn tick_n293_undead_core_energy_shot(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
@@ -143,8 +147,7 @@ impl NPC {
     pub(crate) fn tick_n285_undead_core_spiral_projectile(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
-        stage: &mut Stage,
+        NPCContext { npc_list, stage, .. }: NPCContext,
     ) -> GameResult {
         if self.x < 0 || self.x > stage.map.width as i32 * state.tile_size.as_int() * 0x200 {
             self.vanish(state);
@@ -186,7 +189,11 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n286_undead_core_spiral_projectile_trail(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n286_undead_core_spiral_projectile_trail(
+        &mut self,
+        state: &mut SharedGameState,
+        _: NPCContext,
+    ) -> GameResult {
         self.anim_counter += 1;
         if self.anim_counter > 0 {
             self.anim_counter = 0;
@@ -202,7 +209,7 @@ impl NPC {
         Ok(())
     }
 
-    pub(crate) fn tick_n287_orange_smoke(&mut self, state: &mut SharedGameState) -> GameResult {
+    pub(crate) fn tick_n287_orange_smoke(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.vel_x = self.rng.range(-4..4) * 0x200;
             self.action_num = 1;
@@ -231,9 +238,7 @@ impl NPC {
     pub(crate) fn tick_n288_undead_core_exploding_rock(
         &mut self,
         state: &mut SharedGameState,
-        players: [&mut Player; 2],
-        npc_list: &NPCList,
-        stage: &mut Stage,
+        NPCContext { players, npc_list, stage, .. }: NPCContext,
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -317,9 +322,7 @@ impl BossNPC {
     pub(crate) fn tick_b07_undead_core(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
-        stage: &mut Stage,
-        flash: &mut Flash,
+        BossNPCContext { npc_list, stage, flash, .. }: BossNPCContext,
     ) {
         let mut v19 = false;
 
