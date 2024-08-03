@@ -911,10 +911,6 @@ impl BackendRenderer for SDL2Renderer {
         Ok(())
     }
 
-    fn supports_vertex_draw(&self) -> bool {
-        true
-    }
-
     fn draw_triangle_list(
         &mut self,
         vertices: &[VertexData],
