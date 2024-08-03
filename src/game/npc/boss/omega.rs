@@ -5,6 +5,7 @@ use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
 use crate::game::npc::list::NPCList;
 use crate::game::npc::NPC;
+use crate::game::physics::HitExtents;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::weapon::bullet::BulletManager;
@@ -74,7 +75,7 @@ impl BossNPC {
                 self.parts[0].target_y = self.parts[0].y;
                 self.parts[0].display_bounds =
                     Rect { left: 40 * 0x200, top: 40 * 0x200, right: 40 * 0x200, bottom: 0x2000 };
-                self.parts[0].hit_bounds = Rect { left: 0x1000, top: 24 * 0x200, right: 0x1000, bottom: 0x2000 };
+                self.parts[0].hit_bounds = HitExtents { left: 0x1000, top: 24 * 0x200, right: 0x1000, bottom: 0x2000 };
                 self.hurt_sound[0] = 52;
 
                 self.parts[1].cond.set_alive(true);
@@ -94,7 +95,7 @@ impl BossNPC {
                 self.parts[3].x = self.parts[0].x + 0x2000;
                 self.parts[3].y = self.parts[0].y;
                 self.parts[3].display_bounds = Rect { left: 24 * 0x200, top: 0x2000, right: 0x2000, bottom: 0x2000 };
-                self.parts[3].hit_bounds = Rect { left: 0x1000, top: 0x1000, right: 0x1000, bottom: 0x1000 };
+                self.parts[3].hit_bounds = HitExtents { left: 0x1000, top: 0x1000, right: 0x1000, bottom: 0x1000 };
                 self.hurt_sound[3] = 52;
 
                 self.parts[4].cond.set_alive(true);
@@ -421,7 +422,8 @@ impl BossNPC {
             self.parts[5].action_num = 1;
             self.parts[5].npc_flags.set_solid_soft(true);
             self.parts[5].npc_flags.set_ignore_solidity(true);
-            self.parts[5].hit_bounds = Rect { left: 20 * 0x200, top: 36 * 0x200, right: 20 * 0x200, bottom: 0x2000 };
+            self.parts[5].hit_bounds =
+                HitExtents { left: 20 * 0x200, top: 36 * 0x200, right: 20 * 0x200, bottom: 0x2000 };
         }
 
         self.parts[5].x = self.parts[0].x;
