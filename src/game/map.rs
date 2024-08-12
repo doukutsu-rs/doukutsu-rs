@@ -25,9 +25,33 @@ pub struct Map {
     pub tile_size: TileSize,
 }
 
-static SOLID_TILES: [u8; 8] = [0x05, 0x41, 0x43, 0x46, 0x54, 0x55, 0x56, 0x57];
-static WATER_TILES: [u8; 16] =
-    [0x02, 0x60, 0x61, 0x62, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0xa0, 0xa1, 0xa2, 0xa3];
+struct BitLUT {
+    bits: [u64; 4]
+}
+
+impl BitLUT {
+    const fn new<const N: usize>(bits: [u8; N]) -> Self {
+        let mut result = Self { bits: [0; 4] };
+        let mut i = 0;
+        loop {
+            if i >= N {
+                break;
+            }
+
+            result.bits[i / 64] |= (bits[i] as u64) << (i % 64);
+            i += 1;
+        }
+        result
+    }
+
+    const fn contains(&self, bit: u8) -> bool {
+        let idx = bit as usize;
+        (self.bits[idx / 64] & (1 << (idx % 64))) != 0
+    }
+}
+
+static SOLID_TILES: BitLUT = BitLUT::new([0x05, 0x41, 0x43, 0x46, 0x54, 0x55, 0x56, 0x57]);
+static WATER_TILES: BitLUT = BitLUT::new([0x02, 0x60, 0x61, 0x62, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0xa0, 0xa1, 0xa2, 0xa3]);
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum WaterRegionType {
@@ -309,7 +333,7 @@ impl Map {
 
                 let attr = self.get_attribute(x as usize, y as usize);
 
-                if !WATER_TILES.contains(&attr) {
+                if !WATER_TILES.contains(attr) {
                     continue;
                 }
 
@@ -372,7 +396,7 @@ impl Map {
                         }
 
                         let attr = self.get_attribute(ex as usize, ey as usize);
-                        if WATER_TILES.contains(&attr) {
+                        if WATER_TILES.contains(attr) {
                             queue.push((flow_flags, ex as u16, ey as u16));
                         }
                     };
@@ -415,11 +439,11 @@ impl Map {
                 let attr = self.get_attribute(x as usize, line as usize);
                 let attr_up = if rect.top > 0 { self.get_attribute(x as usize, line_up as usize) } else { 0x41 };
 
-                if !SOLID_TILES.contains(&attr_up) && !WATER_TILES.contains(&attr_up) {
+                if !SOLID_TILES.contains(attr_up) && !WATER_TILES.contains(attr_up) {
                     make_water_line = true;
                 }
 
-                if !walked[idx] && WATER_TILES.contains(&attr) {
+                if !walked[idx] && WATER_TILES.contains(attr) {
                     length += 1;
                 } else if length != 0 {
                     let bounds = Rect::new(x - length, line, x, line);
@@ -432,7 +456,7 @@ impl Map {
                         length = 1;
                         let attr_up =
                             if rect.top > 0 { self.get_attribute(x as usize + 1, line_up as usize) } else { 0x41 };
-                        make_water_line = !SOLID_TILES.contains(&attr_up) && !WATER_TILES.contains(&attr_up);
+                        make_water_line = !SOLID_TILES.contains(attr_up) && !WATER_TILES.contains(attr_up);
                     } else {
                         length = 0;
                     }
