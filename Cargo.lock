@@ -1258,7 +1258,7 @@ dependencies = [
 [[package]]
 name = "imgui"
 version = "0.12.0"
-source = "git+https://github.com/imgui-rs/imgui-rs.git?rev=5d771a83b82c5cc3dd58cca3f969d900369262e6#5d771a83b82c5cc3dd58cca3f969d900369262e6"
+source = "git+https://github.com/imgui-rs/imgui-rs.git?rev=67f7f11363e62f09aa0e1288a17800e505860486#67f7f11363e62f09aa0e1288a17800e505860486"
 dependencies = [
  "bitflags 1.3.2",
  "cfg-if 1.0.1",
@@ -1270,7 +1270,7 @@ dependencies = [
 [[package]]
 name = "imgui-sys"
 version = "0.12.0"
-source = "git+https://github.com/imgui-rs/imgui-rs.git?rev=5d771a83b82c5cc3dd58cca3f969d900369262e6#5d771a83b82c5cc3dd58cca3f969d900369262e6"
+source = "git+https://github.com/imgui-rs/imgui-rs.git?rev=67f7f11363e62f09aa0e1288a17800e505860486#67f7f11363e62f09aa0e1288a17800e505860486"
 dependencies = [
  "cc",
  "cfg-if 1.0.1",
@@ -2426,7 +2426,8 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 [[package]]
 name = "sdl2"
 version = "0.37.0"
-source = "git+https://github.com/doukutsu-rs/rust-sdl2.git?rev=244ae85833cff4f97ab4b58331741be20e422bd7#244ae85833cff4f97ab4b58331741be20e422bd7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b498da7d14d1ad6c839729bd4ad6fc11d90a57583605f3b4df2cd709a9cd380"
 dependencies = [
  "bitflags 1.3.2",
  "lazy_static",
@@ -2437,7 +2438,8 @@ dependencies = [
 [[package]]
 name = "sdl2-sys"
 version = "0.37.0"
-source = "git+https://github.com/doukutsu-rs/rust-sdl2.git?rev=244ae85833cff4f97ab4b58331741be20e422bd7#244ae85833cff4f97ab4b58331741be20e422bd7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "951deab27af08ed9c6068b7b0d05a93c91f0a8eb16b6b816a5e73452a43521d3"
 dependencies = [
  "cfg-if 1.0.1",
  "cmake",
