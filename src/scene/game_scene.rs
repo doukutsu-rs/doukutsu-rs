@@ -41,7 +41,7 @@ use crate::game::physics::{PhysicalEntity, OFFSETS};
 use crate::game::player::{ControlMode, Player, TargetPlayer};
 use crate::game::scripting::tsc::credit_script::CreditScriptVM;
 use crate::game::scripting::tsc::text_script::{ScriptMode, TextScriptExecutionState, TextScriptVM};
-use crate::game::settings::ControllerType;
+use crate::game::settings::{ControllerType, LightingEngine};
 use crate::game::shared_game_state::{CutsceneSkipMode, PlayerCount, ReplayState, SharedGameState, TileSize};
 use crate::game::stage::{BackgroundType, Stage, StageTexturePaths};
 use crate::game::weapon::bullet::BulletManager;
@@ -1991,7 +1991,7 @@ impl Scene for GameScene {
         self.draw_npc_layer(state, ctx, NPCLayer::Background)?;
         self.tilemap.draw(state, ctx, &self.frame, TileLayer::Middleground, stage_textures_ref, &self.stage)?;
 
-        if state.settings.shader_effects && self.lighting_mode == LightingMode::BackgroundOnly {
+        if state.get_lighting_type() == LightingEngine::Basic && self.lighting_mode == LightingMode::BackgroundOnly {
             self.draw_light_map(state, ctx)?;
         }
 
@@ -2019,7 +2019,7 @@ impl Scene for GameScene {
         self.draw_boss_popup(state, ctx)?;
 
         if !state.control_flags.credits_running()
-            && state.settings.shader_effects
+            && state.get_lighting_type() == LightingEngine::Basic
             && self.lighting_mode == LightingMode::Ambient
         {
             self.draw_light_map(state, ctx)?;

@@ -38,6 +38,7 @@ use crate::util::bitvec::BitVec;
 use crate::util::rng::XorShift;
 
 use super::filesystem_container::FilesystemContainer;
+use super::settings::LightingEngine;
 
 #[derive(PartialEq, Eq, Copy, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TimingMode {
@@ -898,6 +899,18 @@ impl SharedGameState {
             .iter()
             .find(|s| s.id == id)
             .map_or_else(|| id.to_owned(), |s| self.loc.t(format!("soundtrack.{}", s.id).as_str()).to_owned())
+    }
+
+    pub fn get_lighting_type(&self) -> LightingEngine {
+        if self.settings.lighting_engine == LightingEngine::Default {
+            if self.constants.is_switch {
+                return LightingEngine::Basic;
+            }
+
+            return LightingEngine::Disabled;
+        }
+
+        self.settings.lighting_engine
     }
 
     pub fn tt(&self, key: &str, args: &[(&str, &str)]) -> String {

@@ -68,7 +68,13 @@
           "windowed": "ウィンドウ",
           "fullscreen": "フルスクリーン"
         },
-        "lighting_effects": "ライティング効果：",
+        "lighting_engine": {
+          "entry": "ライティング エンジン：",
+          "default": "ゲーム エディションのデフォルト",
+          "disabled": "無効",
+          "basic": "基本 (CS+ リマスター)",
+          "raytraced_drs": "レイトレース (d-rs、GPU 重視)"
+        },
         "weapon_light_cone": "兵器のライトコーン：",
         "screen_shake": {
           "entry": "画面の揺れ：",
@@ -82,17 +88,15 @@
         "seasonal_textures": "季節ものテクスチャ：",
         "renderer": "レンダラ：",
         "vsync_mode": {
-          "entry": "V-Sync:",
-          "uncapped": "Uncapped",
-          "uncapped_desc": "V-Sync Off.",
-          "vsync": "Enabled",
-          "vsync_desc": "V-Sync On.",
-          "vrr_1x": "Variable Refresh Rate (1x)",
-          "vrr_1x_desc": "Uses (G-/Free)Sync if available.",
-          "vrr_2x": "Variable Refresh Rate (2x)",
-          "vrr_2x_desc": "Uses (G-/Free)Sync if available.",
-          "vrr_3x": "Variable Refresh Rate (3x)",
-          "vrr_3x_desc": "Uses (G-/Free)Sync if available."
+          "entry": "V-Sync：",
+          "uncapped": "上限なし",
+          "uncapped_desc": "V-Syncは無効（ティアリングが発生する可能性があります）。",
+          "vsync": "有効",
+          "vsync_desc": "モニターのリフレッシュ レートに同期します。",
+          "vrr_1x": "可変リフレッシュレート (1x)",
+          "vrr_2x": "可変リフレッシュレート (2x)",
+          "vrr_3x": "可変リフレッシュレート (3x)",
+          "vrr_desc": "利用可能であれば、(G-/Free)Syncを使用。"
         }
       },
       "sound": "サウンド",
@@ -130,7 +134,8 @@
         "cutscene_skip_method": {
           "entry": "カットシーンをスキップ",
           "hold": "を押し続け",
-          "fastforward": "はやおくり"
+          "fastforward": "はやおくり",
+          "auto": "自動"
         },
         "discord_rpc": "Discord Rich Presence:",
         "allow_strafe": "ストレイフを許可する："
