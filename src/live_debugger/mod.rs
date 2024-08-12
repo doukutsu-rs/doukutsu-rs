@@ -95,7 +95,7 @@ impl LiveDebugger {
                             self.command_line_focused = true;
                         }
 
-                        ui.input_text("", &mut self.command_line_parser.buffer).build();
+                        ui.input_text("##I", &mut self.command_line_parser.buffer).build();
                     }
 
                     if ui.is_item_active() {
