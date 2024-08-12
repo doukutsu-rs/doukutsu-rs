@@ -68,7 +68,13 @@
           "windowed": "Windowed",
           "fullscreen": "Fullscreen"
         },
-        "lighting_effects": "Lighting effects:",
+        "lighting_engine": {
+          "entry": "Lighting engine:",
+          "default": "Default for game edition",
+          "disabled": "Disabled",
+          "basic": "Basic (CS+ Remastered)",
+          "raytraced_drs": "Raytraced (d-rs, GPU heavy)"
+        },
         "weapon_light_cone": "Weapon light cone:",
         "screen_shake": {
           "entry": "Screen shake intensity:",
@@ -84,15 +90,13 @@
         "vsync_mode": {
           "entry": "V-Sync:",
           "uncapped": "Uncapped",
-          "uncapped_desc": "V-Sync Off.",
+          "uncapped_desc": "V-Sync is disabled (may cause tearing).",
           "vsync": "Enabled",
-          "vsync_desc": "V-Sync On.",
+          "vsync_desc": "Synchronized to monitor refresh rate.",
           "vrr_1x": "Variable Refresh Rate (1x)",
-          "vrr_1x_desc": "Uses (G-/Free)Sync if available.",
           "vrr_2x": "Variable Refresh Rate (2x)",
-          "vrr_2x_desc": "Uses (G-/Free)Sync if available.",
           "vrr_3x": "Variable Refresh Rate (3x)",
-          "vrr_3x_desc": "Uses (G-/Free)Sync if available."
+          "vrr_desc": "Uses (G-/Free)Sync if available."
         }
       },
       "sound": "Sound...",

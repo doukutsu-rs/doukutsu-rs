@@ -4,6 +4,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::VSyncMode;
 use crate::framework::{filesystem, graphics};
+use crate::game::settings::LightingEngine;
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
 use crate::graphics::font::Font;
 use crate::input::combined_menu_controller::CombinedMenuController;
@@ -53,7 +54,7 @@ impl Default for MainMenuEntry {
 enum GraphicsMenuEntry {
     VSyncMode,
     WindowMode,
-    LightingEffects,
+    LightingEngine,
     WeaponLightCone,
     ScreenShake,
     MotionInterpolation,
@@ -241,9 +242,9 @@ impl SettingsMenu {
                 vec![
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.uncapped_desc").to_owned(),
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vsync_desc").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_1x_desc").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_2x_desc").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_3x_desc").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_desc").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_desc").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_desc").to_owned(),
                 ],
             ),
         );
@@ -262,10 +263,16 @@ impl SettingsMenu {
             ),
         );
         self.graphics.push_entry(
-            GraphicsMenuEntry::LightingEffects,
-            MenuEntry::Toggle(
-                state.loc.t("menus.options_menu.graphics_menu.lighting_effects").to_owned(),
-                state.settings.shader_effects,
+            GraphicsMenuEntry::LightingEngine,
+            MenuEntry::Options(
+                state.loc.t("menus.options_menu.graphics_menu.lighting_engine.entry").to_owned(),
+                state.settings.lighting_engine as usize,
+                vec![
+                    state.loc.t("menus.options_menu.graphics_menu.lighting_engine.default").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.lighting_engine.disabled").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.lighting_engine.basic").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.lighting_engine.raytraced_drs").to_owned(),
+                ],
             ),
         );
         self.graphics.push_entry(
@@ -662,6 +669,8 @@ impl SettingsMenu {
     ) -> GameResult {
         self.update_sizes(state);
 
+        // holy shit this is utter garbage
+        // we desperately need a new menu system
         match self.current {
             CurrentMenu::MainMenu => match self.main.tick(controller, state) {
                 MenuSelectionResult::Selected(MainMenuEntry::Graphics, _) => {
@@ -741,12 +750,35 @@ impl SettingsMenu {
                         let _ = state.settings.save(ctx);
                     }
                 }
-                MenuSelectionResult::Selected(GraphicsMenuEntry::LightingEffects, toggle) => {
-                    if let MenuEntry::Toggle(_, value) = toggle {
-                        state.settings.shader_effects = !state.settings.shader_effects;
-                        let _ = state.settings.save(ctx);
+                MenuSelectionResult::Selected(GraphicsMenuEntry::LightingEngine, toggle)
+                | MenuSelectionResult::Right(GraphicsMenuEntry::LightingEngine, toggle, _) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        let (new_mode, new_value) = match *value {
+                            0 => (LightingEngine::Disabled, 1),
+                            1 => (LightingEngine::Basic, 2),
+                            2 => (LightingEngine::Raytraced, 3),
+                            _ => (LightingEngine::Default, 0),
+                        };
 
-                        *value = state.settings.shader_effects;
+                        *value = new_value;
+                        state.settings.lighting_engine = new_mode;
+
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Left(GraphicsMenuEntry::LightingEngine, toggle, _) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        let (new_mode, new_value) = match *value {
+                            0 => (LightingEngine::Raytraced, 3),
+                            1 => (LightingEngine::Default, 0),
+                            2 => (LightingEngine::Disabled, 1),
+                            _ => (LightingEngine::Basic, 2),
+                        };
+
+                        *value = new_value;
+                        state.settings.lighting_engine = new_mode;
+
+                        let _ = state.settings.save(ctx);
                     }
                 }
                 MenuSelectionResult::Selected(GraphicsMenuEntry::WeaponLightCone, toggle) => {

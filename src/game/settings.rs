@@ -20,7 +20,7 @@ pub struct Settings {
     #[serde(default = "default_true")]
     pub seasonal_textures: bool,
     pub original_textures: bool,
-    pub shader_effects: bool,
+    pub lighting_engine: LightingEngine,
     #[serde(default = "default_true")]
     pub light_cone: bool,
     #[serde(default = "default_true")]
@@ -350,11 +350,7 @@ impl Settings {
         if self.version == 24 {
             self.version = 25;
             self.soundtrack = match self.soundtrack.as_str() {
-                "Organya" => "organya".to_owned(),
-                "Remastered" => "remastered".to_owned(),
-                "New" => "new".to_owned(),
-                "Famitracks" => "famitracks".to_owned(),
-                "Ridiculon" => "ridiculon".to_owned(),
+                "Organya" | "Remastered" | "New" | "Famitracks" | "Ridiculon" => self.soundtrack.to_ascii_lowercase(),
                 _ => self.soundtrack.clone(),
             }
         }
@@ -430,7 +426,7 @@ impl Default for Settings {
             version: current_version(),
             seasonal_textures: true,
             original_textures: false,
-            shader_effects: false,
+            lighting_engine: LightingEngine::default(),
             light_cone: true,
             subpixel_coords: true,
             motion_interpolation: true,
@@ -576,4 +572,18 @@ pub fn player_default_controller_button_map() -> PlayerControllerButtonMap {
 #[inline(always)]
 pub fn default_controller_axis_sensitivity() -> f64 {
     0.3
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Copy, Clone, PartialEq, Eq)]
+pub enum LightingEngine {
+    Default,
+    Disabled,
+    Basic,
+    Raytraced,
+}
+
+impl Default for LightingEngine {
+    fn default() -> Self {
+        LightingEngine::Default
+    }
 }
