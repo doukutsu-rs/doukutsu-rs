@@ -1,4 +1,5 @@
-use crate::bitfield;
+use bitfield::bitfield;
+
 use crate::common::Rect;
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
