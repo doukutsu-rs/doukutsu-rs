@@ -1,3 +1,5 @@
+use std::io::{Read, Write};
+
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::{user_create, user_open};
@@ -173,14 +175,27 @@ fn default_cutscene_skip_mode() -> CutsceneSkipMode {
 
 impl Settings {
     pub fn load(ctx: &Context) -> GameResult<Settings> {
-        if let Ok(file) = user_open(ctx, "/settings.json") {
-            match serde_json::from_reader::<_, Settings>(file) {
+        if let Ok(mut file) = user_open(ctx, "/settings.json") {
+            // we use a buffer to avoid hammering the OS with small reads/writes
+            // I/O on settings was particularly VERY SLOW on Horizon (well it's based on microkernel, so IPC overhead...)
+            let mut buf = Vec::new();
+            file.read_to_end(&mut buf)?;
+
+            match serde_json::from_slice::<Settings>(&buf) {
                 Ok(settings) => return Ok(settings.upgrade()),
                 Err(err) => log::warn!("Failed to deserialize settings: {}", err),
             }
         }
 
         Ok(Settings::default())
+    }
+
+    pub fn save(&self, ctx: &Context) -> GameResult {
+        // see why in load()
+        let buffer = serde_json::to_vec_pretty(self)?;
+        user_create(ctx, "/settings.json")?.write_all(&buffer)?;
+
+        Ok(())
     }
 
     fn upgrade(mut self) -> Self {
@@ -360,13 +375,6 @@ impl Settings {
         }
 
         self
-    }
-
-    pub fn save(&self, ctx: &Context) -> GameResult {
-        let file = user_create(ctx, "/settings.json")?;
-        serde_json::to_writer_pretty(file, self)?;
-
-        Ok(())
     }
 
     pub fn create_player1_controller(&self) -> Box<dyn PlayerController> {
