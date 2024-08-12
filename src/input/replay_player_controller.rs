@@ -1,4 +1,5 @@
-use crate::bitfield;
+use bitfield::bitfield;
+
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::game::shared_game_state::SharedGameState;
