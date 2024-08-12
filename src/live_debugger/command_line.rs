@@ -170,25 +170,25 @@ impl CommandLineCommand {
     }
 
     pub fn execute(&mut self, game_scene: &mut GameScene, state: &mut SharedGameState) -> GameResult {
-        match self.clone() {
-            CommandLineCommand::AddItem(item_id) => {
+        match self {
+            &mut CommandLineCommand::AddItem(item_id) => {
                 game_scene.inventory_player1.add_item(item_id);
             }
-            CommandLineCommand::RemoveItem(item_id) => {
+            &mut CommandLineCommand::RemoveItem(item_id) => {
                 if !game_scene.inventory_player1.has_item(item_id) {
                     return Err(CommandLineError(format!("Player does not have item {}", item_id)));
                 }
 
                 game_scene.inventory_player1.remove_item(item_id);
             }
-            CommandLineCommand::AddWeapon(weapon_id, ammo_count) => {
+            &mut CommandLineCommand::AddWeapon(weapon_id, ammo_count) => {
                 let weapon_type: Option<WeaponType> = FromPrimitive::from_u16(weapon_id);
                 match weapon_type {
                     Some(weapon_type) => game_scene.inventory_player1.add_weapon(weapon_type, ammo_count),
                     None => return Err(CommandLineError(format!("Invalid weapon id {}", weapon_id))),
                 }
             }
-            CommandLineCommand::RemoveWeapon(weapon_id) => {
+            &mut CommandLineCommand::RemoveWeapon(weapon_id) => {
                 let weapon_type: Option<WeaponType> = FromPrimitive::from_u16(weapon_id);
                 match weapon_type {
                     Some(weapon_type) => {
@@ -201,14 +201,14 @@ impl CommandLineCommand {
                     None => return Err(CommandLineError(format!("Invalid weapon id {}", weapon_id))),
                 };
             }
-            CommandLineCommand::AddWeaponAmmo(ammo_count) => {
+            &mut CommandLineCommand::AddWeaponAmmo(ammo_count) => {
                 let weapon = game_scene.inventory_player1.get_current_weapon_mut();
                 match weapon {
                     Some(weapon) => weapon.ammo += ammo_count,
                     None => return Err(CommandLineError(format!("Player does not have an active weapon"))),
                 }
             }
-            CommandLineCommand::SetWeaponMaxAmmo(max_ammo) => {
+            &mut CommandLineCommand::SetWeaponMaxAmmo(max_ammo) => {
                 let weapon = game_scene.inventory_player1.get_current_weapon_mut();
                 match weapon {
                     Some(weapon) => weapon.max_ammo = max_ammo,
@@ -221,27 +221,24 @@ impl CommandLineCommand {
             CommandLineCommand::RefillHP => {
                 game_scene.player1.life = game_scene.player1.max_life;
             }
-            CommandLineCommand::AddXP(xp_count) => {
+            &mut CommandLineCommand::AddXP(xp_count) => {
                 game_scene.inventory_player1.add_xp(xp_count, &mut game_scene.player1, state);
             }
-            CommandLineCommand::RemoveXP(xp_count) => {
+            &mut CommandLineCommand::RemoveXP(xp_count) => {
                 game_scene.inventory_player1.take_xp(xp_count, state);
             }
-            CommandLineCommand::SetMaxHP(hp_count) => {
+            &mut CommandLineCommand::SetMaxHP(hp_count) => {
                 game_scene.player1.max_life = hp_count;
                 game_scene.player1.life = hp_count;
-
-                #[cfg(feature = "discord-rpc")]
-                state.discord_rpc.update_hp(&game_scene.player1)?;
             }
-            CommandLineCommand::SpawnNPC(id) => {
+            &mut CommandLineCommand::SpawnNPC(id) => {
                 let mut npc = NPC::create(id, &state.npc_table);
                 npc.cond.set_alive(true);
                 npc.y = game_scene.player1.y;
                 npc.x = game_scene.player1.x + game_scene.player1.direction.vector_x() * (0x2000 * 3);
                 game_scene.npc_list.spawn(0x100, npc)?;
             }
-            CommandLineCommand::TeleportPlayer(x, y) => {
+            &mut CommandLineCommand::TeleportPlayer(x, y) => {
                 game_scene.player1.x = (x * 512.0) as i32;
                 game_scene.player1.y = (y * 512.0) as i32;
                 game_scene.player2.x = game_scene.player1.x;
