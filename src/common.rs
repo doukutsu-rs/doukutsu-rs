@@ -1,13 +1,13 @@
 use std::fmt;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use bitfield::bitfield;
 use lazy_static::lazy_static;
 use num_traits::{abs, Num};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeTupleStruct;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::bitfield;
 use crate::graphics::texture_set::G_MAG;
 
 /// Multiply cave story degrees (0-255, which corresponds to 0°-360°) with this constant to get
@@ -312,8 +312,8 @@ impl<T: Num + PartialOrd + Copy> Rect<T> {
 
 impl<T: Num + PartialOrd + Copy + Serialize> Serialize for Rect<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         let mut state = serializer.serialize_tuple_struct("Rect", 4)?;
         state.serialize_field(&self.left)?;
