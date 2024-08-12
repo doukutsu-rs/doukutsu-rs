@@ -68,7 +68,7 @@ downcast = "0.11"
 encoding_rs = "0.8.33"
 fern = "0.6.2"
 #glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "2dd95f042e6e090d36f577cbea125560dd99bd27", optional = true, default_features = false, features = ["x11"] }
-imgui = { git = "https://github.com/imgui-rs/imgui-rs.git", rev = "5d771a83b82c5cc3dd58cca3f969d900369262e6" }
+imgui = { git = "https://github.com/imgui-rs/imgui-rs.git", rev = "67f7f11363e62f09aa0e1288a17800e505860486" }
 image = { version = "0.24", default-features = false, features = ["png", "bmp"] }
 itertools = "0.10"
 lazy_static = "1.4"
@@ -79,8 +79,8 @@ num-traits = "0.2"
 open = "3.2"
 paste = "1.0"
 pelite = { version = ">=0.9.2", default-features = false, features = ["std"] }
-sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "f2f1e29a416bcc22f2faf411866db2c8d9536308", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
-sdl2-sys = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "f2f1e29a416bcc22f2faf411866db2c8d9536308", optional = true, features = ["bundled", "static-link"] }
+sdl2 = { version = "0.37", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
+sdl2-sys = { version = "0.37", optional = true, features = ["bundled", "static-link"] }
 rc-box = "1.2.0"
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
@@ -96,7 +96,7 @@ xmltree = "0.10"
 
 #hack to not link SDL_image on Windows(causes a linker error)
 [target.'cfg(not(target_os = "windows"))'.dependencies]
-sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "f2f1e29a416bcc22f2faf411866db2c8d9536308", optional = true, features = ["image", "unsafe_textures", "bundled", "static-link"] }
+sdl2 = { version = "0.37", optional = true, features = ["image", "unsafe_textures", "bundled", "static-link"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3", features = ["winuser"] }
