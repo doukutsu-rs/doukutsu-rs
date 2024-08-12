@@ -8,9 +8,9 @@ use std::io::SeekFrom;
 use std::ops::Not;
 use std::rc::Rc;
 
+use bitfield::bitfield;
 use num_traits::{clamp, FromPrimitive};
 
-use crate::bitfield;
 use crate::common::Direction::{Left, Right};
 use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::engine_constants::EngineConstants;
