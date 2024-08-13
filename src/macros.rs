@@ -1,8 +1,3 @@
-#[doc(hidden)]
-pub use core::fmt;
-#[doc(hidden)]
-pub use core::mem::size_of;
-
 #[macro_export(local_inner_macros)]
 macro_rules! case_insensitive_hashmap {
     (@single $($x:tt)*) => (());
