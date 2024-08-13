@@ -2,11 +2,10 @@ use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::ops::Index;
 
-use serde::{Deserialize, Deserializer, Serialize};
 use serde::de::{Error, SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::common::Rect;
-use crate::macros::fmt::Formatter;
 
 #[derive(Copy, Clone)]
 pub struct SafeNPCRect<const T: usize>(pub [Rect<u16>; T]);
@@ -14,8 +13,8 @@ pub struct SafeNPCRect<const T: usize>(pub [Rect<u16>; T]);
 impl<const T: usize> Serialize for SafeNPCRect<T> {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer,
+    where
+        S: serde::Serializer,
     {
         self.0.serialize(serializer)
     }
@@ -26,13 +25,13 @@ struct SafeNPCRectArrayVisitor<const T: usize>(pub PhantomData<[Rect<u16>; T]>);
 impl<'de, const T: usize> Visitor<'de> for SafeNPCRectArrayVisitor<T> {
     type Value = [Rect<u16>; T];
 
-    fn expecting(&self, formatter: &mut Formatter) -> crate::macros::fmt::Result {
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.write_str("an array of rectangles")
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-        where
-            A: SeqAccess<'de>,
+    where
+        A: SeqAccess<'de>,
     {
         let mut rects = [Rect::default(); T];
         for (i, rect) in rects.iter_mut().enumerate() {
@@ -46,8 +45,8 @@ impl<'de, const T: usize> Visitor<'de> for SafeNPCRectArrayVisitor<T> {
 
 impl<'de, const T: usize> Deserialize<'de> for SafeNPCRect<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         deserializer.deserialize_seq(SafeNPCRectArrayVisitor(PhantomData)).map(SafeNPCRect)
     }
@@ -66,7 +65,7 @@ impl<const T: usize> Index<usize> for SafeNPCRect<T> {
 
 impl<const T: usize> Debug for SafeNPCRect<T> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter) -> crate::macros::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.0.fmt(f)
     }
 }
