@@ -1,6 +1,5 @@
 use std::{
-    cell::UnsafeCell,
-    sync::{Mutex, OnceLock},
+    cell::UnsafeCell, fmt::{self, Debug, Display, Formatter}, hash::{Hash, Hasher}, sync::{Mutex, OnceLock}
 };
 
 const BUCKET_BITS: usize = 10;
@@ -52,7 +51,9 @@ const fn string_hash(data: &str) -> HashType {
     let mut i = 0;
     let bytes = data.as_bytes();
     while i < bytes.len() {
-        let byte = bytes[i] as u32;
+        // let byte = bytes[i] as u32;
+        // this is safe because we are guaranteed to have a valid index, avoids redundant bounds check
+        let byte: u32 = unsafe { bytes.as_ptr().add(i).read() } as u32;
         hash ^= byte;
         hash = hash.wrapping_mul(0x01000193u32);
         i += 1;
@@ -69,11 +70,11 @@ impl AtomStore {
     fn find(&self, data: &str) -> Option<Atom> {
         let hash = string_hash(data);
         let bucket = (hash as usize) & BUCKET_MASK;
+        debug_assert!(bucket < BUCKET_SIZE); // if this ever fails, the below is UB
         let bucket = unsafe { self.buckets.get_unchecked(bucket) };
 
         if let Some(atom) = bucket {
-            let iter = atom.iter();
-            for atom in iter {
+            for atom in atom.iter() {
                 if atom.data == data {
                     return Some(Atom(atom));
                 }
@@ -95,12 +96,13 @@ impl AtomStore {
     fn insert(&mut self, data: &'static str) -> Atom {
         let hash = string_hash(data);
         let bucket = (hash as usize) & BUCKET_MASK;
+
+        debug_assert!(bucket < BUCKET_SIZE); // if this ever fails, the below is UB
         let bucket = unsafe { self.buckets.get_unchecked_mut(bucket) };
 
         if let Some(atom) = bucket {
-            let iter = atom.iter();
             let mut prev_atom = *atom;
-            for atom in iter {
+            for atom in atom.iter() {
                 if atom.data == data {
                     return Atom(atom);
                 }
@@ -112,6 +114,7 @@ impl AtomStore {
             unsafe {
                 *prev_atom.next.get() = Some(new_atom);
             }
+
             Atom(new_atom)
         } else {
             let atom = AtomData::new(data, hash);
@@ -119,42 +122,24 @@ impl AtomStore {
             Atom(atom)
         }
     }
-
-    #[cfg(any(test, debug_assertions))]
-    fn print_debug(&self) {
-        for (i, bucket) in self.buckets.iter().enumerate() {
-            if let Some(atom) = bucket {
-                println!("Bucket {}: {:?}", i, atom.data);
-                let iter = atom.iter();
-                for atom in iter {
-                    println!("  {:?}", atom.data);
-                }
-            }
-        }
-    }
 }
 
-impl std::fmt::Debug for AtomStore {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Debug for AtomStore {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.write_str("AtomStore")?;
 
         #[cfg(any(test, debug_assertions))]
         {
+            struct AtomPrintList(&'static AtomData);
+            impl Debug for AtomPrintList {
+                fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+                    f.debug_list().entries(self.0.iter().map(|atom| atom.data)).finish()
+                }
+            }
+
             let mut dbg = f.debug_map();
             for (i, bucket) in self.buckets.iter().enumerate() {
                 if let Some(atom) = bucket {
-                    struct AtomPrintList(&'static AtomData);
-                    impl std::fmt::Debug for AtomPrintList {
-                        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                            let mut list = f.debug_list();
-                            let iter = self.0.iter();
-                            for atom in iter {
-                                list.entry(&atom.data);
-                            }
-                            list.finish()
-                        }
-                    }
-
                     dbg.entry(&i, &AtomPrintList(atom));
                 }
             }
@@ -163,6 +148,7 @@ impl std::fmt::Debug for AtomStore {
     }
 }
 
+// todo: Rust 1.80 has LazyLock, which at time of writing is stable, but we'll wait a bit for everyone to catch up
 static ATOM_STORE: OnceLock<Mutex<Box<AtomStore>>> = OnceLock::new();
 
 fn get_atom_store() -> &'static Mutex<Box<AtomStore>> {
@@ -199,23 +185,24 @@ impl PartialEq for Atom {
     }
 }
 
-impl std::hash::Hash for Atom {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        unsafe { (*self.0).hash.hash(state) }
+impl Hash for Atom {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.data().hash.hash(state);
     }
 }
 
-impl std::fmt::Debug for Atom {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Debug for Atom {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+
         f.write_str("Atom(")?;
-        self.data().data.fmt(f)?;
+        Debug::fmt(self.data().data, f)?;
         f.write_str(")")
     }
 }
 
-impl std::fmt::Display for Atom {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.data().data.fmt(f)
+impl Display for Atom {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(self.data().data, f)
     }
 }
 
