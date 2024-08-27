@@ -73,6 +73,7 @@ glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "2dd95f042e6
 imgui = { git = "https://github.com/imgui-rs/imgui-rs.git", rev = "67f7f11363e62f09aa0e1288a17800e505860486" }
 image = { version = "0.24", default-features = false, features = ["png", "bmp"] }
 itertools = "0.10"
+include-flate = "0.3.0"
 lazy_static = "1.4"
 lewton = { version = "0.10", optional = true }
 log = "0.4"
