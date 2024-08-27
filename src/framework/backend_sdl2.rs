@@ -498,7 +498,7 @@ impl BackendEventLoop for SDL2EventLoop {
             }
 
             let platform = Box::new(SDL2GLPlatform(self.refs.clone()));
-            let gl_context: GLContext = GLContext { gles2_mode: false, is_sdl: true, platform, ctx };
+            let gl_context: GLContext = GLContext { gles2_mode: false, platform, ctx };
 
             return Ok(Box::new(OpenGLRenderer::new(gl_context, imgui)));
         }
