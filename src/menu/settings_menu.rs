@@ -2,9 +2,9 @@ use itertools::Itertools;
 
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::VSyncMode;
-use crate::framework::{filesystem, graphics};
+use crate::framework::filesystem;
 use crate::game::settings::LightingEngine;
+use crate::game::settings::VSyncMode;
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
 use crate::graphics::font::Font;
 use crate::input::combined_menu_controller::CombinedMenuController;
@@ -725,7 +725,6 @@ impl SettingsMenu {
 
                         *value = new_value;
                         state.settings.vsync_mode = new_mode;
-                        graphics::set_vsync_mode(ctx, new_mode)?;
 
                         let _ = state.settings.save(ctx);
                     }
@@ -742,7 +741,6 @@ impl SettingsMenu {
 
                         *value = new_value;
                         state.settings.vsync_mode = new_mode;
-                        graphics::set_vsync_mode(ctx, new_mode)?;
 
                         let _ = state.settings.save(ctx);
                     }

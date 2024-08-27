@@ -4,7 +4,6 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::{user_create, user_open};
 use crate::framework::gamepad::{Axis, AxisDirection, Button, PlayerControllerInputType};
-use crate::framework::graphics::VSyncMode;
 use crate::framework::keyboard::ScanCode;
 use crate::game::player::TargetPlayer;
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, TimingMode, WindowMode};
@@ -580,6 +579,20 @@ pub fn player_default_controller_button_map() -> PlayerControllerButtonMap {
 #[inline(always)]
 pub fn default_controller_axis_sensitivity() -> f64 {
     0.3
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum VSyncMode {
+    /// No V-Sync - uncapped frame rate
+    Uncapped,
+    /// Synchronized to V-Sync
+    VSync,
+    /// Variable Refresh Rate - Synchronized to game tick interval
+    VRRTickSync1x,
+    /// Variable Refresh Rate - Synchronized to 2 * game tick interval
+    VRRTickSync2x,
+    /// Variable Refresh Rate - Synchronized to 3 * game tick interval
+    VRRTickSync3x,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Copy, Clone, PartialEq, Eq)]
