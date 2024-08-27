@@ -3,10 +3,12 @@ use std::rc::Rc;
 
 use imgui::DrawData;
 
+use super::context::Context;
+use super::error::GameResult;
+use super::graphics::BlendMode;
+use super::graphics::SwapMode;
+
 use crate::common::{Color, Rect};
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
-use crate::framework::graphics::{BlendMode, VSyncMode};
 use crate::game::Game;
 
 #[repr(C)]
@@ -46,7 +48,7 @@ pub trait BackendRenderer {
 
     fn present(&mut self) -> GameResult;
 
-    fn set_vsync_mode(&mut self, _mode: VSyncMode) -> GameResult {
+    fn set_swap_mode(&mut self, _mode: SwapMode) -> GameResult {
         Ok(())
     }
 
@@ -107,26 +109,26 @@ pub trait BackendGamepad {
 #[allow(unreachable_code)]
 pub fn init_backend(headless: bool, size_hint: (u16, u16)) -> GameResult<Box<dyn Backend>> {
     if headless {
-        return crate::framework::backend_null::NullBackend::new();
+        return super::backend_null::NullBackend::new();
     }
 
     #[cfg(all(feature = "backend-horizon"))]
     {
-        return crate::framework::backend_horizon::HorizonBackend::new();
+        return super::backend_horizon::HorizonBackend::new();
     }
 
     #[cfg(all(feature = "backend-winit"))]
     {
-        return crate::framework::backend_winit::WinitBackend::new();
+        return super::backend_winit::WinitBackend::new();
     }
 
     #[cfg(feature = "backend-sdl")]
     {
-        return crate::framework::backend_sdl2::SDL2Backend::new(size_hint);
+        return super::backend_sdl2::SDL2Backend::new(size_hint);
     }
 
     log::warn!("No backend compiled in, using null backend instead.");
-    crate::framework::backend_null::NullBackend::new()
+    super::backend_null::NullBackend::new()
 }
 
 pub enum SpriteBatchCommand {
