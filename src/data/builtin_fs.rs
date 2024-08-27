@@ -1,13 +1,15 @@
-use std::{fmt, io};
 use std::fmt::Debug;
 use std::io::Cursor;
 use std::io::ErrorKind;
 use std::io::SeekFrom;
 use std::path::{Component, Path, PathBuf};
+use std::{fmt, io};
+
+use include_flate::flate;
 
 use crate::framework::error::GameError::FilesystemError;
 use crate::framework::error::GameResult;
-use crate::framework::vfs::{OpenOptions, VFile, VFS, VMetadata};
+use crate::framework::vfs::{OpenOptions, VFile, VMetadata, VFS};
 
 #[derive(Debug)]
 pub struct BuiltinFile(Cursor<&'static [u8]>);
@@ -61,7 +63,7 @@ impl VMetadata for BuiltinMetadata {
 
 #[derive(Clone, Debug)]
 enum FSNode {
-    File(&'static str, &'static [u8]),
+    File(&'static str, fn() -> &'static [u8]),
     Directory(&'static str, Vec<FSNode>),
 }
 
@@ -75,14 +77,14 @@ impl FSNode {
 
     fn to_file(&self) -> GameResult<Box<dyn VFile>> {
         match self {
-            FSNode::File(_, buf) => Ok(BuiltinFile::from(buf)),
+            FSNode::File(_, accessor) => Ok(BuiltinFile::from(accessor())),
             FSNode::Directory(name, _) => Err(FilesystemError(format!("{} is a directory.", name))),
         }
     }
 
     fn to_metadata(&self) -> Box<dyn VMetadata> {
         match self {
-            FSNode::File(_, buf) => Box::new(BuiltinMetadata { is_dir: false, size: buf.len() as u64 }),
+            FSNode::File(_, accessor) => Box::new(BuiltinMetadata { is_dir: false, size: accessor().len() as u64 }),
             FSNode::Directory(_, _) => Box::new(BuiltinMetadata { is_dir: true, size: 0 }),
         }
     }
@@ -92,60 +94,59 @@ pub struct BuiltinFS {
     root: Vec<FSNode>,
 }
 
+flate!(static BUILTIN_FONT_FNT: [u8] from "src/data/builtin/builtin_font.fnt");
+flate!(static GAMECONTROLLERDB_TXT: [u8] from "src/data/builtin/gamecontrollerdb.txt");
+flate!(static SUE_BMP: [u8] from "res/crabsue-icon.bmp");
+flate!(static ORGANYA_WAVETABLE_DOUKUTSU_BIN: [u8] from "src/data/builtin/organya-wavetable-doukutsu.bin");
+flate!(static EN_JSON: [u8] from "src/data/builtin/builtin_data/locale/en.json");
+flate!(static JP_JSON: [u8] from "src/data/builtin/builtin_data/locale/jp.json");
+
 impl BuiltinFS {
     pub fn new() -> Self {
         Self {
             root: vec![FSNode::Directory(
                 "builtin",
                 vec![
-                    FSNode::File("builtin_font.fnt", include_bytes!("builtin/builtin_font.fnt")),
-                    FSNode::File("builtin_font_0.png", include_bytes!("builtin/builtin_font_0.png")),
-                    FSNode::File("builtin_font_1.png", include_bytes!("builtin/builtin_font_1.png")),
-                    FSNode::File("gamecontrollerdb.txt", include_bytes!("builtin/gamecontrollerdb.txt")),
-
+                    FSNode::File("builtin_font.fnt", || &BUILTIN_FONT_FNT),
+                    FSNode::File("builtin_font_0.png", || include_bytes!("builtin/builtin_font_0.png")),
+                    FSNode::File("builtin_font_1.png", || include_bytes!("builtin/builtin_font_1.png")),
+                    FSNode::File("gamecontrollerdb.txt", || &GAMECONTROLLERDB_TXT),
                     #[cfg(not(any(target_os = "windows", target_os = "android", target_os = "horizon")))]
-                    FSNode::File("icon.bmp", include_bytes!("../../res/crabsue-icon.bmp")),
-                    FSNode::File(
-                        "organya-wavetable-doukutsu.bin",
-                        include_bytes!("builtin/organya-wavetable-doukutsu.bin"),
-                    ),
-                    FSNode::File("touch.png", include_bytes!("builtin/touch.png")),
+                    FSNode::File("icon.bmp", || &SUE_BMP),
+                    FSNode::File("organya-wavetable-doukutsu.bin", || &ORGANYA_WAVETABLE_DOUKUTSU_BIN),
+                    FSNode::File("touch.png", || include_bytes!("builtin/touch.png")),
                     FSNode::Directory(
                         "builtin_data",
                         vec![
-                            FSNode::File("buttons.png", include_bytes!("builtin/builtin_data/buttons.png")),
-                            FSNode::File("triangles.png", include_bytes!("builtin/builtin_data/triangles.png")),
+                            FSNode::File("buttons.png", || include_bytes!("builtin/builtin_data/buttons.png")),
+                            FSNode::File("triangles.png", || include_bytes!("builtin/builtin_data/triangles.png")),
                             FSNode::Directory(
                                 "headband",
                                 vec![
                                     FSNode::Directory(
                                         "ogph",
                                         vec![
-                                            FSNode::File(
-                                                "Casts.png",
-                                                include_bytes!("builtin/builtin_data/headband/ogph/Casts.png"),
-                                            ),
+                                            FSNode::File("Casts.png", || {
+                                                include_bytes!("builtin/builtin_data/headband/ogph/Casts.png")
+                                            }),
                                             FSNode::Directory(
                                                 "Npc",
                                                 vec![
-                                                    FSNode::File(
-                                                        "NpcGuest.png",
+                                                    FSNode::File("NpcGuest.png", || {
                                                         include_bytes!(
                                                             "builtin/builtin_data/headband/ogph/Npc/NpcGuest.png"
-                                                        ),
-                                                    ),
-                                                    FSNode::File(
-                                                        "NpcMiza.png",
+                                                        )
+                                                    }),
+                                                    FSNode::File("NpcMiza.png", || {
                                                         include_bytes!(
                                                             "builtin/builtin_data/headband/ogph/Npc/NpcMiza.png"
-                                                        ),
-                                                    ),
-                                                    FSNode::File(
-                                                        "NpcRegu.png",
+                                                        )
+                                                    }),
+                                                    FSNode::File("NpcRegu.png", || {
                                                         include_bytes!(
                                                             "builtin/builtin_data/headband/ogph/Npc/NpcRegu.png"
-                                                        ),
-                                                    ),
+                                                        )
+                                                    }),
                                                 ],
                                             ),
                                         ],
@@ -153,31 +154,27 @@ impl BuiltinFS {
                                     FSNode::Directory(
                                         "plus",
                                         vec![
-                                            FSNode::File(
-                                                "Casts.png",
-                                                include_bytes!("builtin/builtin_data/headband/plus/casts.png"),
-                                            ),
+                                            FSNode::File("Casts.png", || {
+                                                include_bytes!("builtin/builtin_data/headband/plus/casts.png")
+                                            }),
                                             FSNode::Directory(
                                                 "Npc",
                                                 vec![
-                                                    FSNode::File(
-                                                        "NpcGuest.png",
+                                                    FSNode::File("NpcGuest.png", || {
                                                         include_bytes!(
                                                             "builtin/builtin_data/headband/plus/npc/npcguest.png"
-                                                        ),
-                                                    ),
-                                                    FSNode::File(
-                                                        "NpcMiza.png",
+                                                        )
+                                                    }),
+                                                    FSNode::File("NpcMiza.png", || {
                                                         include_bytes!(
                                                             "builtin/builtin_data/headband/plus/npc/npcmiza.png"
-                                                        ),
-                                                    ),
-                                                    FSNode::File(
-                                                        "NpcRegu.png",
+                                                        )
+                                                    }),
+                                                    FSNode::File("NpcRegu.png", || {
                                                         include_bytes!(
                                                             "builtin/builtin_data/headband/plus/npc/npcregu.png"
-                                                        ),
-                                                    ),
+                                                        )
+                                                    }),
                                                 ],
                                             ),
                                         ],
@@ -186,16 +183,13 @@ impl BuiltinFS {
                             ),
                             FSNode::Directory(
                                 "locale",
-                                vec![
-                                    FSNode::File("en.json", include_bytes!("builtin/builtin_data/locale/en.json")),
-                                    FSNode::File("jp.json", include_bytes!("builtin/builtin_data/locale/jp.json")),
-                                ],
+                                vec![FSNode::File("en.json", || &EN_JSON), FSNode::File("jp.json", || &JP_JSON)],
                             ),
                         ],
                     ),
                     FSNode::Directory(
                         "lightmap",
-                        vec![FSNode::File("spot.png", include_bytes!("builtin/lightmap/spot.png"))],
+                        vec![FSNode::File("spot.png", || include_bytes!("builtin/lightmap/spot.png"))],
                     ),
                 ],
             )],
@@ -280,7 +274,7 @@ impl VFS for BuiltinFS {
         self.get_node(path).map(|v| v.to_metadata())
     }
 
-    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item=GameResult<PathBuf>>>> {
+    fn read_dir(&self, path: &Path) -> GameResult<Box<dyn Iterator<Item = GameResult<PathBuf>>>> {
         match self.get_node(path) {
             Ok(FSNode::Directory(_, contents)) => {
                 let mut vec = Vec::new();
@@ -304,15 +298,15 @@ impl VFS for BuiltinFS {
 fn test_builtin_fs() {
     let fs = BuiltinFS {
         root: vec![
-            FSNode::File("test.txt", &[]),
+            FSNode::File("test.txt", || &[]),
             FSNode::Directory(
                 "memes",
                 vec![
-                    FSNode::File("nothing.txt", &[]),
-                    FSNode::Directory("secret stuff", vec![FSNode::File("passwords.txt", b"12345678")]),
+                    FSNode::File("nothing.txt", || &[]),
+                    FSNode::Directory("secret stuff", vec![FSNode::File("passwords.txt", || b"12345678")]),
                 ],
             ),
-            FSNode::File("test2.txt", &[]),
+            FSNode::File("test2.txt", || &[]),
         ],
     };
 
