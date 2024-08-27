@@ -32,13 +32,13 @@ use crate::framework::backend::{
 };
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
-use crate::framework::filesystem;
 use crate::framework::gamepad::{Axis, Button, GamepadType};
-use crate::framework::graphics::BlendMode;
+use crate::framework::graphics::{BlendMode, SwapMode};
 use crate::framework::keyboard::ScanCode;
 #[cfg(feature = "render-opengl")]
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
 use crate::framework::ui::init_imgui;
+use crate::framework::{filesystem, render_opengl};
 use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
 use crate::game::GAME_SUSPENDED;
@@ -466,37 +466,39 @@ impl BackendEventLoop for SDL2EventLoop {
             key_map[ImGuiKey_Delete as usize] = Scancode::Delete as u32;
             key_map[ImGuiKey_Enter as usize] = Scancode::Return as u32;
 
-            let refs = self.refs.clone();
+            struct SDL2GLPlatform(Rc<RefCell<SDL2Context>>);
 
-            let user_data = Rc::into_raw(refs) as *mut c_void;
-
-            unsafe fn get_proc_address(user_data: &mut *mut c_void, name: &str) -> *const c_void {
-                let refs = Rc::from_raw(*user_data as *mut RefCell<SDL2Context>);
-
-                let result = {
-                    let refs = &mut *refs.as_ptr();
+            impl render_opengl::GLPlatformFunctions for SDL2GLPlatform {
+                fn get_proc_address(&self, name: &str) -> *const c_void {
+                    let refs = self.0.borrow();
                     refs.video.gl_get_proc_address(name) as *const _
-                };
+                }
 
-                *user_data = Rc::into_raw(refs) as *mut c_void;
-
-                result
-            }
-
-            unsafe fn swap_buffers(user_data: &mut *mut c_void) {
-                let refs = Rc::from_raw(*user_data as *mut RefCell<SDL2Context>);
-
-                {
-                    let refs = &mut *refs.as_ptr();
-
+                fn swap_buffers(&self) {
+                    let mut refs = self.0.borrow();
                     refs.window.window().gl_swap_window();
                 }
 
-                *user_data = Rc::into_raw(refs) as *mut c_void;
+                fn set_swap_mode(&self, mode: SwapMode) {
+                    match mode {
+                        SwapMode::Immediate => unsafe {
+                            sdl2_sys::SDL_GL_SetSwapInterval(0);
+                        },
+                        SwapMode::VSync => unsafe {
+                            sdl2_sys::SDL_GL_SetSwapInterval(1);
+                        },
+                        SwapMode::Adaptive => unsafe {
+                            if sdl2_sys::SDL_GL_SetSwapInterval(-1) == -1 {
+                                log::warn!("Failed to enable variable refresh rate, falling back to non-V-Sync.");
+                                sdl2_sys::SDL_GL_SetSwapInterval(0);
+                            }
+                        },
+                    }
+                }
             }
 
-            let gl_context =
-                GLContext { gles2_mode: false, is_sdl: true, get_proc_address, swap_buffers, user_data, ctx };
+            let platform = Box::new(SDL2GLPlatform(self.refs.clone()));
+            let gl_context: GLContext = GLContext { gles2_mode: false, is_sdl: true, platform, ctx };
 
             return Ok(Box::new(OpenGLRenderer::new(gl_context, imgui)));
         }

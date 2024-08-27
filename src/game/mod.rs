@@ -14,11 +14,10 @@ use scripting::tsc::text_script::ScriptMode;
 use crate::framework::backend::WindowParams;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics;
-use crate::framework::graphics::VSyncMode;
+use crate::framework::graphics::{self, SwapMode};
 use crate::framework::ui::UI;
 use crate::game::filesystem_container::FilesystemContainer;
-use crate::game::settings::Settings;
+use crate::game::settings::{Settings, VSyncMode};
 use crate::game::shared_game_state::{Fps, SharedGameState, TimingMode, WindowMode};
 use crate::graphics::texture_set::{G_MAG, I_MAG};
 use crate::scene::loading_scene::LoadingScene;
@@ -122,7 +121,7 @@ pub struct Game {
 impl Game {
     fn new(ctx: &mut Context) -> GameResult<Game> {
         let s = Game {
-            scene: RefCell::new( None),
+            scene: RefCell::new(None),
             ui: UI::new(ctx)?,
             state: RefCell::new(SharedGameState::new(ctx)?),
             start_time: Instant::now(),
@@ -141,14 +140,12 @@ impl Game {
         let state_ref = self.state.get_mut();
 
         if let Some(scene) = self.scene.get_mut() {
-
-            let speed = if state_ref.textscript_vm.mode == ScriptMode::Map
-                && state_ref.textscript_vm.flags.cutscene_skip()
-            {
-                4.0
-            } else {
-                1.0
-            } * state_ref.settings.speed;
+            let speed =
+                if state_ref.textscript_vm.mode == ScriptMode::Map && state_ref.textscript_vm.flags.cutscene_skip() {
+                    4.0
+                } else {
+                    1.0
+                } * state_ref.settings.speed;
 
             match state_ref.settings.timing_mode {
                 TimingMode::_50Hz | TimingMode::_60Hz => {
@@ -194,7 +191,7 @@ impl Game {
         if let Some(mut next_scene) = next_scene {
             next_scene.init(state_ref, ctx)?;
             *self.scene.get_mut() = Some(next_scene);
-            
+
             self.loops = 0;
             state_ref.frame_time = 0.0;
         }
@@ -203,14 +200,21 @@ impl Game {
     }
 
     pub(crate) fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        match ctx.vsync_mode {
-            VSyncMode::Uncapped | VSyncMode::VSync => {
+        let vsync_mode = self.state.get_mut().settings.vsync_mode;
+        match vsync_mode {
+            VSyncMode::Uncapped => {
+                graphics::set_swap_mode(ctx, SwapMode::Immediate)?;
+                self.present = true;
+            }
+            VSyncMode::VSync => {
+                graphics::set_swap_mode(ctx, SwapMode::VSync)?;
                 self.present = true;
             }
             _ => unsafe {
+                graphics::set_swap_mode(ctx, SwapMode::Adaptive)?;
                 self.present = false;
 
-                let divisor = match ctx.vsync_mode {
+                let divisor = match vsync_mode {
                     VSyncMode::VRRTickSync1x => 1,
                     VSyncMode::VRRTickSync2x => 2,
                     VSyncMode::VRRTickSync3x => 3,
@@ -255,7 +259,8 @@ impl Game {
 
             let n1 = (elapsed - self.last_tick) as f64;
             let n2 = (self.next_tick - self.last_tick) as f64;
-            self.state.get_mut().frame_time = if self.state.get_mut().settings.motion_interpolation { n1 / n2 } else { 1.0 };
+            self.state.get_mut().frame_time =
+                if self.state.get_mut().settings.motion_interpolation { n1 / n2 } else { 1.0 };
         }
         unsafe {
             G_MAG = if self.state.get_mut().settings.subpixel_coords { self.state.get_mut().scale } else { 1.0 };

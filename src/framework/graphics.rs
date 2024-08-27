@@ -23,18 +23,11 @@ pub enum BlendMode {
     Multiply,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum VSyncMode {
-    /// No V-Sync - uncapped frame rate
-    Uncapped,
-    /// Synchronized to V-Sync
-    VSync,
-    /// Variable Refresh Rate - Synchronized to game tick interval
-    VRRTickSync1x,
-    /// Variable Refresh Rate - Synchronized to 2 * game tick interval
-    VRRTickSync2x,
-    /// Variable Refresh Rate - Synchronized to 3 * game tick interval
-    VRRTickSync3x,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SwapMode {
+    Immediate = 0,
+    VSync = 1,
+    Adaptive = -1,
 }
 
 pub fn clear(ctx: &mut Context, color: Color) {
@@ -51,10 +44,12 @@ pub fn present(ctx: &mut Context) -> GameResult {
     Ok(())
 }
 
-pub fn set_vsync_mode(ctx: &mut Context, mode: VSyncMode) -> GameResult {
+pub fn set_swap_mode(ctx: &mut Context, mode: SwapMode) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
-        ctx.vsync_mode = mode;
-        renderer.set_vsync_mode(mode);
+        if ctx.swap_mode != mode {
+            ctx.swap_mode = mode;
+            renderer.set_swap_mode(mode);
+        }
     }
 
     Ok(())
@@ -134,7 +129,6 @@ pub fn set_clip_rect(ctx: &mut Context, rect: Option<Rect>) -> GameResult {
 
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
-
 
 pub fn imgui_context(ctx: &Context) -> GameResult<&mut imgui::Context> {
     if let Some(renderer) = ctx.renderer.as_ref() {

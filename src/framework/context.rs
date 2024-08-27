@@ -1,10 +1,11 @@
-use crate::framework::backend::{init_backend, BackendRenderer, WindowParams};
-use crate::framework::error::GameResult;
-use crate::framework::filesystem::Filesystem;
-use crate::framework::gamepad::GamepadContext;
-use crate::framework::graphics::VSyncMode;
-use crate::framework::keyboard::KeyboardContext;
 use crate::game::Game;
+
+use super::backend::{init_backend, BackendRenderer, WindowParams};
+use super::error::GameResult;
+use super::filesystem::Filesystem;
+use super::gamepad::GamepadContext;
+use super::graphics::SwapMode;
+use super::keyboard::KeyboardContext;
 
 pub struct Context {
     pub headless: bool,
@@ -17,7 +18,7 @@ pub struct Context {
     pub(crate) real_screen_size: (u32, u32),
     pub(crate) screen_size: (f32, f32),
     pub(crate) screen_insets: (f32, f32, f32, f32),
-    pub(crate) vsync_mode: VSyncMode,
+    pub(crate) swap_mode: SwapMode,
 }
 
 impl Context {
@@ -33,7 +34,7 @@ impl Context {
             real_screen_size: (320, 240),
             screen_size: (320.0, 240.0),
             screen_insets: (0.0, 0.0, 0.0, 0.0),
-            vsync_mode: VSyncMode::Uncapped,
+            swap_mode: SwapMode::VSync,
         }
     }
 
