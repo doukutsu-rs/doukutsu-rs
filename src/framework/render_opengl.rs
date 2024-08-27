@@ -34,7 +34,6 @@ pub trait GLPlatformFunctions {
 
 pub struct GLContext {
     pub gles2_mode: bool,
-    pub is_sdl: bool,
     pub platform: Box<dyn GLPlatformFunctions>,
     pub ctx: *mut Context,
 }
