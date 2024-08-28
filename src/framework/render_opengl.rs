@@ -662,7 +662,7 @@ pub fn load_gl(gl_context: &GLContext) -> Rc<Gl> {
 pub struct OpenGLRenderer {
     refs: GLContext,
     gl: Rc<Gl>,
-    imgui: UnsafeCell<imgui::Context>,
+    imgui: Rc<RefCell<imgui::Context>>,
     render_data: RenderData,
     def_matrix: [[f32; 4]; 4],
     curr_matrix: [[f32; 4]; 4],
@@ -683,7 +683,7 @@ impl OpenGLRenderer {
         Ok(Box::new(OpenGLRenderer {
             refs,
             gl,
-            imgui: UnsafeCell::new(imgui),
+            imgui: Rc::new(RefCell::new(imgui)),
             render_data,
             def_matrix: [[0.0; 4]; 4],
             curr_matrix: [[0.0; 4]; 4],
@@ -1059,8 +1059,8 @@ impl BackendRenderer for OpenGLRenderer {
         Ok(())
     }
 
-    fn imgui(&self) -> GameResult<&mut imgui::Context> {
-        unsafe { Ok(&mut *self.imgui.get()) }
+    fn imgui(&self) -> GameResult<Rc<RefCell<imgui::Context>>> {
+        Ok(self.imgui.clone())
     }
 
     fn imgui_texture_id(&self, texture: &Box<dyn BackendTexture>) -> GameResult<TextureId> {
@@ -1090,8 +1090,8 @@ impl BackendRenderer for OpenGLRenderer {
             gl.gl.Enable(gl::SCISSOR_TEST);
 
             let imgui = self.imgui()?;
-            let [width, height] = imgui.io().display_size;
-            let [scale_w, scale_h] = imgui.io().display_framebuffer_scale;
+            let [width, height] = imgui.borrow().io().display_size;
+            let [scale_w, scale_h] = imgui.borrow().io().display_framebuffer_scale;
 
             let fb_width = width * scale_w;
             let fb_height = height * scale_h;

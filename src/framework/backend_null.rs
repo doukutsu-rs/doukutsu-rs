@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::cell::RefCell;
 use std::mem;
+use std::rc::Rc;
 
 use imgui::{DrawData, TextureId, Ui};
 
@@ -25,7 +26,7 @@ impl Backend for NullBackend {
     fn create_event_loop(&self, _ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>> {
         Ok(Box::new(NullEventLoop))
     }
-    
+
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -53,10 +54,7 @@ impl BackendEventLoop for NullEventLoop {
 
     fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
         let mut imgui = imgui::Context::create();
-        imgui.io_mut().display_size = [640.0, 480.0];
-        imgui.fonts().build_alpha8_texture();
-
-        Ok(Box::new(NullRenderer(RefCell::new(imgui))))
+        NullRenderer::new(imgui)
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -84,12 +82,12 @@ impl BackendTexture for NullTexture {
     }
 }
 
-pub struct NullRenderer(RefCell<imgui::Context>);
+pub struct NullRenderer(Rc<RefCell<imgui::Context>>);
 
 impl NullRenderer {
-    pub fn new(mut imgui: imgui::Context) -> Self {
+    pub fn new(mut imgui: imgui::Context) -> GameResult<Box<dyn BackendRenderer>> {
         let _ = imgui.fonts().build_alpha8_texture();
-        NullRenderer(RefCell::new(imgui))
+        Ok(Box::new(NullRenderer(Rc::new(RefCell::new(imgui)))))
     }
 }
 
@@ -132,8 +130,8 @@ impl BackendRenderer for NullRenderer {
         Ok(())
     }
 
-    fn imgui(&self) -> GameResult<&mut imgui::Context> {
-        unsafe { Ok(&mut *self.0.as_ptr()) }
+    fn imgui(&self) -> GameResult<Rc<RefCell<imgui::Context>>> {
+        Ok(self.0.clone())
     }
 
     fn imgui_texture_id(&self, _texture: &Box<dyn BackendTexture>) -> GameResult<TextureId> {
