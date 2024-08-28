@@ -1,6 +1,7 @@
 use core::mem;
 use std::any::Any;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ffi::c_void;
 use std::io::Read;
 use std::ops::Deref;
@@ -146,7 +147,6 @@ impl WindowOrCanvas {
 struct SDL2EventLoop {
     event_pump: EventPump,
     refs: Rc<RefCell<SDL2Context>>,
-    opengl_available: RefCell<bool>,
 }
 
 struct SDL2Context {
@@ -156,6 +156,7 @@ struct SDL2Context {
     blend_mode: sdl2::render::BlendMode,
     fullscreen_type: sdl2::video::FullscreenType,
     game_controller: GameControllerSubsystem,
+    preferred_renderer: Option<String>,
 }
 
 impl SDL2EventLoop {
@@ -192,8 +193,6 @@ impl SDL2EventLoop {
             window.set_icon(icon);
         }
 
-        let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
-
         let event_loop = SDL2EventLoop {
             event_pump,
             refs: Rc::new(RefCell::new(SDL2Context {
@@ -203,8 +202,8 @@ impl SDL2EventLoop {
                 blend_mode: sdl2::render::BlendMode::Blend,
                 fullscreen_type: sdl2::video::FullscreenType::Off,
                 game_controller,
+                preferred_renderer: ctx.preferred_renderer.clone(),
             })),
-            opengl_available: RefCell::new(opengl_available),
         };
 
         Ok(Box::new(event_loop))
@@ -253,6 +252,80 @@ impl SDL2EventLoop {
         }
 
         let _ = enabled;
+    }
+
+    fn create_imgui() -> GameResult<imgui::Context> {
+        let mut imgui = init_imgui()?;
+
+        let mut key_map = &mut imgui.io_mut().key_map;
+        key_map[ImGuiKey_Backspace as usize] = Scancode::Backspace as u32;
+        key_map[ImGuiKey_Delete as usize] = Scancode::Delete as u32;
+        key_map[ImGuiKey_Enter as usize] = Scancode::Return as u32;
+
+        Ok(imgui)
+    }
+
+    #[cfg(feature = "render-opengl")]
+    fn try_create_opengl_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
+        {
+            let mut refs = self.refs.borrow_mut();
+            match refs.window.window().gl_create_context() {
+                Ok(gl_ctx) => {
+                    refs.window.window().gl_make_current(&gl_ctx).map_err(|e| GameError::RenderError(e.to_string()))?;
+                    refs.gl_context = Some(gl_ctx);
+                }
+                Err(err) => {
+                    return Err(GameError::RenderError(format!("Failed to initialize OpenGL context: {}", err)));
+                }
+            }
+        }
+
+        struct SDL2GLPlatform(Rc<RefCell<SDL2Context>>);
+
+        impl render_opengl::GLPlatformFunctions for SDL2GLPlatform {
+            fn get_proc_address(&self, name: &str) -> *const c_void {
+                let refs = self.0.borrow();
+                refs.video.gl_get_proc_address(name) as *const _
+            }
+
+            fn swap_buffers(&self) {
+                let mut refs = self.0.borrow();
+                refs.window.window().gl_swap_window();
+            }
+
+            fn set_swap_mode(&self, mode: SwapMode) {
+                match mode {
+                    SwapMode::Immediate => unsafe {
+                        sdl2_sys::SDL_GL_SetSwapInterval(0);
+                    },
+                    SwapMode::VSync => unsafe {
+                        sdl2_sys::SDL_GL_SetSwapInterval(1);
+                    },
+                    SwapMode::Adaptive => unsafe {
+                        if sdl2_sys::SDL_GL_SetSwapInterval(-1) == -1 {
+                            log::warn!("Failed to enable variable refresh rate, falling back to non-V-Sync.");
+                            sdl2_sys::SDL_GL_SetSwapInterval(0);
+                        }
+                    },
+                }
+            }
+        }
+
+        let platform = Box::new(SDL2GLPlatform(self.refs.clone()));
+        let gl_context: GLContext = GLContext { gles2_mode: false, platform };
+
+        let imgui = Self::create_imgui()?;
+
+        OpenGLRenderer::new(gl_context, imgui)
+    }
+
+    fn try_create_sdl2_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
+        let imgui = Self::create_imgui()?;
+        let mut refs = self.refs.borrow_mut();
+        let window = std::mem::take(&mut refs.window);
+        refs.window = window.make_canvas()?;
+
+        SDL2Renderer::new(self.refs.clone(), imgui)
     }
 }
 
@@ -440,74 +513,35 @@ impl BackendEventLoop for SDL2EventLoop {
         }
     }
 
-    fn new_renderer(&self, ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>> {
-        #[cfg(feature = "render-opengl")]
-        {
-            let mut refs = self.refs.borrow_mut();
-            match refs.window.window().gl_create_context() {
-                Ok(gl_ctx) => {
-                    refs.window.window().gl_make_current(&gl_ctx).map_err(|e| GameError::RenderError(e.to_string()))?;
-                    refs.gl_context = Some(gl_ctx);
-                }
-                Err(err) => {
-                    *self.opengl_available.borrow_mut() = false;
-                    log::error!("Failed to initialize OpenGL context, falling back to SDL2 renderer: {}", err);
-                }
+    fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
+        let mut renderers = {
+            let mut renderers: Vec<(&'static str, fn(&Self) -> GameResult<Box<dyn BackendRenderer>>)> = Vec::new();
+
+            #[cfg(feature = "render-opengl")]
+            renderers.push((OpenGLRenderer::RENDERER_ID, Self::try_create_opengl_renderer));
+
+            renderers.push((SDL2Renderer::RENDERER_ID, Self::try_create_sdl2_renderer));
+            renderers
+        };
+
+        if let Some(preferred_renderer) = &self.refs.borrow().preferred_renderer {
+            // remove the preferred renderer from the list
+            let index = renderers.iter().position(|(id, _)| id == preferred_renderer);
+            let pref_renderer = index.map(|index| renderers.remove(index));
+
+            if let Some(pref_renderer) = pref_renderer {
+                renderers.insert(0, pref_renderer);
             }
         }
 
-        let mut imgui = init_imgui()?;
-
-        #[cfg(feature = "render-opengl")]
-        if *self.opengl_available.borrow() {
-            let mut key_map = &mut imgui.io_mut().key_map;
-            key_map[ImGuiKey_Backspace as usize] = Scancode::Backspace as u32;
-            key_map[ImGuiKey_Delete as usize] = Scancode::Delete as u32;
-            key_map[ImGuiKey_Enter as usize] = Scancode::Return as u32;
-
-            struct SDL2GLPlatform(Rc<RefCell<SDL2Context>>);
-
-            impl render_opengl::GLPlatformFunctions for SDL2GLPlatform {
-                fn get_proc_address(&self, name: &str) -> *const c_void {
-                    let refs = self.0.borrow();
-                    refs.video.gl_get_proc_address(name) as *const _
-                }
-
-                fn swap_buffers(&self) {
-                    let mut refs = self.0.borrow();
-                    refs.window.window().gl_swap_window();
-                }
-
-                fn set_swap_mode(&self, mode: SwapMode) {
-                    match mode {
-                        SwapMode::Immediate => unsafe {
-                            sdl2_sys::SDL_GL_SetSwapInterval(0);
-                        },
-                        SwapMode::VSync => unsafe {
-                            sdl2_sys::SDL_GL_SetSwapInterval(1);
-                        },
-                        SwapMode::Adaptive => unsafe {
-                            if sdl2_sys::SDL_GL_SetSwapInterval(-1) == -1 {
-                                log::warn!("Failed to enable variable refresh rate, falling back to non-V-Sync.");
-                                sdl2_sys::SDL_GL_SetSwapInterval(0);
-                            }
-                        },
-                    }
-                }
+        for (id, renderer_fn) in renderers {
+            match renderer_fn(self) {
+                Ok(renderer) => return Ok(renderer),
+                Err(e) => log::warn!("Failed to create renderer {}: {}", id, e),
             }
-
-            let platform = Box::new(SDL2GLPlatform(self.refs.clone()));
-            let gl_context: GLContext = GLContext { gles2_mode: false, platform, ctx };
-
-            return Ok(Box::new(OpenGLRenderer::new(gl_context, imgui)));
         }
 
-        {
-            let mut refs = self.refs.borrow_mut();
-            let window = std::mem::take(&mut refs.window);
-            refs.window = window.make_canvas()?;
-            return Ok(Box::new(SDL2Renderer::new(self.refs.clone(), imgui)?));
-        }
+        Err(GameError::RenderError("Failed to create any renderer".to_owned()))
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -563,8 +597,10 @@ struct SDL2Renderer {
 }
 
 impl SDL2Renderer {
+    pub const RENDERER_ID: &'static str = "sdl2";
+
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(refs: Rc<RefCell<SDL2Context>>, mut imgui: imgui::Context) -> GameResult<SDL2Renderer> {
+    pub fn new(refs: Rc<RefCell<SDL2Context>>, mut imgui: imgui::Context) -> GameResult<Box<dyn BackendRenderer>> {
         imgui.set_renderer_name("SDL2Renderer".to_owned());
         let imgui_font_tex = {
             let refs = refs.clone();
@@ -605,7 +641,7 @@ impl SDL2Renderer {
         };
         imgui.fonts().tex_id = TextureId::new(imgui_font_tex.texture.as_ref().unwrap().raw() as usize);
 
-        Ok((SDL2Renderer { refs, imgui: Rc::new(RefCell::new(imgui)), imgui_font_tex }))
+        Ok(Box::new(SDL2Renderer { refs, imgui: Rc::new(RefCell::new(imgui)), imgui_font_tex }))
     }
 }
 

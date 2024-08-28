@@ -35,7 +35,6 @@ pub trait GLPlatformFunctions {
 pub struct GLContext {
     pub gles2_mode: bool,
     pub platform: Box<dyn GLPlatformFunctions>,
-    pub ctx: *mut Context,
 }
 
 pub struct OpenGLTexture {
@@ -225,6 +224,10 @@ impl BackendTexture for OpenGLTexture {
     }
 
     fn draw(&mut self) -> GameResult {
+        if self.vertices.is_empty() {
+            return Ok(());
+        }
+
         unsafe {
             let gl = self.gl.as_ref();
             if self.texture_id == 0 {
@@ -276,10 +279,10 @@ impl Drop for OpenGLTexture {
                 gl.gl.DeleteTextures(1, texture_id as *const _);
             }
 
-            if self.framebuffer_id != 0 {
-                let framebuffer_id = &self.framebuffer_id;
-                gl.gl.DeleteFramebuffers(1, framebuffer_id as *const _);
-            }
+            // if self.framebuffer_id != 0 {
+            //     let framebuffer_id = &self.framebuffer_id;
+            //     gl.gl.DeleteFramebuffers(1, framebuffer_id as *const _);
+            // }
         }
     }
 }
@@ -578,29 +581,87 @@ pub struct Gl {
     pub context_active: RefCell<bool>,
 }
 
-pub fn load_gl(gl_context: &mut GLContext) -> Gl {
-    unsafe {
-        let gl = gl::Gles2::load_with(|ptr| gl_context.platform.get_proc_address(ptr));
-
-        let version = {
-            let p = gl.GetString(gl::VERSION);
-            if p.is_null() {
-                "unknown".to_owned()
-            } else {
-                let data = CStr::from_ptr(p as *const _).to_bytes().to_vec();
-                String::from_utf8(data).unwrap()
+impl Gl {
+    pub fn ensure_compatibility(&self) -> GameResult {
+        fn ensure_function_loaded(ptr: &gl::FnPtr) -> GameResult {
+            if !ptr.is_loaded() {
+                return Err(RenderError("Created context does not provide required OpenGL functionality!".to_string()));
             }
-        };
 
-        log::info!("OpenGL version {}", version);
+            Ok(())
+        }
 
-        Gl { gl, context_active: RefCell::new(true) }
+        ensure_function_loaded(&self.gl.ActiveTexture)?;
+        ensure_function_loaded(&self.gl.AttachShader)?;
+        ensure_function_loaded(&self.gl.BindBuffer)?;
+        ensure_function_loaded(&self.gl.BindFramebuffer)?;
+        // ensure_function_loaded(&self.gl.BindSampler)?; // optional
+        ensure_function_loaded(&self.gl.BindTexture)?;
+        ensure_function_loaded(&self.gl.BlendEquation)?;
+        ensure_function_loaded(&self.gl.BlendFunc)?;
+        ensure_function_loaded(&self.gl.BlendFuncSeparate)?;
+        ensure_function_loaded(&self.gl.BufferData)?;
+        ensure_function_loaded(&self.gl.Clear)?;
+        ensure_function_loaded(&self.gl.ClearColor)?;
+        ensure_function_loaded(&self.gl.CompileShader)?;
+        ensure_function_loaded(&self.gl.CreateProgram)?;
+        ensure_function_loaded(&self.gl.CreateShader)?;
+        ensure_function_loaded(&self.gl.DeleteFramebuffers)?;
+        ensure_function_loaded(&self.gl.DeleteProgram)?;
+        ensure_function_loaded(&self.gl.DeleteShader)?;
+        ensure_function_loaded(&self.gl.DeleteTextures)?;
+        ensure_function_loaded(&self.gl.Disable)?;
+        ensure_function_loaded(&self.gl.DrawArrays)?;
+        ensure_function_loaded(&self.gl.DrawBuffers)?;
+        ensure_function_loaded(&self.gl.DrawElements)?;
+        ensure_function_loaded(&self.gl.Enable)?;
+        ensure_function_loaded(&self.gl.EnableVertexAttribArray)?;
+        ensure_function_loaded(&self.gl.FramebufferTexture2D)?;
+        ensure_function_loaded(&self.gl.GenBuffers)?;
+        ensure_function_loaded(&self.gl.GenFramebuffers)?;
+        ensure_function_loaded(&self.gl.GenTextures)?;
+        ensure_function_loaded(&self.gl.GetAttribLocation)?;
+        ensure_function_loaded(&self.gl.GetIntegerv)?;
+        ensure_function_loaded(&self.gl.GetShaderInfoLog)?;
+        ensure_function_loaded(&self.gl.GetShaderiv)?;
+        ensure_function_loaded(&self.gl.GetUniformLocation)?;
+        ensure_function_loaded(&self.gl.LinkProgram)?;
+        ensure_function_loaded(&self.gl.Scissor)?;
+        ensure_function_loaded(&self.gl.ShaderSource)?;
+        ensure_function_loaded(&self.gl.TexImage2D)?;
+        ensure_function_loaded(&self.gl.TexParameteri)?;
+        ensure_function_loaded(&self.gl.Uniform1f)?;
+        ensure_function_loaded(&self.gl.Uniform1i)?;
+        ensure_function_loaded(&self.gl.Uniform2f)?;
+        ensure_function_loaded(&self.gl.UniformMatrix4fv)?;
+        ensure_function_loaded(&self.gl.UseProgram)?;
+        ensure_function_loaded(&self.gl.VertexAttribPointer)?;
+        ensure_function_loaded(&self.gl.Viewport)?;
+
+        Ok(())
     }
+
+    fn get_version(&self) -> String {
+        let p = unsafe { self.gl.GetString(gl::VERSION) };
+        if p.is_null() {
+            "unknown".to_owned()
+        } else {
+            let data = unsafe { CStr::from_ptr(p as *const _).to_bytes().to_vec() };
+            String::from_utf8_lossy(&data).to_string()
+        }
+    }
+}
+
+pub fn load_gl(gl_context: &GLContext) -> Rc<Gl> {
+    Rc::new(Gl {
+        gl: unsafe { gl::Gles2::load_with(|ptr| gl_context.platform.get_proc_address(ptr)) },
+        context_active: RefCell::new(true),
+    })
 }
 
 pub struct OpenGLRenderer {
     refs: GLContext,
-    gl: Option<Rc<Gl>>,
+    gl: Rc<Gl>,
     imgui: UnsafeCell<imgui::Context>,
     render_data: RenderData,
     def_matrix: [[f32; 4]; 4],
@@ -608,31 +669,25 @@ pub struct OpenGLRenderer {
 }
 
 impl OpenGLRenderer {
-    pub fn new(refs: GLContext, imgui: imgui::Context) -> OpenGLRenderer {
-        OpenGLRenderer {
+    pub const RENDERER_ID: &'static str = "opengl2";
+
+    pub fn new(refs: GLContext, mut imgui: imgui::Context) -> GameResult<Box<dyn BackendRenderer>> {
+        let gl = load_gl(&refs);
+        gl.ensure_compatibility()?;
+
+        log::info!("OpenGL version: {}", gl.get_version());
+
+        let mut render_data = RenderData::new();
+        render_data.init(refs.gles2_mode, &mut imgui, &gl);
+
+        Ok(Box::new(OpenGLRenderer {
             refs,
-            gl: None,
+            gl,
             imgui: UnsafeCell::new(imgui),
-            render_data: RenderData::new(),
+            render_data,
             def_matrix: [[0.0; 4]; 4],
             curr_matrix: [[0.0; 4]; 4],
-        }
-    }
-
-    fn get_context(&mut self) -> Option<(&mut GLContext, Rc<Gl>)> {
-        let imgui = unsafe { &mut *self.imgui.get() };
-
-        let gles2 = self.refs.gles2_mode;
-        if let None = self.gl {
-            self.gl = Some(Rc::new(load_gl(&mut self.refs)));
-        }
-        let gl = self.gl.clone().unwrap();
-
-        if !self.render_data.initialized {
-            self.render_data.init(gles2, imgui, &gl);
-        }
-
-        Some((&mut self.refs, gl))
+        }))
     }
 }
 
@@ -646,11 +701,10 @@ impl BackendRenderer for OpenGLRenderer {
     }
 
     fn clear(&mut self, color: Color) {
-        if let Some((_, gl)) = self.get_context() {
-            unsafe {
-                gl.gl.ClearColor(color.r, color.g, color.b, color.a);
-                gl.gl.Clear(gl::COLOR_BUFFER_BIT);
-            }
+        unsafe {
+            let gl = &self.gl;
+            gl.gl.ClearColor(color.r, color.g, color.b, color.a);
+            gl.gl.Clear(gl::COLOR_BUFFER_BIT);
         }
     }
 
@@ -663,95 +717,230 @@ impl BackendRenderer for OpenGLRenderer {
         }
 
         unsafe {
-            if let Some((_, gl)) = self.get_context() {
-                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.render_fbo as _);
-                gl.gl.ClearColor(0.0, 0.0, 0.0, 1.0);
-                gl.gl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+            let gl = &self.gl;
+            gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.render_fbo as _);
+            gl.gl.ClearColor(0.0, 0.0, 0.0, 1.0);
+            gl.gl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                let matrix =
-                    [[2.0f32, 0.0, 0.0, 0.0], [0.0, -2.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0], [-1.0, 1.0, 0.0, 1.0]];
+            let matrix = [[2.0f32, 0.0, 0.0, 0.0], [0.0, -2.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0], [-1.0, 1.0, 0.0, 1.0]];
 
-                self.render_data.tex_shader.bind_attrib_pointer(&gl, self.render_data.vbo);
-                gl.gl.UniformMatrix4fv(self.render_data.tex_shader.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+            self.render_data.tex_shader.bind_attrib_pointer(&gl, self.render_data.vbo);
+            gl.gl.UniformMatrix4fv(self.render_data.tex_shader.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
 
-                let color = (255, 255, 255, 255);
-                let vertices = [
-                    VertexData { position: (0.0, 1.0), uv: (0.0, 0.0), color },
-                    VertexData { position: (0.0, 0.0), uv: (0.0, 1.0), color },
-                    VertexData { position: (1.0, 0.0), uv: (1.0, 1.0), color },
-                    VertexData { position: (0.0, 1.0), uv: (0.0, 0.0), color },
-                    VertexData { position: (1.0, 0.0), uv: (1.0, 1.0), color },
-                    VertexData { position: (1.0, 1.0), uv: (1.0, 0.0), color },
-                ];
+            let color = (255, 255, 255, 255);
+            let vertices = [
+                VertexData { position: (0.0, 1.0), uv: (0.0, 0.0), color },
+                VertexData { position: (0.0, 0.0), uv: (0.0, 1.0), color },
+                VertexData { position: (1.0, 0.0), uv: (1.0, 1.0), color },
+                VertexData { position: (0.0, 1.0), uv: (0.0, 0.0), color },
+                VertexData { position: (1.0, 0.0), uv: (1.0, 1.0), color },
+                VertexData { position: (1.0, 1.0), uv: (1.0, 0.0), color },
+            ];
 
-                self.draw_arrays_tex_id(
-                    gl::TRIANGLES,
-                    &vertices,
-                    self.render_data.surf_texture,
-                    BackendShader::Texture,
-                )?;
-            }
+            self.draw_arrays_tex_id(gl::TRIANGLES, &vertices, self.render_data.surf_texture, BackendShader::Texture)?;
 
-            if let Some((context, _)) = self.get_context() {
-                context.platform.swap_buffers();
-            }
+            self.refs.platform.swap_buffers();
         }
 
         Ok(())
     }
 
     fn set_swap_mode(&mut self, mode: SwapMode) -> GameResult {
-        if let Some((ctx, _)) = self.get_context() {
-            ctx.platform.set_swap_mode(mode);
-            Ok(())
-        } else {
-            Err(RenderError("No OpenGL context available!".to_string()))
+        self.refs.platform.set_swap_mode(mode);
+        Ok(())
+    }
+
+    fn prepare_draw(&mut self, width: f32, height: f32) -> GameResult {
+        unsafe {
+            let gl = &self.gl;
+            let (width_u, height_u) = (width as u32, height as u32);
+            if self.render_data.last_size != (width_u, height_u) {
+                self.render_data.last_size = (width_u, height_u);
+                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.render_fbo as _);
+                gl.gl.BindTexture(gl::TEXTURE_2D, self.render_data.surf_texture);
+
+                gl.gl.TexImage2D(
+                    gl::TEXTURE_2D,
+                    0,
+                    gl::RGBA as _,
+                    width_u as _,
+                    height_u as _,
+                    0,
+                    gl::RGBA,
+                    gl::UNSIGNED_BYTE,
+                    null() as _,
+                );
+
+                gl.gl.BindTexture(gl::TEXTURE_2D, 0 as _);
+            }
+
+            gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.surf_framebuffer);
+            gl.gl.ClearColor(0.0, 0.0, 0.0, 0.0);
+            gl.gl.Clear(gl::COLOR_BUFFER_BIT);
+
+            gl.gl.ActiveTexture(gl::TEXTURE0);
+            gl.gl.BlendEquation(gl::FUNC_ADD);
+            gl.gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+
+            gl.gl.Viewport(0, 0, width_u as _, height_u as _);
+
+            self.def_matrix = [
+                [2.0 / width, 0.0, 0.0, 0.0],
+                [0.0, 2.0 / -height, 0.0, 0.0],
+                [0.0, 0.0, -1.0, 0.0],
+                [-1.0, 1.0, 0.0, 1.0],
+            ];
+            self.curr_matrix = self.def_matrix;
+
+            gl.gl.BindBuffer(gl::ARRAY_BUFFER, 0);
+            gl.gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
+            gl.gl.UseProgram(self.render_data.fill_shader.program_id);
+            gl.gl.UniformMatrix4fv(self.render_data.fill_shader.proj_mtx, 1, gl::FALSE, self.curr_matrix.as_ptr() as _);
+            gl.gl.UseProgram(self.render_data.fill_water_shader.program_id);
+            gl.gl.Uniform1i(self.render_data.fill_water_shader.texture, 0);
+            gl.gl.UniformMatrix4fv(
+                self.render_data.fill_water_shader.proj_mtx,
+                1,
+                gl::FALSE,
+                self.curr_matrix.as_ptr() as _,
+            );
+            gl.gl.UseProgram(self.render_data.tex_shader.program_id);
+            gl.gl.Uniform1i(self.render_data.tex_shader.texture, 0);
+            gl.gl.UniformMatrix4fv(self.render_data.tex_shader.proj_mtx, 1, gl::FALSE, self.curr_matrix.as_ptr() as _);
+        }
+
+        Ok(())
+    }
+
+    fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>> {
+        unsafe {
+            let gl = &self.gl;
+            let current_texture_id = return_param(|x| gl.gl.GetIntegerv(gl::TEXTURE_BINDING_2D, x)) as u32;
+            let texture_id = return_param(|x| gl.gl.GenTextures(1, x));
+
+            gl.gl.BindTexture(gl::TEXTURE_2D, texture_id);
+            gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as _);
+            gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as _);
+
+            gl.gl.TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA as _,
+                width as _,
+                height as _,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                null() as _,
+            );
+
+            gl.gl.BindTexture(gl::TEXTURE_2D, current_texture_id);
+
+            let framebuffer_id = return_param(|x| gl.gl.GenFramebuffers(1, x));
+
+            gl.gl.BindFramebuffer(gl::FRAMEBUFFER, framebuffer_id);
+            gl.gl.FramebufferTexture2D(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D, texture_id, 0);
+            let draw_buffers = [gl::COLOR_ATTACHMENT0];
+            gl.gl.DrawBuffers(1, draw_buffers.as_ptr() as _);
+
+            gl.gl.Viewport(0, 0, width as _, height as _);
+            gl.gl.ClearColor(0.0, 0.0, 0.0, 0.0);
+            gl.gl.Clear(gl::COLOR_BUFFER_BIT);
+            gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.render_fbo as _);
+
+            // todo error checking: glCheckFramebufferStatus()
+
+            Ok(Box::new(OpenGLTexture {
+                texture_id,
+                framebuffer_id,
+                width,
+                height,
+                vertices: Vec::new(),
+                shader: self.render_data.tex_shader,
+                vbo: self.render_data.vbo,
+                gl: gl.clone(),
+            }))
         }
     }
-    fn prepare_draw(&mut self, width: f32, height: f32) -> GameResult {
-        if let Some((_, gl)) = self.get_context() {
-            unsafe {
-                let (width_u, height_u) = (width as u32, height as u32);
-                if self.render_data.last_size != (width_u, height_u) {
-                    self.render_data.last_size = (width_u, height_u);
-                    gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.render_fbo as _);
-                    gl.gl.BindTexture(gl::TEXTURE_2D, self.render_data.surf_texture);
 
-                    gl.gl.TexImage2D(
-                        gl::TEXTURE_2D,
-                        0,
-                        gl::RGBA as _,
-                        width_u as _,
-                        height_u as _,
-                        0,
-                        gl::RGBA,
-                        gl::UNSIGNED_BYTE,
-                        null() as _,
-                    );
+    fn create_texture(&mut self, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>> {
+        unsafe {
+            let gl = &self.gl;
+            let current_texture_id = return_param(|x| gl.gl.GetIntegerv(gl::TEXTURE_BINDING_2D, x)) as u32;
+            let texture_id = return_param(|x| gl.gl.GenTextures(1, x));
+            gl.gl.BindTexture(gl::TEXTURE_2D, texture_id);
+            gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as _);
+            gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as _);
 
-                    gl.gl.BindTexture(gl::TEXTURE_2D, 0 as _);
-                }
+            gl.gl.TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA as _,
+                width as _,
+                height as _,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                data.as_ptr() as _,
+            );
 
-                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.surf_framebuffer);
-                gl.gl.ClearColor(0.0, 0.0, 0.0, 0.0);
-                gl.gl.Clear(gl::COLOR_BUFFER_BIT);
+            gl.gl.BindTexture(gl::TEXTURE_2D, current_texture_id);
 
-                gl.gl.ActiveTexture(gl::TEXTURE0);
+            Ok(Box::new(OpenGLTexture {
+                texture_id,
+                framebuffer_id: 0,
+                width,
+                height,
+                vertices: Vec::new(),
+                shader: self.render_data.tex_shader,
+                vbo: self.render_data.vbo,
+                gl: gl.clone(),
+            }))
+        }
+    }
+
+    fn set_blend_mode(&mut self, blend: BlendMode) -> GameResult {
+        let gl = &self.gl;
+        match blend {
+            BlendMode::Add => unsafe {
+                gl.gl.Enable(gl::BLEND);
+                gl.gl.BlendEquation(gl::FUNC_ADD);
+                gl.gl.BlendFunc(gl::ONE, gl::ONE);
+            },
+            BlendMode::Alpha => unsafe {
+                gl.gl.Enable(gl::BLEND);
                 gl.gl.BlendEquation(gl::FUNC_ADD);
                 gl.gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+            },
+            BlendMode::Multiply => unsafe {
+                gl.gl.Enable(gl::BLEND);
+                gl.gl.BlendEquation(gl::FUNC_ADD);
+                gl.gl.BlendFuncSeparate(gl::ZERO, gl::SRC_COLOR, gl::ZERO, gl::SRC_ALPHA);
+            },
+            BlendMode::None => unsafe {
+                gl.gl.Disable(gl::BLEND);
+            },
+        }
 
-                gl.gl.Viewport(0, 0, width_u as _, height_u as _);
+        Ok(())
+    }
 
-                self.def_matrix = [
-                    [2.0 / width, 0.0, 0.0, 0.0],
-                    [0.0, 2.0 / -height, 0.0, 0.0],
+    fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult {
+        unsafe {
+            let gl = &self.gl;
+            if let Some(texture) = texture {
+                let gl_texture = texture
+                    .as_any()
+                    .downcast_ref::<OpenGLTexture>()
+                    .ok_or_else(|| RenderError("This texture was not created by OpenGL backend.".to_string()))?;
+
+                self.curr_matrix = [
+                    [2.0 / (gl_texture.width as f32), 0.0, 0.0, 0.0],
+                    [0.0, 2.0 / (gl_texture.height as f32), 0.0, 0.0],
                     [0.0, 0.0, -1.0, 0.0],
-                    [-1.0, 1.0, 0.0, 1.0],
+                    [-1.0, -1.0, 0.0, 1.0],
                 ];
-                self.curr_matrix = self.def_matrix;
 
-                gl.gl.BindBuffer(gl::ARRAY_BUFFER, 0);
-                gl.gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
                 gl.gl.UseProgram(self.render_data.fill_shader.program_id);
                 gl.gl.UniformMatrix4fv(
                     self.render_data.fill_shader.proj_mtx,
@@ -760,7 +949,6 @@ impl BackendRenderer for OpenGLRenderer {
                     self.curr_matrix.as_ptr() as _,
                 );
                 gl.gl.UseProgram(self.render_data.fill_water_shader.program_id);
-                gl.gl.Uniform1i(self.render_data.fill_water_shader.texture, 0);
                 gl.gl.UniformMatrix4fv(
                     self.render_data.fill_water_shader.proj_mtx,
                     1,
@@ -775,251 +963,77 @@ impl BackendRenderer for OpenGLRenderer {
                     gl::FALSE,
                     self.curr_matrix.as_ptr() as _,
                 );
-            }
 
-            Ok(())
-        } else {
-            Err(RenderError("No OpenGL context available!".to_string()))
-        }
-    }
+                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, gl_texture.framebuffer_id);
+                gl.gl.Viewport(0, 0, gl_texture.width as _, gl_texture.height as _);
+            } else {
+                self.curr_matrix = self.def_matrix;
 
-    fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>> {
-        if let Some((_, gl)) = self.get_context() {
-            unsafe {
-                let current_texture_id = return_param(|x| gl.gl.GetIntegerv(gl::TEXTURE_BINDING_2D, x)) as u32;
-                let texture_id = return_param(|x| gl.gl.GenTextures(1, x));
-
-                gl.gl.BindTexture(gl::TEXTURE_2D, texture_id);
-                gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as _);
-                gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as _);
-
-                gl.gl.TexImage2D(
-                    gl::TEXTURE_2D,
-                    0,
-                    gl::RGBA as _,
-                    width as _,
-                    height as _,
-                    0,
-                    gl::RGBA,
-                    gl::UNSIGNED_BYTE,
-                    null() as _,
+                gl.gl.UseProgram(self.render_data.fill_shader.program_id);
+                gl.gl.UniformMatrix4fv(
+                    self.render_data.fill_shader.proj_mtx,
+                    1,
+                    gl::FALSE,
+                    self.curr_matrix.as_ptr() as _,
                 );
-
-                gl.gl.BindTexture(gl::TEXTURE_2D, current_texture_id);
-
-                let framebuffer_id = return_param(|x| gl.gl.GenFramebuffers(1, x));
-
-                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, framebuffer_id);
-                gl.gl.FramebufferTexture2D(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D, texture_id, 0);
-                let draw_buffers = [gl::COLOR_ATTACHMENT0];
-                gl.gl.DrawBuffers(1, draw_buffers.as_ptr() as _);
-
-                gl.gl.Viewport(0, 0, width as _, height as _);
-                gl.gl.ClearColor(0.0, 0.0, 0.0, 0.0);
-                gl.gl.Clear(gl::COLOR_BUFFER_BIT);
-                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.render_fbo as _);
-
-                // todo error checking: glCheckFramebufferStatus()
-
-                Ok(Box::new(OpenGLTexture {
-                    texture_id,
-                    framebuffer_id,
-                    width,
-                    height,
-                    vertices: Vec::new(),
-                    shader: self.render_data.tex_shader,
-                    vbo: self.render_data.vbo,
-                    gl: gl.clone(),
-                }))
-            }
-        } else {
-            Err(RenderError("No OpenGL context available!".to_string()))
-        }
-    }
-
-    fn create_texture(&mut self, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>> {
-        if let Some((_, gl)) = self.get_context() {
-            unsafe {
-                let current_texture_id = return_param(|x| gl.gl.GetIntegerv(gl::TEXTURE_BINDING_2D, x)) as u32;
-                let texture_id = return_param(|x| gl.gl.GenTextures(1, x));
-                gl.gl.BindTexture(gl::TEXTURE_2D, texture_id);
-                gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as _);
-                gl.gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as _);
-
-                gl.gl.TexImage2D(
-                    gl::TEXTURE_2D,
-                    0,
-                    gl::RGBA as _,
-                    width as _,
-                    height as _,
-                    0,
-                    gl::RGBA,
-                    gl::UNSIGNED_BYTE,
-                    data.as_ptr() as _,
+                gl.gl.UseProgram(self.render_data.fill_water_shader.program_id);
+                gl.gl.UniformMatrix4fv(
+                    self.render_data.fill_water_shader.proj_mtx,
+                    1,
+                    gl::FALSE,
+                    self.curr_matrix.as_ptr() as _,
                 );
-
-                gl.gl.BindTexture(gl::TEXTURE_2D, current_texture_id);
-
-                Ok(Box::new(OpenGLTexture {
-                    texture_id,
-                    framebuffer_id: 0,
-                    width,
-                    height,
-                    vertices: Vec::new(),
-                    shader: self.render_data.tex_shader,
-                    vbo: self.render_data.vbo,
-                    gl: gl.clone(),
-                }))
+                gl.gl.UseProgram(self.render_data.tex_shader.program_id);
+                gl.gl.Uniform1i(self.render_data.tex_shader.texture, 0);
+                gl.gl.UniformMatrix4fv(
+                    self.render_data.tex_shader.proj_mtx,
+                    1,
+                    gl::FALSE,
+                    self.curr_matrix.as_ptr() as _,
+                );
+                gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.surf_framebuffer);
+                gl.gl.Viewport(0, 0, self.render_data.last_size.0 as _, self.render_data.last_size.1 as _);
             }
-        } else {
-            Err(RenderError("No OpenGL context available!".to_string()))
         }
-    }
 
-    fn set_blend_mode(&mut self, blend: BlendMode) -> GameResult {
-        if let Some((_, gl)) = self.get_context() {
-            match blend {
-                BlendMode::Add => unsafe {
-                    gl.gl.Enable(gl::BLEND);
-                    gl.gl.BlendEquation(gl::FUNC_ADD);
-                    gl.gl.BlendFunc(gl::ONE, gl::ONE);
-                },
-                BlendMode::Alpha => unsafe {
-                    gl.gl.Enable(gl::BLEND);
-                    gl.gl.BlendEquation(gl::FUNC_ADD);
-                    gl.gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-                },
-                BlendMode::Multiply => unsafe {
-                    gl.gl.Enable(gl::BLEND);
-                    gl.gl.BlendEquation(gl::FUNC_ADD);
-                    gl.gl.BlendFuncSeparate(gl::ZERO, gl::SRC_COLOR, gl::ZERO, gl::SRC_ALPHA);
-                },
-                BlendMode::None => unsafe {
-                    gl.gl.Disable(gl::BLEND);
-                },
-            }
-
-            Ok(())
-        } else {
-            Err(RenderError("No OpenGL context available!".to_string()))
-        }
-    }
-
-    fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult {
-        if let Some((_, gl)) = self.get_context() {
-            unsafe {
-                if let Some(texture) = texture {
-                    let gl_texture = texture
-                        .as_any()
-                        .downcast_ref::<OpenGLTexture>()
-                        .ok_or_else(|| RenderError("This texture was not created by OpenGL backend.".to_string()))?;
-
-                    self.curr_matrix = [
-                        [2.0 / (gl_texture.width as f32), 0.0, 0.0, 0.0],
-                        [0.0, 2.0 / (gl_texture.height as f32), 0.0, 0.0],
-                        [0.0, 0.0, -1.0, 0.0],
-                        [-1.0, -1.0, 0.0, 1.0],
-                    ];
-
-                    gl.gl.UseProgram(self.render_data.fill_shader.program_id);
-                    gl.gl.UniformMatrix4fv(
-                        self.render_data.fill_shader.proj_mtx,
-                        1,
-                        gl::FALSE,
-                        self.curr_matrix.as_ptr() as _,
-                    );
-                    gl.gl.UseProgram(self.render_data.fill_water_shader.program_id);
-                    gl.gl.UniformMatrix4fv(
-                        self.render_data.fill_water_shader.proj_mtx,
-                        1,
-                        gl::FALSE,
-                        self.curr_matrix.as_ptr() as _,
-                    );
-                    gl.gl.UseProgram(self.render_data.tex_shader.program_id);
-                    gl.gl.Uniform1i(self.render_data.tex_shader.texture, 0);
-                    gl.gl.UniformMatrix4fv(
-                        self.render_data.tex_shader.proj_mtx,
-                        1,
-                        gl::FALSE,
-                        self.curr_matrix.as_ptr() as _,
-                    );
-
-                    gl.gl.BindFramebuffer(gl::FRAMEBUFFER, gl_texture.framebuffer_id);
-                    gl.gl.Viewport(0, 0, gl_texture.width as _, gl_texture.height as _);
-                } else {
-                    self.curr_matrix = self.def_matrix;
-
-                    gl.gl.UseProgram(self.render_data.fill_shader.program_id);
-                    gl.gl.UniformMatrix4fv(
-                        self.render_data.fill_shader.proj_mtx,
-                        1,
-                        gl::FALSE,
-                        self.curr_matrix.as_ptr() as _,
-                    );
-                    gl.gl.UseProgram(self.render_data.fill_water_shader.program_id);
-                    gl.gl.UniformMatrix4fv(
-                        self.render_data.fill_water_shader.proj_mtx,
-                        1,
-                        gl::FALSE,
-                        self.curr_matrix.as_ptr() as _,
-                    );
-                    gl.gl.UseProgram(self.render_data.tex_shader.program_id);
-                    gl.gl.Uniform1i(self.render_data.tex_shader.texture, 0);
-                    gl.gl.UniformMatrix4fv(
-                        self.render_data.tex_shader.proj_mtx,
-                        1,
-                        gl::FALSE,
-                        self.curr_matrix.as_ptr() as _,
-                    );
-                    gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.surf_framebuffer);
-                    gl.gl.Viewport(0, 0, self.render_data.last_size.0 as _, self.render_data.last_size.1 as _);
-                }
-            }
-
-            Ok(())
-        } else {
-            Err(RenderError("No OpenGL context available!".to_string()))
-        }
+        Ok(())
     }
 
     fn draw_rect(&mut self, rect: Rect<isize>, color: Color) -> GameResult {
         unsafe {
-            if let Some((_, gl)) = self.get_context() {
-                let color = color.to_rgba();
-                let mut uv = self.render_data.font_tex_size;
-                uv.0 = 0.0 / uv.0;
-                uv.1 = 0.0 / uv.1;
+            let gl = &self.gl;
+            let color = color.to_rgba();
+            let mut uv = self.render_data.font_tex_size;
+            uv.0 = 0.0 / uv.0;
+            uv.1 = 0.0 / uv.1;
 
-                let vertices = [
-                    VertexData { position: (rect.left as _, rect.bottom as _), uv, color },
-                    VertexData { position: (rect.left as _, rect.top as _), uv, color },
-                    VertexData { position: (rect.right as _, rect.top as _), uv, color },
-                    VertexData { position: (rect.left as _, rect.bottom as _), uv, color },
-                    VertexData { position: (rect.right as _, rect.top as _), uv, color },
-                    VertexData { position: (rect.right as _, rect.bottom as _), uv, color },
-                ];
+            let vertices = [
+                VertexData { position: (rect.left as _, rect.bottom as _), uv, color },
+                VertexData { position: (rect.left as _, rect.top as _), uv, color },
+                VertexData { position: (rect.right as _, rect.top as _), uv, color },
+                VertexData { position: (rect.left as _, rect.bottom as _), uv, color },
+                VertexData { position: (rect.right as _, rect.top as _), uv, color },
+                VertexData { position: (rect.right as _, rect.bottom as _), uv, color },
+            ];
 
-                self.render_data.fill_shader.bind_attrib_pointer(&gl, self.render_data.vbo);
+            self.render_data.fill_shader.bind_attrib_pointer(&gl, self.render_data.vbo);
 
-                gl.gl.BindTexture(gl::TEXTURE_2D, self.render_data.font_texture);
-                gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.render_data.vbo);
-                gl.gl.BufferData(
-                    gl::ARRAY_BUFFER,
-                    (vertices.len() * mem::size_of::<VertexData>()) as _,
-                    vertices.as_ptr() as _,
-                    gl::STREAM_DRAW,
-                );
+            gl.gl.BindTexture(gl::TEXTURE_2D, self.render_data.font_texture);
+            gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.render_data.vbo);
+            gl.gl.BufferData(
+                gl::ARRAY_BUFFER,
+                (vertices.len() * mem::size_of::<VertexData>()) as _,
+                vertices.as_ptr() as _,
+                gl::STREAM_DRAW,
+            );
 
-                gl.gl.DrawArrays(gl::TRIANGLES, 0, vertices.len() as _);
+            gl.gl.DrawArrays(gl::TRIANGLES, 0, vertices.len() as _);
 
-                gl.gl.BindTexture(gl::TEXTURE_2D, 0);
-                gl.gl.BindBuffer(gl::ARRAY_BUFFER, 0);
-
-                Ok(())
-            } else {
-                Err(RenderError("No OpenGL context available!".to_string()))
-            }
+            gl.gl.BindTexture(gl::TEXTURE_2D, 0);
+            gl.gl.BindBuffer(gl::ARRAY_BUFFER, 0);
         }
+
+        Ok(())
     }
 
     fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Color) -> GameResult {
@@ -1027,25 +1041,22 @@ impl BackendRenderer for OpenGLRenderer {
     }
 
     fn set_clip_rect(&mut self, rect: Option<Rect>) -> GameResult {
-        if let Some((_, gl)) = self.get_context() {
-            unsafe {
-                if let Some(rect) = &rect {
-                    gl.gl.Enable(gl::SCISSOR_TEST);
-                    gl.gl.Scissor(
-                        rect.left as GLint,
-                        self.render_data.last_size.1 as GLint - rect.bottom as GLint,
-                        rect.width() as GLint,
-                        rect.height() as GLint,
-                    );
-                } else {
-                    gl.gl.Disable(gl::SCISSOR_TEST);
-                }
+        unsafe {
+            let gl = &self.gl;
+            if let Some(rect) = &rect {
+                gl.gl.Enable(gl::SCISSOR_TEST);
+                gl.gl.Scissor(
+                    rect.left as GLint,
+                    self.render_data.last_size.1 as GLint - rect.bottom as GLint,
+                    rect.width() as GLint,
+                    rect.height() as GLint,
+                );
+            } else {
+                gl.gl.Disable(gl::SCISSOR_TEST);
             }
-
-            Ok(())
-        } else {
-            Err(RenderError("No OpenGL context available!".to_string()))
         }
+
+        Ok(())
     }
 
     fn imgui(&self) -> GameResult<&mut imgui::Context> {
@@ -1067,124 +1078,124 @@ impl BackendRenderer for OpenGLRenderer {
 
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult {
         // https://github.com/michaelfairley/rust-imgui-opengl-renderer
-        if let Some((_, gl)) = self.get_context() {
-            unsafe {
-                gl.gl.ActiveTexture(gl::TEXTURE0);
-                gl.gl.Enable(gl::BLEND);
-                gl.gl.BlendEquation(gl::FUNC_ADD);
-                gl.gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-                gl.gl.Disable(gl::CULL_FACE);
-                gl.gl.Disable(gl::DEPTH_TEST);
-                gl.gl.Enable(gl::SCISSOR_TEST);
 
-                let imgui = self.imgui()?;
-                let [width, height] = imgui.io().display_size;
-                let [scale_w, scale_h] = imgui.io().display_framebuffer_scale;
+        unsafe {
+            let gl = &self.gl;
+            gl.gl.ActiveTexture(gl::TEXTURE0);
+            gl.gl.Enable(gl::BLEND);
+            gl.gl.BlendEquation(gl::FUNC_ADD);
+            gl.gl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+            gl.gl.Disable(gl::CULL_FACE);
+            gl.gl.Disable(gl::DEPTH_TEST);
+            gl.gl.Enable(gl::SCISSOR_TEST);
 
-                let fb_width = width * scale_w;
-                let fb_height = height * scale_h;
+            let imgui = self.imgui()?;
+            let [width, height] = imgui.io().display_size;
+            let [scale_w, scale_h] = imgui.io().display_framebuffer_scale;
 
-                gl.gl.Viewport(0, 0, fb_width as _, fb_height as _);
-                let matrix = [
-                    [2.0 / width as f32, 0.0, 0.0, 0.0],
-                    [0.0, 2.0 / -(height as f32), 0.0, 0.0],
-                    [0.0, 0.0, -1.0, 0.0],
-                    [-1.0, 1.0, 0.0, 1.0],
-                ];
+            let fb_width = width * scale_w;
+            let fb_height = height * scale_h;
 
-                gl.gl.UseProgram(self.render_data.tex_shader.program_id);
-                gl.gl.Uniform1i(self.render_data.tex_shader.texture, 0);
-                gl.gl.UniformMatrix4fv(self.render_data.tex_shader.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+            gl.gl.Viewport(0, 0, fb_width as _, fb_height as _);
+            let matrix = [
+                [2.0 / width as f32, 0.0, 0.0, 0.0],
+                [0.0, 2.0 / -(height as f32), 0.0, 0.0],
+                [0.0, 0.0, -1.0, 0.0],
+                [-1.0, 1.0, 0.0, 1.0],
+            ];
 
-                if gl.gl.BindSampler.is_loaded() {
-                    gl.gl.BindSampler(0, 0);
-                }
+            gl.gl.UseProgram(self.render_data.tex_shader.program_id);
+            gl.gl.Uniform1i(self.render_data.tex_shader.texture, 0);
+            gl.gl.UniformMatrix4fv(self.render_data.tex_shader.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
+
+            if gl.gl.BindSampler.is_loaded() {
+                gl.gl.BindSampler(0, 0);
+            }
+
+            gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.render_data.vbo);
+            gl.gl.EnableVertexAttribArray(self.render_data.tex_shader.position);
+            gl.gl.EnableVertexAttribArray(self.render_data.tex_shader.uv);
+            gl.gl.EnableVertexAttribArray(self.render_data.tex_shader.color);
+
+            gl.gl.VertexAttribPointer(
+                self.render_data.tex_shader.position,
+                2,
+                gl::FLOAT,
+                gl::FALSE,
+                mem::size_of::<DrawVert>() as _,
+                field_offset::<DrawVert, _, _>(|v| &v.pos) as _,
+            );
+
+            gl.gl.VertexAttribPointer(
+                self.render_data.tex_shader.uv,
+                2,
+                gl::FLOAT,
+                gl::FALSE,
+                mem::size_of::<DrawVert>() as _,
+                field_offset::<DrawVert, _, _>(|v| &v.uv) as _,
+            );
+
+            gl.gl.VertexAttribPointer(
+                self.render_data.tex_shader.color,
+                4,
+                gl::UNSIGNED_BYTE,
+                gl::TRUE,
+                mem::size_of::<DrawVert>() as _,
+                field_offset::<DrawVert, _, _>(|v| &v.col) as _,
+            );
+
+            for draw_list in draw_data.draw_lists() {
+                let vtx_buffer = draw_list.vtx_buffer();
+                let idx_buffer = draw_list.idx_buffer();
 
                 gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.render_data.vbo);
-                gl.gl.EnableVertexAttribArray(self.render_data.tex_shader.position);
-                gl.gl.EnableVertexAttribArray(self.render_data.tex_shader.uv);
-                gl.gl.EnableVertexAttribArray(self.render_data.tex_shader.color);
-
-                gl.gl.VertexAttribPointer(
-                    self.render_data.tex_shader.position,
-                    2,
-                    gl::FLOAT,
-                    gl::FALSE,
-                    mem::size_of::<DrawVert>() as _,
-                    field_offset::<DrawVert, _, _>(|v| &v.pos) as _,
+                gl.gl.BufferData(
+                    gl::ARRAY_BUFFER,
+                    (vtx_buffer.len() * mem::size_of::<DrawVert>()) as _,
+                    vtx_buffer.as_ptr() as _,
+                    gl::STREAM_DRAW,
                 );
 
-                gl.gl.VertexAttribPointer(
-                    self.render_data.tex_shader.uv,
-                    2,
-                    gl::FLOAT,
-                    gl::FALSE,
-                    mem::size_of::<DrawVert>() as _,
-                    field_offset::<DrawVert, _, _>(|v| &v.uv) as _,
+                gl.gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.render_data.ebo);
+                gl.gl.BufferData(
+                    gl::ELEMENT_ARRAY_BUFFER,
+                    (idx_buffer.len() * mem::size_of::<DrawIdx>()) as _,
+                    idx_buffer.as_ptr() as _,
+                    gl::STREAM_DRAW,
                 );
 
-                gl.gl.VertexAttribPointer(
-                    self.render_data.tex_shader.color,
-                    4,
-                    gl::UNSIGNED_BYTE,
-                    gl::TRUE,
-                    mem::size_of::<DrawVert>() as _,
-                    field_offset::<DrawVert, _, _>(|v| &v.col) as _,
-                );
+                for cmd in draw_list.commands() {
+                    match cmd {
+                        DrawCmd::Elements {
+                            count,
+                            cmd_params: DrawCmdParams { clip_rect: [x, y, z, w], texture_id, idx_offset, .. },
+                        } => {
+                            gl.gl.BindTexture(gl::TEXTURE_2D, texture_id.id() as _);
 
-                for draw_list in draw_data.draw_lists() {
-                    let vtx_buffer = draw_list.vtx_buffer();
-                    let idx_buffer = draw_list.idx_buffer();
+                            gl.gl.Scissor(
+                                (x * scale_w) as GLint,
+                                (fb_height - w * scale_h) as GLint,
+                                ((z - x) * scale_w) as GLint,
+                                ((w - y) * scale_h) as GLint,
+                            );
 
-                    gl.gl.BindBuffer(gl::ARRAY_BUFFER, self.render_data.vbo);
-                    gl.gl.BufferData(
-                        gl::ARRAY_BUFFER,
-                        (vtx_buffer.len() * mem::size_of::<DrawVert>()) as _,
-                        vtx_buffer.as_ptr() as _,
-                        gl::STREAM_DRAW,
-                    );
+                            let idx_size =
+                                if mem::size_of::<DrawIdx>() == 2 { gl::UNSIGNED_SHORT } else { gl::UNSIGNED_INT };
 
-                    gl.gl.BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.render_data.ebo);
-                    gl.gl.BufferData(
-                        gl::ELEMENT_ARRAY_BUFFER,
-                        (idx_buffer.len() * mem::size_of::<DrawIdx>()) as _,
-                        idx_buffer.as_ptr() as _,
-                        gl::STREAM_DRAW,
-                    );
-
-                    for cmd in draw_list.commands() {
-                        match cmd {
-                            DrawCmd::Elements {
-                                count,
-                                cmd_params: DrawCmdParams { clip_rect: [x, y, z, w], texture_id, idx_offset, .. },
-                            } => {
-                                gl.gl.BindTexture(gl::TEXTURE_2D, texture_id.id() as _);
-
-                                gl.gl.Scissor(
-                                    (x * scale_w) as GLint,
-                                    (fb_height - w * scale_h) as GLint,
-                                    ((z - x) * scale_w) as GLint,
-                                    ((w - y) * scale_h) as GLint,
-                                );
-
-                                let idx_size =
-                                    if mem::size_of::<DrawIdx>() == 2 { gl::UNSIGNED_SHORT } else { gl::UNSIGNED_INT };
-
-                                gl.gl.DrawElements(
-                                    gl::TRIANGLES,
-                                    count as _,
-                                    idx_size,
-                                    (idx_offset * mem::size_of::<DrawIdx>()) as _,
-                                );
-                            }
-                            DrawCmd::ResetRenderState => {}
-                            DrawCmd::RawCallback { .. } => {}
+                            gl.gl.DrawElements(
+                                gl::TRIANGLES,
+                                count as _,
+                                idx_size,
+                                (idx_offset * mem::size_of::<DrawIdx>()) as _,
+                            );
                         }
+                        DrawCmd::ResetRenderState => {}
+                        DrawCmd::RawCallback { .. } => {}
                     }
                 }
-
-                gl.gl.Disable(gl::SCISSOR_TEST);
             }
+
+            gl.gl.Disable(gl::SCISSOR_TEST);
         }
 
         Ok(())
@@ -1237,47 +1248,42 @@ impl OpenGLRenderer {
         mut texture: u32,
         shader: BackendShader,
     ) -> GameResult<()> {
-        if let Some((_, gl)) = self.get_context() {
-            match shader {
-                BackendShader::Fill => {
-                    self.render_data.fill_shader.bind_attrib_pointer(&gl, self.render_data.vbo)?;
-                }
-                BackendShader::Texture => {
-                    self.render_data.tex_shader.bind_attrib_pointer(&gl, self.render_data.vbo)?;
-                }
-                BackendShader::WaterFill(scale, t, frame_pos) => {
-                    self.render_data.fill_water_shader.bind_attrib_pointer(&gl, self.render_data.vbo)?;
-                    gl.gl.Uniform1f(self.render_data.fill_water_shader.scale, scale);
-                    gl.gl.Uniform1f(self.render_data.fill_water_shader.time, t);
-                    gl.gl.Uniform2f(self.render_data.fill_water_shader.frame_offset, frame_pos.0, frame_pos.1);
-                    texture = self.render_data.surf_texture;
-                }
+        let gl = &self.gl;
+        match shader {
+            BackendShader::Fill => {
+                self.render_data.fill_shader.bind_attrib_pointer(&gl, self.render_data.vbo)?;
             }
-
-            gl.gl.BindTexture(gl::TEXTURE_2D, texture);
-            gl.gl.BufferData(
-                gl::ARRAY_BUFFER,
-                (vertices.len() * mem::size_of::<VertexData>()) as _,
-                vertices.as_ptr() as _,
-                gl::STREAM_DRAW,
-            );
-
-            gl.gl.DrawArrays(vert_type, 0, vertices.len() as _);
-
-            gl.gl.BindTexture(gl::TEXTURE_2D, 0);
-            gl.gl.BindBuffer(gl::ARRAY_BUFFER, 0);
-
-            Ok(())
-        } else {
-            Err(RenderError("No OpenGL context available!".to_string()))
+            BackendShader::Texture => {
+                self.render_data.tex_shader.bind_attrib_pointer(&gl, self.render_data.vbo)?;
+            }
+            BackendShader::WaterFill(scale, t, frame_pos) => {
+                self.render_data.fill_water_shader.bind_attrib_pointer(&gl, self.render_data.vbo)?;
+                gl.gl.Uniform1f(self.render_data.fill_water_shader.scale, scale);
+                gl.gl.Uniform1f(self.render_data.fill_water_shader.time, t);
+                gl.gl.Uniform2f(self.render_data.fill_water_shader.frame_offset, frame_pos.0, frame_pos.1);
+                texture = self.render_data.surf_texture;
+            }
         }
+
+        gl.gl.BindTexture(gl::TEXTURE_2D, texture);
+        gl.gl.BufferData(
+            gl::ARRAY_BUFFER,
+            (vertices.len() * mem::size_of::<VertexData>()) as _,
+            vertices.as_ptr() as _,
+            gl::STREAM_DRAW,
+        );
+
+        gl.gl.DrawArrays(vert_type, 0, vertices.len() as _);
+
+        gl.gl.BindTexture(gl::TEXTURE_2D, 0);
+        gl.gl.BindBuffer(gl::ARRAY_BUFFER, 0);
+
+        Ok(())
     }
 }
 
 impl Drop for OpenGLRenderer {
     fn drop(&mut self) {
-        if let Some(gl) = &self.gl {
-            gl.context_active.replace(false);
-        }
+        self.gl.context_active.replace(false);
     }
 }
