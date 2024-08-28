@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::common::{Color, Rect};
 use crate::framework::backend::{BackendShader, BackendTexture, VertexData};
 use crate::framework::context::Context;
@@ -130,7 +133,7 @@ pub fn set_clip_rect(ctx: &mut Context, rect: Option<Rect>) -> GameResult {
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
 
-pub fn imgui_context(ctx: &Context) -> GameResult<&mut imgui::Context> {
+pub fn imgui_context(ctx: &Context) -> GameResult<Rc<RefCell<imgui::Context>>> {
     if let Some(renderer) = ctx.renderer.as_ref() {
         return renderer.imgui();
     }

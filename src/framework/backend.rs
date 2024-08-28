@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use imgui::DrawData;
@@ -83,8 +84,8 @@ pub trait BackendRenderer {
     /// Set the current clipping rectangle.
     fn set_clip_rect(&mut self, rect: Option<Rect>) -> GameResult;
 
-    /// Get a mutable reference to the imgui context.
-    fn imgui(&self) -> GameResult<&mut imgui::Context>;
+    /// Get a reference to the imgui context.
+    fn imgui(&self) -> GameResult<Rc<RefCell<imgui::Context>>>;
 
     /// Get an imgui texture id for the specified texture.
     fn imgui_texture_id(&self, texture: &Box<dyn BackendTexture>) -> GameResult<imgui::TextureId>;
