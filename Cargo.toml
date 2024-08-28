@@ -98,10 +98,6 @@ wgpu = { git = "https://github.com/gfx-rs/wgpu.git", rev = "aadca17885e60ee4527d
 winit = { version = "0.30.2", optional = true, default-features = false, features = ["x11"] }
 xmltree = "0.10"
 
-#hack to not link SDL_image on Windows(causes a linker error)
-[target.'cfg(not(target_os = "windows"))'.dependencies]
-sdl2 = { version = "0.37", optional = true, features = ["image", "unsafe_textures", "bundled", "static-link", "raw-window-handle", "use-bindgen"] }
-
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3", features = ["winuser"] }
 
