@@ -1,7 +1,7 @@
 use std::time::Instant;
 
-use imgui::{FontConfig, FontSource};
 use imgui::sys::*;
+use imgui::{FontConfig, FontSource};
 
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -108,19 +108,20 @@ impl UI {
     }
 
     pub fn draw(&mut self, state: &mut SharedGameState, ctx: &mut Context, scene: &mut Box<dyn Scene>) -> GameResult {
-        let ctx2 = unsafe { &mut *(ctx as *const Context as *mut Context) };
         let imgui = imgui_context(ctx)?;
+        let mut imgui = imgui.borrow_mut();
+
         let now = Instant::now();
         imgui.io_mut().update_delta_time(now - self.last_frame);
         self.last_frame = now;
 
         let mut ui = imgui.new_frame();
 
-        scene.imgui_draw(&mut self.components, state, ctx2, &mut ui)?;
+        scene.imgui_draw(&mut self.components, state, ctx, &mut ui)?;
 
-        prepare_imgui(ctx2, &ui);
+        prepare_imgui(ctx, &ui);
         let draw_data = imgui.render();
-        render_imgui(ctx2, draw_data)?;
+        render_imgui(ctx, draw_data)?;
 
         Ok(())
     }

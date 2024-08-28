@@ -44,6 +44,8 @@ use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
 use crate::game::GAME_SUSPENDED;
 
+use super::graphics;
+
 pub struct SDL2Backend {
     context: Sdl,
     size_hint: (u16, u16),
@@ -315,37 +317,39 @@ impl SDL2EventLoop {
         let gl_context: GLContext = GLContext { gles2_mode: false, platform };
 
         let imgui = Self::create_imgui()?;
-
         OpenGLRenderer::new(gl_context, imgui)
     }
 
     fn try_create_sdl2_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
         let imgui = Self::create_imgui()?;
+
+    fn try_create_sdl2_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
         let mut refs = self.refs.borrow_mut();
         let window = std::mem::take(&mut refs.window);
         refs.window = window.make_canvas()?;
 
+        let imgui = Self::create_imgui()?;
         SDL2Renderer::new(self.refs.clone(), imgui)
     }
 }
 
 impl BackendEventLoop for SDL2EventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
-        let imgui = unsafe { (&*(ctx.renderer.as_ref().unwrap() as *const Box<dyn BackendRenderer>)).imgui().unwrap() };
-        let mut imgui_sdl2 = ImguiSdl2::new(imgui, self.refs.deref().borrow().window.window());
+        let imgui = graphics::imgui_context(ctx).unwrap();
+        let mut imgui_sdl2 = ImguiSdl2::new(&mut imgui.borrow_mut(), self.refs.deref().borrow().window.window());
 
         {
             let state = game.state.get_mut();
             let (width, height) = self.refs.deref().borrow().window.window().size();
             ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
 
-            imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
+            imgui.borrow_mut().io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
             let _ = state.handle_resize(ctx);
         }
 
         loop {
             for event in self.event_pump.poll_iter() {
-                imgui_sdl2.handle_event(imgui, &event);
+                imgui_sdl2.handle_event(&mut imgui.borrow_mut(), &event);
 
                 match event {
                     Event::Quit { .. } => {
@@ -377,11 +381,7 @@ impl BackendEventLoop for SDL2EventLoop {
                             let state = game.state.get_mut();
                             ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
 
-                            if let Some(renderer) = &ctx.renderer {
-                                if let Ok(imgui) = renderer.imgui() {
-                                    imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
-                                }
-                            }
+                            imgui.borrow_mut().io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
                             state.handle_resize(ctx).unwrap();
                         }
                         _ => {}
@@ -504,7 +504,7 @@ impl BackendEventLoop for SDL2EventLoop {
             game.update(ctx).unwrap();
 
             imgui_sdl2.prepare_frame(
-                imgui.io_mut(),
+                imgui.borrow_mut().io_mut(),
                 self.refs.deref().borrow().window.window(),
                 &self.event_pump.mouse_state(),
             );
@@ -879,8 +879,8 @@ impl BackendRenderer for SDL2Renderer {
         Ok(())
     }
 
-    fn imgui(&self) -> GameResult<&mut imgui::Context> {
-        unsafe { Ok(&mut *self.imgui.as_ptr()) }
+    fn imgui(&self) -> GameResult<Rc<RefCell<imgui::Context>>> {
+        Ok(self.imgui.clone())
     }
 
     fn imgui_texture_id(&self, texture: &Box<dyn BackendTexture>) -> GameResult<TextureId> {
