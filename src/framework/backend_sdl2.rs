@@ -38,6 +38,8 @@ use crate::framework::graphics::{BlendMode, SwapMode};
 use crate::framework::keyboard::ScanCode;
 #[cfg(feature = "render-opengl")]
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
+#[cfg(feature = "render-wgpu")]
+use crate::framework::render_wgpu::WGPURenderer;
 use crate::framework::ui::init_imgui;
 use crate::framework::{filesystem, render_opengl};
 use crate::game::shared_game_state::WindowMode;
@@ -160,6 +162,19 @@ struct SDL2Context {
     preferred_renderer: Option<String>,
 }
 
+#[allow(unused)]
+fn wm_info() -> sdl2_sys::SDL_SysWMinfo {
+    unsafe {
+        // safety: fields are initialized by SDL_GetWindowWMInfo
+        let mut winfo: sdl2_sys::SDL_SysWMinfo = mem::MaybeUninit::zeroed().assume_init();
+        winfo.version.major = sdl2_sys::SDL_MAJOR_VERSION as _;
+        winfo.version.minor = sdl2_sys::SDL_MINOR_VERSION as _;
+        winfo.version.patch = sdl2_sys::SDL_PATCHLEVEL as _;
+
+        winfo
+    }
+}
+
 impl SDL2EventLoop {
     pub fn new(sdl: &Sdl, ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>> {
         let event_pump = sdl.event_pump().map_err(GameError::WindowError)?;
@@ -226,11 +241,7 @@ impl SDL2EventLoop {
             const NSWindowStyleMaskFullSizeContentView: u32 = 1 << 15;
 
             // safety: fields are initialized by SDL_GetWindowWMInfo
-            let mut winfo: sdl2_sys::SDL_SysWMinfo = mem::MaybeUninit::zeroed().assume_init();
-            winfo.version.major = sdl2_sys::SDL_MAJOR_VERSION as _;
-            winfo.version.minor = sdl2_sys::SDL_MINOR_VERSION as _;
-            winfo.version.patch = sdl2_sys::SDL_PATCHLEVEL as _;
-
+            let mut winfo = wm_info();
             let mut whandle = self.refs.deref().borrow().window.window().raw();
 
             if sdl2_sys::SDL_GetWindowWMInfo(whandle, &mut winfo as *mut _) != sdl2_sys::SDL_bool::SDL_FALSE {
@@ -321,6 +332,29 @@ impl SDL2EventLoop {
 
         let imgui = Self::create_imgui()?;
         OpenGLRenderer::new(gl_context, imgui)
+    }
+
+    #[cfg(feature = "render-wgpu")]
+    fn try_create_wgpu_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
+        use std::{ffi::c_ulong, mem::MaybeUninit, num::NonZero, ptr::NonNull};
+
+        use sdl2_sys::{SDL_bool, SDL_SYSWM_TYPE};
+        use wgpu::rwh::{HasDisplayHandle, HasWindowHandle};
+
+        let mut refs = self.refs.borrow_mut();
+
+        let (window_handle, display_handle) = unsafe {
+            let window = refs.window.window();
+            let window_handle = HasWindowHandle::window_handle(window)
+                .map_err(|e| GameError::WindowError("Failed to get raw window handle".to_owned()))?;
+            let display_handle = HasDisplayHandle::display_handle(window)
+                .map_err(|e| GameError::WindowError("Failed to get raw display handle".to_owned()))?;
+
+            (window_handle.as_raw(), display_handle.as_raw())
+        };
+        let imgui = Self::create_imgui()?;
+
+        WGPURenderer::new(imgui, display_handle, window_handle)
     }
 
     fn try_create_sdl2_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
@@ -514,6 +548,9 @@ impl BackendEventLoop for SDL2EventLoop {
     fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
         let mut renderers = {
             let mut renderers: Vec<(&'static str, fn(&Self) -> GameResult<Box<dyn BackendRenderer>>)> = Vec::new();
+
+            #[cfg(feature = "render-wgpu")]
+            renderers.push((WGPURenderer::RENDERER_ID, Self::try_create_wgpu_renderer));
 
             #[cfg(feature = "render-opengl")]
             renderers.push((OpenGLRenderer::RENDERER_ID, Self::try_create_opengl_renderer));
