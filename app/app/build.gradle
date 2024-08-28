@@ -3,6 +3,12 @@ plugins {
     id 'com.github.willir.rust.cargo-ndk-android'
 }
 
+def versionMajor = 1
+def versionMinor = 0
+def versionPatch = 0
+
+def versionCode = (versionMajor << 16) | (versionMinor << 8) | versionPatch
+
 android {
     namespace "io.github.doukutsu_rs"
 
@@ -13,14 +19,14 @@ android {
      */
     compileSdkVersion 33
     buildToolsVersion "33.0.0"
-    ndkVersion "25.2.9519653"
+    ndkVersion "27.0.12077973"
 
     defaultConfig {
         applicationId "io.github.doukutsu_rs"
         minSdkVersion 24
         targetSdkVersion 33
-        versionCode 3
-        versionName "0.102.0"
+        versionCode versionCode
+        versionName "${versionMajor}.${versionMinor}.${versionPatch}"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
