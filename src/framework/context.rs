@@ -11,6 +11,7 @@ pub struct Context {
     pub headless: bool,
     pub shutdown_requested: bool,
     pub window: WindowParams,
+    pub preferred_renderer: Option<String>,
     pub(crate) filesystem: Filesystem,
     pub(crate) renderer: Option<Box<dyn BackendRenderer>>,
     pub(crate) gamepad_context: GamepadContext,
@@ -27,6 +28,7 @@ impl Context {
             headless: false,
             shutdown_requested: false,
             window: WindowParams::default(),
+            preferred_renderer: None,
             filesystem: Filesystem::new(),
             renderer: None,
             gamepad_context: GamepadContext::new(),
@@ -41,7 +43,7 @@ impl Context {
     pub fn run(&mut self, game: &mut Game) -> GameResult {
         let backend = init_backend(self.headless, &self.window)?;
         let mut event_loop = backend.create_event_loop(self)?;
-        self.renderer = Some(event_loop.new_renderer(self as *mut Context)?);
+        self.renderer = Some(event_loop.new_renderer()?);
 
         event_loop.run(game, self);
 

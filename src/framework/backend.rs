@@ -37,48 +37,65 @@ pub trait Backend {
 pub trait BackendEventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context);
 
-    fn new_renderer(&self, ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>>;
+    fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>>;
 
     fn as_any(&self) -> &dyn Any;
 }
 
 pub trait BackendRenderer {
+    /// Human-readable name for the renderer. May return different values based on current platform or settings.
     fn renderer_name(&self) -> String;
 
+    /// Clear the current render target with the specified color.
     fn clear(&mut self, color: Color);
 
+    /// Present the current frame to the screen.
     fn present(&mut self) -> GameResult;
 
+    /// Sets the preferred frame swap mode.
     fn set_swap_mode(&mut self, _mode: SwapMode) -> GameResult {
         Ok(())
     }
 
+    // Prepare the renderer for drawing.
     fn prepare_draw(&mut self, _width: f32, _height: f32) -> GameResult {
         Ok(())
     }
 
+    /// Create a new mutable texture with the specified dimensions.
     fn create_texture_mutable(&mut self, width: u16, height: u16) -> GameResult<Box<dyn BackendTexture>>;
 
+    /// Create a new texture with the specified dimensions and data.
     fn create_texture(&mut self, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>>;
 
+    /// Set the current blend mode.
     fn set_blend_mode(&mut self, blend: BlendMode) -> GameResult;
 
+    /// Set the current render target.
     fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult;
 
+    /// Draw a filled rectangle with the specified color.
     fn draw_rect(&mut self, rect: Rect, color: Color) -> GameResult;
 
+    /// Draw an outlined rectangle with the specified line width and color.
     fn draw_outline_rect(&mut self, rect: Rect, line_width: usize, color: Color) -> GameResult;
 
+    /// Set the current clipping rectangle.
     fn set_clip_rect(&mut self, rect: Option<Rect>) -> GameResult;
 
+    /// Get a mutable reference to the imgui context.
     fn imgui(&self) -> GameResult<&mut imgui::Context>;
 
+    /// Get an imgui texture id for the specified texture.
     fn imgui_texture_id(&self, texture: &Box<dyn BackendTexture>) -> GameResult<imgui::TextureId>;
 
+    /// Prepare the imgui context for rendering.
     fn prepare_imgui(&mut self, ui: &imgui::Ui) -> GameResult;
 
+    /// Render the imgui draw data.
     fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult;
 
+    /// Draw a list of triangles, in mode similar to GL_TRIANGLES.
     fn draw_triangle_list(
         &mut self,
         vertices: &[VertexData],
@@ -90,18 +107,23 @@ pub trait BackendRenderer {
 }
 
 pub trait BackendTexture {
+    /// Get the dimensions of the texture.
     fn dimensions(&self) -> (u16, u16);
 
+    /// Adds a new drawing command to the texture batch.
     fn add(&mut self, command: SpriteBatchCommand);
 
+    /// Clear the texture batch.
     fn clear(&mut self);
 
+    /// Draw the texture batch to the screen.
     fn draw(&mut self) -> GameResult;
 
     fn as_any(&self) -> &dyn Any;
 }
 
 pub trait BackendGamepad {
+    /// Run a gamepad rumble effect using the specified parameters.
     fn set_rumble(&mut self, low_freq: u16, high_freq: u16, duration_ms: u32) -> GameResult;
 
     fn instance_id(&self) -> u32;

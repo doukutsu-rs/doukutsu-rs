@@ -406,10 +406,8 @@ impl BackendEventLoop for HorizonEventLoop {
         }
     }
 
-    fn new_renderer(&self, ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>> {
+    fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
         let mut imgui = imgui::Context::create();
-        let ctx = unsafe { &mut *ctx };
-        imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
         imgui.fonts().build_alpha8_texture();
 
         let device = DeviceMaker::new().create();

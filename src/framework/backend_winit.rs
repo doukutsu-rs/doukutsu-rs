@@ -293,48 +293,10 @@ impl BackendEventLoop for WinitEventLoop {
         event_loop.run_app(self);
     }
 
-    fn new_renderer(&self, ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>> {
+    fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
         let mut imgui = init_imgui()?;
         imgui.io_mut().display_size = [640.0, 480.0];
 
-        // let refs = self.refs.clone();
-        // let user_data = Rc::into_raw(refs) as *mut c_void;
-
-        // unsafe fn get_proc_address(user_data: &mut *mut c_void, name: &str) -> *const c_void {
-        //     let refs = Rc::from_raw(*user_data as *mut UnsafeCell<Option<WindowedContext<PossiblyCurrent>>>);
-
-        //     let result = {
-        //         let refs = &mut *refs.get();
-
-        //         if let Some(refs) = refs {
-        //             refs.get_proc_address(name)
-        //         } else {
-        //             std::ptr::null()
-        //         }
-        //     };
-
-        //     *user_data = Rc::into_raw(refs) as *mut c_void;
-
-        //     result
-        // }
-
-        // unsafe fn swap_buffers(user_data: &mut *mut c_void) {
-        //     let refs = Rc::from_raw(*user_data as *mut UnsafeCell<Option<WindowedContext<PossiblyCurrent>>>);
-
-        //     {
-        //         let refs = &mut *refs.get();
-
-        //         if let Some(refs) = refs {
-        //             refs.swap_buffers();
-        //         }
-        //     }
-
-        //     *user_data = Rc::into_raw(refs) as *mut c_void;
-        // }
-
-        // let gl_context = GLContext { gles2_mode: true, is_sdl: false, get_proc_address, swap_buffers, user_data, ctx };
-
-        // Ok(Box::new(OpenGLRenderer::new(gl_context, imgui)))
         Ok(Box::new(super::backend_null::NullRenderer::new(imgui)))
     }
 
