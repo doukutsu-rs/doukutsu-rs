@@ -69,12 +69,12 @@ fern = "0.6.2"
 glutin = { version = "0.32.0", optional = true }
 imgui = { git = "https://github.com/imgui-rs/imgui-rs.git", rev = "67f7f11363e62f09aa0e1288a17800e505860486" }
 image = { version = "0.24", default-features = false, features = ["png", "bmp"] }
-itertools = "0.10"
+itertools = "0.13.0"
 include-flate = "0.3.0"
 lazy_static = "1.4"
 lewton = { version = "0.10", optional = true }
 log = "0.4"
-num-derive = "0.3"
+num-derive = "0.4"
 num-traits = "0.2"
 open = "3.2"
 paste = "1.0"
