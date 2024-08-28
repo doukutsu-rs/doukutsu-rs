@@ -245,7 +245,7 @@ impl SDL2EventLoop {
             let mut whandle = self.refs.deref().borrow().window.window().raw();
 
             if sdl2_sys::SDL_GetWindowWMInfo(whandle, &mut winfo as *mut _) != sdl2_sys::SDL_bool::SDL_FALSE {
-                let window = winfo.info.x11.display as *mut objc2::runtime::AnyObject;
+                let window = winfo.info.cocoa.window as *mut objc2::runtime::AnyObject;
 
                 if enabled {
                     let _: () = msg_send![window, setTitlebarAppearsTransparent:YES];
