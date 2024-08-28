@@ -7,14 +7,14 @@ android {
     namespace "io.github.doukutsu_rs"
     compileSdkVersion 33
     buildToolsVersion "33.0.0"
-    ndkVersion "25.2.9519653"
+    ndkVersion "27.0.12077973"
 
     defaultConfig {
         applicationId "io.github.doukutsu_rs"
         minSdkVersion 24
         targetSdkVersion 33
         versionCode 2
-        versionName "0.101.0"
+        versionName "1.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
