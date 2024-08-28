@@ -143,8 +143,10 @@ impl Debug for AtomStore {
                     dbg.entry(&i, &AtomPrintList(atom));
                 }
             }
-            dbg.finish()
+            dbg.finish()?;
         }
+
+        Ok(())
     }
 }
 
