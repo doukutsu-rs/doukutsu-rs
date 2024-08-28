@@ -65,7 +65,6 @@ directories = "3"
 discord-rich-presence = { version = "0.2", optional = true }
 downcast = "0.11"
 encoding_rs = "0.8.33"
-fern = "0.6.2"
 glutin = { version = "0.32.0", optional = true }
 imgui = { git = "https://github.com/imgui-rs/imgui-rs.git", rev = "67f7f11363e62f09aa0e1288a17800e505860486" }
 image = { version = "0.24", default-features = false, features = ["png", "bmp"] }
@@ -73,7 +72,7 @@ itertools = "0.13.0"
 include-flate = "0.3.0"
 lazy_static = "1.4"
 lewton = { version = "0.10", optional = true }
-log = "0.4"
+log = { version = "0.4", features = ["release_max_level_info"] }
 num-derive = "0.4"
 num-traits = "0.2"
 open = "3.2"
@@ -86,6 +85,7 @@ serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_cbor = { version = "0.11", optional = true }
 serde_json = "1.0"
+simple_logger = { version = "5.0.0", features = ["colors", "threads"] }
 strum = "0.24"
 strum_macros = "0.24"
 # remove and replace when extract_if is in stable
