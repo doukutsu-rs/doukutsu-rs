@@ -18,6 +18,8 @@ pub mod graphics;
 pub mod keyboard;
 #[cfg(feature = "render-opengl")]
 pub mod render_opengl;
+#[cfg(feature = "render-wgpu")]
+pub mod render_wgpu;
 pub mod ui;
 pub mod util;
 pub mod vfs;

@@ -666,6 +666,8 @@ pub struct OpenGLRenderer {
     render_data: RenderData,
     def_matrix: [[f32; 4]; 4],
     curr_matrix: [[f32; 4]; 4],
+    imgui_display_size: [f32; 2],
+    imgui_display_scale: [f32; 2],
 }
 
 impl OpenGLRenderer {
@@ -680,6 +682,9 @@ impl OpenGLRenderer {
         let mut render_data = RenderData::new();
         render_data.init(refs.gles2_mode, &mut imgui, &gl);
 
+        let imgui_display_size = imgui.io_mut().display_size;
+        let imgui_display_scale = imgui.io_mut().display_framebuffer_scale;
+
         Ok(Box::new(OpenGLRenderer {
             refs,
             gl,
@@ -687,6 +692,8 @@ impl OpenGLRenderer {
             render_data,
             def_matrix: [[0.0; 4]; 4],
             curr_matrix: [[0.0; 4]; 4],
+            imgui_display_size,
+            imgui_display_scale,
         }))
     }
 }
@@ -709,13 +716,6 @@ impl BackendRenderer for OpenGLRenderer {
     }
 
     fn present(&mut self) -> GameResult {
-        {
-            let mutex = GAME_SUSPENDED.lock().unwrap();
-            if *mutex {
-                return Ok(());
-            }
-        }
-
         unsafe {
             let gl = &self.gl;
             gl.gl.BindFramebuffer(gl::FRAMEBUFFER, self.render_data.render_fbo as _);
@@ -807,6 +807,9 @@ impl BackendRenderer for OpenGLRenderer {
             gl.gl.UseProgram(self.render_data.tex_shader.program_id);
             gl.gl.Uniform1i(self.render_data.tex_shader.texture, 0);
             gl.gl.UniformMatrix4fv(self.render_data.tex_shader.proj_mtx, 1, gl::FALSE, self.curr_matrix.as_ptr() as _);
+
+            self.imgui_display_size = self.imgui.borrow().io().display_size;
+            self.imgui_display_scale = self.imgui.borrow().io().display_framebuffer_scale;
         }
 
         Ok(())
@@ -1089,9 +1092,8 @@ impl BackendRenderer for OpenGLRenderer {
             gl.gl.Disable(gl::DEPTH_TEST);
             gl.gl.Enable(gl::SCISSOR_TEST);
 
-            let imgui = self.imgui()?;
-            let [width, height] = imgui.borrow().io().display_size;
-            let [scale_w, scale_h] = imgui.borrow().io().display_framebuffer_scale;
+            let [width, height] = self.imgui_display_size;
+            let [scale_w, scale_h] = self.imgui_display_scale;
 
             let fb_width = width * scale_w;
             let fb_height = height * scale_h;
