@@ -359,14 +359,8 @@ fn init_logger(options: &LaunchOptions) -> GameResult {
 
 fn panic_hook(info: &PanicInfo<'_>) {
     let backtrace = Backtrace::force_capture();
-    let msg = info.payload().downcast_ref::<&str>().unwrap_or(&"");
-    let location = info.location();
 
-    if location.is_some() {
-        log::error!("Panic occurred in {} with message: '{msg}'\n {backtrace:#}", location.unwrap().to_string());
-    } else {
-        log::error!("Panic occurred with message: '{msg}'\n {backtrace:#}");
-    }
+    log::error!("Panic occurred: {info}\n {backtrace:#}");
 }
 
 pub fn init(mut options: LaunchOptions) -> GameResult {
