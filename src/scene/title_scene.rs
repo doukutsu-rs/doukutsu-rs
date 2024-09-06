@@ -174,7 +174,7 @@ impl TitleScene {
             song_id = 24;
         }
 
-        if state.settings.soundtrack == "New" && Season::current() == Season::PixelBirthday {
+        if state.settings.soundtrack == "new" && Season::current() == Season::PixelBirthday {
             song_id = 43;
         }
 
