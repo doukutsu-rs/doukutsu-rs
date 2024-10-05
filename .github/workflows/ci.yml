@@ -157,6 +157,10 @@ jobs:
           cargo -vV
           cargo install cargo-ndk
 
+      - name: Install development kits
+        run: |
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install --package_file=app/app/packages.txt
+
       - name: Build
         run: |
           if [ "${{ github.ref_type }}" == "tag" ]; then
