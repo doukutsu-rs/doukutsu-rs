@@ -163,7 +163,7 @@ impl CreditScriptVM {
                             state.creditscript_vm.state = CreditScriptExecutionState::Running(cursor.position() as u32);
                         }
                         CreditOpCode::FadeMusic => {
-                            // todo
+                            state.sound_manager.play_song(0, &state.constants, &state.settings, ctx, true)?;
 
                             state.creditscript_vm.state = CreditScriptExecutionState::Running(cursor.position() as u32);
                         }
