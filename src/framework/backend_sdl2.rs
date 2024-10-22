@@ -332,7 +332,7 @@ impl BackendEventLoop for SDL2EventLoop {
                             ctx.keyboard_context.set_key(drs_scan, false);
                         }
                     }
-                    Event::ControllerDeviceAdded { which, .. } => {
+                    Event::JoyDeviceAdded { which, .. } => {
                         let game_controller = &self.refs.borrow().game_controller;
 
                         if game_controller.is_game_controller(which) {
