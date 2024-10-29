@@ -296,6 +296,9 @@ impl NPC {
             }
 
             self.anim_rect = state.constants.npc.n123_curly_boss_bullet[self.direction as usize];
+        } else {
+            self.x += self.vel_x;
+            self.y += self.vel_y;
         }
 
         if match self.direction {
@@ -312,8 +315,6 @@ impl NPC {
             return Ok(());
         }
 
-        self.x += self.vel_x;
-        self.y += self.vel_y;
 
         Ok(())
     }
