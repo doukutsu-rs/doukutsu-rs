@@ -38,7 +38,9 @@ impl BitLUT {
                 break;
             }
 
-            result.bits[i / 64] |= (bits[i] as u64) << (i % 64);
+            let bit = bits[i];
+            result.bits[bit as usize / 64] |= 1 << (bit % 64);
+
             i += 1;
         }
         result
