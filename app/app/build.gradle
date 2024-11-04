@@ -5,6 +5,12 @@ plugins {
 
 android {
     namespace "io.github.doukutsu_rs"
+
+    /**
+     * NOTE: If you want to change the versions of packages required for the build
+     * (e.g. build tools, compile SDK, NDK) or add new ones,
+     * make the appropriate changes in packages.txt. Otherwise CI could break.
+     */
     compileSdkVersion 33
     buildToolsVersion "33.0.0"
     ndkVersion "25.2.9519653"
