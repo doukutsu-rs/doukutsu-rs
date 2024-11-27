@@ -95,7 +95,7 @@ impl LiveDebugger {
                             self.command_line_focused = true;
                         }
 
-                        ui.input_text("##command", &mut self.command_line_parser.buffer).build();
+                        ui.input_text("##I", &mut self.command_line_parser.buffer).build();
                     }
 
                     if ui.is_item_active() {
@@ -173,7 +173,7 @@ impl LiveDebugger {
 
                 ui.text(format!("Game speed ({:.1} TPS):", state.current_tps()));
                 let mut speed = state.settings.speed;
-                ui.slider("##speed", 0.1, 3.0, &mut speed);
+                ui.slider("##Speed", 0.1, 3.0, &mut speed);
                 ui.same_line();
                 if ui.button("Reset") {
                     speed = 1.0
@@ -253,8 +253,8 @@ impl LiveDebugger {
                     }
                     let stages: Vec<&ImStr> = self.stages.iter().map(|e| e.as_ref()).collect();
 
-                    let _ = ui.push_item_width(-1.0);
-                    ui.list_box("##selector", &mut self.selected_stage, &stages, 10);
+                    ui.push_item_width(-1.0);
+                    ui.list_box("##SelectedStage", &mut self.selected_stage, &stages, 10);
 
                     if ui.button("Load") {
                         match GameScene::new(state, ctx, self.selected_stage as usize) {
@@ -337,8 +337,8 @@ impl LiveDebugger {
                         state.creditscript_vm.state
                     )));
 
-                    let _ = ui.push_item_width(-1.0);
-                    ui.list_box("##tscbox", &mut self.selected_event, &events, 10);
+                    ui.push_item_width(-1.0);
+                    ui.list_box("##SelectedEvent", &mut self.selected_event, &events, 10);
 
                     if ui.button("Execute") {
                         assert_eq!(self.event_ids.len(), self.events.len());
@@ -534,7 +534,7 @@ impl LiveDebugger {
                 )
                 .size([300.0, 100.0], Condition::Appearing)
                 .build(|| {
-                    let _ = ui.push_item_width(-1.0);
+                    ui.push_item_width(-1.0);
                     ui.text_wrapped(self.error.as_ref().unwrap());
 
                     if ui.button("OK") {
