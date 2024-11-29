@@ -576,6 +576,8 @@ impl SharedGameState {
         } else {
             if (locale.code == "jp" || locale.code == "en") && constants.is_base() {
                 constants.textscript.encoding = TextScriptEncoding::ShiftJIS
+            } else if (locale.code == "jp" && constants.is_cs_plus) {
+                constants.textscript.encoding = TextScriptEncoding::ShiftJIS
             } else {
                 constants.textscript.encoding = TextScriptEncoding::UTF8
             }
