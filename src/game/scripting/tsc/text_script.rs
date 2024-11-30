@@ -176,22 +176,6 @@ impl From<TextScriptEncoding> for &'static encoding_rs::Encoding {
     }
 }
 
-impl TextScriptEncoding {
-    pub fn invalid_encoding(encoding: TextScriptEncoding, state: &SharedGameState) -> bool {
-        if state.loc.encoding.is_some_and(|e| e == encoding) {
-            return true;
-        }
-
-        let required_encoding = if (state.loc.code == "jp" || state.loc.code == "en") && state.constants.is_base() {
-            TextScriptEncoding::ShiftJIS
-        } else {
-            TextScriptEncoding::UTF8
-        };
-
-        encoding != required_encoding
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
 pub enum TextScriptLine {
