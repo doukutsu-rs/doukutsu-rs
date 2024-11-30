@@ -571,17 +571,30 @@ impl SharedGameState {
         locale: &Locale,
         ctx: &mut Context,
     ) -> GameResult<BMFont> {
-        if let Some(encoding) = locale.encoding {
-            constants.textscript.encoding = encoding
+        constants.textscript.encoding = if let Some(encoding) = locale.encoding {
+            encoding
         } else {
-            if (locale.code == "jp" || locale.code == "en") && constants.is_base() {
-                constants.textscript.encoding = TextScriptEncoding::ShiftJIS
-            } else if (locale.code == "jp" && constants.is_cs_plus) {
-                constants.textscript.encoding = TextScriptEncoding::ShiftJIS
-            } else {
-                constants.textscript.encoding = TextScriptEncoding::UTF8
+            // In freeware, Japanese and English text scripts use ShiftJIS.
+            // In Cave Story+, Japanese scripts use ShiftJIS and English scripts use UTF-8.
+            // The Switch version uses UTF-8 for both English and Japanese fonts.
+            match locale.code.as_str() {
+                "jp" => {
+                    if constants.is_switch {
+                        TextScriptEncoding::UTF8
+                    } else {
+                        TextScriptEncoding::ShiftJIS
+                    }
+                }
+                "en" => {
+                    if constants.is_base() {
+                        TextScriptEncoding::ShiftJIS
+                    } else {
+                        TextScriptEncoding::UTF8
+                    }
+                }
+                _ => TextScriptEncoding::UTF8,
             }
-        }
+        };
 
         constants.stage_encoding = locale.stage_encoding;
 
