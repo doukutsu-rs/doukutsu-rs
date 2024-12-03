@@ -224,7 +224,7 @@ impl NPC {
     }
 
     fn get_headband_spritesheet(&self, state: &SharedGameState, texture_name: &str) -> String {
-        let base_dir = if state.settings.original_textures { "ogph" } else { "plus" };
+        let base_dir = if state.settings.original_textures || state.constants.is_base() { "ogph" } else { "plus" };
         format!("headband/{}/{}", base_dir, texture_name)
     }
 }
