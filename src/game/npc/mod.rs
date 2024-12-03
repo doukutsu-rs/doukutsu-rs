@@ -223,7 +223,7 @@ impl NPC {
         [42, 92, 280, 284].contains(&self.npc_type)
     }
 
-    fn get_headband_spritesheet(&self, state: &SharedGameState, texture_name: &str) -> String {
+    pub fn get_headband_spritesheet(state: &SharedGameState, texture_name: &str) -> String {
         let base_dir = if state.settings.original_textures || state.constants.is_base() { "ogph" } else { "plus" };
         format!("headband/{}/{}", base_dir, texture_name)
     }
@@ -677,7 +677,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
 
         if self.is_sue() && state.more_rust {
             // draw crab headband
-            let headband_spritesheet = self.get_headband_spritesheet(state, &*texture_ref);
+            let headband_spritesheet = Self::get_headband_spritesheet(state, &*texture_ref);
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, headband_spritesheet.as_str())?;
             batch.add_rect(final_x, final_y, &self.anim_rect);
             batch.draw(ctx)?;

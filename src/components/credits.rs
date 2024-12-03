@@ -4,6 +4,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::game::frame::Frame;
+use crate::game::npc::NPC;
 use crate::game::scripting::tsc::text_script::IllustrationState;
 use crate::game::shared_game_state::SharedGameState;
 use crate::graphics::font::Font;
@@ -78,10 +79,7 @@ impl GameEntity<()> for Credits {
         if state.more_rust {
             // draw sue's headband separately because rust doesn't let me mutate the texture set multiple times at once
 
-            let headband_spritesheet = {
-                let base = if state.settings.original_textures || state.constants.is_base() { "ogph" } else { "plus" };
-                format!("headband/{}/Casts", base)
-            };
+            let headband_spritesheet = NPC::get_headband_spritesheet(state, "Casts");
 
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, headband_spritesheet.as_str())?;
 
