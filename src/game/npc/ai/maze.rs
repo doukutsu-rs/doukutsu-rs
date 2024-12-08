@@ -1523,7 +1523,7 @@ impl NPC {
         } else if self.action_num == 2 {
             let player = self.get_closest_player_mut(players);
 
-            self.action_counter3 += 4;
+            self.action_counter3 = self.action_counter3.wrapping_add(4);
             self.direction = if player.x >= self.x { Direction::Right } else { Direction::Left };
 
             self.vel_y += (self.target_y - self.y).signum() * 0x10;
