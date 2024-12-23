@@ -409,7 +409,7 @@ impl NPC {
                         self.display_bounds.right as usize,
                         8,
                         state,
-                        &self.rng,
+                        &mut self.rng,
                     );
                 }
             }

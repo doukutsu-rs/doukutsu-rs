@@ -77,7 +77,7 @@ pub enum NPCLayer {
 }
 
 /// Represents an NPC object.
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 #[repr(C)]
 pub struct NPC {
     pub id: u16,

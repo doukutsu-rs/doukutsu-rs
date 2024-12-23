@@ -91,7 +91,7 @@ impl Caret {
         }
     }
 
-    pub fn tick(&mut self, rng: &dyn RNG, constants: &EngineConstants) {
+    pub fn tick(&mut self, rng: &mut dyn RNG, constants: &EngineConstants) {
         match self.ctype {
             CaretType::None => {}
             CaretType::Bubble => {

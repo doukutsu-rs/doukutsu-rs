@@ -234,7 +234,7 @@ impl NPC {
             }
 
             if self.flags.hit_anything() {
-                npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 4, state, &self.rng);
+                npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 4, state, &mut self.rng);
                 state.sound_manager.play_sfx(28);
                 self.cond.set_alive(false);
             }

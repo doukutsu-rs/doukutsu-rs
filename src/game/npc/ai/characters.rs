@@ -173,7 +173,7 @@ impl NPC {
                     self.vel_x = 0x200;
 
                     state.sound_manager.play_sfx(71);
-                    npc_list.create_death_smoke(self.x, self.y, 0x800, 4, state, &self.rng);
+                    npc_list.create_death_smoke(self.x, self.y, 0x800, 4, state, &mut self.rng);
                 }
             }
             40 | 42 => {

@@ -21,16 +21,7 @@ pub struct NPCList {
 impl NPCList {
     pub fn new() -> NPCList {
         let map = NPCList {
-            npcs: Box::new(UnsafeCell::new(unsafe {
-                const PART: MaybeUninit<NPC> = MaybeUninit::uninit();
-                let mut parts_uninit: [MaybeUninit<NPC>; NPC_LIST_MAX_CAP] = [PART; NPC_LIST_MAX_CAP];
-
-                for part in &mut parts_uninit {
-                    part.write(NPC::empty());
-                }
-
-                transmute(parts_uninit)
-            })),
+            npcs: Box::new(UnsafeCell::new([NPC::empty(); NPC_LIST_MAX_CAP])),
             max_npc: Cell::new(0),
             seed: 0,
         };

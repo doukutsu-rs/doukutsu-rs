@@ -525,7 +525,7 @@ impl NPC {
                     self.npc_flags.set_shootable(false);
                     // I think Pixel meant for the smoke radius to be 16 pixels (0x2000) instead of 16 units,
                     // because as it is, this just gets divided by 0x200 units/px and becomes 0
-                    npc_list.create_death_smoke(self.x, self.y, 16, 16, state, &self.rng);
+                    npc_list.create_death_smoke(self.x, self.y, 16, 16, state, &mut self.rng);
                     state.sound_manager.play_sfx(72);
                 }
                 self.vel_y += 0x20;
@@ -678,7 +678,7 @@ impl NPC {
                 if self.life < 900 {
                     self.action_num = 22;
                     self.npc_flags.set_shootable(false);
-                    npc_list.create_death_smoke(self.x, self.y, 0x2000, 32, state, &self.rng);
+                    npc_list.create_death_smoke(self.x, self.y, 0x2000, 32, state, &mut self.rng);
                     state.sound_manager.play_sfx(71);
                 }
 
@@ -759,7 +759,7 @@ impl NPC {
                     self.damage = 5;
                     self.npc_flags.set_ignore_solidity(false);
                     self.npc_flags.set_shootable(false);
-                    npc_list.create_death_smoke(self.x, self.y, 0x2000, 32, state, &self.rng);
+                    npc_list.create_death_smoke(self.x, self.y, 0x2000, 32, state, &mut self.rng);
                     state.sound_manager.play_sfx(71);
                 }
 
@@ -801,7 +801,7 @@ impl NPC {
                         self.anim_num = 0;
                     }
                 } else {
-                    npc_list.create_death_smoke(self.x, self.y, 0x2000, 32, state, &self.rng);
+                    npc_list.create_death_smoke(self.x, self.y, 0x2000, 32, state, &mut self.rng);
                     state.sound_manager.play_sfx(71);
                     self.vanish(state);
                     return Ok(());
@@ -1889,7 +1889,7 @@ impl BossNPC {
                     1,
                     1,
                     state,
-                    &self.parts[0].rng,
+                    &mut self.parts[0].rng,
                 );
 
                 if self.parts[0].action_counter > 150 {
@@ -2052,7 +2052,7 @@ impl BossNPC {
                     0x800,
                     10,
                     state,
-                    &part.rng,
+                    &mut part.rng,
                 );
             }
             _ => (),

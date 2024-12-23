@@ -113,7 +113,7 @@ impl NPC {
         }
 
         if self.life <= 100 {
-            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &mut self.rng);
             state.sound_manager.play_sfx(25);
             self.cond.set_alive(false);
 
@@ -569,7 +569,7 @@ impl NPC {
         let parent = self.get_parent_ref_mut(npc_list);
         if parent.is_none() || parent.as_ref().unwrap().npc_type == 3 {
             self.vanish(state);
-            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 4, state, &self.rng);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 4, state, &mut self.rng);
             return Ok(());
         }
 
@@ -672,7 +672,7 @@ impl NPC {
                         self.display_bounds.right as usize,
                         8,
                         state,
-                        &self.rng,
+                        &mut self.rng,
                     );
                 }
             }

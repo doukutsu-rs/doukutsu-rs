@@ -750,7 +750,7 @@ impl SharedGameState {
 
     pub fn tick_carets(&mut self) {
         for caret in &mut self.carets {
-            caret.tick(&self.effect_rng, &self.constants);
+            caret.tick(&mut self.effect_rng, &self.constants);
         }
 
         self.carets.retain(|c| !c.is_dead());

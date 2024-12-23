@@ -121,7 +121,8 @@ impl NPC {
 
         self.anim_counter += 1;
         if (self.anim_counter % 8) == 1 {
-            state.create_caret(self.x + state.effect_rng.range(-8..8) as i32 * 0x200,
+            let effect_x_shift = state.effect_rng.range(-8..8);
+            state.create_caret(self.x + effect_x_shift as i32 * 0x200,
                                self.y + 0x1000,
                                CaretType::LittleParticles, Direction::Up);
         }

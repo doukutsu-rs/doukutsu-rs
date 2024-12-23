@@ -1287,7 +1287,7 @@ impl GameScene {
                                 npc.display_bounds.right as usize,
                                 destroy_count,
                                 state,
-                                &npc.rng,
+                                &mut npc.rng,
                             );
                             npc.cond.set_alive(false);
                         }

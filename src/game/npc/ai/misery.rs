@@ -818,7 +818,7 @@ impl NPC {
             self.y += 0x1000;
 
             if self.flags.hit_anything() {
-                npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 3, state, &self.rng);
+                npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 3, state, &mut self.rng);
                 self.cond.set_alive(false);
             }
         }

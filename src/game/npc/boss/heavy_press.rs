@@ -31,7 +31,7 @@ impl NPC {
                     self.display_bounds.left = 0x1000;
                     self.display_bounds.top = 0x1800;
                     state.sound_manager.play_sfx(101);
-                    npc_list.create_death_smoke(self.x, self.y + 0xA800, 0, 3, state, &self.rng);
+                    npc_list.create_death_smoke(self.x, self.y + 0xA800, 0, 3, state, &mut self.rng);
                 }
             }
             10 => {
@@ -103,7 +103,7 @@ impl BossNPC {
                         1,
                         1,
                         state,
-                        &self.parts[0].rng,
+                        &mut self.parts[0].rng,
                     );
                 }
             }
@@ -169,7 +169,7 @@ impl BossNPC {
                             0,
                             4 + extra_smoke,
                             state,
-                            &self.parts[0].rng,
+                            &mut self.parts[0].rng,
                         );
                         state.sound_manager.play_sfx(12);
                     }
@@ -224,7 +224,7 @@ impl BossNPC {
                         1,
                         1,
                         state,
-                        &self.parts[0].rng,
+                        &mut self.parts[0].rng,
                     );
                 }
 
@@ -251,7 +251,7 @@ impl BossNPC {
                     for i in 0..7 {
                         stage.change_tile(i + 7, 14, 0);
                         // This should be called with an amount of 0, but change_tile also needs to make smoke
-                        npc_list.create_death_smoke((i as i32 + 7) * 0x2000, 0x1C000, 0, 3, state, &self.parts[0].rng);
+                        npc_list.create_death_smoke((i as i32 + 7) * 0x2000, 0x1C000, 0, 3, state, &mut self.parts[0].rng);
                         state.sound_manager.play_sfx(12);
                     }
                 }

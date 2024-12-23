@@ -343,7 +343,7 @@ impl BossNPC {
                 let dest_x = self.parts[0].x + self.parts[0].rng.range(-0x30..0x30) * 0x200;
                 let dest_y = self.parts[0].y + self.parts[0].rng.range(-0x30..0x18) * 0x200;
 
-                npc_list.create_death_smoke(dest_x, dest_y, 1, 1, state, &self.parts[0].rng);
+                npc_list.create_death_smoke(dest_x, dest_y, 1, 1, state, &mut self.parts[0].rng);
 
                 if self.parts[0].action_counter > 100 {
                     self.parts[0].action_num = 160;

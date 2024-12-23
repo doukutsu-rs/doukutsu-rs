@@ -724,7 +724,7 @@ impl Bullet {
                 self.enemy_hit_width as usize,
                 2,
                 state,
-                &self.rng,
+                &mut self.rng,
             );
         }
 
@@ -1364,7 +1364,7 @@ impl Bullet {
                 self.enemy_hit_width as usize,
                 2,
                 state,
-                &self.rng,
+                &mut self.rng,
             );
         }
 

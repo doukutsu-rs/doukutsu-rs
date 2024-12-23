@@ -266,13 +266,13 @@ impl NPCList {
 
                 match npc.size {
                     1 => {
-                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 4, state, &npc.rng);
+                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 4, state, &mut npc.rng);
                     }
                     2 => {
-                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 8, state, &npc.rng);
+                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 8, state, &mut npc.rng);
                     }
                     3 => {
-                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 16, state, &npc.rng);
+                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 16, state, &mut npc.rng);
                     }
                     _ => {}
                 };
@@ -289,13 +289,13 @@ impl NPCList {
 
             match npc.size {
                 1 => {
-                    self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 3, state, &npc.rng);
+                    self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 3, state, &mut npc.rng);
                 }
                 2 => {
-                    self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 7, state, &npc.rng);
+                    self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 7, state, &mut npc.rng);
                 }
                 3 => {
-                    self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 12, state, &npc.rng);
+                    self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 12, state, &mut npc.rng);
                 }
                 _ => {}
             };
@@ -366,7 +366,7 @@ impl NPCList {
         radius: usize,
         amount: usize,
         state: &mut SharedGameState,
-        rng: &dyn RNG,
+        rng: &mut dyn RNG,
     ) {
         self.create_death_smoke_common(x, y, radius, amount, Direction::Left, state, rng)
     }
@@ -380,7 +380,7 @@ impl NPCList {
         radius: usize,
         amount: usize,
         state: &mut SharedGameState,
-        rng: &dyn RNG,
+        rng: &mut dyn RNG,
     ) {
         self.create_death_smoke_common(x, y, radius, amount, Direction::Up, state, rng)
     }
@@ -394,7 +394,7 @@ impl NPCList {
         amount: usize,
         direction: Direction,
         state: &mut SharedGameState,
-        rng: &dyn RNG,
+        rng: &mut dyn RNG,
     ) {
         let radius = (radius / 0x200) as i32;
 

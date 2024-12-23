@@ -630,7 +630,7 @@ impl NPC {
             self.damage = 0;
 
             state.sound_manager.play_sfx(72);
-            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &mut self.rng);
             self.create_xp_drop(state, npc_list);
         }
 
@@ -887,7 +887,7 @@ impl NPC {
                         self.display_bounds.right as usize,
                         4,
                         state,
-                        &self.rng,
+                        &mut self.rng,
                     );
                     self.cond.set_alive(false);
                 }
@@ -968,7 +968,7 @@ impl NPC {
                         self.display_bounds.right as usize,
                         4,
                         state,
-                        &self.rng,
+                        &mut self.rng,
                     );
                     bullet_manager.create_bullet(
                         self.x,
@@ -1072,7 +1072,7 @@ impl NPC {
                         state.quake_counter = 20;
                         state.quake_rumble_counter = 20;
                         state.sound_manager.play_sfx(35);
-                        npc_list.create_death_smoke(self.x, self.y, 0x10000, 100 as usize, state, &self.rng);
+                        npc_list.create_death_smoke(self.x, self.y, 0x10000, 100 as usize, state, &mut self.rng);
                     }
                     _ => (),
                 }
