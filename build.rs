@@ -9,6 +9,7 @@ fn main() {
 
     println!("cargo:rerun-if-changed=build.rs");
 
+    #[cfg(target_os = "windows")]
     if target.contains("windows") {
         let mut res = winres::WindowsResource::new();
         res.set_icon("res/sue.ico");
@@ -19,13 +20,17 @@ fn main() {
             println!("cargo:rustc-link-arg=/FORCE:MULTIPLE");
             println!("cargo:rustc-link-lib=shlwapi");
         }
-    } else if target.contains("darwin") {
+    }
+
+    if target.contains("darwin") {
         println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.15");
         println!("cargo:rustc-link-arg=-weak_framework");
         println!("cargo:rustc-link-arg=GameController");
         println!("cargo:rustc-link-arg=-weak_framework");
         println!("cargo:rustc-link-arg=CoreHaptics");
-    } else if target.contains("android") {
+    }
+
+    if target.contains("android") {
         println!("cargo:rustc-link-lib=dylib=GLESv2");
         println!("cargo:rustc-link-lib=dylib=EGL");
     }
