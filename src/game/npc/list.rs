@@ -46,7 +46,7 @@ impl NPCList {
         for id in min_id..(npc_len as u16) {
             let npc_ref = self.npcs_mut().get(id as usize).unwrap();
 
-            if !npc_ref.borrow().cond.alive() {
+            if npc_ref.try_borrow().is_ok_and(|npc_ref| !npc_ref.cond.alive()) {
                 npc.id = id;
 
                 if npc.tsc_direction == 0 {
