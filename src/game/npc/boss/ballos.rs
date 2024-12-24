@@ -585,6 +585,8 @@ impl NPC {
 
     pub(crate) fn tick_n341_ballos_1_head(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+            let parent = parent.borrow();
+            
             if parent.action_num == 11 && parent.action_counter > 50 {
                 self.anim_counter += 1;
             }

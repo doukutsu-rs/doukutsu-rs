@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 ///! Various utility functions for NPC-related objects
 use num_traits::abs;
 
@@ -108,7 +110,7 @@ impl NPC {
     }
 
     /// Returns a reference to parent NPC (if present).
-    pub fn get_parent_ref_mut<'a: 'b, 'b>(&self, npc_list: &'a NPCList) -> Option<&'b mut NPC> {
+    pub fn get_parent_ref_mut<'a: 'b, 'b>(&self, npc_list: &'a NPCList) -> Option<&'b RefCell<NPC>> {
         match self.parent_id {
             0 => None,
             id if id == self.id => None,
@@ -244,18 +246,20 @@ impl NPCList {
     /// Returns true if at least one NPC with specified type is alive.
     #[inline]
     pub fn is_alive_by_type(&self, npc_type: u16) -> bool {
-        self.iter_alive().any(|npc| npc.npc_type == npc_type)
+        self.iter_alive().any(|npc| npc.borrow().npc_type == npc_type)
     }
 
     /// Returns true if at least one NPC with specified event is alive.
     #[inline]
     pub fn is_alive_by_event(&self, event_num: u16) -> bool {
-        self.iter_alive().any(|npc| npc.event_num == event_num)
+        self.iter_alive().any(|npc| npc.borrow().event_num == event_num)
     }
 
     /// Deletes NPCs with specified type.
     pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState) {
-        for npc in self.iter_alive().filter(|n| n.npc_type == npc_type) {
+        for npc in self.iter_alive().filter(|n| n.borrow().npc_type == npc_type) {
+            let mut npc = npc.borrow_mut();
+
             state.set_flag(npc.flag_num as usize, true);
             npc.cond.set_alive(false);
 
@@ -283,6 +287,8 @@ impl NPCList {
     /// Called once NPC is killed, creates smoke and drops.
     pub fn kill_npc(&self, id: usize, vanish: bool, can_drop_missile: bool, state: &mut SharedGameState) {
         if let Some(npc) = self.get_npc(id) {
+            let mut npc = npc.borrow_mut();
+
             if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
                 state.sound_manager.play_sfx(table_entry.death_sound);
             }
@@ -350,6 +356,8 @@ impl NPCList {
     /// Removes NPCs whose event number matches the provided one.
     pub fn kill_npcs_by_event(&self, event_num: u16, state: &mut SharedGameState) {
         for npc in self.iter_alive() {
+            let mut npc = npc.borrow_mut();
+
             if npc.event_num == event_num {
                 npc.cond.set_alive(false);
                 state.set_flag(npc.flag_num as usize, true);

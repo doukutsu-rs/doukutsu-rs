@@ -130,12 +130,14 @@ impl DynamicWater {
         }
 
         for npc in npc_list.iter_alive() {
+            let npc = npc.borrow();
+
             static NO_COLL_NPCS: [u16; 6] = [0, 3, 4, 18, 191, 195];
             if NO_COLL_NPCS.contains(&npc.npc_type) {
                 continue;
             }
 
-            tick_object(npc);
+            tick_object(&*npc);
         }
     }
 }

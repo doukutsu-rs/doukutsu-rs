@@ -1092,6 +1092,8 @@ impl NPC {
             }
 
             if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                let parent = parent.borrow();
+                
                 if self.x < parent.x {
                     self.vel_x += 0x200 / self.action_counter2 as i32;
                 }

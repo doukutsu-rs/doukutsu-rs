@@ -574,6 +574,8 @@ impl NPC {
         bullet_manager: &mut BulletManager,
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+            let mut parent = parent.borrow_mut();
+
             if parent.anim_num > 4 {
                 self.direction = parent.direction;
                 self.x = parent.x;
@@ -668,6 +670,8 @@ impl NPC {
         bullet_manager: &mut BulletManager,
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+            let mut parent = parent.borrow_mut();
+
             if parent.anim_num > 4 {
                 self.direction = parent.direction;
                 self.x = parent.x;
@@ -760,6 +764,8 @@ impl NPC {
         npc_list: &NPCList,
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+            let parent = parent.borrow();
+
             if self.action_num == 0 {
                 self.x = parent.x;
                 self.y = parent.y;
@@ -838,6 +844,8 @@ impl NPC {
         npc_list: &NPCList,
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+            let parent = parent.borrow();
+
             self.x = parent.x;
             self.y = parent.y;
             self.direction = parent.direction;
@@ -918,6 +926,8 @@ impl NPC {
         bullet_manager: &mut BulletManager,
     ) -> GameResult {
         if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+            let npc = npc.borrow();
+            
             let player = &players[0];
 
             self.x = npc.x;

@@ -1,4 +1,4 @@
-use std::cell::{Cell, UnsafeCell};
+use std::cell::{Cell, Ref, RefCell, RefMut, UnsafeCell};
 use std::mem::{MaybeUninit, transmute};
 
 use crate::framework::error::{GameError, GameResult};
@@ -10,9 +10,7 @@ const NPC_LIST_MAX_CAP: usize = 512;
 /// A data structure for storing an NPC list for current stage.
 /// Provides multiple mutable references to NPC objects with internal sanity checks and lifetime bounds.
 pub struct NPCList {
-    // UnsafeCell is required because we do mutable aliasing (ik, discouraged), prevents Rust/LLVM
-    // from theoretically performing some optimizations that might break the code.
-    npcs: Box<UnsafeCell<[NPC; NPC_LIST_MAX_CAP]>>,
+    npcs: Box<[RefCell<NPC>; NPC_LIST_MAX_CAP]>,
     max_npc: Cell<u16>,
     seed: i32,
 }
@@ -21,15 +19,13 @@ pub struct NPCList {
 impl NPCList {
     pub fn new() -> NPCList {
         let map = NPCList {
-            npcs: Box::new(UnsafeCell::new([NPC::empty(); NPC_LIST_MAX_CAP])),
+            npcs: Box::new(std::array::from_fn(|_| RefCell::new(NPC::empty()))),
             max_npc: Cell::new(0),
             seed: 0,
         };
 
-        unsafe {
-            for (idx, npc_ref) in map.npcs_mut().iter_mut().enumerate() {
-                npc_ref.id = idx as u16;
-            }
+        for (idx, npc_ref) in map.npcs_mut().iter().enumerate() {
+            npc_ref.borrow_mut().id = idx as u16;
         }
 
         map
@@ -41,16 +37,16 @@ impl NPCList {
 
     /// Inserts NPC into list in first available slot after given ID.
     pub fn spawn(&self, min_id: u16, mut npc: NPC) -> GameResult {
-        let npc_len = unsafe { self.npcs().len() };
+        let npc_len = self.npcs().len();
 
         if min_id as usize >= npc_len {
             return Err(GameError::InvalidValue("NPC ID is out of bounds".to_string()));
         }
 
         for id in min_id..(npc_len as u16) {
-            let npc_ref = unsafe { self.npcs_mut().get_unchecked_mut(id as usize) };
+            let npc_ref = self.npcs_mut().get(id as usize).unwrap();
 
-            if !npc_ref.cond.alive() {
+            if !npc_ref.borrow().cond.alive() {
                 npc.id = id;
 
                 if npc.tsc_direction == 0 {
@@ -59,7 +55,7 @@ impl NPCList {
 
                 npc.init_rng(self.seed);
 
-                *npc_ref = npc;
+                npc_ref.replace(npc);
 
                 if self.max_npc.get() <= id {
                     self.max_npc.replace(id + 1);
@@ -74,7 +70,7 @@ impl NPCList {
 
     /// Inserts the NPC at specified slot.
     pub fn spawn_at_slot(&self, id: u16, mut npc: NPC) -> GameResult {
-        let npc_len = unsafe { self.npcs().len() };
+        let npc_len = self.npcs().len();
 
         if id as usize >= npc_len {
             return Err(GameError::InvalidValue("NPC ID is out of bounds".to_string()));
@@ -88,10 +84,8 @@ impl NPCList {
 
         npc.init_rng(self.seed);
 
-        unsafe {
-            let npc_ref = self.npcs_mut().get_unchecked_mut(id as usize);
-            *npc_ref = npc;
-        }
+        let npc_ref = self.npcs_mut().get(id as usize).unwrap();
+        npc_ref.replace(npc);
 
         if self.max_npc.get() <= id {
             self.max_npc.replace(id + 1);
@@ -101,8 +95,8 @@ impl NPCList {
     }
 
     /// Returns a mutable reference to NPC from this list.
-    pub fn get_npc<'a: 'b, 'b>(&'a self, id: usize) -> Option<&'b mut NPC> {
-        unsafe { self.npcs_mut().get_mut(id) }
+    pub fn get_npc<'a: 'b, 'b>(&'a self, id: usize) -> Option<&'b RefCell<NPC>> {
+        self.npcs_mut().get(id)
     }
 
     /// Returns an iterator that iterates over allocated (not up to it's capacity) NPC slots.
@@ -118,8 +112,8 @@ impl NPCList {
     /// Removes all NPCs from this list and resets it's capacity.
     pub fn clear(&self) {
         for (idx, npc) in self.iter_alive().enumerate() {
-            *npc = NPC::empty();
-            npc.id = idx as u16;
+            npc.replace(NPC::empty());
+            npc.borrow_mut().id = idx as u16;
         }
 
         self.max_npc.replace(0);
@@ -135,12 +129,12 @@ impl NPCList {
         NPC_LIST_MAX_CAP as u16
     }
 
-    unsafe fn npcs<'a: 'b, 'b>(&'a self) -> &'b [NPC; NPC_LIST_MAX_CAP] {
-        &*self.npcs.get()
+    fn npcs<'a: 'b, 'b>(&'a self) -> &'b [RefCell<NPC>; NPC_LIST_MAX_CAP] {
+        &self.npcs
     }
 
-    unsafe fn npcs_mut<'a: 'b, 'b>(&'a self) -> &'b mut [NPC; NPC_LIST_MAX_CAP] {
-        &mut *self.npcs.get()
+    fn npcs_mut<'a: 'b, 'b>(&'a self) -> &'b [RefCell<NPC>; NPC_LIST_MAX_CAP] {
+        &self.npcs
     }
 }
 
@@ -156,14 +150,14 @@ impl<'a> NPCListMutableIterator<'a> {
 }
 
 impl<'a> Iterator for NPCListMutableIterator<'a> {
-    type Item = &'a mut NPC;
+    type Item = &'a RefCell<NPC>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.map.max_npc.get() {
             return None;
         }
 
-        let item = unsafe { self.map.npcs_mut().get_mut(self.index as usize) };
+        let item = self.map.npcs_mut().get(self.index as usize);
         self.index += 1;
 
         item
@@ -182,7 +176,7 @@ impl<'a> NPCListMutableAliveIterator<'a> {
 }
 
 impl<'a> Iterator for NPCListMutableAliveIterator<'a> {
-    type Item = &'a mut NPC;
+    type Item = &'a RefCell<NPC>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -190,15 +184,15 @@ impl<'a> Iterator for NPCListMutableAliveIterator<'a> {
                 return None;
             }
 
-            let item = unsafe { self.map.npcs_mut().get_mut(self.index as usize) };
+            let item = self.map.npcs_mut().get(self.index as usize);
             self.index += 1;
 
             match item {
                 None => {
                     return None;
                 }
-                Some(ref npc) if npc.cond.alive() => {
-                    return item;
+                Some(npc) if npc.borrow().cond.alive() => {
+                    return Some(npc);
                 }
                 _ => {}
             }
@@ -236,16 +230,16 @@ pub fn test_npc_list() -> GameResult {
                 map.spawn(400, npc.clone())?;
             }
 
-            if npc_ref.cond.alive() {
-                npc_ref.test_tick(&map)?;
+            if npc_ref.borrow().cond.alive() {
+                npc_ref.borrow_mut().test_tick(&map)?;
             }
         }
 
         assert_eq!(map.iter_alive().count(), 43);
 
         for npc_ref in map.iter().skip(256) {
-            if npc_ref.cond.alive() {
-                npc_ref.cond.set_alive(false);
+            if npc_ref.borrow().cond.alive() {
+                npc_ref.borrow_mut().cond.set_alive(false);
             }
         }
 

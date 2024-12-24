@@ -119,11 +119,13 @@ impl NPC {
 
                     self.parent_id = npc_list
                         .iter_alive()
-                        .find_map(|npc| if npc.event_num == 501 { Some(npc.id) } else { None })
+                        .find_map(|npc| if npc.borrow().event_num == 501 { Some(npc.borrow().id) } else { None })
                         .unwrap_or(0);
                 }
 
                 if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                    let npc = npc.borrow();
+                    
                     self.direction = npc.direction.opposite();
                     self.x = npc.x + npc.direction.vector_x() * 0xc00;
                     self.y = npc.y + 0x800;

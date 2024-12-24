@@ -2337,6 +2337,8 @@ impl NPC {
 
     pub(crate) fn tick_n297_sue_dragon_mouth(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+            let npc = npc.borrow();
+
             self.x = npc.x + 0x2000;
             self.y = npc.y + 0x1000;
         }
@@ -2381,6 +2383,8 @@ impl NPC {
 
                     if self.tsc_direction != 0 {
                         for npc in npc_list.iter_alive() {
+                            let npc = npc.borrow();
+
                             if npc.event_num == self.tsc_direction {
                                 self.parent_id = npc.id;
                                 break;
@@ -2400,6 +2404,8 @@ impl NPC {
                     self.x = (player.x + boss.parts[0].x) / 2;
                     self.y = (player.y + boss.parts[0].y) / 2;
                 } else if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                    let npc = npc.borrow();
+
                     self.x = (player.x + npc.x) / 2;
                     self.y = (player.y + npc.y) / 2;
                 }
@@ -2582,6 +2588,8 @@ impl NPC {
                     self.anim_num = 0;
 
                     if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        let npc = npc.borrow();
+                        
                         self.x = npc.x;
                         self.y = npc.y + 0x1400;
                     }
@@ -2591,6 +2599,8 @@ impl NPC {
                     self.anim_num = 2;
 
                     if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        let npc = npc.borrow();
+
                         self.x = npc.x + 0x1600;
                         self.y = npc.y - 0x2200;
                     }
@@ -2601,6 +2611,8 @@ impl NPC {
                     self.anim_num = 3;
 
                     if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        let npc = npc.borrow();
+
                         self.x = npc.x + 0x400;
                         self.y = npc.y - 0x2600;
                     }
@@ -2611,6 +2623,8 @@ impl NPC {
                     self.anim_num = 0;
 
                     if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        let npc = npc.borrow();
+
                         self.x = npc.x - 0x1c00;
                         self.y = npc.y + 0x1400;
                     }
@@ -2620,6 +2634,8 @@ impl NPC {
                     self.anim_num = 1;
 
                     if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        let npc = npc.borrow();
+
                         self.x = npc.x + 0x1c00;
                         self.y = npc.y + 0x1400;
                     }
@@ -2629,6 +2645,7 @@ impl NPC {
                     self.anim_num = 2;
 
                     if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        let npc = npc.borrow();
                         self.x = npc.x - 0xe00;
                         if state.constants.is_switch {
                             self.y = npc.y - 0x2200;
@@ -2642,6 +2659,8 @@ impl NPC {
                     self.anim_num = 3;
 
                     if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                        let npc = npc.borrow();
+
                         self.x = npc.x + 0x800;
                         self.y = npc.y - 0x2600;
                     }
