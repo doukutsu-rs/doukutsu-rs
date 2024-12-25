@@ -182,7 +182,10 @@ impl<'a> Iterator for NPCListMutableAliveIterator<'a> {
                 None => {
                     return None;
                 }
-                Some(npc) if npc.borrow().cond.alive() => {
+                // XXX: BEWARE, obscure logic bugs might appear if the user expects mutably-borrowed objects to be returned here!
+                // try_borrow is required to prevent double-borrowing (i.e. tick_n160_puu_black) - in that case, it is safe because
+                // only type 161 NPC's should be manipulated there.
+                Some(npc) if npc.try_borrow().is_ok_and(|npc| npc.cond.alive()) => {
                     return Some(npc);
                 }
                 _ => {}
