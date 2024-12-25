@@ -1,5 +1,4 @@
-use std::cell::{Cell, Ref, RefCell, RefMut, UnsafeCell};
-use std::mem::{MaybeUninit, transmute};
+use std::cell::{Cell, RefCell};
 
 use crate::framework::error::{GameError, GameResult};
 use crate::game::npc::NPC;
@@ -24,7 +23,7 @@ impl NPCList {
             seed: 0,
         };
 
-        for (idx, npc_ref) in map.npcs_mut().iter().enumerate() {
+        for (idx, npc_ref) in map.npcs.iter().enumerate() {
             npc_ref.borrow_mut().id = idx as u16;
         }
 
@@ -37,14 +36,14 @@ impl NPCList {
 
     /// Inserts NPC into list in first available slot after given ID.
     pub fn spawn(&self, min_id: u16, mut npc: NPC) -> GameResult {
-        let npc_len = self.npcs().len();
+        let npc_len = self.npcs.len();
 
         if min_id as usize >= npc_len {
             return Err(GameError::InvalidValue("NPC ID is out of bounds".to_string()));
         }
 
         for id in min_id..(npc_len as u16) {
-            let npc_ref = self.npcs_mut().get(id as usize).unwrap();
+            let npc_ref = self.npcs.get(id as usize).unwrap();
 
             if npc_ref.try_borrow().is_ok_and(|npc_ref| !npc_ref.cond.alive()) {
                 npc.id = id;
@@ -70,7 +69,7 @@ impl NPCList {
 
     /// Inserts the NPC at specified slot.
     pub fn spawn_at_slot(&self, id: u16, mut npc: NPC) -> GameResult {
-        let npc_len = self.npcs().len();
+        let npc_len = self.npcs.len();
 
         if id as usize >= npc_len {
             return Err(GameError::InvalidValue("NPC ID is out of bounds".to_string()));
@@ -84,7 +83,7 @@ impl NPCList {
 
         npc.init_rng(self.seed);
 
-        let npc_ref = self.npcs_mut().get(id as usize).unwrap();
+        let npc_ref = self.npcs.get(id as usize).unwrap();
         npc_ref.replace(npc);
 
         if self.max_npc.get() <= id {
@@ -96,7 +95,7 @@ impl NPCList {
 
     /// Returns a mutable reference to NPC from this list.
     pub fn get_npc<'a: 'b, 'b>(&'a self, id: usize) -> Option<&'b RefCell<NPC>> {
-        self.npcs_mut().get(id)
+        self.npcs.get(id)
     }
 
     /// Returns an iterator that iterates over allocated (not up to it's capacity) NPC slots.
@@ -128,14 +127,6 @@ impl NPCList {
     pub fn max_capacity(&self) -> u16 {
         NPC_LIST_MAX_CAP as u16
     }
-
-    fn npcs<'a: 'b, 'b>(&'a self) -> &'b [RefCell<NPC>; NPC_LIST_MAX_CAP] {
-        &self.npcs
-    }
-
-    fn npcs_mut<'a: 'b, 'b>(&'a self) -> &'b [RefCell<NPC>; NPC_LIST_MAX_CAP] {
-        &self.npcs
-    }
 }
 
 pub struct NPCListMutableIterator<'a> {
@@ -157,7 +148,7 @@ impl<'a> Iterator for NPCListMutableIterator<'a> {
             return None;
         }
 
-        let item = self.map.npcs_mut().get(self.index as usize);
+        let item = self.map.npcs.get(self.index as usize);
         self.index += 1;
 
         item
@@ -184,7 +175,7 @@ impl<'a> Iterator for NPCListMutableAliveIterator<'a> {
                 return None;
             }
 
-            let item = self.map.npcs_mut().get(self.index as usize);
+            let item = self.map.npcs.get(self.index as usize);
             self.index += 1;
 
             match item {
