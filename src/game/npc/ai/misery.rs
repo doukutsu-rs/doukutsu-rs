@@ -19,7 +19,7 @@ impl NPC {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    if let Some(npc) = npc_list.iter().find(|npc| npc.borrow().event_num == 1000) {
+                    if let Some(npc) = npc_list.iter().find(|npc| npc.try_borrow().is_ok_and(|npc| npc.event_num == 1000)) {
                         let npc = npc.borrow();
 
                         self.action_counter2 = npc.id;
