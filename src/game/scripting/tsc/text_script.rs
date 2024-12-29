@@ -917,6 +917,8 @@ impl TextScriptVM {
                     }
                 } else if new_direction >= 10 {
                     for npc in game_scene.npc_list.iter_alive() {
+                        let npc = npc.borrow();
+                        
                         // The vanilla game treats this as a 1-byte value lol
                         //if npc.event_num == (new_direction & 0xFF) as u16 {
                         if npc.event_num == new_direction as u16 {
@@ -971,6 +973,8 @@ impl TextScriptVM {
                     }
                 } else {
                     for npc in game_scene.npc_list.iter_alive() {
+                        let npc = npc.borrow();
+
                         if npc.event_num == new_direction as u16 {
                             if game_scene.player1.x >= npc.x {
                                 game_scene.player1.direction = Left;
@@ -1531,6 +1535,8 @@ impl TextScriptVM {
                 game_scene.frame.wait = ticks;
 
                 for npc in game_scene.npc_list.iter() {
+                    let npc = npc.borrow();
+
                     if event_num == npc.event_num {
                         game_scene.frame.update_target = UpdateTarget::NPC(npc.id);
                         break;
@@ -1546,6 +1552,8 @@ impl TextScriptVM {
                     game_scene.boss_life_bar.set_boss_target(&game_scene.boss);
                 } else {
                     for npc in game_scene.npc_list.iter_alive() {
+                        let npc = npc.borrow();
+
                         if event_num == npc.event_num {
                             game_scene.boss_life_bar.set_npc_target(npc.id, &game_scene.npc_list);
                             break;
@@ -1569,6 +1577,8 @@ impl TextScriptVM {
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
                 for npc in game_scene.npc_list.iter_alive() {
+                    let mut npc = npc.borrow_mut();
+
                     if npc.event_num == event_num {
                         npc.action_num = action_num;
                         npc.tsc_direction = tsc_direction as u16;
@@ -1595,6 +1605,8 @@ impl TextScriptVM {
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
                 for npc in game_scene.npc_list.iter_alive() {
+                    let mut npc = npc.borrow_mut();
+
                     if npc.event_num == event_num {
                         npc.npc_flags.set_solid_soft(false);
                         npc.npc_flags.set_ignore_tile_44(false);
@@ -1666,6 +1678,8 @@ impl TextScriptVM {
                 let block_size = state.tile_size.as_int() * 0x200;
 
                 for npc in game_scene.npc_list.iter_alive() {
+                    let mut npc = npc.borrow_mut();
+
                     if npc.event_num == event_num {
                         npc.x = x * block_size;
                         npc.y = y * block_size;

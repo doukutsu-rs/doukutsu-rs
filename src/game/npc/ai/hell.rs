@@ -699,6 +699,8 @@ impl NPC {
         match self.action_num {
             0 => {
                 if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                    let parent = parent.borrow();
+                    
                     self.y = parent.y + 0x1400;
                     self.x = parent.x + 0xE00 * parent.direction.opposite().vector_x();
 

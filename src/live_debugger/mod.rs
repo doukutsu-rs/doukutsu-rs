@@ -424,6 +424,8 @@ impl LiveDebugger {
                 .always_vertical_scrollbar(true)
                 .build(|| {
                     for npc in game_scene.npc_list.iter_alive() {
+                        let mut npc = npc.borrow_mut();
+
                         if CollapsingHeader::new(&ImString::from(format!("id={} type={}", npc.id, npc.npc_type)))
                             .default_open(false)
                             .build(ui)

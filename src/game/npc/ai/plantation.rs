@@ -561,6 +561,8 @@ impl NPC {
                 }
 
                 if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                    let parent = parent.borrow();
+                    
                     if parent.npc_type == 232 {
                         self.target_x = parent.x;
                         self.target_y = parent.y;

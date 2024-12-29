@@ -1570,6 +1570,8 @@ impl NPC {
 
         if self.action_num == 1 {
             if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                let parent = parent.borrow();
+                
                 if parent.npc_type == 187 && parent.cond.alive() {
                     let deg = (self.action_counter3.wrapping_add(parent.action_counter3) & 0xff) as f64 * CDEG_RAD;
 
