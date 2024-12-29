@@ -45,7 +45,8 @@ impl NPCList {
         for id in min_id..(npc_len as u16) {
             let npc_ref = self.npcs.get(id as usize).unwrap();
 
-            if !npc_ref.borrow().cond.alive() {
+            // FIXME: this might break if users expect to be able to spawn into a borrowed slot.
+            if npc_ref.try_borrow().is_ok_and(|npc| !npc.cond.alive()) {
                 npc.id = id;
 
                 if npc.tsc_direction == 0 {
@@ -144,14 +145,19 @@ impl<'a> Iterator for NPCListMutableIterator<'a> {
     type Item = &'a RefCell<NPC>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index >= self.map.max_npc.get() {
-            return None;
+        loop {
+            if self.index >= self.map.max_npc.get() {
+                return None;
+            }
+
+            let item = self.map.npcs.get(self.index as usize);
+            self.index += 1;
+
+            // FIXME: this might cause subtle logic errors if the user expects to iterate over a mutably borrowed slot.
+            if item.is_some_and(|npc| npc.try_borrow_mut().is_ok()) {
+                return item;
+            }
         }
-
-        let item = self.map.npcs.get(self.index as usize);
-        self.index += 1;
-
-        item
     }
 }
 
@@ -182,7 +188,8 @@ impl<'a> Iterator for NPCListMutableAliveIterator<'a> {
                 None => {
                     return None;
                 }
-                Some(ref npc) if npc.borrow().cond.alive() => {
+                // FIXME: this might cause subtle logic errors if the user expects to iterate over a mutably borrowed slot.
+                Some(ref npc) if npc.try_borrow_mut().is_ok_and(|npc| npc.cond.alive()) => {
                     return item;
                 }
                 _ => {}

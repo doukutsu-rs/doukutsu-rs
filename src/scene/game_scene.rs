@@ -1240,7 +1240,11 @@ impl GameScene {
                     inv.has_weapon(WeaponType::MissileLauncher) || inv.has_weapon(WeaponType::SuperMissileLauncher)
                 });
 
-                self.npc_list.kill_npc(npc.id as usize, !npc.cond.drs_novanish(), can_drop_missile, state);
+                // The borrow must be released before calling kill_npc.
+                let npc_id = npc.id as usize;
+                let vanish = !npc.cond.drs_novanish();
+                drop(npc);
+                self.npc_list.kill_npc(npc_id, vanish, can_drop_missile, state);
             }
         }
 
