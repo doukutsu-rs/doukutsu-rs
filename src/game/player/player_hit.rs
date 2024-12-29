@@ -374,7 +374,9 @@ impl Player {
         }
 
         for npc in npc_list.iter_alive() {
-            self.tick_npc_collision(id, state, npc, npc_list, inventory);
+            let mut npc = npc.borrow_mut();
+
+            self.tick_npc_collision(id, state, &mut npc, npc_list, inventory);
         }
 
         for boss_npc in &mut boss.parts {

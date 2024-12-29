@@ -30,6 +30,8 @@ impl BossLifeBar {
 
     pub fn set_npc_target(&mut self, npc_id: u16, npc_list: &NPCList) {
         if let Some(npc) = npc_list.get_npc(npc_id as usize) {
+            let npc = npc.borrow();
+
             self.target = BossLifeTarget::NPC(npc.id);
             self.life = npc.life;
             self.max_life = self.life;
@@ -135,6 +137,8 @@ impl GameEntity<(&NPCList, &BossNPC)> for BossLifeBar {
         match self.target {
             BossLifeTarget::NPC(npc_id) => {
                 if let Some(npc) = npc_list.get_npc(npc_id as usize) {
+                    let npc = npc.borrow();
+                    
                     self.life = npc.life;
                 }
             }

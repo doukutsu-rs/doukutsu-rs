@@ -18,7 +18,9 @@ impl NPC {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    if let Some(npc) = npc_list.iter().find(|npc| npc.event_num == 1000) {
+                    if let Some(npc) = npc_list.iter().find(|npc| npc.borrow().event_num == 1000) {
+                        let npc = npc.borrow();
+
                         self.action_counter2 = npc.id;
                         self.target_x = npc.x;
                         self.target_y = npc.y;
@@ -44,6 +46,8 @@ impl NPC {
                     state.sound_manager.play_sfx(21);
 
                     if let Some(npc) = npc_list.get_npc(self.action_counter2 as usize) {
+                        let mut npc = npc.borrow_mut();
+
                         npc.cond.set_alive(false);
                     }
                 }
@@ -845,6 +849,8 @@ impl NPC {
                 }
 
                 if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                    let parent = parent.borrow();
+                    
                     self.x = parent.x
                         + self.action_counter as i32 * ((self.action_counter2 as f64 * CDEG_RAD).cos() * 512.0) as i32
                             / 4;

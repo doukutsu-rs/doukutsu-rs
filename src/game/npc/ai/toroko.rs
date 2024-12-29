@@ -596,6 +596,8 @@ impl NPC {
                 }
                 let parent = self.get_parent_ref_mut(npc_list);
                 if let Some(parent) = parent {
+                    let parent = parent.borrow();
+                    
                     let player = self.get_closest_player_mut(players);
 
                     if parent.direction == Direction::Left {

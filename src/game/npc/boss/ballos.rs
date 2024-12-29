@@ -598,6 +598,8 @@ impl NPC {
         NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+            let parent = parent.borrow();
+            
             if parent.action_num == 11 && parent.action_counter > 50 {
                 self.anim_counter += 1;
             }
