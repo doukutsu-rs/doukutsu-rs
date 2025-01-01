@@ -14,6 +14,8 @@ use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::game::weapon::bullet::BulletManager;
 
+use super::list::NPCAccessToken;
+
 pub mod balfrog;
 pub mod ballos;
 pub mod core;
@@ -68,13 +70,14 @@ impl BossNPC {
     }
 }
 
-impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Flash)> for BossNPC {
+impl GameEntity<([&mut Player; 2], &NPCList, &mut NPCAccessToken, &mut Stage, &BulletManager, &mut Flash)> for BossNPC {
     fn tick(
         &mut self,
         state: &mut SharedGameState,
-        (players, npc_list, stage, bullet_manager, flash): (
+        (players, npc_list, token, stage, bullet_manager, flash): (
             [&mut Player; 2],
             &NPCList,
+            &mut NPCAccessToken,
             &mut Stage,
             &BulletManager,
             &mut Flash,
@@ -87,15 +90,15 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &BulletManager, &mut Fl
         }
 
         match self.boss_type {
-            1 => self.tick_b01_omega(state, players, npc_list, bullet_manager, flash),
+            1 => self.tick_b01_omega(state, players, npc_list, bullet_manager, flash, token),
             2 => self.tick_b02_balfrog(state, players, npc_list),
-            3 => self.tick_b03_monster_x(state, players, npc_list, flash),
+            3 => self.tick_b03_monster_x(state, players, npc_list, flash, token),
             4 => self.tick_b04_core(state, players, npc_list, stage),
-            5 => self.tick_b05_ironhead(state, players, npc_list),
-            6 => self.tick_b06_sisters(state, players, npc_list, flash),
-            7 => self.tick_b07_undead_core(state, npc_list, stage, flash),
-            8 => self.tick_b08_heavy_press(state, npc_list, stage),
-            9 => self.tick_b09_ballos(state, players, npc_list, flash),
+            5 => self.tick_b05_ironhead(state, players, npc_list, token),
+            6 => self.tick_b06_sisters(state, players, npc_list, flash, token),
+            7 => self.tick_b07_undead_core(state, npc_list, stage, flash, token),
+            8 => self.tick_b08_heavy_press(state, npc_list, stage, token),
+            9 => self.tick_b09_ballos(state, players, npc_list, flash, token),
             _ => {}
         }
 

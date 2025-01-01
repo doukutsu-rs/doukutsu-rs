@@ -1,7 +1,7 @@
 use crate::common::Direction;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
@@ -588,7 +588,7 @@ impl NPC {
         &mut self,
         state: &mut SharedGameState,
         players: [&mut Player; 2],
-        npc_list: &NPCList,
+        npc_list: &NPCList
     ) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -596,7 +596,7 @@ impl NPC {
                     self.action_num = 1;
                     self.action_counter = 0;
                 }
-                let parent = self.get_parent_ref_mut(npc_list);
+                let parent = self.get_parent_ref(npc_list);
                 if let Some(parent) = parent {
                     let parent = parent.borrow();
                     

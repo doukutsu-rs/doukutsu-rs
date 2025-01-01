@@ -99,7 +99,7 @@ impl NPC {
                     }
                 }
 
-                if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                if let Some(parent) = self.get_parent_ref(npc_list) {
                     if parent.borrow().action_num >= 20 {
                         self.action_num = 10;
                     }
@@ -116,7 +116,7 @@ impl NPC {
             _ => (),
         }
 
-        if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+        if let Some(parent) = self.get_parent_ref(npc_list) {
             let parent = parent.borrow();
             
             if self.direction == Direction::Left {

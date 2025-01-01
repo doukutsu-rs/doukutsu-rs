@@ -5,6 +5,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use byteorder::{LE, ReadBytesExt};
+use list::{MutableNPCCell, NPCAccessToken, NPCRefMut};
 
 use crate::bitfield;
 use crate::common::{Condition, interpolate_fix9_scale, Rect};
@@ -229,7 +230,7 @@ impl NPC {
     }
 }
 
-impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mut Flash, &mut BossNPC)> for NPC {
+impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mut Flash, &mut BossNPC)> for NPCRefMut<'_> {
     fn tick(
         &mut self,
         state: &mut SharedGameState,
@@ -643,8 +644,14 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
 
         Ok(())
     }
-
+    
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
+        NPC::draw(self, state, ctx, frame)
+    }
+}
+
+impl NPC {
+    pub fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
         if !self.cond.alive() || self.cond.hidden() {
             return Ok(());
         }
@@ -677,7 +684,7 @@ impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mu
 
         if self.is_sue() && state.more_rust {
             // draw crab headband
-            let headband_spritesheet = Self::get_headband_spritesheet(state, &*texture_ref);
+            let headband_spritesheet = NPC::get_headband_spritesheet(state, &*texture_ref);
             let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, headband_spritesheet.as_str())?;
             batch.add_rect(final_x, final_y, &self.anim_rect);
             batch.draw(ctx)?;

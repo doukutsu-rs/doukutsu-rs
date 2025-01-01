@@ -1,7 +1,7 @@
 use crate::common::{Direction, Rect};
 use crate::framework::error::GameResult;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
@@ -179,6 +179,7 @@ impl BossNPC {
         state: &mut SharedGameState,
         players: [&mut Player; 2],
         npc_list: &NPCList,
+        token: &mut NPCAccessToken
     ) {
         match self.parts[0].action_num {
             0 => {
@@ -310,9 +311,9 @@ impl BossNPC {
                         let _ = npc_list.spawn(0x100, npc);
                     }
 
-                    npc_list.kill_npcs_by_type(197, true, state);
-                    npc_list.kill_npcs_by_type(271, true, state);
-                    npc_list.kill_npcs_by_type(272, true, state);
+                    npc_list.kill_npcs_by_type(197, true, state, token);
+                    npc_list.kill_npcs_by_type(271, true, state, token);
+                    npc_list.kill_npcs_by_type(272, true, state, token);
                 }
 
                 self.parts[0].target_x -= 0x200;

@@ -7,19 +7,19 @@ use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCList, NPCRefMut};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
-impl NPC {
+impl NPCRefMut<'_> {
     pub(crate) fn tick_n066_misery_bubble(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    if let Some(npc) = npc_list.iter().find(|npc| npc.try_borrow().is_ok_and(|npc| npc.event_num == 1000)) {
+                    if let Some(npc) = self.unborrow_and(|token| { npc_list.iter(token).find(|npc| npc.borrow().event_num == 1000) }) {
                         let npc = npc.borrow();
 
                         self.action_counter2 = npc.id;
@@ -46,11 +46,14 @@ impl NPC {
                     self.anim_num = 2;
                     state.sound_manager.play_sfx(21);
 
-                    if let Some(npc) = npc_list.get_npc(self.action_counter2 as usize) {
-                        let mut npc = npc.borrow_mut();
+                    let npc_id = self.action_counter2 as usize;
+                    self.unborrow_and(|token| {
+                        if let Some(npc) = npc_list.get_npc_mut(npc_id, token) {
+                            let mut npc = npc.borrow_mut(token);
 
-                        npc.cond.set_alive(false);
-                    }
+                            npc.cond.set_alive(false);
+                        }
+                    });
                 }
             }
             2 => {
@@ -668,7 +671,9 @@ impl NPC {
                     self.vel_x = 0;
                     self.vel_y = 0;
 
-                    npc_list.kill_npcs_by_type(252, true, state);
+                    self.unborrow_and(|token| {
+                        npc_list.kill_npcs_by_type(252, true, state, token);
+                    });
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
@@ -853,7 +858,7 @@ impl NPC {
                     self.action_counter += 1;
                 }
 
-                if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                if let Some(parent) = self.get_parent_ref(npc_list) {
                     let parent = parent.borrow();
                     
                     self.x = parent.x

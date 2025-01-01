@@ -3,7 +3,7 @@ use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
@@ -584,7 +584,7 @@ impl NPC {
     }
 
     pub(crate) fn tick_n341_ballos_1_head(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
-        if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+        if let Some(parent) = self.get_parent_ref(npc_list) {
             let parent = parent.borrow();
             
             if parent.action_num == 11 && parent.action_counter > 50 {
@@ -1420,6 +1420,7 @@ impl BossNPC {
         players: [&mut Player; 2],
         npc_list: &NPCList,
         flash: &mut Flash,
+        token: &mut NPCAccessToken
     ) {
         let player = self.parts[0].get_closest_player_mut(players);
 
@@ -1765,7 +1766,7 @@ impl BossNPC {
                     self.parts[0].action_counter = 0;
                     self.parts[0].vel_x = 0;
                     self.parts[0].vel_y = 0;
-                    npc_list.kill_npcs_by_type(339, false, state);
+                    npc_list.kill_npcs_by_type(339, false, state, token);
                 }
 
                 self.parts[0].y += (0x13E00 - self.parts[0].y) / 8;
@@ -1915,8 +1916,8 @@ impl BossNPC {
                     self.parts[4].cond.set_alive(false);
                     self.parts[5].cond.set_alive(false);
 
-                    npc_list.kill_npcs_by_type(350, true, state);
-                    npc_list.kill_npcs_by_type(348, true, state);
+                    npc_list.kill_npcs_by_type(350, true, state, token);
+                    npc_list.kill_npcs_by_type(348, true, state, token);
                 }
             }
             _ => (),

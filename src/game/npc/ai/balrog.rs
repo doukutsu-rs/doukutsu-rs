@@ -3,14 +3,14 @@ use num_traits::clamp;
 use crate::common::{CDEG_RAD, Direction};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCList, NPCRefMut};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
-impl NPC {
+impl NPCRefMut<'_> {
     pub(crate) fn tick_n009_balrog_falling_in(
         &mut self,
         state: &mut SharedGameState,
@@ -452,8 +452,10 @@ impl NPC {
                     self.vel_y = -0x800;
                     self.npc_flags.set_ignore_solidity(true);
 
-                    npc_list.kill_npcs_by_type(150, false, state);
-                    npc_list.kill_npcs_by_type(117, false, state);
+                    self.unborrow_and(|token| {
+                        npc_list.kill_npcs_by_type(150, false, state, token);
+                        npc_list.kill_npcs_by_type(117, false, state, token);
+                    });
 
                     let mut npc = NPC::create(355, &state.npc_table);
                     npc.cond.set_alive(true);

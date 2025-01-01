@@ -4,7 +4,7 @@ use num_traits::{abs, clamp};
 
 use crate::common::Direction;
 use crate::framework::error::GameResult;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCList, NPCRefMut};
 use crate::game::npc::NPC;
 use crate::game::player::{Player, TargetPlayer};
 use crate::game::shared_game_state::SharedGameState;
@@ -12,7 +12,7 @@ use crate::game::stage::Stage;
 use crate::game::weapon::bullet::BulletManager;
 use crate::util::rng::RNG;
 
-impl NPC {
+impl NPCRefMut<'_> {
     pub(crate) fn tick_n069_pignon(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -674,7 +674,9 @@ impl NPC {
                     self.anim_num = 8;
                     self.target_x = self.x;
                     self.damage = 0;
-                    npc_list.kill_npcs_by_type(315, true, state);
+                    self.unborrow_and(|token| {
+                        npc_list.kill_npcs_by_type(315, true, state, token);
+                    });
                 }
                 self.vel_y += 0x20;
 

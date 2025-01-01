@@ -1,7 +1,7 @@
 use crate::common::Direction;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
@@ -691,7 +691,7 @@ impl NPC {
     pub(crate) fn tick_n319_mesa_block(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 => {
-                if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                if let Some(parent) = self.get_parent_ref(npc_list) {
                     let parent = parent.borrow();
                     
                     self.y = parent.y + 0x1400;

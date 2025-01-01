@@ -1,13 +1,13 @@
 use crate::common::{CDEG_RAD, Direction, Rect};
 use crate::framework::error::GameResult;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCList, NPCRefMut};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
-impl NPC {
+impl NPCRefMut<'_> {
     pub(crate) fn tick_n139_doctor(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -919,7 +919,9 @@ impl NPC {
                 }
             }
             500 => {
-                npc_list.kill_npcs_by_type(269, true, state);
+                self.unborrow_and(|token| {
+                    npc_list.kill_npcs_by_type(269, true, state, token);
+                });
 
                 self.npc_flags.set_shootable(false);
                 self.anim_num = 4;
@@ -1091,7 +1093,7 @@ impl NPC {
                 self.action_counter3 = self.rng.range(0x80..0x100) as u16;
             }
 
-            if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+            if let Some(parent) = self.get_parent_ref(npc_list) {
                 let parent = parent.borrow();
                 
                 if self.x < parent.x {
@@ -1168,7 +1170,9 @@ impl NPC {
                 self.action_counter += 1;
                 if self.action_counter > 250 {
                     self.action_num = 22;
-                    npc_list.kill_npcs_by_type(270, false, state);
+                    self.unborrow_and(|token| {
+                        npc_list.kill_npcs_by_type(270, false, state, token);
+                    });
                 }
             }
             _ => (),

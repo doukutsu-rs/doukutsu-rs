@@ -361,7 +361,7 @@ impl NPC {
 
     pub(crate) fn tick_n145_king_sword(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.action_num == 0 {
-            let parent = self.get_parent_ref_mut(npc_list);
+            let parent = self.get_parent_ref(npc_list);
             if let Some(parent) = parent {
                 let parent = parent.borrow();
 
@@ -773,7 +773,7 @@ impl NPC {
                 self.y -= 0x400;
             }
 
-            if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+            if let Some(parent) = self.get_parent_ref(npc_list) {
                 let parent = parent.borrow();
                 
                 if parent.anim_num == 7 {

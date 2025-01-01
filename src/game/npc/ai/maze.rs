@@ -1,13 +1,13 @@
 use crate::common::{CDEG_RAD, Direction};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList, NPCRefMut};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
-impl NPC {
+impl NPCRefMut<'_> {
     pub(crate) fn tick_n147_critter_purple(
         &mut self,
         state: &mut SharedGameState,
@@ -536,7 +536,9 @@ impl NPC {
             2 => {
                 self.vel_y = 0xA00;
                 if self.flags.hit_bottom_wall() {
-                    npc_list.kill_npcs_by_type(161, true, state);
+                    self.unborrow_and(|token| {
+                        npc_list.kill_npcs_by_type(161, true, state, token);
+                    });
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
@@ -704,7 +706,9 @@ impl NPC {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    npc_list.kill_npcs_by_type(161, true, state);
+                    self.unborrow_and(|token| {
+                        npc_list.kill_npcs_by_type(161, true, state, token);
+                    });
                     state.sound_manager.play_sfx(72);
 
                     let mut npc = NPC::create(4, &state.npc_table);
@@ -776,7 +780,9 @@ impl NPC {
             3 => {
                 self.action_counter3 += 1;
                 if self.action_counter3 > 59 {
-                    npc_list.kill_npcs_by_type(161, true, state);
+                    self.unborrow_and(|token| {
+                        npc_list.kill_npcs_by_type(161, true, state, token);
+                    });
                     self.cond.set_alive(false);
                 }
             }
@@ -1556,7 +1562,7 @@ impl NPC {
         let player = self.get_closest_player_mut(players);
 
         if self.action_num == 1 {
-            if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+            if let Some(parent) = self.get_parent_ref(npc_list) {
                 let parent = parent.borrow();
                 
                 if parent.npc_type == 187 && parent.cond.alive() {
