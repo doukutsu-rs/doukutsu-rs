@@ -599,7 +599,7 @@ impl NPCRefMut<'_> {
                     state.sound_manager.play_sfx(52);
                 }
 
-                self.unborrow_and(|token| {
+                self.unborrow_then(|token| {
                     npc_list.kill_npcs_by_type(369, true, state, token);
                 });
 

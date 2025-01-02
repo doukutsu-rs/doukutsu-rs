@@ -919,7 +919,7 @@ impl NPCRefMut<'_> {
                 }
             }
             500 => {
-                self.unborrow_and(|token| {
+                self.unborrow_then(|token| {
                     npc_list.kill_npcs_by_type(269, true, state, token);
                 });
 
@@ -1170,7 +1170,7 @@ impl NPCRefMut<'_> {
                 self.action_counter += 1;
                 if self.action_counter > 250 {
                     self.action_num = 22;
-                    self.unborrow_and(|token| {
+                    self.unborrow_then(|token| {
                         npc_list.kill_npcs_by_type(270, false, state, token);
                     });
                 }

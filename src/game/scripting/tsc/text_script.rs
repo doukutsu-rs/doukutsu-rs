@@ -1559,7 +1559,7 @@ impl TextScriptVM {
                 let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
-                for npc in game_scene.npc_list.iter_alive_mut(&game_scene.npc_token) {
+                for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
                     let mut npc = npc.borrow_mut(&mut game_scene.npc_token);
 
                     if npc.event_num == event_num {
@@ -1587,7 +1587,7 @@ impl TextScriptVM {
                 let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
-                for mut npc_ref in game_scene.npc_list.iter_alive_mut(&game_scene.npc_token) {
+                for mut npc_ref in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
                     let mut npc = npc_ref.borrow_mut(&mut game_scene.npc_token);
 
                     if npc.event_num == event_num {
@@ -1661,7 +1661,7 @@ impl TextScriptVM {
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
                 let block_size = state.tile_size.as_int() * 0x200;
 
-                for npc in game_scene.npc_list.iter_alive_mut(&game_scene.npc_token) {
+                for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
                     let mut npc = npc.borrow_mut(&mut game_scene.npc_token);
 
                     if npc.event_num == event_num {

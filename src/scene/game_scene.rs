@@ -1117,7 +1117,7 @@ impl GameScene {
     }
 
     fn tick_npc_splash(&mut self, state: &mut SharedGameState) {
-        for npc in self.npc_list.iter_alive_mut(&self.npc_token) {
+        for npc in self.npc_list.iter_alive(&self.npc_token) {
             let mut npc = npc.borrow_mut(&mut self.npc_token);
 
             // Water Droplet
@@ -1162,7 +1162,7 @@ impl GameScene {
     }
 
     fn tick_npc_bullet_collissions(&mut self, state: &mut SharedGameState) {
-        for npc in self.npc_list.iter_alive_mut(&self.npc_token) {
+        for npc in self.npc_list.iter_alive(&self.npc_token) {
             let mut npc = npc.borrow_mut(&mut self.npc_token);
 
             if npc.npc_flags.shootable() && npc.npc_flags.interactable() {
@@ -1394,7 +1394,7 @@ impl GameScene {
             self.player2.damage = 0;
         }
 
-        for npc in self.npc_list.iter_alive_mut(&self.npc_token) {
+        for npc in self.npc_list.iter_alive(&self.npc_token) {
             npc.borrow_mut(&mut self.npc_token).tick(
                 state,
                 (
@@ -1441,7 +1441,7 @@ impl GameScene {
             );
         }
 
-        for npc in self.npc_list.iter_alive_mut(&self.npc_token) {
+        for npc in self.npc_list.iter_alive(&self.npc_token) {
             let mut npc = npc.borrow_mut(&mut self.npc_token);
 
             if !npc.npc_flags.ignore_solidity() {
@@ -1955,7 +1955,7 @@ impl Scene for GameScene {
         self.player2.exp_popup.prev_x = self.player2.exp_popup.x;
         self.player2.exp_popup.prev_y = self.player2.exp_popup.y;
 
-        for npc in self.npc_list.iter_alive_mut(&self.npc_token) {
+        for npc in self.npc_list.iter_alive(&self.npc_token) {
             let mut npc = npc.borrow_mut(&mut self.npc_token);
 
             npc.prev_x = npc.x;

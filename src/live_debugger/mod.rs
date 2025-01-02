@@ -423,7 +423,7 @@ impl LiveDebugger {
                 .scrollable(true)
                 .always_vertical_scrollbar(true)
                 .build(|| {
-                    for npc in game_scene.npc_list.iter_alive_mut(&game_scene.npc_token) {
+                    for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
                         let mut npc = npc.borrow_mut(&mut game_scene.npc_token);
 
                         if CollapsingHeader::new(&ImString::from(format!("id={} type={}", npc.id, npc.npc_type)))

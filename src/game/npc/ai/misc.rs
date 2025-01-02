@@ -2383,7 +2383,7 @@ impl NPCRefMut<'_> {
 
                     if self.tsc_direction != 0 {
                         let self_tsc_direction = self.tsc_direction;
-                        if let Some(npc_id) = self.unborrow_and(|token| {
+                        if let Some(npc_id) = self.unborrow_then(|token| {
                             npc_list.iter_alive(token)
                                 .find(|npc| npc.borrow().event_num == self_tsc_direction)
                                 .map(|npc| npc.borrow().id)

@@ -117,7 +117,7 @@ impl NPCRefMut<'_> {
                     self.vel_y = 0;
                     self.action_num = 14;
 
-                    self.parent_id = self.unborrow_and(|token| {
+                    self.parent_id = self.unborrow_then(|token| {
                         npc_list
                             .iter_alive(token)
                             .find_map(|npc| if npc.borrow().event_num == 501 { Some(npc.borrow().id) } else { None })
@@ -382,7 +382,7 @@ impl NPCRefMut<'_> {
                 self.display_bounds.right = 0x2000;
                 self.display_bounds.left = 0x2000;
 
-                self.unborrow_and(|token| {
+                self.unborrow_then(|token| {
                     npc_list.kill_npcs_by_type(257, true, state, token);
                 });
             }

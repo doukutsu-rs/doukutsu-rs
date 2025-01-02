@@ -14,7 +14,7 @@ use crate::game::shared_game_state::{SharedGameState, TileSize};
 use crate::game::weapon::bullet::Bullet;
 use crate::util::rng::{RNG, Xoroshiro32PlusPlus};
 
-use super::list::{ImmutableNPCCell, MutableNPCCell, NPCAccessToken, NPCCell};
+use super::list::{NPCAccessToken, NPCCell};
 
 const MAX_FALL_SPEED: i32 = 0x5FF;
 
@@ -113,7 +113,7 @@ impl NPC {
 
     /// Returns a reference to parent NPC (if present).
     /// This returns an unmanaged reference. It is the caller's responsibility to prevent borrow conflicts.
-    pub fn get_parent_ref<'a>(&self, npc_list: &'a NPCList) -> Option<&'a NPCCell> {
+    pub fn get_parent_ref<'a>(&self, npc_list: &'a NPCList) -> Option<&'a RefCell<NPC>> {
         match self.parent_id {
             0 => None,
             id if id == self.id => None,
@@ -260,7 +260,7 @@ impl NPCList {
 
     /// Deletes NPCs with specified type.
     pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState, token: &mut NPCAccessToken) {
-        for npc in self.iter_alive_mut(token).filter(|n| n.borrow().npc_type == npc_type) {
+        for npc in self.iter_alive(token).filter(|n| n.borrow().npc_type == npc_type) {
             let mut npc = npc.borrow_mut(token);
 
             state.set_flag(npc.flag_num as usize, true);
@@ -289,7 +289,7 @@ impl NPCList {
 
     /// Called once NPC is killed, creates smoke and drops.
     pub fn kill_npc(&self, id: usize, vanish: bool, can_drop_missile: bool, state: &mut SharedGameState, token: &mut NPCAccessToken) {
-        if let Some(npc) = self.get_npc_mut(id, token) {
+        if let Some(npc) = self.get_npc(id, token) {
             let mut npc = npc.borrow_mut(token);
 
             if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
@@ -358,7 +358,7 @@ impl NPCList {
 
     /// Removes NPCs whose event number matches the provided one.
     pub fn kill_npcs_by_event(&self, event_num: u16, state: &mut SharedGameState, token: &mut NPCAccessToken) {
-        for npc in self.iter_alive_mut(token) {
+        for npc in self.iter_alive(token) {
             let mut npc = npc.borrow_mut(token);
 
             if npc.event_num == event_num {

@@ -674,7 +674,7 @@ impl NPCRefMut<'_> {
                     self.anim_num = 8;
                     self.target_x = self.x;
                     self.damage = 0;
-                    self.unborrow_and(|token| {
+                    self.unborrow_then(|token| {
                         npc_list.kill_npcs_by_type(315, true, state, token);
                     });
                 }

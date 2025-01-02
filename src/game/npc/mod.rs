@@ -5,7 +5,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use byteorder::{LE, ReadBytesExt};
-use list::{MutableNPCCell, NPCAccessToken, NPCRefMut};
+use list::NPCRefMut;
 
 use crate::bitfield;
 use crate::common::{Condition, interpolate_fix9_scale, Rect};

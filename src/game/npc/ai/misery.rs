@@ -19,7 +19,7 @@ impl NPCRefMut<'_> {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    if let Some(npc) = self.unborrow_and(|token| { npc_list.iter(token).find(|npc| npc.borrow().event_num == 1000) }) {
+                    if let Some(npc) = self.unborrow_then(|token| { npc_list.iter(token).find(|npc| npc.borrow().event_num == 1000) }) {
                         let npc = npc.borrow();
 
                         self.action_counter2 = npc.id;
@@ -47,8 +47,8 @@ impl NPCRefMut<'_> {
                     state.sound_manager.play_sfx(21);
 
                     let npc_id = self.action_counter2 as usize;
-                    self.unborrow_and(|token| {
-                        if let Some(npc) = npc_list.get_npc_mut(npc_id, token) {
+                    self.unborrow_then(|token| {
+                        if let Some(npc) = npc_list.get_npc(npc_id, token) {
                             let mut npc = npc.borrow_mut(token);
 
                             npc.cond.set_alive(false);
@@ -671,7 +671,7 @@ impl NPCRefMut<'_> {
                     self.vel_x = 0;
                     self.vel_y = 0;
 
-                    self.unborrow_and(|token| {
+                    self.unborrow_then(|token| {
                         npc_list.kill_npcs_by_type(252, true, state, token);
                     });
 

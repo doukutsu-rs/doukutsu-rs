@@ -452,7 +452,7 @@ impl NPCRefMut<'_> {
                     self.vel_y = -0x800;
                     self.npc_flags.set_ignore_solidity(true);
 
-                    self.unborrow_and(|token| {
+                    self.unborrow_then(|token| {
                         npc_list.kill_npcs_by_type(150, false, state, token);
                         npc_list.kill_npcs_by_type(117, false, state, token);
                     });
