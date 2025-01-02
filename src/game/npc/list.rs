@@ -91,8 +91,9 @@ impl NPCList {
         self.seed = seed;
     }
 
-    // TODO: Require an access token to spawn?
+    // TODO: require an access token for spawn? might not be worth it.
     /// Inserts NPC into list in first available slot after given ID.
+    /// No access token is required since borrowed slots are skipped when searching for an empty slot.
     pub fn spawn(&self, min_id: u16, mut npc: NPC) -> GameResult {
         let npc_len = self.npcs.len();
 
