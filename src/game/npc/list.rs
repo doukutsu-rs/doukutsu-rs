@@ -342,6 +342,14 @@ pub fn test_npc_list() -> GameResult {
             });
         }
 
+        {
+            let mut npc_iter = map.iter_alive(&token);
+            let npc = map.get_npc(0, &token).unwrap().borrow_mut(&mut token);
+            // FIXME: it should be forbidden to call npc_iter.next() while an npc is borrowed mutably...
+            let _ = npc_iter.next().unwrap();
+            drop(npc);
+        }
+
         assert!(map.spawn(0, npc.clone()).is_err());
     }
 
