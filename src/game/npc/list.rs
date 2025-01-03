@@ -182,8 +182,8 @@ impl NPCList {
     }
 
     /// Returns an iterator over alive NPC slots.
-    pub fn iter_alive(&self, _token: &NPCAccessToken) -> NPCListAliveIterator {
-        NPCListAliveIterator::new(self)
+    pub fn iter_alive<'a>(&'a self, token: &'a NPCAccessToken) -> NPCListAliveIterator<'a> {
+        NPCListAliveIterator::new(self, token)
     }
 
     /// Removes all NPCs from this list and resets it's capacity.
@@ -236,11 +236,12 @@ impl<'a> Iterator for NPCListIterator<'a> {
 pub struct NPCListAliveIterator<'a> {
     index: u16,
     map: &'a NPCList,
+    token: &'a NPCAccessToken,
 }
 
 impl<'a> NPCListAliveIterator<'a> {
-    pub fn new(map: &'a NPCList) -> NPCListAliveIterator<'a> {
-        NPCListAliveIterator { index: 0, map }
+    pub fn new(map: &'a NPCList, token: &'a NPCAccessToken) -> NPCListAliveIterator<'a> {
+        NPCListAliveIterator { index: 0, map, token }
     }
 }
 
@@ -253,7 +254,7 @@ impl<'a> Iterator for NPCListAliveIterator<'a> {
                 return None;
             }
 
-            let item = self.map.npcs.get(self.index as usize);
+            let item = self.map.get_npc(self.index as usize, self.token);
             self.index += 1;
 
             match item {
