@@ -177,13 +177,13 @@ impl NPCList {
     }
 
     /// Returns an iterator that iterates over allocated (not up to it's capacity) NPC slots.
-    pub fn iter(&self, _token: &NPCAccessToken) -> NPCListIterator {
-        NPCListIterator::new(self)
+    pub fn iter<'a>(&'a self, token: &'a NPCAccessToken) -> NPCListIterator<'a> {
+        NPCListIterator::new(self, token)
     }
 
     /// Returns an iterator over alive NPC slots.
-    pub fn iter_alive<'a>(&'a self, token: &'a NPCAccessToken) -> NPCListAliveIterator<'a> {
-        NPCListAliveIterator::new(self, token)
+    pub fn iter_alive<'a>(&'a self, token: &'a NPCAccessToken) -> impl Iterator<Item = &'a NPCCell> {
+        self.iter(token).filter(|npc| npc.borrow().cond.alive())
     }
 
     /// Removes all NPCs from this list and resets it's capacity.
@@ -210,11 +210,12 @@ impl NPCList {
 pub struct NPCListIterator<'a> {
     index: u16,
     map: &'a NPCList,
+    token: &'a NPCAccessToken,
 }
 
 impl<'a> NPCListIterator<'a> {
-    pub fn new(map: &'a NPCList) -> NPCListIterator<'a> {
-        NPCListIterator { index: 0, map }
+    pub fn new(map: &'a NPCList, token: &'a NPCAccessToken) -> NPCListIterator<'a> {
+        NPCListIterator { index: 0, map, token }
     }
 }
 
@@ -226,47 +227,10 @@ impl<'a> Iterator for NPCListIterator<'a> {
             return None;
         }
 
-        let item = self.map.npcs.get(self.index as usize).unwrap();
+        let item = self.map.get_npc(self.index as usize, self.token).unwrap();
         self.index += 1;
 
         Some(item)
-    }
-}
-
-pub struct NPCListAliveIterator<'a> {
-    index: u16,
-    map: &'a NPCList,
-    token: &'a NPCAccessToken,
-}
-
-impl<'a> NPCListAliveIterator<'a> {
-    pub fn new(map: &'a NPCList, token: &'a NPCAccessToken) -> NPCListAliveIterator<'a> {
-        NPCListAliveIterator { index: 0, map, token }
-    }
-}
-
-impl<'a> Iterator for NPCListAliveIterator<'a> {
-    type Item = &'a NPCCell;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if self.index >= self.map.max_npc.get() {
-                return None;
-            }
-
-            let item = self.map.get_npc(self.index as usize, self.token);
-            self.index += 1;
-
-            match item {
-                None => {
-                    return None;
-                }
-                Some(npc) if npc.borrow().cond.alive() => {
-                    return item;
-                }
-                _ => {}
-            }
-        }
     }
 }
 
