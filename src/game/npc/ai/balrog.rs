@@ -1224,7 +1224,7 @@ impl NPCRefMut<'_> {
             || (self.direction == Direction::Right && self.flags.hit_right_wall())
         {
             state.sound_manager.play_sfx(44);
-            npc_list.create_death_smoke(self.x, self.y, 0, 3, state, &mut self.rng);
+            npc_list.create_death_smoke(self.x, self.y, 0, 3, state, &self.rng);
             self.vanish(state);
 
             return Ok(());

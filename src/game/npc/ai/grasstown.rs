@@ -442,7 +442,7 @@ impl NPC {
             self.damage = 0;
             self.npc_flags.set_shootable(false);
 
-            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &mut self.rng);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
             self.create_xp_drop(state, npc_list);
 
             state.sound_manager.play_sfx(71);
@@ -1008,7 +1008,7 @@ impl NPC {
                 self.animate(4, 6, 9);
             }
             110 => {
-                npc_list.create_death_smoke(self.x, self.y, 0x2000, 16, state, &mut self.rng);
+                npc_list.create_death_smoke(self.x, self.y, 0x2000, 16, state, &self.rng);
                 self.cond.set_alive(false);
             }
             _ => (),

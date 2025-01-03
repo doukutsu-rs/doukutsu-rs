@@ -513,7 +513,7 @@ impl NPCRefMut<'_> {
             let _ = npc_list.spawn(0x100, npc.clone());
 
             state.sound_manager.play_sfx(72);
-            npc_list.create_death_smoke(self.x, self.y, 0, 1, state, &mut self.rng);
+            npc_list.create_death_smoke(self.x, self.y, 0, 1, state, &self.rng);
             self.cond.set_alive(false);
         }
 
@@ -607,7 +607,7 @@ impl NPCRefMut<'_> {
                     self.display_bounds.right as usize,
                     8,
                     state,
-                    &mut self.rng,
+                    &self.rng,
                 );
 
                 if self.action_counter > 100 {

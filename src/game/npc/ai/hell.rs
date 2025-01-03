@@ -698,7 +698,7 @@ impl NPC {
                     self.x = parent.x + 0xE00 * parent.direction.opposite().vector_x();
 
                     if parent.npc_type == 318 {
-                        npc_list.create_death_smoke(self.x, self.y, 0, 3, state, &mut self.rng);
+                        npc_list.create_death_smoke(self.x, self.y, 0, 3, state, &self.rng);
                         self.cond.set_alive(false);
                     }
 
@@ -725,7 +725,7 @@ impl NPC {
 
                 if self.flags.hit_bottom_wall() {
                     state.sound_manager.play_sfx(12);
-                    npc_list.create_death_smoke(self.x, self.y, 0, 3, state, &mut self.rng);
+                    npc_list.create_death_smoke(self.x, self.y, 0, 3, state, &self.rng);
                     self.cond.set_alive(false);
                 }
             }
@@ -810,7 +810,7 @@ impl NPC {
                         state.quake_counter = 10;
                         state.quake_rumble_counter = 10;
                         state.sound_manager.play_sfx(26);
-                        npc_list.create_death_smoke(self.x, self.y, 0x6000, 40 as usize, state, &mut self.rng);
+                        npc_list.create_death_smoke(self.x, self.y, 0x6000, 40 as usize, state, &self.rng);
 
                         let x = (self.x / (state.tile_size.as_int() * 0x100)) as usize;
                         let y = (self.y / (state.tile_size.as_int() * 0x100)) as usize;

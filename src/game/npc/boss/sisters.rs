@@ -178,7 +178,7 @@ impl BossNPC {
                         self.parts[0].display_bounds.right as usize,
                         40,
                         state,
-                        &mut self.parts[0].rng,
+                        &self.parts[0].rng,
                     );
                 }
 
@@ -324,7 +324,7 @@ impl BossNPC {
                         part.display_bounds.right as usize,
                         4,
                         state,
-                        &mut part.rng
+                        &part.rng
                     );
                 }
             }

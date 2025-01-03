@@ -1125,7 +1125,7 @@ impl NPCRefMut<'_> {
             self.y += self.vel_y;
 
             if self.life <= 985 {
-                npc_list.create_death_smoke(self.x, self.y, 0, 2, state, &mut self.rng);
+                npc_list.create_death_smoke(self.x, self.y, 0, 2, state, &self.rng);
 
                 self.npc_type = 154;
                 self.action_num = 0;

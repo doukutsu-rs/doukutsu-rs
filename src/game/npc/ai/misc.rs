@@ -513,7 +513,7 @@ impl NPCRefMut<'_> {
                         self.display_bounds.right as usize,
                         8,
                         state,
-                        &mut self.rng,
+                        &self.rng,
                     );
                 }
 
@@ -1092,7 +1092,7 @@ impl NPCRefMut<'_> {
 
     pub(crate) fn tick_n125_hidden_item(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if self.life < 990 {
-            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &mut self.rng);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
             self.cond.set_alive(false);
             state.sound_manager.play_sfx(70);
 
@@ -1168,7 +1168,7 @@ impl NPCRefMut<'_> {
                     self.damage = 10;
                 }
                 if self.anim_num > 4 {
-                    npc_list.create_death_smoke(self.x, self.y, 4096, 8, state, &mut self.rng);
+                    npc_list.create_death_smoke(self.x, self.y, 4096, 8, state, &self.rng);
                     self.cond.set_alive(false);
                     return Ok(());
                 }
@@ -1962,7 +1962,7 @@ impl NPCRefMut<'_> {
             self.cond.set_alive(false);
 
             self.create_xp_drop_custom(self.x, self.y, self.flag_num, state, npc_list);
-            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &mut self.rng);
+            npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
 
             state.sound_manager.play_sfx(25);
         }

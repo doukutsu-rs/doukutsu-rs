@@ -731,7 +731,7 @@ impl BossNPC {
                     1,
                     1,
                     state,
-                    &mut self.parts[0].rng,
+                    &self.parts[0].rng,
                 );
 
                 if self.parts[0].action_counter > 100 {

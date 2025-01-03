@@ -49,7 +49,7 @@ impl NPCRefMut<'_> {
             5 => {
                 self.action_num = 6;
                 self.anim_num = 5;
-                npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &mut self.rng);
+                npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 8, state, &self.rng);
             }
             6 => {
                 self.anim_num = 5;
@@ -829,7 +829,7 @@ impl NPCRefMut<'_> {
             }
             20 => {
                 self.vanish(state);
-                npc_list.create_death_smoke_up(self.x, self.y, 0x2000, 64, state, &mut self.rng);
+                npc_list.create_death_smoke_up(self.x, self.y, 0x2000, 64, state, &self.rng);
             }
             _ => (),
         }
