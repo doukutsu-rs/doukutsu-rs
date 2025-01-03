@@ -899,7 +899,9 @@ impl TextScriptVM {
                         game_scene.player2.direction = direction;
                     }
                 } else if new_direction >= 10 {
-                    for npc in game_scene.npc_list.iter_alive() {
+                    for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
+                        let npc = npc.borrow();
+
                         // The vanilla game treats this as a 1-byte value lol
                         //if npc.event_num == (new_direction & 0xFF) as u16 {
                         if npc.event_num == new_direction as u16 {
@@ -953,7 +955,9 @@ impl TextScriptVM {
                         _ => (),
                     }
                 } else {
-                    for npc in game_scene.npc_list.iter_alive() {
+                    for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
+                        let npc = npc.borrow();
+
                         if npc.event_num == new_direction as u16 {
                             if game_scene.player1.x >= npc.x {
                                 game_scene.player1.direction = Left;
@@ -1094,7 +1098,7 @@ impl TextScriptVM {
                 let npc_type = read_cur_varint(&mut cursor)? as u16;
                 let event_num = read_cur_varint(&mut cursor)? as u16;
 
-                if game_scene.npc_list.is_alive_by_type(npc_type) {
+                if game_scene.npc_list.is_alive_by_type(npc_type, &game_scene.npc_token) {
                     state.textscript_vm.clear_text_box();
                     exec_state = TextScriptExecutionState::Running(event_num, 0);
                 } else {
@@ -1105,7 +1109,7 @@ impl TextScriptVM {
                 let npc_event_num = read_cur_varint(&mut cursor)? as u16;
                 let event_num = read_cur_varint(&mut cursor)? as u16;
 
-                if game_scene.npc_list.is_alive_by_event(npc_event_num) {
+                if game_scene.npc_list.is_alive_by_event(npc_event_num, &game_scene.npc_token) {
                     state.textscript_vm.clear_text_box();
                     exec_state = TextScriptExecutionState::Running(event_num, 0);
                 } else {
@@ -1481,14 +1485,14 @@ impl TextScriptVM {
             TSCOpCode::DNP => {
                 let event_num = read_cur_varint(&mut cursor)? as u16;
 
-                game_scene.npc_list.kill_npcs_by_event(event_num, state);
+                game_scene.npc_list.kill_npcs_by_event(event_num, state, &mut game_scene.npc_token);
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
             TSCOpCode::DNA => {
                 let npc_remove_type = read_cur_varint(&mut cursor)? as u16;
 
-                game_scene.npc_list.kill_npcs_by_type(npc_remove_type, true, state);
+                game_scene.npc_list.kill_npcs_by_type(npc_remove_type, true, state, &mut game_scene.npc_token);
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
@@ -1513,7 +1517,9 @@ impl TextScriptVM {
                 let ticks = read_cur_varint(&mut cursor)? as i32;
                 game_scene.frame.wait = ticks;
 
-                for npc in game_scene.npc_list.iter() {
+                for npc in game_scene.npc_list.iter(&game_scene.npc_token) {
+                    let npc = npc.borrow();
+
                     if event_num == npc.event_num {
                         game_scene.frame.update_target = UpdateTarget::NPC(npc.id);
                         break;
@@ -1528,9 +1534,11 @@ impl TextScriptVM {
                 if event_num == 0 {
                     game_scene.boss_life_bar.set_boss_target(&game_scene.boss);
                 } else {
-                    for npc in game_scene.npc_list.iter_alive() {
+                    for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
+                        let npc = npc.borrow();
+
                         if event_num == npc.event_num {
-                            game_scene.boss_life_bar.set_npc_target(npc.id, &game_scene.npc_list);
+                            game_scene.boss_life_bar.set_npc_target(npc.id, &game_scene.npc_list, &game_scene.npc_token);
                             break;
                         }
                     }
@@ -1551,7 +1559,9 @@ impl TextScriptVM {
                 let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
-                for npc in game_scene.npc_list.iter_alive() {
+                for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
+                    let mut npc = npc.borrow_mut(&mut game_scene.npc_token);
+
                     if npc.event_num == event_num {
                         npc.action_num = action_num;
                         npc.tsc_direction = tsc_direction as u16;
@@ -1577,7 +1587,9 @@ impl TextScriptVM {
                 let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
-                for npc in game_scene.npc_list.iter_alive() {
+                for mut npc_ref in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
+                    let mut npc = npc_ref.borrow_mut(&mut game_scene.npc_token);
+
                     if npc.event_num == event_num {
                         npc.npc_flags.set_solid_soft(false);
                         npc.npc_flags.set_ignore_tile_44(false);
@@ -1624,7 +1636,8 @@ impl TextScriptVM {
                             npc.direction = direction;
                         }
 
-                        npc.tick(
+                        drop(npc);
+                        npc_ref.borrow_mut(&mut game_scene.npc_token).tick(
                             state,
                             (
                                 [&mut game_scene.player1, &mut game_scene.player2],
@@ -1648,7 +1661,9 @@ impl TextScriptVM {
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
                 let block_size = state.tile_size.as_int() * 0x200;
 
-                for npc in game_scene.npc_list.iter_alive() {
+                for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
+                    let mut npc = npc.borrow_mut(&mut game_scene.npc_token);
+
                     if npc.event_num == event_num {
                         npc.x = x * block_size;
                         npc.y = y * block_size;

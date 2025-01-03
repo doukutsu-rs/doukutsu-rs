@@ -3,14 +3,14 @@ use num_traits::{abs, clamp};
 use crate::common::{Direction, Rect};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList, NPCRefMut};
 use crate::game::npc::NPC;
 use crate::game::player::{Player, TargetPlayer};
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::weapon::bullet::BulletManager;
 use crate::util::rng::RNG;
 
-impl NPC {
+impl NPCRefMut<'_> {
     pub(crate) fn tick_n117_curly(
         &mut self,
         state: &mut SharedGameState,
@@ -571,9 +571,11 @@ impl NPC {
         &mut self,
         state: &mut SharedGameState,
         npc_list: &NPCList,
-        bullet_manager: &mut BulletManager,
+        bullet_manager: &mut BulletManager
     ) -> GameResult {
-        if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+        if let Some(parent) = self.get_parent_ref(npc_list) {
+            let mut parent = parent.borrow_mut();
+
             if parent.anim_num > 4 {
                 self.direction = parent.direction;
                 self.x = parent.x;
@@ -665,9 +667,11 @@ impl NPC {
         &mut self,
         state: &mut SharedGameState,
         npc_list: &NPCList,
-        bullet_manager: &mut BulletManager,
+        bullet_manager: &mut BulletManager
     ) -> GameResult {
-        if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+        if let Some(parent) = self.get_parent_ref(npc_list) {
+            let mut parent = parent.borrow_mut();
+
             if parent.anim_num > 4 {
                 self.direction = parent.direction;
                 self.x = parent.x;
@@ -757,9 +761,11 @@ impl NPC {
     pub(crate) fn tick_n183_curly_air_tank_bubble(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        npc_list: &NPCList
     ) -> GameResult {
-        if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+        if let Some(parent) = self.get_parent_ref(npc_list) {
+            let parent = parent.borrow();
+
             if self.action_num == 0 {
                 self.x = parent.x;
                 self.y = parent.y;
@@ -835,9 +841,11 @@ impl NPC {
     pub(crate) fn tick_n303_curly_machine_gun(
         &mut self,
         state: &mut SharedGameState,
-        npc_list: &NPCList,
+        npc_list: &NPCList
     ) -> GameResult {
-        if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+        if let Some(parent) = self.get_parent_ref(npc_list) {
+            let parent = parent.borrow();
+
             self.x = parent.x;
             self.y = parent.y;
             self.direction = parent.direction;
@@ -915,9 +923,11 @@ impl NPC {
         state: &mut SharedGameState,
         players: [&mut Player; 2],
         npc_list: &NPCList,
-        bullet_manager: &mut BulletManager,
+        bullet_manager: &mut BulletManager
     ) -> GameResult {
-        if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+        if let Some(npc) = self.get_parent_ref(npc_list) {
+            let npc = npc.borrow();
+            
             let player = &players[0];
 
             self.x = npc.x;

@@ -1,7 +1,7 @@
 use crate::common::{Direction, Rect};
 use crate::framework::error::GameResult;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 use crate::game::npc::NPC;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
@@ -52,7 +52,7 @@ impl NPC {
 }
 
 impl BossNPC {
-    pub(crate) fn tick_b08_heavy_press(&mut self, state: &mut SharedGameState, npc_list: &NPCList, stage: &mut Stage) {
+    pub(crate) fn tick_b08_heavy_press(&mut self, state: &mut SharedGameState, npc_list: &NPCList, stage: &mut Stage, token: &mut NPCAccessToken) {
         match self.parts[0].action_num {
             0 => {
                 self.parts[0].action_num = 10;
@@ -210,8 +210,8 @@ impl BossNPC {
                     self.parts[0].action_counter = 0;
                     self.parts[0].action_counter2 = 0;
 
-                    npc_list.kill_npcs_by_type(325, true, state);
-                    npc_list.kill_npcs_by_type(330, true, state);
+                    npc_list.kill_npcs_by_type(325, true, state, token);
+                    npc_list.kill_npcs_by_type(330, true, state, token);
                 }
 
                 self.parts[0].action_counter += 1;

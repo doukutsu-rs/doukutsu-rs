@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 ///! Various utility functions for NPC-related objects
 use num_traits::abs;
 
@@ -11,6 +13,8 @@ use crate::game::player::Player;
 use crate::game::shared_game_state::{SharedGameState, TileSize};
 use crate::game::weapon::bullet::Bullet;
 use crate::util::rng::{RNG, Xoroshiro32PlusPlus};
+
+use super::list::{NPCAccessToken, NPCAccessTokenProvider, NPCCell};
 
 const MAX_FALL_SPEED: i32 = 0x5FF;
 
@@ -108,11 +112,12 @@ impl NPC {
     }
 
     /// Returns a reference to parent NPC (if present).
-    pub fn get_parent_ref_mut<'a: 'b, 'b>(&self, npc_list: &'a NPCList) -> Option<&'b mut NPC> {
+    /// This returns an unmanaged reference. It is the caller's responsibility to prevent borrow conflicts.
+    pub fn get_parent_ref<'a>(&self, npc_list: &'a NPCList) -> Option<&'a RefCell<NPC>> {
         match self.parent_id {
             0 => None,
             id if id == self.id => None,
-            id => npc_list.get_npc(id as usize),
+            id => npc_list.get_npc_unmanaged(id as usize),
         }
     }
 
@@ -243,46 +248,52 @@ impl NPC {
 impl NPCList {
     /// Returns true if at least one NPC with specified type is alive.
     #[inline]
-    pub fn is_alive_by_type(&self, npc_type: u16) -> bool {
-        self.iter_alive().any(|npc| npc.npc_type == npc_type)
+    pub fn is_alive_by_type(&self, npc_type: u16, token: &NPCAccessToken) -> bool {
+        self.iter_alive(token).any(|npc| npc.borrow().npc_type == npc_type)
     }
 
     /// Returns true if at least one NPC with specified event is alive.
     #[inline]
-    pub fn is_alive_by_event(&self, event_num: u16) -> bool {
-        self.iter_alive().any(|npc| npc.event_num == event_num)
+    pub fn is_alive_by_event(&self, event_num: u16, token: &NPCAccessToken) -> bool {
+        self.iter_alive(token).any(|npc| npc.borrow().event_num == event_num)
     }
 
     /// Deletes NPCs with specified type.
-    pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState) {
-        for npc in self.iter_alive().filter(|n| n.npc_type == npc_type) {
-            state.set_flag(npc.flag_num as usize, true);
-            npc.cond.set_alive(false);
+    pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState, token: &mut impl NPCAccessTokenProvider) {
+        token.unborrow_then(|token| {
+            for npc in self.iter_alive(token).filter(|n| n.borrow().npc_type == npc_type) {
+                let mut npc = npc.borrow_mut(token);
 
-            if smoke {
-                if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
-                    state.sound_manager.play_sfx(table_entry.death_sound);
+                state.set_flag(npc.flag_num as usize, true);
+                npc.cond.set_alive(false);
+
+                if smoke {
+                    if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
+                        state.sound_manager.play_sfx(table_entry.death_sound);
+                    }
+
+                    match npc.size {
+                        1 => {
+                            self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 4, state, &npc.rng);
+                        }
+                        2 => {
+                            self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 8, state, &npc.rng);
+                        }
+                        3 => {
+                            self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 16, state, &npc.rng);
+                        }
+                        _ => {}
+                    };
                 }
-
-                match npc.size {
-                    1 => {
-                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 4, state, &npc.rng);
-                    }
-                    2 => {
-                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 8, state, &npc.rng);
-                    }
-                    3 => {
-                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 16, state, &npc.rng);
-                    }
-                    _ => {}
-                };
             }
-        }
+        });
     }
 
     /// Called once NPC is killed, creates smoke and drops.
-    pub fn kill_npc(&self, id: usize, vanish: bool, can_drop_missile: bool, state: &mut SharedGameState) {
-        if let Some(npc) = self.get_npc(id) {
+    pub fn kill_npc(&self, id: usize, vanish: bool, can_drop_missile: bool, state: &mut SharedGameState, token: &mut NPCAccessToken) {
+        if let Some(npc) = self.get_npc(id, token) {
+            let mut npc = npc.borrow_mut(token);
+
             if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
                 state.sound_manager.play_sfx(table_entry.death_sound);
             }
@@ -348,8 +359,10 @@ impl NPCList {
     }
 
     /// Removes NPCs whose event number matches the provided one.
-    pub fn kill_npcs_by_event(&self, event_num: u16, state: &mut SharedGameState) {
-        for npc in self.iter_alive() {
+    pub fn kill_npcs_by_event(&self, event_num: u16, state: &mut SharedGameState, token: &mut NPCAccessToken) {
+        for npc in self.iter_alive(token) {
+            let mut npc = npc.borrow_mut(token);
+
             if npc.event_num == event_num {
                 npc.cond.set_alive(false);
                 state.set_flag(npc.flag_num as usize, true);

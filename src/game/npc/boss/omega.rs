@@ -3,7 +3,7 @@ use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
@@ -57,6 +57,7 @@ impl BossNPC {
         npc_list: &NPCList,
         bullet_manager: &BulletManager,
         flash: &mut Flash,
+        token: &mut NPCAccessToken
     ) {
         match self.parts[0].action_num {
             0 => {
@@ -433,7 +434,7 @@ impl BossNPC {
             self.parts[0].damage = 0;
             self.parts[5].damage = 0;
 
-            npc_list.kill_npcs_by_type(48, true, state);
+            npc_list.kill_npcs_by_type(48, true, state, token);
         }
     }
 }

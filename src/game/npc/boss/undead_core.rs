@@ -4,7 +4,7 @@ use crate::common::{CDEG_RAD, Direction, Rect, SliceExt};
 use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
@@ -320,6 +320,7 @@ impl BossNPC {
         npc_list: &NPCList,
         stage: &mut Stage,
         flash: &mut Flash,
+        token: &mut NPCAccessToken
     ) {
         let mut v19 = false;
 
@@ -686,7 +687,7 @@ impl BossNPC {
                         let _ = npc_list.spawn(0, npc.clone());
                     }
 
-                    npc_list.kill_npcs_by_type(282, true, state);
+                    npc_list.kill_npcs_by_type(282, true, state, token);
 
                     self.parts[11].npc_flags.set_shootable(false);
 
@@ -751,8 +752,8 @@ impl BossNPC {
                         self.parts[i].cond.set_alive(false);
                     }
 
-                    npc_list.kill_npcs_by_type(158, true, state);
-                    npc_list.kill_npcs_by_type(301, true, state);
+                    npc_list.kill_npcs_by_type(158, true, state, token);
+                    npc_list.kill_npcs_by_type(301, true, state, token);
                 }
             }
             _ => (),

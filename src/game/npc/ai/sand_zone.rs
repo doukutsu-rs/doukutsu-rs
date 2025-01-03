@@ -294,9 +294,9 @@ impl NPC {
         players: [&mut Player; 2],
         npc_list: &NPCList,
     ) -> GameResult {
-        let parent = self.get_parent_ref_mut(npc_list);
+        let parent = self.get_parent_ref(npc_list);
 
-        if self.action_num > 9 && parent.as_ref().map(|n| n.npc_type == 3).unwrap_or(false) {
+        if self.action_num > 9 && parent.as_ref().map(|n| n.borrow().npc_type == 3).unwrap_or(false) {
             self.action_num = 3;
             self.vel_x = 0;
             self.vel_y = 0;
@@ -387,6 +387,8 @@ impl NPC {
 
         if self.action_num > 9 {
             if let Some(parent) = parent {
+                let mut parent = parent.borrow_mut();
+
                 self.x = parent.x;
                 self.y = parent.y + 0x2000;
                 self.direction = parent.direction;
@@ -566,14 +568,14 @@ impl NPC {
     }
 
     pub(crate) fn tick_n053_skullstep_leg(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
-        let parent = self.get_parent_ref_mut(npc_list);
-        if parent.is_none() || parent.as_ref().unwrap().npc_type == 3 {
+        let parent = self.get_parent_ref(npc_list);
+        if parent.is_none() || parent.as_ref().unwrap().borrow().npc_type == 3 {
             self.vanish(state);
             npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 4, state, &self.rng);
             return Ok(());
         }
 
-        let parent = parent.unwrap();
+        let mut parent = parent.unwrap().borrow_mut();
 
         let angle = (self.vel_x + parent.vel_y2) & 0xFF;
 

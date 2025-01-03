@@ -1,7 +1,7 @@
 use crate::common::{CDEG_RAD, Direction, Rect, SliceExt};
 use crate::components::flash::Flash;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
@@ -14,6 +14,7 @@ impl BossNPC {
         players: [&mut Player; 2],
         npc_list: &NPCList,
         flash: &mut Flash,
+        token: &mut NPCAccessToken
     ) {
         match self.parts[0].action_num {
             0 => {
@@ -225,7 +226,7 @@ impl BossNPC {
             1020 => {
                 self.parts[0].action_counter += 1;
                 if self.parts[0].action_counter > 50 {
-                    npc_list.kill_npcs_by_type(211, true, state);
+                    npc_list.kill_npcs_by_type(211, true, state, token);
 
                     self.parts[0].cond.set_alive(false);
                     self.parts[1].cond.set_alive(false);
