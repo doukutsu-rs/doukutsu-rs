@@ -15,6 +15,16 @@ pub struct NPCAccessToken {
     _private: ()
 }
 
+pub trait NPCAccessTokenProvider {
+    fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T;
+}
+
+impl NPCAccessTokenProvider for NPCAccessToken {
+    fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T {
+        f(self)
+    }
+}
+
 /// A data structure for storing an NPC list for current stage.
 /// Provides multiple mutable references to NPC objects with internal sanity checks and lifetime bounds.
 pub struct NPCList {
@@ -38,15 +48,14 @@ impl NPCCell {
     }
 }
 
-
 pub struct NPCRefMut<'a> {
     cell: &'a NPCCell,
     ref_mut: Option<RefMut<'a, NPC>>,
     token: &'a mut NPCAccessToken
 }
 
-impl NPCRefMut<'_> {
-    pub fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T {
+impl NPCAccessTokenProvider for NPCRefMut<'_> {
+    fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T {
         let ref_mut = self.ref_mut.take();
         drop(ref_mut);
         let result = f(self.token);
@@ -324,11 +333,11 @@ pub fn test_npc_list() -> GameResult {
         
         for npc_ref in map.iter_alive(&token) {
             let mut npc = npc_ref.borrow_mut(&mut token);
-            npc.unborrow_then(|mut token| {
-                for npc_ref2 in map.iter_alive(&token) {
+            npc.unborrow_then(|token| {
+                for npc_ref2 in map.iter_alive(token) {
                     // If unborrow_then is working correctly, this should never trigger
                     // an "already borrowed" panic.
-                    npc_ref2.borrow_mut(&mut token).action_counter = 667;
+                    npc_ref2.borrow_mut(token).action_counter = 667;
                 }
             });
         }

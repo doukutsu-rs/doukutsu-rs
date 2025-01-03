@@ -7,7 +7,7 @@ use crate::components::flash::Flash;
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::{NPCList, NPCRefMut};
+use crate::game::npc::list::{NPCAccessTokenProvider, NPCList, NPCRefMut};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
@@ -671,9 +671,7 @@ impl NPCRefMut<'_> {
                     self.vel_x = 0;
                     self.vel_y = 0;
 
-                    self.unborrow_then(|token| {
-                        npc_list.kill_npcs_by_type(252, true, state, token);
-                    });
+                    npc_list.kill_npcs_by_type(252, true, state, self);
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);

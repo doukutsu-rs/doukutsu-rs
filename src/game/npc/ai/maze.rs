@@ -536,9 +536,7 @@ impl NPCRefMut<'_> {
             2 => {
                 self.vel_y = 0xA00;
                 if self.flags.hit_bottom_wall() {
-                    self.unborrow_then(|token| {
-                        npc_list.kill_npcs_by_type(161, true, state, token);
-                    });
+                    npc_list.kill_npcs_by_type(161, true, state, self);
 
                     let mut npc = NPC::create(4, &state.npc_table);
                     npc.cond.set_alive(true);
@@ -706,9 +704,7 @@ impl NPCRefMut<'_> {
         match self.action_num {
             0 | 1 => {
                 if self.action_num == 0 {
-                    self.unborrow_then(|token| {
-                        npc_list.kill_npcs_by_type(161, true, state, token);
-                    });
+                    npc_list.kill_npcs_by_type(161, true, state, self);
                     state.sound_manager.play_sfx(72);
 
                     let mut npc = NPC::create(4, &state.npc_table);
@@ -780,9 +776,7 @@ impl NPCRefMut<'_> {
             3 => {
                 self.action_counter3 += 1;
                 if self.action_counter3 > 59 {
-                    self.unborrow_then(|token| {
-                        npc_list.kill_npcs_by_type(161, true, state, token);
-                    });
+                    npc_list.kill_npcs_by_type(161, true, state, self);
                     self.cond.set_alive(false);
                 }
             }

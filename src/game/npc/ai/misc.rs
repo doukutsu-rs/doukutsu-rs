@@ -6,7 +6,7 @@ use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
 use crate::game::npc::{NPC, NPCLayer};
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::{NPCAccessToken, NPCList, NPCRefMut};
+use crate::game::npc::list::{NPCAccessToken, NPCAccessTokenProvider, NPCList, NPCRefMut};
 use crate::game::player::Player;
 use crate::game::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::game::stage::Stage;

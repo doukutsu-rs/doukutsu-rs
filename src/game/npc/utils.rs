@@ -14,7 +14,7 @@ use crate::game::shared_game_state::{SharedGameState, TileSize};
 use crate::game::weapon::bullet::Bullet;
 use crate::util::rng::{RNG, Xoroshiro32PlusPlus};
 
-use super::list::{NPCAccessToken, NPCCell};
+use super::list::{NPCAccessToken, NPCAccessTokenProvider, NPCCell};
 
 const MAX_FALL_SPEED: i32 = 0x5FF;
 
@@ -259,32 +259,34 @@ impl NPCList {
     }
 
     /// Deletes NPCs with specified type.
-    pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState, token: &mut NPCAccessToken) {
-        for npc in self.iter_alive(token).filter(|n| n.borrow().npc_type == npc_type) {
-            let mut npc = npc.borrow_mut(token);
+    pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState, token: &mut impl NPCAccessTokenProvider) {
+        token.unborrow_then(|token| {
+            for npc in self.iter_alive(token).filter(|n| n.borrow().npc_type == npc_type) {
+                let mut npc = npc.borrow_mut(token);
 
-            state.set_flag(npc.flag_num as usize, true);
-            npc.cond.set_alive(false);
+                state.set_flag(npc.flag_num as usize, true);
+                npc.cond.set_alive(false);
 
-            if smoke {
-                if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
-                    state.sound_manager.play_sfx(table_entry.death_sound);
+                if smoke {
+                    if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
+                        state.sound_manager.play_sfx(table_entry.death_sound);
+                    }
+
+                    match npc.size {
+                        1 => {
+                            self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 4, state, &npc.rng);
+                        }
+                        2 => {
+                            self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 8, state, &npc.rng);
+                        }
+                        3 => {
+                            self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 16, state, &npc.rng);
+                        }
+                        _ => {}
+                    };
                 }
-
-                match npc.size {
-                    1 => {
-                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 4, state, &mut npc.rng);
-                    }
-                    2 => {
-                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 8, state, &mut npc.rng);
-                    }
-                    3 => {
-                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 16, state, &mut npc.rng);
-                    }
-                    _ => {}
-                };
             }
-        }
+        });
     }
 
     /// Called once NPC is killed, creates smoke and drops.
@@ -377,7 +379,7 @@ impl NPCList {
         radius: usize,
         amount: usize,
         state: &mut SharedGameState,
-        rng: &mut dyn RNG,
+        rng: &dyn RNG,
     ) {
         self.create_death_smoke_common(x, y, radius, amount, Direction::Left, state, rng)
     }
@@ -391,7 +393,7 @@ impl NPCList {
         radius: usize,
         amount: usize,
         state: &mut SharedGameState,
-        rng: &mut dyn RNG,
+        rng: &dyn RNG,
     ) {
         self.create_death_smoke_common(x, y, radius, amount, Direction::Up, state, rng)
     }
@@ -405,7 +407,7 @@ impl NPCList {
         amount: usize,
         direction: Direction,
         state: &mut SharedGameState,
-        rng: &mut dyn RNG,
+        rng: &dyn RNG,
     ) {
         let radius = (radius / 0x200) as i32;
 

@@ -452,10 +452,8 @@ impl NPCRefMut<'_> {
                     self.vel_y = -0x800;
                     self.npc_flags.set_ignore_solidity(true);
 
-                    self.unborrow_then(|token| {
-                        npc_list.kill_npcs_by_type(150, false, state, token);
-                        npc_list.kill_npcs_by_type(117, false, state, token);
-                    });
+                    npc_list.kill_npcs_by_type(150, false, state, self);
+                    npc_list.kill_npcs_by_type(117, false, state, self);
 
                     let mut npc = NPC::create(355, &state.npc_table);
                     npc.cond.set_alive(true);

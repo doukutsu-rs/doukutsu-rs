@@ -599,9 +599,7 @@ impl NPCRefMut<'_> {
                     state.sound_manager.play_sfx(52);
                 }
 
-                self.unborrow_then(|token| {
-                    npc_list.kill_npcs_by_type(369, true, state, token);
-                });
+                npc_list.kill_npcs_by_type(369, true, state, self);
 
                 npc_list.create_death_smoke(
                     self.x + (self.rng.range(-32..32) << 9) as i32,

@@ -1,7 +1,7 @@
 use crate::common::Direction;
 use crate::framework::error::GameResult;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::{NPCAccessToken, NPCList, NPCRefMut};
+use crate::game::npc::list::{NPCAccessToken, NPCAccessTokenProvider, NPCList, NPCRefMut};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
@@ -382,9 +382,7 @@ impl NPCRefMut<'_> {
                 self.display_bounds.right = 0x2000;
                 self.display_bounds.left = 0x2000;
 
-                self.unborrow_then(|token| {
-                    npc_list.kill_npcs_by_type(257, true, state, token);
-                });
+                npc_list.kill_npcs_by_type(257, true, state, self);
             }
             20 | 21 => {
                 if self.action_num == 20 {
