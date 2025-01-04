@@ -54,6 +54,12 @@ android {
                 abiFilters 'x86', 'arm64-v8a', 'armeabi-v7a'
                 stl = "c++_shared"
             }
+
+            packagingOptions {
+                resources {
+                    excludes += "**/DebugProbesKt.bin"
+                }
+            }
         }
         debug {
             jniDebuggable true
