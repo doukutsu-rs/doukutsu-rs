@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 
 use num_traits::abs;
+use streaming_iterator::StreamingIteratorMut;
 
 use crate::common::{Condition, Direction, Flag, Rect};
 use crate::game::caret::CaretType;
@@ -374,7 +375,8 @@ impl Player {
             return;
         }
 
-        for npc in npc_list.iter_alive(token) {
+        let mut npc_iter = npc_list.iter_alive_mut(token);
+        while let Some((npc, token)) = npc_iter.next_mut() {
             let mut npc = npc.borrow_mut(token);
 
             self.tick_npc_collision(id, state, &mut npc, npc_list, inventory);

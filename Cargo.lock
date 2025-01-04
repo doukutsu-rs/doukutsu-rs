@@ -643,6 +643,7 @@ dependencies = [
  "serde_cbor",
  "serde_derive",
  "serde_json",
+ "streaming-iterator",
  "strum",
  "strum_macros",
  "vec_mut_scan",
@@ -1816,6 +1817,12 @@ name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+
+[[package]]
+name = "streaming-iterator"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b2231b7c3057d5e4ad0156fb3dc807d900806020c5ffa3ee6ff2c8c76fb8520"
 
 [[package]]
 name = "strsim"

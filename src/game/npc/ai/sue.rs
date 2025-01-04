@@ -120,7 +120,7 @@ impl NPCRefMut<'_> {
                     self.parent_id = self.unborrow_then(|token| {
                         npc_list
                             .iter_alive(token)
-                            .find_map(|npc| if npc.borrow().event_num == 501 { Some(npc.borrow().id) } else { None })
+                            .find_map(|npc| if npc.borrow(token).event_num == 501 { Some(npc.borrow(token).id) } else { None })
                             .unwrap_or(0)
                     });
                 }

@@ -29,8 +29,8 @@ impl BossLifeBar {
     }
 
     pub fn set_npc_target(&mut self, npc_id: u16, npc_list: &NPCList, token: &NPCAccessToken) {
-        if let Some(npc) = npc_list.get_npc(npc_id as usize, token) {
-            let npc = npc.borrow();
+        if let Some(npc) = npc_list.get_npc(npc_id as usize) {
+            let npc = npc.borrow(token);
 
             self.target = BossLifeTarget::NPC(npc.id);
             self.life = npc.life;
@@ -136,8 +136,8 @@ impl GameEntity<(&NPCList, &NPCAccessToken, &BossNPC)> for BossLifeBar {
     fn tick(&mut self, _state: &mut SharedGameState, (npc_list, token, boss): (&NPCList, &NPCAccessToken, &BossNPC)) -> GameResult<()> {
         match self.target {
             BossLifeTarget::NPC(npc_id) => {
-                if let Some(npc) = npc_list.get_npc(npc_id as usize, token) {
-                    let npc = npc.borrow();
+                if let Some(npc) = npc_list.get_npc(npc_id as usize) {
+                    let npc = npc.borrow(token);
                     
                     self.life = npc.life;
                 }

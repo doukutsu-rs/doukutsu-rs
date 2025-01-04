@@ -2,6 +2,7 @@ use std::cell::RefCell;
 
 ///! Various utility functions for NPC-related objects
 use num_traits::abs;
+use streaming_iterator::{StreamingIterator, StreamingIteratorMut};
 
 use crate::common::{Condition, Direction, Flag, Rect};
 use crate::components::number_popup::NumberPopup;
@@ -249,19 +250,21 @@ impl NPCList {
     /// Returns true if at least one NPC with specified type is alive.
     #[inline]
     pub fn is_alive_by_type(&self, npc_type: u16, token: &NPCAccessToken) -> bool {
-        self.iter_alive(token).any(|npc| npc.borrow().npc_type == npc_type)
+        self.iter_alive(token).any(|npc| npc.borrow(token).npc_type == npc_type)
     }
 
     /// Returns true if at least one NPC with specified event is alive.
     #[inline]
     pub fn is_alive_by_event(&self, event_num: u16, token: &NPCAccessToken) -> bool {
-        self.iter_alive(token).any(|npc| npc.borrow().event_num == event_num)
+        self.iter_alive(token).any(|npc| npc.borrow(token).event_num == event_num)
     }
 
     /// Deletes NPCs with specified type.
     pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState, token: &mut impl NPCAccessTokenProvider) {
         token.unborrow_then(|token| {
-            for npc in self.iter_alive(token).filter(|n| n.borrow().npc_type == npc_type) {
+            let mut npc_iter = self.iter_alive_mut(token)
+                .filter(|(n, token)| n.borrow(token).npc_type == npc_type);
+            while let Some((npc, token)) = npc_iter.next_mut() {
                 let mut npc = npc.borrow_mut(token);
 
                 state.set_flag(npc.flag_num as usize, true);
@@ -291,7 +294,7 @@ impl NPCList {
 
     /// Called once NPC is killed, creates smoke and drops.
     pub fn kill_npc(&self, id: usize, vanish: bool, can_drop_missile: bool, state: &mut SharedGameState, token: &mut NPCAccessToken) {
-        if let Some(npc) = self.get_npc(id, token) {
+        if let Some(npc) = self.get_npc(id) {
             let mut npc = npc.borrow_mut(token);
 
             if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
@@ -360,7 +363,8 @@ impl NPCList {
 
     /// Removes NPCs whose event number matches the provided one.
     pub fn kill_npcs_by_event(&self, event_num: u16, state: &mut SharedGameState, token: &mut NPCAccessToken) {
-        for npc in self.iter_alive(token) {
+        let mut npc_iter = self.iter_alive_mut(token);
+        while let Some((npc, token)) = npc_iter.next_mut() {
             let mut npc = npc.borrow_mut(token);
 
             if npc.event_num == event_num {

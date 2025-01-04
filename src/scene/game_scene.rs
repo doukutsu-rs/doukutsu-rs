@@ -3,6 +3,7 @@ use std::ops::{Deref, Range};
 use std::rc::Rc;
 
 use log::info;
+use streaming_iterator::StreamingIteratorMut;
 
 use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
 use crate::components::background::Background;
@@ -214,7 +215,7 @@ impl GameScene {
 
     fn draw_npc_layer(&self, state: &mut SharedGameState, ctx: &mut Context, layer: NPCLayer) -> GameResult {
         for npc in self.npc_list.iter_alive(&self.npc_token) {
-            let npc = npc.borrow();
+            let npc = npc.borrow(&self.npc_token);
 
             if npc.layer != layer
                 || npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
@@ -239,7 +240,7 @@ impl GameScene {
 
     fn draw_npc_popup(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         for npc in self.npc_list.iter_alive(&self.npc_token) {
-            let npc = npc.borrow();
+            let npc = npc.borrow(&self.npc_token);
             
             npc.popup.draw(state, ctx, &self.frame)?;
         }
@@ -521,7 +522,7 @@ impl GameScene {
         graphics::clear(ctx, Color::from_rgb(100, 100, 110));
 
         for npc in self.npc_list.iter_alive(&self.npc_token) {
-            let mut npc = npc.borrow();
+            let mut npc = npc.borrow(&self.npc_token);
 
             if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
                 || npc.x
@@ -637,7 +638,7 @@ impl GameScene {
             }
 
             for npc in self.npc_list.iter_alive(&self.npc_token) {
-                let npc = npc.borrow();
+                let npc = npc.borrow(&self.npc_token);
 
                 if npc.cond.hidden()
                     || (npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
@@ -1117,8 +1118,9 @@ impl GameScene {
     }
 
     fn tick_npc_splash(&mut self, state: &mut SharedGameState) {
-        for npc in self.npc_list.iter_alive(&self.npc_token) {
-            let mut npc = npc.borrow_mut(&mut self.npc_token);
+        let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
+        while let Some((npc, token)) = npc_iter.next_mut() {
+            let mut npc = npc.borrow_mut(token);
 
             // Water Droplet
             if npc.npc_type == 73 {
@@ -1162,8 +1164,9 @@ impl GameScene {
     }
 
     fn tick_npc_bullet_collissions(&mut self, state: &mut SharedGameState) {
-        for npc in self.npc_list.iter_alive(&self.npc_token) {
-            let mut npc = npc.borrow_mut(&mut self.npc_token);
+        let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
+        while let Some((npc, token)) = npc_iter.next_mut() {
+            let mut npc = npc.borrow_mut(token);
 
             if npc.npc_flags.shootable() && npc.npc_flags.interactable() {
                 continue;
@@ -1247,7 +1250,7 @@ impl GameScene {
                 let npc_id = npc.id as usize;
                 let vanish = !npc.cond.drs_novanish();
                 drop(npc);
-                self.npc_list.kill_npc(npc_id, vanish, can_drop_missile, state, &mut self.npc_token);
+                self.npc_list.kill_npc(npc_id, vanish, can_drop_missile, state, token);
             }
         }
 
@@ -1394,8 +1397,9 @@ impl GameScene {
             self.player2.damage = 0;
         }
 
-        for npc in self.npc_list.iter_alive(&self.npc_token) {
-            npc.borrow_mut(&mut self.npc_token).tick(
+        let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
+        while let Some((npc, token)) = npc_iter.next_mut() {
+            npc.borrow_mut(token).tick(
                 state,
                 (
                     [&mut self.player1, &mut self.player2],
@@ -1407,6 +1411,8 @@ impl GameScene {
                 ),
             )?;
         }
+        drop(npc_iter);
+
         self.boss.tick(
             state,
             (
@@ -1441,13 +1447,16 @@ impl GameScene {
             );
         }
 
-        for npc in self.npc_list.iter_alive(&self.npc_token) {
-            let mut npc = npc.borrow_mut(&mut self.npc_token);
+        let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
+        while let Some((npc, token)) = npc_iter.next_mut() {
+            let mut npc = npc.borrow_mut(token);
 
             if !npc.npc_flags.ignore_solidity() {
                 npc.tick_map_collisions(state, &self.npc_list, &mut self.stage);
             }
         }
+        drop(npc_iter);
+
         for npc in self.boss.parts.iter_mut() {
             if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
                 npc.tick_map_collisions(state, &self.npc_list, &mut self.stage);
@@ -1523,8 +1532,8 @@ impl GameScene {
                 }
             }
             UpdateTarget::NPC(npc_id) => {
-                if let Some(npc) = self.npc_list.get_npc(npc_id as usize, &self.npc_token) {
-                    let npc = npc.borrow();
+                if let Some(npc) = self.npc_list.get_npc(npc_id as usize) {
+                    let npc = npc.borrow(&self.npc_token);
 
                     if npc.cond.alive() {
                         self.frame.target_x = npc.x;
@@ -1651,7 +1660,7 @@ impl GameScene {
 
     fn draw_debug_outlines(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         for npc in self.npc_list.iter_alive(&self.npc_token) {
-            let npc = npc.borrow();
+            let npc = npc.borrow(&self.npc_token);
 
             self.draw_debug_npc(&npc, state, ctx)?;
         }
@@ -1955,8 +1964,9 @@ impl Scene for GameScene {
         self.player2.exp_popup.prev_x = self.player2.exp_popup.x;
         self.player2.exp_popup.prev_y = self.player2.exp_popup.y;
 
-        for npc in self.npc_list.iter_alive(&self.npc_token) {
-            let mut npc = npc.borrow_mut(&mut self.npc_token);
+        let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
+        while let Some((npc, token)) = npc_iter.next_mut() {
+            let mut npc = npc.borrow_mut(token);
 
             npc.prev_x = npc.x;
             npc.prev_y = npc.y;

@@ -9,6 +9,7 @@ use std::ops::Not;
 use std::rc::Rc;
 
 use num_traits::{clamp, FromPrimitive};
+use streaming_iterator::StreamingIteratorMut;
 
 use crate::bitfield;
 use crate::common::Direction::{Left, Right};
@@ -900,7 +901,7 @@ impl TextScriptVM {
                     }
                 } else if new_direction >= 10 {
                     for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
-                        let npc = npc.borrow();
+                        let npc = npc.borrow(&game_scene.npc_token);
 
                         // The vanilla game treats this as a 1-byte value lol
                         //if npc.event_num == (new_direction & 0xFF) as u16 {
@@ -956,7 +957,7 @@ impl TextScriptVM {
                     }
                 } else {
                     for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
-                        let npc = npc.borrow();
+                        let npc = npc.borrow(&game_scene.npc_token);
 
                         if npc.event_num == new_direction as u16 {
                             if game_scene.player1.x >= npc.x {
@@ -1517,8 +1518,8 @@ impl TextScriptVM {
                 let ticks = read_cur_varint(&mut cursor)? as i32;
                 game_scene.frame.wait = ticks;
 
-                for npc in game_scene.npc_list.iter(&game_scene.npc_token) {
-                    let npc = npc.borrow();
+                for npc in game_scene.npc_list.iter() {
+                    let npc = npc.borrow(&game_scene.npc_token);
 
                     if event_num == npc.event_num {
                         game_scene.frame.update_target = UpdateTarget::NPC(npc.id);
@@ -1535,7 +1536,7 @@ impl TextScriptVM {
                     game_scene.boss_life_bar.set_boss_target(&game_scene.boss);
                 } else {
                     for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
-                        let npc = npc.borrow();
+                        let npc = npc.borrow(&game_scene.npc_token);
 
                         if event_num == npc.event_num {
                             game_scene.boss_life_bar.set_npc_target(npc.id, &game_scene.npc_list, &game_scene.npc_token);
@@ -1559,8 +1560,9 @@ impl TextScriptVM {
                 let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
-                for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
-                    let mut npc = npc.borrow_mut(&mut game_scene.npc_token);
+                let mut npc_iter = game_scene.npc_list.iter_alive_mut(&mut game_scene.npc_token);
+                while let Some((npc, token)) = npc_iter.next_mut() {
+                    let mut npc = npc.borrow_mut(token);
 
                     if npc.event_num == event_num {
                         npc.action_num = action_num;
@@ -1587,8 +1589,9 @@ impl TextScriptVM {
                 let tsc_direction = read_cur_varint(&mut cursor)? as usize;
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
-                for mut npc_ref in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
-                    let mut npc = npc_ref.borrow_mut(&mut game_scene.npc_token);
+                let mut npc_iter = game_scene.npc_list.iter_alive_mut(&mut game_scene.npc_token);
+                while let Some((npc_ref, token)) = npc_iter.next_mut() {
+                    let mut npc = npc_ref.borrow_mut(token);
 
                     if npc.event_num == event_num {
                         npc.npc_flags.set_solid_soft(false);
@@ -1637,7 +1640,7 @@ impl TextScriptVM {
                         }
 
                         drop(npc);
-                        npc_ref.borrow_mut(&mut game_scene.npc_token).tick(
+                        npc_ref.borrow_mut(token).tick(
                             state,
                             (
                                 [&mut game_scene.player1, &mut game_scene.player2],
@@ -1661,8 +1664,9 @@ impl TextScriptVM {
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
                 let block_size = state.tile_size.as_int() * 0x200;
 
-                for npc in game_scene.npc_list.iter_alive(&game_scene.npc_token) {
-                    let mut npc = npc.borrow_mut(&mut game_scene.npc_token);
+                let mut npc_iter = game_scene.npc_list.iter_alive_mut(&mut game_scene.npc_token);
+                while let Some((npc, token)) = npc_iter.next_mut() {
+                    let mut npc = npc.borrow_mut(token);
 
                     if npc.event_num == event_num {
                         npc.x = x * block_size;
