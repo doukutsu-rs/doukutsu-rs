@@ -692,7 +692,7 @@ impl NPC {
         match self.action_num {
             0 => {
                 if let Some(parent) = self.get_parent_ref(npc_list) {
-                    let parent = parent.borrow();
+                    let parent = parent.borrow_unmanaged();
                     
                     self.y = parent.y + 0x1400;
                     self.x = parent.x + 0xE00 * parent.direction.opposite().vector_x();

@@ -363,7 +363,7 @@ impl NPC {
         if self.action_num == 0 {
             let parent = self.get_parent_ref(npc_list);
             if let Some(parent) = parent {
-                let parent = parent.borrow();
+                let parent = parent.borrow_unmanaged();
 
                 if parent.action_counter2 != 0 {
                     if parent.direction != Direction::Left {
@@ -774,7 +774,7 @@ impl NPC {
             }
 
             if let Some(parent) = self.get_parent_ref(npc_list) {
-                let parent = parent.borrow();
+                let parent = parent.borrow_unmanaged();
                 
                 if parent.anim_num == 7 {
                     self.action_num = 1;

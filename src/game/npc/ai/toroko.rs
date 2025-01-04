@@ -598,7 +598,7 @@ impl NPC {
                 }
                 let parent = self.get_parent_ref(npc_list);
                 if let Some(parent) = parent {
-                    let parent = parent.borrow();
+                    let parent = parent.borrow_unmanaged();
                     
                     let player = self.get_closest_player_mut(players);
 

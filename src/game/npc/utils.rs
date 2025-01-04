@@ -113,12 +113,11 @@ impl NPC {
     }
 
     /// Returns a reference to parent NPC (if present).
-    /// This returns an unmanaged reference. It is the caller's responsibility to prevent borrow conflicts.
-    pub fn get_parent_ref<'a>(&self, npc_list: &'a NPCList) -> Option<&'a RefCell<NPC>> {
+    pub fn get_parent_ref<'a>(&self, npc_list: &'a NPCList) -> Option<&'a NPCCell> {
         match self.parent_id {
             0 => None,
             id if id == self.id => None,
-            id => npc_list.get_npc_unmanaged(id as usize),
+            id => npc_list.get_npc(id as usize),
         }
     }
 

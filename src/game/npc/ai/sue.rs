@@ -126,7 +126,7 @@ impl NPCRefMut<'_> {
                 }
 
                 if let Some(npc) = self.get_parent_ref(npc_list) {
-                    let npc = npc.borrow();
+                    let npc = npc.borrow_unmanaged();
                     
                     self.direction = npc.direction.opposite();
                     self.x = npc.x + npc.direction.vector_x() * 0xc00;

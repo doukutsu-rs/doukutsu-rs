@@ -857,7 +857,7 @@ impl NPCRefMut<'_> {
                 }
 
                 if let Some(parent) = self.get_parent_ref(npc_list) {
-                    let parent = parent.borrow();
+                    let parent = parent.borrow_unmanaged();
                     
                     self.x = parent.x
                         + self.action_counter as i32 * ((self.action_counter2 as f64 * CDEG_RAD).cos() * 512.0) as i32

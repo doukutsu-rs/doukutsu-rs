@@ -54,6 +54,11 @@ impl NPCCell {
             token
         }
     }
+    
+    /// Borrows the NPC without an access token. The caller is responsible for preventing borrow panics.
+    pub fn borrow_mut_unmanaged(&self) -> RefMut<'_, NPC> {
+        self.0.borrow_mut()
+    }
 }
 
 pub struct NPCRefMut<'a> {
@@ -172,13 +177,6 @@ impl NPCList {
     /// Returns a reference to NPC from this list.
     pub fn get_npc(&self, id: usize) -> Option<&NPCCell> {
         self.npcs.get(id)
-    }
-
-    /// Returns a reference to NPC from this list.
-    /// This function returns an unmanaged reference, so it doesn't take an access token.
-    /// It is the caller's responsibility to prevent borrow conflicts.
-    pub fn get_npc_unmanaged(&self, id: usize) -> Option<&RefCell<NPC>> {
-        self.npcs.get(id).map(|npc| &npc.0)
     }
 
     /// Returns an iterator that iterates over allocated (not up to it's capacity) NPC slots.

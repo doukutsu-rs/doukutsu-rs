@@ -1557,7 +1557,7 @@ impl NPCRefMut<'_> {
 
         if self.action_num == 1 {
             if let Some(parent) = self.get_parent_ref(npc_list) {
-                let parent = parent.borrow();
+                let parent = parent.borrow_unmanaged();
                 
                 if parent.npc_type == 187 && parent.cond.alive() {
                     let deg = (self.action_counter3.wrapping_add(parent.action_counter3) & 0xff) as f64 * CDEG_RAD;

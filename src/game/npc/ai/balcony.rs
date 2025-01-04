@@ -100,7 +100,7 @@ impl NPC {
                 }
 
                 if let Some(parent) = self.get_parent_ref(npc_list) {
-                    if parent.borrow().action_num >= 20 {
+                    if parent.borrow_unmanaged().action_num >= 20 {
                         self.action_num = 10;
                     }
                 }
@@ -117,7 +117,7 @@ impl NPC {
         }
 
         if let Some(parent) = self.get_parent_ref(npc_list) {
-            let parent = parent.borrow();
+            let parent = parent.borrow_unmanaged();
             
             if self.direction == Direction::Left {
                 self.x = parent.x + 0x2400;

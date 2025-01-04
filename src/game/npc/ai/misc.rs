@@ -2337,7 +2337,7 @@ impl NPCRefMut<'_> {
 
     pub(crate) fn tick_n297_sue_dragon_mouth(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         if let Some(npc) = self.get_parent_ref(npc_list) {
-            let npc = npc.borrow();
+            let npc = npc.borrow_unmanaged();
 
             self.x = npc.x + 0x2000;
             self.y = npc.y + 0x1000;
@@ -2404,7 +2404,7 @@ impl NPCRefMut<'_> {
                     self.x = (player.x + boss.parts[0].x) / 2;
                     self.y = (player.y + boss.parts[0].y) / 2;
                 } else if let Some(npc) = self.get_parent_ref(npc_list) {
-                    let npc = npc.borrow();
+                    let npc = npc.borrow_unmanaged();
 
                     self.x = (player.x + npc.x) / 2;
                     self.y = (player.y + npc.y) / 2;
@@ -2588,7 +2588,7 @@ impl NPCRefMut<'_> {
                     self.anim_num = 0;
 
                     if let Some(npc) = self.get_parent_ref(npc_list) {
-                        let npc = npc.borrow();
+                        let npc = npc.borrow_unmanaged();
                         
                         self.x = npc.x;
                         self.y = npc.y + 0x1400;
@@ -2599,7 +2599,7 @@ impl NPCRefMut<'_> {
                     self.anim_num = 2;
 
                     if let Some(npc) = self.get_parent_ref(npc_list) {
-                        let npc = npc.borrow();
+                        let npc = npc.borrow_unmanaged();
 
                         self.x = npc.x + 0x1600;
                         self.y = npc.y - 0x2200;
@@ -2611,7 +2611,7 @@ impl NPCRefMut<'_> {
                     self.anim_num = 3;
 
                     if let Some(npc) = self.get_parent_ref(npc_list) {
-                        let npc = npc.borrow();
+                        let npc = npc.borrow_unmanaged();
 
                         self.x = npc.x + 0x400;
                         self.y = npc.y - 0x2600;
@@ -2623,7 +2623,7 @@ impl NPCRefMut<'_> {
                     self.anim_num = 0;
 
                     if let Some(npc) = self.get_parent_ref(npc_list) {
-                        let npc = npc.borrow();
+                        let npc = npc.borrow_unmanaged();
 
                         self.x = npc.x - 0x1c00;
                         self.y = npc.y + 0x1400;
@@ -2634,7 +2634,7 @@ impl NPCRefMut<'_> {
                     self.anim_num = 1;
 
                     if let Some(npc) = self.get_parent_ref(npc_list) {
-                        let npc = npc.borrow();
+                        let npc = npc.borrow_unmanaged();
 
                         self.x = npc.x + 0x1c00;
                         self.y = npc.y + 0x1400;
@@ -2645,7 +2645,8 @@ impl NPCRefMut<'_> {
                     self.anim_num = 2;
 
                     if let Some(npc) = self.get_parent_ref(npc_list) {
-                        let npc = npc.borrow();
+                        let npc = npc.borrow_unmanaged();
+
                         self.x = npc.x - 0xe00;
                         if state.constants.is_switch {
                             self.y = npc.y - 0x2200;
@@ -2659,7 +2660,7 @@ impl NPCRefMut<'_> {
                     self.anim_num = 3;
 
                     if let Some(npc) = self.get_parent_ref(npc_list) {
-                        let npc = npc.borrow();
+                        let npc = npc.borrow_unmanaged();
 
                         self.x = npc.x + 0x800;
                         self.y = npc.y - 0x2600;

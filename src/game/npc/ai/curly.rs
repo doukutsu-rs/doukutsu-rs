@@ -574,7 +574,7 @@ impl NPCRefMut<'_> {
         bullet_manager: &mut BulletManager
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref(npc_list) {
-            let mut parent = parent.borrow_mut();
+            let mut parent = parent.borrow_mut_unmanaged();
 
             if parent.anim_num > 4 {
                 self.direction = parent.direction;
@@ -670,7 +670,7 @@ impl NPCRefMut<'_> {
         bullet_manager: &mut BulletManager
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref(npc_list) {
-            let mut parent = parent.borrow_mut();
+            let mut parent = parent.borrow_mut_unmanaged();
 
             if parent.anim_num > 4 {
                 self.direction = parent.direction;
@@ -764,7 +764,7 @@ impl NPCRefMut<'_> {
         npc_list: &NPCList
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref(npc_list) {
-            let parent = parent.borrow();
+            let parent = parent.borrow_unmanaged();
 
             if self.action_num == 0 {
                 self.x = parent.x;
@@ -844,7 +844,7 @@ impl NPCRefMut<'_> {
         npc_list: &NPCList
     ) -> GameResult {
         if let Some(parent) = self.get_parent_ref(npc_list) {
-            let parent = parent.borrow();
+            let parent = parent.borrow_unmanaged();
 
             self.x = parent.x;
             self.y = parent.y;
@@ -926,7 +926,7 @@ impl NPCRefMut<'_> {
         bullet_manager: &mut BulletManager
     ) -> GameResult {
         if let Some(npc) = self.get_parent_ref(npc_list) {
-            let npc = npc.borrow();
+            let npc = npc.borrow_unmanaged();
             
             let player = &players[0];
 

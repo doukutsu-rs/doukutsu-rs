@@ -1092,7 +1092,7 @@ impl NPCRefMut<'_> {
             }
 
             if let Some(parent) = self.get_parent_ref(npc_list) {
-                let parent = parent.borrow();
+                let parent = parent.borrow_unmanaged();
                 
                 if self.x < parent.x {
                     self.vel_x += 0x200 / self.action_counter2 as i32;
