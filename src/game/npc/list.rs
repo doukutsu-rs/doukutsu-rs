@@ -20,12 +20,6 @@ pub trait NPCAccessTokenProvider {
     type TokenContainer<'a>: DerefMut<Target = NPCAccessToken> where Self : 'a;
 
     fn provide<'b>(&'b mut self) -> Self::TokenContainer<'b>;
-
-    // TODO: get rid of unborrow_then in favor of simpler methods
-    fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T {
-        let mut token = self.provide();
-        f(&mut token)
-    }
 }
 
 impl NPCAccessTokenProvider for NPCAccessToken {
@@ -220,6 +214,13 @@ impl NPCList {
     pub fn iter_alive<'a>(&'a self, token: &'a NPCAccessToken) -> impl Iterator<Item = &'a NPCCell> {
         self.iter()
             .filter(|npc| npc.borrow(token).cond.alive())
+    }
+
+    /// Returns an iterator over alive NPC slots.
+    pub fn iter_alive_with_token<'a>(&'a self, token: &'a NPCAccessToken) -> impl Iterator<Item = (&'a NPCCell, &'a NPCAccessToken)> {
+        self.iter()
+            .filter(|npc| npc.borrow(token).cond.alive())
+            .map(move |npc| (npc, token))
     }
 
     /// Returns an iterator over alive NPC slots.
@@ -430,14 +431,13 @@ pub fn test_npc_list() -> GameResult {
         let mut npc_iter = map.iter_alive_mut(&mut token);
         while let Some((npc_ref, token)) = npc_iter.next_mut() {
             let mut npc = npc_ref.borrow_mut(token);
-            npc.unborrow_then(|token| {
-                let mut npc_iter = map.iter_alive_mut(token);
-                while let Some((npc_ref2, token)) = npc_iter.next_mut() {
-                    // If unborrow_then is working correctly, this should never trigger
-                    // an "already borrowed" panic.
-                    npc_ref2.borrow_mut(token).action_counter = 667;
-                }
-            });
+            let mut token = npc.provide();
+            let mut npc_iter = map.iter_alive_mut(&mut token);
+            while let Some((npc_ref2, token)) = npc_iter.next_mut() {
+                // If provide is working correctly, this should never trigger
+                // an "already borrowed" panic.
+                npc_ref2.borrow_mut(token).action_counter = 667;
+            }
         }
         drop(npc_iter);
 

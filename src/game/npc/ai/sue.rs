@@ -117,12 +117,11 @@ impl NPCRefMut<'_> {
                     self.vel_y = 0;
                     self.action_num = 14;
 
-                    self.parent_id = self.unborrow_then(|token| {
-                        npc_list
-                            .iter_alive(token)
-                            .find_map(|npc| if npc.borrow(token).event_num == 501 { Some(npc.borrow(token).id) } else { None })
-                            .unwrap_or(0)
-                    });
+                    let parent_id = npc_list
+                        .iter_alive_with_token(&self.provide())
+                        .find_map(|(npc, token)| if npc.borrow(&token).event_num == 501 { Some(npc.borrow(&token).id) } else { None })
+                        .unwrap_or(0);
+                    self.parent_id = parent_id;
                 }
 
                 if let Some(npc) = self.get_parent_ref(npc_list) {

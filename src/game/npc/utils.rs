@@ -260,35 +260,34 @@ impl NPCList {
 
     /// Deletes NPCs with specified type.
     pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState, token: &mut impl NPCAccessTokenProvider) {
-        token.unborrow_then(|token| {
-            let mut npc_iter = self.iter_alive_mut(token)
-                .filter(|(n, token)| n.borrow(token).npc_type == npc_type);
-            while let Some((npc, token)) = npc_iter.next_mut() {
-                let mut npc = npc.borrow_mut(token);
+        let mut token = token.provide();
+        let mut npc_iter = self.iter_alive_mut(&mut token)
+            .filter(|(n, token)| n.borrow(token).npc_type == npc_type);
+        while let Some((npc, token)) = npc_iter.next_mut() {
+            let mut npc = npc.borrow_mut(token);
 
-                state.set_flag(npc.flag_num as usize, true);
-                npc.cond.set_alive(false);
+            state.set_flag(npc.flag_num as usize, true);
+            npc.cond.set_alive(false);
 
-                if smoke {
-                    if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
-                        state.sound_manager.play_sfx(table_entry.death_sound);
-                    }
-
-                    match npc.size {
-                        1 => {
-                            self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 4, state, &npc.rng);
-                        }
-                        2 => {
-                            self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 8, state, &npc.rng);
-                        }
-                        3 => {
-                            self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 16, state, &npc.rng);
-                        }
-                        _ => {}
-                    };
+            if smoke {
+                if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
+                    state.sound_manager.play_sfx(table_entry.death_sound);
                 }
+
+                match npc.size {
+                    1 => {
+                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 4, state, &npc.rng);
+                    }
+                    2 => {
+                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 8, state, &npc.rng);
+                    }
+                    3 => {
+                        self.create_death_smoke(npc.x, npc.y, npc.display_bounds.right as usize, 16, state, &npc.rng);
+                    }
+                    _ => {}
+                };
             }
-        });
+        }
     }
 
     /// Called once NPC is killed, creates smoke and drops.

@@ -2383,11 +2383,10 @@ impl NPCRefMut<'_> {
 
                     if self.tsc_direction != 0 {
                         let self_tsc_direction = self.tsc_direction;
-                        if let Some(npc_id) = self.unborrow_then(|token| {
-                            npc_list.iter_alive(token)
-                                .find(|npc| npc.borrow(token).event_num == self_tsc_direction)
-                                .map(|npc| npc.borrow(token).id)
-                        }) {
+                        let npc_id = npc_list.iter_alive_with_token(&self.provide())
+                            .find(|(npc, token)| npc.borrow(token).event_num == self_tsc_direction)
+                            .map(|(npc, token)| npc.borrow(token).id);
+                        if let Some(npc_id) = npc_id {
                             self.parent_id = npc_id;
                         }
 
