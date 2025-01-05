@@ -224,6 +224,18 @@ impl NPCList {
     }
 
     /// Returns an iterator over alive NPC slots.
+    /// 
+    /// This returns a streaming iterator, which cannot be used with `for .. in` loops.
+    /// Instead, do this:
+    /// 
+    /// ```
+    /// let npc_iter = npc_list.iter_alive_mut(&mut token)
+    ///                             // .filter/.map/etc...
+    ///                             ;
+    /// while let Some((npc, token)) = npc_iter.next_mut() {
+    ///     // ...
+    /// }
+    /// ```
     pub fn iter_alive_mut<'a>(&'a self, token: &'a mut NPCAccessToken) -> impl StreamingIteratorMut<Item = (&'a NPCCell, &'a mut NPCAccessToken)> {
         NPCAddTokenIterator::new(streaming_iterator::convert(self.iter()), token)
             .filter(|(npc, token)| npc.borrow(token).cond.alive())
