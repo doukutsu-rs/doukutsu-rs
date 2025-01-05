@@ -1,7 +1,6 @@
 use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::ops::{Deref, DerefMut};
 
-use cpal::Stream;
 use streaming_iterator::{StreamingIterator, StreamingIteratorMut};
 
 use crate::framework::error::{GameError, GameResult};
@@ -9,7 +8,6 @@ use crate::game::npc::NPC;
 
 /// Maximum capacity of NPCList
 const NPC_LIST_MAX_CAP: usize = 512;
-
 pub struct NPCCell(RefCell<NPC>);
 
 // Enforces the rules of the NPC list: All borrows must be returned before performing certain operations.
@@ -18,14 +16,45 @@ pub struct NPCAccessToken {
     _private: ()
 }
 
-pub trait NPCAccessTokenProvider {
-    fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T;
+pub trait TokenContainer {
+    fn obtain(&mut self) -> &mut NPCAccessToken;
 }
 
-impl NPCAccessTokenProvider for NPCAccessToken {
+pub trait NPCAccessTokenProvider {
+    type MyTokenContainer<'a>: TokenContainer where Self : 'a;
+
+    fn provide<'b>(&'b mut self) -> Self::MyTokenContainer<'b>;
+
     fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T {
-        f(self)
+        let mut container = self.provide();
+        let mut token = container.obtain();
+        let result = f(&mut token);
+        drop(token);
+        result
     }
+}
+
+// XXX: I don't really know why we need this struct but... fine, I'll do it.
+struct NPCAccessTokenContainer<'a> {
+    token: &'a mut NPCAccessToken,
+}
+
+impl<'a> TokenContainer for &mut NPCAccessTokenContainer<'a> {
+    fn obtain(&mut self) -> &mut NPCAccessToken {
+        self.token
+    }
+}
+
+impl<'a> NPCAccessTokenProvider for NPCAccessTokenContainer<'a> {
+    type MyTokenContainer<'b> = &'b mut NPCAccessTokenContainer<'a> where Self : 'b;
+
+    fn provide<'b>(&'b mut self) -> Self::MyTokenContainer<'b> {
+        self
+    }
+    
+    // fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T {
+    //     f(self)
+    // }
 }
 
 /// A data structure for storing an NPC list for current stage.
@@ -64,17 +93,40 @@ impl NPCCell {
 pub struct NPCRefMut<'a> {
     cell: &'a NPCCell,
     ref_mut: Option<RefMut<'a, NPC>>,
-    token: &'a mut NPCAccessToken
+    token: &'a mut NPCAccessToken,
 }
 
-impl NPCAccessTokenProvider for NPCRefMut<'_> {
-    fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T {
+struct BorrowedNPCRefMut<'a, 'b> {
+    unborrowed: &'b mut NPCRefMut<'a>,
+}
+
+impl<'a, 'b> TokenContainer for BorrowedNPCRefMut<'a, 'b> {
+    fn obtain(&mut self) -> &mut NPCAccessToken {
+        self.unborrowed.token
+    }
+}
+
+impl Drop for BorrowedNPCRefMut<'_, '_> {
+    fn drop(&mut self) {
+        self.unborrowed.ref_mut = Some(self.unborrowed.cell.0.borrow_mut());
+    }
+}
+
+impl<'a> NPCAccessTokenProvider for NPCRefMut<'a> {
+    type MyTokenContainer<'b> = BorrowedNPCRefMut<'a, 'b> where Self : 'b;
+
+    fn provide<'b>(&'b mut self) -> Self::MyTokenContainer<'b> {
         let ref_mut = self.ref_mut.take();
         drop(ref_mut);
-        let result = f(self.token);
-        self.ref_mut = Some(self.cell.0.borrow_mut());
-        result
+        BorrowedNPCRefMut { unborrowed: self }
     }
+    // fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T {
+    //     let ref_mut = self.ref_mut.take();
+    //     drop(ref_mut);
+    //     let result = f(self.token);
+    //     self.ref_mut = Some(self.cell.0.borrow_mut());
+    //     result
+    // }
 }
 
 impl Deref for NPCRefMut<'_> {
