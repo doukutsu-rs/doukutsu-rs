@@ -16,35 +16,22 @@ pub struct NPCAccessToken {
     _private: ()
 }
 
-pub trait TokenContainer {
-    fn obtain(&mut self) -> &mut NPCAccessToken;
-}
-
 pub trait NPCAccessTokenProvider {
-    type MyTokenContainer<'a>: TokenContainer where Self : 'a;
+    type TokenContainer<'a>: DerefMut<Target = NPCAccessToken> where Self : 'a;
 
-    fn provide<'b>(&'b mut self) -> Self::MyTokenContainer<'b>;
+    fn provide<'b>(&'b mut self) -> Self::TokenContainer<'b>;
 
     // TODO: get rid of unborrow_then in favor of simpler methods
     fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T {
-        let mut container = self.provide();
-        let mut token = container.obtain();
-        let result = f(&mut token);
-        drop(token);
-        result
-    }
-}
-
-impl TokenContainer for &mut NPCAccessToken {
-    fn obtain(&mut self) -> &mut NPCAccessToken {
-        self
+        let mut token = self.provide();
+        f(&mut token)
     }
 }
 
 impl NPCAccessTokenProvider for NPCAccessToken {
-    type MyTokenContainer<'a> = &'a mut NPCAccessToken where Self : 'a;
+    type TokenContainer<'a> = &'a mut NPCAccessToken where Self : 'a;
 
-    fn provide<'a>(&'a mut self) -> Self::MyTokenContainer<'a> {
+    fn provide<'a>(&'a mut self) -> Self::TokenContainer<'a> {
         self
     }
 }
@@ -88,37 +75,38 @@ pub struct NPCRefMut<'a> {
     token: &'a mut NPCAccessToken,
 }
 
-pub struct BorrowedNPCRefMut<'a, 'b> {
-    unborrowed: &'b mut NPCRefMut<'a>,
+pub struct ExtractedNPCRefMut<'a, 'b> {
+    original: &'b mut NPCRefMut<'a>,
 }
 
-impl<'a, 'b> TokenContainer for BorrowedNPCRefMut<'a, 'b> {
-    fn obtain(&mut self) -> &mut NPCAccessToken {
-        self.unborrowed.token
+impl Deref for ExtractedNPCRefMut<'_, '_> {
+    type Target = NPCAccessToken;
+
+    fn deref(&self) -> &Self::Target {
+        self.original.token
     }
 }
 
-impl Drop for BorrowedNPCRefMut<'_, '_> {
+impl DerefMut for ExtractedNPCRefMut<'_, '_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.original.token
+    }
+}
+
+impl Drop for ExtractedNPCRefMut<'_, '_> {
     fn drop(&mut self) {
-        self.unborrowed.ref_mut = Some(self.unborrowed.cell.0.borrow_mut());
+        self.original.ref_mut = Some(self.original.cell.0.borrow_mut());
     }
 }
 
 impl<'a> NPCAccessTokenProvider for NPCRefMut<'a> {
-    type MyTokenContainer<'b> = BorrowedNPCRefMut<'a, 'b> where Self : 'b;
+    type TokenContainer<'b> = ExtractedNPCRefMut<'a, 'b> where Self : 'b;
 
-    fn provide<'b>(&'b mut self) -> Self::MyTokenContainer<'b> {
+    fn provide<'b>(&'b mut self) -> Self::TokenContainer<'b> {
         let ref_mut = self.ref_mut.take();
         drop(ref_mut);
-        BorrowedNPCRefMut { unborrowed: self }
+        ExtractedNPCRefMut { original: self }
     }
-    // fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T {
-    //     let ref_mut = self.ref_mut.take();
-    //     drop(ref_mut);
-    //     let result = f(self.token);
-    //     self.ref_mut = Some(self.cell.0.borrow_mut());
-    //     result
-    // }
 }
 
 impl Deref for NPCRefMut<'_> {
