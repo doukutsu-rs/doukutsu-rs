@@ -25,6 +25,7 @@ pub trait NPCAccessTokenProvider {
 
     fn provide<'b>(&'b mut self) -> Self::MyTokenContainer<'b>;
 
+    // TODO: get rid of unborrow_then in favor of simpler methods
     fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T {
         let mut container = self.provide();
         let mut token = container.obtain();
@@ -34,27 +35,18 @@ pub trait NPCAccessTokenProvider {
     }
 }
 
-// XXX: I don't really know why we need this struct but... fine, I'll do it.
-struct NPCAccessTokenContainer<'a> {
-    token: &'a mut NPCAccessToken,
-}
-
-impl<'a> TokenContainer for &mut NPCAccessTokenContainer<'a> {
+impl TokenContainer for &mut NPCAccessToken {
     fn obtain(&mut self) -> &mut NPCAccessToken {
-        self.token
-    }
-}
-
-impl<'a> NPCAccessTokenProvider for NPCAccessTokenContainer<'a> {
-    type MyTokenContainer<'b> = &'b mut NPCAccessTokenContainer<'a> where Self : 'b;
-
-    fn provide<'b>(&'b mut self) -> Self::MyTokenContainer<'b> {
         self
     }
-    
-    // fn unborrow_then<T>(&mut self, f: impl FnOnce(&mut NPCAccessToken) -> T) -> T {
-    //     f(self)
-    // }
+}
+
+impl NPCAccessTokenProvider for NPCAccessToken {
+    type MyTokenContainer<'a> = &'a mut NPCAccessToken where Self : 'a;
+
+    fn provide<'a>(&'a mut self) -> Self::MyTokenContainer<'a> {
+        self
+    }
 }
 
 /// A data structure for storing an NPC list for current stage.
@@ -96,7 +88,7 @@ pub struct NPCRefMut<'a> {
     token: &'a mut NPCAccessToken,
 }
 
-struct BorrowedNPCRefMut<'a, 'b> {
+pub struct BorrowedNPCRefMut<'a, 'b> {
     unborrowed: &'b mut NPCRefMut<'a>,
 }
 
