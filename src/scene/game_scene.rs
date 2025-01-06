@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::ops::{Deref, Range};
 use std::rc::Rc;
 
+use gat_lending_iterator::LendingIterator;
 use log::info;
-use streaming_iterator::StreamingIteratorMut;
 
 use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
 use crate::components::background::Background;
@@ -1119,9 +1119,7 @@ impl GameScene {
 
     fn tick_npc_splash(&mut self, state: &mut SharedGameState) {
         let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
-        while let Some((npc, token)) = npc_iter.next_mut() {
-            let mut npc = npc.borrow_mut(*token);
-
+        while let Some(mut npc) = npc_iter.next() {
             // Water Droplet
             if npc.npc_type == 73 {
                 continue;
@@ -1165,9 +1163,7 @@ impl GameScene {
 
     fn tick_npc_bullet_collissions(&mut self, state: &mut SharedGameState) {
         let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
-        while let Some((npc, token)) = npc_iter.next_mut() {
-            let mut npc = npc.borrow_mut(*token);
-
+        while let Some(mut npc) = npc_iter.next() {
             if npc.npc_flags.shootable() && npc.npc_flags.interactable() {
                 continue;
             }
@@ -1247,10 +1243,7 @@ impl GameScene {
                     inv.has_weapon(WeaponType::MissileLauncher) || inv.has_weapon(WeaponType::SuperMissileLauncher)
                 });
 
-                let npc_id = npc.id as usize;
-                let vanish = !npc.cond.drs_novanish();
-                drop(npc);
-                self.npc_list.kill_npc(npc_id, vanish, can_drop_missile, state, token);
+                self.npc_list.kill_npc(npc.id as usize, !npc.cond.drs_novanish(), can_drop_missile, state, &mut npc);
             }
         }
 
@@ -1398,8 +1391,8 @@ impl GameScene {
         }
 
         let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
-        while let Some((npc, token)) = npc_iter.next_mut() {
-            npc.borrow_mut(*token).tick(
+        while let Some(mut npc) = npc_iter.next() {
+            npc.tick(
                 state,
                 (
                     [&mut self.player1, &mut self.player2],
@@ -1448,9 +1441,7 @@ impl GameScene {
         }
 
         let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
-        while let Some((npc, token)) = npc_iter.next_mut() {
-            let mut npc = npc.borrow_mut(*token);
-
+        while let Some(mut npc) = npc_iter.next() {
             if !npc.npc_flags.ignore_solidity() {
                 npc.tick_map_collisions(state, &self.npc_list, &mut self.stage);
             }
@@ -1965,9 +1956,7 @@ impl Scene for GameScene {
         self.player2.exp_popup.prev_y = self.player2.exp_popup.y;
 
         let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
-        while let Some((npc, token)) = npc_iter.next_mut() {
-            let mut npc = npc.borrow_mut(*token);
-
+        while let Some(mut npc) = npc_iter.next() {
             npc.prev_x = npc.x;
             npc.prev_y = npc.y;
             npc.popup.prev_x = npc.prev_x;

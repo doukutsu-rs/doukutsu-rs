@@ -1,6 +1,6 @@
+use gat_lending_iterator::LendingIterator;
 use imgui::{CollapsingHeader, Condition, ImStr, ImString};
 use itertools::Itertools;
-use streaming_iterator::StreamingIteratorMut;
 
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -425,9 +425,7 @@ impl LiveDebugger {
                 .always_vertical_scrollbar(true)
                 .build(|| {
                     let mut npc_iter = game_scene.npc_list.iter_alive_mut(&mut game_scene.npc_token);
-                    while let Some((npc, token)) = npc_iter.next_mut() {
-                        let mut npc = npc.borrow_mut(*token);
-
+                    while let Some(mut npc) = npc_iter.next() {
                         if CollapsingHeader::new(&ImString::from(format!("id={} type={}", npc.id, npc.npc_type)))
                             .default_open(false)
                             .build(ui)

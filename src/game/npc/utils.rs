@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 
+use gat_lending_iterator::LendingIterator;
 ///! Various utility functions for NPC-related objects
 use num_traits::abs;
-use streaming_iterator::{StreamingIterator, StreamingIteratorMut};
 
 use crate::common::{Condition, Direction, Flag, Rect};
 use crate::components::number_popup::NumberPopup;
@@ -260,11 +260,13 @@ impl NPCList {
 
     /// Deletes NPCs with specified type.
     pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState, token: &mut impl NPCAccessTokenProvider) {
-        let mut token = token.provide();
-        let mut npc_iter = self.iter_alive_mut(&mut token)
-            .filter(|(n, token)| n.borrow(token).npc_type == npc_type);
-        while let Some((npc, token)) = npc_iter.next_mut() {
-            let mut npc = npc.borrow_mut(*token);
+        let mut npc_iter = self.iter_alive_mut(token);
+            //.filter(|n| n.npc_type == npc_type);
+            // XXX: .filter doesn't work, do it manually.
+        while let Some(mut npc) = npc_iter.next() {
+            if npc.npc_type != npc_type {
+                continue;
+            }
 
             state.set_flag(npc.flag_num as usize, true);
             npc.cond.set_alive(false);
@@ -291,7 +293,7 @@ impl NPCList {
     }
 
     /// Called once NPC is killed, creates smoke and drops.
-    pub fn kill_npc(&self, id: usize, vanish: bool, can_drop_missile: bool, state: &mut SharedGameState, token: &mut NPCAccessToken) {
+    pub fn kill_npc(&self, id: usize, vanish: bool, can_drop_missile: bool, state: &mut SharedGameState, token: &mut impl NPCAccessTokenProvider) {
         if let Some(npc) = self.get_npc(id) {
             let mut npc = npc.borrow_mut(token);
 
@@ -362,9 +364,7 @@ impl NPCList {
     /// Removes NPCs whose event number matches the provided one.
     pub fn kill_npcs_by_event(&self, event_num: u16, state: &mut SharedGameState, token: &mut NPCAccessToken) {
         let mut npc_iter = self.iter_alive_mut(token);
-        while let Some((npc, token)) = npc_iter.next_mut() {
-            let mut npc = npc.borrow_mut(*token);
-
+        while let Some(mut npc) = npc_iter.next() {
             if npc.event_num == event_num {
                 npc.cond.set_alive(false);
                 state.set_flag(npc.flag_num as usize, true);

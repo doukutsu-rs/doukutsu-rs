@@ -8,8 +8,8 @@ use std::io::SeekFrom;
 use std::ops::Not;
 use std::rc::Rc;
 
+use gat_lending_iterator::LendingIterator;
 use num_traits::{clamp, FromPrimitive};
-use streaming_iterator::StreamingIteratorMut;
 
 use crate::bitfield;
 use crate::common::Direction::{Left, Right};
@@ -1561,9 +1561,7 @@ impl TextScriptVM {
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
                 let mut npc_iter = game_scene.npc_list.iter_alive_mut(&mut game_scene.npc_token);
-                while let Some((npc, token)) = npc_iter.next_mut() {
-                    let mut npc = npc.borrow_mut(*token);
-
+                while let Some(mut npc) = npc_iter.next() {
                     if npc.event_num == event_num {
                         npc.action_num = action_num;
                         npc.tsc_direction = tsc_direction as u16;
@@ -1590,9 +1588,7 @@ impl TextScriptVM {
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
 
                 let mut npc_iter = game_scene.npc_list.iter_alive_mut(&mut game_scene.npc_token);
-                while let Some((npc_ref, token)) = npc_iter.next_mut() {
-                    let mut npc = npc_ref.borrow_mut(*token);
-
+                while let Some(mut npc) = npc_iter.next() {
                     if npc.event_num == event_num {
                         npc.npc_flags.set_solid_soft(false);
                         npc.npc_flags.set_ignore_tile_44(false);
@@ -1639,8 +1635,7 @@ impl TextScriptVM {
                             npc.direction = direction;
                         }
 
-                        drop(npc);
-                        npc_ref.borrow_mut(*token).tick(
+                        npc.tick(
                             state,
                             (
                                 [&mut game_scene.player1, &mut game_scene.player2],
@@ -1665,9 +1660,7 @@ impl TextScriptVM {
                 let block_size = state.tile_size.as_int() * 0x200;
 
                 let mut npc_iter = game_scene.npc_list.iter_alive_mut(&mut game_scene.npc_token);
-                while let Some((npc, token)) = npc_iter.next_mut() {
-                    let mut npc = npc.borrow_mut(*token);
-
+                while let Some(mut npc) = npc_iter.next() {
                     if npc.event_num == event_num {
                         npc.x = x * block_size;
                         npc.y = y * block_size;

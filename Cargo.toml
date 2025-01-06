@@ -66,6 +66,7 @@ discord-rich-presence = { version = "0.2", optional = true }
 downcast = "0.11"
 encoding_rs = "0.8.33"
 fern = "0.6.2"
+gat-lending-iterator = "0.1.6"
 glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "2dd95f042e6e090d36f577cbea125560dd99bd27", optional = true, default_features = false, features = ["x11"] }
 imgui = { git = "https://github.com/imgui-rs/imgui-rs.git", rev = "5d771a83b82c5cc3dd58cca3f969d900369262e6" }
 image = { version = "0.24", default-features = false, features = ["png", "bmp"] }
@@ -85,7 +86,6 @@ serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_cbor = { version = "0.11", optional = true }
 serde_json = "1.0"
-streaming-iterator = "0.1.9"
 strum = "0.24"
 strum_macros = "0.24"
 # remove and replace when extract_if is in stable

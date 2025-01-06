@@ -1,7 +1,7 @@
 use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::ops::{Deref, DerefMut};
 
-use streaming_iterator::{StreamingIterator, StreamingIteratorMut};
+use gat_lending_iterator::LendingIterator;
 
 use crate::framework::error::{GameError, GameResult};
 use crate::game::npc::NPC;
@@ -53,10 +53,12 @@ impl NPCCell {
         &'a self,
         token_provider: &'a mut P
     ) -> NPCRefMut<'a, P> {
+        // The token MUST be provided first, otherwise a borrow panic could occur
+        let token = token_provider.provide();
         NPCRefMut {
             cell: self,
             ref_mut: Some(self.0.borrow_mut()),
-            token: token_provider.provide()
+            token
         }
     }
     
@@ -212,6 +214,14 @@ impl NPCList {
     pub fn iter(&self) -> NPCListIterator {
         NPCListIterator::new(self)
     }
+
+    pub fn iter_mut<'a, P: NPCAccessTokenProvider>(
+        &'a self,
+        token_provider: &'a mut P
+        // FIXME: I would love to put "-> impl LendingIterator<Item = ...>" in the return type, but nothing seems to work...
+    ) -> NPCBorrowMutIterator<'a, 'a, P> {
+        NPCBorrowMutIterator::new(&self, token_provider)
+    }
     
     /// Returns an iterator over alive NPC slots.
     pub fn iter_alive<'a>(&'a self, token: &'a NPCAccessToken) -> impl Iterator<Item = &'a NPCCell> {
@@ -228,33 +238,39 @@ impl NPCList {
 
     /// Returns an iterator over alive NPC slots.
     /// 
-    /// This returns a streaming iterator, which cannot be used with `for .. in` loops.
+    /// This returns a LendingIterator which cannot be used with `for .. in` loops.
     /// Instead, do this:
     /// 
     /// ```
-    /// let npc_iter = npc_list.iter_alive_mut(&mut token)
-    ///                             // .filter/.map/etc...
-    ///                             ;
-    /// while let Some((npc, token)) = npc_iter.next_mut() {
+    /// let npc_iter = npc_list.iter_alive_mut(&mut token);
+    /// while let Some(mut npc) = npc_iter.next_mut() {
     ///     // ...
     /// }
     /// ```
-    pub fn iter_alive_mut<'a>(&'a self, token: &'a mut NPCAccessToken) -> impl StreamingIteratorMut<Item = (&'a NPCCell, &'a mut NPCAccessToken)> {
-        NPCAddTokenIterator::new(streaming_iterator::convert(self.iter()), token)
-            .filter(|(npc, token)| npc.borrow(token).cond.alive())
-        // XXX: Oh, how I wish this worked.
-        // streaming_iterator::convert(self.iter_alive(token))
-        //     .map(|npc| (npc, token))
+    pub fn iter_alive_mut<'a, P: NPCAccessTokenProvider>(
+        &'a self,
+        token_provider: &'a mut P
+        // FIXME: I would love to put "-> impl LendingIterator<Item = ...>" in the return type, but nothing seems to work...
+    ) -> NPCBorrowMutAliveIterator<'a, 'a, P> {
+        NPCBorrowMutAliveIterator::new(&self, token_provider)
     }
+
+    ///////// FIXME: a failed attempt...
+    // pub fn iter_alive_mut<'a, P: NPCAccessTokenProvider>(
+    //     &'a self,
+    //     token_provider: &'a mut P
+    //     // FIXME: I would love to put "-> impl LendingIterator<Item = ...>" in the return type, but nothing seems to work...
+    // ) -> Filter<NPCBorrowMutIterator<'a, 'a, P>, impl for<'b> FnMut(&<NPCBorrowMutIterator<'a, 'a, P> as LendingIterator>::Item<'b>) -> bool> {
+    //     self.iter_mut(token_provider)
+    //         .filter(move |npc| npc.cond.alive())
+    // }
 
     /// Removes all NPCs from this list and resets it's capacity.
     pub fn clear(&self, token: &mut NPCAccessToken) {
-        let mut npc_iter = self.iter_alive_mut(token);
-        let mut idx = 0;
-        while let Some((npc, token)) = npc_iter.next_mut() {
-            *npc.borrow_mut(*token) = NPC::empty();
-            npc.borrow_mut(*token).id = idx as u16;
-            idx += 1;
+        let mut npc_iter = self.iter_alive_mut(token).enumerate();
+        while let Some((idx, mut npc)) = npc_iter.next() {
+            *npc = NPC::empty();
+            npc.id = idx as u16;
         }
 
         self.max_npc.replace(0);
@@ -297,84 +313,60 @@ impl<'a> Iterator for NPCListIterator<'a> {
     }
 }
 
-// Streaming iterator to add an access token to a stream of NPC's
-enum NPCAddTokenIteratorHolder<'a> {
-    Dummy,
-    Inactive(&'a mut NPCAccessToken),
-    Active((&'a NPCCell, &'a mut NPCAccessToken)),
+pub struct NPCBorrowMutIterator<'a, 'b, P: NPCAccessTokenProvider> {
+    iter: NPCListIterator<'a>,
+    token_provider: &'b mut P
 }
 
-impl<'a> NPCAddTokenIteratorHolder<'a> {
-    fn activate(&mut self, cell: &'a NPCCell) {
-        match std::mem::replace(self, NPCAddTokenIteratorHolder::Dummy) {
-            Self::Inactive(token) => {
-                *self = NPCAddTokenIteratorHolder::Active((cell, token));
-            },
-            Self::Active((_, token)) => {
-                *self = NPCAddTokenIteratorHolder::Active((cell, token));
-            },
-            _ => unreachable!()
-        }
-    }
-
-    fn deactivate(&mut self) {
-        match std::mem::replace(self, NPCAddTokenIteratorHolder::Dummy) {
-            Self::Inactive(_) => { },
-            Self::Active((_, token)) => {
-                *self = NPCAddTokenIteratorHolder::Inactive(token);
-            },
-            _ => unreachable!()
+impl<'a, 'b, P: NPCAccessTokenProvider> NPCBorrowMutIterator<'a, 'b, P> {
+    fn new(npc_list: &'a NPCList, token_provider: &'b mut P) -> Self {
+        Self {
+            iter: npc_list.iter(),
+            token_provider
         }
     }
 }
 
-pub struct NPCAddTokenIterator<'a, I> {
-    it: I,
-    holder: NPCAddTokenIteratorHolder<'a>,
-}
+impl<'a, 'b, P: NPCAccessTokenProvider> LendingIterator for NPCBorrowMutIterator<'a, 'b, P> {
+    type Item<'c> = NPCRefMut<'c, P> where Self : 'c;
 
-impl<'a, I> NPCAddTokenIterator<'a, I> {
-    fn new(it: I, token: &'a mut NPCAccessToken) -> Self {
-        Self { it, holder: NPCAddTokenIteratorHolder::Inactive(token) }
-    }
-}
-
-impl<'a, I> StreamingIterator for NPCAddTokenIterator<'a, I>
-where
-    I: StreamingIterator<Item = &'a NPCCell>
-{
-    type Item = (&'a NPCCell, &'a mut NPCAccessToken);
-
-    fn advance(&mut self) {
-        self.it.advance();
-        match self.it.get() {
-            Some(item) => {
-                self.holder.activate(item);
-            }
-            None => {
-                self.holder.deactivate();
-            }
-        }
-    }
-
-    fn get(&self) -> Option<&Self::Item> {
-        if let NPCAddTokenIteratorHolder::Active(item) = &self.holder {
-            Some(&item)
+    fn next(&mut self) -> Option<Self::Item<'_>> {
+        if let Some(item) = self.iter.next() {
+            Some(item.borrow_mut(self.token_provider))
         } else {
             None
         }
     }
 }
 
-impl<'a, I> StreamingIteratorMut for NPCAddTokenIterator<'a, I>
-where
-    I: StreamingIteratorMut<Item = &'a NPCCell>
-{
-    fn get_mut(&mut self) -> Option<&mut Self::Item> {
-        if let NPCAddTokenIteratorHolder::Active(ref mut item) = &mut self.holder {
-            Some(item)
-        } else {
-            None
+// TODO: avoid cloning NPCBorrowMutIterator, use .filter instead.
+// It is very difficult to return an impl LendingIterator in the current version of Rust at the time of writing.
+pub struct NPCBorrowMutAliveIterator<'a, 'b, P: NPCAccessTokenProvider> {
+    iter: NPCListIterator<'a>,
+    token_provider: &'b mut P
+}
+
+impl<'a, 'b, P: NPCAccessTokenProvider> NPCBorrowMutAliveIterator<'a, 'b, P> {
+    fn new(npc_list: &'a NPCList, token_provider: &'b mut P) -> Self {
+        Self {
+            iter: npc_list.iter(),
+            token_provider
+        }
+    }
+}
+
+impl<'a, 'b, P: NPCAccessTokenProvider> LendingIterator for NPCBorrowMutAliveIterator<'a, 'b, P> {
+    type Item<'c> = NPCRefMut<'c, P> where Self : 'c;
+
+    fn next(&mut self) -> Option<Self::Item<'_>> {
+        loop {
+            if let Some(item) = self.iter.next() {
+                if item.borrow(&self.token_provider.provide()).cond.alive() {
+                    return Some(item.borrow_mut(self.token_provider))
+                }
+            } else {
+                return None
+            }
         }
     }
 }
@@ -400,6 +392,24 @@ pub fn test_npc_list() -> GameResult {
         map.spawn(0, npc.clone())?;
         map.spawn(2, npc.clone())?;
         map.spawn(256, npc.clone())?;
+
+        let mut token_provider = map.get_npc(0).unwrap().borrow_mut(&mut token);
+        // Test using a plain access token as an access token provider
+        let mut npc_iter = map.iter_mut(&mut token_provider);
+        while let Some(mut npc) = npc_iter.next() {
+            if npc.cond.alive() {
+                npc.splash = true;
+            }
+
+            // Test using an NPCRefMut as an access token provider
+            let mut npc_iter2 = map.iter_mut(&mut npc);
+            while let Some(mut npc2) = npc_iter2.next() {
+                if npc2.cond.alive() {
+                    npc2.splash = false;
+                }
+            }
+        }
+        drop(token_provider);
 
         assert_eq!(map.iter_alive(&token).count(), 3);
 
@@ -433,28 +443,6 @@ pub fn test_npc_list() -> GameResult {
         for i in 0..map.max_capacity() {
             map.spawn(i, npc.clone())?;
         }
-
-        // Test access token functionality
-        let mut npc_iter = map.iter_alive_mut(&mut token);
-        while let Some((npc, token)) = npc_iter.next_mut() {
-            let npc = npc.borrow_mut(*token);
-            drop(npc); // TEST: compilation should fail is this is commented out.
-            for _npc_ref2 in map.iter_alive(&token) {}
-        }
-        drop(npc_iter);
-
-        let mut npc_iter = map.iter_alive_mut(&mut token);
-        while let Some((npc_ref, token)) = npc_iter.next_mut() {
-            let mut npc = npc_ref.borrow_mut(*token);
-            let mut token = npc.provide();
-            let mut npc_iter = map.iter_alive_mut(&mut token);
-            while let Some((npc_ref2, token)) = npc_iter.next_mut() {
-                // If provide is working correctly, this should never trigger
-                // an "already borrowed" panic.
-                npc_ref2.borrow_mut(*token).action_counter = 667;
-            }
-        }
-        drop(npc_iter);
 
         assert!(map.spawn(0, npc.clone()).is_err());
     }
