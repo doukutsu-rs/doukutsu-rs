@@ -1562,7 +1562,7 @@ impl TextScriptVM {
 
                 let mut npc_iter = game_scene.npc_list.iter_alive_mut(&mut game_scene.npc_token);
                 while let Some((npc, token)) = npc_iter.next_mut() {
-                    let mut npc = npc.borrow_mut(token);
+                    let mut npc = npc.borrow_mut(*token);
 
                     if npc.event_num == event_num {
                         npc.action_num = action_num;
@@ -1591,7 +1591,7 @@ impl TextScriptVM {
 
                 let mut npc_iter = game_scene.npc_list.iter_alive_mut(&mut game_scene.npc_token);
                 while let Some((npc_ref, token)) = npc_iter.next_mut() {
-                    let mut npc = npc_ref.borrow_mut(token);
+                    let mut npc = npc_ref.borrow_mut(*token);
 
                     if npc.event_num == event_num {
                         npc.npc_flags.set_solid_soft(false);
@@ -1640,7 +1640,7 @@ impl TextScriptVM {
                         }
 
                         drop(npc);
-                        npc_ref.borrow_mut(token).tick(
+                        npc_ref.borrow_mut(*token).tick(
                             state,
                             (
                                 [&mut game_scene.player1, &mut game_scene.player2],
@@ -1666,7 +1666,7 @@ impl TextScriptVM {
 
                 let mut npc_iter = game_scene.npc_list.iter_alive_mut(&mut game_scene.npc_token);
                 while let Some((npc, token)) = npc_iter.next_mut() {
-                    let mut npc = npc.borrow_mut(token);
+                    let mut npc = npc.borrow_mut(*token);
 
                     if npc.event_num == event_num {
                         npc.x = x * block_size;

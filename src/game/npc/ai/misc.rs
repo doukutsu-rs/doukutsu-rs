@@ -12,7 +12,7 @@ use crate::game::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
-impl NPCRefMut<'_> {
+impl<P: NPCAccessTokenProvider> NPCRefMut<'_, P> {
     pub(crate) fn tick_n000_null(&mut self) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;

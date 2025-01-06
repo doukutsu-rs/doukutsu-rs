@@ -264,7 +264,7 @@ impl NPCList {
         let mut npc_iter = self.iter_alive_mut(&mut token)
             .filter(|(n, token)| n.borrow(token).npc_type == npc_type);
         while let Some((npc, token)) = npc_iter.next_mut() {
-            let mut npc = npc.borrow_mut(token);
+            let mut npc = npc.borrow_mut(*token);
 
             state.set_flag(npc.flag_num as usize, true);
             npc.cond.set_alive(false);
@@ -363,7 +363,7 @@ impl NPCList {
     pub fn kill_npcs_by_event(&self, event_num: u16, state: &mut SharedGameState, token: &mut NPCAccessToken) {
         let mut npc_iter = self.iter_alive_mut(token);
         while let Some((npc, token)) = npc_iter.next_mut() {
-            let mut npc = npc.borrow_mut(token);
+            let mut npc = npc.borrow_mut(*token);
 
             if npc.event_num == event_num {
                 npc.cond.set_alive(false);

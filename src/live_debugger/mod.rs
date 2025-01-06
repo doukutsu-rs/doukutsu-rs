@@ -426,7 +426,7 @@ impl LiveDebugger {
                 .build(|| {
                     let mut npc_iter = game_scene.npc_list.iter_alive_mut(&mut game_scene.npc_token);
                     while let Some((npc, token)) = npc_iter.next_mut() {
-                        let mut npc = npc.borrow_mut(token);
+                        let mut npc = npc.borrow_mut(*token);
 
                         if CollapsingHeader::new(&ImString::from(format!("id={} type={}", npc.id, npc.npc_type)))
                             .default_open(false)

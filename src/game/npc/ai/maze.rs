@@ -1,13 +1,13 @@
 use crate::common::{CDEG_RAD, Direction};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::{NPCAccessToken, NPCList, NPCRefMut};
+use crate::game::npc::list::{NPCAccessToken, NPCAccessTokenProvider, NPCList, NPCRefMut};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
-impl NPCRefMut<'_> {
+impl<P: NPCAccessTokenProvider> NPCRefMut<'_, P> {
     pub(crate) fn tick_n147_critter_purple(
         &mut self,
         state: &mut SharedGameState,

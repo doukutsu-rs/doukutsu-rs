@@ -3,14 +3,14 @@ use num_traits::{abs, clamp};
 use crate::common::{Direction, Rect};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::{NPCAccessToken, NPCList, NPCRefMut};
+use crate::game::npc::list::{NPCAccessToken, NPCAccessTokenProvider, NPCList, NPCRefMut};
 use crate::game::npc::NPC;
 use crate::game::player::{Player, TargetPlayer};
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::weapon::bullet::BulletManager;
 use crate::util::rng::RNG;
 
-impl NPCRefMut<'_> {
+impl<P: NPCAccessTokenProvider> NPCRefMut<'_, P> {
     pub(crate) fn tick_n117_curly(
         &mut self,
         state: &mut SharedGameState,

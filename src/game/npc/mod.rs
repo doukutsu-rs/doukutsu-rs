@@ -5,7 +5,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use byteorder::{LE, ReadBytesExt};
-use list::NPCRefMut;
+use list::{NPCAccessTokenProvider, NPCRefMut};
 
 use crate::bitfield;
 use crate::common::{Condition, interpolate_fix9_scale, Rect};
@@ -230,7 +230,7 @@ impl NPC {
     }
 }
 
-impl GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mut Flash, &mut BossNPC)> for NPCRefMut<'_> {
+impl<P: NPCAccessTokenProvider> GameEntity<([&mut Player; 2], &NPCList, &mut Stage, &mut BulletManager, &mut Flash, &mut BossNPC)> for NPCRefMut<'_, P> {
     fn tick(
         &mut self,
         state: &mut SharedGameState,

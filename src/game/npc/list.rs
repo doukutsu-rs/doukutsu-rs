@@ -25,7 +25,7 @@ pub trait NPCAccessTokenProvider {
 impl NPCAccessTokenProvider for NPCAccessToken {
     type TokenContainer<'a> = &'a mut NPCAccessToken where Self : 'a;
 
-    fn provide<'a>(&'a mut self) -> Self::TokenContainer<'a> {
+    fn provide<'b>(&'b mut self) -> Self::TokenContainer<'b> {
         self
     }
 }
@@ -49,11 +49,14 @@ impl NPCCell {
     }
 
     /// Mutably borrows the NPC. The access token is taken and held until the borrow is dropped.
-    pub fn borrow_mut<'a>(&'a self, token: &'a mut NPCAccessToken) -> NPCRefMut<'a> {
+    pub fn borrow_mut<'a, P: NPCAccessTokenProvider>(
+        &'a self,
+        token_provider: &'a mut P
+    ) -> NPCRefMut<'a, P> {
         NPCRefMut {
             cell: self,
             ref_mut: Some(self.0.borrow_mut()),
-            token
+            token: token_provider.provide()
         }
     }
     
@@ -63,38 +66,38 @@ impl NPCCell {
     }
 }
 
-pub struct NPCRefMut<'a> {
+pub struct NPCRefMut<'a, P: NPCAccessTokenProvider + 'a> {
     cell: &'a NPCCell,
     ref_mut: Option<RefMut<'a, NPC>>,
-    token: &'a mut NPCAccessToken,
+    token: P::TokenContainer<'a>,
 }
 
-pub struct ExtractedNPCRefMut<'a, 'b> {
-    original: &'b mut NPCRefMut<'a>,
+pub struct ExtractedNPCRefMut<'a, 'b, P: NPCAccessTokenProvider> {
+    original: &'b mut NPCRefMut<'a, P>,
 }
 
-impl Deref for ExtractedNPCRefMut<'_, '_> {
+impl<P: NPCAccessTokenProvider> Deref for ExtractedNPCRefMut<'_, '_, P> {
     type Target = NPCAccessToken;
 
     fn deref(&self) -> &Self::Target {
-        self.original.token
+        &self.original.token
     }
 }
 
-impl DerefMut for ExtractedNPCRefMut<'_, '_> {
+impl<P: NPCAccessTokenProvider> DerefMut for ExtractedNPCRefMut<'_, '_, P> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.original.token
+        &mut self.original.token
     }
 }
 
-impl Drop for ExtractedNPCRefMut<'_, '_> {
+impl<P: NPCAccessTokenProvider> Drop for ExtractedNPCRefMut<'_, '_, P> {
     fn drop(&mut self) {
         self.original.ref_mut = Some(self.original.cell.0.borrow_mut());
     }
 }
 
-impl<'a> NPCAccessTokenProvider for NPCRefMut<'a> {
-    type TokenContainer<'b> = ExtractedNPCRefMut<'a, 'b> where Self : 'b;
+impl<'a, P: NPCAccessTokenProvider> NPCAccessTokenProvider for NPCRefMut<'a, P> {
+    type TokenContainer<'b> = ExtractedNPCRefMut<'a, 'b, P> where Self : 'b;
 
     fn provide<'b>(&'b mut self) -> Self::TokenContainer<'b> {
         let ref_mut = self.ref_mut.take();
@@ -103,7 +106,7 @@ impl<'a> NPCAccessTokenProvider for NPCRefMut<'a> {
     }
 }
 
-impl Deref for NPCRefMut<'_> {
+impl<P: NPCAccessTokenProvider> Deref for NPCRefMut<'_, P> {
     type Target = NPC;
 
     fn deref(&self) -> &Self::Target {
@@ -111,7 +114,7 @@ impl Deref for NPCRefMut<'_> {
     }
 }
 
-impl DerefMut for NPCRefMut<'_> {
+impl<P: NPCAccessTokenProvider> DerefMut for NPCRefMut<'_, P> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.ref_mut.as_deref_mut().unwrap()
     }
@@ -249,8 +252,8 @@ impl NPCList {
         let mut npc_iter = self.iter_alive_mut(token);
         let mut idx = 0;
         while let Some((npc, token)) = npc_iter.next_mut() {
-            *npc.borrow_mut(token) = NPC::empty();
-            npc.borrow_mut(token).id = idx as u16;
+            *npc.borrow_mut(*token) = NPC::empty();
+            npc.borrow_mut(*token).id = idx as u16;
             idx += 1;
         }
 
@@ -434,7 +437,7 @@ pub fn test_npc_list() -> GameResult {
         // Test access token functionality
         let mut npc_iter = map.iter_alive_mut(&mut token);
         while let Some((npc, token)) = npc_iter.next_mut() {
-            let npc = npc.borrow_mut(token);
+            let npc = npc.borrow_mut(*token);
             drop(npc); // TEST: compilation should fail is this is commented out.
             for _npc_ref2 in map.iter_alive(&token) {}
         }
@@ -442,13 +445,13 @@ pub fn test_npc_list() -> GameResult {
 
         let mut npc_iter = map.iter_alive_mut(&mut token);
         while let Some((npc_ref, token)) = npc_iter.next_mut() {
-            let mut npc = npc_ref.borrow_mut(token);
+            let mut npc = npc_ref.borrow_mut(*token);
             let mut token = npc.provide();
             let mut npc_iter = map.iter_alive_mut(&mut token);
             while let Some((npc_ref2, token)) = npc_iter.next_mut() {
                 // If provide is working correctly, this should never trigger
                 // an "already borrowed" panic.
-                npc_ref2.borrow_mut(token).action_counter = 667;
+                npc_ref2.borrow_mut(*token).action_counter = 667;
             }
         }
         drop(npc_iter);

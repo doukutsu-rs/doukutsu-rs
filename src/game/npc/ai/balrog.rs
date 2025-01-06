@@ -3,14 +3,14 @@ use num_traits::clamp;
 use crate::common::{CDEG_RAD, Direction};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
-use crate::game::npc::list::{NPCList, NPCRefMut};
+use crate::game::npc::list::{NPCAccessTokenProvider, NPCList, NPCRefMut};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
-impl NPCRefMut<'_> {
+impl<P: NPCAccessTokenProvider> NPCRefMut<'_, P> {
     pub(crate) fn tick_n009_balrog_falling_in(
         &mut self,
         state: &mut SharedGameState,

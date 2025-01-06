@@ -1,13 +1,13 @@
 use crate::common::{CDEG_RAD, Direction, Rect};
 use crate::framework::error::GameResult;
-use crate::game::npc::list::{NPCList, NPCRefMut};
+use crate::game::npc::list::{NPCAccessTokenProvider, NPCList, NPCRefMut};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
-impl NPCRefMut<'_> {
+impl<P: NPCAccessTokenProvider> NPCRefMut<'_, P> {
     pub(crate) fn tick_n139_doctor(&mut self, state: &mut SharedGameState) -> GameResult {
         match self.action_num {
             0 | 1 => {

@@ -8,7 +8,7 @@ use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
-impl NPCRefMut<'_> {
+impl<P: NPCAccessTokenProvider> NPCRefMut<'_, P> {
     pub fn tick_n042_sue(
         &mut self,
         state: &mut SharedGameState,

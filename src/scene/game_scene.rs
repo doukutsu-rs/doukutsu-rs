@@ -1120,7 +1120,7 @@ impl GameScene {
     fn tick_npc_splash(&mut self, state: &mut SharedGameState) {
         let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
         while let Some((npc, token)) = npc_iter.next_mut() {
-            let mut npc = npc.borrow_mut(token);
+            let mut npc = npc.borrow_mut(*token);
 
             // Water Droplet
             if npc.npc_type == 73 {
@@ -1166,7 +1166,7 @@ impl GameScene {
     fn tick_npc_bullet_collissions(&mut self, state: &mut SharedGameState) {
         let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
         while let Some((npc, token)) = npc_iter.next_mut() {
-            let mut npc = npc.borrow_mut(token);
+            let mut npc = npc.borrow_mut(*token);
 
             if npc.npc_flags.shootable() && npc.npc_flags.interactable() {
                 continue;
@@ -1399,7 +1399,7 @@ impl GameScene {
 
         let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
         while let Some((npc, token)) = npc_iter.next_mut() {
-            npc.borrow_mut(token).tick(
+            npc.borrow_mut(*token).tick(
                 state,
                 (
                     [&mut self.player1, &mut self.player2],
@@ -1449,7 +1449,7 @@ impl GameScene {
 
         let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
         while let Some((npc, token)) = npc_iter.next_mut() {
-            let mut npc = npc.borrow_mut(token);
+            let mut npc = npc.borrow_mut(*token);
 
             if !npc.npc_flags.ignore_solidity() {
                 npc.tick_map_collisions(state, &self.npc_list, &mut self.stage);
@@ -1966,7 +1966,7 @@ impl Scene for GameScene {
 
         let mut npc_iter = self.npc_list.iter_alive_mut(&mut self.npc_token);
         while let Some((npc, token)) = npc_iter.next_mut() {
-            let mut npc = npc.borrow_mut(token);
+            let mut npc = npc.borrow_mut(*token);
 
             npc.prev_x = npc.x;
             npc.prev_y = npc.y;

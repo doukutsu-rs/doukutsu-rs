@@ -14,7 +14,7 @@ use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::util::rng::RNG;
 
-impl NPCRefMut<'_> {
+impl<P: NPCAccessTokenProvider> NPCRefMut<'_, P> {
     pub(crate) fn tick_n066_misery_bubble(&mut self, state: &mut SharedGameState, npc_list: &NPCList) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -48,8 +48,7 @@ impl NPCRefMut<'_> {
 
                     let npc_id = self.action_counter2 as usize;
                     if let Some(npc) = npc_list.get_npc(npc_id) {
-                        let mut token = self.provide();
-                        let mut npc = npc.borrow_mut(&mut token);
+                        let mut npc = npc.borrow_mut(self);
 
                         npc.cond.set_alive(false);
                     }
