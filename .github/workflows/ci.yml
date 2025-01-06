@@ -164,7 +164,7 @@ jobs:
       - name: Build
         run: |
           if [ "${{ github.ref_type }}" == "tag" ]; then
-            export DRS_BUILD_VERSION_OVERRIDE="{{ github.ref_name }}"
+            export DRS_BUILD_VERSION_OVERRIDE="${{ github.ref_name }}"
           elif [ "${{ github.ref_name }}" == "master"]; then
             export DRS_BUILD_VERSION_OVERRIDE="${{ env.VERSION }}-$((${{ github.run_number }} + 654))"
           else
