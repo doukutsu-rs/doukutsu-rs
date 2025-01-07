@@ -17,15 +17,15 @@ pub struct NPCAccessToken {
 }
 
 pub trait NPCAccessTokenProvider {
-    type TokenContainer<'a>: DerefMut<Target = NPCAccessToken> where Self : 'a;
+    type TokenContainer<'c>: DerefMut<Target = NPCAccessToken> where Self : 'c;
 
-    fn provide<'b>(&'b mut self) -> Self::TokenContainer<'b>;
+    fn provide(&mut self) -> Self::TokenContainer<'_>;
 }
 
 impl NPCAccessTokenProvider for NPCAccessToken {
-    type TokenContainer<'a> = &'a mut NPCAccessToken where Self : 'a;
+    type TokenContainer<'c> = &'c mut NPCAccessToken where Self : 'c;
 
-    fn provide<'b>(&'b mut self) -> Self::TokenContainer<'b> {
+    fn provide(&mut self) -> Self::TokenContainer<'_> {
         self
     }
 }
@@ -74,8 +74,8 @@ pub struct NPCRefMut<'a, P: NPCAccessTokenProvider + 'a> {
     token: P::TokenContainer<'a>,
 }
 
-pub struct ExtractedNPCRefMut<'a, 'b, P: NPCAccessTokenProvider> {
-    original: &'b mut NPCRefMut<'a, P>,
+pub struct ExtractedNPCRefMut<'p: 'c, 'c, P: NPCAccessTokenProvider + 'p> {
+    original: &'c mut NPCRefMut<'p, P>,
 }
 
 impl<P: NPCAccessTokenProvider> Deref for ExtractedNPCRefMut<'_, '_, P> {
@@ -98,10 +98,10 @@ impl<P: NPCAccessTokenProvider> Drop for ExtractedNPCRefMut<'_, '_, P> {
     }
 }
 
-impl<'a, P: NPCAccessTokenProvider> NPCAccessTokenProvider for NPCRefMut<'a, P> {
-    type TokenContainer<'b> = ExtractedNPCRefMut<'a, 'b, P> where Self : 'b;
+impl<'p, P: NPCAccessTokenProvider + 'p> NPCAccessTokenProvider for NPCRefMut<'p, P> {
+    type TokenContainer<'c> = ExtractedNPCRefMut<'p, 'c, P> where Self : 'c;
 
-    fn provide<'b>(&'b mut self) -> Self::TokenContainer<'b> {
+    fn provide(&mut self) -> Self::TokenContainer<'_> {
         let ref_mut = self.ref_mut.take();
         drop(ref_mut);
         ExtractedNPCRefMut { original: self }
@@ -247,11 +247,12 @@ impl NPCList {
     ///     // ...
     /// }
     /// ```
-    pub fn iter_alive_mut<'a, P: NPCAccessTokenProvider>(
-        &'a self,
-        token_provider: &'a mut P
+    pub fn iter_alive_mut<'p, P: NPCAccessTokenProvider + 'p>(
+        &'p self,
+        token_provider: &'p mut P
         // FIXME: I would love to put "-> impl LendingIterator<Item = ...>" in the return type, but nothing seems to work...
-    ) -> NPCBorrowMutAliveIterator<'a, 'a, P> {
+    // ) -> impl for<'c> LendingIterator<Item<'c> = NPCRefMut<'c, P>> + 'p {
+    ) -> NPCBorrowMutAliveIterator<'p, 'p, P> {
         NPCBorrowMutAliveIterator::new(&self, token_provider)
     }
 
