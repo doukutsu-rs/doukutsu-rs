@@ -28,7 +28,7 @@ jobs:
 
           node ./metadata.js --os windows --arch x86_64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.windows.x86_64.$VERSION.exe $FILE
           node ./metadata.js --os windows --arch i686 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.windows.i686.$VERSION.exe $FILE
-          node ./metadata.js --os macos --arch x86_64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.macos.x86_64.$VERSION.zip $FILE
+          node ./metadata.js --os macos --arch x64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.macos.x86_64.$VERSION.zip $FILE
           node ./metadata.js --os macos --arch arm64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.macos.arm64.$VERSION.zip $FILE
           node ./metadata.js --os linux --arch x86_64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.linux.x86_64.$VERSION.elf $FILE
           node ./metadata.js --os android --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.android.$VERSION.apk $FILE
