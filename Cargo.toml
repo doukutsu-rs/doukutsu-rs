@@ -31,6 +31,7 @@ codegen-units = 256
 [package.metadata.bundle]
 name = "doukutsu-rs"
 identifier = "io.github.doukutsu_rs"
+icon = ["res/macos/16x16.png", "res/macos/16x16@2x.png", "res/macos/32x32.png", "res/macos/32x32@2x.png", "res/macos/128x128.png", "res/macos/128x128@2x.png", "res/macos/256x256.png", "res/macos/256x256@2x.png", "res/macos/512x512.png", "res/macos/512x512@2x.png"]
 version = "0.101.0"
 resources = ["data"]
 copyright = "Copyright (c) 2020-2023 doukutsu-rs contributors"
