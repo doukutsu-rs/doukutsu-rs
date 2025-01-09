@@ -26,12 +26,12 @@ jobs:
           export VERSION="${{ github.event.release.tag_name }}"
           export FILE="./metadata/stable.json"
 
-          node ./metadata.js --os windows --arch x86_64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.windows.x86_64.$VERSION.exe $FILE
-          node ./metadata.js --os windows --arch i686 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.windows.i686.$VERSION.exe $FILE
-          node ./metadata.js --os macos --arch x64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.macos.x86_64.$VERSION.zip $FILE
-          node ./metadata.js --os macos --arch arm64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.macos.arm64.$VERSION.zip $FILE
-          node ./metadata.js --os linux --arch x86_64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.linux.x86_64.$VERSION.elf $FILE
-          node ./metadata.js --os android --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs.android.$VERSION.apk $FILE
+          node ./metadata.js --os windows --arch x86_64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs_windows_$VERSION.x86_64.exe $FILE
+          node ./metadata.js --os windows --arch i686 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs_windows_$VERSION.i686.exe $FILE
+          node ./metadata.js --os macos --arch x64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs_mac_$VERSION.x86_64.zip $FILE
+          node ./metadata.js --os macos --arch arm64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs_mac_$VERSION.arm64.zip $FILE
+          node ./metadata.js --os linux --arch x86_64 --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs_linux_$VERSION.x86_64.elf $FILE
+          node ./metadata.js --os android --version $VERSION --link https://github.com/doukutsu-rs/doukutsu-rs/releases/download/$VERSION/doukutsu-rs_android_$VERSION.apk $FILE
 
           echo "file=$FILE" >> "$GITHUB_OUTPUT"
       - name: Upload metadata
