@@ -172,6 +172,7 @@ jobs:
           fi
           
           cd app
+          touch local.properties
           chmod +x ./gradlew
           ./gradlew assembleRelease
 
