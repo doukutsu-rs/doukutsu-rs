@@ -27,7 +27,7 @@ nacptool --create 'doukutsu-rs' 'doukutsu-rs contributors' '0.101.0' target/aarc
 
 message "Running elf2nro..."
 elf2nro target/aarch64-nintendo-switch/debug/drshorizon.elf target/aarch64-nintendo-switch/debug/drshorizon.nro \
-  --icon=../res/nx_icon.jpg \
+  --icon=../res/crabsue-icon.jpg \
   --nacp=target/aarch64-nintendo-switch/debug/drshorizon.nacp
 
 message "done!"

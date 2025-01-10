@@ -102,7 +102,9 @@ impl BuiltinFS {
                     FSNode::File("builtin_font_0.png", include_bytes!("builtin/builtin_font_0.png")),
                     FSNode::File("builtin_font_1.png", include_bytes!("builtin/builtin_font_1.png")),
                     FSNode::File("gamecontrollerdb.txt", include_bytes!("builtin/gamecontrollerdb.txt")),
-                    FSNode::File("icon.bmp", include_bytes!("../../res/sue.bmp")),
+
+                    #[cfg(not(any(target_os = "windows", target_os = "android", target_os = "horizon")))]
+                    FSNode::File("icon.bmp", include_bytes!("../../res/crabsue-icon.bmp")),
                     FSNode::File(
                         "organya-wavetable-doukutsu.bin",
                         include_bytes!("builtin/organya-wavetable-doukutsu.bin"),

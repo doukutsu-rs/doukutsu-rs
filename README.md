@@ -233,6 +233,7 @@ To change, use the control customization menu or edit `doukutsu-rs\data\settings
 #### Credits
 
 - Studio Pixel/Nicalis for Cave Story
+- [AppleHair](https://github.com/AppleHair) - icon redesign for all platforms(`crabsue-icon`).
 - [@Daedily](https://twitter.com/Daedliy) - brand artwork (Icon / Banner / Server), screenshots for this guide.
 - [ggez](https://github.com/ggez/ggez) - parts of it are used in `crate::framework`, notably the VFS code.
 - [Clownacy](https://github.com/Clownacy) - widescreen camera code.

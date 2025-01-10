@@ -185,14 +185,14 @@ impl SDL2EventLoop {
             let mut file = filesystem::open(&ctx, "/builtin/icon.bmp").unwrap();
             let mut buf: Vec<u8> = Vec::new();
             file.read_to_end(&mut buf)?;
-            
+
             let mut rwops = RWops::from_bytes(buf.as_slice()).unwrap();
             let icon = Surface::load_bmp_rw(&mut rwops).unwrap();
-            
+
             window.set_icon(icon);
         }
-        
-        
+
+
         let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
 
         let event_loop = SDL2EventLoop {
