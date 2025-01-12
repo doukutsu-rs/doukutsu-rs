@@ -15,7 +15,7 @@
   <url type="bugtracker">https://github.com/doukutsu-rs/doukutsu-rs/issues</url>
   <url type="vcs-browser">https://github.com/doukutsu-rs/doukutsu-rs</url>
   <project_license>MIT</project_license>
-  <developer id="io.github.doukutsu_rs.doukutsu-rs">
+  <developer id="io.github.doukutsu_rs">
     <name>doukutsu-rs developers</name>
   </developer>
   <screenshots>
