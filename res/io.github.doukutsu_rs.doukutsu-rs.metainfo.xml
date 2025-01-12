@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.doukutsu_rs.doukutsu-rs</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <name>doukutsu-rs</name>
+  <summary>A faithful and open-source remake of Cave Story's engine written in Rust</summary>
+  <description>
+    <p>doukutsu-rs initially started as a Rust learning project, but eventually evolved into semi-playable and compatible reimplementation of the engine of Cave Story - a great indie game created by <a href="https://studiopixel.jp/">Studio Pixel.</a></p>
+    <p>The project aims to deliver a decent alternative for the original engine, improving it with features such as multiplayer support and independent framerate (so the game runs at original speed and looks smooth regardless of monitor refresh rate).</p>
+  </description>
+  <categories>
+    <category>Game</category>
+  </categories>
+  <url type="homepage">https://github.com/doukutsu-rs/doukutsu-rs</url>
+  <url type="bugtracker">https://github.com/doukutsu-rs/doukutsu-rs/issues</url>
+  <url type="vcs-browser">https://github.com/doukutsu-rs/doukutsu-rs</url>
+  <project_license>MIT</project_license>
+  <developer id="io.github.doukutsu_rs">
+    <name>doukutsu-rs maintainers</name>
+  </developer>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://user-images.githubusercontent.com/53099651/155924215-d492907a-ed0e-4323-bd46-61745b8fb32a.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://user-images.githubusercontent.com/53099651/155923814-621cf29e-bb20-4680-a96d-f049aaef1f88.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://user-images.githubusercontent.com/53099651/155923620-db230077-0df5-4de4-b086-be6b4dcbc6df.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://user-images.githubusercontent.com/53099651/155920013-3967cd03-8d69-4fc5-8f1d-fe659ff2e953.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://user-images.githubusercontent.com/53099651/155919381-7e8159a0-a7cf-461a-8be2-2ce864631299.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="0.101.0-beta6" date="2024-12-31"/>
+    <release version="0.100.0-beta5" date="2023-01-25"/>
+    <release version="0.99.0-beta4" date="2022-05-02"/>
+    <release version="0.99.0-beta3" date="2022-04-24"/>
+    <release version="0.99.0-beta2" date="2022-02-11"/>
+    <release version="0.99.0-beta1" date="2022-01-15"/>
+  </releases>
+  <launchable type="desktop-id">io.github.doukutsu_rs.doukutsu-rs.desktop</launchable>
+</component>
