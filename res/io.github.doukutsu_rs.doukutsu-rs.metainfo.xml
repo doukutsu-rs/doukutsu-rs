@@ -13,6 +13,7 @@
   </categories>
   <url type="homepage">https://github.com/doukutsu-rs/doukutsu-rs</url>
   <url type="bugtracker">https://github.com/doukutsu-rs/doukutsu-rs/issues</url>
+  <url type="vcs-browser">https://github.com/doukutsu-rs/doukutsu-rs</url>
   <project_license>MIT</project_license>
   <developer_name>doukutsu-rs developers</developer_name>
   <screenshots>
