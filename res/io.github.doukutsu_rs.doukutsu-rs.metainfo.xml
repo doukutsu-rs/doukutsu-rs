@@ -5,7 +5,8 @@
   <name>doukutsu-rs</name>
   <summary>A faithful and open-source remake of Cave Story's engine written in Rust</summary>
   <description>
-    <p>A fully playable re-implementation of the Cave Story (Doukutsu Monogatari) engine written in Rust.</p>
+    <p>doukutsu-rs initially started as a Rust learning project, but eventually evolved into semi-playable and compatible reimplementation of the engine of Cave Story - a great indie game created by <a href="https://studiopixel.jp/">Studio Pixel.</a></p>
+    <p>The project aims to deliver a decent alternative for the original engine, improving it with features such as multiplayer support and independent framerate (so the game runs at original speed and looks smooth regardless of monitor refresh rate).</p>
   </description>
   <categories>
     <category>Game</category>
@@ -13,13 +14,9 @@
   <url type="homepage">https://github.com/doukutsu-rs/doukutsu-rs</url>
   <url type="bugtracker">https://github.com/doukutsu-rs/doukutsu-rs/issues</url>
   <project_license>MIT</project_license>
-  <developer_name>doukutsu-rs Developers</developer_name>
+  <developer_name>doukutsu-rs developers</developer_name>
   <screenshots>
     <screenshot type="default">
-      <caption>doukutsu-rs banner</caption>
-      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/heads/master/res/sue_crab_banner_github.png</image>
-    </screenshot>
-    <screenshot>
       <image>https://user-images.githubusercontent.com/53099651/155924215-d492907a-ed0e-4323-bd46-61745b8fb32a.png</image>
     </screenshot>
     <screenshot>
