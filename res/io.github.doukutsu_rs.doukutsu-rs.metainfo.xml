@@ -20,22 +20,18 @@
   <developer id="io.github.doukutsu_rs">
     <name>doukutsu-rs maintainers</name>
   </developer>
-  <content_rating type="oars-1.1" />
+  <content_rating type="oars-1.0">
+    <content_attribute id="violence-cartoon">moderate</content_attribute>
+    <content_attribute id="language-profanity">mild</content_attribute>
+  </content_rating>
   <screenshots>
     <screenshot type="default">
       <image>https://user-images.githubusercontent.com/53099651/155924215-d492907a-ed0e-4323-bd46-61745b8fb32a.png</image>
+      <caption>Typical boss fight</caption>
     </screenshot>
     <screenshot>
       <image>https://user-images.githubusercontent.com/53099651/155923814-621cf29e-bb20-4680-a96d-f049aaef1f88.png</image>
-    </screenshot>
-    <screenshot>
-      <image>https://user-images.githubusercontent.com/53099651/155923620-db230077-0df5-4de4-b086-be6b4dcbc6df.png</image>
-    </screenshot>
-    <screenshot>
-      <image>https://user-images.githubusercontent.com/53099651/155920013-3967cd03-8d69-4fc5-8f1d-fe659ff2e953.png</image>
-    </screenshot>
-    <screenshot>
-      <image>https://user-images.githubusercontent.com/53099651/155919381-7e8159a0-a7cf-461a-8be2-2ce864631299.png</image>
+      <caption>A dialog with one of the NPCs. He isn't scared of robots.</caption>
     </screenshot>
   </screenshots>
   <releases>
