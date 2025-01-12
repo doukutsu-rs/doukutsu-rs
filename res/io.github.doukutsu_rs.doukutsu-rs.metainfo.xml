@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.doukutsu_rs.doukutsu-rs</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <name>doukutsu-rs</name>
+  <summary>A faithful and open-source remake of Cave Story's engine written in Rust</summary>
+  <description>
+    <p>A fully playable re-implementation of the Cave Story (Doukutsu Monogatari) engine written in Rust.</p>
+  </description>
+  <categories>
+    <category>Game</category>
+  </categories>
+  <url type="homepage">https://github.com/doukutsu-rs/doukutsu-rs</url>
+  <url type="bugtracker">https://github.com/doukutsu-rs/doukutsu-rs/issues</url>
+  <project_license>MIT</project_license>
+  <developer_name>doukutsu-rs Developers</developer_name>
+  <screenshots>
+    <screenshot type="default">
+      <caption>doukutsu-rs banner</caption>
+      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/heads/master/res/sue_crab_banner_github.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://user-images.githubusercontent.com/53099651/155924215-d492907a-ed0e-4323-bd46-61745b8fb32a.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://user-images.githubusercontent.com/53099651/155923814-621cf29e-bb20-4680-a96d-f049aaef1f88.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://user-images.githubusercontent.com/53099651/155923620-db230077-0df5-4de4-b086-be6b4dcbc6df.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://user-images.githubusercontent.com/53099651/155920013-3967cd03-8d69-4fc5-8f1d-fe659ff2e953.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://user-images.githubusercontent.com/53099651/155919381-7e8159a0-a7cf-461a-8be2-2ce864631299.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="0.101.0-beta6" date="2025-01-11"></release>
+  </releases>
+  <launchable type="desktop-id">io.github.doukutsu_rs.doukutsu-rs.desktop</launchable>
+</component>
