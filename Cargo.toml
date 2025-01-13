@@ -17,6 +17,7 @@ bench = false
 required-features = ["exe"]
 
 [profile.release]
+# This is intentional. Enabling LTO inflates build times and does not provide us any significant benefits.
 lto = "off"
 panic = "abort"
 codegen-units = 256
