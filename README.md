@@ -18,7 +18,9 @@ in [Rust](https://www.rust-lang.org/).
   - [Linux (64-bit)](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master/doukutsu-rs_linux-x64.zip)
   - [Android (armv7/arm64/x86)](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master/doukutsu-rs_android.zip)
 
-- [Get stable/beta builds from GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases)
+- Get stable/beta builds from
+  - [GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases)
+  - [Flatpak](https://flathub.org/apps/io.github.doukutsu_rs.doukutsu-rs) (Linux only)
   
 > [!NOTE]
 > macOS note: If you get a `"doukutsu-rs" can't be opened` message, right-click doukutsu-rs.app and click open.
