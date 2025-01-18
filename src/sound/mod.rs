@@ -779,6 +779,7 @@ where
     {
         let mut ctx = audio_ctx.lock().unwrap();
         ctx.device_changed(sample_rate);
+        bgm_buf.copy_from_slice(ctx.bgm_buf.as_slice());
         pxt_buf.copy_from_slice(ctx.pxt_buf.as_slice());
     }
     log::info!("Audio format: {} {}", sample_rate, channels);
@@ -937,7 +938,7 @@ where
                                 }
 
                                 // We can't borrow `ctx` as mutable more then once at a time, so we render the samples in `bgm_buf`
-                                // and then copy them into `ctx.bgm_buf`. This will allow us to continue a playback, if the audio device is reconnected
+                                // and then copy them into `ctx.bgm_buf`. This will allow us to continue a playback, if audio device is reconnected
                                 samples = ctx.org_engine.render_to(&mut bgm_buf);
                                 ctx.bgm_buf.copy_from_slice(bgm_buf.as_slice());
                                 ctx.bgm_index = 0;
@@ -994,7 +995,7 @@ where
                     if ctx.state == PlaybackState::Stopped {
                         (0x8000, 0x8000)
                     } else if ctx.bgm_index < ctx.samples {
-                        let samples = (bgm_buf[ctx.bgm_index], bgm_buf[ctx.bgm_index + 1]);
+                        let samples = (ctx.bgm_buf[ctx.bgm_index], ctx.bgm_buf[ctx.bgm_index + 1]);
                         ctx.bgm_index += 2;
                         samples
                     } else {
@@ -1016,20 +1017,20 @@ where
 
                         ctx.bgm_buf.copy_from_slice(bgm_buf.as_slice());
                         ctx.bgm_index = 2;
-                        (bgm_buf[0], bgm_buf[1])
+                        (ctx.bgm_buf[0], ctx.bgm_buf[1])
                     }
                 };
 
-                let pxt_sample: u16 = pxt_buf[ctx.pxt_index];
+                let pxt_sample: u16 = ctx.pxt_buf[ctx.pxt_index];
 
-                if ctx.pxt_index < (pxt_buf.len() - 1) {
+                if ctx.pxt_index < (ctx.pxt_buf.len() - 1) {
                     ctx.pxt_index += 1;
                 } else {
                     ctx.pxt_index = 0;
                     pxt_buf.fill(0x8000);
                     ctx.pxt_buf.fill(0x8000);
 
-                    let speed = ctx.speed; // We can't make an immutable borrow(ctx.speed) after the mutable(ctx.pixtone)'
+                    let speed = ctx.speed; // We can't make an immutable borrow(ctx.speed) after the mutable(ctx.pixtone)
                     ctx.pixtone.mix(&mut pxt_buf, sample_rate / speed);
                     ctx.pxt_buf.copy_from_slice(pxt_buf.as_slice());
                 }
