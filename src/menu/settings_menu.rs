@@ -375,6 +375,7 @@ impl SettingsMenu {
             MenuEntry::Active(state.loc.t("menus.options_menu.behavior").to_owned()),
         );
 
+        #[cfg(not(any(feature = "handheld")))]
         self.main
             .push_entry(MainMenuEntry::Links, MenuEntry::Active(state.loc.t("menus.options_menu.links").to_owned()));
 
@@ -392,7 +393,7 @@ impl SettingsMenu {
         );
         self.links.push_entry(LinksMenuEntry::Link(GETPLUS_LINK), MenuEntry::Active("Get Cave Story+".to_owned()));
 
-        #[cfg(not(any(target_os = "horizon")))]
+        #[cfg(not(any(target_os = "horizon", feature = "handheld")))]
         self.main.push_entry(
             MainMenuEntry::Advanced,
             MenuEntry::Active(state.loc.t("menus.options_menu.advanced").to_owned()),

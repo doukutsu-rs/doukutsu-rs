@@ -179,7 +179,17 @@ impl SDL2EventLoop {
         #[cfg(feature = "render-opengl")]
         win_builder.opengl();
 
-        let mut window = win_builder.build().map_err(|e| GameError::WindowError(e.to_string()))?;
+        let mut window;
+        match win_builder.build() {
+            Ok(win) => {
+                window = win;
+            }
+            Err(err) => {
+                log::info!("Failed to create Compatibility context, trying GLES");
+                gl_attr.set_context_profile(GLProfile::GLES);
+                window = win_builder.build().map_err(|e| GameError::WindowError(e.to_string()))?;
+            }
+        }
         #[cfg(not(any(target_os = "windows", target_os = "android", target_os = "horizon")))]
         {
             let mut file = filesystem::open(&ctx, "/builtin/icon.bmp").unwrap();
