@@ -1,5 +1,4 @@
 <resources>
-    <string name="app_name" translatable="false">doukutsu-rs</string>
     <string name="app_description">A faithful and open-source remake of Cave Story engine written in Rust.</string>
 
     <string name="missing_data_title">Missing data files</string>

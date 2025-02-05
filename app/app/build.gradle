@@ -36,13 +36,12 @@ android {
         }
 
         def documentsAuthorityValue = applicationId + ".documents"
-
-        manifestPlaceholders =
-                [documentsAuthority: documentsAuthorityValue]
-
+        manifestPlaceholders = [documentsAuthority: documentsAuthorityValue]
         buildConfigField "String",
                 "DOCUMENTS_AUTHORITY",
                 "\"${documentsAuthorityValue}\""
+
+        resValue "string", "app_name", "doukutsu-rs"
     }
 
     buildTypes {
@@ -62,8 +61,18 @@ android {
             }
         }
         debug {
+            applicationIdSuffix ".debug"
+            resValue "string", "app_name", "doukutsu-rs (debug)"
+
             jniDebuggable true
             renderscriptDebuggable true
+
+            def documentsAuthorityValue =
+                    android.defaultConfig.applicationId + applicationIdSuffix + ".documents"
+            manifestPlaceholders = [documentsAuthority: documentsAuthorityValue]
+            buildConfigField "String",
+                    "DOCUMENTS_AUTHORITY",
+                    "\"${documentsAuthorityValue}\""
         }
     }
 
