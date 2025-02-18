@@ -673,8 +673,6 @@ impl BackendRenderer for OpenGLRenderer {
                     self.render_data.surf_texture,
                     BackendShader::Texture,
                 )?;
-
-                gl.gl.Finish();
             }
 
             if let Some((context, _)) = self.get_context() {
