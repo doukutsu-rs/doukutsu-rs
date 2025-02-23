@@ -52,7 +52,6 @@ netplay = ["serde_cbor"]
 editor = []
 exe = []
 android = []
-handheld = []
 
 [dependencies]
 #glutin = { path = "./3rdparty/glutin/glutin", optional = true }
