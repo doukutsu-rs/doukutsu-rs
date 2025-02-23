@@ -140,7 +140,7 @@ fn default_screen_shake_intensity() -> ScreenShakeIntensity {
 
 #[inline(always)]
 fn default_p1_controller_type() -> ControllerType {
-    cfg!(any(target_os = "horizon", feature = "handheld")) {
+    if cfg!(any(target_os = "horizon", feature = "handheld")) {
         ControllerType::Gamepad(0)
     } else {
         ControllerType::Keyboard
@@ -149,7 +149,7 @@ fn default_p1_controller_type() -> ControllerType {
 
 #[inline(always)]
 fn default_p2_controller_type() -> ControllerType {
-    cfg!(any(target_os = "horizon", feature = "handheld")) {
+    if cfg!(any(target_os = "horizon", feature = "handheld")) {
         ControllerType::Gamepad(1)
     } else {
         ControllerType::Keyboard

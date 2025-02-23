@@ -1,0 +1,66 @@
+diff --git a/src/framework/backend_sdl2.rs b/src/framework/backend_sdl2.rs
+index 6851f0a..dee116a 100644
+--- a/src/framework/backend_sdl2.rs
++++ b/src/framework/backend_sdl2.rs
+@@ -179,7 +179,17 @@ impl SDL2EventLoop {
+         #[cfg(feature = "render-opengl")]
+         win_builder.opengl();
+ 
+-        let mut window = win_builder.build().map_err(|e| GameError::WindowError(e.to_string()))?;
++        let mut window;
++        match win_builder.build() {
++            Ok(win) => {
++                window = win;
++            }
++            Err(err) => {
++                log::info!("Failed to create Compatibility context, trying GLES");
++                gl_attr.set_context_profile(GLProfile::GLES);
++                window = win_builder.build().map_err(|e| GameError::WindowError(e.to_string()))?;
++            }
++        }
+         #[cfg(not(any(target_os = "windows", target_os = "android", target_os = "horizon")))]
+         {
+             let mut file = filesystem::open(&ctx, "/builtin/icon.bmp").unwrap();
+diff --git a/src/game/settings.rs b/src/game/settings.rs
+index e598415..e2ffe6e 100644
+--- a/src/game/settings.rs
++++ b/src/game/settings.rs
+@@ -140,7 +140,7 @@ fn default_screen_shake_intensity() -> ScreenShakeIntensity {
+ 
+ #[inline(always)]
+ fn default_p1_controller_type() -> ControllerType {
+-    if cfg!(any(target_os = "horizon")) {
++    if cfg!(any(target_os = "horizon")) || cfg!(any(feature = "handheld")) {
+         ControllerType::Gamepad(0)
+     } else {
+         ControllerType::Keyboard
+@@ -149,7 +149,7 @@ fn default_p1_controller_type() -> ControllerType {
+ 
+ #[inline(always)]
+ fn default_p2_controller_type() -> ControllerType {
+-    if cfg!(any(target_os = "horizon")) {
++    if cfg!(any(target_os = "horizon")) || cfg!(any(feature = "handheld")) {
+         ControllerType::Gamepad(1)
+     } else {
+         ControllerType::Keyboard
+diff --git a/src/menu/settings_menu.rs b/src/menu/settings_menu.rs
+index ad4fbaf..49356fb 100644
+--- a/src/menu/settings_menu.rs
++++ b/src/menu/settings_menu.rs
+@@ -375,6 +375,7 @@ impl SettingsMenu {
+             MenuEntry::Active(state.loc.t("menus.options_menu.behavior").to_owned()),
+         );
+ 
++        #[cfg(not(any(feature = "handheld")))]
+         self.main
+             .push_entry(MainMenuEntry::Links, MenuEntry::Active(state.loc.t("menus.options_menu.links").to_owned()));
+ 
+@@ -392,7 +393,7 @@ impl SettingsMenu {
+         );
+         self.links.push_entry(LinksMenuEntry::Link(GETPLUS_LINK), MenuEntry::Active("Get Cave Story+".to_owned()));
+ 
+-        #[cfg(not(any(target_os = "horizon")))]
++        #[cfg(not(any(target_os = "horizon", feature = "handheld")))]
+         self.main.push_entry(
+             MainMenuEntry::Advanced,
+             MenuEntry::Active(state.loc.t("menus.options_menu.advanced").to_owned()),

@@ -40,7 +40,7 @@ category = "Game"
 osx_minimum_system_version = "10.12"
 
 [features]
-default = ["default-base", "backend-sdl", "render-opengl", "exe", "webbrowser", "discord-rpc"]
+default = ["default-base", "backend-sdl", "render-opengl", "exe", "webbrowser", "discord-rpc", "handheld"]
 default-base = ["ogg-playback"]
 ogg-playback = ["lewton"]
 backend-sdl = ["sdl2", "sdl2-sys"]
