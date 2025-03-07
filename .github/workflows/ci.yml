@@ -5,14 +5,18 @@ on:
     branches-ignore:
       - cpp-rewrite
       - horizon-os
+      - refactor
     paths-ignore:
-      - '.gitignore'
-      - '.github/*'
-      - '**.md'
-      - 'LICENSE'
-      - 'drshorizon/**'
-      - 'res/**'
+      - ".gitignore"
+      - ".github/*"
+      - "**.md"
+      - "LICENSE"
+      - "drshorizon/**"
+      - "res/**"
   workflow_dispatch:
+  release:
+    types:
+      - released
 
 defaults:
   run:
@@ -52,17 +56,33 @@ jobs:
             channel: stable
             target: x86_64-apple-darwin
             target_name: mac-x64
+            arch_name: x86_64
           - name: macOS ARM64 (M1 Macs)
             os: macos-latest
             channel: stable
             target: aarch64-apple-darwin
             target_name: mac-arm64
+            arch_name: arm64
 
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: sudo apt install libasound2-dev libudev-dev libgl1-mesa-dev libxext-dev
+
+      - name: Set version
+        id: set_version
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "channel=stable" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_name }}" == "master" ]; then
+            echo "version=${{ env.VERSION }}-$((${{ github.run_number }} + 654))" >> $GITHUB_OUTPUT
+            echo "channel=nightly" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ env.VERSION }}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "channel=nightly" >> $GITHUB_OUTPUT
+          fi
 
       - name: Restore cache
         uses: actions/cache/restore@v4
@@ -77,37 +97,39 @@ jobs:
         run: |
           rustup default ${{ matrix.channel }}
           rustup target add ${{ matrix.target }}
-          
+
           rustc -vV
           cargo -vV
-          
+
           if [ "${{ runner.os }}" == "macOS" ]; then
             cargo install cargo-bundle
           fi
 
       - name: Build
         run: |
-          if [ "${{ github.ref_type }}" == "tag" ]; then
-            export DRS_BUILD_VERSION_OVERRIDE="${{ github.ref_name }}"
-          elif [ "${{ github.ref_name }}" == "master"]; then
-            export DRS_BUILD_VERSION_OVERRIDE="${{ env.VERSION }}-$((${{ github.run_number }} + 654))"
-          else
-            export DRS_BUILD_VERSION_OVERRIDE="${{ env.VERSION }}-${GITHUB_SHA:0:7}"
+          if [ -z "${{ steps.set_version.outputs.version }}" ]; then
+            echo "version is not set"
+            exit 1
           fi
-          
+
+          export DRS_BUILD_VERSION_OVERRIDE="${{ steps.set_version.outputs.version }}"
+
           mkdir release
-          cp LICENSE release
-          
+
           if [ "${{ runner.os }}" == "macOS" ]; then
             CARGO_INCREMENTAL=1 cargo bundle --release --target ${{ matrix.target }}
             cp -a ./target/${{ matrix.target }}/release/bundle/osx/doukutsu-rs.app release/doukutsu-rs.app
             codesign -s - -f ./release/doukutsu-rs.app/Contents/MacOS/doukutsu-rs
+            cd release
+            zip -9r "doukutsu-rs_mac-${{ matrix.arch_name }}.zip" doukutsu-rs.app
+            rm -rf doukutsu-rs.app
+            cd ..
           elif [ "${{ runner.os }}" == "Windows" ]; then
             CARGO_INCREMENTAL=1 cargo build --release --locked --bin doukutsu-rs --target ${{ matrix.target }}
             cp ./target/${{ matrix.target }}/release/doukutsu-rs.exe release/doukutsu-rs.${{ matrix.arch_name }}.exe
           elif [ "${{ runner.os }}" == "Linux" ]; then
-            RUSTFLAGS="-C link-args=-s" CARGO_INCREMENTAL=1 cargo build --release --locked --bin doukutsu-rs
-            cp -a ./target/release/doukutsu-rs release/doukutsu-rs.${{ matrix.arch_name }}.elf
+            RUSTFLAGS="-C link-args=-s" CARGO_INCREMENTAL=1 cargo build --release --locked --bin doukutsu-rs --target ${{ matrix.target }}
+            cp -a ./target/${{ matrix.target }}/release/doukutsu-rs release/doukutsu-rs.${{ matrix.arch_name }}.elf
           fi
 
       - name: Upload artifact
@@ -134,6 +156,11 @@ jobs:
       APP_OUTPUTS_DIR: "app/app/build/outputs/apk/release"
     strategy:
       fail-fast: true
+      matrix:
+        include:
+          - name: Android
+            os: ubuntu-latest
+            channel: stable
     steps:
       - uses: actions/checkout@v4
       - name: Restore cache
@@ -161,16 +188,29 @@ jobs:
         run: |
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install --package_file=app/app/packages.txt
 
-      - name: Build
+      - name: Set version
+        id: set_version
         run: |
           if [ "${{ github.ref_type }}" == "tag" ]; then
-            export DRS_BUILD_VERSION_OVERRIDE="${{ github.ref_name }}"
-          elif [ "${{ github.ref_name }}" == "master"]; then
-            export DRS_BUILD_VERSION_OVERRIDE="${{ env.VERSION }}-$((${{ github.run_number }} + 654))"
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "channel=stable" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_name }}" == "master" ]; then
+            echo "version=${{ env.VERSION }}-$((${{ github.run_number }} + 654))" >> $GITHUB_OUTPUT
+            echo "channel=nightly" >> $GITHUB_OUTPUT
           else
-            export DRS_BUILD_VERSION_OVERRIDE="${{ env.VERSION }}-${GITHUB_SHA:0:7}"
+            echo "version=${{ env.VERSION }}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "channel=nightly" >> $GITHUB_OUTPUT
           fi
-          
+
+      - name: Build
+        run: |
+          if [ -z "${{ steps.set_version.outputs.version }}" ]; then
+            echo "version is not set"
+            exit 1
+          fi
+
+          export DRS_BUILD_VERSION_OVERRIDE="${{ steps.set_version.outputs.version }}"
+
           cd app
           touch local.properties
           chmod +x ./gradlew
@@ -179,14 +219,14 @@ jobs:
       - name: Sign app
         run: |
           BUILD_TOOLS=$ANDROID_HOME/build-tools/33.0.0
-          
+
           echo "${{ secrets.ANDROID_SIGNING_KEYSTORE }}" | base64 --decode > keystore.jks
           if [ "${{ secrets.ANDROID_SIGNING_KEY_PASS }}" != "" ]; then
             $BUILD_TOOLS/apksigner sign --ks ./keystore.jks --ks-key-alias "${{ secrets.ANDROID_SIGNING_ALIAS }}" --ks-pass "pass:${{ secrets.ANDROID_SIGNING_KEYSTORE_PASS }}" --key-pass "pass:${{ secrets.ANDROID_SIGNING_KEY_PASS }}" --out $APP_OUTPUTS_DIR/app-signed.apk $APP_OUTPUTS_DIR/app-release-unsigned.apk
           else
             $BUILD_TOOLS/apksigner sign --ks ./keystore.jks --ks-key-alias "${{ secrets.ANDROID_SIGNING_ALIAS }}" --ks-pass "pass:${{ secrets.ANDROID_SIGNING_KEYSTORE_PASS }}" --out $APP_OUTPUTS_DIR/app-signed.apk $APP_OUTPUTS_DIR/app-release-unsigned.apk
           fi
-          
+
           rm keystore.jks
 
       - name: Prepare artifact
@@ -219,25 +259,52 @@ jobs:
   update_metadata:
     name: Update metadata
     runs-on: ubuntu-latest
-    if: ${{ github.ref_type != 'tag' && always() }}
+    if: ${{ github.ref_name == 'master' || github.ref_type == 'tag' }}
     needs: [build, build_android]
     permissions:
       contents: write
+    env:
+      CF_ACCESS_KEY_ID: ${{ secrets.CF_ACCESS_KEY_ID }}
+      CF_SECRET_ACCESS_KEY: ${{ secrets.CF_SECRET_ACCESS_KEY }}
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_BUCKET_NAME: ${{ secrets.CF_BUCKET_NAME }}
+
     steps:
       - uses: actions/checkout@v4
         with:
           repository: doukutsu-rs/metadata
           token: ${{ secrets.METADATA_USER_TOKEN }}
 
+      - name: Set version
+        id: set_version
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "channel=stable" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_name }}" == "master" ]; then
+            echo "version=${{ env.VERSION }}-$((${{ github.run_number }} + 654))" >> $GITHUB_OUTPUT
+            echo "channel=nightly" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ env.VERSION }}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "channel=nightly" >> $GITHUB_OUTPUT
+          fi
+          mkdir -p releases/${{ steps.set_version.outputs.version }}
+
       - name: Update metadata
         id: metadata
         run: |
-          export FILE="./metadata/nightly.json"
-          if [ "${{ github.ref_name }}" == "master" ]; then
-            export VERSION="${{ env.VERSION }}-$((${{ github.run_number }} + 654))"
-          else
-            export VERSION="${{ env.VERSION }}-${GITHUB_SHA:0:7}"
+          # fail early if ${{ steps.set_version.outputs.* }} is not set
+          if [ -z "${{ steps.set_version.outputs.channel }}" ]; then
+            echo "channel is not set"
+            exit 1
           fi
+          if [ -z "${{ steps.set_version.outputs.version }}" ]; then
+            echo "version is not set"
+            exit 1
+          fi
+
+          export FILE="./metadata/${{ steps.set_version.outputs.channel }}.json"
+          export VERSION="${{ steps.set_version.outputs.version }}"
 
           if [ "${{ needs.build.result }}" == "success" ]; then
             node ./metadata.js --os linux --arch x86_64 --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_linux-x64.zip $FILE
@@ -253,11 +320,88 @@ jobs:
 
           echo "file=$FILE" >> "$GITHUB_OUTPUT"
 
+      # Windows x32 build
+      - name: Download Windows x32 artifact
+        if: ${{ needs.build.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: doukutsu-rs_windows-x32
+          path: temp-windows-x32
+
+      - name: Process Windows x32 build
+        if: ${{ needs.build.result == 'success' }}
+        run: |
+          node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform windows --arch i686 --commit $GITHUB_SHA --file "temp-windows-x32/doukutsu-rs.i686.exe"
+
+      # Windows x64 build
+      - name: Download Windows x64 artifact
+        if: ${{ needs.build.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: doukutsu-rs_windows-x64
+          path: temp-windows-x64
+
+      - name: Process Windows x64 build
+        if: ${{ needs.build.result == 'success' }}
+        run: |
+          node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform windows --arch x86_64 --commit $GITHUB_SHA --file "temp-windows-x64/doukutsu-rs.x86_64.exe"
+
+      # Linux x64 build
+      - name: Download Linux x64 artifact
+        if: ${{ needs.build.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: doukutsu-rs_linux-x64
+          path: temp-linux-x64
+
+      - name: Process Linux x64 build
+        if: ${{ needs.build.result == 'success' }}
+        run: |
+          node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform linux --arch x86_64 --commit $GITHUB_SHA --file "temp-linux-x64/doukutsu-rs.x86_64.elf"
+
+      # macOS x64 build
+      - name: Download macOS x64 artifact
+        if: ${{ needs.build.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: doukutsu-rs_mac-x64
+          path: temp-mac-x64
+
+      - name: Process macOS x64 build
+        if: ${{ needs.build.result == 'success' }}
+        run: |
+          node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform macos --arch x86_64 --commit $GITHUB_SHA --file "temp-mac-x64/doukutsu-rs_mac-x86_64.zip"
+
+      # macOS ARM64 build
+      - name: Download macOS ARM64 artifact
+        if: ${{ needs.build.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: doukutsu-rs_mac-arm64
+          path: temp-mac-arm64
+
+      - name: Process macOS ARM64 build
+        if: ${{ needs.build.result == 'success' }}
+        run: |
+          node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform macos --arch arm64 --commit $GITHUB_SHA --file "temp-mac-arm64/doukutsu-rs_mac-arm64.zip"
+
+      # Android build
+      - name: Download Android artifact
+        if: ${{ needs.build_android.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: doukutsu-rs_android
+          path: temp-android
+
+      - name: Process Android build
+        if: ${{ needs.build_android.result == 'success' }}
+        run: |
+          node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform android --arch universal --commit $GITHUB_SHA --file "temp-android/doukutsu-rs.apk"
       - name: Upload metadata
         run: |
           git config user.name ${{ vars.METADATA_USER_NAME }}
           git config user.email ${{ vars.METADATA_USER_EMAIL }}
 
           git add ${{ steps.metadata.outputs.file }}
-          git commit -m "Update nightly builds metadata(CI)"
+          git commit -m "Update ${{ steps.set_version.outputs.channel }} builds metadata(CI)"
           git push

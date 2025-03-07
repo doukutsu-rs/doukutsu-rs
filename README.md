@@ -7,6 +7,11 @@ in [Rust](https://www.rust-lang.org/).
 
 [![CI](https://github.com/doukutsu-rs/doukutsu-rs/actions/workflows/ci.yml/badge.svg?branch=master)](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master?preview)
 
+- Get stable/beta builds from
+  - [get.doukutsu.rs](https://get.doukutsu.rs)
+  - [GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases)
+  - [Flatpak](https://flathub.org/apps/io.github.doukutsu_rs.doukutsu-rs) (Linux only)
+
 - [Get nightly builds](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master?preview) (recommended for now, has latest fixes and improvements)
 
   Permalinks to latest builds from `master` branch:
@@ -18,10 +23,6 @@ in [Rust](https://www.rust-lang.org/).
   - [Linux (64-bit)](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master/doukutsu-rs_linux-x64.zip)
   - [Android (armv7/arm64/x86)](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master/doukutsu-rs_android.zip)
 
-- Get stable/beta builds from
-  - [GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases)
-  - [Flatpak](https://flathub.org/apps/io.github.doukutsu_rs.doukutsu-rs) (Linux only)
-  
 > [!NOTE]
 > macOS note: If you get a `"doukutsu-rs" can't be opened` message, right-click doukutsu-rs.app and click open.
 
