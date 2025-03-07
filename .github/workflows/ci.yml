@@ -267,7 +267,7 @@ jobs:
       CF_ACCESS_KEY_ID: ${{ secrets.CF_ACCESS_KEY_ID }}
       CF_SECRET_ACCESS_KEY: ${{ secrets.CF_SECRET_ACCESS_KEY }}
       CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-      CF_BUCKET_NAME: ${{ secrets.CF_BUCKET_NAME }}
+      CF_BUCKET_NAME: "doukutsu-rs"
 
     steps:
       - uses: actions/checkout@v4
