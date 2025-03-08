@@ -318,6 +318,7 @@ jobs:
             node ./metadata.js --os android --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_android.zip $FILE
           fi
 
+          mkdir -p release-binaries
           echo "file=$FILE" >> "$GITHUB_OUTPUT"
 
       # Windows x32 build
@@ -332,6 +333,7 @@ jobs:
         if: ${{ needs.build.result == 'success' }}
         run: |
           node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform windows --arch i686 --commit $GITHUB_SHA --file "temp-windows-x32/doukutsu-rs.i686.exe"
+          cp ./temp-windows-x32/doukutsu-rs.i686.exe "./release-binaries/doukutsu-rs_windows_${{ steps.set_version.outputs.version }}.i686.exe"
 
       # Windows x64 build
       - name: Download Windows x64 artifact
@@ -345,6 +347,7 @@ jobs:
         if: ${{ needs.build.result == 'success' }}
         run: |
           node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform windows --arch x86_64 --commit $GITHUB_SHA --file "temp-windows-x64/doukutsu-rs.x86_64.exe"
+          cp ./temp-windows-x64/doukutsu-rs.x86_64.exe "./release-binaries/doukutsu-rs_windows_${{ steps.set_version.outputs.version }}.x86_64.exe"
 
       # Linux x64 build
       - name: Download Linux x64 artifact
@@ -358,6 +361,7 @@ jobs:
         if: ${{ needs.build.result == 'success' }}
         run: |
           node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform linux --arch x86_64 --commit $GITHUB_SHA --file "temp-linux-x64/doukutsu-rs.x86_64.elf"
+          cp ./temp-linux-x64/doukutsu-rs.x86_64.elf "./release-binaries/doukutsu-rs_linux_${{ steps.set_version.outputs.version }}.x86_64.elf"
 
       # macOS x64 build
       - name: Download macOS x64 artifact
@@ -371,6 +375,7 @@ jobs:
         if: ${{ needs.build.result == 'success' }}
         run: |
           node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform macos --arch x86_64 --commit $GITHUB_SHA --file "temp-mac-x64/doukutsu-rs_mac-x86_64.zip"
+          cp ./temp-mac-x64/doukutsu-rs_mac-x86_64.zip "./release-binaries/doukutsu-rs_macos_${{ steps.set_version.outputs.version }}.x86_64.zip"
 
       # macOS ARM64 build
       - name: Download macOS ARM64 artifact
@@ -384,6 +389,7 @@ jobs:
         if: ${{ needs.build.result == 'success' }}
         run: |
           node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform macos --arch arm64 --commit $GITHUB_SHA --file "temp-mac-arm64/doukutsu-rs_mac-arm64.zip"
+          cp ./temp-mac-arm64/doukutsu-rs_mac-arm64.zip "./release-binaries/doukutsu-rs_macos_${{ steps.set_version.outputs.version }}.arm64.zip"
 
       # Android build
       - name: Download Android artifact
@@ -397,6 +403,18 @@ jobs:
         if: ${{ needs.build_android.result == 'success' }}
         run: |
           node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform android --arch universal --commit $GITHUB_SHA --file "temp-android/doukutsu-rs.apk"
+          cp ./temp-android/doukutsu-rs.apk "./release-binaries/doukutsu-rs_android_${{ steps.set_version.outputs.version }}.universal.apk"
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        if: ${{ github.ref_type == 'tag' }}
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: release-binaries/*
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
+
       - name: Upload metadata
         run: |
           git config user.name ${{ vars.METADATA_USER_NAME }}
