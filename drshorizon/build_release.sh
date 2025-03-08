@@ -23,7 +23,7 @@ rm -f target/aarch64-nintendo-switch/release/drshorizon.nro
 rm -f target/aarch64-nintendo-switch/release/drshorizon.nacp
 
 message "Creating NACP..."
-nacptool --create 'doukutsu-rs' 'doukutsu-rs contributors' '0.101.0' target/aarch64-nintendo-switch/release/drshorizon.nacp
+nacptool --create 'doukutsu-rs' 'doukutsu-rs contributors' '0.102.0' target/aarch64-nintendo-switch/release/drshorizon.nacp
 
 message "Running elf2nro..."
 elf2nro target/aarch64-nintendo-switch/release/drshorizon.elf target/aarch64-nintendo-switch/release/drshorizon.nro \

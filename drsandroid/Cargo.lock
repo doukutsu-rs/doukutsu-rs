@@ -589,7 +589,7 @@ dependencies = [
 
 [[package]]
 name = "doukutsu-rs"
-version = "0.101.0"
+version = "0.102.0"
 dependencies = [
  "byteorder",
  "case_insensitive_hashmap",
