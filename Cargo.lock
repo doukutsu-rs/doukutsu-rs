@@ -613,6 +613,7 @@ dependencies = [
  "case_insensitive_hashmap",
  "chrono",
  "cpal",
+ "crossbeam-channel",
  "deko3d",
  "directories",
  "discord-rich-presence",
