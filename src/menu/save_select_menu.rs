@@ -1,7 +1,7 @@
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
-use crate::game::profile::GameProfile;
+use crate::game::profile::{GameProfile, SaveContainer, SaveFormat, SaveSlot};
 use crate::game::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::coop_menu::PlayerCountMenu;
@@ -33,12 +33,14 @@ pub enum CurrentMenu {
     PlayerCountMenu,
     DeleteConfirm,
     LoadConfirm,
+    ImportExport,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum SaveMenuEntry {
     Load(usize),
     New(usize),
+    ImportExport,
     Back,
 }
 
@@ -87,6 +89,19 @@ impl Default for LoadConfirmMenuEntry {
     }
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ImportExportMenuEntry {
+    Format(SaveFormat),
+    ExportLocation,
+    Back,
+}
+
+impl Default for ImportExportMenuEntry {
+    fn default() -> Self {
+        ImportExportMenuEntry::Format(SaveFormat::Freeware)
+    }
+}
+
 pub struct SaveSelectMenu {
     pub saves: [MenuSaveInfo; 3],
     current_menu: CurrentMenu,
@@ -97,6 +112,7 @@ pub struct SaveSelectMenu {
     delete_confirm: Menu<DeleteConfirmMenuEntry>,
     load_confirm: Menu<LoadConfirmMenuEntry>,
     skip_difficulty_menu: bool,
+    import_export_menu: Menu<ImportExportMenuEntry>,
 }
 
 impl SaveSelectMenu {
@@ -111,10 +127,11 @@ impl SaveSelectMenu {
             delete_confirm: Menu::new(0, 0, 75, 0),
             load_confirm: Menu::new(0, 0, 75, 0),
             skip_difficulty_menu: false,
+            import_export_menu: Menu::new(0, 0, 75, 0),
         }
     }
 
-    pub fn init(&mut self, state: &mut SharedGameState, ctx: &Context) -> GameResult {
+    pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         self.save_menu = Menu::new(0, 0, 230, 0);
         self.save_detailed = Menu::new(0, 0, 230, 0);
         self.coop_menu.on_title = true;
@@ -126,22 +143,31 @@ impl SaveSelectMenu {
 
         let mut should_mutate_selection = true;
 
+        let save_container = SaveContainer::load(ctx, state)?;
         for (iter, save) in self.saves.iter_mut().enumerate() {
-            if let Ok(data) = filesystem::user_open(ctx, state.get_save_filename(iter + 1).unwrap_or(String::new())) {
-                let loaded_save = GameProfile::load_from_save(data)?;
+            if let Some(slot) = state.get_save_slot(iter + 1) {
+                if let Some(loaded_profile) = save_container.get_profile(slot) {
+                    log::debug!("Loading save select menu. Iter - {}. {}", iter, loaded_profile.is_empty());
+                    save.current_map = loaded_profile.current_map;
+                    save.max_life = loaded_profile.max_life;
+                    save.life = loaded_profile.life;
+                    save.weapon_count = loaded_profile.weapon_data.iter().filter(|weapon| weapon.weapon_id != 0).count();
+                    save.weapon_id = loaded_profile.weapon_data.map(|weapon| weapon.weapon_id);
+                    save.difficulty = loaded_profile.difficulty;
 
-                save.current_map = loaded_save.current_map;
-                save.max_life = loaded_save.max_life;
-                save.life = loaded_save.life;
-                save.weapon_count = loaded_save.weapon_data.iter().filter(|weapon| weapon.weapon_id != 0).count();
-                save.weapon_id = loaded_save.weapon_data.map(|weapon| weapon.weapon_id);
-                save.difficulty = loaded_save.difficulty;
+                    self.save_menu.push_entry(SaveMenuEntry::Load(iter), MenuEntry::SaveData(*save));
 
-                self.save_menu.push_entry(SaveMenuEntry::Load(iter), MenuEntry::SaveData(*save));
+                    if should_mutate_selection {
+                        should_mutate_selection = false;
+                        self.save_menu.selected = SaveMenuEntry::Load(iter);
+                    }
+                } else {
+                    self.save_menu.push_entry(SaveMenuEntry::New(iter), MenuEntry::NewSave);
 
-                if should_mutate_selection {
-                    should_mutate_selection = false;
-                    self.save_menu.selected = SaveMenuEntry::Load(iter);
+                    if should_mutate_selection {
+                        should_mutate_selection = false;
+                        self.save_menu.selected = SaveMenuEntry::New(iter);
+                    }
                 }
             } else {
                 self.save_menu.push_entry(SaveMenuEntry::New(iter), MenuEntry::NewSave);
@@ -153,6 +179,7 @@ impl SaveSelectMenu {
             }
         }
 
+        self.save_menu.push_entry(SaveMenuEntry::ImportExport, MenuEntry::Disabled(state.loc.t("menus.save_manage_menu.import_export_save").to_owned()));
         self.save_menu.push_entry(SaveMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.difficulty_menu.push_entry(
@@ -267,6 +294,14 @@ impl SaveSelectMenu {
                 MenuSelectionResult::Selected(SaveMenuEntry::Load(slot), _) => {
                     state.save_slot = slot + 1;
 
+                    if let (_, MenuEntry::SaveData(save)) = self.save_menu.entries[slot] {
+                        self.save_detailed.entries.clear();
+                        self.save_detailed.push_entry(0, MenuEntry::SaveDataSingle(save));
+                    }
+
+                    self.current_menu = CurrentMenu::LoadConfirm;
+                    self.load_confirm.selected = LoadConfirmMenuEntry::Start;
+/*
                     if let Ok(_) =
                         filesystem::user_open(ctx, state.get_save_filename(state.save_slot).unwrap_or(String::new()))
                     {
@@ -278,6 +313,7 @@ impl SaveSelectMenu {
                         self.current_menu = CurrentMenu::LoadConfirm;
                         self.load_confirm.selected = LoadConfirmMenuEntry::Start;
                     }
+*/
                 }
                 _ => (),
             },
@@ -308,7 +344,12 @@ impl SaveSelectMenu {
                     match self.save_menu.selected {
                         SaveMenuEntry::Load(slot) => {
                             state.sound_manager.play_sfx(17); // Player Death sfx
-                            filesystem::user_delete(ctx, state.get_save_filename(slot + 1).unwrap_or(String::new()))?;
+                            //filesystem::user_delete(ctx, state.get_save_filename(slot + 1).unwrap_or(String::new()))?;
+                            let mut save = SaveContainer::load(ctx, state)?;
+                            //let mod_id = state.get_save_mod_id();
+                            save.delete_profile(&ctx, state.get_save_slot(slot + 1).unwrap());
+                            //save.write_save(ctx, state, SaveFormat::Generic, None, None);
+                            save.save(ctx, state);
                         }
                         _ => (),
                     }
@@ -340,6 +381,7 @@ impl SaveSelectMenu {
                 }
                 _ => (),
             },
+            CurrentMenu::ImportExport => todo!(),
         }
 
         Ok(())
@@ -364,6 +406,7 @@ impl SaveSelectMenu {
                 self.save_detailed.draw(state, ctx)?;
                 self.load_confirm.draw(state, ctx)?;
             }
+            CurrentMenu::ImportExport => todo!()
         }
         Ok(())
     }

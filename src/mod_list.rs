@@ -9,7 +9,7 @@ use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::mod_requirements::ModRequirements;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModInfo {
     pub id: String,
     pub requirement: Requirement,
@@ -180,6 +180,7 @@ impl ModList {
                     }
                 }
 
+                log::debug!("CSP Mod Loaded: {:?}", ModInfo { id: id.clone(), requirement, priority, save_slot, path: path.clone(), name: name.clone(), description: description.clone(), valid });
                 mods.push(ModInfo { id, requirement, priority, save_slot, path, name, description, valid })
             }
         }
