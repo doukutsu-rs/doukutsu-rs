@@ -4,6 +4,7 @@ use crate::framework::filesystem::{user_create, user_open};
 use crate::framework::gamepad::{Axis, AxisDirection, Button, PlayerControllerInputType};
 use crate::framework::graphics::VSyncMode;
 use crate::framework::keyboard::ScanCode;
+use crate::game::profile::SaveFormat;
 use crate::game::player::TargetPlayer;
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, TimingMode, WindowMode};
 use crate::input::combined_player_controller::CombinedPlayerController;
@@ -87,6 +88,8 @@ pub struct Settings {
     pub discord_rpc: bool,
     #[serde(default = "default_true")]
     pub allow_strafe: bool,
+    #[serde(default = "default_save_format")]
+    pub save_format: SaveFormat,
 }
 
 fn default_true() -> bool {
@@ -95,7 +98,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    25
+    26
 }
 
 #[inline(always)]
@@ -169,6 +172,11 @@ fn default_rumble() -> bool {
 #[inline(always)]
 fn default_cutscene_skip_mode() -> CutsceneSkipMode {
     CutsceneSkipMode::Hold
+}
+
+#[inline(always)]
+fn default_save_format() -> SaveFormat {
+    SaveFormat::Freeware
 }
 
 impl Settings {
@@ -359,6 +367,11 @@ impl Settings {
             }
         }
 
+        if self.version == 25 {
+            self.version = 26;
+            self.save_format = default_save_format();
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -467,6 +480,7 @@ impl Default for Settings {
             cutscene_skip_mode: CutsceneSkipMode::Hold,
             discord_rpc: true,
             allow_strafe: true,
+            save_format: default_save_format()
         }
     }
 }

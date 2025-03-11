@@ -64,6 +64,11 @@
       "empty_mod_name": "No Mod Name",
       "empty_mod_description": "No Description"
     },
+    "save_manage_menu": {
+      "import_export_save": "Import/Export Save...",
+      "import_format": "Import format",
+      "export_format": "Export format"
+    },
     "options_menu": {
       "graphics": "Graphics...",
       "graphics_menu": {
@@ -138,7 +143,13 @@
           "auto": "Auto"
         },
         "discord_rpc": "Discord Rich Presence:",
-        "allow_strafe": "Allow strafe:"
+        "allow_strafe": "Allow strafe:",
+        "save_format": {
+          "entry": "Save format:",
+          "freeware": "Freeware",
+          "plus": "Cave Story+ (PC)",
+          "switch": "Cave Story+ (Switch)"
+        }
       },
       "links": "Links...",
       "advanced": "Advanced...",
