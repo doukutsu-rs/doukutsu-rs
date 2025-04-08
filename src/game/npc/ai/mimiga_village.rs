@@ -4,12 +4,13 @@ use num_traits::{abs, clamp};
 
 use crate::common::Direction;
 use crate::framework::error::GameResult;
+use crate::game::npc::list::BorrowedNPC;
 use crate::game::npc::{NPCContext, NPC};
 use crate::game::player::{TargetPlayer};
 use crate::game::shared_game_state::SharedGameState;
 use crate::util::rng::RNG;
 
-impl NPC {
+impl BorrowedNPC<'_> {
     pub(crate) fn tick_n069_pignon(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
         match self.action_num {
             0 | 1 => {
@@ -677,7 +678,7 @@ impl NPC {
                     self.anim_num = 8;
                     self.target_x = self.x;
                     self.damage = 0;
-                    npc_list.kill_npcs_by_type(315, true, state);
+                    npc_list.kill_npcs_by_type(315, true, state, self);
                 }
                 self.vel_y += 0x20;
 

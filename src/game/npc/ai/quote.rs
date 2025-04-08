@@ -281,7 +281,7 @@ impl NPC {
             // Curly Clone Grabbed Player (Switch)
             200 => {
                 self.anim_num = 2;
-                if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                if let Some(parent) = self.get_parent(npc_list) {
                     self.x = parent.x;
                     self.vel_x = parent.vel_x;
                     self.y = parent.y;
@@ -454,7 +454,7 @@ impl NPC {
             }
             200 => {
                 self.anim_num = 9;
-                if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                if let Some(parent) = self.get_parent(npc_list) {
                     self.x = parent.x + parent.vel_x + 0xA00;
                     self.y = parent.y + parent.vel_y - 0x1C00;
                 }
