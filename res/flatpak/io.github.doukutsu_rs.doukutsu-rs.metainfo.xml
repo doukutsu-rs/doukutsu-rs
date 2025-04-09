@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.doukutsu_rs.doukutsu-rs</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <name>doukutsu-rs</name>
+  <summary>A faithful and open-source remake of Cave Story's engine written in Rust</summary>
+  <description>
+    <p>doukutsu-rs initially started as a Rust learning project, but eventually evolved into semi-playable and compatible reimplementation of the engine of Cave Story - a great indie game created by Studio Pixel.</p>
+    <p>The project aims to deliver a decent alternative for the original engine, improving it with features such as multiplayer support, independent framerate (so the game runs at original speed and looks smooth regardless of monitor refresh rate), enhanced lightning and cutscenes skipping.</p>
+    <p>Furthermore, the engine supports game data from multiple game versions: original freeware, Cave Story+, and Nintendo Switch version.</p>
+    <p>NOTE: The default data files directory is under <code>$XDG_DATA_HOME/doukutsu-rs/data</code>. That being <code>$HOME/.var/app/io.github.doukutsu_rs.doukutsu-rs/data/doukutsu-rs/data</code> by default.</p>
+  </description>
+  <categories>
+    <category>Game</category>
+  </categories>
+  <url type="homepage">https://doukutsu.rs</url>
+  <url type="bugtracker">https://github.com/doukutsu-rs/doukutsu-rs/issues</url>
+  <url type="vcs-browser">https://github.com/doukutsu-rs/doukutsu-rs</url>
+  <project_license>MIT</project_license>
+  <developer id="io.github.doukutsu_rs">
+    <name>doukutsu-rs maintainers</name>
+  </developer>
+  <content_rating type="oars-1.0">
+    <content_attribute id="violence-cartoon">moderate</content_attribute>
+    <content_attribute id="language-profanity">mild</content_attribute>
+  </content_rating>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/heads/master/res/flatpak/screens/grassrown-lightning.png</image>
+      <caption>Enjoy lighting effects that are slightly fancier than those in the Switch version</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/heads/master/res/flatpak/screens/cutscene-skipping.png</image>
+      <caption>Supports skipping cutscenes, a feature previously exclusive to the Switch version</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/heads/master/res/flatpak/screens/core-fight.png</image>
+      <caption>Battle with one of the game bosses</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/heads/master/res/flatpak/screens/snake-trading.png</image>
+      <caption>Another example of lighting effects</caption>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="0.102.0-beta7" date="2025-03-08">
+      <url type="details">https://github.com/doukutsu-rs/doukutsu-rs/releases/tag/0.102.0-beta7</url>
+      <description>
+        <ul>
+          <li>Introduce new app icon</li>
+          <li>Add metadata for flatpak packaging</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.101.0-beta6" date="2024-12-31">
+      <description>
+        <ul>
+          <li>Fix damage and expirience number popup inaccuracies</li>
+          <li>Add window icons for non-Windows systems</li>
+          <li>Fix Organya sampling bug</li>
+          <li>Fix Misery bubble going the wrong way</li>
+          <li>Fix Player gun desync bug and inventory inconsistencies</li>
+          <li>Add automatic cutscene skipping</li>
+          <li>Localize difficulty name in save menu and add support for custom text encoding</li>
+          <li>Fix button mapping icons for Nintendo controllers</li>
+          <li>Fix Pixel Birthday easter egg</li>
+          <li>Fix extraction of game data from vanilla executable, when the data is already extracted</li>
+          <li>Generate the correct amount of smoke on tile change</li>
+        </ul>
+        <p>Also have been fixed many inaccuracies of bosses and NPCs.</p>
+      </description>
+    </release>
+    <release version="0.100.0-beta5" date="2023-01-25">
+      <description>
+        <ul>
+          <li>Add gamepad support for PC</li>
+          <li>Add data extractor from the freeware executable</li>
+          <li>Add coop menu</li>
+          <li>Add screen shake intensity and pause on focus loss settings, add links menu</li>
+          <li>Render "=" in dialogs as white circle</li>
+        </ul>
+        <p>Some rendering issues and inaccuracies have also been fixed.</p>
+      </description>
+    </release>
+    <release version="0.99.0-beta4" date="2022-05-03">
+      <description>
+        <ul>
+          <li>Use CS+ Japanese font, if it's valid</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.99.0-beta3" date="2022-04-24">
+      <description>
+        <ul>
+          <li>Improved water rendering</li>
+          <li>Added CS+ difficulties</li>
+          <li>Added save slots for challenges</li>
+          <li>Added Jukebox when Switch CS+ data is used</li>
+          <li>Implement Wind Fortress NPCs (NPC 361-369)</li>
+          <li>Add dog stacking effect</li>
+          <li>Add game and menu localization support</li>
+          <li>Add support for fullscreen mode</li>
+          <li>Add V-Sync support</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.99.0-beta2" date="2022-02-11">
+      <description>
+        <ul>
+          <li>Added pause menu</li>
+          <li>Fixed Waterway noise</li>
+          <li>Added map system</li>
+          <li>Adjusted menu spacing to make it look better with default textbox decorations</li>
+          <li>Added support for GOG version</li>
+          <li>Fixed hissing in case when system sample rate doesn't match the sample rate of .ogg file</li>
+          <li>Added Waterway push tiles animation</li>
+          <li>Added pause menu confirm dialog</li>
+          <li>Added all remaining carets (Empty!/bubbler/droplet)</li>
+          <li>Added FPS counter</li>
+          <li>Added support for Switch version animated facepics</li>
+          <li>Added multiple saves support</li>
+          <li>Added support for CS+ Challenges</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.99.0-beta1" date="2022-01-15">
+      <description>
+        <p>First fully playable beta. The only missing gameplay feature is Map System.</p>
+      </description>
+    </release>
+  </releases>
+  <recommends>
+    <control>keyboard</control>
+  </recommends>
+  <supports>
+    <control>gamepad</control>
+  </supports>
+  <launchable type="desktop-id">io.github.doukutsu_rs.doukutsu-rs.desktop</launchable>
+</component>
