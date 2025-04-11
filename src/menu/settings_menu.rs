@@ -4,6 +4,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::VSyncMode;
 use crate::framework::{filesystem, graphics};
+use crate::game::profile::{SaveFormat};
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
 use crate::graphics::font::Font;
 use crate::input::combined_menu_controller::CombinedMenuController;
@@ -118,6 +119,7 @@ enum BehaviorMenuEntry {
     CutsceneSkipMode,
     #[cfg(feature = "discord-rpc")]
     DiscordRPC,
+    SaveFormat,
     Back,
 }
 
@@ -593,6 +595,19 @@ impl SettingsMenu {
             ),
         );
 
+        self.behavior.push_entry(
+            BehaviorMenuEntry::SaveFormat,
+            MenuEntry::Options(
+                state.loc.t("menus.options_menu.behavior_menu.save_format.entry").to_owned(),
+                state.settings.save_format as usize,
+                vec![
+                    state.loc.t("menus.options_menu.behavior_menu.save_format.freeware").to_owned(),
+                    state.loc.t("menus.options_menu.behavior_menu.save_format.plus").to_owned(),
+                    state.loc.t("menus.options_menu.behavior_menu.save_format.switch").to_owned(),
+                ],
+            ),
+        );
+
         self.behavior.push_entry(BehaviorMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.links.push_entry(LinksMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
@@ -1051,6 +1066,35 @@ impl SettingsMenu {
                         } else {
                             state.discord_rpc.clear()?;
                         }
+                    }
+                }
+                MenuSelectionResult::Selected(BehaviorMenuEntry::SaveFormat, toggle)
+                | MenuSelectionResult::Right(BehaviorMenuEntry::SaveFormat, toggle, _) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        let (new_mode, new_value) = match state.settings.save_format {
+                            SaveFormat::Freeware => (SaveFormat::Plus, 1),
+                            SaveFormat::Plus => (SaveFormat::Switch, 2),
+                            SaveFormat::Switch => (SaveFormat::Freeware, 0),
+                            _ => unreachable!()
+                        };
+
+                        state.settings.save_format = new_mode;
+                        *value = new_value;
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Left(BehaviorMenuEntry::SaveFormat, toggle, _) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        let (new_mode, new_value) = match state.settings.save_format {
+                            SaveFormat::Freeware => (SaveFormat::Switch, 2),
+                            SaveFormat::Plus => (SaveFormat::Freeware, 0),
+                            SaveFormat::Switch => (SaveFormat::Plus, 1),
+                            _ => unreachable!()
+                        };
+
+                        state.settings.save_format = new_mode;
+                        *value = new_value;
+                        let _ = state.settings.save(ctx);
                     }
                 }
                 MenuSelectionResult::Selected(BehaviorMenuEntry::Back, _) | MenuSelectionResult::Canceled => {

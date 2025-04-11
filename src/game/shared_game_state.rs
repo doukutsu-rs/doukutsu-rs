@@ -17,7 +17,7 @@ use crate::framework::{filesystem, graphics};
 use crate::game::caret::{Caret, CaretType};
 use crate::game::npc::NPCTable;
 use crate::game::player::TargetPlayer;
-use crate::game::profile::GameProfile;
+use crate::game::profile::{GameProfile, SaveContainer, SaveFormat, SaveSlot};
 use crate::game::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
 use crate::game::scripting::tsc::text_script::{
     ScriptMode, TextScript, TextScriptEncoding, TextScriptExecutionState, TextScriptVM,
@@ -675,13 +675,31 @@ impl SharedGameState {
         ctx: &mut Context,
         target_player: Option<TargetPlayer>,
     ) -> GameResult {
+
+/*
         if let Some(save_path) = self.get_save_filename(self.save_slot) {
             if let Ok(data) = filesystem::open_options(ctx, save_path, OpenOptions::new().write(true).create(true)) {
                 let profile = GameProfile::dump(self, game_scene, target_player);
-                profile.write_save(data)?;
+                //profile.write_save(data)?;
+
+                let mut save_container = SaveContainer::load(ctx)?;
+                save_container.set_profile(None, self.save_slot, profile);
+                save_container.write_save(ctx, SaveFormat::Generic, None, None);
             } else {
                 log::warn!("Cannot open save file.");
             }
+        } else {
+            log::info!("Mod has saves disabled.");
+        }
+*/
+        if let Some(slot) = self.get_save_slot(self.save_slot) {
+            let profile = GameProfile::dump(self, game_scene, target_player);
+
+            let mut save_container = SaveContainer::load(ctx, self)?;
+            save_container.set_profile(slot, profile);
+            //save_container.write_save(ctx, state, SaveFormat::Generic, None, None);
+            //save_container.write_save(ctx, state, self.settings.save_format, None, None);
+            save_container.save(ctx, self)?;
         } else {
             log::info!("Mod has saves disabled.");
         }
@@ -690,33 +708,29 @@ impl SharedGameState {
     }
 
     pub fn load_or_start_game(&mut self, ctx: &mut Context) -> GameResult {
-        if let Some(save_path) = self.get_save_filename(self.save_slot) {
-            if let Ok(data) = filesystem::user_open(ctx, save_path) {
-                match GameProfile::load_from_save(data) {
-                    Ok(profile) => {
-                        self.reset();
-                        let mut next_scene = GameScene::new(self, ctx, profile.current_map as usize)?;
+        if let Some(slot) = self.get_save_slot(self.save_slot) {
+            if let Ok(save) = SaveContainer::load(ctx, self) {
+                if let Some(profile) = save.get_profile(slot) {
+                    self.reset();
+                    let mut next_scene = GameScene::new(self, ctx, profile.current_map as usize)?;
 
-                        profile.apply(self, &mut next_scene, ctx);
+                    profile.apply(self, &mut next_scene, ctx);
 
-                        #[cfg(feature = "discord-rpc")]
-                        self.discord_rpc.update_difficulty(self.difficulty)?;
+                    #[cfg(feature = "discord-rpc")]
+                    self.discord_rpc.update_difficulty(self.difficulty)?;
 
-                        self.next_scene = Some(Box::new(next_scene));
-                        return Ok(());
-                    }
-                    Err(e) => {
-                        log::warn!("Failed to load save game, starting new one: {}", e);
-                    }
+                    self.next_scene = Some(Box::new(next_scene));
+                    return Ok(());
                 }
             } else {
                 log::warn!("No save game found, starting new one...");
             }
         } else {
-            log::info!("Mod has saves disabled.");
+            log::info!("Mod has saves disabled, starting new game...");
         }
 
-        self.start_new_game(ctx)
+        self.start_new_game(ctx)?;
+        Ok(())
     }
 
     pub fn reset(&mut self) {
@@ -854,6 +868,30 @@ impl SharedGameState {
         } else {
             return Some(format!("/Profile{}.dat", slot));
         }
+    }
+
+    pub fn get_save_slot(&mut self, slot: usize) -> Option<SaveSlot> {
+        if let Some(mod_path) = &self.mod_path {
+            if let Some(mod_info) = self.mod_list.get_mod_info_from_path(mod_path.clone()) {
+                log::debug!("Mod info get save slot: {:?}", mod_info);
+                if mod_info.id.starts_with(&"csmod_".to_string()) {
+                    if mod_info.save_slot > 0 {
+                        return Some(SaveSlot::CSPMod(mod_info.save_slot.try_into().unwrap(), slot));
+                    } else if mod_info.save_slot < 0 {
+                        // Mods with a negative save set(slot) has saves disabled.
+                        return None;
+                    }
+
+                    // If mod uses save set 0, saves are stored in the main game set
+                } else {
+                    return Some(SaveSlot::Mod(mod_info.id.clone(), slot));
+                }
+            } else {
+                return None;
+            }
+        }
+
+        Some(SaveSlot::MainGame(slot))
     }
 
     pub fn get_rec_filename(&self) -> String {

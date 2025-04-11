@@ -194,7 +194,7 @@ pub enum FadeState {
     FadeOut(i8, FadeDirection),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Direction {
     Left = 0,

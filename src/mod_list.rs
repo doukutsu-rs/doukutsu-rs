@@ -8,7 +8,7 @@ use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::mod_requirements::ModRequirements;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModInfo {
     pub id: String,
     pub requirement: Requirement,
@@ -173,6 +173,7 @@ impl ModList {
                     description = "mod.txt not found".to_string();
                 }
 
+                log::debug!("CSP Mod Loaded: {:?}", ModInfo { id: id.clone(), requirement, priority, save_slot, path: path.clone(), name: name.clone(), description: description.clone(), valid });
                 mods.push(ModInfo { id, requirement, priority, save_slot, path, name, description, valid })
             }
         }
@@ -180,6 +181,14 @@ impl ModList {
         mods.sort_by(|a, b| a.priority.cmp(&b.priority));
 
         Ok(ModList { mods })
+    }
+
+    pub fn get_mod_info_from_path(&self, mod_path: String) -> Option<ModInfo> {
+        if let Some(mod_sel) = self.mods.iter().find(|x| x.path == mod_path) {
+            Some(mod_sel.clone())
+        } else {
+            None
+        }
     }
 
     pub fn get_save_from_path(&self, mod_path: String) -> i32 {
