@@ -235,9 +235,9 @@ impl NPCList {
         }
     }
 
-    pub fn try_for_each_alive_mut<F, B, C>(&self, token: &mut NPCAccessToken, mut f: F) -> Result<(), B>
+    pub fn try_for_each_alive_mut<F, B>(&self, token: &mut NPCAccessToken, mut f: F) -> Result<(), B>
     where
-        F: FnMut(BorrowedNPC<'_>) -> ControlFlow<B, C>
+        F: FnMut(BorrowedNPC<'_>) -> ControlFlow<B, ()>
     {
         for cell in self.iter() {
             if cell.borrow(token).cond.alive() {

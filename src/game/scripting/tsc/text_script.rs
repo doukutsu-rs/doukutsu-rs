@@ -17,6 +17,7 @@ use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
+use crate::framework::error::map_err_to_break;
 use crate::framework::error::GameResult;
 use crate::game::frame::UpdateTarget;
 use crate::game::npc::NPCContext;
@@ -1627,8 +1628,8 @@ impl TextScriptVM {
                         } else if tsc_direction != 5 {
                             npc.direction = direction;
                         }
-
-                        match npc.tick(
+                        
+                        map_err_to_break(npc.tick(
                             state,
                             NPCContext {
                                 players: [&mut game_scene.player1, &mut game_scene.player2],
@@ -1638,10 +1639,7 @@ impl TextScriptVM {
                                 flash: &mut game_scene.flash,
                                 boss: &mut game_scene.boss,
                             },
-                        ) {
-                            Err(e) => return ControlFlow::Break(e),
-                            _ => ()
-                        };
+                        ))?;
                     }
 
                     ControlFlow::Continue(())
@@ -1657,7 +1655,7 @@ impl TextScriptVM {
                 let direction = Direction::from_int_facing(tsc_direction).unwrap_or(Direction::Left);
                 let block_size = state.tile_size.as_int() * 0x200;
 
-                game_scene.npc_list.try_for_each_alive_mut(&mut game_scene.npc_token, |mut npc| {
+                let _ = game_scene.npc_list.try_for_each_alive_mut(&mut game_scene.npc_token, |mut npc| {
                     if npc.event_num == event_num {
                         npc.x = x * block_size;
                         npc.y = y * block_size;

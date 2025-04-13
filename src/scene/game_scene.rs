@@ -25,7 +25,7 @@ use crate::components::whimsical_star::WhimsicalStar;
 use crate::entity::GameEntity;
 use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
-use crate::framework::error::GameResult;
+use crate::framework::error::{map_err_to_break, GameResult};
 use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
 use crate::framework::keyboard::ScanCode;
 use crate::framework::ui::Components;
@@ -1384,7 +1384,7 @@ impl GameScene {
         }
 
         self.npc_list.try_for_each_alive_mut(&mut self.npc_token, |mut npc| {
-            match npc.tick(
+            map_err_to_break(npc.tick(
                 state,
                 NPCContext {
                     players: [&mut self.player1, &mut self.player2],
@@ -1394,10 +1394,7 @@ impl GameScene {
                     flash: &mut self.flash,
                     boss: &mut self.boss,
                 },
-            ) {
-                Err(e) => return ControlFlow::Break(e),
-                _ => ()
-            };
+            ))?;
 
             ControlFlow::Continue(())
         })?;
