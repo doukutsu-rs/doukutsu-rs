@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use bitfield::bitfield;
 use byteorder::{ReadBytesExt, LE};
+use list::BorrowedNPC;
 
 use crate::common::Direction;
 use crate::common::Flag;
@@ -184,7 +185,7 @@ impl NPC {
         layer: NPCLayer,
     ) -> GameResult {
         if self.layer == layer {
-            self.draw(state, ctx, frame)?
+            self.npc_draw(state, ctx, frame)?
         }
 
         Ok(())
@@ -240,7 +241,7 @@ pub struct NPCContext<'a> {
     pub boss: &'a mut BossNPC,
 }
 
-impl GameEntity<NPCContext<'_>> for NPC {
+impl GameEntity<NPCContext<'_>> for BorrowedNPC<'_> {
     fn tick(&mut self, state: &mut SharedGameState, ctx: NPCContext) -> GameResult {
         match self.npc_type {
             0 => self.tick_n000_null(state, ctx),
@@ -641,6 +642,12 @@ impl GameEntity<NPCContext<'_>> for NPC {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
+        self.npc_draw(state, ctx, frame)
+    }
+}
+
+impl NPC {
+    pub fn npc_draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
         if !self.cond.alive() || self.cond.hidden() {
             return Ok(());
         }

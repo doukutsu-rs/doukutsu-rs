@@ -14,6 +14,8 @@ use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::Stage;
 use crate::game::weapon::bullet::BulletManager;
 
+use super::list::NPCAccessToken;
+
 pub mod balfrog;
 pub mod ballos;
 pub mod core;
@@ -74,6 +76,7 @@ pub struct BossNPCContext<'a> {
     pub stage: &'a mut Stage,
     pub bullet_manager: &'a mut BulletManager,
     pub flash: &'a mut Flash,
+    pub token: &'a mut NPCAccessToken,
 }
 
 impl GameEntity<BossNPCContext<'_>> for BossNPC {

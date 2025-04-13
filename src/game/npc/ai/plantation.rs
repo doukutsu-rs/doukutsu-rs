@@ -560,7 +560,7 @@ impl NPC {
                     self.vel_y2 = self.rng.range(-32..32) * 0x200;
                 }
 
-                if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                if let Some(parent) = self.get_parent(npc_list) {
                     if parent.npc_type == 232 {
                         self.target_x = parent.x;
                         self.target_y = parent.y;

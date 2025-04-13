@@ -594,7 +594,7 @@ impl NPC {
                     self.action_num = 1;
                     self.action_counter = 0;
                 }
-                let parent = self.get_parent_ref_mut(npc_list);
+                let parent = self.get_parent(npc_list);
                 if let Some(parent) = parent {
                     let player = self.get_closest_player_mut(players);
 
