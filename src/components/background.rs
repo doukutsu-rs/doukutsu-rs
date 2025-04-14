@@ -42,7 +42,7 @@ impl Background {
 
         match stage.data.background_type {
             BackgroundType::TiledStatic => {
-                graphics::clear(ctx, stage.data.background_color);
+                graphics::clear(ctx, stage.data.background_color.into());
 
                 let (bg_width, bg_height) = (batch.width() as i32, batch.height() as i32);
                 let count_x = state.canvas_size.0 as i32 / bg_width + 1;
@@ -55,7 +55,7 @@ impl Background {
                 }
             }
             BackgroundType::TiledParallax | BackgroundType::Tiled | BackgroundType::Waterway => {
-                graphics::clear(ctx, stage.data.background_color);
+                graphics::clear(ctx, stage.data.background_color.into());
 
                 let (off_x, off_y) = if stage.data.background_type == BackgroundType::Tiled {
                     (frame_x % (batch.width() as f32), frame_y % (batch.height() as f32))
@@ -77,13 +77,13 @@ impl Background {
                 }
             }
             BackgroundType::Water => {
-                graphics::clear(ctx, stage.data.background_color);
+                graphics::clear(ctx, stage.data.background_color.into());
             }
             BackgroundType::Black => {
-                graphics::clear(ctx, stage.data.background_color);
+                graphics::clear(ctx, stage.data.background_color.into());
             }
             BackgroundType::Scrolling => {
-                graphics::clear(ctx, stage.data.background_color);
+                graphics::clear(ctx, stage.data.background_color.into());
 
                 let (bg_width, bg_height) = (batch.width() as i32, batch.height() as i32);
                 let offset_x = self.tick as f32 % (bg_width as f32 / 3.0);
@@ -102,7 +102,7 @@ impl Background {
                 }
             }
             BackgroundType::OutsideWind | BackgroundType::Outside | BackgroundType::OutsideUnknown => {
-                graphics::clear(ctx, Color::from_rgb(0, 0, 0));
+                graphics::clear(ctx, Color::from_rgb(0, 0, 0).into());
 
                 let offset_x = (self.tick % 640) as i32;
                 let offset_y = ((state.canvas_size.1 - 240.0) / 2.0).floor();

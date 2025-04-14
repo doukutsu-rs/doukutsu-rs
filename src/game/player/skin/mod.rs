@@ -1,6 +1,6 @@
 use bitfield::bitfield;
 
-use crate::common::{Color, Direction, Rect};
+use crate::common::{Color, Colorf, Direction, Rect};
 use crate::game::physics::HitExtents;
 use crate::game::shared_game_state::SharedGameState;
 

@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use byteorder::{ReadBytesExt, LE};
 
-use crate::common::{Color, Rect};
+use crate::common::{Color, Colorf, Rect};
 use crate::framework::context::Context;
 use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::{GameError, GameResult};
@@ -631,9 +631,9 @@ impl WaterParams {
 
     pub fn get_entry(&self, tile: u8) -> &WaterParamEntry {
         static DEFAULT_ENTRY: WaterParamEntry = WaterParamEntry {
-            color_top: Color::new(1.0, 1.0, 1.0, 1.0),
-            color_middle: Color::new(1.0, 1.0, 1.0, 1.0),
-            color_bottom: Color::new(1.0, 1.0, 1.0, 1.0),
+            color_top: Color::from_rgba(255, 255, 255, 255),
+            color_middle: Color::from_rgba(255, 255, 255, 255),
+            color_bottom: Color::from_rgba(255, 255, 255, 255),
         };
 
         self.entries.get(&tile).unwrap_or(&DEFAULT_ENTRY)

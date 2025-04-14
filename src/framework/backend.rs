@@ -9,6 +9,7 @@ use super::error::GameResult;
 use super::graphics::BlendMode;
 use super::graphics::SwapMode;
 
+use crate::common::Colorf;
 use crate::common::{Color, Rect};
 use crate::game::Game;
 
@@ -47,7 +48,7 @@ pub trait BackendRenderer {
     fn renderer_name(&self) -> String;
 
     /// Clear the current render target with the specified color.
-    fn clear(&mut self, color: Color);
+    fn clear(&mut self, color: Colorf);
 
     /// Present the current frame to the screen.
     fn present(&mut self) -> GameResult;
@@ -75,7 +76,7 @@ pub trait BackendRenderer {
     fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult;
 
     /// Draw a filled rectangle with the specified color.
-    fn draw_rect(&mut self, rect: Rect, color: Color) -> GameResult;
+    fn draw_rect(&mut self, rect: Rect, color: Colorf) -> GameResult;
 
     /// Draw an outlined rectangle with the specified line width and color.
     fn draw_outline_rect(&mut self, rect: Rect, line_width: usize, color: Color) -> GameResult;

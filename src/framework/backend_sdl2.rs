@@ -26,7 +26,7 @@ use sdl2::video::Window;
 use sdl2::video::WindowContext;
 use sdl2::{controller, keyboard, pixels, EventPump, GameControllerSubsystem, Sdl, VideoSubsystem};
 
-use crate::common::{Color, Rect};
+use crate::common::{Color, Colorf, Rect};
 use crate::framework::backend::{
     Backend, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand,
     VertexData,
@@ -720,11 +720,11 @@ impl BackendRenderer for SDL2Renderer {
         "*COMPATIBILITY* SDL2_Renderer".to_owned()
     }
 
-    fn clear(&mut self, color: Color) {
+    fn clear(&mut self, color: Colorf) {
         let mut refs = self.refs.borrow_mut();
         let canvas = refs.window.canvas();
 
-        canvas.set_draw_color(to_sdl(color));
+        canvas.set_draw_color(to_sdl(color.to_srgb()));
         canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
         canvas.clear();
     }
@@ -827,12 +827,12 @@ impl BackendRenderer for SDL2Renderer {
         Ok(())
     }
 
-    fn draw_rect(&mut self, rect: Rect<isize>, color: Color) -> GameResult<()> {
+    fn draw_rect(&mut self, rect: Rect<isize>, color: Colorf) -> GameResult<()> {
         let mut refs = self.refs.borrow_mut();
         let blend = refs.blend_mode;
         let canvas = refs.window.canvas();
 
-        let (r, g, b, a) = color.to_rgba();
+        let (r, g, b, a) = color.to_srgb().to_rgba();
 
         canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
         canvas.set_blend_mode(blend);

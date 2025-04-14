@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 
-use crate::common::{Color, Direction, Rect};
+use crate::common::{Color, Colorf, Direction, Rect};
 use crate::framework::context::Context;
 use crate::framework::filesystem;
 use crate::framework::filesystem::File;
@@ -107,7 +107,7 @@ impl BasicPlayerSkin {
 
         BasicPlayerSkin {
             texture_name,
-            color: Color::new(1.0, 1.0, 1.0, 1.0),
+            color: Color::from_rgba(255, 255, 255, 255),
             state: PlayerAnimationState::Idle,
             appearance: PlayerAppearanceState::Default,
             direction: Direction::Left,

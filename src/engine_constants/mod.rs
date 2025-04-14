@@ -6,7 +6,7 @@ use case_insensitive_hashmap::CaseInsensitiveHashMap;
 use xmltree::Element;
 
 use crate::case_insensitive_hashmap;
-use crate::common::{BulletFlag, Color, Rect};
+use crate::common::{BulletFlag, Color, Colorf, Rect};
 use crate::engine_constants::npcs::NPCConsts;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;

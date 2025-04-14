@@ -408,30 +408,23 @@ pub fn get_timestamp() -> u64 {
     now.duration_since(UNIX_EPOCH).unwrap().as_secs() as u64
 }
 
-/// A RGBA color in the `sRGB` color space represented as `f32`'s in the range `[0.0-1.0]`
-///
-/// For convenience, [`WHITE`](constant.WHITE.html) and [`BLACK`](constant.BLACK.html) are provided.
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+/// A RGBA color in the `sRGB` color space represented as `u8`'s in the range `[0-255]`
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Color {
     /// Red component
-    pub r: f32,
+    pub r: u8,
     /// Green component
-    pub g: f32,
+    pub g: u8,
     /// Blue component
-    pub b: f32,
+    pub b: u8,
     /// Alpha component
-    pub a: f32,
+    pub a: u8,
 }
 
 impl Color {
-    /// Create a new `Color` from four `f32`'s in the range `[0.0-1.0]`
-    pub const fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
-        Color { r, g, b, a }
-    }
-
     /// Create a new `Color` from four `u8`'s in the range `[0-255]`
-    pub fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Color {
-        Color::from((r, g, b, a))
+    pub const fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Color {
+        Color { r, g, b, a }
     }
 
     /// Create a new `Color` from three u8's in the range `[0-255]`,
@@ -486,11 +479,7 @@ impl From<(u8, u8, u8, u8)> for Color {
     /// Convert a `(R, G, B, A)` tuple of `u8`'s in the range `[0-255]` into a `Color`
     fn from(val: (u8, u8, u8, u8)) -> Self {
         let (r, g, b, a) = val;
-        let rf = (f32::from(r)) / 255.0;
-        let gf = (f32::from(g)) / 255.0;
-        let bf = (f32::from(b)) / 255.0;
-        let af = (f32::from(a)) / 255.0;
-        Color::new(rf, gf, bf, af)
+        Color::from_rgba(r, g, b, a)
     }
 }
 
@@ -503,39 +492,10 @@ impl From<(u8, u8, u8)> for Color {
     }
 }
 
-impl From<[f32; 4]> for Color {
-    /// Turns an `[R, G, B, A] array of `f32`'s into a `Color` with no format changes.
-    /// All inputs should be in the range `[0.0-1.0]`.
-    fn from(val: [f32; 4]) -> Self {
-        Color::new(val[0], val[1], val[2], val[3])
-    }
-}
-
-impl From<(f32, f32, f32)> for Color {
-    /// Convert a `(R, G, B)` tuple of `f32`'s in the range `[0.0-1.0]` into a `Color`,
-    /// with a value of 1.0 to for the alpha element (ie, no transparency.)
-    fn from(val: (f32, f32, f32)) -> Self {
-        let (r, g, b) = val;
-        Color::new(r, g, b, 1.0)
-    }
-}
-
-impl From<(f32, f32, f32, f32)> for Color {
-    /// Convert a `(R, G, B, A)` tuple of `f32`'s in the range `[0.0-1.0]` into a `Color`
-    fn from(val: (f32, f32, f32, f32)) -> Self {
-        let (r, g, b, a) = val;
-        Color::new(r, g, b, a)
-    }
-}
-
 impl From<Color> for (u8, u8, u8, u8) {
     /// Convert a `Color` into a `(R, G, B, A)` tuple of `u8`'s in the range of `[0-255]`.
     fn from(color: Color) -> Self {
-        let r = (color.r * 255.0) as u8;
-        let g = (color.g * 255.0) as u8;
-        let b = (color.b * 255.0) as u8;
-        let a = (color.a * 255.0) as u8;
-        (r, g, b, a)
+        (color.r, color.g, color.b, color.a)
     }
 }
 
@@ -548,10 +508,67 @@ impl From<Color> for (u8, u8, u8) {
     }
 }
 
-impl From<Color> for [f32; 4] {
-    /// Convert a `Color` into an `[R, G, B, A]` array of `f32`'s in the range of `[0.0-1.0]`.
-    fn from(color: Color) -> Self {
-        [color.r, color.g, color.b, color.a]
+/// A RGBA color in the linear color space represented as `f32`'s in the range `[0.0-1.0]`=
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct Colorf {
+    /// Red component
+    pub r: f32,
+    /// Green component
+    pub g: f32,
+    /// Blue component
+    pub b: f32,
+    /// Alpha component
+    pub a: f32,
+}
+
+/// Convert one channel from sRGB format in [0-255] to linear format in [0.0-1.0].
+fn srgb_to_linear(s: u8) -> f32 {
+    let s = s as f32 / 255.;
+    if s <= 0.04045 {
+        s / 12.92
+    } else {
+        ((s + 0.055) / 1.055).powf(2.4)
+    }
+}
+
+/// Convert one channel from linear format in [0.0-1.0] to sRGB format in [0-255].
+fn linear_to_srgb(l: f32) -> u8 {
+    let s = if l <= 0.0031308 {
+        l * 12.92
+    } else {
+        1.055 * l.powf(1. / 2.4) - 0.055
+    };
+
+    (s.clamp(0., 1.) * 255.).round() as u8
+}
+
+impl Colorf {
+    pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Colorf {
+        Colorf { r, g, b, a }
+    }
+
+    pub fn from_rgb(r: f32, g: f32, b: f32) -> Colorf {
+        Colorf { r, g, b, a: 1.0 }
+    }
+
+    pub fn to_srgb(self) -> Color {
+        Color::from_rgba(
+            linear_to_srgb(self.r),
+            linear_to_srgb(self.g),
+            linear_to_srgb(self.b),
+            (self.a.clamp(0., 1.) * 255.).round() as u8
+        )
+    }
+}
+
+impl From<Color> for Colorf {
+    fn from(value: Color) -> Self {
+        Colorf::from_rgba(
+            srgb_to_linear(value.r),
+            srgb_to_linear(value.g),
+            srgb_to_linear(value.b),
+            value.a as f32 / 255.
+        )
     }
 }
 

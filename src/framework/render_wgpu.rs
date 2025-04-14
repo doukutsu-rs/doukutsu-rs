@@ -13,7 +13,7 @@ use wgpu::{
     TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
 };
 
-use crate::common::{Color, Rect};
+use crate::common::{Color, Colorf, Rect};
 
 use super::{
     backend::{BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData},
@@ -30,7 +30,7 @@ const fn convert_swap_mode(swap_mode: SwapMode) -> wgpu::PresentMode {
     }
 }
 
-const fn to_wgpu_color(color: Color) -> wgpu::Color {
+const fn to_wgpu_color(color: Colorf) -> wgpu::Color {
     wgpu::Color { r: color.r as _, g: color.g as _, b: color.b as _, a: color.a as _ }
 }
 
@@ -602,7 +602,7 @@ impl BackendRenderer for WGPURenderer {
         Ok(())
     }
 
-    fn clear(&mut self, color: Color) {
+    fn clear(&mut self, color: Colorf) {
         let view = self.ctx.render_target.borrow();
         let view = if let Some(rt) = view.as_ref() {
             rt
@@ -641,7 +641,7 @@ impl BackendRenderer for WGPURenderer {
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8Unorm,
+            format: TextureFormat::Rgba8UnormSrgb,
             usage: TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         });
@@ -658,7 +658,7 @@ impl BackendRenderer for WGPURenderer {
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: TextureDimension::D2,
-                format: TextureFormat::Rgba8Unorm,
+                format: TextureFormat::Rgba8UnormSrgb,
                 usage: TextureUsages::TEXTURE_BINDING,
                 view_formats: &[],
             },
@@ -692,7 +692,7 @@ impl BackendRenderer for WGPURenderer {
         Ok(())
     }
 
-    fn draw_rect(&mut self, _rect: Rect<isize>, _color: Color) -> GameResult {
+    fn draw_rect(&mut self, _rect: Rect<isize>, _color: Colorf) -> GameResult {
         Ok(())
     }
 

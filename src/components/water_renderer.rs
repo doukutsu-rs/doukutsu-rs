@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use crate::common::{Color, Rect};
+use crate::common::{Color, Colorf, Rect};
 use crate::framework::backend::{BackendShader, SpriteBatchCommand, VertexData};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -240,7 +240,7 @@ impl WaterRenderer {
         layer: WaterLayer,
     ) -> GameResult<()> {
         graphics::set_render_target(ctx, state.lightmap_canvas.as_ref())?;
-        graphics::clear(ctx, Color::from_rgba(0, 0, 0, 0));
+        graphics::clear(ctx, Colorf::from_rgba(0., 0., 0., 0.));
         graphics::set_blend_mode(ctx, BlendMode::None)?;
 
         let (o_x, o_y) = frame.xy_interpolated(state.frame_time);

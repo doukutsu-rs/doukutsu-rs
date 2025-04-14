@@ -51,7 +51,7 @@ impl Scene for NoDataScene {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        graphics::clear(ctx, Color::from_rgb(30, 0, 0));
+        graphics::clear(ctx, Color::from_rgb(30, 0, 0).into());
 
         state.font.builder().center(state.canvas_size.0).y(10.0).color((255, 100, 100, 255)).draw(
             "doukutsu-rs internal error",

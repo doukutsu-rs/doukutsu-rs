@@ -76,7 +76,7 @@ impl JukeboxScene {
                 pxpack_data: None,
                 background: crate::game::stage::Background::new("bkMoon"),
                 background_type: BackgroundType::Outside,
-                background_color: Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+                background_color: Color { r: 0, g: 0, b: 0, a: 0 },
                 npc1: NpcType::new("0"),
                 npc2: NpcType::new("0"),
             },

@@ -8,6 +8,7 @@ use lazy_static::lazy_static;
 
 use scripting::tsc::text_script::ScriptMode;
 
+use crate::common::Colorf;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{self, SwapMode};
@@ -208,7 +209,7 @@ impl Game {
         self.loops = 0;
 
         graphics::prepare_draw(ctx)?;
-        graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
+        graphics::clear(ctx, Colorf::from_rgba(0.0, 0.0, 0.0, 1.0));
 
         if let Some(scene) = self.scene.get_mut() {
             let state_ref = self.state.get_mut();

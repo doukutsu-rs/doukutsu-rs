@@ -21,7 +21,7 @@ use super::gl::types::*;
 use super::graphics::BlendMode;
 use super::graphics::SwapMode;
 use super::util::{field_offset, return_param};
-use crate::common::{Color, Rect};
+use crate::common::{Color, Colorf, Rect};
 use crate::game::GAME_SUSPENDED;
 
 pub trait GLPlatformFunctions {
@@ -707,7 +707,7 @@ impl BackendRenderer for OpenGLRenderer {
         }
     }
 
-    fn clear(&mut self, color: Color) {
+    fn clear(&mut self, color: Colorf) {
         unsafe {
             let gl = &self.gl;
             gl.gl.ClearColor(color.r, color.g, color.b, color.a);
@@ -1002,10 +1002,10 @@ impl BackendRenderer for OpenGLRenderer {
         Ok(())
     }
 
-    fn draw_rect(&mut self, rect: Rect<isize>, color: Color) -> GameResult {
+    fn draw_rect(&mut self, rect: Rect<isize>, color: Colorf) -> GameResult {
         unsafe {
             let gl = &self.gl;
-            let color = color.to_rgba();
+            let color = color.to_srgb().to_rgba();
             let mut uv = self.render_data.font_tex_size;
             uv.0 = 0.0 / uv.0;
             uv.1 = 0.0 / uv.1;

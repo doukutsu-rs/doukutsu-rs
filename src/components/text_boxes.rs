@@ -268,7 +268,7 @@ impl GameEntity<()> for TextBoxes {
                         (5.0 * state.scale) as isize,
                         (state.font.line_height() * state.scale) as isize,
                     ),
-                    Color::from_rgb(255, 255, 255),
+                    Color::from_rgb(255, 255, 255).into(),
                 )?;
             }
         }
