@@ -42,7 +42,7 @@ impl Background {
 
         match stage.data.background_type {
             BackgroundType::TiledStatic => {
-                graphics::clear(ctx, stage.data.background_color.into());
+                graphics::clear(ctx, stage.data.background_color);
 
                 let (bg_width, bg_height) = (batch.width() as i32, batch.height() as i32);
                 let count_x = state.canvas_size.0 as i32 / bg_width + 1;
@@ -55,7 +55,7 @@ impl Background {
                 }
             }
             BackgroundType::TiledParallax | BackgroundType::Tiled | BackgroundType::Waterway => {
-                graphics::clear(ctx, stage.data.background_color.into());
+                graphics::clear(ctx, stage.data.background_color);
 
                 let (off_x, off_y) = if stage.data.background_type == BackgroundType::Tiled {
                     (frame_x % (batch.width() as f32), frame_y % (batch.height() as f32))
@@ -77,13 +77,13 @@ impl Background {
                 }
             }
             BackgroundType::Water => {
-                graphics::clear(ctx, stage.data.background_color.into());
+                graphics::clear(ctx, stage.data.background_color);
             }
             BackgroundType::Black => {
-                graphics::clear(ctx, stage.data.background_color.into());
+                graphics::clear(ctx, stage.data.background_color);
             }
             BackgroundType::Scrolling => {
-                graphics::clear(ctx, stage.data.background_color.into());
+                graphics::clear(ctx, stage.data.background_color);
 
                 let (bg_width, bg_height) = (batch.width() as i32, batch.height() as i32);
                 let offset_x = self.tick as f32 % (bg_width as f32 / 3.0);

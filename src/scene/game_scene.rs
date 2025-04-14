@@ -2034,7 +2034,7 @@ impl Scene for GameScene {
 
         if self.inventory_dim > 0.0 {
             let rect = Rect::new(0, 0, state.screen_size.0 as isize + 1, state.screen_size.1 as isize + 1);
-            let mut dim_color: Color = state.constants.inventory_dim_color.into();
+            let mut dim_color: Color = state.constants.inventory_dim_color;
             dim_color.a *= self.inventory_dim;
             graphics::draw_rect(ctx, rect, dim_color)?;
         }
