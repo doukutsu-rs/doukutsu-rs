@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use log::info;
 
-use crate::common::{interpolate_fix9_scale, Colorf, Direction, Rect};
+use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
@@ -331,7 +331,7 @@ impl GameScene {
 
         if left_side > 0.0 {
             let rect = Rect::new(0, 0, left_side as isize, canvas_h_scaled as isize);
-            graphics::draw_rect(ctx, rect, Colorf::from_rgb(0., 0., 0.))?;
+            graphics::draw_rect(ctx, rect, Color::from_rgb(0., 0., 0.))?;
         }
 
         if right_side < canvas_w_scaled {
@@ -341,17 +341,17 @@ impl GameScene {
                 (state.canvas_size.0 * state.scale) as isize,
                 (state.canvas_size.1 * state.scale) as isize,
             );
-            graphics::draw_rect(ctx, rect, Colorf::from_rgb(0., 0., 0.))?;
+            graphics::draw_rect(ctx, rect, Color::from_rgb(0., 0., 0.))?;
         }
 
         if upper_side > 0.0 {
             let rect = Rect::new(0, 0, canvas_w_scaled as isize, upper_side as isize);
-            graphics::draw_rect(ctx, rect, Colorf::from_rgb(0., 0., 0.))?;
+            graphics::draw_rect(ctx, rect, Color::from_rgb(0., 0., 0.))?;
         }
 
         if lower_side < canvas_h_scaled {
             let rect = Rect::new(0, lower_side as isize, canvas_w_scaled as isize, canvas_h_scaled as isize);
-            graphics::draw_rect(ctx, rect, Colorf::from_rgb(0., 0., 0.))?;
+            graphics::draw_rect(ctx, rect, Color::from_rgb(0., 0., 0.))?;
         }
 
         Ok(())
@@ -511,7 +511,7 @@ impl GameScene {
 
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
-        graphics::clear(ctx, Colorf::from_srgb(100, 100, 110));
+        graphics::clear(ctx, Color::from_srgb(100, 100, 110));
 
         for npc in self.npc_list.iter_alive() {
             if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
@@ -1093,7 +1093,7 @@ impl GameScene {
                     right: (state.screen_size.0 + 1.0) as isize,
                     bottom: (state.screen_size.1 + 1.0) as isize,
                 },
-                Colorf { r: 0.15, g: 0.12, b: 0.12, a: 1.0 },
+                Color { r: 0.15, g: 0.12, b: 0.12, a: 1.0 },
             )?;
             graphics::set_render_target(ctx, None)?;
             graphics::set_blend_mode(ctx, BlendMode::Add)?;
@@ -2034,7 +2034,7 @@ impl Scene for GameScene {
 
         if self.inventory_dim > 0.0 {
             let rect = Rect::new(0, 0, state.screen_size.0 as isize + 1, state.screen_size.1 as isize + 1);
-            let mut dim_color: Colorf = state.constants.inventory_dim_color.into();
+            let mut dim_color: Color = state.constants.inventory_dim_color.into();
             dim_color.a *= self.inventory_dim;
             graphics::draw_rect(ctx, rect, dim_color)?;
         }
@@ -2222,14 +2222,14 @@ impl Scene for GameScene {
                 ((10.0 + line_height) * state.scale) as isize,
             );
 
-            draw_rect(ctx, rect, Colorf::from_srgb(0, 0, 32))?;
+            draw_rect(ctx, rect, Color::from_srgb(0, 0, 32))?;
 
             rect.right = rect.left + (w * state.scale) as isize;
-            draw_rect(ctx, rect, Colorf::from_srgb(128, 128, 160))?;
+            draw_rect(ctx, rect, Color::from_srgb(128, 128, 160))?;
 
             rect.left = ((state.canvas_size.0 - w) * state.scale) as isize;
             rect.right = rect.left + (w * state.scale).ceil() as isize;
-            draw_rect(ctx, rect, Colorf::from_srgb(128, 128, 160))?;
+            draw_rect(ctx, rect, Color::from_srgb(128, 128, 160))?;
 
             state.font.builder().position(pos_x + 10.0, pos_y + 5.0).shadow(true).with_symbols(Some(symbols)).draw(
                 &text,

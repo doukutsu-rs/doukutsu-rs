@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use crate::common::{Colorf, Rect};
+use crate::common::{Color, Rect};
 use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -49,7 +49,7 @@ impl MapSystem {
         *self.has_map_data.borrow_mut() = true;
 
         graphics::set_render_target(ctx, self.texture.borrow().as_ref())?;
-        graphics::clear(ctx, Colorf::from_rgba(0.0, 0.0, 0.0, 1.0));
+        graphics::clear(ctx, Color::from_rgba(0.0, 0.0, 0.0, 1.0));
 
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
 
@@ -195,7 +195,7 @@ impl MapSystem {
         );
 
         if !state.constants.is_switch {
-            graphics::draw_rect(ctx, rect_black_bar, Colorf::from_rgba(0.0, 0.0, 0.0, 1.0))?;
+            graphics::draw_rect(ctx, rect_black_bar, Color::from_rgba(0.0, 0.0, 0.0, 1.0))?;
         }
 
         let map_name = if state.constants.is_cs_plus && state.settings.locale == "jp" {
@@ -225,7 +225,7 @@ impl MapSystem {
                     height * 2,
                 );
 
-                graphics::draw_rect(ctx, rect, Colorf::from_rgba(0.0, 0.0, 0.0, 1.0))?;
+                graphics::draw_rect(ctx, rect, Color::from_rgba(0.0, 0.0, 0.0, 1.0))?;
 
                 return Ok(());
             }
@@ -245,7 +245,7 @@ impl MapSystem {
             height_border as isize,
         );
 
-        graphics::draw_rect(ctx, rect, Colorf::from_rgba(0.0, 0.0, 0.0, 1.0))?;
+        graphics::draw_rect(ctx, rect, Color::from_rgba(0.0, 0.0, 0.0, 1.0))?;
 
         if let Some(tex) = self.texture.borrow_mut().as_mut() {
             let width = state.scale * stage.map.width as f32;

@@ -5,7 +5,7 @@ use image::RgbaImage;
 use itertools::Itertools;
 use log::info;
 
-use crate::common::{self, Colorf};
+use crate::common::{self, Color};
 use crate::common::{FILE_TYPES, Rect};
 use crate::engine_constants::EngineConstants;
 use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
@@ -301,7 +301,7 @@ impl SpriteBatch for SubBatch {
             },
             flip_x,
             flip_y,
-            Colorf::from_srgba_tuple(color),
+            Color::from_srgba_tuple(color),
         ));
     }
 
@@ -356,7 +356,7 @@ impl SpriteBatch for SubBatch {
                 right: (x + rect.width() as f32 * scale_x) * mag,
                 bottom: (y + rect.height() as f32 * scale_y) * mag,
             },
-            Colorf::from_srgba_tuple(color),
+            Color::from_srgba_tuple(color),
         ));
     }
 

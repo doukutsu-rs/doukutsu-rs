@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use imgui::{DrawData, TextureId, Ui};
 
-use crate::common::{Colorf, Rect};
+use crate::common::{Color, Rect};
 use crate::framework::backend::{
     Backend, BackendEventLoop, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData,
 };
@@ -96,7 +96,7 @@ impl BackendRenderer for NullRenderer {
         "Null".to_owned()
     }
 
-    fn clear(&mut self, _color: Colorf) {}
+    fn clear(&mut self, _color: Color) {}
 
     fn present(&mut self) -> GameResult {
         Ok(())
@@ -118,11 +118,11 @@ impl BackendRenderer for NullRenderer {
         Ok(())
     }
 
-    fn draw_rect(&mut self, _rect: Rect<isize>, _color: Colorf) -> GameResult {
+    fn draw_rect(&mut self, _rect: Rect<isize>, _color: Color) -> GameResult {
         Ok(())
     }
 
-    fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Colorf) -> GameResult {
+    fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Color) -> GameResult {
         Ok(())
     }
 

@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use crate::common::{Colorf, Rect};
+use crate::common::{Color, Rect};
 use crate::components::background::Background;
 use crate::engine_constants::ExtraSoundtrack;
 use crate::framework::context::Context;
@@ -75,7 +75,7 @@ impl JukeboxScene {
                 pxpack_data: None,
                 background: crate::game::stage::Background::new("bkMoon"),
                 background_type: BackgroundType::Outside,
-                background_color: Colorf::from_rgba(0., 0., 0., 0.),
+                background_color: Color::from_rgba(0., 0., 0., 0.),
                 npc1: NpcType::new("0"),
                 npc2: NpcType::new("0"),
             },

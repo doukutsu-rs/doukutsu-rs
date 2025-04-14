@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use crate::common::{Colorf, Rect};
+use crate::common::{Color, Rect};
 use crate::components::draw_common::{draw_number, Alignment};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -589,10 +589,10 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                                 (75.0 * scale) as isize,
                                 (8.0 * scale) as isize,
                             ),
-                            Colorf::from_rgba(0.0, 0.0, 0.0, 1.0),
+                            Color::from_rgba(0.0, 0.0, 0.0, 1.0),
                         )?;
 
-                        graphics::draw_rect(ctx, bar_rect, Colorf::from_rgba(1.0, 1.0, 1.0, 1.0))?;
+                        graphics::draw_rect(ctx, bar_rect, Color::from_rgba(1.0, 1.0, 1.0, 1.0))?;
                     }
 
                     if state.settings.touch_controls {

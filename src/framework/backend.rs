@@ -9,7 +9,7 @@ use super::error::GameResult;
 use super::graphics::BlendMode;
 use super::graphics::SwapMode;
 
-use crate::common::{Colorf, Rect};
+use crate::common::{Color, Rect};
 use crate::game::Game;
 
 #[repr(C)]
@@ -47,7 +47,7 @@ pub trait BackendRenderer {
     fn renderer_name(&self) -> String;
 
     /// Clear the current render target with the specified color.
-    fn clear(&mut self, color: Colorf);
+    fn clear(&mut self, color: Color);
 
     /// Present the current frame to the screen.
     fn present(&mut self) -> GameResult;
@@ -75,10 +75,10 @@ pub trait BackendRenderer {
     fn set_render_target(&mut self, texture: Option<&Box<dyn BackendTexture>>) -> GameResult;
 
     /// Draw a filled rectangle with the specified color.
-    fn draw_rect(&mut self, rect: Rect, color: Colorf) -> GameResult;
+    fn draw_rect(&mut self, rect: Rect, color: Color) -> GameResult;
 
     /// Draw an outlined rectangle with the specified line width and color.
-    fn draw_outline_rect(&mut self, rect: Rect, line_width: usize, color: Colorf) -> GameResult;
+    fn draw_outline_rect(&mut self, rect: Rect, line_width: usize, color: Color) -> GameResult;
 
     /// Set the current clipping rectangle.
     fn set_clip_rect(&mut self, rect: Option<Rect>) -> GameResult;
@@ -157,6 +157,6 @@ pub fn init_backend(headless: bool, size_hint: (u16, u16)) -> GameResult<Box<dyn
 pub enum SpriteBatchCommand {
     DrawRect(Rect<f32>, Rect<f32>),
     DrawRectFlip(Rect<f32>, Rect<f32>, bool, bool),
-    DrawRectTinted(Rect<f32>, Rect<f32>, Colorf),
-    DrawRectFlipTinted(Rect<f32>, Rect<f32>, bool, bool, Colorf),
+    DrawRectTinted(Rect<f32>, Rect<f32>, Color),
+    DrawRectFlipTinted(Rect<f32>, Rect<f32>, bool, bool, Color),
 }

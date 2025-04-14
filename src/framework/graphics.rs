@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::common::{Colorf, Rect};
+use crate::common::{Color, Rect};
 use crate::framework::backend::{BackendShader, BackendTexture, VertexData};
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
@@ -33,7 +33,7 @@ pub enum SwapMode {
     Adaptive = -1,
 }
 
-pub fn clear(ctx: &mut Context, color: Colorf) {
+pub fn clear(ctx: &mut Context, color: Color) {
     if let Some(renderer) = &mut ctx.renderer {
         renderer.clear(color)
     }
@@ -108,7 +108,7 @@ pub fn set_blend_mode(ctx: &mut Context, blend: BlendMode) -> GameResult {
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
 
-pub fn draw_rect(ctx: &mut Context, rect: Rect, color: Colorf) -> GameResult {
+pub fn draw_rect(ctx: &mut Context, rect: Rect, color: Color) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
         return renderer.draw_rect(rect, color);
     }
@@ -117,7 +117,7 @@ pub fn draw_rect(ctx: &mut Context, rect: Rect, color: Colorf) -> GameResult {
 }
 
 #[allow(unused)]
-pub fn draw_outline_rect(ctx: &mut Context, rect: Rect, line_width: usize, color: Colorf) -> GameResult {
+pub fn draw_outline_rect(ctx: &mut Context, rect: Rect, line_width: usize, color: Color) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
         return renderer.draw_outline_rect(rect, line_width, color);
     }

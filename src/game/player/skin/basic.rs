@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 
-use crate::common::{Colorf, Direction, Rect};
+use crate::common::{Color, Direction, Rect};
 use crate::framework::context::Context;
 use crate::framework::filesystem;
 use crate::framework::filesystem::File;
@@ -76,7 +76,7 @@ lazy_static! {
 #[derive(Clone)]
 pub struct BasicPlayerSkin {
     texture_name: String,
-    color: Colorf,
+    color: Color,
     state: PlayerAnimationState,
     appearance: PlayerAppearanceState,
     direction: Direction,
@@ -107,7 +107,7 @@ impl BasicPlayerSkin {
 
         BasicPlayerSkin {
             texture_name,
-            color: Colorf::from_rgba(1., 1., 1., 1.),
+            color: Color::from_rgba(1., 1., 1., 1.),
             state: PlayerAnimationState::Idle,
             appearance: PlayerAppearanceState::Default,
             direction: Direction::Left,
@@ -204,11 +204,11 @@ impl PlayerSkin for BasicPlayerSkin {
         self.appearance
     }
 
-    fn set_color(&mut self, color: Colorf) {
+    fn set_color(&mut self, color: Color) {
         self.color = color;
     }
 
-    fn get_color(&self) -> Colorf {
+    fn get_color(&self) -> Color {
         self.color
     }
 

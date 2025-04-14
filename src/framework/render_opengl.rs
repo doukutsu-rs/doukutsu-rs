@@ -21,7 +21,7 @@ use super::gl::types::*;
 use super::graphics::BlendMode;
 use super::graphics::SwapMode;
 use super::util::{field_offset, return_param};
-use crate::common::{Colorf, Rect};
+use crate::common::{Color, Rect};
 use crate::game::GAME_SUSPENDED;
 
 pub trait GLPlatformFunctions {
@@ -707,7 +707,7 @@ impl BackendRenderer for OpenGLRenderer {
         }
     }
 
-    fn clear(&mut self, color: Colorf) {
+    fn clear(&mut self, color: Color) {
         unsafe {
             let gl = &self.gl;
             gl.gl.ClearColor(color.r, color.g, color.b, color.a);
@@ -1002,7 +1002,7 @@ impl BackendRenderer for OpenGLRenderer {
         Ok(())
     }
 
-    fn draw_rect(&mut self, rect: Rect<isize>, color: Colorf) -> GameResult {
+    fn draw_rect(&mut self, rect: Rect<isize>, color: Color) -> GameResult {
         unsafe {
             let gl = &self.gl;
             // FIXME: should color be sRGB or linear?
@@ -1041,7 +1041,7 @@ impl BackendRenderer for OpenGLRenderer {
         Ok(())
     }
 
-    fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Colorf) -> GameResult {
+    fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Color) -> GameResult {
         Ok(())
     }
 

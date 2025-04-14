@@ -1,4 +1,4 @@
-use crate::common::{Colorf, Rect};
+use crate::common::{Color, Rect};
 use crate::engine_constants::AnimatedFace;
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
@@ -268,7 +268,7 @@ impl GameEntity<()> for TextBoxes {
                         (5.0 * state.scale) as isize,
                         (state.font.line_height() * state.scale) as isize,
                     ),
-                    Colorf::from_srgb(255, 255, 255),
+                    Color::from_srgb(255, 255, 255),
                 )?;
             }
         }

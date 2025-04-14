@@ -13,7 +13,7 @@ use wgpu::{
     TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
 };
 
-use crate::common::{Colorf, Rect};
+use crate::common::{Color, Rect};
 
 use super::{
     backend::{BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData},
@@ -30,7 +30,7 @@ const fn convert_swap_mode(swap_mode: SwapMode) -> wgpu::PresentMode {
     }
 }
 
-const fn to_wgpu_color(color: Colorf) -> wgpu::Color {
+const fn to_wgpu_color(color: Color) -> wgpu::Color {
     wgpu::Color { r: color.r as _, g: color.g as _, b: color.b as _, a: color.a as _ }
 }
 
@@ -602,7 +602,7 @@ impl BackendRenderer for WGPURenderer {
         Ok(())
     }
 
-    fn clear(&mut self, color: Colorf) {
+    fn clear(&mut self, color: Color) {
         let view = self.ctx.render_target.borrow();
         let view = if let Some(rt) = view.as_ref() {
             rt
@@ -692,11 +692,11 @@ impl BackendRenderer for WGPURenderer {
         Ok(())
     }
 
-    fn draw_rect(&mut self, _rect: Rect<isize>, _color: Colorf) -> GameResult {
+    fn draw_rect(&mut self, _rect: Rect<isize>, _color: Color) -> GameResult {
         Ok(())
     }
 
-    fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Colorf) -> GameResult {
+    fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Color) -> GameResult {
         Ok(())
     }
 

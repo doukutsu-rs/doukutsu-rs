@@ -1,4 +1,4 @@
-use crate::common::{Colorf, VERSION_BANNER};
+use crate::common::{Color, VERSION_BANNER};
 use crate::components::background::Background;
 use crate::components::compact_jukebox::CompactJukebox;
 use crate::components::nikumaru::NikumaruCounter;
@@ -107,7 +107,7 @@ impl TitleScene {
                 pxpack_data: None,
                 background: crate::game::stage::Background::new("bkMoon"),
                 background_type: BackgroundType::Outside,
-                background_color: Colorf::from_rgba(0., 0., 0., 0.),
+                background_color: Color::from_rgba(0., 0., 0., 0.),
                 npc1: NpcType::new("0"),
                 npc2: NpcType::new("0"),
             },

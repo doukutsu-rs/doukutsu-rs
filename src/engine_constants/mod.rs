@@ -6,7 +6,7 @@ use case_insensitive_hashmap::CaseInsensitiveHashMap;
 use xmltree::Element;
 
 use crate::case_insensitive_hashmap;
-use crate::common::{BulletFlag, Colorf, Rect};
+use crate::common::{BulletFlag, Color, Rect};
 use crate::engine_constants::npcs::NPCConsts;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -264,7 +264,7 @@ pub struct EngineConstants {
     pub tex_sizes: CaseInsensitiveHashMap<(u16, u16)>,
     pub textscript: TextScriptConsts,
     pub title: TitleConsts,
-    pub inventory_dim_color: Colorf,
+    pub inventory_dim_color: Color,
     pub font_path: String,
     pub font_space_offset: f32,
     pub soundtracks: Vec<ExtraSoundtrack>,
@@ -1505,7 +1505,7 @@ impl EngineConstants {
                     Rect { left: 48, top: 16, right: 64, bottom: 32 },
                 ],
             },
-            inventory_dim_color: Colorf::from_rgba(0., 0., 0., 0.),
+            inventory_dim_color: Color::from_rgba(0., 0., 0., 0.),
             font_path: "csfont.fnt".to_owned(),
             font_space_offset: 0.0,
             soundtracks: vec![
@@ -1681,7 +1681,7 @@ impl EngineConstants {
         self.tex_sizes.insert("ui".to_owned(), (128, 32));
         self.tex_sizes.insert("uimusic".to_owned(), (192, 144));
         self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 62 };
-        self.inventory_dim_color = Colorf::from_srgba(0, 0, 32, 150);
+        self.inventory_dim_color = Color::from_srgba(0, 0, 32, 150);
         self.textscript.encoding = TextScriptEncoding::UTF8;
         self.textscript.encrypted = false;
         self.textscript.animated_face_pics = true;

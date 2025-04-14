@@ -1,4 +1,4 @@
-use crate::common::{Colorf, Rect};
+use crate::common::{Color, Rect};
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -59,7 +59,7 @@ impl GameEntity<()> for Flash {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult<()> {
-        const WHITE: Colorf = Colorf::from_rgba(1.0, 1.0, 1.0, 1.0);
+        const WHITE: Color = Color::from_rgba(1.0, 1.0, 1.0, 1.0);
 
         match self.state {
             FlashState::None => {}

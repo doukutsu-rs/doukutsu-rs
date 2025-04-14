@@ -497,7 +497,7 @@ pub fn get_timestamp() -> u64 {
 
 /// A RGBA color in the linear color space represented as `f32`'s in the range `[0.0-1.0]`=
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub struct Colorf {
+pub struct Color {
     /// Red component
     pub r: f32,
     /// Green component
@@ -529,25 +529,25 @@ fn linear_to_srgb(l: f32) -> u8 {
     (s.clamp(0., 1.) * 255.).round() as u8
 }
 
-impl Colorf {
-    pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Colorf {
-        Colorf { r, g, b, a }
+impl Color {
+    pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Color {
+        Color { r, g, b, a }
     }
 
-    pub fn from_rgb(r: f32, g: f32, b: f32) -> Colorf {
-        Colorf { r, g, b, a: 1.0 }
+    pub fn from_rgb(r: f32, g: f32, b: f32) -> Color {
+        Color { r, g, b, a: 1.0 }
     }
 
-    pub fn from_srgb(r: u8, g: u8, b: u8) -> Colorf {
-        Colorf::from_rgb(
+    pub fn from_srgb(r: u8, g: u8, b: u8) -> Color {
+        Color::from_rgb(
             srgb_to_linear(r),
             srgb_to_linear(g),
             srgb_to_linear(b)
         )
     }
 
-    pub fn from_srgba(r: u8, g: u8, b: u8, a: u8) -> Colorf {
-        Colorf::from_rgba(
+    pub fn from_srgba(r: u8, g: u8, b: u8, a: u8) -> Color {
+        Color::from_rgba(
             srgb_to_linear(r),
             srgb_to_linear(g),
             srgb_to_linear(b),
@@ -555,8 +555,8 @@ impl Colorf {
         )
     }
 
-    pub fn from_srgba_tuple(rgba: (u8, u8, u8, u8)) -> Colorf {
-        Colorf::from_srgba(rgba.0, rgba.1, rgba.2, rgba.3)
+    pub fn from_srgba_tuple(rgba: (u8, u8, u8, u8)) -> Color {
+        Color::from_srgba(rgba.0, rgba.1, rgba.2, rgba.3)
     }
 
     pub fn to_srgba(self) -> (u8, u8, u8, u8) {

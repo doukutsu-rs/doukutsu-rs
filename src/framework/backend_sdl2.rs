@@ -26,7 +26,7 @@ use sdl2::video::Window;
 use sdl2::video::WindowContext;
 use sdl2::{controller, keyboard, pixels, EventPump, GameControllerSubsystem, Sdl, VideoSubsystem};
 
-use crate::common::{Colorf, Rect};
+use crate::common::{Color, Rect};
 use crate::framework::backend::{
     Backend, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand,
     VertexData,
@@ -679,7 +679,7 @@ impl SDL2Renderer {
     }
 }
 
-fn to_sdl(color: Colorf) -> pixels::Color {
+fn to_sdl(color: Color) -> pixels::Color {
     let (r, g, b, a) = color.to_srgba();
     pixels::Color::RGBA(r, g, b, a)
 }
@@ -720,7 +720,7 @@ impl BackendRenderer for SDL2Renderer {
         "*COMPATIBILITY* SDL2_Renderer".to_owned()
     }
 
-    fn clear(&mut self, color: Colorf) {
+    fn clear(&mut self, color: Color) {
         let mut refs = self.refs.borrow_mut();
         let canvas = refs.window.canvas();
 
@@ -827,7 +827,7 @@ impl BackendRenderer for SDL2Renderer {
         Ok(())
     }
 
-    fn draw_rect(&mut self, rect: Rect<isize>, color: Colorf) -> GameResult<()> {
+    fn draw_rect(&mut self, rect: Rect<isize>, color: Color) -> GameResult<()> {
         let mut refs = self.refs.borrow_mut();
         let blend = refs.blend_mode;
         let canvas = refs.window.canvas();
@@ -848,7 +848,7 @@ impl BackendRenderer for SDL2Renderer {
         Ok(())
     }
 
-    fn draw_outline_rect(&mut self, rect: Rect<isize>, line_width: usize, color: Colorf) -> GameResult<()> {
+    fn draw_outline_rect(&mut self, rect: Rect<isize>, line_width: usize, color: Color) -> GameResult<()> {
         let mut refs = self.refs.borrow_mut();
         let blend = refs.blend_mode;
         let canvas = refs.window.canvas();
