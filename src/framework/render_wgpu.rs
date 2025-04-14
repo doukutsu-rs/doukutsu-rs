@@ -71,7 +71,7 @@ impl Drop for WGPUContext {
 }
 
 fn vertex_layout() -> wgpu::VertexBufferLayout<'static> {
-    const ATTRIBS: [wgpu::VertexAttribute; 3] = wgpu::vertex_attr_array![0 => Float32x2, 1 => Unorm8x4, 2 => Float32x2];
+    const ATTRIBS: [wgpu::VertexAttribute; 3] = wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x4, 2 => Float32x2];
 
     wgpu::VertexBufferLayout {
         array_stride: std::mem::size_of::<VertexData>() as wgpu::BufferAddress,
@@ -308,22 +308,22 @@ impl BackendTexture for WGPUTexture {
                     VertexData {
                         position: (dest.left, dest.bottom),
                         uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.left, dest.top),
                         uv: (src.left * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.right, dest.top),
                         uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.right, dest.bottom),
                         uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                 ];
                 let idx = self.vertices.len() as u16;
@@ -343,22 +343,22 @@ impl BackendTexture for WGPUTexture {
                     VertexData {
                         position: (dest.left, dest.bottom),
                         uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.left, dest.top),
                         uv: (src.left * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.right, dest.top),
                         uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.right, dest.bottom),
                         uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                 ];
                 let idx = self.vertices.len() as u16;
@@ -366,7 +366,7 @@ impl BackendTexture for WGPUTexture {
                 self.vertices.extend_from_slice(&vertices);
             }
             SpriteBatchCommand::DrawRectTinted(src, dest, color) => {
-                let color = color.to_srgba();
+                let color = color.to_tuple();
                 let vertices = [
                     VertexData {
                         position: (dest.left, dest.bottom),
@@ -402,7 +402,7 @@ impl BackendTexture for WGPUTexture {
                     std::mem::swap(&mut src.top, &mut src.bottom);
                 }
 
-                let color = color.to_srgba();
+                let color = color.to_tuple();
 
                 let vertices = [
                     VertexData {

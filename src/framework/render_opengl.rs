@@ -62,32 +62,32 @@ impl BackendTexture for OpenGLTexture {
                     VertexData {
                         position: (dest.left, dest.bottom),
                         uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.left, dest.top),
                         uv: (src.left * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.right, dest.top),
                         uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.left, dest.bottom),
                         uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.right, dest.top),
                         uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.right, dest.bottom),
                         uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                 ];
                 self.vertices.extend_from_slice(&vertices);
@@ -105,38 +105,38 @@ impl BackendTexture for OpenGLTexture {
                     VertexData {
                         position: (dest.left, dest.bottom),
                         uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.left, dest.top),
                         uv: (src.left * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.right, dest.top),
                         uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.left, dest.bottom),
                         uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.right, dest.top),
                         uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                     VertexData {
                         position: (dest.right, dest.bottom),
                         uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
+                        color: (1., 1., 1., 1.),
                     },
                 ];
                 self.vertices.extend_from_slice(&vertices);
             }
             SpriteBatchCommand::DrawRectTinted(src, dest, color) => {
-                let color = color.to_srgba();
+                let color = color.to_tuple();
                 let vertices = [
                     VertexData {
                         position: (dest.left, dest.bottom),
@@ -180,7 +180,7 @@ impl BackendTexture for OpenGLTexture {
                     std::mem::swap(&mut src.top, &mut src.bottom);
                 }
 
-                let color = color.to_srgba();
+                let color = color.to_tuple();
 
                 let vertices = [
                     VertexData {
@@ -443,8 +443,8 @@ impl RenderShader {
         gl.gl.VertexAttribPointer(
             self.color,
             4,
-            gl::UNSIGNED_BYTE,
-            gl::TRUE,
+            gl::FLOAT,
+            gl::FALSE,
             mem::size_of::<VertexData>() as _,
             field_offset::<VertexData, _, _>(|v| &v.color) as _,
         );
@@ -727,7 +727,7 @@ impl BackendRenderer for OpenGLRenderer {
             self.render_data.tex_shader.bind_attrib_pointer(&gl, self.render_data.vbo);
             gl.gl.UniformMatrix4fv(self.render_data.tex_shader.proj_mtx, 1, gl::FALSE, matrix.as_ptr() as _);
 
-            let color = (255, 255, 255, 255);
+            let color = (1., 1., 1., 1.);
             let vertices = [
                 VertexData { position: (0.0, 1.0), uv: (0.0, 0.0), color },
                 VertexData { position: (0.0, 0.0), uv: (0.0, 1.0), color },
@@ -1005,9 +1005,7 @@ impl BackendRenderer for OpenGLRenderer {
     fn draw_rect(&mut self, rect: Rect<isize>, color: Color) -> GameResult {
         unsafe {
             let gl = &self.gl;
-            // FIXME: should color be sRGB or linear?
-            // It depends on how OpenGL interprets the vertex attribute...
-            let color = color.to_srgba();
+            let color = color.to_tuple();
             let mut uv = self.render_data.font_tex_size;
             uv.0 = 0.0 / uv.0;
             uv.1 = 0.0 / uv.1;

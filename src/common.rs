@@ -567,6 +567,10 @@ impl Color {
             (self.a.clamp(0., 1.) * 255.).round() as u8
         )
     }
+
+    pub fn to_tuple(self) -> (f32, f32, f32, f32) {
+        (self.r, self.g, self.b, self.a)
+    }
 }
 
 // impl From<Color> for Colorf {
