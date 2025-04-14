@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use crate::common::{Color, Rect};
+use crate::common::{Colorf, Rect};
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -38,7 +38,7 @@ impl GameEntity<()> for FallingIsland {
             (80.0 * state.scale) as _,
         );
 
-        graphics::clear(ctx, Color::from_rgb(0, 0, 32).into());
+        graphics::clear(ctx, Colorf::from_srgb(0, 0, 32));
         graphics::set_clip_rect(ctx, Some(clip_rect))?;
 
         static RECT_BG: Rect<u16> = Rect { left: 0, top: 0, right: 160, bottom: 80 };

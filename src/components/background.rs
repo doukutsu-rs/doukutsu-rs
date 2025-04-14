@@ -1,4 +1,4 @@
-use crate::common::{Color, Rect};
+use crate::common::{Colorf, Rect};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
@@ -102,7 +102,7 @@ impl Background {
                 }
             }
             BackgroundType::OutsideWind | BackgroundType::Outside | BackgroundType::OutsideUnknown => {
-                graphics::clear(ctx, Color::from_rgb(0, 0, 0).into());
+                graphics::clear(ctx, Colorf::from_rgb(0., 0., 0.));
 
                 let offset_x = (self.tick % 640) as i32;
                 let offset_y = ((state.canvas_size.1 - 240.0) / 2.0).floor();

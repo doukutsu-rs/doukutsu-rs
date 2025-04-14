@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use crate::common::{Color, Colorf, Rect};
+use crate::common::{Colorf, Rect};
 use crate::components::draw_common::{draw_number, Alignment};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;

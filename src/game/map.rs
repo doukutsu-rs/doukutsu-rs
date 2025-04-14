@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use byteorder::{ReadBytesExt, LE};
 
-use crate::common::{Color, Colorf, Rect};
+use crate::common::{Colorf, Rect};
 use crate::framework::context::Context;
 use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::{GameError, GameResult};
@@ -136,7 +136,7 @@ impl Map {
         map_data.read_u16::<LE>()?;
         map_data.read_u8()?;
 
-        let bg_color = Color::from_rgb(map_data.read_u8()?, map_data.read_u8()?, map_data.read_u8()?);
+        let bg_color = Colorf::from_srgb(map_data.read_u8()?, map_data.read_u8()?, map_data.read_u8()?);
 
         let mut tileset_fg = read_string(&mut map_data)?;
         map_data.read_u8()?; // ignored
@@ -538,17 +538,17 @@ impl NPCData {
 
 #[derive(Clone, Copy)]
 pub struct WaterParamEntry {
-    pub color_top: Color,
-    pub color_middle: Color,
-    pub color_bottom: Color,
+    pub color_top: Colorf,
+    pub color_middle: Colorf,
+    pub color_bottom: Colorf,
 }
 
 impl Default for WaterParamEntry {
     fn default() -> Self {
         Self {
-            color_top: Color::from_rgba(102, 153, 204, 150),
-            color_middle: Color::from_rgba(102, 153, 204, 75),
-            color_bottom: Color::from_rgba(102, 153, 204, 75),
+            color_top: Colorf::from_srgba(102, 153, 204, 150),
+            color_middle: Colorf::from_srgba(102, 153, 204, 75),
+            color_bottom: Colorf::from_srgba(102, 153, 204, 75),
         }
     }
 }
@@ -586,7 +586,7 @@ impl WaterParams {
                         return Err(GameError::ParseError("tile_min > tile_max".to_string()));
                     }
 
-                    let mut read_color = || -> GameResult<Color> {
+                    let mut read_color = || -> GameResult<Colorf> {
                         let cstr = splits.next().unwrap().trim();
                         if !cstr.starts_with('[') || !cstr.ends_with(']') {
                             return Err(GameError::ParseError("Invalid format of color value.".to_string()));
@@ -603,7 +603,7 @@ impl WaterParams {
                         let b = next_u8(&mut csplits, "Invalid blue value.")?;
                         let a = next_u8(&mut csplits, "Invalid alpha value.")?;
 
-                        Ok(Color::from_rgba(r, g, b, a))
+                        Ok(Colorf::from_srgba(r, g, b, a))
                     };
 
                     let color_top = read_color()?;
@@ -631,9 +631,9 @@ impl WaterParams {
 
     pub fn get_entry(&self, tile: u8) -> &WaterParamEntry {
         static DEFAULT_ENTRY: WaterParamEntry = WaterParamEntry {
-            color_top: Color::from_rgba(255, 255, 255, 255),
-            color_middle: Color::from_rgba(255, 255, 255, 255),
-            color_bottom: Color::from_rgba(255, 255, 255, 255),
+            color_top: Colorf::from_rgba(1., 1., 1., 1.),
+            color_middle: Colorf::from_rgba(1., 1., 1., 1.),
+            color_bottom: Colorf::from_rgba(1., 1., 1., 1.),
         };
 
         self.entries.get(&tile).unwrap_or(&DEFAULT_ENTRY)

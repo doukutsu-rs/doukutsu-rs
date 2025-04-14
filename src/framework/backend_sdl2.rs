@@ -26,7 +26,7 @@ use sdl2::video::Window;
 use sdl2::video::WindowContext;
 use sdl2::{controller, keyboard, pixels, EventPump, GameControllerSubsystem, Sdl, VideoSubsystem};
 
-use crate::common::{Color, Colorf, Rect};
+use crate::common::{Colorf, Rect};
 use crate::framework::backend::{
     Backend, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand,
     VertexData,
@@ -679,8 +679,8 @@ impl SDL2Renderer {
     }
 }
 
-fn to_sdl(color: Color) -> pixels::Color {
-    let (r, g, b, a) = color.to_rgba();
+fn to_sdl(color: Colorf) -> pixels::Color {
+    let (r, g, b, a) = color.to_srgba();
     pixels::Color::RGBA(r, g, b, a)
 }
 
@@ -724,7 +724,7 @@ impl BackendRenderer for SDL2Renderer {
         let mut refs = self.refs.borrow_mut();
         let canvas = refs.window.canvas();
 
-        canvas.set_draw_color(to_sdl(color.to_srgb()));
+        canvas.set_draw_color(to_sdl(color));
         canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
         canvas.clear();
     }
@@ -832,7 +832,7 @@ impl BackendRenderer for SDL2Renderer {
         let blend = refs.blend_mode;
         let canvas = refs.window.canvas();
 
-        let (r, g, b, a) = color.to_srgb().to_rgba();
+        let (r, g, b, a) = color.to_srgba();
 
         canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
         canvas.set_blend_mode(blend);
@@ -848,12 +848,12 @@ impl BackendRenderer for SDL2Renderer {
         Ok(())
     }
 
-    fn draw_outline_rect(&mut self, rect: Rect<isize>, line_width: usize, color: Color) -> GameResult<()> {
+    fn draw_outline_rect(&mut self, rect: Rect<isize>, line_width: usize, color: Colorf) -> GameResult<()> {
         let mut refs = self.refs.borrow_mut();
         let blend = refs.blend_mode;
         let canvas = refs.window.canvas();
 
-        let (r, g, b, a) = color.to_rgba();
+        let (r, g, b, a) = color.to_srgba();
 
         canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
         canvas.set_blend_mode(blend);
@@ -1082,7 +1082,7 @@ impl BackendTexture for SDL2Texture {
                                 .map_err(|e| GameError::RenderError(e.to_string()))?;
                         }
                         SpriteBatchCommand::DrawRectTinted(src, dest, color) => {
-                            let (r, g, b, a) = color.to_rgba();
+                            let (r, g, b, a) = color.to_srgba();
                             texture.set_color_mod(r, g, b);
                             texture.set_alpha_mod(a);
                             texture.set_blend_mode(blend);
@@ -1133,7 +1133,7 @@ impl BackendTexture for SDL2Texture {
                                 .map_err(|e| GameError::RenderError(e.to_string()))?;
                         }
                         SpriteBatchCommand::DrawRectFlipTinted(src, dest, flip_x, flip_y, color) => {
-                            let (r, g, b, a) = color.to_rgba();
+                            let (r, g, b, a) = color.to_srgba();
                             texture.set_color_mod(r, g, b);
                             texture.set_alpha_mod(a);
                             texture.set_blend_mode(blend);

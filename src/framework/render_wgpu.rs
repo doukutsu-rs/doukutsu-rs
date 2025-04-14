@@ -13,7 +13,7 @@ use wgpu::{
     TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
 };
 
-use crate::common::{Color, Colorf, Rect};
+use crate::common::{Colorf, Rect};
 
 use super::{
     backend::{BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData},
@@ -366,7 +366,7 @@ impl BackendTexture for WGPUTexture {
                 self.vertices.extend_from_slice(&vertices);
             }
             SpriteBatchCommand::DrawRectTinted(src, dest, color) => {
-                let color = color.to_rgba();
+                let color = color.to_srgba();
                 let vertices = [
                     VertexData {
                         position: (dest.left, dest.bottom),
@@ -402,7 +402,7 @@ impl BackendTexture for WGPUTexture {
                     std::mem::swap(&mut src.top, &mut src.bottom);
                 }
 
-                let color = color.to_rgba();
+                let color = color.to_srgba();
 
                 let vertices = [
                     VertexData {
@@ -696,7 +696,7 @@ impl BackendRenderer for WGPURenderer {
         Ok(())
     }
 
-    fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Color) -> GameResult {
+    fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Colorf) -> GameResult {
         Ok(())
     }
 

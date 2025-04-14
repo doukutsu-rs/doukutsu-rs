@@ -1,4 +1,4 @@
-use crate::common::{Color, Rect};
+use crate::common::{Colorf, Rect};
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -42,7 +42,7 @@ impl GameEntity<()> for Credits {
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, _frame: &Frame) -> GameResult {
         let rect = Rect::new(0, 0, (state.screen_size.0 / 2.0) as _, state.screen_size.1 as _);
-        graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 32).into())?;
+        graphics::draw_rect(ctx, rect, Colorf::from_srgb(0, 0, 32))?;
 
         if state.textscript_vm.illustration_state != IllustrationState::Hidden {
             let x = match state.textscript_vm.illustration_state {

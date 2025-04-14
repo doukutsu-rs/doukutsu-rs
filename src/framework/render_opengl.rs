@@ -21,7 +21,7 @@ use super::gl::types::*;
 use super::graphics::BlendMode;
 use super::graphics::SwapMode;
 use super::util::{field_offset, return_param};
-use crate::common::{Color, Colorf, Rect};
+use crate::common::{Colorf, Rect};
 use crate::game::GAME_SUSPENDED;
 
 pub trait GLPlatformFunctions {
@@ -136,7 +136,7 @@ impl BackendTexture for OpenGLTexture {
                 self.vertices.extend_from_slice(&vertices);
             }
             SpriteBatchCommand::DrawRectTinted(src, dest, color) => {
-                let color = color.to_rgba();
+                let color = color.to_srgba();
                 let vertices = [
                     VertexData {
                         position: (dest.left, dest.bottom),
@@ -180,7 +180,7 @@ impl BackendTexture for OpenGLTexture {
                     std::mem::swap(&mut src.top, &mut src.bottom);
                 }
 
-                let color = color.to_rgba();
+                let color = color.to_srgba();
 
                 let vertices = [
                     VertexData {
@@ -1005,7 +1005,9 @@ impl BackendRenderer for OpenGLRenderer {
     fn draw_rect(&mut self, rect: Rect<isize>, color: Colorf) -> GameResult {
         unsafe {
             let gl = &self.gl;
-            let color = color.to_srgb().to_rgba();
+            // FIXME: should color be sRGB or linear?
+            // It depends on how OpenGL interprets the vertex attribute...
+            let color = color.to_srgba();
             let mut uv = self.render_data.font_tex_size;
             uv.0 = 0.0 / uv.0;
             uv.1 = 0.0 / uv.1;
@@ -1039,7 +1041,7 @@ impl BackendRenderer for OpenGLRenderer {
         Ok(())
     }
 
-    fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Color) -> GameResult {
+    fn draw_outline_rect(&mut self, _rect: Rect<isize>, _line_width: usize, _color: Colorf) -> GameResult {
         Ok(())
     }
 

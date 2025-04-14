@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::common::{Color, Colorf, Rect};
+use crate::common::{Colorf, Rect};
 use crate::framework::backend::{BackendShader, BackendTexture, VertexData};
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
@@ -117,7 +117,7 @@ pub fn draw_rect(ctx: &mut Context, rect: Rect, color: Colorf) -> GameResult {
 }
 
 #[allow(unused)]
-pub fn draw_outline_rect(ctx: &mut Context, rect: Rect, line_width: usize, color: Color) -> GameResult {
+pub fn draw_outline_rect(ctx: &mut Context, rect: Rect, line_width: usize, color: Colorf) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
         return renderer.draw_outline_rect(rect, line_width, color);
     }

@@ -408,105 +408,92 @@ pub fn get_timestamp() -> u64 {
     now.duration_since(UNIX_EPOCH).unwrap().as_secs() as u64
 }
 
-/// A RGBA color in the `sRGB` color space represented as `u8`'s in the range `[0-255]`
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub struct Color {
-    /// Red component
-    pub r: u8,
-    /// Green component
-    pub g: u8,
-    /// Blue component
-    pub b: u8,
-    /// Alpha component
-    pub a: u8,
-}
+// impl Color {
+//     /// Create a new `Color` from four `u8`'s in the range `[0-255]`
+//     pub const fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Color {
+//         Color { r, g, b, a }
+//     }
 
-impl Color {
-    /// Create a new `Color` from four `u8`'s in the range `[0-255]`
-    pub const fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Color {
-        Color { r, g, b, a }
-    }
+//     /// Create a new `Color` from three u8's in the range `[0-255]`,
+//     /// with the alpha component fixed to 255 (opaque)
+//     pub fn from_rgb(r: u8, g: u8, b: u8) -> Color {
+//         Color::from((r, g, b))
+//     }
 
-    /// Create a new `Color` from three u8's in the range `[0-255]`,
-    /// with the alpha component fixed to 255 (opaque)
-    pub fn from_rgb(r: u8, g: u8, b: u8) -> Color {
-        Color::from((r, g, b))
-    }
+//     /// Return a tuple of four `u8`'s in the range `[0-255]` with the `Color`'s
+//     /// components.
+//     pub fn to_rgba(self) -> (u8, u8, u8, u8) {
+//         self.into()
+//     }
 
-    /// Return a tuple of four `u8`'s in the range `[0-255]` with the `Color`'s
-    /// components.
-    pub fn to_rgba(self) -> (u8, u8, u8, u8) {
-        self.into()
-    }
+//     /// Return a tuple of three `u8`'s in the range `[0-255]` with the `Color`'s
+//     /// components.
+//     pub fn to_rgb(self) -> (u8, u8, u8) {
+//         self.into()
+//     }
 
-    /// Return a tuple of three `u8`'s in the range `[0-255]` with the `Color`'s
-    /// components.
-    pub fn to_rgb(self) -> (u8, u8, u8) {
-        self.into()
-    }
+//     /// Convert a packed `u32` containing `0xRRGGBBAA` into a `Color`
+//     pub fn from_rgba_u32(c: u32) -> Color {
+//         let c = c.to_be_bytes();
 
-    /// Convert a packed `u32` containing `0xRRGGBBAA` into a `Color`
-    pub fn from_rgba_u32(c: u32) -> Color {
-        let c = c.to_be_bytes();
+//         Color::from((c[0], c[1], c[2], c[3]))
+//     }
 
-        Color::from((c[0], c[1], c[2], c[3]))
-    }
+//     /// Convert a packed `u32` containing `0x00RRGGBB` into a `Color`.
+//     /// This lets you do things like `Color::from_rgb_u32(0xCD09AA)` easily if you want.
+//     pub fn from_rgb_u32(c: u32) -> Color {
+//         let c = c.to_be_bytes();
 
-    /// Convert a packed `u32` containing `0x00RRGGBB` into a `Color`.
-    /// This lets you do things like `Color::from_rgb_u32(0xCD09AA)` easily if you want.
-    pub fn from_rgb_u32(c: u32) -> Color {
-        let c = c.to_be_bytes();
+//         Color::from((c[1], c[2], c[3]))
+//     }
 
-        Color::from((c[1], c[2], c[3]))
-    }
+//     /// Convert a `Color` into a packed `u32`, containing `0xRRGGBBAA` as bytes.
+//     pub fn to_rgba_u32(self) -> u32 {
+//         let (r, g, b, a): (u8, u8, u8, u8) = self.into();
 
-    /// Convert a `Color` into a packed `u32`, containing `0xRRGGBBAA` as bytes.
-    pub fn to_rgba_u32(self) -> u32 {
-        let (r, g, b, a): (u8, u8, u8, u8) = self.into();
+//         u32::from_be_bytes([r, g, b, a])
+//     }
 
-        u32::from_be_bytes([r, g, b, a])
-    }
+//     /// Convert a `Color` into a packed `u32`, containing `0x00RRGGBB` as bytes.
+//     pub fn to_rgb_u32(self) -> u32 {
+//         let (r, g, b, _a): (u8, u8, u8, u8) = self.into();
 
-    /// Convert a `Color` into a packed `u32`, containing `0x00RRGGBB` as bytes.
-    pub fn to_rgb_u32(self) -> u32 {
-        let (r, g, b, _a): (u8, u8, u8, u8) = self.into();
+//         u32::from_be_bytes([0, r, g, b])
+//     }
+// }
 
-        u32::from_be_bytes([0, r, g, b])
-    }
-}
+// impl From<(u8, u8, u8, u8)> for Color {
+//     /// Convert a `(R, G, B, A)` tuple of `u8`'s in the range `[0-255]` into a `Color`
+//     fn from(val: (u8, u8, u8, u8)) -> Self {
+//         let (r, g, b, a) = val;
+//         Color::from_rgba(r, g, b, a)
+//     }
+// }
 
-impl From<(u8, u8, u8, u8)> for Color {
-    /// Convert a `(R, G, B, A)` tuple of `u8`'s in the range `[0-255]` into a `Color`
-    fn from(val: (u8, u8, u8, u8)) -> Self {
-        let (r, g, b, a) = val;
-        Color::from_rgba(r, g, b, a)
-    }
-}
+// impl From<(u8, u8, u8)> for Color {
+//     /// Convert a `(R, G, B)` tuple of `u8`'s in the range `[0-255]` into a `Color`,
+//     /// with a value of 255 for the alpha element (i.e., no transparency.)
+//     fn from(val: (u8, u8, u8)) -> Self {
+//         let (r, g, b) = val;
+//         Color::from((r, g, b, 255))
+//     }
+// }
 
-impl From<(u8, u8, u8)> for Color {
-    /// Convert a `(R, G, B)` tuple of `u8`'s in the range `[0-255]` into a `Color`,
-    /// with a value of 255 for the alpha element (i.e., no transparency.)
-    fn from(val: (u8, u8, u8)) -> Self {
-        let (r, g, b) = val;
-        Color::from((r, g, b, 255))
-    }
-}
+// impl From<Color> for (u8, u8, u8, u8) {
+//     /// Convert a `Color` into a `(R, G, B, A)` tuple of `u8`'s in the range of `[0-255]`.
+//     fn from(color: Color) -> Self {
+//         (color.r, color.g, color.b, color.a)
+//     }
+// }
 
-impl From<Color> for (u8, u8, u8, u8) {
-    /// Convert a `Color` into a `(R, G, B, A)` tuple of `u8`'s in the range of `[0-255]`.
-    fn from(color: Color) -> Self {
-        (color.r, color.g, color.b, color.a)
-    }
-}
-
-impl From<Color> for (u8, u8, u8) {
-    /// Convert a `Color` into a `(R, G, B)` tuple of `u8`'s in the range of `[0-255]`,
-    /// ignoring the alpha term.
-    fn from(color: Color) -> Self {
-        let (r, g, b, _) = color.into();
-        (r, g, b)
-    }
-}
+// impl From<Color> for (u8, u8, u8) {
+//     /// Convert a `Color` into a `(R, G, B)` tuple of `u8`'s in the range of `[0-255]`,
+//     /// ignoring the alpha term.
+//     fn from(color: Color) -> Self {
+//         let (r, g, b, _) = color.into();
+//         (r, g, b)
+//     }
+// }
 
 /// A RGBA color in the linear color space represented as `f32`'s in the range `[0.0-1.0]`=
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -551,8 +538,29 @@ impl Colorf {
         Colorf { r, g, b, a: 1.0 }
     }
 
-    pub fn to_srgb(self) -> Color {
-        Color::from_rgba(
+    pub fn from_srgb(r: u8, g: u8, b: u8) -> Colorf {
+        Colorf::from_rgb(
+            srgb_to_linear(r),
+            srgb_to_linear(g),
+            srgb_to_linear(b)
+        )
+    }
+
+    pub fn from_srgba(r: u8, g: u8, b: u8, a: u8) -> Colorf {
+        Colorf::from_rgba(
+            srgb_to_linear(r),
+            srgb_to_linear(g),
+            srgb_to_linear(b),
+            a as f32 / 255.
+        )
+    }
+
+    pub fn from_srgba_tuple(rgba: (u8, u8, u8, u8)) -> Colorf {
+        Colorf::from_srgba(rgba.0, rgba.1, rgba.2, rgba.3)
+    }
+
+    pub fn to_srgba(self) -> (u8, u8, u8, u8) {
+        (
             linear_to_srgb(self.r),
             linear_to_srgb(self.g),
             linear_to_srgb(self.b),
@@ -561,16 +569,16 @@ impl Colorf {
     }
 }
 
-impl From<Color> for Colorf {
-    fn from(value: Color) -> Self {
-        Colorf::from_rgba(
-            srgb_to_linear(value.r),
-            srgb_to_linear(value.g),
-            srgb_to_linear(value.b),
-            value.a as f32 / 255.
-        )
-    }
-}
+// impl From<Color> for Colorf {
+//     fn from(value: Color) -> Self {
+//         Colorf::from_rgba(
+//             srgb_to_linear(value.r),
+//             srgb_to_linear(value.g),
+//             srgb_to_linear(value.b),
+//             value.a as f32 / 255.
+//         )
+//     }
+// }
 
 pub trait SliceExt {
     type Item;

@@ -4,7 +4,7 @@ use std::str::from_utf8;
 use byteorder::ReadBytesExt;
 use byteorder::LE;
 
-use crate::common::Color;
+use crate::common::Colorf;
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
 use crate::framework::error::GameError::ResourceLoadError;
@@ -185,7 +185,7 @@ pub struct StageData {
     pub pxpack_data: Option<PxPackStageData>,
     pub background: Background,
     pub background_type: BackgroundType,
-    pub background_color: Color,
+    pub background_color: Colorf,
     pub npc1: NpcType,
     pub npc2: NpcType,
 }
@@ -314,7 +314,7 @@ impl StageData {
                             pxpack_data: None,
                             background: Background::new(&background),
                             background_type: BackgroundType::from(bg_type),
-                            background_color: Color::from_rgb(0, 0, 32),
+                            background_color: Colorf::from_srgb(0, 0, 32),
                             npc1: NpcType::new(&npc1),
                             npc2: NpcType::new(&npc2),
                         };
@@ -379,7 +379,7 @@ impl StageData {
                     pxpack_data: None,
                     background: Background::new(&background),
                     background_type: BackgroundType::from(bg_type),
-                    background_color: Color::from_rgb(0, 0, 32),
+                    background_color: Colorf::from_srgb(0, 0, 32),
                     npc1: NpcType::new(&npc1),
                     npc2: NpcType::new(&npc2),
                 };
@@ -438,7 +438,7 @@ impl StageData {
                     pxpack_data: None,
                     background: Background::new(&background),
                     background_type: BackgroundType::from(bg_type),
-                    background_color: Color::from_rgb(0, 0, 32),
+                    background_color: Colorf::from_srgb(0, 0, 32),
                     npc1: NpcType::new(&npc1),
                     npc2: NpcType::new(&npc2),
                 };
@@ -495,7 +495,7 @@ impl StageData {
                     pxpack_data: None,
                     background: Background::new(NXENGINE_BACKDROPS.get(bg_id).unwrap_or(&"0")),
                     background_type: BackgroundType::from(bg_type),
-                    background_color: Color::from_rgb(0, 0, 32),
+                    background_color: Colorf::from_srgb(0, 0, 32),
                     npc1: NpcType::new(NXENGINE_NPCS.get(npc1).unwrap_or(&"0")),
                     npc2: NpcType::new(NXENGINE_NPCS.get(npc2).unwrap_or(&"0")),
                 };

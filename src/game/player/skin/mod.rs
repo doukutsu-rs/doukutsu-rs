@@ -1,6 +1,6 @@
 use bitfield::bitfield;
 
-use crate::common::{Color, Colorf, Direction, Rect};
+use crate::common::{Colorf, Direction, Rect};
 use crate::game::physics::HitExtents;
 use crate::game::shared_game_state::SharedGameState;
 
@@ -67,10 +67,10 @@ pub trait PlayerSkin: PlayerSkinClone {
     fn get_appearance(&mut self) -> PlayerAppearanceState;
 
     /// Sets the current color of skin.
-    fn set_color(&mut self, color: Color);
+    fn set_color(&mut self, color: Colorf);
 
     /// Returns the current color of skin.
-    fn get_color(&self) -> Color;
+    fn get_color(&self) -> Colorf;
 
     /// Sets the current direction;
     fn set_direction(&mut self, direction: Direction);

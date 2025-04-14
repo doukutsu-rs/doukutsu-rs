@@ -9,8 +9,7 @@ use super::error::GameResult;
 use super::graphics::BlendMode;
 use super::graphics::SwapMode;
 
-use crate::common::Colorf;
-use crate::common::{Color, Rect};
+use crate::common::{Colorf, Rect};
 use crate::game::Game;
 
 #[repr(C)]
@@ -79,7 +78,7 @@ pub trait BackendRenderer {
     fn draw_rect(&mut self, rect: Rect, color: Colorf) -> GameResult;
 
     /// Draw an outlined rectangle with the specified line width and color.
-    fn draw_outline_rect(&mut self, rect: Rect, line_width: usize, color: Color) -> GameResult;
+    fn draw_outline_rect(&mut self, rect: Rect, line_width: usize, color: Colorf) -> GameResult;
 
     /// Set the current clipping rectangle.
     fn set_clip_rect(&mut self, rect: Option<Rect>) -> GameResult;
@@ -158,6 +157,6 @@ pub fn init_backend(headless: bool, size_hint: (u16, u16)) -> GameResult<Box<dyn
 pub enum SpriteBatchCommand {
     DrawRect(Rect<f32>, Rect<f32>),
     DrawRectFlip(Rect<f32>, Rect<f32>, bool, bool),
-    DrawRectTinted(Rect<f32>, Rect<f32>, Color),
-    DrawRectFlipTinted(Rect<f32>, Rect<f32>, bool, bool, Color),
+    DrawRectTinted(Rect<f32>, Rect<f32>, Colorf),
+    DrawRectFlipTinted(Rect<f32>, Rect<f32>, bool, bool, Colorf),
 }

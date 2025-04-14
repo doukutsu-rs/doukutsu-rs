@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use log::info;
 
-use crate::common::{interpolate_fix9_scale, Color, Colorf, Direction, Rect};
+use crate::common::{interpolate_fix9_scale, Colorf, Direction, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
 use crate::components::credits::Credits;
@@ -511,7 +511,7 @@ impl GameScene {
 
         graphics::set_blend_mode(ctx, BlendMode::Add)?;
 
-        graphics::clear(ctx, Color::from_rgb(100, 100, 110).into());
+        graphics::clear(ctx, Colorf::from_srgb(100, 100, 110));
 
         for npc in self.npc_list.iter_alive() {
             if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
@@ -2222,14 +2222,14 @@ impl Scene for GameScene {
                 ((10.0 + line_height) * state.scale) as isize,
             );
 
-            draw_rect(ctx, rect, Color::from_rgb(0, 0, 32).into())?;
+            draw_rect(ctx, rect, Colorf::from_srgb(0, 0, 32))?;
 
             rect.right = rect.left + (w * state.scale) as isize;
-            draw_rect(ctx, rect, Color::from_rgb(128, 128, 160).into())?;
+            draw_rect(ctx, rect, Colorf::from_srgb(128, 128, 160))?;
 
             rect.left = ((state.canvas_size.0 - w) * state.scale) as isize;
             rect.right = rect.left + (w * state.scale).ceil() as isize;
-            draw_rect(ctx, rect, Color::from_rgb(128, 128, 160).into())?;
+            draw_rect(ctx, rect, Colorf::from_srgb(128, 128, 160))?;
 
             state.font.builder().position(pos_x + 10.0, pos_y + 5.0).shadow(true).with_symbols(Some(symbols)).draw(
                 &text,

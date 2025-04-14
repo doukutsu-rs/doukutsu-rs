@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use crate::common::{Color, Colorf, Rect};
+use crate::common::{Colorf, Rect};
 use crate::framework::backend::{BackendShader, SpriteBatchCommand, VertexData};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -251,8 +251,8 @@ impl WaterRenderer {
 
         {
             let mut draw_region = |region: &DepthRegion| -> GameResult {
-                let color_mid_rgba = region.color.color_middle.to_rgba();
-                let color_btm_rgba = region.color.color_bottom.to_rgba();
+                let color_mid_rgba = region.color.color_middle.to_srgba();
+                let color_btm_rgba = region.color.color_bottom.to_srgba();
                 vertices.clear();
                 vertices.reserve(6);
 
@@ -285,9 +285,9 @@ impl WaterRenderer {
             let mut draw_region = |surf: &DynamicWater| -> GameResult {
                 let pos_x = surf.x;
                 let pos_y = surf.y;
-                let color_top_rgba = surf.color.color_top.to_rgba();
-                let color_mid_rgba = surf.color.color_middle.to_rgba();
-                let color_btm_rgba = surf.color.color_bottom.to_rgba();
+                let color_top_rgba = surf.color.color_top.to_srgba();
+                let color_mid_rgba = surf.color.color_middle.to_srgba();
+                let color_btm_rgba = surf.color.color_bottom.to_srgba();
 
                 if (pos_x - o_x - 16.0) > state.canvas_size.0
                     || (pos_x - o_x + 16.0 + surf.end_x) < 0.0

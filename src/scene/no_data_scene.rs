@@ -1,4 +1,4 @@
-use crate::common::Color;
+use crate::common::Colorf;
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
 use crate::framework::graphics;
@@ -51,7 +51,7 @@ impl Scene for NoDataScene {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        graphics::clear(ctx, Color::from_rgb(30, 0, 0).into());
+        graphics::clear(ctx, Colorf::from_srgb(30, 0, 0).into());
 
         state.font.builder().center(state.canvas_size.0).y(10.0).color((255, 100, 100, 255)).draw(
             "doukutsu-rs internal error",
