@@ -63,6 +63,7 @@ byteorder = "1.4"
 case_insensitive_hashmap = "1.0.0"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 cpal = { git = "https://github.com/doukutsu-rs/cpal", rev = "9d269d8724102404e73a61e9def0c0cbc921b676" }
+crossbeam-channel = "0.5"
 directories = "3"
 discord-rich-presence = { version = "0.2", optional = true }
 downcast = "0.11"
