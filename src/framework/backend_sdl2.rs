@@ -680,7 +680,7 @@ impl SDL2Renderer {
 }
 
 fn to_sdl(color: Color) -> pixels::Color {
-    let (r, g, b, a) = color.to_rgba();
+    let (r, g, b, a) = color.to_srgba();
     pixels::Color::RGBA(r, g, b, a)
 }
 
@@ -832,7 +832,7 @@ impl BackendRenderer for SDL2Renderer {
         let blend = refs.blend_mode;
         let canvas = refs.window.canvas();
 
-        let (r, g, b, a) = color.to_rgba();
+        let (r, g, b, a) = color.to_srgba();
 
         canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
         canvas.set_blend_mode(blend);
@@ -853,7 +853,7 @@ impl BackendRenderer for SDL2Renderer {
         let blend = refs.blend_mode;
         let canvas = refs.window.canvas();
 
-        let (r, g, b, a) = color.to_rgba();
+        let (r, g, b, a) = color.to_srgba();
 
         canvas.set_draw_color(pixels::Color::RGBA(r, g, b, a));
         canvas.set_blend_mode(blend);
@@ -1082,7 +1082,7 @@ impl BackendTexture for SDL2Texture {
                                 .map_err(|e| GameError::RenderError(e.to_string()))?;
                         }
                         SpriteBatchCommand::DrawRectTinted(src, dest, color) => {
-                            let (r, g, b, a) = color.to_rgba();
+                            let (r, g, b, a) = color.to_srgba();
                             texture.set_color_mod(r, g, b);
                             texture.set_alpha_mod(a);
                             texture.set_blend_mode(blend);
@@ -1133,7 +1133,7 @@ impl BackendTexture for SDL2Texture {
                                 .map_err(|e| GameError::RenderError(e.to_string()))?;
                         }
                         SpriteBatchCommand::DrawRectFlipTinted(src, dest, flip_x, flip_y, color) => {
-                            let (r, g, b, a) = color.to_rgba();
+                            let (r, g, b, a) = color.to_srgba();
                             texture.set_color_mod(r, g, b);
                             texture.set_alpha_mod(a);
                             texture.set_blend_mode(blend);

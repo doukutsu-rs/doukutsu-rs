@@ -1505,7 +1505,7 @@ impl EngineConstants {
                     Rect { left: 48, top: 16, right: 64, bottom: 32 },
                 ],
             },
-            inventory_dim_color: Color::from_rgba(0, 0, 0, 0),
+            inventory_dim_color: Color::from_rgba(0., 0., 0., 0.),
             font_path: "csfont.fnt".to_owned(),
             font_space_offset: 0.0,
             soundtracks: vec![
@@ -1681,7 +1681,7 @@ impl EngineConstants {
         self.tex_sizes.insert("ui".to_owned(), (128, 32));
         self.tex_sizes.insert("uimusic".to_owned(), (192, 144));
         self.title.logo_rect = Rect { left: 0, top: 0, right: 214, bottom: 62 };
-        self.inventory_dim_color = Color::from_rgba(0, 0, 32, 150);
+        self.inventory_dim_color = Color::from_srgba(0, 0, 32, 150);
         self.textscript.encoding = TextScriptEncoding::UTF8;
         self.textscript.encrypted = false;
         self.textscript.animated_face_pics = true;

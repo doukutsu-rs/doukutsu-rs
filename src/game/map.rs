@@ -136,7 +136,7 @@ impl Map {
         map_data.read_u16::<LE>()?;
         map_data.read_u8()?;
 
-        let bg_color = Color::from_rgb(map_data.read_u8()?, map_data.read_u8()?, map_data.read_u8()?);
+        let bg_color = Color::from_srgb(map_data.read_u8()?, map_data.read_u8()?, map_data.read_u8()?);
 
         let mut tileset_fg = read_string(&mut map_data)?;
         map_data.read_u8()?; // ignored
@@ -546,9 +546,9 @@ pub struct WaterParamEntry {
 impl Default for WaterParamEntry {
     fn default() -> Self {
         Self {
-            color_top: Color::from_rgba(102, 153, 204, 150),
-            color_middle: Color::from_rgba(102, 153, 204, 75),
-            color_bottom: Color::from_rgba(102, 153, 204, 75),
+            color_top: Color::from_srgba(102, 153, 204, 150),
+            color_middle: Color::from_srgba(102, 153, 204, 75),
+            color_bottom: Color::from_srgba(102, 153, 204, 75),
         }
     }
 }
@@ -603,7 +603,7 @@ impl WaterParams {
                         let b = next_u8(&mut csplits, "Invalid blue value.")?;
                         let a = next_u8(&mut csplits, "Invalid alpha value.")?;
 
-                        Ok(Color::from_rgba(r, g, b, a))
+                        Ok(Color::from_srgba(r, g, b, a))
                     };
 
                     let color_top = read_color()?;
@@ -631,9 +631,9 @@ impl WaterParams {
 
     pub fn get_entry(&self, tile: u8) -> &WaterParamEntry {
         static DEFAULT_ENTRY: WaterParamEntry = WaterParamEntry {
-            color_top: Color::new(1.0, 1.0, 1.0, 1.0),
-            color_middle: Color::new(1.0, 1.0, 1.0, 1.0),
-            color_bottom: Color::new(1.0, 1.0, 1.0, 1.0),
+            color_top: Color::from_rgba(1., 1., 1., 1.),
+            color_middle: Color::from_rgba(1., 1., 1., 1.),
+            color_bottom: Color::from_rgba(1., 1., 1., 1.),
         };
 
         self.entries.get(&tile).unwrap_or(&DEFAULT_ENTRY)

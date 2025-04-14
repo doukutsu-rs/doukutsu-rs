@@ -107,7 +107,7 @@ impl BasicPlayerSkin {
 
         BasicPlayerSkin {
             texture_name,
-            color: Color::new(1.0, 1.0, 1.0, 1.0),
+            color: Color::from_rgba(1., 1., 1., 1.),
             state: PlayerAnimationState::Idle,
             appearance: PlayerAppearanceState::Default,
             direction: Direction::Left,

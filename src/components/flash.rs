@@ -59,7 +59,7 @@ impl GameEntity<()> for Flash {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult<()> {
-        const WHITE: Color = Color::new(1.0, 1.0, 1.0, 1.0);
+        const WHITE: Color = Color::from_rgba(1.0, 1.0, 1.0, 1.0);
 
         match self.state {
             FlashState::None => {}

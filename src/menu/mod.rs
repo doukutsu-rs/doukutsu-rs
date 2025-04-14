@@ -589,10 +589,10 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                                 (75.0 * scale) as isize,
                                 (8.0 * scale) as isize,
                             ),
-                            Color::new(0.0, 0.0, 0.0, 1.0),
+                            Color::from_rgba(0.0, 0.0, 0.0, 1.0),
                         )?;
 
-                        graphics::draw_rect(ctx, bar_rect, Color::new(1.0, 1.0, 1.0, 1.0))?;
+                        graphics::draw_rect(ctx, bar_rect, Color::from_rgba(1.0, 1.0, 1.0, 1.0))?;
                     }
 
                     if state.settings.touch_controls {
