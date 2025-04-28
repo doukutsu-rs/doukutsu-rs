@@ -48,7 +48,6 @@
       <description>
         <ul>
           <li>Introduce new app icon</li>
-          <li>Add metadata for flatpak packaging</li>
         </ul>
       </description>
     </release>
