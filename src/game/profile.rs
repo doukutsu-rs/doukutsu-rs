@@ -28,7 +28,7 @@ const SIG_Do041220: u64 = 0x446f303431323230;
 const SIG_FLAG: u32 = 0x464c4147;
 
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 pub struct WeaponData {
     pub weapon_id: u32,
     pub level: u32,
@@ -37,31 +37,10 @@ pub struct WeaponData {
     pub ammo: u32,
 }
 
-impl Default for WeaponData {
-    fn default() -> WeaponData {
-        WeaponData {
-            weapon_id: 0,
-            level: 0,
-            exp: 0,
-            max_ammo: 0,
-            ammo: 0,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 pub struct TeleporterSlotData {
     pub index: u32,
     pub event_num: u32,
-}
-
-impl Default for TeleporterSlotData {
-    fn default() -> TeleporterSlotData {
-        TeleporterSlotData {
-            index: 0,
-            event_num: 0
-        }
-    }
 }
 
 
@@ -607,7 +586,7 @@ impl SaveFormat {
     // TODO: compatibility warnings
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct CSPModProfile {
     pub profiles: HashMap<usize, GameProfile>,
     // TODO: add TimingMode for best times
@@ -620,14 +599,14 @@ impl CSPModProfile {
     }
 }
 
-impl Default for CSPModProfile {
-    fn default() -> CSPModProfile {
-        CSPModProfile {
-            profiles: HashMap::new(),
-            time: 0,
-        }
-    }
+
+#[derive(Debug)]
+enum SavePatch {
+    Added(SaveSlot),
+    Modified(SaveSlot),
+    Deleted(SaveSlot)
 }
+
 
 // Generic container to store all possible info from original game saves
 #[derive(Debug, Deserialize, Serialize)]
@@ -646,6 +625,8 @@ pub struct SaveContainer {
     pub game_profiles: HashMap<usize, GameProfile>,
     pub csp_mods: HashMap<u8, CSPModProfile>, // save_set number -> saves & time
 
+    #[serde(skip)]
+    patchset: Vec<SavePatch>,
     // TODO: engine and mods specific fields
 }
 
@@ -655,7 +636,9 @@ impl Default for SaveContainer {
             version: 1,
 
             game_profiles: HashMap::new(),
-            csp_mods: HashMap::new()
+            csp_mods: HashMap::new(),
+
+            patchset: Vec::new(),
         }
     }
 }
@@ -686,21 +669,26 @@ impl SaveContainer {
 
         log::debug!("DEBUG LOAD SAVE - DEFAULT CREATED");
 
-        let container = SaveContainer::default();
+        let mut container = SaveContainer::default();
         container.write_save(ctx, state, SaveFormat::Generic, None, None)?;
         Ok(container)
     }
 
-    pub fn save(&self, ctx: &mut Context, state: &mut SharedGameState) -> GameResult {
+    pub fn save(&mut self, ctx: &mut Context, state: &mut SharedGameState) -> GameResult {
         self.write_save(ctx, state, SaveFormat::Generic, None, None)?;
         self.write_save(ctx, state, state.settings.save_format, None, None)?;
         Ok(())
     }
 
-    pub fn write_save(&self, ctx: &mut Context, state: &mut SharedGameState, format: SaveFormat, slot: Option<SaveSlot>, out_path: Option<String>) -> GameResult {
+    pub fn write_save(&mut self, ctx: &mut Context, state: &mut SharedGameState, format: SaveFormat, slot: Option<SaveSlot>, out_path: Option<String>) -> GameResult {
         log::debug!("DEBUG WRITE SAVE");
 
         let save_path = Self::get_save_filename(&format, slot.clone());
+        let mut patchset: Vec<SavePatch> = vec![];
+        if format != SaveFormat::Generic {
+            // TODO: maybe use `replace`?
+            patchset = std::mem::take(&mut self.patchset);
+        }
 
         match format {
             SaveFormat::Generic => {
@@ -714,7 +702,7 @@ impl SaveContainer {
             },
             SaveFormat::Freeware => {
                 if let Some(save_slot) = slot {
-
+                    // TODO: write only provided slot
                 } else {
                     if let Some(path) = out_path {
                         let base_dir = std::path::Path::new(&path);
@@ -747,12 +735,18 @@ impl SaveContainer {
                                 file.flush()?;
                             }
                         }
+
+                        for save_patch in patchset.iter() {
+                            if let SavePatch::Deleted(save_slot) = save_patch {
+                                user_delete(ctx, Self::get_save_filename(&format, Some(save_slot.clone())));
+                            }
+                        }
                     }
                 }
             },
             SaveFormat::Plus | SaveFormat::Switch => {
                 if let Some(save_slot) = slot {
-                    // TODO
+                     // TODO: write only provided slot
                 } else {
                     if let Some(path) = out_path {
                         // TODO
@@ -800,7 +794,7 @@ impl SaveContainer {
                         for save_slot in 1..=3 {
                             log::debug!("Writing Game profile: {}", save_slot);
                             let profile = if let Some(game_profile) = self.game_profiles.get(&save_slot) {
-                                active_slots[0] |= (1u8 << (save_slot - 1));
+                                active_slots[0] |= 1u8 << (save_slot - 1);
                                 game_profile
                             } else {
                                 &default_profile
@@ -924,19 +918,28 @@ impl SaveContainer {
 
     pub fn set_profile(&mut self, slot: SaveSlot, profile: GameProfile) {
         log::debug!("Debug profile set: {:?}; {}", slot, profile.timestamp);
+
+        let prev_save: Option<GameProfile>;
         match slot {
             SaveSlot::MainGame(save_slot) => {
-                let _ = self.game_profiles.insert(save_slot, profile);
+                prev_save = self.game_profiles.insert(save_slot, profile);
             },
             SaveSlot::CSPMod(save_set, save_slot) => {
-                let _ = self.csp_mods.entry(save_set)
+                prev_save = self.csp_mods.entry(save_set)
                     .or_insert(CSPModProfile::default())
                     .profiles
                     .insert(save_slot, profile);
             },
-            SaveSlot::Mod(mod_id, save_slot) => {
+            SaveSlot::Mod(ref mod_id, save_slot) => {
                 // TODO
+                prev_save = None;
             }
+        }
+
+        if prev_save.is_none() {
+            self.patchset.push(SavePatch::Added(slot));
+        } else {
+            self.patchset.push(SavePatch::Modified(slot));
         }
     }
 
@@ -973,7 +976,7 @@ impl SaveContainer {
             SaveSlot::Mod(mod_id, save_slot) => unimplemented!()
         }
 
-        // TODO: delete original save files
+        self.patchset.push(SavePatch::Deleted(slot));
     }
 
     pub fn is_empty(&self) -> bool {
