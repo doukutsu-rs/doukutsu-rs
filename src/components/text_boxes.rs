@@ -10,6 +10,7 @@ use crate::game::shared_game_state::SharedGameState;
 use crate::graphics::font::{Font, Symbols};
 
 pub struct TextBoxes {
+    pub item_drop_in: u8,
     pub slide_in: u8,
     pub anim_counter: usize,
     animated_face: AnimatedFace,
@@ -21,6 +22,7 @@ const SWITCH_FACE_TEX: [&str; 5] = ["Face1", "Face2", "Face3", "Face4", "Face5"]
 impl TextBoxes {
     pub fn new() -> TextBoxes {
         TextBoxes {
+            item_drop_in: 10,
             slide_in: 7,
             anim_counter: 0,
             animated_face: AnimatedFace { face_id: 0, anim_id: 0, anim_frames: vec![(0, 0)] },
@@ -55,6 +57,11 @@ impl GameEntity<()> for TextBoxes {
                 self.anim_counter = 0;
             }
         }
+
+        if state.textscript_vm.item != 0 {
+            self.item_drop_in = self.item_drop_in.saturating_sub(1);
+        }
+
         Ok(())
     }
 
@@ -180,6 +187,7 @@ impl GameEntity<()> for TextBoxes {
         }
 
         if state.textscript_vm.item != 0 {
+            let item_offset = self.item_drop_in as f32 * 0.7;
             let mut rect = Rect::new(0, 0, 0, 0);
 
             if state.textscript_vm.item < 1000 {
@@ -191,7 +199,7 @@ impl GameEntity<()> for TextBoxes {
                 rect.bottom = rect.top + 16;
 
                 let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ArmsImage")?;
-                batch.add_rect((center - 12.0).floor(), state.canvas_size.1 - off_bottom - 104.0, &rect);
+                batch.add_rect((center - 12.0).floor(), state.canvas_size.1 - off_bottom - item_offset - 104.0, &rect);
                 batch.draw(ctx)?;
             } else {
                 let item_id = state.textscript_vm.item as u16 - 1000;
@@ -202,7 +210,7 @@ impl GameEntity<()> for TextBoxes {
                 rect.bottom = rect.top + 16;
 
                 let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "ItemImage")?;
-                batch.add_rect((center - 20.0).floor(), state.canvas_size.1 - off_bottom - 104.0, &rect);
+                batch.add_rect((center - 20.0).floor(), state.canvas_size.1 - off_bottom - item_offset - 104.0, &rect);
                 batch.draw(ctx)?;
             }
         }

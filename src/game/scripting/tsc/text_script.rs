@@ -1294,6 +1294,7 @@ impl TextScriptVM {
             TSCOpCode::GIT => {
                 let item = read_cur_varint(&mut cursor)? as u16;
                 state.textscript_vm.item = item;
+                game_scene.text_boxes.item_drop_in = 10;
 
                 exec_state = TextScriptExecutionState::Running(event, cursor.position() as u32);
             }
