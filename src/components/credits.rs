@@ -42,7 +42,7 @@ impl GameEntity<()> for Credits {
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, _frame: &Frame) -> GameResult {
         let rect = Rect::new(0, 0, (state.screen_size.0 / 2.0) as _, state.screen_size.1 as _);
-        graphics::draw_rect(ctx, rect, Color::from_rgb(0, 0, 32))?;
+        graphics::draw_rect(ctx, rect, state.constants.background_color)?;
 
         if state.textscript_vm.illustration_state != IllustrationState::Hidden {
             let x = match state.textscript_vm.illustration_state {

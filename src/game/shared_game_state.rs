@@ -509,10 +509,8 @@ impl SharedGameState {
 
     pub fn reload_stage_table(&mut self, ctx: &mut Context) -> GameResult {
         let stages = StageData::load_stage_table(
+            self,
             ctx,
-            &self.constants.base_paths,
-            self.constants.is_switch,
-            self.constants.stage_encoding,
         )?;
         self.stages = stages;
         Ok(())
@@ -654,7 +652,7 @@ impl SharedGameState {
         }
 
         let mut next_scene = GameScene::new(self, ctx, start_stage_id)?;
-        next_scene.stage.data.background_color = Color::from_rgb(0, 0, 0);
+        next_scene.stage.data.background_color = self.constants.intro_background_color;
         next_scene.player1.cond.set_hidden(true);
         let (pos_x, pos_y) = self.constants.game.intro_player_pos;
         next_scene.player1.x = pos_x as i32 * next_scene.stage.map.tile_size.as_int() * 0x200;

@@ -38,7 +38,7 @@ impl GameEntity<()> for FallingIsland {
             (80.0 * state.scale) as _,
         );
 
-        graphics::clear(ctx, Color::from_rgb(0, 0, 32));
+        graphics::clear(ctx, state.constants.intro_background_color);
         graphics::set_clip_rect(ctx, Some(clip_rect))?;
 
         static RECT_BG: Rect<u16> = Rect { left: 0, top: 0, right: 160, bottom: 80 };
