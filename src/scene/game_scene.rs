@@ -2221,7 +2221,7 @@ impl Scene for GameScene {
                 ((10.0 + line_height) * state.scale) as isize,
             );
 
-            draw_rect(ctx, rect, Color::from_rgb(0, 0, 32))?;
+            draw_rect(ctx, rect, state.constants.background_color)?;
 
             rect.right = rect.left + (w * state.scale) as isize;
             draw_rect(ctx, rect, Color::from_rgb(128, 128, 160))?;
