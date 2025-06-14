@@ -1846,6 +1846,7 @@ impl TextScriptVM {
 
                 exec_state = TextScriptExecutionState::Running(state.constants.game.intro_event, 0);
                 state.textscript_vm.suspend = true;
+                state.stop_noise();
                 state.sound_manager.play_song(0, &state.constants, &state.settings, ctx, false)?;
 
                 state.reset();
