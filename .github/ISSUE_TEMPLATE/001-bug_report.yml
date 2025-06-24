@@ -1,0 +1,205 @@
+name: Bug Report
+description: Report a bug or issue with doukutsu-rs
+type: "Bug"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out this form as completely as possible to help us reproduce and fix the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Issue description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe the issue you're experiencing...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Reproduction steps
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Open the game and load the attached save file
+        2. Go to Mimiga Village
+        3. Do ...
+        4. See that ... happens
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: What should have happened instead?
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What **exact** version of doukutsu-rs are you using? For example, "0.102.0-beta7", "0.102.0-733" - you can find it at bottom of the main menu
+      placeholder: x.xxx.x-xxx
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data-files
+    attributes:
+      label: Data files used
+      description: Which Cave Story data files are you using?
+      options:
+        - Vanilla Cave Story (1.0.0.6), Japanese
+        - Vanilla Cave Story (1.0.0.6), AGTP English translation
+        - Vanilla Cave Story - Another version or translation
+        - Cave Story+ - Steam version
+        - Cave Story+ - Epic Games version
+        - Cave Story+ - GOG version
+        - Cave Story+ - Humble Bundle DRM-free
+        - Cave Story+ - Mac App Store version
+        - Cave Story+ - 2011 Steam version
+        - Cave Story+ 1.2 - Nintendo Switch version
+        - Cave Story+ 1.3 - Nintendo Switch version
+        - Another version not on the list
+    validations:
+      required: true
+
+  - type: textarea
+    id: version-details
+    attributes:
+      label: Data files details (if applicable)
+      description: If you selected "Vanilla Cave Story - Another version or translation" or "Another version not on the list" above, please specify which version you're using. Also mention if you have altered data files in any way, such as installing translation mods.
+      placeholder: Please specify the exact version and any modifications...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform and Operating System
+      description: What platform and operating system are you using?
+      options:
+        - Windows
+        - Linux
+        - macOS
+        - Android
+        - iOS
+        - Nintendo Switch Homebrew
+        - Other (please specify in additional info)
+    validations:
+      required: true
+
+  - type: textarea
+    id: device-specs
+    attributes:
+      label: Device Model / Specs
+      description: Please provide your device specifications
+      placeholder: |
+        Examples:
+        - PC, i7-10700K, RTX 3060, 16GB RAM
+        - MacBook Pro, 14-inch, M3 Pro, 36GB RAM
+        - Samsung Galaxy S20
+        - iPhone 15 Pro
+        - Nintendo Switch OLED
+    validations:
+      required: true
+
+  - type: textarea
+    id: system-info
+    attributes:
+      label: System Information
+      description: Please see below for instructions on how to get this information.
+      placeholder: |
+        [paste output here, if you're uncomfortable with running commands, just specify everything manually]
+
+        Example output:
+        --- BEGIN SYSTEM INFO ---
+        OS Version: 15.5 24F74
+        CPU: Apple M2
+        RAM: 16384 MB
+        Manufacturer/Model: Mac14,2
+        GPUs:
+          - Apple
+        --- END SYSTEM INFO ---
+      render: shell
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: |
+        In case of a PC or Mac, the easiest way to get this is running a command in the command prompt or terminal app and pasting the output here.
+
+        For Windows, run the following command in command prompt:
+        ```powershell
+        powershell.exe -NoProfile -Command "& {Write-Host ''; Write-Host ''; Write-Host '--- BEGIN SYSTEM INFO ---'; $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue; $cpu = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue; $computer = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue; $gpus = Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue; Write-Host 'OS Version: $($os.Caption) $($os.OSArchitecture) Build $($os.BuildNumber)'; Write-Host 'CPU: $($cpu.Name)'; Write-Host 'Manufacturer: $($computer.Manufacturer)'; Write-Host 'Model: $($computer.Model)'; Write-Host 'RAM: $($computer.TotalPhysicalMemory / 1MB) MB'; if ($gpus) { $i=1; foreach ($gpu in $gpus) { Write-Host "GPU $($i): $($gpu.Caption)"; $i++ } } else { Write-Host 'GPU: Unknown' }; Write-Host '--- END SYSTEM INFO ---'; Write-Host ''; Write-Host ''}"
+        ```
+
+        For Linux, run the following command in terminal and paste the output here:
+        ```bash
+        printf "\n\n--- BEGIN SYSTEM INFO ---\n"; printf "OS Version: %s\n" "$(lsb_release -d -r -c 2>/dev/null | awk -F':\t' '{print $2}' | paste -s -d' ' || cat /etc/os-release 2>/dev/null | grep "PRETTY_NAME" | awk -F'=' '{print $2}' | tr -d '\"' || echo 'Unknown')"; printf "CPU Architecture: %s\n" "$(uname -m 2>/dev/null || echo 'Unknown')"; printf "CPU Model: %s\n" "$(lscpu 2>/dev/null | grep "Model name" | awk -F': *' '{print $2}' || echo 'Unknown')"; printf "RAM: %s MB\n" "$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print int($2 / 1024)}' || echo 'Unknown')"; printf "System Manufacturer/Model: %s\n" "$(cat /sys/class/dmi/id/board_vendor 2>/dev/null || echo 'Unknown') $(cat /sys/class/dmi/id/board_name 2>/dev/null || echo 'Unknown')"; printf "GPUs:\n%s\n" "$(lspci -vnn 2>/dev/null | grep -i 'VGA compatible controller\|3D controller' | awk -F': ' '{print "  - " $2}' | sed 's/ (rev .*//' || echo '  - Unknown')"; printf "--- END SYSTEM INFO ---\n\n\n"
+        ```
+
+        For macOS, run the following command in terminal and paste the output here:
+        ```bash
+        printf "\n\n--- BEGIN SYSTEM INFO ---\n"; printf "OS Version: %s %s\n" "$(sw_vers -productVersion 2>/dev/null || echo 'Unknown')" "$(sw_vers -buildVersion 2>/dev/null || echo 'Unknown')"; printf "CPU: %s\n" "$(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'Unknown')"; printf "RAM: %s MB\n" "$(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1 / (1024*1024))}' || echo 'Unknown')"; printf "Manufacturer/Model: %s\n" "$(system_profiler SPHardwareDataType 2>/dev/null | awk '/Model Identifier/{print $3}' || echo 'Unknown')"; printf "GPUs:\n%s\n" "$(system_profiler SPDisplaysDataType 2>/dev/null | awk '/Chipset Model/{print "  - " $3}' | sed 's/  - Unknown//g' || echo '  - Unknown')"; printf "--- END SYSTEM INFO ---\n\n\n"
+        ```
+        If you're running macOS on non-Apple hardware (Hackintosh), please manually add relevant information.
+
+        In case of Android, iOS or Nintendo Switch, you need to fill out it manually.
+
+        Android:
+        ```
+        Android Version: 15
+        [ROM / OEM UI Type and Version, as best as you can, for example:]
+        System: OneUI 6.1.1
+        System: MIUI Global 14.0.4.0(RKOMIXM) 
+        System: Xiaomi HyperOS 1.0.5.0.UNLINXM
+        System: Google Pixel, Android 15, Security Update October 5, 2024
+        System: LineageOS 21-20250123-NIGHTLY-marble
+        ```
+
+        iOS:
+        ```
+        iOS Version: 18.5
+        ```
+
+        Nintendo Switch:
+        ```
+        System Version: 20.1.5
+        Atmosphere Version: 1.9.1
+        ```
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Videos
+      description: If applicable, add screenshots or videos to help explain your problem. You can drag and drop files here.
+      placeholder: Drag and drop files here or click to upload...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here, such as error messages, logs, or anything else that might be helpful.
+      placeholder: Any additional information that might help us understand the issue...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Verification
+      description: Please confirm the following
+      options:
+        - label: "I have searched for existing issues and this is not a duplicate."
+          required: true
+        - label: "I understand that 3rd party ports and modifications such as the RetroArch port or Cave Story: Encore are not supported within this repository."
+          required: true
+        - label: "I have provided all the requested information to the best of my ability."
+          required: true

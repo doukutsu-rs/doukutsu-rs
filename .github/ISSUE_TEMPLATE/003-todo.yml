@@ -1,0 +1,26 @@
+name: Task
+description: This is a template for maintainers to use. Please do not submit issues using this template, unless asked by a maintainer.
+type: "Task"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to create a TO-DO task for the doukutsu-rs project.
+
+  - type: textarea
+    id: plan
+    attributes:
+      label: Plan
+      description: Describe the exact plan for what needs to be implemented or fixed.
+      placeholder: Describe the specific plan, implementation details, or approach...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Any additional context, background information, or related issues.
+      placeholder: Add any relevant context, links to related issues, or background info...
+    validations:
+      required: false

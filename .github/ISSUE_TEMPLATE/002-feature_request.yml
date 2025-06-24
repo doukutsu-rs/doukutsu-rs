@@ -1,0 +1,55 @@
+name: Feature Request
+description: Suggest a new feature or improvement for doukutsu-rs
+type: "Feature"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please fill out this form to help us understand your idea and how it could improve doukutsu-rs.
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature description
+      description: A clear and concise description of the feature or improvement you are proposing.
+      placeholder: Describe the feature you want to see...
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why do you want this feature? What problem does it solve or what value does it add?
+      placeholder: Explain why this feature would be useful...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Possible alternatives or workarounds
+      description: Have you considered any alternative solutions or workarounds?
+      placeholder: List any alternatives you've thought of, or say N/A...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context, mockups, or screenshots about the feature request here.
+      placeholder: Any extra information, images, or context...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Verification
+      description: Please confirm the following
+      options:
+        - label: "I have searched for existing issues and feature requests and this is not a duplicate."
+          required: true
+        - label: "I have described the feature clearly and provided all relevant information."
+          required: true
