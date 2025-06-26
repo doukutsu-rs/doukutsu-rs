@@ -101,6 +101,10 @@ impl WindowMode {
             WindowMode::Fullscreen => false,
         }
     }
+
+    pub fn is_fullscreen(&self) -> bool {
+        *self == WindowMode::Fullscreen
+    }
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, num_derive::FromPrimitive)]
@@ -378,7 +382,7 @@ impl SharedGameState {
 
         if filesystem::exists(ctx, "/base/lighting.tbl") {
             log::info!("Cave Story+ (Switch) data files detected.");
-            ctx.size_hint = (854, 480);
+            ctx.window.size_hint = (854, 480);
             constants.apply_csplus_patches(&mut sound_manager);
             constants.apply_csplus_nx_patches();
             constants.load_nx_stringtable(ctx)?;

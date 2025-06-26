@@ -5,17 +5,20 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use clap::clap_derive::Parser;
 use lazy_static::lazy_static;
 
 use scripting::tsc::text_script::ScriptMode;
 
+use crate::framework::backend::WindowParams;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::framework::graphics::VSyncMode;
 use crate::framework::ui::UI;
 use crate::game::filesystem_container::FilesystemContainer;
-use crate::game::shared_game_state::{Fps, SharedGameState, TimingMode};
+use crate::game::settings::Settings;
+use crate::game::shared_game_state::{Fps, SharedGameState, TimingMode, WindowMode};
 use crate::graphics::texture_set::{G_MAG, I_MAG};
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
@@ -35,9 +38,51 @@ pub mod shared_game_state;
 pub mod stage;
 pub mod weapon;
 
+#[derive(Debug, Default, Parser)]
+#[command(version, about, long_about = None)]
 pub struct LaunchOptions {
+    #[arg(long, hide = cfg!(not(feature = "netplay")))]
+    /// Do not create a window and skip audio initialization.
     pub server_mode: bool,
+
+    #[arg(long, hide = cfg!(not(feature = "editor")))]
+    /// Enable built-in editor.
     pub editor: bool,
+
+    #[arg(long)]
+    /// Window height in pixels.
+    pub window_height: Option<u16>,
+
+    #[arg(long)]
+    /// Window width in pixels.
+    pub window_width: Option<u16>,
+
+    #[arg(long)]
+    /// Startup in fullscreen mode.
+    pub window_fullscreen: bool,
+}
+
+impl LaunchOptions {
+    pub fn apply_defaults(&mut self, ctx: &Context, settings: &Settings) {
+        self.window_width = Some(self.window_width.unwrap_or(ctx.window.size_hint.0));
+        self.window_height = Some(self.window_height.unwrap_or(ctx.window.size_hint.1));
+
+        if !self.window_fullscreen {
+            self.window_fullscreen = settings.window_mode.is_fullscreen();
+        }
+    }
+
+    pub fn window(&self) -> WindowParams {
+        let default = WindowParams::default();
+
+        let width = self.window_width.unwrap_or(default.size_hint.0);
+        let height = self.window_height.unwrap_or(default.size_hint.1);
+
+        WindowParams {
+            size_hint: (width, height),
+            mode: if self.window_fullscreen { WindowMode::Fullscreen } else { WindowMode::Windowed },
+        }
+    }
 }
 
 lazy_static! {
@@ -304,7 +349,7 @@ fn panic_hook(info: &PanicInfo<'_>) {
     }
 }
 
-pub fn init(options: LaunchOptions) -> GameResult {
+pub fn init(mut options: LaunchOptions) -> GameResult {
     let _ = init_logger();
     std::panic::set_hook(Box::new(panic_hook));
 
@@ -321,11 +366,15 @@ pub fn init(options: LaunchOptions) -> GameResult {
     let mut game = Box::pin(Game::new(&mut context)?);
     game.state.get_mut().fs_container = Some(fs_container);
 
+    options.apply_defaults(&context, &game.state.get_mut().settings);
+
     #[cfg(feature = "discord-rpc")]
     if game.state.get_mut().settings.discord_rpc {
         game.state.get_mut().discord_rpc.enabled = true;
         game.state.get_mut().discord_rpc.start()?;
     }
+
+    context.window = options.window();
 
     game.state.get_mut().next_scene = Some(Box::new(LoadingScene::new()));
     log::info!("Starting main loop...");

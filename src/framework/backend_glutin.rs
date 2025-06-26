@@ -324,9 +324,9 @@ impl BackendEventLoop for GlutinEventLoop {
 
                     #[cfg(not(any(target_os = "android", target_os = "horizon")))]
                     {
-                        if state_ref.settings.window_mode.get_glutin_fullscreen_type() != window.window().fullscreen() {
-                            let fullscreen_type = state_ref.settings.window_mode.get_glutin_fullscreen_type();
-                            let cursor_visible = state_ref.settings.window_mode.should_display_mouse_cursor();
+                        if ctx.window.mode.get_glutin_fullscreen_type() != window.window().fullscreen() {
+                            let fullscreen_type = ctx.window.mode.get_glutin_fullscreen_type();
+                            let cursor_visible = ctx.window.mode.should_display_mouse_cursor();
 
                             window.window().set_fullscreen(fullscreen_type);
                             window.window().set_cursor_visible(cursor_visible);

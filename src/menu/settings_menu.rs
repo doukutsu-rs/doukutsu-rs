@@ -252,7 +252,9 @@ impl SettingsMenu {
             GraphicsMenuEntry::WindowMode,
             MenuEntry::Options(
                 state.loc.t("menus.options_menu.graphics_menu.window_mode.entry").to_owned(),
-                state.settings.window_mode as usize,
+                // The value in the context can be set via CLI args, but it will be overwritten by the value in the settings,
+                // if they're modified
+                ctx.window.mode as usize,
                 vec![
                     state.loc.t("menus.options_menu.graphics_menu.window_mode.windowed").to_owned(),
                     state.loc.t("menus.options_menu.graphics_menu.window_mode.fullscreen").to_owned(),
@@ -699,6 +701,7 @@ impl SettingsMenu {
 
                         *value = new_value;
                         state.settings.window_mode = new_mode;
+                        ctx.window.mode = new_mode;
 
                         let _ = state.settings.save(ctx);
                     }

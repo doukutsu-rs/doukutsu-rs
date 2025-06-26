@@ -2,19 +2,10 @@
 
 use std::process::exit;
 
+use clap::Parser;
+
 fn main() {
-    let args = std::env::args();
-    let mut options = doukutsu_rs::game::LaunchOptions { server_mode: false, editor: false };
-
-    for arg in args {
-        if arg == "--server-mode" {
-            options.server_mode = true;
-        }
-
-        if arg == "--editor" {
-            options.editor = true;
-        }
-    }
+    let options = doukutsu_rs::game::LaunchOptions::parse();
 
     if options.server_mode && options.editor {
         eprintln!("Cannot run in server mode and editor mode at the same time.");

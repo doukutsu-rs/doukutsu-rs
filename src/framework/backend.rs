@@ -7,6 +7,7 @@ use crate::common::{Color, Rect};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{BlendMode, VSyncMode};
+use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
 
 #[repr(C)]
@@ -108,8 +109,23 @@ pub trait BackendGamepad {
     fn instance_id(&self) -> u32;
 }
 
+#[derive(Clone, Copy)]
+pub struct WindowParams {
+    pub size_hint: (u16, u16), // (width, height)
+    pub mode: WindowMode,
+}
+
+impl Default for WindowParams {
+    fn default() -> Self {
+        Self {
+            size_hint: (640, 48),
+            mode: WindowMode::Windowed,
+        }
+    }
+}
+
 #[allow(unreachable_code)]
-pub fn init_backend(headless: bool, size_hint: (u16, u16)) -> GameResult<Box<dyn Backend>> {
+pub fn init_backend(headless: bool, window_params: WindowParams) -> GameResult<Box<dyn Backend>> {
     if headless {
         return crate::framework::backend_null::NullBackend::new();
     }
@@ -121,12 +137,13 @@ pub fn init_backend(headless: bool, size_hint: (u16, u16)) -> GameResult<Box<dyn
 
     #[cfg(all(feature = "backend-glutin"))]
     {
+        //return crate::framework::backend_glutin::GlutinBackend::new(window_params);
         return crate::framework::backend_glutin::GlutinBackend::new();
     }
 
     #[cfg(feature = "backend-sdl")]
     {
-        return crate::framework::backend_sdl2::SDL2Backend::new(size_hint);
+        return crate::framework::backend_sdl2::SDL2Backend::new(window_params);
     }
 
     log::warn!("No backend compiled in, using null backend instead.");

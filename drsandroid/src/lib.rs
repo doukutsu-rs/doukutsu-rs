@@ -5,7 +5,7 @@ pub fn android_main() {
 
     std::env::set_current_dir(&resource_dir).unwrap();
     
-    let options = doukutsu_rs::game::LaunchOptions { server_mode: false, editor: false };
+    let options = doukutsu_rs::game::LaunchOptions::default();
 
     doukutsu_rs::game::init(options).unwrap();
 }
