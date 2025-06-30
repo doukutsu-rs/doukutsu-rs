@@ -516,8 +516,35 @@ impl TextureSet {
         create_texture(ctx, width as u16, height as u16, &img)
     }
 
-    pub fn find_texture(&self, ctx: &mut Context, roots: &Vec<String>, name: &str) -> Option<String> {
-        FILE_TYPES.iter().map(|ext| [name, ext].join("")).find(|path| filesystem::exists_find(ctx, roots, path))
+    pub fn find_texture(&self, ctx: &mut Context, roots: &Vec<String>, name: &str, ignore_ogph: bool) -> Option<String> {
+        let mut file_path: Option<String> = None;
+
+        let path = FILE_TYPES.iter().map(|ext| [name, ext].join("")).find(|path| {
+            for root in roots {
+                if ignore_ogph && root.contains("ogph/") {
+                    continue;
+                }
+
+                let mut full_path = root.to_string();
+                full_path.push_str(path);
+
+                if ctx.filesystem.exists(&full_path) {
+                    // We assume the first and last character in the root path is /
+                    file_path = Some(full_path.split_off(1));
+                    return true;
+                }
+            }
+
+            false
+        });
+
+        if path.is_some() && ignore_ogph {
+            // Return full path for "always hi-res" textures,
+            // otherwise the ogph version of the texture will be loaded by `Self::load_image`.
+            return file_path;
+        }
+
+        path
     }
 
     pub fn load_texture(
@@ -526,15 +553,17 @@ impl TextureSet {
         constants: &EngineConstants,
         name: &str,
     ) -> GameResult<Box<dyn SpriteBatch>> {
+        let ignore_ogph = constants.ignore_ogph_textures.contains(&(name.to_lowercase()));
+
         let path = self
-            .find_texture(ctx, &constants.base_paths, name)
+            .find_texture(ctx, &constants.base_paths, name, ignore_ogph)
             .ok_or_else(|| GameError::ResourceLoadError(format!("Texture \"{}\" is missing.", name)))?;
 
-        let glow_path = self.find_texture(ctx, &constants.base_paths, &[name, ".glow"].join(""));
+        let glow_path = self.find_texture(ctx, &constants.base_paths, &[name, ".glow"].join(""), ignore_ogph);
 
         info!("Loading texture: {} -> {}", name, path);
 
-        fn make_batch(name: &str, constants: &EngineConstants, batch: Box<dyn BackendTexture>) -> SubBatch {
+        fn make_batch(name: &str, constants: &EngineConstants, batch: Box<dyn BackendTexture>, ignore_ogph: bool) -> SubBatch {
             let size = batch.dimensions();
 
             let orig_dimensions = constants.tex_sizes.get(name).unwrap_or(&size);
@@ -544,7 +573,7 @@ impl TextureSet {
                     <= f32::EPSILON
                 {
                     orig_dimensions.0 as f32 / size.0 as f32
-                } else if constants.is_cs_plus && constants.base_paths.iter().any(|p| p.contains("/ogph")) {
+                } else if constants.is_cs_plus && constants.base_paths.iter().any(|p| p.contains("/ogph")) && !ignore_ogph {
                     1.0
                 } else if constants.is_cs_plus {
                     0.5
@@ -566,9 +595,9 @@ impl TextureSet {
             }
         }
 
-        let main_batch = make_batch(name, constants, self.load_image(ctx, &constants.base_paths, &path)?);
+        let main_batch = make_batch(name, constants, self.load_image(ctx, &constants.base_paths, &path)?, ignore_ogph);
         let glow_batch = if let Some(glow_path) = glow_path {
-            self.load_image(ctx, &constants.base_paths, &glow_path).ok().map(|b| make_batch(name, constants, b))
+            self.load_image(ctx, &constants.base_paths, &glow_path).ok().map(|b| make_batch(name, constants, b, ignore_ogph))
         } else {
             None
         };

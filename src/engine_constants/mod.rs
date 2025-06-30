@@ -262,6 +262,7 @@ pub struct EngineConstants {
     pub npc: NPCConsts,
     pub weapon: WeaponConsts,
     pub tex_sizes: CaseInsensitiveHashMap<(u16, u16)>,
+    pub ignore_ogph_textures: Vec<String>,
     pub textscript: TextScriptConsts,
     pub title: TitleConsts,
     pub inventory_dim_color: Color,
@@ -1423,6 +1424,10 @@ impl EngineConstants {
                 "Title" => (320, 48),
                 "triangles" => (20, 5),
             },
+            ignore_ogph_textures: vec![
+                // All in lowercase
+                "title".to_owned(),
+            ],
             textscript: TextScriptConsts {
                 encoding: TextScriptEncoding::ShiftJIS,
                 encrypted: true,

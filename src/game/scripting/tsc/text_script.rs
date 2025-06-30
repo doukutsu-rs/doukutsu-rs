@@ -1888,7 +1888,7 @@ impl TextScriptVM {
 
                 for path in &state.constants.credit_illustration_paths {
                     let path = format!("{}Credit{:02}", path, number);
-                    if state.texture_set.find_texture(ctx, &state.constants.base_paths, &path).is_some() {
+                    if state.texture_set.find_texture(ctx, &state.constants.base_paths, &path, false).is_some() {
                         state.textscript_vm.current_illustration = Some(path);
                         break;
                     }
