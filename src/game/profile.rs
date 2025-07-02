@@ -339,9 +339,7 @@ impl GameProfile {
     }
 
     pub fn write_save<W: io::Write>(&self, data: &mut W, format: &SaveFormat) -> GameResult {
-        if *format == SaveFormat::Freeware {
-            data.write_u64::<BE>(SIG_Do041220)?;
-        }
+        data.write_u64::<BE>(SIG_Do041220)?;
 
         data.write_u32::<LE>(self.current_map)?;
         data.write_u32::<LE>(self.current_song)?;
@@ -396,6 +394,7 @@ impl GameProfile {
             data.write_u32::<LE>(slot.event_num)?;
         }
 
+        // Probably map flags, but unused anyway
         let something = [0u8; 0x80];
         data.write(&something)?;
 
@@ -410,6 +409,7 @@ impl GameProfile {
         data.write_u8(self.difficulty)?;
 
         if format.is_csp() {
+            // unused(?) CS+ space
             let zeros = [0u8; 15];
             data.write(&zeros);
         }
@@ -547,6 +547,8 @@ impl SaveSlot {
 pub enum SaveFormat {
     Freeware,
     Plus,
+
+    // TODO: add version (v1.2 or v1.3)
     Switch,
     //Native,
     Generic,
@@ -556,23 +558,38 @@ impl SaveFormat {
     pub fn recognise(data: &[u8]) -> GameResult<SaveFormat> {
         let mut cur = std::io::Cursor::new(data);
         let magic = cur.read_u64::<BE>()?;
-        if magic == SIG_Do041220 {
-            let len = data.len();
-            if len >= 0x604 && len < 0x20020 {
-                return Ok(SaveFormat::Freeware);
-            } else if len >= 0x20020 && len < 0x5e0 {
-                return Ok(SaveFormat::Plus);
-            } else if len >= 0x5e0 {
-                return Ok(SaveFormat::Switch);
-            };
-        } else if magic == SIG_Do041115 {
-            // 0.9.x.x beta saves
-            return Ok(SaveFormat::Freeware);
+
+        let original_format = match magic {
+            // In CS+ a profile signature at the start of the save file is present only
+            // if the first game slot profile exists. Otherwise it will be filled with zeros.
+            // TODO: should we handle
+            SIG_Do041220 => 
+                match data.len() {
+                    0x604..=0x620 => Some(SaveFormat::Freeware),
+                    0x20020 => Some(SaveFormat::Plus),
+
+                    // 0x20fb0 — v1.2
+                    // 0x20fb4 — v1.3
+                    0x20fb0 | 0x20fb4 => Some(SaveFormat::Switch),
+                    _ => None
+                },
+
+            SIG_Do041115 => Some(SaveFormat::Freeware),
+            _ => None
+        };
+
+        if let Some(format) = original_format {
+            return Ok(format);
         }
 
-        // TODO: detect generic saves
+        // Generic save is stored in JSON format, so it must start with '{' character
+        if data[0] == '{' as u8 {
+            cur.set_position(0);
+            if serde_json::from_reader::<_, SaveContainer>(cur).is_ok() {
+                return Ok(SaveFormat::Generic);
+            }
+        }
 
-        //Ok(SaveFormat::Generic)
         Err(ResourceLoadError("Unsupported or invalid save file".to_owned()))
     }
 
@@ -756,10 +773,10 @@ impl SaveContainer {
                         let mut active_slots = [0u8; 32];
 
                         // Setting
-                        let bgm_volume = ((state.settings.bgm_volume * 10.0) as u8).min(10);
-                        let sfx_volume = ((state.settings.bgm_volume * 10.0) as u8).min(10);
+                        let bgm_volume = ((state.settings.bgm_volume * 10.0) as u32).min(10);
+                        let sfx_volume = ((state.settings.bgm_volume * 10.0) as u32).min(10);
                         let seasonal_textures = state.settings.seasonal_textures as u8;
-                        let soundtrack = match state.settings.soundtrack.as_str() {
+                        let soundtrack: u8 = match state.settings.soundtrack.as_str() {
                             "organya" => 2,
                             "new" => 3,
                             "remastered" => 4,
@@ -786,10 +803,9 @@ impl SaveContainer {
                         let mut buf = Vec::new();
                         let mut cur = std::io::Cursor::new(&mut buf);
 
-
-
-                        cur.write_u64::<BE>(SIG_Do041220)?;
-
+                        // TODO
+                        // In CS+, only slots up to the last non-empty one are written to the save file.
+                        // E.g., if the user saved only the profile in slot 3, then profiles from slots 1, 2 and 3 will be written to the file.
                         let default_profile = GameProfile::default();
                         for save_slot in 1..=3 {
                             log::debug!("Writing Game profile: {}", save_slot);
@@ -811,7 +827,7 @@ impl SaveContainer {
                             for save_slot in 1..=3 {
                                 log::debug!("Writing CSP profile: {} - {}", save_set, save_slot);
                                 let profile = if let Some(game_profile) = csp_mod.profiles.get(&save_slot) {
-                                    active_slots[save_set as usize] |= (1u8 << (save_slot - 1));
+                                    active_slots[save_set as usize] |= 1u8 << (save_slot - 1);
                                     game_profile
                                 } else {
                                     &default_profile
@@ -823,8 +839,8 @@ impl SaveContainer {
                         cur.write(&active_slots)?;
 
                         // Settings
-                        cur.write_u8(bgm_volume)?;
-                        cur.write_u8(sfx_volume)?;
+                        cur.write_u32::<LE>(bgm_volume)?;
+                        cur.write_u32::<LE>(sfx_volume)?;
                         cur.write_u8(seasonal_textures)?;
                         cur.write_u8(soundtrack)?;
                         cur.write_u8(graphics)?;
@@ -865,7 +881,7 @@ impl SaveContainer {
                             cur.write_u16::<LE>(0)?; // P2 character unlocks
                             cur.write(&something2)?;
                         } else {
-                            cur.write(&eggfish_killed);
+                            cur.write(&eggfish_killed)?;
 
                             let something = [0u8; 0x3d];
                             cur.write(&something)?;
