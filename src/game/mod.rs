@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use clap::clap_derive::Parser;
 use lazy_static::lazy_static;
 
+use log::LevelFilter as LogLevel;
 use scripting::tsc::text_script::ScriptMode;
 
 use crate::framework::backend::WindowParams;
@@ -38,7 +39,7 @@ pub mod shared_game_state;
 pub mod stage;
 pub mod weapon;
 
-#[derive(Debug, Default, Parser)]
+#[derive(Debug, Parser)]
 #[command(version, about, long_about = None)]
 pub struct LaunchOptions {
     #[arg(long, hide = cfg!(not(feature = "netplay")))]
@@ -60,6 +61,25 @@ pub struct LaunchOptions {
     #[arg(long)]
     /// Startup in fullscreen mode.
     pub window_fullscreen: bool,
+
+    #[arg(long, default_value_t = Self::default().log_level)]
+    /// The minimum level of records that will be written to the log file.
+    ///
+    /// Possible values: error, warn, info, debug, trace.
+    pub log_level: LogLevel,
+}
+
+impl Default for LaunchOptions {
+    fn default() -> Self {
+        Self {
+            server_mode: false,
+            editor: false,
+            window_height: None,
+            window_width: None,
+            window_fullscreen: false,
+            log_level: if cfg!(debug_assertions) { LogLevel::Debug } else { LogLevel::Info },
+        }
+    }
 }
 
 impl LaunchOptions {
@@ -260,13 +280,12 @@ impl Game {
     }
 }
 
-// For the most part this is just a copy-paste of the code from FilesystemContainer because it logs 
+// For the most part this is just a copy-paste of the code from FilesystemContainer because it logs
 // some messages during init, but the default logger cannot be replaced with another
 // one or deinited(so we can't create the console-only logger and replace it by the
 // console&file logger after FilesystemContainer has been initialized)
 fn get_logs_dir() -> GameResult<PathBuf> {
     let mut logs_dir: PathBuf;
-
 
     #[cfg(target_os = "android")]
     {
@@ -295,45 +314,28 @@ fn get_logs_dir() -> GameResult<PathBuf> {
 
     logs_dir.push("logs");
 
-
     Ok(logs_dir)
 }
 
-fn init_logger() -> GameResult {
+fn init_logger(options: &LaunchOptions) -> GameResult {
     let logs_dir = get_logs_dir()?;
     let _ = std::fs::create_dir_all(&logs_dir);
-    
-    
+
     let mut dispatcher = fern::Dispatch::new()
         .format(|out, message, record| {
-            out.finish(format_args!(
-                "{} [{}] {}",
-                record.level(),
-                record.module_path().unwrap().to_owned(),
-                message
-            ))
+            out.finish(format_args!("{} [{}] {}", record.level(), record.module_path().unwrap().to_owned(), message))
         })
-        .level(log::LevelFilter::Debug)
-        .chain(
-            fern::Dispatch::new()
-                .chain(std::io::stderr())
-        );
-    
-    
+        .chain(fern::Dispatch::new().chain(std::io::stderr()));
+
     let date = chrono::Utc::now();
     let mut file = logs_dir.clone();
     file.push(format!("log_{}", date.format("%Y-%m-%d")));
     file.set_extension("txt");
-    
-    dispatcher = dispatcher.chain(
-        fern::Dispatch::new()
-            .level(log::LevelFilter::Info)
-            .chain(fern::log_file(file).unwrap())
-    );
+
+    dispatcher =
+        dispatcher.chain(fern::Dispatch::new().level(options.log_level).chain(fern::log_file(file).unwrap()));
     dispatcher.apply()?;
-    
-    //log::info!("===GAME LAUNCH===");
-    
+
     Ok(())
 }
 
@@ -350,7 +352,7 @@ fn panic_hook(info: &PanicInfo<'_>) {
 }
 
 pub fn init(mut options: LaunchOptions) -> GameResult {
-    let _ = init_logger();
+    let _ = init_logger(&options);
     std::panic::set_hook(Box::new(panic_hook));
 
     let mut context = Box::pin(Context::new());

@@ -46,7 +46,7 @@ impl TextScript {
                     }
 
                     let bytecode = TextScript::compile_event(&mut iter, strict, encoding)?;
-                    log::info!("Successfully compiled event #{} ({} bytes generated).", event_num, bytecode.len());
+                    log::debug!("Successfully compiled event #{} ({} bytes generated).", event_num, bytecode.len());
                     event_map.insert(event_num, bytecode);
                 }
                 b'\r' | b'\n' | b' ' | b'\t' => {
