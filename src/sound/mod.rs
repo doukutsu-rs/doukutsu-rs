@@ -3,6 +3,7 @@ use std::io::{BufRead, BufReader, Lines};
 use std::str::FromStr;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
+use std::time::Instant;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 #[cfg(feature = "ogg-playback")]
@@ -33,6 +34,9 @@ mod pixtone_sfx;
 mod stuff;
 mod wav;
 mod wave_bank;
+
+/// Number of seconds to fade out the background music completely.
+const FADEOUT_DURATION: f32 = 5.0;
 
 pub struct SoundManager {
     soundbank: Option<SoundBank>,
@@ -628,6 +632,7 @@ where
     let mut bgm_vol_saved = 1.0_f32;
     let mut sfx_vol = 1.0_f32;
     let mut bgm_fadeout = false;
+    let mut last_fadeout = Instant::now();
     pixtone.mix(&mut pxt_buf, sample_rate);
 
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
@@ -637,11 +642,17 @@ where
         move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
             loop {
                 if bgm_fadeout && bgm_vol > 0.0 {
-                    bgm_vol -= 0.02;
-                }
+                    // Since this callback can be called at different time intervals,
+                    // we try to decrease the volume corresponding to the time elapsed since the last invocation.
+                    let elapsed = last_fadeout.elapsed().as_secs_f32();
+                    last_fadeout = Instant::now();
 
-                if bgm_vol < 0.0 {
-                    bgm_vol = 0.0;
+                    let step = bgm_vol_saved / FADEOUT_DURATION * elapsed;
+                    bgm_vol -= step;
+
+                    if bgm_vol < 0.0 {
+                        bgm_vol = 0.0;
+                    }
                 }
 
                 match rx.try_recv() {
@@ -749,6 +760,7 @@ where
                     Ok(PlaybackMessage::FadeoutSong) => {
                         bgm_fadeout = true;
                         bgm_vol_saved = bgm_vol;
+                        last_fadeout = Instant::now();
                     }
                     Ok(PlaybackMessage::SaveState) => {
                         saved_state = match state {
