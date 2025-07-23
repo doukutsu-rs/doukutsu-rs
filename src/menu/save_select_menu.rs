@@ -1,12 +1,15 @@
+use pelite::pe::imports::Import;
+
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
-use crate::game::profile::{GameProfile, SaveContainer, SaveFormat, SaveSlot};
+use crate::game::profile::{GameProfile, SaveContainer, SaveFormat, SaveParams, SaveSlot};
 use crate::game::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::coop_menu::PlayerCountMenu;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
+use crate::util::file_picker::FilePickerParams;
 
 #[derive(Clone, Copy)]
 pub struct MenuSaveInfo {
@@ -91,19 +94,141 @@ impl Default for LoadConfirmMenuEntry {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ImportExportMenuEntry {
-    Format(SaveFormat),
-    ExportLocation,
+    Format,
+    Import,
+    Export,
     Back,
+}
+
+#[derive(Clone, Copy)]
+enum ImportExportLocation {
+    Filesystem,
+    // TODO: add some Switch emulators
+}
+
+impl Default for ImportExportLocation {
+    fn default() -> Self {
+        Self::Filesystem
+    }
+}
+
+#[derive(Clone)]
+pub struct MenuExportInfo {
+    pub location: ImportExportLocation,
+    pub format: SaveFormat,
+    pub picker_params: FilePickerParams,
+    pub save_params: SaveParams,
+}
+
+impl Default for MenuExportInfo {
+    fn default() -> Self {
+        Self {
+            location: ImportExportLocation::Filesystem,
+            format: SaveFormat::Freeware,
+            picker_params: FilePickerParams::new(),
+            save_params: SaveParams::default()
+        }
+    }
+} 
+
+impl MenuExportInfo {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn set_picker_params(&mut self, state: &SharedGameState, is_export: bool) {
+        let filename = SaveContainer::get_save_filename(&self.format, None).split_off(1);
+
+        let mut params = match self.format {
+            SaveFormat::Freeware => {
+                FilePickerParams::new()
+                    .pick_dirs(true)
+            }
+            SaveFormat::Plus | SaveFormat::Switch => {
+                FilePickerParams::new()
+                    .file_name(Some(filename))
+                    .filter(state.loc.ts("menus.save_manage_menu.file_filters.plus"), vec![
+                        "dat".to_owned()
+                    ])
+            }
+            SaveFormat::Generic => {
+                FilePickerParams::new()
+                    .file_name(Some(filename))
+                    .filter(state.loc.ts("menus.save_manage_menu.file_filters.generic"), vec![
+                        "json".to_owned()
+                    ])
+            }
+        };
+
+        if is_export {
+            params = params.save(true);
+        };
+
+        if let Some(fs_container) = &state.fs_container {
+            params = params.starting_dir(Some(fs_container.user_path.clone()));
+        }
+
+        self.picker_params = params;
+    }
+}
+
+
+impl ImportExportMenuEntry {
+    fn format_from_value(val: usize) -> Option<SaveFormat> {
+        match val {
+            0 => None, // Auto
+            1 => Some(SaveFormat::Freeware),
+            2 => Some(SaveFormat::Plus),
+            3 => Some(SaveFormat::Switch),
+            _ => unreachable!()
+        }
+    }
+
+    fn fpicker_from_format(state: &SharedGameState, format: SaveFormat, is_export: bool) -> FilePickerParams {
+        let filename = SaveContainer::get_save_filename(&format, None).split_off(1);
+
+        let mut params = match format {
+            SaveFormat::Freeware => {
+                FilePickerParams::new()
+                    .pick_dirs(true)
+            }
+            SaveFormat::Plus | SaveFormat::Switch => {
+                FilePickerParams::new()
+                    .file_name(Some(filename))
+                    .filter(state.loc.ts("menus.save_manage_menu.file_filters.plus"), vec![
+                        "dat".to_owned()
+                    ])
+            }
+            SaveFormat::Generic => {
+                FilePickerParams::new()
+                    .file_name(Some(filename))
+                    .filter(state.loc.ts("menus.save_manage_menu.file_filters.generic"), vec![
+                        "json".to_owned()
+                    ])
+            }
+        };
+
+        if is_export && format != SaveFormat::Freeware {
+            params = params.save(true);
+        };
+
+        if let Some(fs_container) = &state.fs_container {
+            params = params.starting_dir(Some(fs_container.user_path.clone()));
+        }
+
+        params
+    }
 }
 
 impl Default for ImportExportMenuEntry {
     fn default() -> Self {
-        ImportExportMenuEntry::Format(SaveFormat::Freeware)
+        ImportExportMenuEntry::Format
     }
 }
 
 pub struct SaveSelectMenu {
     pub saves: [MenuSaveInfo; 3],
+    pub export_info: MenuExportInfo,
     current_menu: CurrentMenu,
     save_menu: Menu<SaveMenuEntry>,
     save_detailed: Menu<usize>,
@@ -119,6 +244,7 @@ impl SaveSelectMenu {
     pub fn new() -> SaveSelectMenu {
         SaveSelectMenu {
             saves: [MenuSaveInfo::default(); 3],
+            export_info: MenuExportInfo::default(),
             current_menu: CurrentMenu::SaveMenu,
             save_menu: Menu::new(0, 0, 230, 0),
             coop_menu: PlayerCountMenu::new(),
@@ -139,6 +265,7 @@ impl SaveSelectMenu {
         self.difficulty_menu = Menu::new(0, 0, 130, 0);
         self.delete_confirm = Menu::new(0, 0, 75, 0);
         self.load_confirm = Menu::new(0, 0, 75, 0);
+        self.import_export_menu = Menu::new(0, 0, 75, 0);
         self.skip_difficulty_menu = false;
 
         let mut should_mutate_selection = true;
@@ -147,7 +274,7 @@ impl SaveSelectMenu {
         for (iter, save) in self.saves.iter_mut().enumerate() {
             if let Some(slot) = state.get_save_slot(iter + 1) {
                 if let Some(loaded_profile) = save_container.get_profile(slot) {
-                    log::debug!("Loading save select menu. Iter - {}. {}", iter, loaded_profile.is_empty());
+                    log::trace!("Loading save select menu. Iter - {}. {}", iter, loaded_profile.is_empty());
                     save.current_map = loaded_profile.current_map;
                     save.max_life = loaded_profile.max_life;
                     save.life = loaded_profile.life;
@@ -179,7 +306,7 @@ impl SaveSelectMenu {
             }
         }
 
-        self.save_menu.push_entry(SaveMenuEntry::ImportExport, MenuEntry::Disabled(state.loc.t("menus.save_manage_menu.import_export_save").to_owned()));
+        self.save_menu.push_entry(SaveMenuEntry::ImportExport, MenuEntry::Active(state.loc.ts("menus.save_manage_menu.import_export_save")));
         self.save_menu.push_entry(SaveMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.difficulty_menu.push_entry(
@@ -202,8 +329,6 @@ impl SaveSelectMenu {
             .push_entry(DifficultyMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.difficulty_menu.selected = DifficultyMenuEntry::Difficulty(GameDifficulty::Normal);
-
-        //self.coop_menu.init(state, ctx);
 
         self.delete_confirm.push_entry(
             DeleteConfirmMenuEntry::Title,
@@ -232,6 +357,37 @@ impl SaveSelectMenu {
         if let (_, MenuEntry::SaveData(save)) = self.save_menu.entries[0] {
             self.save_detailed.push_entry(0, MenuEntry::SaveDataSingle(save));
         }
+
+        self.export_info.format = state.settings.save_format;
+        //self.export_info.set_picker_params(state, true);
+
+        self.import_export_menu.push_entry(
+            ImportExportMenuEntry::Format,
+            MenuEntry::Options(
+                state.loc.ts("menus.save_manage_menu.save_format.entry"),
+                0,
+                vec![
+                    state.loc.ts("menus.save_manage_menu.save_format.auto"),
+                    state.loc.ts("menus.save_manage_menu.save_format.freeware"),
+                    state.loc.ts("menus.save_manage_menu.save_format.plus"),
+                    state.loc.ts("menus.save_manage_menu.save_format.switch"),
+                ]
+            )
+        );
+        self.import_export_menu.push_entry(
+            ImportExportMenuEntry::Import, 
+            MenuEntry::Disabled(state.loc.ts("menus.save_manage_menu.action_type.import"))
+        );
+        self.import_export_menu.push_entry(
+            ImportExportMenuEntry::Export,
+            MenuEntry::FilePicker(
+                state.loc.ts("menus.save_manage_menu.action_type.export"),
+                false,
+                ImportExportMenuEntry::fpicker_from_format(state, self.export_info.format, true),
+                None
+            )
+        );
+        self.import_export_menu.push_entry(ImportExportMenuEntry::Back, MenuEntry::Active(state.loc.ts("common.back")));
 
         self.update_sizes(state);
 
@@ -268,6 +424,11 @@ impl SaveSelectMenu {
         self.save_detailed.update_height(state);
         self.save_detailed.x = ((state.canvas_size.0 - self.save_detailed.width as f32) / 2.0).floor() as isize;
         self.save_detailed.y = -40 + ((state.canvas_size.1 - self.save_detailed.height as f32) / 2.0).floor() as isize;
+
+        self.import_export_menu.update_width(state);
+        self.import_export_menu.update_height(state);
+        self.import_export_menu.x = ((state.canvas_size.0 - self.import_export_menu.width as f32) / 2.0).floor() as isize;
+        self.import_export_menu.y = ((state.canvas_size.1 - self.import_export_menu.height as f32) / 2.0).floor() as isize;
     }
 
     pub fn tick(
@@ -301,19 +462,10 @@ impl SaveSelectMenu {
 
                     self.current_menu = CurrentMenu::LoadConfirm;
                     self.load_confirm.selected = LoadConfirmMenuEntry::Start;
-/*
-                    if let Ok(_) =
-                        filesystem::user_open(ctx, state.get_save_filename(state.save_slot).unwrap_or(String::new()))
-                    {
-                        if let (_, MenuEntry::SaveData(save)) = self.save_menu.entries[slot] {
-                            self.save_detailed.entries.clear();
-                            self.save_detailed.push_entry(0, MenuEntry::SaveDataSingle(save));
-                        }
-
-                        self.current_menu = CurrentMenu::LoadConfirm;
-                        self.load_confirm.selected = LoadConfirmMenuEntry::Start;
-                    }
-*/
+                }
+                MenuSelectionResult::Selected(SaveMenuEntry::ImportExport, _) => {
+                    self.current_menu = CurrentMenu::ImportExport;
+                    self.import_export_menu.selected = ImportExportMenuEntry::Back;
                 }
                 _ => (),
             },
@@ -344,12 +496,9 @@ impl SaveSelectMenu {
                     match self.save_menu.selected {
                         SaveMenuEntry::Load(slot) => {
                             state.sound_manager.play_sfx(17); // Player Death sfx
-                            //filesystem::user_delete(ctx, state.get_save_filename(slot + 1).unwrap_or(String::new()))?;
                             let mut save = SaveContainer::load(ctx, state)?;
-                            //let mod_id = state.get_save_mod_id();
                             save.delete_profile(&ctx, state.get_save_slot(slot + 1).unwrap());
-                            //save.write_save(ctx, state, SaveFormat::Generic, None, None);
-                            save.save(ctx, state);
+                            save.save(ctx, state, SaveParams::default())?;
                         }
                         _ => (),
                     }
@@ -381,7 +530,67 @@ impl SaveSelectMenu {
                 }
                 _ => (),
             },
-            CurrentMenu::ImportExport => todo!(),
+            CurrentMenu::ImportExport => match self.import_export_menu.tick(controller, state) {
+                MenuSelectionResult::Selected(ImportExportMenuEntry::Format, toggle)
+                | MenuSelectionResult::Right(ImportExportMenuEntry::Format, toggle, _) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        *value = match *value {
+                            0..3 => *value + 1,
+                            3 => 0,
+                            _ => unreachable!(),
+                        };
+
+                        let format = ImportExportMenuEntry::format_from_value(*value).unwrap_or(state.settings.save_format);
+                        self.export_info.format = format;
+                        self.export_info.picker_params = ImportExportMenuEntry::fpicker_from_format(state, format, true);
+
+                        let export_file_picker = self.import_export_menu.get_entry_mut(ImportExportMenuEntry::Export).unwrap();
+                        if let MenuEntry::FilePicker(_, _, params, _) = export_file_picker {
+                            *params = self.export_info.picker_params.clone();
+                        }
+                    }
+                }
+                MenuSelectionResult::Left(ImportExportMenuEntry::Format, toggle, _) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        *value = match *value {
+                            1..=3 => *value - 1,
+                            0 => 3,
+                            _ => unreachable!(),
+                        };
+
+                        let format = ImportExportMenuEntry::format_from_value(*value).unwrap_or(state.settings.save_format);
+                        self.export_info.format = format;
+                        self.export_info.picker_params = ImportExportMenuEntry::fpicker_from_format(state, format, true);
+
+                        let export_file_picker = self.import_export_menu.get_entry_mut(ImportExportMenuEntry::Export).unwrap();
+                        if let MenuEntry::FilePicker(_, _, params, _) = export_file_picker {
+                            *params = self.export_info.picker_params.clone();
+                        }
+                    }
+                }
+                MenuSelectionResult::Selected(ImportExportMenuEntry::Export, entry) => {
+                    let out_path = if let MenuEntry::FilePicker(_, _, _, selection) = entry {
+                        if let Some(location) = selection {
+                            location.first()
+                        } else {
+                            None
+                        }
+                    } else { None };
+
+                    if out_path.is_none() {
+                        // Export path is not selected, so we break export operation
+                        return Ok(());
+                    }
+
+
+                    let mut save_container = SaveContainer::load(ctx, state)?;
+                    save_container.export(state, ctx, self.export_info.format, self.export_info.save_params.clone(), out_path.unwrap().clone())?;
+                }
+                MenuSelectionResult::Selected(ImportExportMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
+                    self.current_menu = CurrentMenu::SaveMenu;
+                }
+                _ => (),
+            },
         }
 
         Ok(())
@@ -406,7 +615,9 @@ impl SaveSelectMenu {
                 self.save_detailed.draw(state, ctx)?;
                 self.load_confirm.draw(state, ctx)?;
             }
-            CurrentMenu::ImportExport => todo!()
+            CurrentMenu::ImportExport => {
+                self.import_export_menu.draw(state, ctx)?;
+            }
         }
         Ok(())
     }

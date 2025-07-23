@@ -83,6 +83,7 @@ num-traits = "0.2"
 paste = "1.0"
 pelite = { version = ">=0.9.2", default-features = false, features = ["std"] }
 rc-box = "1.2.0"
+rfd = "0.15.4"
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_cbor = { version = "0.11", optional = true }
