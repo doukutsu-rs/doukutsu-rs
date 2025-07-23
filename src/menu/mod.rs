@@ -1,4 +1,6 @@
 use std::cell::Cell;
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 use crate::common::{Color, Rect};
 use crate::components::draw_common::{draw_number, Alignment};
@@ -9,6 +11,7 @@ use crate::game::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameSt
 use crate::graphics::font::Font;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::save_select_menu::MenuSaveInfo;
+use crate::util::file_picker::{open_file_picker, FilePickerParams};
 
 pub mod controls_menu;
 pub mod coop_menu;
@@ -17,6 +20,7 @@ pub mod save_select_menu;
 pub mod settings_menu;
 
 const MENU_MIN_PADDING: f32 = 30.0;
+const MENU_DISABLED_COLOR: (u8, u8, u8, u8) = (0xa0, 0xa0, 0xff, 0xff);
 
 #[derive(Clone, Debug)]
 pub enum ControlMenuData {
@@ -43,6 +47,7 @@ pub enum MenuEntry {
     PlayerSkin,
     Control(String, ControlMenuData),
     Spacer(f64),
+    FilePicker(String, bool, FilePickerParams, Option<Vec<PathBuf>>), // text, display selected file names, params, selected files/dirs
 }
 
 impl MenuEntry {
@@ -64,6 +69,7 @@ impl MenuEntry {
             MenuEntry::PlayerSkin => 24.0,
             MenuEntry::Control(_, _) => 16.0,
             MenuEntry::Spacer(height) => *height,
+            MenuEntry::FilePicker(_, _, _, _) => 16.0,
         }
     }
 
@@ -85,6 +91,7 @@ impl MenuEntry {
             MenuEntry::PlayerSkin => true,
             MenuEntry::Control(_, _) => true,
             MenuEntry::Spacer(_) => false,
+            MenuEntry::FilePicker(_, _, _, _) => true,
         }
     }
 }
@@ -97,6 +104,7 @@ pub enum MenuSelectionResult<'a, T: std::cmp::PartialEq> {
     Right(T, &'a mut MenuEntry, i16),
 }
 
+#[derive(Clone)]
 pub struct Menu<T: std::cmp::PartialEq> {
     pub x: isize,
     pub y: isize,
@@ -152,6 +160,26 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                 return;
             }
         }
+    }
+
+    pub fn get_entry(&self, id: T) -> Option<&MenuEntry> {
+        for i in 0..self.entries.len() {
+            if self.entries[i].0 == id {
+                return Some(&self.entries[i].1);
+            }
+        }
+
+        None
+    }
+
+    pub fn get_entry_mut(&mut self, id: T) -> Option<&mut MenuEntry> {
+        for i in 0..self.entries.len() {
+            if self.entries[i].0 == id {
+                return Some(&mut self.entries[i].1);
+            }
+        }
+
+        None
     }
 
     pub fn update_width(&mut self, state: &SharedGameState) {
@@ -216,7 +244,25 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                 MenuEntry::NewSave => {}
                 MenuEntry::PlayerSkin => {}
                 MenuEntry::Control(_, _) => {}
-                MenuEntry::Spacer(_) => {}
+                MenuEntry::Spacer(_) => {},
+                MenuEntry::FilePicker(entry, display, _, selection) => {
+                    let mut entry_with_selection = entry.clone();
+
+                    if *display {
+                        entry_with_selection.push_str(" ");
+
+                        let filename = selection.as_ref()
+                            .and_then(|files| files.first())
+                            .and_then(|file| file.file_name())
+                            .and_then(|filename| filename.to_str())
+                            .unwrap_or(state.loc.t("common.choose_file"));
+
+                        entry_with_selection.push_str(filename);
+                    }
+
+                    let entry_width = state.font.builder().compute_width(&entry_with_selection) + 32.0;
+                    width = width.max(entry_width);
+                },
             }
         }
 
@@ -353,21 +399,22 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
         batch.draw(ctx)?;
 
         let options_x = if self.center_options {
-            let mut longest_option_width = 20.0;
+            let mut longest_entry_width = 20.0;
 
             for (_, entry) in &self.entries {
-                match entry {
+                let text_width = match entry {
                     MenuEntry::Options(text, _, _) | MenuEntry::Active(text) => {
-                        let text_width = state.font.builder().compute_width(text) + 32.0;
-                        if text_width > longest_option_width {
-                            longest_option_width = text_width;
-                        }
+                        state.font.builder().compute_width(text) + 32.0
                     }
-                    _ => {}
+                    _ => 0.0
+                };
+
+                if text_width > longest_entry_width {
+                    longest_entry_width = text_width;
                 }
             }
 
-            (state.canvas_size.0 / 2.0) - (longest_option_width / 2.0)
+            (state.canvas_size.0 / 2.0) - (longest_entry_width / 2.0)
         } else {
             self.x as f32
         };
@@ -471,7 +518,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         let mut builder = state.font.builder().position(x, local_y);
 
                         if !*is_white {
-                            builder = builder.color((0xa0, 0xa0, 0xff, 0xff));
+                            builder = builder.color(MENU_DISABLED_COLOR);
                         }
 
                         builder.draw(&line, ctx, &state.constants, &mut state.texture_set)?;
@@ -482,7 +529,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     y += entry.height() as f32 * (lines.len() - 1) as f32;
                 }
                 MenuEntry::Disabled(name) => {
-                    state.font.builder().position(self.x as f32 + 20.0, y).color((0xa0, 0xa0, 0xff, 0xff)).draw(
+                    state.font.builder().position(self.x as f32 + 20.0, y).color(MENU_DISABLED_COLOR).draw(
                         name,
                         ctx,
                         &state.constants,
@@ -548,7 +595,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         .font
                         .builder()
                         .position(self.x as f32 + 20.0, y + 16.0)
-                        .color((0xc0, 0xc0, 0xff, 0xff))
+                        .color(MENU_DISABLED_COLOR)
                         .draw(description_text, ctx, &state.constants, &mut state.texture_set)?;
                 }
                 MenuEntry::OptionsBar(name, percent) => {
@@ -739,6 +786,42 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         }
                     }
                 }
+                MenuEntry::FilePicker(name, display, _, selection) => {
+                    // TODO: fix text is rendered out of the text box bounds if the filename is too long.
+
+                    let name_text_len = state.font.builder().compute_width(name);
+                    let value_text = selection.as_ref()
+                        .and_then(|files| files.first())
+                        .and_then(|file| file.file_name())
+                        .and_then(|filename| filename.to_str())
+                        .unwrap_or(state.loc.t("common.choose_file"));
+
+                    // Draw the entry as disabled on unsupported platforms
+                    let text_color = if cfg!(not(any(target_os = "android", target_os = "horizon"))) {
+                        state.font.builder().get_color()
+                    } else {
+                        MENU_DISABLED_COLOR
+                    };
+
+                    state.font.builder().position(self.x as f32 + 20.0, y)
+                        .draw(
+                            name,
+                            ctx,
+                            &state.constants,
+                            &mut state.texture_set,
+                        )?;
+
+                    if *display {
+                        state.font.builder()
+                            .position(self.x as f32 + 25.0 + name_text_len, y)
+                            .draw(
+                                value_text,
+                                ctx,
+                                &state.constants,
+                                &mut state.texture_set,
+                            )?;
+                    }
+                }
                 _ => {}
             }
 
@@ -879,6 +962,18 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     {
                         state.sound_manager.play_sfx(18);
                         self.selected = idx.clone();
+                        return MenuSelectionResult::Selected(idx, entry);
+                    }
+                }
+                MenuEntry::FilePicker(_, _, params, selection) => {
+                    if self.selected == idx && controller.trigger_ok()
+                        || state.touch_controls.consume_click_in(entry_bounds)
+                    {
+                        state.sound_manager.play_sfx(18);
+                        self.selected = idx.clone();
+
+                        *selection = open_file_picker(params);
+
                         return MenuSelectionResult::Selected(idx, entry);
                     }
                 }

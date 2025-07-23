@@ -4,7 +4,8 @@ use std::fs::File;
 use std::io;
 use std::io::{Read, Write};
 use std::marker::Copy;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use byteorder::{BE, LE, ReadBytesExt, WriteBytesExt};
 use num_traits::{clamp, FromPrimitive};
@@ -14,7 +15,7 @@ use serde_with::serde_as;
 use crate::common::{Direction, FadeState, get_timestamp};
 use crate::components::nikumaru::NikumaruCounter;
 use crate::framework::context::Context;
-use crate::framework::error::GameError::ResourceLoadError;
+use crate::framework::error::GameError::{self, ResourceLoadError};
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::{user_create, user_delete, user_exists, user_open};
 use crate::game::player::{ControlMode, TargetPlayer};
@@ -518,7 +519,7 @@ impl GameProfile {
 
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum SaveSlot {
     MainGame(usize), // (save slot)
     CSPMod(u8, usize), // (mod save set, save_slot)
@@ -550,7 +551,6 @@ pub enum SaveFormat {
 
     // TODO: add version (v1.2 or v1.3)
     Switch,
-    //Native,
     Generic,
 }
 
@@ -617,33 +617,38 @@ impl CSPModProfile {
 }
 
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum SavePatch {
-    Added(SaveSlot),
-    Modified(SaveSlot),
-    Deleted(SaveSlot)
+    Added,
+    Modified,
+    Deleted
 }
 
+#[derive(Clone, Debug)]
+pub struct SaveParams {
+    pub slots: Vec<SaveSlot>,
+    pub settings: bool,
+}
+
+impl Default for SaveParams {
+    fn default() -> Self {
+        // Import/export all slots by default
+        Self {
+            slots: vec![],
+            settings: true
+        }
+    }
+}
 
 // Generic container to store all possible info from original game saves
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SaveContainer {
     pub version: usize,
-
-    // We're intended to use heap containers like `Vec` or `HashMap`, as using of size-fixed arrays cause stack overflow
-    // while a save parsing.
-    // Some useless calculations: `GameProfile` occupies ~1.5KB, original CS+ Switch save format
-    // can save 3 main game profiles + 78 mod profiles = 81 `GameProfile` structs. So to load such save we need ~120KB.
-    // That's not too much, but for unknown reason `serde` fails to parse such "huge" struct, even when the app compiled
-    // with 8-32MB stack. I didn't explore this problem deeply, but in debugger some references that passed to the
-    // internal serde functions are null. Use of `serde_stacker` to "extend" the stack capacity, available for parsing,
-    // doesn't help either.
-
     pub game_profiles: HashMap<usize, GameProfile>,
     pub csp_mods: HashMap<u8, CSPModProfile>, // save_set number -> saves & time
 
     #[serde(skip)]
-    patchset: Vec<SavePatch>,
+    patchset: HashMap<SaveSlot, SavePatch>,
     // TODO: engine and mods specific fields
 }
 
@@ -655,7 +660,7 @@ impl Default for SaveContainer {
             game_profiles: HashMap::new(),
             csp_mods: HashMap::new(),
 
-            patchset: Vec::new(),
+            patchset: HashMap::new(),
         }
     }
 }
@@ -687,25 +692,21 @@ impl SaveContainer {
         log::debug!("DEBUG LOAD SAVE - DEFAULT CREATED");
 
         let mut container = SaveContainer::default();
-        container.write_save(ctx, state, SaveFormat::Generic, None, None)?;
+        //container.write_save(ctx, state, SaveFormat::Generic, None, None, &SaveParams::default())?;
         Ok(container)
     }
 
-    pub fn save(&mut self, ctx: &mut Context, state: &mut SharedGameState) -> GameResult {
-        self.write_save(ctx, state, SaveFormat::Generic, None, None)?;
-        self.write_save(ctx, state, state.settings.save_format, None, None)?;
+    pub fn save(&mut self, ctx: &mut Context, state: &mut SharedGameState, params: SaveParams) -> GameResult {
+        self.write_save(ctx, state, SaveFormat::Generic, None, None, &params)?;
+        self.write_save(ctx, state, state.settings.save_format, None, None, &params)?;
+        self.patchset.clear();
         Ok(())
     }
 
-    pub fn write_save(&mut self, ctx: &mut Context, state: &mut SharedGameState, format: SaveFormat, slot: Option<SaveSlot>, out_path: Option<String>) -> GameResult {
+    pub fn write_save(&mut self, ctx: &mut Context, state: &mut SharedGameState, format: SaveFormat, slot: Option<SaveSlot>, mut out_path: Option<PathBuf>, params: &SaveParams) -> GameResult {
         log::debug!("DEBUG WRITE SAVE");
 
         let save_path = Self::get_save_filename(&format, slot.clone());
-        let mut patchset: Vec<SavePatch> = vec![];
-        if format != SaveFormat::Generic {
-            // TODO: maybe use `replace`?
-            patchset = std::mem::take(&mut self.patchset);
-        }
 
         match format {
             SaveFormat::Generic => {
@@ -718,181 +719,190 @@ impl SaveContainer {
                 file.flush()?
             },
             SaveFormat::Freeware => {
-                if let Some(save_slot) = slot {
-                    // TODO: write only provided slot
-                } else {
-                    if let Some(path) = out_path {
-                        let base_dir = std::path::Path::new(&path);
-                        if !base_dir.is_dir() {
-                            // Provided path is a file. So export only the first profile.
-                            // TODO
-                        }
+                for (save_slot, profile) in &self.game_profiles {
+                    if params.slots.is_empty() || params.slots.contains(&SaveSlot::MainGame(*save_slot)) {
+                        let mut buf = Vec::new();
+                        let mut cur = std::io::Cursor::new(&mut buf);
+                        profile.write_save(&mut cur, &format)?;
 
-                        // TODO
-                    } else {
-                        // Export all profiles
-                        for (save_slot, profile) in &self.game_profiles {
+                        let mut filename = Self::get_save_filename(&format, Some(SaveSlot::MainGame(*save_slot)));
+                        if let Some(path) = &mut out_path {
+                            let os_filename = OsString::from_str(filename.split_off(1).as_str()).unwrap();
+                            let _ = path.set_file_name(os_filename);
+
+                            let mut file = File::create(path)?;
+                            file.write_all(&buf)?;
+                        } else {
+                            let mut file = user_create(ctx, filename)?;
+                            file.write_all(&buf)?;
+                        }
+                    }
+                }
+
+                for (save_set, csp_mod) in &self.csp_mods {
+                    for (slot, profile) in &csp_mod.profiles {
+                        if params.slots.is_empty() || params.slots.contains(&SaveSlot::CSPMod(*save_set, *slot)) {
                             let mut buf = Vec::new();
                             let mut cur = std::io::Cursor::new(&mut buf);
                             profile.write_save(&mut cur, &format)?;
 
-                            let mut file = user_create(ctx, Self::get_save_filename(&format, Some(SaveSlot::MainGame(*save_slot))))?;
-                            file.write_all(&buf);
-                            file.flush()?;
-                        }
+                            let mut filename = Self::get_save_filename(&format, Some(SaveSlot::CSPMod(*save_set, *slot)));
+                            if let Some(path) = &mut out_path {
+                                let os_filename = OsString::from_str(filename.split_off(1).as_str()).unwrap();
+                                let _ = path.set_file_name(os_filename);
 
-                        for (save_set, csp_mod) in &self.csp_mods {
-                            for (slot, profile) in &csp_mod.profiles {
-                                let mut buf = Vec::new();
-                                let mut cur = std::io::Cursor::new(&mut buf);
-                                profile.write_save(&mut cur, &format)?;
-
-                                let mut file = user_create(ctx, Self::get_save_filename(&format, Some(SaveSlot::CSPMod(*save_set, *slot))))?;
-                                file.write_all(&buf);
-                                file.flush()?;
-                            }
-                        }
-
-                        for save_patch in patchset.iter() {
-                            if let SavePatch::Deleted(save_slot) = save_patch {
-                                user_delete(ctx, Self::get_save_filename(&format, Some(save_slot.clone())));
+                                let mut file = File::create(path)?;
+                                file.write_all(&buf)?;
+                            } else {
+                                let mut file = user_create(ctx, filename)?;
+                                file.write_all(&buf)?;
                             }
                         }
                     }
                 }
+
+                for (patch_slot, patch_state) in self.patchset.iter() {
+                    if *patch_state == SavePatch::Deleted {
+                        // TODO: should we unwrap the result?
+                        user_delete(ctx, Self::get_save_filename(&format, Some(patch_slot.clone())))?;
+                    }
+                }
             },
             SaveFormat::Plus | SaveFormat::Switch => {
-                if let Some(save_slot) = slot {
-                     // TODO: write only provided slot
-                } else {
-                    if let Some(path) = out_path {
-                        // TODO
+                let mut active_slots = [0u8; 32];
+
+                // Setting
+                let bgm_volume = ((state.settings.bgm_volume * 10.0) as u32).min(10);
+                let sfx_volume = ((state.settings.bgm_volume * 10.0) as u32).min(10);
+                let seasonal_textures = state.settings.seasonal_textures as u8;
+                let soundtrack: u8 = match state.settings.soundtrack.as_str() {
+                    "organya" => 2,
+                    "new" => 3,
+                    "remastered" => 4,
+                    "famitracks" => 5,
+                    "ridiculon" => 6,
+                    _ => 2 // Fallback to Organya
+                };
+                let graphics = state.settings.original_textures as u8;
+                let language = (state.settings.locale == "jp") as u8;
+                let beaten_hell = state.mod_requirements.beat_hell as u8;
+                let unused = [0u8; 14];
+                let mut jukebox: [u8; 48] = [
+                    0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
+                    0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
+                    0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
+                    0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
+                    0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
+                    0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80
+                ]; // TODO
+                let mut eggfish_killed = [0u8; 3];
+                let mut nikumaru = NikumaruCounter::new();
+                nikumaru.load_counter(state, ctx);
+
+                let mut buf = Vec::new();
+                let mut cur = std::io::Cursor::new(&mut buf);
+
+                // TODO
+                // In CS+, only slots up to the last non-empty one are written to the save file.
+                // E.g., if the user saved only the profile in slot 3, then profiles from slots 1, 2 and 3 will be written to the file.
+                let default_profile = GameProfile::default();
+                for save_slot in 1..=3 {
+                    let profile = if params.slots.is_empty() || params.slots.contains(&SaveSlot::MainGame(save_slot)) {
+                        log::debug!("Writing Game profile: {}", save_slot);
+                        if let Some(game_profile) = self.game_profiles.get(&save_slot) {
+                            active_slots[0] |= 1u8 << (save_slot - 1);
+                            game_profile
+                        } else {
+                            &default_profile
+                        }
                     } else {
-                        // Export all profiles
+                        &default_profile
+                    };
 
-                        let mut active_slots = [0u8; 32];
+                    profile.write_save(&mut cur, &format)?;
 
-                        // Setting
-                        let bgm_volume = ((state.settings.bgm_volume * 10.0) as u32).min(10);
-                        let sfx_volume = ((state.settings.bgm_volume * 10.0) as u32).min(10);
-                        let seasonal_textures = state.settings.seasonal_textures as u8;
-                        let soundtrack: u8 = match state.settings.soundtrack.as_str() {
-                            "organya" => 2,
-                            "new" => 3,
-                            "remastered" => 4,
-                            "famitracks" => 5,
-                            "ridiculon" => 6,
-                            _ => 2 // Fallback to Organya
-                        };
-                        let graphics = state.settings.original_textures as u8;
-                        let language = (state.settings.locale == "jp") as u8;
-                        let beaten_hell = state.mod_requirements.beat_hell as u8;
-                        let unused = [0u8; 14];
-                        let mut jukebox: [u8; 48] = [
-                            0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
-                            0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
-                            0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
-                            0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
-                            0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
-                            0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80
-                        ]; // TODO
-                        let mut eggfish_killed = [0u8; 3];
-                        let mut nikumaru = NikumaruCounter::new();
-                        nikumaru.load_counter(state, ctx);
+                    eggfish_killed[save_slot - 1] = profile.eggfish_killed as u8;
+                }
 
-                        let mut buf = Vec::new();
-                        let mut cur = std::io::Cursor::new(&mut buf);
-
-                        // TODO
-                        // In CS+, only slots up to the last non-empty one are written to the save file.
-                        // E.g., if the user saved only the profile in slot 3, then profiles from slots 1, 2 and 3 will be written to the file.
-                        let default_profile = GameProfile::default();
-                        for save_slot in 1..=3 {
-                            log::debug!("Writing Game profile: {}", save_slot);
-                            let profile = if let Some(game_profile) = self.game_profiles.get(&save_slot) {
-                                active_slots[0] |= 1u8 << (save_slot - 1);
+                let default_csp_profile = CSPModProfile::default();
+                for save_set in 1..=26 {
+                    let csp_mod = self.csp_mods.get(&save_set).unwrap_or(&default_csp_profile);
+                    for save_slot in 1..=3 {
+                        let profile = if params.slots.is_empty() || params.slots.contains(&SaveSlot::CSPMod(save_set, save_slot)) {
+                            log::debug!("Writing CSP profile: {} - {}", save_set, save_slot);
+                            if let Some(game_profile) = csp_mod.profiles.get(&save_slot) {
+                                active_slots[save_set as usize] |= 1u8 << (save_slot - 1);
                                 game_profile
                             } else {
                                 &default_profile
-                            };
-
-                            profile.write_save(&mut cur, &format)?;
-
-                            eggfish_killed[save_slot - 1] = profile.eggfish_killed as u8;
-                        }
-
-                        let default_csp_profile = CSPModProfile::default();
-                        for save_set in 1..=26 {
-                            let csp_mod = self.csp_mods.get(&save_set).unwrap_or(&default_csp_profile);
-                            for save_slot in 1..=3 {
-                                log::debug!("Writing CSP profile: {} - {}", save_set, save_slot);
-                                let profile = if let Some(game_profile) = csp_mod.profiles.get(&save_slot) {
-                                    active_slots[save_set as usize] |= 1u8 << (save_slot - 1);
-                                    game_profile
-                                } else {
-                                    &default_profile
-                                };
-                                profile.write_save(&mut cur, &format)?;
                             }
-                        }
-
-                        cur.write(&active_slots)?;
-
-                        // Settings
-                        cur.write_u32::<LE>(bgm_volume)?;
-                        cur.write_u32::<LE>(sfx_volume)?;
-                        cur.write_u8(seasonal_textures)?;
-                        cur.write_u8(soundtrack)?;
-                        cur.write_u8(graphics)?;
-                        cur.write_u8(language)?;
-                        cur.write_u8(beaten_hell)?;
-
-                        // TODO
-                        // TODO: write some fields only in the v1.3 version mode
-                        if format == SaveFormat::Switch {
-                            cur.write(&jukebox)?;
-                            cur.write_u8(0)?; // Unlock notifications.
-                            cur.write_u8(0)?; // Shared health bar.
-
-                            // Something
-                            cur.write_u16::<LE>(0)?;
-                            cur.write_u8(0)?;
                         } else {
-                            let zeros = [0u8; 7];
-                            cur.write(&zeros)?;
-                        }
+                            &default_profile
+                        };
 
-                        // Challange best times
-                        cur.write_u32::<LE>(nikumaru.tick.try_into().unwrap_or(u32::MAX));
-                        for save_set in 1..=26 {
-                            let csp_mod = self.csp_mods.get(&save_set).unwrap_or(&default_csp_profile);
-                            cur.write_u32::<LE>(csp_mod.time.try_into().unwrap_or(u32::MAX));
-                        }
-
-                        // TODO
-                        // TODO: write some fields only in the v1.3 version mode
-                        if format == SaveFormat::Switch {
-                            cur.write_u8(0)?;
-
-                            let something = [0u8; 0x77];
-                            let something2 = [0u8; 6];
-
-                            cur.write(&something)?;
-                            cur.write_u16::<LE>(0)?; // P2 character unlocks
-                            cur.write(&something2)?;
-                        } else {
-                            cur.write(&eggfish_killed)?;
-
-                            let something = [0u8; 0x3d];
-                            cur.write(&something)?;
-
-                            let something2 = [0u8; 0xf20];
-                            cur.write(&something2)?;
-                        }
-
-                        let mut file = user_create(ctx, save_path)?;
-                        file.write(&buf)?;
+                        profile.write_save(&mut cur, &format)?;
                     }
+                }
+
+                cur.write(&active_slots)?;
+
+                // Settings
+                cur.write_u32::<LE>(bgm_volume)?;
+                cur.write_u32::<LE>(sfx_volume)?;
+                cur.write_u8(seasonal_textures)?;
+                cur.write_u8(soundtrack)?;
+                cur.write_u8(graphics)?;
+                cur.write_u8(language)?;
+                cur.write_u8(beaten_hell)?;
+
+                // TODO
+                // TODO: write some fields only in the v1.3 version mode
+                if format == SaveFormat::Switch {
+                    cur.write(&jukebox)?;
+                    cur.write_u8(0)?; // Unlock notifications.
+                    cur.write_u8(0)?; // Shared health bar.
+
+                    // Something
+                    cur.write_u16::<LE>(0)?;
+                    cur.write_u8(0)?;
+                } else {
+                    let zeros = [0u8; 7];
+                    cur.write(&zeros)?;
+                }
+
+                // Challange best times
+                cur.write_u32::<LE>(nikumaru.tick.try_into().unwrap_or(u32::MAX))?;
+                for save_set in 1..=26 {
+                    let csp_mod = self.csp_mods.get(&save_set).unwrap_or(&default_csp_profile);
+                    cur.write_u32::<LE>(csp_mod.time.try_into().unwrap_or(u32::MAX))?;
+                }
+
+                // TODO
+                // TODO: write some fields only in the v1.3 version mode
+                if format == SaveFormat::Switch {
+                    cur.write_u8(0)?;
+
+                    let something = [0u8; 0x77];
+                    let something2 = [0u8; 6];
+
+                    cur.write(&something)?;
+                    cur.write_u16::<LE>(0)?; // P2 character unlocks
+                    cur.write(&something2)?;
+                } else {
+                    cur.write(&eggfish_killed)?;
+
+                    let something = [0u8; 0x3d];
+                    cur.write(&something)?;
+
+                    let something2 = [0u8; 0xf20];
+                    cur.write(&something2)?;
+                }
+
+                if let Some(path) = out_path {
+                    // TODO
+                    File::create(path)?.write(&buf)?;
+                } else {
+                    user_create(ctx, save_path)?.write(&buf)?;
                 }
             },
             _ => todo!()
@@ -901,7 +911,7 @@ impl SaveContainer {
         Ok(())
     }
 
-    fn get_save_filename(format: &SaveFormat, slot: Option<SaveSlot>) -> String {
+    pub fn get_save_filename(format: &SaveFormat, slot: Option<SaveSlot>) -> String {
         match format {
             SaveFormat::Generic => "/save.json".to_owned(),
             SaveFormat::Plus | SaveFormat::Switch => "/Profile.dat".to_owned(),
@@ -914,7 +924,7 @@ impl SaveContainer {
                     },
                     Some(SaveSlot::CSPMod(save_set, save_slot)) => format!("/Mod{}_Profile{}.dat", save_set, save_slot),
                     Some(SaveSlot::Mod(mod_id, save_slot)) => unimplemented!(),
-                    _ => "Profile.dat".to_owned()
+                    _ => "/Profile.dat".to_owned()
                 }
             }
         }
@@ -929,8 +939,6 @@ impl SaveContainer {
         }
     }
 
-    // I'm encoutered some troubles with manually manipulating profiles in the menu's code, so this methods makes
-    // the logic more clear and separated from other components.
 
     pub fn set_profile(&mut self, slot: SaveSlot, profile: GameProfile) {
         log::debug!("Debug profile set: {:?}; {}", slot, profile.timestamp);
@@ -949,13 +957,14 @@ impl SaveContainer {
             SaveSlot::Mod(ref mod_id, save_slot) => {
                 // TODO
                 prev_save = None;
+                unimplemented!();
             }
         }
 
         if prev_save.is_none() {
-            self.patchset.push(SavePatch::Added(slot));
+            self.patchset.insert(slot, SavePatch::Added);
         } else {
-            self.patchset.push(SavePatch::Modified(slot));
+            self.patchset.insert(slot, SavePatch::Modified);
         }
     }
 
@@ -992,7 +1001,7 @@ impl SaveContainer {
             SaveSlot::Mod(mod_id, save_slot) => unimplemented!()
         }
 
-        self.patchset.push(SavePatch::Deleted(slot));
+        self.patchset.insert(slot, SavePatch::Deleted);
     }
 
     pub fn is_empty(&self) -> bool {
@@ -1011,257 +1020,15 @@ impl SaveContainer {
 
 
 
-    pub fn import(
-        &mut self,
-        state: &mut SharedGameState,
-        ctx: &mut Context,
-        import_location: &Path,
-        import_format: Option<SaveFormat>,
-        slot: Option<SaveSlot>
-    ) -> GameResult {
-        let save_format = if import_format.is_none() {
-            log::warn!("Importing saves from dir without specifying of the save format");
 
-            // TODO: check if the Profile.dat exists and try to recognise format
-            SaveFormat::Freeware
-        } else { import_format.unwrap() };
 
-        if save_format == SaveFormat::Freeware {
-            let base_dir = import_location.to_path_buf().into_os_string();
-            if slot.is_some() {
-                // Import only specified slot
 
-                let filename = Self::get_save_filename(&save_format, slot.clone());
-                let mut file_path = base_dir.clone();
-                file_path.push(&OsString::from(filename));
+    pub fn export(&mut self, state: &mut SharedGameState, ctx: &mut Context, format: SaveFormat, params: SaveParams, out_path: PathBuf) -> GameResult {
+        self.write_save(ctx, state, format, None, Some(out_path.clone()), &params)?;
 
-                let mut file = File::open(file_path)?;
-                self.import_file(state, ctx, &mut file, save_format, slot)?;
-            } else {
-                // Import all available files
-                for i in 1..=3 {
-                    let save_slot = Some(SaveSlot::MainGame(i));
-                    let filename = Self::get_save_filename(&save_format, save_slot.clone());
-                    let mut file_path = base_dir.clone();
-                    file_path.push(&OsString::from(filename));
-
-                    // Ignore if failed to open the file
-                    if let Ok(mut file) = File::open(file_path) {
-                        self.import_file(state, ctx, &mut file, save_format, save_slot);
-                    }
-                }
-
-                for save_set in 1..=26 {
-                    for profile_slot in 1..=3 {
-                        let save_slot = Some(SaveSlot::CSPMod(save_set, profile_slot));
-                        let filename = Self::get_save_filename(&save_format, save_slot.clone());
-                        let mut file_path = base_dir.clone();
-                        file_path.push(&OsString::from(filename));
-
-                        // Ignore if failed to open the file
-                        if let Ok(mut file) = File::open(file_path) {
-                            self.import_file(state, ctx, &mut file, save_format, save_slot);
-                        }
-                    }
-                }
-            }
-        } else {
-            let mut file = File::open(import_location)?;
-            self.import_file(state, ctx, &mut file, save_format, slot)?;
-        }
-
+        log::trace!("Export format: {:?}.", format);
+        log::trace!("Export params: {:?}.", params);
+        log::trace!("Export path: {:?}.", out_path);
         Ok(())
-    }
-
-    fn import_file(
-        &mut self,
-        state: &mut SharedGameState,
-        ctx: &mut Context,
-        file: &mut File,
-        save_format: SaveFormat,
-        slot: Option<SaveSlot>
-    ) -> GameResult {
-        let mut buf: Vec<u8> = vec![];
-        file.read_to_end(&mut buf);
-
-        self.import_buf(state, ctx, &buf, save_format, slot)?;
-
-        Ok(())
-    }
-
-    fn import_buf(
-        &mut self,
-        state: &mut SharedGameState,
-        ctx: &mut Context,
-        buf: &Vec<u8>,
-        save_format: SaveFormat,
-        slot: Option<SaveSlot>
-    ) -> GameResult {
-        let mut cur = std::io::Cursor::new(buf);
-
-        match save_format {
-            SaveFormat::Freeware => {
-                if slot.is_none() {
-                    log::warn!("Import freeware save without specifing of slot. Fallback to the first main game slot.");
-                }
-
-                let save_slot = slot.unwrap_or(SaveSlot::MainGame(1));
-                let profile = GameProfile::load_from_save(&mut cur, save_format)?;
-
-                self.set_profile(save_slot, profile);
-            },
-            SaveFormat::Plus | SaveFormat::Switch => {
-                // Import specific slot
-                let magic = cur.read_u64::<BE>()?;
-                if magic != SIG_Do041220 {
-                    return Err(ResourceLoadError("Invalid magic".to_owned()));
-                }
-/*
-                if Some(save_slot) = slot {
-                    // TODO: dehardcode profile size(1532)
-                    let offset: u64 = match save_slot {
-                        SaveSlot::MainGame(profile_slot) => {
-                            offset = 1532 * (profile_slot - 1);
-                        },
-                        SaveSlot::CSPMod(save_set, profile_slot) => {
-                            1532 * (3 * save_set + profile_slot - 1)
-                        },
-                        // We won't write and won't read such slots, while we don't have any Mod API
-                        SaveSlot::Mod() => todo!(),
-                    };
-
-                    cur.seek(io::SeekForm::Current(offset.try_into()?));
-                    let profile = GameProfile::load_from_save(&mut cur, format)?;
-
-                    self.set_profile(save_slot, profile)?;
-                } else {
-
-                }
-*/
-
-                for profile_slot in 1..=3 {
-                    let profile = GameProfile::load_from_save(&mut cur, save_format)?;
-                    self.game_profiles.insert(profile_slot, profile);
-                }
-
-                for save_set in 1..=26 {
-                    let mut csp_mod = CSPModProfile::default();
-                    for i in 1..3 {
-                        let profile = GameProfile::load_from_save(&mut cur, save_format)?;
-                        csp_mod.profiles.insert(i, profile);
-                    }
-
-                    self.csp_mods.insert(save_set, csp_mod);
-                }
-
-                for save_set in 0..27 {
-                    let active_game_profiles = cur.read_u8()?;
-                    let profiles: &mut HashMap<usize, GameProfile> = if save_set == 0 {
-                        &mut self.game_profiles
-                    } else {
-                        &mut self.csp_mods.get_mut(&save_set).unwrap().profiles
-                    };
-
-                    for i in 0..2 {
-                        let is_active = active_game_profiles & (1u8 << i);
-                        if is_active == 0 {
-                            profiles.remove(&(i + 1));
-                        }
-                    }
-                }
-
-                // TODO: overwrite settings, if requested
-                let bgm_volume = cur.read_u8()?;
-                let sfx_volume = cur.read_u8()?;
-                let seasonal_textures = cur.read_u8()? != 0;
-                let soundtrack = match cur.read_u8()? {
-                    1 => "organya",
-                    2 => "organya",
-                    3 => "new",
-                    4 => "remastered",
-                    5 => "famitracks",
-                    6 => "ridiculon",
-                    _ => "organya" // Fallback to Organya
-                };
-                let original_textures = cur.read_u8()? != 0;
-                let beat_hell = cur.read_u8()? != 0;
-
-                // Currently we're overwriting only negative value
-                if beat_hell {
-                    state.mod_requirements.beat_hell = beat_hell;
-                }
-
-                if save_format == SaveFormat::Switch {
-                    // TODO
-                    let mut jukebox = [0u8; 48];
-                    cur.read(&mut jukebox)?;
-
-                    let unlock_notifications = cur.read_u8()?;// TODO
-
-                    // TODO: v1.3 only
-                    let shared_healthbar = cur.read_u8()? != 0;
-                    let mut unknown_field = [0u8; 3];
-                    cur.read(&mut unknown_field);
-                }
-
-                let mut something = [0u8; 7];
-                cur.read(&mut something);
-
-                // TODO
-                let nikumaru_counter = cur.read_u64::<LE>()?;
-
-                for save_set in 1..=26 {
-                    let time = cur.read_u32::<LE>()?;
-
-                    let csp_mod = self.csp_mods.get_mut(&save_set).unwrap();
-                    csp_mod.time = time as usize;
-
-                    if csp_mod.is_empty() {
-                        self.csp_mods.remove(&save_set);
-                    }
-                }
-
-                if save_format == SaveFormat::Plus {
-                    for i in 1..=3 {
-                        if let Some(profile) = self.game_profiles.get_mut(&i) {
-                            profile.eggfish_killed = cur.read_u8()? != 0;
-                        }
-                    }
-
-                    let mut something2 = [0u8; 61];
-                    let mut something3 = [0u8; 0xf20];
-
-                    cur.read(&mut something2)?;
-                    cur.read(&mut something3)?;
-                } else {
-                    let challange_unlocks = cur.read_u8()?; // TODO
-
-                    let mut something2 = [0u8; 0x77];
-                    let mut something3 = [0u8; 6];
-
-                    cur.read(&mut something2)?;
-                    let p2_char_unlocks = cur.read_u16::<LE>()?;
-                    cur.read(&mut something3)?;
-                }
-            },
-            SaveFormat::Generic => todo!(),
-        }
-
-        Ok(())
-    }
-
-    fn default_import(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<SaveFormat> {
-        // If Profile.dat exists, it can be CS+ or Freeware format. Otherwise it's freeware format.
-        if let Ok(mut file) = user_open(ctx, "/Profile.dat".to_string()) {
-            let mut buf: Vec<u8> = vec![];
-            file.read_to_end(&mut buf)?;
-
-            let format = SaveFormat::recognise(&buf).unwrap_or(state.settings.save_format);
-            return Ok(format);
-        }
-
-        //let dir =
-
-        Ok(state.settings.save_format)
     }
 }

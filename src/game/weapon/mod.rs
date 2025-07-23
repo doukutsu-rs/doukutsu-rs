@@ -183,8 +183,6 @@ impl Weapon {
             self.refire_timer = 4;
         }
 
-        // todo lua hook
-
         match self.wtype {
             WeaponType::None => {}
             WeaponType::Snake => self.tick_snake(player, player_id, bullet_manager, state),

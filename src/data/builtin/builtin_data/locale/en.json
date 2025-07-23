@@ -8,7 +8,8 @@
     "yes": "Yes",
     "no": "No",
     "on": "ON",
-    "off": "OFF"
+    "off": "OFF",
+    "choose_file": "No file selected…"
   },
   "menus": {
     "main_menu": {
@@ -67,7 +68,28 @@
     "save_manage_menu": {
       "import_export_save": "Import/Export Save...",
       "import_format": "Import format",
-      "export_format": "Export format"
+      "export_format": "Export format",
+      "action_type": {
+        "entry": "Action:",
+        "import": "Import",
+        "export": "Export"
+      },
+      "save_location": {
+        "import": "Import location",
+        "export": "Export location"
+      },
+      "save_format": {
+        "entry": "Save format:",
+        "freeware": "Freeware",
+        "plus": "Cave Story+ (PC)",
+        "switch": "Cave Story+ (Switch)",
+        "auto": "Auto-detect"
+      },
+      "file_filters": {
+        "freeware": "Cave Story save",
+        "plus": "Cave Story+ save",
+        "switch": "Cave Story+ save"
+      }
     },
     "options_menu": {
       "graphics": "Graphics...",

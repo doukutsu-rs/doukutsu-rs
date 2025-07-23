@@ -82,6 +82,7 @@ pelite = { version = ">=0.9.2", default-features = false, features = ["std"] }
 sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "244ae85833cff4f97ab4b58331741be20e422bd7", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 sdl2-sys = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "244ae85833cff4f97ab4b58331741be20e422bd7", optional = true, features = ["bundled", "static-link"] }
 rc-box = "1.2.0"
+rfd = "0.15.4"
 serde = { version = "1", features = ["derive"] }
 serde_derive = "1"
 serde_cbor = { version = "0.11", optional = true }

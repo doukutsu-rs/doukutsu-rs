@@ -17,7 +17,7 @@ use crate::framework::{filesystem, graphics};
 use crate::game::caret::{Caret, CaretType};
 use crate::game::npc::NPCTable;
 use crate::game::player::TargetPlayer;
-use crate::game::profile::{GameProfile, SaveContainer, SaveFormat, SaveSlot};
+use crate::game::profile::{GameProfile, SaveContainer, SaveFormat, SaveParams, SaveSlot};
 use crate::game::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
 use crate::game::scripting::tsc::text_script::{
     ScriptMode, TextScript, TextScriptEncoding, TextScriptExecutionState, TextScriptVM,
@@ -697,9 +697,7 @@ impl SharedGameState {
 
             let mut save_container = SaveContainer::load(ctx, self)?;
             save_container.set_profile(slot, profile);
-            //save_container.write_save(ctx, state, SaveFormat::Generic, None, None);
-            //save_container.write_save(ctx, state, self.settings.save_format, None, None);
-            save_container.save(ctx, self)?;
+            save_container.save(ctx, self, SaveParams::default())?;
         } else {
             log::info!("Mod has saves disabled.");
         }
