@@ -46,10 +46,6 @@ pub struct LaunchOptions {
     /// Do not create a window and skip audio initialization.
     pub server_mode: bool,
 
-    #[arg(long, hide = cfg!(not(feature = "editor")))]
-    /// Enable built-in editor.
-    pub editor: bool,
-
     #[arg(long)]
     /// Window height in pixels.
     pub window_height: Option<u16>,
@@ -73,7 +69,6 @@ impl Default for LaunchOptions {
     fn default() -> Self {
         Self {
             server_mode: false,
-            editor: false,
             window_height: None,
             window_width: None,
             window_fullscreen: false,

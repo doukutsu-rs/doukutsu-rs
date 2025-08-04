@@ -7,11 +7,6 @@ use clap::Parser;
 fn main() {
     let options = doukutsu_rs::game::LaunchOptions::parse();
 
-    if options.server_mode && options.editor {
-        eprintln!("Cannot run in server mode and editor mode at the same time.");
-        exit(1);
-    }
-
     let result = doukutsu_rs::game::init(options);
 
     #[cfg(target_os = "windows")]

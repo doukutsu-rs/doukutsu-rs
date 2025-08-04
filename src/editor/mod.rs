@@ -180,7 +180,7 @@ impl EditorInstance {
                     let (scale_x, scale_y) = batch.scale();
                     if let Some(tex) = batch.get_texture() {
                         let (width, height) = tex.dimensions();
-                        let (width, height) = (width as f32 / scale_x, height as f32 / scale_y);
+                        let (width, height) = (width as f32 * scale_x, height as f32 * scale_y);
 
                         if let Ok(tex_id) = graphics::imgui_texture_id(ctx, tex) {
                             Image::new(tex_id, [width, height]).build(ui);

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use downcast::Downcast;
-use imgui::{Condition, MenuItem, TabItem, TabItemFlags, Window};
+use imgui::{Condition, TabItem, TabItemFlags, Window};
 
 use crate::editor::{CurrentTool, EditorInstance};
 use crate::framework::context::Context;
@@ -121,7 +121,7 @@ trait ExtraWidgetsExt {
     fn tool_button(&self, label: impl AsRef<str>, active: bool) -> bool;
 }
 
-impl ExtraWidgetsExt for imgui::Ui<'_> {
+impl ExtraWidgetsExt for imgui::Ui {
     fn tool_button(&self, label: impl AsRef<str>, active: bool) -> bool {
         if active {
             let color = self.style_color(imgui::StyleColor::ButtonActive);
@@ -222,13 +222,13 @@ impl Scene for EditorScene {
             menu_bar_size = (menu_bar_w, menu_bar_h);
 
             if let Some(menu) = ui.begin_menu("File") {
-                if MenuItem::new("Open stage").shortcut("Ctrl+O").build(ui) {
+                if ui.menu_item_config("Open stage").shortcut("Ctrl+O").build() {
                     self.stage_list.show();
                 }
 
                 ui.separator();
 
-                if MenuItem::new("Exit editor").build(ui) {
+                if ui.menu_item("Exit editor") {
                     self.exit_editor(state);
                 }
 
@@ -333,7 +333,7 @@ impl StageListWindow {
                 }
 
                 ui.push_item_width(-1.0);
-                ui.list_box("", &mut self.selected_stage, &stages, 14);
+                ui.list_box("##", &mut self.selected_stage, &stages, 14);
 
                 ui.disabled(self.selected_stage < 0, || {
                     if ui.button("Open") {
@@ -341,7 +341,7 @@ impl StageListWindow {
                     }
 
                     ui.same_line();
-                    if ui.button("Edit table entry") {}
+                    //if ui.button("Edit table entry") {}
                 });
 
                 ui.same_line();
