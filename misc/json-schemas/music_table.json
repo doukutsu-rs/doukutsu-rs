@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "JSON schema for doukutsu-rs music table files",
+  "type": "object",
+  "properties": {
+    "version": {
+      "description": "Major version of the music table format - incremented if backwards-incompatible changes occur",
+      "type": "number",
+      "enum": [1]
+    },
+    "songs": {
+      "description": "Array of song information for the music table",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Name of the song file (without extension)",
+            "type": "string"
+          },
+          "id": {
+            "description": "Song ID used in commands like <CMUxxxx (corresponds to index in the table)",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "noLooping": {
+            "description": "If true, prevents the song from looping after it finishes (optional, defaults to false)",
+            "type": "boolean"
+          }
+        },
+        "required": ["name", "id"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["version", "songs"],
+  "additionalProperties": false
+}

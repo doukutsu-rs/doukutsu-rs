@@ -14,6 +14,7 @@ pub(crate) struct OggPlaybackEngine {
     playing_intro: bool,
     position: u64,
     buffer: Vec<i16>,
+    no_loop: bool,
 }
 
 pub struct SavedOggPlaybackState {
@@ -21,6 +22,7 @@ pub struct SavedOggPlaybackState {
     loop_music: Option<Arc<RwLock<Box<OggStreamReader<File>>>>>,
     playing_intro: bool,
     position: u64,
+    no_loop: bool,
 }
 
 impl OggPlaybackEngine {
@@ -32,6 +34,7 @@ impl OggPlaybackEngine {
             playing_intro: false,
             position: 0,
             buffer: Vec::with_capacity(4096),
+            no_loop: false,
         }
     }
 
@@ -45,6 +48,7 @@ impl OggPlaybackEngine {
             loop_music: self.loop_music.clone(),
             playing_intro: self.playing_intro,
             position: self.position,
+            no_loop: self.no_loop,
         }
     }
 
@@ -53,6 +57,7 @@ impl OggPlaybackEngine {
         self.loop_music = state.loop_music;
         self.playing_intro = state.playing_intro;
         self.position = state.position;
+        self.no_loop = state.no_loop;
     }
 
     pub fn start_single(&mut self, loop_music: Box<OggStreamReader<File>>) {
@@ -60,6 +65,15 @@ impl OggPlaybackEngine {
         self.loop_music = Some(Arc::new(RwLock::new(loop_music)));
         self.playing_intro = false;
         self.position = 0;
+        self.no_loop = false;
+    }
+
+    pub fn start_single_no_loop(&mut self, loop_music: Box<OggStreamReader<File>>) {
+        self.intro_music = None;
+        self.loop_music = Some(Arc::new(RwLock::new(loop_music)));
+        self.playing_intro = false;
+        self.position = 0;
+        self.no_loop = true;
     }
 
     pub fn start_multi(&mut self, intro_music: Box<OggStreamReader<File>>, loop_music: Box<OggStreamReader<File>>) {
@@ -67,6 +81,7 @@ impl OggPlaybackEngine {
         self.loop_music = Some(Arc::new(RwLock::new(loop_music)));
         self.playing_intro = true;
         self.position = 0;
+        self.no_loop = false;
     }
 
     pub fn rewind(&mut self) {
@@ -114,7 +129,7 @@ impl OggPlaybackEngine {
             let mut buf = match music.read_dec_packet_itl() {
                 Ok(Some(buf)) => buf,
                 Ok(None) => {
-                    if music.seek_absgp_pg(0).is_ok() {
+                    if !self.no_loop && music.seek_absgp_pg(0).is_ok() {
                         return;
                     }
 

@@ -97,6 +97,95 @@ pub struct TextureSizeTable {
     sizes: HashMap<String, (u16, u16)>,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MusicTableV1 {
+    pub version: u8,
+    pub songs: Vec<SongInfo>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SongInfo {
+    pub name: String,
+    pub id: u16,
+    #[serde(rename = "noLooping", default)]
+    pub no_looping: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct MusicTable {
+    songs: Vec<Option<SongInfo>>,
+}
+
+impl MusicTable {
+    pub fn new() -> Self {
+        Self { songs: Vec::new() }
+    }
+
+    pub fn from_legacy_table(legacy_table: &[String]) -> Self {
+        let mut songs = Vec::new();
+        for (id, name) in legacy_table.iter().enumerate() {
+            if id == 0 {
+                songs.push(None); // ID 0 is reserved for stopping music
+            } else {
+                songs.push(Some(SongInfo {
+                    name: name.clone(),
+                    id: id as u16,
+                    no_looping: false, // Legacy songs default to looping
+                }));
+            }
+        }
+        Self { songs }
+    }
+
+    pub fn from_v1(table: MusicTableV1) -> Self {
+        let max_id = table.songs.iter().map(|s| s.id).max().unwrap_or(0) as usize;
+        let mut songs = vec![None; max_id + 1];
+        
+        for song in table.songs {
+            if (song.id as usize) < songs.len() {
+                let id = song.id as usize;
+                songs[id] = Some(song);
+            }
+        }
+        
+        Self { songs }
+    }
+
+    pub fn get_song(&self, id: usize) -> Option<&SongInfo> {
+        self.songs.get(id).and_then(|s| s.as_ref())
+    }
+
+    pub fn get_song_name(&self, id: usize) -> Option<&str> {
+        self.get_song(id).map(|s| s.name.as_str())
+    }
+
+    pub fn should_loop(&self, id: usize) -> bool {
+        self.get_song(id).map(|s| !s.no_looping).unwrap_or(true)
+    }
+
+    pub fn len(&self) -> usize {
+        self.songs.len()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &str> {
+        self.songs.iter().filter_map(|song| {
+            song.as_ref().map(|s| s.name.as_str())
+        })
+    }
+
+    pub fn find_song_id_by_name(&self, name: &str) -> Option<usize> {
+        self.songs.iter().enumerate().find_map(|(id, song)| {
+            song.as_ref().filter(|s| s.name == name).map(|_| id)
+        })
+    }
+
+    pub fn enumerate(&self) -> impl Iterator<Item = (usize, &str)> {
+        self.songs.iter().enumerate().filter_map(|(i, song)| {
+            song.as_ref().map(|s| (i, s.name.as_str()))
+        })
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct BulletData {
     pub damage: u8,
@@ -271,7 +360,7 @@ pub struct EngineConstants {
     pub font_path: String,
     pub font_space_offset: f32,
     pub soundtracks: Vec<ExtraSoundtrack>,
-    pub music_table: Vec<String>,
+    pub music_table: MusicTable,
     pub organya_paths: Vec<String>,
     pub credit_illustration_paths: Vec<String>,
     pub player_skin_paths: Vec<String>,
@@ -1523,7 +1612,7 @@ impl EngineConstants {
                 ExtraSoundtrack { id: "famitracks".to_owned(), path: "/base/ogg17/".to_owned(), available: false },
                 ExtraSoundtrack { id: "ridiculon".to_owned(), path: "/base/ogg_ridic/".to_owned(), available: false },
             ],
-            music_table: vec![
+            music_table: MusicTable::from_legacy_table(&[
                 "xxxx".to_owned(),
                 "wanpaku".to_owned(),
                 "anzen".to_owned(),
@@ -1568,7 +1657,7 @@ impl EngineConstants {
                 "white".to_owned(),
                 "kaze".to_owned(),
                 "ika".to_owned(),
-            ],
+            ]),
             organya_paths: vec![
                 "/org/".to_owned(),          // NXEngine
                 "/base/Org/".to_owned(),     // CS+
@@ -1832,7 +1921,25 @@ impl EngineConstants {
         Ok(())
     }
 
-    pub fn apply_constant_json_files(&mut self) {}
+    pub fn apply_constant_json_files(&mut self, ctx: &mut Context) -> GameResult {
+        self.load_music_table(ctx)?;
+        Ok(())
+    }
+
+    pub fn load_music_table(&mut self, ctx: &mut Context) -> GameResult {
+        if let Ok(file) = filesystem::open_find(ctx, &self.base_paths, "music_table.json") {
+            match serde_json::from_reader::<_, MusicTableV1>(file) {
+                Ok(music_table_v1) => {
+                    self.music_table = MusicTable::from_v1(music_table_v1);
+                    log::info!("Loaded custom music table with {} songs", self.music_table.len());
+                }
+                Err(err) => {
+                    log::warn!("Failed to deserialize music table, using defaults: {}", err);
+                }
+            }
+        }
+        Ok(())
+    }
 
     pub fn load_texture_size_hints(&mut self, ctx: &mut Context) -> GameResult {
         if let Ok(file) = filesystem::open_find(ctx, &self.base_paths, "texture_sizes.json") {
@@ -1949,5 +2056,122 @@ impl EngineConstants {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_music_table_v1_deserialization() {
+        let json = r#"{
+            "version": 1,
+            "songs": [
+                {"name": "xxxx", "id": 0},
+                {"name": "wanpaku", "id": 1},
+                {"name": "gameover", "id": 3, "noLooping": true},
+                {"name": "fanfale1", "id": 10, "noLooping": true}
+            ]
+        }"#;
+
+        let table: MusicTableV1 = serde_json::from_str(json).unwrap();
+        assert_eq!(table.version, 1);
+        assert_eq!(table.songs.len(), 4);
+        
+        // Check normal song
+        assert_eq!(table.songs[0].name, "xxxx");
+        assert_eq!(table.songs[0].id, 0);
+        assert!(!table.songs[0].no_looping);
+
+        // Check no-looping song
+        assert_eq!(table.songs[2].name, "gameover");
+        assert_eq!(table.songs[2].id, 3);
+        assert!(table.songs[2].no_looping);
+    }
+
+    #[test]
+    fn test_music_table_from_v1() {
+        let v1_table = MusicTableV1 {
+            version: 1,
+            songs: vec![
+                SongInfo { name: "xxxx".to_string(), id: 0, no_looping: false },
+                SongInfo { name: "wanpaku".to_string(), id: 1, no_looping: false },
+                SongInfo { name: "gameover".to_string(), id: 3, no_looping: true },
+                SongInfo { name: "fanfale1".to_string(), id: 10, no_looping: true },
+            ]
+        };
+
+        let music_table = MusicTable::from_v1(v1_table);
+        
+        // Check that sparse IDs are handled correctly
+        assert_eq!(music_table.len(), 11); // Should be sized for highest ID (10) + 1
+        
+        // Check song at ID 0
+        assert_eq!(music_table.get_song_name(0), Some("xxxx"));
+        assert!(music_table.should_loop(0));
+        
+        // Check song at ID 1
+        assert_eq!(music_table.get_song_name(1), Some("wanpaku"));
+        assert!(music_table.should_loop(1));
+        
+        // Check empty slot at ID 2
+        assert_eq!(music_table.get_song_name(2), None);
+        assert!(music_table.should_loop(2)); // Default to looping for missing songs
+        
+        // Check no-looping song at ID 3
+        assert_eq!(music_table.get_song_name(3), Some("gameover"));
+        assert!(!music_table.should_loop(3));
+        
+        // Check no-looping song at ID 10
+        assert_eq!(music_table.get_song_name(10), Some("fanfale1"));
+        assert!(!music_table.should_loop(10));
+    }
+
+    #[test]
+    fn test_music_table_legacy_compatibility() {
+        let legacy_table = vec![
+            "xxxx".to_string(),
+            "wanpaku".to_string(),
+            "anzen".to_string(),
+            "gameover".to_string(),
+        ];
+
+        let music_table = MusicTable::from_legacy_table(&legacy_table);
+        
+        assert_eq!(music_table.len(), 4);
+        
+        // ID 0 should be None (reserved for stopping music)
+        assert_eq!(music_table.get_song_name(0), None);
+        
+        // Other IDs should match the legacy table
+        assert_eq!(music_table.get_song_name(1), Some("wanpaku"));
+        assert_eq!(music_table.get_song_name(2), Some("anzen"));
+        assert_eq!(music_table.get_song_name(3), Some("gameover"));
+        
+        // All legacy songs should loop by default
+        assert!(music_table.should_loop(1));
+        assert!(music_table.should_loop(2));
+        assert!(music_table.should_loop(3));
+    }
+
+    #[test]
+    fn test_music_table_find_song_id_by_name() {
+        let v1_table = MusicTableV1 {
+            version: 1,
+            songs: vec![
+                SongInfo { name: "xxxx".to_string(), id: 0, no_looping: false },
+                SongInfo { name: "wanpaku".to_string(), id: 1, no_looping: false },
+                SongInfo { name: "gameover".to_string(), id: 3, no_looping: true },
+            ]
+        };
+
+        let music_table = MusicTable::from_v1(v1_table);
+        
+        assert_eq!(music_table.find_song_id_by_name("xxxx"), Some(0));
+        assert_eq!(music_table.find_song_id_by_name("wanpaku"), Some(1));
+        assert_eq!(music_table.find_song_id_by_name("gameover"), Some(3));
+        assert_eq!(music_table.find_song_id_by_name("nonexistent"), None);
     }
 }

@@ -285,7 +285,8 @@ impl SoundManager {
             } else {
                 self.send(PlaybackMessage::Stop).unwrap();
             }
-        } else if let Some(song_name) = constants.music_table.get(song_id) {
+        } else if let Some(song_name) = constants.music_table.get_song_name(song_id) {
+            let should_loop = constants.music_table.should_loop(song_id);
             let mut paths = constants.organya_paths.clone();
 
             paths.insert(0, "/Soundtracks/".to_owned() + &settings.soundtrack + "/");
@@ -319,7 +320,7 @@ impl SoundManager {
 
                             match filesystem::open(ctx, path).map(organya::Song::load_from) {
                                 Ok(Ok(org)) => {
-                                    log::info!("Playing Organya BGM: {} {}", song_id, path);
+                                    log::info!("Playing Organya BGM: {} {} (looping: {})", song_id, path, should_loop);
 
                                     self.prev_song_id = self.current_song_id;
                                     self.current_song_id = song_id;
@@ -327,7 +328,12 @@ impl SoundManager {
                                         .send(PlaybackMessage::SetOrgInterpolation(settings.organya_interpolation))
                                         .unwrap();
                                     self.send(PlaybackMessage::SaveState).unwrap();
-                                    self.send(PlaybackMessage::PlayOrganyaSong(Box::new(org))).unwrap();
+                                    
+                                    if should_loop {
+                                        self.send(PlaybackMessage::PlayOrganyaSong(Box::new(org))).unwrap();
+                                    } else {
+                                        self.send(PlaybackMessage::PlayOrganyaSongNoLoop(Box::new(org))).unwrap();
+                                    }
 
                                     return Ok(());
                                 }
@@ -345,12 +351,17 @@ impl SoundManager {
                                 OggStreamReader::new(f).map_err(|e| GameError::ResourceLoadError(e.to_string()))
                             }) {
                                 Ok(Ok(song)) => {
-                                    log::info!("Playing single part Ogg BGM: {} {}", song_id, path);
+                                    log::info!("Playing single part Ogg BGM: {} {} (looping: {})", song_id, path, should_loop);
 
                                     self.prev_song_id = self.current_song_id;
                                     self.current_song_id = song_id;
                                     self.send(PlaybackMessage::SaveState).unwrap();
-                                    self.send(PlaybackMessage::PlayOggSongSinglePart(Box::new(song))).unwrap();
+                                    
+                                    if should_loop {
+                                        self.send(PlaybackMessage::PlayOggSongSinglePart(Box::new(song))).unwrap();
+                                    } else {
+                                        self.send(PlaybackMessage::PlayOggSongSinglePartNoLoop(Box::new(song))).unwrap();
+                                    }
 
                                     return Ok(());
                                 }
@@ -554,8 +565,11 @@ impl SoundManager {
 pub(in crate::sound) enum PlaybackMessage {
     Stop,
     PlayOrganyaSong(Box<Song>),
+    PlayOrganyaSongNoLoop(Box<Song>),
     #[cfg(feature = "ogg-playback")]
     PlayOggSongSinglePart(Box<OggStreamReader<File>>),
+    #[cfg(feature = "ogg-playback")]
+    PlayOggSongSinglePartNoLoop(Box<OggStreamReader<File>>),
     #[cfg(feature = "ogg-playback")]
     PlayOggSongMultiPart(Box<OggStreamReader<File>>, Box<OggStreamReader<File>>),
     PlaySample(u8),
@@ -676,6 +690,27 @@ where
 
                         state = PlaybackState::PlayingOrg;
                     }
+                    Ok(PlaybackMessage::PlayOrganyaSongNoLoop(song)) => {
+                        if state == PlaybackState::Stopped {
+                            saved_state = PlaybackStateType::None;
+                        }
+
+                        if bgm_fadeout {
+                            bgm_fadeout = false;
+                            bgm_vol = bgm_vol_saved;
+                        }
+
+                        org_engine.start_song(*song, &bank);
+                        org_engine.loops = 0; // Disable looping
+
+                        for i in &mut bgm_buf[0..samples] {
+                            *i = 0x8000
+                        }
+                        samples = org_engine.render_to(&mut bgm_buf);
+                        bgm_index = 0;
+
+                        state = PlaybackState::PlayingOrg;
+                    }
                     #[cfg(feature = "ogg-playback")]
                     Ok(PlaybackMessage::PlayOggSongSinglePart(data)) => {
                         if state == PlaybackState::Stopped {
@@ -688,6 +723,27 @@ where
                         }
 
                         ogg_engine.start_single(data);
+
+                        for i in &mut bgm_buf[0..samples] {
+                            *i = 0x8000
+                        }
+                        samples = ogg_engine.render_to(&mut bgm_buf);
+                        bgm_index = 0;
+
+                        state = PlaybackState::PlayingOgg;
+                    }
+                    #[cfg(feature = "ogg-playback")]
+                    Ok(PlaybackMessage::PlayOggSongSinglePartNoLoop(data)) => {
+                        if state == PlaybackState::Stopped {
+                            saved_state = PlaybackStateType::None;
+                        }
+
+                        if bgm_fadeout {
+                            bgm_fadeout = false;
+                            bgm_vol = bgm_vol_saved;
+                        }
+
+                        ogg_engine.start_single_no_loop(data);
 
                         for i in &mut bgm_buf[0..samples] {
                             *i = 0x8000

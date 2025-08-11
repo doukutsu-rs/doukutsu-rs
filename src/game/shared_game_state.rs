@@ -529,6 +529,7 @@ impl SharedGameState {
         self.constants.load_csplus_tables(ctx)?;
         self.constants.load_animated_faces(ctx)?;
         self.constants.load_texture_size_hints(ctx)?;
+        self.constants.apply_constant_json_files(ctx)?;
         self.reload_stage_table(ctx)?;
 
         let npc_tbl = filesystem::open_find(ctx, &self.constants.base_paths, "npc.tbl")?;

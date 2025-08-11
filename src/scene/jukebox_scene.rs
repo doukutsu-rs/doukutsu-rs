@@ -110,7 +110,7 @@ impl Scene for JukeboxScene {
             .music_table
             .iter()
             .filter(|song| !song.contains("fanfale") && !song.contains("ika"))
-            .cloned()
+            .map(|song| song.to_string())
             .collect();
 
         let mut soundtrack_entries = state
@@ -184,8 +184,7 @@ impl Scene for JukeboxScene {
             let song_id = state
                 .constants
                 .music_table
-                .iter()
-                .position(|song_comp| song_comp == &self.song_list[song as usize])
+                .find_song_id_by_name(&self.song_list[song as usize])
                 .unwrap_or(0);
 
             state.sound_manager.play_song(song_id, &state.constants, &state.settings, ctx, false)?;
