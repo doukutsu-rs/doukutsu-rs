@@ -191,6 +191,12 @@ impl BuiltinFS {
                                     FSNode::File("jp.json", include_bytes!("builtin/builtin_data/locale/jp.json")),
                                 ],
                             ),
+                            FSNode::Directory(
+                                "constants",
+                                vec![
+                                    FSNode::File("music.json", include_bytes!("builtin/builtin_data/constants/music.json")),
+                                ],
+                            ),
                         ],
                     ),
                     FSNode::Directory(

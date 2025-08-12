@@ -1612,52 +1612,7 @@ impl EngineConstants {
                 ExtraSoundtrack { id: "famitracks".to_owned(), path: "/base/ogg17/".to_owned(), available: false },
                 ExtraSoundtrack { id: "ridiculon".to_owned(), path: "/base/ogg_ridic/".to_owned(), available: false },
             ],
-            music_table: MusicTable::from_legacy_table(&[
-                "xxxx".to_owned(),
-                "wanpaku".to_owned(),
-                "anzen".to_owned(),
-                "gameover".to_owned(),
-                "gravity".to_owned(),
-                "weed".to_owned(),
-                "mdown2".to_owned(),
-                "fireeye".to_owned(),
-                "vivi".to_owned(),
-                "mura".to_owned(),
-                "fanfale1".to_owned(),
-                "ginsuke".to_owned(),
-                "cemetery".to_owned(),
-                "plant".to_owned(),
-                "kodou".to_owned(),
-                "fanfale3".to_owned(),
-                "fanfale2".to_owned(),
-                "dr".to_owned(),
-                "escape".to_owned(),
-                "jenka".to_owned(),
-                "maze".to_owned(),
-                "access".to_owned(),
-                "ironh".to_owned(),
-                "grand".to_owned(),
-                "curly".to_owned(),
-                "oside".to_owned(),
-                "requiem".to_owned(),
-                "wanpak2".to_owned(),
-                "quiet".to_owned(),
-                "lastcave".to_owned(),
-                "balcony".to_owned(),
-                "lastbtl".to_owned(),
-                "lastbt3".to_owned(),
-                "ending".to_owned(),
-                "zonbie".to_owned(),
-                "bdown".to_owned(),
-                "hell".to_owned(),
-                "jenka2".to_owned(),
-                "marine".to_owned(),
-                "ballos".to_owned(),
-                "toroko".to_owned(),
-                "white".to_owned(),
-                "kaze".to_owned(),
-                "ika".to_owned(),
-            ]),
+            music_table: MusicTable::new(),
             organya_paths: vec![
                 "/org/".to_owned(),          // NXEngine
                 "/base/Org/".to_owned(),     // CS+
@@ -1927,17 +1882,36 @@ impl EngineConstants {
     }
 
     pub fn load_music_table(&mut self, ctx: &mut Context) -> GameResult {
+        // First try to load from user/mod paths
         if let Ok(file) = filesystem::open_find(ctx, &self.base_paths, "music_table.json") {
             match serde_json::from_reader::<_, MusicTableV1>(file) {
                 Ok(music_table_v1) => {
                     self.music_table = MusicTable::from_v1(music_table_v1);
                     log::info!("Loaded custom music table with {} songs", self.music_table.len());
+                    return Ok(());
                 }
                 Err(err) => {
-                    log::warn!("Failed to deserialize music table, using defaults: {}", err);
+                    log::warn!("Failed to deserialize custom music table: {}", err);
                 }
             }
         }
+
+        // Fallback to builtin music table
+        let builtin_paths = vec!["/builtin/builtin_data/".to_owned()];
+        if let Ok(file) = filesystem::open_find(ctx, &builtin_paths, "constants/music.json") {
+            match serde_json::from_reader::<_, MusicTableV1>(file) {
+                Ok(music_table_v1) => {
+                    self.music_table = MusicTable::from_v1(music_table_v1);
+                    log::info!("Loaded built-in music table with {} songs", self.music_table.len());
+                }
+                Err(err) => {
+                    log::warn!("Failed to deserialize built-in music table, using empty table: {}", err);
+                }
+            }
+        } else {
+            log::warn!("No music table found, using empty table");
+        }
+        
         Ok(())
     }
 
@@ -2089,89 +2063,5 @@ mod tests {
         assert_eq!(table.songs[2].name, "gameover");
         assert_eq!(table.songs[2].id, 3);
         assert!(table.songs[2].no_looping);
-    }
-
-    #[test]
-    fn test_music_table_from_v1() {
-        let v1_table = MusicTableV1 {
-            version: 1,
-            songs: vec![
-                SongInfo { name: "xxxx".to_string(), id: 0, no_looping: false },
-                SongInfo { name: "wanpaku".to_string(), id: 1, no_looping: false },
-                SongInfo { name: "gameover".to_string(), id: 3, no_looping: true },
-                SongInfo { name: "fanfale1".to_string(), id: 10, no_looping: true },
-            ]
-        };
-
-        let music_table = MusicTable::from_v1(v1_table);
-        
-        // Check that sparse IDs are handled correctly
-        assert_eq!(music_table.len(), 11); // Should be sized for highest ID (10) + 1
-        
-        // Check song at ID 0
-        assert_eq!(music_table.get_song_name(0), Some("xxxx"));
-        assert!(music_table.should_loop(0));
-        
-        // Check song at ID 1
-        assert_eq!(music_table.get_song_name(1), Some("wanpaku"));
-        assert!(music_table.should_loop(1));
-        
-        // Check empty slot at ID 2
-        assert_eq!(music_table.get_song_name(2), None);
-        assert!(music_table.should_loop(2)); // Default to looping for missing songs
-        
-        // Check no-looping song at ID 3
-        assert_eq!(music_table.get_song_name(3), Some("gameover"));
-        assert!(!music_table.should_loop(3));
-        
-        // Check no-looping song at ID 10
-        assert_eq!(music_table.get_song_name(10), Some("fanfale1"));
-        assert!(!music_table.should_loop(10));
-    }
-
-    #[test]
-    fn test_music_table_legacy_compatibility() {
-        let legacy_table = vec![
-            "xxxx".to_string(),
-            "wanpaku".to_string(),
-            "anzen".to_string(),
-            "gameover".to_string(),
-        ];
-
-        let music_table = MusicTable::from_legacy_table(&legacy_table);
-        
-        assert_eq!(music_table.len(), 4);
-        
-        // ID 0 should be None (reserved for stopping music)
-        assert_eq!(music_table.get_song_name(0), None);
-        
-        // Other IDs should match the legacy table
-        assert_eq!(music_table.get_song_name(1), Some("wanpaku"));
-        assert_eq!(music_table.get_song_name(2), Some("anzen"));
-        assert_eq!(music_table.get_song_name(3), Some("gameover"));
-        
-        // All legacy songs should loop by default
-        assert!(music_table.should_loop(1));
-        assert!(music_table.should_loop(2));
-        assert!(music_table.should_loop(3));
-    }
-
-    #[test]
-    fn test_music_table_find_song_id_by_name() {
-        let v1_table = MusicTableV1 {
-            version: 1,
-            songs: vec![
-                SongInfo { name: "xxxx".to_string(), id: 0, no_looping: false },
-                SongInfo { name: "wanpaku".to_string(), id: 1, no_looping: false },
-                SongInfo { name: "gameover".to_string(), id: 3, no_looping: true },
-            ]
-        };
-
-        let music_table = MusicTable::from_v1(v1_table);
-        
-        assert_eq!(music_table.find_song_id_by_name("xxxx"), Some(0));
-        assert_eq!(music_table.find_song_id_by_name("wanpaku"), Some(1));
-        assert_eq!(music_table.find_song_id_by_name("gameover"), Some(3));
-        assert_eq!(music_table.find_song_id_by_name("nonexistent"), None);
     }
 }

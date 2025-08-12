@@ -38,6 +38,17 @@ mod wave_bank;
 /// Number of seconds to fade out the background music completely.
 const FADEOUT_DURATION: f32 = 5.0;
 
+#[derive(Clone)]
+pub struct SongParameters {
+    pub no_loop: bool,
+}
+
+impl Default for SongParameters {
+    fn default() -> Self {
+        Self { no_loop: false }
+    }
+}
+
 pub struct SoundManager {
     soundbank: Option<SoundBank>,
     tx: Sender<PlaybackMessage>,
@@ -330,9 +341,9 @@ impl SoundManager {
                                     self.send(PlaybackMessage::SaveState).unwrap();
                                     
                                     if should_loop {
-                                        self.send(PlaybackMessage::PlayOrganyaSong(Box::new(org))).unwrap();
+                                        self.send(PlaybackMessage::PlayOrganyaSong(Box::new(org), SongParameters::default())).unwrap();
                                     } else {
-                                        self.send(PlaybackMessage::PlayOrganyaSongNoLoop(Box::new(org))).unwrap();
+                                        self.send(PlaybackMessage::PlayOrganyaSong(Box::new(org), SongParameters { no_loop: true })).unwrap();
                                     }
 
                                     return Ok(());
@@ -358,9 +369,9 @@ impl SoundManager {
                                     self.send(PlaybackMessage::SaveState).unwrap();
                                     
                                     if should_loop {
-                                        self.send(PlaybackMessage::PlayOggSongSinglePart(Box::new(song))).unwrap();
+                                        self.send(PlaybackMessage::PlayOggSongSinglePart(Box::new(song), SongParameters::default())).unwrap();
                                     } else {
-                                        self.send(PlaybackMessage::PlayOggSongSinglePartNoLoop(Box::new(song))).unwrap();
+                                        self.send(PlaybackMessage::PlayOggSongSinglePart(Box::new(song), SongParameters { no_loop: true })).unwrap();
                                     }
 
                                     return Ok(());
@@ -398,6 +409,7 @@ impl SoundManager {
                                     self.send(PlaybackMessage::PlayOggSongMultiPart(
                                         Box::new(song_intro),
                                         Box::new(song_loop),
+                                        SongParameters { no_loop: !should_loop },
                                     ))
                                     .unwrap();
 
@@ -564,14 +576,11 @@ impl SoundManager {
 
 pub(in crate::sound) enum PlaybackMessage {
     Stop,
-    PlayOrganyaSong(Box<Song>),
-    PlayOrganyaSongNoLoop(Box<Song>),
+    PlayOrganyaSong(Box<Song>, SongParameters),
     #[cfg(feature = "ogg-playback")]
-    PlayOggSongSinglePart(Box<OggStreamReader<File>>),
+    PlayOggSongSinglePart(Box<OggStreamReader<File>>, SongParameters),
     #[cfg(feature = "ogg-playback")]
-    PlayOggSongSinglePartNoLoop(Box<OggStreamReader<File>>),
-    #[cfg(feature = "ogg-playback")]
-    PlayOggSongMultiPart(Box<OggStreamReader<File>>, Box<OggStreamReader<File>>),
+    PlayOggSongMultiPart(Box<OggStreamReader<File>>, Box<OggStreamReader<File>>, SongParameters),
     PlaySample(u8),
     LoopSample(u8),
     LoopSampleFreq(u8, f32),
@@ -670,7 +679,7 @@ where
                 }
 
                 match rx.try_recv() {
-                    Ok(PlaybackMessage::PlayOrganyaSong(song)) => {
+                    Ok(PlaybackMessage::PlayOrganyaSong(song, params)) => {
                         if state == PlaybackState::Stopped {
                             saved_state = PlaybackStateType::None;
                         }
@@ -681,27 +690,9 @@ where
                         }
 
                         org_engine.start_song(*song, &bank);
-
-                        for i in &mut bgm_buf[0..samples] {
-                            *i = 0x8000
+                        if params.no_loop {
+                            org_engine.loops = 0; // Disable looping
                         }
-                        samples = org_engine.render_to(&mut bgm_buf);
-                        bgm_index = 0;
-
-                        state = PlaybackState::PlayingOrg;
-                    }
-                    Ok(PlaybackMessage::PlayOrganyaSongNoLoop(song)) => {
-                        if state == PlaybackState::Stopped {
-                            saved_state = PlaybackStateType::None;
-                        }
-
-                        if bgm_fadeout {
-                            bgm_fadeout = false;
-                            bgm_vol = bgm_vol_saved;
-                        }
-
-                        org_engine.start_song(*song, &bank);
-                        org_engine.loops = 0; // Disable looping
 
                         for i in &mut bgm_buf[0..samples] {
                             *i = 0x8000
@@ -712,7 +703,7 @@ where
                         state = PlaybackState::PlayingOrg;
                     }
                     #[cfg(feature = "ogg-playback")]
-                    Ok(PlaybackMessage::PlayOggSongSinglePart(data)) => {
+                    Ok(PlaybackMessage::PlayOggSongSinglePart(data, params)) => {
                         if state == PlaybackState::Stopped {
                             saved_state = PlaybackStateType::None;
                         }
@@ -722,7 +713,7 @@ where
                             bgm_vol = bgm_vol_saved;
                         }
 
-                        ogg_engine.start_single(data);
+                        ogg_engine.start_single(data, params.no_loop);
 
                         for i in &mut bgm_buf[0..samples] {
                             *i = 0x8000
@@ -733,7 +724,7 @@ where
                         state = PlaybackState::PlayingOgg;
                     }
                     #[cfg(feature = "ogg-playback")]
-                    Ok(PlaybackMessage::PlayOggSongSinglePartNoLoop(data)) => {
+                    Ok(PlaybackMessage::PlayOggSongMultiPart(data_intro, data_loop, params)) => {
                         if state == PlaybackState::Stopped {
                             saved_state = PlaybackStateType::None;
                         }
@@ -743,28 +734,7 @@ where
                             bgm_vol = bgm_vol_saved;
                         }
 
-                        ogg_engine.start_single_no_loop(data);
-
-                        for i in &mut bgm_buf[0..samples] {
-                            *i = 0x8000
-                        }
-                        samples = ogg_engine.render_to(&mut bgm_buf);
-                        bgm_index = 0;
-
-                        state = PlaybackState::PlayingOgg;
-                    }
-                    #[cfg(feature = "ogg-playback")]
-                    Ok(PlaybackMessage::PlayOggSongMultiPart(data_intro, data_loop)) => {
-                        if state == PlaybackState::Stopped {
-                            saved_state = PlaybackStateType::None;
-                        }
-
-                        if bgm_fadeout {
-                            bgm_fadeout = false;
-                            bgm_vol = bgm_vol_saved;
-                        }
-
-                        ogg_engine.start_multi(data_intro, data_loop);
+                        ogg_engine.start_multi(data_intro, data_loop, params.no_loop);
 
                         for i in &mut bgm_buf[0..samples] {
                             *i = 0x8000

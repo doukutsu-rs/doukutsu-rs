@@ -19,7 +19,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Song ID used in commands like <CMUxxxx (corresponds to index in the table)",
+            "description": "TSC song ID used in commands like <CMUxxxx - this corresponds to the numerical ID referenced in TSC scripts to play this song",
             "type": "number",
             "minimum": 0,
             "maximum": 65535

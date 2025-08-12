@@ -3,26 +3,34 @@ use std::sync::{Arc, RwLock};
 use lewton::inside_ogg::OggStreamReader;
 use num_traits::clamp;
 
+use crate::bitfield;
 use crate::framework::filesystem::File;
 use crate::sound::stuff::cubic_interp;
 use crate::sound::wav::WavFormat;
+
+bitfield! {
+    #[derive(Clone, Copy)]
+    #[repr(C)]
+    pub struct OggPlaybackFlags(u8);
+
+    pub playing_intro, set_playing_intro: 0;
+    pub no_loop, set_no_loop: 1;
+}
 
 pub(crate) struct OggPlaybackEngine {
     intro_music: Option<Arc<RwLock<Box<OggStreamReader<File>>>>>,
     loop_music: Option<Arc<RwLock<Box<OggStreamReader<File>>>>>,
     output_format: WavFormat,
-    playing_intro: bool,
+    flags: OggPlaybackFlags,
     position: u64,
     buffer: Vec<i16>,
-    no_loop: bool,
 }
 
 pub struct SavedOggPlaybackState {
     intro_music: Option<Arc<RwLock<Box<OggStreamReader<File>>>>>,
     loop_music: Option<Arc<RwLock<Box<OggStreamReader<File>>>>>,
-    playing_intro: bool,
+    flags: OggPlaybackFlags,
     position: u64,
-    no_loop: bool,
 }
 
 impl OggPlaybackEngine {
@@ -31,10 +39,9 @@ impl OggPlaybackEngine {
             intro_music: None,
             loop_music: None,
             output_format: WavFormat { channels: 2, sample_rate: 44100, bit_depth: 16 },
-            playing_intro: false,
+            flags: OggPlaybackFlags(0),
             position: 0,
             buffer: Vec::with_capacity(4096),
-            no_loop: false,
         }
     }
 
@@ -46,73 +53,63 @@ impl OggPlaybackEngine {
         SavedOggPlaybackState {
             intro_music: self.intro_music.clone(),
             loop_music: self.loop_music.clone(),
-            playing_intro: self.playing_intro,
+            flags: self.flags,
             position: self.position,
-            no_loop: self.no_loop,
         }
     }
 
     pub fn set_state(&mut self, state: SavedOggPlaybackState) {
         self.intro_music = state.intro_music;
         self.loop_music = state.loop_music;
-        self.playing_intro = state.playing_intro;
+        self.flags = state.flags;
         self.position = state.position;
-        self.no_loop = state.no_loop;
     }
 
-    pub fn start_single(&mut self, loop_music: Box<OggStreamReader<File>>) {
+    pub fn start_single(&mut self, loop_music: Box<OggStreamReader<File>>, no_loop: bool) {
         self.intro_music = None;
         self.loop_music = Some(Arc::new(RwLock::new(loop_music)));
-        self.playing_intro = false;
+        self.flags.set_playing_intro(false);
         self.position = 0;
-        self.no_loop = false;
+        self.flags.set_no_loop(no_loop);
     }
 
-    pub fn start_single_no_loop(&mut self, loop_music: Box<OggStreamReader<File>>) {
-        self.intro_music = None;
-        self.loop_music = Some(Arc::new(RwLock::new(loop_music)));
-        self.playing_intro = false;
-        self.position = 0;
-        self.no_loop = true;
-    }
-
-    pub fn start_multi(&mut self, intro_music: Box<OggStreamReader<File>>, loop_music: Box<OggStreamReader<File>>) {
+    pub fn start_multi(&mut self, intro_music: Box<OggStreamReader<File>>, loop_music: Box<OggStreamReader<File>>, no_loop: bool) {
         self.intro_music = Some(Arc::new(RwLock::new(intro_music)));
         self.loop_music = Some(Arc::new(RwLock::new(loop_music)));
-        self.playing_intro = true;
+        self.flags.set_playing_intro(true);
         self.position = 0;
-        self.no_loop = false;
+        self.flags.set_no_loop(no_loop);
     }
 
     pub fn rewind(&mut self) {
         if let Some(music) = &self.intro_music {
             let _ = music.write().unwrap().seek_absgp_pg(0);
             self.position = 0;
-            self.playing_intro = true;
+            self.flags.set_playing_intro(true);
         } else {
             if let Some(music) = &self.loop_music {
                 let _ = music.write().unwrap().seek_absgp_pg(0);
             }
 
             self.position = 0;
-            self.playing_intro = false;
+            self.flags.set_playing_intro(false);
         }
     }
 
     fn decode(&mut self) {
-        if self.playing_intro {
+        if self.flags.playing_intro() {
             if let Some(music) = &self.intro_music {
                 let mut music = music.write().unwrap();
 
                 let mut buf = match music.read_dec_packet_itl() {
                     Ok(Some(buf)) => buf,
                     Ok(None) => {
-                        self.playing_intro = false;
+                        self.flags.set_playing_intro(false);
                         return;
                     }
                     Err(e) => {
                         log::error!("Error decoding intro: {}", e);
-                        self.playing_intro = false;
+                        self.flags.set_playing_intro(false);
                         return;
                     }
                 };
@@ -121,7 +118,7 @@ impl OggPlaybackEngine {
                 buf = self.resample_buffer(buf, music.ident_hdr.audio_sample_rate, music.ident_hdr.audio_channels);
                 self.buffer.append(&mut buf);
             } else {
-                self.playing_intro = false;
+                self.flags.set_playing_intro(false);
             }
         } else if let Some(music) = &self.loop_music {
             let mut music = music.write().unwrap();
@@ -129,7 +126,7 @@ impl OggPlaybackEngine {
             let mut buf = match music.read_dec_packet_itl() {
                 Ok(Some(buf)) => buf,
                 Ok(None) => {
-                    if !self.no_loop && music.seek_absgp_pg(0).is_ok() {
+                    if !self.flags.no_loop() && music.seek_absgp_pg(0).is_ok() {
                         return;
                     }
 
