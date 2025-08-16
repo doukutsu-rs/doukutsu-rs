@@ -1,11 +1,11 @@
 use std::collections::{HashMap, hash_map::Entry};
 use std::ffi::OsString;
 use std::fs::File;
-use std::io;
+use std::io::{self, BufRead, BufReader, Cursor};
 use std::io::{Read, Write};
 use std::marker::Copy;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use std::str::{Chars, FromStr};
 
 use byteorder::{BE, LE, ReadBytesExt, WriteBytesExt};
 use num_traits::{clamp, FromPrimitive};
@@ -62,8 +62,10 @@ pub struct GameProfile {
     pub pos_y: i32,
     pub direction: Direction,
     pub max_life: u16,
+    pub max_life_p2: u16,
     pub stars: u16,
     pub life: u16,
+    pub life_p2: u16,
     pub current_weapon: u32,
     pub current_item: u32,
     pub equipment: u32,
@@ -93,8 +95,10 @@ impl Default for GameProfile {
             pos_y: 0,
             direction: Direction::Left,
             max_life: 0,
+            max_life_p2: 0,
             stars: 0,
             life: 0,
+            life_p2: 0,
             current_weapon: 0,
             current_item: 0,
             equipment: 0,
@@ -224,6 +228,10 @@ impl GameProfile {
         game_scene.player1.stars = clamp(self.stars, 0, 3) as u8;
 
         game_scene.player2 = game_scene.player1.clone();
+        if self.max_life_p2 != 0 && self.life_p2 != 0 {
+            game_scene.player2.max_life = self.max_life_p2;
+            game_scene.player2.life = self.life_p2;
+        }
         // game_scene.inventory_player2 = game_scene.inventory_player1.clone();
 
         game_scene.player1.cond.0 = 0x80;
@@ -251,9 +259,11 @@ impl GameProfile {
         let pos_x = player.x as i32;
         let pos_y = player.y as i32;
         let direction = player.direction;
-        let max_life = player.max_life;
+        let max_life = game_scene.player1.max_life;
+        let max_life_p2 = game_scene.player1.max_life;
         let stars = player.stars as u16;
-        let life = player.life;
+        let life = game_scene.player1.life;
+        let life_p2 = game_scene.player2.life;
         let current_weapon = inventory_player.current_weapon as u32;
         let current_item = inventory_player.current_item as u32;
         let equipment = player.equip.0 as u32;
@@ -320,8 +330,10 @@ impl GameProfile {
             pos_y,
             direction,
             max_life,
+            max_life_p2,
             stars,
             life,
+            life_p2,
             current_weapon,
             current_item,
             equipment,
@@ -419,20 +431,30 @@ impl GameProfile {
     }
 
     pub fn load_from_save<R: io::Read>(data: &mut R, format: SaveFormat) -> GameResult<GameProfile> {
-/*
         let magic = data.read_u64::<BE>()?;
-        if magic != SIG_Do041220 && magic != SIG_Do041115 {
+        if magic == 0 && format.is_csp() {
+            // Some of the CS+ slots may be filled with 0, so all signatures and magic numbers will be invalid
+            let profile_size = if format == SaveFormat::Plus { 0x620 } else { 0x680 } as usize;
+            let mut dummy: Vec<u8> = Vec::with_capacity(profile_size);
+
+            let _ = data.read(&mut dummy)?;
+            return Ok(GameProfile::default());
+        } else if magic != SIG_Do041220 && magic != SIG_Do041115 {
             return Err(ResourceLoadError("Invalid magic".to_owned()));
         }
-*/
+
         let current_map = data.read_u32::<LE>()?;
         let current_song = data.read_u32::<LE>()?;
         let pos_x = data.read_i32::<LE>()?;
         let pos_y = data.read_i32::<LE>()?;
         let direction = data.read_u32::<LE>()?;
         let max_life = data.read_u16::<LE>()?;
+        // TODO: P2 values
+        let max_life_p2 = if format == SaveFormat::Switch { data.read_u16::<LE>()? } else { max_life };
         let stars = data.read_u16::<LE>()?;
         let life = data.read_u16::<LE>()?;
+        // TODO: P2 values
+        let life_p2 = if format == SaveFormat::Switch { data.read_u16::<LE>()? } else { life };
         let _ = data.read_u16::<LE>()?; // ???
         let current_weapon = data.read_u32::<LE>()?;
         let current_item = data.read_u32::<LE>()?;
@@ -459,7 +481,7 @@ impl GameProfile {
         load_weapons(data, &mut weapon_data)?;
         if format == SaveFormat::Switch {
             weapon_data_p2 = Some([WeaponData::default(); 8]);
-            load_weapons(data, weapon_data_p2.as_mut().unwrap());
+            load_weapons(data, weapon_data_p2.as_mut().unwrap())?;
         }
 
         for item in &mut items {
@@ -481,11 +503,17 @@ impl GameProfile {
         let mut flags = [0u8; 1000];
         data.read_exact(&mut flags)?;
 
-        data.read_u32::<LE>().unwrap_or(0); // unused(?) CS+ space
+        let _ = data.read_u32::<LE>().unwrap_or(0); // unused(?) CS+ space
 
         let timestamp = data.read_u64::<LE>().unwrap_or(0);
         let difficulty = data.read_u8().unwrap_or(0);
-        let eggfish_killed = false; // TODO
+        let eggfish_killed = false; //
+
+        if format.is_csp() {
+            // unused(?) CS+ space
+            let mut zeros = [0u8; 15];
+            data.read(&mut zeros)?;
+        }
 
         Ok(GameProfile {
             current_map,
@@ -494,8 +522,10 @@ impl GameProfile {
             pos_y,
             direction: Direction::from_int(direction as usize).unwrap_or(Direction::Left),
             max_life,
+            max_life_p2,
             stars,
             life,
+            life_p2,
             current_weapon,
             current_item,
             equipment,
@@ -544,6 +574,50 @@ impl SaveSlot {
     }
 }
 
+impl FromStr for SaveSlot {
+    type Err = GameError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        fn extract_num(chars: &mut Chars, replace_emtpy: Option<usize>) -> Option<usize> {
+            let mut buf = String::new();
+
+            for char in chars {
+                log::debug!("{}", char);
+                if char.is_digit(10) {
+                    buf.push(char);
+                } else if !buf.is_empty() {
+                    break;
+                }
+            }
+
+            if buf.is_empty() && replace_emtpy.is_some() {
+                return replace_emtpy;
+            }
+
+            buf.parse::<usize>().ok()
+        }
+
+        if s.starts_with("Mod") {
+            let mut chars = s.chars();
+
+            let save_set = extract_num(&mut chars, None);
+            let save_slot = extract_num(&mut chars, None);
+
+            if let (Some(set), Some(slot)) = (save_set, save_slot) {
+                return Ok(SaveSlot::CSPMod(set as u8, slot));
+            }
+        } else if s.starts_with("Profile") {
+            let mut chars = s.chars();
+
+            if let Some(slot) = extract_num(&mut chars, Some(1)) {
+                return Ok(SaveSlot::MainGame(slot));
+            }
+        }
+
+        Err(GameError::ParseError("Cannot parse save slot from the profile filename".to_owned()))
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq)]
 pub enum SaveFormat {
     Freeware,
@@ -563,7 +637,7 @@ impl SaveFormat {
             // In CS+ a profile signature at the start of the save file is present only
             // if the first game slot profile exists. Otherwise it will be filled with zeros.
             // TODO: should we handle
-            SIG_Do041220 => 
+            SIG_Do041220 =>
                 match data.len() {
                     0x604..=0x620 => Some(SaveFormat::Freeware),
                     0x20020 => Some(SaveFormat::Plus),
@@ -592,6 +666,7 @@ impl SaveFormat {
 
         Err(ResourceLoadError("Unsupported or invalid save file".to_owned()))
     }
+
 
     pub fn is_csp(&self) -> bool {
         match self {
@@ -628,6 +703,7 @@ enum SavePatch {
 pub struct SaveParams {
     pub slots: Vec<SaveSlot>,
     pub settings: bool,
+
 }
 
 impl Default for SaveParams {
@@ -668,32 +744,25 @@ impl Default for SaveContainer {
 impl SaveContainer {
     pub fn load(ctx: &mut Context, state: &mut SharedGameState) -> GameResult<SaveContainer> {
         log::debug!("DEBUG LOAD SAVE");
+
         if let Ok(mut file) = user_open(ctx, "/save.json") {
             log::debug!("DEBUG LOAD SAVE - FILE EXISTS");
             // Using of buf significantly speed up the deserialization.
             let mut buf: Vec<u8> = Vec::new();
             file.read_to_end(&mut buf)?;
 
-            log::debug!("DEBUG LOAD SAVE - PREDESERIALIZE. Len: {}", buf.len());
-            let now = std::time::Instant::now();
-            match serde_json::from_slice::<SaveContainer>(buf.as_mut_slice()) {
-                Ok(mut save) => {
-                    log::debug!("DEBUG LOAD SAVE - PREUPGRADE");
-                    save.upgrade();
-                    log::debug!("DEBUG LOAD SAVE - UPGRADED");
-                    log::info!("DEBUG LOAD - {} SECS ELAPSED", now.elapsed().as_secs_f64());
-                    //log::debug!("{:?}", save);
-                    return Ok(save);
-                },
-                Err(err) => log::warn!("Failed to deserialize a generic save: {}", err),
-            }
+            return Ok(Self::load_from_buf(ctx, state, buf.as_slice()).unwrap_or_default());
         }
 
         log::debug!("DEBUG LOAD SAVE - DEFAULT CREATED");
 
-        let mut container = SaveContainer::default();
-        //container.write_save(ctx, state, SaveFormat::Generic, None, None, &SaveParams::default())?;
-        Ok(container)
+        Ok(Self::default())
+    }
+
+    fn load_from_buf(ctx: &mut Context, state: &mut SharedGameState, buf: &[u8]) -> GameResult<SaveContainer> {
+        serde_json::from_slice::<SaveContainer>(buf)
+            .map_err(|err| GameError::ResourceLoadError(format!("Failed to deserialize a generic save. {}", err.to_string())))
+            .map(| container| container.upgrade())
     }
 
     pub fn save(&mut self, ctx: &mut Context, state: &mut SharedGameState, params: SaveParams) -> GameResult {
@@ -710,7 +779,6 @@ impl SaveContainer {
 
         match format {
             SaveFormat::Generic => {
-                let exists = user_exists(ctx, &save_path);
                 let mut file = user_create(ctx, &save_path)?;
 
                 // Using of buf significantly speed up the serializing.
@@ -771,7 +839,7 @@ impl SaveContainer {
             SaveFormat::Plus | SaveFormat::Switch => {
                 let mut active_slots = [0u8; 32];
 
-                // Setting
+                // Settings
                 let bgm_volume = ((state.settings.bgm_volume * 10.0) as u32).min(10);
                 let sfx_volume = ((state.settings.bgm_volume * 10.0) as u32).min(10);
                 let seasonal_textures = state.settings.seasonal_textures as u8;
@@ -863,8 +931,7 @@ impl SaveContainer {
                     cur.write_u8(0)?; // Shared health bar.
 
                     // Something
-                    cur.write_u16::<LE>(0)?;
-                    cur.write_u8(0)?;
+                    cur.write_u24::<LE>(0)?;
                 } else {
                     let zeros = [0u8; 7];
                     cur.write(&zeros)?;
@@ -930,13 +997,15 @@ impl SaveContainer {
         }
     }
 
-    pub fn upgrade(&mut self) {
+    pub fn upgrade(self) -> Self {
         log::debug!("DEBUG UPGRADE SAVE");
         let initial_version = self.version;
 
         if self.version != initial_version {
             log::info!("Upgraded generic save from version {} to {}.", initial_version, self.version);
         }
+
+        self
     }
 
 
@@ -1020,8 +1089,151 @@ impl SaveContainer {
 
 
 
+    fn merge(&mut self, b: &Self) {
+        self.game_profiles.extend(b.game_profiles.iter());
+        for (b_set, b_csp_mod) in &b.csp_mods {
+            if let Some(csp_mod) = self.csp_mods.get_mut(b_set) {
+                csp_mod.profiles.extend(b_csp_mod.profiles.iter());
+                csp_mod.time = csp_mod.time.min(b_csp_mod.time);
+            }
+        }
+    }
 
 
+    pub fn import(&mut self, state: &mut SharedGameState, ctx: &mut Context, format: Option<SaveFormat>, params: SaveParams, save_path: PathBuf) -> GameResult {
+        let path = save_path.clone().into_boxed_path();
+        let data = std::fs::read(path)?;
+
+        let format = format.unwrap_or(SaveFormat::recognise(data.as_slice())?);
+
+        log::trace!("Import format: {:?}.", format);
+        log::trace!("Import params: {:?}.", params);
+        log::trace!("Import path: {:?}.", save_path);
+
+        match format {
+            SaveFormat::Generic => {
+                *self = Self::load_from_buf(ctx, state, data.as_slice())?;
+            }
+            SaveFormat::Freeware => {
+                let filename = save_path.file_name().and_then(|s| s.to_os_string().into_string().ok()).unwrap();
+
+                let mut cur = Cursor::new(data);
+                let profile = GameProfile::load_from_save(&mut cur, format)?;
+
+                let save_slot = params.slots.first().cloned().or(filename.parse::<SaveSlot>().ok());
+                if let Some(slot) = save_slot {
+                    self.set_profile(slot, profile);
+                } else {
+                    return Err(ResourceLoadError("Cannot parse save slot from the profile filename.".to_owned()));
+                }
+            }
+            SaveFormat::Plus | SaveFormat::Switch => {
+                let mut container = Self::default();
+
+                let mut cur = Cursor::new(data);
+                let mut active_slots = [0u8; 32];
+
+                for save_slot in 1..=3 {
+                    log::debug!("{}", save_slot);
+                    let profile: Result<GameProfile, GameError> = GameProfile::load_from_save(&mut cur, format);
+                    container.set_profile(SaveSlot::MainGame(save_slot), profile?);
+                }
+
+                for save_set in 1..=26 {
+                    for save_slot in 1..=3 {
+                        let profile = GameProfile::load_from_save(&mut cur, format)?;
+                        container.set_profile(SaveSlot::CSPMod(save_set, save_slot), profile);
+                    }
+                }
+
+                cur.read_exact(&mut active_slots)?;
+
+                for save_set in 0..28 {
+                    for save_slot in 1..=3 {
+                        let is_inactive = !(active_slots[save_set] & (1u8 << (save_slot - 1)) == 0);
+
+                        if is_inactive {
+                            continue;
+                        }
+
+                        let slot = if save_set == 0 { SaveSlot::MainGame(save_slot) } else { SaveSlot::CSPMod(save_set as u8, save_slot) };
+                        container.delete_profile(ctx, slot);
+                    }
+                }
+
+                // TODO: change settings in the menu
+                if params.settings {
+                    state.settings.bgm_volume = cur.read_u32::<LE>()? as f32 / 10.0;
+                    state.settings.sfx_volume = cur.read_u32::<LE>()? as f32 / 10.0;
+                    state.settings.seasonal_textures = (cur.read_u8()? == 1);
+                    state.settings.soundtrack = match cur.read_u8()? {
+                        2 => "organya",
+                        3 => "new",
+                        4 => "remastered",
+                        5 => "famitracks",
+                        6 => "ridiculon",
+                        _ => state.settings.soundtrack.as_str()
+                    }.to_owned();
+                    let graphics = (cur.read_u8()? == 1);
+                    if graphics != state.settings.original_textures {
+                        state.settings.original_textures = graphics;
+                        state.reload_resources(ctx)?;
+                    }
+
+                    state.settings.save(ctx)?;
+
+                    // TODO: should we import locale?
+                    let locale = cur.read_u8()?;
+                } else {
+                    // Skip settings
+                    let mut settings = [0u8; 12];
+                    cur.read_exact(&mut settings)?;
+                }
+
+                state.mod_requirements.beat_hell = (cur.read_u8()? == 1);
+
+                if format == SaveFormat::Switch {
+                     // TODO
+                    let mut jukebox = [0u8; 48];
+
+                    let unlock_notifications: u8;
+                    let shared_healthbar: u8;
+
+                    cur.read_exact(&mut jukebox)?;
+                    unlock_notifications = cur.read_u8()?;
+                    shared_healthbar = cur.read_u8()?;
+
+                    // unused
+                    let _ = cur.read_u24::<LE>()?;
+                } else {
+                    let mut unused = [0u8; 7];
+                    cur.read_exact(&mut unused);
+                }
+
+                let mut nikumaru_counter = NikumaruCounter::new();
+                nikumaru_counter.load_counter(state, ctx)?;
+
+                let counter = cur.read_u32::<LE>()? as usize;
+                if counter < nikumaru_counter.tick {
+                    nikumaru_counter.tick = counter;
+                    nikumaru_counter.save_counter(state, ctx)?;
+                }
+
+                // TODO: import CSP mod times
+                let mut best_times = [0u32; 26];
+                for mod_id in 1..=26 {
+                    best_times[mod_id - 1] = cur.read_u32::<LE>()?;
+                }
+
+                // TODO: load all other fields
+
+
+                self.merge(&container);
+            }
+        }
+
+        Ok(())
+    }
 
     pub fn export(&mut self, state: &mut SharedGameState, ctx: &mut Context, format: SaveFormat, params: SaveParams, out_path: PathBuf) -> GameResult {
         self.write_save(ctx, state, format, None, Some(out_path.clone()), &params)?;
