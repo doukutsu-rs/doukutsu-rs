@@ -1,5 +1,7 @@
 #include "backend.h"
+#include "backend_sdl2.h"  
 #include "error.h"
+#include <iostream>
 
 namespace doukutsu {
 namespace framework {
@@ -121,8 +123,14 @@ std::unique_ptr<Backend> init_backend(bool headless, const WindowParams& window_
         return std::make_unique<NullBackend>();
     }
     
-    // For now, always return null backend until SDL2 backend is implemented
-    return std::make_unique<NullBackend>();
+    // Try SDL2 backend first
+    try {
+        return std::make_unique<SDL2Backend>(window_params);
+    } catch (const GameError& e) {
+        std::cerr << "Failed to initialize SDL2 backend: " << e.what() << std::endl;
+        std::cerr << "Falling back to null backend" << std::endl;
+        return std::make_unique<NullBackend>();
+    }
 }
 
 } // namespace framework

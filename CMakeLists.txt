@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 
 add_executable(doukutsu_rs 
     src/framework/backend.cpp
+    src/framework/backend_sdl2.cpp
     src/framework/context.cpp  
     src/framework/filesystem.cpp
     src/framework/keyboard.cpp
@@ -14,5 +15,7 @@ add_executable(doukutsu_rs
     src/common.cpp 
     src/game.cpp
     src/main.cpp
+    src/map.cpp
+    src/physics.cpp
     src/texture_set.cpp
     src/rng.cpp)
