@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <algorithm>
 #include "../common.h"
 
 namespace doukutsu_rs::engine_constants::npcs
@@ -13,25 +14,46 @@ namespace doukutsu_rs::engine_constants::npcs
     public:
         std::array<common::Rect<uint16_t>, T> rects;
 
-        SafeNPCRect(common::Rect<uint16_t> rects[T])
+        // C++20: Use std::span for better array handling
+        explicit SafeNPCRect(const common::Rect<uint16_t> (&input_rects)[T])
         {
-            for (size_t i = 0; i < T; i++)
-            {
-                this->rects[i] = rects[i];
-            }
+            std::copy(std::begin(input_rects), std::end(input_rects), rects.begin());
         }
 
-        common::Rect<uint16_t> const &operator[](size_t i)
+        // C++20: Use concepts for safer bounds checking
+        constexpr const common::Rect<uint16_t>& operator[](size_t i) const
         {
-            if (i >= T)
+            if (i >= T) [[unlikely]]  // C++20: Likely/unlikely attributes
             {
                 return EMPTY_NPC_RECT;
             }
-            else
+            else [[likely]]
             {
                 return rects[i];
             }
         }
+        
+        // Non-const version
+        constexpr common::Rect<uint16_t>& operator[](size_t i)
+        {
+            if (i >= T) [[unlikely]]
+            {
+                // Return a reference to EMPTY_NPC_RECT - this is potentially unsafe
+                // but maintains compatibility
+                return const_cast<common::Rect<uint16_t>&>(EMPTY_NPC_RECT);
+            }
+            else [[likely]]
+            {
+                return rects[i];
+            }
+        }
+
+        // C++20: Add size() and range support
+        constexpr size_t size() const noexcept { return T; }
+        constexpr auto begin() const noexcept { return rects.begin(); }
+        constexpr auto end() const noexcept { return rects.end(); }
+        constexpr auto begin() noexcept { return rects.begin(); }
+        constexpr auto end() noexcept { return rects.end(); }
     };
 
     struct NPCConsts

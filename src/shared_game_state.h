@@ -25,13 +25,14 @@ namespace doukutsu_rs::shared_game_state
         };
 
         TimingMode() = default;
-        TimingMode(Value value) : value(value) {}
+        TimingMode(Value value) : value{value} {}
 
         constexpr operator Value() const { return value; }
         constexpr operator bool() = delete;
 
-        constexpr bool operator==(const TimingMode &other) const { return value == other.value; }
-        constexpr bool operator!=(const TimingMode &other) const { return value != other.value; }
+        // C++20: Three-way comparison
+        constexpr auto operator<=>(const TimingMode&) const = default;
+        constexpr bool operator==(const TimingMode&) const = default;
 
         constexpr bool operator==(Value other) const { return value == other; }
         constexpr bool operator!=(Value other) const { return value != other; }
@@ -46,6 +47,8 @@ namespace doukutsu_rs::shared_game_state
                 return 1000000000 / 60;
             case Value::FrameSynchronized:
                 return 0;
+            default:
+                return 0;  // C++20: Better to be explicit
             }
         }
 
@@ -59,6 +62,8 @@ namespace doukutsu_rs::shared_game_state
                 return 1000.0 / 60.0;
             case Value::FrameSynchronized:
                 return 0.0;
+            default:
+                return 0.0;
             }
         }
 
@@ -71,6 +76,8 @@ namespace doukutsu_rs::shared_game_state
             case Value::_60Hz:
                 return 60;
             case Value::FrameSynchronized:
+                return 0;
+            default:
                 return 0;
             }
         }
@@ -89,13 +96,14 @@ namespace doukutsu_rs::shared_game_state
         };
 
         TileSize() = default;
-        TileSize(Value value) : value(value) {}
+        TileSize(Value value) : value{value} {}
 
         constexpr operator Value() const { return value; }
         constexpr operator bool() = delete;
 
-        constexpr bool operator==(const TileSize &other) const { return value == other.value; }
-        constexpr bool operator!=(const TileSize &other) const { return value != other.value; }
+        // C++20: Three-way comparison
+        constexpr auto operator<=>(const TileSize&) const = default;
+        constexpr bool operator==(const TileSize&) const = default;
 
         constexpr bool operator==(Value other) const { return value == other; }
         constexpr bool operator!=(Value other) const { return value != other; }
