@@ -4,6 +4,8 @@
 #include <cmath>
 #include <optional>
 #include <tuple>
+#include <concepts>
+#include <type_traits>
 
 namespace doukutsu_rs::texture_set
 {
@@ -195,29 +197,36 @@ namespace doukutsu_rs::common
         };
 
         FadeDirection() = default;
-        constexpr FadeDirection(Value val) : value(val) {}
+        constexpr FadeDirection(Value val) : value{val} {}
 
         constexpr operator Value() const { return value; }
         explicit operator bool() = delete;
 
+        // C++20: Three-way comparison
+        constexpr auto operator<=>(const FadeDirection&) const = default;
+        constexpr bool operator==(const FadeDirection&) const = default;
+
         static constexpr std::optional<FadeDirection> from_int(int val)
         {
-            return val == 0
-                       ? std::make_optional(FadeDirection(Left))
-                   : val == 1 ? std::make_optional(FadeDirection(Up))
-                   : val == 2 ? std::make_optional(FadeDirection(Right))
-                   : val == 3 ? std::make_optional(FadeDirection(Down))
-                   : val == 4 ? std::make_optional(FadeDirection(Center))
-                              : std::nullopt;
+            switch (val) {
+                case 0: return FadeDirection{Left};
+                case 1: return FadeDirection{Up};
+                case 2: return FadeDirection{Right};
+                case 3: return FadeDirection{Down};
+                case 4: return FadeDirection{Center};
+                default: return std::nullopt;
+            }
         }
 
         constexpr FadeDirection opposite() const
         {
-            return value == Left    ? Right
-                   : value == Up    ? Down
-                   : value == Right ? Left
-                   : value == Down  ? Up
-                                    : Center;
+            switch (value) {
+                case Left: return Right;
+                case Up: return Down;
+                case Right: return Left;
+                case Down: return Up;
+                default: return Center;
+            }
         }
 
     private:
@@ -242,61 +251,66 @@ namespace doukutsu_rs::common
         };
 
         Direction() = default;
-        constexpr Direction(Value val) : value(val) {}
+        constexpr Direction(Value val) : value{val} {}
 
         constexpr operator Value() const { return value; }
         explicit operator bool() = delete;
 
-        constexpr bool operator==(const Direction &other) const { return value == other.value; }
-        constexpr bool operator!=(const Direction &other) const { return value != other.value; }
+        // C++20: Use three-way comparison instead of separate == and !=
+        constexpr auto operator<=>(const Direction& other) const = default;
+        constexpr bool operator==(const Direction& other) const = default;
 
         constexpr bool operator==(Value other) const { return value == other; }
         constexpr bool operator!=(Value other) const { return value != other; }
 
         static constexpr std::optional<Direction> from_int(int val)
         {
-            return val == 0
-                       ? std::make_optional(Direction(Left))
-                   : val == 1 ? std::make_optional(Direction(Up))
-                   : val == 2 ? std::make_optional(Direction(Right))
-                   : val == 3 ? std::make_optional(Direction(Bottom))
-                   : val == 4 ? std::make_optional(Direction(FacingPlayer))
-                              : std::nullopt;
+            switch (val) {
+                case 0: return Direction{Left};
+                case 1: return Direction{Up};
+                case 2: return Direction{Right};
+                case 3: return Direction{Bottom};
+                case 4: return Direction{FacingPlayer};
+                default: return std::nullopt;
+            }
         }
 
         constexpr Direction opposite() const
         {
-            return value == Left     ? Right
-                   : value == Up     ? Bottom
-                   : value == Right  ? Left
-                   : value == Bottom ? Up
-                                     : FacingPlayer;
+            switch (value) {
+                case Left: return Right;
+                case Up: return Bottom;
+                case Right: return Left;
+                case Bottom: return Up;
+                default: return FacingPlayer;
+            }
         }
 
         constexpr int vector_x() const
         {
-            return value == Left     ? -1
-                   : value == Up     ? 0
-                   : value == Right  ? 1
-                   : value == Bottom ? 0
-                                     : 0;
+            switch (value) {
+                case Left: return -1;
+                case Right: return 1;
+                default: return 0;
+            }
         }
 
         constexpr int vector_y() const
         {
-            return value == Left     ? 0
-                   : value == Up     ? -1
-                   : value == Right  ? 0
-                   : value == Bottom ? 1
-                                     : 0;
+            switch (value) {
+                case Up: return -1;
+                case Bottom: return 1;
+                default: return 0;
+            }
         }
 
     private:
         Value value;
     };
 
-    // use is_arithmetic to avoid the need for a separate impl for f32
+    // C++20: Use concepts to constrain template parameter for arithmetic types
     template <typename T>
+    requires std::is_arithmetic_v<T>
     struct Rect
     {
         T left;
@@ -305,11 +319,13 @@ namespace doukutsu_rs::common
         T bottom;
 
         constexpr Rect() = default;
-        constexpr Rect(T left, T top, T right, T bottom) : left(left), top(top), right(right), bottom(bottom) {}
+        
+        // Traditional constructor (designated initializers don't work with constructors)
+        constexpr Rect(T left, T top, T right, T bottom) : left{left}, top{top}, right{right}, bottom{bottom} {}
 
-        constexpr Rect new_size(T x, T y, T width, T height)
+        constexpr static Rect new_size(T x, T y, T width, T height)
         {
-            return Rect(x, y, x + width, y + height);
+            return Rect{x, y, x + width, y + height};
         }
 
         constexpr bool has_point(T x, T y) const
@@ -319,13 +335,25 @@ namespace doukutsu_rs::common
 
         constexpr T width() const
         {
-            return left > right ? left - right : right - left;
+            if constexpr (std::is_floating_point_v<T>) {
+                return std::abs(right - left);
+            } else {
+                return left > right ? left - right : right - left;
+            }
         }
 
         constexpr T height() const
         {
-            return top > bottom ? top - bottom : bottom - top;
+            if constexpr (std::is_floating_point_v<T>) {
+                return std::abs(bottom - top);
+            } else {
+                return top > bottom ? top - bottom : bottom - top;
+            }
         }
+
+        // C++20: Three-way comparison operator
+        constexpr auto operator<=>(const Rect&) const = default;
+        constexpr bool operator==(const Rect&) const = default;
     };
 
     inline float fix9_scale(int val)
@@ -346,64 +374,73 @@ namespace doukutsu_rs::common
     {
         float r, g, b, a;
 
-        constexpr Color() : r(0.0f), g(0.0f), b(0.0f), a(0.0f) {}
-        constexpr Color(float r, float g, float b, float a) : r(r), g(g), b(b), a(a) {}
+        constexpr Color() : r{0.0f}, g{0.0f}, b{0.0f}, a{0.0f} {}
+        constexpr Color(float r, float g, float b, float a) : r{r}, g{g}, b{b}, a{a} {}
 
-        constexpr Color from_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+        constexpr static Color from_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
         {
-            return Color(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+            return Color{r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f};
         }
 
-        constexpr Color from_rgb(uint8_t r, uint8_t g, uint8_t b)
+        constexpr static Color from_rgb(uint8_t r, uint8_t g, uint8_t b)
         {
-            return Color(r / 255.0f, g / 255.0f, b / 255.0f, 1.0f);
+            return Color{r / 255.0f, g / 255.0f, b / 255.0f, 1.0f};
         }
 
-        constexpr Color from_rgba_u32(uint32_t c)
+        constexpr static Color from_rgba_u32(uint32_t c)
         {
             return Color::from_rgba(
-                (uint8_t)(c >> 24),
-                (uint8_t)(c >> 16),
-                (uint8_t)(c >> 8),
-                (uint8_t)c);
+                static_cast<uint8_t>(c >> 24),
+                static_cast<uint8_t>(c >> 16),
+                static_cast<uint8_t>(c >> 8),
+                static_cast<uint8_t>(c));
         }
 
-        constexpr Color from_rgb_u32(uint32_t c)
+        constexpr static Color from_rgb_u32(uint32_t c)
         {
             return Color::from_rgb(
-                (uint8_t)(c >> 16),
-                (uint8_t)(c >> 8),
-                (uint8_t)c);
+                static_cast<uint8_t>(c >> 16),
+                static_cast<uint8_t>(c >> 8),
+                static_cast<uint8_t>(c));
         }
 
-        constexpr std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> to_rgba()
+        constexpr std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> to_rgba() const
         {
             return std::make_tuple(
-                (uint8_t)(r * 255.0f),
-                (uint8_t)(g * 255.0f),
-                (uint8_t)(b * 255.0f),
-                (uint8_t)(a * 255.0f));
+                static_cast<uint8_t>(r * 255.0f),
+                static_cast<uint8_t>(g * 255.0f),
+                static_cast<uint8_t>(b * 255.0f),
+                static_cast<uint8_t>(a * 255.0f));
         }
 
-        constexpr std::tuple<uint8_t, uint8_t, uint8_t> to_rgb()
+        constexpr std::tuple<uint8_t, uint8_t, uint8_t> to_rgb() const
         {
             return std::make_tuple(
-                (uint8_t)(r * 255.0f),
-                (uint8_t)(g * 255.0f),
-                (uint8_t)(b * 255.0f));
+                static_cast<uint8_t>(r * 255.0f),
+                static_cast<uint8_t>(g * 255.0f),
+                static_cast<uint8_t>(b * 255.0f));
         }
 
-        constexpr uint32_t to_rgba_u32()
+        constexpr uint32_t to_rgba_u32() const
         {
-            const auto [r, g, b, a] = to_rgba();
-            return (uint32_t)a << 24 | (uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b;
+            const auto [r_val, g_val, b_val, a_val] = to_rgba();
+            return static_cast<uint32_t>(a_val) << 24 | 
+                   static_cast<uint32_t>(r_val) << 16 | 
+                   static_cast<uint32_t>(g_val) << 8 | 
+                   static_cast<uint32_t>(b_val);
         }
 
-        constexpr uint32_t to_rgb_u32()
+        constexpr uint32_t to_rgb_u32() const
         {
-            const auto [r, g, b] = to_rgb();
-            return (uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b;
+            const auto [r_val, g_val, b_val] = to_rgb();
+            return static_cast<uint32_t>(r_val) << 16 | 
+                   static_cast<uint32_t>(g_val) << 8 | 
+                   static_cast<uint32_t>(b_val);
         }
+
+        // C++20: Three-way comparison
+        constexpr auto operator<=>(const Color&) const = default;
+        constexpr bool operator==(const Color&) const = default;
     };
 
     [[noreturn]]
