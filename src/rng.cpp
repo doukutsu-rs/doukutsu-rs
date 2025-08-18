@@ -1,6 +1,6 @@
 #include "rng.h"
 
-using namespace doukutsu_rs::rng;
+using namespace doukutsu::rng;
 
 int RNG::range(int start, int end)
 {

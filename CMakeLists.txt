@@ -6,12 +6,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 
 add_executable(doukutsu_rs 
-    src/engine_constants/npcs.cpp
-    src/npc/ai/balcony.cpp
-    src/sound/sound_manager.cpp
+    src/framework/backend.cpp
+    src/framework/context.cpp  
+    src/framework/filesystem.cpp
+    src/framework/keyboard.cpp
+    src/framework/gamepad.cpp
     src/common.cpp 
+    src/game.cpp
     src/main.cpp
-    src/map.cpp
-    src/physics.cpp
-    src/shared_game_state.cpp
-    src/texture_set.cpp)
+    src/texture_set.cpp
+    src/rng.cpp)

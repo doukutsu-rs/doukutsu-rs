@@ -4,24 +4,24 @@
 #include <algorithm>
 #include "../common.h"
 
-namespace doukutsu_rs::engine_constants::npcs
+namespace doukutsu::engine_constants::npcs
 {
-    extern const common::Rect<uint16_t> EMPTY_NPC_RECT;
+    extern const doukutsu::common::Rect<uint16_t> EMPTY_NPC_RECT;
 
     template <size_t T>
     class SafeNPCRect
     {
     public:
-        std::array<common::Rect<uint16_t>, T> rects;
+        std::array<doukutsu::common::Rect<uint16_t>, T> rects;
 
         // C++20: Use std::span for better array handling
-        explicit SafeNPCRect(const common::Rect<uint16_t> (&input_rects)[T])
+        explicit SafeNPCRect(const doukutsu::common::Rect<uint16_t> (&input_rects)[T])
         {
             std::copy(std::begin(input_rects), std::end(input_rects), rects.begin());
         }
 
         // C++20: Use concepts for safer bounds checking
-        constexpr const common::Rect<uint16_t>& operator[](size_t i) const
+        constexpr const doukutsu::common::Rect<uint16_t>& operator[](size_t i) const
         {
             if (i >= T) [[unlikely]]  // C++20: Likely/unlikely attributes
             {
@@ -34,13 +34,13 @@ namespace doukutsu_rs::engine_constants::npcs
         }
         
         // Non-const version
-        constexpr common::Rect<uint16_t>& operator[](size_t i)
+        constexpr doukutsu::common::Rect<uint16_t>& operator[](size_t i)
         {
             if (i >= T) [[unlikely]]
             {
                 // Return a reference to EMPTY_NPC_RECT - this is potentially unsafe
                 // but maintains compatibility
-                return const_cast<common::Rect<uint16_t>&>(EMPTY_NPC_RECT);
+                return const_cast<doukutsu::common::Rect<uint16_t>&>(EMPTY_NPC_RECT);
             }
             else [[likely]]
             {
@@ -97,7 +97,7 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<4> n038_fireplace;
         SafeNPCRect<2> n039_save_sign;
         SafeNPCRect<14> n040_santa;
-        common::Rect<uint16_t> n041_busted_door;
+        doukutsu::common::Rect<uint16_t> n041_busted_door;
         SafeNPCRect<26> n042_sue;
         SafeNPCRect<2> n043_chalkboard;
         SafeNPCRect<6> n044_polish;
@@ -144,8 +144,8 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<5> n087_heart_pickup;
         SafeNPCRect<24> n088_igor_boss;
         SafeNPCRect<8> n089_igor_dead;
-        common::Rect<uint16_t> n090_background;
-        common::Rect<uint16_t> n091_mimiga_cage;
+        doukutsu::common::Rect<uint16_t> n090_background;
+        doukutsu::common::Rect<uint16_t> n091_mimiga_cage;
         SafeNPCRect<3> n092_sue_at_pc;
         SafeNPCRect<14> n093_chaco;
         SafeNPCRect<5> n094_kulala;
@@ -169,10 +169,10 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<14> n113_professor_booster;
         SafeNPCRect<3> n114_press;
         SafeNPCRect<12> n115_ravil;
-        common::Rect<uint16_t> n116_red_petals;
+        doukutsu::common::Rect<uint16_t> n116_red_petals;
         SafeNPCRect<20> n117_curly;
         SafeNPCRect<18> n118_curly_boss;
-        common::Rect<uint16_t> n119_table_chair;
+        doukutsu::common::Rect<uint16_t> n119_table_chair;
         SafeNPCRect<2> n120_colon_a;
         SafeNPCRect<3> n121_colon_b;
         SafeNPCRect<20> n122_colon_enraged;
@@ -190,7 +190,7 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<6> n134_armadillo;
         SafeNPCRect<4> n135_skeleton;
         SafeNPCRect<4> n136_puppy_carried;
-        common::Rect<uint16_t> n137_large_door_frame;
+        doukutsu::common::Rect<uint16_t> n137_large_door_frame;
         SafeNPCRect<2> n138_large_door;
         SafeNPCRect<6> n139_doctor;
         SafeNPCRect<28> n140_toroko_frenzied;
@@ -202,16 +202,16 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<5> n146_lightning;
         SafeNPCRect<12> n147_critter_purple;
         SafeNPCRect<2> n148_critter_purple_projectile;
-        common::Rect<uint16_t> n149_horizontal_moving_block;
+        doukutsu::common::Rect<uint16_t> n149_horizontal_moving_block;
         SafeNPCRect<20> n150_quote;
         SafeNPCRect<4> n151_blue_robot_standing;
         SafeNPCRect<14> n153_gaudi;
         SafeNPCRect<6> n154_gaudi_dead;
         SafeNPCRect<8> n155_gaudi_flying;
         SafeNPCRect<3> n156_gaudi_projectile;
-        common::Rect<uint16_t> n157_vertical_moving_block;
+        doukutsu::common::Rect<uint16_t> n157_vertical_moving_block;
         SafeNPCRect<8> n158_fish_missile;
-        common::Rect<uint16_t> n159_monster_x_defeated;
+        doukutsu::common::Rect<uint16_t> n159_monster_x_defeated;
         SafeNPCRect<8> n160_puu_black;
         SafeNPCRect<3> n161_puu_black_projectile;
         SafeNPCRect<3> n162_puu_black_dead;
@@ -220,7 +220,7 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<3> n165_curly_collapsed;
         SafeNPCRect<2> n166_chaba;
         SafeNPCRect<3> n167_booster_falling;
-        common::Rect<uint16_t> n168_boulder;
+        doukutsu::common::Rect<uint16_t> n168_boulder;
         SafeNPCRect<18> n169_balrog_shooting_missiles;
         SafeNPCRect<4> n170_balrog_missile;
         SafeNPCRect<4> n171_fire_whirrr;
@@ -237,16 +237,16 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<4> n182_curly_ai_polar_star;
         SafeNPCRect<2> n183_curly_air_tank_bubble;
         SafeNPCRect<4> n184_shutter;
-        common::Rect<uint16_t> n185_small_shutter;
+        doukutsu::common::Rect<uint16_t> n185_small_shutter;
         SafeNPCRect<4> n186_lift_block;
         SafeNPCRect<4> n187_fuzz_core;
         SafeNPCRect<4> n188_fuzz;
         SafeNPCRect<3> n189_homing_flame;
         SafeNPCRect<2> n190_broken_robot;
         SafeNPCRect<4> n192_scooter;
-        common::Rect<uint16_t> n193_broken_scooter;
-        common::Rect<uint16_t> n194_broken_blue_robot;
-        common::Rect<uint16_t> n195_background_grate;
+        doukutsu::common::Rect<uint16_t> n193_broken_scooter;
+        doukutsu::common::Rect<uint16_t> n194_broken_blue_robot;
+        doukutsu::common::Rect<uint16_t> n195_background_grate;
         SafeNPCRect<2> n196_ironhead_wall;
         SafeNPCRect<4> n197_porcupine_fish;
         SafeNPCRect<3> n198_ironhead_projectile;
@@ -267,17 +267,17 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<10> n213_night_spirit;
         SafeNPCRect<3> n214_night_spirit_projectile;
         SafeNPCRect<5> n215_sandcroc_outer_wall;
-        common::Rect<uint16_t> n216_debug_cat;
+        doukutsu::common::Rect<uint16_t> n216_debug_cat;
         SafeNPCRect<8> n217_itoh;
         SafeNPCRect<2> n218_core_giant_ball;
         SafeNPCRect<4> n220_shovel_brigade;
         SafeNPCRect<12> n221_shovel_brigade_walking;
-        common::Rect<uint16_t> n222_prison_bars;
+        doukutsu::common::Rect<uint16_t> n222_prison_bars;
         SafeNPCRect<6> n223_momorin;
         SafeNPCRect<4> n224_chie;
         SafeNPCRect<4> n225_megane;
         SafeNPCRect<7> n226_kanpachi_plantation;
-        common::Rect<uint16_t> n227_bucket;
+        doukutsu::common::Rect<uint16_t> n227_bucket;
         SafeNPCRect<8> n228_droll;
         SafeNPCRect<2> n229_red_flowers_sprouts;
         SafeNPCRect<2> n230_red_flowers_blooming;
@@ -287,13 +287,13 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<2> n234_red_flowers_picked;
         SafeNPCRect<8> n235_midorin;
         SafeNPCRect<12> n236_gunfish;
-        common::Rect<uint16_t> n237_gunfish_projectile;
+        doukutsu::common::Rect<uint16_t> n237_gunfish_projectile;
         SafeNPCRect<3> n238_press_sideways;
         SafeNPCRect<2> n239_cage_bars;
         SafeNPCRect<12> n240_mimiga_jailed;
         SafeNPCRect<6> n241_critter_red;
         SafeNPCRect<8> n242_bat_last_cave;
-        common::Rect<uint16_t> n244_lava_drop;
+        doukutsu::common::Rect<uint16_t> n244_lava_drop;
         SafeNPCRect<4> n245_lava_drop_generator;
         SafeNPCRect<3> n246_press_proximity;
         SafeNPCRect<18> n247_misery_boss;
@@ -307,13 +307,13 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<8> n255_helicopter_blades;
         SafeNPCRect<6> n256_doctor_facing_away;
         SafeNPCRect<3> n257_red_crystal;
-        common::Rect<uint16_t> n258_mimiga_sleeping;
+        doukutsu::common::Rect<uint16_t> n258_mimiga_sleeping;
         SafeNPCRect<2> n259_curly_unconscious;
         SafeNPCRect<6> n260_shovel_brigade_caged;
         SafeNPCRect<4> n261_chie_caged;
         SafeNPCRect<4> n262_chaco_caged;
         SafeNPCRect<18> n263_doctor_boss;
-        common::Rect<uint16_t> n264_doctor_boss_red_projectile;
+        doukutsu::common::Rect<uint16_t> n264_doctor_boss_red_projectile;
         SafeNPCRect<3> n265_doctor_boss_red_projectile_trail;
         SafeNPCRect<2> n266_doctor_boss_red_projectile_bouncing;
         SafeNPCRect<20> n267_muscle_doctor;
@@ -331,7 +331,7 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<3> n282_mini_undead_core_active;
         SafeNPCRect<22> n283_misery_possessed;
         SafeNPCRect<26> n284_sue_possessed;
-        common::Rect<uint16_t> n285_undead_core_spiral_projectile;
+        doukutsu::common::Rect<uint16_t> n285_undead_core_spiral_projectile;
         SafeNPCRect<3> n286_undead_core_spiral_projectile_trail;
         SafeNPCRect<7> n287_orange_smoke;
         SafeNPCRect<5> n288_undead_core_exploding_rock;
@@ -340,10 +340,10 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<2> n291_mini_undead_core_inactive;
         SafeNPCRect<2> n293_undead_core_energy_shot;
         SafeNPCRect<4> n295_cloud;
-        common::Rect<uint16_t> n297_sue_dragon_mouth;
+        doukutsu::common::Rect<uint16_t> n297_sue_dragon_mouth;
         SafeNPCRect<8> n298_intro_doctor;
         SafeNPCRect<2> n299_intro_balrog_misery;
-        common::Rect<uint16_t> n300_intro_demon_crown;
+        doukutsu::common::Rect<uint16_t> n300_intro_demon_crown;
         SafeNPCRect<8> n301_misery_fish_missile;
         SafeNPCRect<4> n303_curly_machine_gun;
         SafeNPCRect<4> n304_gaudi_hospital;
@@ -369,7 +369,7 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<7> n325_heavy_press_lightning;
         SafeNPCRect<16> n326_sue_itoh_human_transition;
         SafeNPCRect<2> n327_sneeze;
-        common::Rect<uint16_t> n328_human_transform_machine;
+        doukutsu::common::Rect<uint16_t> n328_human_transform_machine;
         SafeNPCRect<2> n329_laboratory_fan;
         SafeNPCRect<3> n330_rolling;
         SafeNPCRect<4> n331_ballos_bone_projectile;
@@ -382,22 +382,22 @@ namespace doukutsu_rs::engine_constants::npcs
         SafeNPCRect<22> n340_ballos;
         SafeNPCRect<3> n341_ballos_1_head;
         SafeNPCRect<3> n342_ballos_orbiting_eye;
-        common::Rect<uint16_t> n343_ballos_3_cutscene;
+        doukutsu::common::Rect<uint16_t> n343_ballos_3_cutscene;
         SafeNPCRect<2> n344_ballos_3_eyes;
         SafeNPCRect<4> n345_ballos_skull_projectile;
-        common::Rect<uint16_t> n346_ballos_orbiting_platform;
+        doukutsu::common::Rect<uint16_t> n346_ballos_orbiting_platform;
         SafeNPCRect<4> n347_hoppy;
         SafeNPCRect<2> n348_ballos_4_spikes;
-        common::Rect<uint16_t> n349_statue;
+        doukutsu::common::Rect<uint16_t> n349_statue;
         SafeNPCRect<14> n350_flying_bute_archer;
         SafeNPCRect<9> n351_statue_shootable;
         SafeNPCRect<28> n352_ending_characters;
         SafeNPCRect<8> n353_bute_sword_flying;
         SafeNPCRect<4> n355_quote_and_curly_on_balrog;
         SafeNPCRect<2> n356_balrog_rescuing;
-        common::Rect<uint16_t> n357_puppy_ghost;
+        doukutsu::common::Rect<uint16_t> n357_puppy_ghost;
         SafeNPCRect<5> n358_misery_credits;
-        common::Rect<uint16_t> n360_credits_thank_you;
+        doukutsu::common::Rect<uint16_t> n360_credits_thank_you;
         SafeNPCRect<10> b01_omega;
         SafeNPCRect<18> b02_balfrog;
         SafeNPCRect<29> b03_monster_x;

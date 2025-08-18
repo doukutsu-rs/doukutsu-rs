@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <tuple>
 
-namespace doukutsu_rs::rng
+namespace doukutsu::rng
 {
     class RNG
     {

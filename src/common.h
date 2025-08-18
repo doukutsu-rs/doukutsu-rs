@@ -6,14 +6,28 @@
 #include <tuple>
 #include <concepts>
 #include <type_traits>
+#include <stdexcept>
+#include <string>
 
-namespace doukutsu_rs::texture_set
+// Forward declaration of framework error
+namespace doukutsu {
+namespace framework {
+class GameError;
+}
+}
+
+// Result type for error handling - using exception-based approach for C++
+namespace doukutsu {
+using GameResult = void; // Functions either succeed or throw GameError
+}
+
+namespace doukutsu::texture_set
 {
     extern float I_MAG;
     extern float G_MAG;
 };
 
-namespace doukutsu_rs::common
+namespace doukutsu::common
 {
     struct Flag
     {
@@ -358,7 +372,7 @@ namespace doukutsu_rs::common
 
     inline float fix9_scale(int val)
     {
-        return (float)val * doukutsu_rs::texture_set::G_MAG / 512.0f;
+        return (float)val * doukutsu::texture_set::G_MAG / 512.0f;
     }
 
     inline double lerp_f64(double v1, double v2, double t)

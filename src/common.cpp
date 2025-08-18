@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-using namespace doukutsu_rs;
+using namespace doukutsu;
 
 float common::interpolate_fix9_scale(int old_val, int val, float frame_delta)
 {
