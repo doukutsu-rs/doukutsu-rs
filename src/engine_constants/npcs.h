@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include "../common.h"
 
 namespace doukutsu_rs::engine_constants::npcs
