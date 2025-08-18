@@ -204,17 +204,13 @@ namespace mpsc
 
     public:
         class iterator
-            : public std::iterator<std::input_iterator_tag, T>
         {
-        private:
-            typedef std::iterator<std::input_iterator_tag, T> BaseIter;
-
         public:
-            using typename BaseIter::difference_type;
-            using typename BaseIter::iterator_category;
-            using typename BaseIter::pointer;
-            using typename BaseIter::reference;
-            using typename BaseIter::value_type;
+            using difference_type = std::ptrdiff_t;
+            using value_type = T;
+            using pointer = T*;
+            using reference = T&;
+            using iterator_category = std::input_iterator_tag;
 
             iterator() : receiver(nullptr) {}
             iterator(Receiver<T> &receiver) : receiver(&receiver)

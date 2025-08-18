@@ -131,7 +131,7 @@ namespace doukutsu_rs::sound
     class SoundManager
     {
     private:
-        mpsc::Sender<PlaybackMessage> tx;
+        std::unique_ptr<mpsc::Sender<PlaybackMessage>> tx;
         uintptr_t prev_song_id;
         uintptr_t current_song_id;
         bool no_audio;
