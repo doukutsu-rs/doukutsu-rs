@@ -371,7 +371,7 @@ impl NPC {
         NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
         if self.action_num == 0 {
-            let parent = self.get_parent_ref_mut(npc_list);
+            let parent = self.get_parent(npc_list);
             if let Some(parent) = parent {
                 if parent.action_counter2 != 0 {
                     if parent.direction != Direction::Left {
@@ -785,7 +785,7 @@ impl NPC {
                 self.y -= 0x400;
             }
 
-            if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+            if let Some(parent) = self.get_parent(npc_list) {
                 if parent.anim_num == 7 {
                     self.action_num = 1;
                     self.anim_num = 1;

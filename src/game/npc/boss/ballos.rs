@@ -597,7 +597,7 @@ impl NPC {
         state: &mut SharedGameState,
         NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
-        if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+        if let Some(parent) = self.get_parent(npc_list) {
             if parent.action_num == 11 && parent.action_counter > 50 {
                 self.anim_counter += 1;
             }
@@ -1424,7 +1424,7 @@ impl BossNPC {
     pub(crate) fn tick_b09_ballos(
         &mut self,
         state: &mut SharedGameState,
-        BossNPCContext { players, npc_list, flash, .. }: BossNPCContext,
+        BossNPCContext { players, npc_list, npc_token, flash, .. }: BossNPCContext,
     ) {
         let player = self.parts[0].get_closest_player_mut(players);
 
@@ -1770,7 +1770,7 @@ impl BossNPC {
                     self.parts[0].action_counter = 0;
                     self.parts[0].vel_x = 0;
                     self.parts[0].vel_y = 0;
-                    npc_list.kill_npcs_by_type(339, false, state);
+                    npc_list.kill_npcs_by_type(339, false, state, npc_token);
                 }
 
                 self.parts[0].y += (0x13E00 - self.parts[0].y) / 8;
@@ -1920,8 +1920,8 @@ impl BossNPC {
                     self.parts[4].cond.set_alive(false);
                     self.parts[5].cond.set_alive(false);
 
-                    npc_list.kill_npcs_by_type(350, true, state);
-                    npc_list.kill_npcs_by_type(348, true, state);
+                    npc_list.kill_npcs_by_type(350, true, state, npc_token);
+                    npc_list.kill_npcs_by_type(348, true, state, npc_token);
                 }
             }
             _ => (),

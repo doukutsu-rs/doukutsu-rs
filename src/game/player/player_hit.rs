@@ -6,7 +6,7 @@ use crate::common::{Condition, Direction, Flag, Rect};
 use crate::game::caret::CaretType;
 use crate::game::inventory::Inventory;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 use crate::game::npc::NPC;
 use crate::game::physics::{HitExtents, PhysicalEntity};
 use crate::game::player::{ControlMode, Player, TargetPlayer};
@@ -366,6 +366,7 @@ impl Player {
         id: TargetPlayer,
         state: &mut SharedGameState,
         npc_list: &NPCList,
+        npc_token: &mut NPCAccessToken,
         boss: &mut BossNPC,
         inventory: &mut Inventory,
     ) {
@@ -373,9 +374,9 @@ impl Player {
             return;
         }
 
-        for npc in npc_list.iter_alive() {
-            self.tick_npc_collision(id, state, npc, npc_list, inventory);
-        }
+        npc_list.for_each_alive_mut(npc_token, |mut npc| {
+            self.tick_npc_collision(id, state, &mut npc, npc_list, inventory);
+        });
 
         for boss_npc in &mut boss.parts {
             if boss_npc.cond.alive() {
