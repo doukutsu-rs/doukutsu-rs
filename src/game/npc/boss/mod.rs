@@ -7,7 +7,7 @@ use crate::entity::GameEntity;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::game::frame::Frame;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 use crate::game::npc::NPC;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
@@ -71,6 +71,7 @@ impl BossNPC {
 pub struct BossNPCContext<'a> {
     pub players: [&'a mut Player; 2],
     pub npc_list: &'a NPCList,
+    pub npc_token: &'a mut NPCAccessToken,
     pub stage: &'a mut Stage,
     pub bullet_manager: &'a mut BulletManager,
     pub flash: &'a mut Flash,

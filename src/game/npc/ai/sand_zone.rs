@@ -298,7 +298,7 @@ impl NPC {
         state: &mut SharedGameState,
         NPCContext { players, npc_list, .. }: NPCContext,
     ) -> GameResult {
-        let parent = self.get_parent_ref_mut(npc_list);
+        let parent = self.get_parent_mut(npc_list);
 
         if self.action_num > 9 && parent.as_ref().map(|n| n.npc_type == 3).unwrap_or(false) {
             self.action_num = 3;
@@ -390,7 +390,7 @@ impl NPC {
         }
 
         if self.action_num > 9 {
-            if let Some(parent) = parent {
+            if let Some(mut parent) = parent {
                 self.x = parent.x;
                 self.y = parent.y + 0x2000;
                 self.direction = parent.direction;
@@ -573,14 +573,14 @@ impl NPC {
         state: &mut SharedGameState,
         NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
-        let parent = self.get_parent_ref_mut(npc_list);
+        let parent = self.get_parent_mut(npc_list);
         if parent.is_none() || parent.as_ref().unwrap().npc_type == 3 {
             self.vanish(state);
             npc_list.create_death_smoke(self.x, self.y, self.display_bounds.right as usize, 4, state, &self.rng);
             return Ok(());
         }
 
-        let parent = parent.unwrap();
+        let mut parent = parent.unwrap();
 
         let angle = (self.vel_x + parent.vel_y2) & 0xFF;
 

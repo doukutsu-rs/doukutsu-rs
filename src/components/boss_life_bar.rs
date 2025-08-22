@@ -5,7 +5,7 @@ use crate::framework::error::GameResult;
 use crate::game::frame::Frame;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -28,8 +28,10 @@ impl BossLifeBar {
         BossLifeBar { target: BossLifeTarget::None, life: 0, max_life: 0, prev_life: 0, counter: 0 }
     }
 
-    pub fn set_npc_target(&mut self, npc_id: u16, npc_list: &NPCList) {
+    pub fn set_npc_target(&mut self, npc_id: u16, npc_list: &NPCList, npc_token: &NPCAccessToken) {
         if let Some(npc) = npc_list.get_npc(npc_id as usize) {
+            let npc = npc.borrow(npc_token);
+
             self.target = BossLifeTarget::NPC(npc.id);
             self.life = npc.life;
             self.max_life = self.life;
@@ -130,11 +132,13 @@ impl BossLifeBar {
     }
 }
 
-impl GameEntity<(&NPCList, &BossNPC)> for BossLifeBar {
-    fn tick(&mut self, _state: &mut SharedGameState, (npc_list, boss): (&NPCList, &BossNPC)) -> GameResult<()> {
+impl GameEntity<(&NPCList, &NPCAccessToken, &BossNPC)> for BossLifeBar {
+    fn tick(&mut self, _state: &mut SharedGameState, (npc_list, npc_token, boss): (&NPCList, &NPCAccessToken, &BossNPC)) -> GameResult<()> {
         match self.target {
             BossLifeTarget::NPC(npc_id) => {
                 if let Some(npc) = npc_list.get_npc(npc_id as usize) {
+                    let npc = npc.borrow(npc_token);
+                    
                     self.life = npc.life;
                 }
             }

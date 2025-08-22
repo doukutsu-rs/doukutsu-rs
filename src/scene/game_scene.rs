@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::ops::{Deref, Range};
+use std::ops::{ControlFlow, Deref, Range};
 use std::rc::Rc;
 
 use log::info;
@@ -25,7 +25,7 @@ use crate::components::whimsical_star::WhimsicalStar;
 use crate::entity::GameEntity;
 use crate::framework::backend::SpriteBatchCommand;
 use crate::framework::context::Context;
-use crate::framework::error::GameResult;
+use crate::framework::error::{map_err_to_break, GameResult};
 use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
 use crate::framework::keyboard::ScanCode;
 use crate::framework::ui::Components;
@@ -35,7 +35,7 @@ use crate::game::frame::{Frame, UpdateTarget};
 use crate::game::inventory::{Inventory, TakeExperienceResult};
 use crate::game::map::WaterParams;
 use crate::game::npc::boss::{BossNPC, BossNPCContext};
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList, NPCTokenProvider};
 use crate::game::npc::{NPCContext, NPCLayer, NPC};
 use crate::game::physics::{PhysicalEntity, OFFSETS};
 use crate::game::player::{ControlMode, Player, TargetPlayer};
@@ -81,6 +81,7 @@ pub struct GameScene {
     pub inventory_player2: Inventory,
     pub stage_id: usize,
     pub npc_list: NPCList,
+    pub npc_token: NPCAccessToken,
     pub boss: BossNPC,
     pub bullet_manager: BulletManager,
     pub lighting_mode: LightingMode,
@@ -146,6 +147,8 @@ impl GameScene {
             player2.load_skin(skinsheet_name.to_owned(), state, ctx);
         }
 
+        let (npc_list, npc_token) = NPCList::new();
+
         Ok(Self {
             tick: 0,
             stage,
@@ -172,7 +175,8 @@ impl GameScene {
             fade: Fade::new(),
             frame: Frame::new(),
             stage_id: id,
-            npc_list: NPCList::new(),
+            npc_list,
+            npc_token,
             boss: BossNPC::new(),
             bullet_manager: BulletManager::new(),
             lighting_mode: LightingMode::None,
@@ -210,7 +214,7 @@ impl GameScene {
     }
 
     fn draw_npc_layer(&self, state: &mut SharedGameState, ctx: &mut Context, layer: NPCLayer) -> GameResult {
-        for npc in self.npc_list.iter_alive() {
+        for npc in self.npc_list.iter_alive(&self.npc_token) {
             if npc.layer != layer
                 || npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
                 || npc.x
@@ -226,14 +230,14 @@ impl GameScene {
                 continue;
             }
 
-            npc.draw(state, ctx, &self.frame)?;
+            npc.npc_draw(state, ctx, &self.frame)?;
         }
 
         Ok(())
     }
 
     fn draw_npc_popup(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        for npc in self.npc_list.iter_alive() {
+        for npc in self.npc_list.iter_alive(&self.npc_token) {
             npc.popup.draw(state, ctx, &self.frame)?;
         }
         Ok(())
@@ -513,7 +517,7 @@ impl GameScene {
 
         graphics::clear(ctx, Color::from_rgb(100, 100, 110));
 
-        for npc in self.npc_list.iter_alive() {
+        for npc in self.npc_list.iter_alive(&self.npc_token) {
             if npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
                 || npc.x
                     > (self.frame.x
@@ -627,7 +631,7 @@ impl GameScene {
                 }
             }
 
-            for npc in self.npc_list.iter_alive() {
+            for npc in self.npc_list.iter_alive(&self.npc_token) {
                 if npc.cond.hidden()
                     || (npc.x < (self.frame.x - 128 * 0x200 - npc.display_bounds.width() as i32 * 0x200)
                         || npc.x
@@ -1106,10 +1110,10 @@ impl GameScene {
     }
 
     fn tick_npc_splash(&mut self, state: &mut SharedGameState) {
-        for npc in self.npc_list.iter_alive() {
+        self.npc_list.for_each_alive_mut(&mut self.npc_token, |mut npc| {
             // Water Droplet
             if npc.npc_type == 73 {
-                continue;
+                return;
             }
 
             if !npc.splash && npc.flags.in_water() {
@@ -1144,13 +1148,13 @@ impl GameScene {
             if !npc.flags.in_water() {
                 npc.splash = false;
             }
-        }
+        });
     }
 
     fn tick_npc_bullet_collissions(&mut self, state: &mut SharedGameState) {
-        for npc in self.npc_list.iter_alive() {
+        self.npc_list.for_each_alive_mut(&mut self.npc_token, |mut npc| {
             if npc.npc_flags.shootable() && npc.npc_flags.interactable() {
-                continue;
+                return;
             }
 
             for bullet in self.bullet_manager.bullets.iter_mut() {
@@ -1228,9 +1232,13 @@ impl GameScene {
                     inv.has_weapon(WeaponType::MissileLauncher) || inv.has_weapon(WeaponType::SuperMissileLauncher)
                 });
 
-                self.npc_list.kill_npc(npc.id as usize, !npc.cond.drs_novanish(), can_drop_missile, state);
+                let npc_id = npc.id;
+                let npc_cond = npc.cond;
+                npc.unborrow_then(|token| {
+                    self.npc_list.kill_npc(npc_id as usize, !npc_cond.drs_novanish(), can_drop_missile, state, token);
+                });
             }
-        }
+        });
 
         for i in 0..self.boss.parts.len() {
             let mut idx = i;
@@ -1375,8 +1383,8 @@ impl GameScene {
             self.player2.damage = 0;
         }
 
-        for npc in self.npc_list.iter_alive() {
-            npc.tick(
+        self.npc_list.try_for_each_alive_mut(&mut self.npc_token, |mut npc| {
+            map_err_to_break(npc.tick(
                 state,
                 NPCContext {
                     players: [&mut self.player1, &mut self.player2],
@@ -1386,18 +1394,23 @@ impl GameScene {
                     flash: &mut self.flash,
                     boss: &mut self.boss,
                 },
-            )?;
-        }
+            ))?;
+
+            ControlFlow::Continue(())
+        })?;
+
         self.boss.tick(
             state,
             BossNPCContext {
                 players: [&mut self.player1, &mut self.player2],
                 npc_list: &self.npc_list,
+                npc_token: &mut self.npc_token,
                 stage: &mut self.stage,
                 bullet_manager: &mut self.bullet_manager,
                 flash: &mut self.flash,
             },
         )?;
+
         //decides if the player is tangible or not
         if !state.settings.noclip {
             self.player1.tick_map_collisions(state, &self.npc_list, &mut self.stage);
@@ -1407,6 +1420,7 @@ impl GameScene {
                 TargetPlayer::Player1,
                 state,
                 &self.npc_list,
+                &mut self.npc_token,
                 &mut self.boss,
                 &mut self.inventory_player1,
             );
@@ -1414,16 +1428,18 @@ impl GameScene {
                 TargetPlayer::Player2,
                 state,
                 &self.npc_list,
+                &mut self.npc_token,
                 &mut self.boss,
                 &mut self.inventory_player2,
             );
         }
 
-        for npc in self.npc_list.iter_alive() {
+        self.npc_list.for_each_alive_mut(&mut self.npc_token, |mut npc| {
             if !npc.npc_flags.ignore_solidity() {
                 npc.tick_map_collisions(state, &self.npc_list, &mut self.stage);
             }
-        }
+        });
+
         for npc in self.boss.parts.iter_mut() {
             if npc.cond.alive() && !npc.npc_flags.ignore_solidity() {
                 npc.tick_map_collisions(state, &self.npc_list, &mut self.stage);
@@ -1500,6 +1516,8 @@ impl GameScene {
             }
             UpdateTarget::NPC(npc_id) => {
                 if let Some(npc) = self.npc_list.get_npc(npc_id as usize) {
+                    let npc = npc.borrow(&self.npc_token);
+
                     if npc.cond.alive() {
                         self.frame.target_x = npc.x;
                         self.frame.target_y = npc.y;
@@ -1523,7 +1541,7 @@ impl GameScene {
         if state.control_flags.control_enabled() {
             self.hud_player1.tick(state, (&self.player1, &mut self.inventory_player1))?;
             self.hud_player2.tick(state, (&self.player2, &mut self.inventory_player2))?;
-            self.boss_life_bar.tick(state, (&self.npc_list, &self.boss))?;
+            self.boss_life_bar.tick(state, (&self.npc_list, &self.npc_token, &self.boss))?;
 
             if state.textscript_vm.state == TextScriptExecutionState::Ended {
                 if self.player1.controller.trigger_inventory() {
@@ -1541,7 +1559,7 @@ impl GameScene {
             self.player2.has_dog = self.inventory_player2.has_item(14);
         }
 
-        self.water_renderer.tick(state, (&[&self.player1, &self.player2], &self.npc_list))?;
+        self.water_renderer.tick(state, (&[&self.player1, &self.player2], &self.npc_list, &self.npc_token))?;
 
         if self.map_name_counter > 0 {
             self.map_name_counter -= 1;
@@ -1624,8 +1642,8 @@ impl GameScene {
     }
 
     fn draw_debug_outlines(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        for npc in self.npc_list.iter_alive() {
-            self.draw_debug_npc(npc, state, ctx)?;
+        for npc in self.npc_list.iter_alive(&self.npc_token) {
+            self.draw_debug_npc(&npc, state, ctx)?;
         }
 
         for boss in self.boss.parts.iter().filter(|n| n.cond.alive()) {
@@ -1927,12 +1945,12 @@ impl Scene for GameScene {
         self.player2.exp_popup.prev_x = self.player2.exp_popup.x;
         self.player2.exp_popup.prev_y = self.player2.exp_popup.y;
 
-        for npc in self.npc_list.iter_alive() {
+        self.npc_list.for_each_alive_mut(&mut self.npc_token, |mut npc| {
             npc.prev_x = npc.x;
             npc.prev_y = npc.y;
             npc.popup.prev_x = npc.prev_x;
             npc.popup.prev_y = npc.prev_y;
-        }
+        });
 
         for npc in self.boss.parts.iter_mut() {
             if npc.cond.alive() {

@@ -698,7 +698,7 @@ impl NPC {
     ) -> GameResult {
         match self.action_num {
             0 => {
-                if let Some(parent) = self.get_parent_ref_mut(npc_list) {
+                if let Some(parent) = self.get_parent(npc_list) {
                     self.y = parent.y + 0x1400;
                     self.x = parent.x + 0xE00 * parent.direction.opposite().vector_x();
 

@@ -322,7 +322,7 @@ impl BossNPC {
     pub(crate) fn tick_b07_undead_core(
         &mut self,
         state: &mut SharedGameState,
-        BossNPCContext { npc_list, stage, flash, .. }: BossNPCContext,
+        BossNPCContext { npc_list, npc_token, stage, flash, .. }: BossNPCContext,
     ) {
         let mut v19 = false;
 
@@ -689,7 +689,7 @@ impl BossNPC {
                         let _ = npc_list.spawn(0, npc.clone());
                     }
 
-                    npc_list.kill_npcs_by_type(282, true, state);
+                    npc_list.kill_npcs_by_type(282, true, state, npc_token);
 
                     self.parts[11].npc_flags.set_shootable(false);
 
@@ -754,8 +754,8 @@ impl BossNPC {
                         self.parts[i].cond.set_alive(false);
                     }
 
-                    npc_list.kill_npcs_by_type(158, true, state);
-                    npc_list.kill_npcs_by_type(301, true, state);
+                    npc_list.kill_npcs_by_type(158, true, state, npc_token);
+                    npc_list.kill_npcs_by_type(301, true, state, npc_token);
                 }
             }
             _ => (),

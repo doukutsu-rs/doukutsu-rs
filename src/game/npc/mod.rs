@@ -17,7 +17,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::game::frame::Frame;
 use crate::game::npc::boss::BossNPC;
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{BorrowedNPC, NPCList};
 use crate::game::physics::PhysicalEntity;
 use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
@@ -184,7 +184,7 @@ impl NPC {
         layer: NPCLayer,
     ) -> GameResult {
         if self.layer == layer {
-            self.draw(state, ctx, frame)?
+            self.npc_draw(state, ctx, frame)?
         }
 
         Ok(())
@@ -240,7 +240,7 @@ pub struct NPCContext<'a> {
     pub boss: &'a mut BossNPC,
 }
 
-impl GameEntity<NPCContext<'_>> for NPC {
+impl GameEntity<NPCContext<'_>> for BorrowedNPC<'_> {
     fn tick(&mut self, state: &mut SharedGameState, ctx: NPCContext) -> GameResult {
         match self.npc_type {
             0 => self.tick_n000_null(state, ctx),
@@ -641,6 +641,12 @@ impl GameEntity<NPCContext<'_>> for NPC {
     }
 
     fn draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
+        self.npc_draw(state, ctx, frame)
+    }
+}
+
+impl NPC {
+    pub fn npc_draw(&self, state: &mut SharedGameState, ctx: &mut Context, frame: &Frame) -> GameResult {
         if !self.cond.alive() || self.cond.hidden() {
             return Ok(());
         }

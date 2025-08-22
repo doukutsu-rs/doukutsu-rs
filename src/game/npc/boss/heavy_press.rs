@@ -56,7 +56,7 @@ impl BossNPC {
     pub(crate) fn tick_b08_heavy_press(
         &mut self,
         state: &mut SharedGameState,
-        BossNPCContext { npc_list, stage, .. }: BossNPCContext,
+        BossNPCContext { npc_list, npc_token, stage, .. }: BossNPCContext,
     ) {
         match self.parts[0].action_num {
             0 => {
@@ -216,8 +216,8 @@ impl BossNPC {
                     self.parts[0].action_counter = 0;
                     self.parts[0].action_counter2 = 0;
 
-                    npc_list.kill_npcs_by_type(325, true, state);
-                    npc_list.kill_npcs_by_type(330, true, state);
+                    npc_list.kill_npcs_by_type(325, true, state, npc_token);
+                    npc_list.kill_npcs_by_type(330, true, state, npc_token);
                 }
 
                 self.parts[0].action_counter += 1;

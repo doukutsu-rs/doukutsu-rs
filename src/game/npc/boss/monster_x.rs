@@ -140,7 +140,7 @@ impl BossNPC {
     pub(crate) fn tick_b03_monster_x(
         &mut self,
         state: &mut SharedGameState,
-        BossNPCContext { players, npc_list, flash, .. }: BossNPCContext,
+        BossNPCContext { players, npc_list, npc_token, flash, .. }: BossNPCContext,
     ) {
         match self.parts[0].action_num {
             0 => {
@@ -491,7 +491,7 @@ impl BossNPC {
                         part.cond.set_alive(false);
                     }
 
-                    npc_list.kill_npcs_by_type(158, true, state);
+                    npc_list.kill_npcs_by_type(158, true, state, npc_token);
 
                     let mut npc = NPC::create(159, &state.npc_table);
                     npc.cond.set_alive(true);

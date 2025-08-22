@@ -13,7 +13,7 @@ impl BossNPC {
     pub(crate) fn tick_b06_sisters(
         &mut self,
         state: &mut SharedGameState,
-        BossNPCContext { players, npc_list, flash, .. }: BossNPCContext,
+        BossNPCContext { players, npc_list, npc_token, flash, .. }: BossNPCContext,
     ) {
         match self.parts[0].action_num {
             0 => {
@@ -225,7 +225,7 @@ impl BossNPC {
             1020 => {
                 self.parts[0].action_counter += 1;
                 if self.parts[0].action_counter > 50 {
-                    npc_list.kill_npcs_by_type(211, true, state);
+                    npc_list.kill_npcs_by_type(211, true, state, npc_token);
 
                     self.parts[0].cond.set_alive(false);
                     self.parts[1].cond.set_alive(false);

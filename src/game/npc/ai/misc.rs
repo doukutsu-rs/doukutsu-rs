@@ -3,12 +3,13 @@ use std::hint::unreachable_unchecked;
 use crate::common::{Direction, Rect};
 use crate::framework::error::GameResult;
 use crate::game::caret::CaretType;
+use crate::game::npc::list::{BorrowedNPC, NPCTokenProvider};
 use crate::game::npc::{NPCContext, NPCLayer, NPC};
 use crate::game::physics::HitExtents;
 use crate::game::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::util::rng::RNG;
 
-impl NPC {
+impl BorrowedNPC<'_> {
     pub(crate) fn tick_n000_null(&mut self, _: &mut SharedGameState, _: NPCContext) -> GameResult {
         if self.action_num == 0 {
             self.action_num = 1;
@@ -2377,7 +2378,7 @@ impl NPC {
         state: &mut SharedGameState,
         NPCContext { npc_list, .. }: NPCContext,
     ) -> GameResult {
-        if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+        if let Some(npc) = self.get_parent(npc_list) {
             self.x = npc.x + 0x2000;
             self.y = npc.y + 0x1000;
         }
@@ -2419,11 +2420,19 @@ impl NPC {
                     self.action_num = 101;
 
                     if self.tsc_direction != 0 {
-                        for npc in npc_list.iter_alive() {
-                            if npc.event_num == self.tsc_direction {
-                                self.parent_id = npc.id;
-                                break;
+                        let self_tsc_direction = self.tsc_direction;
+                        let npc_id = self.unborrow_then(|token| {
+                            for npc in npc_list.iter_alive(token) {
+                                if npc.event_num == self_tsc_direction {
+                                    return Some(npc.id);
+                                }
                             }
+
+                            None
+                        });
+
+                        if let Some(npc_id) = npc_id {
+                            self.parent_id = npc_id;
                         }
 
                         if self.parent_id == 0 {
@@ -2438,7 +2447,7 @@ impl NPC {
                 if self.tsc_direction == 0 {
                     self.x = (player.x + boss.parts[0].x) / 2;
                     self.y = (player.y + boss.parts[0].y) / 2;
-                } else if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                } else if let Some(npc) = self.get_parent(npc_list) {
                     self.x = (player.x + npc.x) / 2;
                     self.y = (player.y + npc.y) / 2;
                 }
@@ -2632,7 +2641,7 @@ impl NPC {
                     self.spritesheet_id = 16;
                     self.anim_num = 0;
 
-                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                    if let Some(npc) = self.get_parent(npc_list) {
                         self.x = npc.x;
                         self.y = npc.y + 0x1400;
                     }
@@ -2641,7 +2650,7 @@ impl NPC {
                     self.spritesheet_id = 16;
                     self.anim_num = 2;
 
-                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                    if let Some(npc) = self.get_parent(npc_list) {
                         self.x = npc.x + 0x1600;
                         self.y = npc.y - 0x2200;
                     }
@@ -2651,7 +2660,7 @@ impl NPC {
                     self.spritesheet_id = 23;
                     self.anim_num = 3;
 
-                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                    if let Some(npc) = self.get_parent(npc_list) {
                         self.x = npc.x + 0x400;
                         self.y = npc.y - 0x2600;
                     }
@@ -2661,7 +2670,7 @@ impl NPC {
                     self.spritesheet_id = 16;
                     self.anim_num = 0;
 
-                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                    if let Some(npc) = self.get_parent(npc_list) {
                         self.x = npc.x - 0x1c00;
                         self.y = npc.y + 0x1400;
                     }
@@ -2670,7 +2679,7 @@ impl NPC {
                     self.spritesheet_id = 23;
                     self.anim_num = 1;
 
-                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                    if let Some(npc) = self.get_parent(npc_list) {
                         self.x = npc.x + 0x1c00;
                         self.y = npc.y + 0x1400;
                     }
@@ -2679,7 +2688,7 @@ impl NPC {
                     self.spritesheet_id = 16;
                     self.anim_num = 2;
 
-                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                    if let Some(npc) = self.get_parent(npc_list) {
                         self.x = npc.x - 0xe00;
                         if state.constants.is_switch {
                             self.y = npc.y - 0x2200;
@@ -2692,7 +2701,7 @@ impl NPC {
                     self.spritesheet_id = 23;
                     self.anim_num = 3;
 
-                    if let Some(npc) = self.get_parent_ref_mut(npc_list) {
+                    if let Some(npc) = self.get_parent(npc_list) {
                         self.x = npc.x + 0x800;
                         self.y = npc.y - 0x2600;
                     }

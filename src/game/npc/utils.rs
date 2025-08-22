@@ -1,3 +1,5 @@
+use std::cell::{Ref, RefMut};
+
 ///! Various utility functions for NPC-related objects
 use num_traits::abs;
 
@@ -6,7 +8,7 @@ use crate::components::number_popup::NumberPopup;
 use crate::game::caret::CaretType;
 use crate::game::map::NPCData;
 use crate::game::npc::{NPC, NPCFlag, NPCLayer, NPCTable};
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCCell, NPCList, NPCTokenProvider};
 use crate::game::player::Player;
 use crate::game::shared_game_state::{SharedGameState, TileSize};
 use crate::game::weapon::bullet::Bullet;
@@ -108,12 +110,20 @@ impl NPC {
     }
 
     /// Returns a reference to parent NPC (if present).
-    pub fn get_parent_ref_mut<'a: 'b, 'b>(&self, npc_list: &'a NPCList) -> Option<&'b mut NPC> {
+    pub fn get_parent_cell<'a>(&self, npc_list: &'a NPCList) -> Option<&'a NPCCell> {
         match self.parent_id {
             0 => None,
             id if id == self.id => None,
             id => npc_list.get_npc(id as usize),
         }
+    }
+    
+    pub fn get_parent<'a>(&self, npc_list: &'a NPCList) -> Option<Ref<'a, NPC>> {
+        self.get_parent_cell(npc_list).map(|npc| npc.borrow_unmanaged())
+    }
+
+    pub fn get_parent_mut<'a>(&self, npc_list: &'a NPCList) -> Option<RefMut<'a, NPC>> {
+        self.get_parent_cell(npc_list).map(|npc| npc.borrow_mut_unmanaged())
     }
 
     /// Cycles animation frames in given range and speed.
@@ -243,19 +253,23 @@ impl NPC {
 impl NPCList {
     /// Returns true if at least one NPC with specified type is alive.
     #[inline]
-    pub fn is_alive_by_type(&self, npc_type: u16) -> bool {
-        self.iter_alive().any(|npc| npc.npc_type == npc_type)
+    pub fn is_alive_by_type(&self, npc_type: u16, token: &NPCAccessToken) -> bool {
+        self.iter_alive(token).any(|npc| npc.npc_type == npc_type)
     }
 
     /// Returns true if at least one NPC with specified event is alive.
     #[inline]
-    pub fn is_alive_by_event(&self, event_num: u16) -> bool {
-        self.iter_alive().any(|npc| npc.event_num == event_num)
+    pub fn is_alive_by_event(&self, event_num: u16, token: &NPCAccessToken) -> bool {
+        self.iter_alive(token).any(|npc| npc.event_num == event_num)
     }
 
     /// Deletes NPCs with specified type.
-    pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState) {
-        for npc in self.iter_alive().filter(|n| n.npc_type == npc_type) {
+    pub fn kill_npcs_by_type(&self, npc_type: u16, smoke: bool, state: &mut SharedGameState, token: &mut impl NPCTokenProvider) {
+        self.for_each_alive_mut(token, |mut npc| {
+            if npc.npc_type != npc_type {
+                return;
+            }
+
             state.set_flag(npc.flag_num as usize, true);
             npc.cond.set_alive(false);
 
@@ -277,12 +291,14 @@ impl NPCList {
                     _ => {}
                 };
             }
-        }
+        });
     }
 
     /// Called once NPC is killed, creates smoke and drops.
-    pub fn kill_npc(&self, id: usize, vanish: bool, can_drop_missile: bool, state: &mut SharedGameState) {
+    pub fn kill_npc(&self, id: usize, vanish: bool, can_drop_missile: bool, state: &mut SharedGameState, token: &mut NPCAccessToken) {
         if let Some(npc) = self.get_npc(id) {
+            let mut npc = npc.borrow_mut(token);
+
             if let Some(table_entry) = state.npc_table.get_entry(npc.npc_type) {
                 state.sound_manager.play_sfx(table_entry.death_sound);
             }
@@ -348,13 +364,13 @@ impl NPCList {
     }
 
     /// Removes NPCs whose event number matches the provided one.
-    pub fn kill_npcs_by_event(&self, event_num: u16, state: &mut SharedGameState) {
-        for npc in self.iter_alive() {
+    pub fn kill_npcs_by_event(&self, event_num: u16, state: &mut SharedGameState, token: &mut NPCAccessToken) {
+        self.for_each_alive_mut(token, |mut npc| {
             if npc.event_num == event_num {
                 npc.cond.set_alive(false);
                 state.set_flag(npc.flag_num as usize, true);
             }
-        }
+        });
     }
 
     /// Creates NPC death smoke diffusing in random directions.
