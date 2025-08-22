@@ -11,7 +11,7 @@ use crate::game::map::{WaterParamEntry, WaterParams, WaterRegionType};
 use crate::game::physics::PhysicalEntity;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::{BackgroundType, Stage};
-use crate::game::npc::list::NPCList;
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 use crate::game::player::Player;
 
 const TENSION: f32 = 0.03;
@@ -100,7 +100,7 @@ impl DynamicWater {
         }
     }
 
-    pub fn interact(&mut self, players: &[&Player], npc_list: &NPCList) {
+    pub fn interact(&mut self, players: &[&Player], npc_list: &NPCList, npc_token: &NPCAccessToken) {
         let cols_i32 = self.columns.len() as i32;
 
         let mut tick_object = |obj: &dyn PhysicalEntity| {
@@ -129,13 +129,13 @@ impl DynamicWater {
             tick_object(*player);
         }
 
-        for npc in npc_list.iter_alive() {
+        for npc in npc_list.iter_alive(npc_token) {
             static NO_COLL_NPCS: [u16; 6] = [0, 3, 4, 18, 191, 195];
             if NO_COLL_NPCS.contains(&npc.npc_type) {
                 continue;
             }
 
-            tick_object(npc);
+            tick_object(&*npc);
         }
     }
 }
@@ -211,9 +211,9 @@ impl WaterRenderer {
         }
     }
 
-    pub fn tick(&mut self, state: &mut SharedGameState, (players, npc_list): (&[&Player], &NPCList)) -> GameResult<()> {
+    pub fn tick(&mut self, state: &mut SharedGameState, (players, npc_list, npc_token): (&[&Player], &NPCList, &NPCAccessToken)) -> GameResult<()> {
         for surf in &mut self.water_surfaces {
-            surf.interact(players, npc_list);
+            surf.interact(players, npc_list, npc_token);
             surf.tick();
         }
 
@@ -222,7 +222,7 @@ impl WaterRenderer {
             core_water.y = level;
             core_depth.rect.top = (level + 16.0).min(core_depth.rect.bottom);
 
-            core_water.interact(players, npc_list);
+            core_water.interact(players, npc_list, npc_token);
             core_water.tick();
         }
 

@@ -165,7 +165,7 @@ impl LiveDebugger {
 
                 ui.text(format!(
                     "NPC Count: {}/{}/{} Booster fuel: {}",
-                    game_scene.npc_list.iter_alive().count(),
+                    game_scene.npc_list.iter_alive(&game_scene.npc_token).count(),
                     game_scene.npc_list.current_capacity(),
                     game_scene.npc_list.max_capacity(),
                     game_scene.player1.booster_fuel
@@ -423,7 +423,7 @@ impl LiveDebugger {
                 .scrollable(true)
                 .always_vertical_scrollbar(true)
                 .build(|| {
-                    for npc in game_scene.npc_list.iter_alive() {
+                    game_scene.npc_list.for_each_alive_mut(&mut game_scene.npc_token, |mut npc| {
                         if CollapsingHeader::new(&ImString::from(format!("id={} type={}", npc.id, npc.npc_type)))
                             .default_open(false)
                             .build(ui)
@@ -466,7 +466,7 @@ impl LiveDebugger {
 
                             cond_flags(ui, &mut npc.cond);
                         }
-                    }
+                    });
                 });
         }
 

@@ -2,6 +2,7 @@
 
 use std::error::Error;
 use std::fmt;
+use std::ops::ControlFlow;
 use std::string::FromUtf8Error;
 use std::sync::mpsc::SendError;
 use std::sync::{Arc, PoisonError};
@@ -73,6 +74,14 @@ impl Error for GameError {
 
 /// A convenient result type consisting of a return type and a `GameError`
 pub type GameResult<T = ()> = Result<T, GameError>;
+
+/// Convert Result::Err(e) to ControlFlow::Break(e). Useful in try_for_each methods.
+pub fn map_err_to_break<T, E>(result: Result<T, E>) -> ControlFlow<E, T> {
+    match result {
+        Result::Ok(t) => ControlFlow::Continue(t),
+        Result::Err(e) => ControlFlow::Break(e)
+    }
+}
 
 impl From<std::io::Error> for GameError {
     fn from(e: std::io::Error) -> GameError {

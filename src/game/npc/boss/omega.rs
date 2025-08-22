@@ -52,7 +52,7 @@ impl BossNPC {
     pub(crate) fn tick_b01_omega(
         &mut self,
         state: &mut SharedGameState,
-        BossNPCContext { players, npc_list, bullet_manager, flash, .. }: BossNPCContext,
+        BossNPCContext { players, npc_list, npc_token, bullet_manager, flash, .. }: BossNPCContext,
     ) {
         match self.parts[0].action_num {
             0 => {
@@ -430,7 +430,7 @@ impl BossNPC {
             self.parts[0].damage = 0;
             self.parts[5].damage = 0;
 
-            npc_list.kill_npcs_by_type(48, true, state);
+            npc_list.kill_npcs_by_type(48, true, state, npc_token);
         }
     }
 }

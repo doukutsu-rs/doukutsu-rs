@@ -177,7 +177,7 @@ impl BossNPC {
     pub(crate) fn tick_b05_ironhead(
         &mut self,
         state: &mut SharedGameState,
-        BossNPCContext { players, npc_list, .. }: BossNPCContext,
+        BossNPCContext { players, npc_list, npc_token, .. }: BossNPCContext,
     ) {
         match self.parts[0].action_num {
             0 => {
@@ -309,9 +309,9 @@ impl BossNPC {
                         let _ = npc_list.spawn(0x100, npc);
                     }
 
-                    npc_list.kill_npcs_by_type(197, true, state);
-                    npc_list.kill_npcs_by_type(271, true, state);
-                    npc_list.kill_npcs_by_type(272, true, state);
+                    npc_list.kill_npcs_by_type(197, true, state, npc_token);
+                    npc_list.kill_npcs_by_type(271, true, state, npc_token);
+                    npc_list.kill_npcs_by_type(272, true, state, npc_token);
                 }
 
                 self.parts[0].target_x -= 0x200;
