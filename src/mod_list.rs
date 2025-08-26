@@ -193,4 +193,8 @@ impl ModList {
     pub fn get_name_from_path(&self, mod_path: String) -> Option<&str> {
         self.get_info_from_path(mod_path).and_then(|mod_info| mod_info.name.as_deref())
     }
+
+    pub fn get_mod_info_from_id(&self, mod_id: String) -> Option<ModInfo> {
+        self.mods.iter().find(|x| x.id == mod_id).cloned()
+    }
 }
