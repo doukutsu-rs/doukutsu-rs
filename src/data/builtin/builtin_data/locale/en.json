@@ -60,6 +60,10 @@
       "replay_last": "Replay Last",
       "delete_replay": "Delete Best Replay"
     },
+    "challenges_menu": {
+      "empty_mod_name": "No Mod Name",
+      "empty_mod_description": "No Description"
+    },
     "options_menu": {
       "graphics": "Graphics...",
       "graphics_menu": {

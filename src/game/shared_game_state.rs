@@ -512,10 +512,7 @@ impl SharedGameState {
     }
 
     pub fn reload_stage_table(&mut self, ctx: &mut Context) -> GameResult {
-        let stages = StageData::load_stage_table(
-            self,
-            ctx,
-        )?;
+        let stages = StageData::load_stage_table(self, ctx)?;
         self.stages = stages;
         Ok(())
     }
@@ -860,12 +857,14 @@ impl SharedGameState {
     }
 
     pub fn get_rec_filename(&self) -> String {
-        if let Some(mod_path) = &self.mod_path {
-            let name = self.mod_list.get_name_from_path(mod_path.to_string());
-            return format!("/{}", name);
-        } else {
-            return "/290".to_string();
-        }
+        let name = &self
+            .mod_path
+            .clone()
+            .and_then(|mod_path| self.mod_list.get_info_from_path(mod_path))
+            .and_then(|mod_info| mod_info.name.clone().or(Some(mod_info.id.clone())))
+            .unwrap_or("290".to_owned());
+
+        format!("/{name}")
     }
 
     pub fn has_replay_data(&self, ctx: &mut Context, replay_kind: ReplayKind) -> bool {

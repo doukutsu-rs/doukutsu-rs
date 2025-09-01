@@ -15,8 +15,8 @@ pub struct ModInfo {
     pub priority: u32,
     pub save_slot: i32,
     pub path: String,
-    pub name: String,
-    pub description: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
     pub valid: bool,
 }
 
@@ -81,7 +81,7 @@ impl ModList {
                 }
 
                 consume_spaces(&mut chars);
-                id.push_str("csmod_");
+                id.push_str("cspmod_");
                 for c in &mut chars {
                     if c == ' ' {
                         break;
@@ -150,8 +150,8 @@ impl ModList {
                 }
 
                 let mut valid = false;
-                let mut name = String::new();
-                let mut description = String::new();
+                let mut name: Option<String> = None;
+                let mut description: Option<String> = None;
                 let mut save_slot = -1;
 
                 if let Ok(file) = filesystem::open(ctx, [&path, "/mod.txt"].join("")) {
@@ -162,15 +162,14 @@ impl ModList {
                         save_slot = line.unwrap_or("-1".to_string()).parse::<i32>().unwrap_or(-1);
                     }
                     if let Some(line) = lines.next() {
-                        let read_name = line.unwrap_or("No Mod Name".to_string()).to_string();
-                        name = string_table.get(&read_name).unwrap_or(&read_name).to_string();
+                        name = line.ok().and_then(|read_name| {
+                            let name = string_table.get(&read_name).or(Some(&read_name)).cloned();
+                            name.filter(|s| !s.is_empty())
+                        });
                     }
                     if let Some(line) = lines.next() {
-                        description = line.unwrap_or("No Description".to_string()).to_string();
+                        description = line.ok().filter(|s| !s.is_empty());
                     }
-                } else {
-                    name = path.clone();
-                    description = "mod.txt not found".to_string();
                 }
 
                 mods.push(ModInfo { id, requirement, priority, save_slot, path, name, description, valid })
@@ -182,19 +181,15 @@ impl ModList {
         Ok(ModList { mods })
     }
 
-    pub fn get_save_from_path(&self, mod_path: String) -> i32 {
-        if let Some(mod_sel) = self.mods.iter().find(|x| x.path == mod_path) {
-            mod_sel.save_slot
-        } else {
-            -1
-        }
+    pub fn get_info_from_path(&self, mod_path: String) -> Option<&ModInfo> {
+        self.mods.iter().find(|x| x.path == mod_path)
     }
 
-    pub fn get_name_from_path(&self, mod_path: String) -> &str {
-        if let Some(mod_sel) = self.mods.iter().find(|x| x.path == mod_path) {
-            &mod_sel.name
-        } else {
-            "NoName"
-        }
+    pub fn get_save_from_path(&self, mod_path: String) -> i32 {
+        self.get_info_from_path(mod_path).and_then(|mod_info| Some(mod_info.save_slot)).unwrap_or(-1)
+    }
+
+    pub fn get_name_from_path(&self, mod_path: String) -> Option<&str> {
+        self.get_info_from_path(mod_path).and_then(|mod_info| mod_info.name.as_deref())
     }
 }

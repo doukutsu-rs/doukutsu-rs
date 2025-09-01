@@ -60,6 +60,10 @@
       "replay_last": "最後のプレイを再生",
       "delete_replay": "ベストリプレイを削除"
     },
+    "challenges_menu": {
+      "empty_mod_name": "モッド名なし",
+      "empty_mod_description": "描写なし"
+    },
     "options_menu": {
       "graphics": "グラフィック",
       "graphics_menu": {
