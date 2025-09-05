@@ -2,10 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
-use crate::framework::backend::BackendGamepad;
-use crate::framework::error::GameResult;
+use super::backend::BackendGamepad;
+use super::context::Context;
+use super::error::GameResult;
 use crate::game::shared_game_state::SharedGameState;
-use crate::{common::Rect, engine_constants::EngineConstants, framework::context::Context};
+use crate::{common::Rect, engine_constants::EngineConstants};
 
 const QUAKE_RUMBLE_LOW_FREQ: u16 = 0x3000;
 const QUAKE_RUMBLE_HI_FREQ: u16 = 0;
@@ -29,6 +30,12 @@ pub enum GamepadType {
     NintendoSwitchJoyConLeft,
     NintendoSwitchJoyConRight,
     NintendoSwitchJoyConPair,
+    NintendoSwitchJoyConGrip,
+    NintendoSwitch2Pro,
+    NintendoSwitch2JoyConLeft,
+    NintendoSwitch2JoyConRight,
+    NintendoSwitch2JoyConPair,
+    NintendoSwitch2GameCubeController,
 }
 
 impl GamepadType {
@@ -40,6 +47,7 @@ impl GamepadType {
             GamepadType::PS3 => "PlayStation 3 controller",
             GamepadType::PS4 => "PlayStation 4 controller",
             GamepadType::NintendoSwitchPro => "Nintendo Switch Pro controller",
+            GamepadType::NintendoSwitch2Pro => "Nintendo Switch 2 Pro controller",
             GamepadType::Virtual => "Virtual controller",
             GamepadType::PS5 => "PlayStation 5 controller",
             GamepadType::AmazonLuma => "Amazon Luma controller",
@@ -48,6 +56,12 @@ impl GamepadType {
             GamepadType::NintendoSwitchJoyConLeft => "Nintendo Switch Joy-Con (left)",
             GamepadType::NintendoSwitchJoyConRight => "Nintendo Switch Joy-Con (right)",
             GamepadType::NintendoSwitchJoyConPair => "Nintendo Switch Joy-Con (pair)",
+            GamepadType::NintendoSwitchJoyConGrip => "Nintendo Switch Joy-Con Grip",
+            GamepadType::NintendoSwitch2Pro => "Nintendo Switch 2 Pro controller",
+            GamepadType::NintendoSwitch2JoyConLeft => "Nintendo Switch 2 Joy-Con (left)",
+            GamepadType::NintendoSwitch2JoyConRight => "Nintendo Switch 2 Joy-Con (right)",
+            GamepadType::NintendoSwitch2JoyConPair => "Nintendo Switch 2 Joy-Con (pair)",
+            GamepadType::NintendoSwitch2GameCubeController => "Nintendo Switch 2 GameCube controller",
         }
     }
 }

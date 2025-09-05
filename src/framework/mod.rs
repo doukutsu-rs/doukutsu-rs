@@ -12,6 +12,8 @@ pub mod context;
 pub mod error;
 pub mod filesystem;
 pub mod gamepad;
+#[cfg(target_os = "android")]
+pub mod gamepad_android;
 #[cfg(feature = "render-opengl")]
 mod gl;
 pub mod graphics;

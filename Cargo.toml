@@ -57,6 +57,7 @@ android = []
 #sdl2 = { path = "./3rdparty/rust-sdl2", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 #sdl2-sys = { path = "./3rdparty/rust-sdl2/sdl2-sys", optional = true, features = ["bundled", "static-link"] }
 #cpal = { path = "./3rdparty/cpal" }
+bitflags = "2.9.0"
 byteorder = "1.4"
 clap = { version = "4.5.40", default_features = false, features = ["std", "help", "usage", "error-context", "cargo", "derive"] }
 case_insensitive_hashmap = "1.0.0"

@@ -79,6 +79,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        prefab = true
     }
 
     externalNativeBuild {
@@ -89,16 +90,16 @@ android {
 
     packagingOptions {
         jniLibs {
-            excludes.add("**/dummy.so")
             useLegacyPackaging = true
         }
     }
 }
 
 dependencies {
-    implementation("androidx.annotation:annotation:1.5.0")
-    implementation("androidx.appcompat:appcompat:1.6.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.1")
-    implementation("androidx.core:core:1.9.0")
-    implementation("com.google.android.material:material:1.8.0")
+    implementation("androidx.annotation:annotation:1.9.1")
+    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("androidx.constraintlayout:constraintlayout:2.2.1")
+    implementation("androidx.core:core:1.15.0")
+    implementation("com.google.android.material:material:1.13.0")
+    implementation("androidx.games:games-controller:2.0.2")
 }

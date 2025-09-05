@@ -15,14 +15,6 @@ FetchContent_MakeAvailable(Corrosion)
 #if(NOT ${ANDROID_STL} MATCHES "_shared")
 #  return()
 #endif()
-#set(ENV{CC_x86_64} "x86_64-linux-android21-clang")
-#set(ENV{CXX_x86_64} "x86_64-linux-android21-clang++")
-#set(ENV{CC_aarch64} "aarch64-linux-android21-clang")
-#set(ENV{CXX_aarch64} "aarch64-linux-android21-clang++")
-#set(ENV{CC_x86} "i686-linux-android21-clang")
-#set(ENV{CXX_x86} "i686-linux-android21-clang++")
-#set(ENV{CC_arm} "armv7a-linux-androideabi21-clang")
-#set(ENV{CXX_arm} "armv7a-linux-androideabi21-clang++")
 
 function(configure_shared_stl lib_path so_base)
   message("Configuring STL ${so_base} for ${ANDROID_ABI}")
@@ -50,6 +42,8 @@ else()
    message(FATAL_ERROR "STL configuration ANDROID_STL=${ANDROID_STL} is not supported")
 endif()
 
+find_package(games-controller REQUIRED CONFIG)
+
 set(DRSANDROID_ROOT "${CMAKE_SOURCE_DIR}/../../../..")
 corrosion_import_crate(MANIFEST_PATH "${DRSANDROID_ROOT}/Cargo.toml")
 
@@ -64,6 +58,7 @@ target_link_libraries(libdrsandroid PRIVATE
         "-Wl,--whole-archive"
         drsandroid-static
         "-Wl,--no-whole-archive"
+        games-controller::paddleboat_static
         android
         EGL
         log
