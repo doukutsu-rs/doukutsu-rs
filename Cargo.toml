@@ -61,7 +61,7 @@ byteorder = "1.4"
 clap = { version = "4.5.40", default_features = false, features = ["std", "help", "usage", "error-context", "cargo", "derive"] }
 case_insensitive_hashmap = "1.0.0"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-cpal = { git = "https://github.com/doukutsu-rs/cpal", rev = "ce731c58b7f4759a0f4007b392e2b7f4716a347c" }
+cpal = { git = "https://github.com/doukutsu-rs/cpal", rev = "2662cc27446f9138dda22c447559021040368a3c" }
 directories = "3"
 discord-rich-presence = { version = "0.2", optional = true }
 downcast = "0.11"

@@ -1,6 +1,7 @@
 package io.github.doukutsu_rs;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.widget.ProgressBar;
@@ -13,6 +14,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+
+import dalvik.system.ZipPathValidator;
 
 public class DownloadActivity extends AppCompatActivity {
     private TextView txtProgress;
@@ -134,11 +137,20 @@ public class DownloadActivity extends AppCompatActivity {
         }
 
         private void unpack(byte[] zipFile, boolean isBase) throws IOException {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                ZipPathValidator.clearCallback();
+            }
             ZipInputStream in = new ZipInputStream(new ByteArrayInputStream(zipFile));
             ZipEntry entry;
             byte[] buffer = new byte[4096];
             while ((entry = in.getNextEntry()) != null) {
                 String entryName = entry.getName();
+
+                // https://developer.android.com/privacy-and-security/risks/zip-path-traversal
+                if (entryName.contains("..") || entryName.startsWith("/")) {
+                    in.closeEntry();
+                    continue;
+                }
 
                 // strip prefix
                 if (entryName.startsWith("CaveStory/")) {
@@ -146,6 +158,7 @@ public class DownloadActivity extends AppCompatActivity {
                 }
 
                 if (!this.entryInWhitelist(entryName)) {
+                    in.closeEntry();
                     continue;
                 }
 
