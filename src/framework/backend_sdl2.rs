@@ -4,6 +4,7 @@ use std::cell::{RefCell, UnsafeCell};
 use std::ffi::c_void;
 use std::io::Read;
 use std::ops::Deref;
+use std::pin::Pin;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -20,28 +21,45 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Texture, TextureCreator, TextureQuery, WindowCanvas};
 use sdl2::rwops::RWops;
 use sdl2::surface::Surface;
-use sdl2::video::GLProfile;
-use sdl2::video::Window;
-use sdl2::video::WindowContext;
+use sdl2::video::{FullscreenType, GLProfile, Window, WindowContext};
 use sdl2::{controller, keyboard, pixels, EventPump, GameControllerSubsystem, Sdl, VideoSubsystem};
 
-use crate::common::{Color, Rect};
-use crate::framework::backend::{
-    Backend, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand,
-    VertexData, WindowParams,
+use super::backend::{
+    Backend, BackendCallbacks, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture,
+    DeviceFormFactor, SpriteBatchCommand, VertexData, WindowParams,
 };
-use crate::framework::context::Context;
-use crate::framework::error::{GameError, GameResult};
-use crate::framework::filesystem;
-use crate::framework::gamepad::{Axis, Button, GamepadType};
-use crate::framework::graphics::BlendMode;
-use crate::framework::keyboard::ScanCode;
-#[cfg(feature = "render-opengl")]
-use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
-use crate::framework::ui::init_imgui;
+use super::context::Context;
+use super::error::{GameError, GameResult};
+use super::filesystem;
+use super::gamepad::{Axis, Button, GamepadType};
+use super::graphics::{BlendMode, SwapMode};
+use super::keyboard::ScanCode;
+use super::ui::init_imgui;
+use crate::common::{Color, Rect};
+use crate::framework::graphics::IndexData;
 use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
 use crate::game::GAME_SUSPENDED;
+
+fn handle_err_impl(result: GameResult, shutdown_requested: &mut bool) {
+    if let Err(e) = result {
+        log::error!("{}", e);
+        *shutdown_requested = true;
+    }
+}
+
+trait WindowModeExt {
+    fn get_sdl2_fullscreen_type(&self) -> sdl2::video::FullscreenType;
+}
+
+impl WindowModeExt for WindowMode {
+    fn get_sdl2_fullscreen_type(&self) -> sdl2::video::FullscreenType {
+        match self {
+            WindowMode::Windowed => sdl2::video::FullscreenType::Off,
+            WindowMode::Fullscreen => sdl2::video::FullscreenType::Desktop,
+        }
+    }
+}
 
 pub struct SDL2Backend {
     context: Sdl,
@@ -171,7 +189,8 @@ impl SDL2EventLoop {
         gl_attr.set_context_profile(GLProfile::Compatibility);
         gl_attr.set_context_version(2, 1);
 
-        let mut win_builder = video.window("Cave Story (doukutsu-rs)", ctx.window.size_hint.0 as _, ctx.window.size_hint.1 as _);
+        let mut win_builder =
+            video.window("Cave Story (doukutsu-rs)", ctx.window.size_hint.0 as _, ctx.window.size_hint.1 as _);
         win_builder.position_centered();
         win_builder.resizable();
 
@@ -195,7 +214,6 @@ impl SDL2EventLoop {
             window.set_icon(icon);
         }
 
-
         let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
 
         let event_loop = SDL2EventLoop {
@@ -213,175 +231,206 @@ impl SDL2EventLoop {
 
         Ok(Box::new(event_loop))
     }
+
+    fn set_seamless_titlebar(&mut self, enabled: bool) {
+        // #[cfg(target_os = "macos")]
+        #[cfg(any())] // buggy, disable for now.
+        #[allow(non_upper_case_globals)]
+        unsafe {
+            use objc2::ffi::*;
+            use objc2::*;
+
+            const NSWindowTitleVisible: i32 = 0;
+            const NSWindowTitleHidden: i32 = 1;
+            const NSWindowStyleMaskFullSizeContentView: u32 = 1 << 15;
+
+            // safety: fields are initialized by SDL_GetWindowWMInfo
+            let mut winfo: sdl2_sys::SDL_SysWMinfo = mem::MaybeUninit::zeroed().assume_init();
+            winfo.version.major = sdl2_sys::SDL_MAJOR_VERSION as _;
+            winfo.version.minor = sdl2_sys::SDL_MINOR_VERSION as _;
+            winfo.version.patch = sdl2_sys::SDL_PATCHLEVEL as _;
+
+            let mut whandle = self.refs.deref().borrow().window.window().raw();
+
+            if sdl2_sys::SDL_GetWindowWMInfo(whandle, &mut winfo as *mut _) != sdl2_sys::SDL_bool::SDL_FALSE {
+                let window = winfo.info.x11.display as *mut objc2::runtime::AnyObject;
+
+                if enabled {
+                    let _: () = msg_send![window, setTitlebarAppearsTransparent:YES];
+                    let _: () = msg_send![window, setTitleVisibility:NSWindowTitleHidden];
+                } else {
+                    let _: () = msg_send![window, setTitlebarAppearsTransparent:NO];
+                    let _: () = msg_send![window, setTitleVisibility:NSWindowTitleVisible];
+                }
+
+                let mut style_mask: u32 = msg_send![window, styleMask];
+
+                if enabled {
+                    style_mask |= NSWindowStyleMaskFullSizeContentView;
+                } else {
+                    style_mask &= !NSWindowStyleMaskFullSizeContentView;
+                }
+
+                let _: () = msg_send![window, setStyleMask: style_mask];
+            }
+        }
+
+        let _ = enabled;
+    }
+
+    fn fullscreen_update(&self, ctx: &mut Context, game: &mut Game) {
+        let mut refs = self.refs.borrow_mut();
+        let window = refs.window.window_mut();
+        let requested_fullscreen_type = ctx.window.mode.get_sdl2_fullscreen_type();
+        let current_fullscreen_type = window.fullscreen_state();
+
+        if requested_fullscreen_type != current_fullscreen_type {
+            let show_cursor = ctx.window.mode.should_display_mouse_cursor();
+
+            #[cfg(target_os = "macos")]
+            let show_cursor = true; // always display it on macOS
+
+            window.set_fullscreen(requested_fullscreen_type);
+            window.subsystem().sdl().mouse().show_cursor(show_cursor);
+
+            game.on_fullscreen_state_changed(ctx, ctx.window.mode);
+        }
+    }
+
+    fn handle_event(event: Event, ctx: &mut Context, game: &mut Game, refs: &Rc<RefCell<SDL2Context>>) {
+        macro_rules! handle_err {
+            (
+                $result:expr
+            ) => {
+                handle_err_impl($result, &mut ctx.shutdown_requested);
+            };
+        }
+
+        match event {
+            Event::Quit { .. } => {
+                ctx.shutdown_requested = true;
+            }
+            Event::Window { win_event, .. } => match win_event {
+                WindowEvent::FocusGained | WindowEvent::Shown => {
+                    game.on_focus_gained(ctx);
+                }
+                WindowEvent::FocusLost | WindowEvent::Hidden => {
+                    game.on_focus_lost(ctx);
+                }
+                WindowEvent::SizeChanged(width, height) => {
+                    ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
+
+                    game.on_resize(ctx);
+                }
+                _ => {}
+            },
+            Event::KeyDown { scancode: Some(scancode), repeat, keymod, .. } => {
+                if let Some(drs_scan) = conv_scancode(scancode) {
+                    if !repeat {
+                        game.on_key_down(ctx, drs_scan);
+                        if keymod.intersects(keyboard::Mod::RALTMOD | keyboard::Mod::LALTMOD)
+                            && drs_scan == ScanCode::Return
+                        {
+                            let new_mode = match ctx.window.mode {
+                                WindowMode::Windowed => WindowMode::Fullscreen,
+                                WindowMode::Fullscreen => WindowMode::Windowed,
+                            };
+                            ctx.window.mode = new_mode;
+                        }
+                    }
+                    ctx.keyboard_context.set_key(drs_scan, true);
+                }
+            }
+            Event::KeyUp { scancode: Some(scancode), .. } => {
+                if let Some(drs_scan) = conv_scancode(scancode) {
+                    game.on_key_up(ctx, drs_scan);
+                    ctx.keyboard_context.set_key(drs_scan, false);
+                }
+            }
+            Event::JoyDeviceAdded { which, .. } => {
+                let game_controller = &refs.borrow().game_controller;
+
+                if game_controller.is_game_controller(which) {
+                    let controller = game_controller.open(which).unwrap();
+                    let id = controller.instance_id();
+
+                    log::info!("Connected gamepad: {} (ID: {})", controller.name(), id);
+
+                    let axis_sensitivity = game.state.get_mut().settings.get_gamepad_axis_sensitivity(which);
+                    ctx.gamepad_context.add_gamepad(SDL2Gamepad::new(controller), axis_sensitivity);
+
+                    unsafe {
+                        let controller_type =
+                            get_game_controller_type(sdl2_sys::SDL_GameControllerTypeForIndex(id as _));
+                        ctx.gamepad_context.set_gamepad_type(id, controller_type);
+                    }
+                }
+            }
+            Event::ControllerDeviceRemoved { which, .. } => {
+                let game_controller = &refs.borrow().game_controller;
+                log::info!("Disconnected gamepad with ID {}", which);
+                ctx.gamepad_context.remove_gamepad(which);
+            }
+            Event::ControllerAxisMotion { which, axis, value, .. } => {
+                if let Some(drs_axis) = conv_gamepad_axis(axis) {
+                    let new_value = (value as f64) / i16::MAX as f64;
+                    ctx.gamepad_context.set_axis_value(which, drs_axis, new_value);
+                    ctx.gamepad_context.update_axes(which);
+                }
+            }
+            Event::ControllerButtonDown { which, button, .. } => {
+                if let Some(drs_button) = conv_gamepad_button(button) {
+                    ctx.gamepad_context.set_button(which, drs_button, true);
+                }
+            }
+            Event::ControllerButtonUp { which, button, .. } => {
+                if let Some(drs_button) = conv_gamepad_button(button) {
+                    ctx.gamepad_context.set_button(which, drs_button, false);
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 impl BackendEventLoop for SDL2EventLoop {
-    fn run(&mut self, game: &mut Game, ctx: &mut Context) {
-        let state = unsafe { &mut *game.state.get() };
+    fn run(&mut self, mut game: Pin<Box<Game>>, mut ctx: Pin<Box<Context>>) {
+        macro_rules! handle_err {
+            (
+                $result:expr
+            ) => {
+                handle_err_impl($result, &mut ctx.shutdown_requested);
+            };
+        }
 
-        let imgui = unsafe {
-            (&*(ctx.renderer.as_ref().unwrap() as *const Box<dyn BackendRenderer>)).imgui().unwrap()
-        };
-        let mut imgui_sdl2 = ImguiSdl2::new(imgui, self.refs.deref().borrow().window.window());
+        const IS_MOBILE: bool = cfg!(any(target_os = "android", target_os = "ios"));
+        const IS_CONSOLE: bool = cfg!(any(target_os = "horizon"));
+
+        // SDL has no API for this so we need to guess :)
+        ctx.flags.set_supports_windowed_fullscreen(!IS_MOBILE && !IS_CONSOLE);
+        ctx.flags.set_has_touch_screen(false); // TODO: implement touch support in SDL backend
+        ctx.flags.set_form_factor(match (IS_MOBILE, IS_CONSOLE) {
+            (true, _) => DeviceFormFactor::Mobile,
+            (_, true) => DeviceFormFactor::Console,
+            (false, false) => DeviceFormFactor::Computer,
+        });
 
         {
             let (width, height) = self.refs.deref().borrow().window.window().size();
+            ctx.real_screen_size = (width, height);
             ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
 
-            imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
-            let _ = state.handle_resize(ctx);
+            handle_err!(game.on_resize(&mut ctx));
         }
 
         loop {
-            #[cfg(target_os = "macos")]
-            unsafe {
-                use objc::*;
-
-                // no UB: fields are initialized by SDL_GetWindowWMInfo
-                let mut winfo: sdl2_sys::SDL_SysWMinfo = mem::MaybeUninit::uninit().assume_init();
-                winfo.version.major = sdl2_sys::SDL_MAJOR_VERSION as _;
-                winfo.version.minor = sdl2_sys::SDL_MINOR_VERSION as _;
-                winfo.version.patch = sdl2_sys::SDL_PATCHLEVEL as _;
-
-                let mut whandle = self.refs.deref().borrow().window.window().raw();
-
-                if sdl2_sys::SDL_GetWindowWMInfo(whandle, &mut winfo as *mut _) != sdl2_sys::SDL_bool::SDL_FALSE {
-                    let window = winfo.info.x11.display as *mut objc::runtime::Object;
-                    let _: () = msg_send![window, setTitlebarAppearsTransparent:1];
-                    let _: () = msg_send![window, setTitleVisibility:1]; // NSWindowTitleHidden
-                    let mut style_mask: u32 = msg_send![window, styleMask];
-
-                    style_mask |= 1 << 15; // NSWindowStyleMaskFullSizeContentView
-
-                    let _: () = msg_send![window, setStyleMask: style_mask];
-                }
-            }
-
             for event in self.event_pump.poll_iter() {
-                imgui_sdl2.handle_event(imgui, &event);
-
-                match event {
-                    Event::Quit { .. } => {
-                        state.shutdown();
-                    }
-                    Event::Window { win_event, .. } => match win_event {
-                        WindowEvent::FocusGained | WindowEvent::Shown => {
-                            if state.settings.pause_on_focus_loss {
-                                {
-                                    let mut mutex = GAME_SUSPENDED.lock().unwrap();
-                                    *mutex = false;
-                                }
-
-                                state.sound_manager.resume();
-                                game.loops = 0;
-                            }
-                        }
-                        WindowEvent::FocusLost | WindowEvent::Hidden => {
-                            if state.settings.pause_on_focus_loss {
-                                let mut mutex = GAME_SUSPENDED.lock().unwrap();
-                                *mutex = true;
-
-                                state.sound_manager.pause();
-                            }
-                        }
-                        WindowEvent::SizeChanged(width, height) => {
-                            ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
-
-                            if let Some(renderer) = &ctx.renderer {
-                                if let Ok(imgui) = renderer.imgui() {
-                                    imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
-                                }
-                            }
-                            state.handle_resize(ctx).unwrap();
-                        }
-                        _ => {}
-                    },
-                    Event::KeyDown { scancode: Some(scancode), repeat, keymod, .. } => {
-                        if let Some(drs_scan) = conv_scancode(scancode) {
-                            if !repeat {
-                                if let Some(scene) = &mut game.scene {
-                                    scene.process_debug_keys(state, ctx, drs_scan);
-                                }
-
-                                if keymod.intersects(keyboard::Mod::RALTMOD | keyboard::Mod::LALTMOD)
-                                    && drs_scan == ScanCode::Return
-                                {
-                                    let new_mode = match ctx.window.mode {
-                                        WindowMode::Windowed => WindowMode::Fullscreen,
-                                        WindowMode::Fullscreen => WindowMode::Windowed,
-                                    };
-                                    let fullscreen_type = new_mode.get_sdl2_fullscreen_type();
-
-                                    let mut refs = self.refs.borrow_mut();
-                                    let window = refs.window.window_mut();
-
-                                    window.set_fullscreen(fullscreen_type);
-                                    window
-                                        .subsystem()
-                                        .sdl()
-                                        .mouse()
-                                        .show_cursor(new_mode.should_display_mouse_cursor());
-
-                                    refs.fullscreen_type = fullscreen_type;
-
-                                    state.settings.window_mode = new_mode;
-                                    ctx.window.mode = new_mode;
-                                }
-                            }
-                            ctx.keyboard_context.set_key(drs_scan, true);
-                        }
-                    }
-                    Event::KeyUp { scancode: Some(scancode), .. } => {
-                        if let Some(drs_scan) = conv_scancode(scancode) {
-                            ctx.keyboard_context.set_key(drs_scan, false);
-                        }
-                    }
-                    Event::JoyDeviceAdded { which, .. } => {
-                        let game_controller = &self.refs.borrow().game_controller;
-
-                        if game_controller.is_game_controller(which) {
-                            let controller = game_controller.open(which).unwrap();
-                            let id = controller.instance_id();
-
-                            log::info!("Connected gamepad: {} (ID: {})", controller.name(), id);
-
-                            let axis_sensitivity = state.settings.get_gamepad_axis_sensitivity(which);
-                            ctx.gamepad_context.add_gamepad(SDL2Gamepad::new(controller), axis_sensitivity);
-
-                            unsafe {
-                                let controller_type =
-                                    get_game_controller_type(sdl2_sys::SDL_GameControllerTypeForIndex(id as _));
-                                ctx.gamepad_context.set_gamepad_type(id, controller_type);
-                            }
-                        }
-                    }
-                    Event::ControllerDeviceRemoved { which, .. } => {
-                        let game_controller = &self.refs.borrow().game_controller;
-                        log::info!("Disconnected gamepad with ID {}", which);
-                        ctx.gamepad_context.remove_gamepad(which);
-                    }
-                    Event::ControllerAxisMotion { which, axis, value, .. } => {
-                        if let Some(drs_axis) = conv_gamepad_axis(axis) {
-                            let new_value = (value as f64) / i16::MAX as f64;
-                            ctx.gamepad_context.set_axis_value(which, drs_axis, new_value);
-                            ctx.gamepad_context.update_axes(which);
-                        }
-                    }
-                    Event::ControllerButtonDown { which, button, .. } => {
-                        if let Some(drs_button) = conv_gamepad_button(button) {
-                            ctx.gamepad_context.set_button(which, drs_button, true);
-                        }
-                    }
-                    Event::ControllerButtonUp { which, button, .. } => {
-                        if let Some(drs_button) = conv_gamepad_button(button) {
-                            ctx.gamepad_context.set_button(which, drs_button, false);
-                        }
-                    }
-                    _ => {}
-                }
+                Self::handle_event(event, &mut ctx, &mut game, &self.refs);
             }
 
-            if state.shutdown {
+            self.fullscreen_update(&mut ctx, &mut game);
+
+            if ctx.shutdown_requested {
                 log::info!("Shutting down...");
                 break;
             }
@@ -389,50 +438,20 @@ impl BackendEventLoop for SDL2EventLoop {
             {
                 let mutex = GAME_SUSPENDED.lock().unwrap();
                 if *mutex {
-                    std::thread::sleep(Duration::from_millis(10));
+                    let event = self.event_pump.wait_event_timeout(10);
+                    if let Some(event) = event {
+                        Self::handle_event(event, &mut ctx, &mut game, &self.refs);
+                    }
                     continue;
                 }
             }
 
-            {
-                if ctx.window.mode.get_sdl2_fullscreen_type() != self.refs.borrow().fullscreen_type {
-                    let mut refs = self.refs.borrow_mut();
-                    let window = refs.window.window_mut();
-
-                    let fullscreen_type = ctx.window.mode.get_sdl2_fullscreen_type();
-                    let show_cursor = ctx.window.mode.should_display_mouse_cursor();
-
-                    window.set_fullscreen(fullscreen_type);
-                    window
-                        .subsystem()
-                        .sdl()
-                        .mouse()
-                        .show_cursor(show_cursor);
-
-                    refs.fullscreen_type = fullscreen_type;
-                }
-            }
-
-            game.update(ctx).unwrap();
-
-            if let Some(_) = &state.next_scene {
-                game.scene = mem::take(&mut state.next_scene);
-                game.scene.as_mut().unwrap().init(state, ctx).unwrap();
-                game.loops = 0;
-                state.frame_time = 0.0;
-            }
-
-            imgui_sdl2.prepare_frame(
-                imgui.io_mut(),
-                self.refs.deref().borrow().window.window(),
-                &self.event_pump.mouse_state(),
-            );
-
-            game.draw(ctx).unwrap();
+            handle_err!(game.update(&mut ctx));
+            handle_err!(game.draw(&mut ctx));
         }
     }
 
-    fn new_renderer(&self, ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>> {
+    fn new_renderer(&self, ctx: &mut Context) -> GameResult<Box<dyn BackendRenderer>> {
         #[cfg(feature = "render-opengl")]
         {
             let mut refs = self.refs.borrow_mut();
@@ -450,52 +469,69 @@ impl BackendEventLoop for SDL2EventLoop {
 
         #[cfg(feature = "render-opengl")]
         if *self.opengl_available.borrow() {
-            let mut imgui = init_imgui()?;
-            let mut key_map = &mut imgui.io_mut().key_map;
-            key_map[ImGuiKey_Backspace as usize] = Scancode::Backspace as u32;
-            key_map[ImGuiKey_Delete as usize] = Scancode::Delete as u32;
-            key_map[ImGuiKey_Enter as usize] = Scancode::Return as u32;
+            use super::render_opengl::{GLContextType, GLPlatformFunctions, OpenGLRenderer};
 
-            let refs = self.refs.clone();
+            struct SDL2GLPlatform(Rc<RefCell<SDL2Context>>);
 
-            let user_data = Rc::into_raw(refs) as *mut c_void;
-
-            unsafe fn get_proc_address(user_data: &mut *mut c_void, name: &str) -> *const c_void {
-                let refs = Rc::from_raw(*user_data as *mut RefCell<SDL2Context>);
-
-                let result = {
-                    let refs = &mut *refs.as_ptr();
+            impl GLPlatformFunctions for SDL2GLPlatform {
+                fn get_proc_address(&self, name: &str) -> *const c_void {
+                    let refs = self.0.borrow();
                     refs.video.gl_get_proc_address(name) as *const _
-                };
+                }
 
-                *user_data = Rc::into_raw(refs) as *mut c_void;
-
-                result
-            }
-
-            unsafe fn swap_buffers(user_data: &mut *mut c_void) {
-                let refs = Rc::from_raw(*user_data as *mut RefCell<SDL2Context>);
-
-                {
-                    let refs = &mut *refs.as_ptr();
-
+                fn swap_buffers(&self) {
+                    let mut refs = self.0.borrow();
                     refs.window.window().gl_swap_window();
                 }
 
-                *user_data = Rc::into_raw(refs) as *mut c_void;
+                fn set_swap_mode(&self, mode: super::graphics::SwapMode) {
+                    match mode {
+                        SwapMode::Immediate => unsafe {
+                            sdl2_sys::SDL_GL_SetSwapInterval(0);
+                        },
+                        SwapMode::VSync => unsafe {
+                            sdl2_sys::SDL_GL_SetSwapInterval(1);
+                        },
+                        SwapMode::Adaptive => unsafe {
+                            if sdl2_sys::SDL_GL_SetSwapInterval(-1) == -1 {
+                                log::warn!("Failed to enable variable refresh rate, falling back to non-V-Sync.");
+                                sdl2_sys::SDL_GL_SetSwapInterval(0);
+                            }
+                        },
+                    }
+                }
+
+                fn get_context_type(&self) -> GLContextType {
+                    use sdl2_sys::{SDL_GLattr, SDL_GLprofile};
+
+                    let mut refs = self.0.borrow_mut();
+                    let mut attributes = 0;
+                    let ok = unsafe {
+                        sdl2_sys::SDL_GL_GetAttribute(SDL_GLattr::SDL_GL_CONTEXT_PROFILE_MASK, &mut attributes)
+                    };
+
+                    if ok == 0 {
+                        if ((attributes as u32) & (SDL_GLprofile::SDL_GL_CONTEXT_PROFILE_ES as u32)) != 0 {
+                            return GLContextType::GLES2;
+                        } else {
+                            return GLContextType::DesktopGL2;
+                        }
+                    } else {
+                        GLContextType::Unknown
+                    }
+                }
             }
 
-            let gl_context =
-                GLContext { gles2_mode: false, is_sdl: true, get_proc_address, swap_buffers, user_data, ctx };
+            let platform = Box::new(SDL2GLPlatform(self.refs.clone()));
+            return Ok(Box::new(OpenGLRenderer::new(platform)));
+        }
 
-            return Ok(Box::new(OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))));
-        } else {
+        {
             let mut refs = self.refs.borrow_mut();
             let window = std::mem::take(&mut refs.window);
             refs.window = window.make_canvas()?;
+            return Ok(Box::new(SDL2Renderer::new(self.refs.clone())));
         }
-
-        SDL2Renderer::new(self.refs.clone())
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -545,62 +581,6 @@ impl BackendGamepad for SDL2Gamepad {
 
 struct SDL2Renderer {
     refs: Rc<RefCell<SDL2Context>>,
-    imgui: Rc<RefCell<imgui::Context>>,
-    #[allow(unused)] // the rendering pipeline uses pointers to SDL_Texture, and we manually manage the lifetimes
-    imgui_font_tex: SDL2Texture,
-}
-
-impl SDL2Renderer {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(refs: Rc<RefCell<SDL2Context>>) -> GameResult<Box<dyn BackendRenderer>> {
-        let mut imgui = init_imgui()?;
-
-        imgui.set_renderer_name("SDL2Renderer".to_owned());
-        let imgui_font_tex = {
-            let refs = refs.clone();
-            let mut fonts = imgui.fonts();
-            let font_tex = fonts.build_rgba32_texture();
-
-            let mut texture = refs
-                .borrow_mut()
-                .window
-                .texture_creator()
-                .create_texture_streaming(PixelFormatEnum::RGBA32, font_tex.width, font_tex.height)
-                .map_err(|e| GameError::RenderError(e.to_string()))?;
-
-            texture.set_blend_mode(sdl2::render::BlendMode::Blend);
-            texture
-                .with_lock(None, |buffer: &mut [u8], pitch: usize| {
-                    for y in 0..(font_tex.height as usize) {
-                        for x in 0..(font_tex.width as usize) {
-                            let offset = y * pitch + x * 4;
-                            let data_offset = (y * font_tex.width as usize + x) * 4;
-
-                            buffer[offset] = font_tex.data[data_offset];
-                            buffer[offset + 1] = font_tex.data[data_offset + 1];
-                            buffer[offset + 2] = font_tex.data[data_offset + 2];
-                            buffer[offset + 3] = font_tex.data[data_offset + 3];
-                        }
-                    }
-                })
-                .map_err(|e| GameError::RenderError(e.to_string()))?;
-
-            SDL2Texture {
-                refs: refs.clone(),
-                texture: Some(texture),
-                width: font_tex.width as u16,
-                height: font_tex.height as u16,
-                commands: vec![],
-            }
-        };
-        imgui.fonts().tex_id = TextureId::new(imgui_font_tex.texture.as_ref().unwrap().raw() as usize);
-
-        Ok(Box::new(SDL2Renderer {
-            refs,
-            imgui: Rc::new(RefCell::new(imgui)),
-            imgui_font_tex,
-        }))
-    }
 }
 
 fn to_sdl(color: Color) -> pixels::Color {
@@ -837,86 +817,42 @@ impl BackendRenderer for SDL2Renderer {
         Ok(())
     }
 
-    fn imgui(&self) -> GameResult<&mut imgui::Context> {
-        unsafe { Ok(&mut *self.imgui.as_ptr()) }
-    }
-
-    fn imgui_texture_id(&self, texture: &Box<dyn BackendTexture>) -> GameResult<TextureId> {
-        let sdl_texture = texture
-            .as_any()
-            .downcast_ref::<SDL2Texture>()
-            .ok_or(GameError::RenderError("This texture was not created by SDL backend.".to_string()))?;
-
-        Ok(TextureId::new(sdl_texture.texture.as_ref().map(|t| t.raw()).unwrap_or(null_mut()) as usize))
-    }
-
-    fn prepare_imgui(&mut self, ui: &Ui) -> GameResult {
-        // let refs = self.refs.borrow_mut();
-        // self.imgui_event.borrow_mut().prepare_render(ui, refs.window.window());
-
-        Ok(())
-    }
-
-    fn render_imgui(&mut self, draw_data: &DrawData) -> GameResult {
-        let mut refs = self.refs.borrow_mut();
-        let canvas = refs.window.canvas();
-
-        for draw_list in draw_data.draw_lists() {
-            for cmd in draw_list.commands() {
-                match cmd {
-                    DrawCmd::Elements { count, cmd_params } => {
-                        canvas.set_clip_rect(Some(sdl2::rect::Rect::new(
-                            cmd_params.clip_rect[0] as i32,
-                            cmd_params.clip_rect[1] as i32,
-                            (cmd_params.clip_rect[2] - cmd_params.clip_rect[0]) as u32,
-                            (cmd_params.clip_rect[3] - cmd_params.clip_rect[1]) as u32,
-                        )));
-
-                        let vtx_buffer = draw_list.vtx_buffer();
-                        let idx_buffer = draw_list.idx_buffer();
-
-                        let tex_ptr = cmd_params.texture_id.id() as *mut sdl2::sys::SDL_Texture;
-
-                        unsafe {
-                            let v0 = vtx_buffer.get_unchecked(cmd_params.vtx_offset);
-
-                            sdl2_sys::SDL_RenderGeometryRaw(
-                                canvas.raw(),
-                                tex_ptr,
-                                v0.pos.as_ptr(),
-                                mem::size_of::<DrawVert>() as _,
-                                v0.col.as_ptr() as *const _,
-                                mem::size_of::<DrawVert>() as _,
-                                v0.uv.as_ptr(),
-                                mem::size_of::<DrawVert>() as _,
-                                vtx_buffer.len().saturating_sub(cmd_params.vtx_offset) as i32,
-                                idx_buffer.as_ptr().add(cmd_params.idx_offset) as *const _,
-                                count as i32,
-                                mem::size_of::<DrawIdx>() as _,
-                            );
-                        }
-
-                        canvas.set_clip_rect(None);
-                    }
-                    DrawCmd::ResetRenderState => {}
-                    DrawCmd::RawCallback { callback, raw_cmd } => unsafe { callback(draw_list.raw(), raw_cmd) },
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    fn supports_vertex_draw(&self) -> bool {
-        true
-    }
-
-    fn draw_triangle_list(
+    fn draw_triangles(
         &mut self,
         vertices: &[VertexData],
-        mut texture: Option<&Box<dyn BackendTexture>>,
+        texture: Option<&Box<dyn BackendTexture>>,
         shader: BackendShader,
     ) -> GameResult<()> {
+        self.render_geometry(vertices, None, texture, shader)
+    }
+
+    fn draw_triangles_indexed(
+        &mut self,
+        vertices: &[VertexData],
+        indices: IndexData,
+        texture: Option<&Box<dyn BackendTexture>>,
+        shader: BackendShader,
+    ) -> GameResult {
+        self.render_geometry(vertices, Some(indices), texture, shader)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+impl SDL2Renderer {
+    pub fn new(refs: Rc<RefCell<SDL2Context>>) -> Self {
+        SDL2Renderer { refs }
+    }
+
+    fn render_geometry(
+        &mut self,
+        vertices: &[VertexData],
+        indices: Option<IndexData>,
+        mut texture: Option<&Box<dyn BackendTexture>>,
+        shader: BackendShader,
+    ) -> GameResult {
         let mut refs = self.refs.borrow_mut();
         if shader == BackendShader::Fill {
             texture = None;
@@ -925,34 +861,45 @@ impl BackendRenderer for SDL2Renderer {
         }
 
         let texture_ptr = if let Some(texture) = texture {
-            texture
-                .as_any()
-                .downcast_ref::<SDL2Texture>()
-                .ok_or(GameError::RenderError("This texture was not created by SDL2 backend.".to_string()))?
-                .texture
-                .as_ref()
-                .map_or(null_mut(), |t| t.raw())
+            SDL2Texture::try_dyn_ref(texture.as_ref())?.texture.as_ref().map_or(null_mut(), |t| t.raw())
         } else {
             null_mut::<sdl2_sys::SDL_Texture>()
         };
 
         unsafe {
-            // potential danger: we assume that the layout of VertexData is the same as SDL_Vertex
-            sdl2_sys::SDL_RenderGeometry(
+            const VERTEX_DATA_STRIDE: i32 = std::mem::size_of::<VertexData>() as _;
+            let first_vertex = vertices.as_ptr();
+            let position_off = &raw const (*first_vertex).position as *const f32;
+            let color_off = &raw const (*first_vertex).color as *const sdl2_sys::SDL_Color;
+            let uv_off = &raw const (*first_vertex).uv as *const f32;
+
+            let (num_indices, indices, size_indices) = if let Some(indices) = indices {
+                let count = indices.len() as i32;
+                let pointer = indices.as_bytes_slice().as_ptr() as *const c_void;
+                let size = indices.element_size() as i32;
+
+                (count, pointer, size)
+            } else {
+                (0, null(), 0)
+            };
+
+            sdl2_sys::SDL_RenderGeometryRaw(
                 refs.window.canvas().raw(),
                 texture_ptr,
-                vertices.as_ptr() as *const sdl2_sys::SDL_Vertex,
+                position_off,
+                VERTEX_DATA_STRIDE,
+                color_off,
+                VERTEX_DATA_STRIDE,
+                uv_off,
+                VERTEX_DATA_STRIDE,
                 vertices.len() as i32,
-                null(),
-                0,
+                indices,
+                num_indices,
+                size_indices,
             );
         }
 
         Ok(())
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }
 
@@ -962,6 +909,15 @@ struct SDL2Texture {
     width: u16,
     height: u16,
     commands: Vec<SpriteBatchCommand>,
+}
+
+impl SDL2Texture {
+    fn try_dyn_ref(texture: &dyn BackendTexture) -> GameResult<&Self> {
+        texture
+            .as_any()
+            .downcast_ref::<Self>()
+            .ok_or_else(|| GameError::RenderError("This texture was not created by SDL2 backend.".to_string()))
+    }
 }
 
 impl BackendTexture for SDL2Texture {
