@@ -1,8 +1,69 @@
-use crate::common::{Color, Rect};
-use crate::framework::backend::{BackendShader, BackendTexture, VertexData};
-use crate::framework::context::Context;
-use crate::framework::error::{GameError, GameResult};
+use std::cell::RefMut;
 
+use super::backend::{BackendShader, BackendTexture, VertexData};
+use super::context::Context;
+use super::error::{GameError, GameResult};
+use crate::common::{Color, Rect};
+
+#[derive(Copy, Clone)]
+pub enum IndexData<'a> {
+    UByte(&'a [u8]),
+    UShort(&'a [u16]),
+    UInt(&'a [u32]),
+}
+
+impl<'a> IndexData<'a> {
+    #[inline]
+    pub const fn is_empty(&self) -> bool {
+        match self {
+            IndexData::UByte(items) => items.is_empty(),
+            IndexData::UShort(items) => items.is_empty(),
+            IndexData::UInt(items) => items.is_empty(),
+        }
+    }
+
+    #[inline]
+    pub const fn element_size(&self) -> usize {
+        match self {
+            IndexData::UByte(_) => 1,
+            IndexData::UShort(_) => 2,
+            IndexData::UInt(_) => 4,
+        }
+    }
+
+    #[inline]
+    pub const fn len(&self) -> usize {
+        match self {
+            IndexData::UByte(buf) => buf.len(),
+            IndexData::UShort(buf) => buf.len(),
+            IndexData::UInt(buf) => buf.len(),
+        }
+    }
+
+    #[inline]
+    pub const fn bytes_len(&self) -> usize {
+        self.len() * self.element_size()
+    }
+
+    #[inline]
+    pub const fn as_bytes_slice(&'a self) -> &'a [u8] {
+        let ptr = match self {
+            IndexData::UByte(buf) => buf.as_ptr(),
+            IndexData::UShort(buf) => buf.as_ptr() as *const u8,
+            IndexData::UInt(buf) => buf.as_ptr() as *const u8,
+        };
+
+        unsafe { std::slice::from_raw_parts(ptr, self.bytes_len()) }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShaderStage {
+    Vertex,
+    Fragment,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FilterMode {
     Nearest,
     Linear,
@@ -23,18 +84,11 @@ pub enum BlendMode {
     Multiply,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum VSyncMode {
-    /// No V-Sync - uncapped frame rate
-    Uncapped,
-    /// Synchronized to V-Sync
-    VSync,
-    /// Variable Refresh Rate - Synchronized to game tick interval
-    VRRTickSync1x,
-    /// Variable Refresh Rate - Synchronized to 2 * game tick interval
-    VRRTickSync2x,
-    /// Variable Refresh Rate - Synchronized to 3 * game tick interval
-    VRRTickSync3x,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SwapMode {
+    Immediate = 0,
+    VSync = 1,
+    Adaptive = -1,
 }
 
 pub fn clear(ctx: &mut Context, color: Color) {
@@ -51,10 +105,12 @@ pub fn present(ctx: &mut Context) -> GameResult {
     Ok(())
 }
 
-pub fn set_vsync_mode(ctx: &mut Context, mode: VSyncMode) -> GameResult {
+pub fn set_swap_mode(ctx: &mut Context, mode: SwapMode) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
-        ctx.vsync_mode = mode;
-        renderer.set_vsync_mode(mode);
+        if ctx.swap_mode != mode {
+            ctx.swap_mode = mode;
+            renderer.set_swap_mode(mode);
+        }
     }
 
     Ok(())
@@ -135,39 +191,6 @@ pub fn set_clip_rect(ctx: &mut Context, rect: Option<Rect>) -> GameResult {
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
 
-
-pub fn imgui_context(ctx: &Context) -> GameResult<&mut imgui::Context> {
-    if let Some(renderer) = ctx.renderer.as_ref() {
-        return renderer.imgui();
-    }
-
-    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
-}
-
-pub fn imgui_texture_id(ctx: &Context, texture: &Box<dyn BackendTexture>) -> GameResult<imgui::TextureId> {
-    if let Some(renderer) = ctx.renderer.as_ref() {
-        return renderer.imgui_texture_id(texture);
-    }
-
-    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
-}
-
-pub fn prepare_imgui(ctx: &mut Context, ui: &imgui::Ui) -> GameResult {
-    if let Some(renderer) = &mut ctx.renderer {
-        return renderer.prepare_imgui(ui);
-    }
-
-    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
-}
-
-pub fn render_imgui(ctx: &mut Context, draw_data: &imgui::DrawData) -> GameResult {
-    if let Some(renderer) = &mut ctx.renderer {
-        return renderer.render_imgui(draw_data);
-    }
-
-    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
-}
-
 pub fn prepare_draw(ctx: &mut Context) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
         return renderer.prepare_draw(ctx.screen_size.0, ctx.screen_size.1);
@@ -176,22 +199,14 @@ pub fn prepare_draw(ctx: &mut Context) -> GameResult {
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
 
-pub fn supports_vertex_draw(ctx: &Context) -> GameResult<bool> {
-    if let Some(renderer) = ctx.renderer.as_ref() {
-        return Ok(renderer.supports_vertex_draw());
-    }
-
-    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
-}
-
-pub fn draw_triangle_list(
+pub fn draw_triangles(
     ctx: &mut Context,
     vertices: &[VertexData],
     texture: Option<&Box<dyn BackendTexture>>,
     shader: BackendShader,
 ) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
-        return renderer.draw_triangle_list(vertices, texture, shader);
+        return renderer.draw_triangles(vertices, texture, shader);
     }
 
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))

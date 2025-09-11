@@ -184,11 +184,12 @@ impl DiscordRPC {
         let _ = self.clear();
 
         let can_update = self.can_update.lock();
-        if can_update.is_ok() {
-            *can_update.unwrap() = false;
+        if let Ok(mut can_update) = can_update {
+            *can_update = false;
         }
 
         let _ = self.client.close();
+        self.ready = false;
     }
 }
 
