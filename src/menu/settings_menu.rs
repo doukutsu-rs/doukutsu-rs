@@ -3,8 +3,8 @@ use itertools::Itertools;
 use crate::common::Rect;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::VSyncMode;
 use crate::framework::{filesystem, graphics};
+use crate::game::settings::VSyncMode;
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
 use crate::graphics::font::{Font, Symbols};
 use crate::input::combined_menu_controller::CombinedMenuController;
@@ -148,7 +148,6 @@ enum AdvancedMenuEntry {
     Title,
     OpenUserData,
     OpenGameData,
-    #[cfg(not(any(target_os = "android", target_os = "horizon")))]
     MakePortable,
     Back,
 }
@@ -250,20 +249,22 @@ impl SettingsMenu {
                 ],
             ),
         );
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
-        self.graphics.push_entry(
-            GraphicsMenuEntry::WindowMode,
-            MenuEntry::Options(
-                state.loc.t("menus.options_menu.graphics_menu.window_mode.entry").to_owned(),
-                // The value in the context can be set via CLI args, but it will be overwritten by the value in the settings,
-                // if they're modified
-                ctx.window.mode as usize,
-                vec![
-                    state.loc.t("menus.options_menu.graphics_menu.window_mode.windowed").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.window_mode.fullscreen").to_owned(),
-                ],
-            ),
-        );
+
+        if ctx.flags.supports_windowed_fullscreen() {
+            self.graphics.push_entry(
+                GraphicsMenuEntry::WindowMode,
+                MenuEntry::Options(
+                    state.loc.t("menus.options_menu.graphics_menu.window_mode.entry").to_owned(),
+                    // The value in the context can be set via CLI args, but it will be overwritten by the value in the settings,
+                    // if they're modified
+                    ctx.window.mode as usize,
+                    vec![
+                        state.loc.t("menus.options_menu.graphics_menu.window_mode.windowed").to_owned(),
+                        state.loc.t("menus.options_menu.graphics_menu.window_mode.fullscreen").to_owned(),
+                    ],
+                ),
+            );
+        }
         self.graphics.push_entry(
             GraphicsMenuEntry::LightingEffects,
             MenuEntry::Toggle(
@@ -434,36 +435,39 @@ impl SettingsMenu {
         );
         self.links.push_entry(LinksMenuEntry::Link(GETPLUS_LINK), MenuEntry::Active("Get Cave Story+".to_owned()));
 
-        #[cfg(not(any(target_os = "horizon")))]
-        self.main.push_entry(
-            MainMenuEntry::Advanced,
-            MenuEntry::Active(state.loc.t("menus.options_menu.advanced").to_owned()),
-        );
+        #[allow(unused_mut)]
+        let mut has_any_advanced_entries = false;
 
-        self.advanced.push_entry(
-            AdvancedMenuEntry::Title,
-            MenuEntry::Disabled(state.loc.t("menus.options_menu.advanced").to_owned()),
-        );
-        self.advanced.push_entry(
-            AdvancedMenuEntry::OpenUserData,
-            MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.open_user_data").to_owned()),
-        );
-        self.advanced.push_entry(
-            AdvancedMenuEntry::OpenGameData,
-            MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.open_game_data").to_owned()),
-        );
+        if ctx.flags.supports_open_directory() {
+            self.advanced.push_entry(
+                AdvancedMenuEntry::OpenUserData,
+                MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.open_user_data").to_owned()),
+            );
+            self.advanced.push_entry(
+                AdvancedMenuEntry::OpenGameData,
+                MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.open_game_data").to_owned()),
+            );
+            has_any_advanced_entries = true;
+        }
 
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
-        if let Some(fs_container) = &state.fs_container {
+        if let (Some(fs_container), true) = (&state.fs_container, ctx.flags.supports_portable()) {
             if !fs_container.is_portable && self.on_title {
                 self.advanced.push_entry(
                     AdvancedMenuEntry::MakePortable,
                     MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.make_portable").to_owned()),
                 );
+                has_any_advanced_entries = true;
             }
         }
 
         self.advanced.push_entry(AdvancedMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
+
+        if has_any_advanced_entries {
+            self.main.push_entry(
+                MainMenuEntry::Advanced,
+                MenuEntry::Active(state.loc.t("menus.options_menu.advanced").to_owned()),
+            );
+        }
 
         self.portable.center_options = true;
 
@@ -703,6 +707,13 @@ impl SettingsMenu {
     ) -> GameResult {
         self.update_sizes(state);
 
+        // TODO: we really need some sort of reactive UI system for this
+        for opt in &mut self.graphics.entries {
+            if let (GraphicsMenuEntry::WindowMode, MenuEntry::Options(_, value, _)) = opt {
+                *value = ctx.window.mode as usize;
+            }
+        }
+
         match self.current {
             CurrentMenu::MainMenu => match self.main.tick(controller, state) {
                 MenuSelectionResult::Selected(MainMenuEntry::Graphics, _) => {
@@ -760,7 +771,6 @@ impl SettingsMenu {
 
                         *value = new_value;
                         state.settings.vsync_mode = new_mode;
-                        graphics::set_vsync_mode(ctx, new_mode)?;
 
                         let _ = state.settings.save(ctx);
                     }
@@ -777,7 +787,6 @@ impl SettingsMenu {
 
                         *value = new_value;
                         state.settings.vsync_mode = new_mode;
-                        graphics::set_vsync_mode(ctx, new_mode)?;
 
                         let _ = state.settings.save(ctx);
                     }
@@ -1124,8 +1133,6 @@ impl SettingsMenu {
                         fs_container.open_game_directory()?;
                     }
                 }
-
-                #[cfg(not(any(target_os = "android", target_os = "horizon")))]
                 MenuSelectionResult::Selected(AdvancedMenuEntry::MakePortable, _) => {
                     self.current = CurrentMenu::PortableMenu;
                 }
