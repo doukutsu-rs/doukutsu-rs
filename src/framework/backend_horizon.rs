@@ -386,28 +386,21 @@ impl HorizonEventLoop {
 
 impl BackendEventLoop for HorizonEventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
-        let state_ref = unsafe { &mut *game.state.get() };
+        ctx.flags.set_form_factor(DeviceFormFactor::Console);
+        // ctx.flags.set_has_touch_screen(true); // TODO: unimplemented
 
         let scale = 1.0;
         ctx.screen_size = (854.0 * scale, 480.0 * scale);
-        state_ref.handle_resize(ctx).unwrap();
+        game.on_resize(ctx);
 
         loop {
-            self.gamepad_update(state_ref, ctx);
+            self.gamepad_update(game.state.get_mut(), ctx);
 
             game.update(ctx).unwrap();
 
-            if state_ref.shutdown {
+            if ctx.shutdown_requested {
                 log::info!("Shutting down...");
                 break;
-            }
-
-            if state_ref.next_scene.is_some() {
-                mem::swap(&mut game.scene, &mut state_ref.next_scene);
-                state_ref.next_scene = None;
-                game.scene.as_mut().unwrap().init(state_ref, ctx).unwrap();
-                game.loops = 0;
-                state_ref.frame_time = 0.0;
             }
 
             game.draw(ctx).unwrap();
@@ -1290,10 +1283,6 @@ impl BackendRenderer for Deko3DRenderer {
 
     fn imgui(&self) -> GameResult<&mut imgui::Context> {
         unsafe { Ok(&mut *self.imgui.get()) }
-    }
-
-    fn imgui_texture_id(&self, _texture: &Box<dyn BackendTexture>) -> GameResult<TextureId> {
-        Ok(TextureId::from(0))
     }
 
     fn prepare_imgui(&mut self, _ui: &Ui) -> GameResult {
