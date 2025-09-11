@@ -48,10 +48,6 @@ enum MainMenuEntry {
 
 impl Default for MainMenuEntry {
     fn default() -> Self {
-        #[cfg(target_os = "android")]
-        return MainMenuEntry::DisplayTouchControls;
-
-        #[cfg(not(target_os = "android"))]
         return MainMenuEntry::SelectedPlayer;
     }
 }
@@ -200,8 +196,7 @@ impl ControlsMenu {
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        #[cfg(not(target_os = "android"))]
-        {
+        if ctx.flags.supports_coop() {
             self.main.push_entry(
                 MainMenuEntry::SelectedPlayer,
                 MenuEntry::Options(

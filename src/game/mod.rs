@@ -1,5 +1,5 @@
 use std::backtrace::Backtrace;
-use std::cell::UnsafeCell;
+use std::cell::RefCell;
 use std::panic::PanicInfo;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -11,14 +11,14 @@ use lazy_static::lazy_static;
 use log::LevelFilter as LogLevel;
 use scripting::tsc::text_script::ScriptMode;
 
-use crate::framework::backend::WindowParams;
+use crate::framework::backend::{BackendCallbacks, WindowParams};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics;
-use crate::framework::graphics::VSyncMode;
+use crate::framework::graphics::{self, SwapMode};
+use crate::framework::keyboard;
 use crate::framework::ui::UI;
 use crate::game::filesystem_container::FilesystemContainer;
-use crate::game::settings::Settings;
+use crate::game::settings::{Settings, VSyncMode};
 use crate::game::shared_game_state::{Fps, SharedGameState, TimingMode, WindowMode};
 use crate::graphics::texture_set::{G_MAG, I_MAG};
 use crate::scene::loading_scene::LoadingScene;
@@ -105,8 +105,8 @@ lazy_static! {
 }
 
 pub struct Game {
-    pub(crate) scene: Option<Box<dyn Scene>>,
-    pub(crate) state: UnsafeCell<SharedGameState>,
+    pub(crate) scene: RefCell<Option<Box<dyn Scene>>>,
+    pub(crate) state: RefCell<SharedGameState>,
     ui: UI,
     start_time: Instant,
     last_tick: u128,
@@ -120,9 +120,9 @@ pub struct Game {
 impl Game {
     fn new(ctx: &mut Context) -> GameResult<Game> {
         let s = Game {
-            scene: None,
+            scene: RefCell::new(None),
             ui: UI::new(ctx)?,
-            state: UnsafeCell::new(SharedGameState::new(ctx)?),
+            state: RefCell::new(SharedGameState::new(ctx)?),
             start_time: Instant::now(),
             last_tick: 0,
             next_tick: 0,
@@ -136,34 +136,37 @@ impl Game {
     }
 
     pub(crate) fn update(&mut self, ctx: &mut Context) -> GameResult {
-        if let Some(scene) = &mut self.scene {
-            let state_ref = unsafe { &mut *self.state.get() };
+        let state_ref = self.state.get_mut();
 
+        if let Some(scene) = self.scene.get_mut() {
             let speed =
                 if state_ref.textscript_vm.mode == ScriptMode::Map && state_ref.textscript_vm.flags.cutscene_skip() {
-                    4.0 * state_ref.settings.speed
+                    4.0
                 } else {
-                    1.0 * state_ref.settings.speed
-                };
+                    1.0
+                } * state_ref.settings.speed;
 
             match state_ref.settings.timing_mode {
                 TimingMode::_50Hz | TimingMode::_60Hz => {
                     let last_tick = self.next_tick;
 
                     while self.start_time.elapsed().as_nanos() >= self.next_tick && self.loops < 10 {
+                        let delta = state_ref.settings.timing_mode.get_delta();
+
                         if (speed - 1.0).abs() < 0.01 {
-                            self.next_tick += state_ref.settings.timing_mode.get_delta() as u128;
+                            self.next_tick += delta as u128;
                         } else {
-                            self.next_tick += (state_ref.settings.timing_mode.get_delta() as f64 / speed) as u128;
+                            self.next_tick += (delta as f64 / speed) as u128;
                         }
                         self.loops += 1;
                     }
 
                     if self.loops == 10 {
+                        let delta = state_ref.settings.timing_mode.get_delta();
+
                         log::warn!("Frame skip is way too high, a long system lag occurred?");
                         self.last_tick = self.start_time.elapsed().as_nanos();
-                        self.next_tick =
-                            self.last_tick + (state_ref.settings.timing_mode.get_delta() as f64 / speed) as u128;
+                        self.next_tick = self.last_tick + (delta as f64 / speed) as u128;
                         self.loops = 0;
                     }
 
@@ -182,27 +185,43 @@ impl Game {
                 }
             }
         }
+
+        let next_scene = std::mem::take(&mut state_ref.next_scene);
+        if let Some(mut next_scene) = next_scene {
+            next_scene.init(state_ref, ctx)?;
+            *self.scene.get_mut() = Some(next_scene);
+
+            self.loops = 0;
+            state_ref.frame_time = 0.0;
+        }
+
         Ok(())
     }
 
     pub(crate) fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        let state_ref = unsafe { &mut *self.state.get() };
-
-        match ctx.vsync_mode {
-            VSyncMode::Uncapped | VSyncMode::VSync => {
+        let vsync_mode = self.state.get_mut().settings.vsync_mode;
+        match vsync_mode {
+            VSyncMode::Uncapped => {
+                graphics::set_swap_mode(ctx, SwapMode::Immediate)?;
+                self.present = true;
+            }
+            VSyncMode::VSync => {
+                graphics::set_swap_mode(ctx, SwapMode::VSync)?;
                 self.present = true;
             }
             _ => unsafe {
+                graphics::set_swap_mode(ctx, SwapMode::Adaptive)?;
                 self.present = false;
 
-                let divisor = match ctx.vsync_mode {
+                let divisor = match vsync_mode {
                     VSyncMode::VRRTickSync1x => 1,
                     VSyncMode::VRRTickSync2x => 2,
                     VSyncMode::VRRTickSync3x => 3,
                     _ => std::hint::unreachable_unchecked(),
                 };
 
-                let delta = (state_ref.settings.timing_mode.get_delta() / divisor) as u64;
+                let delta = self.state.get_mut().settings.timing_mode.get_delta();
+                let delta = (delta / divisor) as u64;
 
                 let now = self.start_time.elapsed().as_nanos();
                 if now > self.next_tick_draw + delta as u128 * 4 {
@@ -224,11 +243,11 @@ impl Game {
 
         if ctx.headless {
             self.loops = 0;
-            state_ref.frame_time = 1.0;
+            self.state.get_mut().frame_time = 1.0;
             return Ok(());
         }
 
-        if state_ref.settings.timing_mode != TimingMode::FrameSynchronized {
+        if self.state.get_mut().settings.timing_mode != TimingMode::FrameSynchronized {
             let mut elapsed = self.start_time.elapsed().as_nanos();
 
             // Even with the non-monotonic Instant mitigation at the start of the event loop, there's still a chance of it not working.
@@ -239,18 +258,21 @@ impl Game {
 
             let n1 = (elapsed - self.last_tick) as f64;
             let n2 = (self.next_tick - self.last_tick) as f64;
-            state_ref.frame_time = if state_ref.settings.motion_interpolation { n1 / n2 } else { 1.0 };
+            self.state.get_mut().frame_time =
+                if self.state.get_mut().settings.motion_interpolation { n1 / n2 } else { 1.0 };
         }
         unsafe {
-            G_MAG = if state_ref.settings.subpixel_coords { state_ref.scale } else { 1.0 };
-            I_MAG = state_ref.scale;
+            G_MAG = if self.state.get_mut().settings.subpixel_coords { self.state.get_mut().scale } else { 1.0 };
+            I_MAG = self.state.get_mut().scale;
         }
         self.loops = 0;
 
         graphics::prepare_draw(ctx)?;
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
 
-        if let Some(scene) = &mut self.scene {
+        if let Some(scene) = self.scene.get_mut() {
+            let state_ref = self.state.get_mut();
+
             scene.draw(state_ref, ctx)?;
             if state_ref.settings.touch_controls && state_ref.settings.display_touch_controls {
                 state_ref.touch_controls.draw(
@@ -269,8 +291,68 @@ impl Game {
             self.ui.draw(state_ref, ctx, scene)?;
         }
 
-        graphics::present(ctx)?;
+        let is_suspended = *GAME_SUSPENDED.lock().unwrap();
+        if !is_suspended {
+            graphics::present(ctx)?;
+        }
 
+        Ok(())
+    }
+}
+
+impl BackendCallbacks for Game {
+    fn on_resize(&mut self, ctx: &mut Context) -> GameResult {
+        self.state.get_mut().handle_resize(ctx)?;
+        Ok(())
+    }
+
+    fn on_focus_gained(&mut self, _ctx: &mut Context) -> GameResult {
+        let state_ref = self.state.get_mut();
+        if state_ref.settings.pause_on_focus_loss {
+            {
+                let mut mutex = GAME_SUSPENDED.lock().unwrap();
+                *mutex = false;
+            }
+
+            state_ref.sound_manager.resume();
+            self.loops = 0;
+        }
+        Ok(())
+    }
+
+    fn on_focus_lost(&mut self, _ctx: &mut Context) -> GameResult {
+        let state_ref = self.state.get_mut();
+        if state_ref.settings.pause_on_focus_loss {
+            let mut mutex = GAME_SUSPENDED.lock().unwrap();
+            *mutex = true;
+
+            state_ref.sound_manager.pause();
+        }
+        Ok(())
+    }
+
+    fn on_key_down(&mut self, ctx: &mut Context, key: keyboard::ScanCode) -> GameResult {
+        if let Some(scene) = self.scene.get_mut() {
+            let _ = scene.process_debug_keys(self.state.get_mut(), ctx, key);
+        }
+        Ok(())
+    }
+
+    fn on_key_up(&mut self, _ctx: &mut Context, _key: keyboard::ScanCode) -> GameResult {
+        // ...
+        Ok(())
+    }
+
+    fn on_fullscreen_state_changed(&mut self, _ctx: &mut Context, new_mode: WindowMode) -> GameResult {
+        let state_ref = self.state.get_mut();
+        state_ref.settings.window_mode = new_mode;
+        Ok(())
+    }
+
+    fn on_context_lost(&mut self, _ctx: &mut Context) -> GameResult {
+        // TODO: get rid of this on texture manager rework
+        let state_ref = self.state.get_mut();
+        state_ref.texture_set.unload_all();
         Ok(())
     }
 }
@@ -327,8 +409,7 @@ fn init_logger(options: &LaunchOptions) -> GameResult {
     file.push(format!("log_{}", date.format("%Y-%m-%d")));
     file.set_extension("txt");
 
-    dispatcher =
-        dispatcher.chain(fern::Dispatch::new().level(options.log_level).chain(fern::log_file(file).unwrap()));
+    dispatcher = dispatcher.chain(fern::Dispatch::new().level(options.log_level).chain(fern::log_file(file).unwrap()));
     dispatcher.apply()?;
 
     Ok(())
@@ -375,7 +456,7 @@ pub fn init(mut options: LaunchOptions) -> GameResult {
 
     game.state.get_mut().next_scene = Some(Box::new(LoadingScene::new()));
     log::info!("Starting main loop...");
-    context.run(game.as_mut().get_mut())?;
+    context.run(game)?;
 
     Ok(())
 }

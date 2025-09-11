@@ -595,8 +595,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         graphics::draw_rect(ctx, bar_rect, Color::new(1.0, 1.0, 1.0, 1.0))?;
                     }
 
-                    #[cfg(target_os = "android")]
-                    {
+                    if ctx.flags.has_touch_screen() {
                         state.font.builder().x(self.x as f32 - 25.0).y(y).shadow(true).draw(
                             "<",
                             ctx,
@@ -815,6 +814,20 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                 } else {
                     break;
                 }
+            }
+        }
+
+        let mut is_selected_entry_in_array = false;
+        for (id, _) in &self.entries {
+            if *id == self.selected {
+                is_selected_entry_in_array = true;
+                break;
+            }
+        }
+
+        if !is_selected_entry_in_array {
+            if let Some((id, _)) = self.entries.first() {
+                self.selected = id.clone();
             }
         }
 
