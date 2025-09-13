@@ -39,7 +39,6 @@ use crate::common::{Color, Rect};
 use crate::framework::graphics::IndexData;
 use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
-use crate::game::GAME_SUSPENDED;
 
 fn handle_err_impl(result: GameResult, shutdown_requested: &mut bool) {
     if let Err(e) = result {
@@ -436,9 +435,8 @@ impl BackendEventLoop for SDL2EventLoop {
             }
 
             {
-                let mutex = GAME_SUSPENDED.lock().unwrap();
-                if *mutex {
-                    let event = self.event_pump.wait_event_timeout(10);
+                if ctx.suspended {
+                    let event = self.event_pump.wait_event_timeout(1);
                     if let Some(event) = event {
                         Self::handle_event(event, &mut ctx, &mut game, &self.refs);
                     }
