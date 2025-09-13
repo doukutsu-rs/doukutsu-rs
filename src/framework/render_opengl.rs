@@ -717,6 +717,7 @@ impl BackendRenderer for OpenGLRenderer {
         if let Some(revision) = version.revision {
             write!(s, ".{}", revision);
         }
+        s.push(' ');
         s.push_str(&version.vendor_info);
         s
     }
@@ -922,7 +923,7 @@ impl BackendRenderer for OpenGLRenderer {
             let current_texture_id = gl.get_parameter_texture(glow::TEXTURE_BINDING_2D);
 
             let texture_id = TextureRAAI::new(&gl).into_game_result()?;
-            let texture_id = texture_id.inner.unwrap();
+            let texture_id = texture_id.take();
 
             gl.bind_texture(glow::TEXTURE_2D, Some(texture_id));
             gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MIN_FILTER, glow::NEAREST as _);
@@ -1062,7 +1063,6 @@ impl BackendRenderer for OpenGLRenderer {
     fn draw_rect(&mut self, rect: Rect<isize>, color: Color) -> GameResult {
         unsafe {
             let gl = self.get_context();
-            let render_data = self.get_render_data()?;
             let color = color.to_rgba();
             let mut uv = (0.0, 0.0);
 
