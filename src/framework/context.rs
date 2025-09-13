@@ -17,6 +17,7 @@ use crate::game::Game;
 pub struct Context {
     pub headless: bool,
     pub shutdown_requested: bool,
+    pub suspended: bool,
     pub window: WindowParams,
     pub flags: BackendFlag,
     pub(crate) imgui: Rc<RefCell<imgui::Context>>,
@@ -35,6 +36,7 @@ impl Context {
         Context {
             headless: false,
             shutdown_requested: false,
+            suspended: false,
             window: WindowParams::default(),
             flags: BackendFlag::new(),
             imgui: init_imgui(),
