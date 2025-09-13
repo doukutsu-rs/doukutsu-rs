@@ -100,10 +100,6 @@ impl LaunchOptions {
     }
 }
 
-lazy_static! {
-    pub static ref GAME_SUSPENDED: Mutex<bool> = Mutex::new(false);
-}
-
 pub struct Game {
     pub(crate) scene: RefCell<Option<Box<dyn Scene>>>,
     pub(crate) state: RefCell<SharedGameState>,
@@ -291,10 +287,7 @@ impl Game {
             self.ui.draw(state_ref, ctx, scene)?;
         }
 
-        let is_suspended = *GAME_SUSPENDED.lock().unwrap();
-        if !is_suspended {
-            graphics::present(ctx)?;
-        }
+        graphics::present(ctx)?;
 
         Ok(())
     }
@@ -306,26 +299,20 @@ impl BackendCallbacks for Game {
         Ok(())
     }
 
-    fn on_focus_gained(&mut self, _ctx: &mut Context) -> GameResult {
+    fn on_focus_gained(&mut self, ctx: &mut Context) -> GameResult {
         let state_ref = self.state.get_mut();
         if state_ref.settings.pause_on_focus_loss {
-            {
-                let mut mutex = GAME_SUSPENDED.lock().unwrap();
-                *mutex = false;
-            }
-
+            ctx.suspended = false;
             state_ref.sound_manager.resume();
             self.loops = 0;
         }
         Ok(())
     }
 
-    fn on_focus_lost(&mut self, _ctx: &mut Context) -> GameResult {
+    fn on_focus_lost(&mut self, ctx: &mut Context) -> GameResult {
         let state_ref = self.state.get_mut();
         if state_ref.settings.pause_on_focus_loss {
-            let mut mutex = GAME_SUSPENDED.lock().unwrap();
-            *mutex = true;
-
+            ctx.suspended = true;
             state_ref.sound_manager.pause();
         }
         Ok(())
