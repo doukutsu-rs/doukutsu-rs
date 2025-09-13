@@ -30,7 +30,6 @@ use crate::framework::error::GameError;
 use crate::framework::render_opengl::GLContextType;
 use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
-use crate::game::GAME_SUSPENDED;
 use crate::input::touch_controls::TouchPoint;
 
 trait WindowModeExt {
@@ -316,8 +315,7 @@ impl BackendEventLoop for GlutinEventLoop {
                 }
                 Event::RedrawRequested(id) if id == window.window().id() => {
                     {
-                        let mutex = GAME_SUSPENDED.lock().unwrap();
-                        if *mutex {
+                        if ctx.suspended {
                             return;
                         }
                     }
@@ -342,8 +340,7 @@ impl BackendEventLoop for GlutinEventLoop {
                     }
 
                     {
-                        let mutex = GAME_SUSPENDED.lock().unwrap();
-                        if *mutex {
+                        if ctx.suspended {
                             return;
                         }
                     }
