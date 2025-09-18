@@ -648,9 +648,10 @@ impl RenderBuffer {
     }
 
     pub fn new_organya(format: WavFormat, wave: Vec<u8>) -> RenderBuffer {
-        let mut sample_data = Vec::with_capacity(wave.len());
+        const SIZES: &[usize] = &[256, 256, 128, 128, 64, 32, 16, 8];
+        let mut sample_data = Vec::with_capacity(SIZES.iter().sum());
 
-        for size in &[256_usize, 256, 128, 128, 64, 32, 16, 8] {
+        for size in SIZES {
             let step = 256 / size;
             let mut acc = 0;
 
