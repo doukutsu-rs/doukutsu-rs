@@ -84,16 +84,16 @@ impl SoundManager {
         }
 
         let bnk = wave_bank::SoundBank::load_from(filesystem::open(ctx, "/builtin/organya-wavetable-doukutsu.bin")?)?;
-        Ok(SoundManager::bootstrap(&bnk, tx, rx)?)
+        Ok(SoundManager::bootstrap(bnk, tx, rx)?)
     }
 
     fn bootstrap(
-        soundbank: &SoundBank,
+        soundbank: SoundBank,
         tx: Sender<PlaybackMessage>,
         rx: Receiver<PlaybackMessage>,
     ) -> GameResult<SoundManager> {
         let mut sound_manager = SoundManager {
-            soundbank: Some(soundbank.to_owned()),
+            soundbank: Some(soundbank.clone()),
             tx,
             prev_song_id: 0,
             current_song_id: 0,
@@ -126,16 +126,16 @@ impl SoundManager {
         let config = config_result.unwrap();
 
         let res = match config.sample_format() {
-            cpal::SampleFormat::I8 => run::<i8>(rx, soundbank.to_owned(), device, config.into()),
-            cpal::SampleFormat::I16 => run::<i16>(rx, soundbank.to_owned(), device, config.into()),
-            cpal::SampleFormat::I32 => run::<i32>(rx, soundbank.to_owned(), device, config.into()),
-            cpal::SampleFormat::I64 => run::<i64>(rx, soundbank.to_owned(), device, config.into()),
-            cpal::SampleFormat::U8 => run::<u8>(rx, soundbank.to_owned(), device, config.into()),
-            cpal::SampleFormat::U16 => run::<u16>(rx, soundbank.to_owned(), device, config.into()),
-            cpal::SampleFormat::U32 => run::<u32>(rx, soundbank.to_owned(), device, config.into()),
-            cpal::SampleFormat::U64 => run::<u64>(rx, soundbank.to_owned(), device, config.into()),
-            cpal::SampleFormat::F32 => run::<f32>(rx, soundbank.to_owned(), device, config.into()),
-            cpal::SampleFormat::F64 => run::<f64>(rx, soundbank.to_owned(), device, config.into()),
+            cpal::SampleFormat::I8 => run::<i8>(rx, soundbank, device, config.into()),
+            cpal::SampleFormat::I16 => run::<i16>(rx, soundbank, device, config.into()),
+            cpal::SampleFormat::I32 => run::<i32>(rx, soundbank, device, config.into()),
+            cpal::SampleFormat::I64 => run::<i64>(rx, soundbank, device, config.into()),
+            cpal::SampleFormat::U8 => run::<u8>(rx, soundbank, device, config.into()),
+            cpal::SampleFormat::U16 => run::<u16>(rx, soundbank, device, config.into()),
+            cpal::SampleFormat::U32 => run::<u32>(rx, soundbank, device, config.into()),
+            cpal::SampleFormat::U64 => run::<u64>(rx, soundbank, device, config.into()),
+            cpal::SampleFormat::F32 => run::<f32>(rx, soundbank, device, config.into()),
+            cpal::SampleFormat::F64 => run::<f64>(rx, soundbank, device, config.into()),
             _ => Err(AudioError("Unsupported sample format.".to_owned())),
         };
 
@@ -157,7 +157,7 @@ impl SoundManager {
 
         let (tx, rx): (Sender<PlaybackMessage>, Receiver<PlaybackMessage>) = mpsc::channel();
         let soundbank = self.soundbank.take().unwrap();
-        *self = SoundManager::bootstrap(&soundbank, tx, rx)?;
+        *self = SoundManager::bootstrap(soundbank, tx, rx)?;
 
         Ok(())
     }
