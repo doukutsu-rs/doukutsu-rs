@@ -364,16 +364,14 @@ impl OrgPlaybackEngine {
                                 let sl1 = (*sample_data_ptr.add(ps) as u16 | (*sample_data_ptr.add(ps + 1) as u16) << 8)
                                     as f32
                                     / 32768.0;
-                                let sr1 = (*sample_data_ptr.add(ps + 2) as u16
-                                    | (*sample_data_ptr.add(ps + 3) as u16) << 8)
+                                let sr1 = (*sample_data_ptr.add(ps + 2) as u16 | (*sample_data_ptr.add(ps + 3) as u16) << 8)
                                     as f32
                                     / 32768.0;
                                 let ps = min(pos + 1, buf.base_pos + buf.len - 1) << 2;
                                 let sl2 = (*sample_data_ptr.add(ps) as u16 | (*sample_data_ptr.add(ps + 1) as u16) << 8)
                                     as f32
                                     / 32768.0;
-                                let sr2 = (*sample_data_ptr.add(ps + 2) as u16
-                                    | (*sample_data_ptr.add(ps + 3) as u16) << 8)
+                                let sr2 = (*sample_data_ptr.add(ps + 2) as u16 | (*sample_data_ptr.add(ps + 3) as u16) << 8)
                                     as f32
                                     / 32768.0;
                                 (sl1, sr1, sl2, sr2)

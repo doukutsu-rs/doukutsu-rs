@@ -3,7 +3,7 @@ use std::io;
 use std::io::ErrorKind;
 use std::sync::Arc;
 
-use byteorder::{ReadBytesExt, LE};
+use byteorder::{LE, ReadBytesExt};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct RiffChunk {

@@ -7,7 +7,6 @@ use crate::sound::wav;
 #[derive(Clone)]
 pub struct SoundBank {
     pub wave100: Arc<[u8; 25600]>,
-
     pub samples: Arc<[wav::WavSample]>,
 }
 
