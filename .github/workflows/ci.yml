@@ -5,6 +5,7 @@ on:
     branches-ignore:
       - cpp-rewrite
       - refactor
+      - cross-saves
     paths-ignore:
       - ".gitignore"
       - ".github/*"
