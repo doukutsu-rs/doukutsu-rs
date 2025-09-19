@@ -1002,8 +1002,6 @@ impl SaveContainer {
                             let os_filename = OsString::from_str(filename.split_off(1).as_str()).unwrap();
                             let _ = path.set_file_name(os_filename);
 
-                            log::debug!("Write profile: {} - {}", path.clone().display(), *save_slot);
-
                             let mut file = File::create(path)?;
                             file.write_all(&buf)?;
                         } else {
@@ -1036,9 +1034,17 @@ impl SaveContainer {
                 }
 
                 for (mod_id, best_time) in &self.best_times {
-                    let filename = ["/".to_string(), Self::get_rec_filename(state, *mod_id)].join("");
-                    let file = user_create(ctx, filename)?;
-                    best_time.write_time(file, state, format)?;
+                    let mut filename = ["/".to_string(), Self::get_rec_filename(state, *mod_id)].join("");
+                    if let Some(path) = &mut out_path {
+                        let os_filename = OsString::from_str(filename.split_off(1).as_str()).unwrap();
+                        let _ = path.set_file_name(os_filename);
+
+                        let file = File::create(path)?;
+                        best_time.write_time(file, state, format)?;
+                    } else {
+                        let file = user_create(ctx, filename)?;
+                        best_time.write_time(file, state, format)?;
+                    }
                 }
 
                 for (patch_slot, patch_state) in self.patchset.iter() {
@@ -1216,6 +1222,7 @@ impl SaveContainer {
             return "290.rec".to_owned();
         }
 
+        // TODO: maybe we should use mod ids instead of names? Because unloaded (removed from the mods.txt list) mods overwrite the 290.rec currently
         let name = state
             .mod_list
             .get_info_from_id(format!("cspmod_{mod_id}"))
