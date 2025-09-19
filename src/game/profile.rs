@@ -12,7 +12,7 @@ use num_traits::{clamp, FromPrimitive};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use crate::common::{Direction, FadeState, get_timestamp};
+use crate::common::{get_timestamp, Direction, FadeState, Version};
 use crate::framework::context::Context;
 use crate::framework::error::GameError::{self, ResourceLoadError};
 use crate::framework::error::GameResult;
@@ -21,12 +21,17 @@ use crate::game::player::{ControlMode, TargetPlayer};
 use crate::game::shared_game_state::{GameDifficulty, PlayerCount, SharedGameState, TimingMode};
 use crate::game::weapon::{WeaponLevel, WeaponType};
 use crate::game::inventory::Inventory;
+use crate::mod_list::ModList;
+use crate::mod_requirements::{self, ModRequirements};
 use crate::scene::game_scene::GameScene;
+use crate::util::rng::RNG;
 
 const SIG_Do041115: u64 = 0x446f303431313135;
 const SIG_Do041220: u64 = 0x446f303431323230;
 const SIG_FLAG: u32 = 0x464c4147;
 
+pub const SWITCH_VER_1_2: Version = Version { major: 1, minor: 2, patch: 0 };
+pub const SWITCH_VER_1_3: Version = Version { major: 1, minor: 3, patch: 0 };
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 pub struct WeaponData {
@@ -42,7 +47,6 @@ pub struct TeleporterSlotData {
     pub index: u32,
     pub event_num: u32,
 }
-
 
 trait SaveProfile {
     fn apply(&self, state: &mut SharedGameState, game_scene: &mut GameScene, ctx: &mut Context);
@@ -361,7 +365,7 @@ impl GameProfile {
         data.write_u16::<LE>(self.max_life)?;
 
         // TODO: P2 values
-        if *format == SaveFormat::Switch {
+        if format.is_switch() {
             data.write_u16::<LE>(self.max_life)?;
         }
 
@@ -369,36 +373,57 @@ impl GameProfile {
         data.write_u16::<LE>(self.life)?;
 
         // TODO: P2 values
-        if *format == SaveFormat::Switch {
+        if format.is_switch() {
             data.write_u16::<LE>(self.life)?;
         }
 
-        data.write_u16::<LE>(0)?;
+        data.write_u16::<LE>(0)?; // something
         data.write_u32::<LE>(self.current_weapon)?;
         data.write_u32::<LE>(self.current_item)?;
         data.write_u32::<LE>(self.equipment)?;
         data.write_u32::<LE>(self.control_mode)?;
         data.write_u32::<LE>(self.counter)?;
 
-        for weapon in &self.weapon_data {
-            data.write_u32::<LE>(weapon.weapon_id)?;
-            data.write_u32::<LE>(weapon.level)?;
-            data.write_u32::<LE>(weapon.exp)?;
-            data.write_u32::<LE>(weapon.max_ammo)?;
-            data.write_u32::<LE>(weapon.ammo)?;
-        }
-        if *format == SaveFormat::Switch {
-            for weapon in &self.weapon_data_p2.unwrap_or([WeaponData::default(); 8]) {
+        fn write_weapon<W: io::Write>(data: &mut W, weapon: &WeaponData, format: &SaveFormat) -> io::Result<()> {
+            if format.is_switch() {
+                data.write_u32::<LE>(weapon.level)?;
+                data.write_u32::<LE>(weapon.exp)?;
+                data.write_u32::<LE>(weapon.ammo)?;
+            } else {
                 data.write_u32::<LE>(weapon.weapon_id)?;
                 data.write_u32::<LE>(weapon.level)?;
                 data.write_u32::<LE>(weapon.exp)?;
                 data.write_u32::<LE>(weapon.max_ammo)?;
                 data.write_u32::<LE>(weapon.ammo)?;
             }
+
+            Ok(())
+        }
+
+        if format.is_switch() {
+            for weapon in &self.weapon_data {
+                data.write_u32::<LE>(weapon.weapon_id)?;
+                data.write_u32::<LE>(weapon.max_ammo)?;
+            }
+        }
+
+        for weapon in &self.weapon_data {
+            write_weapon(data, weapon, format)?;
+        }
+
+        if format.is_switch() {
+            for weapon in &self.weapon_data_p2.unwrap_or([WeaponData::default(); 8]) {
+                write_weapon(data, weapon, format)?;
+            }
         }
 
         for item in self.items.iter().copied() {
-            data.write_u32::<LE>(item)?;
+            if format.is_switch() {
+                data.write_u16::<LE>(item.try_into().unwrap_or(u16::MAX))?;
+                data.write_u16::<LE>(1)?; // TODO: store real quantity of items
+            } else {
+                data.write_u32::<LE>(item)?;
+            }
         }
 
         for slot in &self.teleporter_slots {
@@ -413,7 +438,7 @@ impl GameProfile {
         data.write_u32::<BE>(SIG_FLAG)?;
         data.write(&self.flags)?;
 
-        if *format == SaveFormat::Plus {
+        if !format.is_switch() {
             data.write_u32::<LE>(0)?; // unused(?) CS+ space
         }
 
@@ -451,11 +476,11 @@ impl GameProfile {
         let direction = data.read_u32::<LE>()?;
         let max_life = data.read_u16::<LE>()?;
         // TODO: P2 values
-        let max_life_p2 = if format == SaveFormat::Switch { data.read_u16::<LE>()? } else { max_life };
+        let max_life_p2 = if format.is_switch() { data.read_u16::<LE>()? } else { max_life };
         let stars = data.read_u16::<LE>()?;
         let life = data.read_u16::<LE>()?;
         // TODO: P2 values
-        let life_p2 = if format == SaveFormat::Switch { data.read_u16::<LE>()? } else { life };
+        let life_p2 = if format.is_switch() { data.read_u16::<LE>()? } else { life };
         let _ = data.read_u16::<LE>()?; // ???
         let current_weapon = data.read_u32::<LE>()?;
         let current_item = data.read_u32::<LE>()?;
@@ -467,26 +492,44 @@ impl GameProfile {
         let mut items = [0u32; 32];
         let mut teleporter_slots = [TeleporterSlotData::default(); 8];
 
-        fn load_weapons<R: io::Read>(data: &mut R, weapons: &mut [WeaponData]) -> GameResult {
+        fn load_weapons<R: io::Read>(data: &mut R, weapons: &mut [WeaponData], format: &SaveFormat) -> GameResult {
             for WeaponData { weapon_id, level, exp, max_ammo, ammo } in weapons {
-                *weapon_id = data.read_u32::<LE>()?;
-                *level = data.read_u32::<LE>()?;
-                *exp = data.read_u32::<LE>()?;
-                *max_ammo = data.read_u32::<LE>()?;
-                *ammo = data.read_u32::<LE>()?;
+                if format.is_switch() {
+                    *level = data.read_u32::<LE>()?;
+                    *exp = data.read_u32::<LE>()?;
+                    *ammo = data.read_u32::<LE>()?;
+                } else {
+                    *weapon_id = data.read_u32::<LE>()?;
+                    *level = data.read_u32::<LE>()?;
+                    *exp = data.read_u32::<LE>()?;
+                    *max_ammo = data.read_u32::<LE>()?;
+                    *ammo = data.read_u32::<LE>()?;
+                }
             }
 
             Ok(())
         }
 
-        load_weapons(data, &mut weapon_data)?;
-        if format == SaveFormat::Switch {
+        if format.is_switch() {
+            for WeaponData { weapon_id, level, exp, max_ammo, ammo } in &mut weapon_data {
+                *weapon_id = data.read_u32::<LE>()?;
+                *max_ammo = data.read_u32::<LE>()?;
+            }
+        }
+
+        load_weapons(data, &mut weapon_data, &format)?;
+        if format.is_switch() {
             weapon_data_p2 = Some([WeaponData::default(); 8]);
-            load_weapons(data, weapon_data_p2.as_mut().unwrap())?;
+            load_weapons(data, weapon_data_p2.as_mut().unwrap(), &format)?;
         }
 
         for item in &mut items {
-            *item = data.read_u32::<LE>()?;
+            if format.is_switch() {
+                *item = data.read_u16::<LE>()? as u32;
+                let item_qty = data.read_u16::<LE>()?; // TODO: store items quantity
+            } else {
+                *item = data.read_u32::<LE>()?;
+            }
         }
 
         for TeleporterSlotData { index, event_num } in &mut teleporter_slots {
@@ -504,11 +547,13 @@ impl GameProfile {
         let mut flags = [0u8; 1000];
         data.read_exact(&mut flags)?;
 
-        let _ = data.read_u32::<LE>().unwrap_or(0); // unused(?) CS+ space
+        if !format.is_switch() {
+            let _ = data.read_u32::<LE>().unwrap_or(0); // unused(?) CS+ (PC) space
+        }
 
         let timestamp = data.read_u64::<LE>().unwrap_or(0);
         let difficulty = data.read_u8().unwrap_or(0);
-        let eggfish_killed = false; //
+        let eggfish_killed = false; // TODO
 
         if format.is_csp() {
             // unused(?) CS+ space
@@ -583,7 +628,6 @@ impl FromStr for SaveSlot {
             let mut buf = String::new();
 
             for char in chars {
-                log::debug!("{}", char);
                 if char.is_digit(10) {
                     buf.push(char);
                 } else if !buf.is_empty() {
@@ -619,44 +663,66 @@ impl FromStr for SaveSlot {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq)]
+#[repr(usize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum SaveFormat {
     Freeware,
     Plus,
-
-    // TODO: add version (v1.2 or v1.3)
-    Switch,
+    Switch(Version),
     Generic,
 }
 
 impl SaveFormat {
-    pub fn recognise(data: &[u8]) -> GameResult<SaveFormat> {
+    pub fn recognise(data: &[u8]) -> GameResult<Self> {
         let mut cur = std::io::Cursor::new(data);
         let magic = cur.read_u64::<BE>()?;
+log::debug!("Len: {}", data.len());
+        fn recognise_switch_version(cur: &mut std::io::Cursor<&[u8]>, data: &[u8]) -> GameResult<Version> {
+            // Set position to the start of the region with challenge times in v1.2.
+            cur.set_position(0x20eb8);
+
+            let shared_health = data[0x20eb4] == 1;
+            let hell_time = cur.read_u32::<LE>()? == 0;
+            let sanctuary_time = cur.read_u32::<LE>()? == 0;
+            let boss_time = cur.read_u32::<LE>()? == 0;
+
+            // v1.2 and v1.3 saves are the same size, and differ only in the shared health bar option and challenge times shift
+            let version = if shared_health || hell_time {
+                SWITCH_VER_1_2
+            } else if sanctuary_time || boss_time {
+                // If the time of the first challenge (assuming it's hell time from v1.2 save) is zero,
+                // we check the next two challenges. They both have an RG requirement,
+                // so if the assumed hell time is zero, then they should both be zero as well. 
+                // If any of them is non-zero, then this is a v1.3 save,
+                // and the `hell_time` variable actually contains a 4-byte offset,
+                // while the `sanctuary_time` variable contains the real hell time.
+                SWITCH_VER_1_3
+            } else {
+                // That's probably v1.2 save with a disabled shared health bar and unpassed hell.
+                SWITCH_VER_1_2
+            };
+
+            Ok(version)
+        }
 
         let original_format = match magic {
             // In CS+ a profile signature at the start of the save file is present only
             // if the first game slot profile exists. Otherwise it will be filled with zeros.
-            0 => match data.len() {
-                    0x20020 => Some(SaveFormat::Plus),
-
-                    // 0x20fb0 — v1.2
-                    // 0x20fb4 — v1.3
-                    0x20fb0 | 0x20fb4 => Some(SaveFormat::Switch),
+            0 =>
+                match data.len() {
+                    0x20020 => Some(Self::Plus),
+                    0x20fb0 => Some(Self::Switch(recognise_switch_version(&mut cur, data)?)),
                     _ => None
-            },
+                },
             SIG_Do041220 =>
                 match data.len() {
-                    0x604..=0x620 => Some(SaveFormat::Freeware),
-                    0x20020 => Some(SaveFormat::Plus),
-
-                    // 0x20fb0 — v1.2
-                    // 0x20fb4 — v1.3
-                    0x20fb0 | 0x20fb4 => Some(SaveFormat::Switch),
+                    0x604..=0x620 => Some(Self::Freeware),
+                    0x20020 => Some(Self::Plus),
+                    0x20fb0 => Some(Self::Switch(recognise_switch_version(&mut cur, data)?)),
                     _ => None
                 },
 
-            SIG_Do041115 => Some(SaveFormat::Freeware),
+            SIG_Do041115 => Some(Self::Freeware),
             _ => None
         };
 
@@ -668,7 +734,7 @@ impl SaveFormat {
         if data[0] == '{' as u8 {
             cur.set_position(0);
             if serde_json::from_reader::<_, SaveContainer>(cur).is_ok() {
-                return Ok(SaveFormat::Generic);
+                return Ok(Self::Generic);
             }
         }
 
@@ -678,22 +744,30 @@ impl SaveFormat {
 
     pub fn is_csp(&self) -> bool {
         match self {
-            SaveFormat::Plus | SaveFormat::Switch => true,
+            Self::Plus | Self::Switch(_) => true,
             _ => false
         }
+    }
+
+    pub fn is_switch(&self) -> bool {
+        if let Self::Switch(_) = self {
+            return true;
+        }
+
+        false
     }
 
     // TODO: compatibility warnings
 }
 
 #[derive(Clone, Copy, Deserialize, Eq, Serialize)]
-pub struct BestTime {
+pub struct ChallengeTime {
     pub timing_mode: TimingMode,
     pub ticks: usize,
 }
 
-impl BestTime {
-    fn new(timing_mode: TimingMode) -> Self {
+impl ChallengeTime {
+    pub fn new(timing_mode: TimingMode) -> Self {
         Self {
             timing_mode,
             ticks: 0
@@ -701,28 +775,94 @@ impl BestTime {
     }
 
     pub fn convert_timing(&self, new_timing: TimingMode) -> usize {
-        // TODO: should we use FPS as a divisor?
         if self.timing_mode == TimingMode::FrameSynchronized || new_timing == TimingMode::FrameSynchronized {
             return self.ticks;
         }
 
         self.ticks / self.timing_mode.get_tps() * new_timing.get_tps()
     }
+
+    pub fn with_timing(self, new_timing: TimingMode) -> Self {
+        Self {
+            timing_mode: new_timing,
+            ticks: self.convert_timing(new_timing)
+        }
+    }
+
+    pub fn load_time<R: io::Read>(&mut self, mut data: R, format: SaveFormat) -> GameResult {
+        if format.is_csp() {
+            self.timing_mode = TimingMode::_60Hz;
+            self.ticks = data.read_u32::<LE>()? as usize;
+            return Ok(());
+        }
+
+        // TODO: should we assumme that the best time in freeware format has a timing mode of 50 TPS?
+
+        let mut ticks: [u32; 4] = [0; 4];
+
+        for iter in 0..=3 {
+            ticks[iter] = data.read_u32::<LE>()?;
+        }
+
+        let random = data.read_u32::<LE>()?;
+        let random_list: [u8; 4] = random.to_le_bytes();
+
+        for iter in 0..=3 {
+            ticks[iter] = u32::from_le_bytes([
+                ticks[iter].to_le_bytes()[0].wrapping_sub(random_list[iter]),
+                ticks[iter].to_le_bytes()[1].wrapping_sub(random_list[iter]),
+                ticks[iter].to_le_bytes()[2].wrapping_sub(random_list[iter]),
+                ticks[iter].to_le_bytes()[3].wrapping_sub(random_list[iter] / 2),
+            ]);
+        }
+
+        self.ticks = if ticks[0] == ticks[1] && ticks[0] == ticks[2] { ticks[0] as usize } else { 0 };
+
+        Ok(())
+    }
+
+    pub fn write_time<W: io::Write>(&self, mut data: W, state: &SharedGameState, format: SaveFormat) -> GameResult {
+        let time: u32 = self.ticks.try_into().unwrap_or(u32::MAX);
+        if format.is_csp() {
+            data.write_u32::<LE>(time)?;
+            return Ok(());
+        }
+
+        let mut ticks: [u32; 4] = [time; 4];
+        let mut random_list: [u8; 4] = [0; 4];
+
+        for iter in 0..=3 {
+            random_list[iter] = state.effect_rng.range(0..250) as u8 + iter as u8;
+
+            ticks[iter] = u32::from_le_bytes([
+                ticks[iter].to_le_bytes()[0].wrapping_add(random_list[iter]),
+                ticks[iter].to_le_bytes()[1].wrapping_add(random_list[iter]),
+                ticks[iter].to_le_bytes()[2].wrapping_add(random_list[iter]),
+                ticks[iter].to_le_bytes()[3].wrapping_add(random_list[iter] / 2),
+            ]);
+
+            data.write_u32::<LE>(ticks[iter])?;
+        }
+
+        data.write_u32::<LE>(u32::from_le_bytes(random_list))?;
+
+        Ok(())
+    }
 }
 
-impl Ord for BestTime {
+impl Ord for ChallengeTime {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.convert_timing(other.timing_mode).cmp(&other.ticks)
     }
 }
 
-impl PartialOrd for BestTime {
+impl PartialOrd for ChallengeTime {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialEq for BestTime {
+impl PartialEq for ChallengeTime {
     fn eq(&self, other: &Self) -> bool {
         self.convert_timing(other.timing_mode) == self.ticks
     }
@@ -739,6 +879,11 @@ impl CSPModProfile {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+enum PatchSlot {
+    Profile(SaveSlot),
+    BestTime(u8)
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum SavePatch {
@@ -771,7 +916,7 @@ pub struct SaveContainer {
     pub game_profiles: HashMap<usize, GameProfile>,
     pub csp_mods: HashMap<u8, CSPModProfile>, // save_set number -> saves & time
     // TODO: use this field instead of 290 records
-    pub best_times: HashMap<u8, BestTime>, // mod_id -> time info
+    pub best_times: HashMap<u8, ChallengeTime>, // mod_id -> time info
 
     #[serde(skip)]
     patchset: HashMap<SaveSlot, SavePatch>,
@@ -807,13 +952,15 @@ impl SaveContainer {
 
         log::debug!("DEBUG LOAD SAVE - DEFAULT CREATED");
 
+        // TODO: import existing saves and challenge times
+
         Ok(Self::default())
     }
 
     fn load_from_buf(_ctx: &mut Context, _state: &mut SharedGameState, buf: &[u8]) -> GameResult<SaveContainer> {
         serde_json::from_slice::<SaveContainer>(buf)
             .map_err(|err| GameError::ResourceLoadError(format!("Failed to deserialize a generic save. {}", err.to_string())))
-            .map(| container| container.upgrade())
+            .map(|container| container.upgrade())
     }
 
     pub fn save(&mut self, ctx: &mut Context, state: &mut SharedGameState, params: SaveParams) -> GameResult {
@@ -826,7 +973,7 @@ impl SaveContainer {
     pub fn write_save(&mut self, ctx: &mut Context, state: &mut SharedGameState, format: SaveFormat, slot: Option<SaveSlot>, mut out_path: Option<PathBuf>, params: &SaveParams) -> GameResult {
         log::debug!("DEBUG WRITE SAVE");
 
-        let save_path = Self::get_save_filename(&format, slot.clone());
+        let save_path = Self::get_save_filename(format, slot.clone());
 
         match format {
             SaveFormat::Generic => {
@@ -838,16 +985,24 @@ impl SaveContainer {
                 file.flush()?;
             },
             SaveFormat::Freeware => {
+                if let Some(path) = &mut out_path {
+                    if path.is_dir() {
+                        path.push("Profile.dat");
+                    }
+                }
+
                 for (save_slot, profile) in &self.game_profiles {
                     if params.slots.is_empty() || params.slots.contains(&SaveSlot::MainGame(*save_slot)) {
                         let mut buf = Vec::new();
                         let mut cur = std::io::Cursor::new(&mut buf);
                         profile.write_save(&mut cur, &format)?;
 
-                        let mut filename = Self::get_save_filename(&format, Some(SaveSlot::MainGame(*save_slot)));
+                        let mut filename = Self::get_save_filename(format, Some(SaveSlot::MainGame(*save_slot)));
                         if let Some(path) = &mut out_path {
                             let os_filename = OsString::from_str(filename.split_off(1).as_str()).unwrap();
                             let _ = path.set_file_name(os_filename);
+
+                            log::debug!("Write profile: {} - {}", path.clone().display(), *save_slot);
 
                             let mut file = File::create(path)?;
                             file.write_all(&buf)?;
@@ -865,7 +1020,7 @@ impl SaveContainer {
                             let mut cur = std::io::Cursor::new(&mut buf);
                             profile.write_save(&mut cur, &format)?;
 
-                            let mut filename = Self::get_save_filename(&format, Some(SaveSlot::CSPMod(*save_set, *slot)));
+                            let mut filename = Self::get_save_filename(format, Some(SaveSlot::CSPMod(*save_set, *slot)));
                             if let Some(path) = &mut out_path {
                                 let os_filename = OsString::from_str(filename.split_off(1).as_str()).unwrap();
                                 let _ = path.set_file_name(os_filename);
@@ -880,16 +1035,20 @@ impl SaveContainer {
                     }
                 }
 
-                // TODO: export best times
+                for (mod_id, best_time) in &self.best_times {
+                    let filename = ["/".to_string(), Self::get_rec_filename(state, *mod_id)].join("");
+                    let file = user_create(ctx, filename)?;
+                    best_time.write_time(file, state, format)?;
+                }
 
                 for (patch_slot, patch_state) in self.patchset.iter() {
                     if *patch_state == SavePatch::Deleted {
                         let slot = Some(patch_slot.clone());
-                        user_delete(ctx, Self::get_save_filename(&format, slot))?;
+                        user_delete(ctx, Self::get_save_filename(format, slot))?;
                     }
                 }
             },
-            SaveFormat::Plus | SaveFormat::Switch => {
+            SaveFormat::Plus | SaveFormat::Switch(_) => {
                 let mut active_slots = [0u8; 32];
 
                 // Settings
@@ -908,14 +1067,7 @@ impl SaveContainer {
                 let language = (state.settings.locale == "jp") as u8;
                 let beaten_hell = state.mod_requirements.beat_hell as u8;
                 let unused = [0u8; 14];
-                let mut jukebox: [u8; 48] = [
-                    0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
-                    0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
-                    0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
-                    0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
-                    0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
-                    0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80
-                ]; // TODO
+                let jukebox = [0xff as u8; 6]; // TODO: implement storing ids of played songs for jukebox
                 let mut eggfish_killed = [0u8; 3];
 
                 let mut buf = Vec::new();
@@ -975,31 +1127,40 @@ impl SaveContainer {
                 cur.write_u8(language)?;
                 cur.write_u8(beaten_hell)?;
 
-                // TODO: write some fields only in the v1.3 version mode
-                if format == SaveFormat::Switch {
-                    // TODO
+                if let SaveFormat::Switch(version) = format {
                     cur.write(&jukebox)?;
-                    cur.write_u8(0)?; // Unlock notifications.
-                    cur.write_u8(0)?; // Shared health bar.
+                    cur.write_u8(0)?; // Unlock notifications
 
-                    // Something
-                    cur.write_u24::<LE>(0)?;
+                    cur.write_u8(0)?; // Shared health bar
+                    cur.write_u24::<LE>(0)?; // Something
                 } else {
                     let zeros = [0u8; 7];
                     cur.write(&zeros)?;
                 }
 
-                // Challange best times
-                let default_best_time = BestTime::new(state.settings.timing_mode);
-                for mod_id in 0..=26 {
-                    let time = self.best_times.get(&mod_id).unwrap_or(&default_best_time);
-                    cur.write_u32::<LE>(time.convert_timing(TimingMode::_60Hz).try_into().unwrap_or(u32::MAX))?;
+                // Challenge best times
+                // let best_times: u8 = if format.is_switch() { 29 } else { 26 };
+                let best_times = match format {
+                    SaveFormat::Switch(SWITCH_VER_1_2) => 29,
+                    SaveFormat::Switch(SWITCH_VER_1_3) => {
+                        // In v1.3, challenge times are shifted by 4 bytes
+                        cur.write_u32::<LE>(0)?;
+                        28
+                    },
+                    _ => 26
+                };
+
+                let default_best_time = ChallengeTime::new(state.settings.timing_mode);
+                for mod_id in 0..=best_times {
+                    let mod_time = self.best_times.get(&mod_id).unwrap_or(&default_best_time).clone();
+
+                    let csp_time = mod_time.with_timing(TimingMode::_60Hz);
+                    csp_time.write_time(&mut cur, state, format)?;
                 }
 
-                // TODO: write some fields only in the v1.3 version mode
-                if format == SaveFormat::Switch {
-                    // TODO
-                    cur.write_u8(0)?;
+                if format.is_switch() {
+                    let challenge_unlocks = ChallengeUnlocks::dump(&state.mod_requirements);
+                    cur.write_u8(challenge_unlocks)?;
 
                     let something = [0u8; 0x77];
                     let something2 = [0u8; 6];
@@ -1030,10 +1191,11 @@ impl SaveContainer {
         Ok(())
     }
 
-    pub fn get_save_filename(format: &SaveFormat, slot: Option<SaveSlot>) -> String {
+    pub fn get_save_filename(format: SaveFormat, slot: Option<SaveSlot>) -> String {
         match format {
             SaveFormat::Generic => "/save.json".to_owned(),
-            SaveFormat::Plus | SaveFormat::Switch => "/Profile.dat".to_owned(),
+            SaveFormat::Plus => "/Profile.dat".to_owned(),
+            SaveFormat::Switch(_) => "/profile.dat".to_owned(),
             SaveFormat::Freeware => {
                 match slot {
                     Some(SaveSlot::MainGame(save_slot)) => if save_slot == 1 {
@@ -1047,6 +1209,20 @@ impl SaveContainer {
                 }
             }
         }
+    }
+
+    pub fn get_rec_filename(state: &SharedGameState, mod_id: u8) -> String {
+        if mod_id == 0 {
+            return "290.rec".to_owned();
+        }
+
+        let name = state
+            .mod_list
+            .get_info_from_id(format!("cspmod_{mod_id}"))
+            .and_then(|mod_info| Some(mod_info.get_rec_filename()))
+            .unwrap_or("290".to_owned());
+
+        [name, ".rec".to_string()].join("")
     }
 
     pub fn upgrade(self) -> Self {
@@ -1164,6 +1340,8 @@ impl SaveContainer {
         save_path: PathBuf
     ) -> GameResult {
         let path = save_path.clone().into_boxed_path();
+
+        // Again, working with data in memory is much faster than reading every field from drive
         let data = std::fs::read(path)?;
 
         let format = format.unwrap_or(SaveFormat::recognise(data.as_slice())?);
@@ -1189,7 +1367,7 @@ impl SaveContainer {
                     return Err(ResourceLoadError("Cannot parse save slot from the profile filename.".to_owned()));
                 }
             },
-            SaveFormat::Plus | SaveFormat::Switch => {
+            SaveFormat::Plus | SaveFormat::Switch(_) => {
                 let mut container = Self::default();
 
                 let mut cur = Cursor::new(data);
@@ -1199,7 +1377,6 @@ impl SaveContainer {
                     for save_slot in 1..=3 {
                         let slot = if save_set == 0 { SaveSlot::MainGame(save_slot) } else { SaveSlot::CSPMod(save_set, save_slot) };
                         let profile = GameProfile::load_from_save(&mut cur, format)?;
-                        log::debug!("Pos: {}", cur.position() % 1568);
                         container.set_profile(slot, profile);
                     }
                 }
@@ -1250,14 +1427,14 @@ impl SaveContainer {
                 }
 
                 let beat_hell = (cur.read_u8()? == 1);
-                state.mod_requirements.beat_hell = (state.mod_requirements.beat_hell || beat_hell);
+                state.mod_requirements.beat_hell = state.mod_requirements.beat_hell || beat_hell;
 
-                if format == SaveFormat::Switch {
-                    // TODO
-
-                    let mut jukebox = [0u8; 48];
+                if format.is_switch() {
+                    // TODO: jukebox
+                    let mut jukebox = [0u8; 6];
                     cur.read_exact(&mut jukebox)?;
 
+                    // TODO
                     let unlock_notifications = cur.read_u8()?;
                     let shared_healthbar = cur.read_u8()?;
 
@@ -1268,9 +1445,19 @@ impl SaveContainer {
                     cur.read_exact(&mut unused)?;
                 }
 
-                for mod_id in 0..=26 {
-                    let mut best_time = BestTime::new(TimingMode::_60Hz);
-                    best_time.ticks = cur.read_u32::<LE>()? as usize;
+                let best_times = match format {
+                    SaveFormat::Switch(SWITCH_VER_1_2) => 29,
+                    SaveFormat::Switch(SWITCH_VER_1_3) => {
+                        // In v1.3, challenge times are shifted by 4 bytes
+                        let _ = cur.read_u32::<LE>()?;
+                        28
+                    },
+                    _ => 26
+                };
+
+                for mod_id in 0..=best_times {
+                    let mut best_time = ChallengeTime::new(TimingMode::_60Hz);
+                    best_time.load_time(&mut cur, format)?;
 
                     if best_time.ticks != 0 {
                         container.best_times.insert(mod_id, best_time);
@@ -1292,37 +1479,9 @@ impl SaveContainer {
                     cur.read_exact(&mut unused)?;
                 } else {
                     let challenge_unlocks = cur.read_u8()?;
+                    ChallengeUnlocks::load(ctx, &mut state.mod_requirements, challenge_unlocks)?;
 
-                    // Mods with RG requirement
-                    // 2 - Sanctuary Time Attack.
-                    // 4 - Boss Attack.
-                    // 10 - Wind Fortress.
-                    if challenge_unlocks & (2 | 4 | 10) != 0 {
-                        state.mod_requirements.beat_hell = true;
-                    }
-
-                    // Mods with RA requirement
-
-                    if challenge_unlocks & 20 != 0 {
-                        // Nemesis Challenge. RA12
-                        state.mod_requirements.append_weapon(ctx, 12)?;
-                    }
-
-                    if challenge_unlocks & 80 != 0 {
-                        // Sand Pit. RA3
-                        state.mod_requirements.append_weapon(ctx, 3)?;
-                    }
-
-                    // Mods with RI requirement
-
-                    // Mod with RI35 requirement.
-                    // 8 - Curly Story.
-                    // 40 - Machine Gun Challenge.
-                    if challenge_unlocks & (8 | 40) != 0 {
-                        state.mod_requirements.append_item(ctx, 35)?;
-                    }
-
-                    let mut something = [0u8; 119];
+                    let mut something: [u8; 119] = [0u8; 119];
                     cur.read_exact(&mut something)?;
 
                     // TODO
@@ -1349,9 +1508,69 @@ impl SaveContainer {
     ) -> GameResult {
         self.write_save(ctx, state, format, None, Some(out_path.clone()), &params)?;
 
-        log::trace!("Export format: {:?}.", format);
+        log::trace!("Export format: {:?}.", format.clone());
         log::trace!("Export params: {:?}.", params);
         log::trace!("Export path: {:?}.", out_path);
+        Ok(())
+    }
+}
+
+struct ChallengeUnlocks;
+
+// Hardcoded de-/encoding of CS+ challenge unlocks
+impl ChallengeUnlocks {
+    pub fn dump(mod_requirements: &ModRequirements) -> u8 {
+        let mut challenge_unlocks: u8 = 1;
+
+        // Mods with RG requirement
+        // 0x2 - Sanctuary Time Attack.
+        // 0x4 - Boss Attack.
+        // 0x10 - Wind Fortress.
+        if mod_requirements.beat_hell {
+            challenge_unlocks |= 0x2 | 0x4 | 0x10;
+        }
+
+        // Mods with RA requirement
+
+        if mod_requirements.has_weapon(12) {
+            // Nemesis Challenge. RA12
+            challenge_unlocks |= 0x20;
+        }
+
+        if mod_requirements.has_weapon(3) {
+            // Sand Pit. RA3
+            challenge_unlocks |= 0x80;
+        }
+
+        // Mods with RI requirement
+
+        // Mods with RI35 requirement.
+        // 0x8 - Curly Story.
+        // 0x40 - Machine Gun Challenge.
+        if mod_requirements.has_item(35) {
+           challenge_unlocks |= 0x8 | 0x40;
+        }
+
+        challenge_unlocks
+    }
+
+    pub fn load(ctx: &Context, mod_requirements: &mut ModRequirements, raw: u8) -> GameResult {
+        if raw & (0x2 | 0x4 | 0x10) != 0 {
+            mod_requirements.beat_hell = true;
+        }
+
+        if raw & 0x20 != 0 {
+            mod_requirements.append_weapon(ctx, 12)?;
+        }
+
+        if raw & 0x80 != 0 {
+            mod_requirements.append_weapon(ctx, 3)?;
+        }
+
+        if raw & (0x8 | 0x40) != 0 {
+            mod_requirements.append_item(ctx, 35)?;
+        }
+
         Ok(())
     }
 }

@@ -1,10 +1,11 @@
 use itertools::Itertools;
 
+use crate::common::Version;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::VSyncMode;
 use crate::framework::{filesystem, graphics};
-use crate::game::profile::{SaveFormat};
+use crate::game::profile::{SaveFormat, SWITCH_VER_1_2, SWITCH_VER_1_3};
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
 use crate::graphics::font::Font;
 use crate::input::combined_menu_controller::CombinedMenuController;
@@ -601,11 +602,24 @@ impl SettingsMenu {
             BehaviorMenuEntry::SaveFormat,
             MenuEntry::Options(
                 state.loc.t("menus.options_menu.behavior_menu.save_format.entry").to_owned(),
-                state.settings.save_format as usize,
+                match state.settings.save_format {
+                    SaveFormat::Freeware => 0,
+                    SaveFormat::Plus => 1,
+                    SaveFormat::Switch(SWITCH_VER_1_2) => 2,
+                    SaveFormat::Switch(SWITCH_VER_1_3) => 3,
+                    _ => unreachable!()
+                },
                 vec![
-                    state.loc.t("menus.options_menu.behavior_menu.save_format.freeware").to_owned(),
-                    state.loc.t("menus.options_menu.behavior_menu.save_format.plus").to_owned(),
-                    state.loc.t("menus.options_menu.behavior_menu.save_format.switch").to_owned(),
+                    state.loc.ts("menus.options_menu.behavior_menu.save_format.freeware"),
+                    state.loc.ts("menus.options_menu.behavior_menu.save_format.plus"),
+                    state.loc.tt(
+                        "menus.save_manage_menu.save_format.switch",
+                        &[("version", "v1.2")]
+                    ),
+                    state.loc.tt(
+                        "menus.save_manage_menu.save_format.switch",
+                        &[("version", "v1.3")]
+                    ),
                 ],
             ),
         );
@@ -1076,8 +1090,12 @@ impl SettingsMenu {
                     if let MenuEntry::Options(_, value, _) = toggle {
                         let (new_mode, new_value) = match state.settings.save_format {
                             SaveFormat::Freeware => (SaveFormat::Plus, 1),
-                            SaveFormat::Plus => (SaveFormat::Switch, 2),
-                            SaveFormat::Switch => (SaveFormat::Freeware, 0),
+                            SaveFormat::Plus => (SaveFormat::Switch(SWITCH_VER_1_2), 2),
+                            SaveFormat::Switch(version) => match version {
+                                SWITCH_VER_1_2 => (SaveFormat::Switch(SWITCH_VER_1_3), 3),
+                                SWITCH_VER_1_3 => (SaveFormat::Freeware, 0),
+                                _ => unreachable!()
+                            }
                             _ => unreachable!()
                         };
 
@@ -1089,9 +1107,10 @@ impl SettingsMenu {
                 MenuSelectionResult::Left(BehaviorMenuEntry::SaveFormat, toggle, _) => {
                     if let MenuEntry::Options(_, value, _) = toggle {
                         let (new_mode, new_value) = match state.settings.save_format {
-                            SaveFormat::Freeware => (SaveFormat::Switch, 2),
+                            SaveFormat::Freeware => (SaveFormat::Switch(SWITCH_VER_1_3), 3),
                             SaveFormat::Plus => (SaveFormat::Freeware, 0),
-                            SaveFormat::Switch => (SaveFormat::Plus, 1),
+                            SaveFormat::Switch(SWITCH_VER_1_2) => (SaveFormat::Plus, 1),
+                            SaveFormat::Switch(SWITCH_VER_1_3) => (SaveFormat::Switch(SWITCH_VER_1_2), 2),
                             _ => unreachable!()
                         };
 

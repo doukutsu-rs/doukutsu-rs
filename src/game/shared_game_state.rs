@@ -870,9 +870,8 @@ impl SharedGameState {
 
     pub fn get_save_slot(&mut self, slot: usize) -> Option<SaveSlot> {
         if let Some(mod_path) = &self.mod_path {
-            if let Some(mod_info) = self.mod_list.get_mod_info_from_path(mod_path.clone()) {
-                log::debug!("Mod info get save slot: {:?}", mod_info);
-                if mod_info.id.starts_with(&"csmod_".to_string()) {
+            if let Some(mod_info) = self.mod_list.get_info_from_path(mod_path.clone()) {
+                if mod_info.id.starts_with("cspmod_") {
                     if mod_info.save_slot > 0 {
                         return Some(SaveSlot::CSPMod(mod_info.save_slot.try_into().unwrap(), slot));
                     } else if mod_info.save_slot < 0 {
@@ -897,7 +896,8 @@ impl SharedGameState {
             .mod_path
             .clone()
             .and_then(|mod_path| self.mod_list.get_info_from_path(mod_path))
-            .and_then(|mod_info| mod_info.name.clone().or(Some(mod_info.id.clone())))
+            //.and_then(|mod_info| mod_info.name.clone().or(Some(mod_info.id.clone())))
+            .and_then(|mod_info| Some(mod_info.get_rec_filename()))
             .unwrap_or("290".to_owned());
 
         format!("/{name}")

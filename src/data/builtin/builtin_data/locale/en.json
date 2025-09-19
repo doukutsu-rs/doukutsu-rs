@@ -82,7 +82,7 @@
         "entry": "Save format:",
         "freeware": "Freeware",
         "plus": "Cave Story+ (PC)",
-        "switch": "Cave Story+ (Switch)",
+        "switch": "Cave Story+ (Switch) {version}",
         "auto": "Auto-detect"
       },
       "file_filters": {
@@ -170,7 +170,7 @@
           "entry": "Save format:",
           "freeware": "Freeware",
           "plus": "Cave Story+ (PC)",
-          "switch": "Cave Story+ (Switch)"
+          "switch": "Cave Story+ (Switch) {version}"
         }
       },
       "links": "Links...",
