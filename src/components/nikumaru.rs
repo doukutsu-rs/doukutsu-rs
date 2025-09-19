@@ -10,8 +10,8 @@ use crate::framework::vfs::OpenOptions;
 use crate::game::frame::Frame;
 use crate::game::shared_game_state::{SharedGameState, TimingMode};
 use crate::game::player::Player;
+use crate::game::profile::{ChallengeTime, SaveFormat};
 use crate::game::scripting::tsc::text_script::TextScriptExecutionState;
-use crate::util::rng::RNG;
 
 #[derive(Clone, Copy)]
 pub struct NikumaruCounter {
@@ -24,66 +24,47 @@ impl NikumaruCounter {
         NikumaruCounter { tick: 0, shown: false }
     }
 
-    fn load_time(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<u32> {
+    pub fn apply_challenge_time(&mut self, state: &mut SharedGameState, challenge_time: ChallengeTime) {
+        self.tick = challenge_time.convert_timing(state.settings.timing_mode);
+    }
+
+    pub fn dump_challenge_time(&mut self, state: &mut SharedGameState) -> ChallengeTime {
+        ChallengeTime {
+            timing_mode: state.settings.timing_mode,
+            ticks: self.tick
+        }
+    }
+
+    fn load_time(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<usize> {
         if let Ok(mut data) = filesystem::user_open(ctx, [state.get_rec_filename(), ".rec".to_string()].join("")) {
-            let mut ticks: [u32; 4] = [0; 4];
+            let mut time = ChallengeTime::new(state.settings.timing_mode);
+            time.load_time(data, SaveFormat::Freeware)?;
 
-            for iter in 0..=3 {
-                ticks[iter] = data.read_u32::<LE>()?;
-            }
-
-            let random = data.read_u32::<LE>()?;
-            let random_list: [u8; 4] = random.to_le_bytes();
-
-            for iter in 0..=3 {
-                ticks[iter] = u32::from_le_bytes([
-                    ticks[iter].to_le_bytes()[0].wrapping_sub(random_list[iter]),
-                    ticks[iter].to_le_bytes()[1].wrapping_sub(random_list[iter]),
-                    ticks[iter].to_le_bytes()[2].wrapping_sub(random_list[iter]),
-                    ticks[iter].to_le_bytes()[3].wrapping_sub(random_list[iter] / 2),
-                ]);
-            }
-
-            if ticks[0] == ticks[1] && ticks[0] == ticks[2] {
-                return Ok(ticks[0]);
-            }
+            return Ok(time.ticks);
         } else {
             log::warn!("Failed to open 290 record.");
         }
+
         Ok(0)
     }
 
-    fn save_time(&mut self, new_time: u32, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+    fn save_time(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         if let Ok(mut data) = filesystem::open_options(
             ctx,
             [state.get_rec_filename(), ".rec".to_string()].join(""),
             OpenOptions::new().write(true).create(true),
         ) {
-            let mut ticks: [u32; 4] = [new_time; 4];
-            let mut random_list: [u8; 4] = [0; 4];
-
-            for iter in 0..=3 {
-                random_list[iter] = state.effect_rng.range(0..250) as u8 + iter as u8;
-
-                ticks[iter] = u32::from_le_bytes([
-                    ticks[iter].to_le_bytes()[0].wrapping_add(random_list[iter]),
-                    ticks[iter].to_le_bytes()[1].wrapping_add(random_list[iter]),
-                    ticks[iter].to_le_bytes()[2].wrapping_add(random_list[iter]),
-                    ticks[iter].to_le_bytes()[3].wrapping_add(random_list[iter] / 2),
-                ]);
-
-                data.write_u32::<LE>(ticks[iter])?;
-            }
-
-            data.write_u32::<LE>(u32::from_le_bytes(random_list))?;
+            let time = self.dump_challenge_time(state);
+            time.write_time(data, state, SaveFormat::Freeware)?;
         } else {
             log::warn!("Failed to write 290 record.");
         }
+
         Ok(())
     }
 
     pub fn load_counter(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        self.tick = self.load_time(state, ctx)? as usize;
+        self.tick = self.load_time(state, ctx)?;
         if self.tick > 0 {
             self.shown = true;
         } else {
@@ -93,9 +74,9 @@ impl NikumaruCounter {
     }
 
     pub fn save_counter(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<bool> {
-        let old_record = self.load_time(state, ctx)? as usize;
+        let old_record = self.load_time(state, ctx)?;
         if self.tick < old_record || old_record == 0 {
-            self.save_time(self.tick as u32, state, ctx)?;
+            self.save_time(state, ctx)?;
             return Ok(true);
         }
         Ok(false)

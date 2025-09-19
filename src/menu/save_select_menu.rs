@@ -1,9 +1,10 @@
 use pelite::pe::imports::Import;
 
+use crate::common::Version;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
-use crate::game::profile::{GameProfile, SaveContainer, SaveFormat, SaveParams, SaveSlot};
+use crate::game::profile::{GameProfile, SaveContainer, SaveFormat, SaveParams, SaveSlot, SWITCH_VER_1_2, SWITCH_VER_1_3};
 use crate::game::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::coop_menu::PlayerCountMenu;
@@ -142,8 +143,8 @@ impl MenuExportInfo {
                 FilePickerParams::new()
                     .pick_dirs(true)
             }
-            Some(SaveFormat::Plus) | Some(SaveFormat::Switch) => {
-                let filename = SaveContainer::get_save_filename(&format.unwrap(), None).split_off(1);
+            Some(SaveFormat::Plus) | Some(SaveFormat::Switch(_)) => {
+                let filename = SaveContainer::get_save_filename(format.unwrap(), None).split_off(1);
 
                 FilePickerParams::new()
                     .file_name(Some(filename))
@@ -152,7 +153,7 @@ impl MenuExportInfo {
                     ])
             }
             Some(SaveFormat::Generic) => {
-                let filename = SaveContainer::get_save_filename(&format.unwrap(), None).split_off(1);
+                let filename = SaveContainer::get_save_filename(format.unwrap(), None).split_off(1);
 
                 FilePickerParams::new()
                     .file_name(Some(filename))
@@ -182,7 +183,8 @@ impl ImportExportMenuEntry {
             0 => None, // Auto
             1 => Some(SaveFormat::Freeware),
             2 => Some(SaveFormat::Plus),
-            3 => Some(SaveFormat::Switch),
+            3 => Some(SaveFormat::Switch(SWITCH_VER_1_2)),
+            4 => Some(SaveFormat::Switch(SWITCH_VER_1_3)),
             _ => unreachable!()
         }
     }
@@ -337,7 +339,14 @@ impl SaveSelectMenu {
                     state.loc.ts("menus.save_manage_menu.save_format.auto"),
                     state.loc.ts("menus.save_manage_menu.save_format.freeware"),
                     state.loc.ts("menus.save_manage_menu.save_format.plus"),
-                    state.loc.ts("menus.save_manage_menu.save_format.switch"),
+                    state.loc.tt(
+                        "menus.save_manage_menu.save_format.switch",
+                        &[("version", "v1.2")]
+                    ),
+                    state.loc.tt(
+                        "menus.save_manage_menu.save_format.switch",
+                        &[("version", "v1.3")]
+                    ),
                 ]
             )
         );
@@ -497,8 +506,8 @@ impl SaveSelectMenu {
                 | MenuSelectionResult::Right(ImportExportMenuEntry::Format, toggle, _) => {
                     if let MenuEntry::Options(_, value, _) = toggle {
                         *value = match *value {
-                            0..3 => *value + 1,
-                            3 => 0,
+                            0..4 => *value + 1,
+                            4 => 0,
                             _ => unreachable!(),
                         };
 
@@ -508,8 +517,8 @@ impl SaveSelectMenu {
                 MenuSelectionResult::Left(ImportExportMenuEntry::Format, toggle, _) => {
                     if let MenuEntry::Options(_, value, _) = toggle {
                         *value = match *value {
-                            1..=3 => *value - 1,
-                            0 => 3,
+                            1..=4 => *value - 1,
+                            0 => 4,
                             _ => unreachable!(),
                         };
 
