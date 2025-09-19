@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT or Apache-2.0
+// Copyright (c) 2017 Loïc Damien
+// Copyright (c) 2020 doukutsu-rs contributors (see AUTHORS.md)
+
 #[doc(hidden)]
 pub use core::fmt;
 #[doc(hidden)]

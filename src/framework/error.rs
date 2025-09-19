@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2016 ggez-dev
+// Copyright (c) 2020 doukutsu-rs contributors (see AUTHORS.md)
 //! Error types and conversion functions.
 
 use std::error::Error;

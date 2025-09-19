@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2016 ggez-dev
+// Copyright (c) 2020 doukutsu-rs contributors (see AUTHORS.md)
 use crate::framework::backend::{init_backend, BackendRenderer, WindowParams};
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::Filesystem;

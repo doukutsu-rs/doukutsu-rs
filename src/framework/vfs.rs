@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2016 ggez-dev
+// Copyright (c) 2020 doukutsu-rs contributors (see AUTHORS.md)
 //! A virtual file system layer that lets us define multiple
 //! "file systems" with various backing stores, then merge them
 //! together.
