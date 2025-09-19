@@ -194,7 +194,7 @@ pub enum FadeState {
     FadeOut(i8, FadeDirection),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Direction {
     Left = 0,
@@ -576,3 +576,38 @@ impl<T> SliceExt for [T] {
         }
     }
 }
+
+// Copyable reduced variant of semver::Version
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Eq, PartialEq, PartialOrd)]
+pub struct Version {
+    pub major: usize,
+    pub minor: usize,
+    pub patch: usize
+}
+
+impl Version {
+    pub fn new(major: usize, minor: usize, patch: usize) -> Self {
+        Self {
+            major,
+            minor,
+            patch
+        }
+    }
+}
+
+impl Ord for Version {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.major
+            .cmp(&other.major)
+            .then(self.minor.cmp(&other.minor))
+            .then(self.patch.cmp(&other.patch))
+    }
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
+// TODO: implement FromStr for Version

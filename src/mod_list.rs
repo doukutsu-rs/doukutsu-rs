@@ -8,7 +8,7 @@ use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::mod_requirements::ModRequirements;
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct ModInfo {
     pub id: String,
     pub requirement: Requirement,
@@ -29,6 +29,14 @@ impl ModInfo {
             Requirement::RequireItem(item_id) => mod_requirements.has_item(item_id),
             Requirement::RequireWeapon(weapon_id) => mod_requirements.has_weapon(weapon_id),
         }
+    }
+
+    pub fn get_rec_filename(&self) -> String {
+        if let Some(name) = &self.name {
+            return name.clone();
+        }
+
+        self.id.clone()
     }
 }
 
@@ -191,5 +199,9 @@ impl ModList {
 
     pub fn get_name_from_path(&self, mod_path: String) -> Option<&str> {
         self.get_info_from_path(mod_path).and_then(|mod_info| mod_info.name.as_deref())
+    }
+
+    pub fn get_info_from_id(&self, mod_id: String) -> Option<&ModInfo> {
+        self.mods.iter().find(|x| x.id == mod_id)
     }
 }

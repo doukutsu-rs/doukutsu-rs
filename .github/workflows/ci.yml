@@ -6,6 +6,7 @@ on:
       - cpp-rewrite
       - horizon-os
       - refactor
+      - cross-saves
     paths-ignore:
       - ".gitignore"
       - ".github/*"
