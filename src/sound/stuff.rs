@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2020 LunarLambda
+// Copyright (c) 2020 doukutsu-rs contributors (see AUTHORS.md)
 pub const FRQ_TBL: [i16; 12] = [
     262, 277, 294, 311, 330, 349, 370, 392, 415, 440, 466, 494
 ];

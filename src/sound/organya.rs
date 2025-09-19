@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2020 LunarLambda
+// Copyright (c) 2020 doukutsu-rs contributors (see AUTHORS.md)
 use std::io;
 
 use byteorder::{LE, ReadBytesExt};
