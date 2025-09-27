@@ -12,6 +12,7 @@ use num_traits::{clamp, FromPrimitive};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
+use crate::bitfield;
 use crate::common::{get_timestamp, Direction, FadeState, Version};
 use crate::framework::context::Context;
 use crate::framework::error::GameError::{self, ResourceLoadError};
@@ -46,14 +47,6 @@ pub struct WeaponData {
 pub struct TeleporterSlotData {
     pub index: u32,
     pub event_num: u32,
-}
-
-trait SaveProfile {
-    fn apply(&self, state: &mut SharedGameState, game_scene: &mut GameScene, ctx: &mut Context);
-    fn dump(state: &mut SharedGameState, game_scene: &mut GameScene, target_player: Option<TargetPlayer>) -> Self;
-    fn write_save<W: io::Write>(&self, data: W, format: SaveFormat) -> GameResult;
-    fn load_from_save<R: io::Read>(data: R, format: SaveFormat) -> GameResult<GameProfile>;
-    fn is_empty(&self) -> bool;
 }
 
 #[serde_as]
@@ -355,6 +348,13 @@ impl GameProfile {
     }
 
     pub fn write_save<W: io::Write>(&self, data: &mut W, format: &SaveFormat) -> GameResult {
+        if self.is_empty() && format.is_csp() {
+            let dummy = vec![0u8; format.profile_size()];
+            data.write(&dummy)?;
+
+            return Ok(());
+        }
+
         data.write_u64::<BE>(SIG_Do041220)?;
 
         data.write_u32::<LE>(self.current_map)?;
@@ -458,7 +458,7 @@ impl GameProfile {
         let magic = data.read_u64::<BE>()?;
         if magic == 0 && format.is_csp() {
             // Some of the CS+ slots may be filled with 0, so all signatures and magic numbers will be invalid
-            let profile_size: usize = if format == SaveFormat::Plus { 0x620 } else { 0x680 };
+            let profile_size = format.profile_size();
 
             // We've already read the magic, so we substract it from the profile size
             let mut dummy = vec![0u8; profile_size - 8];
@@ -590,9 +590,8 @@ impl GameProfile {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.timestamp == 0
+        self.timestamp == 0 && self.current_map == 0
     }
-
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -676,7 +675,7 @@ impl SaveFormat {
     pub fn recognise(data: &[u8]) -> GameResult<Self> {
         let mut cur = std::io::Cursor::new(data);
         let magic = cur.read_u64::<BE>()?;
-log::debug!("Len: {}", data.len());
+
         fn recognise_switch_version(cur: &mut std::io::Cursor<&[u8]>, data: &[u8]) -> GameResult<Version> {
             // Set position to the start of the region with challenge times in v1.2.
             cur.set_position(0x20eb8);
@@ -741,7 +740,6 @@ log::debug!("Len: {}", data.len());
         Err(ResourceLoadError("Unsupported or invalid save file".to_owned()))
     }
 
-
     pub fn is_csp(&self) -> bool {
         match self {
             Self::Plus | Self::Switch(_) => true,
@@ -755,6 +753,15 @@ log::debug!("Len: {}", data.len());
         }
 
         false
+    }
+
+
+    pub fn profile_size(&self) -> usize {
+        match self {
+            SaveFormat::Freeware | SaveFormat::Plus => 0x620,
+            SaveFormat::Switch(_) => 0x680,
+            SaveFormat::Generic => 0,
+        }
     }
 
     // TODO: compatibility warnings
@@ -1079,10 +1086,6 @@ impl SaveContainer {
                 let mut buf = Vec::new();
                 let mut cur = std::io::Cursor::new(&mut buf);
 
-                // TODO
-                // In CS+, only slots up to the last non-empty one are written to the save file.
-                // E.g., if the user saved only the profile in slot 3, then profiles from slots 1, 2 and 3 will be written to the file.
-                // All other profiles will be filled with zeros.
                 let default_profile = GameProfile::default();
                 for save_slot in 1..=3 {
                     let profile = if params.slots.is_empty() || params.slots.contains(&SaveSlot::MainGame(save_slot)) {
@@ -1145,7 +1148,6 @@ impl SaveContainer {
                 }
 
                 // Challenge best times
-                // let best_times: u8 = if format.is_switch() { 29 } else { 26 };
                 let best_times = match format {
                     SaveFormat::Switch(SWITCH_VER_1_2) => 29,
                     SaveFormat::Switch(SWITCH_VER_1_3) => {
@@ -1166,7 +1168,7 @@ impl SaveContainer {
 
                 if format.is_switch() {
                     let challenge_unlocks = ChallengeUnlocks::dump(&state.mod_requirements);
-                    cur.write_u8(challenge_unlocks)?;
+                    cur.write_u8(challenge_unlocks.0)?;
 
                     let something = [0u8; 0x77];
                     let something2 = [0u8; 6];
@@ -1312,7 +1314,7 @@ impl SaveContainer {
         }
 
         for (_, csp_mod) in self.csp_mods.iter() {
-            if csp_mod.is_empty() {
+            if !csp_mod.is_empty() {
                 return false;
             }
         }
@@ -1485,8 +1487,8 @@ impl SaveContainer {
                     let mut unused = [0u8; 32];
                     cur.read_exact(&mut unused)?;
                 } else {
-                    let challenge_unlocks = cur.read_u8()?;
-                    ChallengeUnlocks::load(ctx, &mut state.mod_requirements, challenge_unlocks)?;
+                    let challenge_unlocks = ChallengeUnlocks(cur.read_u8()?);
+                    challenge_unlocks.load(ctx, &mut state.mod_requirements)?;
 
                     let mut something: [u8; 119] = [0u8; 119];
                     cur.read_exact(&mut something)?;
@@ -1522,59 +1524,74 @@ impl SaveContainer {
     }
 }
 
-struct ChallengeUnlocks;
+bitfield! {
+    #[derive(Clone, Copy)]
+    #[repr(C)]
+    pub struct ChallengeUnlocks(u8);
+    impl Debug;
 
-// Hardcoded de-/encoding of CS+ challenge unlocks
+    pub main_game, set_main_game: 0; // 0x1
+    pub sanctuary_time, set_sanctuary_time: 1; // 0x2
+    pub boss_attack, set_boss_attack: 2; // 0x4
+    pub curly_story, set_curly_story: 3; // 0x8
+    pub wind_fortress, set_wind_fortress: 4; // 0x10
+    pub nemesis, set_nemesis: 5; // 0x20
+    pub machine_gun, set_machine_gun: 6; // 0x40
+    pub sand_pit, set_sand_pit: 7; // 0x80
+}
+
 impl ChallengeUnlocks {
-    pub fn dump(mod_requirements: &ModRequirements) -> u8 {
-        let mut challenge_unlocks: u8 = 1;
+    pub fn new() -> Self {
+        Self(1)
+    }
+
+    pub fn dump(mod_requirements: &ModRequirements) -> Self {
+        let mut challenge_unlocks = Self::new();
 
         // Mods with RG requirement
-        // 0x2 - Sanctuary Time Attack.
-        // 0x4 - Boss Attack.
-        // 0x10 - Wind Fortress.
         if mod_requirements.beat_hell {
-            challenge_unlocks |= 0x2 | 0x4 | 0x10;
+            challenge_unlocks.set_sanctuary_time(true);
+            challenge_unlocks.set_boss_attack(true);
+            challenge_unlocks.set_wind_fortress(true);
         }
 
         // Mods with RA requirement
 
+        // Mods with RA12 requirement.
         if mod_requirements.has_weapon(12) {
-            // Nemesis Challenge. RA12
-            challenge_unlocks |= 0x20;
+            challenge_unlocks.set_nemesis(true);
         }
 
+        // Mods with RA3 requirement.
         if mod_requirements.has_weapon(3) {
-            // Sand Pit. RA3
-            challenge_unlocks |= 0x80;
+            challenge_unlocks.set_sand_pit(true);
         }
 
         // Mods with RI requirement
 
         // Mods with RI35 requirement.
-        // 0x8 - Curly Story.
-        // 0x40 - Machine Gun Challenge.
         if mod_requirements.has_item(35) {
-           challenge_unlocks |= 0x8 | 0x40;
+           challenge_unlocks.set_curly_story(true);
+           challenge_unlocks.set_machine_gun(true);
         }
 
         challenge_unlocks
     }
 
-    pub fn load(ctx: &Context, mod_requirements: &mut ModRequirements, raw: u8) -> GameResult {
-        if raw & (0x2 | 0x4 | 0x10) != 0 {
+    pub fn load(&self, ctx: &Context, mod_requirements: &mut ModRequirements) -> GameResult {
+        if self.sanctuary_time() || self.boss_attack() || self.wind_fortress() {
             mod_requirements.beat_hell = true;
         }
 
-        if raw & 0x20 != 0 {
+        if self.nemesis() {
             mod_requirements.append_weapon(ctx, 12)?;
         }
 
-        if raw & 0x80 != 0 {
+        if self.sand_pit() {
             mod_requirements.append_weapon(ctx, 3)?;
         }
 
-        if raw & (0x8 | 0x40) != 0 {
+        if self.curly_story() || self.machine_gun() {
             mod_requirements.append_item(ctx, 35)?;
         }
 
