@@ -21,6 +21,14 @@ pub struct ModInfo {
 }
 
 impl ModInfo {
+    pub fn get_csp_id(&self) -> Option<u8> {
+        if self.id.starts_with("cspmod_") {
+            return self.id.clone().split_off(7).parse::<u8>().ok();
+        }
+
+        None
+    }
+
     pub fn satisfies_requirement(&self, mod_requirements: &ModRequirements) -> bool {
         match self.requirement {
             Requirement::Unlocked => true,
@@ -31,12 +39,9 @@ impl ModInfo {
         }
     }
 
-    pub fn get_rec_filename(&self) -> String {
-        if let Some(name) = &self.name {
-            return name.clone();
-        }
-
-        self.id.clone()
+    pub fn get_rec_filename(&self, suffix: String) -> String {
+        let rec_name = self.name.clone().unwrap_or(self.id.clone());
+        [rec_name, suffix].join("")
     }
 }
 
@@ -180,7 +185,7 @@ impl ModList {
                     }
                 }
 
-                mods.push(ModInfo { id, requirement, priority, save_slot, path, name, description, valid })
+                mods.push(ModInfo { id, requirement, priority, save_slot, path, name, description, valid });
             }
         }
 

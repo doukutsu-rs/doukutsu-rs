@@ -6,7 +6,7 @@ use crate::game::shared_game_state::SharedGameState;
 use crate::game::weapon::{Weapon, WeaponLevel, WeaponType};
 use crate::game::weapon::bullet::BulletManager;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Default, serde::Serialize, serde::Deserialize)]
 /// (id, amount)
 pub struct Item(pub u16, pub u16);
 

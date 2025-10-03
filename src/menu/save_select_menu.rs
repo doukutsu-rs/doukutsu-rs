@@ -37,6 +37,7 @@ pub enum CurrentMenu {
     PlayerCountMenu,
     DeleteConfirm,
     LoadConfirm,
+    SavesLocation,
     ImportExport,
 }
 
@@ -101,21 +102,46 @@ pub enum ImportExportMenuEntry {
     Back,
 }
 
-#[derive(Clone, Copy)]
-enum ImportExportLocation {
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum SavesLocationMenuEntry {
     Filesystem,
+    Back
     // TODO: add some Switch emulators
 }
 
-impl Default for ImportExportLocation {
+impl Default for SavesLocationMenuEntry {
     fn default() -> Self {
         Self::Filesystem
     }
 }
 
+#[derive(Clone, Copy)]
+enum SavesLocation {
+    Filesystem,
+    // TODO: add some Switch emulators
+}
+
+impl SavesLocation {
+    pub fn get_format(&self) -> Option<SaveFormat> {
+        match *self {
+            Self::Filesystem => None,
+            _ => None,
+        }
+    }
+}
+
+impl From<SavesLocationMenuEntry> for SavesLocation {
+    fn from(value: SavesLocationMenuEntry) -> Self {
+        match value {
+            SavesLocationMenuEntry::Filesystem => Self::Filesystem,
+            _ => Self::Filesystem,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct MenuExportInfo {
-    pub location: ImportExportLocation,
+    pub location: SavesLocation,
     pub format: Option<SaveFormat>,
     pub picker_params: FilePickerParams,
     pub save_params: SaveParams,
@@ -124,7 +150,7 @@ pub struct MenuExportInfo {
 impl Default for MenuExportInfo {
     fn default() -> Self {
         Self {
-            location: ImportExportLocation::Filesystem,
+            location: SavesLocation::Filesystem,
             format: None,
             picker_params: FilePickerParams::new(),
             save_params: SaveParams::default()
@@ -207,6 +233,7 @@ pub struct SaveSelectMenu {
     delete_confirm: Menu<DeleteConfirmMenuEntry>,
     load_confirm: Menu<LoadConfirmMenuEntry>,
     skip_difficulty_menu: bool,
+    saves_location_menu: Menu<SavesLocationMenuEntry>,
     import_export_menu: Menu<ImportExportMenuEntry>,
 }
 
@@ -223,6 +250,7 @@ impl SaveSelectMenu {
             delete_confirm: Menu::new(0, 0, 75, 0),
             load_confirm: Menu::new(0, 0, 75, 0),
             skip_difficulty_menu: false,
+            saves_location_menu: Menu::new(0, 0, 75, 0),
             import_export_menu: Menu::new(0, 0, 75, 0),
         }
     }
@@ -235,6 +263,7 @@ impl SaveSelectMenu {
         self.difficulty_menu = Menu::new(0, 0, 130, 0);
         self.delete_confirm = Menu::new(0, 0, 75, 0);
         self.load_confirm = Menu::new(0, 0, 75, 0);
+        self.saves_location_menu = Menu::new(0, 0, 75, 0);
         self.import_export_menu = Menu::new(0, 0, 75, 0);
         self.skip_difficulty_menu = false;
 
@@ -244,7 +273,6 @@ impl SaveSelectMenu {
         for (iter, save) in self.saves.iter_mut().enumerate() {
             if let Some(slot) = state.get_save_slot(iter + 1) {
                 if let Some(loaded_profile) = save_container.get_profile(slot) {
-                    log::trace!("Loading save select menu. Iter - {}. {}", iter, loaded_profile.is_empty());
                     save.current_map = loaded_profile.current_map;
                     save.max_life = loaded_profile.max_life;
                     save.life = loaded_profile.life;
@@ -330,6 +358,9 @@ impl SaveSelectMenu {
 
         self.export_info.format = None;
 
+        self.saves_location_menu.push_entry(SavesLocationMenuEntry::Filesystem, MenuEntry::Active(state.loc.ts("menus.save_manage_menu.save_location.filesystem")));
+        self.saves_location_menu.push_entry(SavesLocationMenuEntry::Back, MenuEntry::Active(state.loc.ts("common.back")));
+
         self.import_export_menu.push_entry(
             ImportExportMenuEntry::Format,
             MenuEntry::Options(
@@ -400,6 +431,11 @@ impl SaveSelectMenu {
         self.import_export_menu.update_height(state);
         self.import_export_menu.x = ((state.canvas_size.0 - self.import_export_menu.width as f32) / 2.0).floor() as isize;
         self.import_export_menu.y = ((state.canvas_size.1 - self.import_export_menu.height as f32) / 2.0).floor() as isize;
+
+        self.saves_location_menu.update_width(state);
+        self.saves_location_menu.update_height(state);
+        self.saves_location_menu.x = ((state.canvas_size.0 - self.saves_location_menu.width as f32) / 2.0).floor() as isize;
+        self.saves_location_menu.y = ((state.canvas_size.1 - self.saves_location_menu.height as f32) / 2.0).floor() as isize;
     }
 
     pub fn tick(
@@ -435,8 +471,10 @@ impl SaveSelectMenu {
                     self.load_confirm.selected = LoadConfirmMenuEntry::Start;
                 }
                 MenuSelectionResult::Selected(SaveMenuEntry::ImportExport, _) => {
-                    self.current_menu = CurrentMenu::ImportExport;
-                    self.import_export_menu.selected = ImportExportMenuEntry::Back;
+                    //self.current_menu = CurrentMenu::ImportExport;
+                    //self.import_export_menu.selected = ImportExportMenuEntry::Back;
+                    self.current_menu = CurrentMenu::SavesLocation;
+                    self.saves_location_menu.selected = SavesLocationMenuEntry::default();
                 }
                 _ => (),
             },
@@ -497,6 +535,23 @@ impl SaveSelectMenu {
                     self.delete_confirm.selected = DeleteConfirmMenuEntry::No;
                 }
                 MenuSelectionResult::Selected(LoadConfirmMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
+                    self.current_menu = CurrentMenu::SaveMenu;
+                }
+                _ => (),
+            },
+            CurrentMenu::SavesLocation => match self.saves_location_menu.tick(controller, state) {
+                MenuSelectionResult::Selected(idx, _) => {
+                    if idx == SavesLocationMenuEntry::Back {
+                        self.current_menu = CurrentMenu::SaveMenu;
+                    } else {
+                        let loc = SavesLocation::from(idx);
+                        self.export_info.format = loc.get_format();
+                        self.export_info.picker_params = MenuExportInfo::fpicker_from_format(state, self.export_info.format, false);
+
+                        self.current_menu = CurrentMenu::ImportExport;
+                    }
+                }
+                MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::SaveMenu;
                 }
                 _ => (),
@@ -590,6 +645,9 @@ impl SaveSelectMenu {
             }
             CurrentMenu::ImportExport => {
                 self.import_export_menu.draw(state, ctx)?;
+            }
+            CurrentMenu::SavesLocation => {
+                self.saves_location_menu.draw(state, ctx)?;
             }
         }
         Ok(())
