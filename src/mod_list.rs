@@ -8,7 +8,7 @@ use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::mod_requirements::ModRequirements;
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct ModInfo {
     pub id: String,
     pub requirement: Requirement,
@@ -21,6 +21,14 @@ pub struct ModInfo {
 }
 
 impl ModInfo {
+    pub fn get_csp_id(&self) -> Option<u8> {
+        if self.id.starts_with("cspmod_") {
+            return self.id.clone().split_off(7).parse::<u8>().ok();
+        }
+
+        None
+    }
+
     pub fn satisfies_requirement(&self, mod_requirements: &ModRequirements) -> bool {
         match self.requirement {
             Requirement::Unlocked => true,
@@ -29,6 +37,11 @@ impl ModInfo {
             Requirement::RequireItem(item_id) => mod_requirements.has_item(item_id),
             Requirement::RequireWeapon(weapon_id) => mod_requirements.has_weapon(weapon_id),
         }
+    }
+
+    pub fn get_rec_filename(&self, suffix: String) -> String {
+        let rec_name = self.name.clone().unwrap_or(self.id.clone());
+        [rec_name, suffix].join("")
     }
 }
 
@@ -172,7 +185,7 @@ impl ModList {
                     }
                 }
 
-                mods.push(ModInfo { id, requirement, priority, save_slot, path, name, description, valid })
+                mods.push(ModInfo { id, requirement, priority, save_slot, path, name, description, valid });
             }
         }
 
@@ -191,5 +204,9 @@ impl ModList {
 
     pub fn get_name_from_path(&self, mod_path: String) -> Option<&str> {
         self.get_info_from_path(mod_path).and_then(|mod_info| mod_info.name.as_deref())
+    }
+
+    pub fn get_info_from_id(&self, mod_id: String) -> Option<&ModInfo> {
+        self.mods.iter().find(|x| x.id == mod_id)
     }
 }
