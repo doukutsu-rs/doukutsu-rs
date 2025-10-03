@@ -39,7 +39,7 @@ use crate::util::rng::XorShift;
 
 use super::filesystem_container::FilesystemContainer;
 
-#[derive(PartialEq, Eq, Copy, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TimingMode {
     _50Hz,
     _60Hz,
@@ -68,6 +68,14 @@ impl TimingMode {
             TimingMode::_50Hz => 50,
             TimingMode::_60Hz => 60,
             TimingMode::FrameSynchronized => 0,
+        }
+    }
+
+    pub fn from_tps(tps: usize) -> Self {
+        match tps {
+            50 => Self::_50Hz,
+            60 => Self::_60Hz,
+            _ => Self::FrameSynchronized
         }
     }
 }
@@ -748,9 +756,9 @@ impl SharedGameState {
 
                     self.next_scene = Some(Box::new(next_scene));
                     return Ok(());
+                } else {
+                    log::warn!("No save game found, starting new one...");
                 }
-            } else {
-                log::warn!("No save game found, starting new one...");
             }
         } else {
             log::info!("Mod has saves disabled, starting new game...");
@@ -920,25 +928,24 @@ impl SharedGameState {
         Some(SaveSlot::MainGame(slot))
     }
 
-    pub fn get_rec_filename(&self) -> String {
+    pub fn get_rec_filename(&self, suffix: String) -> String {
         let name = &self
             .mod_path
             .clone()
             .and_then(|mod_path| self.mod_list.get_info_from_path(mod_path))
-            //.and_then(|mod_info| mod_info.name.clone().or(Some(mod_info.id.clone())))
-            .and_then(|mod_info| Some(mod_info.get_rec_filename()))
+            .and_then(|mod_info| Some(mod_info.get_rec_filename("".to_owned())))
             .unwrap_or("290".to_owned());
 
-        format!("/{name}")
+        format!("/{name}{suffix}")
     }
 
     pub fn has_replay_data(&self, ctx: &mut Context, replay_kind: ReplayKind) -> bool {
-        filesystem::user_exists(ctx, [self.get_rec_filename(), replay_kind.get_suffix()].join(""))
+        filesystem::user_exists(ctx, self.get_rec_filename(replay_kind.get_suffix()))
     }
 
     pub fn delete_replay_data(&self, ctx: &mut Context, replay_kind: ReplayKind) -> GameResult {
         if self.has_replay_data(ctx, replay_kind) {
-            filesystem::user_delete(ctx, [self.get_rec_filename(), replay_kind.get_suffix()].join(""))?;
+            filesystem::user_delete(ctx, self.get_rec_filename(replay_kind.get_suffix()))?;
         }
         Ok(())
     }

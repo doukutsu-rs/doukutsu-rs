@@ -21,7 +21,7 @@ use crate::framework::filesystem::{user_create, user_delete, user_exists, user_o
 use crate::game::player::{ControlMode, TargetPlayer};
 use crate::game::shared_game_state::{GameDifficulty, PlayerCount, SharedGameState, TimingMode};
 use crate::game::weapon::{WeaponLevel, WeaponType};
-use crate::game::inventory::Inventory;
+use crate::game::inventory::{Inventory, Item};
 use crate::mod_list::ModList;
 use crate::mod_requirements::{self, ModRequirements};
 use crate::scene::game_scene::GameScene;
@@ -69,7 +69,7 @@ pub struct GameProfile {
     pub counter: u32,
     pub weapon_data: [WeaponData; 8],
     pub weapon_data_p2: Option<[WeaponData; 8]>,
-    pub items: [u32; 32],
+    pub items: [Item; 32],
     pub teleporter_slots: [TeleporterSlotData; 8],
     #[serde_as(as = "[_; 128]")]
     pub map_flags: [u8; 128],
@@ -102,7 +102,7 @@ impl Default for GameProfile {
             counter: 0,
             weapon_data: [WeaponData::default(); 8],
             weapon_data_p2: None,
-            items: [0u32; 32],
+            items: [Item::default(); 32],
             teleporter_slots: [TeleporterSlotData::default(); 8],
             map_flags: [0u8; 128],
             flags: [0u8; 1000],
@@ -156,18 +156,15 @@ impl GameProfile {
         }
 
         for item in self.items.iter().copied() {
-            let item_id = item as u16;
-            let _ = state.mod_requirements.append_item(ctx, item_id);
-
-            let amount = (item >> 16) as u16;
-            if item_id == 0 {
+            let _ = state.mod_requirements.append_item(ctx, item.0);
+            if item.0 == 0 {
                 break;
             }
 
             // TODO: original save formats can't store inventory for player 2, but we can, so should we save it,
             // even if it's equal to the inventroy of player 1?
-            game_scene.inventory_player1.add_item_amount(item_id, amount + 1);
-            game_scene.inventory_player2.add_item_amount(item_id, amount + 1);
+            game_scene.inventory_player1.add_item_amount(item.0, item.1);
+            game_scene.inventory_player2.add_item_amount(item.0, item.1);
         }
 
         for slot in &self.teleporter_slots {
@@ -244,7 +241,6 @@ impl GameProfile {
             TargetPlayer::Player2 => &game_scene.player2,
         };
 
-        // TODO: should we store inventory of player 2?
         let inventory_player = match target_player.unwrap_or(TargetPlayer::Player1) {
             TargetPlayer::Player1 => &game_scene.inventory_player1,
             TargetPlayer::Player2 => &game_scene.inventory_player2,
@@ -267,7 +263,7 @@ impl GameProfile {
         let counter = 0; // TODO
         let mut weapon_data = [WeaponData::default(); 8];
         let mut weapon_data_p2 = None;
-        let mut items = [0u32; 32];
+        let mut items = [Item::default(); 32];
         let mut teleporter_slots = [TeleporterSlotData::default(); 8];
 
         fn dump_weapons(weapons: &mut [WeaponData], inventory: &Inventory) {
@@ -292,7 +288,7 @@ impl GameProfile {
 
         for (idx, item) in items.iter_mut().enumerate() {
             if let Some(sitem) = inventory_player.get_item_idx(idx) {
-                *item = sitem.0 as u32 + (((sitem.1 - 1) as u32) << 16);
+                *item = *sitem;
             }
         }
 
@@ -418,12 +414,10 @@ impl GameProfile {
         }
 
         for item in self.items.iter().copied() {
-            if format.is_switch() {
-                data.write_u16::<LE>(item.try_into().unwrap_or(u16::MAX))?;
-                data.write_u16::<LE>(1)?; // TODO: store real quantity of items
-            } else {
-                data.write_u32::<LE>(item)?;
-            }
+            let amount = if !format.is_switch() { 0 } else { item.1 };
+
+            data.write_u16::<LE>(item.0)?;
+            data.write_u16::<LE>(amount)?;
         }
 
         for slot in &self.teleporter_slots {
@@ -489,7 +483,7 @@ impl GameProfile {
         let counter = data.read_u32::<LE>()?;
         let mut weapon_data = [WeaponData::default(); 8];
         let mut weapon_data_p2 = None;
-        let mut items = [0u32; 32];
+        let mut items = [Item::default(); 32];
         let mut teleporter_slots = [TeleporterSlotData::default(); 8];
 
         fn load_weapons<R: io::Read>(data: &mut R, weapons: &mut [WeaponData], format: &SaveFormat) -> GameResult {
@@ -511,9 +505,9 @@ impl GameProfile {
         }
 
         if format.is_switch() {
-            for WeaponData { weapon_id, level, exp, max_ammo, ammo } in &mut weapon_data {
-                *weapon_id = data.read_u32::<LE>()?;
-                *max_ammo = data.read_u32::<LE>()?;
+            for weapon in &mut weapon_data {
+                weapon.weapon_id = data.read_u32::<LE>()?;
+                weapon.max_ammo = data.read_u32::<LE>()?;
             }
         }
 
@@ -524,11 +518,11 @@ impl GameProfile {
         }
 
         for item in &mut items {
-            if format.is_switch() {
-                *item = data.read_u16::<LE>()? as u32;
-                let item_qty = data.read_u16::<LE>()?; // TODO: store items quantity
-            } else {
-                *item = data.read_u32::<LE>()?;
+            item.0 = data.read_u16::<LE>()?;
+            item.1 = data.read_u16::<LE>()?;
+
+            if !format.is_switch() {
+                item.1 += 1;
             }
         }
 
@@ -601,24 +595,6 @@ pub enum SaveSlot {
     Mod(String, usize), // (mod id, save slot)
 }
 
-impl SaveSlot {
-    pub fn into_idx(self) -> Self {
-        match self {
-            Self::MainGame(save_slot) => if save_slot == 0 {
-                Self::MainGame(save_slot)
-            } else {
-                Self::MainGame(save_slot - 1)
-            },
-            Self::CSPMod(save_set, save_slot) => { Self::CSPMod(save_set - 1, save_slot - 1) },
-            Self::Mod(mod_id, save_slot) => if save_slot == 0 {
-                Self::Mod(mod_id, save_slot)
-            } else {
-                Self::Mod(mod_id, save_slot - 1)
-            },
-        }
-    }
-}
-
 impl FromStr for SaveSlot {
     type Err = GameError;
 
@@ -673,10 +649,10 @@ pub enum SaveFormat {
 
 impl SaveFormat {
     pub fn recognise(data: &[u8]) -> GameResult<Self> {
-        let mut cur = std::io::Cursor::new(data);
+        let mut cur = Cursor::new(data);
         let magic = cur.read_u64::<BE>()?;
 
-        fn recognise_switch_version(cur: &mut std::io::Cursor<&[u8]>, data: &[u8]) -> GameResult<Version> {
+        fn recognise_switch_version(cur: &mut Cursor<&[u8]>, data: &[u8]) -> GameResult<Version> {
             // Set position to the start of the region with challenge times in v1.2.
             cur.set_position(0x20eb8);
 
@@ -767,22 +743,32 @@ impl SaveFormat {
     // TODO: compatibility warnings
 }
 
-#[derive(Clone, Copy, Deserialize, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Serialize)]
 pub struct ChallengeTime {
     pub timing_mode: TimingMode,
     pub ticks: usize,
 }
 
 impl ChallengeTime {
-    pub fn new(timing_mode: TimingMode) -> Self {
+    pub fn new() -> Self {
         Self {
-            timing_mode,
+            timing_mode: TimingMode::FrameSynchronized,
             ticks: 0
         }
     }
 
+    pub fn load(ctx: &Context, state: &SharedGameState, filename: String) -> GameResult<Self> {
+        let file = user_open(ctx, filename)?;
+
+        let mut time = ChallengeTime::new();
+        time.load_time(file, SaveFormat::Freeware)?;
+
+        Ok(time.with_timing(state.settings.timing_mode))
+    }
+
+
     pub fn convert_timing(&self, new_timing: TimingMode) -> usize {
-        if self.timing_mode == TimingMode::FrameSynchronized || new_timing == TimingMode::FrameSynchronized {
+        if self.timing_mode == TimingMode::FrameSynchronized || new_timing == TimingMode::FrameSynchronized || self.timing_mode == new_timing {
             return self.ticks;
         }
 
@@ -803,8 +789,6 @@ impl ChallengeTime {
             return Ok(());
         }
 
-        // TODO: should we assumme that the best time in freeware format has a timing mode of 50 TPS?
-
         let mut ticks: [u32; 4] = [0; 4];
 
         for iter in 0..=3 {
@@ -812,6 +796,7 @@ impl ChallengeTime {
         }
 
         let random = data.read_u32::<LE>()?;
+        let tps = data.read_u16::<LE>().unwrap_or(0);
         let random_list: [u8; 4] = random.to_le_bytes();
 
         for iter in 0..=3 {
@@ -824,6 +809,8 @@ impl ChallengeTime {
         }
 
         self.ticks = if ticks[0] == ticks[1] && ticks[0] == ticks[2] { ticks[0] as usize } else { 0 };
+        // TODO: should we assumme that the best time in freeware format has a timing mode of 50 TPS?
+        self.timing_mode = TimingMode::from_tps(tps as usize);
 
         Ok(())
     }
@@ -852,9 +839,11 @@ impl ChallengeTime {
         }
 
         data.write_u32::<LE>(u32::from_le_bytes(random_list))?;
+        data.write_u16::<LE>(self.timing_mode.get_tps() as u16)?;
 
         Ok(())
     }
+
 }
 
 impl Ord for ChallengeTime {
@@ -886,7 +875,7 @@ impl CSPModProfile {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 enum PatchSlot {
     Profile(SaveSlot),
     BestTime(u8)
@@ -922,11 +911,12 @@ pub struct SaveContainer {
     pub version: usize,
     pub game_profiles: HashMap<usize, GameProfile>,
     pub csp_mods: HashMap<u8, CSPModProfile>, // save_set number -> saves & time
+
     // TODO: use this field instead of 290 records
     pub best_times: HashMap<u8, ChallengeTime>, // mod_id -> time info
 
     #[serde(skip)]
-    patchset: HashMap<SaveSlot, SavePatch>,
+    patchset: HashMap<PatchSlot, SavePatch>,
     // TODO: engine and mods specific fields
 }
 
@@ -948,36 +938,84 @@ impl SaveContainer {
     pub fn load(ctx: &mut Context, state: &mut SharedGameState) -> GameResult<SaveContainer> {
         log::debug!("DEBUG LOAD SAVE");
 
-        if let Ok(mut file) = user_open(ctx, "/save.json") {
+        let filename = Self::get_save_filename(SaveFormat::Generic, None);
+        let container_opt = if let Ok(mut file) = user_open(ctx, filename.clone()) {
             log::debug!("DEBUG LOAD SAVE - FILE EXISTS");
             // Using of buf significantly speed up the deserialization.
             let mut buf: Vec<u8> = Vec::new();
             file.read_to_end(&mut buf)?;
 
-            return Ok(Self::load_from_buf(ctx, state, buf.as_slice()).unwrap_or_default());
-        }
+            // Try to deserialize the file and create a backup if it's invalid
+            let save = Self::load_from_buf(buf.as_slice());
+            if save.is_err() {
+                let filename_bad = &(1..u64::MAX)
+                    .find_map(|i| {
+                        let fname_bad = format!("{}.bad.{}", filename.clone(), i);
+                        if !user_exists(ctx, fname_bad.clone()) {
+                            return Some(fname_bad);
+                        }
 
-        log::debug!("DEBUG LOAD SAVE - DEFAULT CREATED");
+                        None
+                    }).unwrap();
 
-        // TODO: import existing saves and challenge times
+                log::error!("Save file is corrupted. Trying to move its contents to {filename_bad}");
+                user_create(ctx, filename_bad)
+                    .and_then(|mut f| {
+                        let _ = f.write_all(&buf)?;
+                        Ok(())
+                    })
+                    .map_err(|e| GameError::ResourceLoadError(
+                        format!("Failed to create a backup of the invalid save file: {:?}.", e)
+                    ))?;
 
-        Ok(Self::default())
+                log::info!("A backup of the corrupted save file has been created and written in {filename_bad}");
+            }
+
+            save.ok()
+        } else { None };
+
+        let mut container = container_opt.unwrap_or_else(|| {
+            log::info!("No save file is found, creating a new one.");
+            // TODO: import existing profiles
+            let save = Self::default();
+            let _ = save.write_save(ctx, state, SaveFormat::Generic, None, None, &SaveParams::default());
+
+            save
+        });
+
+        container.load_times(ctx, state);
+
+        Ok(container)
     }
 
-    fn load_from_buf(_ctx: &mut Context, _state: &mut SharedGameState, buf: &[u8]) -> GameResult<SaveContainer> {
+    fn load_from_buf(buf: &[u8]) -> GameResult<SaveContainer> {
         serde_json::from_slice::<SaveContainer>(buf)
             .map_err(|err| GameError::ResourceLoadError(format!("Failed to deserialize a generic save. {}", err.to_string())))
             .map(|container| container.upgrade())
     }
 
-    pub fn save(&mut self, ctx: &mut Context, state: &mut SharedGameState, params: SaveParams) -> GameResult {
-        self.write_save(ctx, state, SaveFormat::Generic, None, None, &params)?;
-        self.write_save(ctx, state, state.settings.save_format, None, None, &params)?;
-        self.patchset.clear();
-        Ok(())
+    // TODO: add import interface for challenge times?
+    fn load_times(&mut self, ctx: &Context, state: &SharedGameState) {
+        let hell_time = ChallengeTime::load(ctx, state, Self::get_rec_filename(state, 0, true));
+        if let Ok(time) = hell_time {
+            let _ = self.best_times.entry(0)
+                .and_modify(|t| { *t = (*t).min(time); })
+                .or_insert(time);
+        }
+
+        for mod_info in state.mod_list.mods.iter().filter(|m| m.get_csp_id().is_some()) {
+            let filename = ["/".to_owned(), mod_info.get_rec_filename(".rec".to_owned())].join("");
+
+            if let Ok(time) = ChallengeTime::load(ctx, state, filename) {
+                let id = mod_info.get_csp_id().unwrap();
+                let _ = self.best_times.entry(id)
+                    .and_modify(|t| { *t = (*t).min(time); })
+                    .or_insert(time);
+            }
+        }
     }
 
-    pub fn write_save(&mut self, ctx: &mut Context, state: &mut SharedGameState, format: SaveFormat, slot: Option<SaveSlot>, mut out_path: Option<PathBuf>, params: &SaveParams) -> GameResult {
+    pub fn write_save(&self, ctx: &mut Context, state: &mut SharedGameState, format: SaveFormat, slot: Option<SaveSlot>, mut out_path: Option<PathBuf>, params: &SaveParams) -> GameResult {
         log::debug!("DEBUG WRITE SAVE");
 
         let save_path = Self::get_save_filename(format, slot.clone());
@@ -1001,7 +1039,7 @@ impl SaveContainer {
                 for (save_slot, profile) in &self.game_profiles {
                     if params.slots.is_empty() || params.slots.contains(&SaveSlot::MainGame(*save_slot)) {
                         let mut buf = Vec::new();
-                        let mut cur = std::io::Cursor::new(&mut buf);
+                        let mut cur = Cursor::new(&mut buf);
                         profile.write_save(&mut cur, &format)?;
 
                         let mut filename = Self::get_save_filename(format, Some(SaveSlot::MainGame(*save_slot)));
@@ -1022,7 +1060,7 @@ impl SaveContainer {
                     for (slot, profile) in &csp_mod.profiles {
                         if params.slots.is_empty() || params.slots.contains(&SaveSlot::CSPMod(*save_set, *slot)) {
                             let mut buf = Vec::new();
-                            let mut cur = std::io::Cursor::new(&mut buf);
+                            let mut cur = Cursor::new(&mut buf);
                             profile.write_save(&mut cur, &format)?;
 
                             let mut filename = Self::get_save_filename(format, Some(SaveSlot::CSPMod(*save_set, *slot)));
@@ -1041,23 +1079,28 @@ impl SaveContainer {
                 }
 
                 for (mod_id, best_time) in &self.best_times {
-                    let mut filename = ["/".to_string(), Self::get_rec_filename(state, *mod_id)].join("");
+                    let filename = Self::get_rec_filename(state, *mod_id, false);
                     if let Some(path) = &mut out_path {
-                        let os_filename = OsString::from_str(filename.split_off(1).as_str()).unwrap();
+                        let os_filename = OsString::from_str(filename.as_str()).unwrap();
                         let _ = path.set_file_name(os_filename);
 
                         let file = File::create(path)?;
                         best_time.write_time(file, state, format)?;
                     } else {
-                        let file = user_create(ctx, filename)?;
+                        let file = user_create(ctx, ["/", filename.as_str()].join(""))?;
                         best_time.write_time(file, state, format)?;
                     }
                 }
 
                 for (patch_slot, patch_state) in self.patchset.iter() {
                     if *patch_state == SavePatch::Deleted {
-                        let slot = Some(patch_slot.clone());
-                        user_delete(ctx, Self::get_save_filename(format, slot))?;
+                        let filename = match patch_slot {
+                            PatchSlot::Profile(save_slot) => Self::get_save_filename(format, Some(save_slot.clone())),
+                            PatchSlot::BestTime(mod_id) => Self::get_rec_filename(state, *mod_id, true)
+                        };
+
+                        // Since the file can miss, we aren't unwrap this call
+                        let _ = user_delete(ctx, filename);
                     }
                 }
             },
@@ -1079,12 +1122,11 @@ impl SaveContainer {
                 let graphics = state.settings.original_textures as u8;
                 let language = (state.settings.locale == "jp") as u8;
                 let beaten_hell = state.mod_requirements.beat_hell as u8;
-                let unused = [0u8; 14];
                 let jukebox = [0xff as u8; 6]; // TODO: implement storing ids of played songs for jukebox
                 let mut eggfish_killed = [0u8; 3];
 
                 let mut buf = Vec::new();
-                let mut cur = std::io::Cursor::new(&mut buf);
+                let mut cur = Cursor::new(&mut buf);
 
                 let default_profile = GameProfile::default();
                 for save_slot in 1..=3 {
@@ -1136,7 +1178,7 @@ impl SaveContainer {
                 cur.write_u8(language)?;
                 cur.write_u8(beaten_hell)?;
 
-                if let SaveFormat::Switch(version) = format {
+                if let SaveFormat::Switch(_) = format {
                     cur.write(&jukebox)?;
                     cur.write_u8(0)?; // Unlock notifications
 
@@ -1158,7 +1200,7 @@ impl SaveContainer {
                     _ => 26
                 };
 
-                let default_best_time = ChallengeTime::new(state.settings.timing_mode);
+                let default_best_time = ChallengeTime::new();
                 for mod_id in 0..=best_times {
                     let mod_time = self.best_times.get(&mod_id).unwrap_or(&default_best_time).clone();
 
@@ -1192,12 +1234,30 @@ impl SaveContainer {
                 } else {
                     user_create(ctx, save_path)?.write(&buf)?;
                 }
-            },
-            _ => todo!()
+            }
         }
 
         Ok(())
     }
+
+    pub fn save(&mut self, ctx: &mut Context, state: &mut SharedGameState, params: SaveParams) -> GameResult {
+        self.write_save(ctx, state, SaveFormat::Generic, None, None, &params)?;
+        self.write_save(ctx, state, state.settings.save_format, None, None, &params)?;
+        self.patchset.clear();
+        Ok(())
+    }
+
+    pub fn upgrade(self) -> Self {
+        log::debug!("DEBUG UPGRADE SAVE");
+        let initial_version = self.version;
+
+        if self.version != initial_version {
+            log::info!("Upgraded generic save from version {} to {}.", initial_version, self.version);
+        }
+
+        self
+    }
+
 
     pub fn get_save_filename(format: SaveFormat, slot: Option<SaveSlot>) -> String {
         match format {
@@ -1212,37 +1272,28 @@ impl SaveContainer {
                         format!("/Profile{}.dat", save_slot)
                     },
                     Some(SaveSlot::CSPMod(save_set, save_slot)) => format!("/Mod{}_Profile{}.dat", save_set, save_slot),
-                    Some(SaveSlot::Mod(mod_id, save_slot)) => unimplemented!(),
+                    Some(SaveSlot::Mod(_mod_id, _save_slot)) => unimplemented!(),
                     _ => "/Profile.dat".to_owned()
                 }
             }
         }
     }
 
-    pub fn get_rec_filename(state: &SharedGameState, mod_id: u8) -> String {
-        if mod_id == 0 {
-            return "290.rec".to_owned();
-        }
+    pub fn get_rec_filename(state: &SharedGameState, mod_id: u8, is_absolute: bool) -> String {
+        let prefix = if is_absolute { "/" } else { "" };
 
-        // TODO: maybe we should use mod ids instead of names? Because unloaded (removed from the mods.txt list) mods overwrite the 290.rec currently
-        let name = state
-            .mod_list
-            .get_info_from_id(format!("cspmod_{mod_id}"))
-            .and_then(|mod_info| Some(mod_info.get_rec_filename()))
-            .unwrap_or("290".to_owned());
+        let name = if mod_id == 0 {
+            "290".to_owned()
+        } else {
+            let id = format!("cspmod_{mod_id:02}");
+            state
+                .mod_list
+                .get_info_from_id(id.clone())
+                .and_then(|mod_info| Some(mod_info.get_rec_filename("".to_string())))
+                .unwrap_or(id)
+        };
 
-        [name, ".rec".to_string()].join("")
-    }
-
-    pub fn upgrade(self) -> Self {
-        log::debug!("DEBUG UPGRADE SAVE");
-        let initial_version = self.version;
-
-        if self.version != initial_version {
-            log::info!("Upgraded generic save from version {} to {}.", initial_version, self.version);
-        }
-
-        self
+        [prefix.to_owned(), name, ".rec".to_string()].join("")
     }
 
 
@@ -1266,9 +1317,9 @@ impl SaveContainer {
         };
 
         if prev_save.is_none() {
-            self.patchset.insert(slot, SavePatch::Added);
+            self.patchset.insert(PatchSlot::Profile(slot), SavePatch::Added);
         } else {
-            self.patchset.insert(slot, SavePatch::Modified);
+            self.patchset.insert(PatchSlot::Profile(slot), SavePatch::Modified);
         }
     }
 
@@ -1305,7 +1356,7 @@ impl SaveContainer {
             SaveSlot::Mod(_mod_id, _save_slot) => unimplemented!()
         }
 
-        self.patchset.insert(slot, SavePatch::Deleted);
+        self.patchset.insert(PatchSlot::Profile(slot), SavePatch::Deleted);
     }
 
     pub fn is_empty(&self) -> bool {
@@ -1323,7 +1374,6 @@ impl SaveContainer {
     }
 
 
-
     fn merge(&mut self, b: &Self) {
         self.game_profiles.extend(b.game_profiles.iter());
         for (b_set, b_csp_mod) in &b.csp_mods {
@@ -1338,7 +1388,6 @@ impl SaveContainer {
                 .or_insert(*b_best_time);
         }
     }
-
 
     pub fn import(
         &mut self,
@@ -1361,7 +1410,7 @@ impl SaveContainer {
 
         match format {
             SaveFormat::Generic => {
-                *self = Self::load_from_buf(ctx, state, data.as_slice())?;
+                *self = Self::load_from_buf(data.as_slice())?;
             },
             SaveFormat::Freeware => {
                 let filename = save_path.file_name().and_then(|s| s.to_os_string().into_string().ok()).unwrap();
@@ -1444,8 +1493,8 @@ impl SaveContainer {
                     cur.read_exact(&mut jukebox)?;
 
                     // TODO
-                    let unlock_notifications = cur.read_u8()?;
-                    let shared_healthbar = cur.read_u8()?;
+                    let _ = cur.read_u8()?; // Unlock notifications
+                    let _ = cur.read_u8()?; // Shared healthbar
 
                     // unused
                     let _ = cur.read_u24::<LE>()?;
@@ -1465,7 +1514,7 @@ impl SaveContainer {
                 };
 
                 for mod_id in 0..=best_times {
-                    let mut best_time = ChallengeTime::new(TimingMode::_60Hz);
+                    let mut best_time = ChallengeTime::new();
                     best_time.load_time(&mut cur, format)?;
 
                     if best_time.ticks != 0 {
@@ -1494,7 +1543,7 @@ impl SaveContainer {
                     cur.read_exact(&mut something)?;
 
                     // TODO
-                    let skins_p2 = cur.read_u16::<LE>()?;
+                    let _ = cur.read_u16::<LE>()?; // P2 Skins
 
                     let mut something2 = [0u8; 6];
                     cur.read_exact(&mut something2)?;

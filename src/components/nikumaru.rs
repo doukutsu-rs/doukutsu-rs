@@ -36,22 +36,19 @@ impl NikumaruCounter {
     }
 
     fn load_time(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<usize> {
-        if let Ok(mut data) = filesystem::user_open(ctx, [state.get_rec_filename(), ".rec".to_string()].join("")) {
-            let mut time = ChallengeTime::new(state.settings.timing_mode);
-            time.load_time(data, SaveFormat::Freeware)?;
-
-            return Ok(time.ticks);
-        } else {
+        let ticks = ChallengeTime::load(ctx, state, state.get_rec_filename(".rec".to_owned())).map(|t| t.ticks);
+        if ticks.is_err() {
             log::warn!("Failed to open 290 record.");
+            return Ok(0);
         }
 
-        Ok(0)
+        ticks
     }
 
     fn save_time(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if let Ok(mut data) = filesystem::open_options(
+        if let Ok(data) = filesystem::open_options(
             ctx,
-            [state.get_rec_filename(), ".rec".to_string()].join(""),
+            state.get_rec_filename(".rec".to_string()),
             OpenOptions::new().write(true).create(true),
         ) {
             let time = self.dump_challenge_time(state);
