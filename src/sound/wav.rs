@@ -4,7 +4,6 @@
 use std::fmt;
 use std::io;
 use std::io::ErrorKind;
-use std::sync::Arc;
 
 use byteorder::{LE, ReadBytesExt};
 
@@ -46,7 +45,7 @@ impl fmt::Display for WavFormat {
 #[derive(Clone)]
 pub struct WavSample {
     pub format: WavFormat,
-    pub data: Arc<[u8]>,
+    pub data: Vec<u8>,
 }
 
 impl fmt::Display for WavSample {
@@ -120,6 +119,6 @@ impl WavSample {
 
         f.read_exact(&mut buf)?;
 
-        Ok(WavSample { format: WavFormat { channels, sample_rate: samples, bit_depth: bits }, data: buf.into() })
+        Ok(WavSample { format: WavFormat { channels, sample_rate: samples, bit_depth: bits }, data: buf })
     }
 }
