@@ -3,21 +3,21 @@
 // Copyright (c) 2020 doukutsu-rs contributors (see AUTHORS.md)
 use std::fmt;
 use std::io;
-use std::sync::Arc;
 
 use crate::sound::wav;
 
 #[derive(Clone)]
 pub struct SoundBank {
-    pub wave100: Arc<[u8; 25600]>,
-    pub samples: Arc<[wav::WavSample]>,
+    pub wave100: Box<[u8; 25600]>,
+
+    pub samples: Vec<wav::WavSample>,
 }
 
 impl fmt::Display for SoundBank {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "WAVE100: {:2X?}...", &self.wave100[..8])?;
 
-        for sample in self.samples.iter() {
+        for sample in &self.samples {
             writeln!(f, "{}", sample)?;
         }
 
@@ -41,7 +41,7 @@ impl SoundBank {
                 }
                 Err(err) => {
                     log::error!("Failed to read next sample: {}", err);
-                    return Ok(SoundBank { wave100: wave100.into(), samples: samples.into() });
+                    return Ok(SoundBank { wave100, samples });
                 }
             }
         }
