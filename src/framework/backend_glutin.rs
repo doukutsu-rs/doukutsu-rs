@@ -85,7 +85,7 @@ impl GlutinEventLoop {
 
             window = window.with_title("doukutsu-rs");
             
-            #[cfg(not(any(target_os = "windows", target_os = "android", target_os = "horizon")))]
+            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "android", target_os = "horizon")))]
             {
                 let mut file = filesystem::open(&ctx, "/builtin/icon.bmp").unwrap();
                 let mut buf: Vec<u8> = Vec::new();
