@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::io::{BufRead, BufReader, Cursor, Read};
 
 use byteorder::{ReadBytesExt, LE};
@@ -16,7 +17,7 @@ use crate::game::player::ControlMode;
 use crate::game::scripting::tsc::text_script::TextScriptEncoding;
 use crate::game::settings::Settings;
 use crate::game::shared_game_state::{FontData, Season};
-use crate::i18n::Locale;
+use crate::i18n::{Locale, Translation};
 use crate::sound::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
 use crate::sound::SoundManager;
 
@@ -279,6 +280,7 @@ pub struct EngineConstants {
     pub string_table: HashMap<String, String>,
     pub missile_flags: Vec<u16>,
     pub locales: Vec<Locale>,
+    pub translations: Vec<Translation>,
     pub gamepad: GamepadConsts,
     pub stage_encoding: Option<TextScriptEncoding>,
 }
@@ -1584,6 +1586,7 @@ impl EngineConstants {
             string_table: HashMap::new(),
             missile_flags: vec![200, 201, 202, 218, 550, 766, 880, 920, 1551],
             locales: Vec::new(),
+            translations: Vec::new(),
             gamepad: {
                 let mut holder = GamepadConsts {
                     button_rects: HashMap::from([
@@ -1736,9 +1739,17 @@ impl EngineConstants {
             if settings.locale != "en".to_string() {
                 self.base_paths.insert(0, format!("/base/{}/", settings.locale));
             }
+
+            if let Some(tran) = &settings.translation {
+                self.base_paths.insert(0, format!("/base/{}_{}/", settings.locale, tran));
+            }
         } else {
             if settings.locale != "en".to_string() {
                 self.base_paths.insert(0, format!("/{}/", settings.locale));
+            }
+
+            if let Some(tran) = &settings.translation {
+                self.base_paths.insert(0, format!("/{}_{}/", settings.locale, tran));
             }
         }
 
@@ -1827,6 +1838,40 @@ impl EngineConstants {
 
             self.locales.push(locale.clone());
             log::info!("Loaded locale {} ({})", locale_code, locale.name.clone());
+        }
+
+        Ok(())
+    }
+
+    pub fn load_translations(&mut self, ctx: &mut Context) -> GameResult {
+        self.translations.clear();
+
+        let entries = filesystem::read_dir_find(ctx, &self.base_paths, "translation/")?;
+        for entry in entries {
+            let filename = entry.file_name().unwrap().to_string_lossy().to_ascii_lowercase();
+
+            let extension = entry.extension().and_then(OsStr::to_str);
+            if extension != Some("json") {
+                continue;
+            }
+
+            let ext_pos = filename.find(".").unwrap_or(filename.len());
+            let code = &filename[..ext_pos];
+
+            if let Ok(mut tran) = Translation::new(ctx, &self.base_paths, code) {
+                if let Some(locale) = self.locales.iter().find(|loc| loc.code == tran.locale) {
+                    log::info!("Loaded {} translation for {}", &tran.name, locale.name);
+
+                    let mut data_path = tran.full_code();
+                    data_path.push('/');
+
+                    if filesystem::exists_find(ctx, &self.base_paths, data_path) {
+                        tran.is_present = true;
+                    }
+
+                    self.translations.push(tran);
+                }
+            }
         }
 
         Ok(())

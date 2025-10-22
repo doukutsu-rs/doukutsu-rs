@@ -100,7 +100,7 @@ impl Default for SoundtrackMenuEntry {
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum LanguageMenuEntry {
     Title,
-    Language(String),
+    Language(String, Option<String>), // locale, translation
     Back,
 }
 
@@ -359,8 +359,28 @@ impl SettingsMenu {
         );
 
         for locale in &state.constants.locales {
-            self.language
-                .push_entry(LanguageMenuEntry::Language(locale.code.clone()), MenuEntry::Active(locale.name.clone()));
+            // Check if there's data for a default translation of the locale
+            let default_present =
+                SharedGameState::get_translation(&state.constants, locale.code.as_ref(), None)
+                .and_then(|t| Some(t.is_present))
+                .unwrap_or(false);
+
+            // The default English and Japanese translations of freeware data are always stored in the root dir, so we should consider this
+            if default_present || locale.code == "en" || locale.code == "jp" {
+                self.language
+                    .push_entry(LanguageMenuEntry::Language(locale.code.clone(), None), MenuEntry::Active(locale.name.clone()));
+            }
+
+            for translation in &state.constants.translations {
+                // Skip default, inappropriate and missing translations
+                if translation.code.is_none() || &translation.locale != &locale.code || !translation.is_present {
+                    continue;
+                }
+
+                let entry_val = format!("{} ({})", locale.name.clone(), translation.name.clone());
+                self.language
+                    .push_entry(LanguageMenuEntry::Language(locale.code.clone(), translation.code.clone()), MenuEntry::Active(entry_val));
+            }
         }
 
         self.language.push_entry(LanguageMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
@@ -917,12 +937,13 @@ impl SettingsMenu {
                 )?;
             }
             CurrentMenu::LanguageMenu => match self.language.tick(controller, state) {
-                MenuSelectionResult::Selected(LanguageMenuEntry::Language(new_locale), entry) => {
+                MenuSelectionResult::Selected(LanguageMenuEntry::Language(new_locale, new_translation), entry) => {
                     if let MenuEntry::Active(_) = entry {
                         if new_locale == state.settings.locale {
                             self.current = CurrentMenu::MainMenu;
                         } else {
                             state.settings.locale = new_locale;
+                            state.settings.translation = new_translation;
                             state.update_locale(ctx);
 
                             let _ = state.settings.save(ctx);
