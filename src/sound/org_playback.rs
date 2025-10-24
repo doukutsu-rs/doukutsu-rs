@@ -7,11 +7,11 @@ use std::mem::MaybeUninit;
 
 use crate::sound::fir::FIR;
 use crate::sound::fir::FIR_STEP;
-use crate::sound::InterpolationMode;
 use crate::sound::organya::{Song as Organya, Version};
 use crate::sound::stuff::*;
 use crate::sound::wav::*;
 use crate::sound::wave_bank::SoundBank;
+use crate::sound::InterpolationMode;
 
 #[derive(Clone)]
 pub struct FIRData {
@@ -123,10 +123,14 @@ impl OrgPlaybackEngine {
         for (idx, (track, buf)) in song.tracks[8..].iter().zip(self.track_buffers[128..].iter_mut()).enumerate() {
             if song.version == Version::Extended {
                 // Check for OOB track count, instruments outside of the sample range will be set to the last valid sample
-                let index = if track.inst.inst as usize >= samples.samples.len() {samples.samples.len() - 1} else {track.inst.inst as usize} ;
+                let index = if track.inst.inst as usize >= samples.samples.len() {
+                    samples.samples.len() - 1
+                } else {
+                    track.inst.inst as usize
+                };
                 *buf = RenderBuffer::new(samples.samples[index].clone());
             } else {
-                let index = if idx >= samples.samples.len() {samples.samples.len() - 1} else {idx};
+                let index = if idx >= samples.samples.len() { samples.samples.len() - 1 } else { idx };
                 *buf = RenderBuffer::new(samples.samples[index].clone());
             }
         }
@@ -178,8 +182,10 @@ impl OrgPlaybackEngine {
                             self.track_buffers[l]
                                 .organya_select_octave(p_oct as usize, self.song.tracks[track].inst.pipi != 0);
                         }
-                        self.track_buffers[j].looping = true;
                         self.track_buffers[j].playing = true;
+                        self.track_buffers[j].looping = true;
+                        self.track_buffers[j].nloops = -1;
+                        self.track_buffers[j].release_len = 0;
                         // last playing key
                         self.keys[track] = note.key;
                     } else if self.keys[track] == note.key {
@@ -195,8 +201,10 @@ impl OrgPlaybackEngine {
                         let j = octave as usize + track + self.swaps[track];
                         self.track_buffers[j]
                             .organya_select_octave(note.key as usize / 12, self.song.tracks[track].inst.pipi != 0);
-                        self.track_buffers[j].looping = true;
                         self.track_buffers[j].playing = true;
+                        self.track_buffers[j].looping = true;
+                        self.track_buffers[j].nloops = -1;
+                        self.track_buffers[j].release_len = 0;
                     } else {
                         // change
                         let octave = (self.keys[track] / 12) * 8;
@@ -219,8 +227,10 @@ impl OrgPlaybackEngine {
                             self.track_buffers[l]
                                 .organya_select_octave(p_oct as usize, self.song.tracks[track].inst.pipi != 0);
                         }
-                        self.track_buffers[j].looping = true;
                         self.track_buffers[j].playing = true;
+                        self.track_buffers[j].looping = true;
+                        self.track_buffers[j].nloops = -1;
+                        self.track_buffers[j].release_len = 0;
                         self.keys[track] = note.key;
                     }
 
@@ -233,7 +243,7 @@ impl OrgPlaybackEngine {
 
                     if note.vol != 255 {
                         let vol = org_vol_to_vol(note.vol);
-                        self.track_buffers[j].set_volume(vol);
+                        self.track_buffers[j].set_volume_glide(vol);
                     }
 
                     if note.pan != 255 {
@@ -247,7 +257,9 @@ impl OrgPlaybackEngine {
                 let octave = (self.keys[track] / 12) * 8;
                 let j = octave as usize + track + self.swaps[track];
                 if self.song.tracks[track].inst.pipi == 0 {
-                    self.track_buffers[j].looping = false;
+                    const NOTE_RELEASE: u16 = 255;
+                    self.track_buffers[j].release_len = NOTE_RELEASE;
+                    self.track_buffers[j].release_timer = NOTE_RELEASE;
                 }
                 self.keys[track] = 255;
             }
@@ -314,12 +326,13 @@ impl OrgPlaybackEngine {
 
                     let get_sample = match (is_16bit, is_stereo) {
                         (true, true) => |buf: &RenderBuffer, pos: usize| -> (f32, f32) {
-                            let sl = i16::from_le_bytes([buf.sample.data[pos << 2], buf.sample.data[pos << 2 + 1]])
+                            let sl = i16::from_le_bytes([buf.sample.data[pos << 2], buf.sample.data[(pos << 2) + 1]])
                                 as f32
                                 / 32768.0;
-                            let sr = i16::from_le_bytes([buf.sample.data[pos << 2 + 2], buf.sample.data[pos << 2 + 3]])
-                                as f32
-                                / 32768.0;
+                            let sr =
+                                i16::from_le_bytes([buf.sample.data[(pos << 2) + 2], buf.sample.data[(pos << 2) + 3]])
+                                    as f32
+                                    / 32768.0;
                             (sl, sr)
                         },
                         (false, true) => |buf: &RenderBuffer, pos: usize| -> (f32, f32) {
@@ -328,7 +341,7 @@ impl OrgPlaybackEngine {
                             (sl, sr)
                         },
                         (true, false) => |buf: &RenderBuffer, pos: usize| -> (f32, f32) {
-                            let s = i16::from_le_bytes([buf.sample.data[pos << 1], buf.sample.data[pos << 1 + 1]])
+                            let s = i16::from_le_bytes([buf.sample.data[pos << 1], buf.sample.data[(pos << 1) + 1]])
                                 as f32
                                 / 32768.0;
                             (s, s)
@@ -342,8 +355,22 @@ impl OrgPlaybackEngine {
                     // index into sound samples
                     let advance = buf.frequency as f64 / freq;
 
-                    let vol = buf.vol_cent;
+                    buf.vol_cent = buf.vol_cent + (buf.vol_cent_target - buf.vol_cent) * 0.1;
+
+                    // add a bit of release to the note for declicking
+                    let release =
+                        if buf.release_len > 0 { buf.release_timer as f32 / buf.release_len as f32 } else { 1.0 };
+                    let vol = buf.vol_cent * release;
                     let (pan_l, pan_r) = buf.pan_cent;
+
+                    if buf.release_len > 0 && buf.release_timer == 0 {
+                        buf.release_len = 0;
+                        buf.looping = false;
+                        buf.playing = false;
+                    }
+                    if buf.release_timer > 0 {
+                        buf.release_timer -= 1;
+                    }
 
                     if self.interpolation == InterpolationMode::Polyphase {
                         let fir_step = (FIR_STEP * advance as f32).floor();
@@ -359,27 +386,23 @@ impl OrgPlaybackEngine {
                         let (sl1, sr1, sl2, sr2) = match (is_16bit, is_stereo) {
                             (true, true) => unsafe {
                                 let ps = pos << 2;
-                                let sl1 = (*sample_data_ptr.add(ps) as u16
-                                    | (*sample_data_ptr.add(ps + 1) as u16) << 8)
+                                let sl1 = (*sample_data_ptr.add(ps) as u16 | (*sample_data_ptr.add(ps + 1) as u16) << 8)
                                     as f32
                                     / 32768.0;
-                                let sr1 =
-                                    (*sample_data_ptr.add(ps + 2) as u16
-                                        | (*sample_data_ptr.add(ps + 3) as u16) << 8)
-                                        as f32
-                                        / 32768.0;
+                                let sr1 = (*sample_data_ptr.add(ps + 2) as u16
+                                    | (*sample_data_ptr.add(ps + 3) as u16) << 8)
+                                    as f32
+                                    / 32768.0;
                                 let ps = min(pos + 1, buf.base_pos + buf.len - 1) << 2;
-                                let sl2 = (*sample_data_ptr.add(ps) as u16
-                                    | (*sample_data_ptr.add(ps + 1) as u16) << 8)
+                                let sl2 = (*sample_data_ptr.add(ps) as u16 | (*sample_data_ptr.add(ps + 1) as u16) << 8)
                                     as f32
                                     / 32768.0;
-                                let sr2 =
-                                    (*sample_data_ptr.add(ps + 2) as u16
-                                        | (*sample_data_ptr.add(ps + 3) as u16) << 8)
-                                        as f32
-                                        / 32768.0;
+                                let sr2 = (*sample_data_ptr.add(ps + 2) as u16
+                                    | (*sample_data_ptr.add(ps + 3) as u16) << 8)
+                                    as f32
+                                    / 32768.0;
                                 (sl1, sr1, sl2, sr2)
-                            }
+                            },
                             (false, true) => unsafe {
                                 let ps = pos << 1;
                                 let sl1 = (*sample_data_ptr.add(ps) as f32 - 128.0) / 128.0;
@@ -388,26 +411,24 @@ impl OrgPlaybackEngine {
                                 let sl2 = (*sample_data_ptr.add(ps) as f32 - 128.0) / 128.0;
                                 let sr2 = (*sample_data_ptr.add(ps + 1) as f32 - 128.0) / 128.0;
                                 (sl1, sr1, sl2, sr2)
-                            }
+                            },
                             (true, false) => unsafe {
                                 let ps = pos << 1;
-                                let s1 = (*sample_data_ptr.add(ps) as u16
-                                    | (*sample_data_ptr.add(ps + 1) as u16) << 8)
+                                let s1 = (*sample_data_ptr.add(ps) as u16 | (*sample_data_ptr.add(ps + 1) as u16) << 8)
                                     as f32
                                     / 32768.0;
                                 let ps = min(pos + 1, buf.base_pos + buf.len - 1) << 1;
-                                let s2 = (*sample_data_ptr.add(ps) as u16
-                                    | (*sample_data_ptr.add(ps + 1) as u16) << 8)
+                                let s2 = (*sample_data_ptr.add(ps) as u16 | (*sample_data_ptr.add(ps + 1) as u16) << 8)
                                     as f32
                                     / 32768.0;
                                 (s1, s1, s2, s2)
-                            }
+                            },
                             (false, false) => unsafe {
                                 let s1 = (*sample_data_ptr.add(pos) as f32 - 128.0) / 128.0;
                                 let pos = min(pos + 1, buf.base_pos + buf.len - 1);
                                 let s2 = (*sample_data_ptr.add(pos) as f32 - 128.0) / 128.0;
                                 (s1, s1, s2, s2)
-                            }
+                            },
                         };
 
                         let r1 = buf.position.fract() as f32;
@@ -601,11 +622,14 @@ pub struct RenderBuffer {
     pub sample: WavSample,
     pub playing: bool,
     pub looping: bool,
+    pub release_len: u16,
+    pub release_timer: u16,
     pub base_pos: usize,
     pub len: usize,
     // -1 = infinite
     pub nloops: i32,
     pub fir: FIRData,
+    vol_cent_target: f32,
     vol_cent: f32,
     pan_cent: (f32, f32),
 }
@@ -622,9 +646,12 @@ impl RenderBuffer {
             sample,
             playing: false,
             looping: false,
+            release_len: 0,
+            release_timer: 0,
             base_pos: 0,
             nloops: -1,
             fir: FIRData::new(),
+            vol_cent_target: 0.0,
             vol_cent: 0.0,
             pan_cent: (0.0, 0.0),
         }
@@ -640,9 +667,12 @@ impl RenderBuffer {
             sample: WavSample { format: WavFormat { channels: 2, sample_rate: 22050, bit_depth: 16 }, data: vec![] },
             playing: false,
             looping: false,
+            release_len: 0,
+            release_timer: 0,
             base_pos: 0,
             nloops: -1,
             fir: FIRData::new(),
+            vol_cent_target: 0.0,
             vol_cent: 0.0,
             pan_cent: (0.0, 0.0),
         }
@@ -695,6 +725,13 @@ impl RenderBuffer {
 
         self.volume = volume;
         self.vol_cent = centibel_to_scale(volume);
+        self.vol_cent_target = self.vol_cent;
+    }
+
+    #[inline]
+    pub fn set_volume_glide(&mut self, volume: i32) {
+        self.volume = volume;
+        self.vol_cent_target = centibel_to_scale(volume);
     }
 
     #[inline]
