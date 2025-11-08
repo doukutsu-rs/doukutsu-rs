@@ -239,10 +239,6 @@ impl WaterRenderer {
         frame: &Frame,
         layer: WaterLayer,
     ) -> GameResult<()> {
-        if !graphics::supports_vertex_draw(ctx)? {
-            return Ok(());
-        }
-
         graphics::set_render_target(ctx, state.lightmap_canvas.as_ref())?;
         graphics::clear(ctx, Color::from_rgba(0, 0, 0, 0));
         graphics::set_blend_mode(ctx, BlendMode::None)?;
@@ -272,7 +268,7 @@ impl WaterRenderer {
                 vertices.push(VertexData { position: (right, top), uv, color: color_mid_rgba });
                 vertices.push(VertexData { position: (right, bottom), uv, color: color_btm_rgba });
 
-                graphics::draw_triangle_list(ctx, &vertices, None, shader)?;
+                graphics::draw_triangles(ctx, &vertices, None, shader)?;
                 Ok(())
             };
 
@@ -328,7 +324,7 @@ impl WaterRenderer {
                     vertices.push(VertexData { position: (x_right, bottom), uv, color: color_btm_rgba });
                 }
 
-                graphics::draw_triangle_list(ctx, &vertices, None, shader)?;
+                graphics::draw_triangles(ctx, &vertices, None, shader)?;
 
                 Ok(())
             };

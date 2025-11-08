@@ -257,10 +257,11 @@ impl PhysicalFS {
                         continue;
                     }
 
+                    let node_lower = node.to_ascii_lowercase();
                     if let Ok(entries) = root_path2.read_dir() {
                         for entry in entries.flatten() {
                             let name = entry.file_name();
-                            if name.to_ascii_lowercase() != node.to_ascii_lowercase() {
+                            if name.to_ascii_lowercase() != node_lower {
                                 continue;
                             }
 

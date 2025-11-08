@@ -3,39 +3,78 @@ use std::cell::{RefCell, UnsafeCell};
 use std::ffi::c_void;
 use std::io::Read;
 use std::mem;
+use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::vec::Vec;
 
 use glutin::event::{ElementState, Event, TouchPhase, VirtualKeyCode, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
-use glutin::window::WindowBuilder;
+use glutin::window::{Fullscreen, WindowBuilder};
 use glutin::{Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, WindowedContext};
 use imgui::{DrawCmdParams, DrawData, DrawIdx, DrawVert};
 use winit::window::Icon;
 
+use super::backend::{
+    Backend, BackendCallbacks, BackendEventLoop, BackendRenderer, BackendTexture, DeviceFormFactor, SpriteBatchCommand,
+    WindowParams,
+};
+use super::context::Context;
+use super::error::GameResult;
+use super::keyboard::ScanCode;
+use super::render_opengl::OpenGLRenderer;
+use super::{filesystem, render_opengl};
 use crate::common::Rect;
-use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
-use crate::framework::context::Context;
-use crate::framework::error::GameResult;
-use crate::framework::filesystem;
-use crate::framework::gl;
-use crate::framework::keyboard::ScanCode;
-use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
+use crate::framework::error::GameError;
+use crate::framework::render_opengl::GLContextType;
+use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
-use crate::game::GAME_SUSPENDED;
 use crate::input::touch_controls::TouchPoint;
+
+trait WindowModeExt {
+    fn get_glutin_fullscreen_type(&self) -> Option<Fullscreen>;
+}
+
+impl WindowModeExt for WindowMode {
+    fn get_glutin_fullscreen_type(&self) -> Option<Fullscreen> {
+        match self {
+            WindowMode::Windowed => None,
+            WindowMode::Fullscreen => Some(Fullscreen::Borderless(None)),
+        }
+    }
+}
 
 pub struct GlutinBackend;
 
 impl GlutinBackend {
-    pub fn new() -> GameResult<Box<dyn Backend>> {
+    pub fn new(window_params: WindowParams) -> GameResult<Box<dyn Backend>> {
         Ok(Box::new(GlutinBackend))
     }
 }
 
 impl Backend for GlutinBackend {
     fn create_event_loop(&self, _ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>> {
+        Ok(Box::new(GlutinEventLoop { refs: Rc::new(RefCell::new(None)) }))
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+type ContextHandle = Rc<WindowedContext<PossiblyCurrent>>;
+type Refs = Rc<RefCell<Option<ContextHandle>>>;
+
+pub struct GlutinEventLoop {
+    refs: Refs,
+}
+
+impl GlutinEventLoop {
+    fn get_context(&mut self, ctx: &Context, event_loop: &EventLoop<()>) -> ContextHandle {
+        if let Some(rc) = self.refs.borrow().as_ref() {
+            return rc.clone();
+        }
+
         #[cfg(target_os = "android")]
         loop {
             match ndk_glue::native_window().as_ref() {
@@ -47,76 +86,64 @@ impl Backend for GlutinBackend {
             }
         }
 
-        Ok(Box::new(GlutinEventLoop { refs: Rc::new(UnsafeCell::new(None)) }))
-    }
+        let mut window = WindowBuilder::new();
 
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
+        let windowed_context = ContextBuilder::new();
+        let windowed_context = windowed_context.with_gl(GlRequest::Latest);
+        #[cfg(target_os = "android")]
+        let windowed_context = windowed_context //
+            .with_gl(GlRequest::Specific(Api::OpenGlEs, (2, 0)))
+            .with_gl_debug_flag(false);
 
-pub struct GlutinEventLoop {
-    refs: Rc<UnsafeCell<Option<WindowedContext<PossiblyCurrent>>>>,
-}
+        let windowed_context = windowed_context //
+            .with_gl_profile(GlProfile::Compatibility)
+            .with_pixel_format(24, 8)
+            .with_vsync(true);
 
-impl GlutinEventLoop {
-    fn get_context(&self, ctx: &Context, event_loop: &EventLoop<()>) -> &mut WindowedContext<PossiblyCurrent> {
-        let mut refs = unsafe { &mut *self.refs.get() };
-
-        if refs.is_none() {
-            let mut window = WindowBuilder::new();
-            
-            let windowed_context = ContextBuilder::new();
-            let windowed_context = windowed_context.with_gl(GlRequest::Specific(Api::OpenGl, (3, 0)));
-            #[cfg(target_os = "android")]
-            let windowed_context = windowed_context.with_gl(GlRequest::Specific(Api::OpenGlEs, (2, 0)));
-
-            let windowed_context = windowed_context
-                .with_gl_profile(GlProfile::Core)
-                .with_gl_debug_flag(false)
-                .with_pixel_format(24, 8)
-                .with_vsync(true);
-
-            #[cfg(target_os = "windows")]
-            {
-                use glutin::platform::windows::WindowBuilderExtWindows;
-                window = window.with_drag_and_drop(false);
-            }
-
-            window = window.with_title("doukutsu-rs");
-            
-            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "android", target_os = "horizon")))]
-            {
-                let mut file = filesystem::open(&ctx, "/builtin/icon.bmp").unwrap();
-                let mut buf: Vec<u8> = Vec::new();
-                file.read_to_end(&mut buf);
-                
-                let mut img = match image::load_from_memory_with_format(buf.as_slice(), image::ImageFormat::Bmp) {
-                    Ok(image) => image.into_rgba8(),
-                    Err(e) => panic!("Cannot set window icon")
-                };
-                
-                let (width, height) = img.dimensions();
-                let icon = Icon::from_rgba(img.into_raw(), width, height).unwrap();
-                
-                window = window.with_window_icon(Some(icon));
-            }
-            
-            let windowed_context = windowed_context.build_windowed(window, event_loop).unwrap();
-
-            let windowed_context = unsafe { windowed_context.make_current().unwrap() };
-
-            #[cfg(target_os = "android")]
-            if let Some(nwin) = ndk_glue::native_window().as_ref() {
-                unsafe {
-                    windowed_context.surface_created(nwin.ptr().as_ptr() as *mut std::ffi::c_void);
-                }
-            }
-
-            refs.replace(windowed_context);
+        #[cfg(target_os = "windows")]
+        {
+            use glutin::platform::windows::WindowBuilderExtWindows;
+            window = window.with_drag_and_drop(false);
         }
 
-        refs.as_mut().unwrap()
+        window = window.with_title("doukutsu-rs");
+
+        #[cfg(not(any(target_os = "windows", target_os = "android", target_os = "horizon")))]
+        {
+            let mut file = filesystem::open(&ctx, "/builtin/icon.bmp").unwrap();
+            let mut buf: Vec<u8> = Vec::new();
+            file.read_to_end(&mut buf);
+
+            let mut img = match image::load_from_memory_with_format(buf.as_slice(), image::ImageFormat::Bmp) {
+                Ok(image) => image.into_rgba8(),
+                Err(e) => panic!("Cannot set window icon"),
+            };
+
+            let (width, height) = img.dimensions();
+            let icon = Icon::from_rgba(img.into_raw(), width, height).unwrap();
+
+            window = window.with_window_icon(Some(icon));
+        }
+
+        let windowed_context = windowed_context.build_windowed(window, event_loop);
+        if let Err(e) = &windowed_context {
+            log::error!("Failed to build windowed context: {}", e);
+        }
+        let windowed_context = windowed_context.unwrap();
+
+        let windowed_context = unsafe { windowed_context.make_current().expect("Failed to make current") };
+
+        #[cfg(target_os = "android")]
+        if let Some(nwin) = ndk_glue::native_window().as_ref() {
+            unsafe {
+                windowed_context.surface_created(nwin.ptr().as_ptr() as *mut std::ffi::c_void);
+            }
+        }
+
+        let rc = Rc::new(windowed_context);
+        *self.refs.borrow_mut() = Some(rc.clone());
+
+        rc
     }
 }
 
@@ -171,21 +198,36 @@ fn get_scaled_size(width: u32, height: u32) -> (f32, f32) {
 }
 
 impl BackendEventLoop for GlutinEventLoop {
-    fn run(&mut self, game: &mut Game, ctx: &mut Context) {
+    fn run(&mut self, mut game: Pin<Box<Game>>, mut ctx: Pin<Box<Context>>) {
+        const IS_MOBILE: bool = cfg!(any(target_os = "android", target_os = "ios"));
+        ctx.flags.set_supports_windowed_fullscreen(!IS_MOBILE);
+        ctx.flags.set_has_touch_screen(IS_MOBILE); // TODO: how do we not assume Android always has a touch screen?
+        ctx.flags.set_form_factor(if IS_MOBILE { DeviceFormFactor::Mobile } else { DeviceFormFactor::Computer });
+
+        fn handle_err_impl(result: GameResult, shutdown_requested: &mut bool) {
+            if let Err(e) = result {
+                log::error!("{}", e);
+                *shutdown_requested = true;
+            }
+        };
+
+        macro_rules! handle_err {
+            (
+                $result:expr
+            ) => {
+                handle_err_impl($result, &mut ctx.shutdown_requested);
+            };
+        }
+
         let event_loop = EventLoop::new();
-        let state_ref = unsafe { &mut *game.state.get() };
-        let window: &'static mut WindowedContext<PossiblyCurrent> =
-            unsafe { std::mem::transmute(self.get_context(&ctx, &event_loop)) };        
+        let window = self.get_context(&ctx, &event_loop);
         {
             let size = window.window().inner_size();
             ctx.real_screen_size = (size.width, size.height);
             ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
-            state_ref.handle_resize(ctx).unwrap();
-        }
 
-        // it won't ever return
-        let (game, ctx): (&'static mut Game, &'static mut Context) =
-            unsafe { (std::mem::transmute(game), std::mem::transmute(ctx)) };
+            handle_err!(game.on_resize(&mut ctx));
+        }
 
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Wait;
@@ -194,54 +236,41 @@ impl BackendEventLoop for GlutinEventLoop {
                 Event::WindowEvent { event: WindowEvent::CloseRequested, window_id }
                     if window_id == window.window().id() =>
                 {
-                    state_ref.shutdown();
+                    ctx.shutdown_requested = true;
                 }
                 Event::Resumed => {
-                    {
-                        let mut mutex = GAME_SUSPENDED.lock().unwrap();
-                        *mutex = false;
-                    }
+                    handle_err!(game.on_focus_gained(&mut ctx));
 
                     #[cfg(target_os = "android")]
                     if let Some(nwin) = ndk_glue::native_window().as_ref() {
-                        state_ref.graphics_reset();
+                        handle_err!(game.on_context_lost(&mut ctx));
                         unsafe {
                             window.surface_created(nwin.ptr().as_ptr() as *mut std::ffi::c_void);
                             request_android_redraw();
                         }
                     }
-
-                    state_ref.sound_manager.resume();
                 }
                 Event::Suspended => {
-                    {
-                        let mut mutex = GAME_SUSPENDED.lock().unwrap();
-                        *mutex = true;
-                    }
+                    handle_err!(game.on_focus_lost(&mut ctx));
 
                     #[cfg(target_os = "android")]
                     unsafe {
                         window.surface_destroyed();
                     }
-
-                    state_ref.sound_manager.pause();
                 }
                 Event::WindowEvent { event: WindowEvent::Resized(size), window_id }
                     if window_id == window.window().id() =>
                 {
                     if let Some(renderer) = &ctx.renderer {
-                        if let Ok(imgui) = renderer.imgui() {
-                            imgui.io_mut().display_size = [size.width as f32, size.height as f32];
-                        }
-
                         ctx.real_screen_size = (size.width, size.height);
                         ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
-                        state_ref.handle_resize(ctx).unwrap();
+                        handle_err!(game.on_resize(&mut ctx));
                     }
                 }
                 Event::WindowEvent { event: WindowEvent::Touch(touch), window_id }
                     if window_id == window.window().id() =>
                 {
+                    let state_ref = game.state.get_mut();
                     let mut controls = &mut state_ref.touch_controls;
                     let scale = state_ref.scale as f64;
                     let loc_x = (touch.location.x * ctx.screen_size.0 as f64 / ctx.real_screen_size.0 as f64) / scale;
@@ -290,15 +319,14 @@ impl BackendEventLoop for GlutinEventLoop {
                 }
                 Event::RedrawRequested(id) if id == window.window().id() => {
                     {
-                        let mutex = GAME_SUSPENDED.lock().unwrap();
-                        if *mutex {
+                        if ctx.suspended {
                             return;
                         }
                     }
 
                     #[cfg(not(target_os = "android"))]
                     {
-                        if let Err(err) = game.draw(ctx) {
+                        if let Err(err) = game.draw(&mut ctx) {
                             log::error!("Failed to draw frame: {}", err);
                         }
 
@@ -309,15 +337,14 @@ impl BackendEventLoop for GlutinEventLoop {
                     request_android_redraw();
                 }
                 Event::MainEventsCleared => {
-                    if state_ref.shutdown {
+                    if ctx.shutdown_requested {
                         log::info!("Shutting down...");
                         *control_flow = ControlFlow::Exit;
                         return;
                     }
 
                     {
-                        let mutex = GAME_SUSPENDED.lock().unwrap();
-                        if *mutex {
+                        if ctx.suspended {
                             return;
                         }
                     }
@@ -333,7 +360,11 @@ impl BackendEventLoop for GlutinEventLoop {
                         }
                     }
 
-                    game.update(ctx).unwrap();
+                    if let Err(err) = game.update(&mut ctx) {
+                        log::error!("Update loop returned an error: {}", err);
+                        *control_flow = ControlFlow::Exit;
+                        return;
+                    }
 
                     #[cfg(target_os = "android")]
                     {
@@ -350,62 +381,51 @@ impl BackendEventLoop for GlutinEventLoop {
                             log::error!("Failed to draw frame: {}", err);
                         }
                     }
-
-                    if state_ref.next_scene.is_some() {
-                        mem::swap(&mut game.scene, &mut state_ref.next_scene);
-                        state_ref.next_scene = None;
-                        game.scene.as_mut().unwrap().init(state_ref, ctx).unwrap();
-                        game.loops = 0;
-                        state_ref.frame_time = 0.0;
-                    }
                 }
                 _ => (),
             }
         });
     }
 
-    fn new_renderer(&self, ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>> {
-        let mut imgui = imgui::Context::create();
-        imgui.io_mut().display_size = [640.0, 480.0];
+    fn new_renderer(&self, ctx: &mut Context) -> GameResult<Box<dyn BackendRenderer>> {
+        struct GlutinGLPlatform(Refs);
 
-        let refs = self.refs.clone();
-        let user_data = Rc::into_raw(refs) as *mut c_void;
-
-        unsafe fn get_proc_address(user_data: &mut *mut c_void, name: &str) -> *const c_void {
-            let refs = Rc::from_raw(*user_data as *mut UnsafeCell<Option<WindowedContext<PossiblyCurrent>>>);
-
-            let result = {
-                let refs = &mut *refs.get();
-
-                if let Some(refs) = refs {
-                    refs.get_proc_address(name)
+        impl render_opengl::GLPlatformFunctions for GlutinGLPlatform {
+            fn get_proc_address(&self, name: &str) -> *const c_void {
+                let window = self.0.borrow();
+                if let Some(window) = window.as_ref() {
+                    window.get_proc_address(name)
                 } else {
                     std::ptr::null()
                 }
-            };
+            }
 
-            *user_data = Rc::into_raw(refs) as *mut c_void;
-
-            result
-        }
-
-        unsafe fn swap_buffers(user_data: &mut *mut c_void) {
-            let refs = Rc::from_raw(*user_data as *mut UnsafeCell<Option<WindowedContext<PossiblyCurrent>>>);
-
-            {
-                let refs = &mut *refs.get();
-
-                if let Some(refs) = refs {
-                    refs.swap_buffers();
+            fn swap_buffers(&self) {
+                let window = self.0.borrow();
+                if let Some(window) = window.as_ref() {
+                    let _ = window.swap_buffers();
                 }
             }
 
-            *user_data = Rc::into_raw(refs) as *mut c_void;
+            fn set_swap_mode(&self, mode: super::graphics::SwapMode) {
+                // Not supported by glutin rn
+                let _ = mode;
+            }
+
+            fn get_context_type(&self) -> GLContextType {
+                let window = self.0.borrow();
+                let window = window.as_ref().expect("get_context_type called before context is available");
+                match window.get_api() {
+                    Api::OpenGl => GLContextType::DesktopGL2,
+                    Api::OpenGlEs => GLContextType::GLES2,
+                    Api::WebGl => GLContextType::GLES2, // TODO
+                }
+            }
         }
 
-        let gl_context = GLContext { gles2_mode: true, is_sdl: false, get_proc_address, swap_buffers, user_data, ctx };
+        let platform = Box::new(GlutinGLPlatform(self.refs.clone()));
 
-        Ok(Box::new(OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))))
+        Ok(Box::new(OpenGLRenderer::new(platform)))
     }
 
     fn as_any(&self) -> &dyn Any {

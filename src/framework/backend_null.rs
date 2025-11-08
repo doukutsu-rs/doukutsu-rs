@@ -1,12 +1,14 @@
 use std::any::Any;
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 use std::mem;
+use std::pin::Pin;
 
 use imgui::{DrawData, TextureId, Ui};
 
 use crate::common::{Color, Rect};
 use crate::framework::backend::{
-    Backend, BackendEventLoop, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData,
+    Backend, BackendCallbacks, BackendEventLoop, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand,
+    VertexData,
 };
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -25,7 +27,7 @@ impl Backend for NullBackend {
     fn create_event_loop(&self, _ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>> {
         Ok(Box::new(NullEventLoop))
     }
-    
+
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -34,39 +36,27 @@ impl Backend for NullBackend {
 pub struct NullEventLoop;
 
 impl BackendEventLoop for NullEventLoop {
-    fn run(&mut self, game: &mut Game, ctx: &mut Context) {
-        let state_ref = unsafe { &mut *game.state.get() };
-
+    fn run(&mut self, mut game: Pin<Box<Game>>, mut ctx: Pin<Box<Context>>) {
         ctx.screen_size = (640.0, 480.0);
-        state_ref.handle_resize(ctx).unwrap();
+        game.on_resize(&mut ctx);
 
         loop {
-            game.update(ctx).unwrap();
+            game.update(&mut ctx).unwrap();
 
-            if state_ref.shutdown {
+            if ctx.shutdown_requested {
                 log::info!("Shutting down...");
                 break;
             }
 
-            if state_ref.next_scene.is_some() {
-                mem::swap(&mut game.scene, &mut state_ref.next_scene);
-                state_ref.next_scene = None;
-                game.scene.as_mut().unwrap().init(state_ref, ctx).unwrap();
-                game.loops = 0;
-                state_ref.frame_time = 0.0;
-            }
             std::thread::sleep(std::time::Duration::from_millis(10));
-
-            game.draw(ctx).unwrap();
+            game.draw(&mut ctx).unwrap();
         }
     }
 
-    fn new_renderer(&self, _ctx: *mut Context) -> GameResult<Box<dyn BackendRenderer>> {
-        let mut imgui = imgui::Context::create();
-        imgui.io_mut().display_size = [640.0, 480.0];
-        imgui.fonts().build_alpha8_texture();
+    fn new_renderer(&self, ctx: &mut Context) -> GameResult<Box<dyn BackendRenderer>> {
+        ctx.imgui.borrow_mut().fonts().build_alpha8_texture();
 
-        Ok(Box::new(NullRenderer(RefCell::new(imgui))))
+        Ok(Box::new(NullRenderer))
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -94,7 +84,7 @@ impl BackendTexture for NullTexture {
     }
 }
 
-pub struct NullRenderer(RefCell<imgui::Context>);
+pub struct NullRenderer;
 
 impl BackendRenderer for NullRenderer {
     fn renderer_name(&self) -> String {
@@ -135,28 +125,22 @@ impl BackendRenderer for NullRenderer {
         Ok(())
     }
 
-    fn imgui(&self) -> GameResult<&mut imgui::Context> {
-        unsafe { Ok(&mut *self.0.as_ptr()) }
-    }
-
-    fn imgui_texture_id(&self, _texture: &Box<dyn BackendTexture>) -> GameResult<TextureId> {
-        Ok(TextureId::from(0))
-    }
-
-    fn prepare_imgui(&mut self, _ui: &Ui) -> GameResult {
-        Ok(())
-    }
-
-    fn render_imgui(&mut self, _draw_data: &DrawData) -> GameResult {
-        Ok(())
-    }
-
-    fn draw_triangle_list(
+    fn draw_triangles(
         &mut self,
         _vertices: &[VertexData],
         _texture: Option<&Box<dyn BackendTexture>>,
         _shader: BackendShader,
     ) -> GameResult<()> {
+        Ok(())
+    }
+
+    fn draw_triangles_indexed(
+        &mut self,
+        vertices: &[VertexData],
+        indices: super::graphics::IndexData,
+        texture: Option<&Box<dyn BackendTexture>>,
+        shader: BackendShader,
+    ) -> GameResult {
         Ok(())
     }
 

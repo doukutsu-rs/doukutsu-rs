@@ -79,22 +79,6 @@ pub enum WindowMode {
 }
 
 impl WindowMode {
-    #[cfg(feature = "backend-sdl")]
-    pub fn get_sdl2_fullscreen_type(&self) -> sdl2::video::FullscreenType {
-        match self {
-            WindowMode::Windowed => sdl2::video::FullscreenType::Off,
-            WindowMode::Fullscreen => sdl2::video::FullscreenType::Desktop,
-        }
-    }
-
-    #[cfg(feature = "backend-glutin")]
-    pub fn get_glutin_fullscreen_type(&self) -> Option<glutin::window::Fullscreen> {
-        match self {
-            WindowMode::Windowed => None,
-            WindowMode::Fullscreen => Some(glutin::window::Fullscreen::Borderless(None)),
-        }
-    }
-
     pub fn should_display_mouse_cursor(&self) -> bool {
         match self {
             WindowMode::Windowed => true,
@@ -350,7 +334,6 @@ pub struct SharedGameState {
     pub more_rust: bool,
     #[cfg(feature = "discord-rpc")]
     pub discord_rpc: DiscordRPC,
-    pub shutdown: bool,
 }
 
 impl SharedGameState {
@@ -507,7 +490,6 @@ impl SharedGameState {
             more_rust,
             #[cfg(feature = "discord-rpc")]
             discord_rpc: DiscordRPC::new(discord_rpc_app_id),
-            shutdown: false,
         })
     }
 
@@ -613,10 +595,6 @@ impl SharedGameState {
         self.loc = locale;
         self.font = font;
         let _ = self.reload_stage_table(ctx);
-    }
-
-    pub fn graphics_reset(&mut self) {
-        self.texture_set.unload_all();
     }
 
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
@@ -767,13 +745,6 @@ impl SharedGameState {
 
     pub fn current_tps(&self) -> f64 {
         self.settings.timing_mode.get_tps() as f64 * self.settings.speed
-    }
-
-    pub fn shutdown(&mut self) {
-        self.shutdown = true;
-
-        #[cfg(feature = "discord-rpc")]
-        self.discord_rpc.dispose();
     }
 
     // Stops SFX 40/41/58 (CPS and CSS)

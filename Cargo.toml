@@ -53,12 +53,12 @@ android = []
 
 [dependencies]
 #glutin = { path = "./3rdparty/glutin/glutin", optional = true }
-#winit = { path = "./3rdparty/winit", optional = true, default_features = false, features = ["x11"] }
+#winit = { path = "./3rdparty/winit", optional = true, default-features = false, features = ["x11"] }
 #sdl2 = { path = "./3rdparty/rust-sdl2", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
 #sdl2-sys = { path = "./3rdparty/rust-sdl2/sdl2-sys", optional = true, features = ["bundled", "static-link"] }
 #cpal = { path = "./3rdparty/cpal" }
 byteorder = "1.4"
-clap = { version = "4.5.40", default_features = false, features = ["std", "help", "usage", "error-context", "cargo", "derive"] }
+clap = { version = "4.5.40", default-features = false, features = ["std", "help", "usage", "error-context", "cargo", "derive"] }
 case_insensitive_hashmap = "1.0.0"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 cpal = { git = "https://github.com/doukutsu-rs/cpal", rev = "ce731c58b7f4759a0f4007b392e2b7f4716a347c" }
@@ -67,7 +67,8 @@ discord-rich-presence = { version = "0.2", optional = true }
 downcast = "0.11"
 encoding_rs = "0.8.33"
 fern = "0.6.2"
-glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "2dd95f042e6e090d36f577cbea125560dd99bd27", optional = true, default_features = false, features = ["x11"] }
+glutin = { git = "https://github.com/doukutsu-rs/glutin.git", rev = "2dd95f042e6e090d36f577cbea125560dd99bd27", optional = true, default-features = false, features = ["x11"] }
+glow = { version = "0.16" }
 imgui = { git = "https://github.com/imgui-rs/imgui-rs.git", rev = "5d771a83b82c5cc3dd58cca3f969d900369262e6" }
 image = { version = "0.24", default-features = false, features = ["png", "bmp"] }
 itertools = "0.10"
@@ -91,7 +92,7 @@ strum_macros = "0.24"
 # remove and replace with extract_if, when our MSRV is 1.87
 vec_mut_scan = "0.4"
 webbrowser = { version = "0.8.6", optional = true }
-winit = { git = "https://github.com/doukutsu-rs/winit.git", rev = "878f206d19af01b0977277929eee5e32667453c0", optional = true, default_features = false, features = ["x11"] }
+winit = { git = "https://github.com/doukutsu-rs/winit.git", rev = "878f206d19af01b0977277929eee5e32667453c0", optional = true, default-features = false, features = ["x11"] }
 xmltree = "0.10"
 
 [target.'cfg(target_os = "windows")'.dependencies]
