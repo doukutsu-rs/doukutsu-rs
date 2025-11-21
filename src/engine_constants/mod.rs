@@ -245,9 +245,161 @@ impl GamepadConsts {
     }
 }
 
+
+#[derive(Clone, Copy, Debug, strum_macros::Display, PartialEq)]
+pub enum DataType {
+    #[strum(serialize = "Cave Story+ (PC)")]
+    Plus,
+    #[strum(serialize = "Cave Story+ (Switch)")]
+    Switch,
+    /// Missing Challenges and Remastered Soundtrack but identical to CS+ PC otherwise
+    WiiWare,
+    #[strum(serialize = "WiiWare DEMO")]
+    WiiWareDemo,
+    /// Freeware 2.0, sprites are arranged VERY differently + separate drowned carets
+    DSiWare,
+    /// Ditto, drowned carets finally part of mychar, the turning point towards CS+
+    EShop,
+    /// Sprites are technically all there but filenames differ, + no n3ddta support
+    CS3D,
+    CSE2E,
+    #[strum(serialize = "NXEngine-evo")]
+    NXEngineEvo,
+}
+
+impl DataType {
+    pub fn from_path(ctx: &Context, mut root_path: &str) -> Option<Self> {
+        let (root_base, root_dsiware, root_cs3d) = if root_path == "/" {
+            ("/base", "/root", "/data")
+        } else {
+            if root_path.ends_with('/') {
+                let mut chars = root_path.chars();
+                chars.next_back();
+                root_path = chars.as_str();
+            }
+
+            (root_path, root_path, root_path)
+        };
+
+        if filesystem::exists(ctx, format!("{root_base}/lighting.tbl")) {
+            Some(Self::Switch)
+        } else if filesystem::exists(ctx, format!("{root_base}/ogph/SellScreen.bmp")) {
+            Some(Self::WiiWareDemo)
+        } else if filesystem::exists(ctx, format!("{root_base}/strap_a_en.bmp")) {
+            Some(Self::WiiWare)
+        } else if filesystem::exists(ctx, format!("{root_dsiware}/buid_time.txt")) {
+            Some(Self::DSiWare)
+        } else if filesystem::exists(ctx, format!("{root_path}/darken.tex")) || filesystem::exists(ctx, format!("{root_path}/darken.png")) {
+            Some(Self::EShop)
+        } else if filesystem::exists(ctx, format!("{root_cs3d}/stage3d/")) {
+            Some(Self::CS3D)
+        } else if filesystem::exists(ctx, format!("{root_base}/Nicalis.bmp")) || filesystem::exists(ctx, format!("{root_base}/Nicalis.png")) {
+            Some(Self::Plus)
+        } else if filesystem::exists(ctx, format!("{root_path}/mrmap.bin")) {
+            Some(Self::CSE2E)
+        } else if filesystem::exists(ctx, format!("{root_path}/stage.dat")) {
+            Some(Self::NXEngineEvo)
+        } else {
+            None
+        }
+    }
+
+    pub fn apply_constants(&self, ctx: &mut Context, constants: &mut EngineConstants, sound_manager: &mut SoundManager) -> GameResult {
+        constants.data_type = Some(*self);
+
+        match *self {
+            Self::Switch => {
+                ctx.window.size_hint = (854, 480);
+                constants.apply_csplus_patches(sound_manager);
+                constants.apply_csplus_nx_patches();
+                constants.load_nx_stringtable(ctx)?;
+            },
+            Self::WiiWareDemo => {
+                constants.apply_csplus_patches(sound_manager);
+                constants.apply_csdemo_patches();
+            },
+            Self::WiiWare => {
+                constants.apply_csplus_patches(sound_manager);
+            },
+            Self::Plus => {
+                constants.apply_csplus_patches(sound_manager);
+            },
+            _ => {}
+        }
+
+        Ok(())
+    }
+
+    pub fn root_path(&self) -> String {
+        match *self {
+            Self::Switch | Self::Plus | Self::WiiWare | Self::WiiWareDemo => "/base/".to_owned(),
+            Self::DSiWare => "/root/".to_owned(),
+            _ => "/".to_owned()
+        }
+    }
+
+    pub fn is_supported(&self) -> bool {
+        match self {
+            Self::DSiWare | Self::EShop | Self::CS3D => false,
+            _ => true
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum RootType {
+    Base, // "/" path. Supports mods and locales.
+    Mod, // Mod root (not CS+ challenge). Doesn't support mods, but supports locales.
+    Translation // Translation of the main game or a mod. Doesn't support mods and locales.
+}
+
+#[derive(Clone, Debug)]
+pub struct DataRoot {
+    pub data_type: Option<DataType>,
+    pub root_type: RootType,
+
+    pub path: String,
+    pub support_locales: bool,
+}
+
+impl Default for DataRoot {
+    fn default() -> Self {
+        Self {
+            data_type: None,
+            root_type: RootType::Base,
+            path: "/".to_string(),
+            support_locales: false
+        }
+    }
+}
+
+impl DataRoot {
+    pub fn load(ctx: &Context, path: String, root_type: RootType) -> Self {
+        Self {
+            data_type: DataType::from_path(ctx, &path.clone()),
+            root_type,
+            path,
+
+            support_locales: root_type != RootType::Translation,
+        }
+    }
+
+    pub fn base_path(&self) -> String {
+        if let Some(data_type) = self.data_type {
+            data_type.root_path()
+        } else {
+            self.path.clone()
+        }
+    }
+}
+
+
 #[derive(Debug, Clone)]
 pub struct EngineConstants {
     pub base_paths: Vec<String>,
+    pub roots: HashMap<String, DataRoot>, // path -> metadata
+    pub active_root: DataRoot,
+    pub data_type: Option<DataType>,
     pub is_cs_plus: bool,
     pub is_switch: bool,
     pub is_demo: bool,
@@ -287,6 +439,9 @@ impl EngineConstants {
     pub fn defaults() -> Self {
         EngineConstants {
             base_paths: Vec::new(),
+            roots: HashMap::new(),
+            active_root: DataRoot::default(),
+            data_type: None,
             is_cs_plus: false,
             is_switch: false,
             is_demo: false,
@@ -1715,16 +1870,90 @@ impl EngineConstants {
         self.title.logo_splash_rect = Rect { left: 224, top: 0, right: 320, bottom: 48 };
     }
 
+    pub fn clean_patches(&mut self) {
+        let mut consts = Self::defaults();
+        consts.roots.clone_from(&self.roots);
+        consts.locales.clone_from(&self.locales);
+        consts.active_root.clone_from(&self.active_root);
+
+        *self = consts;
+    }
+
+    pub fn rebuild_roots_list(&mut self, ctx: &mut Context, settings: &Settings, sound_manager: &mut SoundManager) {
+        // The main root is the one we can always rely on
+        let data_root = "/".to_string();
+        self.roots.insert(data_root.clone(), DataRoot::load(ctx, data_root.clone(), RootType::Base));
+
+        let mut consts = Self::defaults();
+        consts.data_type = DataType::from_path(ctx, &data_root);
+
+        if let Some(data_type) = consts.data_type {
+            data_type.apply_constants(ctx, &mut consts, sound_manager);
+        }
+
+        consts.roots.clone_from(&self.roots);
+        consts.active_root = consts.roots.get(&data_root).cloned().unwrap();
+
+        consts.rebuild_path_list(None, Season::current(), settings);
+        let _ = consts.load_locales(ctx);
+
+        // The following roots are locales with data files whose type differs from that of the main root.
+        // Switching to a such root require reloading the engine constants.
+        for loc in &consts.locales {
+            // We assume that the Japanese translation is original and have the same type as the main root
+            if consts.is_cs_plus && loc.code == "jp" {
+                continue;
+            }
+
+            let mut full_path = if consts.is_cs_plus { "/base/".to_string() } else { "/".to_string() };
+            full_path.push_str(loc.code.as_str());
+            full_path.push('/');
+
+            if filesystem::exists(ctx, full_path.as_str()) {
+                let data_type = DataType::from_path(ctx, full_path.as_str());
+                if data_type != consts.data_type {
+                    self.roots.insert(full_path.clone(), DataRoot::load(ctx, full_path, RootType::Translation));
+                }
+            }
+        }
+
+        // Mod translations must be of the same data type as the mod root
+    }
+
+    pub fn set_active_root(&mut self, ctx: &mut Context, new_root: String, settings: &Settings, sound_manager: &mut SoundManager) {
+        log::debug!("Switch to a new active root: {}", &new_root);
+        if self.roots.is_empty() {
+            self.rebuild_roots_list(ctx, settings, sound_manager);
+        }
+
+        let root = self.roots.get(&new_root).cloned();
+        if let Some(data_root) = root {
+            self.clean_patches();
+
+            self.active_root = data_root.clone();
+            self.rebuild_path_list(None, Season::current(), settings);
+
+            if data_root.support_locales {
+                let _ = self.load_locales(ctx);
+            }
+
+            if let Some(data_type) = data_root.data_type.as_ref() {
+                let _ = data_type.apply_constants(ctx, self, sound_manager);
+            }
+        }
+    }
+
     pub fn rebuild_path_list(&mut self, mod_path: Option<String>, season: Season, settings: &Settings) {
         self.base_paths.clear();
         self.base_paths.push("/builtin/builtin_data/".to_owned());
         self.base_paths.push("/".to_owned());
 
-        if self.is_cs_plus {
-            self.base_paths.insert(0, "/base/".to_owned());
+        let root = self.active_root.base_path();
+        self.base_paths.insert(0, root.clone());
 
+        if self.is_cs_plus && self.active_root.root_type != RootType::Translation {
             if settings.original_textures {
-                self.base_paths.insert(0, "/base/ogph/".to_string())
+                self.base_paths.insert(0, format!("{root}ogph/"));
             } else if settings.seasonal_textures {
                 match season {
                     Season::Halloween => self.base_paths.insert(0, "/Halloween/season/".to_string()),
@@ -1732,16 +1961,14 @@ impl EngineConstants {
                     _ => {}
                 }
             }
-
-            if settings.locale != "en".to_string() {
-                self.base_paths.insert(0, format!("/base/{}/", settings.locale));
-            }
-        } else {
-            if settings.locale != "en".to_string() {
-                self.base_paths.insert(0, format!("/{}/", settings.locale));
-            }
         }
 
+        if self.active_root.support_locales && settings.locale != "en".to_string() {
+            self.base_paths.insert(0, format!("{root}{}/", settings.locale));
+        }
+
+        // TODO: CS+ mods support
+/*
         if let Some(mut mod_path) = mod_path {
             self.base_paths.insert(0, mod_path.clone());
             if settings.original_textures {
@@ -1755,6 +1982,7 @@ impl EngineConstants {
                 self.base_paths.retain(|path| !path.contains("ogph/"));
             }
         }
+ */
     }
 
     pub fn special_treatment_for_csplus_mods(&mut self, mod_path: Option<&String>) {
