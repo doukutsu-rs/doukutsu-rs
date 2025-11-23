@@ -1946,9 +1946,12 @@ impl EngineConstants {
     pub fn rebuild_path_list(&mut self, mod_path: Option<String>, season: Season, settings: &Settings) {
         self.base_paths.clear();
         self.base_paths.push("/builtin/builtin_data/".to_owned());
-        self.base_paths.push("/".to_owned());
 
         let root = self.active_root.base_path();
+        if root != "/" {
+            self.base_paths.push("/".to_owned());
+        }
+
         self.base_paths.insert(0, root.clone());
 
         if self.is_cs_plus && self.active_root.root_type != RootType::Translation {
