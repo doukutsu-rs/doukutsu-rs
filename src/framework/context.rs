@@ -39,10 +39,23 @@ impl Context {
     }
 
     pub fn run(&mut self, game: &mut Game) -> GameResult {
+        log::info!("Context::run - init_backend...");
         let backend = init_backend(self.headless, self.window)?;
+        log::info!("Context::run - create_event_loop...");
         let mut event_loop = backend.create_event_loop(self)?;
-        self.renderer = Some(event_loop.new_renderer(self as *mut Context)?);
 
+        // On Android, defer renderer creation until the GL context is available (Resumed event).
+        // On other platforms, create renderer immediately.
+        #[cfg(not(target_os = "android"))]
+        {
+            log::info!("Context::run - new_renderer...");
+            self.renderer = Some(event_loop.new_renderer(self as *mut Context)?);
+        }
+
+        #[cfg(target_os = "android")]
+        log::info!("Context::run - deferring renderer creation until Resumed event...");
+
+        log::info!("Context::run - calling event_loop.run()...");
         event_loop.run(game, self);
 
         Ok(())

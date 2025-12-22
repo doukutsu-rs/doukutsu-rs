@@ -3,9 +3,11 @@
 pub fn android_main() {
     let resource_dir = std::path::PathBuf::from(ndk_glue::native_activity().internal_data_path().to_string_lossy().to_string());
 
-    std::env::set_current_dir(&resource_dir).unwrap();
-    
+    let _ = std::env::set_current_dir(&resource_dir);
+
     let options = doukutsu_rs::game::LaunchOptions::default();
 
-    doukutsu_rs::game::init(options).unwrap();
+    if let Err(e) = doukutsu_rs::game::init(options) {
+        eprintln!("Game init failed: {:?}", e);
+    }
 }

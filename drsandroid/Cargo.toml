@@ -17,4 +17,4 @@ crate-type = ["cdylib"]
 ndk = "0.7"
 ndk-glue = "0.7"
 ndk-sys = "0.4"
-doukutsu-rs = { path = "../", default-features = false, features = ["default-base", "backend-glutin", "webbrowser"] }
+doukutsu-rs = { path = "../", default-features = false, features = ["default-base", "backend-glutin", "android", "webbrowser"] }

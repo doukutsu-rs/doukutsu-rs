@@ -374,7 +374,7 @@ pub fn init(mut options: LaunchOptions) -> GameResult {
     context.window = options.window();
 
     game.state.get_mut().next_scene = Some(Box::new(LoadingScene::new()));
-    log::info!("Starting main loop...");
+    log::info!("Starting main loop... v2 GAMEPAD_DEBUG");
     context.run(game.as_mut().get_mut())?;
 
     Ok(())
