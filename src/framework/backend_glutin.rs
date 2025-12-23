@@ -270,34 +270,15 @@ fn button_from_bit(bit: u32) -> Option<Button> {
 }
 
 #[cfg(target_os = "android")]
-static GAMEPAD_LOG_ONCE: std::sync::Once = std::sync::Once::new();
-
-#[cfg(target_os = "android")]
-static GAMEPAD_CALL_ONCE: std::sync::Once = std::sync::Once::new();
-
-#[cfg(target_os = "android")]
-static mut GAMEPAD_DEBUG_COUNTER: u32 = 0;
-
-#[cfg(target_os = "android")]
 fn update_android_gamepads(ctx: &mut Context) {
     use crate::framework::gamepad;
 
-    // Log that this function is being called at all
-    GAMEPAD_CALL_ONCE.call_once(|| {
-        log::info!("=== update_android_gamepads CALLED ===");
-    });
-
     match get_gamepad_data() {
-        Ok((count, gamepads)) => {
+        Ok((_count, gamepads)) => {
             let existing_gamepads: Vec<u32> = ctx.gamepad_context.get_gamepads()
                 .iter()
                 .map(|g| g.instance_id())
                 .collect();
-
-            // Debug: log gamepad count on first call
-            GAMEPAD_LOG_ONCE.call_once(|| {
-                log::info!("Android gamepad poll: count={}, existing={:?}", count, existing_gamepads);
-            });
 
             // Track which device IDs we see
             let mut seen_ids: Vec<u32> = Vec::new();
@@ -387,16 +368,6 @@ impl BackendEventLoop for GlutinEventLoop {
         let (game, ctx): (&'static mut Game, &'static mut Context) =
             unsafe { (std::mem::transmute(game), std::mem::transmute(ctx)) };
 
-        #[cfg(target_os = "android")]
-        {
-            log::info!("=== About to call event_loop.run() ===");
-            eprintln!("=== About to call event_loop.run() ===");
-
-            // Check native window status before entering event loop
-            let nw_before = ndk_glue::native_window();
-            eprintln!("=== native_window() before event loop: {:?} ===", nw_before.is_some());
-        }
-
         event_loop.run(move |event, event_loop_window_target, control_flow| {
             #[cfg(target_os = "android")]
             {
@@ -477,12 +448,6 @@ impl BackendEventLoop for GlutinEventLoop {
                     state_ref.shutdown();
                 }
                 Event::Resumed => {
-                    #[cfg(target_os = "android")]
-                    {
-                        eprintln!("=== Event::Resumed received! ===");
-                        log::info!("=== Event::Resumed received! ===");
-                    }
-
                     {
                         let mut mutex = GAME_SUSPENDED.lock().unwrap();
                         *mutex = false;
@@ -491,8 +456,6 @@ impl BackendEventLoop for GlutinEventLoop {
                     #[cfg(target_os = "android")]
                     {
                         let nwin_opt = ndk_glue::native_window();
-                        eprintln!("=== In Resumed, native_window is_some: {:?} ===", nwin_opt.is_some());
-
                         if let Some(nwin) = nwin_opt.as_ref() {
                             let refs_inner = unsafe { &mut *refs.get() };
 
@@ -615,12 +578,6 @@ impl BackendEventLoop for GlutinEventLoop {
                     state_ref.sound_manager.resume();
                 }
                 Event::Suspended => {
-                    #[cfg(target_os = "android")]
-                    {
-                        eprintln!("=== Event::Suspended received! ===");
-                        log::info!("=== Event::Suspended received! ===");
-                    }
-
                     {
                         let mut mutex = GAME_SUSPENDED.lock().unwrap();
                         *mutex = true;

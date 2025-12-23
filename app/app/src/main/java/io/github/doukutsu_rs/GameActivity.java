@@ -11,7 +11,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.DocumentsContract;
-import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -26,7 +25,6 @@ import java.util.Map;
 import static android.os.Build.VERSION.SDK_INT;
 
 public class GameActivity extends NativeActivity implements InputManager.InputDeviceListener {
-    private static final String TAG = "GameActivity";
     private int[] displayInsets = new int[]{0, 0, 0, 0};
     private OrientationEventListener listener;
     private InputManager inputManager;
@@ -69,16 +67,10 @@ public class GameActivity extends NativeActivity implements InputManager.InputDe
 
     private void scanForGamepads() {
         int[] deviceIds = inputManager.getInputDeviceIds();
-        Log.i(TAG, "scanForGamepads: found " + deviceIds.length + " input devices");
         for (int deviceId : deviceIds) {
             InputDevice device = inputManager.getInputDevice(deviceId);
-            if (device != null) {
-                boolean isGp = isGamepad(device);
-                Log.i(TAG, "scanForGamepads: deviceId=" + deviceId + ", name=" + device.getName() +
-                        ", sources=0x" + Integer.toHexString(device.getSources()) + ", isGamepad=" + isGp);
-                if (isGp) {
-                    addGamepad(deviceId);
-                }
+            if (device != null && isGamepad(device)) {
+                addGamepad(deviceId);
             }
         }
     }
@@ -91,11 +83,9 @@ public class GameActivity extends NativeActivity implements InputManager.InputDe
 
     private synchronized void addGamepad(int deviceId) {
         if (deviceIdToIndex.containsKey(deviceId)) {
-            Log.d(TAG, "addGamepad: deviceId=" + deviceId + " already added");
             return; // Already added
         }
         if (gamepadCount >= MAX_GAMEPADS) {
-            Log.w(TAG, "addGamepad: MAX_GAMEPADS reached, cannot add deviceId=" + deviceId);
             return; // No room
         }
         int index = gamepadCount++;
@@ -105,7 +95,6 @@ public class GameActivity extends NativeActivity implements InputManager.InputDe
         for (int i = 1; i < GAMEPAD_DATA_SIZE; i++) {
             gamepadData[base + i] = 0;
         }
-        Log.i(TAG, "addGamepad: added deviceId=" + deviceId + " at index=" + index);
     }
 
     private synchronized void removeGamepad(int deviceId) {
@@ -211,9 +200,6 @@ public class GameActivity extends NativeActivity implements InputManager.InputDe
             // Left stick
             float leftX = event.getAxisValue(MotionEvent.AXIS_X);
             float leftY = event.getAxisValue(MotionEvent.AXIS_Y);
-
-            // Log axis values for debugging
-            Log.i(TAG, "dispatchGenericMotionEvent: deviceId=" + deviceId + ", lx=" + leftX + ", ly=" + leftY);
 
             // Right stick
             float rightX = event.getAxisValue(MotionEvent.AXIS_Z);
@@ -325,8 +311,6 @@ public class GameActivity extends NativeActivity implements InputManager.InputDe
                 gamepadData[base + 1] = buttons;
             }
 
-            Log.d(TAG, "onGenericMotionEvent: deviceId=" + deviceId + ", lx=" + leftX + ", ly=" + leftY);
-
             return true;
         }
 
@@ -359,10 +343,8 @@ public class GameActivity extends NativeActivity implements InputManager.InputDe
                     int base = index * GAMEPAD_DATA_SIZE;
                     if (action == KeyEvent.ACTION_DOWN) {
                         gamepadData[base + 1] |= (1 << bit);
-                        Log.i(TAG, "dispatchKeyEvent DOWN: keyCode=" + keyCode + ", bit=" + bit + ", buttons=0x" + Integer.toHexString(gamepadData[base + 1]));
                     } else if (action == KeyEvent.ACTION_UP) {
                         gamepadData[base + 1] &= ~(1 << bit);
-                        Log.i(TAG, "dispatchKeyEvent UP: keyCode=" + keyCode + ", bit=" + bit);
                     }
                 }
                 // Return true to consume the event (don't pass to NativeActivity)
@@ -377,13 +359,11 @@ public class GameActivity extends NativeActivity implements InputManager.InputDe
     // Handle gamepad button presses (fallback, may not be called with NativeActivity)
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        Log.d(TAG, "onKeyDown: keyCode=" + keyCode + " (fallback)");
         return super.onKeyDown(keyCode, event);
     }
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        Log.d(TAG, "onKeyUp: keyCode=" + keyCode + " (fallback)");
         return super.onKeyUp(keyCode, event);
     }
 

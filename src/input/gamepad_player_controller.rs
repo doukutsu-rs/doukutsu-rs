@@ -64,10 +64,6 @@ impl GamepadController {
     }
 }
 
-// Debug counter for periodic logging
-#[cfg(target_os = "android")]
-static mut GAMEPAD_CTRL_DEBUG_COUNTER: u32 = 0;
-
 impl PlayerController for GamepadController {
     fn update(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
         let button_map = match self.target {
