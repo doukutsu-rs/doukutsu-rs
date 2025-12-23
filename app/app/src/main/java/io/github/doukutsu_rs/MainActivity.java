@@ -32,9 +32,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void launchGame() {
         Intent intent = new Intent(this, GameActivity.class);
-        // Simplified flags - don't clear task, just start the activity
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(intent);
-        finish();
+        this.finish();
     }
 
     private void messageBox(String title, String message, Runnable yesCallback, Runnable noCallback) {

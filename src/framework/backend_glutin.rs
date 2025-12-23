@@ -17,13 +17,13 @@ use winit::window::Icon;
 use crate::common::Rect;
 use crate::framework::backend::{Backend, BackendEventLoop, BackendGamepad, BackendRenderer, BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
+#[cfg(target_os = "android")]
+use crate::framework::gamepad::{Axis, Button};
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::framework::gl;
 use crate::framework::keyboard::ScanCode;
 use crate::framework::render_opengl::{GLContext, OpenGLRenderer};
-#[cfg(target_os = "android")]
-use crate::framework::gamepad::{Axis, Button};
 use crate::game::Game;
 use crate::game::GAME_SUSPENDED;
 use crate::input::touch_controls::TouchPoint;
@@ -38,13 +38,16 @@ impl GlutinBackend {
 
 impl Backend for GlutinBackend {
     fn create_event_loop(&self, _ctx: &Context) -> GameResult<Box<dyn BackendEventLoop>> {
-        // On Android, don't wait here. The MainEventsCleared handler will create
-        // the context when native window becomes available.
         #[cfg(target_os = "android")]
-        log::info!("create_event_loop called (Android) - context will be created when native window is available");
-
-        #[cfg(not(target_os = "android"))]
-        log::info!("create_event_loop called");
+        loop {
+            match ndk_glue::native_window().as_ref() {
+                Some(_) => {
+                    log::info!("NativeWindow Found: {:?}", ndk_glue::native_window());
+                    break;
+                }
+                None => (),
+            }
+        }
 
         Ok(Box::new(GlutinEventLoop { refs: Rc::new(UnsafeCell::new(None)) }))
     }
@@ -246,29 +249,6 @@ fn get_gamepad_data() -> GameResult<(i32, Vec<AndroidGamepadState>)> {
     }
 }
 
-// Button bit positions from Java
-#[cfg(target_os = "android")]
-fn button_from_bit(bit: u32) -> Option<Button> {
-    match bit {
-        0 => Some(Button::South),       // A
-        1 => Some(Button::East),        // B
-        2 => Some(Button::West),        // X
-        3 => Some(Button::North),       // Y
-        4 => Some(Button::LeftShoulder),
-        5 => Some(Button::RightShoulder),
-        6 => Some(Button::Back),
-        7 => Some(Button::Start),
-        8 => Some(Button::Guide),
-        9 => Some(Button::LeftStick),
-        10 => Some(Button::RightStick),
-        11 => Some(Button::DPadUp),
-        12 => Some(Button::DPadDown),
-        13 => Some(Button::DPadLeft),
-        14 => Some(Button::DPadRight),
-        _ => None,
-    }
-}
-
 #[cfg(target_os = "android")]
 fn update_android_gamepads(ctx: &mut Context) {
     use crate::framework::gamepad;
@@ -294,17 +274,12 @@ fn update_android_gamepads(ctx: &mut Context) {
                     log::info!("Android gamepad connected: device_id={}", device_id);
                 }
 
-                // NOTE: Most button states are handled via winit's KeyboardInput events with
-                // Linux scancodes, since NativeActivity routes input directly to native code.
-                // However, D-pad on many controllers is sent as HAT axis, which Java reads and
-                // converts to button bits 11-14. We read ONLY D-pad bits from Java.
-                let dpad_bits = (gp_state.buttons >> 11) & 0xF;
-                ctx.gamepad_context.set_button(device_id, Button::DPadUp, (dpad_bits & 1) != 0);
-                ctx.gamepad_context.set_button(device_id, Button::DPadDown, (dpad_bits & 2) != 0);
-                ctx.gamepad_context.set_button(device_id, Button::DPadLeft, (dpad_bits & 4) != 0);
-                ctx.gamepad_context.set_button(device_id, Button::DPadRight, (dpad_bits & 8) != 0);
+                // NOTE: Button states are NOT read from Java because NativeActivity
+                // routes gamepad button events directly to native code, bypassing Java.
+                // Buttons are handled via winit KeyboardInput events with Linux scancodes
+                // in the event loop's keyboard input handler.
 
-                // Update axis values (convert from -32767..32767 to -1.0..1.0)
+                // Update axis values only (convert from -32767..32767 to -1.0..1.0)
                 ctx.gamepad_context.set_axis_value(device_id, Axis::LeftX, gp_state.left_x as f64 / 32767.0);
                 ctx.gamepad_context.set_axis_value(device_id, Axis::LeftY, gp_state.left_y as f64 / 32767.0);
                 ctx.gamepad_context.set_axis_value(device_id, Axis::RightX, gp_state.right_x as f64 / 32767.0);
@@ -324,13 +299,41 @@ fn update_android_gamepads(ctx: &mut Context) {
                 }
             }
         }
-        Err(e) => {
-            // Log error only once
-            static GAMEPAD_ERR_ONCE: std::sync::Once = std::sync::Once::new();
-            GAMEPAD_ERR_ONCE.call_once(|| {
-                log::error!("Failed to get gamepad data: {}", e);
-            });
+        Err(_e) => {
+            // Silently ignore errors - gamepad data may not be available yet
         }
+    }
+}
+
+// Convert Linux input scancode to gamepad button
+// Scancodes are Linux BTN_* values from input-event-codes.h
+#[cfg(target_os = "android")]
+fn android_scancode_to_button(scancode: u32) -> Option<Button> {
+    match scancode {
+        // Face buttons (BTN_SOUTH, BTN_EAST, BTN_NORTH, BTN_WEST)
+        304 => Some(Button::South),      // BTN_SOUTH (BTN_A) = 0x130
+        305 => Some(Button::East),       // BTN_EAST (BTN_B) = 0x131
+        307 => Some(Button::North),      // BTN_NORTH (BTN_X) = 0x133
+        308 => Some(Button::West),       // BTN_WEST (BTN_Y) = 0x134
+        // Shoulder buttons
+        310 => Some(Button::LeftShoulder),   // BTN_TL = 0x136
+        311 => Some(Button::RightShoulder),  // BTN_TR = 0x137
+        // Triggers (as buttons)
+        312 => Some(Button::LeftShoulder),   // BTN_TL2 = 0x138 (fallback)
+        313 => Some(Button::RightShoulder),  // BTN_TR2 = 0x139 (fallback)
+        // Menu buttons
+        314 => Some(Button::Back),       // BTN_SELECT = 0x13a
+        315 => Some(Button::Start),      // BTN_START = 0x13b
+        316 => Some(Button::Guide),      // BTN_MODE = 0x13c
+        // Thumbstick clicks
+        317 => Some(Button::LeftStick),  // BTN_THUMBL = 0x13d
+        318 => Some(Button::RightStick), // BTN_THUMBR = 0x13e
+        // D-pad
+        544 => Some(Button::DPadUp),     // BTN_DPAD_UP = 0x220
+        545 => Some(Button::DPadDown),   // BTN_DPAD_DOWN = 0x221
+        546 => Some(Button::DPadLeft),   // BTN_DPAD_LEFT = 0x222
+        547 => Some(Button::DPadRight),  // BTN_DPAD_RIGHT = 0x223
+        _ => None,
     }
 }
 
@@ -345,14 +348,8 @@ impl BackendEventLoop for GlutinEventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
         let event_loop = EventLoop::new();
         let state_ref = unsafe { &mut *game.state.get() };
-
-        // On Android, defer context creation until Resumed event when native window is available.
-        // On other platforms, create context immediately.
-        #[cfg(not(target_os = "android"))]
         let window: &'static mut WindowedContext<PossiblyCurrent> =
-            unsafe { std::mem::transmute(self.get_context(&ctx, &event_loop)) };
-
-        #[cfg(not(target_os = "android"))]
+            unsafe { std::mem::transmute(self.get_context(&ctx, &event_loop)) };        
         {
             let size = window.window().inner_size();
             ctx.real_screen_size = (size.width, size.height);
@@ -360,91 +357,17 @@ impl BackendEventLoop for GlutinEventLoop {
             state_ref.handle_resize(ctx).unwrap();
         }
 
-        // On Android, we'll use refs directly and check if context exists
-        #[cfg(target_os = "android")]
-        let refs = self.refs.clone();
-
         // it won't ever return
         let (game, ctx): (&'static mut Game, &'static mut Context) =
             unsafe { (std::mem::transmute(game), std::mem::transmute(ctx)) };
 
-        event_loop.run(move |event, event_loop_window_target, control_flow| {
-            #[cfg(target_os = "android")]
-            {
-                *control_flow = ControlFlow::Poll;
-
-                // Handle gamepad buttons via scancode (winit sets virtual_keycode to None on Android)
-                if let Event::WindowEvent { event: WindowEvent::KeyboardInput { input, .. }, .. } = &event {
-                    // Linux input scancodes for gamepad buttons (BTN_* from linux/input-event-codes.h)
-                    const BTN_A: u32 = 304;      // 0x130
-                    const BTN_B: u32 = 305;      // 0x131
-                    const BTN_C: u32 = 306;      // 0x132
-                    const BTN_X: u32 = 307;      // 0x133
-                    const BTN_Y: u32 = 308;      // 0x134
-                    const BTN_Z: u32 = 309;      // 0x135
-                    const BTN_TL: u32 = 310;     // 0x136 (Left shoulder)
-                    const BTN_TR: u32 = 311;     // 0x137 (Right shoulder)
-                    const BTN_TL2: u32 = 312;    // 0x138 (Left trigger)
-                    const BTN_TR2: u32 = 313;    // 0x139 (Right trigger)
-                    const BTN_SELECT: u32 = 314; // 0x13a
-                    const BTN_START: u32 = 315;  // 0x13b
-                    const BTN_MODE: u32 = 316;   // 0x13c (Guide/Home)
-                    const BTN_THUMBL: u32 = 317; // 0x13d
-                    const BTN_THUMBR: u32 = 318; // 0x13e
-                    // D-pad (some controllers use HAT axis, others use buttons)
-                    const BTN_DPAD_UP: u32 = 544;    // 0x220
-                    const BTN_DPAD_DOWN: u32 = 545;  // 0x221
-                    const BTN_DPAD_LEFT: u32 = 546;  // 0x222
-                    const BTN_DPAD_RIGHT: u32 = 547; // 0x223
-
-                    let pressed = matches!(input.state, ElementState::Pressed);
-                    let scancode = input.scancode;
-
-                    // Map Linux scancode to our button enum
-                    let button = match scancode {
-                        BTN_A => Some(Button::South),
-                        BTN_B => Some(Button::East),
-                        BTN_X => Some(Button::West),
-                        BTN_Y => Some(Button::North),
-                        BTN_TL => Some(Button::LeftShoulder),
-                        BTN_TR => Some(Button::RightShoulder),
-                        BTN_SELECT => Some(Button::Back),
-                        BTN_START => Some(Button::Start),
-                        BTN_MODE => Some(Button::Guide),
-                        BTN_THUMBL => Some(Button::LeftStick),
-                        BTN_THUMBR => Some(Button::RightStick),
-                        BTN_DPAD_UP => Some(Button::DPadUp),
-                        BTN_DPAD_DOWN => Some(Button::DPadDown),
-                        BTN_DPAD_LEFT => Some(Button::DPadLeft),
-                        BTN_DPAD_RIGHT => Some(Button::DPadRight),
-                        _ => None,
-                    };
-
-                    // Set button state on the first gamepad (index 0)
-                    if let Some(btn) = button {
-                        // Get the first gamepad's device_id
-                        if let Some(gamepad) = ctx.gamepad_context.get_gamepads().first() {
-                            let device_id = gamepad.instance_id();
-                            ctx.gamepad_context.set_button(device_id, btn, pressed);
-                        }
-                    }
-                }
-            }
-            #[cfg(not(target_os = "android"))]
-            {
-                let _ = event_loop_window_target; // silence unused warning
-                *control_flow = ControlFlow::Wait;
-            }
+        event_loop.run(move |event, _, control_flow| {
+            *control_flow = ControlFlow::Wait;
 
             match event {
-                #[cfg(not(target_os = "android"))]
                 Event::WindowEvent { event: WindowEvent::CloseRequested, window_id }
                     if window_id == window.window().id() =>
                 {
-                    state_ref.shutdown();
-                }
-                #[cfg(target_os = "android")]
-                Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
                     state_ref.shutdown();
                 }
                 Event::Resumed => {
@@ -454,125 +377,12 @@ impl BackendEventLoop for GlutinEventLoop {
                     }
 
                     #[cfg(target_os = "android")]
-                    {
-                        let nwin_opt = ndk_glue::native_window();
-                        if let Some(nwin) = nwin_opt.as_ref() {
-                            let refs_inner = unsafe { &mut *refs.get() };
-
-                            // Create context if it doesn't exist yet
-                            if refs_inner.is_none() {
-                                log::info!("Android: Creating OpenGL context on Resumed event");
-
-                                let window_builder = WindowBuilder::new().with_title("doukutsu-rs");
-                                let windowed_context = ContextBuilder::new()
-                                    .with_gl(GlRequest::Specific(Api::OpenGlEs, (2, 0)))
-                                    .with_gl_profile(GlProfile::Core)
-                                    .with_gl_debug_flag(false)
-                                    .with_pixel_format(24, 8)
-                                    .with_vsync(true);
-
-                                match windowed_context.build_windowed(window_builder, event_loop_window_target) {
-                                    Ok(windowed_context) => {
-                                        match unsafe { windowed_context.make_current() } {
-                                            Ok(windowed_context) => {
-                                                unsafe {
-                                                    windowed_context.surface_created(nwin.ptr().as_ptr() as *mut std::ffi::c_void);
-                                                }
-
-                                                // Set up screen size
-                                                let size = windowed_context.window().inner_size();
-                                                ctx.real_screen_size = (size.width, size.height);
-                                                ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
-
-                                                refs_inner.replace(windowed_context);
-                                                log::info!("Android: OpenGL context created successfully, size={:?}", size);
-
-                                                // Create renderer BEFORE handle_resize (renderer is needed for texture creation)
-                                                if ctx.renderer.is_none() {
-                                                    log::info!("Android: Creating renderer...");
-                                                    let mut imgui = imgui::Context::create();
-                                                    imgui.io_mut().display_size = [size.width as f32, size.height as f32];
-
-                                                    let refs_for_renderer = refs.clone();
-                                                    let user_data = Rc::into_raw(refs_for_renderer) as *mut c_void;
-                                                    let ctx_ptr = ctx as *mut Context;
-
-                                                    unsafe fn get_proc_address(user_data: &mut *mut c_void, name: &str) -> *const c_void {
-                                                        let refs = Rc::from_raw(*user_data as *mut UnsafeCell<Option<WindowedContext<PossiblyCurrent>>>);
-                                                        let result = {
-                                                            let refs = &mut *refs.get();
-                                                            if let Some(refs) = refs {
-                                                                refs.get_proc_address(name)
-                                                            } else {
-                                                                std::ptr::null()
-                                                            }
-                                                        };
-                                                        *user_data = Rc::into_raw(refs) as *mut c_void;
-                                                        result
-                                                    }
-
-                                                    unsafe fn swap_buffers(user_data: &mut *mut c_void) {
-                                                        let refs = Rc::from_raw(*user_data as *mut UnsafeCell<Option<WindowedContext<PossiblyCurrent>>>);
-                                                        {
-                                                            let refs = &mut *refs.get();
-                                                            if let Some(refs) = refs {
-                                                                let _ = refs.swap_buffers();
-                                                            }
-                                                        }
-                                                        *user_data = Rc::into_raw(refs) as *mut c_void;
-                                                    }
-
-                                                    let gl_context = GLContext {
-                                                        gles2_mode: true,
-                                                        is_sdl: false,
-                                                        get_proc_address,
-                                                        swap_buffers,
-                                                        user_data,
-                                                        ctx: ctx_ptr,
-                                                    };
-
-                                                    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                                                        OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))
-                                                    })) {
-                                                        Ok(renderer) => {
-                                                            ctx.renderer = Some(Box::new(renderer));
-                                                            log::info!("Android: Renderer created successfully");
-                                                        }
-                                                        Err(e) => {
-                                                            log::error!("Android: Failed to create renderer: {:?}", e);
-                                                        }
-                                                    }
-                                                }
-
-                                                // Call handle_resize AFTER renderer is created (it needs renderer for textures)
-                                                let _ = state_ref.handle_resize(ctx);
-                                            }
-                                            Err(e) => {
-                                                log::error!("Android: Failed to make context current: {:?}", e);
-                                            }
-                                        }
-                                    }
-                                    Err(e) => {
-                                        log::error!("Android: Failed to build windowed context: {:?}", e);
-                                    }
-                                }
-                            } else {
-                                // Context already exists, just recreate surface
-                                if let Some(window) = refs_inner.as_ref() {
-                                    state_ref.graphics_reset();
-                                    unsafe {
-                                        window.surface_created(nwin.ptr().as_ptr() as *mut std::ffi::c_void);
-                                    }
-                                }
-                            }
-
+                    if let Some(nwin) = ndk_glue::native_window().as_ref() {
+                        state_ref.graphics_reset();
+                        unsafe {
+                            window.surface_created(nwin.ptr().as_ptr() as *mut std::ffi::c_void);
                             request_android_redraw();
                         }
-                    }
-
-                    #[cfg(not(target_os = "android"))]
-                    {
-                        // Non-Android resumed handling (if any)
                     }
 
                     state_ref.sound_manager.resume();
@@ -584,23 +394,12 @@ impl BackendEventLoop for GlutinEventLoop {
                     }
 
                     #[cfg(target_os = "android")]
-                    {
-                        let refs_inner = unsafe { &mut *refs.get() };
-                        if let Some(window) = refs_inner.as_ref() {
-                            unsafe {
-                                window.surface_destroyed();
-                            }
-                        }
-                    }
-
-                    #[cfg(not(target_os = "android"))]
                     unsafe {
                         window.surface_destroyed();
                     }
 
                     state_ref.sound_manager.pause();
                 }
-                #[cfg(not(target_os = "android"))]
                 Event::WindowEvent { event: WindowEvent::Resized(size), window_id }
                     if window_id == window.window().id() =>
                 {
@@ -614,23 +413,10 @@ impl BackendEventLoop for GlutinEventLoop {
                         state_ref.handle_resize(ctx).unwrap();
                     }
                 }
-                #[cfg(target_os = "android")]
-                Event::WindowEvent { event: WindowEvent::Resized(size), .. } => {
-                    if let Some(renderer) = &ctx.renderer {
-                        if let Ok(imgui) = renderer.imgui() {
-                            imgui.io_mut().display_size = [size.width as f32, size.height as f32];
-                        }
-
-                        ctx.real_screen_size = (size.width, size.height);
-                        ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
-                        let _ = state_ref.handle_resize(ctx);
-                    }
-                }
-                #[cfg(not(target_os = "android"))]
                 Event::WindowEvent { event: WindowEvent::Touch(touch), window_id }
                     if window_id == window.window().id() =>
                 {
-                    let controls = &mut state_ref.touch_controls;
+                    let mut controls = &mut state_ref.touch_controls;
                     let scale = state_ref.scale as f64;
                     let loc_x = (touch.location.x * ctx.screen_size.0 as f64 / ctx.real_screen_size.0 as f64) / scale;
                     let loc_y = (touch.location.y * ctx.screen_size.1 as f64 / ctx.real_screen_size.1 as f64) / scale;
@@ -662,69 +448,37 @@ impl BackendEventLoop for GlutinEventLoop {
                         }
                     }
                 }
-                #[cfg(target_os = "android")]
-                Event::WindowEvent { event: WindowEvent::Touch(touch), .. } => {
-                    let controls = &mut state_ref.touch_controls;
-                    let scale = state_ref.scale as f64;
-                    let loc_x = (touch.location.x * ctx.screen_size.0 as f64 / ctx.real_screen_size.0 as f64) / scale;
-                    let loc_y = (touch.location.y * ctx.screen_size.1 as f64 / ctx.real_screen_size.1 as f64) / scale;
-
-                    match touch.phase {
-                        TouchPhase::Started | TouchPhase::Moved => {
-                            if let Some(point) = controls.points.iter_mut().find(|p| p.id == touch.id) {
-                                point.last_position = point.position;
-                                point.position = (loc_x, loc_y);
-                            } else {
-                                controls.touch_id_counter = controls.touch_id_counter.wrapping_add(1);
-
-                                let point = TouchPoint {
-                                    id: touch.id,
-                                    touch_id: controls.touch_id_counter,
-                                    position: (loc_x, loc_y),
-                                    last_position: (0.0, 0.0),
-                                };
-                                controls.points.push(point);
-
-                                if touch.phase == TouchPhase::Started {
-                                    controls.clicks.push(point);
-                                }
-                            }
-                        }
-                        TouchPhase::Ended | TouchPhase::Cancelled => {
-                            controls.points.retain(|p| p.id != touch.id);
-                            controls.clicks.retain(|p| p.id != touch.id);
-                        }
-                    }
-                }
-                #[cfg(not(target_os = "android"))]
                 Event::WindowEvent { event: WindowEvent::KeyboardInput { input, .. }, window_id }
                     if window_id == window.window().id() =>
                 {
+                    let key_state = match input.state {
+                        ElementState::Pressed => true,
+                        ElementState::Released => false,
+                    };
+
+                    // On Android, handle gamepad button scancodes directly
+                    // since winit doesn't convert them to virtual keycodes
+                    #[cfg(target_os = "android")]
+                    {
+                        if let Some(button) = android_scancode_to_button(input.scancode) {
+                            // Collect gamepad IDs first to avoid borrow conflict
+                            let gamepad_ids: Vec<u32> = ctx.gamepad_context.get_gamepads()
+                                .iter()
+                                .map(|gp| gp.instance_id())
+                                .collect();
+                            // Apply button state to all connected gamepads
+                            for device_id in gamepad_ids {
+                                ctx.gamepad_context.set_button(device_id, button, key_state);
+                            }
+                        }
+                    }
+
                     if let Some(keycode) = input.virtual_keycode {
                         if let Some(drs_scan) = conv_keycode(keycode) {
-                            let key_state = match input.state {
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            };
-
                             ctx.keyboard_context.set_key(drs_scan, key_state);
                         }
                     }
                 }
-                #[cfg(target_os = "android")]
-                Event::WindowEvent { event: WindowEvent::KeyboardInput { input, .. }, .. } => {
-                    if let Some(keycode) = input.virtual_keycode {
-                        if let Some(drs_scan) = conv_keycode(keycode) {
-                            let key_state = match input.state {
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            };
-
-                            ctx.keyboard_context.set_key(drs_scan, key_state);
-                        }
-                    }
-                }
-                #[cfg(not(target_os = "android"))]
                 Event::RedrawRequested(id) if id == window.window().id() => {
                     {
                         let mutex = GAME_SUSPENDED.lock().unwrap();
@@ -733,144 +487,19 @@ impl BackendEventLoop for GlutinEventLoop {
                         }
                     }
 
-                    if let Err(err) = game.draw(ctx) {
-                        log::error!("Failed to draw frame: {}", err);
-                    }
-
-                    window.window().request_redraw();
-                }
-                #[cfg(target_os = "android")]
-                Event::RedrawRequested(_) => {
+                    #[cfg(not(target_os = "android"))]
                     {
-                        let mutex = GAME_SUSPENDED.lock().unwrap();
-                        if *mutex {
-                            return;
+                        if let Err(err) = game.draw(ctx) {
+                            log::error!("Failed to draw frame: {}", err);
                         }
+
+                        window.window().request_redraw();
                     }
 
+                    #[cfg(target_os = "android")]
                     request_android_redraw();
                 }
                 Event::MainEventsCleared => {
-                    #[cfg(target_os = "android")]
-                    {
-                        // Check if context exists, try to create it if native window is available
-                        // Note: We rely on winit's Resumed event to create the context.
-                        // Only fall back to creating here if Resumed was somehow missed.
-                        let refs_inner = unsafe { &mut *refs.get() };
-                        if refs_inner.is_none() {
-                            // Check if native window is available
-                            let nwin_opt = ndk_glue::native_window();
-                            static NWIN_CHECK_ONCE: std::sync::Once = std::sync::Once::new();
-                            NWIN_CHECK_ONCE.call_once(|| {
-                                log::info!("Android MainEventsCleared: native_window() = {:?}", nwin_opt.as_ref().is_some());
-                            });
-
-                            if let Some(nwin) = nwin_opt.as_ref() {
-                                static INIT_ONCE: std::sync::Once = std::sync::Once::new();
-                                INIT_ONCE.call_once(|| {
-                                    log::info!("Android: Native window available in MainEventsCleared, creating context");
-                                });
-
-                                let window_builder = WindowBuilder::new().with_title("doukutsu-rs");
-                                let windowed_context = ContextBuilder::new()
-                                    .with_gl(GlRequest::Specific(Api::OpenGlEs, (2, 0)))
-                                    .with_gl_profile(GlProfile::Core)
-                                    .with_gl_debug_flag(false)
-                                    .with_pixel_format(24, 8)
-                                    .with_vsync(true);
-
-                                match windowed_context.build_windowed(window_builder, event_loop_window_target) {
-                                    Ok(windowed_context) => {
-                                        match unsafe { windowed_context.make_current() } {
-                                            Ok(windowed_context) => {
-                                                unsafe {
-                                                    windowed_context.surface_created(nwin.ptr().as_ptr() as *mut std::ffi::c_void);
-                                                }
-
-                                                let size = windowed_context.window().inner_size();
-                                                ctx.real_screen_size = (size.width, size.height);
-                                                ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
-
-                                                refs_inner.replace(windowed_context);
-                                                log::info!("Android: OpenGL context created in MainEventsCleared, size={:?}", size);
-
-                                                // Create renderer BEFORE handle_resize (renderer is needed for texture creation)
-                                                if ctx.renderer.is_none() {
-                                                    log::info!("Android: Creating renderer...");
-                                                    let mut imgui = imgui::Context::create();
-                                                    imgui.io_mut().display_size = [size.width as f32, size.height as f32];
-
-                                                    let refs_for_renderer = refs.clone();
-                                                    let user_data = Rc::into_raw(refs_for_renderer) as *mut c_void;
-                                                    let ctx_ptr = ctx as *mut Context;
-
-                                                    unsafe fn gpa(user_data: &mut *mut c_void, name: &str) -> *const c_void {
-                                                        let refs = Rc::from_raw(*user_data as *mut UnsafeCell<Option<WindowedContext<PossiblyCurrent>>>);
-                                                        let result = {
-                                                            let refs = &mut *refs.get();
-                                                            if let Some(refs) = refs {
-                                                                refs.get_proc_address(name)
-                                                            } else {
-                                                                std::ptr::null()
-                                                            }
-                                                        };
-                                                        *user_data = Rc::into_raw(refs) as *mut c_void;
-                                                        result
-                                                    }
-
-                                                    unsafe fn sb(user_data: &mut *mut c_void) {
-                                                        let refs = Rc::from_raw(*user_data as *mut UnsafeCell<Option<WindowedContext<PossiblyCurrent>>>);
-                                                        {
-                                                            let refs = &mut *refs.get();
-                                                            if let Some(refs) = refs {
-                                                                let _ = refs.swap_buffers();
-                                                            }
-                                                        }
-                                                        *user_data = Rc::into_raw(refs) as *mut c_void;
-                                                    }
-
-                                                    let gl_context = GLContext {
-                                                        gles2_mode: true,
-                                                        is_sdl: false,
-                                                        get_proc_address: gpa,
-                                                        swap_buffers: sb,
-                                                        user_data,
-                                                        ctx: ctx_ptr,
-                                                    };
-
-                                                    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                                                        OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))
-                                                    })) {
-                                                        Ok(renderer) => {
-                                                            ctx.renderer = Some(Box::new(renderer));
-                                                            log::info!("Android: Renderer created successfully");
-                                                        }
-                                                        Err(e) => {
-                                                            log::error!("Android: Failed to create renderer: {:?}", e);
-                                                        }
-                                                    }
-                                                }
-
-                                                // Call handle_resize AFTER renderer is created (it needs renderer for textures)
-                                                let _ = state_ref.handle_resize(ctx);
-                                            }
-                                            Err(e) => {
-                                                log::error!("Android: Failed to make context current: {:?}", e);
-                                            }
-                                        }
-                                    }
-                                    Err(e) => {
-                                        log::error!("Android: Failed to build windowed context: {:?}", e);
-                                    }
-                                }
-                            }
-                            // Still no context, skip frame
-                            if unsafe { (*refs.get()).is_none() } {
-                                return;
-                            }
-                        }
-                    }
-
                     if state_ref.shutdown {
                         log::info!("Shutting down...");
                         *control_flow = ControlFlow::Exit;
@@ -884,6 +513,9 @@ impl BackendEventLoop for GlutinEventLoop {
                         }
                     }
 
+                    #[cfg(target_os = "android")]
+                    update_android_gamepads(ctx);
+
                     #[cfg(not(any(target_os = "android", target_os = "horizon")))]
                     {
                         if ctx.window.mode.get_glutin_fullscreen_type() != window.window().fullscreen() {
@@ -894,10 +526,6 @@ impl BackendEventLoop for GlutinEventLoop {
                             window.window().set_cursor_visible(cursor_visible);
                         }
                     }
-
-                    // Poll Android gamepads
-                    #[cfg(target_os = "android")]
-                    update_android_gamepads(ctx);
 
                     game.update(ctx).unwrap();
 

@@ -12,7 +12,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.DocumentsContract;
 import android.view.InputDevice;
-import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.WindowInsets;
@@ -155,30 +154,6 @@ public class GameActivity extends NativeActivity implements InputManager.InputDe
         }
     }
 
-    // Poll gamepad state directly using InputDevice API
-    // This is called from native code every frame
-    public void pollGamepadState() {
-        for (Map.Entry<Integer, Integer> entry : deviceIdToIndex.entrySet()) {
-            int deviceId = entry.getKey();
-            int index = entry.getValue();
-            int base = index * GAMEPAD_DATA_SIZE;
-
-            InputDevice device = inputManager.getInputDevice(deviceId);
-            if (device == null) continue;
-
-            // Get key states for buttons
-            int buttons = 0;
-
-            // Check each button using device.getKeyCharacterMap() isn't reliable
-            // Instead, we'll rely on the event-based approach for buttons
-            // But poll axes here
-
-            // For now, keep existing button state and just update axes
-            // (button state is updated via onKeyDown/onKeyUp if they work,
-            // or we need to use KeyEvent.isKeyPressed which requires API 31+)
-        }
-    }
-
     // Override dispatchGenericMotionEvent to intercept motion events before NativeActivity
     @Override
     public boolean dispatchGenericMotionEvent(MotionEvent event) {
@@ -317,80 +292,9 @@ public class GameActivity extends NativeActivity implements InputManager.InputDe
         return super.onGenericMotionEvent(event);
     }
 
-    // Override dispatchKeyEvent to intercept key events before NativeActivity
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        int deviceId = event.getDeviceId();
-        int keyCode = event.getKeyCode();
-        int action = event.getAction();
-
-        // Check if this is from a gamepad
-        Integer index = deviceIdToIndex.get(deviceId);
-
-        // Also check by source if device not in our map
-        if (index == null) {
-            InputDevice device = event.getDevice();
-            if (device != null && isGamepad(device)) {
-                addGamepad(deviceId);
-                index = deviceIdToIndex.get(deviceId);
-            }
-        }
-
-        if (index != null) {
-            int bit = keyCodeToBit(keyCode);
-            if (bit >= 0) {
-                synchronized (this) {
-                    int base = index * GAMEPAD_DATA_SIZE;
-                    if (action == KeyEvent.ACTION_DOWN) {
-                        gamepadData[base + 1] |= (1 << bit);
-                    } else if (action == KeyEvent.ACTION_UP) {
-                        gamepadData[base + 1] &= ~(1 << bit);
-                    }
-                }
-                // Return true to consume the event (don't pass to NativeActivity)
-                return true;
-            }
-        }
-
-        // Let NativeActivity handle other keys
-        return super.dispatchKeyEvent(event);
-    }
-
-    // Handle gamepad button presses (fallback, may not be called with NativeActivity)
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        return super.onKeyDown(keyCode, event);
-    }
-
-    @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        return super.onKeyUp(keyCode, event);
-    }
-
-    // Map Android keycode to button bit index
-    // Bit layout: 0=A, 1=B, 2=X, 3=Y, 4=LB, 5=RB, 6=Back, 7=Start, 8=Guide, 9=LS, 10=RS
-    // D-pad: 11=Up, 12=Down, 13=Left, 14=Right
-    private int keyCodeToBit(int keyCode) {
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_BUTTON_A: return 0;
-            case KeyEvent.KEYCODE_BUTTON_B: return 1;
-            case KeyEvent.KEYCODE_BUTTON_X: return 2;
-            case KeyEvent.KEYCODE_BUTTON_Y: return 3;
-            case KeyEvent.KEYCODE_BUTTON_L1: return 4;
-            case KeyEvent.KEYCODE_BUTTON_R1: return 5;
-            case KeyEvent.KEYCODE_BUTTON_SELECT:
-            case KeyEvent.KEYCODE_BACK: return 6;
-            case KeyEvent.KEYCODE_BUTTON_START: return 7;
-            case KeyEvent.KEYCODE_BUTTON_MODE: return 8;
-            case KeyEvent.KEYCODE_BUTTON_THUMBL: return 9;
-            case KeyEvent.KEYCODE_BUTTON_THUMBR: return 10;
-            case KeyEvent.KEYCODE_DPAD_UP: return 11;
-            case KeyEvent.KEYCODE_DPAD_DOWN: return 12;
-            case KeyEvent.KEYCODE_DPAD_LEFT: return 13;
-            case KeyEvent.KEYCODE_DPAD_RIGHT: return 14;
-            default: return -1;
-        }
-    }
+    // Note: Gamepad button events (A/B/X/Y etc.) are handled directly in native code
+    // via winit's KeyboardInput events with scancodes. Java cannot intercept these
+    // because NativeActivity routes them directly to native before Java sees them.
 
     @Override
     public void onAttachedToWindow() {
