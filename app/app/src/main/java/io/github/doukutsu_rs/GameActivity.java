@@ -30,8 +30,9 @@ public class GameActivity extends NativeActivity implements InputManager.InputDe
 
     // Gamepad state - accessed via JNI from Rust
     // Format: [deviceId, buttons, leftX, leftY, rightX, rightY, triggerL, triggerR] per gamepad
-    // buttons is a bitmask: bit 0=A, 1=B, 2=X, 3=Y, 4=LB, 5=RB, 6=Back, 7=Start, 8=Guide, 9=LS, 10=RS
-    // D-pad: bit 11=Up, 12=Down, 13=Left, 14=Right
+    // Note: Only axis values and D-pad from HAT axis are read here.
+    // Button events (A/B/X/Y etc.) go directly to native code via winit.
+    // buttons field only contains D-pad bits: 11=Up, 12=Down, 13=Left, 14=Right
     // Axis values are scaled to int: -32767 to 32767
     public static final int MAX_GAMEPADS = 4;
     public static final int GAMEPAD_DATA_SIZE = 8;
@@ -154,7 +155,9 @@ public class GameActivity extends NativeActivity implements InputManager.InputDe
         }
     }
 
-    // Override dispatchGenericMotionEvent to intercept motion events before NativeActivity
+    // Handle gamepad axis events (sticks, triggers, D-pad via HAT axis)
+    // Note: Button events (A/B/X/Y etc.) bypass Java and go directly to native code,
+    // where they are handled via winit's KeyboardInput events with Linux scancodes.
     @Override
     public boolean dispatchGenericMotionEvent(MotionEvent event) {
         int deviceId = event.getDeviceId();
@@ -224,77 +227,6 @@ public class GameActivity extends NativeActivity implements InputManager.InputDe
         return super.dispatchGenericMotionEvent(event);
     }
 
-    // Handle gamepad analog stick and trigger events (fallback)
-    @Override
-    public boolean onGenericMotionEvent(MotionEvent event) {
-        int deviceId = event.getDeviceId();
-        Integer index = deviceIdToIndex.get(deviceId);
-        if (index == null) {
-            // Check if this is a gamepad we should add
-            InputDevice device = event.getDevice();
-            if (device != null && isGamepad(device)) {
-                addGamepad(deviceId);
-                index = deviceIdToIndex.get(deviceId);
-            }
-        }
-
-        if (index != null && (event.getSource() & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK) {
-            int base = index * GAMEPAD_DATA_SIZE;
-
-            // Left stick
-            float leftX = event.getAxisValue(MotionEvent.AXIS_X);
-            float leftY = event.getAxisValue(MotionEvent.AXIS_Y);
-
-            // Right stick
-            float rightX = event.getAxisValue(MotionEvent.AXIS_Z);
-            float rightY = event.getAxisValue(MotionEvent.AXIS_RZ);
-
-            // Triggers
-            float triggerL = event.getAxisValue(MotionEvent.AXIS_LTRIGGER);
-            float triggerR = event.getAxisValue(MotionEvent.AXIS_RTRIGGER);
-
-            // Some controllers use BRAKE/GAS for triggers
-            if (triggerL == 0) {
-                triggerL = event.getAxisValue(MotionEvent.AXIS_BRAKE);
-            }
-            if (triggerR == 0) {
-                triggerR = event.getAxisValue(MotionEvent.AXIS_GAS);
-            }
-
-            // Handle D-pad as axis (HAT_X, HAT_Y)
-            float hatX = event.getAxisValue(MotionEvent.AXIS_HAT_X);
-            float hatY = event.getAxisValue(MotionEvent.AXIS_HAT_Y);
-
-            synchronized (this) {
-                // Store axis values scaled to int range
-                gamepadData[base + 2] = (int) (leftX * 32767);
-                gamepadData[base + 3] = (int) (leftY * 32767);
-                gamepadData[base + 4] = (int) (rightX * 32767);
-                gamepadData[base + 5] = (int) (rightY * 32767);
-                gamepadData[base + 6] = (int) (triggerL * 32767);
-                gamepadData[base + 7] = (int) (triggerR * 32767);
-
-                // Update D-pad from hat axis
-                int buttons = gamepadData[base + 1];
-                // Clear D-pad bits (11-14)
-                buttons &= ~(0xF << 11);
-                // Set D-pad from hat
-                if (hatY < -0.5f) buttons |= (1 << 11); // Up
-                if (hatY > 0.5f) buttons |= (1 << 12);  // Down
-                if (hatX < -0.5f) buttons |= (1 << 13); // Left
-                if (hatX > 0.5f) buttons |= (1 << 14);  // Right
-                gamepadData[base + 1] = buttons;
-            }
-
-            return true;
-        }
-
-        return super.onGenericMotionEvent(event);
-    }
-
-    // Note: Gamepad button events (A/B/X/Y etc.) are handled directly in native code
-    // via winit's KeyboardInput events with scancodes. Java cannot intercept these
-    // because NativeActivity routes them directly to native before Java sees them.
 
     @Override
     public void onAttachedToWindow() {
