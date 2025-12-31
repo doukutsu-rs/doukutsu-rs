@@ -212,7 +212,7 @@ impl Season {
 
         if (now.month() == 10 && now.day() > 25) || (now.month() == 11 && now.day() < 3) {
             Season::Halloween
-        } else if (now.month() == 12 && now.day() > 23) || (now.month() == 0 && now.day() < 7) {
+        } else if (now.month() == 12 && now.day() > 23) || (now.month() == 1 && now.day() < 7) {
             Season::Christmas
         } else if now.month() == 4 && now.day() == 29 {
             Season::PixelBirthday
