@@ -21,12 +21,11 @@ use super::backend::{
 };
 use super::context::Context;
 use super::error::GameResult;
+use super::filesystem;
 use super::keyboard::ScanCode;
-use super::render_opengl::OpenGLRenderer;
-use super::{filesystem, render_opengl};
 use crate::common::Rect;
 use crate::framework::error::GameError;
-use crate::framework::render_opengl::GLContextType;
+use crate::framework::render::opengl_impl::{GLContextType, GLPlatformFunctions, OpenGLRenderer};
 use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
 use crate::input::touch_controls::TouchPoint;
@@ -390,7 +389,7 @@ impl BackendEventLoop for GlutinEventLoop {
     fn new_renderer(&self, ctx: &mut Context) -> GameResult<Box<dyn BackendRenderer>> {
         struct GlutinGLPlatform(Refs);
 
-        impl render_opengl::GLPlatformFunctions for GlutinGLPlatform {
+        impl GLPlatformFunctions for GlutinGLPlatform {
             fn get_proc_address(&self, name: &str) -> *const c_void {
                 let window = self.0.borrow();
                 if let Some(window) = window.as_ref() {
