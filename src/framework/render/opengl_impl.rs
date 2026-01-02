@@ -12,14 +12,14 @@ use std::sync::Arc;
 
 use glow::{HasContext, PixelUnpackData};
 
-use super::backend::{BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData};
-use super::context::Context;
-use super::error::GameError;
-use super::error::GameError::RenderError;
-use super::error::GameResult;
-use super::graphics::{BlendMode, IndexData, ShaderStage, SwapMode};
-use super::util::{field_offset, return_param};
 use crate::common::{Color, Rect};
+use crate::framework::backend::{BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData};
+use crate::framework::context::Context;
+use crate::framework::error::GameError;
+use crate::framework::error::GameError::RenderError;
+use crate::framework::error::GameResult;
+use crate::framework::graphics::{BlendMode, IndexData, ShaderStage, SwapMode};
+use crate::framework::util::{field_offset, return_param};
 
 type GLResult<T = ()> = Result<T, String>;
 
@@ -324,14 +324,14 @@ fn check_shader_compile_status(shader: glow::Shader, gl: &glow::Context) -> GLRe
     Ok(())
 }
 
-const VERTEX_SHADER_BASIC: &str = include_str!("shaders/opengl/vertex_basic_110.glsl");
-const FRAGMENT_SHADER_TEXTURED: &str = include_str!("shaders/opengl/fragment_textured_110.glsl");
-const FRAGMENT_SHADER_COLOR: &str = include_str!("shaders/opengl/fragment_color_110.glsl");
-const FRAGMENT_SHADER_WATER: &str = include_str!("shaders/opengl/fragment_water_110.glsl");
+const VERTEX_SHADER_BASIC: &str = include_str!("../shaders/opengl/vertex_basic_110.glsl");
+const FRAGMENT_SHADER_TEXTURED: &str = include_str!("../shaders/opengl/fragment_textured_110.glsl");
+const FRAGMENT_SHADER_COLOR: &str = include_str!("../shaders/opengl/fragment_color_110.glsl");
+const FRAGMENT_SHADER_WATER: &str = include_str!("../shaders/opengl/fragment_water_110.glsl");
 
-const VERTEX_SHADER_BASIC_GLES: &str = include_str!("shaders/opengles/vertex_basic_100.glsl");
-const FRAGMENT_SHADER_TEXTURED_GLES: &str = include_str!("shaders/opengles/fragment_textured_100.glsl");
-const FRAGMENT_SHADER_COLOR_GLES: &str = include_str!("shaders/opengles/fragment_color_100.glsl");
+const VERTEX_SHADER_BASIC_GLES: &str = include_str!("../shaders/opengles/vertex_basic_100.glsl");
+const FRAGMENT_SHADER_TEXTURED_GLES: &str = include_str!("../shaders/opengles/fragment_textured_100.glsl");
+const FRAGMENT_SHADER_COLOR_GLES: &str = include_str!("../shaders/opengles/fragment_color_100.glsl");
 
 macro_rules! impl_rtti {
     ($name:ident, $inner_type:ty, $create_method:ident, $delete_method:ident) => {
@@ -415,6 +415,7 @@ impl Drop for RenderShaderObject {
 }
 
 struct RenderShader {
+    name: String,
     program_id: Option<glow::Program>,
     vertex_shader: Rc<RenderShaderObject>,
     fragment_shader: Rc<RenderShaderObject>,
@@ -434,9 +435,11 @@ impl RenderShader {
         context: &GlContextHolder,
         vertex_shader: Rc<RenderShaderObject>,
         fragment_shader: Rc<RenderShaderObject>,
+        name: String,
     ) -> GLResult<Rc<RenderShader>> {
         unsafe {
             let mut shader = RenderShader {
+                name,
                 program_id: None,
                 vertex_shader,
                 fragment_shader,
@@ -458,6 +461,8 @@ impl RenderShader {
             gl.attach_shader(program_id, shader.vertex_shader.shader);
             gl.attach_shader(program_id, shader.fragment_shader.shader);
             gl.link_program(program_id);
+            // TODO: Error check?
+            log::debug!("Linked shader '{0}', program ID: {program_id:?}", shader.name);
 
             shader.texture = gl.get_uniform_location(program_id, "Texture");
             shader.proj_mtx = gl.get_uniform_location(program_id, "ProjMtx");
@@ -570,9 +575,12 @@ impl RenderData {
             let mut surf_texture = TextureRAAI::new(gl)?;
             let mut surf_framebuffer = FramebufferRAAI::new(gl)?;
 
-            let tex_shader = RenderShader::compile(&context, vshdr_basic.clone(), fshdr_tex)?;
-            let fill_shader = RenderShader::compile(&context, vshdr_basic.clone(), fshdr_fill)?;
-            let fill_water_shader = RenderShader::compile(&context, vshdr_basic.clone(), fshdr_fill_water)?;
+            let tex_shader =
+                RenderShader::compile(&context, vshdr_basic.clone(), fshdr_tex, "builtin texture".to_owned())?;
+            let fill_shader =
+                RenderShader::compile(&context, vshdr_basic.clone(), fshdr_fill, "builtin fill".to_owned())?;
+            let fill_water_shader =
+                RenderShader::compile(&context, vshdr_basic.clone(), fshdr_fill_water, "builtin water".to_owned())?;
 
             let vbo = vbo.take();
             let ebo = ebo.take();
@@ -1144,11 +1152,34 @@ impl OpenGLRenderer {
         #[cfg(debug_assertions)]
         unsafe {
             if gl.supports_debug() {
-                log::info!("Debug output is supported");
                 gl.enable(glow::DEBUG_OUTPUT);
                 gl.enable(glow::DEBUG_OUTPUT_SYNCHRONOUS);
                 gl.debug_message_callback(|source, type_, id, severity, message| {
-                    log::info!("Debug message: {} {} {} {} {}", source, type_, id, severity, message);
+                    let type_str = match type_ {
+                        glow::DEBUG_TYPE_DEPRECATED_BEHAVIOR => "DEPRECATED_BEHAVIOR",
+                        glow::DEBUG_TYPE_ERROR => "ERROR",
+                        glow::DEBUG_TYPE_MARKER => "MARKER",
+                        glow::DEBUG_TYPE_OTHER => "OTHER",
+                        glow::DEBUG_TYPE_PERFORMANCE => "PERFORMANCE",
+                        glow::DEBUG_TYPE_POP_GROUP => "POP_GROUP",
+                        glow::DEBUG_TYPE_PORTABILITY => "PORTABILITY",
+                        glow::DEBUG_TYPE_PUSH_GROUP => "PUSH_GROUP",
+                        glow::DEBUG_TYPE_UNDEFINED_BEHAVIOR => "UNDEFINED_BEHAVIOR",
+                        _ => "UNKNOWN",
+                    };
+
+                    if severity == glow::DEBUG_SEVERITY_NOTIFICATION {
+                        return; // too spammy
+                    }
+
+                    let severity_str = match severity {
+                        glow::DEBUG_SEVERITY_NOTIFICATION => "NOTIFICATION",
+                        glow::DEBUG_SEVERITY_HIGH => "HIGH",
+                        glow::DEBUG_SEVERITY_MEDIUM => "MEDIUM",
+                        glow::DEBUG_SEVERITY_LOW => "LOW",
+                        _ => "UNKNOWN",
+                    };
+                    log::debug!("GLDebugOutput(type={type_str}, id={id}, severity={severity_str}): {message}");
                 });
             }
         }
