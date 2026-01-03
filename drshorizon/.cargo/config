@@ -2,8 +2,8 @@
 target = ["aarch64-nintendo-switch"]
 
 [target.aarch64-nintendo-switch]
-cc = {path = "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc"}
-cxx = {path = "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-g++"}
+cc = { path = "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc" }
+cxx = { path = "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-g++" }
 ar = "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-ar"
-ranlib = {path = "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-ranlib"}
+ranlib = { path = "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-ranlib" }
 linker = "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc"

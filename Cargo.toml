@@ -61,7 +61,7 @@ byteorder = "1.4"
 clap = { version = "4.5.40", default_features = false, features = ["std", "help", "usage", "error-context", "cargo", "derive"] }
 case_insensitive_hashmap = "1.0.0"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-cpal = { git = "https://github.com/doukutsu-rs/cpal", rev = "ce731c58b7f4759a0f4007b392e2b7f4716a347c" }
+cpal = { git = "https://github.com/doukutsu-rs/cpal", rev = "fe7a16f1f6610b803617a47e027c0305af3a3983" }
 directories = "3"
 discord-rich-presence = { version = "0.2", optional = true }
 downcast = "0.11"
@@ -76,7 +76,6 @@ lewton = { version = "0.10", optional = true }
 log = "0.4"
 num-derive = "0.3"
 num-traits = "0.2"
-open = "3.2"
 paste = "1.0"
 pelite = { version = ">=0.9.2", default-features = false, features = ["std"] }
 sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "244ae85833cff4f97ab4b58331741be20e422bd7", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
@@ -93,6 +92,9 @@ vec_mut_scan = "0.4"
 webbrowser = { version = "0.8.6", optional = true }
 winit = { git = "https://github.com/doukutsu-rs/winit.git", rev = "878f206d19af01b0977277929eee5e32667453c0", optional = true, default_features = false, features = ["x11"] }
 xmltree = "0.10"
+
+[target.'cfg(not(target_os = "horizon"))'.dependencies]
+open = "3.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3", features = ["winuser"] }
