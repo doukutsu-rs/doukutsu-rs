@@ -269,16 +269,20 @@ pub enum DataType {
 
 impl DataType {
     pub fn from_path(ctx: &Context, mut root_path: &str) -> Option<Self> {
-        let (root_base, root_dsiware, root_cs3d) = if root_path == "/" {
-            ("/base", "/root", "/data")
-        } else {
-            if root_path.ends_with('/') {
-                let mut chars = root_path.chars();
-                chars.next_back();
-                root_path = chars.as_str();
-            }
+        // let (root_base, root_dsiware, root_cs3d) = if root_path == "/" {
+        //     ("/base", "/root", "/data")
+        // } else {
+        //     if root_path.ends_with('/') {
+        //         let mut chars = root_path.chars();
+        //         chars.next_back();
+        //         root_path = chars.as_str();
+        //     }
 
-            (root_path, root_path, root_path)
+        //     (root_path, root_path, root_path)
+        // };
+        let (root_base, root_dsiware, root_cs3d) = {
+            root_path = root_path.strip_suffix('/').unwrap();
+            (format!("{root_path}/base"), format!("{root_path}/root"), format!("{root_path}/data"))
         };
 
         if filesystem::exists(ctx, format!("{root_base}/lighting.tbl")) {
@@ -385,11 +389,20 @@ impl DataRoot {
     }
 
     pub fn base_path(&self) -> String {
+        let mut base_path = self.path.clone();
+
+        // if let Some(data_type) = self.data_type {
+        //     data_type.root_path()
+        // } else {
+        //     self.path.clone()
+        // }
+
         if let Some(data_type) = self.data_type {
-            data_type.root_path()
-        } else {
-            self.path.clone()
+            let root_path = data_type.root_path();
+            base_path.push_str(root_path.strip_prefix('/').unwrap());
         }
+
+        base_path
     }
 }
 
@@ -1931,43 +1944,47 @@ impl EngineConstants {
             self.clean_patches();
 
             self.active_root = data_root.clone();
+            if let Some(data_type) = data_root.data_type.as_ref() {
+                let _ = data_type.apply_constants(ctx, self, sound_manager);
+            }
+
             self.rebuild_path_list(None, Season::current(), settings);
 
             if data_root.support_locales {
                 let _ = self.load_locales(ctx);
             }
-
-            if let Some(data_type) = data_root.data_type.as_ref() {
-                let _ = data_type.apply_constants(ctx, self, sound_manager);
-            }
         }
+
+        log::debug!("Path list after root switch: {:?}", &self.base_paths);
     }
 
     pub fn rebuild_path_list(&mut self, mod_path: Option<String>, season: Season, settings: &Settings) {
         self.base_paths.clear();
         self.base_paths.push("/builtin/builtin_data/".to_owned());
 
-        let root = self.active_root.base_path();
-        if root != "/" {
-            self.base_paths.push("/".to_owned());
+        let base = self.active_root.base_path();
+        let root = self.active_root.path.clone();
+
+        if base != self.active_root.path {
+            self.base_paths.insert(0, self.active_root.path.clone());
         }
 
-        self.base_paths.insert(0, root.clone());
+        self.base_paths.insert(0, base.clone());
 
-        if self.is_cs_plus && self.active_root.root_type != RootType::Translation {
+        if self.is_cs_plus {
             if settings.original_textures {
-                self.base_paths.insert(0, format!("{root}ogph/"));
+                self.base_paths.insert(0, format!("{base}ogph/"));
             } else if settings.seasonal_textures {
                 match season {
-                    Season::Halloween => self.base_paths.insert(0, "/Halloween/season/".to_string()),
-                    Season::Christmas => self.base_paths.insert(0, "/Christmas/season/".to_string()),
+                    Season::Halloween => self.base_paths.insert(0, format!("{root}Halloween/season/")),
+                    Season::Christmas => self.base_paths.insert(0, format!("{root}Christmas/season/")),
                     _ => {}
                 }
             }
         }
 
         if self.active_root.support_locales && settings.locale != "en".to_string() {
-            self.base_paths.insert(0, format!("{root}{}/", settings.locale));
+            self.base_paths.insert(0, format!("{base}{}/", settings.locale));
         }
 
         // TODO: CS+ mods support
