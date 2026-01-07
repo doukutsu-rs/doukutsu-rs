@@ -411,7 +411,7 @@ impl SharedGameState {
         let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
         let font = Self::try_update_locale(ctx, &mut constants, &settings, &mut sound_manager, &locale).unwrap();
 
-        let mod_list = ModList::load(ctx, &constants.string_table)?;
+        let mod_list = ModList::load(ctx, &constants)?;
 
         for i in 0..0xffu8 {
             let path = format!("pxt/fx{:02x}.pxt", i);
@@ -502,6 +502,16 @@ impl SharedGameState {
     pub fn reload_stage_table(&mut self, ctx: &mut Context) -> GameResult {
         let stages = StageData::load_stage_table(self, ctx)?;
         self.stages = stages;
+        Ok(())
+    }
+
+    pub fn reload_mod_list(&mut self, ctx: &mut Context) -> GameResult {
+        self.mod_list.mods.clear();
+        if self.constants.is_cs_plus {
+            let mod_list = ModList::load(ctx, &self.constants)?;
+            self.mod_list = mod_list;
+        }
+
         Ok(())
     }
 
@@ -624,7 +634,7 @@ impl SharedGameState {
         self.font = font;
 
         let _ = if prev_root != self.constants.active_root.path {
-            self.reload_resources(ctx)
+            self.reload_resources(ctx).and(self.reload_mod_list(ctx))
         } else {
             self.reload_stage_table(ctx)
         };

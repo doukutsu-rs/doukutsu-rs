@@ -359,9 +359,11 @@ pub enum RootType {
 
 #[derive(Clone, Debug)]
 pub struct DataRoot {
+    // Type of the game data in the root
     pub data_type: Option<DataType>,
     pub root_type: RootType,
 
+    // Full path to the root dir
     pub path: String,
     pub support_locales: bool,
 }
@@ -388,6 +390,8 @@ impl DataRoot {
         }
     }
 
+    // Path to the directory with a base game data.
+    // For CS+ it's "/base", for WiiWare "/root" etc.
     pub fn base_path(&self) -> String {
         let mut base_path = self.path.clone();
 
@@ -1934,7 +1938,7 @@ impl EngineConstants {
     }
 
     pub fn set_active_root(&mut self, ctx: &mut Context, new_root: String, settings: &Settings, sound_manager: &mut SoundManager) {
-        log::debug!("Switch to a new active root: {}", &new_root);
+        log::debug!("Switch to a new root: {}", &new_root);
         if self.roots.is_empty() {
             self.rebuild_roots_list(ctx, settings, sound_manager);
         }
@@ -1988,7 +1992,6 @@ impl EngineConstants {
         }
 
         // TODO: CS+ mods support
-/*
         if let Some(mut mod_path) = mod_path {
             self.base_paths.insert(0, mod_path.clone());
             if settings.original_textures {
@@ -2002,7 +2005,6 @@ impl EngineConstants {
                 self.base_paths.retain(|path| !path.contains("ogph/"));
             }
         }
- */
     }
 
     pub fn special_treatment_for_csplus_mods(&mut self, mod_path: Option<&String>) {
