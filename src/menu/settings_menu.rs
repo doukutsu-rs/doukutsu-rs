@@ -101,6 +101,7 @@ impl Default for SoundtrackMenuEntry {
 enum LanguageMenuEntry {
     Title,
     Language(String),
+    Warning,
     Back,
 }
 
@@ -359,10 +360,30 @@ impl SettingsMenu {
         );
 
         for locale in &state.constants.locales {
+            // Skip locales with no game  data
+            if !locale.is_present {
+                continue;
+            }
+
+            // The main root is awlays present, so we can safely unwrap it
+            let main_root = state.constants.roots.get("/").unwrap();
+            let active_root = &state.constants.active_root;
+            let entry =
+                // We expect that the default language for every root that isn't a translation is English.
+                if locale.code == "en" {
+                    locale.name.clone()
+                } else if active_root.support_locales && active_root.data_type != locale.data_type || main_root.data_type != locale.data_type {
+                    format!("[!!!] {}", &locale.name)
+                } else {
+                    locale.name.clone()
+                };
+
             self.language
-                .push_entry(LanguageMenuEntry::Language(locale.code.clone()), MenuEntry::Active(locale.name.clone()));
+                .push_entry(LanguageMenuEntry::Language(locale.code.clone()), MenuEntry::Active(entry));
         }
 
+        self.language.push_entry(LanguageMenuEntry::Warning, 
+            MenuEntry::Disabled(state.loc.t("menus.options_menu.language_menu.warnings.different_type").to_owned()));
         self.language.push_entry(LanguageMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         if self.on_title {

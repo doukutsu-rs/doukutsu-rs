@@ -1991,7 +1991,6 @@ impl EngineConstants {
             self.base_paths.insert(0, format!("{base}{}/", settings.locale));
         }
 
-        // TODO: CS+ mods support
         if let Some(mut mod_path) = mod_path {
             self.base_paths.insert(0, mod_path.clone());
             if settings.original_textures {
@@ -2069,7 +2068,7 @@ impl EngineConstants {
                 parts.next().unwrap().to_string()
             };
 
-            let mut locale = Locale::new(ctx, &self.base_paths, &locale_code);
+            let mut locale = Locale::new(ctx, &self.active_root, &self.base_paths, &locale_code);
 
             if locale_code == "jp" && filesystem::exists(ctx, "/base/credit_jp.tsc") {
                 locale.set_font(FontData::new("csfontjp.fnt".to_owned(), 0.5, 0.0));
