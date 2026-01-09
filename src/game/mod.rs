@@ -33,6 +33,7 @@ pub mod npc;
 pub mod physics;
 pub mod player;
 pub mod profile;
+pub mod save_container;
 pub mod scripting;
 pub mod settings;
 pub mod shared_game_state;
