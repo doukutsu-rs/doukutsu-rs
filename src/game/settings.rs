@@ -4,7 +4,7 @@ use crate::framework::filesystem::{user_create, user_open};
 use crate::framework::gamepad::{Axis, AxisDirection, Button, PlayerControllerInputType};
 use crate::framework::graphics::VSyncMode;
 use crate::framework::keyboard::ScanCode;
-use crate::game::profile::SaveFormat;
+use crate::game::save_container::SaveFormat;
 use crate::game::player::TargetPlayer;
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, TimingMode, WindowMode};
 use crate::input::combined_player_controller::CombinedPlayerController;

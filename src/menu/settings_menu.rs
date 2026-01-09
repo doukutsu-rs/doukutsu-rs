@@ -5,7 +5,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::VSyncMode;
 use crate::framework::{filesystem, graphics};
-use crate::game::profile::{SaveFormat, SWITCH_VER_1_2, SWITCH_VER_1_3};
+use crate::game::save_container::{SaveFormat, SWITCH_VER_1_2, SWITCH_VER_1_3};
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
 use crate::graphics::font::Font;
 use crate::input::combined_menu_controller::CombinedMenuController;

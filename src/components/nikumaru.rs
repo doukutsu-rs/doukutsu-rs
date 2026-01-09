@@ -10,7 +10,8 @@ use crate::framework::vfs::OpenOptions;
 use crate::game::frame::Frame;
 use crate::game::shared_game_state::{SharedGameState, TimingMode};
 use crate::game::player::Player;
-use crate::game::profile::{ChallengeTime, SaveFormat};
+use crate::game::profile::ChallengeTime;
+use crate::game::save_container::SaveFormat;
 use crate::game::scripting::tsc::text_script::TextScriptExecutionState;
 
 #[derive(Clone, Copy)]
@@ -36,26 +37,19 @@ impl NikumaruCounter {
     }
 
     fn load_time(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult<usize> {
-        let ticks = ChallengeTime::load(ctx, state, state.get_rec_filename(".rec".to_owned())).map(|t| t.ticks);
-        if ticks.is_err() {
-            log::warn!("Failed to open 290 record.");
-            return Ok(0);
+        let ticks_opt = state.save
+            .get_best_time(state.get_rec_id())
+            .and_then(|t| Some(t.convert_timing(state.settings.timing_mode)));
+        if let Some(ticks) = ticks_opt {
+            return Ok(ticks);
         }
 
-        ticks
+        Ok(0)
     }
 
     fn save_time(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if let Ok(data) = filesystem::open_options(
-            ctx,
-            state.get_rec_filename(".rec".to_string()),
-            OpenOptions::new().write(true).create(true),
-        ) {
-            let time = self.dump_challenge_time(state);
-            time.write_time(data, state, SaveFormat::Freeware)?;
-        } else {
-            log::warn!("Failed to write 290 record.");
-        }
+        let time = self.dump_challenge_time(state);
+        state.save.set_best_time(state.get_rec_id(), time, false);
 
         Ok(())
     }

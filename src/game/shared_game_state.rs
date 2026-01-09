@@ -17,7 +17,8 @@ use crate::framework::{filesystem, graphics};
 use crate::game::caret::{Caret, CaretType};
 use crate::game::npc::NPCTable;
 use crate::game::player::TargetPlayer;
-use crate::game::profile::{GameProfile, SaveContainer, SaveFormat, SaveParams, SaveSlot};
+use crate::game::profile::GameProfile;
+use crate::game::save_container::{SaveContainer, SaveFormat, SaveParams, SaveSlot};
 use crate::game::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
 use crate::game::scripting::tsc::text_script::{
     ScriptMode, TextScript, TextScriptEncoding, TextScriptExecutionState, TextScriptVM,
@@ -359,6 +360,7 @@ pub struct SharedGameState {
     #[cfg(feature = "discord-rpc")]
     pub discord_rpc: DiscordRPC,
     pub shutdown: bool,
+    pub save: SaveContainer,
 }
 
 impl SharedGameState {
@@ -460,7 +462,7 @@ impl SharedGameState {
             None => "1076523467337367622",
         };
 
-        Ok(SharedGameState {
+        let mut state = SharedGameState {
             control_flags: ControlFlags(0),
             game_flags: BitVec::with_size(8000),
             skip_flags: BitVec::with_size(64),
@@ -516,7 +518,16 @@ impl SharedGameState {
             #[cfg(feature = "discord-rpc")]
             discord_rpc: DiscordRPC::new(discord_rpc_app_id),
             shutdown: false,
-        })
+            save: SaveContainer::default(),
+        };
+
+        state.reload_save(ctx)?;
+        Ok(state)
+    }
+
+    pub fn reload_save(&mut self, ctx: &mut Context) -> GameResult {
+        self.save = SaveContainer::load(ctx, self)?;
+        Ok(())
     }
 
     pub fn reload_stage_table(&mut self, ctx: &mut Context) -> GameResult {
@@ -701,9 +712,14 @@ impl SharedGameState {
         if let Some(slot) = self.get_save_slot(self.save_slot) {
             let profile = GameProfile::dump(self, game_scene, target_player);
 
-            let mut save_container = SaveContainer::load(ctx, self)?;
+            // let mut save_container = SaveContainer::load(ctx, self)?;
+            // save_container.set_profile(slot, profile);
+            // save_container.save(ctx, self, SaveParams::default())?;
+            let mut save_container = self.save.clone();
             save_container.set_profile(slot, profile);
             save_container.save(ctx, self, SaveParams::default())?;
+
+            self.save = save_container;
         } else {
             log::info!("Mod has saves disabled.");
         }
@@ -713,21 +729,36 @@ impl SharedGameState {
 
     pub fn load_or_start_game(&mut self, ctx: &mut Context) -> GameResult {
         if let Some(slot) = self.get_save_slot(self.save_slot) {
-            if let Ok(save) = SaveContainer::load(ctx, self) {
-                if let Some(profile) = save.get_profile(slot) {
-                    self.reset();
-                    let mut next_scene = GameScene::new(self, ctx, profile.current_map as usize)?;
+            // if let Ok(save) = SaveContainer::load(ctx, self) {
+            //     if let Some(profile) = save.get_profile(slot) {
+            //         self.reset();
+            //         let mut next_scene = GameScene::new(self, ctx, profile.current_map as usize)?;
 
-                    profile.apply(self, &mut next_scene, ctx);
+            //         profile.apply(self, &mut next_scene, ctx);
 
-                    #[cfg(feature = "discord-rpc")]
-                    self.discord_rpc.update_difficulty(self.difficulty)?;
+            //         #[cfg(feature = "discord-rpc")]
+            //         self.discord_rpc.update_difficulty(self.difficulty)?;
 
-                    self.next_scene = Some(Box::new(next_scene));
-                    return Ok(());
-                } else {
-                    log::warn!("No save game found, starting new one...");
-                }
+            //         self.next_scene = Some(Box::new(next_scene));
+            //         return Ok(());
+            //     } else {
+            //         log::warn!("No save game found, starting new one...");
+            //     }
+            // }
+            let profile_opt = self.save.get_profile(slot).cloned();
+            if let Some(profile) = profile_opt {
+                self.reset();
+                let mut next_scene = GameScene::new(self, ctx, profile.current_map as usize)?;
+
+                profile.apply(self, &mut next_scene, ctx);
+
+                #[cfg(feature = "discord-rpc")]
+                self.discord_rpc.update_difficulty(self.difficulty)?;
+
+                self.next_scene = Some(Box::new(next_scene));
+                return Ok(());
+            } else {
+                log::warn!("No save game found, starting new one...");
             }
         } else {
             log::info!("Mod has saves disabled, starting new game...");
@@ -906,6 +937,15 @@ impl SharedGameState {
             .unwrap_or("290".to_owned());
 
         format!("/{name}{suffix}")
+    }
+
+    pub fn get_rec_id(&self) -> u8 {
+        self
+            .mod_path
+            .clone()
+            .and_then(|mod_path| self.mod_list.get_info_from_path(mod_path))
+            .and_then(|mod_info| mod_info.get_csp_id())
+            .unwrap_or(0)
     }
 
     pub fn has_replay_data(&self, ctx: &mut Context, replay_kind: ReplayKind) -> bool {
