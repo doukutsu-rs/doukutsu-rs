@@ -71,6 +71,8 @@ pub struct Settings {
     pub debug_outlines: bool,
     pub fps_counter: bool,
     pub locale: String,
+    #[serde(default)]
+    pub translation: Option<String>,
     #[serde(default = "default_window_mode")]
     pub window_mode: WindowMode,
     #[serde(default = "default_vsync")]
@@ -95,7 +97,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    25
+    26
 }
 
 #[inline(always)]
@@ -359,6 +361,11 @@ impl Settings {
             }
         }
 
+        if self.version == 25 {
+            self.version = 26;
+            self.translation = None;
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -458,6 +465,7 @@ impl Default for Settings {
             debug_outlines: false,
             fps_counter: false,
             locale: default_locale(),
+            translation: None,
             window_mode: WindowMode::Windowed,
             vsync_mode: VSyncMode::VSync,
             screen_shake_intensity: ScreenShakeIntensity::Full,

@@ -26,7 +26,7 @@ use crate::game::settings::Settings;
 use crate::game::stage::StageData;
 use crate::graphics::bmfont::BMFont;
 use crate::graphics::texture_set::TextureSet;
-use crate::i18n::Locale;
+use crate::i18n::{Locale, Translation};
 use crate::input::touch_controls::TouchControls;
 use crate::mod_list::ModList;
 use crate::mod_requirements::ModRequirements;
@@ -346,6 +346,7 @@ pub struct SharedGameState {
     pub replay_state: ReplayState,
     pub mod_requirements: ModRequirements,
     pub loc: Locale,
+    pub tran: Option<Translation>,
     pub tutorial_counter: u16,
     pub more_rust: bool,
     #[cfg(feature = "discord-rpc")]
@@ -419,9 +420,11 @@ impl SharedGameState {
         constants.rebuild_path_list(None, season, &settings);
 
         constants.load_locales(ctx)?;
+        constants.load_translations(ctx)?;
 
         let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
-        let font = Self::try_update_locale(&mut constants, &locale, ctx).unwrap();
+        let translation = SharedGameState::get_translation(&constants, &settings.locale, settings.translation.as_deref());
+        let font = Self::try_update_locale(&mut constants, &locale, translation.as_ref(), ctx)?;
 
         let mod_list = ModList::load(ctx, &constants.string_table)?;
 
@@ -503,6 +506,7 @@ impl SharedGameState {
             replay_state: ReplayState::None,
             mod_requirements,
             loc: locale,
+            tran: translation,
             tutorial_counter: 0,
             more_rust,
             #[cfg(feature = "discord-rpc")]
@@ -568,34 +572,38 @@ impl SharedGameState {
     pub fn try_update_locale(
         constants: &mut EngineConstants,
         locale: &Locale,
+        translation: Option<&Translation>,
         ctx: &mut Context,
     ) -> GameResult<BMFont> {
-        constants.textscript.encoding = if let Some(encoding) = locale.encoding {
-            encoding
-        } else {
-            // In freeware, Japanese and English text scripts use ShiftJIS.
-            // In Cave Story+, Japanese scripts use ShiftJIS and English scripts use UTF-8.
-            // The Switch version uses UTF-8 for both English and Japanese fonts.
-            match locale.code.as_str() {
-                "jp" => {
-                    if constants.is_switch {
-                        TextScriptEncoding::UTF8
-                    } else {
-                        TextScriptEncoding::ShiftJIS
+        constants.textscript.encoding = translation
+            .and_then(|tran| Some(tran.encoding))
+            .or(locale.encoding)
+            .unwrap_or_else(|| {
+                // In freeware, Japanese and English text scripts use ShiftJIS.
+                // In Cave Story+, Japanese scripts use ShiftJIS and English scripts use UTF-8.
+                // The Switch version uses UTF-8 for both English and Japanese fonts.
+                match locale.code.as_str() {
+                    "jp" => {
+                        if constants.is_switch {
+                            TextScriptEncoding::UTF8
+                        } else {
+                            TextScriptEncoding::ShiftJIS
+                        }
                     }
-                }
-                "en" => {
-                    if constants.is_base() {
-                        TextScriptEncoding::ShiftJIS
-                    } else {
-                        TextScriptEncoding::UTF8
+                    "en" => {
+                        if constants.is_base() {
+                            TextScriptEncoding::ShiftJIS
+                        } else {
+                            TextScriptEncoding::UTF8
+                        }
                     }
+                    _ => TextScriptEncoding::UTF8,
                 }
-                _ => TextScriptEncoding::UTF8,
-            }
-        };
+            });
 
-        constants.stage_encoding = locale.stage_encoding;
+        constants.stage_encoding = translation
+            .and_then(|tran| Some(tran.stage_encoding))
+            .or(locale.stage_encoding);
 
         let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
             log::warn!("Failed to load font, using built-in: {}", e);
@@ -609,9 +617,13 @@ impl SharedGameState {
         let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) else {
             return;
         };
-        let font = Self::try_update_locale(&mut self.constants, &locale, ctx).unwrap();
+        let translation = SharedGameState::get_translation(&self.constants, &self.settings.locale, self.settings.translation.as_deref());
+        let font = Self::try_update_locale(&mut self.constants, &locale, translation.as_ref(), ctx).unwrap();
+
         self.loc = locale;
+        self.tran = translation;
         self.font = font;
+
         let _ = self.reload_stage_table(ctx);
     }
 
@@ -920,6 +932,13 @@ impl SharedGameState {
         }
 
         out_locale
+    }
+
+    pub fn get_translation(constants: &EngineConstants, user_locale: &str, user_translation: Option<&str>) -> Option<Translation> {
+        constants.translations
+            .iter()
+            .find(|tran| tran.locale == user_locale && tran.code.as_deref() == user_translation)
+            .cloned()
     }
 
     pub fn get_localized_soundtrack_name(&self, id: &str) -> String {

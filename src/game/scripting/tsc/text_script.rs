@@ -8,6 +8,7 @@ use std::io::SeekFrom;
 use std::ops::ControlFlow;
 use std::ops::Not;
 use std::rc::Rc;
+use std::str::FromStr;
 
 use num_traits::{clamp, FromPrimitive};
 
@@ -18,7 +19,7 @@ use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
 use crate::framework::error::map_err_to_break;
-use crate::framework::error::GameResult;
+use crate::framework::error::{GameError, GameResult};
 use crate::game::frame::UpdateTarget;
 use crate::game::npc::NPCContext;
 use crate::game::npc::NPC;
@@ -87,52 +88,66 @@ pub enum TextScriptEncoding {
     Win1258,
 }
 
+impl Default for TextScriptEncoding {
+    fn default() -> Self {
+        Self::ShiftJIS
+    }
+}
+
 impl From<&str> for TextScriptEncoding {
     fn from(s: &str) -> Self {
+        s.parse().unwrap_or_default()
+    }
+}
+
+impl FromStr for TextScriptEncoding {
+    type Err = GameError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "utf-8" => Self::UTF8,
+            "utf-8" => Ok(Self::UTF8),
 
-            "iso-2022-jp" => Self::ISO_2022_JP,
-            "iso-8859-2" => Self::ISO_8859_2,
-            "iso-8859-3" => Self::ISO_8859_3,
-            "iso-8859-4" => Self::ISO_8859_4,
-            "iso-8859-5" => Self::ISO_8859_5,
-            "iso-8859-6" => Self::ISO_8859_6,
-            "iso-8859-7" => Self::ISO_8859_7,
-            "iso-8859-8" => Self::ISO_8859_8,
-            "iso-8859-8-i" => Self::ISO_8859_8_I,
-            "iso-8859-10" => Self::ISO_8859_10,
-            "iso-8859-13" => Self::ISO_8859_13,
-            "iso-8859-14" => Self::ISO_8859_14,
-            "iso-8859-15" => Self::ISO_8859_15,
-            "iso-8859-16" => Self::ISO_8859_16,
+            "iso-2022-jp" => Ok(Self::ISO_2022_JP),
+            "iso-8859-2" => Ok(Self::ISO_8859_2),
+            "iso-8859-3" => Ok(Self::ISO_8859_3),
+            "iso-8859-4" => Ok(Self::ISO_8859_4),
+            "iso-8859-5" => Ok(Self::ISO_8859_5),
+            "iso-8859-6" => Ok(Self::ISO_8859_6),
+            "iso-8859-7" => Ok(Self::ISO_8859_7),
+            "iso-8859-8" => Ok(Self::ISO_8859_8),
+            "iso-8859-8-i" => Ok(Self::ISO_8859_8_I),
+            "iso-8859-10" => Ok(Self::ISO_8859_10),
+            "iso-8859-13" => Ok(Self::ISO_8859_13),
+            "iso-8859-14" => Ok(Self::ISO_8859_14),
+            "iso-8859-15" => Ok(Self::ISO_8859_15),
+            "iso-8859-16" => Ok(Self::ISO_8859_16),
 
-            "koi8-r" => Self::KOI8_R,
-            "koi8-u" => Self::KOI8_U,
+            "koi8-r" => Ok(Self::KOI8_R),
+            "koi8-u" => Ok(Self::KOI8_U),
 
-            "macintosh" => Self::MACINTOSH,
+            "macintosh" => Ok(Self::MACINTOSH),
 
-            "euc-jp" => Self::EUC_JP,
-            "euc-kr" => Self::EUC_KR,
+            "euc-jp" => Ok(Self::EUC_JP),
+            "euc-kr" => Ok(Self::EUC_KR),
 
-            "gb18030" => Self::GB18030,
-            "gbk" => Self::GBK,
-            "big5" => Self::BIG5,
+            "gb18030" => Ok(Self::GB18030),
+            "gbk" => Ok(Self::GBK),
+            "big5" => Ok(Self::BIG5),
 
-            "windows-1250" => Self::Win1250,
-            "windows-1251" => Self::Win1251,
-            "windows-1252" => Self::Win1252,
-            "windows-1253" => Self::Win1253,
-            "windows-1254" => Self::Win1254,
-            "windows-1255" => Self::Win1255,
-            "windows-1256" => Self::Win1256,
-            "windows-1257" => Self::Win1257,
-            "windows-1258" => Self::Win1258,
+            "windows-1250" => Ok(Self::Win1250),
+            "windows-1251" => Ok(Self::Win1251),
+            "windows-1252" => Ok(Self::Win1252),
+            "windows-1253" => Ok(Self::Win1253),
+            "windows-1254" => Ok(Self::Win1254),
+            "windows-1255" => Ok(Self::Win1255),
+            "windows-1256" => Ok(Self::Win1256),
+            "windows-1257" => Ok(Self::Win1257),
+            "windows-1258" => Ok(Self::Win1258),
 
-            "utf-16be" => Self::UTF16BE,
-            "utf-16le" => Self::UTF16LE,
+            "utf-16be" => Ok(Self::UTF16BE),
+            "utf-16le" => Ok(Self::UTF16LE),
 
-            _ => Self::ShiftJIS,
+            _ => Err(Self::Err::ParseError(format!("Invalid or unsupported encoding: {}", s))),
         }
     }
 }

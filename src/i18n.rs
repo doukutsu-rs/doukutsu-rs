@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
+use serde_with::{DisplayFromStr, serde_as};
+
 use crate::framework::context::Context;
+use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::game::scripting::tsc::text_script::TextScriptEncoding;
 use crate::game::shared_game_state::FontData;
@@ -10,7 +13,9 @@ pub struct Locale {
     pub code: String,
     pub name: String,
     pub font: FontData,
+    #[deprecated]
     pub encoding: Option<TextScriptEncoding>,
+    #[deprecated]
     pub stage_encoding: Option<TextScriptEncoding>,
     strings: HashMap<String, String>,
 }
@@ -98,5 +103,38 @@ impl Locale {
 
     pub fn set_font(&mut self, font: FontData) {
         self.font = font;
+    }
+}
+
+#[serde_as]
+#[derive(Clone, Debug, serde::Deserialize)]
+pub struct Translation {
+    pub locale: String,
+    pub code: Option<String>,
+    pub name: String,
+    #[serde_as(as = "DisplayFromStr")]
+    pub encoding: TextScriptEncoding,
+    #[serde_as(as = "DisplayFromStr")]
+    pub stage_encoding: TextScriptEncoding,
+
+    #[serde(default, skip)]
+    pub is_present: bool,
+}
+
+impl Translation {
+    pub fn new(ctx: &mut Context, base_paths: &Vec<String>, code: &str) -> GameResult<Self> {
+        let file = filesystem::open_find(ctx, base_paths, &format!("translation/{code}.json"))?;
+        Ok(serde_json::from_reader::<_, Self>(file)?)
+    }
+
+    pub fn full_code(&self) -> String {
+        let mut full_code = self.locale.clone();
+
+        if let Some(code) = &self.code {
+            full_code.push('_');
+            full_code.push_str(code);
+        }
+
+        full_code
     }
 }
