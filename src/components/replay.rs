@@ -82,7 +82,7 @@ impl Replay {
     fn write_replay(&mut self, state: &mut SharedGameState, ctx: &mut Context, replay_kind: ReplayKind) -> GameResult {
         if let Ok(mut file) = filesystem::open_options(
             ctx,
-            [state.get_rec_filename(), replay_kind.get_suffix()].join(""),
+            state.get_rec_filename(replay_kind.get_suffix()),
             OpenOptions::new().write(true).create(true),
         ) {
             file.write_u16::<LE>(0)?; // Space for versioning replay files
@@ -95,7 +95,7 @@ impl Replay {
     }
 
     fn read_replay(&mut self, state: &mut SharedGameState, ctx: &mut Context, replay_kind: ReplayKind) -> GameResult {
-        if let Ok(mut file) = filesystem::user_open(ctx, [state.get_rec_filename(), replay_kind.get_suffix()].join(""))
+        if let Ok(mut file) = filesystem::user_open(ctx, state.get_rec_filename(replay_kind.get_suffix()))
         {
             self.replay_version = file.read_u16::<LE>()?;
             self.rng_seed = file.read_u64::<LE>()?;

@@ -1,9 +1,11 @@
 use itertools::Itertools;
 
+use crate::common::Version;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::VSyncMode;
 use crate::framework::{filesystem, graphics};
+use crate::game::save_container::{SaveFormat, SWITCH_VER_1_2, SWITCH_VER_1_3};
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
 use crate::graphics::font::Font;
 use crate::input::combined_menu_controller::CombinedMenuController;
@@ -118,6 +120,7 @@ enum BehaviorMenuEntry {
     CutsceneSkipMode,
     #[cfg(feature = "discord-rpc")]
     DiscordRPC,
+    SaveFormat,
     Back,
 }
 
@@ -595,6 +598,32 @@ impl SettingsMenu {
             ),
         );
 
+        self.behavior.push_entry(
+            BehaviorMenuEntry::SaveFormat,
+            MenuEntry::Options(
+                state.loc.t("menus.options_menu.behavior_menu.save_format.entry").to_owned(),
+                match state.settings.save_format {
+                    SaveFormat::Freeware => 0,
+                    SaveFormat::Plus => 1,
+                    SaveFormat::Switch(SWITCH_VER_1_2) => 2,
+                    SaveFormat::Switch(SWITCH_VER_1_3) => 3,
+                    _ => unreachable!()
+                },
+                vec![
+                    state.loc.ts("menus.options_menu.behavior_menu.save_format.freeware"),
+                    state.loc.ts("menus.options_menu.behavior_menu.save_format.plus"),
+                    state.loc.tt(
+                        "menus.save_manage_menu.save_format.switch",
+                        &[("version", "v1.2")]
+                    ),
+                    state.loc.tt(
+                        "menus.save_manage_menu.save_format.switch",
+                        &[("version", "v1.3")]
+                    ),
+                ],
+            ),
+        );
+
         self.behavior.push_entry(BehaviorMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.links.push_entry(LinksMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
@@ -1054,6 +1083,40 @@ impl SettingsMenu {
                         } else {
                             state.discord_rpc.clear()?;
                         }
+                    }
+                }
+                MenuSelectionResult::Selected(BehaviorMenuEntry::SaveFormat, toggle)
+                | MenuSelectionResult::Right(BehaviorMenuEntry::SaveFormat, toggle, _) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        let (new_mode, new_value) = match state.settings.save_format {
+                            SaveFormat::Freeware => (SaveFormat::Plus, 1),
+                            SaveFormat::Plus => (SaveFormat::Switch(SWITCH_VER_1_2), 2),
+                            SaveFormat::Switch(version) => match version {
+                                SWITCH_VER_1_2 => (SaveFormat::Switch(SWITCH_VER_1_3), 3),
+                                SWITCH_VER_1_3 => (SaveFormat::Freeware, 0),
+                                _ => unreachable!()
+                            }
+                            _ => unreachable!()
+                        };
+
+                        state.settings.save_format = new_mode;
+                        *value = new_value;
+                        let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Left(BehaviorMenuEntry::SaveFormat, toggle, _) => {
+                    if let MenuEntry::Options(_, value, _) = toggle {
+                        let (new_mode, new_value) = match state.settings.save_format {
+                            SaveFormat::Freeware => (SaveFormat::Switch(SWITCH_VER_1_3), 3),
+                            SaveFormat::Plus => (SaveFormat::Freeware, 0),
+                            SaveFormat::Switch(SWITCH_VER_1_2) => (SaveFormat::Plus, 1),
+                            SaveFormat::Switch(SWITCH_VER_1_3) => (SaveFormat::Switch(SWITCH_VER_1_2), 2),
+                            _ => unreachable!()
+                        };
+
+                        state.settings.save_format = new_mode;
+                        *value = new_value;
+                        let _ = state.settings.save(ctx);
                     }
                 }
                 MenuSelectionResult::Selected(BehaviorMenuEntry::Back, _) | MenuSelectionResult::Canceled => {

@@ -86,8 +86,12 @@ impl Locale {
         }
     }
 
+    pub fn ts(&self, key: &str) -> String {
+        self.t(key).to_owned()
+    }
+
     pub fn tt(&self, key: &str, args: &[(&str, &str)]) -> String {
-        let mut string = self.t(key).to_owned();
+        let mut string = self.ts(key);
 
         for (key, value) in args.iter() {
             string = string.replace(&format!("{{{}}}", key), &value);
