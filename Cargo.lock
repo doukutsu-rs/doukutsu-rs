@@ -446,7 +446,7 @@ dependencies = [
 [[package]]
 name = "cpal"
 version = "0.15.3"
-source = "git+https://github.com/doukutsu-rs/cpal?rev=ce731c58b7f4759a0f4007b392e2b7f4716a347c#ce731c58b7f4759a0f4007b392e2b7f4716a347c"
+source = "git+https://github.com/doukutsu-rs/cpal?rev=fe7a16f1f6610b803617a47e027c0305af3a3983#fe7a16f1f6610b803617a47e027c0305af3a3983"
 dependencies = [
  "alsa",
  "core-foundation-sys 0.8.7",
@@ -586,7 +586,7 @@ checksum = "50eb3a329e19d78c3a3dfa4ec5a51ecb84fa3a20c06edad04be25356018218f9"
 [[package]]
 name = "deko3d"
 version = "0.1.0"
-source = "git+https://github.com/doukutsu-rs/deko3d-rs?branch=master#acddd174321c842367971faeb9aebcdb99ddfef3"
+source = "git+https://github.com/doukutsu-rs/deko3d-rs?branch=master#4cc2bb89723dae5efbec57161929c3b438f8c7f1"
 dependencies = [
  "bitflags 1.3.2",
  "deko3d-sys",
@@ -595,7 +595,7 @@ dependencies = [
 [[package]]
 name = "deko3d-sys"
 version = "0.1.0"
-source = "git+https://github.com/doukutsu-rs/deko3d-rs?branch=master#acddd174321c842367971faeb9aebcdb99ddfef3"
+source = "git+https://github.com/doukutsu-rs/deko3d-rs?branch=master#4cc2bb89723dae5efbec57161929c3b438f8c7f1"
 dependencies = [
  "bindgen 0.62.0",
 ]
@@ -694,7 +694,7 @@ dependencies = [
  "vec_mut_scan",
  "webbrowser",
  "winapi",
- "winit",
+ "winit 0.24.0 (git+https://github.com/doukutsu-rs/winit.git?rev=878f206d19af01b0977277929eee5e32667453c0)",
  "winres",
  "xmltree",
 ]
@@ -865,7 +865,7 @@ dependencies = [
  "osmesa-sys",
  "parking_lot 0.11.2",
  "winapi",
- "winit",
+ "winit 0.24.0 (git+https://github.com/doukutsu-rs/winit.git?rev=878f206d19af01b0977277929eee5e32667453c0)",
 ]
 
 [[package]]
@@ -1609,8 +1609,7 @@ dependencies = [
 [[package]]
 name = "oboe"
 version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8b61bebd49e5d43f5f8cc7ee2891c16e0f41ec7954d36bcb6c14c5e0de867fb"
+source = "git+https://github.com/doukutsu-rs/oboe-rs.git?rev=8259ad558991021f2c0eb1f53ffd278f4ed00e2a#8259ad558991021f2c0eb1f53ffd278f4ed00e2a"
 dependencies = [
  "jni 0.21.1",
  "ndk 0.8.0",
@@ -1623,8 +1622,7 @@ dependencies = [
 [[package]]
 name = "oboe-sys"
 version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c8bb09a4a2b1d668170cfe0a7d5bc103f8999fb316c98099b6a9939c9f2e79d"
+source = "git+https://github.com/doukutsu-rs/oboe-rs.git?rev=8259ad558991021f2c0eb1f53ffd278f4ed00e2a#8259ad558991021f2c0eb1f53ffd278f4ed00e2a"
 dependencies = [
  "cc",
 ]
@@ -2664,6 +2662,35 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
+
+[[package]]
+name = "winit"
+version = "0.24.0"
+source = "git+https://github.com/doukutsu-rs/winit.git?rev=878f206d19af01b0977277929eee5e32667453c0#878f206d19af01b0977277929eee5e32667453c0"
+dependencies = [
+ "bitflags 1.3.2",
+ "cocoa 0.24.1",
+ "core-foundation 0.9.4",
+ "core-graphics 0.22.3",
+ "core-video-sys",
+ "dispatch",
+ "instant",
+ "lazy_static",
+ "libc",
+ "log",
+ "mio",
+ "mio-misc",
+ "ndk 0.7.0",
+ "ndk-glue",
+ "ndk-sys 0.4.1+23.1.7779620",
+ "objc",
+ "parking_lot 0.11.2",
+ "percent-encoding",
+ "raw-window-handle 0.3.4",
+ "scopeguard",
+ "winapi",
+ "x11-dl",
+]
 
 [[package]]
 name = "winit"
