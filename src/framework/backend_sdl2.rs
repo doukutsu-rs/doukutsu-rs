@@ -194,7 +194,7 @@ impl SDL2EventLoop {
         }
 
         // 全局禁用输入法，防止中文输入法弹出候选框
-        window.subsystem().sdl().stop_text_input();
+        window.subsystem().text_input().stop();
 
 
         let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
