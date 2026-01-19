@@ -193,6 +193,9 @@ impl SDL2EventLoop {
             window.set_icon(icon);
         }
 
+        // Disable non-latin IME（Fix stuck)
+        window.subsystem().text_input().stop();
+
 
         let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
 
