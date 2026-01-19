@@ -218,6 +218,10 @@ impl GamepadData {
         let duration_ms = (ticks as f32 / state.settings.timing_mode.get_tps() as f32 * 1000.0) as u32;
         self.controller.set_rumble(low_freq, hi_freq, duration_ms)
     }
+
+    pub fn instance_id(&self) -> u32 {
+        self.controller.instance_id()
+    }
 }
 
 pub struct GamepadContext {
