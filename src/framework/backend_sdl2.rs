@@ -193,7 +193,7 @@ impl SDL2EventLoop {
             window.set_icon(icon);
         }
 
-        // 全局禁用输入法，防止中文输入法弹出候选框
+        // Disable non-latin IME（Fix stuck)
         window.subsystem().text_input().stop();
 
 
