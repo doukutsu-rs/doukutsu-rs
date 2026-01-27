@@ -20,10 +20,34 @@ pub struct Symbols<'a> {
     pub texture: &'a str,
 }
 
+#[derive(Clone, Default)]
+pub struct SymbolsOwned {
+    pub symbols: Vec<(char, Rect<u16>)>,
+    pub texture: String,
+}
+
+impl Symbols<'_> {
+    pub fn to_owned(&self) -> SymbolsOwned {
+        SymbolsOwned {
+            symbols: self.symbols.to_vec(),
+            texture: self.texture.to_owned()
+        }
+    }
+}
+
+impl SymbolsOwned {
+    pub fn as_ref<'a>(&'a self) -> Symbols<'a> {
+        Symbols {
+            symbols: self.symbols.as_slice(),
+            texture: self.texture.as_str()
+        }
+    }
+}
+
 pub static EMPTY_SYMBOLS: Symbols = Symbols { symbols: &[], texture: "" };
 
 pub trait Font {
-    fn builder(&self) -> TextBuilder
+    fn builder(&self) -> TextBuilder<'_, '_>
     where
         Self: Sized,
     {

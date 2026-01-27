@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JSON schema for locale files",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "Name of the locale in English",
+      "type": "string"
+    },
+    "encoding": {
+      "description": "Charset of decrypted text scripts",
+      "$ref": "#/$defs/charset"
+    },
+    "stage_encoding": {
+      "description": "Charset of stage names in a stage table",
+      "$ref": "#/$defs/charset"
+    },
+    "font": {
+      "description": "Filename of the font for the locale",
+      "type": "string"
+    },
+    "font_scale": {
+      "description": "Scale multiplier of the locale's font",
+      "type": "string",
+      "pattern": "^([0-9]*[.])?[0-9]+$",
+      "default": "1.0"
+    }
+  },
+  "required": ["name", "font", "font_scale"],
+  "patternProperties": {
+    "^(?!name$|font$|font_scale$|encoding$|stage_encoding$).+$": {
+      "$ref": "#/$defs/translatedString"
+    }
+  },
+  "$defs": {
+    "charset": {
+      "type": "string",
+      "default": "shift-jis",
+      "enum": [
+        "big5",
+        "euc-jp",
+        "euc-kr",
+        "gb18030",
+        "gbk",
+        "iso-2022-jp",
+        "iso-8859-2",
+        "iso-8859-3",
+        "iso-8859-4",
+        "iso-8859-5",
+        "iso-8859-6",
+        "iso-8859-7",
+        "iso-8859-8",
+        "iso-8859-8-i",
+        "iso-8859-10",
+        "iso-8859-13",
+        "iso-8859-14",
+        "iso-8859-15",
+        "iso-8859-16",
+        "koi8-r",
+        "koi8-u",
+        "macintosh",
+        "shift-jis",
+        "utf-8",
+        "utf-16be",
+        "utf-16le",
+        "windows-1250",
+        "windows-1251",
+        "windows-1252",
+        "windows-1253",
+        "windows-1254",
+        "windows-1255",
+        "windows-1256",
+        "windows-1257",
+        "windows-1258"
+      ]
+    },
+    "translatedString": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "addionalProperties": { "$ref": "#/$defs/translatedString" }
+        }
+      ]
+    }
+  }
+}
