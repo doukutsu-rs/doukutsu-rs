@@ -1509,6 +1509,7 @@ impl EngineConstants {
                 "headband/plus/Npc/NpcGuest" => (320, 184),
                 "headband/plus/Npc/NpcMiza" => (320, 240),
                 "headband/plus/Npc/NpcRegu" => (320, 240),
+                "icons" => (64, 64),
                 "ItemImage" => (256, 128),
                 "Loading" => (64, 8),
                 "MyChar" => (200, 64),

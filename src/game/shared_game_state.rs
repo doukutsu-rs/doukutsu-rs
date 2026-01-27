@@ -389,7 +389,7 @@ impl SharedGameState {
         if let Some(data_type) = constants.active_root.data_type {
             if data_type.is_supported() {
                 log::info!("{data_type} data files are detected");
-                data_type.apply_constants(ctx, &mut constants, &mut sound_manager);
+                data_type.apply_constants(ctx, &mut constants, &mut sound_manager)?;
             } else {
                 log::error!("{data_type} data files are detected. !UNSUPPORTED!");
             }

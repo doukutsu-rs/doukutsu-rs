@@ -1,11 +1,12 @@
 use itertools::Itertools;
 
+use crate::common::Rect;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::VSyncMode;
 use crate::framework::{filesystem, graphics};
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
-use crate::graphics::font::Font;
+use crate::graphics::font::{Font, Symbols};
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
@@ -101,6 +102,7 @@ impl Default for SoundtrackMenuEntry {
 enum LanguageMenuEntry {
     Title,
     Language(String),
+    Spacer,
     Warning,
     Back,
 }
@@ -354,6 +356,15 @@ impl SettingsMenu {
             MenuEntry::Active(state.loc.t("menus.options_menu.controls").to_owned()),
         );
 
+        let save_warn_char = '!';
+        let save_warn_str = "!"; // TODO: find an elegant way to convert char into str without allocations
+        self.language.symbols = Some(
+            Symbols {
+                symbols: &[(save_warn_char, Rect::new_size(16, 0, 16, 16))], // ! - locale with different data type
+                texture: "icons",
+            }
+            .to_owned(),
+        );
         self.language.push_entry(
             LanguageMenuEntry::Title,
             MenuEntry::Disabled(state.loc.t("menus.options_menu.language").to_owned()),
@@ -373,17 +384,24 @@ impl SettingsMenu {
                 if locale.code == "en" {
                     locale.name.clone()
                 } else if active_root.support_locales && active_root.data_type != locale.data_type || main_root.data_type != locale.data_type {
-                    format!("[!!!] {}", &locale.name)
+                    format!("{}!", &locale.name)
                 } else {
                     locale.name.clone()
                 };
 
-            self.language
-                .push_entry(LanguageMenuEntry::Language(locale.code.clone()), MenuEntry::Active(entry));
+            self.language.push_entry(LanguageMenuEntry::Language(locale.code.clone()), MenuEntry::Active(entry));
         }
 
-        self.language.push_entry(LanguageMenuEntry::Warning, 
-            MenuEntry::Disabled(state.loc.t("menus.options_menu.language_menu.warnings.different_type").to_owned()));
+        self.language.push_entry(LanguageMenuEntry::Spacer, MenuEntry::Spacer(8.0));
+        self.language.push_entry(
+            LanguageMenuEntry::Warning,
+            MenuEntry::LongText(
+                state.loc.tt("menus.options_menu.language_menu.warnings.different_type", &[("icon", save_warn_str)]),
+                false,
+                false,
+            ),
+        );
+        self.language.push_entry(LanguageMenuEntry::Spacer, MenuEntry::Spacer(8.0));
         self.language.push_entry(LanguageMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         if self.on_title {

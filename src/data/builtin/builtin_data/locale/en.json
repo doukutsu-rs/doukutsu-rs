@@ -125,7 +125,7 @@
       "language": "Language...",
       "language_menu": {
         "warnings": {
-          "different_type": "!!! - can lead to save incompatibility"
+          "different_type": "{icon} - may produce saves that are incompatible with other locales"
         }
       },
       "behavior": "Behavior...",
