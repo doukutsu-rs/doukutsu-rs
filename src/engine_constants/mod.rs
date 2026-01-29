@@ -269,17 +269,6 @@ pub enum DataType {
 
 impl DataType {
     pub fn from_path(ctx: &Context, mut root_path: &str) -> Option<Self> {
-        // let (root_base, root_dsiware, root_cs3d) = if root_path == "/" {
-        //     ("/base", "/root", "/data")
-        // } else {
-        //     if root_path.ends_with('/') {
-        //         let mut chars = root_path.chars();
-        //         chars.next_back();
-        //         root_path = chars.as_str();
-        //     }
-
-        //     (root_path, root_path, root_path)
-        // };
         let (root_base, root_dsiware, root_cs3d) = {
             root_path = root_path.strip_suffix('/').unwrap();
             (format!("{root_path}/base"), format!("{root_path}/root"), format!("{root_path}/data"))
@@ -1891,7 +1880,7 @@ impl EngineConstants {
         *self = consts;
     }
 
-    pub fn rebuild_roots_list(&mut self, ctx: &mut Context, settings: &Settings, sound_manager: &mut SoundManager) {
+    pub fn rebuild_root_list(&mut self, ctx: &mut Context, settings: &Settings, sound_manager: &mut SoundManager) {
         // The main root is the one we can always rely on
         let data_root = "/".to_string();
         self.roots.insert(data_root.clone(), DataRoot::load(ctx, data_root.clone(), RootType::Base));
@@ -1912,7 +1901,7 @@ impl EngineConstants {
         // The following roots are locales with data files whose type differs from that of the main root.
         // Switching to a such root requires reloading the engine constants.
         for loc in &consts.locales {
-            // We assume that the Japanese translation is original and have the same type as the main root
+            // We assume that the Japanese translation is original and of the same data type as the main root
             if consts.is_cs_plus && loc.code == "jp" {
                 continue;
             }
@@ -1933,9 +1922,9 @@ impl EngineConstants {
     }
 
     pub fn set_active_root(&mut self, ctx: &mut Context, new_root: String, settings: &Settings, sound_manager: &mut SoundManager) {
-        log::debug!("Switch to a new root: {}", &new_root);
+        log::debug!("Switching to a new root: {}", &new_root);
         if self.roots.is_empty() {
-            self.rebuild_roots_list(ctx, settings, sound_manager);
+            self.rebuild_root_list(ctx, settings, sound_manager);
         }
 
         let root = self.roots.get(&new_root).cloned();
@@ -1954,7 +1943,7 @@ impl EngineConstants {
             }
         }
 
-        log::debug!("Path list after root switch: {:?}", &self.base_paths);
+        log::debug!("Path list after switching the root: {:?}", &self.base_paths);
     }
 
     pub fn rebuild_path_list(&mut self, mod_path: Option<String>, season: Season, settings: &Settings) {

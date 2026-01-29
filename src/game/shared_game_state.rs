@@ -380,11 +380,9 @@ impl SharedGameState {
             }
         }
 
-        constants.rebuild_roots_list(ctx, &settings, &mut sound_manager);
+        constants.rebuild_root_list(ctx, &settings, &mut sound_manager);
         constants.set_active_root(ctx, "/".to_string(), &settings, &mut sound_manager);
-        for r in &constants.roots {
-            log::debug!("Root: {:?}", r);
-        }
+        log::debug!("Root list: {:?}", &constants.roots);
 
         if let Some(data_type) = constants.active_root.data_type {
             if data_type.is_supported() {
@@ -401,7 +399,7 @@ impl SharedGameState {
         constants.rebuild_path_list(None, season, &settings);
 
         constants.load_locales(ctx)?;
-        constants.rebuild_roots_list(ctx, &settings, &mut sound_manager);
+        constants.rebuild_root_list(ctx, &settings, &mut sound_manager);
 
         let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
         let font = Self::try_update_locale(ctx, &mut constants, &settings, &mut sound_manager, &locale).unwrap();
