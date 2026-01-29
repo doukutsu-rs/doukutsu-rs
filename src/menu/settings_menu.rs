@@ -557,6 +557,7 @@ impl SettingsMenu {
             .collect_vec();
         soundtrack_entries.push(state.loc.t("soundtrack.organya").to_owned());
 
+        // TODO: check if this will work correctly if type of the active root is not `Translation`.
         if let Ok(dir) = filesystem::read_dir(ctx, "/Soundtracks/") {
             for entry in dir {
                 if filesystem::is_dir(ctx, &entry) {
@@ -989,8 +990,8 @@ impl SettingsMenu {
                             .find(|s| state.loc.t(format!("soundtrack.{}", s.id).as_str()) == name)
                             .map_or_else(|| name.to_owned(), |s| s.id.clone());
 
-                        if state.settings.soundtrack == "Organya" {
-                            state.settings.soundtrack = "organya".to_owned()
+                        if state.settings.soundtrack == "Organya" || state.settings.soundtrack == "オルガーニャ" {
+                            state.settings.soundtrack = "organya".to_owned();
                         }
 
                         let _ = state.settings.save(ctx);

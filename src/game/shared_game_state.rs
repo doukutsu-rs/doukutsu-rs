@@ -395,12 +395,7 @@ impl SharedGameState {
             }
         }
 
-        for soundtrack in constants.soundtracks.iter_mut() {
-            if filesystem::exists(ctx, &soundtrack.path) {
-                log::info!("Enabling soundtrack {} from {}.", soundtrack.id, soundtrack.path);
-                soundtrack.available = true;
-            }
-        }
+        constants.load_soundtracks(ctx);
 
         let season = Season::current();
         constants.rebuild_path_list(None, season, &settings);
@@ -524,6 +519,7 @@ impl SharedGameState {
         self.constants.load_csplus_tables(ctx)?;
         self.constants.load_animated_faces(ctx)?;
         self.constants.load_texture_size_hints(ctx)?;
+        self.constants.load_soundtracks(ctx);
         self.reload_stage_table(ctx)?;
 
         let npc_tbl = filesystem::open_find(ctx, &self.constants.base_paths, "npc.tbl")?;

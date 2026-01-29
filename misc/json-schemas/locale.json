@@ -4,33 +4,31 @@
   "type": "object",
   "properties": {
     "name": {
-      "description": "Name of the locale in English",
+      "description": "Name of the locale in English.",
       "type": "string"
     },
     "encoding": {
-      "description": "Charset of decrypted text scripts",
+      "description": "Charset of decrypted text scripts.",
       "$ref": "#/$defs/charset"
     },
     "stage_encoding": {
-      "description": "Charset of stage names in a stage table",
+      "description": "Charset of stage names in the stage table.",
       "$ref": "#/$defs/charset"
     },
     "font": {
-      "description": "Filename of the font for the locale",
+      "description": "Path to the font relative to the translated data directory.",
       "type": "string"
     },
     "font_scale": {
-      "description": "Scale multiplier of the locale's font",
+      "description": "Scale factor of the font.",
       "type": "string",
       "pattern": "^([0-9]*[.])?[0-9]+$",
       "default": "1.0"
     }
   },
   "required": ["name", "font", "font_scale"],
-  "patternProperties": {
-    "^(?!name$|font$|font_scale$|encoding$|stage_encoding$).+$": {
-      "$ref": "#/$defs/translatedString"
-    }
+  "unevaluatedProperties": {
+    "$ref": "#/$defs/translatedString"
   },
   "$defs": {
     "charset": {
@@ -79,7 +77,7 @@
         { "type": "string" },
         {
           "type": "object",
-          "addionalProperties": { "$ref": "#/$defs/translatedString" }
+          "unevaluatedProperties": { "$ref": "#/$defs/translatedString" }
         }
       ]
     }

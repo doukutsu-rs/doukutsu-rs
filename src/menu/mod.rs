@@ -447,7 +447,8 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     let mut lines = Vec::new();
                     let mut line = String::new();
 
-                    // we should probably abstract this away in some capacity
+                    // TODO: we should probably abstract this away in some capacity
+                    // (or use icu, to support line breaks for locales where words aren't separated)
                     let separator = match state.loc.code.as_str() {
                         "jp" => "",
                         _ => " ",

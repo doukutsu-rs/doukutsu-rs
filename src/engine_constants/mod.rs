@@ -395,12 +395,6 @@ impl DataRoot {
     pub fn base_path(&self) -> String {
         let mut base_path = self.path.clone();
 
-        // if let Some(data_type) = self.data_type {
-        //     data_type.root_path()
-        // } else {
-        //     self.path.clone()
-        // }
-
         if let Some(data_type) = self.data_type {
             let root_path = data_type.root_path();
             base_path.push_str(root_path.strip_prefix('/').unwrap());
@@ -1906,7 +1900,7 @@ impl EngineConstants {
         consts.data_type = DataType::from_path(ctx, &data_root);
 
         if let Some(data_type) = consts.data_type {
-            data_type.apply_constants(ctx, &mut consts, sound_manager);
+            let _ = data_type.apply_constants(ctx, &mut consts, sound_manager);
         }
 
         consts.roots.clone_from(&self.roots);
@@ -1916,14 +1910,14 @@ impl EngineConstants {
         let _ = consts.load_locales(ctx);
 
         // The following roots are locales with data files whose type differs from that of the main root.
-        // Switching to a such root require reloading the engine constants.
+        // Switching to a such root requires reloading the engine constants.
         for loc in &consts.locales {
             // We assume that the Japanese translation is original and have the same type as the main root
             if consts.is_cs_plus && loc.code == "jp" {
                 continue;
             }
 
-            let mut full_path = if consts.is_cs_plus { "/base/".to_string() } else { "/".to_string() };
+            let mut full_path = if consts.is_cs_plus { "/base/" } else { "/" }.to_string();
             full_path.push_str(loc.code.as_str());
             full_path.push('/');
 
@@ -1970,8 +1964,8 @@ impl EngineConstants {
         let base = self.active_root.base_path();
         let root = self.active_root.path.clone();
 
-        if base != self.active_root.path {
-            self.base_paths.insert(0, self.active_root.path.clone());
+        if base != root {
+            self.base_paths.insert(0, root.clone());
         }
 
         self.base_paths.insert(0, base.clone());
@@ -1988,7 +1982,7 @@ impl EngineConstants {
             }
         }
 
-        if self.active_root.support_locales && settings.locale != "en".to_string() {
+        if self.active_root.support_locales && settings.locale.as_str() != "en" {
             self.base_paths.insert(0, format!("{base}{}/", settings.locale));
         }
 
@@ -2083,6 +2077,16 @@ impl EngineConstants {
     }
 
     pub fn apply_constant_json_files(&mut self) {}
+
+    // TODO: load soundtrack metadata from a json file
+    pub fn load_soundtracks(&mut self, ctx: &mut Context) {
+        for soundtrack in self.soundtracks.iter_mut() {
+            if filesystem::exists_find(ctx, &self.base_paths, &soundtrack.path) {
+                log::info!("Enabling soundtrack {} from {}.", soundtrack.id, soundtrack.path);
+                soundtrack.available = true;
+            }
+        }
+    }
 
     pub fn load_texture_size_hints(&mut self, ctx: &mut Context) -> GameResult {
         if let Ok(file) = filesystem::open_find(ctx, &self.base_paths, "texture_sizes.json") {

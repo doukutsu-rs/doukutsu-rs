@@ -125,7 +125,7 @@
       "language": "言語",
       "language_menu": {
         "warnings": {
-          "different_type": "他のロケールと互換性のない保存データが生成される可能性があります。- {icon}"
+          "different_type": "他のロケールと互換性のないセーブが生成される可能性 - {icon}"
         }
       },
       "behavior": "動作",
