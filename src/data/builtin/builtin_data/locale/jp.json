@@ -123,6 +123,11 @@
         "display_touch_controls": "タッチコントロールを表示する: "
       },
       "language": "言語",
+      "language_menu": {
+        "warnings": {
+          "different_type": "他のロケールと互換性のないセーブが生成される可能性 - {icon}"
+        }
+      },
       "behavior": "動作",
       "behavior_menu": {
         "game_timing": {
