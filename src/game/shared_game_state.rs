@@ -380,7 +380,7 @@ impl SharedGameState {
             }
         }
 
-        constants.rebuild_root_list(ctx, &settings, &mut sound_manager);
+        constants.rebuild_roots_list(ctx, &settings, &mut sound_manager);
         constants.set_active_root(ctx, "/".to_string(), &settings, &mut sound_manager);
         log::debug!("Root list: {:?}", &constants.roots);
 
@@ -399,7 +399,7 @@ impl SharedGameState {
         constants.rebuild_path_list(None, season, &settings);
 
         constants.load_locales(ctx)?;
-        constants.rebuild_root_list(ctx, &settings, &mut sound_manager);
+        constants.rebuild_roots_list(ctx, &settings, &mut sound_manager);
 
         let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
         let font = Self::try_update_locale(ctx, &mut constants, &settings, &mut sound_manager, &locale).unwrap();
@@ -564,21 +564,25 @@ impl SharedGameState {
         sound_manager: &mut SoundManager,
         locale: &Locale,
     ) -> GameResult<BMFont> {
+        log::info!("Updating locale to {} ({})", &locale.code, &locale.name);
+
+        // If the active root doesn't support locales (we're probably on a Translation root)
+        // or the target locale isn't the default one (its data dir could be a root), we need to switch the root
         if !constants.active_root.support_locales || locale.code != "en" {
             let path = if constants.active_root.support_locales {
+                // If the active root support locales, we'll try to set active root to the translation data dir.
                 format!("{}{}/", constants.active_root.base_path(), &locale.code)
             } else if constants.active_root.root_type == RootType::Translation && locale.code != "en" && locale.code != "jp" {
-                // Only the main game can have translations of different data types
+                // Only the main game can have translations of different data types,
+                // so we'll try to find the translation data dir in the main root.
                 format!("{}{}/", constants.roots.get("/").cloned().unwrap().base_path(), &locale.code)
             } else {
                 // The active root doesn't support translations and isn't a translation itself.
-                // The only one thing we can do is switch to the main root.
+                // The only thing we can do is switch to the main root.
                 constants.roots.get("/").and_then(|r| Some(r.path.clone())).unwrap()
             };
 
-            if constants.roots.contains_key(&path) {
-                constants.set_active_root(ctx, path, settings, sound_manager);
-            }
+            constants.set_active_root(ctx, path, settings, sound_manager);
         }
 
         constants.textscript.encoding = if let Some(encoding) = locale.encoding {
@@ -586,7 +590,7 @@ impl SharedGameState {
         } else {
             // In freeware, Japanese and English text scripts use ShiftJIS.
             // In Cave Story+, Japanese scripts use ShiftJIS and English scripts use UTF-8.
-            // The Switch edition uses UTF-8 for both English and Japanese scripts.
+            // In the Switch edition, UTF-8 is used for both English and Japanese scripts.
             match locale.code.as_str() {
                 "jp" => {
                     if constants.is_switch {

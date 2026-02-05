@@ -252,15 +252,15 @@ pub enum DataType {
     Plus,
     #[strum(serialize = "Cave Story+ (Switch)")]
     Switch,
-    /// Missing Challenges and Remastered Soundtrack but identical to CS+ PC otherwise
+    // Missing Challenges and Remastered Soundtrack but identical to CS+ PC otherwise
     WiiWare,
     #[strum(serialize = "WiiWare DEMO")]
     WiiWareDemo,
-    /// Freeware 2.0, sprites are arranged VERY differently + separate drowned carets
+    // Freeware 2.0, sprites are arranged VERY differently + separate drowned carets
     DSiWare,
-    /// Ditto, drowned carets finally part of mychar, the turning point towards CS+
+    // Ditto, drowned carets finally part of mychar, the turning point towards CS+
     EShop,
-    /// Sprites are technically all there but filenames differ, + no n3ddta support
+    // Sprites are technically all there but filenames differ, + no n3ddta support
     CS3D,
     CSE2E,
     #[strum(serialize = "NXEngine-evo")]
@@ -1872,6 +1872,7 @@ impl EngineConstants {
     }
 
     pub fn clean_patches(&mut self) {
+        log::debug!("Cleaning the constants");
         let mut consts = Self::defaults();
         consts.roots.clone_from(&self.roots);
         consts.locales.clone_from(&self.locales);
@@ -1880,11 +1881,14 @@ impl EngineConstants {
         *self = consts;
     }
 
-    pub fn rebuild_root_list(&mut self, ctx: &mut Context, settings: &Settings, sound_manager: &mut SoundManager) {
-        // The main root is the one we can always rely on
+    pub fn rebuild_roots_list(&mut self, ctx: &mut Context, settings: &Settings, sound_manager: &mut SoundManager) {
+        log::debug!("Rebuilding roots list");
+
+        // The main root is always present
         let data_root = "/".to_string();
         self.roots.insert(data_root.clone(), DataRoot::load(ctx, data_root.clone(), RootType::Base));
 
+        log::debug!("Start initializing a temporary instance of EngineConstants");
         let mut consts = Self::defaults();
         consts.data_type = DataType::from_path(ctx, &data_root);
 
@@ -1897,6 +1901,7 @@ impl EngineConstants {
 
         consts.rebuild_path_list(None, Season::current(), settings);
         let _ = consts.load_locales(ctx);
+        log::debug!("Temporary instance of EngineConstants has been initialized");
 
         // The following roots are locales with data files whose type differs from that of the main root.
         // Switching to a such root requires reloading the engine constants.
@@ -1924,7 +1929,7 @@ impl EngineConstants {
     pub fn set_active_root(&mut self, ctx: &mut Context, new_root: String, settings: &Settings, sound_manager: &mut SoundManager) {
         log::debug!("Switching to a new root: {}", &new_root);
         if self.roots.is_empty() {
-            self.rebuild_root_list(ctx, settings, sound_manager);
+            self.rebuild_roots_list(ctx, settings, sound_manager);
         }
 
         let root = self.roots.get(&new_root).cloned();
@@ -1941,9 +1946,9 @@ impl EngineConstants {
             if data_root.support_locales {
                 let _ = self.load_locales(ctx);
             }
-        }
 
-        log::debug!("Path list after switching the root: {:?}", &self.base_paths);
+            log::debug!("Path list after switching the root: {:?}", &self.base_paths);
+        }
     }
 
     pub fn rebuild_path_list(&mut self, mod_path: Option<String>, season: Season, settings: &Settings) {

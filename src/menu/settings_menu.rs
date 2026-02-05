@@ -360,6 +360,7 @@ impl SettingsMenu {
         let save_warn_str = "!"; // TODO: find an elegant way to convert char into str without allocations
         self.language.symbols = Some(
             Symbols {
+                // TODO: dehardcode this Rect
                 symbols: &[(save_warn_char, Rect::new_size(16, 0, 16, 16))], // ! - locale with different data type
                 texture: "icons",
             }

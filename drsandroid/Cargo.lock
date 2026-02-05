@@ -437,7 +437,7 @@ dependencies = [
 [[package]]
 name = "cpal"
 version = "0.15.3"
-source = "git+https://github.com/doukutsu-rs/cpal?rev=ce731c58b7f4759a0f4007b392e2b7f4716a347c#ce731c58b7f4759a0f4007b392e2b7f4716a347c"
+source = "git+https://github.com/doukutsu-rs/cpal?rev=fe7a16f1f6610b803617a47e027c0305af3a3983#fe7a16f1f6610b803617a47e027c0305af3a3983"
 dependencies = [
  "alsa",
  "core-foundation-sys 0.8.7",
@@ -1587,8 +1587,7 @@ dependencies = [
 [[package]]
 name = "oboe"
 version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8b61bebd49e5d43f5f8cc7ee2891c16e0f41ec7954d36bcb6c14c5e0de867fb"
+source = "git+https://github.com/doukutsu-rs/oboe-rs.git?rev=8259ad558991021f2c0eb1f53ffd278f4ed00e2a#8259ad558991021f2c0eb1f53ffd278f4ed00e2a"
 dependencies = [
  "jni 0.21.1",
  "ndk 0.8.0",
@@ -1601,8 +1600,7 @@ dependencies = [
 [[package]]
 name = "oboe-sys"
 version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c8bb09a4a2b1d668170cfe0a7d5bc103f8999fb316c98099b6a9939c9f2e79d"
+source = "git+https://github.com/doukutsu-rs/oboe-rs.git?rev=8259ad558991021f2c0eb1f53ffd278f4ed00e2a#8259ad558991021f2c0eb1f53ffd278f4ed00e2a"
 dependencies = [
  "cc",
 ]
