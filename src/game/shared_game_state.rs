@@ -7,7 +7,7 @@ use crate::components::draw_common::{draw_number, Alignment};
 use crate::data::vanilla::VanillaExtractor;
 #[cfg(feature = "discord-rpc")]
 use crate::discord::DiscordRPC;
-use crate::engine_constants::EngineConstants;
+use crate::engine_constants::{RootType, DataType, EngineConstants};
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -380,50 +380,31 @@ impl SharedGameState {
             }
         }
 
-        if filesystem::exists(ctx, "/base/lighting.tbl") {
-            log::info!("Cave Story+ (Switch) data files detected.");
-            ctx.window.size_hint = (854, 480);
-            constants.apply_csplus_patches(&mut sound_manager);
-            constants.apply_csplus_nx_patches();
-            constants.load_nx_stringtable(ctx)?;
-        } else if filesystem::exists(ctx, "/base/ogph/SellScreen.bmp") {
-            log::info!("WiiWare DEMO data files detected.");
-            constants.apply_csplus_patches(&mut sound_manager);
-            constants.apply_csdemo_patches();
-        } else if filesystem::exists(ctx, "/base/strap_a_en.bmp") {
-            log::info!("WiiWare data files detected."); //Missing Challenges and Remastered Soundtrack but identical to CS+ PC otherwise
-            constants.apply_csplus_patches(&mut sound_manager);
-        } else if filesystem::exists(ctx, "/root/buid_time.txt") {
-            log::error!("DSiWare data files detected. !UNSUPPORTED!"); //Freeware 2.0, sprites are arranged VERY differently + separate drowned carets
-        } else if filesystem::exists(ctx, "/darken.tex") || filesystem::exists(ctx, "/darken.png") {
-            log::error!("EShop data files detected. !UNSUPPORTED!"); //Ditto, drowned carets finally part of mychar, the turning point towards CS+
-        } else if filesystem::exists(ctx, "/data/stage3d/") {
-            log::error!("CS3D data files detected. !UNSUPPORTED!"); //Sprites are technically all there but filenames differ, + no n3ddta support
-        } else if filesystem::exists(ctx, "/base/Nicalis.bmp") || filesystem::exists(ctx, "/base/Nicalis.png") {
-            log::info!("Cave Story+ (PC) data files detected.");
-            constants.apply_csplus_patches(&mut sound_manager);
-        } else if filesystem::exists(ctx, "/mrmap.bin") {
-            log::info!("CSE2E data files detected.");
-        } else if filesystem::exists(ctx, "/stage.dat") {
-            log::info!("NXEngine-evo data files detected.");
-        }
+        constants.rebuild_roots_list(ctx, &settings, &mut sound_manager);
+        constants.set_active_root(ctx, "/".to_string(), &settings, &mut sound_manager);
+        log::debug!("Root list: {:?}", &constants.roots);
 
-        for soundtrack in constants.soundtracks.iter_mut() {
-            if filesystem::exists(ctx, &soundtrack.path) {
-                log::info!("Enabling soundtrack {} from {}.", soundtrack.id, soundtrack.path);
-                soundtrack.available = true;
+        if let Some(data_type) = constants.active_root.data_type {
+            if data_type.is_supported() {
+                log::info!("{data_type} data files are detected");
+                data_type.apply_constants(ctx, &mut constants, &mut sound_manager)?;
+            } else {
+                log::error!("{data_type} data files are detected. !UNSUPPORTED!");
             }
         }
+
+        constants.load_soundtracks(ctx);
 
         let season = Season::current();
         constants.rebuild_path_list(None, season, &settings);
 
         constants.load_locales(ctx)?;
+        constants.rebuild_roots_list(ctx, &settings, &mut sound_manager);
 
         let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
-        let font = Self::try_update_locale(&mut constants, &locale, ctx).unwrap();
+        let font = Self::try_update_locale(ctx, &mut constants, &settings, &mut sound_manager, &locale).unwrap();
 
-        let mod_list = ModList::load(ctx, &constants.string_table)?;
+        let mod_list = ModList::load(ctx, &constants)?;
 
         for i in 0..0xffu8 {
             let path = format!("pxt/fx{:02x}.pxt", i);
@@ -517,6 +498,16 @@ impl SharedGameState {
         Ok(())
     }
 
+    pub fn reload_mod_list(&mut self, ctx: &mut Context) -> GameResult {
+        self.mod_list.mods.clear();
+        if self.constants.is_cs_plus {
+            let mod_list = ModList::load(ctx, &self.constants)?;
+            self.mod_list = mod_list;
+        }
+
+        Ok(())
+    }
+
     pub fn reload_resources(&mut self, ctx: &mut Context) -> GameResult {
         self.constants.rebuild_path_list(self.mod_path.clone(), self.season, &self.settings);
         if !self.constants.is_demo {
@@ -526,6 +517,7 @@ impl SharedGameState {
         self.constants.load_csplus_tables(ctx)?;
         self.constants.load_animated_faces(ctx)?;
         self.constants.load_texture_size_hints(ctx)?;
+        self.constants.load_soundtracks(ctx);
         self.reload_stage_table(ctx)?;
 
         let npc_tbl = filesystem::open_find(ctx, &self.constants.base_paths, "npc.tbl")?;
@@ -566,16 +558,39 @@ impl SharedGameState {
     }
 
     pub fn try_update_locale(
-        constants: &mut EngineConstants,
-        locale: &Locale,
         ctx: &mut Context,
+        constants: &mut EngineConstants,
+        settings: &Settings,
+        sound_manager: &mut SoundManager,
+        locale: &Locale,
     ) -> GameResult<BMFont> {
+        log::info!("Updating locale to {} ({})", &locale.code, &locale.name);
+
+        // If the active root doesn't support locales (we're probably on a Translation root)
+        // or the target locale isn't the default one (its data dir could be a root), we need to switch the root
+        if !constants.active_root.support_locales || locale.code != "en" {
+            let path = if constants.active_root.support_locales {
+                // If the active root support locales, we'll try to set active root to the translation data dir.
+                format!("{}{}/", constants.active_root.base_path(), &locale.code)
+            } else if constants.active_root.root_type == RootType::Translation && locale.code != "en" && locale.code != "jp" {
+                // Only the main game can have translations of different data types,
+                // so we'll try to find the translation data dir in the main root.
+                format!("{}{}/", constants.roots.get("/").cloned().unwrap().base_path(), &locale.code)
+            } else {
+                // The active root doesn't support translations and isn't a translation itself.
+                // The only thing we can do is switch to the main root.
+                constants.roots.get("/").and_then(|r| Some(r.path.clone())).unwrap()
+            };
+
+            constants.set_active_root(ctx, path, settings, sound_manager);
+        }
+
         constants.textscript.encoding = if let Some(encoding) = locale.encoding {
             encoding
         } else {
             // In freeware, Japanese and English text scripts use ShiftJIS.
             // In Cave Story+, Japanese scripts use ShiftJIS and English scripts use UTF-8.
-            // The Switch version uses UTF-8 for both English and Japanese fonts.
+            // In the Switch edition, UTF-8 is used for both English and Japanese scripts.
             match locale.code.as_str() {
                 "jp" => {
                     if constants.is_switch {
@@ -609,10 +624,18 @@ impl SharedGameState {
         let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) else {
             return;
         };
-        let font = Self::try_update_locale(&mut self.constants, &locale, ctx).unwrap();
+
+        let prev_root = self.constants.active_root.path.clone();
+
+        let font = Self::try_update_locale(ctx, &mut self.constants, &self.settings, &mut self.sound_manager, &locale).unwrap();
         self.loc = locale;
         self.font = font;
-        let _ = self.reload_stage_table(ctx);
+
+        let _ = if prev_root != self.constants.active_root.path {
+            self.reload_resources(ctx).and(self.reload_mod_list(ctx))
+        } else {
+            self.reload_stage_table(ctx)
+        };
     }
 
     pub fn graphics_reset(&mut self) {

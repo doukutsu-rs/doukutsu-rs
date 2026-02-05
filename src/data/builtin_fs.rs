@@ -114,6 +114,7 @@ impl BuiltinFS {
                         "builtin_data",
                         vec![
                             FSNode::File("buttons.png", include_bytes!("builtin/builtin_data/buttons.png")),
+                            FSNode::File("icons.png", include_bytes!("builtin/builtin_data/icons.png")),
                             FSNode::File("triangles.png", include_bytes!("builtin/builtin_data/triangles.png")),
                             FSNode::Directory(
                                 "headband",

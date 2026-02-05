@@ -3,6 +3,7 @@ use std::io::{BufRead, BufReader};
 use std::iter::Peekable;
 use std::str::Chars;
 
+use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
@@ -51,10 +52,14 @@ pub struct ModList {
 }
 
 impl ModList {
-    pub fn load(ctx: &mut Context, string_table: &HashMap<String, String>) -> GameResult<ModList> {
+    pub fn load(ctx: &mut Context, constants: &EngineConstants) -> GameResult<ModList> {
+        Self::load_for_root(ctx, &constants.string_table, &constants.active_root.path)
+    }
+
+    pub fn load_for_root(ctx: &mut Context, string_table: &HashMap<String, String>, root: &String) -> GameResult<ModList> {
         let mut mods = Vec::new();
 
-        if let Ok(file) = filesystem::open(ctx, "/mods.txt") {
+        if let Ok(file) = filesystem::open(ctx, format!("{root}mods.txt")) {
             let reader = BufReader::new(file);
             let mut lines = reader.lines();
 
@@ -68,7 +73,10 @@ impl ModList {
                 let mut id = String::new();
                 let mut requirement = Requirement::Unlocked;
                 let mut priority = 1000u32;
-                let mut path = String::new();
+                let mut path = root
+                    .strip_suffix('/')
+                    .and_then(|s| Some(s.to_string()))
+                    .unwrap_or(root.clone());
                 let mut chars = line.chars().peekable();
 
                 fn consume_spaces(chars: &mut Peekable<Chars>) {
