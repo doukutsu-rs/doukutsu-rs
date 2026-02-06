@@ -15,8 +15,10 @@ use imgui::{DrawCmdParams, DrawData, DrawIdx, DrawVert};
 use winit::window::Icon;
 
 use crate::common::Rect;
-use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
+use crate::framework::backend::{Backend, BackendEventLoop, BackendGamepad, BackendRenderer, BackendTexture, SpriteBatchCommand};
 use crate::framework::context::Context;
+#[cfg(target_os = "android")]
+use crate::framework::gamepad::{Axis, Button};
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
 use crate::framework::gl;
@@ -163,6 +165,178 @@ fn get_insets() -> GameResult<(f32, f32, f32, f32)> {
     }
 }
 
+// Android gamepad support via JNI
+#[cfg(target_os = "android")]
+const GAMEPAD_DATA_SIZE: usize = 8;
+#[cfg(target_os = "android")]
+const MAX_GAMEPADS: usize = 4;
+
+#[cfg(target_os = "android")]
+pub struct AndroidGamepad {
+    device_id: u32,
+}
+
+#[cfg(target_os = "android")]
+impl BackendGamepad for AndroidGamepad {
+    fn set_rumble(&mut self, _low_freq: u16, _high_freq: u16, _duration_ms: u32) -> GameResult {
+        // Android rumble requires API 31+ and is complex to implement via JNI
+        // For now, rumble is not supported
+        Ok(())
+    }
+
+    fn instance_id(&self) -> u32 {
+        self.device_id
+    }
+}
+
+#[cfg(target_os = "android")]
+struct AndroidGamepadState {
+    device_id: i32,
+    buttons: i32,
+    left_x: i32,
+    left_y: i32,
+    right_x: i32,
+    right_y: i32,
+    trigger_left: i32,
+    trigger_right: i32,
+}
+
+#[cfg(target_os = "android")]
+fn get_gamepad_data() -> GameResult<(i32, Vec<AndroidGamepadState>)> {
+    unsafe {
+        use jni::objects::JObject;
+        use jni::JavaVM;
+
+        let vm_ptr = ndk_glue::native_activity().vm();
+        let vm = JavaVM::from_raw(vm_ptr)?;
+        let vm_env = vm.attach_current_thread()?;
+
+        let class = vm_env.new_global_ref(JObject::from_raw(ndk_glue::native_activity().activity()))?;
+
+        // Get gamepad count
+        let count_field = vm_env.get_field(class.as_obj(), "gamepadCount", "I")?;
+        let gamepad_count = count_field.i().unwrap_or(0);
+
+        if gamepad_count == 0 {
+            return Ok((0, Vec::new()));
+        }
+
+        // Get gamepad data array
+        let data_field = vm_env.get_field(class.as_obj(), "gamepadData", "[I")?.to_jni().l as jni::sys::jintArray;
+
+        let total_elements = (gamepad_count as usize) * GAMEPAD_DATA_SIZE;
+        let mut elements = vec![0i32; MAX_GAMEPADS * GAMEPAD_DATA_SIZE];
+        vm_env.get_int_array_region(data_field, 0, &mut elements[..total_elements])?;
+
+        vm_env.delete_local_ref(JObject::from_raw(data_field));
+
+        let mut gamepads = Vec::with_capacity(gamepad_count as usize);
+        for i in 0..gamepad_count as usize {
+            let base = i * GAMEPAD_DATA_SIZE;
+            gamepads.push(AndroidGamepadState {
+                device_id: elements[base],
+                buttons: elements[base + 1],
+                left_x: elements[base + 2],
+                left_y: elements[base + 3],
+                right_x: elements[base + 4],
+                right_y: elements[base + 5],
+                trigger_left: elements[base + 6],
+                trigger_right: elements[base + 7],
+            });
+        }
+
+        Ok((gamepad_count, gamepads))
+    }
+}
+
+#[cfg(target_os = "android")]
+fn update_android_gamepads(ctx: &mut Context) {
+    use crate::framework::gamepad;
+
+    match get_gamepad_data() {
+        Ok((_count, gamepads)) => {
+            let existing_gamepads: Vec<u32> = ctx.gamepad_context.get_gamepads()
+                .iter()
+                .map(|g| g.instance_id())
+                .collect();
+
+            // Track which device IDs we see
+            let mut seen_ids: Vec<u32> = Vec::new();
+
+            for gp_state in &gamepads {
+                let device_id = gp_state.device_id as u32;
+                seen_ids.push(device_id);
+
+                // Add new gamepads
+                if !existing_gamepads.contains(&device_id) {
+                    let android_gamepad = Box::new(AndroidGamepad { device_id });
+                    gamepad::add_gamepad(ctx, android_gamepad, 0.3);
+                    log::info!("Android gamepad connected: device_id={}", device_id);
+                }
+
+                // NOTE: Button states are NOT read from Java because NativeActivity
+                // routes gamepad button events directly to native code, bypassing Java.
+                // Buttons are handled via winit KeyboardInput events with Linux scancodes
+                // in the event loop's keyboard input handler.
+
+                // Update axis values only (convert from -32767..32767 to -1.0..1.0)
+                ctx.gamepad_context.set_axis_value(device_id, Axis::LeftX, gp_state.left_x as f64 / 32767.0);
+                ctx.gamepad_context.set_axis_value(device_id, Axis::LeftY, gp_state.left_y as f64 / 32767.0);
+                ctx.gamepad_context.set_axis_value(device_id, Axis::RightX, gp_state.right_x as f64 / 32767.0);
+                ctx.gamepad_context.set_axis_value(device_id, Axis::RightY, gp_state.right_y as f64 / 32767.0);
+                ctx.gamepad_context.set_axis_value(device_id, Axis::TriggerLeft, gp_state.trigger_left as f64 / 32767.0);
+                ctx.gamepad_context.set_axis_value(device_id, Axis::TriggerRight, gp_state.trigger_right as f64 / 32767.0);
+
+                // Update axes in gamepad data
+                ctx.gamepad_context.update_axes(device_id);
+            }
+
+            // Remove disconnected gamepads
+            for existing_id in existing_gamepads {
+                if !seen_ids.contains(&existing_id) {
+                    gamepad::remove_gamepad(ctx, existing_id);
+                    log::info!("Android gamepad disconnected: device_id={}", existing_id);
+                }
+            }
+        }
+        Err(_e) => {
+            // Silently ignore errors - gamepad data may not be available yet
+        }
+    }
+}
+
+// Convert Linux input scancode to gamepad button
+// Scancodes are Linux BTN_* values from input-event-codes.h
+#[cfg(target_os = "android")]
+fn android_scancode_to_button(scancode: u32) -> Option<Button> {
+    match scancode {
+        // Face buttons (BTN_SOUTH, BTN_EAST, BTN_NORTH, BTN_WEST)
+        304 => Some(Button::South),      // BTN_SOUTH (BTN_A) = 0x130
+        305 => Some(Button::East),       // BTN_EAST (BTN_B) = 0x131
+        307 => Some(Button::North),      // BTN_NORTH (BTN_X) = 0x133
+        308 => Some(Button::West),       // BTN_WEST (BTN_Y) = 0x134
+        // Shoulder buttons
+        310 => Some(Button::LeftShoulder),   // BTN_TL = 0x136
+        311 => Some(Button::RightShoulder),  // BTN_TR = 0x137
+        // Triggers (as buttons)
+        312 => Some(Button::LeftShoulder),   // BTN_TL2 = 0x138 (fallback)
+        313 => Some(Button::RightShoulder),  // BTN_TR2 = 0x139 (fallback)
+        // Menu buttons
+        314 => Some(Button::Back),       // BTN_SELECT = 0x13a
+        315 => Some(Button::Start),      // BTN_START = 0x13b
+        316 => Some(Button::Guide),      // BTN_MODE = 0x13c
+        // Thumbstick clicks
+        317 => Some(Button::LeftStick),  // BTN_THUMBL = 0x13d
+        318 => Some(Button::RightStick), // BTN_THUMBR = 0x13e
+        // D-pad
+        544 => Some(Button::DPadUp),     // BTN_DPAD_UP = 0x220
+        545 => Some(Button::DPadDown),   // BTN_DPAD_DOWN = 0x221
+        546 => Some(Button::DPadLeft),   // BTN_DPAD_LEFT = 0x222
+        547 => Some(Button::DPadRight),  // BTN_DPAD_RIGHT = 0x223
+        _ => None,
+    }
+}
+
 fn get_scaled_size(width: u32, height: u32) -> (f32, f32) {
     let scaled_height = ((height / 480).max(1) * 480) as f32;
     let scaled_width = (width as f32 * (scaled_height as f32 / height as f32)).floor();
@@ -277,13 +451,30 @@ impl BackendEventLoop for GlutinEventLoop {
                 Event::WindowEvent { event: WindowEvent::KeyboardInput { input, .. }, window_id }
                     if window_id == window.window().id() =>
                 {
+                    let key_state = match input.state {
+                        ElementState::Pressed => true,
+                        ElementState::Released => false,
+                    };
+
+                    // On Android, handle gamepad button scancodes directly
+                    // since winit doesn't convert them to virtual keycodes
+                    #[cfg(target_os = "android")]
+                    {
+                        if let Some(button) = android_scancode_to_button(input.scancode) {
+                            // Collect gamepad IDs first to avoid borrow conflict
+                            let gamepad_ids: Vec<u32> = ctx.gamepad_context.get_gamepads()
+                                .iter()
+                                .map(|gp| gp.instance_id())
+                                .collect();
+                            // Apply button state to all connected gamepads
+                            for device_id in gamepad_ids {
+                                ctx.gamepad_context.set_button(device_id, button, key_state);
+                            }
+                        }
+                    }
+
                     if let Some(keycode) = input.virtual_keycode {
                         if let Some(drs_scan) = conv_keycode(keycode) {
-                            let key_state = match input.state {
-                                ElementState::Pressed => true,
-                                ElementState::Released => false,
-                            };
-
                             ctx.keyboard_context.set_key(drs_scan, key_state);
                         }
                     }
@@ -321,6 +512,9 @@ impl BackendEventLoop for GlutinEventLoop {
                             return;
                         }
                     }
+
+                    #[cfg(target_os = "android")]
+                    update_android_gamepads(ctx);
 
                     #[cfg(not(any(target_os = "android", target_os = "horizon")))]
                     {
