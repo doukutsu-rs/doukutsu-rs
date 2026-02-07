@@ -19,7 +19,7 @@ android {
         minSdk = 24
         targetSdk = 35
         versionCode = 3
-        versionName = "0.102.0"
+        versionName = "0.103.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -69,6 +69,12 @@ android {
             val documentsAuthorityValue = "$applicationId$applicationIdSuffix.documents"
             manifestPlaceholders["documentsAuthority"] = documentsAuthorityValue
             buildConfigField("String", "DOCUMENTS_AUTHORITY", "\"$documentsAuthorityValue\"")
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            java.srcDirs("src/main/cpp/SDL2/android-project/app/src/main/java")
         }
     }
 

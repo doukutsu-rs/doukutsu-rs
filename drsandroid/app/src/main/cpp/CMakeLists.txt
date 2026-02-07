@@ -4,6 +4,8 @@
 project(doukutsu-rs)
 cmake_minimum_required(VERSION 3.22)
 
+add_subdirectory(SDL2)
+
 include(FetchContent)
 FetchContent_Declare(
         Corrosion
@@ -67,6 +69,7 @@ target_link_libraries(libdrsandroid PRIVATE
         android
         EGL
         log
+        SDL2::SDL2
 )
 target_link_options(libdrsandroid PRIVATE "-s" "-fvisibility=hidden" "-u ANativeActivity_onCreate")
 if ("$CMAKE_BUILD_TYPE" STREQUAL "Release" OR "$CMAKE_BUILD_TYPE" STREQUAL "RelWithDebInfo")
