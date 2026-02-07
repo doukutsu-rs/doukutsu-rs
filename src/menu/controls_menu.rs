@@ -200,8 +200,7 @@ impl ControlsMenu {
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        #[cfg(not(target_os = "android"))]
-        {
+        if state.constants.supports_two_player {
             self.main.push_entry(
                 MainMenuEntry::SelectedPlayer,
                 MenuEntry::Options(
@@ -213,15 +212,15 @@ impl ControlsMenu {
                     ],
                 ),
             );
-
-            self.main.push_entry(
-                MainMenuEntry::Controller,
-                MenuEntry::Active(state.loc.t("menus.controls_menu.controller.entry").to_owned()),
-            );
-            self.main
-                .push_entry(MainMenuEntry::Rebind, MenuEntry::Active(state.loc.t("menus.controls_menu.rebind").to_owned()));
-            self.main.push_entry(MainMenuEntry::Rumble, MenuEntry::Hidden);
         }
+
+        self.main.push_entry(
+            MainMenuEntry::Controller,
+            MenuEntry::Active(state.loc.t("menus.controls_menu.controller.entry").to_owned()),
+        );
+        self.main
+            .push_entry(MainMenuEntry::Rebind, MenuEntry::Active(state.loc.t("menus.controls_menu.rebind").to_owned()));
+        self.main.push_entry(MainMenuEntry::Rumble, MenuEntry::Hidden);
 
         if state.settings.touch_controls {
             self.main.push_entry(

@@ -71,7 +71,7 @@ impl Default for LaunchOptions {
             server_mode: false,
             window_height: None,
             window_width: None,
-            window_fullscreen: false,
+            window_fullscreen: cfg!(target_os = "android"),
             log_level: if cfg!(debug_assertions) { LogLevel::Debug } else { LogLevel::Info },
         }
     }
@@ -284,7 +284,7 @@ fn get_logs_dir() -> GameResult<PathBuf> {
 
     #[cfg(target_os = "android")]
     {
-        logs_dir = PathBuf::from(ndk_glue::native_activity().internal_data_path().to_string_lossy().to_string());
+        logs_dir = PathBuf::from(sdl2::filesystem::pref_path("io.github", "doukutsu_rs").unwrap());
     }
 
     #[cfg(target_os = "horizon")]
@@ -334,9 +334,10 @@ fn init_logger(options: &LaunchOptions) -> GameResult {
     Ok(())
 }
 
+#[cfg(not(target_os = "android"))]
 fn panic_hook(info: &PanicInfo<'_>) {
     let backtrace = Backtrace::force_capture();
-    let msg = info.payload().downcast_ref::<&str>().unwrap_or(&"");
+    let msg = info.payload().downcast_ref::<&str>().unwrap_or(&"(no message)");
     let location = info.location();
 
     if location.is_some() {
@@ -348,6 +349,7 @@ fn panic_hook(info: &PanicInfo<'_>) {
 
 pub fn init(mut options: LaunchOptions) -> GameResult {
     let _ = init_logger(&options);
+    #[cfg(not(target_os = "android"))]
     std::panic::set_hook(Box::new(panic_hook));
 
     let mut context = Box::pin(Context::new());

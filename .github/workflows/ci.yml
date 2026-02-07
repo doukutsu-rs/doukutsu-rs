@@ -155,7 +155,7 @@ jobs:
     name: Android build
     runs-on: ubuntu-latest
     env:
-      APP_OUTPUTS_DIR: "app/app/build/outputs/apk/release"
+      APP_OUTPUTS_DIR: "drsandroid/app/build/outputs/apk/release"
     strategy:
       fail-fast: true
       matrix:
@@ -173,8 +173,8 @@ jobs:
             ~/.cargo
             ~/.rustup
             ~/.gradle
-            app/app/.cxx
-            app/app/build
+            drsandroid/app/.cxx
+            drsandroid/app/build
             drsandroid/target
           key: android-cargo
 
@@ -188,7 +188,7 @@ jobs:
 
       - name: Install development kits
         run: |
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install --package_file=app/app/packages.txt
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install --package_file=drsandroid/app/packages.txt
 
       - name: Set version
         id: set_version
@@ -213,14 +213,14 @@ jobs:
 
           export DRS_BUILD_VERSION_OVERRIDE="${{ steps.set_version.outputs.version }}"
 
-          cd app
+          cd drsandroid
           touch local.properties
           chmod +x ./gradlew
           ./gradlew assembleRelease
 
       - name: Sign app
         run: |
-          BUILD_TOOLS=$ANDROID_HOME/build-tools/33.0.0
+          BUILD_TOOLS=$ANDROID_HOME/build-tools/35.0.1
 
           echo "${{ secrets.ANDROID_SIGNING_KEYSTORE }}" | base64 --decode > keystore.jks
           if [ "${{ secrets.ANDROID_SIGNING_KEY_PASS }}" != "" ]; then
@@ -253,8 +253,8 @@ jobs:
             ~/.cargo
             ~/.rustup
             ~/.gradle
-            app/app/.cxx
-            app/app/build
+            drsandroid/app/.cxx
+            drsandroid/app/build
             drsandroid/target
           key: android-cargo
 

@@ -4,17 +4,24 @@ description = "doukutsu-rs targeted for Android"
 version = "0.1.0"
 edition = "2021"
 
+[profile.dev]
+panic = "abort"
+
 [profile.release]
 opt-level = 3
 lto = "off"
+panic = "abort"
 codegen-units = 256
 incremental = true
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["staticlib"]
 
 [dependencies]
-ndk = "0.7"
-ndk-glue = "0.7"
+ndk-context = "0.1.1"
 ndk-sys = "0.4"
-doukutsu-rs = { path = "../", default-features = false, features = ["default-base", "backend-glutin", "webbrowser"] }
+doukutsu-rs = { path = "../", default-features = false, features = ["default-base", "backend-sdl", "render-opengl", "webbrowser"] }
+sdl2 = { version = "*", features = ["unsafe_textures"] }
+sdl2-sys = { version = "*", features = [] }
+jni = "0.20"
+libc = "*"
