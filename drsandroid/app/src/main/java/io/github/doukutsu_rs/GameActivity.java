@@ -15,82 +15,13 @@ import android.widget.Toast;
 
 import java.io.File;
 
-public class GameActivity extends NativeActivity {
-    private int[] displayInsets = new int[]{0, 0, 0, 0};
-    private OrientationEventListener listener;
-
+public class GameActivity extends org.libsdl.app.SDLActivity {
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        ActivityUtils.hideSystemBars(this);
-
-        listener = new OrientationEventListener(this, SensorManager.SENSOR_DELAY_UI) {
-            @Override
-            public void onOrientationChanged(int orientation) {
-                GameActivity.this.updateCutouts();
-            }
+    protected String[] getLibraries() {
+        return new String[] {
+            "SDL2",
+            "drsandroid"
         };
-
-        if (listener.canDetectOrientation()) {
-            listener.enable();
-        } else {
-            listener = null;
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-
-        if (listener != null) {
-            listener.disable();
-
-            listener = null;
-        }
-    }
-
-    @Override
-    public void onAttachedToWindow() {
-        super.onAttachedToWindow();
-
-        this.updateCutouts();
-    }
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-
-        this.updateCutouts();
-    }
-
-    private void updateCutouts() {
-        this.displayInsets[0] = 0;
-        this.displayInsets[1] = 0;
-        this.displayInsets[2] = 0;
-        this.displayInsets[3] = 0;
-
-        var insets = getWindow().getDecorView().getRootWindowInsets();
-
-        if (insets != null) {
-            this.displayInsets[0] = Math.max(this.displayInsets[0], insets.getStableInsetLeft());
-            this.displayInsets[1] = Math.max(this.displayInsets[1], insets.getStableInsetTop());
-            this.displayInsets[2] = Math.max(this.displayInsets[2], insets.getStableInsetRight());
-            this.displayInsets[3] = Math.max(this.displayInsets[3], insets.getStableInsetBottom());
-        } else {
-            return;
-        }
-
-        if (SDK_INT >= Build.VERSION_CODES.P) {
-            var cutout = insets.getDisplayCutout();
-
-            if (cutout != null) {
-                this.displayInsets[0] = Math.max(this.displayInsets[0], cutout.getSafeInsetLeft());
-                this.displayInsets[1] = Math.max(this.displayInsets[0], cutout.getSafeInsetTop());
-                this.displayInsets[2] = Math.max(this.displayInsets[0], cutout.getSafeInsetRight());
-                this.displayInsets[3] = Math.max(this.displayInsets[0], cutout.getSafeInsetBottom());
-            }
-        }
     }
 
     public void openDir(String path) {

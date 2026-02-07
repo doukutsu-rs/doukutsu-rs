@@ -6,7 +6,7 @@ extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 
-mod common;
+pub mod common;
 mod components;
 mod data;
 #[cfg(feature = "discord-rpc")]
