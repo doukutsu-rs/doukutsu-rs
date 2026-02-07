@@ -4,6 +4,8 @@
 project(doukutsu-rs)
 cmake_minimum_required(VERSION 3.22)
 
+add_subdirectory(SDL2)
+
 include(FetchContent)
 FetchContent_Declare(
         Corrosion
@@ -11,18 +13,6 @@ FetchContent_Declare(
         GIT_TAG v0.5.2
 )
 FetchContent_MakeAvailable(Corrosion)
-
-#if(NOT ${ANDROID_STL} MATCHES "_shared")
-#  return()
-#endif()
-#set(ENV{CC_x86_64} "x86_64-linux-android21-clang")
-#set(ENV{CXX_x86_64} "x86_64-linux-android21-clang++")
-#set(ENV{CC_aarch64} "aarch64-linux-android21-clang")
-#set(ENV{CXX_aarch64} "aarch64-linux-android21-clang++")
-#set(ENV{CC_x86} "i686-linux-android21-clang")
-#set(ENV{CXX_x86} "i686-linux-android21-clang++")
-#set(ENV{CC_arm} "armv7a-linux-androideabi21-clang")
-#set(ENV{CXX_arm} "armv7a-linux-androideabi21-clang++")
 
 function(configure_shared_stl lib_path so_base)
   message("Configuring STL ${so_base} for ${ANDROID_ABI}")
@@ -67,6 +57,7 @@ target_link_libraries(libdrsandroid PRIVATE
         android
         EGL
         log
+        SDL2::SDL2
 )
 target_link_options(libdrsandroid PRIVATE "-s" "-fvisibility=hidden" "-u ANativeActivity_onCreate")
 if ("$CMAKE_BUILD_TYPE" STREQUAL "Release" OR "$CMAKE_BUILD_TYPE" STREQUAL "RelWithDebInfo")

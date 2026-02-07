@@ -166,7 +166,8 @@
       },
       "controller": {
         "entry": "コントローラ",
-        "keyboard": "キーボード"
+        "keyboard": "キーボード",
+        "touch_controls": "タッチコントロール"
       },
       "rebind": "再バインド",
       "rebind_menu": {
