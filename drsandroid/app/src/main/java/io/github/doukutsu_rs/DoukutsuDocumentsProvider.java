@@ -50,10 +50,19 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
                     Document.COLUMN_FLAGS
             };
 
+    private static String getCanonicalPath(File file)
+    {
+        try {
+            return file.getCanonicalPath();
+        } catch (IOException e) {
+            return file.getAbsolutePath();
+        }
+    }
+
     @Override
     public Cursor queryRoots(String[] projection) throws FileNotFoundException {
         var file = getContext().getFilesDir();
-        var id = file.getAbsolutePath();
+        var id = getCanonicalPath(file);
         Log.d(DoukutsuDocumentsProvider.class.getName(), "files dir location: " + id);
 
         var result = new MatrixCursor(projection != null ?
@@ -92,7 +101,7 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
 
         if (!root.exists()) {
             Log.d("dupa", "no such file");
-            throw new FileNotFoundException("No such file: " + root.getAbsolutePath());
+            throw new FileNotFoundException("No such file: " + getCanonicalPath(root));
         }
 
         if (!root.isDirectory()) {
@@ -137,11 +146,11 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
         try {
             if (mimeType != null && mimeType.equals(Document.MIME_TYPE_DIR)) {
                 if (!file.mkdir()) {
-                    throw new FileNotFoundException("Couldn't create directory: " + file.getAbsolutePath());
+                    throw new FileNotFoundException("Couldn't create directory: " + getCanonicalPath(file));
                 }
             } else {
                 if (!file.createNewFile()) {
-                    throw new FileNotFoundException("Couldn't create file: " + file.getAbsolutePath());
+                    throw new FileNotFoundException("Couldn't create file: " + getCanonicalPath(file));
                 }
             }
         } catch (IOException e) {
@@ -157,7 +166,7 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
             resolver.notifyChange(uri, null);
         }
 
-        return file.getAbsolutePath();
+        return getCanonicalPath(file);
     }
 
     @Override
@@ -165,7 +174,7 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
         var file = new File(documentId);
 
         if (!file.exists()) {
-            throw new FileNotFoundException("Couldn't find file: " + file.getAbsolutePath());
+            throw new FileNotFoundException("Couldn't find file: " + getCanonicalPath(file));
         }
 
         deleteRecursive(file);
@@ -185,19 +194,19 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
     @RequiresApi(Build.VERSION_CODES.O)
     public Path findDocumentPath(@Nullable String parentDocumentId, String childDocumentId) throws FileNotFoundException {
         if (parentDocumentId == null) {
-            parentDocumentId = Objects.requireNonNull(getContext()).getFilesDir().getAbsolutePath();
+            parentDocumentId = getCanonicalPath(Objects.requireNonNull(getContext()).getFilesDir());
         }
 
         var childFile = new File(childDocumentId);
         if (!childFile.exists()) {
-            throw new FileNotFoundException(childFile.getAbsolutePath() + " doesn't exist");
+            throw new FileNotFoundException(getCanonicalPath(childFile) + " doesn't exist");
         } else if (!isChildDocument(parentDocumentId, childDocumentId)) {
             throw new FileNotFoundException(childDocumentId + " is not child of " + parentDocumentId);
         }
 
         var path = new LinkedList<String>();
-        while (childFile != null && isChildDocument(parentDocumentId, childFile.getAbsolutePath())) {
-            path.addFirst(childFile.getAbsolutePath());
+        while (childFile != null && isChildDocument(parentDocumentId, getCanonicalPath(childFile))) {
+            path.addFirst(getCanonicalPath(childFile));
             childFile = childFile.getParentFile();
         }
 
@@ -209,11 +218,11 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
         var file = new File(documentId);
 
         if (!file.exists()) {
-            throw new FileNotFoundException("Couldn't find file: " + file.getAbsolutePath());
+            throw new FileNotFoundException("Couldn't find file: " + getCanonicalPath(file));
         } else if (file.isDirectory()) {
             return Document.MIME_TYPE_DIR;
         } else if (file.isFile()) {
-            return getMimeType(file.getAbsolutePath());
+            return getMimeType(getCanonicalPath(file));
         }
 
         return null;
@@ -234,17 +243,17 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
         var file = new File(documentId);
 
         if (!file.exists()) {
-            throw new FileNotFoundException("Couldn't find file: " + file.getAbsolutePath());
+            throw new FileNotFoundException("Couldn't find file: " + getCanonicalPath(file));
         }
 
-        var newPath = new File(file.getParentFile().getAbsolutePath() + "/" + displayName);
+        var newPath = new File(getCanonicalPath(file.getParentFile()) + "/" + displayName);
 
         try {
             if (SDK_INT >= Build.VERSION_CODES.O) {
                 Files.move(file.toPath(), newPath.toPath());
             } else {
                 if (!file.renameTo(newPath)) {
-                    throw new IOException("Couldn't rename file: " + file.getAbsolutePath());
+                    throw new IOException("Couldn't rename file: " + getCanonicalPath(file));
                 }
             }
         } catch (IOException e) {
@@ -260,7 +269,7 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
             resolver.notifyChange(uri, null);
         }
 
-        return newPath.getAbsolutePath();
+        return getCanonicalPath(newPath);
     }
 
     @Override
@@ -278,12 +287,8 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
                             deleteRecursive(f);
                         }
                     } else {
-                        try {
-                            if (!f.getAbsolutePath().equals(f.getCanonicalPath())) {
-                                deleteRecursive(f);
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        if (!getCanonicalPath(f).equals(getCanonicalPath(f))) {
+                            deleteRecursive(f);
                         }
                     }
                 }
@@ -315,7 +320,7 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
 
     private void pushFile(MatrixCursor result, File file) throws FileNotFoundException {
         if (!file.exists()) {
-            throw new FileNotFoundException("Couldn't find file: " + file.getAbsolutePath());
+            throw new FileNotFoundException("Couldn't find file: " + getCanonicalPath(file));
         }
 
         var mimeType = "application/octet-stream";
@@ -328,7 +333,7 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
                 flags |= Document.FLAG_DIR_SUPPORTS_CREATE;
             }
         } else if (file.isFile()) {
-            mimeType = getMimeType(file.getAbsolutePath());
+            mimeType = getMimeType(getCanonicalPath(file));
 
             if (file.canWrite()) {
                 flags |= Document.FLAG_SUPPORTS_WRITE;
@@ -341,7 +346,7 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
         }
 
         RowBuilder row = result.newRow();
-        row.add(Document.COLUMN_DOCUMENT_ID, file.getAbsolutePath());
+        row.add(Document.COLUMN_DOCUMENT_ID, getCanonicalPath(file));
         row.add(Document.COLUMN_DISPLAY_NAME, file.getName());
         row.add(Document.COLUMN_SIZE, file.length());
         row.add(Document.COLUMN_LAST_MODIFIED, file.lastModified());
