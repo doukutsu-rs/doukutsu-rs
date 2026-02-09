@@ -2,21 +2,17 @@
 # This ensures that a certain set of CMake features is available to
 # your build.
 project(doukutsu-rs)
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.22)
 
-# Copy shared STL files to Android Studio output directory so they can be
-# packaged in the APK.
-# Usage:
-#
-#   find_package(ndk-stl REQUIRED)
-#
-# or
-#
-#   find_package(ndk-stl REQUIRED PATHS ".")
+add_subdirectory(SDL2)
 
-#if(NOT ${ANDROID_STL} MATCHES "_shared")
-#  return()
-#endif()
+include(FetchContent)
+FetchContent_Declare(
+        Corrosion
+        GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+        GIT_TAG v0.5.2
+)
+FetchContent_MakeAvailable(Corrosion)
 
 function(configure_shared_stl lib_path so_base)
   message("Configuring STL ${so_base} for ${ANDROID_ABI}")
@@ -44,10 +40,28 @@ else()
    message(FATAL_ERROR "STL configuration ANDROID_STL=${ANDROID_STL} is not supported")
 endif()
 
+set(DRSANDROID_ROOT "${CMAKE_SOURCE_DIR}/../../../..")
+corrosion_import_crate(MANIFEST_PATH "${DRSANDROID_ROOT}/Cargo.toml")
+
 # Specifies a library name, specifies whether the library is STATIC or
 # SHARED, and provides relative paths to the source code. You can
 # define multiple libraries by adding multiple add_library() commands,
 # and CMake builds them for you. When you build your app, Gradle
 # automatically packages shared libraries with your APK.
 
-add_library(dummy SHARED dummy.cpp)
+add_library(libdrsandroid SHARED dummy.cpp)
+target_link_libraries(libdrsandroid PRIVATE
+        "-Wl,--whole-archive"
+        drsandroid-static
+        "-Wl,--no-whole-archive"
+        android
+        EGL
+        log
+        SDL2::SDL2
+)
+target_link_options(libdrsandroid PRIVATE "-s" "-fvisibility=hidden" "-u ANativeActivity_onCreate")
+if ("$CMAKE_BUILD_TYPE" STREQUAL "Release" OR "$CMAKE_BUILD_TYPE" STREQUAL "RelWithDebInfo")
+  target_compile_options(libdrsandroid PRIVATE "-flto -fuse-linker-plugin")
+  target_link_options(libdrsandroid PRIVATE "-flto -fuse-linker-plugin")
+endif()
+set_target_properties(libdrsandroid PROPERTIES OUTPUT_NAME "drsandroid")

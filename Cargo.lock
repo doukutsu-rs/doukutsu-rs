@@ -668,6 +668,7 @@ dependencies = [
  "lewton",
  "log",
  "ndk 0.7.0",
+ "ndk-context",
  "ndk-glue",
  "ndk-sys 0.4.1+23.1.7779620",
  "num-derive 0.3.3",

@@ -1,25 +1,36 @@
 package io.github.doukutsu_rs;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+
+import dalvik.system.ZipPathValidator;
 
 public class DownloadActivity extends AppCompatActivity {
     private TextView txtProgress;
     private ProgressBar progressBar;
     private DownloadThread downloadThread;
     private String basePath;
-    private Handler handler = new Handler();
+    private final Handler handler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,15 +56,15 @@ public class DownloadActivity extends AppCompatActivity {
     private class DownloadThread extends Thread {
         private final ArrayList<DownloadEntry> urls = new ArrayList<>();
 
-        private final ArrayList<String> filesWhitelist = new ArrayList<>();
+        private final List<String> filesWhitelist = List.of(
+                "data/",
+                "Doukutsu.exe"
+        );
 
         @Override
         public void run() {
-            this.filesWhitelist.add("data/");
-            this.filesWhitelist.add("Doukutsu.exe");
-
             // DON'T SET `true` VALUE FOR TRANSLATIONS
-            this.urls.add(new DownloadEntry(R.string.download_entries_base, "https://www.cavestory.org/downloads/cavestoryen.zip", true));
+            this.urls.add(new DownloadEntry(getString(R.string.download_entries_base), "https://www.cavestory.org/downloads/cavestoryen.zip", true));
 
             for (DownloadEntry entry : this.urls) {
                 this.download(entry);
@@ -63,7 +74,7 @@ public class DownloadActivity extends AppCompatActivity {
         private void download(DownloadEntry downloadEntry) {
             HttpURLConnection connection = null;
             try {
-                URL url = new URL(downloadEntry.url);
+                var url = new URL(downloadEntry.url);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.connect();
 
@@ -83,19 +94,19 @@ public class DownloadActivity extends AppCompatActivity {
 
                     int downloadedLast = 0;
                     int downloaded = 0;
-                    byte[] buffer = new byte[4096];
+                    var buffer = new byte[4096];
                     int count;
-                    long last = System.currentTimeMillis();
+                    var last = System.currentTimeMillis();
 
                     while ((count = input.read(buffer)) != -1) {
                         downloaded += count;
 
                         output.write(buffer, 0, count);
 
-                        long now = System.currentTimeMillis();
+                        var now = System.currentTimeMillis();
                         if (last + 1000 >= now) {
-                            int speed = (int) ((downloaded - downloadedLast) / 1024.0);
-                            String text = (fileLength > 0)
+                            var speed = (int) ((downloaded - downloadedLast) / 1024.0);
+                            var text = (fileLength > 0)
                                     ? getString(R.string.download_status_downloading, downloadEntry.name, downloaded * 100 / fileLength, downloaded / 1024, fileLength / 1024, speed)
                                     : getString(R.string.download_status_downloading_null, downloadEntry.name, downloaded / 1024, speed);
 
@@ -111,7 +122,8 @@ public class DownloadActivity extends AppCompatActivity {
                     output.close();
                 }
 
-                new File(basePath).mkdirs();
+                @SuppressWarnings("unused")
+                var _created = new File(basePath).mkdirs();
                 this.unpack(zipFile, downloadEntry.isBase);
 
                 handler.post(() -> txtProgress.setText(getString(R.string.download_status_done)));
@@ -134,44 +146,56 @@ public class DownloadActivity extends AppCompatActivity {
         }
 
         private void unpack(byte[] zipFile, boolean isBase) throws IOException {
-            ZipInputStream in = new ZipInputStream(new ByteArrayInputStream(zipFile));
-            ZipEntry entry;
-            byte[] buffer = new byte[4096];
-            while ((entry = in.getNextEntry()) != null) {
-                String entryName = entry.getName();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                ZipPathValidator.clearCallback();
+            }
+            try (var in = new ZipInputStream(new ByteArrayInputStream(zipFile))) {
+                ZipEntry entry;
+                var buffer = new byte[4096];
+                while ((entry = in.getNextEntry()) != null) {
+                    var entryName = entry.getName();
 
-                // strip prefix
-                if (entryName.startsWith("CaveStory/")) {
-                    entryName = entryName.substring("CaveStory/".length());
-                }
+                    // https://developer.android.com/privacy-and-security/risks/zip-path-traversal
+                    if (entryName.contains("..") || entryName.startsWith("/")) {
+                        in.closeEntry();
+                        continue;
+                    }
 
-                if (!this.entryInWhitelist(entryName)) {
-                    continue;
-                }
+                    // strip prefix
+                    if (entryName.startsWith("CaveStory/")) {
+                        entryName = entryName.substring("CaveStory/".length());
+                    }
+
+                    if (!this.entryInWhitelist(entryName)) {
+                        in.closeEntry();
+                        continue;
+                    }
 
 
-                final String s = entryName;
-                handler.post(() -> txtProgress.setText(
-                        getString(R.string.download_status_unpacking, s)
-                ));
+                    final var s = entryName;
+                    handler.post(() -> txtProgress.setText(
+                            getString(R.string.download_status_unpacking, s)
+                    ));
 
-                if (entry.isDirectory()) {
-                    new File(basePath + entryName).mkdirs();
-                } else {
-                    try (FileOutputStream fos = new FileOutputStream(basePath + entryName)) {
-                        int count;
-                        while ((count = in.read(buffer)) != -1) {
-                            fos.write(buffer, 0, count);
+                    if (entry.isDirectory()) {
+                        @SuppressWarnings("unused")
+                        var _created = new File(basePath + entryName).mkdirs();
+                    } else {
+                        try (var fos = new FileOutputStream(basePath + entryName)) {
+                            int count;
+                            while ((count = in.read(buffer)) != -1) {
+                                fos.write(buffer, 0, count);
+                            }
                         }
                     }
-                }
 
-                in.closeEntry();
+                    in.closeEntry();
+                }
             }
         }
 
         private boolean entryInWhitelist(String entry) {
-            for (String file : this.filesWhitelist) {
+            for (var file : this.filesWhitelist) {
                 if (entry.startsWith(file)) {
                     return true;
                 }
@@ -181,21 +205,14 @@ public class DownloadActivity extends AppCompatActivity {
         }
     }
 
-    private class DownloadEntry {
-        public String name; //e.g. "Polish translation", "Base data files"
-        public String url;
-        public boolean isBase = false;
-
-        DownloadEntry(String name, String url, boolean isBase) {
-            this.name = name;
-            this.url = url;
-            this.isBase = isBase;
-        }
-
-        DownloadEntry(int name, String url, boolean isBase) {
-            this.name = getString(name);
-            this.url = url;
-            this.isBase = isBase;
-        }
+    /**
+     * Record class for download entries.
+     *
+     * @param name   The display name of the download entry.
+     * @param url    The URL to download the entry from.
+     * @param isBase Indicates if this entry is the base data files. true if the entry is for the
+     *               base data files, false for an overlay such as a translation.
+     */
+    private record DownloadEntry(String name, String url, boolean isBase) {
     }
 }

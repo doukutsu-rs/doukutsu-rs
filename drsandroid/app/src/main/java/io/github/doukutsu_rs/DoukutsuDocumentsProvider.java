@@ -1,10 +1,11 @@
 package io.github.doukutsu_rs;
 
+import static android.os.Build.VERSION.SDK_INT;
+
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MatrixCursor.RowBuilder;
-import android.net.Uri;
 import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
@@ -24,8 +25,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.LinkedList;
-
-import static android.os.Build.VERSION.SDK_INT;
+import java.util.Locale;
+import java.util.Objects;
 
 public class DoukutsuDocumentsProvider extends DocumentsProvider {
     private final static String[] DEFAULT_ROOT_PROJECTION =
@@ -49,16 +50,25 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
                     Document.COLUMN_FLAGS
             };
 
+    private static String getCanonicalPath(File file)
+    {
+        try {
+            return file.getCanonicalPath();
+        } catch (IOException e) {
+            return file.getAbsolutePath();
+        }
+    }
+
     @Override
     public Cursor queryRoots(String[] projection) throws FileNotFoundException {
-        File file = getContext().getFilesDir();
-        String id = file.getAbsolutePath();
+        var file = getContext().getFilesDir();
+        var id = getCanonicalPath(file);
         Log.d(DoukutsuDocumentsProvider.class.getName(), "files dir location: " + id);
 
-        MatrixCursor result = new MatrixCursor(projection != null ?
+        var result = new MatrixCursor(projection != null ?
                 projection : DEFAULT_ROOT_PROJECTION);
 
-        RowBuilder row = result.newRow();
+        var row = result.newRow();
 
         row.add(Root.COLUMN_DOCUMENT_ID, id);
         row.add(Root.COLUMN_ROOT_ID, id);
@@ -74,7 +84,7 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
 
     @Override
     public Cursor queryDocument(String documentId, String[] projection) throws FileNotFoundException {
-        MatrixCursor result = new MatrixCursor(projection != null ? projection : DEFAULT_DOCUMENT_PROJECTION);
+        var result = new MatrixCursor(projection != null ? projection : DEFAULT_DOCUMENT_PROJECTION);
 
         Log.d("dupa", "queryDocument: " + documentId);
         pushFile(result, new File(documentId));
@@ -84,14 +94,14 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
 
     @Override
     public Cursor queryChildDocuments(String parentDocumentId, String[] projection, String sortOrder) throws FileNotFoundException {
-        MatrixCursor result = new MatrixCursor(projection != null ? projection : DEFAULT_DOCUMENT_PROJECTION);
+        var result = new MatrixCursor(projection != null ? projection : DEFAULT_DOCUMENT_PROJECTION);
 
-        File root = new File(parentDocumentId);
+        var root = new File(parentDocumentId);
         Log.d("dupa", "doc id:" + parentDocumentId);
 
         if (!root.exists()) {
             Log.d("dupa", "no such file");
-            throw new FileNotFoundException("No such file: " + root.getAbsolutePath());
+            throw new FileNotFoundException("No such file: " + getCanonicalPath(root));
         }
 
         if (!root.isDirectory()) {
@@ -99,35 +109,35 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
             return null;
         }
 
-        File[] files = root.listFiles();
+        var files = root.listFiles();
         if (files != null) {
-            for (File file : files) {
+            for (var file : files) {
                 pushFile(result, file);
             }
         }
-        
+
         result.setNotificationUri(getContext().getContentResolver(), DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, parentDocumentId));
-        
+
         return result;
     }
 
     @Override
     public ParcelFileDescriptor openDocument(String documentId, String mode, @Nullable CancellationSignal signal) throws FileNotFoundException {
-        File file = new File(documentId);
+        var file = new File(documentId);
         int imode = ParcelFileDescriptor.parseMode(mode);
         return ParcelFileDescriptor.open(file, imode);
     }
 
     @Override
     public String createDocument(String parentDocumentId, String mimeType, String displayName) throws FileNotFoundException {
-        File file = new File(parentDocumentId, displayName);
+        var file = new File(parentDocumentId, displayName);
 
         if (file.exists()) {
             int nextId = 1;
 
             while (file.exists()) {
                 // maybe let's put the id before extension?
-                file = new File(parentDocumentId, String.format("%s (%d)", displayName, nextId));
+                file = new File(parentDocumentId, String.format(Locale.US, "%s (%d)", displayName, nextId));
 
                 ++nextId;
             }
@@ -136,46 +146,47 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
         try {
             if (mimeType != null && mimeType.equals(Document.MIME_TYPE_DIR)) {
                 if (!file.mkdir()) {
-                    throw new FileNotFoundException("Couldn't create directory: " + file.getAbsolutePath());
+                    throw new FileNotFoundException("Couldn't create directory: " + getCanonicalPath(file));
                 }
             } else {
                 if (!file.createNewFile()) {
-                    throw new FileNotFoundException("Couldn't create file: " + file.getAbsolutePath());
+                    throw new FileNotFoundException("Couldn't create file: " + getCanonicalPath(file));
                 }
             }
         } catch (IOException e) {
             throw new FileNotFoundException("Couldn't create file: " + e.getMessage());
         }
-        
-        Uri uri = DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, file.getParent());
-        
+
+        var uri = DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, file.getParent());
+
+        var resolver = Objects.requireNonNull(getContext()).getContentResolver();
         if (SDK_INT >= Build.VERSION_CODES.R) {
-            getContext().getContentResolver().notifyChange(uri, null, ContentResolver.NOTIFY_INSERT);
+            resolver.notifyChange(uri, null, ContentResolver.NOTIFY_INSERT);
         } else {
-            getContext().getContentResolver().notifyChange(uri, null);
+            resolver.notifyChange(uri, null);
         }
-        
-        
-        return file.getAbsolutePath();
+
+        return getCanonicalPath(file);
     }
 
     @Override
     public void deleteDocument(String documentId) throws FileNotFoundException {
-        File file = new File(documentId);
+        var file = new File(documentId);
 
         if (!file.exists()) {
-            throw new FileNotFoundException("Couldn't find file: " + file.getAbsolutePath());
+            throw new FileNotFoundException("Couldn't find file: " + getCanonicalPath(file));
         }
 
         deleteRecursive(file);
-        
-        
-        Uri uri = DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, file.getParent());
-       
+
+
+        var uri = DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, file.getParent());
+
+        var resolver = Objects.requireNonNull(getContext()).getContentResolver();
         if (SDK_INT >= Build.VERSION_CODES.R) {
-            getContext().getContentResolver().notifyChange(uri, null, ContentResolver.NOTIFY_DELETE);
+            resolver.notifyChange(uri, null, ContentResolver.NOTIFY_DELETE);
         } else {
-            getContext().getContentResolver().notifyChange(uri, null);
+            resolver.notifyChange(uri, null);
         }
     }
 
@@ -183,19 +194,19 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
     @RequiresApi(Build.VERSION_CODES.O)
     public Path findDocumentPath(@Nullable String parentDocumentId, String childDocumentId) throws FileNotFoundException {
         if (parentDocumentId == null) {
-            parentDocumentId = getContext().getFilesDir().getAbsolutePath();
+            parentDocumentId = getCanonicalPath(Objects.requireNonNull(getContext()).getFilesDir());
         }
 
-        File childFile = new File(childDocumentId);
+        var childFile = new File(childDocumentId);
         if (!childFile.exists()) {
-            throw new FileNotFoundException(childFile.getAbsolutePath()+" doesn't exist");
+            throw new FileNotFoundException(getCanonicalPath(childFile) + " doesn't exist");
         } else if (!isChildDocument(parentDocumentId, childDocumentId)) {
-            throw new FileNotFoundException(childDocumentId+" is not child of "+parentDocumentId);
+            throw new FileNotFoundException(childDocumentId + " is not child of " + parentDocumentId);
         }
 
-        LinkedList<String> path = new LinkedList<>();
-        while (childFile != null && isChildDocument(parentDocumentId, childFile.getAbsolutePath())) {
-            path.addFirst(childFile.getAbsolutePath());
+        var path = new LinkedList<String>();
+        while (childFile != null && isChildDocument(parentDocumentId, getCanonicalPath(childFile))) {
+            path.addFirst(getCanonicalPath(childFile));
             childFile = childFile.getParentFile();
         }
 
@@ -204,14 +215,14 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
 
     @Override
     public String getDocumentType(String documentId) throws FileNotFoundException {
-        File file = new File(documentId);
+        var file = new File(documentId);
 
         if (!file.exists()) {
-            throw new FileNotFoundException("Couldn't find file: " + file.getAbsolutePath());
+            throw new FileNotFoundException("Couldn't find file: " + getCanonicalPath(file));
         } else if (file.isDirectory()) {
             return Document.MIME_TYPE_DIR;
         } else if (file.isFile()) {
-            return getMimeType(file.getAbsolutePath());
+            return getMimeType(getCanonicalPath(file));
         }
 
         return null;
@@ -229,36 +240,36 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
 
     @Override
     public String renameDocument(String documentId, String displayName) throws FileNotFoundException {
-        File file = new File(documentId);
+        var file = new File(documentId);
 
         if (!file.exists()) {
-            throw new FileNotFoundException("Couldn't find file: " + file.getAbsolutePath());
+            throw new FileNotFoundException("Couldn't find file: " + getCanonicalPath(file));
         }
 
-        File newPath = new File(file.getParentFile().getAbsolutePath() + "/" + displayName);
+        var newPath = new File(getCanonicalPath(file.getParentFile()) + "/" + displayName);
 
         try {
             if (SDK_INT >= Build.VERSION_CODES.O) {
                 Files.move(file.toPath(), newPath.toPath());
             } else {
                 if (!file.renameTo(newPath)) {
-                    throw new IOException("Couldn't rename file: " + file.getAbsolutePath());
+                    throw new IOException("Couldn't rename file: " + getCanonicalPath(file));
                 }
             }
         } catch (IOException e) {
             throw new FileNotFoundException(e.getMessage());
         }
 
+        var uri = DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, file.getParent());
 
-        Uri uri = DocumentsContract.buildDocumentUri(BuildConfig.DOCUMENTS_AUTHORITY, file.getParent());
-        
+        var resolver = Objects.requireNonNull(getContext()).getContentResolver();
         if (SDK_INT >= Build.VERSION_CODES.R) {
-            getContext().getContentResolver().notifyChange(uri, null, ContentResolver.NOTIFY_UPDATE);
+            resolver.notifyChange(uri, null, ContentResolver.NOTIFY_UPDATE);
         } else {
-            getContext().getContentResolver().notifyChange(uri, null);
+            resolver.notifyChange(uri, null);
         }
-        
-        return newPath.getAbsolutePath();
+
+        return getCanonicalPath(newPath);
     }
 
     @Override
@@ -268,7 +279,7 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
 
     private static void deleteRecursive(File file) {
         if (file.isDirectory()) {
-            File[] files = file.listFiles();
+            var files = file.listFiles();
             if (files != null) {
                 for (File f : files) {
                     if (SDK_INT >= Build.VERSION_CODES.O) {
@@ -276,12 +287,8 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
                             deleteRecursive(f);
                         }
                     } else {
-                        try {
-                            if (!f.getAbsolutePath().equals(f.getCanonicalPath())) {
-                                deleteRecursive(f);
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        if (!getCanonicalPath(f).equals(getCanonicalPath(f))) {
+                            deleteRecursive(f);
                         }
                     }
                 }
@@ -294,20 +301,14 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
 
     private static String getMimeType(String url) {
         String type = null;
-        String extension = MimeTypeMap.getFileExtensionFromUrl(url.toLowerCase());
+        var extension = MimeTypeMap.getFileExtensionFromUrl(url.toLowerCase());
 
         if (extension != null) {
-            switch (extension) {
-                case "pbm":
-                    type = "image/bmp";
-                    break;
-                case "yml":
-                    type = "text/x-yaml";
-                    break;
-                default:
-                    type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
-                    break;
-            }
+            type = switch (extension) {
+                case "pbm" -> "image/bmp";
+                case "yml" -> "text/x-yaml";
+                default -> MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+            };
         }
 
         if (type == null) {
@@ -319,10 +320,10 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
 
     private void pushFile(MatrixCursor result, File file) throws FileNotFoundException {
         if (!file.exists()) {
-            throw new FileNotFoundException("Couldn't find file: " + file.getAbsolutePath());
+            throw new FileNotFoundException("Couldn't find file: " + getCanonicalPath(file));
         }
 
-        String mimeType = "application/octet-stream";
+        var mimeType = "application/octet-stream";
         int flags = 0;
 
         if (file.isDirectory()) {
@@ -332,19 +333,20 @@ public class DoukutsuDocumentsProvider extends DocumentsProvider {
                 flags |= Document.FLAG_DIR_SUPPORTS_CREATE;
             }
         } else if (file.isFile()) {
-            mimeType = getMimeType(file.getAbsolutePath());
+            mimeType = getMimeType(getCanonicalPath(file));
 
             if (file.canWrite()) {
                 flags |= Document.FLAG_SUPPORTS_WRITE;
             }
         }
 
-        if (file.getParentFile().canWrite()) {
+        var parent = file.getParentFile();
+        if (parent != null && parent.canWrite()) {
             flags |= Document.FLAG_SUPPORTS_DELETE | Document.FLAG_SUPPORTS_RENAME;
         }
 
         RowBuilder row = result.newRow();
-        row.add(Document.COLUMN_DOCUMENT_ID, file.getAbsolutePath());
+        row.add(Document.COLUMN_DOCUMENT_ID, getCanonicalPath(file));
         row.add(Document.COLUMN_DISPLAY_NAME, file.getName());
         row.add(Document.COLUMN_SIZE, file.length());
         row.add(Document.COLUMN_LAST_MODIFIED, file.lastModified());
