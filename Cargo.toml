@@ -63,7 +63,7 @@ case_insensitive_hashmap = "1.0.0"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 cpal = { git = "https://github.com/doukutsu-rs/cpal", rev = "fe7a16f1f6610b803617a47e027c0305af3a3983" }
 directories = "3"
-discord-rich-presence = { version = "0.2", optional = true }
+discord-rich-presence = { version = "1", optional = true }
 downcast = "0.11"
 encoding_rs = "0.8.33"
 fern = "0.6.2"
