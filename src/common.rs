@@ -10,6 +10,9 @@ use serde::ser::SerializeTupleStruct;
 use crate::bitfield;
 use crate::graphics::texture_set::G_MAG;
 
+pub const ORG_NAME: &str = "io.github";
+pub const APP_NAME: &str = "doukutsu_rs";
+
 /// Multiply cave story degrees (0-255, which corresponds to 0°-360°) with this constant to get
 /// respective value in radians.
 pub const CDEG_RAD: f64 = std::f64::consts::PI / 128.0;

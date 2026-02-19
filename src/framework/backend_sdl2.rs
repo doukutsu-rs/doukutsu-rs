@@ -42,6 +42,7 @@ use crate::framework::ui::init_imgui;
 use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
 use crate::game::GAME_SUSPENDED;
+use crate::input::touch_controls::TouchPoint;
 
 pub struct SDL2Backend {
     context: Sdl,
@@ -166,7 +167,11 @@ impl SDL2EventLoop {
 
         let gl_attr = video.gl_attr();
 
-        gl_attr.set_context_profile(GLProfile::Compatibility);
+        if cfg!(target_os = "android") {
+            gl_attr.set_context_profile(GLProfile::GLES);
+        } else {
+            gl_attr.set_context_profile(GLProfile::Compatibility);
+        }
         gl_attr.set_context_version(2, 1);
 
         let mut win_builder = video.window("Cave Story (doukutsu-rs)", ctx.window.size_hint.0 as _, ctx.window.size_hint.1 as _);
@@ -216,6 +221,13 @@ impl SDL2EventLoop {
     }
 }
 
+fn get_scaled_size(width: u32, height: u32) -> (f32, f32) {
+    let scaled_height = ((height / 480).max(1) * 480) as f32;
+    let scaled_width = (width as f32 * (scaled_height as f32 / height as f32)).floor();
+
+    (scaled_width, scaled_height)
+}
+
 impl BackendEventLoop for SDL2EventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
         let state = unsafe { &mut *game.state.get() };
@@ -227,7 +239,8 @@ impl BackendEventLoop for SDL2EventLoop {
 
         {
             let (width, height) = self.refs.deref().borrow().window.window().size();
-            ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
+            ctx.real_screen_size = (width.max(1), height.max(1));
+            ctx.screen_size = get_scaled_size(width.max(1), height.max(1));
 
             imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
             let _ = state.handle_resize(ctx);
@@ -286,7 +299,8 @@ impl BackendEventLoop for SDL2EventLoop {
                             }
                         }
                         WindowEvent::SizeChanged(width, height) => {
-                            ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
+                            ctx.real_screen_size = (width as u32, height as u32);
+                            ctx.screen_size = get_scaled_size(width.max(1) as u32, height.max(1) as u32);
 
                             if let Some(renderer) = &ctx.renderer {
                                 if let Ok(imgui) = renderer.imgui() {
@@ -377,6 +391,40 @@ impl BackendEventLoop for SDL2EventLoop {
                         if let Some(drs_button) = conv_gamepad_button(button) {
                             ctx.gamepad_context.set_button(which, drs_button, false);
                         }
+                    }
+                    Event::FingerDown { touch_id, x, y, .. } | Event::FingerMotion { touch_id, x, y, .. } => {
+                        let touch_id = touch_id as u64;
+                        let state_ref = unsafe { &mut *game.state.get() };
+                        let mut controls = &mut state_ref.touch_controls;
+                        let scale = state_ref.scale as f64;
+                        let loc_x = (x as f64 * ctx.screen_size.0 as f64) / scale;
+                        let loc_y = (y as f64 * ctx.screen_size.1 as f64) / scale;
+
+                        if let Some(point) = controls.points.iter_mut().find(|p| p.id == touch_id) {
+                            point.last_position = point.position;
+                            point.position = (loc_x, loc_y);
+                        } else {
+                            controls.touch_id_counter = controls.touch_id_counter.wrapping_add(1);
+
+                            let point = TouchPoint {
+                                id: touch_id,
+                                touch_id: controls.touch_id_counter,
+                                position: (loc_x, loc_y),
+                                last_position: (0.0, 0.0),
+                            };
+                            controls.points.push(point);
+                            if matches!(event, Event::FingerDown { .. }) {
+                                controls.clicks.push(point);
+                            }
+                        }
+                    }
+                    Event::FingerUp { touch_id, x, y, .. } => {
+                        let touch_id = touch_id as u64;
+                        let state_ref = unsafe { &mut *game.state.get() };
+                        let mut controls = &mut state_ref.touch_controls;
+
+                        controls.points.retain(|p| p.id != touch_id);
+                        controls.clicks.retain(|p| p.id != touch_id);
                     }
                     _ => {}
                 }
@@ -487,7 +535,7 @@ impl BackendEventLoop for SDL2EventLoop {
             }
 
             let gl_context =
-                GLContext { gles2_mode: false, is_sdl: true, get_proc_address, swap_buffers, user_data, ctx };
+                GLContext { gles2_mode: cfg!(target_os = "android"), is_sdl: true, get_proc_address, swap_buffers, user_data, ctx };
 
             return Ok(Box::new(OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))));
         }
