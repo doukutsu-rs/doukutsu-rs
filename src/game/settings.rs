@@ -375,7 +375,19 @@ impl Settings {
 
     pub fn create_player1_controller(&self) -> Box<dyn PlayerController> {
         if self.touch_controls {
-            return Box::new(TouchPlayerController::new());
+            // On Android with touch controls, also support gamepad input
+            // by combining TouchPlayerController with GamepadController
+            let touch_controller = Box::new(TouchPlayerController::new());
+
+            // Always add gamepad 0 support for touch mode (most common case)
+            let mut gamepad_controller = Box::new(GamepadController::new(0, TargetPlayer::Player1));
+            gamepad_controller.set_rumble_enabled(self.player1_rumble);
+
+            let mut combined = CombinedPlayerController::new();
+            combined.add(touch_controller);
+            combined.add(gamepad_controller);
+
+            return Box::new(combined);
         }
 
         match self.player1_controller_type {
