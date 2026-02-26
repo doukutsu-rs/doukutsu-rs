@@ -43,6 +43,7 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="true"
             android:launchMode="standard"
+            android:resizeableActivity="false"
             android:screenOrientation="sensorLandscape">
             <meta-data
                 android:name="android.app.lib_name"
