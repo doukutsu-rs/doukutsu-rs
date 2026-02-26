@@ -189,7 +189,8 @@
       },
       "rebind_confirm_menu": {
         "title": "Press button for \"{control}\"",
-        "cancel": "(Esc to cancel)"
+        "cancel": "(Esc to cancel)",
+        "cancel_touch": "(Esc or touch the screen to cancel)"
       },
       "rumble": "Rumble:",
       "reset_confirm": "Reset...",
