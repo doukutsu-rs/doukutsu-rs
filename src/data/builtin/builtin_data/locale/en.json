@@ -168,7 +168,7 @@
       "controller": {
         "entry": "Controller...",
         "keyboard": "Keyboard",
-        "touch_controls": "Touch controls"
+        "touch_controls_or_keyboard": "Touch controls/Keyboard"
       },
       "rebind": "Rebind...",
       "rebind_menu": {

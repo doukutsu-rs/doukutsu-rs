@@ -64,6 +64,10 @@ android {
             resValue("string", "app_name", "doukutsu-rs (debug)")
 
             isJniDebuggable = true
+            ndk {
+                // ARM for testing on a physical device, and x86_64 for testing on the emulator
+                abiFilters.addAll(listOf("arm64-v8a", "x86_64"))
+            }
 
             val applicationId = defaultConfig.applicationId!!
             val documentsAuthorityValue = "$applicationId$applicationIdSuffix.documents"

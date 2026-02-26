@@ -15,7 +15,7 @@ use imgui::{DrawCmdParams, DrawData, DrawIdx, DrawVert};
 use winit::window::Icon;
 
 use crate::common::Rect;
-use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand};
+use crate::framework::backend::{Backend, BackendEventLoop, BackendRenderer, BackendTexture, SpriteBatchCommand, get_scaled_size};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
@@ -155,19 +155,13 @@ fn get_insets() -> GameResult<(f32, f32, f32, f32)> {
 
         vm_env.delete_local_ref(JObject::from_raw(field));
 
-        //Game always runs with horizontal orientation so top and bottom cutouts not needed and only wastes piece of the screen
+        // The app always run in landscape mode, so the top and bottom cutouts are redundant
+        // and only waste part of the screen, causing UI elements to overlap.
         elements[1] = 0;
         elements[3] = 0;
 
         Ok((elements[0] as f32, elements[1] as f32, elements[2] as f32, elements[3] as f32))
     }
-}
-
-fn get_scaled_size(width: u32, height: u32) -> (f32, f32) {
-    let scaled_height = ((height / 480).max(1) * 480) as f32;
-    let scaled_width = (width as f32 * (scaled_height as f32 / height as f32)).floor();
-
-    (scaled_width, scaled_height)
 }
 
 impl BackendEventLoop for GlutinEventLoop {
