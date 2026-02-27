@@ -414,11 +414,10 @@ impl BackendEventLoop for SDL2EventLoop {
                             ctx.gamepad_context.set_button(which, drs_button, false);
                         }
                     }
-                    Event::FingerDown { touch_id, x, y, .. } | Event::FingerMotion { touch_id, x, y, .. } => {
-                        let touch_id = touch_id as u64;
-                        let state_ref = unsafe { &mut *game.state.get() };
-                        let mut controls = &mut state_ref.touch_controls;
-                        let scale = state_ref.scale as f64;
+                    Event::FingerDown { finger_id, x, y, .. } | Event::FingerMotion { finger_id, x, y, .. } => {
+                        let touch_id = finger_id as u64;
+                        let mut controls = &mut state.touch_controls;
+                        let scale = state.scale as f64;
                         let loc_x = (x as f64 * ctx.screen_size.0 as f64) / scale;
                         let loc_y = (y as f64 * ctx.screen_size.1 as f64) / scale;
 
@@ -440,10 +439,9 @@ impl BackendEventLoop for SDL2EventLoop {
                             }
                         }
                     }
-                    Event::FingerUp { touch_id, x, y, .. } => {
-                        let touch_id = touch_id as u64;
-                        let state_ref = unsafe { &mut *game.state.get() };
-                        let mut controls = &mut state_ref.touch_controls;
+                    Event::FingerUp { finger_id, x, y, .. } => {
+                        let touch_id = finger_id as u64;
+                        let mut controls = &mut state.touch_controls;
 
                         controls.points.retain(|p| p.id != touch_id);
                         controls.clicks.retain(|p| p.id != touch_id);
