@@ -49,10 +49,6 @@ enum MainMenuEntry {
 
 impl Default for MainMenuEntry {
     fn default() -> Self {
-        #[cfg(target_os = "android")]
-        return MainMenuEntry::DisplayTouchControls;
-
-        #[cfg(not(target_os = "android"))]
         return MainMenuEntry::SelectedPlayer;
     }
 }

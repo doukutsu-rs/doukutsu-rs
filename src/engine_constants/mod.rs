@@ -447,7 +447,7 @@ impl EngineConstants {
             is_demo: false,
             supports_og_textures: false,
             has_difficulty_menu: true,
-            supports_two_player: cfg!(not(target_os = "android")),
+            supports_two_player: true,
             game: GameConsts {
                 intro_stage: 72,
                 intro_event: 100,
