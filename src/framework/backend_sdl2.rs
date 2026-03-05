@@ -193,7 +193,7 @@ impl SDL2EventLoop {
             window.set_icon(icon);
         }
 
-        // Disable non-latin IME（Fix stuck)
+        // Disable non-latin IME (fix stuck)
         window.subsystem().text_input().stop();
 
 
@@ -1433,6 +1433,16 @@ impl ImguiSdl2 {
 
         self.ignore_keyboard = io.want_capture_keyboard;
         self.ignore_mouse = io.want_capture_mouse;
+
+        // Text input is disabled by default, as it causes freezing when IME is active
+        let text_util = window.subsystem().text_input();
+        if io.want_text_input != text_util.is_active() {
+            if io.want_text_input {
+                text_util.start();
+            } else {
+                text_util.stop();
+            }
+        }
     }
 
     pub fn prepare_render(&mut self, ui: &imgui::Ui, window: &sdl2::video::Window) {
