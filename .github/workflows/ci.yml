@@ -70,7 +70,8 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           sudo apt update
-          sudo apt install libasound2-dev libudev-dev libgl1-mesa-dev libxext-dev
+          sudo apt install libasound2-dev libudev-dev libgl1-mesa-dev \
+            libxext-dev libwayland-dev libxkbcommon-dev libdecor-0-dev
 
       - name: Set version
         id: set_version
