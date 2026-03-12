@@ -8,11 +8,11 @@ use crate::framework::graphics;
 use crate::framework::graphics::BlendMode;
 use crate::game::frame::Frame;
 use crate::game::map::{WaterParamEntry, WaterParams, WaterRegionType};
+use crate::game::npc::list::{NPCAccessToken, NPCList};
 use crate::game::physics::PhysicalEntity;
+use crate::game::player::Player;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::stage::{BackgroundType, Stage};
-use crate::game::npc::list::{NPCAccessToken, NPCList};
-use crate::game::player::Player;
 
 const TENSION: f32 = 0.03;
 const DAMPENING: f32 = 0.01;
@@ -47,6 +47,8 @@ pub struct DynamicWater {
     end_x: f32,
     columns: Vec<DynamicWaterColumn>,
     color: WaterParamEntry,
+    l_deltas: Vec<f32>,
+    r_deltas: Vec<f32>,
 }
 
 impl DynamicWater {
@@ -58,7 +60,15 @@ impl DynamicWater {
             columns.push(DynamicWaterColumn::new());
         }
 
-        DynamicWater { x: x as f32 * 16.0, y: y as f32 * 16.0, end_x: (x + length) as f32 * 16.0, columns, color }
+        DynamicWater {
+            x: x as f32 * 16.0,
+            y: y as f32 * 16.0,
+            end_x: (x + length) as f32 * 16.0,
+            columns,
+            color,
+            l_deltas: Vec::new(),
+            r_deltas: Vec::new(),
+        }
     }
 
     pub fn tick(&mut self) {
@@ -66,35 +76,29 @@ impl DynamicWater {
             col.tick(DAMPENING, TENSION);
         }
 
-        static mut L_DELTAS: Vec<f32> = Vec::new();
-        static mut R_DELTAS: Vec<f32> = Vec::new();
+        self.l_deltas.resize(self.columns.len(), 0.0);
+        self.r_deltas.resize(self.columns.len(), 0.0);
 
-        // we assume tick() is never called from other threads.
-        unsafe {
-            L_DELTAS.resize(self.columns.len(), 0.0);
-            R_DELTAS.resize(self.columns.len(), 0.0);
-
-            for _ in 0..2 {
-                for i in 0..self.columns.len() {
-                    if i > 0 {
-                        L_DELTAS[i] = SPREAD * (self.columns[i].height - self.columns[i - 1].height);
-                        self.columns[i - 1].speed += L_DELTAS[i];
-                    }
-
-                    if i < self.columns.len() - 1 {
-                        R_DELTAS[i] = SPREAD * (self.columns[i].height - self.columns[i + 1].height);
-                        self.columns[i + 1].speed += R_DELTAS[i];
-                    }
+        for _ in 0..2 {
+            for i in 0..self.columns.len() {
+                if i > 0 {
+                    self.l_deltas[i] = SPREAD * (self.columns[i].height - self.columns[i - 1].height);
+                    self.columns[i - 1].speed += self.l_deltas[i];
                 }
 
-                for i in 0..self.columns.len() {
-                    if i > 0 {
-                        self.columns[i - 1].height += L_DELTAS[i];
-                    }
+                if i < self.columns.len() - 1 {
+                    self.r_deltas[i] = SPREAD * (self.columns[i].height - self.columns[i + 1].height);
+                    self.columns[i + 1].speed += self.r_deltas[i];
+                }
+            }
 
-                    if i < self.columns.len() - 1 {
-                        self.columns[i + 1].height += R_DELTAS[i];
-                    }
+            for i in 0..self.columns.len() {
+                if i > 0 {
+                    self.columns[i - 1].height += self.l_deltas[i];
+                }
+
+                if i < self.columns.len() - 1 {
+                    self.columns[i + 1].height += self.r_deltas[i];
                 }
             }
         }
@@ -211,7 +215,11 @@ impl WaterRenderer {
         }
     }
 
-    pub fn tick(&mut self, state: &mut SharedGameState, (players, npc_list, npc_token): (&[&Player], &NPCList, &NPCAccessToken)) -> GameResult<()> {
+    pub fn tick(
+        &mut self,
+        state: &mut SharedGameState,
+        (players, npc_list, npc_token): (&[&Player], &NPCList, &NPCAccessToken),
+    ) -> GameResult<()> {
         for surf in &mut self.water_surfaces {
             surf.interact(players, npc_list, npc_token);
             surf.tick();
