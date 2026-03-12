@@ -169,7 +169,9 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     width = width.max(entry_width);
                 }
                 MenuEntry::Title(entry, _, _) | MenuEntry::LongText(entry, _, _) => {
-                    let entry_width = state.font.builder().with_symbols(symbols).compute_width(&entry).min(state.canvas_size.0) + 32.0;
+                    let entry_width =
+                        state.font.builder().with_symbols(symbols).compute_width(&entry).min(state.canvas_size.0)
+                            + 32.0;
                     width = width.max(entry_width);
                 }
                 MenuEntry::Toggle(entry, _) => {
@@ -182,8 +184,9 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         state.font.builder().with_symbols(symbols).compute_width(state.loc.t("common.on"))
                     };
 
-                    let entry_width =
-                        state.font.builder().with_symbols(symbols).compute_width(&entry_with_option) + longest_option_width + 32.0;
+                    let entry_width = state.font.builder().with_symbols(symbols).compute_width(&entry_with_option)
+                        + longest_option_width
+                        + 32.0;
                     width = width.max(entry_width);
                 }
                 MenuEntry::Options(entry, _, options) => {
@@ -193,7 +196,8 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     let longest_option = options.iter().max_by(|&a, &b| a.len().cmp(&b.len())).unwrap();
                     entry_with_option.push_str(longest_option);
 
-                    let entry_width = state.font.builder().with_symbols(symbols).compute_width(&entry_with_option) + 32.0;
+                    let entry_width =
+                        state.font.builder().with_symbols(symbols).compute_width(&entry_with_option) + 32.0;
                     width = width.max(entry_width);
                 }
                 MenuEntry::DescriptiveOptions(entry, _, options, descriptions) => {
@@ -203,16 +207,19 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     let longest_option = options.iter().max_by(|&a, &b| a.len().cmp(&b.len())).unwrap();
                     entry_with_option.push_str(longest_option);
 
-                    let entry_width = state.font.builder().with_symbols(symbols).compute_width(&entry_with_option) + 32.0;
+                    let entry_width =
+                        state.font.builder().with_symbols(symbols).compute_width(&entry_with_option) + 32.0;
                     width = width.max(entry_width);
 
                     let longest_description = descriptions.iter().max_by(|&a, &b| a.len().cmp(&b.len())).unwrap();
-                    let description_width = state.font.builder().with_symbols(symbols).compute_width(longest_description) + 32.0;
+                    let description_width =
+                        state.font.builder().with_symbols(symbols).compute_width(longest_description) + 32.0;
                     width = width.max(description_width);
                 }
                 MenuEntry::OptionsBar(entry, _) => {
                     let bar_width = if state.constants.is_switch { 81.0 } else { 109.0 };
-                    let entry_width = state.font.builder().with_symbols(symbols).compute_width(entry) + 32.0 + bar_width;
+                    let entry_width =
+                        state.font.builder().with_symbols(symbols).compute_width(entry) + 32.0 + bar_width;
                     width = width.max(entry_width);
                 }
                 MenuEntry::SaveData(_) => {}
@@ -456,7 +463,8 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
 
                     for word in text.split(separator) {
                         let combined_word = line.clone() + separator + word;
-                        let line_length = state.font.builder().with_symbols(symbols).compute_width(&combined_word) + 32.0;
+                        let line_length =
+                            state.font.builder().with_symbols(symbols).compute_width(&combined_word) + 32.0;
 
                         if line_length > state.canvas_size.0 as f32 {
                             lines.push(line);
@@ -473,7 +481,9 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
 
                     for line in lines.iter() {
                         let x = if *is_centered {
-                            (state.canvas_size.0 as f32 - state.font.builder().with_symbols(symbols).compute_width(&line)) / 2.0
+                            (state.canvas_size.0 as f32
+                                - state.font.builder().with_symbols(symbols).compute_width(&line))
+                                / 2.0
                         } else {
                             self.x as f32 + 20.0
                         };
@@ -492,12 +502,13 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     y += entry.height() as f32 * (lines.len() - 1) as f32;
                 }
                 MenuEntry::Disabled(name) => {
-                    state.font.builder().with_symbols(symbols).position(self.x as f32 + 20.0, y).color((0xa0, 0xa0, 0xff, 0xff)).draw(
-                        name,
-                        ctx,
-                        &state.constants,
-                        &mut state.texture_set,
-                    )?;
+                    state
+                        .font
+                        .builder()
+                        .with_symbols(symbols)
+                        .position(self.x as f32 + 20.0, y)
+                        .color((0xa0, 0xa0, 0xff, 0xff))
+                        .draw(name, ctx, &state.constants, &mut state.texture_set)?;
                 }
                 MenuEntry::Toggle(name, value) => {
                     let value_text = if *value { state.loc.t("common.on") } else { state.loc.t("common.off") };
@@ -605,20 +616,21 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         graphics::draw_rect(ctx, bar_rect, Color::new(1.0, 1.0, 1.0, 1.0))?;
                     }
 
-                    #[cfg(target_os = "android")]
-                    {
+                    if ctx.flags.has_touch_screen() {
                         state.font.builder().with_symbols(symbols).x(self.x as f32 - 25.0).y(y).shadow(true).draw(
                             "<",
                             ctx,
                             &state.constants,
                             &mut state.texture_set,
                         )?;
-                        state.font.builder().with_symbols(symbols).x((self.x + self.width as isize) as f32 + 15.0).y(y).shadow(true).draw(
-                            ">",
-                            ctx,
-                            &state.constants,
-                            &mut state.texture_set,
-                        )?;
+                        state
+                            .font
+                            .builder()
+                            .with_symbols(symbols)
+                            .x((self.x + self.width as isize) as f32 + 15.0)
+                            .y(y)
+                            .shadow(true)
+                            .draw(">", ctx, &state.constants, &mut state.texture_set)?;
                     }
                 }
                 MenuEntry::NewSave => {
@@ -825,6 +837,20 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                 } else {
                     break;
                 }
+            }
+        }
+
+        let mut is_selected_entry_in_array = false;
+        for (id, _) in &self.entries {
+            if *id == self.selected {
+                is_selected_entry_in_array = true;
+                break;
+            }
+        }
+
+        if !is_selected_entry_in_array {
+            if let Some((id, _)) = self.entries.first() {
+                self.selected = id.clone();
             }
         }
 
