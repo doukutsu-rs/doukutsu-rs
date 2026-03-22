@@ -267,7 +267,7 @@ impl SoundManager {
         ctx: &mut Context,
         fadeout: bool,
     ) -> GameResult {
-        if self.current_song_id == song_id || self.no_audio {
+        if (self.current_song_id == song_id && song_id != 0) || self.no_audio {
             return Ok(());
         }
 
