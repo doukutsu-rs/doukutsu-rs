@@ -234,6 +234,20 @@ impl Filesystem {
     }
 }
 
+fn normilize_find_path<P: AsRef<path::Path>>(root: &String, path: P) -> String {
+    let subpath = path.as_ref().to_string_lossy();
+    let mut full_path = root.to_string();
+
+    // A double slash at the start of a path is interpreted as a path component prefix (`std::path::Component::Prefix(std::path::Prefix::UNC)`),
+    // which causes an error because we expect the first path component to be `std::path::Component::Root`
+    if let (Some('/'), Some('/')) = (root.chars().last(), subpath.chars().next()) {
+        full_path.pop();
+    };
+    full_path.push_str(subpath.as_ref());
+
+    full_path
+}
+
 /// Opens the given path and returns the resulting `File`
 /// in read-only mode.
 pub fn open<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult<File> {
@@ -243,8 +257,7 @@ pub fn open<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult<File> {
 pub fn open_find<P: AsRef<path::Path>>(ctx: &Context, roots: &Vec<String>, path: P) -> GameResult<File> {
     let mut errors = Vec::new();
     for root in roots {
-        let mut full_path = root.to_string();
-        full_path.push_str(path.as_ref().to_string_lossy().as_ref());
+        let full_path = normilize_find_path(root, &path);
 
         let result = ctx.filesystem.open(&full_path);
         if result.is_ok() {
@@ -325,9 +338,7 @@ pub fn exists<P: AsRef<path::Path>>(ctx: &Context, path: P) -> bool {
 
 pub fn exists_find<P: AsRef<path::Path>>(ctx: &Context, roots: &Vec<String>, path: P) -> bool {
     for root in roots {
-        let mut full_path = root.to_string();
-        full_path.push_str(path.as_ref().to_string_lossy().as_ref());
-
+        let full_path = normilize_find_path(root, &path);
         if ctx.filesystem.exists(full_path) {
             return true;
         }
@@ -362,8 +373,7 @@ pub fn read_dir_find<P: AsRef<path::Path>>(
     let mut files = Vec::new();
 
     for root in roots {
-        let mut full_path = root.to_string();
-        full_path.push_str(path.as_ref().to_string_lossy().as_ref());
+        let full_path = normilize_find_path(root, &path);
 
         let result = ctx.filesystem.read_dir(full_path);
         if result.is_ok() {
