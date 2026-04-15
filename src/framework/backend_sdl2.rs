@@ -26,7 +26,7 @@ use sdl2::{controller, keyboard, pixels, EventPump, GameControllerSubsystem, Sdl
 
 use super::backend::{
     Backend, BackendCallbacks, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture,
-    DeviceFormFactor, SpriteBatchCommand, VertexData, WindowParams,
+    DeviceFormFactor, VertexData, WindowParams,
 };
 use super::context::Context;
 use super::error::{GameError, GameResult};
@@ -182,13 +182,8 @@ impl SDL2EventLoop {
 
         let gl_attr = video.gl_attr();
 
-        if cfg!(target_os = "android") {
-            gl_attr.set_context_profile(GLProfile::GLES);
-            gl_attr.set_context_version(2, 0);
-        } else {
-            gl_attr.set_context_profile(GLProfile::Compatibility);
-            gl_attr.set_context_version(2, 1);
-        }
+        gl_attr.set_context_profile(GLProfile::Core);
+        gl_attr.set_context_version(3, 2);
 
         let mut win_builder =
             video.window("Cave Story (doukutsu-rs)", ctx.window.size_hint.0 as _, ctx.window.size_hint.1 as _);

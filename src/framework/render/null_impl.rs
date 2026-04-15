@@ -1,7 +1,7 @@
 use std::any::Any;
 
 use crate::common::{Color, Rect};
-use crate::framework::backend::{BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData};
+use crate::framework::backend::{BackendRenderer, BackendShader, BackendTexture, VertexData};
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{BlendMode, IndexData};
 
@@ -10,14 +10,6 @@ pub struct NullTexture(u16, u16);
 impl BackendTexture for NullTexture {
     fn dimensions(&self) -> (u16, u16) {
         (self.0, self.1)
-    }
-
-    fn add(&mut self, _command: SpriteBatchCommand) {}
-
-    fn clear(&mut self) {}
-
-    fn draw(&mut self) -> GameResult<()> {
-        Ok(())
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -77,10 +69,10 @@ impl BackendRenderer for NullRenderer {
 
     fn draw_triangles_indexed(
         &mut self,
-        vertices: &[VertexData],
-        indices: IndexData,
-        texture: Option<&Box<dyn BackendTexture>>,
-        shader: BackendShader,
+        _vertices: &[VertexData],
+        _indices: IndexData,
+        _texture: Option<&Box<dyn BackendTexture>>,
+        _shader: BackendShader,
     ) -> GameResult {
         Ok(())
     }

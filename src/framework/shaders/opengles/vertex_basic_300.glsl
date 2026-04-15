@@ -1,13 +1,13 @@
-#version 100
+#version 300 es
 
 precision mediump float;
 
 uniform mat4 ProjMtx;
-attribute vec2 Position;
-attribute vec2 UV;
-attribute vec4 Color;
-varying vec2 Frag_UV;
-varying vec4 Frag_Color;
+in vec2 Position;
+in vec2 UV;
+in vec4 Color;
+out vec2 Frag_UV;
+out vec4 Frag_Color;
 
 void main()
 {

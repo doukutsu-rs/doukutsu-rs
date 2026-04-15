@@ -23,7 +23,7 @@ use crate::components::tilemap::{TileLayer, Tilemap};
 use crate::components::water_renderer::{WaterLayer, WaterRenderer};
 use crate::components::whimsical_star::WhimsicalStar;
 use crate::entity::GameEntity;
-use crate::framework::backend::SpriteBatchCommand;
+use crate::framework::render::sprite_batch::SpriteBatchCommand;
 use crate::framework::context::Context;
 use crate::framework::error::{map_err_to_break, GameResult};
 use crate::framework::graphics::{draw_rect, BlendMode, FilterMode};
@@ -506,8 +506,8 @@ impl GameScene {
         {
             let maybe_canvas = state.lightmap_canvas.as_ref();
 
-            if maybe_canvas.is_some() {
-                graphics::set_render_target(ctx, maybe_canvas)?;
+            if let Some(canvas) = maybe_canvas {
+                graphics::set_render_target(ctx, Some(canvas.texture_ref()))?;
             } else {
                 return Ok(());
             }
@@ -1086,9 +1086,9 @@ impl GameScene {
 
             canvas.clear();
             canvas.add(SpriteBatchCommand::DrawRect(rect, rect));
-            canvas.draw()?;
+            canvas.draw(ctx)?;
 
-            graphics::set_render_target(ctx, Some(canvas))?;
+            graphics::set_render_target(ctx, Some(canvas.texture_ref()))?;
             graphics::draw_rect(
                 ctx,
                 Rect {
@@ -1101,7 +1101,7 @@ impl GameScene {
             )?;
             graphics::set_render_target(ctx, None)?;
             graphics::set_blend_mode(ctx, BlendMode::Add)?;
-            canvas.draw()?;
+            canvas.draw(ctx)?;
 
             graphics::set_blend_mode(ctx, BlendMode::Alpha)?;
         }

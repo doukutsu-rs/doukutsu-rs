@@ -81,6 +81,10 @@ pub(crate) struct SavedState {
     clip: Option<Rect>,
 }
 
+pub mod effect;
+pub mod sprite_batch;
+pub mod vertex;
+
 pub mod null_impl;
 
 #[cfg(feature = "render-opengl")]

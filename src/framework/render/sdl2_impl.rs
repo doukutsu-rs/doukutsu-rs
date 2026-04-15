@@ -16,7 +16,7 @@ use sdl2::video::{FullscreenType, GLProfile, Window, WindowContext};
 use sdl2::{controller, keyboard, pixels, EventPump, GameControllerSubsystem, Sdl, VideoSubsystem};
 
 use crate::common::{Color, Rect};
-use crate::framework::backend::{BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData};
+use crate::framework::backend::{BackendRenderer, BackendShader, BackendTexture, VertexData};
 use crate::framework::backend_sdl2::SDL2Context;
 use crate::framework::error::{GameError, GameResult};
 use crate::framework::graphics::{BlendMode, IndexData};
@@ -102,7 +102,7 @@ impl BackendRenderer for SDL2Renderer {
             .create_texture_target(PixelFormatEnum::RGBA32, width as u32, height as u32)
             .map_err(|e| GameError::RenderError(e.to_string()))?;
 
-        Ok(Box::new(SDL2Texture { refs: self.refs.clone(), texture: Some(texture), width, height, commands: vec![] }))
+        Ok(Box::new(SDL2Texture { refs: self.refs.clone(), texture: Some(texture), width, height }))
     }
 
     fn create_texture(&mut self, width: u16, height: u16, data: &[u8]) -> GameResult<Box<dyn BackendTexture>> {
@@ -131,7 +131,7 @@ impl BackendRenderer for SDL2Renderer {
             })
             .map_err(|e| GameError::RenderError(e.to_string()))?;
 
-        Ok(Box::new(SDL2Texture { refs: self.refs.clone(), texture: Some(texture), width, height, commands: vec![] }))
+        Ok(Box::new(SDL2Texture { refs: self.refs.clone(), texture: Some(texture), width, height }))
     }
 
     fn set_blend_mode(&mut self, blend: BlendMode) -> GameResult {
@@ -350,7 +350,6 @@ struct SDL2Texture {
     texture: Option<Texture>,
     width: u16,
     height: u16,
-    commands: Vec<SpriteBatchCommand>,
 }
 
 impl SDL2Texture {
@@ -365,133 +364,6 @@ impl SDL2Texture {
 impl BackendTexture for SDL2Texture {
     fn dimensions(&self) -> (u16, u16) {
         (self.width, self.height)
-    }
-
-    fn add(&mut self, command: SpriteBatchCommand) {
-        self.commands.push(command);
-    }
-
-    fn clear(&mut self) {
-        self.commands.clear();
-    }
-
-    fn draw(&mut self) -> GameResult {
-        match &mut self.texture {
-            None => Ok(()),
-            Some(texture) => {
-                let mut refs = self.refs.borrow_mut();
-                let blend = refs.blend_mode;
-                let canvas = refs.window.canvas();
-                for command in &self.commands {
-                    match command {
-                        SpriteBatchCommand::DrawRect(src, dest) => {
-                            texture.set_color_mod(255, 255, 255);
-                            texture.set_alpha_mod(255);
-                            texture.set_blend_mode(blend);
-
-                            canvas
-                                .copy(
-                                    texture,
-                                    Some(sdl2::rect::Rect::new(
-                                        src.left.round() as i32,
-                                        src.top.round() as i32,
-                                        src.width().round() as u32,
-                                        src.height().round() as u32,
-                                    )),
-                                    Some(sdl2::rect::Rect::new(
-                                        dest.left.round() as i32,
-                                        dest.top.round() as i32,
-                                        dest.width().round() as u32,
-                                        dest.height().round() as u32,
-                                    )),
-                                )
-                                .map_err(|e| GameError::RenderError(e.to_string()))?;
-                        }
-                        SpriteBatchCommand::DrawRectTinted(src, dest, color) => {
-                            let (r, g, b, a) = color.to_rgba();
-                            texture.set_color_mod(r, g, b);
-                            texture.set_alpha_mod(a);
-                            texture.set_blend_mode(blend);
-
-                            canvas
-                                .copy(
-                                    texture,
-                                    Some(sdl2::rect::Rect::new(
-                                        src.left.round() as i32,
-                                        src.top.round() as i32,
-                                        src.width().round() as u32,
-                                        src.height().round() as u32,
-                                    )),
-                                    Some(sdl2::rect::Rect::new(
-                                        dest.left.round() as i32,
-                                        dest.top.round() as i32,
-                                        dest.width().round() as u32,
-                                        dest.height().round() as u32,
-                                    )),
-                                )
-                                .map_err(|e| GameError::RenderError(e.to_string()))?;
-                        }
-                        SpriteBatchCommand::DrawRectFlip(src, dest, flip_x, flip_y) => {
-                            texture.set_color_mod(255, 255, 255);
-                            texture.set_alpha_mod(255);
-                            texture.set_blend_mode(blend);
-
-                            canvas
-                                .copy_ex(
-                                    texture,
-                                    Some(sdl2::rect::Rect::new(
-                                        src.left.round() as i32,
-                                        src.top.round() as i32,
-                                        src.width().round() as u32,
-                                        src.height().round() as u32,
-                                    )),
-                                    Some(sdl2::rect::Rect::new(
-                                        dest.left.round() as i32,
-                                        dest.top.round() as i32,
-                                        dest.width().round() as u32,
-                                        dest.height().round() as u32,
-                                    )),
-                                    0.0,
-                                    None,
-                                    *flip_x,
-                                    *flip_y,
-                                )
-                                .map_err(|e| GameError::RenderError(e.to_string()))?;
-                        }
-                        SpriteBatchCommand::DrawRectFlipTinted(src, dest, flip_x, flip_y, color) => {
-                            let (r, g, b, a) = color.to_rgba();
-                            texture.set_color_mod(r, g, b);
-                            texture.set_alpha_mod(a);
-                            texture.set_blend_mode(blend);
-
-                            canvas
-                                .copy_ex(
-                                    texture,
-                                    Some(sdl2::rect::Rect::new(
-                                        src.left.round() as i32,
-                                        src.top.round() as i32,
-                                        src.width().round() as u32,
-                                        src.height().round() as u32,
-                                    )),
-                                    Some(sdl2::rect::Rect::new(
-                                        dest.left.round() as i32,
-                                        dest.top.round() as i32,
-                                        dest.width().round() as u32,
-                                        dest.height().round() as u32,
-                                    )),
-                                    0.0,
-                                    None,
-                                    *flip_x,
-                                    *flip_y,
-                                )
-                                .map_err(|e| GameError::RenderError(e.to_string()))?;
-                        }
-                    }
-                }
-
-                Ok(())
-            }
-        }
     }
 
     fn as_any(&self) -> &dyn Any {
