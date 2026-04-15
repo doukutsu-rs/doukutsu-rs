@@ -253,6 +253,7 @@ impl BackendEventLoop for GlutinEventLoop {
                                     id: touch.id,
                                     touch_id: controls.touch_id_counter,
                                     position: (loc_x, loc_y),
+                                    first_position: (loc_x, loc_y),
                                     last_position: (0.0, 0.0),
                                 };
                                 controls.points.push(point);

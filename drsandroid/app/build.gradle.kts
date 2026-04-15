@@ -53,7 +53,7 @@ android {
                 stl = "c++_shared"
             }
 
-            packagingOptions {
+            packaging {
                 resources {
                     excludes.add("**/DebugProbesKt.bin")
                 }
@@ -74,6 +74,10 @@ android {
             manifestPlaceholders["documentsAuthority"] = documentsAuthorityValue
             buildConfigField("String", "DOCUMENTS_AUTHORITY", "\"$documentsAuthorityValue\"")
         }
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     sourceSets {
@@ -97,7 +101,7 @@ android {
         }
     }
 
-    packagingOptions {
+    packaging {
         jniLibs {
             useLegacyPackaging = true
         }
