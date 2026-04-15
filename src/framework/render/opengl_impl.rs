@@ -12,13 +12,20 @@ use std::sync::Arc;
 
 use glow::{HasContext, PixelUnpackData};
 
+use std::collections::HashMap;
+
 use crate::common::{Color, Rect};
-use crate::framework::backend::{BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand, VertexData};
+use crate::framework::backend::{
+    BackendIndexBuffer, BackendRenderer, BackendShader, BackendTexture, BackendVertexBuffer, BufferUsage,
+    PrimitiveType, VertexData,
+};
 use crate::framework::context::Context;
 use crate::framework::error::GameError;
 use crate::framework::error::GameError::RenderError;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{BlendMode, IndexData, ShaderStage, SwapMode};
+use crate::framework::render::effect::{BackendEffect, EffectParameter, EffectTechnique};
+use crate::framework::render::vertex::{VertexDeclaration, VertexElementFormat, VertexElementUsage};
 use crate::framework::util::{field_offset, return_param};
 
 type GLResult<T = ()> = Result<T, String>;
@@ -41,9 +48,9 @@ impl<T> GLResultExt<T> for GLResult<T> {
 pub enum GLContextType {
     /// The context type is not known yet, because it hasn't been not created or is already disposed.
     Unknown,
-    /// The context is at least an OpenGL ES 2.0 context. Must be able to use #version 100 shaders.
+    /// The context is at least an OpenGL ES 3.0 context. Must be able to use #version 300 es shaders.
     GLES2,
-    /// The context is at least a (Desktop) OpenGL 2.1 context. Must be able to use #version 110 shaders.
+    /// The context is at least a (Desktop) OpenGL 3.2 Core context. Must be able to use #version 150 core shaders.
     DesktopGL2,
 }
 
@@ -70,9 +77,6 @@ pub struct OpenGLTexture {
     height: u16,
     texture_id: glow::Texture,
     framebuffer_id: Option<glow::Framebuffer>,
-    shader: Rc<RenderShader>,
-    vbo: glow::Buffer,
-    vertices: Vec<VertexData>,
     context_holder: GlContextHolder,
 }
 
@@ -88,205 +92,6 @@ impl OpenGLTexture {
 impl BackendTexture for OpenGLTexture {
     fn dimensions(&self) -> (u16, u16) {
         (self.width, self.height)
-    }
-
-    fn add(&mut self, command: SpriteBatchCommand) {
-        let (tex_scale_x, tex_scale_y) = (1.0 / self.width as f32, 1.0 / self.height as f32);
-
-        match command {
-            SpriteBatchCommand::DrawRect(src, dest) => {
-                let vertices = [
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.left, dest.top),
-                        uv: (src.left * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.right, dest.bottom),
-                        uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                ];
-                self.vertices.extend_from_slice(&vertices);
-            }
-            SpriteBatchCommand::DrawRectFlip(mut src, dest, flip_x, flip_y) => {
-                if flip_x {
-                    std::mem::swap(&mut src.left, &mut src.right);
-                }
-
-                if flip_y {
-                    std::mem::swap(&mut src.top, &mut src.bottom);
-                }
-
-                let vertices = [
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.left, dest.top),
-                        uv: (src.left * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.right, dest.bottom),
-                        uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                ];
-                self.vertices.extend_from_slice(&vertices);
-            }
-            SpriteBatchCommand::DrawRectTinted(src, dest, color) => {
-                let color = color.to_rgba();
-                let vertices = [
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.left, dest.top),
-                        uv: (src.left * tex_scale_x, src.top * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.right, dest.bottom),
-                        uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
-                        color,
-                    },
-                ];
-                self.vertices.extend_from_slice(&vertices);
-            }
-            SpriteBatchCommand::DrawRectFlipTinted(mut src, dest, flip_x, flip_y, color) => {
-                if flip_x {
-                    std::mem::swap(&mut src.left, &mut src.right);
-                }
-
-                if flip_y {
-                    std::mem::swap(&mut src.top, &mut src.bottom);
-                }
-
-                let color = color.to_rgba();
-
-                let vertices = [
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.left, dest.top),
-                        uv: (src.left * tex_scale_x, src.top * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.right, dest.bottom),
-                        uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
-                        color,
-                    },
-                ];
-                self.vertices.extend_from_slice(&vertices);
-            }
-        }
-    }
-
-    fn clear(&mut self) {
-        self.vertices.clear();
-    }
-
-    fn draw(&mut self) -> GameResult {
-        unsafe {
-            let gl = self.context_holder.ctx_ref();
-
-            gl.enable(glow::TEXTURE_2D);
-            gl.enable(glow::BLEND);
-            gl.disable(glow::DEPTH_TEST);
-
-            self.shader.bind_attrib_pointer(gl, self.vbo);
-
-            gl.bind_texture(glow::TEXTURE_2D, Some(self.texture_id));
-            gl.buffer_data_u8_slice(
-                glow::ARRAY_BUFFER,
-                std::slice::from_raw_parts(
-                    self.vertices.as_ptr() as *const u8,
-                    self.vertices.len() * mem::size_of::<VertexData>(),
-                ),
-                glow::STREAM_DRAW,
-            );
-
-            gl.draw_arrays(glow::TRIANGLES, 0, self.vertices.len() as _);
-
-            gl.bind_texture(glow::TEXTURE_2D, None);
-            gl.bind_buffer(glow::ARRAY_BUFFER, None);
-
-            Ok(())
-        }
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -324,14 +129,14 @@ fn check_shader_compile_status(shader: glow::Shader, gl: &glow::Context) -> GLRe
     Ok(())
 }
 
-const VERTEX_SHADER_BASIC: &str = include_str!("../shaders/opengl/vertex_basic_110.glsl");
-const FRAGMENT_SHADER_TEXTURED: &str = include_str!("../shaders/opengl/fragment_textured_110.glsl");
-const FRAGMENT_SHADER_COLOR: &str = include_str!("../shaders/opengl/fragment_color_110.glsl");
-const FRAGMENT_SHADER_WATER: &str = include_str!("../shaders/opengl/fragment_water_110.glsl");
+const VERTEX_SHADER_BASIC: &str = include_str!("../shaders/opengl/vertex_basic_150.glsl");
+const FRAGMENT_SHADER_TEXTURED: &str = include_str!("../shaders/opengl/fragment_textured_150.glsl");
+const FRAGMENT_SHADER_COLOR: &str = include_str!("../shaders/opengl/fragment_color_150.glsl");
+const FRAGMENT_SHADER_WATER: &str = include_str!("../shaders/opengl/fragment_water_150.glsl");
 
-const VERTEX_SHADER_BASIC_GLES: &str = include_str!("../shaders/opengles/vertex_basic_100.glsl");
-const FRAGMENT_SHADER_TEXTURED_GLES: &str = include_str!("../shaders/opengles/fragment_textured_100.glsl");
-const FRAGMENT_SHADER_COLOR_GLES: &str = include_str!("../shaders/opengles/fragment_color_100.glsl");
+const VERTEX_SHADER_BASIC_GLES: &str = include_str!("../shaders/opengles/vertex_basic_300.glsl");
+const FRAGMENT_SHADER_TEXTURED_GLES: &str = include_str!("../shaders/opengles/fragment_textured_300.glsl");
+const FRAGMENT_SHADER_COLOR_GLES: &str = include_str!("../shaders/opengles/fragment_color_300.glsl");
 
 macro_rules! impl_rtti {
     ($name:ident, $inner_type:ty, $create_method:ident, $delete_method:ident) => {
@@ -476,13 +281,12 @@ impl RenderShader {
         }
     }
 
-    unsafe fn bind_attrib_pointer(&self, gl: &glow::Context, vbo: glow::Buffer) -> GLResult {
+    unsafe fn bind_attrib_pointer(&self, gl: &glow::Context) -> GLResult {
         if let None = self.program_id {
             return Err(String::from("Cannot bind attribute pointers without a shader program."));
         }
 
         gl.use_program(self.program_id);
-        gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
         if let Some(position) = self.position {
             gl.enable_vertex_attrib_array(position);
             gl.vertex_attrib_pointer_f32(
@@ -543,6 +347,7 @@ struct RenderData {
     fill_shader: Rc<RenderShader>,
     fill_water_shader: Rc<RenderShader>,
     render_fbo: Option<glow::Framebuffer>,
+    vao: Option<glow::VertexArray>,
     vbo: glow::Buffer,
     ebo: glow::Buffer,
     surf_framebuffer: glow::Framebuffer,
@@ -569,6 +374,11 @@ impl RenderData {
             let fshdr_tex = RenderShaderObject::new(&context, ShaderStage::Fragment, fshdr_tex)?;
             let fshdr_fill = RenderShaderObject::new(&context, ShaderStage::Fragment, fshdr_fill)?;
             let fshdr_fill_water = RenderShaderObject::new(&context, ShaderStage::Fragment, fshdr_fill_water)?;
+
+            let vao = gl.create_vertex_array().ok();
+            if let Some(vao) = vao {
+                gl.bind_vertex_array(Some(vao));
+            }
 
             let mut vbo = BufferRAAI::new(gl)?;
             let mut ebo = BufferRAAI::new(gl)?;
@@ -623,6 +433,7 @@ impl RenderData {
                 fill_shader,
                 fill_water_shader,
                 render_fbo,
+                vao,
                 vbo,
                 ebo,
                 surf_framebuffer,
@@ -687,7 +498,11 @@ impl OpenGLRenderer {
             let gl_context = {
                 let platform = self.platform.borrow();
                 let mut context = unsafe { glow::Context::from_loader_function(|ptr| platform.get_proc_address(ptr)) };
-                log::info!("OpenGL version {}", context.version().vendor_info);
+                {
+                    let glow::Version { major, minor, is_embedded, vendor_info, .. } = context.version();
+                    let emb = if *is_embedded { " ES" } else { "" };
+                    log::info!("OpenGL{emb} version {major}.{minor} ({vendor_info})");
+                }
                 OpenGLRenderer::enable_debug_output(&mut context);
                 Rc::new(context)
             };
@@ -700,7 +515,7 @@ impl OpenGLRenderer {
         self.get_context_holder().ctx_ref()
     }
 
-    fn get_render_data(&self) -> GameResult<RefMut<RenderData>> {
+    fn get_render_data(&self) -> GameResult<RefMut<'_, RenderData>> {
         let needs_init = self.render_data.borrow().is_none();
         if needs_init {
             let context = self.get_context_holder().clone();
@@ -752,7 +567,7 @@ impl BackendRenderer for OpenGLRenderer {
                 let matrix =
                     [[2.0f32, 0.0, 0.0, 0.0], [0.0, -2.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0], [-1.0, 1.0, 0.0, 1.0]];
 
-                render_data.tex_shader.bind_attrib_pointer(&gl, render_data.vbo);
+                gl.use_program(render_data.tex_shader.program_id);
                 gl.uniform_matrix_4_f32_slice(render_data.tex_shader.proj_mtx.as_ref(), false, matrix.as_flattened());
 
                 (render_data.surf_texture)
@@ -911,15 +726,11 @@ impl BackendRenderer for OpenGLRenderer {
 
             check_gl_errors("create_texture_mutable", &gl);
 
-            let render_data = self.get_render_data()?;
             Ok(Box::new(OpenGLTexture {
                 texture_id,
                 framebuffer_id: Some(framebuffer_id),
                 width,
                 height,
-                vertices: Vec::new(),
-                shader: render_data.tex_shader.clone(),
-                vbo: render_data.vbo,
                 context_holder: self.get_context_holder().clone(),
             }))
         }
@@ -951,8 +762,6 @@ impl BackendRenderer for OpenGLRenderer {
 
             gl.bind_texture(glow::TEXTURE_2D, current_texture_id);
 
-            let render_data = self.get_render_data()?;
-
             check_gl_errors("create_texture", &gl);
 
             Ok(Box::new(OpenGLTexture {
@@ -960,9 +769,6 @@ impl BackendRenderer for OpenGLRenderer {
                 framebuffer_id: None,
                 width,
                 height,
-                vertices: Vec::new(),
-                shader: render_data.tex_shader.clone(),
-                vbo: render_data.vbo,
                 context_holder: self.get_context_holder().clone(),
             }))
         }
@@ -1142,6 +948,207 @@ impl BackendRenderer for OpenGLRenderer {
         self.draw_elements(glow::TRIANGLES, vertices, indices, texture, shader, 0)
     }
 
+    fn create_vertex_buffer(
+        &mut self,
+        decl: VertexDeclaration,
+        count: usize,
+        usage: BufferUsage,
+    ) -> GameResult<Box<dyn BackendVertexBuffer>> {
+        let context = self.get_context_holder().clone();
+        let gl = context.ctx_ref();
+        unsafe {
+            let buffer_id = gl.create_buffer().map_err(|e| RenderError(e))?;
+            let byte_size = count * decl.stride as usize;
+            gl.bind_buffer(glow::ARRAY_BUFFER, Some(buffer_id));
+            gl.buffer_data_size(glow::ARRAY_BUFFER, byte_size as i32, OpenGLVertexBuffer::gl_usage(usage));
+            gl.bind_buffer(glow::ARRAY_BUFFER, None);
+
+            Ok(Box::new(OpenGLVertexBuffer {
+                buffer_id,
+                vertex_count: count,
+                stride: decl.stride as usize,
+                usage,
+                context_holder: context,
+            }))
+        }
+    }
+
+    fn create_index_buffer(&mut self, count: usize, usage: BufferUsage) -> GameResult<Box<dyn BackendIndexBuffer>> {
+        let context = self.get_context_holder().clone();
+        let gl = context.ctx_ref();
+        unsafe {
+            let buffer_id = gl.create_buffer().map_err(|e| RenderError(e))?;
+            // Allocate for u16 by default; will be resized on set_data if needed
+            let byte_size = count * 2;
+            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(buffer_id));
+            gl.buffer_data_size(glow::ELEMENT_ARRAY_BUFFER, byte_size as i32, OpenGLVertexBuffer::gl_usage(usage));
+            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, None);
+
+            Ok(Box::new(OpenGLIndexBuffer {
+                buffer_id,
+                index_count: count,
+                index_type: glow::UNSIGNED_SHORT,
+                usage,
+                context_holder: context,
+            }))
+        }
+    }
+
+    fn create_effect_from_glsl(
+        &mut self,
+        vertex_src: &str,
+        fragment_src: &str,
+        name: &str,
+    ) -> GameResult<Box<dyn BackendEffect>> {
+        let context = self.get_context_holder().clone();
+        let gl = context.ctx_ref();
+
+        unsafe {
+            let vs = gl.create_shader(glow::VERTEX_SHADER).map_err(|e| RenderError(e))?;
+            gl.shader_source(vs, vertex_src);
+            gl.compile_shader(vs);
+            if let Err(e) = check_shader_compile_status(vs, gl) {
+                gl.delete_shader(vs);
+                return Err(RenderError(e));
+            }
+
+            let fs = gl.create_shader(glow::FRAGMENT_SHADER).map_err(|e| RenderError(e))?;
+            gl.shader_source(fs, fragment_src);
+            gl.compile_shader(fs);
+            if let Err(e) = check_shader_compile_status(fs, gl) {
+                gl.delete_shader(vs);
+                gl.delete_shader(fs);
+                return Err(RenderError(e));
+            }
+
+            let program_id = gl.create_program().map_err(|e| {
+                gl.delete_shader(vs);
+                gl.delete_shader(fs);
+                RenderError(e)
+            })?;
+            gl.attach_shader(program_id, vs);
+            gl.attach_shader(program_id, fs);
+            gl.link_program(program_id);
+
+            // Shaders can be deleted after linking
+            gl.delete_shader(vs);
+            gl.delete_shader(fs);
+
+            // Enumerate all active uniforms as parameters
+            let uniform_count = gl.get_active_uniforms(program_id);
+            let mut parameters = Vec::new();
+            for i in 0..uniform_count {
+                if let Some(uniform) = gl.get_active_uniform(program_id, i) {
+                    if let Some(location) = gl.get_uniform_location(program_id, &uniform.name) {
+                        parameters.push(OpenGLEffectParameter {
+                            name: uniform.name.clone(),
+                            location,
+                            value: None,
+                            dirty: false,
+                        });
+                    }
+                }
+            }
+
+            let param_indices: HashMap<String, usize> =
+                parameters.iter().enumerate().map(|(i, p)| (p.name.clone(), i)).collect();
+
+            let technique = OpenGLEffectTechnique { name: name.to_string(), program_id, parameters: param_indices };
+
+            Ok(Box::new(OpenGLEffect {
+                techniques: vec![technique],
+                parameters,
+                current_technique: 0,
+                context_holder: context,
+            }))
+        }
+    }
+
+    fn scene_texture(&self) -> Option<&dyn BackendTexture> {
+        // TODO: wrap surf_texture as a BackendTexture and return it
+        None
+    }
+
+    fn draw_primitives(
+        &mut self,
+        effect: &mut dyn BackendEffect,
+        vb: &dyn BackendVertexBuffer,
+        decl: &VertexDeclaration,
+        prim_type: PrimitiveType,
+        start: usize,
+        count: usize,
+    ) -> GameResult {
+        let gl_vb = vb
+            .as_any()
+            .downcast_ref::<OpenGLVertexBuffer>()
+            .ok_or_else(|| RenderError("Vertex buffer was not created by OpenGL backend.".to_string()))?;
+        let gl_effect = effect
+            .as_any()
+            .downcast_ref::<OpenGLEffect>()
+            .ok_or_else(|| RenderError("Effect was not created by OpenGL backend.".to_string()))?;
+
+        let gl = self.get_context();
+        let technique = &gl_effect.techniques[gl_effect.current_technique];
+
+        unsafe {
+            gl.bind_buffer(glow::ARRAY_BUFFER, Some(gl_vb.buffer_id));
+            bind_vertex_declaration(&gl, technique.program_id, decl);
+
+            let vertex_count = primitive_count_to_vertex_count(prim_type, count);
+            gl.draw_arrays(gl_primitive_type(prim_type), start as i32, vertex_count as i32);
+
+            gl.bind_buffer(glow::ARRAY_BUFFER, None);
+        }
+        Ok(())
+    }
+
+    fn draw_indexed_primitives(
+        &mut self,
+        effect: &mut dyn BackendEffect,
+        vb: &dyn BackendVertexBuffer,
+        ib: &dyn BackendIndexBuffer,
+        decl: &VertexDeclaration,
+        prim_type: PrimitiveType,
+        start_index: usize,
+        count: usize,
+    ) -> GameResult {
+        let gl_vb = vb
+            .as_any()
+            .downcast_ref::<OpenGLVertexBuffer>()
+            .ok_or_else(|| RenderError("Vertex buffer was not created by OpenGL backend.".to_string()))?;
+        let gl_ib = ib
+            .as_any()
+            .downcast_ref::<OpenGLIndexBuffer>()
+            .ok_or_else(|| RenderError("Index buffer was not created by OpenGL backend.".to_string()))?;
+        let gl_effect = effect
+            .as_any()
+            .downcast_ref::<OpenGLEffect>()
+            .ok_or_else(|| RenderError("Effect was not created by OpenGL backend.".to_string()))?;
+
+        let gl = self.get_context();
+        let technique = &gl_effect.techniques[gl_effect.current_technique];
+
+        unsafe {
+            gl.bind_buffer(glow::ARRAY_BUFFER, Some(gl_vb.buffer_id));
+            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(gl_ib.buffer_id));
+            bind_vertex_declaration(&gl, technique.program_id, decl);
+
+            let index_count = primitive_count_to_vertex_count(prim_type, count);
+            let byte_offset = start_index
+                * match gl_ib.index_type {
+                    glow::UNSIGNED_BYTE => 1,
+                    glow::UNSIGNED_SHORT => 2,
+                    glow::UNSIGNED_INT => 4,
+                    _ => 2,
+                };
+            gl.draw_elements(gl_primitive_type(prim_type), index_count as i32, gl_ib.index_type, byte_offset as i32);
+
+            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, None);
+            gl.bind_buffer(glow::ARRAY_BUFFER, None);
+        }
+        Ok(())
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -1187,19 +1194,17 @@ impl OpenGLRenderer {
 
     fn check_framebuffer_status(gl: &glow::Context) {
         unsafe {
-            if is_gl_at_least(gl.version(), 3, 0) || is_gles_at_least(gl.version(), 2, 0) {
-                let status = gl.check_framebuffer_status(glow::FRAMEBUFFER);
-                let status_str = match status {
-                    glow::FRAMEBUFFER_COMPLETE => return,
-                    glow::FRAMEBUFFER_INCOMPLETE_ATTACHMENT => "FRAMEBUFFER_INCOMPLETE_ATTACHMENT",
-                    glow::FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT => "FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT",
-                    glow::FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER => "FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER",
-                    glow::FRAMEBUFFER_INCOMPLETE_READ_BUFFER => "FRAMEBUFFER_INCOMPLETE_READ_BUFFER",
-                    glow::FRAMEBUFFER_UNSUPPORTED => "FRAMEBUFFER_UNSUPPORTED",
-                    _ => "UNKNOWN",
-                };
-                log::warn!("Framebuffer status: {:#x} ({})", status, status_str);
-            }
+            let status = gl.check_framebuffer_status(glow::FRAMEBUFFER);
+            let status_str = match status {
+                glow::FRAMEBUFFER_COMPLETE => return,
+                glow::FRAMEBUFFER_INCOMPLETE_ATTACHMENT => "FRAMEBUFFER_INCOMPLETE_ATTACHMENT",
+                glow::FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT => "FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT",
+                glow::FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER => "FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER",
+                glow::FRAMEBUFFER_INCOMPLETE_READ_BUFFER => "FRAMEBUFFER_INCOMPLETE_READ_BUFFER",
+                glow::FRAMEBUFFER_UNSUPPORTED => "FRAMEBUFFER_UNSUPPORTED",
+                _ => "UNKNOWN",
+            };
+            log::warn!("Framebuffer status: {:#x} ({})", status, status_str);
         }
     }
 
@@ -1260,15 +1265,23 @@ impl OpenGLRenderer {
     ) -> GameResult<()> {
         let gl = self.get_context();
         let render_data = self.get_render_data()?;
+
+        // Upload vertex data before setting up attrib pointers, as macOS GL validates
+        // offsets against the current buffer size in glVertexAttribPointer.
+        gl.bind_buffer(glow::ARRAY_BUFFER, Some(render_data.vbo));
+        let vertices_slice =
+            std::slice::from_raw_parts(vertices.as_ptr() as *const u8, vertices.len() * mem::size_of::<VertexData>());
+        gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, vertices_slice, glow::STREAM_DRAW);
+
         match shader {
             BackendShader::Fill => {
-                render_data.fill_shader.bind_attrib_pointer(&gl, render_data.vbo).into_game_result()?;
+                render_data.fill_shader.bind_attrib_pointer(&gl).into_game_result()?;
             }
             BackendShader::Texture => {
-                render_data.tex_shader.bind_attrib_pointer(&gl, render_data.vbo).into_game_result()?;
+                render_data.tex_shader.bind_attrib_pointer(&gl).into_game_result()?;
             }
             BackendShader::WaterFill(scale, t, frame_pos) => {
-                render_data.fill_water_shader.bind_attrib_pointer(&gl, render_data.vbo).into_game_result()?;
+                render_data.fill_water_shader.bind_attrib_pointer(&gl).into_game_result()?;
                 gl.uniform_1_f32(render_data.fill_water_shader.scale.as_ref(), scale);
                 gl.uniform_1_f32(render_data.fill_water_shader.time.as_ref(), t);
                 gl.uniform_2_f32(render_data.fill_water_shader.frame_offset.as_ref(), frame_pos.0, frame_pos.1);
@@ -1276,13 +1289,7 @@ impl OpenGLRenderer {
             }
         }
 
-        gl.bind_buffer(glow::ARRAY_BUFFER, Some(render_data.vbo));
-
         gl.bind_texture(glow::TEXTURE_2D, texture);
-
-        let vertices_slice =
-            std::slice::from_raw_parts(vertices.as_ptr() as *const u8, vertices.len() * mem::size_of::<VertexData>());
-        gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, vertices_slice, glow::STREAM_DRAW);
 
         if let Some(indices) = indices {
             let index_slice = indices.as_bytes_slice();
@@ -1303,6 +1310,369 @@ impl OpenGLRenderer {
     }
 }
 
+pub struct OpenGLVertexBuffer {
+    buffer_id: glow::Buffer,
+    vertex_count: usize,
+    stride: usize,
+    usage: BufferUsage,
+    context_holder: GlContextHolder,
+}
+
+impl OpenGLVertexBuffer {
+    fn gl_usage(usage: BufferUsage) -> u32 {
+        match usage {
+            BufferUsage::Static => glow::STATIC_DRAW,
+            BufferUsage::Dynamic => glow::DYNAMIC_DRAW,
+            BufferUsage::Stream => glow::STREAM_DRAW,
+        }
+    }
+}
+
+impl BackendVertexBuffer for OpenGLVertexBuffer {
+    fn set_data_raw(&mut self, data: &[u8], offset: usize) -> GameResult {
+        let gl = self.context_holder.ctx_ref();
+        unsafe {
+            gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.buffer_id));
+            if offset == 0 {
+                // Full re-upload: orphan and reallocate. This is the idiomatic
+                // path for stream buffers and lets the driver avoid sync stalls.
+                gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, data, Self::gl_usage(self.usage));
+            } else {
+                gl.buffer_sub_data_u8_slice(glow::ARRAY_BUFFER, offset as i32, data);
+            }
+            gl.bind_buffer(glow::ARRAY_BUFFER, None);
+        }
+        self.vertex_count = data.len() / self.stride;
+        Ok(())
+    }
+
+    fn vertex_count(&self) -> usize {
+        self.vertex_count
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+impl Drop for OpenGLVertexBuffer {
+    fn drop(&mut self) {
+        if !self.context_holder.is_context_active() {
+            return;
+        }
+        unsafe {
+            self.context_holder.ctx_ref().delete_buffer(self.buffer_id);
+        }
+    }
+}
+
+pub struct OpenGLIndexBuffer {
+    buffer_id: glow::Buffer,
+    index_count: usize,
+    index_type: u32,
+    usage: BufferUsage,
+    context_holder: GlContextHolder,
+}
+
+impl BackendIndexBuffer for OpenGLIndexBuffer {
+    fn set_data(&mut self, data: IndexData, offset: usize) -> GameResult {
+        let gl = self.context_holder.ctx_ref();
+        self.index_type = opengl_index_size(data);
+        self.index_count = data.len();
+        unsafe {
+            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(self.buffer_id));
+            let bytes = data.as_bytes_slice();
+            if offset == 0 {
+                gl.buffer_data_u8_slice(glow::ELEMENT_ARRAY_BUFFER, bytes, OpenGLVertexBuffer::gl_usage(self.usage));
+            } else {
+                gl.buffer_sub_data_u8_slice(glow::ELEMENT_ARRAY_BUFFER, offset as i32, bytes);
+            }
+            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, None);
+        }
+        Ok(())
+    }
+
+    fn index_count(&self) -> usize {
+        self.index_count
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+impl Drop for OpenGLIndexBuffer {
+    fn drop(&mut self) {
+        if !self.context_holder.is_context_active() {
+            return;
+        }
+        unsafe {
+            self.context_holder.ctx_ref().delete_buffer(self.buffer_id);
+        }
+    }
+}
+
+enum EffectParameterValue {
+    Float(f32),
+    Float2([f32; 2]),
+    Float3([f32; 3]),
+    Float4([f32; 4]),
+    Matrix([[f32; 4]; 4]),
+    Int(i32),
+    Texture(glow::Texture),
+}
+
+pub struct OpenGLEffectParameter {
+    name: String,
+    location: glow::UniformLocation,
+    value: Option<EffectParameterValue>,
+    dirty: bool,
+}
+
+impl EffectParameter for OpenGLEffectParameter {
+    fn set_float(&mut self, value: f32) -> GameResult {
+        self.value = Some(EffectParameterValue::Float(value));
+        self.dirty = true;
+        Ok(())
+    }
+
+    fn set_float2(&mut self, value: [f32; 2]) -> GameResult {
+        self.value = Some(EffectParameterValue::Float2(value));
+        self.dirty = true;
+        Ok(())
+    }
+
+    fn set_float3(&mut self, value: [f32; 3]) -> GameResult {
+        self.value = Some(EffectParameterValue::Float3(value));
+        self.dirty = true;
+        Ok(())
+    }
+
+    fn set_float4(&mut self, value: [f32; 4]) -> GameResult {
+        self.value = Some(EffectParameterValue::Float4(value));
+        self.dirty = true;
+        Ok(())
+    }
+
+    fn set_matrix(&mut self, value: &[[f32; 4]; 4]) -> GameResult {
+        self.value = Some(EffectParameterValue::Matrix(*value));
+        self.dirty = true;
+        Ok(())
+    }
+
+    fn set_int(&mut self, value: i32) -> GameResult {
+        self.value = Some(EffectParameterValue::Int(value));
+        self.dirty = true;
+        Ok(())
+    }
+
+    fn set_texture(&mut self, texture: &dyn BackendTexture) -> GameResult {
+        let gl_texture = texture
+            .as_any()
+            .downcast_ref::<OpenGLTexture>()
+            .ok_or_else(|| RenderError("Texture was not created by OpenGL backend.".to_string()))?;
+        self.value = Some(EffectParameterValue::Texture(gl_texture.texture_id));
+        self.dirty = true;
+        Ok(())
+    }
+}
+
+struct OpenGLEffectTechnique {
+    name: String,
+    program_id: glow::Program,
+    parameters: HashMap<String, usize>, // maps param name -> index in effect's params vec
+}
+
+impl EffectTechnique for OpenGLEffectTechnique {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn pass_count(&self) -> usize {
+        1 // TODO: multiple passes?
+    }
+}
+
+pub struct OpenGLEffect {
+    techniques: Vec<OpenGLEffectTechnique>,
+    parameters: Vec<OpenGLEffectParameter>,
+    current_technique: usize,
+    context_holder: GlContextHolder,
+}
+
+impl OpenGLEffect {
+    fn upload_dirty_params(&mut self) {
+        let gl = self.context_holder.ctx_ref();
+        let mut texture_unit = 0u32;
+
+        for param in &mut self.parameters {
+            if !param.dirty {
+                continue;
+            }
+            param.dirty = false;
+
+            unsafe {
+                match &param.value {
+                    Some(EffectParameterValue::Float(v)) => {
+                        gl.uniform_1_f32(Some(&param.location), *v);
+                    }
+                    Some(EffectParameterValue::Float2(v)) => {
+                        gl.uniform_2_f32(Some(&param.location), v[0], v[1]);
+                    }
+                    Some(EffectParameterValue::Float3(v)) => {
+                        gl.uniform_3_f32(Some(&param.location), v[0], v[1], v[2]);
+                    }
+                    Some(EffectParameterValue::Float4(v)) => {
+                        gl.uniform_4_f32(Some(&param.location), v[0], v[1], v[2], v[3]);
+                    }
+                    Some(EffectParameterValue::Matrix(v)) => {
+                        gl.uniform_matrix_4_f32_slice(Some(&param.location), false, v.as_flattened());
+                    }
+                    Some(EffectParameterValue::Int(v)) => {
+                        gl.uniform_1_i32(Some(&param.location), *v);
+                    }
+                    Some(EffectParameterValue::Texture(tex_id)) => {
+                        gl.active_texture(glow::TEXTURE0 + texture_unit);
+                        gl.bind_texture(glow::TEXTURE_2D, Some(*tex_id));
+                        gl.uniform_1_i32(Some(&param.location), texture_unit as i32);
+                        texture_unit += 1;
+                    }
+                    None => {}
+                }
+            }
+        }
+    }
+}
+
+impl BackendEffect for OpenGLEffect {
+    fn technique_count(&self) -> usize {
+        self.techniques.len()
+    }
+
+    fn current_technique(&self) -> usize {
+        self.current_technique
+    }
+
+    fn set_current_technique(&mut self, index: usize) -> GameResult {
+        if index >= self.techniques.len() {
+            return Err(RenderError(format!("Technique index {} out of range", index)));
+        }
+        self.current_technique = index;
+        Ok(())
+    }
+
+    fn technique_name(&self, index: usize) -> Option<&str> {
+        self.techniques.get(index).map(|t| t.name.as_str())
+    }
+
+    fn pass_count(&self) -> usize {
+        1 // TODO: multiple passes?
+    }
+
+    fn begin_pass(&mut self, _pass_index: usize) -> GameResult {
+        let gl = self.context_holder.ctx_ref();
+        let technique = &self.techniques[self.current_technique];
+        unsafe {
+            gl.use_program(Some(technique.program_id));
+        }
+        // mark all params dirty so they get re-uploaded for this program
+        for param in &mut self.parameters {
+            param.dirty = true;
+        }
+        self.upload_dirty_params();
+        Ok(())
+    }
+
+    fn end_pass(&mut self) -> GameResult {
+        let gl = self.context_holder.ctx_ref();
+        unsafe {
+            gl.use_program(None);
+        }
+        Ok(())
+    }
+
+    fn parameter(&self, name: &str) -> Option<&dyn EffectParameter> {
+        self.parameters.iter().find(|p| p.name == name).map(|p| p as &dyn EffectParameter)
+    }
+
+    fn parameter_mut(&mut self, name: &str) -> Option<&mut dyn EffectParameter> {
+        self.parameters.iter_mut().find(|p| p.name == name).map(|p| p as &mut dyn EffectParameter)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+impl Drop for OpenGLEffect {
+    fn drop(&mut self) {
+        if !self.context_holder.is_context_active() {
+            return;
+        }
+        let gl = self.context_holder.ctx_ref();
+        unsafe {
+            for technique in &self.techniques {
+                gl.delete_program(technique.program_id);
+            }
+        }
+    }
+}
+
+unsafe fn bind_vertex_declaration(gl: &glow::Context, program: glow::Program, decl: &VertexDeclaration) {
+    for element in &decl.elements {
+        let attr_name = match element.usage {
+            VertexElementUsage::Position => "Position",
+            VertexElementUsage::Normal => "Normal",
+            VertexElementUsage::TextureCoordinate => "UV",
+            VertexElementUsage::Color => "Color",
+            VertexElementUsage::Tangent => "Tangent",
+            VertexElementUsage::Binormal => "Binormal",
+        };
+
+        if let Some(location) = gl.get_attrib_location(program, attr_name) {
+            gl.enable_vertex_attrib_array(location);
+
+            let (component_count, gl_type, normalized) = match element.format {
+                VertexElementFormat::Float1 => (1, glow::FLOAT, false),
+                VertexElementFormat::Float2 => (2, glow::FLOAT, false),
+                VertexElementFormat::Float3 => (3, glow::FLOAT, false),
+                VertexElementFormat::Float4 => (4, glow::FLOAT, false),
+                VertexElementFormat::Color => (4, glow::UNSIGNED_BYTE, true),
+                VertexElementFormat::Byte4 => (4, glow::UNSIGNED_BYTE, false),
+                VertexElementFormat::Short2 => (2, glow::SHORT, false),
+                VertexElementFormat::Short4 => (4, glow::SHORT, false),
+            };
+
+            gl.vertex_attrib_pointer_f32(
+                location,
+                component_count,
+                gl_type,
+                normalized,
+                decl.stride as i32,
+                element.offset as i32,
+            );
+        }
+    }
+}
+
+fn gl_primitive_type(prim_type: PrimitiveType) -> u32 {
+    match prim_type {
+        PrimitiveType::TriangleList => glow::TRIANGLES,
+        PrimitiveType::TriangleStrip => glow::TRIANGLE_STRIP,
+        PrimitiveType::LineList => glow::LINES,
+        PrimitiveType::LineStrip => glow::LINE_STRIP,
+    }
+}
+
+fn primitive_count_to_vertex_count(prim_type: PrimitiveType, prim_count: usize) -> usize {
+    match prim_type {
+        PrimitiveType::TriangleList => prim_count * 3,
+        PrimitiveType::TriangleStrip => prim_count + 2,
+        PrimitiveType::LineList => prim_count * 2,
+        PrimitiveType::LineStrip => prim_count + 1,
+    }
+}
+
 impl Drop for OpenGLRenderer {
     fn drop(&mut self) {
         let context = self.gl.get_mut();
@@ -1312,58 +1682,39 @@ impl Drop for OpenGLRenderer {
     }
 }
 
+fn macos_drain_errors(gl: &glow::Context) {
+    let _ = gl;
+    #[cfg(target_os = "macos")]
+    unsafe {
+        while gl.get_error() != glow::NO_ERROR {}
+    }
+}
+
 fn check_gl_errors(hint: &str, gl: &glow::Context) {
     let _ = hint;
-    #[cfg(debug_assertions)]
     loop {
         // drain GL errors
 
-        use std::borrow::Cow;
         let error = unsafe { gl.get_error() };
         if error == glow::NO_ERROR {
             break;
         }
 
-        let name = match error {
-            glow::INVALID_ENUM => Cow::Borrowed("INVALID_ENUM"),
-            glow::INVALID_FRAMEBUFFER_OPERATION => Cow::Borrowed("INVALID_FRAMEBUFFER_OPERATION"),
-            glow::INVALID_OPERATION => Cow::Borrowed("INVALID_OPERATION"),
-            glow::INVALID_VALUE => Cow::Borrowed("INVALID_VALUE"),
-            glow::OUT_OF_MEMORY => Cow::Borrowed("OUT_OF_MEMORY"),
-            _ => Cow::Owned(error.to_string()),
-        };
+        #[cfg(debug_assertions)]
+        {
+            use std::borrow::Cow;
+            let name = match error {
+                glow::INVALID_ENUM => Cow::Borrowed("INVALID_ENUM"),
+                glow::INVALID_FRAMEBUFFER_OPERATION => Cow::Borrowed("INVALID_FRAMEBUFFER_OPERATION"),
+                glow::INVALID_OPERATION => Cow::Borrowed("INVALID_OPERATION"),
+                glow::INVALID_VALUE => Cow::Borrowed("INVALID_VALUE"),
+                glow::OUT_OF_MEMORY => Cow::Borrowed("OUT_OF_MEMORY"),
+                _ => Cow::Owned(error.to_string()),
+            };
 
-        log::error!("GL error: {name} {error:#x} ({hint})");
-        panic!();
+            log::error!("GL error: {name} {error:#x} ({hint})");
+            // panic!();
+        }
     }
 }
 
-const fn is_gl_at_least(version: &glow::Version, major: u8, minor: u8) -> bool {
-    let major = major as u32;
-    let minor = minor as u32;
-    if version.is_embedded {
-        return false;
-    }
-    if version.major > major {
-        return true;
-    }
-    if version.major == major && version.minor >= minor {
-        return true;
-    }
-    false
-}
-
-const fn is_gles_at_least(version: &glow::Version, major: u8, minor: u8) -> bool {
-    let major = major as u32;
-    let minor = minor as u32;
-    if !version.is_embedded {
-        return false;
-    }
-    if version.major > major {
-        return true;
-    }
-    if version.major == major && version.minor >= minor {
-        return true;
-    }
-    false
-}

@@ -7,7 +7,7 @@ use imgui::{DrawData, TextureId, Ui};
 
 use crate::common::{Color, Rect};
 use crate::framework::backend::{
-    Backend, BackendCallbacks, BackendEventLoop, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand,
+    Backend, BackendCallbacks, BackendEventLoop, BackendRenderer, BackendShader, BackendTexture,
     VertexData,
 };
 use crate::framework::context::Context;

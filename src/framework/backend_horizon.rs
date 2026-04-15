@@ -21,7 +21,7 @@ use deko3d::{
 
 use crate::common::{Color, Rect};
 use crate::framework::backend::{
-    Backend, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand,
+    Backend, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture,
     VertexData,
 };
 use crate::framework::context::Context;
@@ -595,8 +595,6 @@ pub struct Deko3DTexture {
     desc_memory: deko3d::MemBlock,
     memory: deko3d::MemBlock,
     image: deko3d::Image,
-    vertices: Vec<VertexData>,
-    vbo: Deko3DVertexBuffer,
     renderer: *mut Deko3DRenderer,
 }
 
@@ -609,207 +607,6 @@ impl Deko3DTexture {
 impl BackendTexture for Deko3DTexture {
     fn dimensions(&self) -> (u16, u16) {
         self.dimensions
-    }
-
-    fn add(&mut self, command: SpriteBatchCommand) {
-        let (width, height) = self.dimensions;
-        let (tex_scale_x, tex_scale_y) = (1.0 / width as f32, 1.0 / height as f32);
-
-        match command {
-            SpriteBatchCommand::DrawRect(src, dest) => {
-                let vertices = [
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.left, dest.top),
-                        uv: (src.left * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.right, dest.bottom),
-                        uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                ];
-                self.vertices.extend_from_slice(&vertices);
-            }
-            SpriteBatchCommand::DrawRectFlip(mut src, dest, flip_x, flip_y) => {
-                if flip_x {
-                    std::mem::swap(&mut src.left, &mut src.right);
-                }
-
-                if flip_y {
-                    std::mem::swap(&mut src.top, &mut src.bottom);
-                }
-
-                let vertices = [
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.left, dest.top),
-                        uv: (src.left * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                    VertexData {
-                        position: (dest.right, dest.bottom),
-                        uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
-                        color: (255, 255, 255, 255),
-                    },
-                ];
-                self.vertices.extend_from_slice(&vertices);
-            }
-            SpriteBatchCommand::DrawRectTinted(src, dest, color) => {
-                let color = color.to_rgba();
-                let vertices = [
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.left, dest.top),
-                        uv: (src.left * tex_scale_x, src.top * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.right, dest.bottom),
-                        uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
-                        color,
-                    },
-                ];
-                self.vertices.extend_from_slice(&vertices);
-            }
-            SpriteBatchCommand::DrawRectFlipTinted(mut src, dest, flip_x, flip_y, color) => {
-                if flip_x {
-                    std::mem::swap(&mut src.left, &mut src.right);
-                }
-
-                if flip_y {
-                    std::mem::swap(&mut src.top, &mut src.bottom);
-                }
-
-                let color = color.to_rgba();
-
-                let vertices = [
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.left, dest.top),
-                        uv: (src.left * tex_scale_x, src.top * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.left, dest.bottom),
-                        uv: (src.left * tex_scale_x, src.bottom * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.right, dest.top),
-                        uv: (src.right * tex_scale_x, src.top * tex_scale_y),
-                        color,
-                    },
-                    VertexData {
-                        position: (dest.right, dest.bottom),
-                        uv: (src.right * tex_scale_x, src.bottom * tex_scale_y),
-                        color,
-                    },
-                ];
-                self.vertices.extend_from_slice(&vertices);
-            }
-        }
-    }
-
-    fn clear(&mut self) {
-        self.vertices.clear();
-    }
-
-    fn draw(&mut self) -> GameResult<()> {
-        let renderer = unsafe { self.renderer() };
-
-        self.vbo.transfer(&self.vertices, &renderer.device)?;
-
-        let cmdbuf = &renderer.cmdbuf[renderer.slot as usize];
-
-        cmdbuf.bind_vtx_buffer(0, self.vbo.buffer.get_gpu_addr(), self.vbo.buffer.get_size());
-
-        let img_offset = field_offset::<Deko3DTextureDesc, _, _>(|d| &d.image);
-        let sampler_offset = field_offset::<Deko3DTextureDesc, _, _>(|d| &d.sampler);
-
-        let desc_gpu = self.desc_memory.get_gpu_addr();
-        cmdbuf.bind_sampler_descriptor_set(desc_gpu + sampler_offset as u64, 1);
-        cmdbuf.bind_image_descriptor_set(desc_gpu + img_offset as u64, 1);
-        cmdbuf.bind_textures(Stage::Fragment, 0, &[make_texture_handle(0, 0)]);
-
-        renderer.texture_shader.update_uniforms(VertUBO { proj_mtx: renderer.curr_mtx });
-        renderer.texture_shader.bind(cmdbuf);
-
-        cmdbuf.draw(Primitive::Triangles, self.vertices.len() as u32, 1, 0, 0);
-        cmdbuf.barrier(Barrier::Fragments, InvalidateFlags::None);
-
-        renderer.queue.submit_commands(cmdbuf.finish_list());
-        renderer.queue.wait_idle();
-        cmdbuf.clear();
-
-        Ok(())
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -1049,15 +846,11 @@ impl BackendRenderer for Deko3DRenderer {
             ),
         );
 
-        let vbo = Deko3DVertexBuffer::new(&self.device)?;
-
         Ok(Box::new(Deko3DTexture {
             dimensions: (width, height),
             desc_memory,
             memory,
             image,
-            vertices: Vec::new(),
-            vbo,
             renderer: self,
         }))
     }
@@ -1131,15 +924,11 @@ impl BackendRenderer for Deko3DRenderer {
         self.queue.wait_idle();
         cmdbuf.clear();
 
-        let vbo = Deko3DVertexBuffer::new(&self.device)?;
-
         Ok(Box::new(Deko3DTexture {
             dimensions: (width, height),
             desc_memory,
             memory,
             image,
-            vertices: Vec::new(),
-            vbo,
             renderer: self,
         }))
     }
