@@ -49,9 +49,9 @@ pub enum GLContextType {
     /// The context type is not known yet, because it hasn't been not created or is already disposed.
     Unknown,
     /// The context is at least an OpenGL ES 3.0 context. Must be able to use #version 300 es shaders.
-    GLES2,
+    GLES3,
     /// The context is at least a (Desktop) OpenGL 3.2 Core context. Must be able to use #version 150 core shaders.
-    DesktopGL2,
+    DesktopGL3,
 }
 
 fn opengl_index_size(indices: IndexData) -> u32 {
@@ -138,7 +138,7 @@ const VERTEX_SHADER_BASIC_GLES: &str = include_str!("../shaders/opengles/vertex_
 const FRAGMENT_SHADER_TEXTURED_GLES: &str = include_str!("../shaders/opengles/fragment_textured_300.glsl");
 const FRAGMENT_SHADER_COLOR_GLES: &str = include_str!("../shaders/opengles/fragment_color_300.glsl");
 
-macro_rules! impl_rtti {
+macro_rules! impl_raai {
     ($name:ident, $inner_type:ty, $create_method:ident, $delete_method:ident) => {
         struct $name<'a> {
             inner: Option<$inner_type>,
@@ -173,9 +173,9 @@ macro_rules! impl_rtti {
     };
 }
 
-impl_rtti!(BufferRAAI, glow::Buffer, create_buffer, delete_buffer);
-impl_rtti!(TextureRAAI, glow::Texture, create_texture, delete_texture);
-impl_rtti!(FramebufferRAAI, glow::Framebuffer, create_framebuffer, delete_framebuffer);
+impl_raai!(BufferRAAI, glow::Buffer, create_buffer, delete_buffer);
+impl_raai!(TextureRAAI, glow::Texture, create_texture, delete_texture);
+impl_raai!(FramebufferRAAI, glow::Framebuffer, create_framebuffer, delete_framebuffer);
 
 struct RenderShaderObject {
     shader: glow::Shader,
@@ -219,6 +219,7 @@ impl Drop for RenderShaderObject {
     }
 }
 
+// TODO: deprecated - soon to be migrated to BackendEffect system.
 struct RenderShader {
     name: String,
     program_id: Option<glow::Program>,
@@ -266,7 +267,9 @@ impl RenderShader {
             gl.attach_shader(program_id, shader.vertex_shader.shader);
             gl.attach_shader(program_id, shader.fragment_shader.shader);
             gl.link_program(program_id);
-            // TODO: Error check?
+            check_gl_errors("RenderShader::compile", &gl);
+
+            // TODO: Return error on failure?
             log::debug!("Linked shader '{0}', program ID: {program_id:?}", shader.name);
 
             shader.texture = gl.get_uniform_location(program_id, "Texture");
@@ -1717,4 +1720,3 @@ fn check_gl_errors(hint: &str, gl: &glow::Context) {
         }
     }
 }
-
