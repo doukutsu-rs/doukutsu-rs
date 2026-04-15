@@ -585,9 +585,9 @@ impl BackendEventLoop for SDL2EventLoop {
 
                     if ok == 0 {
                         if ((attributes as u32) & (SDL_GLprofile::SDL_GL_CONTEXT_PROFILE_ES as u32)) != 0 {
-                            return GLContextType::GLES2;
+                            return GLContextType::GLES3;
                         } else {
-                            return GLContextType::DesktopGL2;
+                            return GLContextType::DesktopGL3;
                         }
                     } else {
                         GLContextType::Unknown
