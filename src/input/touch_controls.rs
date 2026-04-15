@@ -12,12 +12,22 @@ pub enum TouchControlType {
     Controls,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct TouchPoint {
     pub id: u64,
     pub touch_id: u64,
     pub position: (f64, f64),
+    pub first_position: (f64, f64),
     pub last_position: (f64, f64),
+}
+
+impl TouchPoint {
+    pub fn is_in(&self, bounds: Rect) -> bool {
+        (self.position.0 as isize) > bounds.left
+            && (self.position.0 as isize) < bounds.right
+            && (self.position.1 as isize) > bounds.top
+            && (self.position.1 as isize) < bounds.bottom
+    }
 }
 
 pub struct TouchControls {
@@ -39,33 +49,24 @@ impl TouchControls {
         }
     }
 
-    pub fn point_in(&self, bounds: Rect) -> Option<u64> {
-        for point in &self.points {
-            if (point.position.0 as isize) > bounds.left
-                && (point.position.0 as isize) < bounds.right
-                && (point.position.1 as isize) > bounds.top
-                && (point.position.1 as isize) < bounds.bottom
-            {
-                return Some(point.touch_id);
-            }
-        }
+    pub fn find_point_in(&self, bounds: Rect) -> Option<TouchPoint> {
+        self.points
+            .iter()
+            .find(|p| p.is_in(bounds))
+            .map(|p| *p)
+    }
 
-        None
+    pub fn point_in(&self, bounds: Rect) -> Option<u64> {
+        self.find_point_in(bounds).map(|p| p.touch_id)
     }
 
     pub fn consume_click_in(&mut self, bounds: Rect) -> bool {
         self.clicks.retain(|p| p.touch_id != 0);
 
-        for point in &mut self.clicks {
-            if (point.position.0 as isize) > bounds.left
-                && (point.position.0 as isize) < bounds.right
-                && (point.position.1 as isize) > bounds.top
-                && (point.position.1 as isize) < bounds.bottom
-            {
-                point.touch_id = 0;
+        if let Some(point) = self.clicks.iter_mut().find(|p| p.is_in(bounds)) {
+            point.touch_id = 0;
 
-                return true;
-            }
+            return true;
         }
 
         false

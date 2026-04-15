@@ -6,7 +6,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
 use crate::game::shared_game_state::{GameDifficulty, MenuCharacter, SharedGameState};
-use crate::graphics::font::{Font, SymbolsOwned, TextBuilder};
+use crate::graphics::font::{Font, SymbolsOwned};
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::save_select_menu::MenuSaveInfo;
 
@@ -254,20 +254,15 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
     }
 
     pub fn draw(&self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let selected_y = self.get_selected_entry_y() as f32;
+        let computed_y = self.compute_y(state);
+
         let symbols = self.symbols.as_ref().map(|s| s.as_ref());
         let ui_texture = if state.constants.is_cs_plus { "ui" } else { "TextBox" };
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, ui_texture)?;
 
         let mut rect;
         let mut rect2;
-
-        let selected_y = self.get_selected_entry_y() as f32;
-
-        let mut computed_y = (self.y as f32).max(MENU_MIN_PADDING);
-
-        if (selected_y + MENU_MIN_PADDING) > state.canvas_size.1 - MENU_MIN_PADDING {
-            computed_y -= (selected_y + MENU_MIN_PADDING) - (state.canvas_size.1 - MENU_MIN_PADDING) + 4.0;
-        }
 
         let mut x = self.x as f32;
         let mut y = computed_y;
@@ -799,18 +794,28 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
             return MenuSelectionResult::Canceled;
         }
 
-        if (controller.trigger_up() || controller.trigger_down()) && !self.entries.is_empty() {
+        let computed_y = self.compute_y(state);
+
+        let up_clicked = if computed_y < 0.0 {
+            state.touch_controls.consume_click_in(Rect::new_size(self.x, 7, 32, 32))
+        } else { false };
+
+        let down_clicked = if self.height as f32 > state.canvas_size.1 && self.selected != self.entries.last().unwrap().0 {
+            state.touch_controls.consume_click_in(Rect::new_size(self.x, state.canvas_size.1 as isize - 10, 32, 32))
+        } else { false };
+
+        if (controller.trigger_up() || controller.trigger_down() || down_clicked || up_clicked) && !self.entries.is_empty() {
             state.sound_manager.play_sfx(1);
 
             let mut selected = self.entries.iter().position(|(idx, _)| *idx == self.selected).ok_or(0).unwrap();
 
             loop {
-                if controller.trigger_down() {
+                if controller.trigger_down() || down_clicked {
                     selected += 1;
                     if selected == self.entries.len() {
                         selected = 0;
                     }
-                } else {
+                } else if controller.trigger_up() || up_clicked {
                     if selected == 0 {
                         selected = self.entries.len();
                     }
@@ -828,7 +833,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
             }
         }
 
-        let mut y = self.y as f32 + 8.0;
+        let mut y = computed_y + 8.0;
         for (id, entry) in self.entries.iter_mut() {
             let idx = id.clone();
             let entry_bounds = Rect::new_size(self.x, y as isize, self.width as isize, entry.height() as isize);
@@ -883,20 +888,31 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                     state.sound_manager.play_sfx(1);
                     return MenuSelectionResult::Right(self.selected.clone(), entry, 1);
                 }
-                MenuEntry::Control(_, _) => {
-                    if self.selected == idx && controller.trigger_ok()
-                        || state.touch_controls.consume_click_in(entry_bounds)
-                    {
-                        state.sound_manager.play_sfx(18);
-                        self.selected = idx.clone();
-                        return MenuSelectionResult::Selected(idx, entry);
-                    }
+                MenuEntry::Control(_, _)
+                    if (self.selected == idx && controller.trigger_ok())
+                        || state.touch_controls.consume_click_in(entry_bounds) =>
+                {
+                    state.sound_manager.play_sfx(18);
+                    self.selected = idx.clone();
+                    return MenuSelectionResult::Selected(idx, entry);
                 }
                 _ => {}
             }
         }
 
         MenuSelectionResult::None
+    }
+
+    fn compute_y(&self, state: &SharedGameState) -> f32 {
+        let selected_y = self.get_selected_entry_y() as f32;
+
+        let mut computed_y = (self.y as f32).max(MENU_MIN_PADDING);
+
+        if (selected_y + MENU_MIN_PADDING) > state.canvas_size.1 - MENU_MIN_PADDING {
+            computed_y -= (selected_y + MENU_MIN_PADDING) - (state.canvas_size.1 - MENU_MIN_PADDING) + 4.0;
+        }
+
+        computed_y
     }
 
     fn get_selected_entry_y(&self) -> u16 {
