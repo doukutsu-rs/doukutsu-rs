@@ -2,16 +2,16 @@ use std::{cmp, ops::Div};
 
 use chrono::{Datelike, Local};
 
-use crate::common::{Color, ControlFlags, Direction, FadeState};
+use crate::common::{ControlFlags, Direction, FadeState};
 use crate::components::draw_common::{draw_number, Alignment};
 use crate::data::vanilla::VanillaExtractor;
 #[cfg(feature = "discord-rpc")]
 use crate::discord::DiscordRPC;
-use crate::engine_constants::{RootType, DataType, EngineConstants};
-use crate::framework::backend::BackendTexture;
+use crate::engine_constants::{EngineConstants, RootType};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{create_texture_mutable, set_render_target};
+use crate::framework::render::sprite_batch::SpriteBatch as FrameworkSpriteBatch;
 use crate::framework::vfs::OpenOptions;
 use crate::framework::{filesystem, graphics};
 use crate::game::caret::{Caret, CaretType};
@@ -313,7 +313,7 @@ pub struct SharedGameState {
     pub next_scene: Option<Box<dyn Scene>>,
     pub textscript_vm: TextScriptVM,
     pub creditscript_vm: CreditScriptVM,
-    pub lightmap_canvas: Option<Box<dyn BackendTexture>>,
+    pub lightmap_canvas: Option<FrameworkSpriteBatch>,
     pub season: Season,
     pub menu_character: MenuCharacter,
     pub fs_container: Option<FilesystemContainer>,
@@ -554,7 +554,10 @@ impl SharedGameState {
             let path = if constants.active_root.support_locales {
                 // If the active root support locales, we'll try to set active root to the translation data dir.
                 format!("{}{}/", constants.active_root.base_path(), &locale.code)
-            } else if constants.active_root.root_type == RootType::Translation && locale.code != "en" && locale.code != "jp" {
+            } else if constants.active_root.root_type == RootType::Translation
+                && locale.code != "en"
+                && locale.code != "jp"
+            {
                 // Only the main game can have translations of different data types,
                 // so we'll try to find the translation data dir in the main root.
                 format!("{}{}/", constants.roots.get("/").cloned().unwrap().base_path(), &locale.code)
@@ -609,7 +612,8 @@ impl SharedGameState {
 
         let prev_root = self.constants.active_root.path.clone();
 
-        let font = Self::try_update_locale(ctx, &mut self.constants, &self.settings, &mut self.sound_manager, &locale).unwrap();
+        let font = Self::try_update_locale(ctx, &mut self.constants, &self.settings, &mut self.sound_manager, &locale)
+            .unwrap();
         self.loc = locale;
         self.font = font;
 
@@ -744,7 +748,8 @@ impl SharedGameState {
 
         // ensure no texture is bound before destroying them.
         set_render_target(ctx, None)?;
-        self.lightmap_canvas = Some(create_texture_mutable(ctx, width, height)?);
+        let lightmap_tex = create_texture_mutable(ctx, width, height)?;
+        self.lightmap_canvas = Some(FrameworkSpriteBatch::new(ctx, lightmap_tex)?);
 
         Ok(())
     }

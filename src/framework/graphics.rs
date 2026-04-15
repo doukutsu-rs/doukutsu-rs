@@ -1,8 +1,12 @@
 use std::cell::RefMut;
 
-use super::backend::{BackendShader, BackendTexture, VertexData};
+use super::backend::{
+    BackendIndexBuffer, BackendShader, BackendTexture, BackendVertexBuffer, BufferUsage, PrimitiveType, VertexData,
+};
 use super::context::Context;
 use super::error::{GameError, GameResult};
+use super::render::effect::BackendEffect;
+use super::render::vertex::VertexDeclaration;
 use crate::common::{Color, Rect};
 
 #[derive(Copy, Clone)]
@@ -207,6 +211,81 @@ pub fn draw_triangles(
 ) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
         return renderer.draw_triangles(vertices, texture, shader);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn create_vertex_buffer(
+    ctx: &mut Context,
+    decl: VertexDeclaration,
+    count: usize,
+    usage: BufferUsage,
+) -> GameResult<Box<dyn BackendVertexBuffer>> {
+    if let Some(renderer) = &mut ctx.renderer {
+        return renderer.create_vertex_buffer(decl, count, usage);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn create_index_buffer(
+    ctx: &mut Context,
+    count: usize,
+    usage: BufferUsage,
+) -> GameResult<Box<dyn BackendIndexBuffer>> {
+    if let Some(renderer) = &mut ctx.renderer {
+        return renderer.create_index_buffer(count, usage);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn create_effect_from_glsl(
+    ctx: &mut Context,
+    vertex_src: &str,
+    fragment_src: &str,
+    name: &str,
+) -> GameResult<Box<dyn BackendEffect>> {
+    if let Some(renderer) = &mut ctx.renderer {
+        return renderer.create_effect_from_glsl(vertex_src, fragment_src, name);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn scene_texture(ctx: &Context) -> Option<&dyn BackendTexture> {
+    ctx.renderer.as_ref().and_then(|r| r.scene_texture())
+}
+
+pub fn draw_primitives(
+    ctx: &mut Context,
+    effect: &mut dyn BackendEffect,
+    vb: &dyn BackendVertexBuffer,
+    decl: &VertexDeclaration,
+    prim_type: PrimitiveType,
+    start: usize,
+    count: usize,
+) -> GameResult {
+    if let Some(renderer) = &mut ctx.renderer {
+        return renderer.draw_primitives(effect, vb, decl, prim_type, start, count);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn draw_indexed_primitives(
+    ctx: &mut Context,
+    effect: &mut dyn BackendEffect,
+    vb: &dyn BackendVertexBuffer,
+    ib: &dyn BackendIndexBuffer,
+    decl: &VertexDeclaration,
+    prim_type: PrimitiveType,
+    start_index: usize,
+    count: usize,
+) -> GameResult {
+    if let Some(renderer) = &mut ctx.renderer {
+        return renderer.draw_indexed_primitives(effect, vb, ib, decl, prim_type, start_index, count);
     }
 
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))

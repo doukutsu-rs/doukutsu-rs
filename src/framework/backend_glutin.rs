@@ -16,8 +16,7 @@ use imgui::{DrawCmdParams, DrawData, DrawIdx, DrawVert};
 use winit::window::Icon;
 
 use super::backend::{
-    Backend, BackendCallbacks, BackendEventLoop, BackendRenderer, BackendTexture, DeviceFormFactor, SpriteBatchCommand,
-    WindowParams,
+    Backend, BackendCallbacks, BackendEventLoop, BackendRenderer, BackendTexture, DeviceFormFactor, WindowParams,
 };
 use super::context::Context;
 use super::error::GameResult;
@@ -92,11 +91,11 @@ impl GlutinEventLoop {
         let windowed_context = windowed_context.with_gl(GlRequest::Latest);
         #[cfg(target_os = "android")]
         let windowed_context = windowed_context //
-            .with_gl(GlRequest::Specific(Api::OpenGlEs, (2, 0)))
+            .with_gl(GlRequest::Specific(Api::OpenGlEs, (3, 0)))
             .with_gl_debug_flag(false);
 
         let windowed_context = windowed_context //
-            .with_gl_profile(GlProfile::Compatibility)
+            .with_gl_profile(GlProfile::Core)
             .with_pixel_format(24, 8)
             .with_vsync(true);
 

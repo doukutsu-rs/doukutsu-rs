@@ -7,11 +7,12 @@ use itertools::Itertools;
 use crate::common;
 use crate::common::{FILE_TYPES, Rect};
 use crate::engine_constants::EngineConstants;
-use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
+use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
 use crate::framework::graphics::{create_texture, FilterMode};
+use crate::framework::render::sprite_batch::{SpriteBatch as FrameworkSpriteBatch, SpriteBatchCommand};
 
 pub static mut I_MAG: f32 = 1.0;
 pub static mut G_MAG: f32 = 1.0;
@@ -161,7 +162,7 @@ impl SpriteBatch for DummyBatch {
 }
 
 pub struct SubBatch {
-    batch: Box<dyn BackendTexture>,
+    batch: FrameworkSpriteBatch,
     width: u16,
     height: u16,
     real_width: u16,
@@ -364,15 +365,15 @@ impl SpriteBatch for SubBatch {
         self.draw_filtered(FilterMode::Nearest, ctx)
     }
 
-    fn draw_filtered(&mut self, _filter: FilterMode, _ctx: &mut Context) -> GameResult {
+    fn draw_filtered(&mut self, _filter: FilterMode, ctx: &mut Context) -> GameResult {
         //self.batch.set_filter(filter);
-        self.batch.draw()?;
+        self.batch.draw(ctx)?;
         self.batch.clear();
         Ok(())
     }
 
     fn get_texture(&self) -> Option<&Box<dyn BackendTexture>> {
-        Some(&self.batch)
+        None // TODO: expose texture from framework SpriteBatch
     }
 }
 
@@ -567,8 +568,14 @@ impl TextureSet {
 
         log::info!("Loading texture: {} -> {}", name, path);
 
-        fn make_batch(name: &str, constants: &EngineConstants, batch: Box<dyn BackendTexture>, ignore_ogph: bool) -> SubBatch {
-            let size = batch.dimensions();
+        fn make_batch(
+            ctx: &mut Context,
+            name: &str,
+            constants: &EngineConstants,
+            texture: Box<dyn BackendTexture>,
+            ignore_ogph: bool,
+        ) -> GameResult<SubBatch> {
+            let size = texture.dimensions();
 
             let orig_dimensions = constants.tex_sizes.get(name).unwrap_or(&size);
 
@@ -588,7 +595,9 @@ impl TextureSet {
             let width = (size.0 as f32 * scale) as _;
             let height = (size.1 as f32 * scale) as _;
 
-            SubBatch {
+            let batch = FrameworkSpriteBatch::new(ctx, texture)?;
+
+            Ok(SubBatch {
                 batch,
                 width,
                 height,
@@ -596,12 +605,16 @@ impl TextureSet {
                 scale_y: scale,
                 real_width: size.0 as _,
                 real_height: size.1 as _,
-            }
+            })
         }
 
-        let main_batch = make_batch(name, constants, self.load_image(ctx, &constants.base_paths, &path)?, ignore_ogph);
+        let main_tex = self.load_image(ctx, &constants.base_paths, &path)?;
+        let main_batch = make_batch(ctx, name, constants, main_tex, ignore_ogph)?;
         let glow_batch = if let Some(glow_path) = glow_path {
-            self.load_image(ctx, &constants.base_paths, &glow_path).ok().map(|b| make_batch(name, constants, b, ignore_ogph))
+            match self.load_image(ctx, &constants.base_paths, &glow_path) {
+                Ok(tex) => Some(make_batch(ctx, name, constants, tex, ignore_ogph)?),
+                Err(_) => None,
+            }
         } else {
             None
         };

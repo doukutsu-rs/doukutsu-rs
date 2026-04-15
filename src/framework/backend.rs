@@ -9,9 +9,10 @@ use super::context::Context;
 use super::error::GameResult;
 use super::graphics::{BlendMode, SwapMode};
 use super::keyboard::ScanCode;
-use crate::bitfield;
 use crate::common::{Color, Rect};
 use crate::framework::graphics::IndexData;
+use crate::framework::render::effect::BackendEffect;
+use crate::framework::render::vertex::VertexDeclaration;
 use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
 
@@ -21,6 +22,36 @@ pub struct VertexData {
     pub position: (f32, f32),
     pub color: (u8, u8, u8, u8),
     pub uv: (f32, f32),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum BufferUsage {
+    /// Write once, read many times.
+    Static,
+    /// Write frequently, read frequently.
+    Dynamic,
+    /// Write every frame (current behavior for sprite batches).
+    Stream,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PrimitiveType {
+    TriangleList,
+    TriangleStrip,
+    LineList,
+    LineStrip,
+}
+
+pub trait BackendVertexBuffer: Any {
+    fn set_data_raw(&mut self, data: &[u8], offset: usize) -> GameResult;
+    fn vertex_count(&self) -> usize;
+    fn as_any(&self) -> &dyn Any;
+}
+
+pub trait BackendIndexBuffer: Any {
+    fn set_data(&mut self, data: IndexData, offset: usize) -> GameResult;
+    fn index_count(&self) -> usize;
+    fn as_any(&self) -> &dyn Any;
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -207,17 +238,64 @@ pub trait BackendRenderer {
         shader: BackendShader,
     ) -> GameResult;
 
+    fn create_vertex_buffer(
+        &mut self,
+        _decl: VertexDeclaration,
+        _count: usize,
+        _usage: BufferUsage,
+    ) -> GameResult<Box<dyn BackendVertexBuffer>> {
+        Err(super::error::GameError::RenderError("Vertex buffers not supported by this backend.".to_string()))
+    }
+
+    fn create_index_buffer(&mut self, _count: usize, _usage: BufferUsage) -> GameResult<Box<dyn BackendIndexBuffer>> {
+        Err(super::error::GameError::RenderError("Index buffers not supported by this backend.".to_string()))
+    }
+
+    fn create_effect_from_glsl(
+        &mut self,
+        _vertex_src: &str,
+        _fragment_src: &str,
+        _name: &str,
+    ) -> GameResult<Box<dyn BackendEffect>> {
+        Err(super::error::GameError::RenderError("Effects not supported by this backend.".to_string()))
+    }
+
+    /// Returns the current scene/surface texture (what's been rendered so far this frame).
+    /// Used by game code for post-processing effects (e.g. water distortion).
+    fn scene_texture(&self) -> Option<&dyn BackendTexture> {
+        None
+    }
+
+    fn draw_primitives(
+        &mut self,
+        _effect: &mut dyn BackendEffect,
+        _vb: &dyn BackendVertexBuffer,
+        _decl: &VertexDeclaration,
+        _prim_type: PrimitiveType,
+        _start: usize,
+        _count: usize,
+    ) -> GameResult {
+        Err(super::error::GameError::RenderError("draw_primitives not supported by this backend.".to_string()))
+    }
+
+    fn draw_indexed_primitives(
+        &mut self,
+        _effect: &mut dyn BackendEffect,
+        _vb: &dyn BackendVertexBuffer,
+        _ib: &dyn BackendIndexBuffer,
+        _decl: &VertexDeclaration,
+        _prim_type: PrimitiveType,
+        _start_index: usize,
+        _count: usize,
+    ) -> GameResult {
+        Err(super::error::GameError::RenderError("draw_indexed_primitives not supported by this backend.".to_string()))
+    }
+
     fn as_any(&self) -> &dyn Any;
 }
 
 pub trait BackendTexture {
     fn dimensions(&self) -> (u16, u16);
-
-    fn add(&mut self, command: SpriteBatchCommand);
-
-    fn clear(&mut self);
-
-    fn draw(&mut self) -> GameResult;
 
     fn as_any(&self) -> &dyn Any;
 }
@@ -263,13 +341,6 @@ pub fn init_backend(headless: bool, window_params: WindowParams) -> GameResult<B
 
     log::warn!("No backend compiled in, using null backend instead.");
     super::backend_null::NullBackend::new()
-}
-
-pub enum SpriteBatchCommand {
-    DrawRect(Rect<f32>, Rect<f32>),
-    DrawRectFlip(Rect<f32>, Rect<f32>, bool, bool),
-    DrawRectTinted(Rect<f32>, Rect<f32>, Color),
-    DrawRectFlipTinted(Rect<f32>, Rect<f32>, bool, bool, Color),
 }
 
 pub fn get_scaled_size(width: u32, height: u32) -> (f32, f32) {
