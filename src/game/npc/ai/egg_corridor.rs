@@ -555,7 +555,8 @@ impl NPC {
 
         if self.action_counter < 150 {
             self.action_counter += 1;
-        } else {
+        }
+        if self.action_counter == 150 {
             self.action_counter2 += 1;
             if (self.action_counter2 % 8) == 0 && abs(self.x - player.x) < 0x14000 {
                 let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64)
