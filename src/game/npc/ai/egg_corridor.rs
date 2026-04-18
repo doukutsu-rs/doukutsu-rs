@@ -324,7 +324,7 @@ impl NPC {
         self.vel_x = clamp(self.vel_x, -0x5ff, 0x5ff);
         self.x += self.vel_x;
 
-        self.animate(1, 0, 1);
+        self.animate(1, 0, 2);
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
 
