@@ -102,103 +102,153 @@ impl Viewport {
 
     /// Re-derive all `Computed outputs` from the current inputs and configuration.
     pub fn recompute(&mut self) {
-        let (win_w, win_h) = (self.window_size.0.max(1), self.window_size.1.max(1));
+        let win = (self.window_size.0.max(1), self.window_size.1.max(1));
+        let (usable_origin, usable_size, effective_insets) = self.compute_usable_area(win);
+        let vp = fit_viewport(self.aspect, usable_size);
+        let pixel_scale = self.compute_pixel_scale(vp.1);
+        let Layout { canvas, final_vp, display_scale } = self.compute_layout(vp, pixel_scale);
 
-        // 1. Determine usable area based on inset mode.
-        let (usable_origin, usable_size, effective_insets) = match self.inset_mode {
-            InsetMode::FitSafeArea => {
-                let (il, it, ir, ib) =
-                    (self.raw_insets.0.max(0.0), self.raw_insets.1.max(0.0),
-                     self.raw_insets.2.max(0.0), self.raw_insets.3.max(0.0));
-                let ox = il as u32;
-                let oy = it as u32;
-                let uw = (win_w as i64 - il as i64 - ir as i64).max(1) as u32;
-                let uh = (win_h as i64 - it as i64 - ib as i64).max(1) as u32;
-                ((ox, oy), (uw, uh), (0.0, 0.0, 0.0, 0.0))
-            }
-            InsetMode::FillScreen => ((0, 0), (win_w, win_h), self.raw_insets),
-        };
+        // Centre the final viewport within the usable area.
+        let (fw, fh) = final_vp;
+        let vx = usable_origin.0 + (usable_size.0.saturating_sub(fw)) / 2;
+        let vy = usable_origin.1 + (usable_size.1.saturating_sub(fh)) / 2;
 
-        // 2. Fit viewport into usable area based on aspect ratio.
-        let (vp_w, vp_h) = match self.aspect {
-            ResolvedAspect::Unrestricted | ResolvedAspect::Stretch => usable_size,
-            ResolvedAspect::Locked { w, h } => {
-                let aspect = w as f64 / h as f64;
-                let by_width = (usable_size.0 as f64) / aspect;
-                if by_width <= usable_size.1 as f64 {
-                    (usable_size.0, by_width.floor().max(1.0) as u32)
-                } else {
-                    let by_height = (usable_size.1 as f64) * aspect;
-                    (by_height.floor().max(1.0) as u32, usable_size.1)
-                }
-            }
-        };
-
-        let step = self.base_height_step.max(1);
-        let tex = self.texture_scale.max(1);
-
-        // 3-4. Natural vertical scale and integer pixel_scale (constrained to multiples of `tex`).
-        //      Dividing by tex before rounding ensures the rounding happens in "texture-density
-        //      units" — otherwise a CS+ build would visually "click" between 2x and 3x identically
-        //      to freeware but only 2x and 4x would actually be available, making scaling feel uneven.
-        //
-        //      Stretch mode forces integer rounding (floor) regardless of scaling_mode, because a
-        //      Scaled/bilinear blit would defeat the "fills the window pixel-for-pixel" intent.
-        let ns_per_tex = vp_h as f32 / (step * tex) as f32;
-        let k = match (self.aspect, self.scaling_mode) {
-            (ResolvedAspect::Stretch, _) | (_, ScalingMode::Integer) => (ns_per_tex.floor() as u32).max(1),
-            (_, ScalingMode::Scaled) => ((ns_per_tex + 0.5).floor() as u32).max(1),
-        };
-        let pixel_scale = k * tex;
-
-        // 5. Canvas size.
-        //    - Stretch: canvas matches the viewport exactly; logical size may be fractional.
-        //    - Unrestricted: both dimensions snap to `pixel_scale` granularity so the final blit
-        //      has *uniform* x/y scaling (preventing the slight squash that comes from locking
-        //      height to `step*K` while letting width follow the viewport).
-        //    - Locked aspect: canvas has the aspect's exact ratio; height is `step * pixel_scale`.
-        let (canvas_w, canvas_h) = match self.aspect {
-            ResolvedAspect::Stretch => (vp_w, vp_h),
-            ResolvedAspect::Unrestricted => {
-                let logical_w = ((vp_w as f32 / pixel_scale as f32).round() as u32).max(1);
-                let logical_h = ((vp_h as f32 / pixel_scale as f32).round() as u32).max(1);
-                (logical_w * pixel_scale, logical_h * pixel_scale)
-            }
-            ResolvedAspect::Locked { w, h } => {
-                let canvas_h = step * pixel_scale;
-                let canvas_w = ((canvas_h as u64 * w as u64) / h.max(1) as u64).max(1) as u32;
-                (canvas_w, canvas_h)
-            }
-        };
-
-        // 6. Viewport sizing.
-        //    - Stretch: always fills the window (viewport == canvas == vp_w/vp_h, 1:1 blit).
-        //    - Integer mode: viewport == canvas (1:1 blit), smaller than vp if it didn't divide evenly.
-        //    - Scaled: viewport stays at vp_w/vp_h and canvas is stretched to fit (bilinear filter).
-        let (final_vp_w, final_vp_h, display_scale) = match (self.aspect, self.scaling_mode) {
-            (ResolvedAspect::Stretch, _) => (vp_w, vp_h, 1.0),
-            (_, ScalingMode::Integer) => (canvas_w, canvas_h, 1.0),
-            (_, ScalingMode::Scaled) => {
-                let ds = vp_h as f32 / canvas_h as f32;
-                (vp_w, vp_h, ds)
-            }
-        };
-
-        // 8. Centre viewport in usable area.
-        let vx = usable_origin.0 + (usable_size.0.saturating_sub(final_vp_w)) / 2;
-        let vy = usable_origin.1 + (usable_size.1.saturating_sub(final_vp_h)) / 2;
-
-        self.viewport_rect = Rect::new(vx, vy, vx + final_vp_w, vy + final_vp_h);
-        self.canvas_size = (canvas_w, canvas_h);
-        self.screen_size = (canvas_w as f32, canvas_h as f32);
-        self.logical_size = (canvas_w as f32 / pixel_scale as f32, canvas_h as f32 / pixel_scale as f32);
+        self.viewport_rect = Rect::new(vx, vy, vx + fw, vy + fh);
+        self.canvas_size = canvas;
+        self.screen_size = (canvas.0 as f32, canvas.1 as f32);
+        self.logical_size = (canvas.0 as f32 / pixel_scale as f32, canvas.1 as f32 / pixel_scale as f32);
         self.pixel_scale = pixel_scale;
         self.display_scale = display_scale;
         // `scale` mirrors the old `state.scale` semantics: the factor applied to logical coordinates
         // to produce canvas-pixel coordinates. Must equal `pixel_scale`, NOT the total including the
-        // final blit's display_scale — game code renders into the canvas framebuffer, not the viewport.
+        // final blit's `display_scale` — game code renders into the canvas framebuffer, not the viewport.
         self.scale = pixel_scale as f32;
         self.effective_insets = effective_insets;
+    }
+
+    /// Subtract inset bars from the window (or not) based on `inset_mode`, returning the
+    /// drawable region and the inset values that UI code should still apply.
+    fn compute_usable_area(
+        &self,
+        (win_w, win_h): (u32, u32),
+    ) -> ((u32, u32), (u32, u32), (f32, f32, f32, f32)) {
+        match self.inset_mode {
+            InsetMode::FillScreen => ((0, 0), (win_w, win_h), self.raw_insets),
+            InsetMode::FitSafeArea => {
+                let (il, it, ir, ib) = (
+                    self.raw_insets.0.max(0.0),
+                    self.raw_insets.1.max(0.0),
+                    self.raw_insets.2.max(0.0),
+                    self.raw_insets.3.max(0.0),
+                );
+                let origin = (il as u32, it as u32);
+                let size = (
+                    (win_w as i64 - il as i64 - ir as i64).max(1) as u32,
+                    (win_h as i64 - it as i64 - ib as i64).max(1) as u32,
+                );
+                (origin, size, (0.0, 0.0, 0.0, 0.0))
+            }
+        }
+    }
+
+    /// Pick an integer pixel scale constrained to a multiple of `texture_scale`. Dividing by
+    /// `tex` before rounding keeps the steps feeling consistent on CS+ (which can only do 2×,
+    /// 4×, 6× …) — otherwise rounding against raw pixels would skip available scales unevenly.
+    ///
+    /// Stretch aspect forces a floor (integer-only) regardless of `scaling_mode`, because any
+    /// fractional final blit would defeat the "fills the window pixel-for-pixel" intent.
+    fn compute_pixel_scale(&self, vp_h: u32) -> u32 {
+        let step = self.base_height_step.max(1);
+        let tex = self.texture_scale.max(1);
+        let ns_per_tex = vp_h as f32 / (step * tex) as f32;
+        let k = match (self.aspect, self.scaling_mode) {
+            (ResolvedAspect::Stretch, _) | (_, ScalingMode::Integer) => ns_per_tex.floor() as u32,
+            (_, ScalingMode::Scaled) => (ns_per_tex + 0.5).floor() as u32,
+        };
+        k.max(1) * tex
+    }
+
+    /// Work out canvas size and the final viewport the canvas is blitted into. The three aspect
+    /// modes have fundamentally different strategies, so they're handled as separate branches —
+    /// collapsing them would require threading more state into helpers than it would save.
+    fn compute_layout(&self, (vp_w, vp_h): (u32, u32), pixel_scale: u32) -> Layout {
+        let step = self.base_height_step.max(1);
+        match self.aspect {
+            // Canvas == window, blit 1:1. Logical size may be fractional.
+            ResolvedAspect::Stretch => Layout {
+                canvas: (vp_w, vp_h),
+                final_vp: (vp_w, vp_h),
+                display_scale: 1.0,
+            },
+
+            // Height locked to canonical 240p; width follows the window so sprites in world-space
+            // stay at their intended size. Integer mode renders 1:1; Scaled mode uniformly
+            // stretches by `vp_h/canvas_h` and leaves a thin horizontal bar.
+            ResolvedAspect::Unrestricted => {
+                let canvas_h = step * pixel_scale;
+                match self.scaling_mode {
+                    ScalingMode::Integer => {
+                        let logical_w = ((vp_w as f32 / pixel_scale as f32).round() as u32).max(1);
+                        let canvas_w = logical_w * pixel_scale;
+                        Layout { canvas: (canvas_w, canvas_h), final_vp: (canvas_w, canvas_h), display_scale: 1.0 }
+                    }
+                    ScalingMode::Scaled => {
+                        // Pick canvas_w so `canvas_w * ds <= vp_w`, `ds = vp_h / canvas_h`, and
+                        // canvas_w is a multiple of pixel_scale. Floor to avoid overshoot.
+                        let target_w = vp_w as f32 * canvas_h as f32 / vp_h as f32;
+                        let logical_w = ((target_w / pixel_scale as f32).floor() as u32).max(1);
+                        let canvas_w = logical_w * pixel_scale;
+                        let ds = vp_h as f32 / canvas_h as f32;
+                        let final_w = (canvas_w as f32 * ds).round() as u32;
+                        Layout { canvas: (canvas_w, canvas_h), final_vp: (final_w, vp_h), display_scale: ds }
+                    }
+                }
+            }
+
+            // Canvas matches the aspect exactly; vp already fits the aspect (from `fit_viewport`)
+            // so the canvas→viewport scale is uniform in both modes.
+            ResolvedAspect::Locked { w, h } => {
+                let canvas_h = step * pixel_scale;
+                let canvas_w = ((canvas_h as u64 * w as u64) / h.max(1) as u64).max(1) as u32;
+                match self.scaling_mode {
+                    ScalingMode::Integer => Layout {
+                        canvas: (canvas_w, canvas_h),
+                        final_vp: (canvas_w, canvas_h),
+                        display_scale: 1.0,
+                    },
+                    ScalingMode::Scaled => {
+                        let ds = vp_h as f32 / canvas_h as f32;
+                        let final_w = (canvas_w as f32 * ds).round() as u32;
+                        Layout { canvas: (canvas_w, canvas_h), final_vp: (final_w, vp_h), display_scale: ds }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Intermediate value returned by [`Viewport::compute_layout`].
+struct Layout {
+    canvas: (u32, u32),
+    final_vp: (u32, u32),
+    display_scale: f32,
+}
+
+/// Fit a rectangle of the requested aspect into `usable_size`. Unrestricted and Stretch both
+/// take the full usable area; Locked letterboxes/pillarboxes as needed.
+fn fit_viewport(aspect: ResolvedAspect, usable_size: (u32, u32)) -> (u32, u32) {
+    match aspect {
+        ResolvedAspect::Unrestricted | ResolvedAspect::Stretch => usable_size,
+        ResolvedAspect::Locked { w, h } => {
+            let ratio = w as f64 / h as f64;
+            let by_width_height = (usable_size.0 as f64) / ratio;
+            if by_width_height <= usable_size.1 as f64 {
+                (usable_size.0, by_width_height.floor().max(1.0) as u32)
+            } else {
+                let by_height_width = (usable_size.1 as f64) * ratio;
+                (by_height_width.floor().max(1.0) as u32, usable_size.1)
+            }
+        }
     }
 }
 
