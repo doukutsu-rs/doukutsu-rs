@@ -1382,12 +1382,12 @@ impl NPC {
             0 => {
                 self.hit_bounds.bottom = 0x23000;
             }
-            10 => {
-                self.action_num = 11;
-                self.action_counter = 0;
-                self.x += 0x2000 * self.direction.vector_x() * -1;
-            }
-            11 => {
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.action_counter = 0;
+                    self.x += 0x2000 * self.direction.vector_x() * -1;
+                }
                 self.action_counter += 1;
                 if self.action_counter > 100 {
                     self.action_counter = 0;
