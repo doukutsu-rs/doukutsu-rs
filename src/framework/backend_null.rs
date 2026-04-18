@@ -38,7 +38,8 @@ pub struct NullEventLoop;
 
 impl BackendEventLoop for NullEventLoop {
     fn run(&mut self, mut game: Pin<Box<Game>>, mut ctx: Pin<Box<Context>>) {
-        ctx.screen_size = (640.0, 480.0);
+        ctx.viewport.window_size = (640, 480);
+        ctx.viewport.recompute();
         game.on_resize(&mut ctx);
 
         loop {

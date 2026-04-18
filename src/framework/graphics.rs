@@ -102,7 +102,10 @@ pub fn clear(ctx: &mut Context, color: Color) {
 }
 
 pub fn present(ctx: &mut Context) -> GameResult {
+    let window_size = ctx.viewport.window_size;
+    let viewport_rect = ctx.viewport.viewport_rect;
     if let Some(renderer) = &mut ctx.renderer {
+        renderer.set_output_viewport(window_size, viewport_rect)?;
         renderer.present()?;
     }
 
@@ -142,16 +145,17 @@ pub fn create_texture(ctx: &mut Context, width: u16, height: u16, data: &[u8]) -
 }
 
 pub fn screen_size(ctx: &mut Context) -> (f32, f32) {
-    ctx.screen_size
+    ctx.viewport.logical_size
 }
 
 #[allow(unused)]
 pub fn screen_insets(ctx: &mut Context) -> (f32, f32, f32, f32) {
-    ctx.screen_insets
+    ctx.viewport.effective_insets
 }
 
 pub fn screen_insets_scaled(ctx: &mut Context, scale: f32) -> (f32, f32, f32, f32) {
-    (ctx.screen_insets.0 / scale, ctx.screen_insets.1 / scale, ctx.screen_insets.2 / scale, ctx.screen_insets.3 / scale)
+    let insets = ctx.viewport.effective_insets;
+    (insets.0 / scale, insets.1 / scale, insets.2 / scale, insets.3 / scale)
 }
 
 pub fn set_render_target(ctx: &mut Context, texture: Option<&Box<dyn BackendTexture>>) -> GameResult {
@@ -197,7 +201,8 @@ pub fn set_clip_rect(ctx: &mut Context, rect: Option<Rect>) -> GameResult {
 
 pub fn prepare_draw(ctx: &mut Context) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
-        return renderer.prepare_draw(ctx.screen_size.0, ctx.screen_size.1);
+        let (w, h) = ctx.viewport.canvas_size;
+        return renderer.prepare_draw(w as f32, h as f32);
     }
 
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
