@@ -1211,7 +1211,7 @@ impl NPC {
                 self.animate(2, 2, 3);
 
                 self.action_counter += 1;
-                if self.action_num > 300 {
+                if self.action_counter > 300 {
                     self.action_num = 30;
                 }
                 if player.x < self.x + 0xE000
@@ -1229,7 +1229,8 @@ impl NPC {
                     self.anim_counter = 0;
                 }
 
-                self.animate(1, 3, 4);
+                self.anim_counter += 1;
+                self.anim_num = if self.anim_counter % 2 != 0 { 3 } else { 4 };
 
                 self.action_counter += 1;
                 if self.action_counter > 30 {
