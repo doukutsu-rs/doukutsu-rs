@@ -334,7 +334,7 @@ impl NPC {
                 }
             }
             8 | 9 => {
-                if self.anim_num == 8 {
+                if self.action_num == 8 {
                     self.action_num = 9;
                     self.anim_num = 2;
                     self.anim_counter = 0;
