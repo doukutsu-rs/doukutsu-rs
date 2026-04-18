@@ -3,6 +3,7 @@ use crate::framework::error::GameResult;
 use crate::framework::filesystem::{user_create, user_open};
 use crate::framework::gamepad::{Axis, AxisDirection, Button, PlayerControllerInputType};
 use crate::framework::keyboard::ScanCode;
+use crate::framework::viewport::{InsetMode, ScalingMode};
 use crate::game::player::TargetPlayer;
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, TimingMode, WindowMode};
 use crate::input::combined_player_controller::CombinedPlayerController;
@@ -86,6 +87,22 @@ pub struct Settings {
     pub discord_rpc: bool,
     #[serde(default = "default_true")]
     pub allow_strafe: bool,
+    #[serde(default = "default_aspect_ratio")]
+    pub aspect_ratio: String,
+    #[serde(default = "default_scaling_mode")]
+    pub scaling_mode: ScalingMode,
+    #[serde(default = "default_inset_mode")]
+    pub inset_mode: InsetMode,
+    #[serde(default)]
+    pub window_geometry: Option<WindowGeometry>,
+}
+
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+pub struct WindowGeometry {
+    pub width: u32,
+    pub height: u32,
+    pub x: Option<i32>,
+    pub y: Option<i32>,
 }
 
 fn default_true() -> bool {
@@ -94,7 +111,26 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    25
+    26
+}
+
+#[inline(always)]
+fn default_aspect_ratio() -> String {
+    "default".to_owned()
+}
+
+#[inline(always)]
+fn default_scaling_mode() -> ScalingMode {
+    ScalingMode::Scaled
+}
+
+#[inline(always)]
+fn default_inset_mode() -> InsetMode {
+    if cfg!(target_os = "android") {
+        InsetMode::FillScreen
+    } else {
+        InsetMode::FitSafeArea
+    }
 }
 
 #[inline(always)]
@@ -358,6 +394,14 @@ impl Settings {
             }
         }
 
+        if self.version == 25 {
+            self.version = 26;
+            self.aspect_ratio = default_aspect_ratio();
+            self.scaling_mode = default_scaling_mode();
+            self.inset_mode = default_inset_mode();
+            self.window_geometry = None;
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -476,6 +520,10 @@ impl Default for Settings {
             cutscene_skip_mode: CutsceneSkipMode::Hold,
             discord_rpc: true,
             allow_strafe: true,
+            aspect_ratio: default_aspect_ratio(),
+            scaling_mode: default_scaling_mode(),
+            inset_mode: default_inset_mode(),
+            window_geometry: None,
         }
     }
 }

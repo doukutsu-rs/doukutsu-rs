@@ -356,6 +356,10 @@ struct RenderData {
     surf_framebuffer: glow::Framebuffer,
     surf_texture: glow::Texture,
     last_size: (u32, u32),
+    /// Where to blit the final canvas to inside the window, in physical pixels.
+    /// Populated by `set_output_viewport`.
+    output_window_size: (u32, u32),
+    output_viewport: (i32, i32, i32, i32),
 }
 
 impl RenderData {
@@ -442,6 +446,8 @@ impl RenderData {
                 surf_framebuffer,
                 surf_texture,
                 last_size: (320, 240),
+                output_window_size: (640, 480),
+                output_viewport: (0, 0, 640, 480),
             })
         }
     }
@@ -561,11 +567,19 @@ impl BackendRenderer for OpenGLRenderer {
         unsafe {
             let gl = self.get_context();
 
-            let (surf_texture) = {
+            let (surf_texture, window_size, viewport) = {
                 let render_data = self.get_render_data()?;
                 gl.bind_framebuffer(glow::FRAMEBUFFER, render_data.render_fbo);
+
+                // Clear the entire window to black (covers the letterbox/pillarbox region).
+                gl.disable(glow::SCISSOR_TEST);
+                gl.viewport(0, 0, render_data.output_window_size.0 as _, render_data.output_window_size.1 as _);
                 gl.clear_color(0.0, 0.0, 0.0, 1.0);
                 gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
+
+                // Now constrain to the viewport rect for the canvas blit.
+                let (vx, vy, vw, vh) = render_data.output_viewport;
+                gl.viewport(vx, vy, vw, vh);
 
                 let matrix =
                     [[2.0f32, 0.0, 0.0, 0.0], [0.0, -2.0, 0.0, 0.0], [0.0, 0.0, -1.0, 0.0], [-1.0, 1.0, 0.0, 1.0]];
@@ -573,8 +587,9 @@ impl BackendRenderer for OpenGLRenderer {
                 gl.use_program(render_data.tex_shader.program_id);
                 gl.uniform_matrix_4_f32_slice(render_data.tex_shader.proj_mtx.as_ref(), false, matrix.as_flattened());
 
-                (render_data.surf_texture)
+                (render_data.surf_texture, render_data.output_window_size, render_data.output_viewport)
             };
+            let _ = (window_size, viewport);
 
             let color = (255, 255, 255, 255);
             let vertices = [
@@ -603,6 +618,19 @@ impl BackendRenderer for OpenGLRenderer {
 
     fn set_swap_mode(&mut self, mode: SwapMode) -> GameResult {
         self.platform.borrow().set_swap_mode(mode);
+        Ok(())
+    }
+
+    fn set_output_viewport(&mut self, window_size: (u32, u32), viewport: Rect<u32>) -> GameResult {
+        let mut render_data = self.get_render_data()?;
+        render_data.output_window_size = window_size;
+        
+        // OpenGL coordinate system is Y-up
+        let width = viewport.right.saturating_sub(viewport.left) as i32;
+        let height = viewport.bottom.saturating_sub(viewport.top) as i32;
+        let x = viewport.left as i32;
+        let y = window_size.1 as i32 - viewport.bottom as i32;
+        render_data.output_viewport = (x, y, width, height);
         Ok(())
     }
 
