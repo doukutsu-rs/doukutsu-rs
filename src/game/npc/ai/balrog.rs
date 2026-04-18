@@ -295,7 +295,7 @@ impl BorrowedNPC<'_> {
 
                     let mut npc = NPC::create(4, &state.npc_table);
 
-                    for _ in 0..3 {
+                    for _ in 0..4 {
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
                         npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;
