@@ -1348,7 +1348,7 @@ impl NPC {
                 if self.vel_y2 < 0 && self.flags.hit_top_wall() {
                     self.vel_y2 *= -1
                 };
-                if self.vel_y2 < 0 && self.flags.hit_bottom_wall() {
+                if self.vel_y2 > 0 && self.flags.hit_bottom_wall() {
                     self.vel_y2 *= -1
                 };
 
@@ -1358,7 +1358,7 @@ impl NPC {
                 self.x += self.vel_x2;
                 self.y += self.vel_y2;
 
-                self.animate(1, 4, 5);
+                self.animate(1, 0, 1);
             }
             _ => (),
         }
@@ -1366,7 +1366,7 @@ impl NPC {
         if self.action_num < 10 {
             self.anim_rect = state.constants.npc.n353_bute_sword_flying[self.anim_num as usize];
         } else {
-            let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+            let dir_offset = if self.direction == Direction::Left { 4 } else { 6 };
             self.anim_rect = state.constants.npc.n353_bute_sword_flying[self.anim_num as usize + dir_offset];
         }
 
