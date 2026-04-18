@@ -24,6 +24,7 @@ use crate::graphics::texture_set::{G_MAG, I_MAG};
 use crate::scene::loading_scene::LoadingScene;
 use crate::scene::Scene;
 
+pub mod aspect_ratio;
 pub mod caret;
 pub mod filesystem_container;
 pub mod frame;
@@ -79,8 +80,13 @@ impl Default for LaunchOptions {
 
 impl LaunchOptions {
     pub fn apply_defaults(&mut self, ctx: &Context, settings: &Settings) {
-        self.window_width = Some(self.window_width.unwrap_or(ctx.window.size_hint.0));
-        self.window_height = Some(self.window_height.unwrap_or(ctx.window.size_hint.1));
+        if let Some(geometry) = settings.window_geometry {
+            self.window_width = Some(self.window_width.unwrap_or(geometry.width.min(u16::MAX as u32) as u16));
+            self.window_height = Some(self.window_height.unwrap_or(geometry.height.min(u16::MAX as u32) as u16));
+        } else {
+            self.window_width = Some(self.window_width.unwrap_or(ctx.window.size_hint.0));
+            self.window_height = Some(self.window_height.unwrap_or(ctx.window.size_hint.1));
+        }
 
         if !self.window_fullscreen {
             self.window_fullscreen = settings.window_mode.is_fullscreen();

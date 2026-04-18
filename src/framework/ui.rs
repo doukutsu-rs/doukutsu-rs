@@ -114,7 +114,7 @@ impl UI {
 
         let mut imgui = imgui.borrow_mut();
         let io = imgui.io_mut();
-        io.display_size = [ctx.screen_size.0, ctx.screen_size.1];
+        io.display_size = [state.screen_size.0, state.screen_size.1];
         io.update_delta_time(now - self.last_frame);
         self.last_frame = now;
 

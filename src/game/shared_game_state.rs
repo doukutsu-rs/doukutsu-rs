@@ -1,4 +1,4 @@
-use std::{cmp, ops::Div};
+use std::cmp;
 
 use chrono::{Datelike, Local};
 
@@ -13,7 +13,8 @@ use crate::framework::error::GameResult;
 use crate::framework::graphics::{create_texture_mutable, set_render_target};
 use crate::framework::render::sprite_batch::SpriteBatch as FrameworkSpriteBatch;
 use crate::framework::vfs::OpenOptions;
-use crate::framework::{filesystem, graphics};
+use crate::framework::filesystem;
+use crate::game::aspect_ratio::AspectRatio;
 use crate::game::caret::{Caret, CaretType};
 use crate::game::npc::NPCTable;
 use crate::game::player::TargetPlayer;
@@ -173,8 +174,9 @@ impl Fps {
         }
 
         if self.should_draw {
-            let first = draw_number(state.canvas_size.0 - 8.0, 8.0, self.fps as usize, Alignment::Right, state, ctx);
-            let second = draw_number(state.canvas_size.0 - 8.0, 16.0, self.tps as usize, Alignment::Right, state, ctx);
+            let canvas_w = ctx.viewport.logical_size.0;
+            let first = draw_number(canvas_w - 8.0, 8.0, self.fps as usize, Alignment::Right, state, ctx);
+            let second = draw_number(canvas_w - 8.0, 16.0, self.tps as usize, Alignment::Right, state, ctx);
             self.should_draw = first.is_ok() && second.is_ok();
         }
 
@@ -306,10 +308,12 @@ pub struct SharedGameState {
     pub frame_time: f64,
     pub debugger: bool,
     pub command_line: bool,
+    /// Mirror of `ctx.viewport.scale`. Refreshed in [`handle_resize`](Self::handle_resize).
     pub scale: f32,
-    pub canvas_size: (f32, f32),
+    /// Mirror of `ctx.viewport.screen_size`. Refreshed in [`handle_resize`](Self::handle_resize).
     pub screen_size: (f32, f32),
-    pub preferred_viewport_size: (f32, f32),
+    /// Mirror of `ctx.viewport.logical_size`. Refreshed in [`handle_resize`](Self::handle_resize).
+    pub canvas_size: (f32, f32),
     pub next_scene: Option<Box<dyn Scene>>,
     pub textscript_vm: TextScriptVM,
     pub creditscript_vm: CreditScriptVM,
@@ -446,7 +450,6 @@ impl SharedGameState {
             scale: 2.0,
             screen_size: (640.0, 480.0),
             canvas_size: (320.0, 240.0),
-            preferred_viewport_size: (320.0, 240.0),
             next_scene: None,
             textscript_vm: TextScriptVM::new(),
             creditscript_vm: CreditScriptVM::new(),
@@ -737,14 +740,36 @@ impl SharedGameState {
     }
 
     pub fn handle_resize(&mut self, ctx: &mut Context) -> GameResult {
-        self.screen_size = graphics::screen_size(ctx);
-        let scale_x = self.screen_size.1.div(self.preferred_viewport_size.1).floor().max(1.0);
-        let scale_y = self.screen_size.0.div(self.preferred_viewport_size.0).floor().max(1.0);
+        let aspect = AspectRatio::parse(&self.settings.aspect_ratio).resolve(self.constants.data_type);
+        ctx.viewport.aspect = aspect;
+        ctx.viewport.scaling_mode = self.settings.scaling_mode;
+        ctx.viewport.inset_mode = self.settings.inset_mode;
+        ctx.viewport.base_height_step = 240;
+        ctx.viewport.texture_scale = self.constants.texture_scale();
+        ctx.viewport.recompute();
 
-        self.scale = f32::min(scale_x, scale_y);
-        self.canvas_size = (self.screen_size.0 / self.scale, self.screen_size.1 / self.scale);
+        // Refresh cached mirrors read by gameplay/UI code (replaces old ad-hoc recalculation).
+        self.scale = ctx.viewport.scale;
+        self.screen_size = ctx.viewport.screen_size;
+        self.canvas_size = ctx.viewport.logical_size;
 
-        let (width, height) = (self.screen_size.0 as u16, self.screen_size.1 as u16);
+        // Persist the window size so the next launch restores the same geometry.
+        // Only save when windowed — fullscreen sizes shouldn't overwrite the user's preferred windowed size.
+        if ctx.window.mode == WindowMode::Windowed {
+            let (ww, wh) = ctx.viewport.window_size;
+            let new_geom = crate::game::settings::WindowGeometry { width: ww, height: wh, x: None, y: None };
+            let should_save = match self.settings.window_geometry {
+                Some(prev) => prev.width != new_geom.width || prev.height != new_geom.height,
+                None => true,
+            };
+            if should_save {
+                self.settings.window_geometry = Some(new_geom);
+                let _ = self.settings.save(ctx);
+            }
+        }
+
+        let (width, height) = ctx.viewport.canvas_size;
+        let (width, height) = (width.min(u16::MAX as u32) as u16, height.min(u16::MAX as u32) as u16);
 
         // ensure no texture is bound before destroying them.
         set_render_target(ctx, None)?;

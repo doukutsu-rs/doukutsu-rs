@@ -23,7 +23,6 @@ use super::error::GameResult;
 use super::filesystem;
 use super::keyboard::ScanCode;
 use crate::common::Rect;
-use crate::framework::backend::get_scaled_size;
 use crate::framework::error::GameError;
 use crate::framework::render::opengl_impl::{GLContextType, GLPlatformFunctions, OpenGLRenderer};
 use crate::game::shared_game_state::WindowMode;
@@ -195,6 +194,7 @@ impl BackendEventLoop for GlutinEventLoop {
         const IS_MOBILE: bool = cfg!(any(target_os = "android", target_os = "ios"));
         ctx.flags.set_supports_windowed_fullscreen(!IS_MOBILE);
         ctx.flags.set_has_touch_screen(IS_MOBILE); // TODO: how do we not assume Android always has a touch screen?
+        ctx.flags.set_supports_insets(cfg!(target_os = "android"));
         ctx.flags.set_form_factor(if IS_MOBILE { DeviceFormFactor::Mobile } else { DeviceFormFactor::Computer });
 
         fn handle_err_impl(result: GameResult, shutdown_requested: &mut bool) {
@@ -216,9 +216,7 @@ impl BackendEventLoop for GlutinEventLoop {
         let window = self.get_context(&ctx, &event_loop);
         {
             let size = window.window().inner_size();
-            ctx.real_screen_size = (size.width, size.height);
-            ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
-
+            ctx.viewport.window_size = (size.width.max(1), size.height.max(1));
             handle_err!(game.on_resize(&mut ctx));
         }
 
@@ -254,9 +252,8 @@ impl BackendEventLoop for GlutinEventLoop {
                 Event::WindowEvent { event: WindowEvent::Resized(size), window_id }
                     if window_id == window.window().id() =>
                 {
-                    if let Some(renderer) = &ctx.renderer {
-                        ctx.real_screen_size = (size.width, size.height);
-                        ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
+                    if let Some(_renderer) = &ctx.renderer {
+                        ctx.viewport.window_size = (size.width.max(1), size.height.max(1));
                         handle_err!(game.on_resize(&mut ctx));
                     }
                 }
@@ -265,9 +262,10 @@ impl BackendEventLoop for GlutinEventLoop {
                 {
                     let state_ref = game.state.get_mut();
                     let mut controls = &mut state_ref.touch_controls;
-                    let scale = state_ref.scale as f64;
-                    let loc_x = (touch.location.x * ctx.screen_size.0 as f64 / ctx.real_screen_size.0 as f64) / scale;
-                    let loc_y = (touch.location.y * ctx.screen_size.1 as f64 / ctx.real_screen_size.1 as f64) / scale;
+                    let (logical_w, logical_h) = ctx.viewport.logical_size;
+                    let (ww, wh) = ctx.viewport.window_size;
+                    let loc_x = touch.location.x * logical_w as f64 / ww.max(1) as f64;
+                    let loc_y = touch.location.y * logical_h as f64 / wh.max(1) as f64;
 
                     match touch.phase {
                         TouchPhase::Started | TouchPhase::Moved => {
@@ -364,7 +362,10 @@ impl BackendEventLoop for GlutinEventLoop {
                     {
                         match get_insets() {
                             Ok(insets) => {
-                                ctx.screen_insets = insets;
+                                if ctx.viewport.raw_insets != insets {
+                                    ctx.viewport.raw_insets = insets;
+                                    ctx.viewport.recompute();
+                                }
                             }
                             Err(e) => {
                                 log::error!("Failed to update insets: {}", e);
@@ -410,9 +411,9 @@ impl BackendEventLoop for GlutinEventLoop {
                 let window = self.0.borrow();
                 let window = window.as_ref().expect("get_context_type called before context is available");
                 match window.get_api() {
-                    Api::OpenGl => GLContextType::DesktopGL2,
-                    Api::OpenGlEs => GLContextType::GLES2,
-                    Api::WebGl => GLContextType::GLES2, // TODO
+                    Api::OpenGl => GLContextType::DesktopGL3,
+                    Api::OpenGlEs => GLContextType::GLES3,
+                    Api::WebGl => GLContextType::GLES3, // TODO
                 }
             }
         }

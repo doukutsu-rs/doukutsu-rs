@@ -97,6 +97,22 @@
           "vrr_2x_desc": "Uses (G-/Free)Sync if available.",
           "vrr_3x": "Variable Refresh Rate (3x)",
           "vrr_3x_desc": "Uses (G-/Free)Sync if available."
+        },
+        "aspect_ratio": {
+          "entry": "Aspect ratio:",
+          "default": "Default",
+          "unrestricted": "Unrestricted",
+          "stretch": "Stretch"
+        },
+        "scaling_mode": {
+          "entry": "Scaling:",
+          "integer": "Integer",
+          "scaled": "Scaled"
+        },
+        "inset_mode": {
+          "entry": "Display cutouts:",
+          "fill_screen": "Fill screen",
+          "fit_safe_area": "Fit safe area"
         }
       },
       "sound": "Sound...",

@@ -97,7 +97,8 @@ macro_rules! flag_method {
 
 impl BackendFlag {
     pub(crate) const SUPPORTS_WINDOWED_FULLSCREEN: u8 = 1 << 0;
-    pub(crate) const HAS_TOUCH_SCREEN: u8 = 1 << 2;
+    pub(crate) const HAS_TOUCH_SCREEN: u8 = 1 << 1;
+    pub(crate) const SUPPORTS_INSETS: u8 = 1 << 2;
 
     pub(crate) const fn new() -> Self {
         Self { flags: 0, form_factor: DeviceFormFactor::Computer }
@@ -111,6 +112,7 @@ impl BackendFlag {
 
     flag_method!(supports_windowed_fullscreen, set_supports_windowed_fullscreen, SUPPORTS_WINDOWED_FULLSCREEN);
     flag_method!(has_touch_screen, set_has_touch_screen, HAS_TOUCH_SCREEN);
+    flag_method!(supports_insets, set_supports_insets, SUPPORTS_INSETS);
 
     // accessors
 
@@ -124,7 +126,11 @@ impl BackendFlag {
 
     /// Whether the operating system supports quitting the game from it's UI.
     pub const fn supports_quit(&self) -> bool {
-        cfg!(not(any(target_os = "ios", target_os = "horizon")))
+        cfg!(not(any(
+            target_os = "ios",
+            // TODO: possible/recommended with hbmenu flow, but broken
+            target_os = "horizon"
+        )))
     }
 
     /// Whether the operating system supports running the game from any location, not static user/data directories.
@@ -206,6 +212,13 @@ pub trait BackendRenderer {
     }
 
     fn prepare_draw(&mut self, _width: f32, _height: f32) -> GameResult {
+        Ok(())
+    }
+
+    /// Called before [`present`](Self::present) with the final window size and the viewport rectangle
+    /// (in physical pixels) where the game canvas should be blitted. Areas outside `viewport` are
+    /// cleared to black for letterboxing.
+    fn set_output_viewport(&mut self, _window_size: (u32, u32), _viewport: Rect<u32>) -> GameResult {
         Ok(())
     }
 
@@ -318,6 +331,13 @@ impl Default for WindowParams {
     }
 }
 
+/// Request the platform to resize the window to the given size.
+/// Picked up by the backend on the next event-pump tick. No-op on platforms that don't support app-requested resizing (e.g. iOS, Android, UWP, Horizon).
+pub fn set_window_size(ctx: &mut Context, size: (u32, u32)) -> GameResult {
+    ctx.pending_window_resize = Some(size);
+    Ok(())
+}
+
 #[allow(unreachable_code)]
 pub fn init_backend(headless: bool, window_params: WindowParams) -> GameResult<Box<dyn Backend>> {
     if headless {
@@ -343,9 +363,3 @@ pub fn init_backend(headless: bool, window_params: WindowParams) -> GameResult<B
     super::backend_null::NullBackend::new()
 }
 
-pub fn get_scaled_size(width: u32, height: u32) -> (f32, f32) {
-    let scaled_height = ((height / 480).max(1) * 480) as f32;
-    let scaled_width = (width as f32 * (scaled_height as f32 / height as f32)).floor();
-
-    (scaled_width, scaled_height)
-}

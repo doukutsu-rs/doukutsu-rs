@@ -36,7 +36,6 @@ use super::graphics::{BlendMode, SwapMode};
 use super::keyboard::ScanCode;
 use super::ui::init_imgui;
 use crate::common::{Color, Rect};
-use crate::framework::backend::get_scaled_size;
 use crate::framework::graphics::IndexData;
 use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
@@ -188,6 +187,7 @@ impl SDL2EventLoop {
         let mut win_builder =
             video.window("Cave Story (doukutsu-rs)", ctx.window.size_hint.0 as _, ctx.window.size_hint.1 as _);
         win_builder.position_centered();
+        win_builder.allow_highdpi();
         #[cfg(not(target_os = "android"))]
         win_builder.resizable();
 
@@ -317,9 +317,9 @@ impl SDL2EventLoop {
                 WindowEvent::FocusLost | WindowEvent::Hidden => {
                     game.on_focus_lost(ctx);
                 }
-                WindowEvent::SizeChanged(width, height) => {
-                    ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
-
+                WindowEvent::SizeChanged(_, _) => {
+                    let (dw, dh) = refs.borrow().window.window().drawable_size();
+                    ctx.viewport.window_size = (dw.max(1), dh.max(1));
                     game.on_resize(ctx);
                 }
                 _ => {}
@@ -393,9 +393,9 @@ impl SDL2EventLoop {
                 let touch_id = finger_id as u64;
                 let state = game.state.get_mut();
                 let mut controls = &mut state.touch_controls;
-                let scale = state.scale as f64;
-                let loc_x = (x as f64 * ctx.screen_size.0 as f64) / scale;
-                let loc_y = (y as f64 * ctx.screen_size.1 as f64) / scale;
+                let (logical_w, logical_h) = ctx.viewport.logical_size;
+                let loc_x = (x as f64) * (logical_w as f64);
+                let loc_y = (y as f64) * (logical_h as f64);
 
                 if let Some(point) = controls.points.iter_mut().find(|p| p.id == touch_id) {
                     point.last_position = point.position;
@@ -472,6 +472,7 @@ impl BackendEventLoop for SDL2EventLoop {
         // SDL has no API for this so we need to guess :)
         ctx.flags.set_supports_windowed_fullscreen(!IS_MOBILE && !IS_CONSOLE);
         ctx.flags.set_has_touch_screen(false); // TODO: implement touch support in SDL backend
+        ctx.flags.set_supports_insets(cfg!(target_os = "android"));
         ctx.flags.set_form_factor(match (IS_MOBILE, IS_CONSOLE) {
             (true, _) => DeviceFormFactor::Mobile,
             (_, true) => DeviceFormFactor::Console,
@@ -479,9 +480,8 @@ impl BackendEventLoop for SDL2EventLoop {
         });
 
         {
-            let (width, height) = self.refs.deref().borrow().window.window().size();
-            ctx.real_screen_size = (width.max(1), height.max(1));
-            ctx.screen_size = get_scaled_size(width.max(1), height.max(1));
+            let (dw, dh) = self.refs.deref().borrow().window.window().drawable_size();
+            ctx.viewport.window_size = (dw.max(1), dh.max(1));
 
             handle_err!(game.on_resize(&mut ctx));
         }
@@ -512,13 +512,25 @@ impl BackendEventLoop for SDL2EventLoop {
             {
                 match get_insets() {
                     Ok(insets) => {
-                        ctx.screen_insets = insets;
+                        if ctx.viewport.raw_insets != insets {
+                            ctx.viewport.raw_insets = insets;
+                            ctx.viewport.recompute();
+                        }
                     }
                     Err(e) => {
                         log::error!("Failed to update insets: {}", e);
                     }
                 }
             }
+
+            if let Some(requested) = ctx.pending_window_resize.take() {
+                let mut refs = self.refs.borrow_mut();
+                let window = refs.window.window_mut();
+                if window.fullscreen_state() == FullscreenType::Off {
+                    let _ = window.set_size(requested.0.max(1), requested.1.max(1));
+                }
+            }
+
             handle_err!(game.update(&mut ctx));
             handle_err!(game.draw(&mut ctx));
         }

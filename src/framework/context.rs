@@ -12,6 +12,7 @@ use super::gamepad::GamepadContext;
 use super::graphics::SwapMode;
 use super::keyboard::KeyboardContext;
 use super::ui::init_imgui;
+use super::viewport::Viewport;
 use crate::game::Game;
 
 pub struct Context {
@@ -25,10 +26,9 @@ pub struct Context {
     pub(crate) renderer: Option<Box<dyn BackendRenderer>>,
     pub(crate) gamepad_context: GamepadContext,
     pub(crate) keyboard_context: KeyboardContext,
-    pub(crate) real_screen_size: (u32, u32),
-    pub(crate) screen_size: (f32, f32),
-    pub(crate) screen_insets: (f32, f32, f32, f32),
+    pub viewport: Viewport,
     pub(crate) swap_mode: SwapMode,
+    pub(crate) pending_window_resize: Option<(u32, u32)>,
 }
 
 impl Context {
@@ -44,10 +44,9 @@ impl Context {
             renderer: None,
             gamepad_context: GamepadContext::new(),
             keyboard_context: KeyboardContext::new(),
-            real_screen_size: (320, 240),
-            screen_size: (320.0, 240.0),
-            screen_insets: (0.0, 0.0, 0.0, 0.0),
+            viewport: Viewport::new(),
             swap_mode: SwapMode::VSync,
+            pending_window_resize: None,
         }
     }
 
