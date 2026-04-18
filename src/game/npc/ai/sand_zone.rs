@@ -122,7 +122,7 @@ impl NPC {
             npc.cond.set_alive(true);
             npc.x = self.x;
             npc.y = self.y;
-            for _ in 0..9 {
+            for _ in 0..10 {
                 let _ = npc_list.spawn(0x100, npc.clone());
             }
         }
