@@ -173,8 +173,9 @@ impl NPC {
             self.vel_x += self.direction.vector_x() * 0x15;
             self.target_x += self.vel_x;
 
-            self.x = self.target_x + 4 * ((self.action_counter2 as f64).cos() * 512.0) as i32;
-            self.y = self.target_y + 6 * ((self.action_counter2 as f64).sin() * 512.0) as i32;
+            let deg = (self.action_counter2 as f64) * CDEG_RAD;
+            self.x = self.target_x + 4 * (deg.cos() * 512.0) as i32;
+            self.y = self.target_y + 6 * (deg.sin() * 512.0) as i32;
 
             let mut npc = NPC::create(286, &state.npc_table);
             npc.cond.set_alive(true);
