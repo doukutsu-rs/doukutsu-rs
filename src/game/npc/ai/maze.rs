@@ -495,6 +495,7 @@ impl BorrowedNPC<'_> {
     }
 
     pub(crate) fn tick_n156_gaudi_projectile(&mut self, state: &mut SharedGameState, _: NPCContext) -> GameResult {
+        self.action_counter += 1;
         if self.action_counter > 300 || (self.flags.0 & 0xff) != 0 {
             self.cond.set_alive(false);
             state.create_caret(self.x, self.y, CaretType::ProjectileDissipation, Direction::Left);
