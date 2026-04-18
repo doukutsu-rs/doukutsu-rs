@@ -601,7 +601,7 @@ impl NPC {
                 }
             }
             10 | 11 => {
-                if self.action_counter == 10 {
+                if self.action_num == 10 {
                     self.action_num = 11;
                     self.action_counter = self.rng.range(0..16) as u16;
                     self.anim_num = 0;
