@@ -1,19 +1,20 @@
-use std::{cmp, ops::Div};
+use std::cmp;
 
 use chrono::{Datelike, Local};
 
-use crate::common::{Color, ControlFlags, Direction, FadeState};
+use crate::common::{ControlFlags, Direction, FadeState};
 use crate::components::draw_common::{draw_number, Alignment};
 use crate::data::vanilla::VanillaExtractor;
 #[cfg(feature = "discord-rpc")]
 use crate::discord::DiscordRPC;
-use crate::engine_constants::{RootType, DataType, EngineConstants};
-use crate::framework::backend::BackendTexture;
+use crate::engine_constants::{EngineConstants, RootType};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{create_texture_mutable, set_render_target};
+use crate::framework::render::sprite_batch::SpriteBatch as FrameworkSpriteBatch;
 use crate::framework::vfs::OpenOptions;
-use crate::framework::{filesystem, graphics};
+use crate::framework::filesystem;
+use crate::game::aspect_ratio::AspectRatio;
 use crate::game::caret::{Caret, CaretType};
 use crate::game::npc::NPCTable;
 use crate::game::player::TargetPlayer;
@@ -79,22 +80,6 @@ pub enum WindowMode {
 }
 
 impl WindowMode {
-    #[cfg(feature = "backend-sdl")]
-    pub fn get_sdl2_fullscreen_type(&self) -> sdl2::video::FullscreenType {
-        match self {
-            WindowMode::Windowed => sdl2::video::FullscreenType::Off,
-            WindowMode::Fullscreen => sdl2::video::FullscreenType::Desktop,
-        }
-    }
-
-    #[cfg(feature = "backend-glutin")]
-    pub fn get_glutin_fullscreen_type(&self) -> Option<glutin::window::Fullscreen> {
-        match self {
-            WindowMode::Windowed => None,
-            WindowMode::Fullscreen => Some(glutin::window::Fullscreen::Borderless(None)),
-        }
-    }
-
     pub fn should_display_mouse_cursor(&self) -> bool {
         match self {
             WindowMode::Windowed => true,
@@ -189,8 +174,9 @@ impl Fps {
         }
 
         if self.should_draw {
-            let first = draw_number(state.canvas_size.0 - 8.0, 8.0, self.fps as usize, Alignment::Right, state, ctx);
-            let second = draw_number(state.canvas_size.0 - 8.0, 16.0, self.tps as usize, Alignment::Right, state, ctx);
+            let canvas_w = ctx.viewport.logical_size.0;
+            let first = draw_number(canvas_w - 8.0, 8.0, self.fps as usize, Alignment::Right, state, ctx);
+            let second = draw_number(canvas_w - 8.0, 16.0, self.tps as usize, Alignment::Right, state, ctx);
             self.should_draw = first.is_ok() && second.is_ok();
         }
 
@@ -322,14 +308,16 @@ pub struct SharedGameState {
     pub frame_time: f64,
     pub debugger: bool,
     pub command_line: bool,
+    /// Mirror of `ctx.viewport.scale`. Refreshed in [`handle_resize`](Self::handle_resize).
     pub scale: f32,
-    pub canvas_size: (f32, f32),
+    /// Mirror of `ctx.viewport.screen_size`. Refreshed in [`handle_resize`](Self::handle_resize).
     pub screen_size: (f32, f32),
-    pub preferred_viewport_size: (f32, f32),
+    /// Mirror of `ctx.viewport.logical_size`. Refreshed in [`handle_resize`](Self::handle_resize).
+    pub canvas_size: (f32, f32),
     pub next_scene: Option<Box<dyn Scene>>,
     pub textscript_vm: TextScriptVM,
     pub creditscript_vm: CreditScriptVM,
-    pub lightmap_canvas: Option<Box<dyn BackendTexture>>,
+    pub lightmap_canvas: Option<FrameworkSpriteBatch>,
     pub season: Season,
     pub menu_character: MenuCharacter,
     pub fs_container: Option<FilesystemContainer>,
@@ -350,7 +338,6 @@ pub struct SharedGameState {
     pub more_rust: bool,
     #[cfg(feature = "discord-rpc")]
     pub discord_rpc: DiscordRPC,
-    pub shutdown: bool,
 }
 
 impl SharedGameState {
@@ -463,7 +450,6 @@ impl SharedGameState {
             scale: 2.0,
             screen_size: (640.0, 480.0),
             canvas_size: (320.0, 240.0),
-            preferred_viewport_size: (320.0, 240.0),
             next_scene: None,
             textscript_vm: TextScriptVM::new(),
             creditscript_vm: CreditScriptVM::new(),
@@ -488,7 +474,6 @@ impl SharedGameState {
             more_rust,
             #[cfg(feature = "discord-rpc")]
             discord_rpc: DiscordRPC::new(discord_rpc_app_id),
-            shutdown: false,
         })
     }
 
@@ -572,7 +557,10 @@ impl SharedGameState {
             let path = if constants.active_root.support_locales {
                 // If the active root support locales, we'll try to set active root to the translation data dir.
                 format!("{}{}/", constants.active_root.base_path(), &locale.code)
-            } else if constants.active_root.root_type == RootType::Translation && locale.code != "en" && locale.code != "jp" {
+            } else if constants.active_root.root_type == RootType::Translation
+                && locale.code != "en"
+                && locale.code != "jp"
+            {
                 // Only the main game can have translations of different data types,
                 // so we'll try to find the translation data dir in the main root.
                 format!("{}{}/", constants.roots.get("/").cloned().unwrap().base_path(), &locale.code)
@@ -627,7 +615,8 @@ impl SharedGameState {
 
         let prev_root = self.constants.active_root.path.clone();
 
-        let font = Self::try_update_locale(ctx, &mut self.constants, &self.settings, &mut self.sound_manager, &locale).unwrap();
+        let font = Self::try_update_locale(ctx, &mut self.constants, &self.settings, &mut self.sound_manager, &locale)
+            .unwrap();
         self.loc = locale;
         self.font = font;
 
@@ -636,10 +625,6 @@ impl SharedGameState {
         } else {
             self.reload_stage_table(ctx)
         };
-    }
-
-    pub fn graphics_reset(&mut self) {
-        self.texture_set.unload_all();
     }
 
     pub fn start_new_game(&mut self, ctx: &mut Context) -> GameResult {
@@ -755,18 +740,41 @@ impl SharedGameState {
     }
 
     pub fn handle_resize(&mut self, ctx: &mut Context) -> GameResult {
-        self.screen_size = graphics::screen_size(ctx);
-        let scale_x = self.screen_size.1.div(self.preferred_viewport_size.1).floor().max(1.0);
-        let scale_y = self.screen_size.0.div(self.preferred_viewport_size.0).floor().max(1.0);
+        let aspect = AspectRatio::parse(&self.settings.aspect_ratio).resolve(self.constants.data_type);
+        ctx.viewport.aspect = aspect;
+        ctx.viewport.scaling_mode = self.settings.scaling_mode;
+        ctx.viewport.inset_mode = self.settings.inset_mode;
+        ctx.viewport.base_height_step = 240;
+        ctx.viewport.texture_scale = self.constants.texture_scale();
+        ctx.viewport.recompute();
 
-        self.scale = f32::min(scale_x, scale_y);
-        self.canvas_size = (self.screen_size.0 / self.scale, self.screen_size.1 / self.scale);
+        // Refresh cached mirrors read by gameplay/UI code (replaces old ad-hoc recalculation).
+        self.scale = ctx.viewport.scale;
+        self.screen_size = ctx.viewport.screen_size;
+        self.canvas_size = ctx.viewport.logical_size;
 
-        let (width, height) = (self.screen_size.0 as u16, self.screen_size.1 as u16);
+        // Persist the window size so the next launch restores the same geometry.
+        // Only save when windowed — fullscreen sizes shouldn't overwrite the user's preferred windowed size.
+        if ctx.window.mode == WindowMode::Windowed {
+            let (ww, wh) = ctx.viewport.window_size;
+            let new_geom = crate::game::settings::WindowGeometry { width: ww, height: wh, x: None, y: None };
+            let should_save = match self.settings.window_geometry {
+                Some(prev) => prev.width != new_geom.width || prev.height != new_geom.height,
+                None => true,
+            };
+            if should_save {
+                self.settings.window_geometry = Some(new_geom);
+                let _ = self.settings.save(ctx);
+            }
+        }
+
+        let (width, height) = ctx.viewport.canvas_size;
+        let (width, height) = (width.min(u16::MAX as u32) as u16, height.min(u16::MAX as u32) as u16);
 
         // ensure no texture is bound before destroying them.
         set_render_target(ctx, None)?;
-        self.lightmap_canvas = Some(create_texture_mutable(ctx, width, height)?);
+        let lightmap_tex = create_texture_mutable(ctx, width, height)?;
+        self.lightmap_canvas = Some(FrameworkSpriteBatch::new(ctx, lightmap_tex)?);
 
         Ok(())
     }
@@ -790,13 +798,6 @@ impl SharedGameState {
 
     pub fn current_tps(&self) -> f64 {
         self.settings.timing_mode.get_tps() as f64 * self.settings.speed
-    }
-
-    pub fn shutdown(&mut self) {
-        self.shutdown = true;
-
-        #[cfg(feature = "discord-rpc")]
-        self.discord_rpc.dispose();
     }
 
     // Stops SFX 40/41/58 (CPS and CSS)

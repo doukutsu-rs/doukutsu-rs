@@ -12,12 +12,10 @@ pub mod context;
 pub mod error;
 pub mod filesystem;
 pub mod gamepad;
-#[cfg(feature = "render-opengl")]
-mod gl;
 pub mod graphics;
 pub mod keyboard;
-#[cfg(feature = "render-opengl")]
-pub mod render_opengl;
+pub mod render;
 pub mod ui;
 pub mod util;
 pub mod vfs;
+pub mod viewport;

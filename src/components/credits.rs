@@ -1,4 +1,4 @@
-use crate::common::{Color, Rect};
+use crate::common::Rect;
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;

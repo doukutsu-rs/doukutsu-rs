@@ -1061,7 +1061,7 @@ impl ControlsMenu {
             },
             CurrentMenu::ConfirmRebindMenu => match self.confirm_rebind.tick(controller, state) {
                 _ => {
-                    let entry_bounds = Rect::new_size(0, 0, ctx.screen_size.0 as isize, ctx.screen_size.1 as isize);
+                    let entry_bounds = Rect::new_size(0, 0, state.screen_size.0 as isize, state.screen_size.1 as isize);
                     let pressed_keys: Vec<_> = ctx.keyboard_context.pressed_keys().into_iter().collect();
 
                     if state.touch_controls.consume_click_in(entry_bounds) {

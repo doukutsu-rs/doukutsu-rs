@@ -1,8 +1,73 @@
-use crate::common::{Color, Rect};
-use crate::framework::backend::{BackendShader, BackendTexture, VertexData};
-use crate::framework::context::Context;
-use crate::framework::error::{GameError, GameResult};
+use std::cell::RefMut;
 
+use super::backend::{
+    BackendIndexBuffer, BackendShader, BackendTexture, BackendVertexBuffer, BufferUsage, PrimitiveType, VertexData,
+};
+use super::context::Context;
+use super::error::{GameError, GameResult};
+use super::render::effect::BackendEffect;
+use super::render::vertex::VertexDeclaration;
+use crate::common::{Color, Rect};
+
+#[derive(Copy, Clone)]
+pub enum IndexData<'a> {
+    UByte(&'a [u8]),
+    UShort(&'a [u16]),
+    UInt(&'a [u32]),
+}
+
+impl<'a> IndexData<'a> {
+    #[inline]
+    pub const fn is_empty(&self) -> bool {
+        match self {
+            IndexData::UByte(items) => items.is_empty(),
+            IndexData::UShort(items) => items.is_empty(),
+            IndexData::UInt(items) => items.is_empty(),
+        }
+    }
+
+    #[inline]
+    pub const fn element_size(&self) -> usize {
+        match self {
+            IndexData::UByte(_) => 1,
+            IndexData::UShort(_) => 2,
+            IndexData::UInt(_) => 4,
+        }
+    }
+
+    #[inline]
+    pub const fn len(&self) -> usize {
+        match self {
+            IndexData::UByte(buf) => buf.len(),
+            IndexData::UShort(buf) => buf.len(),
+            IndexData::UInt(buf) => buf.len(),
+        }
+    }
+
+    #[inline]
+    pub const fn bytes_len(&self) -> usize {
+        self.len() * self.element_size()
+    }
+
+    #[inline]
+    pub const fn as_bytes_slice(&'a self) -> &'a [u8] {
+        let ptr = match self {
+            IndexData::UByte(buf) => buf.as_ptr(),
+            IndexData::UShort(buf) => buf.as_ptr() as *const u8,
+            IndexData::UInt(buf) => buf.as_ptr() as *const u8,
+        };
+
+        unsafe { std::slice::from_raw_parts(ptr, self.bytes_len()) }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShaderStage {
+    Vertex,
+    Fragment,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FilterMode {
     Nearest,
     Linear,
@@ -23,18 +88,11 @@ pub enum BlendMode {
     Multiply,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum VSyncMode {
-    /// No V-Sync - uncapped frame rate
-    Uncapped,
-    /// Synchronized to V-Sync
-    VSync,
-    /// Variable Refresh Rate - Synchronized to game tick interval
-    VRRTickSync1x,
-    /// Variable Refresh Rate - Synchronized to 2 * game tick interval
-    VRRTickSync2x,
-    /// Variable Refresh Rate - Synchronized to 3 * game tick interval
-    VRRTickSync3x,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SwapMode {
+    Immediate = 0,
+    VSync = 1,
+    Adaptive = -1,
 }
 
 pub fn clear(ctx: &mut Context, color: Color) {
@@ -44,17 +102,22 @@ pub fn clear(ctx: &mut Context, color: Color) {
 }
 
 pub fn present(ctx: &mut Context) -> GameResult {
+    let window_size = ctx.viewport.window_size;
+    let viewport_rect = ctx.viewport.viewport_rect;
     if let Some(renderer) = &mut ctx.renderer {
+        renderer.set_output_viewport(window_size, viewport_rect)?;
         renderer.present()?;
     }
 
     Ok(())
 }
 
-pub fn set_vsync_mode(ctx: &mut Context, mode: VSyncMode) -> GameResult {
+pub fn set_swap_mode(ctx: &mut Context, mode: SwapMode) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
-        ctx.vsync_mode = mode;
-        renderer.set_vsync_mode(mode);
+        if ctx.swap_mode != mode {
+            ctx.swap_mode = mode;
+            renderer.set_swap_mode(mode);
+        }
     }
 
     Ok(())
@@ -82,16 +145,17 @@ pub fn create_texture(ctx: &mut Context, width: u16, height: u16, data: &[u8]) -
 }
 
 pub fn screen_size(ctx: &mut Context) -> (f32, f32) {
-    ctx.screen_size
+    ctx.viewport.logical_size
 }
 
 #[allow(unused)]
 pub fn screen_insets(ctx: &mut Context) -> (f32, f32, f32, f32) {
-    ctx.screen_insets
+    ctx.viewport.effective_insets
 }
 
 pub fn screen_insets_scaled(ctx: &mut Context, scale: f32) -> (f32, f32, f32, f32) {
-    (ctx.screen_insets.0 / scale, ctx.screen_insets.1 / scale, ctx.screen_insets.2 / scale, ctx.screen_insets.3 / scale)
+    let insets = ctx.viewport.effective_insets;
+    (insets.0 / scale, insets.1 / scale, insets.2 / scale, insets.3 / scale)
 }
 
 pub fn set_render_target(ctx: &mut Context, texture: Option<&Box<dyn BackendTexture>>) -> GameResult {
@@ -135,63 +199,98 @@ pub fn set_clip_rect(ctx: &mut Context, rect: Option<Rect>) -> GameResult {
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
 
-
-pub fn imgui_context(ctx: &Context) -> GameResult<&mut imgui::Context> {
-    if let Some(renderer) = ctx.renderer.as_ref() {
-        return renderer.imgui();
-    }
-
-    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
-}
-
-pub fn imgui_texture_id(ctx: &Context, texture: &Box<dyn BackendTexture>) -> GameResult<imgui::TextureId> {
-    if let Some(renderer) = ctx.renderer.as_ref() {
-        return renderer.imgui_texture_id(texture);
-    }
-
-    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
-}
-
-pub fn prepare_imgui(ctx: &mut Context, ui: &imgui::Ui) -> GameResult {
-    if let Some(renderer) = &mut ctx.renderer {
-        return renderer.prepare_imgui(ui);
-    }
-
-    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
-}
-
-pub fn render_imgui(ctx: &mut Context, draw_data: &imgui::DrawData) -> GameResult {
-    if let Some(renderer) = &mut ctx.renderer {
-        return renderer.render_imgui(draw_data);
-    }
-
-    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
-}
-
 pub fn prepare_draw(ctx: &mut Context) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
-        return renderer.prepare_draw(ctx.screen_size.0, ctx.screen_size.1);
+        let (w, h) = ctx.viewport.canvas_size;
+        return renderer.prepare_draw(w as f32, h as f32);
     }
 
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
 
-pub fn supports_vertex_draw(ctx: &Context) -> GameResult<bool> {
-    if let Some(renderer) = ctx.renderer.as_ref() {
-        return Ok(renderer.supports_vertex_draw());
-    }
-
-    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
-}
-
-pub fn draw_triangle_list(
+pub fn draw_triangles(
     ctx: &mut Context,
     vertices: &[VertexData],
     texture: Option<&Box<dyn BackendTexture>>,
     shader: BackendShader,
 ) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
-        return renderer.draw_triangle_list(vertices, texture, shader);
+        return renderer.draw_triangles(vertices, texture, shader);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn create_vertex_buffer(
+    ctx: &mut Context,
+    decl: VertexDeclaration,
+    count: usize,
+    usage: BufferUsage,
+) -> GameResult<Box<dyn BackendVertexBuffer>> {
+    if let Some(renderer) = &mut ctx.renderer {
+        return renderer.create_vertex_buffer(decl, count, usage);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn create_index_buffer(
+    ctx: &mut Context,
+    count: usize,
+    usage: BufferUsage,
+) -> GameResult<Box<dyn BackendIndexBuffer>> {
+    if let Some(renderer) = &mut ctx.renderer {
+        return renderer.create_index_buffer(count, usage);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn create_effect_from_glsl(
+    ctx: &mut Context,
+    vertex_src: &str,
+    fragment_src: &str,
+    name: &str,
+) -> GameResult<Box<dyn BackendEffect>> {
+    if let Some(renderer) = &mut ctx.renderer {
+        return renderer.create_effect_from_glsl(vertex_src, fragment_src, name);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn scene_texture(ctx: &Context) -> Option<&dyn BackendTexture> {
+    ctx.renderer.as_ref().and_then(|r| r.scene_texture())
+}
+
+pub fn draw_primitives(
+    ctx: &mut Context,
+    effect: &mut dyn BackendEffect,
+    vb: &dyn BackendVertexBuffer,
+    decl: &VertexDeclaration,
+    prim_type: PrimitiveType,
+    start: usize,
+    count: usize,
+) -> GameResult {
+    if let Some(renderer) = &mut ctx.renderer {
+        return renderer.draw_primitives(effect, vb, decl, prim_type, start, count);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
+pub fn draw_indexed_primitives(
+    ctx: &mut Context,
+    effect: &mut dyn BackendEffect,
+    vb: &dyn BackendVertexBuffer,
+    ib: &dyn BackendIndexBuffer,
+    decl: &VertexDeclaration,
+    prim_type: PrimitiveType,
+    start_index: usize,
+    count: usize,
+) -> GameResult {
+    if let Some(renderer) = &mut ctx.renderer {
+        return renderer.draw_indexed_primitives(effect, vb, ib, decl, prim_type, start_index, count);
     }
 
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
