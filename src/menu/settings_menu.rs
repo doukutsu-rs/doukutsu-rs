@@ -150,7 +150,6 @@ impl Default for LinksMenuEntry {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 enum AdvancedMenuEntry {
-    Title,
     OpenUserData,
     OpenGameData,
     MakePortable,

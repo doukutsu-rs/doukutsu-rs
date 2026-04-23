@@ -27,12 +27,6 @@ pub struct LoopRange {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct Display {
-    pub beats: u8,
-    pub steps: u8,
-}
-
-#[derive(Debug, Copy, Clone)]
 pub struct Timing {
     pub wait: u16,
     pub loop_range: LoopRange,

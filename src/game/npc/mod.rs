@@ -961,7 +961,7 @@ enum TexRefVariant<'a> {
 
 impl TexRef<'_> {
     #[inline]
-    fn from_str(str: &'static str) -> TexRef {
+    fn from_str(str: &'static str) -> TexRef<'static> {
         TexRef { variant: TexRefVariant::Str(str) }
     }
 }

@@ -1,5 +1,4 @@
-use std::cell::{Cell, Ref, RefCell, RefMut, UnsafeCell};
-use std::mem::{MaybeUninit, transmute};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::ops::{ControlFlow, Deref, DerefMut};
 
 use crate::framework::error::{GameError, GameResult};
@@ -14,7 +13,7 @@ pub struct NPCCell(RefCell<NPC>);
 /// panics. Some operations require this token to be provided.
 pub struct NPCAccessToken {
     /// Prevent forging an NPCAccessToken outside this module.
-    _private: ()
+    _private: (),
 }
 
 pub trait NPCTokenProvider {
@@ -26,7 +25,7 @@ pub trait NPCTokenProvider {
 impl NPCTokenProvider for NPCAccessToken {
     fn unborrow_then<F, T>(&mut self, f: F) -> T
     where
-        F: FnOnce(&mut NPCAccessToken) -> T
+        F: FnOnce(&mut NPCAccessToken) -> T,
     {
         f(self)
     }
@@ -35,11 +34,7 @@ impl NPCTokenProvider for NPCAccessToken {
 /// A mutably borrowed NPC from the NPC list. This object can be temporarily
 /// unborrowed using `unborrow_then` to retrieve the token.
 pub enum BorrowedNPC<'a> {
-    Borrowed {
-        ref_mut: RefMut<'a, NPC>,
-        cell: &'a NPCCell,
-        token: &'a mut NPCAccessToken,
-    },
+    Borrowed { ref_mut: RefMut<'a, NPC>, cell: &'a NPCCell, token: &'a mut NPCAccessToken },
     Unborrowed,
 }
 
@@ -50,7 +45,7 @@ impl Deref for BorrowedNPC<'_> {
     fn deref(&self) -> &Self::Target {
         match self {
             BorrowedNPC::Borrowed { ref_mut, .. } => &*ref_mut,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -60,7 +55,7 @@ impl DerefMut for BorrowedNPC<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
             BorrowedNPC::Borrowed { ref_mut, .. } => &mut *ref_mut,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -68,14 +63,14 @@ impl DerefMut for BorrowedNPC<'_> {
 impl NPCTokenProvider for BorrowedNPC<'_> {
     fn unborrow_then<F, T>(&mut self, f: F) -> T
     where
-        F: FnOnce(&mut NPCAccessToken) -> T
+        F: FnOnce(&mut NPCAccessToken) -> T,
     {
         match self {
             BorrowedNPC::Borrowed { .. } => {
                 let old = std::mem::replace(self, BorrowedNPC::Unborrowed);
                 let (old_ref_mut, token, cell) = match old {
                     BorrowedNPC::Borrowed { ref_mut, token, cell } => (ref_mut, token, cell),
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 };
                 drop(old_ref_mut);
 
@@ -84,7 +79,7 @@ impl NPCTokenProvider for BorrowedNPC<'_> {
                 *self = cell.borrow_mut(token);
                 result
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -106,13 +101,9 @@ impl NPCCell {
 
     /// Mutably borrows the NPC. The access token is held until the borrow is dropped.
     pub fn borrow_mut<'a>(&'a self, token: &'a mut NPCAccessToken) -> BorrowedNPC<'a> {
-        BorrowedNPC::Borrowed {
-            ref_mut: self.0.borrow_mut(),
-            cell: self,
-            token,
-        }
+        BorrowedNPC::Borrowed { ref_mut: self.0.borrow_mut(), cell: self, token }
     }
-    
+
     /// Borrows the NPC without requiring an access token. The caller must ensure
     /// this does not cause borrow panics.
     /// This should only be used for quick, temporary access.
@@ -233,7 +224,7 @@ impl NPCList {
     /// To allow early exit, use `try_for_each_alive_mut`.
     pub fn for_each_alive_mut<F>(&self, token: &mut impl NPCTokenProvider, mut f: F)
     where
-        F: FnMut(BorrowedNPC<'_>)
+        F: FnMut(BorrowedNPC<'_>),
     {
         token.unborrow_then(|token| {
             for cell in self.iter() {
@@ -243,10 +234,10 @@ impl NPCList {
             }
         });
     }
-    
+
     pub fn try_for_each_alive_mut<F, B>(&self, token: &mut impl NPCTokenProvider, mut f: F) -> Result<(), B>
     where
-        F: FnMut(BorrowedNPC<'_>) -> ControlFlow<B, ()>
+        F: FnMut(BorrowedNPC<'_>) -> ControlFlow<B, ()>,
     {
         token.unborrow_then(|token| {
             for cell in self.iter() {
@@ -323,12 +314,10 @@ impl<'a> Iterator for NPCListAliveIterator<'a> {
 
 #[test]
 pub fn test_npc_list() -> GameResult {
-    impl NPC {
-        fn test_tick(&mut self, _map: &NPCList) -> GameResult {
-            self.action_counter += 1;
+    fn test_tick(npc: &mut NPC, _map: &NPCList) -> GameResult {
+        npc.action_counter += 1;
 
-            Ok(())
-        }
+        Ok(())
     }
 
     let mut npc = NPC::empty();
@@ -354,7 +343,7 @@ pub fn test_npc_list() -> GameResult {
             }
 
             if npc_ref.cond.alive() {
-                npc_ref.test_tick(&map)?;
+                test_tick(&mut npc_ref, &map)?;
             }
         }
 
