@@ -2,11 +2,9 @@ use std::backtrace::Backtrace;
 use std::cell::RefCell;
 use std::panic::PanicInfo;
 use std::path::PathBuf;
-use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use clap::clap_derive::Parser;
-use lazy_static::lazy_static;
 
 use log::LevelFilter as LogLevel;
 use scripting::tsc::text_script::ScriptMode;
@@ -359,7 +357,8 @@ fn get_logs_dir() -> GameResult<PathBuf> {
 
     #[cfg(target_os = "android")]
     {
-        logs_dir = PathBuf::from(sdl2::filesystem::pref_path(crate::common::ORG_NAME, crate::common::APP_NAME).unwrap());
+        logs_dir =
+            PathBuf::from(sdl2::filesystem::pref_path(crate::common::ORG_NAME, crate::common::APP_NAME).unwrap());
     }
 
     #[cfg(target_os = "horizon")]
@@ -392,12 +391,11 @@ fn init_logger(options: &LaunchOptions) -> GameResult {
     let _ = std::fs::create_dir_all(&logs_dir);
 
     // On Android, the jni-rs library generates many trace records, making it difficult to analyze logs in real time
-    let stdout_log_level =
-        if cfg!(target_os = "android") && options.log_level != LogLevel::Trace {
-            LogLevel::Debug
-        } else {
-            LogLevel::Trace
-        };
+    let stdout_log_level = if cfg!(target_os = "android") && options.log_level != LogLevel::Trace {
+        LogLevel::Debug
+    } else {
+        LogLevel::Trace
+    };
 
     let mut dispatcher = fern::Dispatch::new()
         .format(|out, message, record| {
