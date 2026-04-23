@@ -1,79 +1,68 @@
 use crate::common::Rect;
 
-/// Aspect constraint applied by [`Viewport::recompute`]. This is the framework-level primitive:
-/// it doesn't know anything about game editions. The game layer owns a richer `AspectRatio` enum
-/// (with "default" and parse-from-string) that resolves down to this type before being stored on
-/// the viewport.
+/// Framework-level aspect policy. The game layer resolves its richer
+/// `AspectRatio` (edition-aware, parse-from-string) down to this before
+/// writing it to the viewport.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ResolvedAspect {
-    /// Fill the window; canvas snaps to an integer multiple of the base resolution, leaving a thin
-    /// black border where the window overshoots.
     Unrestricted,
-    /// Fill the window exactly — canvas matches the window pixel-for-pixel. Always uses integer
-    /// pixel scaling regardless of `ScalingMode`, since a fractional blit would defeat the intent.
     Stretch,
-    /// Lock to an integer aspect ratio, with letterboxing or pillarboxing.
     Locked { w: u32, h: u32 },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ScalingMode {
-    /// Integer scaling only. Canvas displayed at exact `pixel_scale`; any remaining
-    /// area in the window is left as letterbox/pillarbox.
     Integer,
-    /// Canvas rendered at the nearest (round-half-up) integer factor but stretched
-    /// to fill the viewport. The canvas is pixel-crisp; the final blit is bilinear.
     Scaled,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum InsetMode {
-    /// Viewport fills the entire window; UI shifts to avoid cutouts. `effective_insets` pass through.
     FillScreen,
-    /// Viewport shrinks into the safe area; `effective_insets` are zeroed.
     FitSafeArea,
 }
 
-/// Single source of truth for viewport geometry. Lives on [`Context`](crate::framework::context::Context).
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum DebugOverlayMode {
+    Viewported,
+    Unconstrained,
+}
+
+/// Single source of truth for viewport geometry. Lives on
+/// [`Context`](crate::framework::context::Context).
 ///
-/// The backend updates [`window_size`](Self::window_size) and [`raw_insets`](Self::raw_insets);
-/// the game layer updates the configuration fields.
-/// [`Viewport::recompute`] refreshes the computed outputs from either kind of change.
+/// Backends write `window_size`, `dpi_scale`, `raw_insets`; the game layer
+/// writes the configuration fields. [`Viewport::recompute`] refreshes the
+/// computed outputs from either kind of change.
 pub struct Viewport {
     // --- Raw inputs (written by the backend) ---
-    /// Physical window pixel size.
     pub window_size: (u32, u32),
-    /// Raw screen insets (left, top, right, bottom) in physical pixels.
+    /// `drawable_size / window.size()` — `(1.0, 1.0)` off HiDPI.
+    pub dpi_scale: (f32, f32),
+    /// left, top, right, bottom, in physical pixels.
     pub raw_insets: (f32, f32, f32, f32),
 
     // --- Computed outputs (refreshed by recompute) ---
-    /// Rectangle inside the window where the game draws, in physical pixels.
     pub viewport_rect: Rect<u32>,
-    /// Internal framebuffer size (always a pixel-perfect multiple of `base_height_step`).
     pub canvas_size: (u32, u32),
-    /// `canvas_size` as `(f32, f32)` — kept to simplify call sites that mix floats and ints.
     pub screen_size: (f32, f32),
-    /// Logical coordinate space that gameplay code draws into (== old `canvas_size`).
     pub logical_size: (f32, f32),
-    /// Integer factor applied to the canvas (> 0).
     pub pixel_scale: u32,
-    /// Scale from logical to viewport pixels. Equal to `pixel_scale` in Integer mode.
     pub display_scale: f32,
-    /// Mirror of `display_scale` — kept for call-site compatibility with the old `ctx.viewport.scale`.
+    /// Factor applied to logical coords to reach canvas-pixel coords. Mirrors
+    /// `pixel_scale` — NOT the final blit's `display_scale` — since gameplay
+    /// renders into the canvas framebuffer, not the viewport.
     pub scale: f32,
-    /// Effective insets propagated to UI code — zero in FitSafeArea, raw in FillScreen.
     pub effective_insets: (f32, f32, f32, f32),
 
-    // --- Configuration (written by the game on settings change) ---
+    // --- Configuration (written by the game) ---
     pub aspect: ResolvedAspect,
     pub scaling_mode: ScalingMode,
     pub inset_mode: InsetMode,
-    /// Logical-height step that `pixel_scale=1` maps to. Always 240 for Cave Story — the logical
-    /// coordinate space is shared across editions regardless of texture density.
+    pub debug_overlay_mode: DebugOverlayMode,
     pub base_height_step: u32,
-    /// Minimum granularity of `pixel_scale`. 1 for freeware/NXEngine (can scale 1x, 2x, 3x, …);
-    /// 2 for Cave Story+ because its texture atlases are 2x density so the rendered pixels must
-    /// come in pairs (2x, 4x, 6x, …). Set from `EngineConstants::texture_scale()`.
+    /// Minimum granularity of `pixel_scale`. 1 for freeware/NXEngine, 2 for
+    /// CS+ whose 2x-density atlases require even multiples.
     pub texture_scale: u32,
 }
 
@@ -81,6 +70,7 @@ impl Viewport {
     pub fn new() -> Viewport {
         let mut vp = Viewport {
             window_size: (640, 480),
+            dpi_scale: (1.0, 1.0),
             raw_insets: (0.0, 0.0, 0.0, 0.0),
             viewport_rect: Rect::new(0, 0, 640, 480),
             canvas_size: (320, 240),
@@ -93,6 +83,7 @@ impl Viewport {
             aspect: ResolvedAspect::Unrestricted,
             scaling_mode: ScalingMode::Scaled,
             inset_mode: InsetMode::FillScreen,
+            debug_overlay_mode: DebugOverlayMode::Unconstrained,
             base_height_step: 240,
             texture_scale: 1,
         };
@@ -100,7 +91,6 @@ impl Viewport {
         vp
     }
 
-    /// Re-derive all `Computed outputs` from the current inputs and configuration.
     pub fn recompute(&mut self) {
         let win = (self.window_size.0.max(1), self.window_size.1.max(1));
         let (usable_origin, usable_size, effective_insets) = self.compute_usable_area(win);
@@ -108,7 +98,6 @@ impl Viewport {
         let pixel_scale = self.compute_pixel_scale(vp.1);
         let Layout { canvas, final_vp, display_scale } = self.compute_layout(vp, pixel_scale);
 
-        // Centre the final viewport within the usable area.
         let (fw, fh) = final_vp;
         let vx = usable_origin.0 + (usable_size.0.saturating_sub(fw)) / 2;
         let vy = usable_origin.1 + (usable_size.1.saturating_sub(fh)) / 2;
@@ -119,15 +108,56 @@ impl Viewport {
         self.logical_size = (canvas.0 as f32 / pixel_scale as f32, canvas.1 as f32 / pixel_scale as f32);
         self.pixel_scale = pixel_scale;
         self.display_scale = display_scale;
-        // `scale` mirrors the old `state.scale` semantics: the factor applied to logical coordinates
-        // to produce canvas-pixel coordinates. Must equal `pixel_scale`, NOT the total including the
-        // final blit's `display_scale` — game code renders into the canvas framebuffer, not the viewport.
         self.scale = pixel_scale as f32;
         self.effective_insets = effective_insets;
     }
 
-    /// Subtract inset bars from the window (or not) based on `inset_mode`, returning the
-    /// drawable region and the inset values that UI code should still apply.
+    pub fn logical_to_physical(&self, lx: f32, ly: f32) -> (f32, f32) {
+        (lx * self.dpi_scale.0, ly * self.dpi_scale.1)
+    }
+
+    /// Physical window coords → canvas logical coords. Letterbox/pillarbox
+    /// pixels produce out-of-range results; callers filter as needed.
+    pub fn window_to_canvas(&self, px: f32, py: f32) -> (f32, f32) {
+        let r = self.viewport_rect;
+        let rw = (r.right.saturating_sub(r.left)).max(1) as f32;
+        let rh = (r.bottom.saturating_sub(r.top)).max(1) as f32;
+        (
+            (px - r.left as f32) * self.logical_size.0 / rw,
+            (py - r.top as f32) * self.logical_size.1 / rh,
+        )
+    }
+
+    pub fn window_to_overlay(&self, px: f32, py: f32) -> (f32, f32) {
+        match self.debug_overlay_mode {
+            DebugOverlayMode::Viewported => self.window_to_canvas(px, py),
+            DebugOverlayMode::Unconstrained => (px, py),
+        }
+    }
+
+    pub fn overlay_display_size(&self) -> (f32, f32) {
+        match self.debug_overlay_mode {
+            DebugOverlayMode::Viewported => self.logical_size,
+            DebugOverlayMode::Unconstrained => (self.window_size.0 as f32, self.window_size.1 as f32),
+        }
+    }
+
+    pub fn overlay_framebuffer_scale(&self) -> (f32, f32) {
+        match self.debug_overlay_mode {
+            DebugOverlayMode::Viewported => {
+                (self.display_scale * self.dpi_scale.0, self.display_scale * self.dpi_scale.1)
+            }
+            DebugOverlayMode::Unconstrained => (1.0, 1.0),
+        }
+    }
+
+    pub fn overlay_viewport_rect(&self) -> Option<Rect<u32>> {
+        match self.debug_overlay_mode {
+            DebugOverlayMode::Viewported => Some(self.viewport_rect),
+            DebugOverlayMode::Unconstrained => None,
+        }
+    }
+
     fn compute_usable_area(
         &self,
         (win_w, win_h): (u32, u32),
@@ -151,12 +181,10 @@ impl Viewport {
         }
     }
 
-    /// Pick an integer pixel scale constrained to a multiple of `texture_scale`. Dividing by
-    /// `tex` before rounding keeps the steps feeling consistent on CS+ (which can only do 2×,
-    /// 4×, 6× …) — otherwise rounding against raw pixels would skip available scales unevenly.
-    ///
-    /// Stretch aspect forces a floor (integer-only) regardless of `scaling_mode`, because any
-    /// fractional final blit would defeat the "fills the window pixel-for-pixel" intent.
+    /// Divide by `tex` before rounding so CS+ (2x-only scales) steps through
+    /// 2×/4×/6× without skipping available scales unevenly. Stretch forces a
+    /// floor regardless of `scaling_mode` — a fractional final blit would
+    /// defeat "fills the window pixel-for-pixel".
     fn compute_pixel_scale(&self, vp_h: u32) -> u32 {
         let step = self.base_height_step.max(1);
         let tex = self.texture_scale.max(1);
@@ -168,22 +196,18 @@ impl Viewport {
         k.max(1) * tex
     }
 
-    /// Work out canvas size and the final viewport the canvas is blitted into. The three aspect
-    /// modes have fundamentally different strategies, so they're handled as separate branches —
-    /// collapsing them would require threading more state into helpers than it would save.
     fn compute_layout(&self, (vp_w, vp_h): (u32, u32), pixel_scale: u32) -> Layout {
         let step = self.base_height_step.max(1);
         match self.aspect {
-            // Canvas == window, blit 1:1. Logical size may be fractional.
             ResolvedAspect::Stretch => Layout {
                 canvas: (vp_w, vp_h),
                 final_vp: (vp_w, vp_h),
                 display_scale: 1.0,
             },
 
-            // Height locked to canonical 240p; width follows the window so sprites in world-space
-            // stay at their intended size. Integer mode renders 1:1; Scaled mode uniformly
-            // stretches by `vp_h/canvas_h` and leaves a thin horizontal bar.
+            // Height locked to canonical 240p; width follows the window so world-space
+            // sprites stay at their intended size. Scaled mode stretches by vp_h/canvas_h
+            // and leaves a horizontal bar.
             ResolvedAspect::Unrestricted => {
                 let canvas_h = step * pixel_scale;
                 match self.scaling_mode {
@@ -193,8 +217,7 @@ impl Viewport {
                         Layout { canvas: (canvas_w, canvas_h), final_vp: (canvas_w, canvas_h), display_scale: 1.0 }
                     }
                     ScalingMode::Scaled => {
-                        // Pick canvas_w so `canvas_w * ds <= vp_w`, `ds = vp_h / canvas_h`, and
-                        // canvas_w is a multiple of pixel_scale. Floor to avoid overshoot.
+                        // Floor to avoid overshoot: canvas_w * ds ≤ vp_w.
                         let target_w = vp_w as f32 * canvas_h as f32 / vp_h as f32;
                         let logical_w = ((target_w / pixel_scale as f32).floor() as u32).max(1);
                         let canvas_w = logical_w * pixel_scale;
@@ -205,8 +228,6 @@ impl Viewport {
                 }
             }
 
-            // Canvas matches the aspect exactly; vp already fits the aspect (from `fit_viewport`)
-            // so the canvas→viewport scale is uniform in both modes.
             ResolvedAspect::Locked { w, h } => {
                 let canvas_h = step * pixel_scale;
                 let canvas_w = ((canvas_h as u64 * w as u64) / h.max(1) as u64).max(1) as u32;
@@ -227,15 +248,12 @@ impl Viewport {
     }
 }
 
-/// Intermediate value returned by [`Viewport::compute_layout`].
 struct Layout {
     canvas: (u32, u32),
     final_vp: (u32, u32),
     display_scale: f32,
 }
 
-/// Fit a rectangle of the requested aspect into `usable_size`. Unrestricted and Stretch both
-/// take the full usable area; Locked letterboxes/pillarboxes as needed.
 fn fit_viewport(aspect: ResolvedAspect, usable_size: (u32, u32)) -> (u32, u32) {
     match aspect {
         ResolvedAspect::Unrestricted | ResolvedAspect::Stretch => usable_size,
@@ -255,5 +273,58 @@ fn fit_viewport(aspect: ResolvedAspect, usable_size: (u32, u32)) -> (u32, u32) {
 impl Default for Viewport {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn vp_with_rect(vp_rect: Rect<u32>, logical: (f32, f32), window: (u32, u32)) -> Viewport {
+        let mut vp = Viewport::new();
+        vp.window_size = window;
+        vp.viewport_rect = vp_rect;
+        vp.logical_size = logical;
+        vp.screen_size = logical;
+        vp
+    }
+
+    #[test]
+    fn canvas_transform_maps_vp_corners() {
+        let vp = vp_with_rect(Rect::new(50, 0, 370, 240), (320.0, 240.0), (420, 240));
+
+        let (x, y) = vp.window_to_canvas(50.0, 0.0);
+        assert!((x - 0.0).abs() < 1e-3);
+        assert!((y - 0.0).abs() < 1e-3);
+
+        let (x, y) = vp.window_to_canvas(370.0, 240.0);
+        assert!((x - 320.0).abs() < 1e-3);
+        assert!((y - 240.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn canvas_transform_letterbox_clicks_are_out_of_range() {
+        let vp = vp_with_rect(Rect::new(100, 0, 420, 240), (320.0, 240.0), (520, 240));
+        let (x, _y) = vp.window_to_canvas(0.0, 0.0);
+        assert!(x < 0.0, "letterbox click should map outside canvas, got x={}", x);
+    }
+
+    #[test]
+    fn overlay_mode_switches_transform() {
+        let mut vp = vp_with_rect(Rect::new(50, 0, 370, 240), (320.0, 240.0), (420, 240));
+        vp.debug_overlay_mode = DebugOverlayMode::Unconstrained;
+        let (x, y) = vp.window_to_overlay(123.0, 45.0);
+        assert_eq!((x, y), (123.0, 45.0));
+
+        vp.debug_overlay_mode = DebugOverlayMode::Viewported;
+        let (x, _y) = vp.window_to_overlay(50.0, 0.0);
+        assert!((x - 0.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn dpi_scale_logical_to_physical() {
+        let mut vp = Viewport::new();
+        vp.dpi_scale = (2.0, 2.0);
+        assert_eq!(vp.logical_to_physical(100.0, 50.0), (200.0, 100.0));
     }
 }

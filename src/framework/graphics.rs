@@ -112,6 +112,15 @@ pub fn present(ctx: &mut Context) -> GameResult {
     Ok(())
 }
 
+/// Finalize the current frame (e.g. swap buffers). Must be called once per
+/// frame after `present` + any window-overlay rendering.
+pub fn finalize_frame(ctx: &mut Context) -> GameResult {
+    if let Some(renderer) = &mut ctx.renderer {
+        renderer.finalize_frame()?;
+    }
+    Ok(())
+}
+
 pub fn set_swap_mode(ctx: &mut Context, mode: SwapMode) -> GameResult {
     if let Some(renderer) = &mut ctx.renderer {
         if ctx.swap_mode != mode {
