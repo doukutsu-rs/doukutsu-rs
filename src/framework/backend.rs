@@ -5,6 +5,7 @@ use std::rc::Rc;
 
 use imgui::DrawData;
 
+use super::clipboard::ClipboardContext;
 use super::context::Context;
 use super::error::GameResult;
 use super::graphics::{BlendMode, SwapMode};
@@ -197,6 +198,12 @@ pub trait BackendEventLoop {
 
     fn new_renderer(&self, ctx: &mut Context) -> GameResult<Box<dyn BackendRenderer>>;
 
+    /// Provide a native clipboard backend, if this platform has one. Default
+    /// `None` — the framework falls back to a no-op clipboard.
+    fn create_clipboard(&self) -> Option<ClipboardContext> {
+        None
+    }
+
     fn as_any(&self) -> &dyn Any;
 }
 
@@ -205,7 +212,30 @@ pub trait BackendRenderer {
 
     fn clear(&mut self, color: Color);
 
+    /// Blit the canvas to the default framebuffer and leave the default FBO
+    /// bound for post-canvas overlays (e.g. imgui). **Does not swap buffers
+    /// or finalize the frame** — call [`finalize_frame`](Self::finalize_frame)
+    /// after any overlay work to display the result.
     fn present(&mut self) -> GameResult;
+
+    /// Swap buffers / present the completed frame. Must be called exactly
+    /// once per frame, after `present` and any overlay rendering.
+    fn finalize_frame(&mut self) -> GameResult {
+        Ok(())
+    }
+
+    /// Set up render state for a window-overlay pass (e.g. imgui): bind the
+    /// default framebuffer, set the GL viewport, and upload an orthographic
+    /// projection matching `display_size`. `viewport_rect` is in physical
+    /// window pixels; `None` = full window. Called by `UI::draw` before the
+    /// overlay renderer issues its draw calls.
+    fn prepare_overlay_pass(
+        &mut self,
+        _display_size: (f32, f32),
+        _viewport_rect: Option<Rect<u32>>,
+    ) -> GameResult {
+        Ok(())
+    }
 
     fn set_swap_mode(&mut self, _mode: SwapMode) -> GameResult {
         Ok(())

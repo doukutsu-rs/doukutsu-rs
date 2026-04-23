@@ -82,6 +82,7 @@ pub(crate) struct SavedState {
 }
 
 pub mod effect;
+pub mod imgui_renderer;
 pub mod sprite_batch;
 pub mod vertex;
 

@@ -288,10 +288,13 @@ impl Game {
                 self.fps.act(state_ref, ctx, self.start_time.elapsed().as_nanos())?;
             }
 
+            // Blit the canvas to the window framebuffer; overlay renders on top.
+            graphics::present(ctx)?;
+
             self.ui.draw(state_ref, ctx, scene)?;
         }
 
-        graphics::present(ctx)?;
+        graphics::finalize_frame(ctx)?;
 
         Ok(())
     }
@@ -323,14 +326,19 @@ impl BackendCallbacks for Game {
     }
 
     fn on_key_down(&mut self, ctx: &mut Context, key: keyboard::ScanCode) -> GameResult {
+        if ctx.input.want_capture_keyboard {
+            return Ok(());
+        }
         if let Some(scene) = self.scene.get_mut() {
             let _ = scene.process_debug_keys(self.state.get_mut(), ctx, key);
         }
         Ok(())
     }
 
-    fn on_key_up(&mut self, _ctx: &mut Context, _key: keyboard::ScanCode) -> GameResult {
-        // ...
+    fn on_key_up(&mut self, ctx: &mut Context, _key: keyboard::ScanCode) -> GameResult {
+        if ctx.input.want_capture_keyboard {
+            return Ok(());
+        }
         Ok(())
     }
 

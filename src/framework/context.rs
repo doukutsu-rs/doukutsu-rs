@@ -6,10 +6,12 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use super::backend::{init_backend, BackendFlag, BackendRenderer, WindowParams};
+use super::clipboard::ClipboardContext;
 use super::error::GameResult;
 use super::filesystem::Filesystem;
 use super::gamepad::GamepadContext;
 use super::graphics::SwapMode;
+use super::input::InputContext;
 use super::keyboard::KeyboardContext;
 use super::ui::init_imgui;
 use super::viewport::Viewport;
@@ -26,6 +28,8 @@ pub struct Context {
     pub(crate) renderer: Option<Box<dyn BackendRenderer>>,
     pub(crate) gamepad_context: GamepadContext,
     pub(crate) keyboard_context: KeyboardContext,
+    pub(crate) input: InputContext,
+    pub(crate) clipboard: ClipboardContext,
     pub viewport: Viewport,
     pub(crate) swap_mode: SwapMode,
     pub(crate) pending_window_resize: Option<(u32, u32)>,
@@ -44,6 +48,8 @@ impl Context {
             renderer: None,
             gamepad_context: GamepadContext::new(),
             keyboard_context: KeyboardContext::new(),
+            input: InputContext::new(),
+            clipboard: ClipboardContext::default(),
             viewport: Viewport::new(),
             swap_mode: SwapMode::VSync,
             pending_window_resize: None,
@@ -54,6 +60,14 @@ impl Context {
         let backend = init_backend(self.headless, self.window)?;
         let mut event_loop = backend.create_event_loop(&self)?;
         self.renderer = Some(event_loop.new_renderer(&mut self)?);
+
+        if let Some(backend_clipboard) = event_loop.create_clipboard() {
+            self.clipboard = backend_clipboard;
+        }
+        {
+            let adapter = self.clipboard.imgui_adapter();
+            self.imgui.borrow_mut().set_clipboard_backend(adapter);
+        }
 
         event_loop.run(game, self);
 

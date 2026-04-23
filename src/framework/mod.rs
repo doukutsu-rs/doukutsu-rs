@@ -8,11 +8,13 @@ pub mod backend_horizon;
 pub mod backend_null;
 #[cfg(feature = "backend-sdl")]
 pub mod backend_sdl2;
+pub mod clipboard;
 pub mod context;
 pub mod error;
 pub mod filesystem;
 pub mod gamepad;
 pub mod graphics;
+pub mod input;
 pub mod keyboard;
 pub mod render;
 pub mod ui;

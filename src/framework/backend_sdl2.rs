@@ -10,13 +10,10 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 use std::vec::Vec;
 
-use imgui::internal::RawWrapper;
-use imgui::sys::{ImGuiKey_Backspace, ImGuiKey_Delete, ImGuiKey_Enter};
-use imgui::{ConfigFlags, DrawCmd, DrawData, DrawIdx, DrawVert, Key, MouseCursor, TextureId, Ui};
 use sdl2::controller::GameController;
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Scancode;
-use sdl2::mouse::{Cursor, SystemCursor};
+use sdl2::mouse::{Cursor, MouseButton as Sdl2MouseButton, SystemCursor};
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Texture, TextureCreator, TextureQuery, WindowCanvas};
 use sdl2::rwops::RWops;
@@ -25,21 +22,19 @@ use sdl2::video::{FullscreenType, GLProfile, Window, WindowContext};
 use sdl2::{controller, keyboard, pixels, EventPump, GameControllerSubsystem, Sdl, VideoSubsystem};
 
 use super::backend::{
-    Backend, BackendCallbacks, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture,
-    DeviceFormFactor, VertexData, WindowParams,
+    Backend, BackendCallbacks, BackendEventLoop, BackendGamepad, BackendRenderer, DeviceFormFactor, WindowParams,
 };
+use super::clipboard::{ClipboardBackend, ClipboardContext};
 use super::context::Context;
 use super::error::{GameError, GameResult};
 use super::filesystem;
 use super::gamepad::{Axis, Button, GamepadType};
-use super::graphics::{BlendMode, SwapMode};
+use super::graphics::SwapMode;
+use super::input::MouseButton;
 use super::keyboard::ScanCode;
-use super::ui::init_imgui;
-use crate::common::{Color, Rect};
-use crate::framework::graphics::IndexData;
 use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
-use crate::input::touch_controls::TouchPoint;
+use crate::input::touch_controls::TouchEvent;
 
 fn handle_err_impl(result: GameResult, shutdown_requested: &mut bool) {
     if let Err(e) = result {
@@ -293,8 +288,33 @@ impl SDL2EventLoop {
             window.set_fullscreen(requested_fullscreen_type);
             window.subsystem().sdl().mouse().show_cursor(show_cursor);
 
-            game.on_fullscreen_state_changed(ctx, ctx.window.mode);
+            let _ = game.on_fullscreen_state_changed(ctx, ctx.window.mode);
         }
+    }
+
+    /// Pull the current physical window size + DPI from SDL2 and sync them
+    /// onto `Viewport`. If nothing changed, skip the `on_resize` to avoid
+    /// spurious canvas texture reallocations when SDL2 also happens to post
+    /// a redundant `SizeChanged` right after an explicit refresh.
+    fn refresh_viewport_metrics(ctx: &mut Context, game: &mut Game, refs: &Rc<RefCell<SDL2Context>>) {
+        let (dw, dh, lw, lh) = {
+            let r = refs.borrow();
+            let w = r.window.window();
+            let (dw, dh) = w.drawable_size();
+            let (lw, lh) = w.size();
+            (dw, dh, lw, lh)
+        };
+
+        let new_size = (dw.max(1), dh.max(1));
+        let new_dpi = (dw as f32 / lw.max(1) as f32, dh as f32 / lh.max(1) as f32);
+
+        if ctx.viewport.window_size == new_size && ctx.viewport.dpi_scale == new_dpi {
+            return;
+        }
+
+        ctx.viewport.window_size = new_size;
+        ctx.viewport.dpi_scale = new_dpi;
+        let _ = game.on_resize(ctx);
     }
 
     fn handle_event(event: Event, ctx: &mut Context, game: &mut Game, refs: &Rc<RefCell<SDL2Context>>) {
@@ -318,17 +338,17 @@ impl SDL2EventLoop {
                     game.on_focus_lost(ctx);
                 }
                 WindowEvent::SizeChanged(_, _) => {
-                    let (dw, dh) = refs.borrow().window.window().drawable_size();
-                    ctx.viewport.window_size = (dw.max(1), dh.max(1));
-                    game.on_resize(ctx);
+                    Self::refresh_viewport_metrics(ctx, game, refs);
                 }
                 _ => {}
             },
             Event::KeyDown { scancode: Some(scancode), repeat, keymod, .. } => {
                 if let Some(drs_scan) = conv_scancode(scancode) {
+                    ctx.input.on_key(&mut ctx.keyboard_context, drs_scan, true);
                     if !repeat {
-                        game.on_key_down(ctx, drs_scan);
-                        if keymod.intersects(keyboard::Mod::RALTMOD | keyboard::Mod::LALTMOD)
+                        handle_err!(game.on_key_down(ctx, drs_scan));
+                        if !ctx.input.want_capture_keyboard
+                            && keymod.intersects(keyboard::Mod::RALTMOD | keyboard::Mod::LALTMOD)
                             && drs_scan == ScanCode::Return
                         {
                             let new_mode = match ctx.window.mode {
@@ -338,14 +358,34 @@ impl SDL2EventLoop {
                             ctx.window.mode = new_mode;
                         }
                     }
-                    ctx.keyboard_context.set_key(drs_scan, true);
                 }
             }
             Event::KeyUp { scancode: Some(scancode), .. } => {
                 if let Some(drs_scan) = conv_scancode(scancode) {
-                    game.on_key_up(ctx, drs_scan);
-                    ctx.keyboard_context.set_key(drs_scan, false);
+                    ctx.input.on_key(&mut ctx.keyboard_context, drs_scan, false);
+                    handle_err!(game.on_key_up(ctx, drs_scan));
                 }
+            }
+            Event::TextInput { text, .. } => {
+                ctx.input.on_text(&text);
+            }
+            Event::MouseMotion { x, y, .. } => {
+                let (px, py) = ctx.viewport.logical_to_physical(x as f32, y as f32);
+                let (ox, oy) = ctx.viewport.window_to_overlay(px, py);
+                ctx.input.on_mouse_move(ox, oy);
+            }
+            Event::MouseButtonDown { mouse_btn, .. } => {
+                if let Some(btn) = conv_mouse_button(mouse_btn) {
+                    ctx.input.on_mouse_button(btn, true);
+                }
+            }
+            Event::MouseButtonUp { mouse_btn, .. } => {
+                if let Some(btn) = conv_mouse_button(mouse_btn) {
+                    ctx.input.on_mouse_button(btn, false);
+                }
+            }
+            Event::MouseWheel { precise_x, precise_y, .. } => {
+                ctx.input.on_mouse_wheel(precise_x, precise_y);
             }
             Event::JoyDeviceAdded { which, .. } => {
                 let game_controller = &refs.borrow().game_controller;
@@ -388,41 +428,33 @@ impl SDL2EventLoop {
                     ctx.gamepad_context.set_button(which, drs_button, false);
                 }
             }
-            // TODO: refactor this
-            Event::FingerDown { finger_id, x, y, .. } | Event::FingerMotion { finger_id, x, y, .. } => {
-                let touch_id = finger_id as u64;
+            Event::FingerDown { finger_id, x, y, .. } => {
                 let state = game.state.get_mut();
-                let mut controls = &mut state.touch_controls;
-                let (logical_w, logical_h) = ctx.viewport.logical_size;
-                let loc_x = (x as f64) * (logical_w as f64);
-                let loc_y = (y as f64) * (logical_h as f64);
-
-                if let Some(point) = controls.points.iter_mut().find(|p| p.id == touch_id) {
-                    point.last_position = point.position;
-                    point.position = (loc_x, loc_y);
-                } else {
-                    controls.touch_id_counter = controls.touch_id_counter.wrapping_add(1);
-
-                    let point = TouchPoint {
-                        id: touch_id,
-                        touch_id: controls.touch_id_counter,
-                        position: (loc_x, loc_y),
-                        first_position: (loc_x, loc_y),
-                        last_position: (0.0, 0.0),
-                    };
-                    controls.points.push(point);
-                    if matches!(event, Event::FingerDown { .. }) {
-                        controls.clicks.push(point);
-                    }
-                }
+                // SDL2 normalizes finger coords to [0,1] of window logical size.
+                // Scale by physical window_size to get physical pixels.
+                let px = x * ctx.viewport.window_size.0 as f32;
+                let py = y * ctx.viewport.window_size.1 as f32;
+                let (cx, cy) = ctx.viewport.window_to_canvas(px, py);
+                let is_primary = state.touch_controls.points.is_empty();
+                state.touch_controls.apply_event(TouchEvent::Down { id: finger_id as u64, x: cx as f64, y: cy as f64 });
+                let (ox, oy) = ctx.viewport.window_to_overlay(px, py);
+                ctx.input.on_overlay_touch_down(ox, oy, is_primary);
             }
-            Event::FingerUp { finger_id, x, y, .. } => {
+            Event::FingerMotion { finger_id, x, y, .. } => {
                 let state = game.state.get_mut();
-                let touch_id = finger_id as u64;
-                let mut controls = &mut state.touch_controls;
-
-                controls.points.retain(|p| p.id != touch_id);
-                controls.clicks.retain(|p| p.id != touch_id);
+                let px = x * ctx.viewport.window_size.0 as f32;
+                let py = y * ctx.viewport.window_size.1 as f32;
+                let (cx, cy) = ctx.viewport.window_to_canvas(px, py);
+                let is_primary = state.touch_controls.points.first().map(|p| p.id) == Some(finger_id as u64);
+                state.touch_controls.apply_event(TouchEvent::Move { id: finger_id as u64, x: cx as f64, y: cy as f64 });
+                let (ox, oy) = ctx.viewport.window_to_overlay(px, py);
+                ctx.input.on_overlay_touch_move(ox, oy, is_primary);
+            }
+            Event::FingerUp { finger_id, .. } => {
+                let state = game.state.get_mut();
+                state.touch_controls.apply_event(TouchEvent::Up { id: finger_id as u64 });
+                let last_finger = state.touch_controls.points.is_empty();
+                ctx.input.on_overlay_touch_up(last_finger);
             }
             _ => {}
         }
@@ -479,16 +511,21 @@ impl BackendEventLoop for SDL2EventLoop {
             (false, false) => DeviceFormFactor::Computer,
         });
 
-        {
-            let (dw, dh) = self.refs.deref().borrow().window.window().drawable_size();
-            ctx.viewport.window_size = (dw.max(1), dh.max(1));
-
-            handle_err!(game.on_resize(&mut ctx));
-        }
+        Self::refresh_viewport_metrics(&mut ctx, &mut game, &self.refs);
 
         loop {
             for event in self.event_pump.poll_iter() {
                 Self::handle_event(event, &mut ctx, &mut game, &self.refs);
+            }
+
+            if let Some(active) = ctx.input.consume_text_input_change() {
+                let refs = self.refs.borrow();
+                let ti = refs.video.text_input();
+                if active {
+                    ti.start();
+                } else {
+                    ti.stop();
+                }
             }
 
             self.fullscreen_update(&mut ctx, &mut game);
@@ -524,10 +561,18 @@ impl BackendEventLoop for SDL2EventLoop {
             }
 
             if let Some(requested) = ctx.pending_window_resize.take() {
-                let mut refs = self.refs.borrow_mut();
-                let window = refs.window.window_mut();
-                if window.fullscreen_state() == FullscreenType::Off {
-                    let _ = window.set_size(requested.0.max(1), requested.1.max(1));
+                let resized = {
+                    let mut refs = self.refs.borrow_mut();
+                    let window = refs.window.window_mut();
+                    if window.fullscreen_state() == FullscreenType::Off {
+                        let _ = window.set_size(requested.0.max(1), requested.1.max(1));
+                        true
+                    } else {
+                        false
+                    }
+                };
+                if resized {
+                    Self::refresh_viewport_metrics(&mut ctx, &mut game, &self.refs);
                 }
             }
 
@@ -621,6 +666,11 @@ impl BackendEventLoop for SDL2EventLoop {
         }
     }
 
+    fn create_clipboard(&self) -> Option<ClipboardContext> {
+        let refs = self.refs.borrow();
+        Some(ClipboardContext::new(Sdl2Clipboard { util: refs.video.clipboard() }))
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -663,6 +713,17 @@ impl BackendGamepad for SDL2Gamepad {
 
     fn instance_id(&self) -> u32 {
         self.inner.instance_id()
+    }
+}
+
+fn conv_mouse_button(btn: Sdl2MouseButton) -> Option<MouseButton> {
+    match btn {
+        Sdl2MouseButton::Left => Some(MouseButton::Left),
+        Sdl2MouseButton::Right => Some(MouseButton::Right),
+        Sdl2MouseButton::Middle => Some(MouseButton::Middle),
+        Sdl2MouseButton::X1 => Some(MouseButton::Extra1),
+        Sdl2MouseButton::X2 => Some(MouseButton::Extra2),
+        Sdl2MouseButton::Unknown => None,
     }
 }
 
@@ -843,191 +904,19 @@ fn conv_gamepad_axis(code: controller::Axis) -> Option<Axis> {
     }
 }
 
-// based on imgui-sdl2 crate
-pub struct ImguiSdl2 {
-    mouse_press: [bool; 5],
-    ignore_mouse: bool,
-    ignore_keyboard: bool,
-    cursor: Option<MouseCursor>,
-    sdl_cursor: Option<Cursor>,
+struct Sdl2Clipboard {
+    util: sdl2::clipboard::ClipboardUtil,
 }
 
-struct Sdl2ClipboardBackend(sdl2::clipboard::ClipboardUtil);
-
-impl imgui::ClipboardBackend for Sdl2ClipboardBackend {
-    fn get(&mut self) -> Option<String> {
-        if !self.0.has_clipboard_text() {
+impl ClipboardBackend for Sdl2Clipboard {
+    fn get_text(&mut self) -> Option<String> {
+        if !self.util.has_clipboard_text() {
             return None;
         }
-
-        self.0.clipboard_text().ok()
+        self.util.clipboard_text().ok()
     }
 
-    fn set(&mut self, value: &str) {
-        let _ = self.0.set_clipboard_text(value);
-    }
-}
-
-impl ImguiSdl2 {
-    pub fn new(imgui: &mut imgui::Context, window: &sdl2::video::Window) -> Self {
-        let clipboard_util = window.subsystem().clipboard();
-        imgui.set_clipboard_backend(Sdl2ClipboardBackend(clipboard_util));
-
-        imgui.io_mut().key_map[Key::Tab as usize] = Scancode::Tab as u32;
-        imgui.io_mut().key_map[Key::LeftArrow as usize] = Scancode::Left as u32;
-        imgui.io_mut().key_map[Key::RightArrow as usize] = Scancode::Right as u32;
-        imgui.io_mut().key_map[Key::UpArrow as usize] = Scancode::Up as u32;
-        imgui.io_mut().key_map[Key::DownArrow as usize] = Scancode::Down as u32;
-        imgui.io_mut().key_map[Key::PageUp as usize] = Scancode::PageUp as u32;
-        imgui.io_mut().key_map[Key::PageDown as usize] = Scancode::PageDown as u32;
-        imgui.io_mut().key_map[Key::Home as usize] = Scancode::Home as u32;
-        imgui.io_mut().key_map[Key::End as usize] = Scancode::End as u32;
-        imgui.io_mut().key_map[Key::Delete as usize] = Scancode::Delete as u32;
-        imgui.io_mut().key_map[Key::Backspace as usize] = Scancode::Backspace as u32;
-        imgui.io_mut().key_map[Key::Enter as usize] = Scancode::Return as u32;
-        imgui.io_mut().key_map[Key::Escape as usize] = Scancode::Escape as u32;
-        imgui.io_mut().key_map[Key::Space as usize] = Scancode::Space as u32;
-        imgui.io_mut().key_map[Key::A as usize] = Scancode::A as u32;
-        imgui.io_mut().key_map[Key::C as usize] = Scancode::C as u32;
-        imgui.io_mut().key_map[Key::V as usize] = Scancode::V as u32;
-        imgui.io_mut().key_map[Key::X as usize] = Scancode::X as u32;
-        imgui.io_mut().key_map[Key::Y as usize] = Scancode::Y as u32;
-        imgui.io_mut().key_map[Key::Z as usize] = Scancode::Z as u32;
-
-        Self { mouse_press: [false; 5], ignore_keyboard: false, ignore_mouse: false, cursor: None, sdl_cursor: None }
-    }
-
-    pub fn handle_event(&mut self, imgui: &mut imgui::Context, event: &Event) {
-        use sdl2::mouse::MouseButton;
-
-        fn set_mod(imgui: &mut imgui::Context, keymod: keyboard::Mod) {
-            let ctrl = keymod.intersects(keyboard::Mod::RCTRLMOD | keyboard::Mod::LCTRLMOD);
-            let alt = keymod.intersects(keyboard::Mod::RALTMOD | keyboard::Mod::LALTMOD);
-            let shift = keymod.intersects(keyboard::Mod::RSHIFTMOD | keyboard::Mod::LSHIFTMOD);
-            let super_ = keymod.intersects(keyboard::Mod::RGUIMOD | keyboard::Mod::LGUIMOD);
-
-            imgui.io_mut().key_ctrl = ctrl;
-            imgui.io_mut().key_alt = alt;
-            imgui.io_mut().key_shift = shift;
-            imgui.io_mut().key_super = super_;
-        }
-
-        match *event {
-            Event::MouseWheel { y, .. } => {
-                imgui.io_mut().mouse_wheel = y as f32;
-            }
-            Event::MouseButtonDown { mouse_btn, .. } => {
-                if mouse_btn != MouseButton::Unknown {
-                    let index = match mouse_btn {
-                        MouseButton::Left => 0,
-                        MouseButton::Right => 1,
-                        MouseButton::Middle => 2,
-                        MouseButton::X1 => 3,
-                        MouseButton::X2 => 4,
-                        MouseButton::Unknown => unreachable!(),
-                    };
-                    self.mouse_press[index] = true;
-                }
-            }
-            Event::TextInput { ref text, .. } => {
-                for chr in text.chars() {
-                    imgui.io_mut().add_input_character(chr);
-                }
-            }
-            Event::KeyDown { scancode, keymod, .. } => {
-                set_mod(imgui, keymod);
-                if let Some(scancode) = scancode {
-                    imgui.io_mut().keys_down[scancode as usize] = true;
-                }
-            }
-            Event::KeyUp { scancode, keymod, .. } => {
-                set_mod(imgui, keymod);
-                if let Some(scancode) = scancode {
-                    imgui.io_mut().keys_down[scancode as usize] = false;
-                }
-            }
-            _ => {}
-        }
-    }
-
-    pub fn prepare_frame(
-        &mut self,
-        io: &mut imgui::Io,
-        window: &sdl2::video::Window,
-        mouse_state: &sdl2::mouse::MouseState,
-    ) {
-        let mouse_util = window.subsystem().sdl().mouse();
-
-        let (win_w, win_h) = window.size();
-        let (draw_w, draw_h) = window.drawable_size();
-
-        io.display_size = [win_w as f32, win_h as f32];
-        io.display_framebuffer_scale = [(draw_w as f32) / (win_w as f32), (draw_h as f32) / (win_h as f32)];
-
-        // Merging the mousedown events we received into the current state prevents us from missing
-        // clicks that happen faster than a frame
-        io.mouse_down = [
-            self.mouse_press[0] || mouse_state.left(),
-            self.mouse_press[1] || mouse_state.right(),
-            self.mouse_press[2] || mouse_state.middle(),
-            self.mouse_press[3] || mouse_state.x1(),
-            self.mouse_press[4] || mouse_state.x2(),
-        ];
-        self.mouse_press = [false; 5];
-
-        let any_mouse_down = io.mouse_down.iter().any(|&b| b);
-        mouse_util.capture(any_mouse_down);
-
-        io.mouse_pos = [mouse_state.x() as f32, mouse_state.y() as f32];
-
-        self.ignore_keyboard = io.want_capture_keyboard;
-        self.ignore_mouse = io.want_capture_mouse;
-
-        // Text input is disabled by default, as it causes freezing when IME is active
-        let text_util = window.subsystem().text_input();
-        if io.want_text_input != text_util.is_active() {
-            if io.want_text_input {
-                text_util.start();
-            } else {
-                text_util.stop();
-            }
-        }
-    }
-
-    pub fn prepare_render(&mut self, ui: &imgui::Ui, window: &sdl2::video::Window) {
-        let io = ui.io();
-        if !io.config_flags.contains(ConfigFlags::NO_MOUSE_CURSOR_CHANGE) {
-            let mouse_util = window.subsystem().sdl().mouse();
-
-            match ui.mouse_cursor() {
-                Some(mouse_cursor) if !io.mouse_draw_cursor => {
-                    mouse_util.show_cursor(true);
-
-                    let sdl_cursor = match mouse_cursor {
-                        MouseCursor::Arrow => SystemCursor::Arrow,
-                        MouseCursor::TextInput => SystemCursor::IBeam,
-                        MouseCursor::ResizeAll => SystemCursor::SizeAll,
-                        MouseCursor::ResizeNS => SystemCursor::SizeNS,
-                        MouseCursor::ResizeEW => SystemCursor::SizeWE,
-                        MouseCursor::ResizeNESW => SystemCursor::SizeNESW,
-                        MouseCursor::ResizeNWSE => SystemCursor::SizeNWSE,
-                        MouseCursor::Hand => SystemCursor::Hand,
-                        MouseCursor::NotAllowed => SystemCursor::No,
-                    };
-
-                    if self.cursor != Some(mouse_cursor) {
-                        let sdl_cursor = Cursor::from_system(sdl_cursor).unwrap();
-                        sdl_cursor.set();
-                        self.cursor = Some(mouse_cursor);
-                        self.sdl_cursor = Some(sdl_cursor);
-                    }
-                }
-                _ => {
-                    self.cursor = None;
-                    self.sdl_cursor = None;
-                    mouse_util.show_cursor(false);
-                }
-            }
-        }
+    fn set_text(&mut self, text: &str) {
+        let _ = self.util.set_clipboard_text(text);
     }
 }
