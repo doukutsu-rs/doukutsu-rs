@@ -355,7 +355,12 @@ struct RenderData {
     ebo: glow::Buffer,
     surf_framebuffer: glow::Framebuffer,
     surf_texture: glow::Texture,
-    last_size: (u32, u32),
+    /// Current allocation size of `surf_texture`. Written only by `prepare_draw`
+    /// so it's a reliable "did the canvas change?" signal.
+    surf_texture_size: (u32, u32),
+    /// Height of the currently bound framebuffer, used by `set_clip_rect` to
+    /// GL-y-flip scissor rects. Updated by every pass that binds a framebuffer.
+    active_fbo_height: u32,
     /// Where to blit the final canvas to inside the window, in physical pixels.
     /// Populated by `set_output_viewport`.
     output_window_size: (u32, u32),
@@ -445,7 +450,8 @@ impl RenderData {
                 ebo,
                 surf_framebuffer,
                 surf_texture,
-                last_size: (320, 240),
+                surf_texture_size: (320, 240),
+                active_fbo_height: 240,
                 output_window_size: (640, 480),
                 output_viewport: (0, 0, 640, 480),
             })
@@ -609,10 +615,70 @@ impl BackendRenderer for OpenGLRenderer {
                 0,
             )?;
             check_gl_errors("present", &gl);
-
-            self.platform.borrow().swap_buffers();
         }
 
+        Ok(())
+    }
+
+    fn finalize_frame(&mut self) -> GameResult {
+        self.platform.borrow().swap_buffers();
+        Ok(())
+    }
+
+    fn prepare_overlay_pass(
+        &mut self,
+        display_size: (f32, f32),
+        viewport_rect: Option<Rect<u32>>,
+    ) -> GameResult {
+        let gl = self.get_context();
+
+        unsafe {
+            let (window_size, vp) = {
+                let mut render_data = self.get_render_data()?;
+                gl.bind_framebuffer(glow::FRAMEBUFFER, render_data.render_fbo);
+                gl.disable(glow::SCISSOR_TEST);
+
+                let window_size = render_data.output_window_size;
+                let window_h = window_size.1.max(1);
+
+                let vp = if let Some(rect) = viewport_rect {
+                    let vx = rect.left as i32;
+                    let vw = rect.right.saturating_sub(rect.left).max(1) as i32;
+                    let vh = rect.bottom.saturating_sub(rect.top).max(1) as i32;
+                    // GL is y-up; overlay rect is y-down in window coords.
+                    let vy = window_h as i32 - rect.bottom as i32;
+                    (vx, vy, vw, vh)
+                } else {
+                    (0, 0, window_size.0 as i32, window_size.1 as i32)
+                };
+                gl.viewport(vp.0, vp.1, vp.2, vp.3);
+
+                // set_clip_rect y-flips scissor rects relative to this.
+                render_data.active_fbo_height = window_h;
+                (window_size, vp)
+            };
+            let _ = (window_size, vp);
+
+            // Y-flipped orthographic: (0,0) is top-left.
+            let w = display_size.0.max(1.0);
+            let h = display_size.1.max(1.0);
+            let matrix = [
+                [2.0 / w, 0.0, 0.0, 0.0],
+                [0.0, -2.0 / h, 0.0, 0.0],
+                [0.0, 0.0, -1.0, 0.0],
+                [-1.0, 1.0, 0.0, 1.0],
+            ];
+
+            let render_data = self.get_render_data()?;
+            gl.use_program(render_data.tex_shader.program_id);
+            gl.uniform_1_i32(render_data.tex_shader.texture.as_ref(), 0);
+            gl.uniform_matrix_4_f32_slice(render_data.tex_shader.proj_mtx.as_ref(), false, matrix.as_flattened());
+
+            gl.use_program(render_data.fill_shader.program_id);
+            gl.uniform_matrix_4_f32_slice(render_data.fill_shader.proj_mtx.as_ref(), false, matrix.as_flattened());
+        }
+
+        check_gl_errors("prepare_overlay_pass", &gl);
         Ok(())
     }
 
@@ -648,9 +714,9 @@ impl BackendRenderer for OpenGLRenderer {
         unsafe {
             let mut render_data = self.get_render_data()?;
             let (width_u, height_u) = (width as u32, height as u32);
-            if render_data.last_size != (width_u, height_u) {
-                render_data.last_size = (width_u, height_u);
-                gl.bind_framebuffer(glow::FRAMEBUFFER, render_data.render_fbo);
+            if render_data.surf_texture_size != (width_u, height_u) {
+                render_data.surf_texture_size = (width_u, height_u);
+                gl.bind_framebuffer(glow::FRAMEBUFFER, Some(render_data.surf_framebuffer));
                 gl.bind_texture(glow::TEXTURE_2D, Some(render_data.surf_texture));
 
                 gl.tex_image_2d(
@@ -663,6 +729,16 @@ impl BackendRenderer for OpenGLRenderer {
                     glow::RGBA,
                     glow::UNSIGNED_BYTE,
                     PixelUnpackData::Slice(None),
+                );
+
+                // Some drivers cache the FBO's dimensions at first validation
+                // and don't pick up the texture resize — force a re-attach.
+                gl.framebuffer_texture_2d(
+                    glow::FRAMEBUFFER,
+                    glow::COLOR_ATTACHMENT0,
+                    glow::TEXTURE_2D,
+                    Some(render_data.surf_texture),
+                    0,
                 );
 
                 gl.bind_texture(glow::TEXTURE_2D, None);
@@ -678,6 +754,7 @@ impl BackendRenderer for OpenGLRenderer {
             gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
 
             gl.viewport(0, 0, width_u as _, height_u as _);
+            render_data.active_fbo_height = height_u;
 
             gl.bind_buffer(glow::ARRAY_BUFFER, None);
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, None);
@@ -846,7 +923,7 @@ impl BackendRenderer for OpenGLRenderer {
                 ];
 
                 let gl = self.get_context();
-                let render_data = self.get_render_data()?;
+                let mut render_data = self.get_render_data()?;
 
                 gl.use_program(render_data.fill_shader.program_id);
                 gl.uniform_matrix_4_f32_slice(
@@ -870,11 +947,12 @@ impl BackendRenderer for OpenGLRenderer {
 
                 gl.bind_framebuffer(glow::FRAMEBUFFER, gl_texture.framebuffer_id);
                 gl.viewport(0, 0, gl_texture.width as _, gl_texture.height as _);
+                render_data.active_fbo_height = gl_texture.height as u32;
             } else {
                 self.curr_matrix = self.def_matrix;
 
                 let gl = self.get_context();
-                let render_data = self.get_render_data()?;
+                let mut render_data = self.get_render_data()?;
 
                 gl.use_program(render_data.fill_shader.program_id);
                 gl.uniform_matrix_4_f32_slice(
@@ -896,7 +974,9 @@ impl BackendRenderer for OpenGLRenderer {
                     self.curr_matrix.as_flattened(),
                 );
                 gl.bind_framebuffer(glow::FRAMEBUFFER, Some(render_data.surf_framebuffer));
-                gl.viewport(0, 0, render_data.last_size.0 as _, render_data.last_size.1 as _);
+                let (sw, sh) = render_data.surf_texture_size;
+                gl.viewport(0, 0, sw as _, sh as _);
+                render_data.active_fbo_height = sh;
             }
         }
 
@@ -946,7 +1026,7 @@ impl BackendRenderer for OpenGLRenderer {
                 gl.enable(glow::SCISSOR_TEST);
                 gl.scissor(
                     rect.left as i32,
-                    render_data.last_size.1 as i32 - rect.bottom as i32,
+                    render_data.active_fbo_height as i32 - rect.bottom as i32,
                     rect.width() as i32,
                     rect.height() as i32,
                 );
