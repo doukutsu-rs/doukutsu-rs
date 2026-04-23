@@ -8,6 +8,7 @@ pub mod falling_island;
 pub mod flash;
 pub mod hud;
 pub mod inventory;
+pub mod lights_2d;
 pub mod map_system;
 pub mod nikumaru;
 pub mod number_popup;
