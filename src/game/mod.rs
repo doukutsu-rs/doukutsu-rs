@@ -1,6 +1,6 @@
 use std::backtrace::Backtrace;
 use std::cell::RefCell;
-use std::panic::PanicInfo;
+use std::panic::PanicHookInfo;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
@@ -422,7 +422,7 @@ fn init_logger(options: &LaunchOptions) -> GameResult {
     Ok(())
 }
 
-fn panic_hook(info: &PanicInfo<'_>) {
+fn panic_hook(info: &PanicHookInfo<'_>) {
     let backtrace = Backtrace::force_capture();
     let msg = info.payload().downcast_ref::<&str>().unwrap_or(&"(no message)");
     let location = info.location();
