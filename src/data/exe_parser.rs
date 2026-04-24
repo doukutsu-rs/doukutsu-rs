@@ -22,6 +22,7 @@ impl DataFile {
 
 #[derive(Debug)]
 pub struct ExeResourceDirectory {
+    #[allow(dead_code)]
     pub name: String,
     pub data_files: Vec<DataFile>,
 }

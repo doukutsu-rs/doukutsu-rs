@@ -42,6 +42,7 @@ impl io::Write for BuiltinFile {
 
 struct BuiltinMetadata {
     is_dir: bool,
+    #[allow(dead_code)]
     size: u64,
 }
 
