@@ -582,8 +582,8 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         let rect = Rect::new(0, 18, (bar_width - (bar_width * (1.0 - percent))) as u16, 32);
 
                         batch.add_rect(
-                            (self.x + self.width as isize) as f32 - (bar_width + (2.0 * state.scale)),
-                            y - (state.scale * 2.0),
+                            (self.x + self.width as isize) as f32 - (bar_width + 2.0),
+                            y - 2.0,
                             &rect,
                         );
                         batch.draw(ctx)?;
