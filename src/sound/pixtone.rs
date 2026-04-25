@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use lazy_static::lazy_static;
-use vec_mut_scan::VecMutScan;
 
 use crate::sound::pixtone_sfx::DEFAULT_PIXTONE_TABLE;
 use crate::sound::stuff::cubic_interp;
@@ -263,26 +262,25 @@ impl PixTonePlayback {
     }
 
     pub fn mix(&mut self, dst: &mut [u16], sample_rate: f32) {
-        let mut scan = VecMutScan::new(&mut self.playback_state);
         let delta = 22050.0 / sample_rate;
+        let samples = &self.samples;
 
-        while let Some(item) = scan.next() {
-            let mut state = *item;
-            let mut remove = false;
-
-            if let Some(sample) = self.samples.get(&state.id) {
-                if sample.is_empty() {
-                    item.remove();
-                    continue;
+        self.playback_state
+            .extract_if(.., |state| {
+                let Some(sample) = samples.get(&state.id) else {
+                    return false;
                 };
+
+                if sample.is_empty() {
+                    return true;
+                }
 
                 for result in dst.iter_mut() {
                     if state.pos >= sample.len() as f32 {
                         if state.looping {
                             state.pos = 0.0;
                         } else {
-                            remove = true;
-                            break;
+                            return true;
                         }
                     }
 
@@ -293,19 +291,14 @@ impl PixTonePlayback {
                     let s4 = (sample[pos.saturating_sub(1)] as f32) / 32768.0;
 
                     let s = cubic_interp(s1, s2, s4, s3, state.pos.fract()) * 32768.0;
-                    // let s = sample[pos] as f32;
                     let sam = (*result ^ 0x8000) as i16;
                     *result = sam.saturating_add(s as i16) as u16 ^ 0x8000;
 
                     state.pos += delta * state.freq;
                 }
 
-                if remove {
-                    item.remove();
-                } else {
-                    item.replace(state);
-                }
-            }
-        }
+                false
+            })
+            .for_each(drop);
     }
 }
