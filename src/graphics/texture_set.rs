@@ -17,6 +17,12 @@ use crate::framework::render::sprite_batch::{SpriteBatch as FrameworkSpriteBatch
 pub static mut I_MAG: f32 = 1.0;
 pub static mut G_MAG: f32 = 1.0;
 
+/// Coordinate space contract for the `add*` family below: positions are in
+/// logical (viewport) pixels. Implementations multiply by `I_MAG`
+/// internally to reach canvas pixels. Do not pre-multiply call-site
+/// coordinates by `state.scale` — that double-applies the scale and produces
+/// errors that grow quadratically with the pixel scale (invisible at 1×/2×,
+/// many pixels off at 4K).
 pub trait SpriteBatch {
     fn width(&self) -> usize;
 
