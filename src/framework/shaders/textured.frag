@@ -3,8 +3,9 @@ precision mediump float;
 #endif
 
 uniform sampler2D Texture;
-in vec2 Frag_UV;
-in vec4 Frag_Color;
+
+in highp vec2 Frag_UV;
+in highp vec4 Frag_Color;
 out vec4 outColor;
 
 void main()
