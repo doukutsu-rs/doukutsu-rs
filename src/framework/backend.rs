@@ -196,7 +196,7 @@ pub trait Backend {
 pub trait BackendEventLoop {
     fn run(&mut self, game: Pin<Box<Game>>, ctx: Pin<Box<Context>>);
 
-    fn new_renderer(&self, ctx: &mut Context) -> GameResult<Box<dyn BackendRenderer>>;
+    fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>>;
 
     /// Provide a native clipboard backend, if this platform has one. Default
     /// `None` — the framework falls back to a no-op clipboard.
@@ -205,6 +205,44 @@ pub trait BackendEventLoop {
     }
 
     fn as_any(&self) -> &dyn Any;
+}
+
+/// One entry in a backend's renderer-candidate list.
+///
+/// `id` is a stable, user-facing string (e.g. `"opengl"`, `"opengles"`,
+/// `"sdl2"`) used to drive [`Context::preferred_renderer`]. `factory` is
+/// invoked with `&S` (the event-loop) and is expected to return `Err` —
+/// not panic — when the underlying API surface isn't available.
+pub type RendererCandidate<S> = (&'static str, fn(&S) -> GameResult<Box<dyn BackendRenderer>>);
+
+pub fn pick_renderer<S>(
+    target: &S,
+    preferred: Option<&str>,
+    candidates: &[RendererCandidate<S>],
+) -> GameResult<Box<dyn BackendRenderer>> {
+    let mut order: Vec<RendererCandidate<S>> = candidates.to_vec();
+    if let Some(pref) = preferred {
+        if let Some(idx) = order.iter().position(|(id, _)| *id == pref) {
+            let pick = order.remove(idx);
+            order.insert(0, pick);
+        } else {
+            log::warn!("Preferred renderer {:?} not in candidate list; using default order", pref);
+        }
+    }
+
+    for (id, factory) in order {
+        match factory(target) {
+            Ok(renderer) => {
+                log::info!("Initialised renderer: {}", id);
+                return Ok(renderer);
+            }
+            Err(e) => log::warn!("Failed to create renderer {}: {}", id, e),
+        }
+    }
+
+    Err(crate::framework::error::GameError::RenderError(
+        "Failed to create any renderer".to_owned(),
+    ))
 }
 
 pub trait BackendRenderer {

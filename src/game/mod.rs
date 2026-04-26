@@ -57,6 +57,12 @@ pub struct LaunchOptions {
     /// Startup in fullscreen mode.
     pub window_fullscreen: bool,
 
+    #[arg(long)]
+    /// The renderer to prefer
+    pub prefer_renderer: Option<String>,
+
+    // todo: add user_dir / data_dir?
+
     #[arg(long, default_value_t = Self::default().log_level)]
     /// The minimum level of records that will be written to the log file.
     ///
@@ -71,6 +77,7 @@ impl Default for LaunchOptions {
             window_height: None,
             window_width: None,
             window_fullscreen: cfg!(target_os = "android"),
+            prefer_renderer: None,
             log_level: if cfg!(debug_assertions) { LogLevel::Debug } else { LogLevel::Info },
         }
     }
@@ -459,6 +466,7 @@ pub fn init(mut options: LaunchOptions) -> GameResult {
         game.state.get_mut().discord_rpc.start()?;
     }
 
+    context.preferred_renderer = std::mem::take(&mut options.prefer_renderer);
     context.window = options.window();
 
     game.state.get_mut().next_scene = Some(Box::new(LoadingScene::new()));

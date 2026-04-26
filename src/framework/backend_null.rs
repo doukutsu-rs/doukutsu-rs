@@ -55,9 +55,7 @@ impl BackendEventLoop for NullEventLoop {
         }
     }
 
-    fn new_renderer(&self, ctx: &mut Context) -> GameResult<Box<dyn BackendRenderer>> {
-        ctx.imgui.borrow_mut().fonts().build_alpha8_texture();
-
+    fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
         Ok(Box::new(NullRenderer))
     }
 

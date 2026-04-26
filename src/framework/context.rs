@@ -23,6 +23,7 @@ pub struct Context {
     pub suspended: bool,
     pub window: WindowParams,
     pub flags: BackendFlag,
+    pub preferred_renderer: Option<String>,
     pub(crate) imgui: Rc<RefCell<imgui::Context>>,
     pub(crate) filesystem: Filesystem,
     pub(crate) renderer: Option<Box<dyn BackendRenderer>>,
@@ -43,6 +44,7 @@ impl Context {
             suspended: false,
             window: WindowParams::default(),
             flags: BackendFlag::new(),
+            preferred_renderer: None,
             imgui: init_imgui(),
             filesystem: Filesystem::new(),
             renderer: None,
@@ -59,7 +61,7 @@ impl Context {
     pub fn run(mut self: Pin<Box<Self>>, game: Pin<Box<Game>>) -> GameResult {
         let backend = init_backend(self.headless, self.window)?;
         let mut event_loop = backend.create_event_loop(&self)?;
-        self.renderer = Some(event_loop.new_renderer(&mut self)?);
+        self.renderer = Some(event_loop.new_renderer()?);
 
         if let Some(backend_clipboard) = event_loop.create_clipboard() {
             self.clipboard = backend_clipboard;

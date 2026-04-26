@@ -514,6 +514,9 @@ pub struct OpenGLRenderer {
 }
 
 impl OpenGLRenderer {
+    pub const RENDERER_ID_GL: &'static str = "opengl";
+    pub const RENDERER_ID_GLES: &'static str = "opengles";
+
     pub fn new(platform: Box<dyn GLPlatformFunctions>) -> OpenGLRenderer {
         OpenGLRenderer {
             platform: RefCell::new(platform),

@@ -86,18 +86,6 @@ impl GlutinEventLoop {
 
         let mut window = WindowBuilder::new();
 
-        let windowed_context = ContextBuilder::new();
-        let windowed_context = windowed_context.with_gl(GlRequest::Latest);
-        #[cfg(target_os = "android")]
-        let windowed_context = windowed_context //
-            .with_gl(GlRequest::Specific(Api::OpenGlEs, (3, 0)))
-            .with_gl_debug_flag(false);
-
-        let windowed_context = windowed_context //
-            .with_gl_profile(GlProfile::Core)
-            .with_pixel_format(24, 8)
-            .with_vsync(true);
-
         #[cfg(target_os = "windows")]
         {
             use glutin::platform::windows::WindowBuilderExtWindows;
@@ -123,7 +111,26 @@ impl GlutinEventLoop {
             window = window.with_window_icon(Some(icon));
         }
 
-        let windowed_context = windowed_context.build_windowed(window, event_loop);
+        // Try desktop GL Core first; fall back to GLES 3.0 on driver rejection
+        // (Android, Mesa-less embedded Linux, etc.). `Core` is intentionally
+        // omitted on the GLES attempt since GLES has no profile concept and
+        // some EGL backends fail the request when both are set.
+        let build = |request: GlRequest, core_profile: bool| {
+            let mut cb = ContextBuilder::new()
+                .with_gl(request)
+                .with_pixel_format(24, 8)
+                .with_vsync(true)
+                .with_gl_debug_flag(false);
+            if core_profile {
+                cb = cb.with_gl_profile(GlProfile::Core);
+            }
+            cb.build_windowed(window.clone(), event_loop)
+        };
+
+        let windowed_context = build(GlRequest::Latest, true).or_else(|e_gl| {
+            log::warn!("Desktop OpenGL context creation failed ({}), retrying with OpenGL ES 3.0", e_gl);
+            build(GlRequest::Specific(Api::OpenGlEs, (3, 0)), false)
+        });
         if let Err(e) = &windowed_context {
             log::error!("Failed to build windowed context: {}", e);
         }
@@ -382,7 +389,7 @@ impl BackendEventLoop for GlutinEventLoop {
         });
     }
 
-    fn new_renderer(&self, ctx: &mut Context) -> GameResult<Box<dyn BackendRenderer>> {
+    fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
         struct GlutinGLPlatform(Refs);
 
         impl GLPlatformFunctions for GlutinGLPlatform {
