@@ -153,7 +153,6 @@ impl WindowOrCanvas {
 struct SDL2EventLoop {
     event_pump: EventPump,
     refs: Rc<RefCell<SDL2Context>>,
-    opengl_available: RefCell<bool>,
 }
 
 pub(crate) struct SDL2Context {
@@ -163,6 +162,7 @@ pub(crate) struct SDL2Context {
     pub(crate) blend_mode: sdl2::render::BlendMode,
     pub(crate) fullscreen_type: sdl2::video::FullscreenType,
     pub(crate) game_controller: GameControllerSubsystem,
+    pub(crate) preferred_renderer: Option<String>,
 }
 
 impl SDL2EventLoop {
@@ -173,11 +173,6 @@ impl SDL2EventLoop {
         let game_controller = sdl.game_controller().map_err(GameError::GamepadError)?;
         let mut controller_mappings = filesystem::open(ctx, "/builtin/gamecontrollerdb.txt")?;
         game_controller.load_mappings_from_read(&mut controller_mappings).unwrap();
-
-        let gl_attr = video.gl_attr();
-
-        gl_attr.set_context_profile(GLProfile::Core);
-        gl_attr.set_context_version(3, 2);
 
         let mut win_builder =
             video.window("Cave Story (doukutsu-rs)", ctx.window.size_hint.0 as _, ctx.window.size_hint.1 as _);
@@ -209,7 +204,14 @@ impl SDL2EventLoop {
         // Disable non-latin IME (fix stuck)
         window.subsystem().text_input().stop();
 
-        let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
+        // Translate the legacy env var into an explicit picker preference so
+        // the existing user-facing knob keeps working.
+        let preferred_renderer = ctx.preferred_renderer.clone().or_else(|| {
+            match std::env::var("CAVESTORY_NO_OPENGL") {
+                Ok(ref v) if v == "1" => Some("sdl2".to_owned()),
+                _ => None,
+            }
+        });
 
         let event_loop = SDL2EventLoop {
             event_pump,
@@ -220,8 +222,8 @@ impl SDL2EventLoop {
                 blend_mode: sdl2::render::BlendMode::Blend,
                 fullscreen_type: sdl2::video::FullscreenType::Off,
                 game_controller,
+                preferred_renderer,
             })),
-            opengl_available: RefCell::new(opengl_available),
         };
 
         Ok(Box::new(event_loop))
@@ -488,6 +490,115 @@ fn get_insets() -> GameResult<(f32, f32, f32, f32)> {
     }
 }
 
+/// Platform callbacks consumed by `OpenGLRenderer`. Lifted to module scope
+/// so both the desktop-GL and GLES factories share a single implementation;
+/// `get_context_type` reads back the live SDL profile mask, so a single
+/// `SDL2GLPlatform` works regardless of which profile the picker landed on.
+#[cfg(feature = "render-opengl")]
+struct SDL2GLPlatform(Rc<RefCell<SDL2Context>>);
+
+#[cfg(feature = "render-opengl")]
+impl crate::framework::render::opengl_impl::GLPlatformFunctions for SDL2GLPlatform {
+    fn get_proc_address(&self, name: &str) -> *const c_void {
+        let refs = self.0.borrow();
+        refs.video.gl_get_proc_address(name) as *const _
+    }
+
+    fn swap_buffers(&self) {
+        let refs = self.0.borrow();
+        refs.window.window().gl_swap_window();
+    }
+
+    fn set_swap_mode(&self, mode: SwapMode) {
+        match mode {
+            SwapMode::Immediate => unsafe {
+                sdl2_sys::SDL_GL_SetSwapInterval(0);
+            },
+            SwapMode::VSync => unsafe {
+                sdl2_sys::SDL_GL_SetSwapInterval(1);
+            },
+            SwapMode::Adaptive => unsafe {
+                if sdl2_sys::SDL_GL_SetSwapInterval(-1) == -1 {
+                    log::warn!("Failed to enable variable refresh rate, falling back to non-V-Sync.");
+                    sdl2_sys::SDL_GL_SetSwapInterval(0);
+                }
+            },
+        }
+    }
+
+    fn get_context_type(&self) -> crate::framework::render::opengl_impl::GLContextType {
+        use crate::framework::render::opengl_impl::GLContextType;
+        use sdl2_sys::{SDL_GLattr, SDL_GLprofile};
+
+        let mut attributes = 0;
+        let ok =
+            unsafe { sdl2_sys::SDL_GL_GetAttribute(SDL_GLattr::SDL_GL_CONTEXT_PROFILE_MASK, &mut attributes) };
+
+        if ok == 0 {
+            if ((attributes as u32) & (SDL_GLprofile::SDL_GL_CONTEXT_PROFILE_ES as u32)) != 0 {
+                GLContextType::GLES3
+            } else {
+                GLContextType::DesktopGL3
+            }
+        } else {
+            GLContextType::Unknown
+        }
+    }
+}
+
+impl SDL2EventLoop {
+    /// Create an OpenGL context with the given profile/version, make it
+    /// current, stash it on the SDL2Context, and wrap an [`OpenGLRenderer`]
+    /// around it. Caller-controlled profile lets the picker iterate through
+    /// `(Core, GLES)` as separate candidates instead of doing in-band fallback.
+    #[cfg(feature = "render-opengl")]
+    fn try_create_gl_context_renderer(
+        &self,
+        profile: GLProfile,
+        version: (u8, u8),
+    ) -> GameResult<Box<dyn BackendRenderer>> {
+        use crate::framework::render::opengl_impl::OpenGLRenderer;
+
+        let mut refs = self.refs.borrow_mut();
+        {
+            let gl_attr = refs.video.gl_attr();
+            gl_attr.set_context_profile(profile);
+            gl_attr.set_context_version(version.0, version.1);
+        }
+
+        let gl_ctx = refs
+            .window
+            .window()
+            .gl_create_context()
+            .map_err(|e| GameError::RenderError(format!("gl_create_context failed: {}", e)))?;
+        refs.window.window().gl_make_current(&gl_ctx).map_err(|e| GameError::RenderError(e.to_string()))?;
+        refs.gl_context = Some(gl_ctx);
+        drop(refs);
+
+        let platform = Box::new(SDL2GLPlatform(self.refs.clone()));
+        Ok(Box::new(OpenGLRenderer::new(platform)))
+    }
+
+    #[cfg(feature = "render-opengl")]
+    fn try_create_opengl_desktop(&self) -> GameResult<Box<dyn BackendRenderer>> {
+        self.try_create_gl_context_renderer(GLProfile::Core, (3, 2))
+    }
+
+    #[cfg(feature = "render-opengl")]
+    fn try_create_opengl_es(&self) -> GameResult<Box<dyn BackendRenderer>> {
+        self.try_create_gl_context_renderer(GLProfile::GLES, (3, 0))
+    }
+
+    fn try_create_sdl2_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
+        use crate::framework::render::sdl2_impl::SDL2Renderer;
+
+        let mut refs = self.refs.borrow_mut();
+        let window = std::mem::take(&mut refs.window);
+        refs.window = window.make_canvas()?;
+        Ok(Box::new(SDL2Renderer::new(self.refs.clone())))
+    }
+}
+
 impl BackendEventLoop for SDL2EventLoop {
     fn run(&mut self, mut game: Pin<Box<Game>>, mut ctx: Pin<Box<Context>>) {
         macro_rules! handle_err {
@@ -581,89 +692,25 @@ impl BackendEventLoop for SDL2EventLoop {
         }
     }
 
-    fn new_renderer(&self, ctx: &mut Context) -> GameResult<Box<dyn BackendRenderer>> {
+    fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
+        use crate::framework::backend::pick_renderer;
+
+        let mut candidates: Vec<crate::framework::backend::RendererCandidate<Self>> = Vec::new();
+
         #[cfg(feature = "render-opengl")]
         {
-            let mut refs = self.refs.borrow_mut();
-            match refs.window.window().gl_create_context() {
-                Ok(gl_ctx) => {
-                    refs.window.window().gl_make_current(&gl_ctx).map_err(|e| GameError::RenderError(e.to_string()))?;
-                    refs.gl_context = Some(gl_ctx);
-                }
-                Err(err) => {
-                    *self.opengl_available.borrow_mut() = false;
-                    log::error!("Failed to initialize OpenGL context, falling back to SDL2 renderer: {}", err);
-                }
-            }
-        }
-
-        #[cfg(feature = "render-opengl")]
-        if *self.opengl_available.borrow() {
-            use crate::framework::render::opengl_impl::{GLContextType, GLPlatformFunctions, OpenGLRenderer};
-
-            struct SDL2GLPlatform(Rc<RefCell<SDL2Context>>);
-
-            impl GLPlatformFunctions for SDL2GLPlatform {
-                fn get_proc_address(&self, name: &str) -> *const c_void {
-                    let refs = self.0.borrow();
-                    refs.video.gl_get_proc_address(name) as *const _
-                }
-
-                fn swap_buffers(&self) {
-                    let mut refs = self.0.borrow();
-                    refs.window.window().gl_swap_window();
-                }
-
-                fn set_swap_mode(&self, mode: super::graphics::SwapMode) {
-                    match mode {
-                        SwapMode::Immediate => unsafe {
-                            sdl2_sys::SDL_GL_SetSwapInterval(0);
-                        },
-                        SwapMode::VSync => unsafe {
-                            sdl2_sys::SDL_GL_SetSwapInterval(1);
-                        },
-                        SwapMode::Adaptive => unsafe {
-                            if sdl2_sys::SDL_GL_SetSwapInterval(-1) == -1 {
-                                log::warn!("Failed to enable variable refresh rate, falling back to non-V-Sync.");
-                                sdl2_sys::SDL_GL_SetSwapInterval(0);
-                            }
-                        },
-                    }
-                }
-
-                fn get_context_type(&self) -> GLContextType {
-                    use sdl2_sys::{SDL_GLattr, SDL_GLprofile};
-
-                    let mut refs = self.0.borrow_mut();
-                    let mut attributes = 0;
-                    let ok = unsafe {
-                        sdl2_sys::SDL_GL_GetAttribute(SDL_GLattr::SDL_GL_CONTEXT_PROFILE_MASK, &mut attributes)
-                    };
-
-                    if ok == 0 {
-                        if ((attributes as u32) & (SDL_GLprofile::SDL_GL_CONTEXT_PROFILE_ES as u32)) != 0 {
-                            return GLContextType::GLES3;
-                        } else {
-                            return GLContextType::DesktopGL3;
-                        }
-                    } else {
-                        GLContextType::Unknown
-                    }
-                }
-            }
-
-            let platform = Box::new(SDL2GLPlatform(self.refs.clone()));
-            return Ok(Box::new(OpenGLRenderer::new(platform)));
+            use crate::framework::render::opengl_impl::OpenGLRenderer;
+            candidates.push((OpenGLRenderer::RENDERER_ID_GL, Self::try_create_opengl_desktop));
+            candidates.push((OpenGLRenderer::RENDERER_ID_GLES, Self::try_create_opengl_es));
         }
 
         {
             use crate::framework::render::sdl2_impl::SDL2Renderer;
-
-            let mut refs = self.refs.borrow_mut();
-            let window = std::mem::take(&mut refs.window);
-            refs.window = window.make_canvas()?;
-            return Ok(Box::new(SDL2Renderer::new(self.refs.clone())));
+            candidates.push((SDL2Renderer::RENDERER_ID, Self::try_create_sdl2_renderer));
         }
+
+        let preferred = self.refs.borrow().preferred_renderer.clone();
+        pick_renderer(self, preferred.as_deref(), &candidates)
     }
 
     fn create_clipboard(&self) -> Option<ClipboardContext> {

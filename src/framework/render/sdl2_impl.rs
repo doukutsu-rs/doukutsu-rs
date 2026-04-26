@@ -284,6 +284,8 @@ impl BackendRenderer for SDL2Renderer {
 }
 
 impl SDL2Renderer {
+    pub const RENDERER_ID: &'static str = "sdl2";
+
     pub fn new(refs: Rc<RefCell<SDL2Context>>) -> Self {
         SDL2Renderer { refs }
     }
