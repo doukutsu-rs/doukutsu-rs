@@ -1,4 +1,6 @@
-#version 150 core
+#ifdef GLES
+precision mediump float;
+#endif
 
 uniform mat4 ProjMtx;
 in vec2 Position;

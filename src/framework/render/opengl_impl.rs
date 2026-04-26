@@ -129,14 +129,19 @@ fn check_shader_compile_status(shader: glow::Shader, gl: &glow::Context) -> GLRe
     Ok(())
 }
 
-const VERTEX_SHADER_BASIC: &str = include_str!("../shaders/opengl/vertex_basic_150.glsl");
-const FRAGMENT_SHADER_TEXTURED: &str = include_str!("../shaders/opengl/fragment_textured_150.glsl");
-const FRAGMENT_SHADER_COLOR: &str = include_str!("../shaders/opengl/fragment_color_150.glsl");
-const FRAGMENT_SHADER_WATER: &str = include_str!("../shaders/opengl/fragment_water_150.glsl");
+// Single source of truth per shader; profile-specific lines (precision
+// declarations, future divergent paths) gated by `#ifdef GLES` and
+// resolved by `framework::util::c_preprocessor`. The `#version`
+// directive is part of the preamble below since GLSL requires it as the
+// first non-comment line and putting it inside `#ifdef` is historically
+// flaky on some drivers.
+const VERTEX_BASIC: &str = include_str!("../shaders/basic.vert");
+const FRAGMENT_TEXTURED: &str = include_str!("../shaders/textured.frag");
+const FRAGMENT_COLOR: &str = include_str!("../shaders/color.frag");
+const FRAGMENT_WATER: &str = include_str!("../shaders/water.frag");
 
-const VERTEX_SHADER_BASIC_GLES: &str = include_str!("../shaders/opengles/vertex_basic_300.glsl");
-const FRAGMENT_SHADER_TEXTURED_GLES: &str = include_str!("../shaders/opengles/fragment_textured_300.glsl");
-const FRAGMENT_SHADER_COLOR_GLES: &str = include_str!("../shaders/opengles/fragment_color_300.glsl");
+const PREAMBLE_GL: &str = "#version 150 core\n";
+const PREAMBLE_GLES: &str = "#version 300 es\n";
 
 macro_rules! impl_raai {
     ($name:ident, $inner_type:ty, $create_method:ident, $delete_method:ident) => {
@@ -371,10 +376,21 @@ impl RenderData {
     fn new(context: GlContextHolder) -> GLResult<Self> {
         let gles2_mode = context.ctx_ref().version().is_embedded;
 
-        let vshdr_basic = if gles2_mode { VERTEX_SHADER_BASIC_GLES } else { VERTEX_SHADER_BASIC };
-        let fshdr_tex = if gles2_mode { FRAGMENT_SHADER_TEXTURED_GLES } else { FRAGMENT_SHADER_TEXTURED };
-        let fshdr_fill = if gles2_mode { FRAGMENT_SHADER_COLOR_GLES } else { FRAGMENT_SHADER_COLOR };
-        let fshdr_fill_water = if gles2_mode { FRAGMENT_SHADER_COLOR_GLES } else { FRAGMENT_SHADER_WATER };
+        let preamble = if gles2_mode { PREAMBLE_GLES } else { PREAMBLE_GL };
+        let defines: &[&str] = if gles2_mode { &["GLES"] } else { &[] };
+        let build = |src: &str| -> GLResult<String> {
+            let body = crate::framework::util::c_preprocessor::preprocess(src, defines)
+                .map_err(|e| format!("{}", e))?;
+            Ok(format!("{}{}", preamble, body))
+        };
+        let vshdr_basic = build(VERTEX_BASIC)?;
+        let fshdr_tex = build(FRAGMENT_TEXTURED)?;
+        let fshdr_fill = build(FRAGMENT_COLOR)?;
+        let fshdr_fill_water = build(FRAGMENT_WATER)?;
+        let vshdr_basic = vshdr_basic.as_str();
+        let fshdr_tex = fshdr_tex.as_str();
+        let fshdr_fill = fshdr_fill.as_str();
+        let fshdr_fill_water = fshdr_fill_water.as_str();
 
         unsafe {
             let gl = context.ctx_ref();

@@ -1,4 +1,6 @@
-#version 150 core
+#ifdef GLES
+precision highp float;
+#endif
 
 uniform mat4 ProjMtx;
 uniform sampler2D Texture;

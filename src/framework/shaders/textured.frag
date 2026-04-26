@@ -1,4 +1,6 @@
-#version 150 core
+#ifdef GLES
+precision mediump float;
+#endif
 
 uniform sampler2D Texture;
 in vec2 Frag_UV;
