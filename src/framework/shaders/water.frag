@@ -7,7 +7,8 @@ uniform sampler2D Texture;
 uniform float Time;
 uniform float Scale;
 uniform vec2 FrameOffset;
-in vec4 Frag_Color;
+
+in highp vec4 Frag_Color;
 out vec4 outColor;
 
 void main()
