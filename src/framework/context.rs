@@ -61,7 +61,9 @@ impl Context {
     pub fn run(mut self: Pin<Box<Self>>, game: Pin<Box<Game>>) -> GameResult {
         let backend = init_backend(self.headless, self.window)?;
         let mut event_loop = backend.create_event_loop(&self)?;
-        self.renderer = Some(event_loop.new_renderer()?);
+        let mut renderer = event_loop.new_renderer()?;
+        let _ = renderer.set_swap_mode(self.swap_mode);
+        self.renderer = Some(renderer);
 
         if let Some(backend_clipboard) = event_loop.create_clipboard() {
             self.clipboard = backend_clipboard;
