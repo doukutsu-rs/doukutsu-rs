@@ -1,6 +1,8 @@
 use std::mem;
 use std::mem::MaybeUninit;
 
+pub mod c_preprocessor;
+
 pub fn field_offset<T, U, F: for<'a> FnOnce(&'a T) -> &'a U>(f: F) -> usize {
     unsafe {
         let instance = MaybeUninit::uninit().assume_init();
