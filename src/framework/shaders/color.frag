@@ -1,4 +1,6 @@
-#version 150 core
+#ifdef GLES
+precision mediump float;
+#endif
 
 in vec2 Frag_UV;
 in vec4 Frag_Color;
