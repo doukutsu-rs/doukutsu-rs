@@ -129,6 +129,21 @@ fn check_shader_compile_status(shader: glow::Shader, gl: &glow::Context) -> GLRe
     Ok(())
 }
 
+/// Verify a program linked successfully. The driver may report
+/// "<program> object is not successfully linked" later if we skip this and
+/// blindly `use_program`, which manifests as a flood of GL_INVALID_OPERATION
+/// errors with no obvious cause. This pulls the linker info log so the real
+/// reason (precision-qualifier mismatch, missing varying, etc.) is surfaced.
+fn check_program_link_status(program: glow::Program, gl: &glow::Context) -> GLResult {
+    unsafe {
+        if !gl.get_program_link_status(program) {
+            let log = gl.get_program_info_log(program);
+            return Err(format!("Failed to link program {}: {}", program.0, log));
+        }
+    }
+    Ok(())
+}
+
 // Single source of truth per shader; profile-specific lines (precision
 // declarations, future divergent paths) gated by `#ifdef GLES` and
 // resolved by `framework::util::c_preprocessor`. The `#version`
@@ -274,7 +289,11 @@ impl RenderShader {
             gl.link_program(program_id);
             check_gl_errors("RenderShader::compile", &gl);
 
-            // TODO: Return error on failure?
+            if let Err(e) = check_program_link_status(program_id, &gl) {
+                gl.delete_program(program_id);
+                return Err(format!("Failed to link shader '{}': {}", shader.name, e));
+            }
+
             log::debug!("Linked shader '{0}', program ID: {program_id:?}", shader.name);
 
             shader.texture = gl.get_uniform_location(program_id, "Texture");
@@ -1163,6 +1182,11 @@ impl BackendRenderer for OpenGLRenderer {
             // Shaders can be deleted after linking
             gl.delete_shader(vs);
             gl.delete_shader(fs);
+
+            if let Err(e) = check_program_link_status(program_id, &gl) {
+                gl.delete_program(program_id);
+                return Err(RenderError(format!("Failed to link effect '{}': {}", name, e)));
+            }
 
             // Enumerate all active uniforms as parameters
             let uniform_count = gl.get_active_uniforms(program_id);
