@@ -299,23 +299,34 @@ impl SDL2EventLoop {
     /// spurious canvas texture reallocations when SDL2 also happens to post
     /// a redundant `SizeChanged` right after an explicit refresh.
     fn refresh_viewport_metrics(ctx: &mut Context, game: &mut Game, refs: &Rc<RefCell<SDL2Context>>) {
-        let (dw, dh, lw, lh) = {
+        let (dw, dh, lw, lh, refresh_mhz) = {
             let r = refs.borrow();
             let w = r.window.window();
             let (dw, dh) = w.drawable_size();
             let (lw, lh) = w.size();
-            (dw, dh, lw, lh)
+            let refresh_mhz = w
+                .display_index()
+                .ok()
+                .and_then(|idx| r.video.current_display_mode(idx).ok())
+                .map(|m| m.refresh_rate)
+                .filter(|hz| *hz > 0)
+                .map(|hz| (hz as u32).saturating_mul(1000));
+            (dw, dh, lw, lh, refresh_mhz)
         };
 
         let new_size = (dw.max(1), dh.max(1));
         let new_dpi = (dw as f32 / lw.max(1) as f32, dh as f32 / lh.max(1) as f32);
 
-        if ctx.viewport.window_size == new_size && ctx.viewport.dpi_scale == new_dpi {
+        if ctx.viewport.window_size == new_size
+            && ctx.viewport.dpi_scale == new_dpi
+            && ctx.viewport.refresh_rate_mhz == refresh_mhz
+        {
             return;
         }
 
         ctx.viewport.window_size = new_size;
         ctx.viewport.dpi_scale = new_dpi;
+        ctx.viewport.refresh_rate_mhz = refresh_mhz;
         let _ = game.on_resize(ctx);
     }
 

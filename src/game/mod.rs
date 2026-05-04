@@ -9,6 +9,7 @@ use clap::clap_derive::Parser;
 use log::LevelFilter as LogLevel;
 use scripting::tsc::text_script::ScriptMode;
 
+use crate::components::pacing_graph::PacingGraph;
 use crate::framework::backend::{BackendCallbacks, WindowParams};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -63,7 +64,6 @@ pub struct LaunchOptions {
     pub prefer_renderer: Option<String>,
 
     // todo: add user_dir / data_dir?
-
     #[arg(long, default_value_t = Self::default().log_level)]
     /// The minimum level of records that will be written to the log file.
     ///
@@ -118,6 +118,7 @@ pub struct Game {
     ui: UI,
     start_time: Instant,
     pacer: FramePacer,
+    graph: PacingGraph,
     pub(crate) loops: u32,
     fps: Fps,
 }
@@ -130,6 +131,7 @@ impl Game {
             state: RefCell::new(SharedGameState::new(ctx)?),
             start_time: Instant::now(),
             pacer: FramePacer::new(),
+            graph: PacingGraph,
             loops: 0,
             fps: Fps::new(),
         };
@@ -141,8 +143,11 @@ impl Game {
         // Snapshot config we need for the timing math while not holding any borrows on `self`.
         let (timing_mode, speed) = {
             let s = self.state.get_mut();
-            let speed_mul =
-                if s.textscript_vm.mode == ScriptMode::Map && s.textscript_vm.flags.cutscene_skip() { 4.0 } else { 1.0 };
+            let speed_mul = if s.textscript_vm.mode == ScriptMode::Map && s.textscript_vm.flags.cutscene_skip() {
+                4.0
+            } else {
+                1.0
+            };
             (s.settings.timing_mode, speed_mul * s.settings.speed)
         };
 
@@ -158,7 +163,19 @@ impl Game {
                 };
                 self.pacer.set_tick_delta(Duration::from_nanos(effective_delta_ns));
 
-                let loops = self.pacer.advance_ticks();
+                // VRR: advance against the upcoming-present deadline to keep tick/present
+                // clocks phase-locked (no 0/2 staircasing).
+                let target = {
+                    let s = self.state.get_mut();
+                    match s.settings.vsync_mode {
+                        VSyncMode::VRRTickSync1x
+                        | VSyncMode::VRRTickSync2x
+                        | VSyncMode::VRRTickSync3x
+                        | VSyncMode::VRRTickSyncAuto => self.pacer.next_present_instant(),
+                        _ => Instant::now(),
+                    }
+                };
+                let loops = self.pacer.advance_ticks_until(target);
                 self.loops = loops;
                 if loops != 0 {
                     if let Some(scene) = self.scene.get_mut() {
@@ -198,7 +215,6 @@ impl Game {
     pub(crate) fn draw(&mut self, ctx: &mut Context) -> GameResult {
         let vsync_mode = self.state.get_mut().settings.vsync_mode;
 
-        // Set swap mode + (for VRR) deadline-pace before rendering.
         match vsync_mode {
             VSyncMode::Uncapped => {
                 graphics::set_swap_mode(ctx, SwapMode::Immediate)?;
@@ -209,14 +225,28 @@ impl Game {
             _ => {
                 graphics::set_swap_mode(ctx, SwapMode::Adaptive)?;
 
+                let base_delta_ns = self.state.get_mut().settings.timing_mode.get_delta() as u64;
+
                 let divisor: u32 = match vsync_mode {
                     VSyncMode::VRRTickSync1x => 1,
                     VSyncMode::VRRTickSync2x => 2,
                     VSyncMode::VRRTickSync3x => 3,
+                    VSyncMode::VRRTickSyncAuto if base_delta_ns > 0 => {
+                        let tick_hz = 1.0e9 / base_delta_ns as f64;
+                        let mon_hz = ctx
+                            .viewport
+                            .refresh_rate_mhz
+                            .map(|m| m as f64 / 1000.0)
+                            .or_else(|| {
+                                let p = self.pacer.measured_period();
+                                if p.is_zero() { None } else { Some(1.0 / p.as_secs_f64()) }
+                            })
+                            .unwrap_or(tick_hz);
+                        ((mon_hz / tick_hz).floor() as u32).max(1)
+                    }
                     _ => 1,
                 };
 
-                let base_delta_ns = self.state.get_mut().settings.timing_mode.get_delta() as u64;
                 if base_delta_ns > 0 {
                     let period = Duration::from_nanos((base_delta_ns / divisor as u64).max(1));
                     self.pacer.set_present_period(period);
@@ -240,6 +270,7 @@ impl Game {
             G_MAG = if self.state.get_mut().settings.subpixel_coords { self.state.get_mut().scale } else { 1.0 };
             I_MAG = self.state.get_mut().scale;
         }
+        let frame_loops = self.loops;
         self.loops = 0;
 
         graphics::prepare_draw(ctx)?;
@@ -263,6 +294,8 @@ impl Game {
                 self.fps.act(state_ref, ctx, self.start_time.elapsed().as_nanos())?;
             }
 
+            self.graph.draw(&self.pacer, state_ref, ctx)?;
+
             // Blit the canvas to the window framebuffer; overlay renders on top.
             graphics::present(ctx)?;
 
@@ -271,7 +304,10 @@ impl Game {
 
         let pre_finalize = Instant::now();
         graphics::finalize_frame(ctx)?;
-        self.pacer.record_swap_latency(Instant::now().saturating_duration_since(pre_finalize));
+        if !matches!(vsync_mode, VSyncMode::VSync) {
+            self.pacer.record_swap_latency(Instant::now().saturating_duration_since(pre_finalize));
+        }
+        self.pacer.record_present(frame_loops);
 
         Ok(())
     }
