@@ -12,6 +12,7 @@ pub mod clipboard;
 pub mod context;
 pub mod error;
 pub mod filesystem;
+pub mod frame_pacer;
 pub mod gamepad;
 pub mod graphics;
 pub mod input;
