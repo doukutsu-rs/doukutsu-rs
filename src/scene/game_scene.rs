@@ -1609,8 +1609,6 @@ impl Scene for GameScene {
         match key_code {
             ScanCode::F3 => state.settings.god_mode = !state.settings.god_mode,
             ScanCode::F4 => state.settings.infinite_booster = !state.settings.infinite_booster,
-            ScanCode::F5 => state.settings.subpixel_coords = !state.settings.subpixel_coords,
-            ScanCode::F6 => state.settings.motion_interpolation = !state.settings.motion_interpolation,
             ScanCode::F7 => state.set_speed(1.0),
             ScanCode::F8 => {
                 if state.settings.speed > 0.2 {
@@ -1624,11 +1622,7 @@ impl Scene for GameScene {
             }
             ScanCode::F10 => state.settings.debug_outlines = !state.settings.debug_outlines,
             ScanCode::F11 => {
-                if ctx.keyboard_context.active_mods().shift() {
-                    state.settings.pacing_debug = !state.settings.pacing_debug;
-                } else {
-                    state.settings.fps_counter = !state.settings.fps_counter;
-                }
+                // used by fps counter, don't use here
             }
             ScanCode::F12 => state.debugger = !state.debugger,
             ScanCode::Grave => {
