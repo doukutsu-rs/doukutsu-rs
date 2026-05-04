@@ -219,11 +219,21 @@ impl BackendEventLoop for GlutinEventLoop {
             };
         }
 
+        // Pinned winit predates `refresh_rate_millihertz()`; max over the supported
+        // video modes is a fine proxy for the monitor's VRR ceiling.
+        fn query_refresh_mhz(window: &winit::window::Window) -> Option<u32> {
+            window
+                .current_monitor()
+                .and_then(|m| m.video_modes().map(|v| v.refresh_rate() as u32 * 1000).max())
+                .filter(|m| *m > 0)
+        }
+
         let event_loop = EventLoop::new();
         let window = self.get_context(&ctx, &event_loop);
         {
             let size = window.window().inner_size();
             ctx.viewport.window_size = (size.width.max(1), size.height.max(1));
+            ctx.viewport.refresh_rate_mhz = query_refresh_mhz(window.window());
             handle_err!(game.on_resize(&mut ctx));
         }
 
@@ -261,7 +271,17 @@ impl BackendEventLoop for GlutinEventLoop {
                 {
                     if let Some(_renderer) = &ctx.renderer {
                         ctx.viewport.window_size = (size.width.max(1), size.height.max(1));
+                        ctx.viewport.refresh_rate_mhz = query_refresh_mhz(window.window());
                         handle_err!(game.on_resize(&mut ctx));
+                    }
+                }
+                Event::WindowEvent { event: WindowEvent::Moved(_), window_id }
+                    if window_id == window.window().id() =>
+                {
+                    // Crossing monitors may change refresh rate.
+                    let new_rate = query_refresh_mhz(window.window());
+                    if ctx.viewport.refresh_rate_mhz != new_rate {
+                        ctx.viewport.refresh_rate_mhz = new_rate;
                     }
                 }
                 Event::WindowEvent { event: WindowEvent::Touch(touch), window_id }

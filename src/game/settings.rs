@@ -70,6 +70,8 @@ pub struct Settings {
     #[serde(skip)]
     pub debug_outlines: bool,
     pub fps_counter: bool,
+    #[serde(skip)]
+    pub pacing_debug: bool,
     pub locale: String,
     #[serde(default = "default_window_mode")]
     pub window_mode: WindowMode,
@@ -510,6 +512,7 @@ impl Default for Settings {
             infinite_booster: false,
             debug_outlines: false,
             fps_counter: false,
+            pacing_debug: false,
             locale: default_locale(),
             window_mode: WindowMode::Windowed,
             vsync_mode: VSyncMode::VSync,
@@ -647,4 +650,7 @@ pub enum VSyncMode {
     VRRTickSync2x,
     /// Variable Refresh Rate - Synchronized to 3 * game tick interval
     VRRTickSync3x,
+    /// Variable Refresh Rate - automatically pick the largest integer multiplier
+    /// that fits the monitor's reported refresh rate.
+    VRRTickSyncAuto,
 }

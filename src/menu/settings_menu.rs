@@ -232,24 +232,29 @@ impl SettingsMenu {
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let initial_vsync_index = match state.settings.vsync_mode {
+            VSyncMode::Uncapped => 0,
+            VSyncMode::VSync => 1,
+            VSyncMode::VRRTickSync1x => 2,
+            // 2x/3x are legacy serde values; surface them as Auto in the menu.
+            VSyncMode::VRRTickSync2x | VSyncMode::VRRTickSync3x | VSyncMode::VRRTickSyncAuto => 3,
+        };
         self.graphics.push_entry(
             GraphicsMenuEntry::VSyncMode,
             MenuEntry::DescriptiveOptions(
                 state.loc.t("menus.options_menu.graphics_menu.vsync_mode.entry").to_owned(),
-                state.settings.vsync_mode as usize,
+                initial_vsync_index,
                 vec![
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.uncapped").to_owned(),
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vsync").to_owned(),
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_1x").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_2x").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_3x").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_auto").to_owned(),
                 ],
                 vec![
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.uncapped_desc").to_owned(),
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vsync_desc").to_owned(),
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_1x_desc").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_2x_desc").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_3x_desc").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_auto_desc").to_owned(),
                 ],
             ),
         );
@@ -804,8 +809,7 @@ impl SettingsMenu {
                         let (new_mode, new_value) = match *value {
                             0 => (VSyncMode::VSync, 1),
                             1 => (VSyncMode::VRRTickSync1x, 2),
-                            2 => (VSyncMode::VRRTickSync2x, 3),
-                            3 => (VSyncMode::VRRTickSync3x, 4),
+                            2 => (VSyncMode::VRRTickSyncAuto, 3),
                             _ => (VSyncMode::Uncapped, 0),
                         };
 
@@ -818,11 +822,10 @@ impl SettingsMenu {
                 MenuSelectionResult::Left(GraphicsMenuEntry::VSyncMode, toggle, _) => {
                     if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
                         let (new_mode, new_value) = match *value {
-                            0 => (VSyncMode::VRRTickSync3x, 4),
+                            0 => (VSyncMode::VRRTickSyncAuto, 3),
                             1 => (VSyncMode::Uncapped, 0),
                             2 => (VSyncMode::VSync, 1),
-                            3 => (VSyncMode::VRRTickSync1x, 2),
-                            _ => (VSyncMode::VRRTickSync2x, 3),
+                            _ => (VSyncMode::VRRTickSync1x, 2),
                         };
 
                         *value = new_value;

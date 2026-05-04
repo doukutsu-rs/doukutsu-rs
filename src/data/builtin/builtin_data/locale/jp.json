@@ -91,12 +91,10 @@
           "uncapped_desc": "V-Sync Off.",
           "vsync": "Enabled",
           "vsync_desc": "V-Sync On.",
-          "vrr_1x": "Variable Refresh Rate (1x)",
-          "vrr_1x_desc": "Uses (G-/Free)Sync if available.",
-          "vrr_2x": "Variable Refresh Rate (2x)",
-          "vrr_2x_desc": "Uses (G-/Free)Sync if available.",
-          "vrr_3x": "Variable Refresh Rate (3x)",
-          "vrr_3x_desc": "Uses (G-/Free)Sync if available."
+          "vrr_1x": "G-/FreeSync — Match Tickrate",
+          "vrr_1x_desc": "Best-effort 1 refresh per game tick.",
+          "vrr_auto": "G-/FreeSync — Auto Multiplier",
+          "vrr_auto_desc": "Picks the best refresh-per-tick multiplier."
         },
         "aspect_ratio": {
           "entry": "アスペクト比:",
