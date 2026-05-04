@@ -15,7 +15,7 @@ use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::frame_pacer::FramePacer;
 use crate::framework::graphics::{self, SwapMode};
-use crate::framework::keyboard;
+use crate::framework::keyboard::{self, ScanCode};
 use crate::framework::ui::UI;
 use crate::game::filesystem_container::FilesystemContainer;
 use crate::game::settings::{Settings, VSyncMode};
@@ -239,7 +239,11 @@ impl Game {
                             .map(|m| m as f64 / 1000.0)
                             .or_else(|| {
                                 let p = self.pacer.measured_period();
-                                if p.is_zero() { None } else { Some(1.0 / p.as_secs_f64()) }
+                                if p.is_zero() {
+                                    None
+                                } else {
+                                    Some(1.0 / p.as_secs_f64())
+                                }
                             })
                             .unwrap_or(tick_hz);
                         ((mon_hz / tick_hz).floor() as u32).max(1)
@@ -344,6 +348,15 @@ impl BackendCallbacks for Game {
             return Ok(());
         }
         if let Some(scene) = self.scene.get_mut() {
+            if key == ScanCode::F11 {
+                let state = self.state.get_mut();
+                if ctx.keyboard_context.active_mods().shift() {
+                    state.settings.pacing_debug = !state.settings.pacing_debug;
+                } else {
+                    state.settings.fps_counter = !state.settings.fps_counter;
+                }
+            }
+
             let _ = scene.process_debug_keys(self.state.get_mut(), ctx, key);
         }
         Ok(())
