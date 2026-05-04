@@ -298,8 +298,8 @@ impl BMFont {
                             offset_x += rect.width() as f32;
                         } else {
                             batch.add_rect_scaled_tinted(
-                                offset_x + (glyph.x_offset as f32 * self.font_scale),
-                                y + (glyph.y_offset as f32 * self.font_scale),
+                                offset_x + (glyph.x_offset as f32 * self.font_scale * scale),
+                                y + (glyph.y_offset as f32 * self.font_scale * scale),
                                 color,
                                 self.font_scale * scale,
                                 self.font_scale * scale,
@@ -347,8 +347,8 @@ impl BMFont {
                         } else {
                             if glyph.page == page {
                                 batch.add_rect_scaled_tinted(
-                                    offset_x + (glyph.x_offset as f32 * self.font_scale),
-                                    y + (glyph.y_offset as f32 * self.font_scale),
+                                    offset_x + (glyph.x_offset as f32 * self.font_scale * scale),
+                                    y + (glyph.y_offset as f32 * self.font_scale * scale),
                                     color,
                                     self.font_scale * scale,
                                     self.font_scale * scale,
