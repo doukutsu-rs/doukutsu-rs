@@ -41,6 +41,8 @@ pub struct Viewport {
     pub dpi_scale: (f32, f32),
     /// left, top, right, bottom, in physical pixels.
     pub raw_insets: (f32, f32, f32, f32),
+    /// `None` if the backend can't query the active monitor; callers fall back to a measured EMA.
+    pub refresh_rate_mhz: Option<u32>,
 
     // --- Computed outputs (refreshed by recompute) ---
     pub viewport_rect: Rect<u32>,
@@ -72,6 +74,7 @@ impl Viewport {
             window_size: (640, 480),
             dpi_scale: (1.0, 1.0),
             raw_insets: (0.0, 0.0, 0.0, 0.0),
+            refresh_rate_mhz: None,
             viewport_rect: Rect::new(0, 0, 640, 480),
             canvas_size: (320, 240),
             screen_size: (320.0, 240.0),

@@ -230,6 +230,20 @@ pub fn draw_triangles(
     Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
 }
 
+pub fn draw_triangles_indexed(
+    ctx: &mut Context,
+    vertices: &[VertexData],
+    indices: IndexData,
+    texture: Option<&Box<dyn BackendTexture>>,
+    shader: BackendShader,
+) -> GameResult {
+    if let Some(renderer) = &mut ctx.renderer {
+        return renderer.draw_triangles_indexed(vertices, indices, texture, shader);
+    }
+
+    Err(GameError::RenderError("Rendering backend hasn't been initialized yet.".to_string()))
+}
+
 pub fn create_vertex_buffer(
     ctx: &mut Context,
     decl: VertexDeclaration,
