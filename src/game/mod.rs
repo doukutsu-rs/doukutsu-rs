@@ -12,6 +12,7 @@ use scripting::tsc::text_script::ScriptMode;
 use crate::framework::backend::{BackendCallbacks, WindowParams};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
+use crate::framework::frame_pacer::FramePacer;
 use crate::framework::graphics::{self, SwapMode};
 use crate::framework::keyboard;
 use crate::framework::ui::UI;
@@ -116,11 +117,8 @@ pub struct Game {
     pub(crate) state: RefCell<SharedGameState>,
     ui: UI,
     start_time: Instant,
-    last_tick: u128,
-    next_tick: u128,
+    pacer: FramePacer,
     pub(crate) loops: u32,
-    next_tick_draw: u128,
-    present: bool,
     fps: Fps,
 }
 
@@ -131,11 +129,8 @@ impl Game {
             ui: UI::new(ctx)?,
             state: RefCell::new(SharedGameState::new(ctx)?),
             start_time: Instant::now(),
-            last_tick: 0,
-            next_tick: 0,
+            pacer: FramePacer::new(),
             loops: 0,
-            next_tick_draw: 0,
-            present: true,
             fps: Fps::new(),
         };
 
@@ -143,63 +138,58 @@ impl Game {
     }
 
     pub(crate) fn update(&mut self, ctx: &mut Context) -> GameResult {
-        let state_ref = self.state.get_mut();
+        // Snapshot config we need for the timing math while not holding any borrows on `self`.
+        let (timing_mode, speed) = {
+            let s = self.state.get_mut();
+            let speed_mul =
+                if s.textscript_vm.mode == ScriptMode::Map && s.textscript_vm.flags.cutscene_skip() { 4.0 } else { 1.0 };
+            (s.settings.timing_mode, speed_mul * s.settings.speed)
+        };
 
-        if let Some(scene) = self.scene.get_mut() {
-            let speed =
-                if state_ref.textscript_vm.mode == ScriptMode::Map && state_ref.textscript_vm.flags.cutscene_skip() {
-                    4.0
+        match timing_mode {
+            TimingMode::_50Hz | TimingMode::_60Hz => {
+                let base_delta_ns = timing_mode.get_delta() as u64;
+                let effective_delta_ns = if (speed - 1.0).abs() < 0.01 {
+                    base_delta_ns
+                } else if speed > 0.0 {
+                    ((base_delta_ns as f64) / speed).max(1.0) as u64
                 } else {
-                    1.0
-                } * state_ref.settings.speed;
+                    base_delta_ns
+                };
+                self.pacer.set_tick_delta(Duration::from_nanos(effective_delta_ns));
 
-            match state_ref.settings.timing_mode {
-                TimingMode::_50Hz | TimingMode::_60Hz => {
-                    let last_tick = self.next_tick;
-
-                    while self.start_time.elapsed().as_nanos() >= self.next_tick && self.loops < 10 {
-                        let delta = state_ref.settings.timing_mode.get_delta();
-
-                        if (speed - 1.0).abs() < 0.01 {
-                            self.next_tick += delta as u128;
-                        } else {
-                            self.next_tick += (delta as f64 / speed) as u128;
-                        }
-                        self.loops += 1;
-                    }
-
-                    if self.loops == 10 {
-                        let delta = state_ref.settings.timing_mode.get_delta();
-
-                        log::warn!("Frame skip is way too high, a long system lag occurred?");
-                        self.last_tick = self.start_time.elapsed().as_nanos();
-                        self.next_tick = self.last_tick + (delta as f64 / speed) as u128;
-                        self.loops = 0;
-                    }
-
-                    if self.loops != 0 {
+                let loops = self.pacer.advance_ticks();
+                self.loops = loops;
+                if loops != 0 {
+                    if let Some(scene) = self.scene.get_mut() {
+                        let state_ref = self.state.get_mut();
                         scene.draw_tick(state_ref)?;
-                        self.last_tick = last_tick;
+                        for _ in 0..loops {
+                            scene.tick(state_ref, ctx)?;
+                        }
                     }
-
-                    for _ in 0..self.loops {
-                        scene.tick(state_ref, ctx)?;
-                    }
-                    self.fps.tick_count = self.fps.tick_count.saturating_add(self.loops as u32);
+                    self.fps.tick_count = self.fps.tick_count.saturating_add(loops);
                 }
-                TimingMode::FrameSynchronized => {
+            }
+            TimingMode::FrameSynchronized => {
+                if let Some(scene) = self.scene.get_mut() {
+                    let state_ref = self.state.get_mut();
                     scene.tick(state_ref, ctx)?;
                 }
             }
         }
 
-        let next_scene = std::mem::take(&mut state_ref.next_scene);
+        let next_scene = std::mem::take(&mut self.state.get_mut().next_scene);
         if let Some(mut next_scene) = next_scene {
-            next_scene.init(state_ref, ctx)?;
+            {
+                let state_ref = self.state.get_mut();
+                next_scene.init(state_ref, ctx)?;
+                state_ref.frame_time = 0.0;
+            }
             *self.scene.get_mut() = Some(next_scene);
 
             self.loops = 0;
-            state_ref.frame_time = 0.0;
+            self.pacer.reset();
         }
 
         Ok(())
@@ -207,45 +197,32 @@ impl Game {
 
     pub(crate) fn draw(&mut self, ctx: &mut Context) -> GameResult {
         let vsync_mode = self.state.get_mut().settings.vsync_mode;
+
+        // Set swap mode + (for VRR) deadline-pace before rendering.
         match vsync_mode {
             VSyncMode::Uncapped => {
                 graphics::set_swap_mode(ctx, SwapMode::Immediate)?;
-                self.present = true;
             }
             VSyncMode::VSync => {
                 graphics::set_swap_mode(ctx, SwapMode::VSync)?;
-                self.present = true;
             }
-            _ => unsafe {
+            _ => {
                 graphics::set_swap_mode(ctx, SwapMode::Adaptive)?;
-                self.present = false;
 
-                let divisor = match vsync_mode {
+                let divisor: u32 = match vsync_mode {
                     VSyncMode::VRRTickSync1x => 1,
                     VSyncMode::VRRTickSync2x => 2,
                     VSyncMode::VRRTickSync3x => 3,
-                    _ => std::hint::unreachable_unchecked(),
+                    _ => 1,
                 };
 
-                let delta = self.state.get_mut().settings.timing_mode.get_delta();
-                let delta = (delta / divisor) as u64;
-
-                let now = self.start_time.elapsed().as_nanos();
-                if now > self.next_tick_draw + delta as u128 * 4 {
-                    self.next_tick_draw = now;
+                let base_delta_ns = self.state.get_mut().settings.timing_mode.get_delta() as u64;
+                if base_delta_ns > 0 {
+                    let period = Duration::from_nanos((base_delta_ns / divisor as u64).max(1));
+                    self.pacer.set_present_period(period);
+                    self.pacer.wait_for_present();
                 }
-
-                while self.start_time.elapsed().as_nanos() >= self.next_tick_draw {
-                    self.next_tick_draw += delta as u128;
-                    self.present = true;
-                }
-            },
-        }
-
-        if !self.present {
-            std::thread::sleep(Duration::from_millis(2));
-            self.loops = 0;
-            return Ok(());
+            }
         }
 
         if ctx.headless {
@@ -255,18 +232,9 @@ impl Game {
         }
 
         if self.state.get_mut().settings.timing_mode != TimingMode::FrameSynchronized {
-            let mut elapsed = self.start_time.elapsed().as_nanos();
-
-            // Even with the non-monotonic Instant mitigation at the start of the event loop, there's still a chance of it not working.
-            // This check here should trigger if that happens and makes sure there's no panic from an underflow.
-            if elapsed < self.last_tick {
-                elapsed = self.last_tick;
-            }
-
-            let n1 = (elapsed - self.last_tick) as f64;
-            let n2 = (self.next_tick - self.last_tick) as f64;
+            let alpha = self.pacer.interpolation_alpha();
             self.state.get_mut().frame_time =
-                if self.state.get_mut().settings.motion_interpolation { n1 / n2 } else { 1.0 };
+                if self.state.get_mut().settings.motion_interpolation { alpha } else { 1.0 };
         }
         unsafe {
             G_MAG = if self.state.get_mut().settings.subpixel_coords { self.state.get_mut().scale } else { 1.0 };
@@ -301,7 +269,9 @@ impl Game {
             self.ui.draw(state_ref, ctx, scene)?;
         }
 
+        let pre_finalize = Instant::now();
         graphics::finalize_frame(ctx)?;
+        self.pacer.record_swap_latency(Instant::now().saturating_duration_since(pre_finalize));
 
         Ok(())
     }
@@ -319,6 +289,7 @@ impl BackendCallbacks for Game {
             ctx.suspended = false;
             state_ref.sound_manager.resume();
             self.loops = 0;
+            self.pacer.reset();
         }
         Ok(())
     }
