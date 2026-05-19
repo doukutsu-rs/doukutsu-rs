@@ -86,8 +86,7 @@ impl FilesystemContainer {
         };
         #[cfg(target_os = "android")]
         {
-            let mut data_path =
-                PathBuf::from(ndk_glue::native_activity().internal_data_path().to_string_lossy().to_string());
+            let mut data_path = std::path::PathBuf::from(sdl2::filesystem::pref_path(crate::common::ORG_NAME, crate::common::APP_NAME).unwrap());
             let mut user_path = data_path.clone();
 
             data_path.push("data");
@@ -200,11 +199,11 @@ impl FilesystemContainer {
             use jni::objects::{JObject, JValue};
             use jni::JavaVM;
 
-            let vm_ptr = ndk_glue::native_activity().vm();
+            let vm_ptr = ndk_context::android_context().vm().cast();
             let vm = JavaVM::from_raw(vm_ptr)?;
             let vm_env = vm.attach_current_thread()?;
 
-            let class = vm_env.new_global_ref(JObject::from_raw(ndk_glue::native_activity().activity()))?;
+            let class = vm_env.new_global_ref(JObject::from_raw(ndk_context::android_context().context().cast()))?;
             let method = vm_env.call_method(class.as_obj(), "openDir", "(Ljava/lang/String;)V", &[
                 JValue::from(vm_env.new_string(path.to_str().unwrap()).unwrap())
             ])?;

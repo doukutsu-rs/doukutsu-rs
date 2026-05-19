@@ -1,11 +1,12 @@
 use itertools::Itertools;
 
+use crate::common::Rect;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::VSyncMode;
 use crate::framework::{filesystem, graphics};
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
-use crate::graphics::font::Font;
+use crate::graphics::font::{Font, Symbols};
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
@@ -101,6 +102,8 @@ impl Default for SoundtrackMenuEntry {
 enum LanguageMenuEntry {
     Title,
     Language(String),
+    Spacer,
+    Warning,
     Back,
 }
 
@@ -353,16 +356,53 @@ impl SettingsMenu {
             MenuEntry::Active(state.loc.t("menus.options_menu.controls").to_owned()),
         );
 
+        let save_warn_char = '!';
+        let save_warn_str = "!"; // TODO: find an elegant way to convert char into str without allocations
+        self.language.symbols = Some(
+            Symbols {
+                // TODO: dehardcode this Rect
+                symbols: &[(save_warn_char, Rect::new_size(16, 0, 16, 16))], // ! - locale with different data type
+                texture: "icons",
+            }
+            .to_owned(),
+        );
         self.language.push_entry(
             LanguageMenuEntry::Title,
             MenuEntry::Disabled(state.loc.t("menus.options_menu.language").to_owned()),
         );
 
         for locale in &state.constants.locales {
-            self.language
-                .push_entry(LanguageMenuEntry::Language(locale.code.clone()), MenuEntry::Active(locale.name.clone()));
+            // Skip locales with no game  data
+            if !locale.is_present {
+                continue;
+            }
+
+            // The main root is awlays present, so we can safely unwrap it
+            let main_root = state.constants.roots.get("/").unwrap();
+            let active_root = &state.constants.active_root;
+            let entry =
+                // We expect that the default language for every root that isn't a translation is English.
+                if locale.code == "en" {
+                    locale.name.clone()
+                } else if active_root.support_locales && active_root.data_type != locale.data_type || main_root.data_type != locale.data_type {
+                    format!("{}!", &locale.name)
+                } else {
+                    locale.name.clone()
+                };
+
+            self.language.push_entry(LanguageMenuEntry::Language(locale.code.clone()), MenuEntry::Active(entry));
         }
 
+        self.language.push_entry(LanguageMenuEntry::Spacer, MenuEntry::Spacer(8.0));
+        self.language.push_entry(
+            LanguageMenuEntry::Warning,
+            MenuEntry::LongText(
+                state.loc.tt("menus.options_menu.language_menu.warnings.different_type", &[("icon", save_warn_str)]),
+                false,
+                false,
+            ),
+        );
+        self.language.push_entry(LanguageMenuEntry::Spacer, MenuEntry::Spacer(8.0));
         self.language.push_entry(LanguageMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         if self.on_title {
@@ -518,6 +558,7 @@ impl SettingsMenu {
             .collect_vec();
         soundtrack_entries.push(state.loc.t("soundtrack.organya").to_owned());
 
+        // TODO: check if this will work correctly if type of the active root is not `Translation`.
         if let Ok(dir) = filesystem::read_dir(ctx, "/Soundtracks/") {
             for entry in dir {
                 if filesystem::is_dir(ctx, &entry) {
@@ -950,8 +991,8 @@ impl SettingsMenu {
                             .find(|s| state.loc.t(format!("soundtrack.{}", s.id).as_str()) == name)
                             .map_or_else(|| name.to_owned(), |s| s.id.clone());
 
-                        if state.settings.soundtrack == "Organya" {
-                            state.settings.soundtrack = "organya".to_owned()
+                        if state.settings.soundtrack == "Organya" || state.settings.soundtrack == "オルガーニャ" {
+                            state.settings.soundtrack = "organya".to_owned();
                         }
 
                         let _ = state.settings.save(ctx);

@@ -5,4 +5,3 @@
 
 *startfile:
 crti%O%s crtbegin%O%s --require-defined=main
-

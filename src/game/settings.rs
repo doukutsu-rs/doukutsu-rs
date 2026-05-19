@@ -374,21 +374,31 @@ impl Settings {
     }
 
     pub fn create_player1_controller(&self) -> Box<dyn PlayerController> {
-        if self.touch_controls {
-            return Box::new(TouchPlayerController::new());
-        }
+        let keyboard_controller = Box::new(KeyboardController::new(TargetPlayer::Player1));
 
         match self.player1_controller_type {
-            ControllerType::Keyboard => Box::new(KeyboardController::new(TargetPlayer::Player1)),
-            ControllerType::Gamepad(index) => {
-                let keyboard_controller = Box::new(KeyboardController::new(TargetPlayer::Player1));
+            ControllerType::Keyboard if !self.touch_controls => keyboard_controller,
+            ControllerType::Keyboard => {
+                let touch_player_controller = Box::new(TouchPlayerController::new());
 
+                let mut combined_player_controller = CombinedPlayerController::new();
+                combined_player_controller.add(touch_player_controller);
+                combined_player_controller.add(keyboard_controller);
+
+                Box::new(combined_player_controller)
+            },
+            ControllerType::Gamepad(index) => {
                 let mut gamepad_controller = Box::new(GamepadController::new(index, TargetPlayer::Player1));
                 gamepad_controller.set_rumble_enabled(self.player1_rumble);
 
                 let mut combined_player_controller = CombinedPlayerController::new();
                 combined_player_controller.add(keyboard_controller);
                 combined_player_controller.add(gamepad_controller);
+                if self.touch_controls {
+                    let touch_player_controller = Box::new(TouchPlayerController::new());
+
+                    combined_player_controller.add(touch_player_controller);
+                }
 
                 Box::new(combined_player_controller)
             }

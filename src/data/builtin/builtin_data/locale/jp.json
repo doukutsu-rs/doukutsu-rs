@@ -123,6 +123,11 @@
         "display_touch_controls": "タッチコントロールを表示する: "
       },
       "language": "言語",
+      "language_menu": {
+        "warnings": {
+          "different_type": "他のロケールと互換性のないセーブが生成される可能性 - {icon}"
+        }
+      },
       "behavior": "動作",
       "behavior_menu": {
         "game_timing": {
@@ -161,7 +166,8 @@
       },
       "controller": {
         "entry": "コントローラ",
-        "keyboard": "キーボード"
+        "keyboard": "キーボード",
+        "touch_controls_or_keyboard": "タタッチコントロール/キーボードッチ操作／キーボード"
       },
       "rebind": "再バインド",
       "rebind_menu": {
@@ -182,7 +188,8 @@
       },
       "rebind_confirm_menu": {
         "title": "新しい「ジャンプ」ボタンを押す",
-        "cancel": "(Escキーを押してキャンセル)"
+        "cancel": "(Escキーを押してキャンセル)",
+        "cancel_touch": "(Escキーを押すか画面をタッチしてキャンセル)"
       },
       "rumble": "ランブル",
       "reset_confirm": "リセット",

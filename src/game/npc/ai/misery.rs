@@ -1151,7 +1151,7 @@ impl BorrowedNPC<'_> {
                     self.anim_num = 2;
 
                     let player = self.get_closest_player_ref(&players);
-                    self.direction = if player.x > self.x { Direction::Left } else { Direction::Right };
+                    self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
                 }
 
                 self.action_counter += 1;
@@ -1171,7 +1171,7 @@ impl BorrowedNPC<'_> {
                     self.vel_x = 0;
 
                     let player = self.get_closest_player_ref(&players);
-                    self.direction = if player.x > self.x { Direction::Left } else { Direction::Right };
+                    self.direction = if player.x < self.x { Direction::Left } else { Direction::Right };
                 }
             }
             11 => {

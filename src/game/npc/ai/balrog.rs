@@ -109,8 +109,8 @@ impl BorrowedNPC<'_> {
                     npc.x = self.x;
                     npc.y = self.y + 0x800; // 4.0fix9
 
-                    let mut angle = ((self.y + 0x800 - player.y) as f64 / (self.x - player.y) as f64).atan();
-                    angle += self.rng.range(-16..16) as f64 * std::f64::consts::FRAC_PI_8;
+                    let angle = f64::atan2((self.y + 0x800 - player.y) as f64, (self.x - player.x) as f64)
+                        + self.rng.range(-16..16) as f64 * CDEG_RAD;
                     npc.vel_x = (angle.cos() * 512.0) as i32; // 1.0fix9
                     npc.vel_y = (angle.sin() * 512.0) as i32;
 
@@ -295,7 +295,7 @@ impl BorrowedNPC<'_> {
 
                     let mut npc = NPC::create(4, &state.npc_table);
 
-                    for _ in 0..3 {
+                    for _ in 0..4 {
                         npc.cond.set_alive(true);
                         npc.direction = Direction::Left;
                         npc.x = self.x + self.rng.range(-12..12) as i32 * 0x200;

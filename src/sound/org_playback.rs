@@ -4,6 +4,7 @@
 use std::cmp::min;
 use std::hint::unreachable_unchecked;
 use std::mem::MaybeUninit;
+use std::sync::Arc;
 
 use crate::sound::fir::FIR;
 use crate::sound::fir::FIR_STEP;
@@ -110,7 +111,7 @@ impl OrgPlaybackEngine {
 
             let format = WavFormat { channels: 1, sample_rate: 22050, bit_depth: 8 };
 
-            let rbuf = RenderBuffer::new_organya(WavSample { format, data: sound });
+            let rbuf = RenderBuffer::new_organya(format, sound);
 
             for j in 0..8 {
                 for &k in &[0, 64] {
@@ -389,16 +390,14 @@ impl OrgPlaybackEngine {
                                 let sl1 = (*sample_data_ptr.add(ps) as u16 | (*sample_data_ptr.add(ps + 1) as u16) << 8)
                                     as f32
                                     / 32768.0;
-                                let sr1 = (*sample_data_ptr.add(ps + 2) as u16
-                                    | (*sample_data_ptr.add(ps + 3) as u16) << 8)
+                                let sr1 = (*sample_data_ptr.add(ps + 2) as u16 | (*sample_data_ptr.add(ps + 3) as u16) << 8)
                                     as f32
                                     / 32768.0;
                                 let ps = min(pos + 1, buf.base_pos + buf.len - 1) << 2;
                                 let sl2 = (*sample_data_ptr.add(ps) as u16 | (*sample_data_ptr.add(ps + 1) as u16) << 8)
                                     as f32
                                     / 32768.0;
-                                let sr2 = (*sample_data_ptr.add(ps + 2) as u16
-                                    | (*sample_data_ptr.add(ps + 3) as u16) << 8)
+                                let sr2 = (*sample_data_ptr.add(ps + 2) as u16 | (*sample_data_ptr.add(ps + 3) as u16) << 8)
                                     as f32
                                     / 32768.0;
                                 (sl1, sr1, sl2, sr2)
@@ -664,7 +663,10 @@ impl RenderBuffer {
             volume: 0,
             pan: 0,
             len: 0,
-            sample: WavSample { format: WavFormat { channels: 2, sample_rate: 22050, bit_depth: 16 }, data: vec![] },
+            sample: WavSample {
+                format: WavFormat { channels: 2, sample_rate: 22050, bit_depth: 16 },
+                data: Arc::new([]),
+            },
             playing: false,
             looping: false,
             release_len: 0,
@@ -678,16 +680,16 @@ impl RenderBuffer {
         }
     }
 
-    pub fn new_organya(mut sample: WavSample) -> RenderBuffer {
-        let wave = sample.data.clone();
-        sample.data.clear();
+    pub fn new_organya(format: WavFormat, wave: Vec<u8>) -> RenderBuffer {
+        const SIZES: &[usize] = &[256, 256, 128, 128, 64, 32, 16, 8];
+        let mut sample_data = Vec::with_capacity(SIZES.iter().sum());
 
-        for size in &[256_usize, 256, 128, 128, 64, 32, 16, 8] {
+        for size in SIZES {
             let step = 256 / size;
             let mut acc = 0;
 
             for _ in 0..*size {
-                sample.data.push(wave[acc]);
+                sample_data.push(wave[acc]);
                 acc += step;
 
                 if acc >= 256 {
@@ -696,7 +698,7 @@ impl RenderBuffer {
             }
         }
 
-        RenderBuffer::new(sample)
+        RenderBuffer::new(WavSample { format, data: sample_data.into() })
     }
 
     #[inline]

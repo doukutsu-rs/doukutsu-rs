@@ -71,7 +71,7 @@ impl Default for LaunchOptions {
             server_mode: false,
             window_height: None,
             window_width: None,
-            window_fullscreen: false,
+            window_fullscreen: cfg!(target_os = "android"),
             log_level: if cfg!(debug_assertions) { LogLevel::Debug } else { LogLevel::Info },
         }
     }
@@ -284,7 +284,7 @@ fn get_logs_dir() -> GameResult<PathBuf> {
 
     #[cfg(target_os = "android")]
     {
-        logs_dir = PathBuf::from(ndk_glue::native_activity().internal_data_path().to_string_lossy().to_string());
+        logs_dir = PathBuf::from(sdl2::filesystem::pref_path(crate::common::ORG_NAME, crate::common::APP_NAME).unwrap());
     }
 
     #[cfg(target_os = "horizon")]
@@ -316,11 +316,19 @@ fn init_logger(options: &LaunchOptions) -> GameResult {
     let logs_dir = get_logs_dir()?;
     let _ = std::fs::create_dir_all(&logs_dir);
 
+    // On Android, the jni-rs library generates many trace records, making it difficult to analyze logs in real time
+    let stdout_log_level =
+        if cfg!(target_os = "android") && options.log_level != LogLevel::Trace {
+            LogLevel::Debug
+        } else {
+            LogLevel::Trace
+        };
+
     let mut dispatcher = fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!("{} [{}] {}", record.level(), record.module_path().unwrap().to_owned(), message))
         })
-        .chain(fern::Dispatch::new().chain(std::io::stderr()));
+        .chain(fern::Dispatch::new().level(stdout_log_level).chain(std::io::stderr()));
 
     let date = chrono::Utc::now();
     let mut file = logs_dir.clone();
@@ -336,7 +344,7 @@ fn init_logger(options: &LaunchOptions) -> GameResult {
 
 fn panic_hook(info: &PanicInfo<'_>) {
     let backtrace = Backtrace::force_capture();
-    let msg = info.payload().downcast_ref::<&str>().unwrap_or(&"");
+    let msg = info.payload().downcast_ref::<&str>().unwrap_or(&"(no message)");
     let location = info.location();
 
     if location.is_some() {

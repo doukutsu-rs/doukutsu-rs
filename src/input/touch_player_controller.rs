@@ -1,4 +1,5 @@
-use crate::bitfield;
+use bitfield::bitfield;
+
 use crate::common::Rect;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -88,150 +89,150 @@ impl PlayerController for TouchPlayerController {
                 self.state.set_left(
                     self.state.left()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(left, state.canvas_size.1 as isize - bottom - 48 * 2, 48, 48))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(left, state.canvas_size.1 as isize - bottom - 48 * 2, 48, 48))
+                            .is_some(),
                 );
 
                 // up
                 self.state.set_up(
                     self.state.up()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(48 + left, state.canvas_size.1 as isize - bottom - 48 * 3, 48, 48))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(48 + left, state.canvas_size.1 as isize - bottom - 48 * 3, 48, 48))
+                            .is_some(),
                 );
 
                 // right
                 self.state.set_right(
                     self.state.right()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(
-                            48 * 2 + left,
-                            state.canvas_size.1 as isize - bottom - 48 * 2,
-                            48,
-                            48,
-                        ))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(
+                                48 * 2 + left,
+                                state.canvas_size.1 as isize - bottom - 48 * 2,
+                                48,
+                                48,
+                            ))
+                            .is_some(),
                 );
 
                 // down
                 self.state.set_down(
                     self.state.down()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(48 + left, state.canvas_size.1 as isize - bottom - 48, 48, 48))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(48 + left, state.canvas_size.1 as isize - bottom - 48, 48, 48))
+                            .is_some(),
                 );
 
                 // left+up
                 self.state.set_left(
                     self.state.left()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(left, state.canvas_size.1 as isize - bottom - 48 * 3, 48, 48))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(left, state.canvas_size.1 as isize - bottom - 48 * 3, 48, 48))
+                            .is_some(),
                 );
                 self.state.set_up(
                     self.state.up()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(left, state.canvas_size.1 as isize - bottom - 48 * 3, 48, 48))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(left, state.canvas_size.1 as isize - bottom - 48 * 3, 48, 48))
+                            .is_some(),
                 );
 
                 // right+up
                 self.state.set_right(
                     self.state.right()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(
-                            48 * 2 + left,
-                            state.canvas_size.1 as isize - bottom - 48 * 3,
-                            48,
-                            48,
-                        ))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(
+                                48 * 2 + left,
+                                state.canvas_size.1 as isize - bottom - 48 * 3,
+                                48,
+                                48,
+                            ))
+                            .is_some(),
                 );
                 self.state.set_up(
                     self.state.up()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(
-                            48 * 2 + left,
-                            state.canvas_size.1 as isize - bottom - 48 * 3,
-                            48,
-                            48,
-                        ))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(
+                                48 * 2 + left,
+                                state.canvas_size.1 as isize - bottom - 48 * 3,
+                                48,
+                                48,
+                            ))
+                            .is_some(),
                 );
 
                 // left+down
                 self.state.set_left(
                     self.state.left()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(left, state.canvas_size.1 as isize - 48 - bottom, 48, 48))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(left, state.canvas_size.1 as isize - 48 - bottom, 48, 48))
+                            .is_some(),
                 );
                 self.state.set_down(
                     self.state.down()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(left, state.canvas_size.1 as isize - 48 - bottom, 48, 48))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(left, state.canvas_size.1 as isize - 48 - bottom, 48, 48))
+                            .is_some(),
                 );
 
                 // right+down
                 self.state.set_right(
                     self.state.right()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(48 * 2 + left, state.canvas_size.1 as isize - 48 - bottom, 48, 48))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(48 * 2 + left, state.canvas_size.1 as isize - 48 - bottom, 48, 48))
+                            .is_some(),
                 );
                 self.state.set_down(
                     self.state.down()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(48 * 2 + left, state.canvas_size.1 as isize - 48 - bottom, 48, 48))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(48 * 2 + left, state.canvas_size.1 as isize - 48 - bottom, 48, 48))
+                            .is_some(),
                 );
 
                 self.state.set_inventory(
                     self.state.inventory()
                         || state.touch_controls.consume_click_in(Rect::new_size(
-                        state.canvas_size.0 as isize - 48 - right,
-                        top,
-                        48,
-                        48,
-                    )),
+                            state.canvas_size.0 as isize - 48 - right,
+                            top,
+                            48,
+                            48,
+                        )),
                 );
 
                 self.state.set_jump(
                     self.state.jump()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(
-                            state.canvas_size.0 as isize - 48 - right,
-                            state.canvas_size.1 as isize - (48 + 4) - bottom,
-                            48,
-                            48,
-                        ))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(
+                                state.canvas_size.0 as isize - 48 - right,
+                                state.canvas_size.1 as isize - (48 + 4) - bottom,
+                                48,
+                                48,
+                            ))
+                            .is_some(),
                 );
                 self.state.set_shoot(
                     self.state.shoot()
                         || state
-                        .touch_controls
-                        .point_in(Rect::new_size(
-                            state.canvas_size.0 as isize - 48 - right,
-                            state.canvas_size.1 as isize - (48 + 4) * 2 - bottom,
-                            48,
-                            48,
-                        ))
-                        .is_some(),
+                            .touch_controls
+                            .point_in(Rect::new_size(
+                                state.canvas_size.0 as isize - 48 - right,
+                                state.canvas_size.1 as isize - (48 + 4) * 2 - bottom,
+                                48,
+                                48,
+                            ))
+                            .is_some(),
                 );
 
                 self.state.set_pause(

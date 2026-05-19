@@ -3,7 +3,6 @@ use std::io::{BufReader, Read, Seek, SeekFrom};
 
 use image::RgbaImage;
 use itertools::Itertools;
-use log::info;
 
 use crate::common;
 use crate::common::{FILE_TYPES, Rect};
@@ -500,7 +499,12 @@ impl TextureSet {
     fn load_image(&self, ctx: &mut Context, roots: &Vec<String>, path: &str) -> GameResult<Box<dyn BackendTexture>> {
         let img = {
             let mut buf = [0u8; 8];
-            let mut reader = filesystem::open_find(ctx, roots, path)?;
+
+            // If a provided texture is "hi-res only", the provided path may not be the texture name, but its full path.
+            // Since the path "/" may not awlays been present in the path list, we need to check whether `path` var is a full path to the texture
+            // (whether `path` exists as a file relative to the game data dir).
+            let mut reader = filesystem::open_find(ctx, roots, path)
+                .or(filesystem::open(ctx, format!("/{path}")))?;
             reader.read_exact(&mut buf)?;
             reader.seek(SeekFrom::Start(0))?;
 
@@ -561,7 +565,7 @@ impl TextureSet {
 
         let glow_path = self.find_texture(ctx, &constants.base_paths, &[name, ".glow"].join(""), ignore_ogph);
 
-        info!("Loading texture: {} -> {}", name, path);
+        log::info!("Loading texture: {} -> {}", name, path);
 
         fn make_batch(name: &str, constants: &EngineConstants, batch: Box<dyn BackendTexture>, ignore_ogph: bool) -> SubBatch {
             let size = batch.dimensions();

@@ -1,3 +1,4 @@
+use crate::common::Rect;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::gamepad::{self, Axis, AxisDirection, Button, PlayerControllerInputType};
@@ -48,10 +49,6 @@ enum MainMenuEntry {
 
 impl Default for MainMenuEntry {
     fn default() -> Self {
-        #[cfg(target_os = "android")]
-        return MainMenuEntry::DisplayTouchControls;
-
-        #[cfg(not(target_os = "android"))]
         return MainMenuEntry::SelectedPlayer;
     }
 }
@@ -200,8 +197,7 @@ impl ControlsMenu {
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        #[cfg(not(target_os = "android"))]
-        {
+        if state.constants.supports_two_player {
             self.main.push_entry(
                 MainMenuEntry::SelectedPlayer,
                 MenuEntry::Options(
@@ -213,15 +209,15 @@ impl ControlsMenu {
                     ],
                 ),
             );
-
-            self.main.push_entry(
-                MainMenuEntry::Controller,
-                MenuEntry::Active(state.loc.t("menus.controls_menu.controller.entry").to_owned()),
-            );
-            self.main
-                .push_entry(MainMenuEntry::Rebind, MenuEntry::Active(state.loc.t("menus.controls_menu.rebind").to_owned()));
-            self.main.push_entry(MainMenuEntry::Rumble, MenuEntry::Hidden);
         }
+
+        self.main.push_entry(
+            MainMenuEntry::Controller,
+            MenuEntry::Active(state.loc.t("menus.controls_menu.controller.entry").to_owned()),
+        );
+        self.main
+            .push_entry(MainMenuEntry::Rebind, MenuEntry::Active(state.loc.t("menus.controls_menu.rebind").to_owned()));
+        self.main.push_entry(MainMenuEntry::Rumble, MenuEntry::Hidden);
 
         if state.settings.touch_controls {
             self.main.push_entry(
@@ -411,7 +407,13 @@ impl ControlsMenu {
 
         self.select_controller.push_entry(
             SelectControllerMenuEntry::Keyboard,
-            MenuEntry::Active(state.loc.t("menus.controls_menu.controller.keyboard").to_owned()),
+            MenuEntry::Active(state.loc.t(
+                if state.settings.touch_controls {
+                    "menus.controls_menu.controller.touch_controls_or_keyboard"
+                } else {
+                    "menus.controls_menu.controller.keyboard"
+                }
+            ).to_owned()),
         );
 
         let gamepads = gamepad::get_gamepads(ctx);
@@ -488,7 +490,13 @@ impl ControlsMenu {
                 );
                 self.confirm_rebind.push_entry(
                     1,
-                    MenuEntry::Disabled(state.loc.t("menus.controls_menu.rebind_confirm_menu.cancel").to_owned()),
+                    MenuEntry::Disabled(state.loc.t(
+                        if state.settings.touch_controls {
+                            "menus.controls_menu.rebind_confirm_menu.cancel_touch"
+                        } else {
+                            "menus.controls_menu.rebind_confirm_menu.cancel"
+                        }
+                    ).to_owned()),
                 );
             }
             None => {}
@@ -1053,7 +1061,14 @@ impl ControlsMenu {
             },
             CurrentMenu::ConfirmRebindMenu => match self.confirm_rebind.tick(controller, state) {
                 _ => {
+                    let entry_bounds = Rect::new_size(0, 0, ctx.screen_size.0 as isize, ctx.screen_size.1 as isize);
                     let pressed_keys: Vec<_> = ctx.keyboard_context.pressed_keys().into_iter().collect();
+
+                    if state.touch_controls.consume_click_in(entry_bounds) {
+                        state.sound_manager.play_sfx(5);
+                        self.current = CurrentMenu::RebindMenu;
+                        return Ok(());
+                    }
 
                     for key in pressed_keys.clone() {
                         if *key == ScanCode::Escape {

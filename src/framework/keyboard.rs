@@ -3,13 +3,12 @@
 // Copyright (c) 2020 doukutsu-rs contributors (see AUTHORS.md)
 use std::collections::HashSet;
 
+use bitfield::bitfield;
 use serde::{Deserialize, Serialize};
 
-use crate::bitfield;
 use crate::framework::context::Context;
 
-#[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 #[repr(u32)]
 pub enum ScanCode {
     /// The '1' key over the letters.

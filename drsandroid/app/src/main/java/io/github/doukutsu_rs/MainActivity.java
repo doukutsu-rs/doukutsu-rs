@@ -3,6 +3,7 @@ package io.github.doukutsu_rs;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
@@ -16,8 +17,8 @@ public class MainActivity extends AppCompatActivity {
 
         ActivityUtils.hideSystemBars(this);
 
-        File f = new File(getFilesDir().getAbsolutePath() + "/data/");
-        String[] list = f.list();
+        var f = new File(getFilesDir().getAbsolutePath() + "/data/");
+        var list = f.list();
         if (!f.exists() || (list != null && list.length == 0)) {
             messageBox(getString(R.string.missing_data_title), getString(R.string.missing_data_desc), () -> {
                 Intent intent = new Intent(this, DownloadActivity.class);
@@ -31,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void launchGame() {
-        Intent intent = new Intent(this, GameActivity.class);
+        var intent = new Intent(this, GameActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(intent);
         this.finish();
@@ -39,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void messageBox(String title, String message, Runnable yesCallback, Runnable noCallback) {
         this.runOnUiThread(() -> {
-            AlertDialog.Builder alert = new AlertDialog.Builder(this);
+            var alert = new AlertDialog.Builder(this);
             alert.setTitle(title);
             alert.setMessage(message);
             alert.setPositiveButton(android.R.string.yes, (dialog, whichButton) -> yesCallback.run());

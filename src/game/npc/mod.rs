@@ -4,9 +4,9 @@ use std::io::Cursor;
 use std::ops::Deref;
 use std::rc::Rc;
 
+use bitfield::bitfield;
 use byteorder::{ReadBytesExt, LE};
 
-use crate::bitfield;
 use crate::common::Direction;
 use crate::common::Flag;
 use crate::common::{interpolate_fix9_scale, Condition, Rect};

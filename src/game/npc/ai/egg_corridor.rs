@@ -324,7 +324,7 @@ impl NPC {
         self.vel_x = clamp(self.vel_x, -0x5ff, 0x5ff);
         self.x += self.vel_x;
 
-        self.animate(1, 0, 1);
+        self.animate(1, 0, 2);
 
         let dir_offset = if self.direction == Direction::Left { 0 } else { 3 };
 
@@ -555,7 +555,8 @@ impl NPC {
 
         if self.action_counter < 150 {
             self.action_counter += 1;
-        } else {
+        }
+        if self.action_counter == 150 {
             self.action_counter2 += 1;
             if (self.action_counter2 % 8) == 0 && abs(self.x - player.x) < 0x14000 {
                 let angle = f64::atan2((self.y - player.y) as f64, (self.x - player.x) as f64)

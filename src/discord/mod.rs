@@ -35,7 +35,7 @@ impl DiscordRPC {
             enabled: false,
             ready: false,
 
-            client: DiscordIpcClient::new(app_id).unwrap(),
+            client: DiscordIpcClient::new(app_id),
             state: DiscordRPCState::Idling,
             life: 0,
             max_life: 0,
@@ -179,11 +179,21 @@ impl DiscordRPC {
             return;
         }
 
+        // HACK: workaround for a bug in `discord-rich-presence` crate that causes activity to continue
+        // to be displayed on Windows, until the Discord client is restarted.
+        let _ = self.clear();
+
         let can_update = self.can_update.lock();
         if can_update.is_ok() {
             *can_update.unwrap() = false;
         }
 
         let _ = self.client.close();
+    }
+}
+
+impl Drop for DiscordRPC {
+    fn drop(&mut self) {
+        self.dispose();
     }
 }

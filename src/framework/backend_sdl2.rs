@@ -28,7 +28,7 @@ use sdl2::{controller, keyboard, pixels, EventPump, GameControllerSubsystem, Sdl
 use crate::common::{Color, Rect};
 use crate::framework::backend::{
     Backend, BackendEventLoop, BackendGamepad, BackendRenderer, BackendShader, BackendTexture, SpriteBatchCommand,
-    VertexData, WindowParams,
+    VertexData, WindowParams, get_scaled_size
 };
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
@@ -42,6 +42,7 @@ use crate::framework::ui::init_imgui;
 use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
 use crate::game::GAME_SUSPENDED;
+use crate::input::touch_controls::TouchPoint;
 
 pub struct SDL2Backend {
     context: Sdl,
@@ -128,8 +129,6 @@ impl WindowOrCanvas {
         if let WindowOrCanvas::Win(window) = self {
             let canvas = window
                 .into_canvas()
-                .accelerated()
-                .present_vsync()
                 .build()
                 .map_err(|e| GameError::RenderError(e.to_string()))?;
 
@@ -168,11 +167,17 @@ impl SDL2EventLoop {
 
         let gl_attr = video.gl_attr();
 
-        gl_attr.set_context_profile(GLProfile::Compatibility);
-        gl_attr.set_context_version(2, 1);
+        if cfg!(target_os = "android") {
+            gl_attr.set_context_profile(GLProfile::GLES);
+            gl_attr.set_context_version(2, 0);
+        } else {
+            gl_attr.set_context_profile(GLProfile::Compatibility);
+            gl_attr.set_context_version(2, 1);
+        }
 
         let mut win_builder = video.window("Cave Story (doukutsu-rs)", ctx.window.size_hint.0 as _, ctx.window.size_hint.1 as _);
         win_builder.position_centered();
+        #[cfg(not(target_os = "android"))]
         win_builder.resizable();
 
         if ctx.window.mode.is_fullscreen() {
@@ -195,6 +200,9 @@ impl SDL2EventLoop {
             window.set_icon(icon);
         }
 
+        // Disable non-latin IME (fix stuck)
+        window.subsystem().text_input().stop();
+
 
         let opengl_available = if let Ok(v) = std::env::var("CAVESTORY_NO_OPENGL") { v != "1" } else { true };
 
@@ -215,6 +223,33 @@ impl SDL2EventLoop {
     }
 }
 
+#[cfg(target_os = "android")]
+fn get_insets() -> GameResult<(f32, f32, f32, f32)> {
+    unsafe {
+        use jni::objects::JObject;
+        use jni::JavaVM;
+
+        let vm_ptr = ndk_context::android_context().vm().cast();
+        let vm = JavaVM::from_raw(vm_ptr)?;
+        let vm_env = vm.attach_current_thread()?;
+
+        let class = vm_env.new_global_ref(JObject::from_raw(ndk_context::android_context().context().cast()))?;
+        let field = vm_env.get_field(class.as_obj(), "displayInsets", "[I")?.to_jni().l as jni::sys::jintArray;
+
+        let mut elements = [0; 4];
+        vm_env.get_int_array_region(field, 0, &mut elements)?;
+
+        vm_env.delete_local_ref(JObject::from_raw(field));
+
+        // The app always run in landscape mode, so the top and bottom cutouts are redundant
+        // and only waste part of the screen, causing UI elements to overlap.
+        elements[1] = 0;
+        elements[3] = 0;
+
+        Ok((elements[0] as f32, elements[1] as f32, elements[2] as f32, elements[3] as f32))
+    }
+}
+
 impl BackendEventLoop for SDL2EventLoop {
     fn run(&mut self, game: &mut Game, ctx: &mut Context) {
         let state = unsafe { &mut *game.state.get() };
@@ -226,7 +261,8 @@ impl BackendEventLoop for SDL2EventLoop {
 
         {
             let (width, height) = self.refs.deref().borrow().window.window().size();
-            ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
+            ctx.real_screen_size = (width.max(1), height.max(1));
+            ctx.screen_size = get_scaled_size(width.max(1), height.max(1));
 
             imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
             let _ = state.handle_resize(ctx);
@@ -285,7 +321,8 @@ impl BackendEventLoop for SDL2EventLoop {
                             }
                         }
                         WindowEvent::SizeChanged(width, height) => {
-                            ctx.screen_size = (width.max(1) as f32, height.max(1) as f32);
+                            ctx.real_screen_size = (width as u32, height as u32);
+                            ctx.screen_size = get_scaled_size(width.max(1) as u32, height.max(1) as u32);
 
                             if let Some(renderer) = &ctx.renderer {
                                 if let Ok(imgui) = renderer.imgui() {
@@ -377,6 +414,39 @@ impl BackendEventLoop for SDL2EventLoop {
                             ctx.gamepad_context.set_button(which, drs_button, false);
                         }
                     }
+                    Event::FingerDown { finger_id, x, y, .. } | Event::FingerMotion { finger_id, x, y, .. } => {
+                        let touch_id = finger_id as u64;
+                        let mut controls = &mut state.touch_controls;
+                        let scale = state.scale as f64;
+                        let loc_x = (x as f64 * ctx.screen_size.0 as f64) / scale;
+                        let loc_y = (y as f64 * ctx.screen_size.1 as f64) / scale;
+
+                        if let Some(point) = controls.points.iter_mut().find(|p| p.id == touch_id) {
+                            point.last_position = point.position;
+                            point.position = (loc_x, loc_y);
+                        } else {
+                            controls.touch_id_counter = controls.touch_id_counter.wrapping_add(1);
+
+                            let point = TouchPoint {
+                                id: touch_id,
+                                touch_id: controls.touch_id_counter,
+                                position: (loc_x, loc_y),
+                                first_position: (loc_x, loc_y),
+                                last_position: (0.0, 0.0),
+                            };
+                            controls.points.push(point);
+                            if matches!(event, Event::FingerDown { .. }) {
+                                controls.clicks.push(point);
+                            }
+                        }
+                    }
+                    Event::FingerUp { finger_id, x, y, .. } => {
+                        let touch_id = finger_id as u64;
+                        let mut controls = &mut state.touch_controls;
+
+                        controls.points.retain(|p| p.id != touch_id);
+                        controls.clicks.retain(|p| p.id != touch_id);
+                    }
                     _ => {}
                 }
             }
@@ -414,6 +484,18 @@ impl BackendEventLoop for SDL2EventLoop {
             }
 
             game.update(ctx).unwrap();
+
+            #[cfg(target_os = "android")]
+            {
+                match get_insets() {
+                    Ok(insets) => {
+                        ctx.screen_insets = insets;
+                    }
+                    Err(e) => {
+                        log::error!("Failed to update insets: {}", e);
+                    }
+                }
+            }
 
             if let Some(_) = &state.next_scene {
                 game.scene = mem::take(&mut state.next_scene);
@@ -486,10 +568,12 @@ impl BackendEventLoop for SDL2EventLoop {
             }
 
             let gl_context =
-                GLContext { gles2_mode: false, is_sdl: true, get_proc_address, swap_buffers, user_data, ctx };
+                GLContext { gles2_mode: cfg!(target_os = "android"), is_sdl: true, get_proc_address, swap_buffers, user_data, ctx };
 
             return Ok(Box::new(OpenGLRenderer::new(gl_context, UnsafeCell::new(imgui))));
-        } else {
+        }
+        
+        {
             let mut refs = self.refs.borrow_mut();
             let window = std::mem::take(&mut refs.window);
             refs.window = window.make_canvas()?;
@@ -1430,6 +1514,16 @@ impl ImguiSdl2 {
 
         self.ignore_keyboard = io.want_capture_keyboard;
         self.ignore_mouse = io.want_capture_mouse;
+
+        // Text input is disabled by default, as it causes freezing when IME is active
+        let text_util = window.subsystem().text_input();
+        if io.want_text_input != text_util.is_active() {
+            if io.want_text_input {
+                text_util.start();
+            } else {
+                text_util.stop();
+            }
+        }
     }
 
     pub fn prepare_render(&mut self, ui: &imgui::Ui, window: &sdl2::video::Window) {

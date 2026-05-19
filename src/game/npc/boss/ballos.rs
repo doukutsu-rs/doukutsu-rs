@@ -1211,7 +1211,7 @@ impl NPC {
                 self.animate(2, 2, 3);
 
                 self.action_counter += 1;
-                if self.action_num > 300 {
+                if self.action_counter > 300 {
                     self.action_num = 30;
                 }
                 if player.x < self.x + 0xE000
@@ -1229,7 +1229,8 @@ impl NPC {
                     self.anim_counter = 0;
                 }
 
-                self.animate(1, 3, 4);
+                self.anim_counter += 1;
+                self.anim_num = if self.anim_counter % 2 != 0 { 3 } else { 4 };
 
                 self.action_counter += 1;
                 if self.action_counter > 30 {
@@ -1347,7 +1348,7 @@ impl NPC {
                 if self.vel_y2 < 0 && self.flags.hit_top_wall() {
                     self.vel_y2 *= -1
                 };
-                if self.vel_y2 < 0 && self.flags.hit_bottom_wall() {
+                if self.vel_y2 > 0 && self.flags.hit_bottom_wall() {
                     self.vel_y2 *= -1
                 };
 
@@ -1357,7 +1358,7 @@ impl NPC {
                 self.x += self.vel_x2;
                 self.y += self.vel_y2;
 
-                self.animate(1, 4, 5);
+                self.animate(1, 0, 1);
             }
             _ => (),
         }
@@ -1365,7 +1366,7 @@ impl NPC {
         if self.action_num < 10 {
             self.anim_rect = state.constants.npc.n353_bute_sword_flying[self.anim_num as usize];
         } else {
-            let dir_offset = if self.direction == Direction::Left { 0 } else { 2 };
+            let dir_offset = if self.direction == Direction::Left { 4 } else { 6 };
             self.anim_rect = state.constants.npc.n353_bute_sword_flying[self.anim_num as usize + dir_offset];
         }
 
@@ -1381,12 +1382,12 @@ impl NPC {
             0 => {
                 self.hit_bounds.bottom = 0x23000;
             }
-            10 => {
-                self.action_num = 11;
-                self.action_counter = 0;
-                self.x += 0x2000 * self.direction.vector_x() * -1;
-            }
-            11 => {
+            10 | 11 => {
+                if self.action_num == 10 {
+                    self.action_num = 11;
+                    self.action_counter = 0;
+                    self.x += 0x2000 * self.direction.vector_x() * -1;
+                }
                 self.action_counter += 1;
                 if self.action_counter > 100 {
                     self.action_counter = 0;

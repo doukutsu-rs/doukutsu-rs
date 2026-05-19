@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::engine_constants::{DataRoot, DataType};
 use crate::framework::context::Context;
 use crate::framework::filesystem;
 use crate::game::scripting::tsc::text_script::TextScriptEncoding;
@@ -12,6 +13,8 @@ pub struct Locale {
     pub font: FontData,
     pub encoding: Option<TextScriptEncoding>,
     pub stage_encoding: Option<TextScriptEncoding>,
+    pub is_present: bool,
+    pub data_type: Option<DataType>,
     strings: HashMap<String, String>,
 }
 
@@ -23,13 +26,15 @@ impl Default for Locale {
             font: FontData { path: String::new(), scale: 1.0, space_offset: 0.0 },
             encoding: None,
             stage_encoding: None,
+            is_present: false,
+            data_type: None,
             strings: HashMap::new(),
         }
     }
 }
 
 impl Locale {
-    pub fn new(ctx: &mut Context, base_paths: &Vec<String>, code: &str) -> Locale {
+    pub fn new(ctx: &mut Context, active_root: &DataRoot, base_paths: &Vec<String>, code: &str) -> Locale {
         let file = filesystem::open_find(ctx, base_paths, &format!("locale/{code}.json")).unwrap();
         let json: serde_json::Value = serde_json::from_reader(file).unwrap();
 
@@ -52,7 +57,22 @@ impl Locale {
             None
         };
 
-        Locale { code: code.to_string(), name, font, encoding, stage_encoding, strings }
+        // We consider that the main root is always an English translation
+        let is_present: bool;
+        let data_type: Option<DataType>;
+
+        if code != "en" {
+            // We expect that locales reloading occurs only when a root that supports translations is active
+            let full_path = format!("{}{code}/", active_root.base_path());
+
+            is_present = filesystem::exists(ctx, &full_path);
+            data_type = DataType::from_path(ctx, full_path.as_str());
+        } else {
+            is_present = true;
+            data_type = None;
+        };
+
+        Locale { code: code.to_string(), name, font, encoding, stage_encoding, is_present, data_type, strings }
     }
 
     fn flatten(json: &serde_json::Value) -> HashMap<String, String> {

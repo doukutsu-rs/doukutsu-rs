@@ -81,6 +81,39 @@ directory. Until that is done, both doukutsu-rs and the vanilla executable have 
 
 doukutsu-rs can be used as drop-in replacement for `CaveStory+.exe`. No modifications to game files are needed.
 
+**Remastered version (first released in 2017 on Switch)**
+
+> [!NOTE]
+> This version is **incompatible** with saves from the original version.
+>
+> Interchanging the save files may result in spawning in wrong locations, softlocks, graphical glitches, or other issues.
+
+<details>
+<summary>Steam (2026) - not yet supported</summary>
+
+See https://github.com/doukutsu-rs/doukutsu-rs/issues/356 for status.
+</details>
+
+<details>
+<summary>Nintendo Switch</summary>
+
+Extract the `data` folder (contained in `romfs`) from your console using tool such as [nxdumptool](https://github.com/DarkMatterCore/nxdumptool).
+
+**Important notes:**
+
+- doukutsu-rs doesn't rely on the original ROM or executable, you just need the data files, go to `RomFS options` menu to just extract the files to SD card so you don't need to do any extra steps.
+- Ensure you're dumping the files **with update included** (`Use update/DLC` option), as 1.0 isn't supported.
+
+**Nintendo Switch homebrew port specific info**
+
+If you're running the homebrew port (drshorizon.nro) on your Switch, you can avoid the dumping step, doukutsu-rs will
+automatically detect and mount the data files if you run it over Cave Story+ in Title Override mode (hold `R` while starting CS+ and launch d-rs from hbmenu).
+
+You can put your own data files in `/switch/doukutsu-rs/data` directory on SD Card, which will be overlayed over RomFS if
+you run it in setup described above.
+
+</details>
+
 **Original version (first released in 2011 on Steam)** - expand for instructions
 
 <details>
@@ -147,33 +180,6 @@ The archive from Humble Bundle contains the necessary `data` folder, in the same
 1. [Dump Your WiiWare `.wad`](https://wii.guide/dump-wads.html)
 2. [Extract and decompress the `data` folder](https://docs.google.com/document/d/1hDNDgNl0cUDlFOQ_BUOq3QCGb7S0xfUxRoob-hfM-DY)
    Example of a [valid uncompressed `data` folder](https://user-images.githubusercontent.com/53099651/159585593-43fead24-b041-48f4-8332-be50d712310d.png)
-
-</details>
-
-**Remastered version (first released in 2017 on Switch)**
-
-> [!NOTE]
-> This version is **incompatible** with saves from the original version.
->
-> Interchanging the save files may result in spawning in wrong locations, softlocks, graphical glitches, or other issues.
-
-<details>
-<summary>Nintendo Switch</summary>
-
-Extract the `data` folder (contained in `romfs`) from your console using tool such as [nxdumptool](https://github.com/DarkMatterCore/nxdumptool).
-
-**Important notes:**
-
-- doukutsu-rs doesn't rely on the original ROM or executable, you just need the data files, go to `RomFS options` menu to just extract the files to SD card so you don't need to do any extra steps.
-- Ensure you're dumping the files **with update included** (`Use update/DLC` option), as 1.0 isn't supported.
-
-**Nintendo Switch homebrew port specific info**
-
-If you're running the homebrew port (drshorizon.nro) on your Switch, you can avoid the dumping step, doukutsu-rs will
-automatically detect and mount the data files if you run it over Cave Story+ in Title Override mode (hold `R` while starting CS+ and launch d-rs from hbmenu).
-
-You can put your own data files in `/switch/doukutsu-rs/data` directory on SD Card, which will be overlayed over RomFS if
-you run it in setup described above.
 
 </details>
 

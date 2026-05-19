@@ -122,7 +122,7 @@ impl NPC {
             npc.cond.set_alive(true);
             npc.x = self.x;
             npc.y = self.y;
-            for _ in 0..9 {
+            for _ in 0..10 {
                 let _ = npc_list.spawn(0x100, npc.clone());
             }
         }
@@ -500,7 +500,8 @@ impl NPC {
                     npc.cond.set_alive(true);
                     npc.parent_id = self.id;
                     let _ = npc_list.spawn(0, npc);
-                } else if self.action_num == 1 || (self.action_num == 0 && is_in_spawn_radius) {
+                }
+                if self.action_num == 1 {
                     self.direction = if player.x >= self.x { Direction::Right } else { Direction::Left };
                     self.vel_y += (self.target_y - self.y).signum() * 0x0a;
                     self.vel_y = clamp(self.vel_y, -0x200, 0x200);

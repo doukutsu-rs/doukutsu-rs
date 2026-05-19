@@ -123,6 +123,11 @@
         "display_touch_controls": "Display touch controls:"
       },
       "language": "Language...",
+      "language_menu": {
+        "warnings": {
+          "different_type": "{icon} - may produce saves that are incompatible with other locales"
+        }
+      },
       "behavior": "Behavior...",
       "behavior_menu": {
         "game_timing": {
@@ -162,7 +167,8 @@
       },
       "controller": {
         "entry": "Controller...",
-        "keyboard": "Keyboard"
+        "keyboard": "Keyboard",
+        "touch_controls_or_keyboard": "Touch controls/Keyboard"
       },
       "rebind": "Rebind...",
       "rebind_menu": {
@@ -183,7 +189,8 @@
       },
       "rebind_confirm_menu": {
         "title": "Press button for \"{control}\"",
-        "cancel": "(Esc to cancel)"
+        "cancel": "(Esc to cancel)",
+        "cancel_touch": "(Esc or touch the screen to cancel)"
       },
       "rumble": "Rumble:",
       "reset_confirm": "Reset...",
