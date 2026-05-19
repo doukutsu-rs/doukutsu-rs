@@ -86,11 +86,15 @@ impl Background {
                 graphics::clear(ctx, stage.data.background_color);
 
                 let (bg_width, bg_height) = (batch.width() as i32, batch.height() as i32);
-                let offset_x = self.tick as f32 % (bg_width as f32 / 3.0);
-                let interp_x = (offset_x * (1.0 - state.frame_time as f32)
-                    + (offset_x + 1.0) * state.frame_time as f32)
-                    * 3.0
-                    * scale;
+                let bg_period = bg_width as f32 / 3.0;
+                let prev_offset_x = self.prev_tick as f32 % bg_period;
+                let mut curr_offset_x = self.tick as f32 % bg_period;
+                if curr_offset_x < prev_offset_x {
+                    curr_offset_x += bg_period;
+                }
+                let interp_x = (prev_offset_x * (1.0 - state.frame_time as f32)
+                    + curr_offset_x * state.frame_time as f32)
+                    * 3.0;
 
                 let count_x = state.canvas_size.0 as i32 / bg_width + 6;
                 let count_y = state.canvas_size.1 as i32 / bg_height + 1;

@@ -436,6 +436,16 @@ pub struct EngineConstants {
 }
 
 impl EngineConstants {
+    /// Sprite/texture scale multiplier for the loaded data files.
+    /// CS+ data ships 2×-density textures; freeware and NXEngine use 1×.
+    pub fn texture_scale(&self) -> u32 {
+        if self.is_cs_plus {
+            2
+        } else {
+            1
+        }
+    }
+
     pub fn defaults() -> Self {
         EngineConstants {
             base_paths: Vec::new(),

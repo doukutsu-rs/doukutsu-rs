@@ -182,9 +182,9 @@ impl EditorInstance {
                         let (width, height) = tex.dimensions();
                         let (width, height) = (width as f32 * scale_x, height as f32 * scale_y);
 
-                        if let Ok(tex_id) = graphics::imgui_texture_id(ctx, tex) {
-                            Image::new(tex_id, [width, height]).build(ui);
-                        }
+                        // if let Ok(tex_id) = graphics::imgui_texture_id(ctx, tex) {
+                        //     Image::new(tex_id, [width, height]).build(ui);
+                        // }
 
                         ui.set_cursor_screen_pos(pos);
                         ui.invisible_button("##tiles", [width, height]);

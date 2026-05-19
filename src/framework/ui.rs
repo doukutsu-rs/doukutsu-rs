@@ -1,11 +1,13 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::Instant;
 
-use imgui::{FontConfig, FontSource};
 use imgui::sys::*;
+use imgui::{FontConfig, FontSource};
 
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::{imgui_context, prepare_imgui, render_imgui};
+use crate::framework::render::imgui_renderer::ImguiRenderer;
 use crate::game::shared_game_state::SharedGameState;
 use crate::live_debugger::LiveDebugger;
 use crate::scene::Scene;
@@ -13,16 +15,15 @@ use crate::scene::Scene;
 pub struct UI {
     pub components: Components,
     last_frame: Instant,
+    renderer: ImguiRenderer,
 }
 
 pub struct Components {
     pub live_debugger: LiveDebugger,
 }
 
-pub fn init_imgui() -> GameResult<imgui::Context> {
-    let mut imgui = imgui::Context::create();
-    imgui.set_ini_filename(None);
-    imgui.fonts().add_font(&[FontSource::DefaultFontData { config: Some(FontConfig::default()) }]);
+fn configure_imgui_style(imgui: &mut imgui::Context) {
+    imgui.style_mut().use_dark_colors();
 
     imgui.style_mut().window_padding = [4.0, 6.0];
     imgui.style_mut().frame_padding = [8.0, 6.0];
@@ -98,29 +99,59 @@ pub fn init_imgui() -> GameResult<imgui::Context> {
     colors[ImGuiCol_NavWindowingHighlight as usize] = [0.00, 0.00, 0.00, 0.70];
     colors[ImGuiCol_NavWindowingDimBg as usize] = [0.20, 0.20, 0.20, 0.20];
     colors[ImGuiCol_ModalWindowDimBg as usize] = [0.20, 0.20, 0.20, 0.35];
+}
 
-    Ok(imgui)
+pub fn init_imgui() -> Rc<RefCell<imgui::Context>> {
+    let mut imgui = imgui::Context::create();
+    imgui.set_ini_filename(None);
+    imgui.fonts().add_font(&[FontSource::DefaultFontData { config: Some(FontConfig::default()) }]);
+
+    configure_imgui_style(&mut imgui);
+
+    Rc::new(RefCell::new(imgui))
 }
 
 impl UI {
     pub fn new(_ctx: &mut Context) -> GameResult<Self> {
-        Ok(Self { components: Components { live_debugger: LiveDebugger::new() }, last_frame: Instant::now() })
+        Ok(Self {
+            components: Components { live_debugger: LiveDebugger::new() },
+            last_frame: Instant::now(),
+            renderer: ImguiRenderer::new(),
+        })
     }
 
     pub fn draw(&mut self, state: &mut SharedGameState, ctx: &mut Context, scene: &mut Box<dyn Scene>) -> GameResult {
-        let ctx2 = unsafe { &mut *(ctx as *const Context as *mut Context) };
-        let imgui = imgui_context(ctx)?;
+        let imgui_rc = ctx.imgui.clone();
         let now = Instant::now();
-        imgui.io_mut().update_delta_time(now - self.last_frame);
+
+        let (display_size, fb_scale) = (ctx.viewport.overlay_display_size(), ctx.viewport.overlay_framebuffer_scale());
+        let overlay_viewport = ctx.viewport.overlay_viewport_rect();
+
+        let mut imgui = imgui_rc.borrow_mut();
+        let io = imgui.io_mut();
+        io.display_size = [display_size.0, display_size.1];
+        io.display_framebuffer_scale = [fb_scale.0, fb_scale.1];
+        io.update_delta_time(now - self.last_frame);
         self.last_frame = now;
 
-        let mut ui = imgui.new_frame();
+        self.renderer.ensure_font_texture(ctx, &mut imgui)?;
 
-        scene.imgui_draw(&mut self.components, state, ctx2, &mut ui)?;
+        ctx.input.drain_to_imgui(imgui.io_mut());
 
-        prepare_imgui(ctx2, &ui);
+        let ui = imgui.new_frame();
+        scene.imgui_draw(&mut self.components, state, ctx, ui)?;
+
         let draw_data = imgui.render();
-        render_imgui(ctx2, draw_data)?;
+
+        if let Some(renderer) = ctx.renderer.as_mut() {
+            renderer.prepare_overlay_pass(display_size, overlay_viewport)?;
+        }
+        self.renderer.render(ctx, draw_data)?;
+
+        let io = imgui.io();
+        ctx.input.want_capture_keyboard = io.want_capture_keyboard;
+        ctx.input.want_capture_mouse = io.want_capture_mouse;
+        ctx.input.set_text_input_active(io.want_text_input);
 
         Ok(())
     }

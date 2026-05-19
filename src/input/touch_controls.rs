@@ -30,6 +30,14 @@ impl TouchPoint {
     }
 }
 
+/// Platform-agnostic touch event delivered by backends.
+#[derive(Copy, Clone, Debug)]
+pub enum TouchEvent {
+    Down { id: u64, x: f64, y: f64 },
+    Move { id: u64, x: f64, y: f64 },
+    Up { id: u64 },
+}
+
 pub struct TouchControls {
     pub control_type: TouchControlType,
     pub points: Vec<TouchPoint>,
@@ -58,6 +66,35 @@ impl TouchControls {
 
     pub fn point_in(&self, bounds: Rect) -> Option<u64> {
         self.find_point_in(bounds).map(|p| p.touch_id)
+    }
+
+    /// Apply a platform-agnostic touch event, updating points/clicks bookkeeping.
+    pub fn apply_event(&mut self, ev: TouchEvent) {
+        match ev {
+            TouchEvent::Down { id, x, y } | TouchEvent::Move { id, x, y } => {
+                if let Some(point) = self.points.iter_mut().find(|p| p.id == id) {
+                    point.last_position = point.position;
+                    point.position = (x, y);
+                } else {
+                    self.touch_id_counter = self.touch_id_counter.wrapping_add(1);
+                    let point = TouchPoint {
+                        id,
+                        touch_id: self.touch_id_counter,
+                        position: (x, y),
+                        first_position: (x, y),
+                        last_position: (0.0, 0.0),
+                    };
+                    self.points.push(point);
+                    if matches!(ev, TouchEvent::Down { .. }) {
+                        self.clicks.push(point);
+                    }
+                }
+            }
+            TouchEvent::Up { id } => {
+                self.points.retain(|p| p.id != id);
+                self.clicks.retain(|p| p.id != id);
+            }
+        }
     }
 
     pub fn consume_click_in(&mut self, bounds: Rect) -> bool {

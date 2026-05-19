@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use crate::common::{Color, Rect};
-use crate::framework::backend::{BackendTexture, SpriteBatchCommand};
+use crate::framework::render::sprite_batch::{SpriteBatch as FrameworkSpriteBatch, SpriteBatchCommand};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics;
@@ -22,7 +22,7 @@ pub enum MapSystemState {
 }
 
 pub struct MapSystem {
-    texture: RefCell<Option<Box<dyn BackendTexture>>>,
+    texture: RefCell<Option<FrameworkSpriteBatch>>,
     has_map_data: RefCell<bool>,
     last_size: (u16, u16),
     tick: u16,
@@ -48,7 +48,7 @@ impl MapSystem {
 
         *self.has_map_data.borrow_mut() = true;
 
-        graphics::set_render_target(ctx, self.texture.borrow().as_ref())?;
+        graphics::set_render_target(ctx, self.texture.borrow().as_ref().map(|sb| sb.texture_ref()))?;
         graphics::clear(ctx, Color::new(0.0, 0.0, 0.0, 1.0));
 
         let batch = state.texture_set.get_or_load_batch(ctx, &state.constants, "TextBox")?;
@@ -114,7 +114,9 @@ impl MapSystem {
 
         if self.last_size != (width, height) {
             self.last_size = (width, height);
-            *self.texture.borrow_mut() = graphics::create_texture_mutable(ctx, width, height).ok();
+            *self.texture.borrow_mut() = graphics::create_texture_mutable(ctx, width, height)
+                .and_then(|tex| FrameworkSpriteBatch::new(ctx, tex))
+                .ok();
             *self.has_map_data.borrow_mut() = false;
         }
 
@@ -256,7 +258,7 @@ impl MapSystem {
                 map_rect,
                 Rect::new_size((scr_w - width) / 2.0, (scr_h - height) / 2.0, map_rect.width(), map_rect.height()),
             ));
-            tex.draw()?;
+            tex.draw(ctx)?;
         }
 
         if (self.tick & 8) != 0 {

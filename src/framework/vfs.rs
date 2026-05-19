@@ -196,7 +196,7 @@ fn sanitize_path(path: &path::Path) -> Option<PathBuf> {
         _ => return None,
     }
 
-    fn is_normal_component(comp: path::Component) -> Option<&str> {
+    fn is_normal_component(comp: path::Component<'_>) -> Option<&str> {
         match comp {
             path::Component::Normal(s) => s.to_str(),
             _ => None,
@@ -257,10 +257,11 @@ impl PhysicalFS {
                         continue;
                     }
 
+                    let node_lower = node.to_ascii_lowercase();
                     if let Ok(entries) = root_path2.read_dir() {
                         for entry in entries.flatten() {
                             let name = entry.file_name();
-                            if name.to_ascii_lowercase() != node.to_ascii_lowercase() {
+                            if name.to_ascii_lowercase() != node_lower {
                                 continue;
                             }
 

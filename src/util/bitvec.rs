@@ -59,7 +59,7 @@ impl BitVec {
         self.bits.capacity() * 8
     }
 
-    pub fn iter(&self) -> BitVecIter {
+    pub fn iter(&self) -> BitVecIter<'_> {
         BitVecIter { bitvec: self, index: 0 }
     }
 

@@ -1,11 +1,12 @@
-#version 110
 
 uniform mat4 ProjMtx;
-attribute vec2 Position;
-attribute vec2 UV;
-attribute vec4 Color;
-varying vec2 Frag_UV;
-varying vec4 Frag_Color;
+
+in vec2 Position;
+in vec2 UV;
+in vec4 Color;
+
+out highp vec2 Frag_UV;
+out highp vec4 Frag_Color;
 
 void main()
 {

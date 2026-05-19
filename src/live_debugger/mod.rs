@@ -253,7 +253,7 @@ impl LiveDebugger {
                     }
                     let stages: Vec<&ImStr> = self.stages.iter().map(|e| e.as_ref()).collect();
 
-                    ui.push_item_width(-1.0);
+                    let _w = ui.push_item_width(-1.0);
                     ui.list_box("##SelectedStage", &mut self.selected_stage, &stages, 10);
 
                     if ui.button("Load") {
@@ -337,7 +337,7 @@ impl LiveDebugger {
                         state.creditscript_vm.state
                     )));
 
-                    ui.push_item_width(-1.0);
+                    let _w = ui.push_item_width(-1.0);
                     ui.list_box("##SelectedEvent", &mut self.selected_event, &events, 10);
 
                     if ui.button("Execute") {
@@ -534,7 +534,7 @@ impl LiveDebugger {
                 )
                 .size([300.0, 100.0], Condition::Appearing)
                 .build(|| {
-                    ui.push_item_width(-1.0);
+                    let _w = ui.push_item_width(-1.0);
                     ui.text_wrapped(self.error.as_ref().unwrap());
 
                     if ui.button("OK") {

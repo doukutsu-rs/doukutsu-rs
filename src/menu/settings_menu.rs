@@ -3,8 +3,10 @@ use itertools::Itertools;
 use crate::common::Rect;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
-use crate::framework::graphics::VSyncMode;
-use crate::framework::{filesystem, graphics};
+use crate::framework::viewport::{InsetMode, ScalingMode};
+use crate::framework::filesystem;
+use crate::game::aspect_ratio::AspectRatio;
+use crate::game::settings::VSyncMode;
 use crate::game::shared_game_state::{CutsceneSkipMode, ScreenShakeIntensity, SharedGameState, TimingMode, WindowMode};
 use crate::graphics::font::{Font, Symbols};
 use crate::input::combined_menu_controller::CombinedMenuController;
@@ -54,6 +56,9 @@ impl Default for MainMenuEntry {
 enum GraphicsMenuEntry {
     VSyncMode,
     WindowMode,
+    AspectRatio,
+    ScalingMode,
+    InsetMode,
     LightingEffects,
     WeaponLightCone,
     ScreenShake,
@@ -145,10 +150,8 @@ impl Default for LinksMenuEntry {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 enum AdvancedMenuEntry {
-    Title,
     OpenUserData,
     OpenGameData,
-    #[cfg(not(any(target_os = "android", target_os = "horizon")))]
     MakePortable,
     Back,
 }
@@ -229,41 +232,84 @@ impl SettingsMenu {
     }
 
     pub fn init(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        let initial_vsync_index = match state.settings.vsync_mode {
+            VSyncMode::Uncapped => 0,
+            VSyncMode::VSync => 1,
+            VSyncMode::VRRTickSync1x => 2,
+            // 2x/3x are legacy serde values; surface them as Auto in the menu.
+            VSyncMode::VRRTickSync2x | VSyncMode::VRRTickSync3x | VSyncMode::VRRTickSyncAuto => 3,
+        };
         self.graphics.push_entry(
             GraphicsMenuEntry::VSyncMode,
             MenuEntry::DescriptiveOptions(
                 state.loc.t("menus.options_menu.graphics_menu.vsync_mode.entry").to_owned(),
-                state.settings.vsync_mode as usize,
+                initial_vsync_index,
                 vec![
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.uncapped").to_owned(),
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vsync").to_owned(),
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_1x").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_2x").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_3x").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_auto").to_owned(),
                 ],
                 vec![
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.uncapped_desc").to_owned(),
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vsync_desc").to_owned(),
                     state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_1x_desc").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_2x_desc").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_3x_desc").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.vsync_mode.vrr_auto_desc").to_owned(),
                 ],
             ),
         );
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
+
+        if ctx.flags.supports_windowed_fullscreen() {
+            self.graphics.push_entry(
+                GraphicsMenuEntry::WindowMode,
+                MenuEntry::Options(
+                    state.loc.t("menus.options_menu.graphics_menu.window_mode.entry").to_owned(),
+                    // The value in the context can be set via CLI args, but it will be overwritten by the value in the settings,
+                    // if they're modified
+                    ctx.window.mode as usize,
+                    vec![
+                        state.loc.t("menus.options_menu.graphics_menu.window_mode.windowed").to_owned(),
+                        state.loc.t("menus.options_menu.graphics_menu.window_mode.fullscreen").to_owned(),
+                    ],
+                ),
+            );
+        }
+
         self.graphics.push_entry(
-            GraphicsMenuEntry::WindowMode,
+            GraphicsMenuEntry::AspectRatio,
             MenuEntry::Options(
-                state.loc.t("menus.options_menu.graphics_menu.window_mode.entry").to_owned(),
-                // The value in the context can be set via CLI args, but it will be overwritten by the value in the settings,
-                // if they're modified
-                ctx.window.mode as usize,
+                state.loc.t("menus.options_menu.graphics_menu.aspect_ratio.entry").to_owned(),
+                aspect_ratio_index(&state.settings.aspect_ratio),
+                aspect_ratio_option_labels(state),
+            ),
+        );
+
+        self.graphics.push_entry(
+            GraphicsMenuEntry::ScalingMode,
+            MenuEntry::Options(
+                state.loc.t("menus.options_menu.graphics_menu.scaling_mode.entry").to_owned(),
+                state.settings.scaling_mode as usize,
                 vec![
-                    state.loc.t("menus.options_menu.graphics_menu.window_mode.windowed").to_owned(),
-                    state.loc.t("menus.options_menu.graphics_menu.window_mode.fullscreen").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.scaling_mode.integer").to_owned(),
+                    state.loc.t("menus.options_menu.graphics_menu.scaling_mode.scaled").to_owned(),
                 ],
             ),
         );
+
+        if ctx.flags.supports_insets() {
+            self.graphics.push_entry(
+                GraphicsMenuEntry::InsetMode,
+                MenuEntry::Options(
+                    state.loc.t("menus.options_menu.graphics_menu.inset_mode.entry").to_owned(),
+                    state.settings.inset_mode as usize,
+                    vec![
+                        state.loc.t("menus.options_menu.graphics_menu.inset_mode.fill_screen").to_owned(),
+                        state.loc.t("menus.options_menu.graphics_menu.inset_mode.fit_safe_area").to_owned(),
+                    ],
+                ),
+            );
+        }
+
         self.graphics.push_entry(
             GraphicsMenuEntry::LightingEffects,
             MenuEntry::Toggle(
@@ -434,36 +480,39 @@ impl SettingsMenu {
         );
         self.links.push_entry(LinksMenuEntry::Link(GETPLUS_LINK), MenuEntry::Active("Get Cave Story+".to_owned()));
 
-        #[cfg(not(any(target_os = "horizon")))]
-        self.main.push_entry(
-            MainMenuEntry::Advanced,
-            MenuEntry::Active(state.loc.t("menus.options_menu.advanced").to_owned()),
-        );
+        #[allow(unused_mut)]
+        let mut has_any_advanced_entries = false;
 
-        self.advanced.push_entry(
-            AdvancedMenuEntry::Title,
-            MenuEntry::Disabled(state.loc.t("menus.options_menu.advanced").to_owned()),
-        );
-        self.advanced.push_entry(
-            AdvancedMenuEntry::OpenUserData,
-            MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.open_user_data").to_owned()),
-        );
-        self.advanced.push_entry(
-            AdvancedMenuEntry::OpenGameData,
-            MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.open_game_data").to_owned()),
-        );
+        if ctx.flags.supports_open_directory() {
+            self.advanced.push_entry(
+                AdvancedMenuEntry::OpenUserData,
+                MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.open_user_data").to_owned()),
+            );
+            self.advanced.push_entry(
+                AdvancedMenuEntry::OpenGameData,
+                MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.open_game_data").to_owned()),
+            );
+            has_any_advanced_entries = true;
+        }
 
-        #[cfg(not(any(target_os = "android", target_os = "horizon")))]
-        if let Some(fs_container) = &state.fs_container {
+        if let (Some(fs_container), true) = (&state.fs_container, ctx.flags.supports_portable()) {
             if !fs_container.is_portable && self.on_title {
                 self.advanced.push_entry(
                     AdvancedMenuEntry::MakePortable,
                     MenuEntry::Active(state.loc.t("menus.options_menu.advanced_menu.make_portable").to_owned()),
                 );
+                has_any_advanced_entries = true;
             }
         }
 
         self.advanced.push_entry(AdvancedMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
+
+        if has_any_advanced_entries {
+            self.main.push_entry(
+                MainMenuEntry::Advanced,
+                MenuEntry::Active(state.loc.t("menus.options_menu.advanced").to_owned()),
+            );
+        }
 
         self.portable.center_options = true;
 
@@ -703,6 +752,13 @@ impl SettingsMenu {
     ) -> GameResult {
         self.update_sizes(state);
 
+        // TODO: we really need some sort of reactive UI system for this
+        for opt in &mut self.graphics.entries {
+            if let (GraphicsMenuEntry::WindowMode, MenuEntry::Options(_, value, _)) = opt {
+                *value = ctx.window.mode as usize;
+            }
+        }
+
         match self.current {
             CurrentMenu::MainMenu => match self.main.tick(controller, state) {
                 MenuSelectionResult::Selected(MainMenuEntry::Graphics, _) => {
@@ -753,14 +809,12 @@ impl SettingsMenu {
                         let (new_mode, new_value) = match *value {
                             0 => (VSyncMode::VSync, 1),
                             1 => (VSyncMode::VRRTickSync1x, 2),
-                            2 => (VSyncMode::VRRTickSync2x, 3),
-                            3 => (VSyncMode::VRRTickSync3x, 4),
+                            2 => (VSyncMode::VRRTickSyncAuto, 3),
                             _ => (VSyncMode::Uncapped, 0),
                         };
 
                         *value = new_value;
                         state.settings.vsync_mode = new_mode;
-                        graphics::set_vsync_mode(ctx, new_mode)?;
 
                         let _ = state.settings.save(ctx);
                     }
@@ -768,18 +822,59 @@ impl SettingsMenu {
                 MenuSelectionResult::Left(GraphicsMenuEntry::VSyncMode, toggle, _) => {
                     if let MenuEntry::DescriptiveOptions(_, value, _, _) = toggle {
                         let (new_mode, new_value) = match *value {
-                            0 => (VSyncMode::VRRTickSync3x, 4),
+                            0 => (VSyncMode::VRRTickSyncAuto, 3),
                             1 => (VSyncMode::Uncapped, 0),
                             2 => (VSyncMode::VSync, 1),
-                            3 => (VSyncMode::VRRTickSync1x, 2),
-                            _ => (VSyncMode::VRRTickSync2x, 3),
+                            _ => (VSyncMode::VRRTickSync1x, 2),
                         };
 
                         *value = new_value;
                         state.settings.vsync_mode = new_mode;
-                        graphics::set_vsync_mode(ctx, new_mode)?;
 
                         let _ = state.settings.save(ctx);
+                    }
+                }
+                MenuSelectionResult::Selected(GraphicsMenuEntry::AspectRatio, toggle)
+                | MenuSelectionResult::Right(GraphicsMenuEntry::AspectRatio, toggle, _) => {
+                    if let MenuEntry::Options(_, value, options) = toggle {
+                        *value = (*value + 1) % options.len();
+                        state.settings.aspect_ratio = aspect_ratio_from_index(*value);
+                        let _ = state.settings.save(ctx);
+                        state.handle_resize(ctx)?;
+                    }
+                }
+                MenuSelectionResult::Left(GraphicsMenuEntry::AspectRatio, toggle, _) => {
+                    if let MenuEntry::Options(_, value, options) = toggle {
+                        *value = if *value == 0 { options.len() - 1 } else { *value - 1 };
+                        state.settings.aspect_ratio = aspect_ratio_from_index(*value);
+                        let _ = state.settings.save(ctx);
+                        state.handle_resize(ctx)?;
+                    }
+                }
+                MenuSelectionResult::Selected(GraphicsMenuEntry::ScalingMode, toggle)
+                | MenuSelectionResult::Right(GraphicsMenuEntry::ScalingMode, toggle, _)
+                | MenuSelectionResult::Left(GraphicsMenuEntry::ScalingMode, toggle, _) => {
+                    if let MenuEntry::Options(_, value, options) = toggle {
+                        *value = (*value + 1) % options.len();
+                        state.settings.scaling_mode = match *value {
+                            0 => ScalingMode::Integer,
+                            _ => ScalingMode::Scaled,
+                        };
+                        let _ = state.settings.save(ctx);
+                        state.handle_resize(ctx)?;
+                    }
+                }
+                MenuSelectionResult::Selected(GraphicsMenuEntry::InsetMode, toggle)
+                | MenuSelectionResult::Right(GraphicsMenuEntry::InsetMode, toggle, _)
+                | MenuSelectionResult::Left(GraphicsMenuEntry::InsetMode, toggle, _) => {
+                    if let MenuEntry::Options(_, value, options) = toggle {
+                        *value = (*value + 1) % options.len();
+                        state.settings.inset_mode = match *value {
+                            0 => InsetMode::FillScreen,
+                            _ => InsetMode::FitSafeArea,
+                        };
+                        let _ = state.settings.save(ctx);
+                        state.handle_resize(ctx)?;
                     }
                 }
                 MenuSelectionResult::Selected(GraphicsMenuEntry::LightingEffects, toggle) => {
@@ -1124,8 +1219,6 @@ impl SettingsMenu {
                         fs_container.open_game_directory()?;
                     }
                 }
-
-                #[cfg(not(any(target_os = "android", target_os = "horizon")))]
                 MenuSelectionResult::Selected(AdvancedMenuEntry::MakePortable, _) => {
                     self.current = CurrentMenu::PortableMenu;
                 }
@@ -1165,5 +1258,47 @@ impl SettingsMenu {
         }
 
         Ok(())
+    }
+}
+
+/// Aspect-ratio presets shown in the Graphics menu.
+/// Update this list to add/remove menu entries — the labels and index lookups flow from here,
+/// so you don't have to edit three places in sync.
+const ASPECT_PRESETS: &[(u32, u32)] = &[(4, 3), (16, 9), (16, 10), (5, 3)];
+
+/// Special (non-numeric) aspect modes that precede the numeric presets. Keep the order in sync
+/// with the `aspect_ratio_index` / `aspect_ratio_from_index` match arms.
+const ASPECT_SPECIAL: &[&str] = &["default", "unrestricted", "stretch"];
+
+fn aspect_ratio_option_labels(state: &SharedGameState) -> Vec<String> {
+    let mut v = Vec::with_capacity(ASPECT_SPECIAL.len() + ASPECT_PRESETS.len());
+    for id in ASPECT_SPECIAL {
+        v.push(state.loc.t(&format!("menus.options_menu.graphics_menu.aspect_ratio.{}", id)).to_owned());
+    }
+    v.extend(ASPECT_PRESETS.iter().map(|(w, h)| format!("{}:{}", w, h)));
+    v
+}
+
+fn aspect_ratio_index(value: &str) -> usize {
+    match AspectRatio::parse(value) {
+        AspectRatio::Default => 0,
+        AspectRatio::Unrestricted => 1,
+        AspectRatio::Stretch => 2,
+        AspectRatio::Locked { w, h } => ASPECT_PRESETS
+            .iter()
+            .position(|&(pw, ph)| pw == w && ph == h)
+            .map_or(0, |i| i + ASPECT_SPECIAL.len()),
+    }
+}
+
+fn aspect_ratio_from_index(index: usize) -> String {
+    if let Some(special) = ASPECT_SPECIAL.get(index) {
+        return (*special).to_owned();
+    }
+    let preset_idx = index - ASPECT_SPECIAL.len();
+    if let Some(&(w, h)) = ASPECT_PRESETS.get(preset_idx) {
+        format!("{}:{}", w, h)
+    } else {
+        "default".to_owned()
     }
 }

@@ -1,7 +1,15 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io;
 use std::path::PathBuf;
+
+const SCRATCH_RETAIN_CAP: usize = 256;
+
+thread_local! {
+    static TEXT_BUF: RefCell<Vec<char>> = const { RefCell::new(Vec::new()) };
+    static RECTS_BUF: RefCell<Vec<(f32, f32, *const Rect<u16>)>> = const { RefCell::new(Vec::new()) };
+}
 
 use byteorder::{LE, ReadBytesExt};
 
@@ -24,14 +32,17 @@ pub struct BMChar {
     pub y_offset: i16,
     pub x_advance: i16,
     pub page: u8,
+    #[allow(dead_code)]
     pub channel: u8,
 }
 
 #[derive(Debug)]
 pub struct BMFontMetadata {
     pub pages: u16,
+    #[allow(dead_code)]
     pub font_size: i16,
     pub line_height: u16,
+    #[allow(dead_code)]
     pub base: u16,
     pub chars: HashMap<char, BMChar>,
 }
@@ -179,23 +190,19 @@ impl Font for BMFont {
         symbols: Option<Symbols>,
         ctx: &mut Context,
     ) -> GameResult {
-        unsafe {
-            static mut TEXT_BUF: Vec<char> = Vec::new();
-
-            TEXT_BUF.clear();
-            for c in text {
-                TEXT_BUF.push(c);
-            }
+        TEXT_BUF.with_borrow_mut(|buf| -> GameResult {
+            buf.clear();
+            buf.extend(text);
 
             if flags.centered() {
-                let text_width = self.compute_width(&mut TEXT_BUF.iter().copied(), symbols.as_ref());
+                let text_width = self.compute_width(&mut buf.iter().copied(), symbols.as_ref());
 
                 x += (box_width - text_width) * 0.5;
             }
 
             if flags.shadow() {
                 self.draw_text_line(
-                    &mut TEXT_BUF.iter().copied(),
+                    &mut buf.iter().copied(),
                     x + scale,
                     y + scale,
                     scale,
@@ -208,7 +215,7 @@ impl Font for BMFont {
             }
 
             self.draw_text_line(
-                &mut TEXT_BUF.iter().copied(),
+                &mut buf.iter().copied(),
                 x,
                 y,
                 scale,
@@ -218,9 +225,12 @@ impl Font for BMFont {
                 symbols.as_ref(),
                 ctx,
             )?;
-        }
 
-        Ok(())
+            if buf.capacity() > SCRATCH_RETAIN_CAP {
+                buf.shrink_to(SCRATCH_RETAIN_CAP);
+            }
+            Ok(())
+        })
     }
 }
 
@@ -267,11 +277,9 @@ impl BMFont {
         symbols: Option<&Symbols>,
         ctx: &mut Context,
     ) -> GameResult {
-        unsafe {
-            static mut RECTS_BUF: Vec<(f32, f32, *const Rect<u16>)> = Vec::new();
-
+        RECTS_BUF.with_borrow_mut(|rects_buf| -> GameResult {
             let syms = symbols.unwrap_or(&EMPTY_SYMBOLS);
-            RECTS_BUF.clear();
+            rects_buf.clear();
 
             if self.pages.len() == 1 {
                 let batch = texture_set.get_or_load_batch(ctx, constants, self.pages.get(0).unwrap())?;
@@ -282,7 +290,7 @@ impl BMFont {
                         let rect_map_entry = syms.symbols.iter().find(|(c, _)| *c == chr);
 
                         if let Some((_, rect)) = rect_map_entry {
-                            RECTS_BUF.push((
+                            rects_buf.push((
                                 offset_x,
                                 y + self.line_height() / 2.0 - rect.height() as f32 / 2.0,
                                 rect as *const _,
@@ -290,8 +298,8 @@ impl BMFont {
                             offset_x += rect.width() as f32;
                         } else {
                             batch.add_rect_scaled_tinted(
-                                offset_x + (glyph.x_offset as f32 * self.font_scale),
-                                y + (glyph.y_offset as f32 * self.font_scale),
+                                offset_x + (glyph.x_offset as f32 * self.font_scale * scale),
+                                y + (glyph.y_offset as f32 * self.font_scale * scale),
                                 color,
                                 self.font_scale * scale,
                                 self.font_scale * scale,
@@ -334,13 +342,13 @@ impl BMFont {
                         let rect_map_entry = syms.symbols.iter().find(|(c, _)| *c == *chr);
 
                         if let Some((_, rect)) = rect_map_entry {
-                            RECTS_BUF.push((offset_x, y + self.line_height() / 2.0 - rect.height() as f32 / 2.0, rect));
+                            rects_buf.push((offset_x, y + self.line_height() / 2.0 - rect.height() as f32 / 2.0, rect));
                             offset_x += rect.width() as f32;
                         } else {
                             if glyph.page == page {
                                 batch.add_rect_scaled_tinted(
-                                    offset_x + (glyph.x_offset as f32 * self.font_scale),
-                                    y + (glyph.y_offset as f32 * self.font_scale),
+                                    offset_x + (glyph.x_offset as f32 * self.font_scale * scale),
+                                    y + (glyph.y_offset as f32 * self.font_scale * scale),
                                     color,
                                     self.font_scale * scale,
                                     self.font_scale * scale,
@@ -361,18 +369,22 @@ impl BMFont {
                 }
             }
 
-            if !RECTS_BUF.is_empty() && !syms.texture.is_empty() {
+            if !rects_buf.is_empty() && !syms.texture.is_empty() {
                 let sprite_batch = texture_set.get_or_load_batch(ctx, constants, syms.texture)?;
 
-                for &(x, y, rect) in RECTS_BUF.iter() {
-                    sprite_batch.add_rect_scaled(x, y, scale, scale, &*rect);
+                for &(x, y, rect) in rects_buf.iter() {
+                    // SAFETY: `rect` points into `syms.symbols`, which is borrowed for this call.
+                    sprite_batch.add_rect_scaled(x, y, scale, scale, unsafe { &*rect });
                 }
 
                 sprite_batch.draw(ctx)?;
             }
-        }
 
-        Ok(())
+            if rects_buf.capacity() > SCRATCH_RETAIN_CAP {
+                rects_buf.shrink_to(SCRATCH_RETAIN_CAP);
+            }
+            Ok(())
+        })
     }
 
     pub fn scale(&mut self, scale: f32) {
