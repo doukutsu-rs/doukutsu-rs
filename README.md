@@ -1,7 +1,8 @@
 ![doukutsu-rs](./res/sue_crab_banner_github.png)
 
-A fully playable re-implementation of the Cave Story (Doukutsu Monogatari) engine written
-in [Rust](https://www.rust-lang.org/).
+A reimplementation of the Cave Story (Doukutsu Monogatari) engine with many quality-of-life
+improvements. It lets you enjoy the 2004 indie classic like a modern game, with support for the
+original freeware, Cave Story+, and Nintendo Switch data files.
 
 [Join the Discord server](https://discord.gg/fbRsNNB)
 

@@ -3,11 +3,11 @@
   <id>io.github.doukutsu_rs.doukutsu-rs</id>
   <metadata_license>CC0-1.0</metadata_license>
   <name>doukutsu-rs</name>
-  <summary>A faithful and open-source remake of Cave Story's engine written in Rust</summary>
+  <summary>A reimplementation of Cave Story's engine with many quality-of-life improvements</summary>
   <description>
-    <p>doukutsu-rs initially started as a Rust learning project, but eventually evolved into semi-playable and compatible reimplementation of the engine of Cave Story - a great indie game created by Studio Pixel.</p>
-    <p>The project aims to deliver a decent alternative for the original engine, improving it with features such as multiplayer support, independent framerate (so the game runs at original speed and looks smooth regardless of monitor refresh rate), enhanced lightning and cutscenes skipping.</p>
-    <p>Furthermore, the engine supports game data from multiple game versions: original freeware, Cave Story+, and Nintendo Switch version.</p>
+    <p>doukutsu-rs initially started as a Rust learning project, but eventually evolved into a complete and faithful reimplementation of the engine of Cave Story - a great indie game created by Studio Pixel.</p>
+    <p>It brings many quality-of-life improvements that let you enjoy the 2004 indie classic like a modern game: game logic decoupled from the frame rate with motion interpolation for high refresh rate displays, a flexible non-fixed resolution, switchable 50/60 tps game speeds, multiplayer support, cutscene skipping, and enhanced lighting effects beyond those of the Switch version.</p>
+    <p>A single executable supports game data from multiple versions: the original freeware release, Cave Story+, and the Nintendo Switch port.</p>
     <p>NOTE: The default data files directory is under <code>$XDG_DATA_HOME/doukutsu-rs/data</code>. That being <code>$HOME/.var/app/io.github.doukutsu_rs.doukutsu-rs/data/doukutsu-rs/data</code> by default.</p>
   </description>
   <categories>
@@ -43,6 +43,27 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="1.0.0" date="2026-06-03">
+      <url type="details">https://github.com/doukutsu-rs/doukutsu-rs/releases/tag/1.0.0</url>
+      <description>
+        <p>The engine has had full feature parity since 0.99.0-beta4, and ever since we have only been squashing bugs and perfecting game accuracy. It is stable and complete, so we are retiring the beta label and switching to standard semantic versioning, starting with 1.0.0.</p>
+        <ul>
+          <li>Rewrite the Android port on SDL2, adding gamepad support, co-op and a CMake-based build</li>
+          <li>Enable native Wayland support on Linux</li>
+          <li>Add CLI arguments to set the initial window size and fullscreen state</li>
+          <li>Always use a hi-res logo on the title screen for CS+ data</li>
+          <li>Add a drop-in animation when acquiring an item</li>
+          <li>Add support for translations of different data types</li>
+          <li>Implement declicking between measures in Organya playback</li>
+          <li>Fix music fading out too quickly and stop noise on the &lt;ESC opcode</li>
+          <li>Fix CS+ soundtracks not loading</li>
+          <li>Fix software rendering on SDL2</li>
+          <li>Prevent the app icon from being changed on macOS</li>
+          <li>Fix the Discord activity getting stuck</li>
+        </ul>
+        <p>Also have been fixed many inaccuracies of bosses and NPCs.</p>
+      </description>
+    </release>
     <release version="0.102.0-beta7" date="2025-03-08">
       <url type="details">https://github.com/doukutsu-rs/doukutsu-rs/releases/tag/0.102.0-beta7</url>
       <description>
