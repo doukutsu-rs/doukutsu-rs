@@ -26,19 +26,19 @@
   </content_rating>
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/heads/master/res/flatpak/screens/grassrown-lightning.png</image>
+      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/tags/1.0.0/res/flatpak/screens/grassrown-lightning.png</image>
       <caption>Enjoy lighting effects that are slightly fancier than those in the Switch version</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/heads/master/res/flatpak/screens/cutscene-skipping.png</image>
+      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/tags/1.0.0/res/flatpak/screens/cutscene-skipping.png</image>
       <caption>Supports skipping cutscenes, a feature previously exclusive to the Switch version</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/heads/master/res/flatpak/screens/core-fight.png</image>
+      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/tags/1.0.0/res/flatpak/screens/core-fight.png</image>
       <caption>Battle with one of the game bosses</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/heads/master/res/flatpak/screens/snake-trading.png</image>
+      <image>https://raw.githubusercontent.com/doukutsu-rs/doukutsu-rs/refs/tags/1.0.0/res/flatpak/screens/snake-trading.png</image>
       <caption>Another example of lighting effects</caption>
     </screenshot>
   </screenshots>
@@ -48,18 +48,16 @@
       <description>
         <p>The engine has had full feature parity since 0.99.0-beta4, and ever since we have only been squashing bugs and perfecting game accuracy. It is stable and complete, so we are retiring the beta label and switching to standard semantic versioning, starting with 1.0.0.</p>
         <ul>
-          <li>Rewrite the Android port on SDL2, adding gamepad support, co-op and a CMake-based build</li>
-          <li>Enable native Wayland support on Linux</li>
+          <li>Enable native Wayland support</li>
           <li>Add CLI arguments to set the initial window size and fullscreen state</li>
           <li>Always use a hi-res logo on the title screen for CS+ data</li>
           <li>Add a drop-in animation when acquiring an item</li>
           <li>Add support for translations of different data types</li>
           <li>Implement declicking between measures in Organya playback</li>
           <li>Fix music fading out too quickly and stop noise on the &lt;ESC opcode</li>
-          <li>Fix CS+ soundtracks not loading</li>
-          <li>Fix software rendering on SDL2</li>
-          <li>Prevent the app icon from being changed on macOS</li>
           <li>Fix the Discord activity getting stuck</li>
+          <li>Correct the end date of Christmas textures (they are now active until January 7, as intended)</li>
+          <li>Prevent unwanted input method candidate popups</li>
         </ul>
         <p>Also have been fixed many inaccuracies of bosses and NPCs.</p>
       </description>
