@@ -13,7 +13,9 @@ original freeware, Cave Story+, and Nintendo Switch data files.
   - [GitHub Releases](https://github.com/doukutsu-rs/doukutsu-rs/releases)
   - [Flatpak](https://flathub.org/apps/io.github.doukutsu_rs.doukutsu-rs) (Linux only)
 
-- [Get nightly builds](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master?preview) (recommended for now, has latest fixes and improvements)
+- Get nightly builds (has latest fixes and improvements) from
+  - [get.doukutsu.rs](https://get.doukutsu.rs)
+  - [nightly.link](https://nightly.link/doukutsu-rs/doukutsu-rs/workflows/ci/master?preview)
 
   Permalinks to latest builds from `master` branch:
 
@@ -80,7 +82,7 @@ directory. Until that is done, both doukutsu-rs and the vanilla executable have 
 
 **Cave Story+**
 
-doukutsu-rs can be used as drop-in replacement for `CaveStory+.exe`. No modifications to game files are needed.
+doukutsu-rs can be used as drop-in replacement for `CaveStory+.exe` (instructions for Mac are in the "Steam release (Win/Mac/Linux)" section). No modifications to game files are needed.
 
 **Remastered version (first released in 2017 on Switch)**
 
@@ -92,7 +94,7 @@ doukutsu-rs can be used as drop-in replacement for `CaveStory+.exe`. No modifica
 <details>
 <summary>Steam (2026) - not yet supported</summary>
 
-See https://github.com/doukutsu-rs/doukutsu-rs/issues/356 for status.
+See https://github.com/doukutsu-rs/doukutsu-rs/issues/365 for status.
 </details>
 
 <details>
@@ -126,7 +128,7 @@ If you want to use doukutsu-rs as a substitute for Mac version of Cave Story+ (w
 on 10.15+ anymore), do the following:
 
 1. Find the doukutsu-rs executable:
-   - In AppVeyor builds, it's in `doukutsu-rs.app/Contents/MacOS/doukutsu-rs`
+   - In stables, nightly, and CI builds, it's in `doukutsu-rs.app/Contents/MacOS/doukutsu-rs`
    - In your own builds, it's in `target/(release|debug)/doukutsu-rs`
 2. Open Steam Library, select `Cave Story+`, press the `Manage` button (gear icon) and select `Properties...`
 3. Select `Local Files` and press `Browse...`.
