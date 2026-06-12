@@ -16,6 +16,8 @@ use crate::game::player::ControlMode;
 use crate::game::scripting::tsc::text_script::TextScriptEncoding;
 use crate::game::settings::Settings;
 use crate::game::shared_game_state::{FontData, Season};
+use crate::game::stage::StageData;
+use crate::graphics::texture_set::TextureSet;
 use crate::i18n::Locale;
 use crate::sound::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
 use crate::sound::SoundManager;
@@ -265,6 +267,7 @@ pub enum DataType {
     CSE2E,
     #[strum(serialize = "NXEngine-evo")]
     NXEngineEvo,
+    Freeware,
 }
 
 impl DataType {
@@ -292,6 +295,8 @@ impl DataType {
             Some(Self::CSE2E)
         } else if filesystem::exists(ctx, format!("{root_path}/stage.dat")) {
             Some(Self::NXEngineEvo)
+        } else if filesystem::exists(ctx, format!("{root_path}/PIXEL.pbm")) || filesystem::exists(ctx, format!("{root_path}/PIXEL.png")) {
+            Some(Self::Freeware)
         } else {
             None
         }
@@ -343,7 +348,7 @@ impl DataType {
 pub enum RootType {
     Base, // "/" path. Supports mods and locales.
     Mod, // Mod root (not CS+ challenge). Doesn't support mods, but supports locales.
-    Translation // Translation of the main game or a mod. Doesn't support mods and locales.
+    Translation // Translation of the main game. Doesn't support mods and locales.
 }
 
 #[derive(Clone, Debug)]
@@ -365,6 +370,12 @@ impl Default for DataRoot {
             path: "/".to_string(),
             support_locales: false
         }
+    }
+}
+
+impl PartialEq for DataRoot {
+    fn eq(&self, other: &Self) -> bool {
+        self.path == other.path
     }
 }
 
@@ -390,6 +401,30 @@ impl DataRoot {
         }
 
         base_path
+    }
+
+    pub fn is_complete(&self, ctx: &Context) -> bool {
+        // Only overlaid translations may be incomplete.
+        // As a result, incomplete translations don't have any specific files to determine their data type.
+        if self.root_type != RootType::Translation || self.data_type.is_some() {
+            return true;
+        }
+
+        let base_paths = vec![self.path.clone(), self.base_path()];
+
+        // The Japanese translation of CS+ doesn't have a stage table, as `stage.tbl` contains stage names in Japanese
+        let stage_table = StageData::find_stage_table(ctx, &base_paths);
+        if stage_table.is_none() {
+            return false;
+        }
+
+        // "bk0" seems to be present in the data files of all versions of Cave Story and in great number of mods,
+        // but is absent in overlaid translations
+        if TextureSet::find_texture(ctx, &base_paths, "bk0", true).is_none() {
+            return false;
+        }
+
+        true
     }
 }
 
@@ -430,6 +465,7 @@ pub struct EngineConstants {
     pub animated_face_table: Vec<AnimatedFace>,
     pub string_table: HashMap<String, String>,
     pub missile_flags: Vec<u16>,
+    pub base_locale: String,
     pub locales: Vec<Locale>,
     pub gamepad: GamepadConsts,
     pub stage_encoding: Option<TextScriptEncoding>,
@@ -1739,6 +1775,7 @@ impl EngineConstants {
             animated_face_table: vec![AnimatedFace { face_id: 0, anim_id: 0, anim_frames: vec![(0, 0)] }],
             string_table: HashMap::new(),
             missile_flags: vec![200, 201, 202, 218, 550, 766, 880, 920, 1551],
+            base_locale: "en".to_owned(),
             locales: Vec::new(),
             gamepad: {
                 let mut holder = GamepadConsts {
@@ -1906,11 +1943,6 @@ impl EngineConstants {
         // The following roots are locales with data files whose type differs from that of the main root.
         // Switching to a such root requires reloading the engine constants.
         for loc in &consts.locales {
-            // We assume that the Japanese translation is original and of the same data type as the main root
-            if consts.is_cs_plus && loc.code == "jp" {
-                continue;
-            }
-
             let mut full_path = if consts.is_cs_plus { "/base/" } else { "/" }.to_string();
             full_path.push_str(loc.code.as_str());
             full_path.push('/');
@@ -1918,7 +1950,10 @@ impl EngineConstants {
             if filesystem::exists(ctx, full_path.as_str()) {
                 let data_type = DataType::from_path(ctx, full_path.as_str());
                 if data_type != consts.data_type {
-                    self.roots.insert(full_path.clone(), DataRoot::load(ctx, full_path, RootType::Translation));
+                    let root = DataRoot::load(ctx, full_path.clone(), RootType::Translation);
+                    if root.is_complete(ctx) {
+                        self.roots.insert(full_path.clone(), root);
+                    }
                 }
             }
         }
@@ -1926,11 +1961,15 @@ impl EngineConstants {
         // Mod translations must be of the same data type as the mod root
     }
 
-    pub fn set_active_root(&mut self, ctx: &mut Context, new_root: String, settings: &Settings, sound_manager: &mut SoundManager) {
+    pub fn set_active_root(&mut self, ctx: &mut Context, new_root: String, settings: &Settings, sound_manager: &mut SoundManager) -> bool {
         log::debug!("Switching to a new root: {}", &new_root);
+
         if self.roots.is_empty() {
             self.rebuild_roots_list(ctx, settings, sound_manager);
         }
+
+        // We shouldn't check here whether the new root is the active one, because during the `EngineConstants` initilization in `SharedGameState`,
+        // the base root "/" is set for the first time, being also the default active root in `EngineConstants::defaults`
 
         let root = self.roots.get(&new_root).cloned();
         if let Some(data_root) = root {
@@ -1948,7 +1987,10 @@ impl EngineConstants {
             }
 
             log::debug!("Path list after switching the root: {:?}", &self.base_paths);
+            return true;
         }
+
+        false
     }
 
     pub fn rebuild_path_list(&mut self, mod_path: Option<String>, season: Season, settings: &Settings) {
@@ -1976,7 +2018,7 @@ impl EngineConstants {
             }
         }
 
-        if self.active_root.support_locales && settings.locale.as_str() != "en" {
+        if self.active_root.support_locales && settings.locale != self.base_locale {
             self.base_paths.insert(0, format!("{base}{}/", settings.locale));
         }
 
@@ -2057,7 +2099,27 @@ impl EngineConstants {
                 parts.next().unwrap().to_string()
             };
 
-            let mut locale = Locale::new(ctx, &self.active_root, &self.base_paths, &locale_code);
+            let mut locale = Locale::new(ctx, &self.base_paths, &locale_code);
+
+            // Roots that support locales may have their own default locale, which differs from English
+            if locale.code == self.base_locale {
+                locale.is_present = true;
+                locale.is_complete = true;
+                locale.data_type = self.active_root.data_type;
+            } else {
+                let translation_path = [self.active_root.base_path().as_str(), locale.code.as_str(), "/"].join("");
+                locale.is_present = filesystem::exists(ctx, &translation_path);
+                if locale.is_present {
+                    locale.data_type = DataType::from_path(ctx, translation_path.as_str());
+
+                    if locale.data_type.is_none() {
+                        let translation_root = self.roots.get(&translation_path);
+
+                        locale.is_complete = translation_root.is_some(); // incomplete translation roots aren't added to the list
+                        locale.data_type = translation_root.unwrap_or(&self.active_root).data_type;
+                    }
+                }
+            }
 
             if locale_code == "jp" && filesystem::exists(ctx, "/base/credit_jp.tsc") {
                 locale.set_font(FontData::new("csfontjp.fnt".to_owned(), 0.5, 0.0));

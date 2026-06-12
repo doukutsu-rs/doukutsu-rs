@@ -3,6 +3,7 @@ use std::str::from_utf8;
 
 use byteorder::ReadBytesExt;
 use byteorder::LE;
+use strum::IntoEnumIterator;
 
 use crate::common::Color;
 use crate::engine_constants::EngineConstants;
@@ -250,7 +251,63 @@ fn from_csplus_stagetbl(s: &[u8], is_switch: bool, encoding: Option<TextScriptEn
     }
 }
 
+#[derive(Clone, Copy, EnumIter)]
+pub enum StageTableType {
+    PlusTbl,
+    FreewareSection,
+    MoustacheRider,
+    NXEngineDat,
+}
+
+impl StageTableType {
+    pub fn path(&self) -> String {
+        let path = match *self {
+            Self::PlusTbl => "/stage.tbl",
+            Self::FreewareSection => "/stage.sect",
+            Self::MoustacheRider => "/mrmap.bin",
+            Self::NXEngineDat => "/stage.dat",
+        };
+
+        path.to_string()
+    }
+
+    pub fn is_stackable(&self) -> bool {
+        match *self {
+            Self::PlusTbl => true,
+            _ => false
+        }
+    }
+}
+
 impl StageData {
+    pub fn find_stage_table(
+        ctx: &Context,
+        roots: &Vec<String>,
+    ) -> Option<(StageTableType, Vec<String>)> {
+        let mut paths = Vec::new();
+
+        for table in StageTableType::iter() {
+            let table_path = table.path();
+
+            for path in roots {
+                let full_path = [path, table_path.as_str()].join("");
+                if filesystem::exists(ctx, &full_path) {
+                    paths.push(full_path);
+
+                    if !table.is_stackable() {
+                        return Some((table, paths));
+                    }
+                }
+
+                if !paths.is_empty() {
+                    return Some((table, paths));
+                }
+            }
+        }
+
+        None
+    }
+
     pub fn load_stage_table(
         state: &SharedGameState,
         ctx: &mut Context,
@@ -260,250 +317,235 @@ impl StageData {
         let is_switch = state.constants.is_switch;
         let encoding = state.constants.stage_encoding;
 
-        let stage_tbl_path = "/stage.tbl";
-        let stage_sect_path = "/stage.sect";
-        let mrmap_bin_path = "/mrmap.bin";
-        let stage_dat_path = "/stage.dat";
+        let mut stages = Vec::new();
+        if let Some((table, table_paths)) = Self::find_stage_table(ctx, roots) {
+            for path in table_paths {
+                if let Ok(mut file) = filesystem::open(ctx, &path) {
+                    match table {
+                        StageTableType::PlusTbl => {
+                            log::info!("Loading Cave Story+ stage table from {}", &path);
 
-        if filesystem::exists_find(ctx, roots, stage_tbl_path) {
-            // Cave Story+ stage table.
-            // Mod stage.tbl expects to overwrite from base stage.tbl
-            let mut stages = Vec::new();
+                            let mut new_stages = Vec::new();
 
-            for path in roots.iter().rev() {
-                if let Ok(mut file) = filesystem::open(ctx, [path, stage_tbl_path].join("")) {
-                    log::info!("Loading Cave Story+ stage table from {}", &path);
+                            let mut data = Vec::new();
+                            file.read_to_end(&mut data)?;
 
-                    let mut new_stages = Vec::new();
+                            let count = data.len() / 0xe5;
+                            let mut f = Cursor::new(data);
+                            for _ in 0..count {
+                                let mut ts_buf = vec![0u8; 0x20];
+                                let mut map_buf = vec![0u8; 0x20];
+                                let mut back_buf = vec![0u8; 0x20];
+                                let mut npc1_buf = vec![0u8; 0x20];
+                                let mut npc2_buf = vec![0u8; 0x20];
+                                let mut name_jap_buf = vec![0u8; 0x20];
+                                let mut name_buf = vec![0u8; 0x20];
 
-                    let mut data = Vec::new();
-                    file.read_to_end(&mut data)?;
+                                f.read_exact(&mut ts_buf)?;
+                                f.read_exact(&mut map_buf)?;
+                                let bg_type = f.read_u32::<LE>()? as u8;
+                                f.read_exact(&mut back_buf)?;
+                                f.read_exact(&mut npc1_buf)?;
+                                f.read_exact(&mut npc2_buf)?;
+                                let boss_no = f.read_u8()?;
+                                f.read_exact(&mut name_jap_buf)?;
+                                f.read_exact(&mut name_buf)?;
 
-                    let count = data.len() / 0xe5;
-                    let mut f = Cursor::new(data);
-                    for _ in 0..count {
-                        let mut ts_buf = vec![0u8; 0x20];
-                        let mut map_buf = vec![0u8; 0x20];
-                        let mut back_buf = vec![0u8; 0x20];
-                        let mut npc1_buf = vec![0u8; 0x20];
-                        let mut npc2_buf = vec![0u8; 0x20];
-                        let mut name_jap_buf = vec![0u8; 0x20];
-                        let mut name_buf = vec![0u8; 0x20];
+                                let tileset = from_csplus_stagetbl(&ts_buf[0..zero_index(&ts_buf)], is_switch, encoding);
+                                let map = from_csplus_stagetbl(&map_buf[0..zero_index(&map_buf)], is_switch, encoding);
+                                let background = from_csplus_stagetbl(&back_buf[0..zero_index(&back_buf)], is_switch, encoding);
+                                let npc1 = from_csplus_stagetbl(&npc1_buf[0..zero_index(&npc1_buf)], is_switch, encoding);
+                                let npc2 = from_csplus_stagetbl(&npc2_buf[0..zero_index(&npc2_buf)], is_switch, encoding);
+                                let name = from_csplus_stagetbl(&name_buf[0..zero_index(&name_buf)], is_switch, encoding);
+                                let name_jp =
+                                    from_csplus_stagetbl(&name_jap_buf[0..zero_index(&name_jap_buf)], is_switch, encoding);
 
-                        f.read_exact(&mut ts_buf)?;
-                        f.read_exact(&mut map_buf)?;
-                        let bg_type = f.read_u32::<LE>()? as u8;
-                        f.read_exact(&mut back_buf)?;
-                        f.read_exact(&mut npc1_buf)?;
-                        f.read_exact(&mut npc2_buf)?;
-                        let boss_no = f.read_u8()?;
-                        f.read_exact(&mut name_jap_buf)?;
-                        f.read_exact(&mut name_buf)?;
+                                let stage = StageData {
+                                    name: name.clone(),
+                                    name_jp: name_jp.clone(),
+                                    map: map.clone(),
+                                    boss_no,
+                                    tileset: Tileset::new(&tileset),
+                                    pxpack_data: None,
+                                    background: Background::new(&background),
+                                    background_type: BackgroundType::from(bg_type),
+                                    background_color: state.constants.background_color,
+                                    npc1: NpcType::new(&npc1),
+                                    npc2: NpcType::new(&npc2),
+                                };
+                                new_stages.push(stage);
+                            }
 
-                        let tileset = from_csplus_stagetbl(&ts_buf[0..zero_index(&ts_buf)], is_switch, encoding);
-                        let map = from_csplus_stagetbl(&map_buf[0..zero_index(&map_buf)], is_switch, encoding);
-                        let background = from_csplus_stagetbl(&back_buf[0..zero_index(&back_buf)], is_switch, encoding);
-                        let npc1 = from_csplus_stagetbl(&npc1_buf[0..zero_index(&npc1_buf)], is_switch, encoding);
-                        let npc2 = from_csplus_stagetbl(&npc2_buf[0..zero_index(&npc2_buf)], is_switch, encoding);
-                        let name = from_csplus_stagetbl(&name_buf[0..zero_index(&name_buf)], is_switch, encoding);
-                        let name_jp =
-                            from_csplus_stagetbl(&name_jap_buf[0..zero_index(&name_jap_buf)], is_switch, encoding);
+                            if new_stages.len() >= stages.len() {
+                                stages = new_stages;
+                            } else {
+                                let _ = stages.splice(0..new_stages.len(), new_stages);
+                            }
+                        },
+                        StageTableType::FreewareSection => {
+                            log::info!("Loading Cave Story freeware exe dump stage table from {}", &path);
 
-                        let stage = StageData {
-                            name: name.clone(),
-                            name_jp: name_jp.clone(),
-                            map: map.clone(),
-                            boss_no,
-                            tileset: Tileset::new(&tileset),
-                            pxpack_data: None,
-                            background: Background::new(&background),
-                            background_type: BackgroundType::from(bg_type),
-                            background_color: state.constants.background_color,
-                            npc1: NpcType::new(&npc1),
-                            npc2: NpcType::new(&npc2),
-                        };
-                        new_stages.push(stage);
-                    }
+                            let mut data = Vec::new();
+                            file.read_to_end(&mut data)?;
 
-                    if new_stages.len() >= stages.len() {
-                        stages = new_stages;
-                    } else {
-                        let _ = stages.splice(0..new_stages.len(), new_stages);
+                            let count = data.len() / 0xc8;
+                            let mut f = Cursor::new(data);
+                            for _ in 0..count {
+                                let mut ts_buf = vec![0u8; 0x20];
+                                let mut map_buf = vec![0u8; 0x20];
+                                let mut back_buf = vec![0u8; 0x20];
+                                let mut npc1_buf = vec![0u8; 0x20];
+                                let mut npc2_buf = vec![0u8; 0x20];
+                                let mut name_buf = vec![0u8; 0x20];
+
+                                f.read_exact(&mut ts_buf)?;
+                                f.read_exact(&mut map_buf)?;
+                                let bg_type = f.read_u32::<LE>()? as u8;
+                                f.read_exact(&mut back_buf)?;
+                                f.read_exact(&mut npc1_buf)?;
+                                f.read_exact(&mut npc2_buf)?;
+                                let boss_no = f.read_u8()?;
+                                f.read_exact(&mut name_buf)?;
+                                // alignment
+                                {
+                                    let mut lol = [0u8; 3];
+                                    let _ = f.read(&mut lol)?;
+                                }
+
+                                let tileset = from_encoding(&ts_buf[0..zero_index(&ts_buf)], encoding);
+                                let map = from_encoding(&map_buf[0..zero_index(&map_buf)], encoding);
+                                let background = from_encoding(&back_buf[0..zero_index(&back_buf)], encoding);
+                                let npc1 = from_encoding(&npc1_buf[0..zero_index(&npc1_buf)], encoding);
+                                let npc2 = from_encoding(&npc2_buf[0..zero_index(&npc2_buf)], encoding);
+                                let name = from_encoding(&name_buf[0..zero_index(&name_buf)], encoding);
+
+                                let stage = StageData {
+                                    name: name.clone(),
+                                    name_jp: name.clone(),
+                                    map: map.clone(),
+                                    boss_no,
+                                    tileset: Tileset::new(&tileset),
+                                    pxpack_data: None,
+                                    background: Background::new(&background),
+                                    background_type: BackgroundType::from(bg_type),
+                                    background_color: state.constants.background_color,
+                                    npc1: NpcType::new(&npc1),
+                                    npc2: NpcType::new(&npc2),
+                                };
+                                stages.push(stage);
+                            }
+                        },
+                        StageTableType::MoustacheRider => {
+                            log::info!("Loading Moustache Rider stage table from {}", &path);
+
+                            let mut data = Vec::new();
+
+                            let count = file.read_u32::<LE>()?;
+                            file.read_to_end(&mut data)?;
+
+                            if data.len() < count as usize * 0x74 {
+                                return Err(ResourceLoadError(
+                                    "Specified stage table size is bigger than actual number of entries.".to_string(),
+                                ));
+                            }
+
+                            let mut f = Cursor::new(data);
+                            for _ in 0..count {
+                                let mut ts_buf = vec![0u8; 0x10];
+                                let mut map_buf = vec![0u8; 0x10];
+                                let mut back_buf = vec![0u8; 0x10];
+                                let mut npc1_buf = vec![0u8; 0x10];
+                                let mut npc2_buf = vec![0u8; 0x10];
+                                let mut name_buf = vec![0u8; 0x22];
+
+                                f.read_exact(&mut ts_buf)?;
+                                f.read_exact(&mut map_buf)?;
+                                let bg_type = f.read_u8()?;
+                                f.read_exact(&mut back_buf)?;
+                                f.read_exact(&mut npc1_buf)?;
+                                f.read_exact(&mut npc2_buf)?;
+                                let boss_no = f.read_u8()?;
+                                f.read_exact(&mut name_buf)?;
+
+                                let tileset = from_encoding(&ts_buf[0..zero_index(&ts_buf)], encoding);
+                                let map = from_encoding(&map_buf[0..zero_index(&map_buf)], encoding);
+                                let background = from_encoding(&back_buf[0..zero_index(&back_buf)], encoding);
+                                let npc1 = from_encoding(&npc1_buf[0..zero_index(&npc1_buf)], encoding);
+                                let npc2 = from_encoding(&npc2_buf[0..zero_index(&npc2_buf)], encoding);
+                                let name = from_encoding(&name_buf[0..zero_index(&name_buf)], encoding);
+
+                                let stage = StageData {
+                                    name: name.clone(),
+                                    name_jp: name.clone(),
+                                    map: map.clone(),
+                                    boss_no,
+                                    tileset: Tileset::new(&tileset),
+                                    pxpack_data: None,
+                                    background: Background::new(&background),
+                                    background_type: BackgroundType::from(bg_type),
+                                    background_color: state.constants.background_color,
+                                    npc1: NpcType::new(&npc1),
+                                    npc2: NpcType::new(&npc2),
+                                };
+                                stages.push(stage);
+                            }
+                        },
+                        StageTableType::NXEngineDat => {
+                            log::info!("Loading NXEngine stage table from {}", &path);
+
+                            let mut data = Vec::new();
+
+                            let count = file.read_u8()? as usize;
+                            file.read_to_end(&mut data)?;
+
+                            if data.len() < count * 0x49 {
+                                return Err(ResourceLoadError(
+                                    "Specified stage table size is bigger than actual number of entries.".to_string(),
+                                ));
+                            }
+
+                            let mut f = Cursor::new(data);
+                            for _ in 0..count {
+                                let mut map_buf = vec![0u8; 0x20];
+                                let mut name_buf = vec![0u8; 0x23];
+
+                                f.read_exact(&mut map_buf)?;
+                                f.read_exact(&mut name_buf)?;
+
+                                let tileset_id = f.read_u8()? as usize;
+                                let bg_id = f.read_u8()? as usize;
+                                let bg_type = f.read_u8()?;
+                                let boss_no = f.read_u8()?;
+                                let npc1 = f.read_u8()? as usize;
+                                let npc2 = f.read_u8()? as usize;
+
+                                let map = from_utf8(&map_buf)
+                                    .map_err(|_| ResourceLoadError("UTF-8 error in map field".to_string()))?
+                                    .trim_matches('\0')
+                                    .to_owned();
+                                let name = from_utf8(&name_buf)
+                                    .map_err(|_| ResourceLoadError("UTF-8 error in name field".to_string()))?
+                                    .trim_matches('\0')
+                                    .to_owned();
+
+                                let stage = StageData {
+                                    name: name.clone(),
+                                    name_jp: name.clone(),
+                                    map: map.clone(),
+                                    boss_no,
+                                    tileset: Tileset::new(NXENGINE_TILESETS.get(tileset_id).unwrap_or(&"0")),
+                                    pxpack_data: None,
+                                    background: Background::new(NXENGINE_BACKDROPS.get(bg_id).unwrap_or(&"0")),
+                                    background_type: BackgroundType::from(bg_type),
+                                    background_color: state.constants.background_color,
+                                    npc1: NpcType::new(NXENGINE_NPCS.get(npc1).unwrap_or(&"0")),
+                                    npc2: NpcType::new(NXENGINE_NPCS.get(npc2).unwrap_or(&"0")),
+                                };
+                                stages.push(stage);
+                            }
+                        }
                     }
                 }
-            }
-
-            return Ok(stages);
-        } else if let Ok(mut file) = filesystem::open_find(ctx, roots, stage_sect_path) {
-            // Cave Story freeware executable dump.
-            let mut stages = Vec::new();
-
-            log::info!("Loading Cave Story freeware exe dump stage table from {}", &stage_sect_path);
-
-            let mut data = Vec::new();
-            file.read_to_end(&mut data)?;
-
-            let count = data.len() / 0xc8;
-            let mut f = Cursor::new(data);
-            for _ in 0..count {
-                let mut ts_buf = vec![0u8; 0x20];
-                let mut map_buf = vec![0u8; 0x20];
-                let mut back_buf = vec![0u8; 0x20];
-                let mut npc1_buf = vec![0u8; 0x20];
-                let mut npc2_buf = vec![0u8; 0x20];
-                let mut name_buf = vec![0u8; 0x20];
-
-                f.read_exact(&mut ts_buf)?;
-                f.read_exact(&mut map_buf)?;
-                let bg_type = f.read_u32::<LE>()? as u8;
-                f.read_exact(&mut back_buf)?;
-                f.read_exact(&mut npc1_buf)?;
-                f.read_exact(&mut npc2_buf)?;
-                let boss_no = f.read_u8()?;
-                f.read_exact(&mut name_buf)?;
-                // alignment
-                {
-                    let mut lol = [0u8; 3];
-                    let _ = f.read(&mut lol)?;
-                }
-
-                let tileset = from_encoding(&ts_buf[0..zero_index(&ts_buf)], encoding);
-                let map = from_encoding(&map_buf[0..zero_index(&map_buf)], encoding);
-                let background = from_encoding(&back_buf[0..zero_index(&back_buf)], encoding);
-                let npc1 = from_encoding(&npc1_buf[0..zero_index(&npc1_buf)], encoding);
-                let npc2 = from_encoding(&npc2_buf[0..zero_index(&npc2_buf)], encoding);
-                let name = from_encoding(&name_buf[0..zero_index(&name_buf)], encoding);
-
-                let stage = StageData {
-                    name: name.clone(),
-                    name_jp: name.clone(),
-                    map: map.clone(),
-                    boss_no,
-                    tileset: Tileset::new(&tileset),
-                    pxpack_data: None,
-                    background: Background::new(&background),
-                    background_type: BackgroundType::from(bg_type),
-                    background_color: state.constants.background_color,
-                    npc1: NpcType::new(&npc1),
-                    npc2: NpcType::new(&npc2),
-                };
-                stages.push(stage);
-            }
-
-            return Ok(stages);
-        } else if let Ok(mut file) = filesystem::open_find(ctx, roots, mrmap_bin_path) {
-            // Moustache Rider stage table
-            let mut stages = Vec::new();
-
-            log::info!("Loading Moustache Rider stage table from {}", &mrmap_bin_path);
-
-            let mut data = Vec::new();
-
-            let count = file.read_u32::<LE>()?;
-            file.read_to_end(&mut data)?;
-
-            if data.len() < count as usize * 0x74 {
-                return Err(ResourceLoadError(
-                    "Specified stage table size is bigger than actual number of entries.".to_string(),
-                ));
-            }
-
-            let mut f = Cursor::new(data);
-            for _ in 0..count {
-                let mut ts_buf = vec![0u8; 0x10];
-                let mut map_buf = vec![0u8; 0x10];
-                let mut back_buf = vec![0u8; 0x10];
-                let mut npc1_buf = vec![0u8; 0x10];
-                let mut npc2_buf = vec![0u8; 0x10];
-                let mut name_buf = vec![0u8; 0x22];
-
-                f.read_exact(&mut ts_buf)?;
-                f.read_exact(&mut map_buf)?;
-                let bg_type = f.read_u8()?;
-                f.read_exact(&mut back_buf)?;
-                f.read_exact(&mut npc1_buf)?;
-                f.read_exact(&mut npc2_buf)?;
-                let boss_no = f.read_u8()?;
-                f.read_exact(&mut name_buf)?;
-
-                let tileset = from_encoding(&ts_buf[0..zero_index(&ts_buf)], encoding);
-                let map = from_encoding(&map_buf[0..zero_index(&map_buf)], encoding);
-                let background = from_encoding(&back_buf[0..zero_index(&back_buf)], encoding);
-                let npc1 = from_encoding(&npc1_buf[0..zero_index(&npc1_buf)], encoding);
-                let npc2 = from_encoding(&npc2_buf[0..zero_index(&npc2_buf)], encoding);
-                let name = from_encoding(&name_buf[0..zero_index(&name_buf)], encoding);
-
-                let stage = StageData {
-                    name: name.clone(),
-                    name_jp: name.clone(),
-                    map: map.clone(),
-                    boss_no,
-                    tileset: Tileset::new(&tileset),
-                    pxpack_data: None,
-                    background: Background::new(&background),
-                    background_type: BackgroundType::from(bg_type),
-                    background_color: state.constants.background_color,
-                    npc1: NpcType::new(&npc1),
-                    npc2: NpcType::new(&npc2),
-                };
-                stages.push(stage);
-            }
-
-            return Ok(stages);
-        } else if let Ok(mut file) = filesystem::open_find(ctx, roots, stage_dat_path) {
-            let mut stages = Vec::new();
-
-            log::info!("Loading NXEngine stage table from {}", &stage_dat_path);
-
-            let mut data = Vec::new();
-
-            let count = file.read_u8()? as usize;
-            file.read_to_end(&mut data)?;
-
-            if data.len() < count * 0x49 {
-                return Err(ResourceLoadError(
-                    "Specified stage table size is bigger than actual number of entries.".to_string(),
-                ));
-            }
-
-            let mut f = Cursor::new(data);
-            for _ in 0..count {
-                let mut map_buf = vec![0u8; 0x20];
-                let mut name_buf = vec![0u8; 0x23];
-
-                f.read_exact(&mut map_buf)?;
-                f.read_exact(&mut name_buf)?;
-
-                let tileset_id = f.read_u8()? as usize;
-                let bg_id = f.read_u8()? as usize;
-                let bg_type = f.read_u8()?;
-                let boss_no = f.read_u8()?;
-                let npc1 = f.read_u8()? as usize;
-                let npc2 = f.read_u8()? as usize;
-
-                let map = from_utf8(&map_buf)
-                    .map_err(|_| ResourceLoadError("UTF-8 error in map field".to_string()))?
-                    .trim_matches('\0')
-                    .to_owned();
-                let name = from_utf8(&name_buf)
-                    .map_err(|_| ResourceLoadError("UTF-8 error in name field".to_string()))?
-                    .trim_matches('\0')
-                    .to_owned();
-
-                let stage = StageData {
-                    name: name.clone(),
-                    name_jp: name.clone(),
-                    map: map.clone(),
-                    boss_no,
-                    tileset: Tileset::new(NXENGINE_TILESETS.get(tileset_id).unwrap_or(&"0")),
-                    pxpack_data: None,
-                    background: Background::new(NXENGINE_BACKDROPS.get(bg_id).unwrap_or(&"0")),
-                    background_type: BackgroundType::from(bg_type),
-                    background_color: state.constants.background_color,
-                    npc1: NpcType::new(NXENGINE_NPCS.get(npc1).unwrap_or(&"0")),
-                    npc2: NpcType::new(NXENGINE_NPCS.get(npc2).unwrap_or(&"0")),
-                };
-                stages.push(stage);
             }
 
             return Ok(stages);

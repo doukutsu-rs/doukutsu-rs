@@ -356,12 +356,17 @@ impl SettingsMenu {
             MenuEntry::Active(state.loc.t("menus.options_menu.controls").to_owned()),
         );
 
-        let save_warn_char = '!';
-        let save_warn_str = "!"; // TODO: find an elegant way to convert char into str without allocations
+        // TODO: find an elegant way to convert char into str without allocations
+        let save_warn_char = ('!', "!");
+        let no_data_char = ('0', "0");
+
         self.language.symbols = Some(
             Symbols {
                 // TODO: dehardcode this Rect
-                symbols: &[(save_warn_char, Rect::new_size(16, 0, 16, 16))], // ! - locale with different data type
+                symbols: &[
+                    (save_warn_char.0, Rect::new_size(16, 0, 16, 16)), // ! - locale with different data type
+                    (no_data_char.0, Rect::new_size(32, 0, 16, 16)), // 0 - locale with no data
+                ],
                 texture: "icons",
             }
             .to_owned(),
@@ -371,38 +376,57 @@ impl SettingsMenu {
             MenuEntry::Disabled(state.loc.t("menus.options_menu.language").to_owned()),
         );
 
+        let mut has_diff_data_locales = false;
+        let mut has_no_data_locales = false;
+
         for locale in &state.constants.locales {
-            // Skip locales with no game  data
             if !locale.is_present {
-                continue;
+                has_no_data_locales = true;
             }
 
-            // The main root is awlays present, so we can safely unwrap it
+            // The main root is always present, so we can safely unwrap it
             let main_root = state.constants.roots.get("/").unwrap();
             let active_root = &state.constants.active_root;
-            let entry =
-                // We expect that the default language for every root that isn't a translation is English.
-                if locale.code == "en" {
-                    locale.name.clone()
-                } else if active_root.support_locales && active_root.data_type != locale.data_type || main_root.data_type != locale.data_type {
-                    format!("{}!", &locale.name)
-                } else {
-                    locale.name.clone()
-                };
+
+            let mut entry = locale.name.clone();
+            if !locale.is_present {
+                entry.push(no_data_char.0)
+            } else if locale.code != state.constants.base_locale && active_root.support_locales && active_root.data_type != locale.data_type || main_root.data_type != locale.data_type {
+                has_diff_data_locales = true;
+                entry.push(save_warn_char.0);
+            }
 
             self.language.push_entry(LanguageMenuEntry::Language(locale.code.clone()), MenuEntry::Active(entry));
         }
 
         self.language.push_entry(LanguageMenuEntry::Spacer, MenuEntry::Spacer(8.0));
-        self.language.push_entry(
-            LanguageMenuEntry::Warning,
-            MenuEntry::LongText(
-                state.loc.tt("menus.options_menu.language_menu.warnings.different_type", &[("icon", save_warn_str)]),
-                false,
-                false,
-            ),
-        );
-        self.language.push_entry(LanguageMenuEntry::Spacer, MenuEntry::Spacer(8.0));
+
+        if has_diff_data_locales {
+            self.language.push_entry(
+                LanguageMenuEntry::Warning,
+                MenuEntry::LongText(
+                    state.loc.tt("menus.options_menu.language_menu.warnings.different_type", &[("icon", save_warn_char.1)]),
+                    false,
+                    false,
+                ),
+            );
+        }
+
+        if has_no_data_locales {
+            self.language.push_entry(
+                LanguageMenuEntry::Warning,
+                MenuEntry::LongText(
+                    state.loc.tt("menus.options_menu.language_menu.warnings.no_data", &[("icon", no_data_char.1)]),
+                    false,
+                    false,
+                ),
+            );
+        }
+
+        if has_no_data_locales || has_diff_data_locales {
+            self.language.push_entry(LanguageMenuEntry::Spacer, MenuEntry::Spacer(8.0));
+        }
+
         self.language.push_entry(LanguageMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         if self.on_title {

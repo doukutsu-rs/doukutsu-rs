@@ -568,18 +568,24 @@ impl SharedGameState {
 
         // If the active root doesn't support locales (we're probably on a Translation root)
         // or the target locale isn't the default one (its data dir could be a root), we need to switch the root
-        if !constants.active_root.support_locales || locale.code != "en" {
+        if !constants.active_root.support_locales || locale.code != constants.base_locale {
+            let main_root = constants.roots.get("/").unwrap();
+
             let path = if constants.active_root.support_locales {
                 // If the active root support locales, we'll try to set active root to the translation data dir.
                 format!("{}{}/", constants.active_root.base_path(), &locale.code)
-            } else if constants.active_root.root_type == RootType::Translation && locale.code != "en" && locale.code != "jp" {
+            } else if constants.active_root.root_type == RootType::Translation && locale.code != constants.base_locale && locale.is_complete {
                 // Only the main game can have translations of different data types,
                 // so we'll try to find the translation data dir in the main root.
-                format!("{}{}/", constants.roots.get("/").cloned().unwrap().base_path(), &locale.code)
+                // We only need to do it if the translation is complete; otherwise it could be missing,
+                // which results in applying the new locale to the menu entries, while the game data is
+                // used from the previous locale.
+                format!("{}{}/", main_root.base_path(), &locale.code)
             } else {
-                // The active root doesn't support translations and isn't a translation itself.
+                // The active root doesn't support translations and isn't a translation itself,
+                // or the data files in the target lcoale data dir are incomplete (they're missing or the translation isn't a root).
                 // The only thing we can do is switch to the main root.
-                constants.roots.get("/").and_then(|r| Some(r.path.clone())).unwrap()
+                main_root.path.clone()
             };
 
             constants.set_active_root(ctx, path, settings, sound_manager);
@@ -932,7 +938,7 @@ impl SharedGameState {
         let mut out_locale = None;
 
         for locale in &constants.locales {
-            if locale.code == "en" {
+            if locale.code == constants.base_locale {
                 out_locale = Some(locale.clone());
             }
 

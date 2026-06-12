@@ -520,7 +520,7 @@ impl TextureSet {
         create_texture(ctx, width as u16, height as u16, &img)
     }
 
-    pub fn find_texture(&self, ctx: &mut Context, roots: &Vec<String>, name: &str, ignore_ogph: bool) -> Option<String> {
+    pub fn find_texture(ctx: &Context, roots: &Vec<String>, name: &str, ignore_ogph: bool) -> Option<String> {
         let mut file_path: Option<String> = None;
 
         let path = FILE_TYPES.iter().map(|ext| [name, ext].join("")).find(|path| {
@@ -559,11 +559,11 @@ impl TextureSet {
     ) -> GameResult<Box<dyn SpriteBatch>> {
         let ignore_ogph = constants.ignore_ogph_textures.contains(&(name.to_lowercase()));
 
-        let path = self
-            .find_texture(ctx, &constants.base_paths, name, ignore_ogph)
+        let path =
+            Self::find_texture(ctx, &constants.base_paths, name, ignore_ogph)
             .ok_or_else(|| GameError::ResourceLoadError(format!("Texture \"{}\" is missing.", name)))?;
 
-        let glow_path = self.find_texture(ctx, &constants.base_paths, &[name, ".glow"].join(""), ignore_ogph);
+        let glow_path = Self::find_texture(ctx, &constants.base_paths, &[name, ".glow"].join(""), ignore_ogph);
 
         log::info!("Loading texture: {} -> {}", name, path);
 

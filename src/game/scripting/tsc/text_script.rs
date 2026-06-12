@@ -30,6 +30,7 @@ use crate::game::shared_game_state::ReplayState;
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::weapon::WeaponType;
 use crate::graphics::font::{Font, Symbols};
+use crate::graphics::texture_set::TextureSet;
 use crate::input::touch_controls::TouchControlType;
 use crate::scene::game_scene::GameScene;
 
@@ -1897,7 +1898,7 @@ impl TextScriptVM {
 
                 for path in &state.constants.credit_illustration_paths {
                     let path = format!("{}Credit{:02}", path, number);
-                    if state.texture_set.find_texture(ctx, &state.constants.base_paths, &path, false).is_some() {
+                    if TextureSet::find_texture(ctx, &state.constants.base_paths, &path, false).is_some() {
                         state.textscript_vm.current_illustration = Some(path);
                         break;
                     }

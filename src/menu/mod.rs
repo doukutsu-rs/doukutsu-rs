@@ -453,7 +453,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                         let combined_word = line.clone() + separator + word;
                         let line_length = state.font.builder().with_symbols(symbols).compute_width(&combined_word) + 32.0;
 
-                        if line_length > state.canvas_size.0 as f32 {
+                        if line_length > x {
                             lines.push(line);
                             line = String::new();
                         }
