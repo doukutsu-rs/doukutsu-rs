@@ -262,10 +262,10 @@ pub enum StageTableType {
 impl StageTableType {
     pub fn path(&self) -> String {
         let path = match *self {
-            Self::PlusTbl => "/stage.tbl",
-            Self::FreewareSection => "/stage.sect",
-            Self::MoustacheRider => "/mrmap.bin",
-            Self::NXEngineDat => "/stage.dat",
+            Self::PlusTbl => "stage.tbl",
+            Self::FreewareSection => "stage.sect",
+            Self::MoustacheRider => "mrmap.bin",
+            Self::NXEngineDat => "stage.dat",
         };
 
         path.to_string()
@@ -290,18 +290,19 @@ impl StageData {
             let table_path = table.path();
 
             for path in roots {
-                let full_path = [path, table_path.as_str()].join("");
-                if filesystem::exists(ctx, &full_path) {
-                    paths.push(full_path);
+                let table_path = [path.as_str(), table_path.as_str()].join("");
+                if filesystem::exists(ctx, &table_path) {
+                    // If the table is stackable, then the mod/challenge stage table must overwrite the base stage table
+                    paths.insert(0, table_path);
 
                     if !table.is_stackable() {
                         return Some((table, paths));
                     }
                 }
+            }
 
-                if !paths.is_empty() {
-                    return Some((table, paths));
-                }
+            if !paths.is_empty() {
+                return Some((table, paths));
             }
         }
 
