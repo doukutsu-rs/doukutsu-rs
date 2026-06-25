@@ -7,7 +7,7 @@ use crate::common::{Color, Rect};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::{BlendMode, VSyncMode};
-use crate::game::shared_game_state::WindowMode;
+use crate::game::shared_game_state::{SharedGameState, WindowMode};
 use crate::game::Game;
 
 #[repr(C)]
@@ -157,8 +157,17 @@ pub enum SpriteBatchCommand {
     DrawRectFlipTinted(Rect<f32>, Rect<f32>, bool, bool, Color),
 }
 
-pub fn get_scaled_size(width: u32, height: u32) -> (f32, f32) {
-    let scaled_height = ((height / 480).max(1) * 480) as f32;
+pub fn get_scaled_size(state: &SharedGameState, width: u32, height: u32) -> (f32, f32) {
+    // On Android scaling isn't usually noticeable due to the smaller screen size,
+    // but on PC, even a small scaling factor makes the image blurrier.
+    // Additionaly, on Android, touch zones become larger because of the scaling,
+    // making them easier to tap.
+    #[cfg(not(target_os = "android"))]
+    return (width as f32, height as f32);
+
+    let vp_height = state.preferred_viewport_size.1 as u32;
+
+    let scaled_height = ((height / vp_height).max(1) * vp_height) as f32;
     let scaled_width = (width as f32 * (scaled_height as f32 / height as f32)).floor();
 
     (scaled_width, scaled_height)

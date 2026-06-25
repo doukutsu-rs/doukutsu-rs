@@ -38,7 +38,7 @@ version = "1.0.0"
 resources = ["data"]
 copyright = "Copyright (c) 2020 doukutsu-rs contributors"
 category = "Game"
-osx_minimum_system_version = "10.12"
+osx_minimum_system_version = "10.15"
 
 [features]
 default = ["default-base", "backend-sdl", "render-opengl", "exe", "webbrowser", "discord-rpc"]

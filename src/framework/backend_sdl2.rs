@@ -181,7 +181,7 @@ impl SDL2EventLoop {
         win_builder.resizable();
 
         if ctx.window.mode.is_fullscreen() {
-            win_builder.fullscreen();
+            win_builder.fullscreen_desktop();
         }
 
         #[cfg(feature = "render-opengl")]
@@ -261,8 +261,9 @@ impl BackendEventLoop for SDL2EventLoop {
 
         {
             let (width, height) = self.refs.deref().borrow().window.window().size();
-            ctx.real_screen_size = (width.max(1), height.max(1));
-            ctx.screen_size = get_scaled_size(width.max(1), height.max(1));
+            let (width, height) = (width.max(1), height.max(1));
+            ctx.real_screen_size = (width, height);
+            ctx.screen_size = get_scaled_size(&state, width, height);
 
             imgui.io_mut().display_size = [ctx.screen_size.0, ctx.screen_size.1];
             let _ = state.handle_resize(ctx);
@@ -321,8 +322,10 @@ impl BackendEventLoop for SDL2EventLoop {
                             }
                         }
                         WindowEvent::SizeChanged(width, height) => {
-                            ctx.real_screen_size = (width as u32, height as u32);
-                            ctx.screen_size = get_scaled_size(width.max(1) as u32, height.max(1) as u32);
+                            let (width, height) = (width.max(1) as u32, height.max(1) as u32);
+
+                            ctx.real_screen_size = (width, height);
+                            ctx.screen_size = get_scaled_size(&state, width, height);
 
                             if let Some(renderer) = &ctx.renderer {
                                 if let Ok(imgui) = renderer.imgui() {

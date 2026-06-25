@@ -172,8 +172,9 @@ impl BackendEventLoop for GlutinEventLoop {
             unsafe { std::mem::transmute(self.get_context(&ctx, &event_loop)) };        
         {
             let size = window.window().inner_size();
-            ctx.real_screen_size = (size.width, size.height);
-            ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
+            let (width, height) = (size.width.max(1), size.height.max(1));
+            ctx.real_screen_size = (width, height);
+            ctx.screen_size = get_scaled_size(&state, width, height);
             state_ref.handle_resize(ctx).unwrap();
         }
 
@@ -228,8 +229,11 @@ impl BackendEventLoop for GlutinEventLoop {
                             imgui.io_mut().display_size = [size.width as f32, size.height as f32];
                         }
 
-                        ctx.real_screen_size = (size.width, size.height);
-                        ctx.screen_size = get_scaled_size(size.width.max(1), size.height.max(1));
+                        let (width, height) = (size.width.max(1), size.height.max(1));
+
+                        ctx.real_screen_size = (width, height);
+                        ctx.screen_size = get_scaled_size(&state, width, height);
+
                         state_ref.handle_resize(ctx).unwrap();
                     }
                 }
