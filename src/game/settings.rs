@@ -87,6 +87,7 @@ pub struct Settings {
     pub discord_rpc: bool,
     #[serde(default = "default_true")]
     pub allow_strafe: bool,
+    pub translation: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -95,7 +96,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    25
+    26
 }
 
 #[inline(always)]
@@ -359,6 +360,11 @@ impl Settings {
             }
         }
 
+        if self.version == 25 {
+            self.version = 26;
+            self.translation = None;
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -477,6 +483,7 @@ impl Default for Settings {
             cutscene_skip_mode: CutsceneSkipMode::Hold,
             discord_rpc: true,
             allow_strafe: true,
+            translation: None,
         }
     }
 }

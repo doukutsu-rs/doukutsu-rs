@@ -1,4 +1,5 @@
 use std::fmt;
+use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use bitfield::bitfield;
@@ -8,6 +9,7 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeTupleStruct;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::framework::error::GameError;
 use crate::graphics::texture_set::G_MAG;
 
 pub const ORG_NAME: &str = "io.github";
@@ -576,6 +578,152 @@ impl<T> SliceExt for [T] {
             let ar = &mut *(self.get_unchecked_mut(a) as *mut _);
             let br = &mut *(self.get_unchecked_mut(b) as *mut _);
             Some((ar, br))
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[allow(non_camel_case_types)]
+#[repr(u8)]
+pub enum Encoding {
+    UTF8 = 0,
+    ShiftJIS,
+    UTF16BE,
+    UTF16LE,
+    ISO_2022_JP,
+    ISO_8859_2,
+    ISO_8859_3,
+    ISO_8859_4,
+    ISO_8859_5,
+    ISO_8859_6,
+    ISO_8859_7,
+    ISO_8859_8,
+    ISO_8859_8_I,
+    ISO_8859_10,
+    ISO_8859_13,
+    ISO_8859_14,
+    ISO_8859_15,
+    ISO_8859_16,
+    KOI8_R,
+    KOI8_U,
+    MACINTOSH,
+    EUC_JP,
+    EUC_KR,
+    GB18030,
+    GBK,
+    BIG5,
+    Win1250,
+    Win1251,
+    Win1252,
+    Win1253,
+    Win1254,
+    Win1255,
+    Win1256,
+    Win1257,
+    Win1258,
+}
+
+impl Default for Encoding {
+    fn default() -> Self {
+        Self::ShiftJIS
+    }
+}
+
+impl From<&str> for Encoding {
+    fn from(s: &str) -> Self {
+        s.parse().unwrap_or_default()
+    }
+}
+
+impl FromStr for Encoding {
+    type Err = GameError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "utf-8" => Ok(Self::UTF8),
+            "utf-16be" => Ok(Self::UTF16BE),
+            "utf-16le" => Ok(Self::UTF16LE),
+
+            "iso-2022-jp" => Ok(Self::ISO_2022_JP),
+            "iso-8859-2" => Ok(Self::ISO_8859_2),
+            "iso-8859-3" => Ok(Self::ISO_8859_3),
+            "iso-8859-4" => Ok(Self::ISO_8859_4),
+            "iso-8859-5" => Ok(Self::ISO_8859_5),
+            "iso-8859-6" => Ok(Self::ISO_8859_6),
+            "iso-8859-7" => Ok(Self::ISO_8859_7),
+            "iso-8859-8" => Ok(Self::ISO_8859_8),
+            "iso-8859-8-i" => Ok(Self::ISO_8859_8_I),
+            "iso-8859-10" => Ok(Self::ISO_8859_10),
+            "iso-8859-13" => Ok(Self::ISO_8859_13),
+            "iso-8859-14" => Ok(Self::ISO_8859_14),
+            "iso-8859-15" => Ok(Self::ISO_8859_15),
+            "iso-8859-16" => Ok(Self::ISO_8859_16),
+
+            "koi8-r" => Ok(Self::KOI8_R),
+            "koi8-u" => Ok(Self::KOI8_U),
+
+            "macintosh" => Ok(Self::MACINTOSH),
+
+            "euc-jp" => Ok(Self::EUC_JP),
+            "euc-kr" => Ok(Self::EUC_KR),
+
+            "gb18030" => Ok(Self::GB18030),
+            "gbk" => Ok(Self::GBK),
+            "big5" => Ok(Self::BIG5),
+
+            "windows-1250" => Ok(Self::Win1250),
+            "windows-1251" => Ok(Self::Win1251),
+            "windows-1252" => Ok(Self::Win1252),
+            "windows-1253" => Ok(Self::Win1253),
+            "windows-1254" => Ok(Self::Win1254),
+            "windows-1255" => Ok(Self::Win1255),
+            "windows-1256" => Ok(Self::Win1256),
+            "windows-1257" => Ok(Self::Win1257),
+            "windows-1258" => Ok(Self::Win1258),
+
+            _ => Err(Self::Err::ParseError(format!("Invalid or unsupported encoding: {}", s))),
+        }
+    }
+}
+
+impl From<Encoding> for &'static encoding_rs::Encoding {
+    fn from(value: Encoding) -> Self {
+        match value {
+            Encoding::ShiftJIS => encoding_rs::SHIFT_JIS,
+            Encoding::UTF8 => encoding_rs::UTF_8,
+            Encoding::UTF16BE => encoding_rs::UTF_16BE,
+            Encoding::UTF16LE => encoding_rs::UTF_16LE,
+            Encoding::ISO_2022_JP => encoding_rs::ISO_2022_JP,
+            Encoding::ISO_8859_2 => encoding_rs::ISO_8859_2,
+            Encoding::ISO_8859_3 => encoding_rs::ISO_8859_3,
+            Encoding::ISO_8859_4 => encoding_rs::ISO_8859_4,
+            Encoding::ISO_8859_5 => encoding_rs::ISO_8859_5,
+            Encoding::ISO_8859_6 => encoding_rs::ISO_8859_6,
+            Encoding::ISO_8859_7 => encoding_rs::ISO_8859_7,
+            Encoding::ISO_8859_8 => encoding_rs::ISO_8859_8,
+            Encoding::ISO_8859_8_I => encoding_rs::ISO_8859_8_I,
+            Encoding::ISO_8859_10 => encoding_rs::ISO_8859_10,
+            Encoding::ISO_8859_13 => encoding_rs::ISO_8859_13,
+            Encoding::ISO_8859_14 => encoding_rs::ISO_8859_14,
+            Encoding::ISO_8859_15 => encoding_rs::ISO_8859_15,
+            Encoding::ISO_8859_16 => encoding_rs::ISO_8859_16,
+            Encoding::KOI8_R => encoding_rs::KOI8_R,
+            Encoding::KOI8_U => encoding_rs::KOI8_U,
+            Encoding::MACINTOSH => encoding_rs::MACINTOSH,
+            Encoding::EUC_JP => encoding_rs::EUC_JP,
+            Encoding::EUC_KR => encoding_rs::EUC_KR,
+            Encoding::GB18030 => encoding_rs::GB18030,
+            Encoding::GBK => encoding_rs::GBK,
+            Encoding::BIG5 => encoding_rs::BIG5,
+            Encoding::Win1250 => encoding_rs::WINDOWS_1250,
+            Encoding::Win1251 => encoding_rs::WINDOWS_1251,
+            Encoding::Win1252 => encoding_rs::WINDOWS_1252,
+            Encoding::Win1253 => encoding_rs::WINDOWS_1253,
+            Encoding::Win1254 => encoding_rs::WINDOWS_1254,
+            Encoding::Win1255 => encoding_rs::WINDOWS_1255,
+            Encoding::Win1256 => encoding_rs::WINDOWS_1256,
+            Encoding::Win1257 => encoding_rs::WINDOWS_1257,
+            Encoding::Win1258 => encoding_rs::WINDOWS_1258,
         }
     }
 }
