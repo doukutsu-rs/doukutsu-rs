@@ -5,14 +5,14 @@ use byteorder::ReadBytesExt;
 use byteorder::LE;
 use strum::IntoEnumIterator;
 
-use crate::common::Color;
+use crate::common::{Color, Encoding};
 use crate::engine_constants::EngineConstants;
 use crate::framework::context::Context;
 use crate::framework::error::GameError::ResourceLoadError;
 use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
 use crate::game::map::{Map, NPCData};
-use crate::game::scripting::tsc::text_script::{TextScript, TextScriptEncoding};
+use crate::game::scripting::tsc::text_script::TextScript;
 use crate::game::SharedGameState;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -225,7 +225,7 @@ fn zero_index(s: &[u8]) -> usize {
     s.iter().position(|&c| c == b'\0').unwrap_or(s.len())
 }
 
-fn from_encoding(s: &[u8], encoding: Option<TextScriptEncoding>) -> String {
+fn from_encoding(s: &[u8], encoding: Option<Encoding>) -> String {
     if let Some(encoding) = encoding {
         let encoding: &encoding_rs::Encoding = encoding.into();
         return encoding.decode_without_bom_handling(s).0.into_owned();
@@ -238,7 +238,7 @@ fn from_shift_jis(s: &[u8]) -> String {
     encoding_rs::SHIFT_JIS.decode_without_bom_handling(s).0.into_owned()
 }
 
-fn from_csplus_stagetbl(s: &[u8], is_switch: bool, encoding: Option<TextScriptEncoding>) -> String {
+fn from_csplus_stagetbl(s: &[u8], is_switch: bool, encoding: Option<Encoding>) -> String {
     if let Some(encoding) = encoding {
         let encoding: &encoding_rs::Encoding = encoding.into();
         return encoding.decode_without_bom_handling(s).0.into_owned();
