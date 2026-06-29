@@ -366,7 +366,7 @@ impl SettingsMenu {
                 // TODO: dehardcode this Rect
                 symbols: &[
                     (save_warn_char.0, Rect::new_size(16, 0, 16, 16)), // ! - locale with different data type
-                    (no_data_char.0, Rect::new_size(32, 0, 16, 16)), // 0 - locale with no data
+                    (no_data_char.0, Rect::new_size(32, 0, 16, 16)),   // 0 - locale with no data
                 ],
                 texture: "icons",
             }
@@ -383,7 +383,6 @@ impl SettingsMenu {
         for tran in &state.constants.translations {
             if !tran.available {
                 if !tran.is_default() {
-                    log::debug!("Skipped locale: {:?}", tran);
                     continue;
                 }
 
@@ -412,10 +411,10 @@ impl SettingsMenu {
 
             if !tran.available {
                 entry.push(no_data_char.0);
-            } else if
-                tran.locale != state.constants.base_locale &&
-                active_root.support_locales && active_root.data_type != tran.data_type ||
-                (main_root.data_type != tran.data_type && active_root.root_type == RootType::Translation)
+            } else if tran.locale != state.constants.base_locale
+                && active_root.supports_locales
+                && active_root.data_type != tran.data_type
+                || (main_root.data_type != tran.data_type && active_root.root_type == RootType::Translation)
             {
                 // We compare the data type of the translation with the data type of the active root,
                 // if it supports locales and isn't a translation root (in case it's a mod root that, for some reason,
@@ -424,7 +423,10 @@ impl SettingsMenu {
                 entry.push(save_warn_char.0);
             }
 
-            self.language.push_entry(LanguageMenuEntry::Language(tran.locale.clone(), tran.code.clone()), MenuEntry::Active(entry));
+            self.language.push_entry(
+                LanguageMenuEntry::Language(tran.locale.clone(), tran.code.clone()),
+                MenuEntry::Active(entry),
+            );
         }
 
         self.language.push_entry(LanguageMenuEntry::Spacer, MenuEntry::Spacer(8.0));
@@ -433,7 +435,9 @@ impl SettingsMenu {
             self.language.push_entry(
                 LanguageMenuEntry::Warning,
                 MenuEntry::LongText(
-                    state.loc.tt("menus.options_menu.language_menu.warnings.different_type", &[("icon", save_warn_char.1)]),
+                    state
+                        .loc
+                        .tt("menus.options_menu.language_menu.warnings.different_type", &[("icon", save_warn_char.1)]),
                     false,
                     false,
                 ),

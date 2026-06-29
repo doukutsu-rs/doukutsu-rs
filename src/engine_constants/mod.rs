@@ -4,6 +4,7 @@ use std::io::{BufRead, BufReader, Cursor, Read};
 
 use byteorder::{ReadBytesExt, LE};
 use case_insensitive_hashmap::CaseInsensitiveHashMap;
+use serde::Deserialize;
 use xmltree::Element;
 
 use crate::case_insensitive_hashmap;
@@ -247,10 +248,11 @@ impl GamepadConsts {
     }
 }
 
-
-#[derive(Clone, Copy, Debug, strum_macros::Display, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, strum_macros::Display, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub enum DataType {
     #[strum(serialize = "Cave Story+ (PC)")]
+    #[serde(rename = "cs-plus")]
     Plus,
     #[strum(serialize = "Cave Story+ (Switch)")]
     Switch,
@@ -285,24 +287,35 @@ impl DataType {
             Some(Self::WiiWare)
         } else if filesystem::exists(ctx, format!("{root_dsiware}/buid_time.txt")) {
             Some(Self::DSiWare)
-        } else if filesystem::exists(ctx, format!("{root_path}/darken.tex")) || filesystem::exists(ctx, format!("{root_path}/darken.png")) {
+        } else if filesystem::exists(ctx, format!("{root_path}/darken.tex"))
+            || filesystem::exists(ctx, format!("{root_path}/darken.png"))
+        {
             Some(Self::EShop)
         } else if filesystem::exists(ctx, format!("{root_cs3d}/stage3d/")) {
             Some(Self::CS3D)
-        } else if filesystem::exists(ctx, format!("{root_base}/Nicalis.bmp")) || filesystem::exists(ctx, format!("{root_base}/Nicalis.png")) {
+        } else if filesystem::exists(ctx, format!("{root_base}/Nicalis.bmp"))
+            || filesystem::exists(ctx, format!("{root_base}/Nicalis.png"))
+        {
             Some(Self::Plus)
         } else if filesystem::exists(ctx, format!("{root_path}/mrmap.bin")) {
             Some(Self::CSE2E)
         } else if filesystem::exists(ctx, format!("{root_path}/stage.dat")) {
             Some(Self::NXEngineEvo)
-        } else if filesystem::exists(ctx, format!("{root_path}/PIXEL.pbm")) || filesystem::exists(ctx, format!("{root_path}/PIXEL.png")) {
+        } else if filesystem::exists(ctx, format!("{root_path}/PIXEL.pbm"))
+            || filesystem::exists(ctx, format!("{root_path}/PIXEL.png"))
+        {
             Some(Self::Freeware)
         } else {
             None
         }
     }
 
-    pub fn apply_constants(&self, ctx: &mut Context, constants: &mut EngineConstants, sound_manager: &mut SoundManager) -> GameResult {
+    pub fn apply_constants(
+        &self,
+        ctx: &mut Context,
+        constants: &mut EngineConstants,
+        sound_manager: &mut SoundManager,
+    ) -> GameResult {
         constants.data_type = Some(*self);
 
         match *self {
@@ -311,17 +324,17 @@ impl DataType {
                 constants.apply_csplus_patches(sound_manager);
                 constants.apply_csplus_nx_patches();
                 constants.load_nx_stringtable(ctx)?;
-            },
+            }
             Self::WiiWareDemo => {
                 constants.apply_csplus_patches(sound_manager);
                 constants.apply_csdemo_patches();
-            },
+            }
             Self::WiiWare => {
                 constants.apply_csplus_patches(sound_manager);
-            },
+            }
             Self::Plus => {
                 constants.apply_csplus_patches(sound_manager);
-            },
+            }
             _ => {}
         }
 
@@ -332,14 +345,14 @@ impl DataType {
         match *self {
             Self::Switch | Self::Plus | Self::WiiWare | Self::WiiWareDemo => "/base/".to_owned(),
             Self::DSiWare => "/root/".to_owned(),
-            _ => "/".to_owned()
+            _ => "/".to_owned(),
         }
     }
 
     pub fn is_supported(&self) -> bool {
         match self {
             Self::DSiWare | Self::EShop | Self::CS3D => false,
-            _ => true
+            _ => true,
         }
     }
 }
@@ -358,18 +371,23 @@ impl RootType {
     /// Whether the root supports locales.
     ///
     /// This determines whether the list of locales will be reloaded when switching to the specified root.
-    pub fn support_locales(&self) -> bool {
+    pub fn supports_locales(&self) -> bool {
         *self != Self::Translation
     }
 
     /// Whether the root supports translation variants.
     ///
     /// Translation variants are only intended for the base (main game) root, since historically, only
-    /// the base game has has multiple translation variants for each language (locale). Mods, on the other hand, 
+    /// the base game has multiple translation variants for each language (locale). Mods, on the other hand,
     /// often have almost no translations into other languages, and even if they do, they typically have only one
     /// translation variant for a given language.
-    pub fn support_translations(&self) -> bool {
+    pub fn supports_translations(&self) -> bool {
         *self == Self::Base
+    }
+
+    /// Whether the data params can be specified for the root.
+    pub fn supports_params(&self) -> bool {
+        *self != Self::Translation
     }
 }
 
@@ -383,8 +401,11 @@ pub struct DataRoot {
 
     /// Full path to the root dir.
     pub path: String,
-    pub support_locales: bool,
-    pub support_translations: bool,
+    pub supports_locales: bool,
+    pub supports_translations: bool,
+    pub supports_params: bool,
+
+    params: DataRootParams,
 }
 
 impl Default for DataRoot {
@@ -393,8 +414,10 @@ impl Default for DataRoot {
             data_type: None,
             root_type: RootType::Base,
             path: "/".to_string(),
-            support_locales: false,
-            support_translations: false,
+            supports_locales: false,
+            supports_translations: false,
+            supports_params: false,
+            params: DataRootParams::default(),
         }
     }
 }
@@ -407,13 +430,23 @@ impl PartialEq for DataRoot {
 
 impl DataRoot {
     pub fn load(ctx: &Context, path: String, root_type: RootType) -> Self {
+        let supports_params = root_type.supports_params();
+        let params = if supports_params {
+            DataRootParams::load(ctx, path.clone()).unwrap_or_default()
+        } else {
+            DataRootParams::default()
+        };
+
         Self {
-            data_type: DataType::from_path(ctx, &path.clone()),
+            data_type: params.data_type.unwrap_or(DataType::from_path(ctx, &path.clone())),
             root_type,
             path,
 
-            support_locales: root_type.support_locales(),
-            support_translations: root_type.support_translations(),
+            supports_locales: root_type.supports_locales(),
+            supports_translations: root_type.supports_translations(),
+            supports_params,
+
+            params,
         }
     }
 
@@ -459,12 +492,68 @@ impl DataRoot {
     }
 
     pub fn translation_path(&self, _ctx: &Context, translation: &Translation) -> String {
-        assert!(self.support_locales, "Translation path requested for the root ({}), which doesn't support locales", &self.path);
+        assert!(
+            self.supports_locales,
+            "Translation path requested for the root ({}), which doesn't support locales",
+            &self.path
+        );
 
         [&self.base_path(), &translation.full_code(), "/"].join("")
     }
+
+    pub fn apply_constants(
+        &self,
+        ctx: &mut Context,
+        constants: &mut EngineConstants,
+        sound_manager: &mut SoundManager,
+    ) -> GameResult {
+        if let Some(data_type) = self.data_type {
+            data_type.apply_constants(ctx, constants, sound_manager)?;
+        }
+
+        self.params.apply_constants(constants);
+
+        Ok(())
+    }
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct DataRootParams {
+    pub data_type: Option<Option<DataType>>,
+    #[serde(default)]
+    pub base_locale: String,
+    #[serde(default)]
+    pub supports_og_textures: Option<bool>,
+}
+
+impl Default for DataRootParams {
+    fn default() -> Self {
+        Self { data_type: None, base_locale: "en".to_string(), supports_og_textures: None }
+    }
+}
+
+impl DataRootParams {
+    pub fn load(ctx: &Context, root_path: String) -> GameResult<Self> {
+        let mut full_path = root_path.clone();
+        full_path.push_str("root.json");
+
+        let mut content = String::new();
+        let mut file = filesystem::open(ctx, full_path)?;
+        let _ = file.read_to_string(&mut content)?;
+
+        let params = serde_json::from_str(&content)?;
+        log::info!("Loaded root params from {root_path}");
+
+        Ok(params)
+    }
+
+    pub fn apply_constants(&self, constants: &mut EngineConstants) {
+        constants.base_locale = self.base_locale.clone();
+        if let Some(og) = self.supports_og_textures {
+            constants.supports_og_textures = og;
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct EngineConstants {
@@ -1845,10 +1934,12 @@ impl EngineConstants {
                 };
                 // Swap x-y and a-b buttons on nintendo map (must be done here to comply with the nicalis button table)
                 let button = holder.button_rects.get(&Button::North).unwrap()[3].clone();
-                holder.button_rects.get_mut(&Button::North).unwrap()[3] = holder.button_rects.get(&Button::West).unwrap()[3];
+                holder.button_rects.get_mut(&Button::North).unwrap()[3] =
+                    holder.button_rects.get(&Button::West).unwrap()[3];
                 holder.button_rects.get_mut(&Button::West).unwrap()[3] = button;
                 let button = holder.button_rects.get(&Button::South).unwrap()[3].clone();
-                holder.button_rects.get_mut(&Button::South).unwrap()[3] = holder.button_rects.get(&Button::East).unwrap()[3];
+                holder.button_rects.get_mut(&Button::South).unwrap()[3] =
+                    holder.button_rects.get(&Button::East).unwrap()[3];
                 holder.button_rects.get_mut(&Button::East).unwrap()[3] = button;
 
                 holder
@@ -1948,7 +2039,7 @@ impl EngineConstants {
     }
 
     pub fn clean_patches(&mut self) {
-        log::debug!("Cleaning the constants");
+        log::info!("Cleaning the constants");
         let mut consts = Self::defaults();
         consts.roots.clone_from(&self.roots);
         consts.locales.clone_from(&self.locales);
@@ -1959,7 +2050,8 @@ impl EngineConstants {
     }
 
     pub fn rebuild_roots_list(&mut self, ctx: &mut Context, settings: &Settings, sound_manager: &mut SoundManager) {
-        log::debug!("Rebuilding roots list");
+        log::info!("Rebuilding roots list");
+        self.roots.clear();
 
         // The main root is always present
         let data_root = "/".to_string();
@@ -1967,17 +2059,8 @@ impl EngineConstants {
 
         log::debug!("Start initializing a temporary instance of EngineConstants");
         let mut consts = Self::defaults();
-        consts.data_type = DataType::from_path(ctx, &data_root);
-
-        if let Some(data_type) = consts.data_type {
-            let _ = data_type.apply_constants(ctx, &mut consts, sound_manager);
-        }
-
         consts.roots.clone_from(&self.roots);
-        consts.active_root = consts.roots.get(&data_root).cloned().unwrap();
-
-        consts.rebuild_path_list(None, Season::current(), settings);
-        let _ = consts.load_translations(ctx, true);
+        consts.set_active_root(ctx, data_root, settings, sound_manager);
         log::debug!("Temporary instance of EngineConstants has been initialized");
 
         // The following roots are locales with data files whose type differs from that of the main root.
@@ -1999,8 +2082,14 @@ impl EngineConstants {
         // Mod translations must be of the same data type as the mod root
     }
 
-    pub fn set_active_root(&mut self, ctx: &mut Context, new_root: String, settings: &Settings, sound_manager: &mut SoundManager) -> bool {
-        log::debug!("Switching to a new root: {}", &new_root);
+    pub fn set_active_root(
+        &mut self,
+        ctx: &mut Context,
+        new_root: String,
+        settings: &Settings,
+        sound_manager: &mut SoundManager,
+    ) -> bool {
+        log::info!("Switching to a new root: {}", &new_root);
 
         if self.roots.is_empty() {
             self.rebuild_roots_list(ctx, settings, sound_manager);
@@ -2014,13 +2103,11 @@ impl EngineConstants {
             self.clean_patches();
 
             self.active_root = data_root.clone();
-            if let Some(data_type) = data_root.data_type.as_ref() {
-                let _ = data_type.apply_constants(ctx, self, sound_manager);
-            }
+            let _ = data_root.apply_constants(ctx, self, sound_manager);
 
             self.rebuild_path_list(None, Season::current(), settings);
 
-            if data_root.support_locales {
+            if data_root.supports_locales {
                 let _ = self.load_translations(ctx, true);
             }
 
@@ -2056,7 +2143,7 @@ impl EngineConstants {
             }
         }
 
-        if self.active_root.support_locales && settings.locale != self.base_locale {
+        if self.active_root.supports_locales && settings.locale != self.base_locale {
             self.base_paths.insert(0, format!("{base}{}/", settings.locale));
         }
 
@@ -2093,7 +2180,7 @@ impl EngineConstants {
         self.game.new_game_player_pos = pos;
     }
 
-    pub fn load_nx_stringtable(&mut self, ctx: &mut Context) -> GameResult {
+    pub fn load_nx_stringtable(&mut self, ctx: &Context) -> GameResult {
         if let Ok(file) = filesystem::open(ctx, "/base/stringtable.sta") {
             let mut reader = BufReader::new(file);
 
@@ -2139,7 +2226,7 @@ impl EngineConstants {
             };
 
             let mut locale = Locale::new(ctx, &self.base_paths, &locale_code);
-            if locale_code == "jp" && filesystem::exists(ctx, "/base/credit_jp.tsc") {
+            if locale_code == "jp" && filesystem::exists_find(ctx, &self.base_paths, "/base/credit_jp.tsc") {
                 locale.set_font(FontData::new("csfontjp.fnt".to_owned(), 0.5, 0.0));
             }
 
@@ -2157,8 +2244,8 @@ impl EngineConstants {
             self.load_locales(ctx)?;
         }
 
-        // If the root doesn't support locales, only the default translation variants will be generated from loaded locales
-        if self.active_root.support_translations {
+        // If the root doesn't support translation variants, only the default ones will be generated from loaded locales
+        if self.active_root.supports_translations {
             let translation_files = filesystem::read_dir_find(ctx, &self.base_paths, "translation/")?;
 
             for tran_file in translation_files {
@@ -2175,7 +2262,12 @@ impl EngineConstants {
                         log::info!("Loaded {} translation for {}", &tran.name, locale.name);
                         self.translations.push(tran);
                     } else {
-                        log::debug!("Translation {} ({:?}) omitted because locale {} is missing", &tran.name, &tran.code, tran.locale);
+                        log::debug!(
+                            "Translation {} ({:?}) omitted because locale {} is missing",
+                            &tran.name,
+                            &tran.code,
+                            tran.locale
+                        );
                     }
                 }
             }
@@ -2191,7 +2283,7 @@ impl EngineConstants {
                 self.translations.push(tran);
             }
         }
-        
+
         Ok(())
     }
 

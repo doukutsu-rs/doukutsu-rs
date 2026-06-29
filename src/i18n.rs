@@ -1,7 +1,6 @@
 use std::collections::HashMap;
-use std::io::Read;
 
-use serde_with::{DisplayFromStr, serde_as};
+use serde_with::{serde_as, DisplayFromStr};
 
 use crate::common::Encoding;
 use crate::engine_constants::{DataType, EngineConstants};
@@ -18,11 +17,6 @@ pub struct Locale {
     pub encoding: Option<Encoding>,
     pub stage_encoding: Option<Encoding>,
     strings: HashMap<String, String>,
-
-    // Properties of the translation data "root"
-    pub is_present: bool,
-    pub is_complete: bool, // if the translation is complete, it's present
-    pub data_type: Option<DataType>,
 }
 
 impl Default for Locale {
@@ -34,10 +28,6 @@ impl Default for Locale {
             encoding: None,
             stage_encoding: None,
             strings: HashMap::new(),
-
-            is_present: false,
-            is_complete: false,
-            data_type: None,
         }
     }
 }
@@ -55,23 +45,15 @@ impl Locale {
         let font_scale = strings["font_scale"].parse::<f32>().unwrap_or(1.0);
         let font = FontData::new(font_name, font_scale, 0.0);
 
-        let encoding = if let Some(enc) = strings.get("encoding").clone() {
-            Some(Encoding::from(enc.as_str()))
-        } else {
-            None
-        };
+        let encoding =
+            if let Some(enc) = strings.get("encoding").clone() { Some(Encoding::from(enc.as_str())) } else { None };
         let stage_encoding = if let Some(enc) = strings.get("stage_encoding").clone() {
             Some(Encoding::from(enc.as_str()))
         } else {
             None
         };
 
-        // This info will be set by the caller
-        let is_present = false;
-        let is_complete = false;
-        let data_type = None;
-
-        Locale { code: code.to_string(), name, font, encoding, stage_encoding, strings, is_present, is_complete, data_type }
+        Locale { code: code.to_string(), name, font, encoding, stage_encoding, strings }
     }
 
     fn flatten(json: &serde_json::Value) -> HashMap<String, String> {

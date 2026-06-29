@@ -7,7 +7,7 @@ use crate::components::draw_common::{draw_number, Alignment};
 use crate::data::vanilla::VanillaExtractor;
 #[cfg(feature = "discord-rpc")]
 use crate::discord::DiscordRPC;
-use crate::engine_constants::{RootType, DataType, EngineConstants};
+use crate::engine_constants::{DataType, EngineConstants, RootType};
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -19,9 +19,7 @@ use crate::game::npc::NPCTable;
 use crate::game::player::TargetPlayer;
 use crate::game::profile::GameProfile;
 use crate::game::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
-use crate::game::scripting::tsc::text_script::{
-    ScriptMode, TextScript, TextScriptExecutionState, TextScriptVM,
-};
+use crate::game::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptExecutionState, TextScriptVM};
 use crate::game::settings::Settings;
 use crate::game::stage::StageData;
 use crate::graphics::bmfont::BMFont;
@@ -388,11 +386,12 @@ impl SharedGameState {
         if let Some(data_type) = constants.active_root.data_type {
             if data_type.is_supported() {
                 log::info!("{data_type} data files are detected");
-                data_type.apply_constants(ctx, &mut constants, &mut sound_manager)?;
             } else {
                 log::error!("{data_type} data files are detected. !UNSUPPORTED!");
             }
         }
+
+        constants.active_root.clone().apply_constants(ctx, &mut constants, &mut sound_manager)?;
 
         constants.load_soundtracks(ctx);
 
@@ -402,8 +401,11 @@ impl SharedGameState {
         constants.load_translations(ctx, true)?;
         constants.rebuild_roots_list(ctx, &settings, &mut sound_manager);
 
-        let (locale, translation) = SharedGameState::get_translation(&constants, &settings.locale, settings.translation.as_deref()).unwrap_or_default();
-        let font = Self::try_update_locale(ctx, &mut constants, &settings, &mut sound_manager, &locale, &translation).unwrap();
+        let (locale, translation) =
+            SharedGameState::get_translation(&constants, &settings.locale, settings.translation.as_deref())
+                .unwrap_or_default();
+        let font =
+            Self::try_update_locale(ctx, &mut constants, &settings, &mut sound_manager, &locale, &translation).unwrap();
 
         let mod_list = ModList::load(ctx, &constants)?;
 
@@ -565,20 +567,23 @@ impl SharedGameState {
         settings: &Settings,
         sound_manager: &mut SoundManager,
         locale: &Locale,
-        translation: &Translation
+        translation: &Translation,
     ) -> GameResult<BMFont> {
         log::info!("Updating locale to {} ({})", &locale.code, &locale.name);
         assert!(locale.code == translation.locale);
 
         // If the active root doesn't support locales (we're probably on a Translation root)
         // or the target locale isn't the default one (its data dir could be a root), we need to switch the root
-        if !constants.active_root.support_locales || locale.code != constants.base_locale {
+        if !constants.active_root.supports_locales || locale.code != constants.base_locale {
             let main_root = constants.roots.get("/").unwrap();
 
-            let path = if constants.active_root.support_locales {
+            let path = if constants.active_root.supports_locales {
                 // If the active root support locales, we'll try to set active root to the translation data dir.
                 constants.active_root.translation_path(ctx, &translation)
-            } else if constants.active_root.root_type == RootType::Translation && locale.code != constants.base_locale && translation.is_complete {
+            } else if constants.active_root.root_type == RootType::Translation
+                && locale.code != constants.base_locale
+                && translation.is_complete
+            {
                 // Only the main game can have translations of different data types,
                 // so we'll try to find the translation data dir in the main root.
                 // We only need to do it if the translation is complete; otherwise it could be missing,
@@ -629,14 +634,26 @@ impl SharedGameState {
     }
 
     pub fn update_locale(&mut self, ctx: &mut Context) {
-        let loc_res = SharedGameState::get_translation(&self.constants, &self.settings.locale, self.settings.translation.as_deref());
+        let loc_res = SharedGameState::get_translation(
+            &self.constants,
+            &self.settings.locale,
+            self.settings.translation.as_deref(),
+        );
         let Some((locale, translation)) = loc_res else {
             return;
         };
 
         let prev_root = self.constants.active_root.path.clone();
 
-        let font = Self::try_update_locale(ctx, &mut self.constants, &self.settings, &mut self.sound_manager, &locale, &translation).unwrap();
+        let font = Self::try_update_locale(
+            ctx,
+            &mut self.constants,
+            &self.settings,
+            &mut self.sound_manager,
+            &locale,
+            &translation,
+        )
+        .unwrap();
         self.loc = locale;
         self.tran = translation;
         self.font = font;
@@ -938,7 +955,11 @@ impl SharedGameState {
         return self.difficulty as u16;
     }
 
-    fn get_translation(constants: &EngineConstants, locale: &str, translation: Option<&str>) -> Option<(Locale, Translation)> {
+    fn get_translation(
+        constants: &EngineConstants,
+        locale: &str,
+        translation: Option<&str>,
+    ) -> Option<(Locale, Translation)> {
         let mut out = None;
 
         for tran in &constants.translations {
