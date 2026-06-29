@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JSON schema for translation variant files",
+  "type": "object",
+  "properties": {
+    "locale": {
+      "description": "Locale code for which the translation variant is intended.",
+      "type": "string"
+    },
+    "code": {
+      "description": "Code of the translation variant. Omit for the default translation variant for the locale.",
+      "type": "string"
+    },
+    "name": {
+      "description": "Name of the translation variant (typically the name of the translator or translation team).",
+      "type": "string"
+    },
+    "encoding": {
+      "description": "Encoding of text scripts.",
+      "$ref": "./locale.json#/$defs/charset"
+    },
+    "stage_encoding": {
+      "description": "Encoding of strings in the stage table.",
+      "$ref": "./locale.json#/$defs/charset"
+    }
+  },
+  "required": ["locale", "name"],
+  "additionalProperties": false
+}
