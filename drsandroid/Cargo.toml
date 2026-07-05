@@ -21,6 +21,6 @@ crate-type = ["staticlib"]
 ndk-context = "0.1.1"
 ndk-sys = "0.4"
 doukutsu-rs = { path = "../", default-features = false, features = ["default-base", "backend-sdl", "render-opengl", "webbrowser"] }
-sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "244ae85833cff4f97ab4b58331741be20e422bd7", features = ["unsafe_textures"] }
+sdl2 = { version = "0.38.0", features = ["unsafe_textures"] }
 jni = "0.20"
 libc = "*"

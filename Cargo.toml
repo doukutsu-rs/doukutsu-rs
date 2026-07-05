@@ -108,8 +108,8 @@ winres = "0.1"
 objc = "0.2"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "244ae85833cff4f97ab4b58331741be20e422bd7", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
-sdl2-sys = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "244ae85833cff4f97ab4b58331741be20e422bd7", optional = true, features = ["bundled", "static-link"] }
+sdl2 = { version = "0.38.0", optional = true, features = ["unsafe_textures", "bundled", "static-link"] }
+sdl2-sys = { version = "0.38.0", optional = true, features = ["bundled", "static-link"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 ndk = "0.7"
@@ -117,8 +117,8 @@ ndk-context = "0.1.1"
 ndk-glue = "0.7"
 ndk-sys = "0.4"
 jni = "0.20"
-sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "244ae85833cff4f97ab4b58331741be20e422bd7", features = ["unsafe_textures"] }
-sdl2-sys = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "244ae85833cff4f97ab4b58331741be20e422bd7" }
+sdl2 = { version = "0.38.0", features = ["unsafe_textures"] }
+sdl2-sys = "0.38.0"
 
 [target.'cfg(target_os = "horizon")'.dependencies]
 #deko3d = { path = "./3rdparty/deko3d" }
