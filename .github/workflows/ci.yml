@@ -65,7 +65,7 @@ jobs:
             arch_name: arm64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install dependencies
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
@@ -88,7 +88,7 @@ jobs:
           fi
 
       - name: Restore cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             ~/.cargo
@@ -136,7 +136,7 @@ jobs:
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: doukutsu-rs_${{ matrix.target_name }}
           path: ./release/*
@@ -144,7 +144,7 @@ jobs:
 
       - name: Save cache
         if: ${{ github.ref_name == 'master' || github.ref_type == 'tag' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: |
             ~/.cargo
@@ -165,11 +165,11 @@ jobs:
             os: ubuntu-latest
             channel: stable
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Restore cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             ~/.cache
@@ -187,7 +187,6 @@ jobs:
           rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
           rustc -vV
           cargo -vV
-          cargo install cargo-ndk
 
       - name: Install development kits
         run: |
@@ -241,7 +240,7 @@ jobs:
           cp LICENSE ./release
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: doukutsu-rs_android
           path: ./release/*
@@ -249,7 +248,7 @@ jobs:
 
       - name: Save cache
         if: ${{ github.ref_name == 'master' || github.ref_type == 'tag' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: |
             ~/.cache
@@ -275,11 +274,10 @@ jobs:
       CF_BUCKET_NAME: "doukutsu-rs"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          repository: doukutsu-rs/metadata
-          token: ${{ secrets.METADATA_USER_TOKEN }}
-
+          sparse-checkout: misc/ci
+          sparse-checkout-cone-mode: false
       - name: Set version
         id: set_version
         run: |
@@ -293,10 +291,10 @@ jobs:
             echo "version=${{ env.VERSION }}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
             echo "channel=nightly" >> $GITHUB_OUTPUT
           fi
-          mkdir -p releases/${{ steps.set_version.outputs.version }}
 
-      - name: Update metadata
-        id: metadata
+          mkdir -p release-binaries
+
+      - name: Validate outputs
         run: |
           # fail early if ${{ steps.set_version.outputs.* }} is not set
           if [ -z "${{ steps.set_version.outputs.channel }}" ]; then
@@ -308,28 +306,10 @@ jobs:
             exit 1
           fi
 
-          export FILE="./metadata/${{ steps.set_version.outputs.channel }}.json"
-          export VERSION="${{ steps.set_version.outputs.version }}"
-
-          if [ "${{ needs.build.result }}" == "success" ]; then
-            node ./metadata.js --os linux --arch x86_64 --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_linux-x64.zip $FILE
-            node ./metadata.js --os windows --arch x86_64 --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_windows-x64.zip $FILE
-            node ./metadata.js --os windows --arch i686 --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_windows-x32.zip $FILE
-            node ./metadata.js --os macos --arch x64 --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_mac-x64.zip $FILE
-            node ./metadata.js --os macos --arch arm64 --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_mac-arm64.zip $FILE
-          fi
-
-          if [ "${{ needs.build_android.result }}" == "success" ]; then
-            node ./metadata.js --os android --version $VERSION --commit $GITHUB_SHA --link https://nightly.link/doukutsu-rs/doukutsu-rs/actions/runs/${{ github.run_id }}/doukutsu-rs_android.zip $FILE
-          fi
-
-          mkdir -p release-binaries
-          echo "file=$FILE" >> "$GITHUB_OUTPUT"
-
       # Windows x32 build
       - name: Download Windows x32 artifact
         if: ${{ needs.build.result == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: doukutsu-rs_windows-x32
           path: temp-windows-x32
@@ -337,13 +317,13 @@ jobs:
       - name: Process Windows x32 build
         if: ${{ needs.build.result == 'success' }}
         run: |
-          node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform windows --arch i686 --commit $GITHUB_SHA --file "temp-windows-x32/doukutsu-rs.i686.exe"
+          node ./misc/ci/uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform windows --arch i686 --commit $GITHUB_SHA --file "temp-windows-x32/doukutsu-rs.i686.exe"
           cp ./temp-windows-x32/doukutsu-rs.i686.exe "./release-binaries/doukutsu-rs_windows_${{ steps.set_version.outputs.version }}.i686.exe"
 
       # Windows x64 build
       - name: Download Windows x64 artifact
         if: ${{ needs.build.result == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: doukutsu-rs_windows-x64
           path: temp-windows-x64
@@ -351,13 +331,13 @@ jobs:
       - name: Process Windows x64 build
         if: ${{ needs.build.result == 'success' }}
         run: |
-          node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform windows --arch x86_64 --commit $GITHUB_SHA --file "temp-windows-x64/doukutsu-rs.x86_64.exe"
+          node ./misc/ci/uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform windows --arch x86_64 --commit $GITHUB_SHA --file "temp-windows-x64/doukutsu-rs.x86_64.exe"
           cp ./temp-windows-x64/doukutsu-rs.x86_64.exe "./release-binaries/doukutsu-rs_windows_${{ steps.set_version.outputs.version }}.x86_64.exe"
 
       # Linux x64 build
       - name: Download Linux x64 artifact
         if: ${{ needs.build.result == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: doukutsu-rs_linux-x64
           path: temp-linux-x64
@@ -365,13 +345,13 @@ jobs:
       - name: Process Linux x64 build
         if: ${{ needs.build.result == 'success' }}
         run: |
-          node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform linux --arch x86_64 --commit $GITHUB_SHA --file "temp-linux-x64/doukutsu-rs.x86_64.elf"
+          node ./misc/ci/uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform linux --arch x86_64 --commit $GITHUB_SHA --file "temp-linux-x64/doukutsu-rs.x86_64.elf"
           cp ./temp-linux-x64/doukutsu-rs.x86_64.elf "./release-binaries/doukutsu-rs_linux_${{ steps.set_version.outputs.version }}.x86_64.elf"
 
       # macOS x64 build
       - name: Download macOS x64 artifact
         if: ${{ needs.build.result == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: doukutsu-rs_mac-x64
           path: temp-mac-x64
@@ -379,13 +359,13 @@ jobs:
       - name: Process macOS x64 build
         if: ${{ needs.build.result == 'success' }}
         run: |
-          node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform macos --arch x86_64 --commit $GITHUB_SHA --file "temp-mac-x64/doukutsu-rs_mac-x86_64.zip"
+          node ./misc/ci/uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform macos --arch x86_64 --commit $GITHUB_SHA --file "temp-mac-x64/doukutsu-rs_mac-x86_64.zip"
           cp ./temp-mac-x64/doukutsu-rs_mac-x86_64.zip "./release-binaries/doukutsu-rs_macos_${{ steps.set_version.outputs.version }}.x86_64.zip"
 
       # macOS ARM64 build
       - name: Download macOS ARM64 artifact
         if: ${{ needs.build.result == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: doukutsu-rs_mac-arm64
           path: temp-mac-arm64
@@ -393,13 +373,13 @@ jobs:
       - name: Process macOS ARM64 build
         if: ${{ needs.build.result == 'success' }}
         run: |
-          node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform macos --arch arm64 --commit $GITHUB_SHA --file "temp-mac-arm64/doukutsu-rs_mac-arm64.zip"
+          node ./misc/ci/uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform macos --arch arm64 --commit $GITHUB_SHA --file "temp-mac-arm64/doukutsu-rs_mac-arm64.zip"
           cp ./temp-mac-arm64/doukutsu-rs_mac-arm64.zip "./release-binaries/doukutsu-rs_macos_${{ steps.set_version.outputs.version }}.arm64.zip"
 
       # Android build
       - name: Download Android artifact
         if: ${{ needs.build_android.result == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: doukutsu-rs_android
           path: temp-android
@@ -407,7 +387,7 @@ jobs:
       - name: Process Android build
         if: ${{ needs.build_android.result == 'success' }}
         run: |
-          node ./uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform android --arch universal --commit $GITHUB_SHA --file "temp-android/doukutsu-rs.apk"
+          node ./misc/ci/uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform android --arch universal --commit $GITHUB_SHA --file "temp-android/doukutsu-rs.apk"
           cp ./temp-android/doukutsu-rs.apk "./release-binaries/doukutsu-rs_android_${{ steps.set_version.outputs.version }}.universal.apk"
 
       - name: Upload binaries to release
@@ -419,12 +399,3 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true
-
-      - name: Upload metadata
-        run: |
-          git config user.name ${{ vars.METADATA_USER_NAME }}
-          git config user.email ${{ vars.METADATA_USER_EMAIL }}
-
-          git add ${{ steps.metadata.outputs.file }}
-          git commit -m "Update ${{ steps.set_version.outputs.channel }} builds metadata(CI)"
-          git push
