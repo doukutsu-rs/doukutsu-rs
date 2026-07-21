@@ -1,0 +1,10 @@
+services:
+  rust-switch:
+    build:
+      context: .
+
+    volumes:
+      - ../:/workspace
+      - "${CARGO_HOME:-${HOME}/.cargo}/registry:/usr/local/cargo/registry"
+      - "${CARGO_HOME:-${HOME}/.cargo}/git:/usr/local/cargo/git"
+
