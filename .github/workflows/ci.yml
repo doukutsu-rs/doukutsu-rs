@@ -4,14 +4,13 @@ on:
   push:
     branches-ignore:
       - cpp-rewrite
-      - horizon-os
       - refactor
     paths-ignore:
       - ".gitignore"
       - ".github/*"
       - "**.md"
       - "LICENSE"
-      - "drshorizon/**"
+      - "misc/**"
       - "res/**"
   workflow_dispatch:
   release:
@@ -260,11 +259,87 @@ jobs:
             drsandroid/target
           key: android-cargo
 
+  build_horizon:
+    name: Horizon build
+    runs-on: ubuntu-latest
+    env:
+      RUSTSWITCH_IMAGE: "ghcr.io/doukutsu-rs/drshorizon-build-env:latest"
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: Horizon
+            os: ubuntu-latest
+            channel: stable
+    steps:
+      - uses: actions/checkout@v7
+      - name: Restore cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.cache
+            ~/.cargo
+            drshorizon/target
+          key: horizon-cargo
+
+      - name: Set version
+        id: set_version
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "channel=stable" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_name }}" == "master" ]; then
+            echo "version=${{ env.VERSION }}-$((${{ github.run_number }} + 654))" >> $GITHUB_OUTPUT
+            echo "channel=nightly" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ env.VERSION }}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "channel=nightly" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build
+        run: |
+          if [ -z "${{ steps.set_version.outputs.version }}" ]; then
+            echo "version is not set"
+            exit 1
+          fi
+
+          export DRS_BUILD_VERSION_OVERRIDE="${{ steps.set_version.outputs.version }}"
+          export RUSTSWITCH_IMAGE="${{ env.RUSTSWITCH_IMAGE }}"
+
+          cd drshorizon
+          ./build.sh -r --ci --docker-mode compose
+
+      - name: Prepare artifact
+        run: |
+          mkdir release
+
+          # Artifacts generated during build in the container are owned by root,
+          # so we cannot move the generated file as we do for other platforms
+          cp drshorizon/target/aarch64-nintendo-switch/release/drshorizon.nro release/doukutsu-rs.nro
+          cp LICENSE ./release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: doukutsu-rs_horizon
+          path: ./release/*
+          if-no-files-found: error
+
+      - name: Save cache
+        if: ${{ github.ref_name == 'master' || github.ref_type == 'tag' }}
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ~/.cache
+            ~/.cargo
+            drshorizon/target
+          key: horizon-cargo
+
   update_metadata:
     name: Update metadata
     runs-on: ubuntu-latest
     if: ${{ github.ref_name == 'master' || github.ref_type == 'tag' }}
-    needs: [build, build_android]
+    needs: [build, build_android, build_horizon]
     permissions:
       contents: write
     env:
@@ -389,6 +464,20 @@ jobs:
         run: |
           node ./misc/ci/uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform android --arch universal --commit $GITHUB_SHA --file "temp-android/doukutsu-rs.apk"
           cp ./temp-android/doukutsu-rs.apk "./release-binaries/doukutsu-rs_android_${{ steps.set_version.outputs.version }}.universal.apk"
+
+      # Horizon build
+      - name: Download Horizon artifact
+        if: ${{ needs.build_horizon.result == 'success' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: doukutsu-rs_horizon
+          path: temp-horizon
+
+      - name: Process Horizon build
+        if: ${{ needs.build_horizon.result == 'success' }}
+        run: |
+          node ./misc/ci/uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform horizon --arch arm64 --commit $GITHUB_SHA --file "temp-horizon/doukutsu-rs.nro" --experimental true
+          cp ./temp-horizon/doukutsu-rs.nro "./release-binaries/doukutsu-rs_horizon_${{ steps.set_version.outputs.version }}.arm64.nro"
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2

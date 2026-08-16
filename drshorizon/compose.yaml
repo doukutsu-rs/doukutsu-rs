@@ -1,5 +1,6 @@
 services:
   rust-switch:
+    image: ${RUSTSWITCH_IMAGE:-ghcr.io/doukutsu-rs/drshorizon-build-env:1.0.0}
     build:
       context: .
 
