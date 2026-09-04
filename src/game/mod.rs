@@ -344,7 +344,10 @@ fn init_logger(options: &LaunchOptions) -> GameResult {
 
 fn panic_hook(info: &PanicInfo<'_>) {
     let backtrace = Backtrace::force_capture();
-    let msg = info.payload().downcast_ref::<&str>().unwrap_or(&"(no message)");
+    // TODO: replace with `info.payload_as_str` when our MSVR will be >=1.91
+    let msg = info.payload().downcast_ref::<&str>().copied()
+        .or(info.payload().downcast_ref::<String>().map(String::as_str))
+        .unwrap_or("(no message)");
     let location = info.location();
 
     if location.is_some() {
