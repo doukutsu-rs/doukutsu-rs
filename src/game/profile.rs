@@ -7,12 +7,13 @@ use std::marker::Copy;
 use std::path::PathBuf;
 use std::str::{Chars, FromStr};
 
+use bitfield::bitfield;
 use byteorder::{BE, LE, ReadBytesExt, WriteBytesExt};
 use num_traits::{clamp, FromPrimitive};
 use serde::{Deserialize, Serialize};
+use serde_json::Map;
 use serde_with::serde_as;
 
-use crate::bitfield;
 use crate::common::{get_timestamp, Direction, FadeState, Version};
 use crate::framework::context::Context;
 use crate::framework::error::GameError::{self, ResourceLoadError};
@@ -48,7 +49,7 @@ pub struct TeleporterSlotData {
 }
 
 #[serde_as]
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GameProfile {
     pub current_map: u32,
     pub current_song: u32,
@@ -78,6 +79,9 @@ pub struct GameProfile {
 
     // CS+ fields
     pub eggfish_killed: bool,
+
+    #[serde(flatten)]
+    pub extra: Map<String, serde_json::Value>,
 }
 
 impl Default for GameProfile {
@@ -108,6 +112,8 @@ impl Default for GameProfile {
             difficulty: 0,
 
             eggfish_killed: false,
+
+            extra: Map::new(),
         }
     }
 }
@@ -231,6 +237,8 @@ impl GameProfile {
 
         game_scene.player1.skin.apply_gamestate(state);
         game_scene.player2.skin.apply_gamestate(state);
+
+        // TODO: should we store extra fields in the game state?
     }
 
     pub fn dump(state: &mut SharedGameState, game_scene: &mut GameScene, target_player: Option<TargetPlayer>) -> GameProfile {
@@ -312,6 +320,7 @@ impl GameProfile {
         let timestamp = get_timestamp();
         let difficulty = state.difficulty as u8;
         let eggfish_killed = false; // TODO
+        let extra = Map::new();
 
         GameProfile {
             current_map,
@@ -337,7 +346,8 @@ impl GameProfile {
             flags,
             timestamp,
             difficulty,
-            eggfish_killed
+            eggfish_killed,
+            extra,
         }
     }
 
@@ -544,6 +554,7 @@ impl GameProfile {
         let timestamp = data.read_u64::<LE>().unwrap_or(0);
         let difficulty = data.read_u8().unwrap_or(0);
         let eggfish_killed = false; // TODO
+        let extra = Map::new();
 
         if format.is_csp() {
             // unused(?) CS+ space
@@ -575,7 +586,8 @@ impl GameProfile {
             flags,
             timestamp,
             difficulty,
-            eggfish_killed
+            eggfish_killed,
+            extra,
         })
     }
 

@@ -7,12 +7,12 @@ use std::marker::Copy;
 use std::path::PathBuf;
 use std::str::{Chars, FromStr};
 
+use bitfield::bitfield;
 use byteorder::{BE, LE, ReadBytesExt, WriteBytesExt};
 use num_traits::{clamp, FromPrimitive};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-use crate::bitfield;
 use crate::common::{get_timestamp, Direction, FadeState, Version};
 use crate::framework::context::Context;
 use crate::framework::error::GameError::{self, ResourceLoadError};
@@ -234,7 +234,6 @@ pub struct SaveContainer {
     pub game_profiles: HashMap<usize, GameProfile>,
     pub csp_mods: HashMap<u8, CSPModProfile>, // save_set number -> saves & time
 
-    // TODO: use this field instead of 290 records
     pub csp_best_times: HashMap<u8, ChallengeTime>, // mod_id -> time info
 
     #[serde(skip)]
@@ -272,8 +271,8 @@ impl SaveContainer {
             if save.is_err() {
                 let filename_bad = &(1..u64::MAX)
                     .find_map(|i| {
-                        let fname_bad = format!("{}.bad.{}", filename.clone(), i);
-                        if !filesystem::user_exists(ctx, fname_bad.clone()) {
+                        let fname_bad = format!("{}.bad.{}", &filename, i);
+                        if !filesystem::user_exists(ctx, &fname_bad) {
                             return Some(fname_bad);
                         }
 
@@ -441,7 +440,6 @@ impl SaveContainer {
                     }
                 }
 
-                
                 for (mod_id, best_time) in &self.csp_best_times {
                     if let Some(path) = &mut out_path {
                         let filename = Self::get_rec_filename(state, *mod_id, false);
@@ -453,24 +451,10 @@ impl SaveContainer {
                         best_time.write_time(file, state, format)?;
                     }
                 }
-                
+
                 if out_path.is_none() {
                     self.write_times(ctx, state)?;
                 }
-                
-                // for (mod_id, best_time) in &self.csp_best_times {
-                //     let filename = Self::get_rec_filename(state, *mod_id, false);
-                //     if let Some(path) = &mut out_path {
-                //         let os_filename = OsString::from_str(filename.as_str()).unwrap();
-                //         let _ = path.set_file_name(os_filename);
-
-                //         let file = File::create(path)?;
-                //         best_time.write_time(file, state, format)?;
-                //     } else {
-                //         let file = filesystem::user_create(ctx, ["/", filename.as_str()].join(""))?;
-                //         best_time.write_time(file, state, format)?;
-                //     }
-                // }
 
                 for (patch_slot, patch_state) in self.patchset.iter() {
                     if *patch_state == SavePatch::Deleted {
@@ -624,7 +608,9 @@ impl SaveContainer {
         self.write_save(ctx, state, SaveFormat::Generic, None, None, &params)?;
         self.write_times(ctx, state)?;
         self.write_save(ctx, state, state.settings.save_format, None, None, &params)?;
+
         self.patchset.clear();
+
         Ok(())
     }
 
@@ -779,10 +765,10 @@ impl SaveContainer {
 
 
     fn merge(&mut self, b: &Self) {
-        self.game_profiles.extend(b.game_profiles.iter());
+        self.game_profiles.extend(b.game_profiles.clone().into_iter());
         for (b_set, b_csp_mod) in &b.csp_mods {
             let _ = self.csp_mods.entry(*b_set)
-                .and_modify(|csp_mod| csp_mod.profiles.extend(b_csp_mod.profiles.iter()))
+                .and_modify(|csp_mod| csp_mod.profiles.extend(b_csp_mod.profiles.clone().into_iter()))
                 .or_insert(b_csp_mod.clone());
         }
 
@@ -919,7 +905,6 @@ impl SaveContainer {
                     best_time.load_time(&mut cur, format)?;
 
                     if best_time.ticks != 0 {
-                        //container.csp_best_times.insert(mod_id, best_time);
                         container.set_best_time(mod_id, best_time, false);
                     }
                 }

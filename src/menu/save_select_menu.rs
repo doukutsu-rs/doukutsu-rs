@@ -1,8 +1,10 @@
+use std::path::PathBuf;
+
 use pelite::pe::imports::Import;
 
 use crate::common::Version;
 use crate::framework::context::Context;
-use crate::framework::error::GameResult;
+use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
 use crate::game::profile::GameProfile;
 use crate::game::save_container::{SaveContainer, SaveFormat, SaveParams, SaveSlot, SWITCH_VER_1_2, SWITCH_VER_1_3};
@@ -117,7 +119,7 @@ impl Default for SavesLocationMenuEntry {
 }
 
 #[derive(Clone, Copy)]
-enum SavesLocation {
+pub enum SavesLocation {
     Filesystem,
     // TODO: add some Switch emulators
 }

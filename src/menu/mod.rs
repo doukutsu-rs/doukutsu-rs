@@ -184,6 +184,13 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
         None
     }
 
+    pub fn update_sizes(&mut self, state: &SharedGameState) {
+        self.update_width(state);
+        self.update_height(state);
+        self.x = ((state.canvas_size.0 - self.width as f32) / 2.0).floor() as isize;
+        self.y = ((state.canvas_size.1 - self.height as f32) / 2.0).floor() as isize;
+    }
+
     pub fn update_width(&mut self, state: &SharedGameState) {
         let mut width = self.width as f32;
 
