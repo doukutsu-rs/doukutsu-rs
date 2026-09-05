@@ -4,17 +4,18 @@ use std::str::FromStr;
 
 use itertools::Itertools;
 
+use crate::common::Encoding;
 use crate::framework::error::GameError::ParseError;
 use crate::framework::error::GameResult;
 use crate::game::scripting::tsc::bytecode_utils::{put_string, put_varint};
 use crate::game::scripting::tsc::credit_script::CreditScript;
 use crate::game::scripting::tsc::opcodes::{CreditOpCode, TSCOpCode};
 use crate::game::scripting::tsc::parse_utils::{expect_char, read_number, skip_until};
-use crate::game::scripting::tsc::text_script::{TextScript, TextScriptEncoding};
+use crate::game::scripting::tsc::text_script::TextScript;
 
 impl TextScript {
     /// Compiles a decrypted text script data into internal bytecode.
-    pub fn compile(data: &[u8], strict: bool, encoding: TextScriptEncoding) -> GameResult<TextScript> {
+    pub fn compile(data: &[u8], strict: bool, encoding: Encoding) -> GameResult<TextScript> {
         let mut event_map = HashMap::new();
         let mut iter = data.iter().copied().peekable();
         let mut last_event = 0;
@@ -70,7 +71,7 @@ impl TextScript {
     fn compile_event<I: Iterator<Item=u8>>(
         iter: &mut Peekable<I>,
         strict: bool,
-        encoding: TextScriptEncoding,
+        encoding: Encoding,
     ) -> GameResult<Vec<u8>> {
         let mut bytecode = Vec::new();
         let mut char_buf = Vec::with_capacity(16);
@@ -313,7 +314,7 @@ impl TextScript {
 }
 
 impl CreditScript {
-    pub fn compile(data: &[u8], strict: bool, encoding: TextScriptEncoding) -> GameResult<CreditScript> {
+    pub fn compile(data: &[u8], strict: bool, encoding: Encoding) -> GameResult<CreditScript> {
         let mut labels = HashMap::new();
         let mut bytecode = Vec::new();
         let mut iter = data.iter().copied().peekable();

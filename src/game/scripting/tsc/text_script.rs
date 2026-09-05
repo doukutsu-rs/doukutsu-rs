@@ -8,6 +8,7 @@ use std::io::SeekFrom;
 use std::ops::ControlFlow;
 use std::ops::Not;
 use std::rc::Rc;
+use std::str::FromStr;
 
 use bitfield::bitfield;
 use num_traits::{clamp, FromPrimitive};
@@ -17,8 +18,7 @@ use crate::common::{Direction, FadeDirection, FadeState, Rect};
 use crate::engine_constants::EngineConstants;
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
-use crate::framework::error::map_err_to_break;
-use crate::framework::error::GameResult;
+use crate::framework::error::{GameError, GameResult, map_err_to_break};
 use crate::game::frame::UpdateTarget;
 use crate::game::npc::NPCContext;
 use crate::game::npc::NPC;
@@ -45,139 +45,6 @@ bitfield! {
     pub position_top, set_position_top: 5;
     pub perma_fast, set_perma_fast: 6;
     pub cutscene_skip, set_cutscene_skip: 7;
-}
-
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-#[allow(non_camel_case_types)]
-#[repr(u8)]
-pub enum TextScriptEncoding {
-    UTF8 = 0,
-    ShiftJIS,
-    UTF16BE,
-    UTF16LE,
-    ISO_2022_JP,
-    ISO_8859_2,
-    ISO_8859_3,
-    ISO_8859_4,
-    ISO_8859_5,
-    ISO_8859_6,
-    ISO_8859_7,
-    ISO_8859_8,
-    ISO_8859_8_I,
-    ISO_8859_10,
-    ISO_8859_13,
-    ISO_8859_14,
-    ISO_8859_15,
-    ISO_8859_16,
-    KOI8_R,
-    KOI8_U,
-    MACINTOSH,
-    EUC_JP,
-    EUC_KR,
-    GB18030,
-    GBK,
-    BIG5,
-    Win1250,
-    Win1251,
-    Win1252,
-    Win1253,
-    Win1254,
-    Win1255,
-    Win1256,
-    Win1257,
-    Win1258,
-}
-
-impl From<&str> for TextScriptEncoding {
-    fn from(s: &str) -> Self {
-        match s {
-            "utf-8" => Self::UTF8,
-
-            "iso-2022-jp" => Self::ISO_2022_JP,
-            "iso-8859-2" => Self::ISO_8859_2,
-            "iso-8859-3" => Self::ISO_8859_3,
-            "iso-8859-4" => Self::ISO_8859_4,
-            "iso-8859-5" => Self::ISO_8859_5,
-            "iso-8859-6" => Self::ISO_8859_6,
-            "iso-8859-7" => Self::ISO_8859_7,
-            "iso-8859-8" => Self::ISO_8859_8,
-            "iso-8859-8-i" => Self::ISO_8859_8_I,
-            "iso-8859-10" => Self::ISO_8859_10,
-            "iso-8859-13" => Self::ISO_8859_13,
-            "iso-8859-14" => Self::ISO_8859_14,
-            "iso-8859-15" => Self::ISO_8859_15,
-            "iso-8859-16" => Self::ISO_8859_16,
-
-            "koi8-r" => Self::KOI8_R,
-            "koi8-u" => Self::KOI8_U,
-
-            "macintosh" => Self::MACINTOSH,
-
-            "euc-jp" => Self::EUC_JP,
-            "euc-kr" => Self::EUC_KR,
-
-            "gb18030" => Self::GB18030,
-            "gbk" => Self::GBK,
-            "big5" => Self::BIG5,
-
-            "windows-1250" => Self::Win1250,
-            "windows-1251" => Self::Win1251,
-            "windows-1252" => Self::Win1252,
-            "windows-1253" => Self::Win1253,
-            "windows-1254" => Self::Win1254,
-            "windows-1255" => Self::Win1255,
-            "windows-1256" => Self::Win1256,
-            "windows-1257" => Self::Win1257,
-            "windows-1258" => Self::Win1258,
-
-            "utf-16be" => Self::UTF16BE,
-            "utf-16le" => Self::UTF16LE,
-
-            _ => Self::ShiftJIS,
-        }
-    }
-}
-
-impl From<TextScriptEncoding> for &'static encoding_rs::Encoding {
-    fn from(value: TextScriptEncoding) -> Self {
-        match value {
-            TextScriptEncoding::ShiftJIS => encoding_rs::SHIFT_JIS,
-            TextScriptEncoding::UTF8 => encoding_rs::UTF_8,
-            TextScriptEncoding::UTF16BE => encoding_rs::UTF_16BE,
-            TextScriptEncoding::UTF16LE => encoding_rs::UTF_16LE,
-            TextScriptEncoding::ISO_2022_JP => encoding_rs::ISO_2022_JP,
-            TextScriptEncoding::ISO_8859_2 => encoding_rs::ISO_8859_2,
-            TextScriptEncoding::ISO_8859_3 => encoding_rs::ISO_8859_3,
-            TextScriptEncoding::ISO_8859_4 => encoding_rs::ISO_8859_4,
-            TextScriptEncoding::ISO_8859_5 => encoding_rs::ISO_8859_5,
-            TextScriptEncoding::ISO_8859_6 => encoding_rs::ISO_8859_6,
-            TextScriptEncoding::ISO_8859_7 => encoding_rs::ISO_8859_7,
-            TextScriptEncoding::ISO_8859_8 => encoding_rs::ISO_8859_8,
-            TextScriptEncoding::ISO_8859_8_I => encoding_rs::ISO_8859_8_I,
-            TextScriptEncoding::ISO_8859_10 => encoding_rs::ISO_8859_10,
-            TextScriptEncoding::ISO_8859_13 => encoding_rs::ISO_8859_13,
-            TextScriptEncoding::ISO_8859_14 => encoding_rs::ISO_8859_14,
-            TextScriptEncoding::ISO_8859_15 => encoding_rs::ISO_8859_15,
-            TextScriptEncoding::ISO_8859_16 => encoding_rs::ISO_8859_16,
-            TextScriptEncoding::KOI8_R => encoding_rs::KOI8_R,
-            TextScriptEncoding::KOI8_U => encoding_rs::KOI8_U,
-            TextScriptEncoding::MACINTOSH => encoding_rs::MACINTOSH,
-            TextScriptEncoding::EUC_JP => encoding_rs::EUC_JP,
-            TextScriptEncoding::EUC_KR => encoding_rs::EUC_KR,
-            TextScriptEncoding::GB18030 => encoding_rs::GB18030,
-            TextScriptEncoding::GBK => encoding_rs::GBK,
-            TextScriptEncoding::BIG5 => encoding_rs::BIG5,
-            TextScriptEncoding::Win1250 => encoding_rs::WINDOWS_1250,
-            TextScriptEncoding::Win1251 => encoding_rs::WINDOWS_1251,
-            TextScriptEncoding::Win1252 => encoding_rs::WINDOWS_1252,
-            TextScriptEncoding::Win1253 => encoding_rs::WINDOWS_1253,
-            TextScriptEncoding::Win1254 => encoding_rs::WINDOWS_1254,
-            TextScriptEncoding::Win1255 => encoding_rs::WINDOWS_1255,
-            TextScriptEncoding::Win1256 => encoding_rs::WINDOWS_1256,
-            TextScriptEncoding::Win1257 => encoding_rs::WINDOWS_1257,
-            TextScriptEncoding::Win1258 => encoding_rs::WINDOWS_1258,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]

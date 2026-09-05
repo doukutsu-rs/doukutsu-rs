@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JSON schema for data root parameter files",
+  "type": "object",
+  "properties": {
+    "data_type": {
+      "description": "Override the detected data type for the root. If omitted, the type is inferred from the directory contents.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/dataType"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "base_locale": {
+      "description": "Locale code to use as the base language for this root.",
+      "type": "string",
+      "default": "en"
+    },
+    "supports_og_textures": {
+      "description": "Whether the root supports original textures.",
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "dataType": {
+      "type": "string",
+      "enum": [
+        "cs-plus",
+        "switch",
+        "wii-ware",
+        "wii-ware-demo",
+        "dsi-ware",
+        "e-shop",
+        "cs3d",
+        "cse2e",
+        "nxengine-evo",
+        "freeware"
+      ]
+    }
+  }
+}

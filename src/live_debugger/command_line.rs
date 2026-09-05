@@ -1,8 +1,9 @@
 use num_traits::FromPrimitive;
 
+use crate::common::Encoding;
 use crate::framework::error::{GameError::CommandLineError, GameResult};
 use crate::game::npc::NPC;
-use crate::game::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptEncoding};
+use crate::game::scripting::tsc::text_script::{ScriptMode, TextScript};
 use crate::game::shared_game_state::SharedGameState;
 use crate::game::weapon::WeaponType;
 use crate::scene::game_scene::GameScene;
@@ -249,7 +250,7 @@ impl CommandLineCommand {
             }
             CommandLineCommand::TSC(script) => {
                 log::info!("Executing TSC script: {}", format!("#9999\n{}", script));
-                match TextScript::compile(format!("#9999\n{}", script).as_bytes(), true, TextScriptEncoding::UTF8) {
+                match TextScript::compile(format!("#9999\n{}", script).as_bytes(), true, Encoding::UTF8) {
                     Ok(text_script) => {
                         state.textscript_vm.set_debug_script(text_script);
                         state.textscript_vm.set_mode(ScriptMode::Debug);

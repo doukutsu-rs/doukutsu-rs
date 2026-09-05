@@ -1,8 +1,8 @@
 use std::io::{Cursor, Read};
 
+use crate::common::Encoding;
 use crate::framework::error::GameError::ParseError;
 use crate::framework::error::GameResult;
-use crate::game::scripting::tsc::text_script::TextScriptEncoding;
 
 pub fn put_varint(val: i32, out: &mut Vec<u8>) {
     let mut x = ((val as u32) >> 31) ^ ((val as u32) << 1);
@@ -57,7 +57,7 @@ pub fn read_varint<I: Iterator<Item = u8>>(iter: &mut I) -> GameResult<i32> {
     Ok(((result << 31) ^ (result >> 1)) as i32)
 }
 
-pub fn put_string(buffer: &mut Vec<u8>, out: &mut Vec<u8>, encoding: TextScriptEncoding) {
+pub fn put_string(buffer: &mut Vec<u8>, out: &mut Vec<u8>, encoding: Encoding) {
     if buffer.is_empty() {
         return;
     }

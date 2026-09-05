@@ -2,12 +2,12 @@ use std::{cmp, ops::Div};
 
 use chrono::{Datelike, Local};
 
-use crate::common::{Color, ControlFlags, Direction, FadeState};
+use crate::common::{Color, ControlFlags, Direction, Encoding, FadeState};
 use crate::components::draw_common::{draw_number, Alignment};
 use crate::data::vanilla::VanillaExtractor;
 #[cfg(feature = "discord-rpc")]
 use crate::discord::DiscordRPC;
-use crate::engine_constants::{RootType, DataType, EngineConstants};
+use crate::engine_constants::{DataType, EngineConstants, RootType};
 use crate::framework::backend::BackendTexture;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -19,14 +19,12 @@ use crate::game::npc::NPCTable;
 use crate::game::player::TargetPlayer;
 use crate::game::profile::GameProfile;
 use crate::game::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
-use crate::game::scripting::tsc::text_script::{
-    ScriptMode, TextScript, TextScriptEncoding, TextScriptExecutionState, TextScriptVM,
-};
+use crate::game::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptExecutionState, TextScriptVM};
 use crate::game::settings::Settings;
 use crate::game::stage::StageData;
 use crate::graphics::bmfont::BMFont;
 use crate::graphics::texture_set::TextureSet;
-use crate::i18n::Locale;
+use crate::i18n::{Locale, Translation};
 use crate::input::touch_controls::TouchControls;
 use crate::mod_list::ModList;
 use crate::mod_requirements::ModRequirements;
@@ -346,6 +344,7 @@ pub struct SharedGameState {
     pub replay_state: ReplayState,
     pub mod_requirements: ModRequirements,
     pub loc: Locale,
+    pub tran: Translation,
     pub tutorial_counter: u16,
     pub more_rust: bool,
     #[cfg(feature = "discord-rpc")]
@@ -387,22 +386,26 @@ impl SharedGameState {
         if let Some(data_type) = constants.active_root.data_type {
             if data_type.is_supported() {
                 log::info!("{data_type} data files are detected");
-                data_type.apply_constants(ctx, &mut constants, &mut sound_manager)?;
             } else {
                 log::error!("{data_type} data files are detected. !UNSUPPORTED!");
             }
         }
+
+        constants.active_root.clone().apply_constants(ctx, &mut constants, &mut sound_manager)?;
 
         constants.load_soundtracks(ctx);
 
         let season = Season::current();
         constants.rebuild_path_list(None, season, &settings);
 
-        constants.load_locales(ctx)?;
+        constants.load_translations(ctx, true)?;
         constants.rebuild_roots_list(ctx, &settings, &mut sound_manager);
 
-        let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
-        let font = Self::try_update_locale(ctx, &mut constants, &settings, &mut sound_manager, &locale).unwrap();
+        let (locale, translation) =
+            SharedGameState::get_translation(&constants, &settings.locale, settings.translation.as_deref())
+                .unwrap_or_default();
+        let font =
+            Self::try_update_locale(ctx, &mut constants, &settings, &mut sound_manager, &locale, &translation).unwrap();
 
         let mod_list = ModList::load(ctx, &constants)?;
 
@@ -484,6 +487,7 @@ impl SharedGameState {
             replay_state: ReplayState::None,
             mod_requirements,
             loc: locale,
+            tran: translation,
             tutorial_counter: 0,
             more_rust,
             #[cfg(feature = "discord-rpc")]
@@ -563,24 +567,29 @@ impl SharedGameState {
         settings: &Settings,
         sound_manager: &mut SoundManager,
         locale: &Locale,
+        translation: &Translation,
     ) -> GameResult<BMFont> {
         log::info!("Updating locale to {} ({})", &locale.code, &locale.name);
+        assert!(locale.code == translation.locale);
 
         // If the active root doesn't support locales (we're probably on a Translation root)
         // or the target locale isn't the default one (its data dir could be a root), we need to switch the root
-        if !constants.active_root.support_locales || locale.code != constants.base_locale {
+        if !constants.active_root.supports_locales || locale.code != constants.base_locale {
             let main_root = constants.roots.get("/").unwrap();
 
-            let path = if constants.active_root.support_locales {
+            let path = if constants.active_root.supports_locales {
                 // If the active root support locales, we'll try to set active root to the translation data dir.
-                format!("{}{}/", constants.active_root.base_path(), &locale.code)
-            } else if constants.active_root.root_type == RootType::Translation && locale.code != constants.base_locale && locale.is_complete {
+                constants.active_root.translation_path(ctx, &translation)
+            } else if constants.active_root.root_type == RootType::Translation
+                && locale.code != constants.base_locale
+                && translation.is_complete
+            {
                 // Only the main game can have translations of different data types,
                 // so we'll try to find the translation data dir in the main root.
                 // We only need to do it if the translation is complete; otherwise it could be missing,
                 // which results in applying the new locale to the menu entries, while the game data is
                 // used from the previous locale.
-                format!("{}{}/", main_root.base_path(), &locale.code)
+                main_root.translation_path(ctx, &translation)
             } else {
                 // The active root doesn't support translations and isn't a translation itself,
                 // or the data files in the target lcoale data dir are incomplete (they're missing or the translation isn't a root).
@@ -591,32 +600,30 @@ impl SharedGameState {
             constants.set_active_root(ctx, path, settings, sound_manager);
         }
 
-        constants.textscript.encoding = if let Some(encoding) = locale.encoding {
-            encoding
-        } else {
+        constants.textscript.encoding = translation.encoding.unwrap_or_else(|| {
             // In freeware, Japanese and English text scripts use ShiftJIS.
             // In Cave Story+, Japanese scripts use ShiftJIS and English scripts use UTF-8.
             // In the Switch edition, UTF-8 is used for both English and Japanese scripts.
             match locale.code.as_str() {
                 "jp" => {
                     if constants.is_switch {
-                        TextScriptEncoding::UTF8
+                        Encoding::UTF8
                     } else {
-                        TextScriptEncoding::ShiftJIS
+                        Encoding::ShiftJIS
                     }
                 }
                 "en" => {
                     if constants.is_base() {
-                        TextScriptEncoding::ShiftJIS
+                        Encoding::ShiftJIS
                     } else {
-                        TextScriptEncoding::UTF8
+                        Encoding::UTF8
                     }
                 }
-                _ => TextScriptEncoding::UTF8,
+                _ => Encoding::UTF8,
             }
-        };
+        });
 
-        constants.stage_encoding = locale.stage_encoding;
+        constants.stage_encoding = translation.stage_encoding;
 
         let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
             log::warn!("Failed to load font, using built-in: {}", e);
@@ -627,14 +634,28 @@ impl SharedGameState {
     }
 
     pub fn update_locale(&mut self, ctx: &mut Context) {
-        let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) else {
+        let loc_res = SharedGameState::get_translation(
+            &self.constants,
+            &self.settings.locale,
+            self.settings.translation.as_deref(),
+        );
+        let Some((locale, translation)) = loc_res else {
             return;
         };
 
         let prev_root = self.constants.active_root.path.clone();
 
-        let font = Self::try_update_locale(ctx, &mut self.constants, &self.settings, &mut self.sound_manager, &locale).unwrap();
+        let font = Self::try_update_locale(
+            ctx,
+            &mut self.constants,
+            &self.settings,
+            &mut self.sound_manager,
+            &locale,
+            &translation,
+        )
+        .unwrap();
         self.loc = locale;
+        self.tran = translation;
         self.font = font;
 
         let _ = if prev_root != self.constants.active_root.path {
@@ -934,21 +955,27 @@ impl SharedGameState {
         return self.difficulty as u16;
     }
 
-    fn get_locale(constants: &EngineConstants, user_locale: &str) -> Option<Locale> {
-        let mut out_locale = None;
+    fn get_translation(
+        constants: &EngineConstants,
+        locale: &str,
+        translation: Option<&str>,
+    ) -> Option<(Locale, Translation)> {
+        let mut out = None;
 
-        for locale in &constants.locales {
-            if locale.code == constants.base_locale {
-                out_locale = Some(locale.clone());
+        for tran in &constants.translations {
+            if tran.locale == constants.base_locale {
+                let loc = constants.locales.iter().find(|l| l.code == locale)?;
+                out = Some((loc.clone(), tran.clone()));
             }
 
-            if locale.code == user_locale {
-                out_locale = Some(locale.clone());
+            if tran.locale == locale && tran.code.as_deref() == translation {
+                let loc = constants.locales.iter().find(|l| l.code == locale)?;
+                out = Some((loc.clone(), tran.clone()));
                 break;
             }
         }
 
-        out_locale
+        out
     }
 
     pub fn get_localized_soundtrack_name(&self, id: &str) -> String {

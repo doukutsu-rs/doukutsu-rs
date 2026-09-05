@@ -1,6 +1,7 @@
 use itertools::Itertools;
 
 use crate::common::Rect;
+use crate::engine_constants::RootType;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::graphics::VSyncMode;
@@ -101,7 +102,7 @@ impl Default for SoundtrackMenuEntry {
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum LanguageMenuEntry {
     Title,
-    Language(String),
+    Language(String, Option<String>), // locale code, translation code (None represents a default translation variant)
     Spacer,
     Warning,
     Back,
@@ -365,7 +366,7 @@ impl SettingsMenu {
                 // TODO: dehardcode this Rect
                 symbols: &[
                     (save_warn_char.0, Rect::new_size(16, 0, 16, 16)), // ! - locale with different data type
-                    (no_data_char.0, Rect::new_size(32, 0, 16, 16)), // 0 - locale with no data
+                    (no_data_char.0, Rect::new_size(32, 0, 16, 16)),   // 0 - locale with no data
                 ],
                 texture: "icons",
             }
@@ -379,8 +380,12 @@ impl SettingsMenu {
         let mut has_diff_data_locales = false;
         let mut has_no_data_locales = false;
 
-        for locale in &state.constants.locales {
-            if !locale.is_present {
+        for tran in &state.constants.translations {
+            if !tran.available {
+                if !tran.is_default() {
+                    continue;
+                }
+
                 has_no_data_locales = true;
             }
 
@@ -388,15 +393,40 @@ impl SettingsMenu {
             let main_root = state.constants.roots.get("/").unwrap();
             let active_root = &state.constants.active_root;
 
-            let mut entry = locale.name.clone();
-            if !locale.is_present {
-                entry.push(no_data_char.0)
-            } else if locale.code != state.constants.base_locale && active_root.support_locales && active_root.data_type != locale.data_type || main_root.data_type != locale.data_type {
+            let loc = state.constants.locales.iter().find(|l| l.code == tran.locale).unwrap();
+            let mut entry = loc.name.clone();
+
+            // Workaround for locales like "Chinese (Simplified)"
+            if !tran.is_default() {
+                if entry.ends_with(')') {
+                    let _ = entry.pop();
+                    entry.push_str(", ");
+                } else {
+                    entry.push_str(" (");
+                }
+
+                entry.push_str(tran.name.as_str());
+                entry.push(')');
+            }
+
+            if !tran.available {
+                entry.push(no_data_char.0);
+            } else if tran.locale != state.constants.base_locale
+                && active_root.supports_locales
+                && active_root.data_type != tran.data_type
+                || (main_root.data_type != tran.data_type && active_root.root_type == RootType::Translation)
+            {
+                // We compare the data type of the translation with the data type of the active root,
+                // if it supports locales and isn't a translation root (in case it's a mod root that, for some reason,
+                // doesn't support locales), or with the data type of the main root otherwise.
                 has_diff_data_locales = true;
                 entry.push(save_warn_char.0);
             }
 
-            self.language.push_entry(LanguageMenuEntry::Language(locale.code.clone()), MenuEntry::Active(entry));
+            self.language.push_entry(
+                LanguageMenuEntry::Language(tran.locale.clone(), tran.code.clone()),
+                MenuEntry::Active(entry),
+            );
         }
 
         self.language.push_entry(LanguageMenuEntry::Spacer, MenuEntry::Spacer(8.0));
@@ -405,7 +435,9 @@ impl SettingsMenu {
             self.language.push_entry(
                 LanguageMenuEntry::Warning,
                 MenuEntry::LongText(
-                    state.loc.tt("menus.options_menu.language_menu.warnings.different_type", &[("icon", save_warn_char.1)]),
+                    state
+                        .loc
+                        .tt("menus.options_menu.language_menu.warnings.different_type", &[("icon", save_warn_char.1)]),
                     false,
                     false,
                 ),
@@ -982,12 +1014,13 @@ impl SettingsMenu {
                 )?;
             }
             CurrentMenu::LanguageMenu => match self.language.tick(controller, state) {
-                MenuSelectionResult::Selected(LanguageMenuEntry::Language(new_locale), entry) => {
+                MenuSelectionResult::Selected(LanguageMenuEntry::Language(new_locale, new_translation), entry) => {
                     if let MenuEntry::Active(_) = entry {
-                        if new_locale == state.settings.locale {
+                        if new_locale == state.settings.locale && new_translation == state.settings.translation {
                             self.current = CurrentMenu::MainMenu;
                         } else {
                             state.settings.locale = new_locale;
+                            state.settings.translation = new_translation;
                             state.update_locale(ctx);
 
                             let _ = state.settings.save(ctx);
