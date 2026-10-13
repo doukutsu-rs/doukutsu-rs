@@ -474,19 +474,19 @@ jobs:
           node ./misc/ci/uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform android --arch universal --commit $GITHUB_SHA --file "temp-android/doukutsu-rs.apk"
           cp ./temp-android/doukutsu-rs.apk "./release-binaries/doukutsu-rs_android_${{ steps.set_version.outputs.version }}.universal.apk"
 
-      # Horizon build
-      - name: Download Horizon artifact
-        if: ${{ needs.build_horizon.result == 'success' }}
-        uses: actions/download-artifact@v8
-        with:
-          name: doukutsu-rs_horizon
-          path: temp-horizon
+      # # Horizon build
+      # - name: Download Horizon artifact
+      #   if: ${{ needs.build_horizon.result == 'success' }}
+      #   uses: actions/download-artifact@v8
+      #   with:
+      #     name: doukutsu-rs_horizon
+      #     path: temp-horizon
 
-      - name: Process Horizon build
-        if: ${{ needs.build_horizon.result == 'success' }}
-        run: |
-          node ./misc/ci/uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform switch --arch arm64 --commit $GITHUB_SHA --file "temp-horizon/doukutsu-rs.nro" --experimental true
-          cp ./temp-horizon/doukutsu-rs.nro "./release-binaries/doukutsu-rs_switch_${{ steps.set_version.outputs.version }}.arm64.nro"
+      # - name: Process Horizon build
+      #   if: ${{ needs.build_horizon.result == 'success' }}
+      #   run: |
+      #     node ./misc/ci/uploadBuild.js update --channel ${{ steps.set_version.outputs.channel }} --version "${{ steps.set_version.outputs.version }}" --platform switch --arch arm64 --commit $GITHUB_SHA --file "temp-horizon/doukutsu-rs.nro" --experimental true
+      #     cp ./temp-horizon/doukutsu-rs.nro "./release-binaries/doukutsu-rs_switch_${{ steps.set_version.outputs.version }}.arm64.nro"
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
