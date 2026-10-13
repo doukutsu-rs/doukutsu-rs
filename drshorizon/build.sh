@@ -9,10 +9,10 @@ if [ -z $TERM ] || [ "${TERM}" = "dumb"  ]; then
 fi
 
 # Base version (in the major.minor.patch format, without any suffixes)
-BASE_VERSION="1.0.0"
+BASE_VERSION=$(../misc/ci/get_version.sh)
 # Strip suffix after -
 VERSION=${DRS_BUILD_VERSION_OVERRIDE%%-*}
-VERSION=${VERSION:-BASE_VERSION}
+VERSION=${VERSION:-$BASE_VERSION}
 
 DARK_GRAY=$(tput setaf 8)
 YELLOW=$(tput bold)$(tput setaf 3)

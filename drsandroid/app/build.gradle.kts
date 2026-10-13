@@ -2,8 +2,7 @@ plugins {
     id("com.android.application")
 }
 
-// SDL's Java glue comes from the sources cargo checked out for sdl2-sys, the same ones CMake builds the native library from.
-fun sdl2SourceDir(): File {
+val cargoPackages: List<Map<String, Any>> by lazy {
     val cargo = System.getenv("CARGO")
         ?: File(System.getProperty("user.home"), ".cargo/bin/cargo").takeIf { it.exists() }?.path
         ?: "cargo"
@@ -12,10 +11,17 @@ fun sdl2SourceDir(): File {
     }.standardOutput.asText.get()
 
     @Suppress("UNCHECKED_CAST")
-    val packages = (groovy.json.JsonSlurper().parseText(metadata) as Map<String, Any>)["packages"] as List<Map<String, Any>>
-    val manifest = packages.first { it["name"] == "sdl2-sys" }["manifest_path"] as String
+    (groovy.json.JsonSlurper().parseText(metadata) as Map<String, Any>)["packages"] as List<Map<String, Any>>
+}
+
+// SDL's Java glue comes from the sources cargo checked out for sdl2-sys, the same ones CMake builds the native library from.
+fun sdl2SourceDir(): File {
+    val manifest = cargoPackages.first { it["name"] == "sdl2-sys" }["manifest_path"] as String
     return File(manifest).resolveSibling("SDL")
 }
+
+// The version is defined once, in the root Cargo.toml.
+val drsVersion = cargoPackages.first { it["name"] == "doukutsu-rs" }["version"] as String
 
 android {
     namespace = "io.github.doukutsu_rs"
@@ -34,7 +40,7 @@ android {
         minSdk = 24
         targetSdk = 35
         versionCode = 3
-        versionName = "1.0.0"
+        versionName = drsVersion
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
