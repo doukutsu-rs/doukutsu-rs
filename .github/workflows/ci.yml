@@ -344,7 +344,8 @@ jobs:
     name: Update metadata
     runs-on: ubuntu-latest
     if: ${{ github.ref_name == 'master' || github.ref_type == 'tag' }}
-    needs: [build, build_android, build_horizon]
+    #needs: [build, build_android, build_horizon]
+    needs: [build, build_android]
     permissions:
       contents: write
     env:
