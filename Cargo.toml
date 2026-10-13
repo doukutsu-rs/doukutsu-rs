@@ -4,7 +4,7 @@
 [package]
 name = "doukutsu-rs"
 description = "A re-implementation of Cave Story (Doukutsu Monogatari) engine"
-version = "1.0.0"
+version = "1.1.0"
 authors = ["doukutsu-rs contributors"]
 edition = "2021"
 rust-version = "1.87"
