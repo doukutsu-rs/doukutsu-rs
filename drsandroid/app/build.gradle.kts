@@ -2,6 +2,21 @@ plugins {
     id("com.android.application")
 }
 
+// SDL's Java glue comes from the sources cargo checked out for sdl2-sys, the same ones CMake builds the native library from.
+fun sdl2SourceDir(): File {
+    val cargo = System.getenv("CARGO")
+        ?: File(System.getProperty("user.home"), ".cargo/bin/cargo").takeIf { it.exists() }?.path
+        ?: "cargo"
+    val metadata = providers.exec {
+        commandLine(cargo, "metadata", "--format-version", "1", "--manifest-path", file("../Cargo.toml").path)
+    }.standardOutput.asText.get()
+
+    @Suppress("UNCHECKED_CAST")
+    val packages = (groovy.json.JsonSlurper().parseText(metadata) as Map<String, Any>)["packages"] as List<Map<String, Any>>
+    val manifest = packages.first { it["name"] == "sdl2-sys" }["manifest_path"] as String
+    return File(manifest).resolveSibling("SDL")
+}
+
 android {
     namespace = "io.github.doukutsu_rs"
 
@@ -82,7 +97,7 @@ android {
 
     sourceSets {
         getByName("main") {
-            java.srcDirs("src/main/cpp/SDL2/android-project/app/src/main/java")
+            java.srcDirs(sdl2SourceDir().resolve("android-project/app/src/main/java"))
         }
     }
 

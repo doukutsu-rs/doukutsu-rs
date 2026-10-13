@@ -165,8 +165,6 @@ jobs:
             channel: stable
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: recursive
       - name: Restore cache
         uses: actions/cache/restore@v6
         with:

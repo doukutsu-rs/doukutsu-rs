@@ -4,8 +4,6 @@
 project(doukutsu-rs)
 cmake_minimum_required(VERSION 3.22)
 
-add_subdirectory(SDL2)
-
 include(FetchContent)
 FetchContent_Declare(
         Corrosion
@@ -13,6 +11,24 @@ FetchContent_Declare(
         GIT_TAG v0.5.2
 )
 FetchContent_MakeAvailable(Corrosion)
+
+set(DRSANDROID_ROOT "${CMAKE_SOURCE_DIR}/../../../..")
+
+# Build SDL from the sources cargo already checked out for sdl2-sys, so the version always matches the Rust bindings.
+execute_process(
+        COMMAND "${Rust_CARGO_CACHED}" metadata --format-version 1 --manifest-path "${DRSANDROID_ROOT}/Cargo.toml"
+        OUTPUT_VARIABLE CARGO_METADATA
+        RESULT_VARIABLE CARGO_METADATA_RESULT
+)
+if(NOT CARGO_METADATA_RESULT EQUAL 0)
+  message(FATAL_ERROR "cargo metadata failed: ${CARGO_METADATA_RESULT}")
+endif()
+if(NOT CARGO_METADATA MATCHES "\"manifest_path\":\"([^\"]*sdl2-sys[/\\\\]+Cargo\\.toml)\"")
+  message(FATAL_ERROR "Could not find sdl2-sys in cargo metadata")
+endif()
+string(REPLACE "\\\\" "/" SDL2_SYS_MANIFEST "${CMAKE_MATCH_1}")
+get_filename_component(SDL2_SYS_DIR "${SDL2_SYS_MANIFEST}" DIRECTORY)
+add_subdirectory("${SDL2_SYS_DIR}/SDL" "${CMAKE_BINARY_DIR}/SDL2")
 
 function(configure_shared_stl lib_path so_base)
   message("Configuring STL ${so_base} for ${ANDROID_ABI}")
@@ -40,7 +56,6 @@ else()
    message(FATAL_ERROR "STL configuration ANDROID_STL=${ANDROID_STL} is not supported")
 endif()
 
-set(DRSANDROID_ROOT "${CMAKE_SOURCE_DIR}/../../../..")
 corrosion_import_crate(MANIFEST_PATH "${DRSANDROID_ROOT}/Cargo.toml")
 
 # Specifies a library name, specifies whether the library is STATIC or
