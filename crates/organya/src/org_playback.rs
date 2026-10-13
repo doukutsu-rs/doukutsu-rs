@@ -427,20 +427,36 @@ fn render_buffer(
         }
         n = n.min(out_l.len() - done);
 
-        for gain in &mut gains[..n] {
-            buf.vol_cent = buf.vol_cent + (buf.vol_cent_target - buf.vol_cent) * 0.1;
-
-            // add a bit of release to the note for declicking
-            let release = if buf.release_len > 0 { buf.release_timer as f32 / buf.release_len as f32 } else { 1.0 };
-            *gain = buf.vol_cent * release;
-
-            if buf.release_len > 0 && buf.release_timer == 0 {
-                buf.release_len = 0;
-                buf.looping = false;
-                buf.playing = false;
+        if buf.release_len == 0 {
+            // Steady notes are the common case, once the glide stops changing the volume the gain is constant.
+            let mut k = 0;
+            while k < n {
+                let vol = buf.vol_cent + (buf.vol_cent_target - buf.vol_cent) * 0.1;
+                if vol == buf.vol_cent {
+                    break;
+                }
+                buf.vol_cent = vol;
+                gains[k] = vol;
+                k += 1;
             }
-            if buf.release_timer > 0 {
-                buf.release_timer -= 1;
+            gains[k..n].fill(buf.vol_cent);
+            buf.release_timer = buf.release_timer.saturating_sub(n as u16);
+        } else {
+            for gain in &mut gains[..n] {
+                buf.vol_cent = buf.vol_cent + (buf.vol_cent_target - buf.vol_cent) * 0.1;
+
+                // add a bit of release to the note for declicking
+                let release = buf.release_timer as f32 / buf.release_len as f32;
+                *gain = buf.vol_cent * release;
+
+                if buf.release_timer == 0 {
+                    buf.release_len = 0;
+                    buf.looping = false;
+                    buf.playing = false;
+                }
+                if buf.release_timer > 0 {
+                    buf.release_timer -= 1;
+                }
             }
         }
 
