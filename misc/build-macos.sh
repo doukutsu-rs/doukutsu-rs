@@ -1,6 +1,6 @@
 #!/bin/sh
 # Builds a release doukutsu-rs.app: cargo-bundle, Liquid Glass icon from the Icon Composer project, ad-hoc signing.
-# Requires cargo-bundle and Xcode 26 or newer (for compiling the .icon).
+# Requires cargo-bundle and Xcode 27 or newer (for compiling the .icon).
 # Usage: misc/build-macos.sh [target-triple]
 # Prints the path of the finished bundle on success.
 set -eu
@@ -9,6 +9,13 @@ cd "$(dirname "$0")/.."
 
 TARGET="${1:-}"
 ICON_NAME="doukutsu-rs"
+
+# Older actool versions crash with an unhelpful exception on .icon files instead of reporting them as unsupported.
+ACTOOL_MAJOR="$(xcrun actool --version | awk -F'[<>.]' '/short-bundle-version/ { getline; print $3; exit }')"
+if [ "${ACTOOL_MAJOR:-0}" -lt 27 ]; then
+  echo "error: Xcode 27 or newer is required (found actool ${ACTOOL_MAJOR:-unknown}, $(xcode-select -p))" >&2
+  exit 1
+fi
 
 if [ -n "$TARGET" ]; then
   CARGO_INCREMENTAL=1 cargo bundle --release --format osx --target "$TARGET" >&2
@@ -23,7 +30,7 @@ MIN_VERSION="$(plutil -extract LSMinimumSystemVersion raw "$APP/Contents/Info.pl
 OUT="$(mktemp -d)"
 trap 'rm -rf "$OUT"' EXIT
 
-# Produces Assets.car (used by macOS 26+) and a pre-rendered .icns fallback for older systems.
+# Produces Assets.car (Liquid Glass, macOS 26+) and a pre-rendered .icns fallback for older systems.
 xcrun actool "res/$ICON_NAME.icon" \
   --compile "$OUT" \
   --output-partial-info-plist "$OUT/partial.plist" \

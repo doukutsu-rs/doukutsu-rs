@@ -48,13 +48,13 @@ jobs:
             target_name: windows-x32
             arch_name: i686
           - name: macOS x64 (Intel Macs)
-            os: macos-latest
+            os: xcode-27
             channel: stable
             target: x86_64-apple-darwin
             target_name: mac-x64
             arch_name: x86_64
           - name: macOS ARM64 (M1 Macs)
-            os: macos-latest
+            os: xcode-27
             channel: stable
             target: aarch64-apple-darwin
             target_name: mac-arm64
@@ -104,6 +104,10 @@ jobs:
 
           if [ "${{ runner.os }}" == "macOS" ]; then
             cargo install cargo-bundle --version 0.12.0 --locked
+
+            # The .icon project uses Xcode 27 features, which isn't necessarily the image default
+            sudo xcode-select -s "$(ls -d /Applications/Xcode_2[7-9]*.app | sort -V | tail -1)"
+            xcodebuild -version
           fi
 
       - name: Build
