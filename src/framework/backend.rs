@@ -197,9 +197,8 @@ pub trait BackendEventLoop {
     fn run(&mut self, game: Pin<Box<Game>>, ctx: Pin<Box<Context>>);
 
     fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>>;
+    fn new_audio(&self) -> GameResult<Box<dyn BackendAudio>>;
 
-    /// Provide a native clipboard backend, if this platform has one. Default
-    /// `None` — the framework falls back to a no-op clipboard.
     fn create_clipboard(&self) -> Option<ClipboardContext> {
         None
     }
@@ -207,12 +206,6 @@ pub trait BackendEventLoop {
     fn as_any(&self) -> &dyn Any;
 }
 
-/// One entry in a backend's renderer-candidate list.
-///
-/// `id` is a stable, user-facing string (e.g. `"opengl"`, `"opengles"`,
-/// `"sdl2"`) used to drive [`Context::preferred_renderer`]. `factory` is
-/// invoked with `&S` (the event-loop) and is expected to return `Err` —
-/// not panic — when the underlying API surface isn't available.
 pub type RendererCandidate<S> = (&'static str, fn(&S) -> GameResult<Box<dyn BackendRenderer>>);
 
 pub fn pick_renderer<S>(
@@ -251,9 +244,8 @@ pub trait BackendRenderer {
     fn clear(&mut self, color: Color);
 
     /// Blit the canvas to the default framebuffer and leave the default FBO
-    /// bound for post-canvas overlays (e.g. imgui). **Does not swap buffers
-    /// or finalize the frame** — call [`finalize_frame`](Self::finalize_frame)
-    /// after any overlay work to display the result.
+    /// bound for post-canvas overlays (e.g. imgui). 
+    /// Does not swap buffers or finalize the frame.
     fn present(&mut self) -> GameResult;
 
     /// Swap buffers / present the completed frame. Must be called exactly
@@ -385,6 +377,23 @@ pub trait BackendGamepad {
     fn set_rumble(&mut self, low_freq: u16, high_freq: u16, duration_ms: u32) -> GameResult;
 
     fn instance_id(&self) -> u32;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AudioEvent {
+    DeviceLost,
+    ParametersChanged { sample_rate: u32, channels: u16 },
+}
+
+pub trait BackendAudio: Any {
+    fn sample_rate(&self) -> u32;
+    fn channels(&self) -> u16;
+    fn set_paused(&mut self, paused: bool);
+    fn pause(&mut self) { self.set_paused(true); }
+    fn resume(&mut self) { self.set_paused(false); }
+    fn update(&mut self) -> Vec<AudioEvent>;
+    fn set_callback(&mut self, callback: Box<dyn FnMut(&mut [f32]) + Send>);
+    fn as_any(&self) -> &dyn Any;
 }
 
 #[derive(Clone, Copy)]

@@ -32,6 +32,7 @@ use super::gamepad::{Axis, Button, GamepadType};
 use super::graphics::SwapMode;
 use super::input::MouseButton;
 use super::keyboard::ScanCode;
+use crate::framework::backend::BackendAudio;
 use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
 use crate::input::touch_controls::TouchEvent;
@@ -722,6 +723,10 @@ impl BackendEventLoop for SDL2EventLoop {
 
         let preferred = self.refs.borrow().preferred_renderer.clone();
         pick_renderer(self, preferred.as_deref(), &candidates)
+    }
+
+    fn new_audio(&self) -> GameResult<Box<dyn BackendAudio>> {
+        crate::framework::sound::cpal_impl::CpalAudio::new()
     }
 
     fn create_clipboard(&self) -> Option<ClipboardContext> {

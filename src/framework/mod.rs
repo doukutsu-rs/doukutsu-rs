@@ -18,6 +18,7 @@ pub mod graphics;
 pub mod input;
 pub mod keyboard;
 pub mod render;
+pub mod sound;
 pub mod ui;
 pub mod util;
 pub mod vfs;

@@ -27,6 +27,7 @@ pub struct Context {
     pub(crate) imgui: Rc<RefCell<imgui::Context>>,
     pub(crate) filesystem: Filesystem,
     pub(crate) renderer: Option<Box<dyn BackendRenderer>>,
+    pub(crate) audio: Option<Box<dyn crate::framework::backend::BackendAudio>>,
     pub(crate) gamepad_context: GamepadContext,
     pub(crate) keyboard_context: KeyboardContext,
     pub(crate) input: InputContext,
@@ -48,6 +49,7 @@ impl Context {
             imgui: init_imgui(),
             filesystem: Filesystem::new(),
             renderer: None,
+            audio: None,
             gamepad_context: GamepadContext::new(),
             keyboard_context: KeyboardContext::new(),
             input: InputContext::new(),
@@ -64,6 +66,9 @@ impl Context {
         let mut renderer = event_loop.new_renderer()?;
         let _ = renderer.set_swap_mode(self.swap_mode);
         self.renderer = Some(renderer);
+
+        let audio = event_loop.new_audio()?;
+        self.audio = Some(audio);
 
         if let Some(backend_clipboard) = event_loop.create_clipboard() {
             self.clipboard = backend_clipboard;

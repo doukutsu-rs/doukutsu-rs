@@ -1286,7 +1286,7 @@ impl SettingsMenu {
 }
 
 /// Aspect-ratio presets shown in the Graphics menu.
-/// Update this list to add/remove menu entries — the labels and index lookups flow from here,
+/// Update this list to add/remove menu entries - the labels and index lookups flow from here,
 /// so you don't have to edit three places in sync.
 const ASPECT_PRESETS: &[(u32, u32)] = &[(4, 3), (16, 9), (16, 10), (5, 3)];
 
