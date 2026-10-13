@@ -103,7 +103,7 @@ jobs:
           cargo -vV
 
           if [ "${{ runner.os }}" == "macOS" ]; then
-            cargo install cargo-bundle
+            cargo install cargo-bundle --version 0.12.0 --locked
           fi
 
       - name: Build

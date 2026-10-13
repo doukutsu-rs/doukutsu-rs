@@ -11,10 +11,10 @@ TARGET="${1:-}"
 ICON_NAME="doukutsu-rs"
 
 if [ -n "$TARGET" ]; then
-  CARGO_INCREMENTAL=1 cargo bundle --release --target "$TARGET" >&2
+  CARGO_INCREMENTAL=1 cargo bundle --release --format osx --target "$TARGET" >&2
   APP="target/$TARGET/release/bundle/osx/doukutsu-rs.app"
 else
-  CARGO_INCREMENTAL=1 cargo bundle --release >&2
+  CARGO_INCREMENTAL=1 cargo bundle --release --format osx >&2
   APP="target/release/bundle/osx/doukutsu-rs.app"
 fi
 

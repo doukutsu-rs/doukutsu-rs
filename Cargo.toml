@@ -40,7 +40,9 @@ icon = ["res/macos/16x16.png", "res/macos/16x16@2x.png", "res/macos/32x32.png", 
 resources = ["data"]
 copyright = "Copyright (c) 2020 doukutsu-rs contributors"
 category = "Game"
-osx_minimum_system_version = "10.15"
+
+[package.metadata.bundle.osx]
+minimum_system_version = "10.15"
 
 [features]
 default = ["default-base", "backend-sdl", "render-opengl", "exe", "webbrowser", "discord-rpc"]
