@@ -5,7 +5,7 @@ use std::mem::MaybeUninit;
 use std::sync::Arc;
 
 use crate::kernels::{self, Run};
-use crate::organya::{Song as Organya, Version};
+use crate::organya::{Note, Song as Organya, Version};
 use crate::polyphase::{PhaseBanks, GUARD};
 use crate::stuff::*;
 use crate::wav::*;
@@ -53,6 +53,8 @@ pub struct OrgPlaybackEngine {
     phase_banks: PhaseBanks,
     mix_l: Vec<f32>,
     mix_r: Vec<f32>,
+    /// Per track index of the first note at or after the last looked up position.
+    note_cursors: [usize; 16],
 }
 
 #[derive(Clone)]
@@ -85,6 +87,7 @@ impl OrgPlaybackEngine {
             phase_banks: PhaseBanks::new(),
             mix_l: Vec::new(),
             mix_r: Vec::new(),
+            note_cursors: [0; 16],
         }
     }
 
@@ -108,7 +111,11 @@ impl OrgPlaybackEngine {
         self.play_pos = state.play_pos;
     }
 
-    pub fn start_song(&mut self, song: Organya, samples: &SoundBank) {
+    pub fn start_song(&mut self, mut song: Organya, samples: &SoundBank) {
+        for track in &mut song.tracks {
+            track.notes.sort_by_key(|note| note.pos);
+        }
+
         for i in 0..8 {
             let sound_index = song.tracks[i].inst.inst as usize;
             let sound = samples.get_wave(sound_index).iter().map(|&x| x ^ 128).collect();
@@ -147,6 +154,7 @@ impl OrgPlaybackEngine {
         self.lengths.fill(0);
         self.swaps.fill(0);
         self.keys.fill(255);
+        self.note_cursors.fill(0);
     }
 
     pub fn set_position(&mut self, position: i32) {
@@ -166,9 +174,26 @@ impl OrgPlaybackEngine {
         self.frames_per_tick as u32 * ticks_total as u32
     }
 
+    /// Returns the note of `track` at the current play position, notes must be sorted by position.
+    fn note_at_play_pos(&mut self, track: usize) -> Option<Note> {
+        let notes = &self.song.tracks[track].notes;
+        let cursor = &mut self.note_cursors[track];
+
+        // Seeking backwards (loops, set_position) restarts the search.
+        if *cursor > notes.len() || (*cursor > 0 && notes[*cursor - 1].pos >= self.play_pos) {
+            *cursor = notes.partition_point(|note| note.pos < self.play_pos);
+        }
+
+        while *cursor < notes.len() && notes[*cursor].pos < self.play_pos {
+            *cursor += 1;
+        }
+
+        notes.get(*cursor).filter(|note| note.pos == self.play_pos).copied()
+    }
+
     fn update_play_state(&mut self) {
         for track in 0..8 {
-            if let Some(note) = self.song.tracks[track].notes.iter().find(|x| x.pos == self.play_pos) {
+            if let Some(note) = self.note_at_play_pos(track) {
                 // New note
                 if note.key != 255 {
                     if self.keys[track] == 255 {
@@ -275,11 +300,9 @@ impl OrgPlaybackEngine {
         for i in 8..16 {
             let j = i + 120;
 
-            let notes = &self.song.tracks[i].notes;
-
             // start a new note
             // note (hah) that drums are unaffected by length and pi values. This is the only case we have to handle.
-            if let Some(note) = notes.iter().find(|x| x.pos == self.play_pos) {
+            if let Some(note) = self.note_at_play_pos(i) {
                 // FIXME: Add constants for dummy values
                 if note.key != 255 {
                     let freq = org_key_to_drum_freq(note.key);
