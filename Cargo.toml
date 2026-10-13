@@ -7,7 +7,7 @@ description = "A re-implementation of Cave Story (Doukutsu Monogatari) engine"
 version = "1.1.0"
 authors = ["doukutsu-rs contributors"]
 edition = "2021"
-rust-version = "1.87"
+rust-version = "1.89"
 
 [lib]
 crate-type = ["lib"]

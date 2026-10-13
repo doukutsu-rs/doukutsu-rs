@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2020 LunarLambda
 // Copyright (c) 2020 doukutsu-rs contributors (see AUTHORS.md)
+use std::ops::{Add, Mul, Sub};
+
 pub const FRQ_TBL: [i16; 12] = [
     262, 277, 294, 311, 330, 349, 370, 392, 415, 440, 466, 494
 ];
@@ -48,7 +50,10 @@ pub const fn org_key_to_oct_pitch(key: u8) -> (u8, u8) {
 // sn: next sample (after s2)
 // mu: position to interpolate for
 #[inline(always)]
-pub fn cubic_interp(s1: f32, s2: f32, sp: f32, sn: f32, mu: f32) -> f32 {
+pub fn cubic_interp<T>(s1: T, s2: T, sp: T, sn: T, mu: T) -> T
+where
+    T: Copy + Add<Output = T> + Sub<Output = T> + Mul<Output = T>,
+{
     let mu2 = mu * mu;
     let a0 = sn - s2 - sp + s1;
     let a1 = sp - s1 - a0;

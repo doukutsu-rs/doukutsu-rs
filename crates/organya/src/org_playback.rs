@@ -1,36 +1,34 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2020 LunarLambda
 // Copyright (c) 2020 doukutsu-rs contributors (see AUTHORS.md)
-use std::cmp::min;
-use std::hint::unreachable_unchecked;
 use std::mem::MaybeUninit;
 use std::sync::Arc;
 
-use crate::fir::FIR;
-use crate::fir::FIR_STEP;
+use crate::kernels::{self, Run};
 use crate::organya::{Song as Organya, Version};
+use crate::polyphase::{PhaseBanks, GUARD};
 use crate::stuff::*;
 use crate::wav::*;
 use crate::wave_bank::SoundBank;
 use crate::InterpolationMode;
 
-#[derive(Clone)]
-pub struct FIRData {
-    cache: Vec<f32>,
-    pos: usize,
-}
+/// Frames processed per gain computation step, bounds the stack buffer used by `render_buffer`.
+const BLOCK_LEN: usize = 64;
 
-impl FIRData {
-    pub fn new() -> Self {
-        FIRData { cache: Vec::new(), pos: 0 }
-    }
+const ORG_OCTAVE_LENS: [usize; 8] = [256, 256, 128, 128, 64, 32, 16, 8];
 
-    pub fn ensure_initialized(&mut self) {
-        if self.cache.is_empty() {
-            self.cache.resize(FIR.len() * 8, 0.0);
-        }
+/// Start of each octave in Organya sample data, every octave is surrounded by GUARD wrapped samples.
+const ORG_OCTAVE_OFFSETS: [usize; 8] = {
+    let mut offsets = [0; 8];
+    let mut acc = 0;
+    let mut i = 0;
+    while i < 8 {
+        offsets[i] = acc + GUARD;
+        acc += ORG_OCTAVE_LENS[i] + GUARD * 2;
+        i += 1;
     }
-}
+    offsets
+};
 
 pub struct OrgPlaybackEngine {
     song: Organya,
@@ -52,6 +50,9 @@ pub struct OrgPlaybackEngine {
     frames_per_tick: usize,
     pub loops: usize,
     pub interpolation: InterpolationMode,
+    phase_banks: PhaseBanks,
+    mix_l: Vec<f32>,
+    mix_r: Vec<f32>,
 }
 
 #[derive(Clone)]
@@ -81,6 +82,9 @@ impl OrgPlaybackEngine {
             frames_per_tick,
             loops: 1,
             interpolation: InterpolationMode::Linear,
+            phase_banks: PhaseBanks::new(),
+            mix_l: Vec::new(),
+            mix_r: Vec::new(),
         }
     }
 
@@ -298,291 +302,34 @@ impl OrgPlaybackEngine {
     }
 
     pub fn render_to(&mut self, buf: &mut [u16]) -> usize {
-        let mut i = 0;
-        let mut iter = buf.iter_mut();
+        let frames = buf.len() / 2;
+        let sample_rate = self.output_format.sample_rate as f64;
 
-        // optimized for debug mode
-        // bound / arithmetic checks give a HUGE performance hit in this code
-        let fl = FIR.len() as f32;
+        self.mix_l.clear();
+        self.mix_l.resize(frames, 0.0);
+        self.mix_r.clear();
+        self.mix_r.resize(frames, 0.0);
 
-        // raw pointer access is much faster than get_unchecked
-        let fir_ptr = FIR.as_ptr();
-        let freq = self.output_format.sample_rate as f64;
+        let mut done = 0;
+        let mut finished = false;
 
-        if self.interpolation == InterpolationMode::Polyphase {
-            for buf in &mut self.track_buffers {
-                buf.fir.ensure_initialized();
-            }
-        }
-
-        while let (Some(frame_l), Some(frame_r)) = (iter.next(), iter.next()) {
+        while done < frames && !finished {
             if self.frames_this_tick == 0 {
                 self.update_play_state()
             }
 
+            let n = self.frames_per_tick.saturating_sub(self.frames_this_tick).max(1).min(frames - done);
+            let out_l = &mut self.mix_l[done..done + n];
+            let out_r = &mut self.mix_r[done..done + n];
+
             for buf in &mut self.track_buffers {
                 if buf.playing {
-                    let is_16bit = buf.sample.format.bit_depth == 16;
-                    let is_stereo = buf.sample.format.channels == 2;
-
-                    let get_sample = match (is_16bit, is_stereo) {
-                        (true, true) => |buf: &RenderBuffer, pos: usize| -> (f32, f32) {
-                            let sl = i16::from_le_bytes([buf.sample.data[pos << 2], buf.sample.data[(pos << 2) + 1]])
-                                as f32
-                                / 32768.0;
-                            let sr =
-                                i16::from_le_bytes([buf.sample.data[(pos << 2) + 2], buf.sample.data[(pos << 2) + 3]])
-                                    as f32
-                                    / 32768.0;
-                            (sl, sr)
-                        },
-                        (false, true) => |buf: &RenderBuffer, pos: usize| -> (f32, f32) {
-                            let sl = (buf.sample.data[pos << 1] as f32 - 128.0) / 128.0;
-                            let sr = (buf.sample.data[(pos << 1) + 1] as f32 - 128.0) / 128.0;
-                            (sl, sr)
-                        },
-                        (true, false) => |buf: &RenderBuffer, pos: usize| -> (f32, f32) {
-                            let s = i16::from_le_bytes([buf.sample.data[pos << 1], buf.sample.data[(pos << 1) + 1]])
-                                as f32
-                                / 32768.0;
-                            (s, s)
-                        },
-                        (false, false) => |buf: &RenderBuffer, pos: usize| -> (f32, f32) {
-                            let s = (buf.sample.data[pos] as f32 - 128.0) / 128.0;
-                            (s, s)
-                        },
-                    };
-
-                    // index into sound samples
-                    let advance = buf.frequency as f64 / freq;
-
-                    buf.vol_cent = buf.vol_cent + (buf.vol_cent_target - buf.vol_cent) * 0.1;
-
-                    // add a bit of release to the note for declicking
-                    let release =
-                        if buf.release_len > 0 { buf.release_timer as f32 / buf.release_len as f32 } else { 1.0 };
-                    let vol = buf.vol_cent * release;
-                    let (pan_l, pan_r) = buf.pan_cent;
-
-                    if buf.release_len > 0 && buf.release_timer == 0 {
-                        buf.release_len = 0;
-                        buf.looping = false;
-                        buf.playing = false;
-                    }
-                    if buf.release_timer > 0 {
-                        buf.release_timer -= 1;
-                    }
-
-                    if self.interpolation == InterpolationMode::Polyphase {
-                        let fir_step = (FIR_STEP * advance as f32).floor();
-                        let fir_step = if fir_step == 0.0 { FIR_STEP } else { fir_step };
-                        let fir_gain = fir_step / FIR_STEP;
-                        let cache_ptr = buf.fir.cache.as_mut_ptr();
-                        let sample_data_ptr = buf.sample.data.as_ptr();
-
-                        let pos = buf.position as usize + buf.base_pos;
-                        let cl = buf.fir.cache.len() / 2;
-                        let i = buf.fir.pos % cl;
-
-                        let (sl1, sr1, sl2, sr2) = match (is_16bit, is_stereo) {
-                            (true, true) => unsafe {
-                                let ps = pos << 2;
-                                let sl1 = (*sample_data_ptr.add(ps) as u16 | (*sample_data_ptr.add(ps + 1) as u16) << 8)
-                                    as f32
-                                    / 32768.0;
-                                let sr1 = (*sample_data_ptr.add(ps + 2) as u16 | (*sample_data_ptr.add(ps + 3) as u16) << 8)
-                                    as f32
-                                    / 32768.0;
-                                let ps = min(pos + 1, buf.base_pos + buf.len - 1) << 2;
-                                let sl2 = (*sample_data_ptr.add(ps) as u16 | (*sample_data_ptr.add(ps + 1) as u16) << 8)
-                                    as f32
-                                    / 32768.0;
-                                let sr2 = (*sample_data_ptr.add(ps + 2) as u16 | (*sample_data_ptr.add(ps + 3) as u16) << 8)
-                                    as f32
-                                    / 32768.0;
-                                (sl1, sr1, sl2, sr2)
-                            },
-                            (false, true) => unsafe {
-                                let ps = pos << 1;
-                                let sl1 = (*sample_data_ptr.add(ps) as f32 - 128.0) / 128.0;
-                                let sr1 = (*sample_data_ptr.add(ps + 1) as f32 - 128.0) / 128.0;
-                                let ps = min(pos + 1, buf.base_pos + buf.len - 1) << 1;
-                                let sl2 = (*sample_data_ptr.add(ps) as f32 - 128.0) / 128.0;
-                                let sr2 = (*sample_data_ptr.add(ps + 1) as f32 - 128.0) / 128.0;
-                                (sl1, sr1, sl2, sr2)
-                            },
-                            (true, false) => unsafe {
-                                let ps = pos << 1;
-                                let s1 = (*sample_data_ptr.add(ps) as u16 | (*sample_data_ptr.add(ps + 1) as u16) << 8)
-                                    as f32
-                                    / 32768.0;
-                                let ps = min(pos + 1, buf.base_pos + buf.len - 1) << 1;
-                                let s2 = (*sample_data_ptr.add(ps) as u16 | (*sample_data_ptr.add(ps + 1) as u16) << 8)
-                                    as f32
-                                    / 32768.0;
-                                (s1, s1, s2, s2)
-                            },
-                            (false, false) => unsafe {
-                                let s1 = (*sample_data_ptr.add(pos) as f32 - 128.0) / 128.0;
-                                let pos = min(pos + 1, buf.base_pos + buf.len - 1);
-                                let s2 = (*sample_data_ptr.add(pos) as f32 - 128.0) / 128.0;
-                                (s1, s1, s2, s2)
-                            },
-                        };
-
-                        let r1 = buf.position.fract() as f32;
-
-                        buf.position += advance;
-                        if buf.position as usize >= buf.len {
-                            if buf.looping && buf.nloops != 1 {
-                                buf.position %= buf.len as f64;
-                                if buf.nloops != -1 {
-                                    buf.nloops -= 1;
-                                }
-                            } else {
-                                buf.position = 0.0;
-                                buf.playing = false;
-                            }
-                        }
-
-                        let cl = cl as isize;
-                        let mut insamp_idx = (buf.fir.pos as isize).wrapping_rem(cl);
-
-                        if is_stereo {
-                            let sl = sl1 + (sl2 - sl1) * r1;
-                            let sr = sr1 + (sr2 - sr1) * r1;
-
-                            buf.fir.cache[i * 2] = sl;
-                            buf.fir.cache[i * 2 + 1] = sr;
-
-                            let mut acc_l = 0.0;
-                            let mut acc_r = 0.0;
-                            let mut step = 0.0;
-
-                            while step < fl {
-                                unsafe {
-                                    let idx = (insamp_idx as usize) << 1;
-                                    acc_l += (*fir_ptr.add(step as usize)) * (*cache_ptr.add(idx));
-                                    acc_r += (*fir_ptr.add(step as usize)) * (*cache_ptr.add(idx + 1));
-                                    insamp_idx =
-                                        if insamp_idx == 0 { cl.wrapping_sub(1) } else { insamp_idx.wrapping_sub(1) };
-                                    step += fir_step;
-                                }
-                            }
-
-                            acc_l *= fir_gain;
-                            acc_r *= fir_gain;
-
-                            let sl = acc_l * pan_l * vol * 32768.0;
-                            let sr = acc_r * pan_r * vol * 32768.0;
-
-                            let xl = (*frame_l ^ 0x8000) as i16;
-                            let xr = (*frame_r ^ 0x8000) as i16;
-
-                            *frame_l = xl.saturating_add(sl as i16) as u16 ^ 0x8000;
-                            *frame_r = xr.saturating_add(sr as i16) as u16 ^ 0x8000;
-                        } else {
-                            let sl = sl1 + (sl2 - sl1) * r1;
-                            buf.fir.cache[i * 2] = sl;
-
-                            let mut acc = 0.0;
-                            let mut step = 0.0;
-
-                            while step < fl {
-                                unsafe {
-                                    let idx = (insamp_idx as usize) << 1;
-                                    acc += (*fir_ptr.add(step as usize)) * (*cache_ptr.add(idx));
-                                    insamp_idx =
-                                        if insamp_idx == 0 { cl.wrapping_sub(1) } else { insamp_idx.wrapping_sub(1) };
-                                    step += fir_step;
-                                }
-                            }
-
-                            acc *= fir_gain;
-
-                            let sl = acc * pan_l * vol * 32768.0;
-                            let sr = acc * pan_r * vol * 32768.0;
-
-                            let xl = (*frame_l ^ 0x8000) as i16;
-                            let xr = (*frame_r ^ 0x8000) as i16;
-
-                            *frame_l = xl.saturating_add(sl as i16) as u16 ^ 0x8000;
-                            *frame_r = xr.saturating_add(sr as i16) as u16 ^ 0x8000;
-                        }
-                        buf.fir.pos += 1;
-                    } else {
-                        let pos = buf.position as usize + buf.base_pos;
-
-                        let (sl, sr) = match self.interpolation {
-                            InterpolationMode::Nearest => get_sample(buf, pos),
-                            InterpolationMode::Linear => {
-                                let (sl1, sr1) = get_sample(buf, pos);
-                                let (sl2, sr2) = get_sample(buf, min(pos + 1, buf.base_pos + buf.len - 1));
-                                let r1 = buf.position.fract() as f32;
-
-                                let sl = sl1 + (sl2 - sl1) * r1;
-                                let sr = sr1 + (sr2 - sr1) * r1;
-
-                                (sl, sr)
-                            }
-                            InterpolationMode::Cosine => {
-                                use std::f32::consts::PI;
-
-                                let (sl1, sr1) = get_sample(buf, pos);
-                                let (sl2, sr2) = get_sample(buf, min(pos + 1, buf.base_pos + buf.len - 1));
-
-                                let r1 = buf.position.fract() as f32;
-                                let r2 = (1.0 - f32::cos(r1 * PI)) / 2.0;
-
-                                let sl = sl1 * (1.0 - r2) + sl2 * r2;
-                                let sr = sr1 * (1.0 - r2) + sr2 * r2;
-
-                                (sl, sr)
-                            }
-                            InterpolationMode::Cubic => {
-                                let (sl1, sr1) = get_sample(buf, pos);
-                                let (sl2, sr2) = get_sample(buf, min(pos + 1, buf.base_pos + buf.len - 1));
-                                let (sl3, sr3) = get_sample(buf, min(pos + 2, buf.base_pos + buf.len - 1));
-                                let (sl4, sr4) = get_sample(buf, pos.saturating_sub(1));
-
-                                let r1 = buf.position.fract() as f32;
-
-                                let sl = cubic_interp(sl1, sl2, sl4, sl3, r1);
-                                let sr = cubic_interp(sr1, sr2, sr4, sr3, r1);
-
-                                (sl, sr)
-                            }
-                            InterpolationMode::Polyphase => unsafe { unreachable_unchecked() },
-                        };
-
-                        let sl = sl * pan_l * vol * 32768.0;
-                        let sr = sr * pan_r * vol * 32768.0;
-
-                        buf.position += advance;
-
-                        if buf.position as usize >= buf.len {
-                            if buf.looping && buf.nloops != 1 {
-                                buf.position %= buf.len as f64;
-                                if buf.nloops != -1 {
-                                    buf.nloops -= 1;
-                                }
-                            } else {
-                                buf.position = 0.0;
-                                buf.playing = false;
-                                break;
-                            }
-                        }
-
-                        let xl = (*frame_l ^ 0x8000) as i16;
-                        let xr = (*frame_r ^ 0x8000) as i16;
-
-                        *frame_l = xl.saturating_add(sl as i16) as u16 ^ 0x8000;
-                        *frame_r = xr.saturating_add(sr as i16) as u16 ^ 0x8000;
-                    }
+                    render_buffer(buf, self.interpolation, sample_rate, &mut self.phase_banks, out_l, out_r);
                 }
             }
 
-            self.frames_this_tick += 1;
+            done += n;
+            self.frames_this_tick += n;
 
             if self.frames_this_tick == self.frames_per_tick {
                 self.play_pos += 1;
@@ -591,19 +338,108 @@ impl OrgPlaybackEngine {
                     self.play_pos = self.song.time.loop_range.start;
 
                     if self.loops == 0 {
-                        return i + 2;
+                        finished = true;
+                    } else {
+                        self.loops -= 1;
                     }
-
-                    self.loops -= 1;
                 }
 
                 self.frames_this_tick = 0;
             }
-
-            i += 2;
         }
 
-        buf.len()
+        for ((frame, &l), &r) in buf.chunks_exact_mut(2).zip(&self.mix_l[..done]).zip(&self.mix_r[..done]) {
+            frame[0] = mix_into_u16(frame[0], l);
+            frame[1] = mix_into_u16(frame[1], r);
+        }
+
+        if finished {
+            done * 2
+        } else {
+            buf.len()
+        }
+    }
+}
+
+#[inline(always)]
+fn mix_into_u16(dst: u16, sample: f32) -> u16 {
+    let mixed = ((dst ^ 0x8000) as i16 as f32 + sample * 32768.0).clamp(-32768.0, 32767.0);
+    mixed as i16 as u16 ^ 0x8000
+}
+
+/// Renders frames from `buf` into `out_l`/`out_r` until they're filled or the buffer stops playing.
+fn render_buffer(
+    buf: &mut RenderBuffer,
+    mode: InterpolationMode,
+    sample_rate: f64,
+    phase_banks: &mut PhaseBanks,
+    out_l: &mut [f32],
+    out_r: &mut [f32],
+) {
+    if buf.len == 0 {
+        buf.playing = false;
+        return;
+    }
+
+    let advance = buf.frequency as f64 / sample_rate;
+    let bank = if mode == InterpolationMode::Polyphase { Some(phase_banks.get(advance)) } else { None };
+    let (left, right) = buf.data.split_at(buf.right_offset);
+    let (left, right) = if buf.right_offset == 0 { (right, None) } else { (left, Some(right)) };
+
+    let mut gains = [0.0f32; BLOCK_LEN];
+    let mut done = 0;
+
+    while done < out_l.len() && buf.playing {
+        // Split runs where the position wraps or the release ends, so the kernel never has to check either.
+        let to_end = ((buf.len as f64 - buf.position) / advance).ceil();
+        let mut n = if to_end >= 1.0 { to_end.min(BLOCK_LEN as f64) as usize } else { 1 };
+        if buf.release_len > 0 {
+            n = n.min(buf.release_timer as usize + 1);
+        }
+        n = n.min(out_l.len() - done);
+
+        for gain in &mut gains[..n] {
+            buf.vol_cent = buf.vol_cent + (buf.vol_cent_target - buf.vol_cent) * 0.1;
+
+            // add a bit of release to the note for declicking
+            let release = if buf.release_len > 0 { buf.release_timer as f32 / buf.release_len as f32 } else { 1.0 };
+            *gain = buf.vol_cent * release;
+
+            if buf.release_len > 0 && buf.release_timer == 0 {
+                buf.release_len = 0;
+                buf.looping = false;
+                buf.playing = false;
+            }
+            if buf.release_timer > 0 {
+                buf.release_timer -= 1;
+            }
+        }
+
+        let run = Run { left, right, base: buf.base_pos, position: buf.position, advance };
+        kernels::mix(
+            mode,
+            bank,
+            &run,
+            &gains[..n],
+            buf.pan_cent,
+            &mut out_l[done..done + n],
+            &mut out_r[done..done + n],
+        );
+
+        done += n;
+        buf.position += advance * n as f64;
+
+        if buf.position as usize >= buf.len {
+            if buf.looping && buf.nloops != 1 {
+                buf.position %= buf.len as f64;
+                if buf.nloops != -1 {
+                    buf.nloops -= 1;
+                }
+            } else {
+                buf.position = 0.0;
+                buf.playing = false;
+            }
+        }
     }
 }
 
@@ -618,7 +454,9 @@ pub struct RenderBuffer {
     pub frequency: u32,
     pub volume: i32,
     pub pan: i32,
-    pub sample: WavSample,
+    pub sample_rate: u32,
+    pub data: Arc<[f32]>,
+    pub right_offset: usize,
     pub playing: bool,
     pub looping: bool,
     pub release_len: u16,
@@ -627,7 +465,6 @@ pub struct RenderBuffer {
     pub len: usize,
     // -1 = infinite
     pub nloops: i32,
-    pub fir: FIRData,
     vol_cent_target: f32,
     vol_cent: f32,
     pan_cent: (f32, f32),
@@ -635,21 +472,42 @@ pub struct RenderBuffer {
 
 impl RenderBuffer {
     pub fn new(sample: WavSample) -> RenderBuffer {
-        let bytes_per_sample = sample.format.channels as usize * if sample.format.bit_depth == 16 { 2 } else { 1 };
+        let channels = sample.format.channels.max(1) as usize;
+        let bytes_per_sample = if sample.format.bit_depth == 16 { 2 } else { 1 };
+        let bytes_per_frame = channels * bytes_per_sample;
+        let len = sample.data.len() / bytes_per_frame;
+        let stride = len + GUARD * 2;
+        let planes = if channels == 2 { 2 } else { 1 };
+
+        let mut data = vec![0.0; stride * planes];
+        for (plane, out) in data.chunks_exact_mut(stride).enumerate() {
+            let frames = sample.data.chunks_exact(bytes_per_frame);
+
+            for (frame, out) in frames.zip(&mut out[GUARD..GUARD + len]) {
+                let offset = plane * bytes_per_sample;
+                *out = if bytes_per_sample == 2 {
+                    i16::from_le_bytes([frame[offset], frame[offset + 1]]) as f32 / 32768.0
+                } else {
+                    (frame[offset] as f32 - 128.0) / 128.0
+                };
+            }
+        }
+
         RenderBuffer {
             position: 0.0,
             frequency: sample.format.sample_rate,
             volume: 0,
             pan: 0,
-            len: sample.data.len() / bytes_per_sample,
-            sample,
+            sample_rate: sample.format.sample_rate,
+            data: data.into(),
+            right_offset: if planes == 2 { stride } else { 0 },
+            len,
             playing: false,
             looping: false,
             release_len: 0,
             release_timer: 0,
-            base_pos: 0,
+            base_pos: GUARD,
             nloops: -1,
-            fir: FIRData::new(),
             vol_cent_target: 0.0,
             vol_cent: 0.0,
             pan_cent: (0.0, 0.0),
@@ -662,51 +520,52 @@ impl RenderBuffer {
             frequency: 22050,
             volume: 0,
             pan: 0,
+            sample_rate: 22050,
+            data: Arc::new([]),
+            right_offset: 0,
             len: 0,
-            sample: WavSample {
-                format: WavFormat { channels: 2, sample_rate: 22050, bit_depth: 16 },
-                data: Arc::new([]),
-            },
             playing: false,
             looping: false,
             release_len: 0,
             release_timer: 0,
             base_pos: 0,
             nloops: -1,
-            fir: FIRData::new(),
             vol_cent_target: 0.0,
             vol_cent: 0.0,
             pan_cent: (0.0, 0.0),
         }
     }
 
+    /// `wave` is a 256 sample unsigned 8-bit waveform.
     pub fn new_organya(format: WavFormat, wave: Vec<u8>) -> RenderBuffer {
-        const SIZES: &[usize] = &[256, 256, 128, 128, 64, 32, 16, 8];
-        let mut sample_data = Vec::with_capacity(SIZES.iter().sum());
+        let total = ORG_OCTAVE_OFFSETS[7] + ORG_OCTAVE_LENS[7] + GUARD;
+        let mut data = Vec::with_capacity(total);
 
-        for size in SIZES {
+        for size in ORG_OCTAVE_LENS {
             let step = 256 / size;
-            let mut acc = 0;
+            let octave: Vec<f32> = (0..size).map(|i| (wave[i * step] as f32 - 128.0) / 128.0).collect();
 
-            for _ in 0..*size {
-                sample_data.push(wave[acc]);
-                acc += step;
-
-                if acc >= 256 {
-                    acc = 0;
-                }
-            }
+            // Octaves are looped, so the padding continues the waveform in both directions.
+            let lead = GUARD.next_multiple_of(size) - GUARD;
+            data.extend((0..GUARD).map(|i| octave[(lead + i) % size]));
+            data.extend_from_slice(&octave);
+            data.extend((0..GUARD).map(|i| octave[i % size]));
         }
 
-        RenderBuffer::new(WavSample { format, data: sample_data.into() })
+        RenderBuffer {
+            frequency: format.sample_rate,
+            sample_rate: format.sample_rate,
+            data: data.into(),
+            len: ORG_OCTAVE_LENS[0],
+            base_pos: ORG_OCTAVE_OFFSETS[0],
+            ..RenderBuffer::empty()
+        }
     }
 
     #[inline]
     pub fn organya_select_octave(&mut self, octave: usize, pipi: bool) {
-        const OFFS: &[usize] = &[0x000, 0x100, 0x200, 0x280, 0x300, 0x340, 0x360, 0x370];
-        const LENS: &[usize] = &[256_usize, 256, 128, 128, 64, 32, 16, 8];
-        self.base_pos = OFFS[octave];
-        self.len = LENS[octave];
+        self.base_pos = ORG_OCTAVE_OFFSETS[octave];
+        self.len = ORG_OCTAVE_LENS[octave];
         self.position %= self.len as f64;
         if pipi && !self.playing {
             self.nloops = ((octave + 1) * 4) as i32;
@@ -717,7 +576,7 @@ impl RenderBuffer {
     pub fn set_frequency(&mut self, frequency: u32) {
         //assert!(frequency >= 100 && frequency <= 100000);
         //dbg!(frequency);
-        let rate_mod = self.sample.format.sample_rate as f32 / 22050.0;
+        let rate_mod = self.sample_rate as f32 / 22050.0;
         self.frequency = (frequency as f32 * rate_mod) as u32;
     }
 

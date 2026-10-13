@@ -3,7 +3,7 @@ name = "organya"
 description = "Organya music playback and PixTone sound synthesis from Cave Story"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.87"
+rust-version = "1.89"
 
 [features]
 default = []
@@ -14,3 +14,4 @@ byteorder = "1.4"
 lazy_static = "1.4"
 log = "0.4"
 serde = { version = "1", features = ["derive"], optional = true }
+wide = "1.7"
