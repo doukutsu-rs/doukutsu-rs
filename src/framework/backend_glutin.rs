@@ -450,6 +450,10 @@ impl BackendEventLoop for GlutinEventLoop {
         Ok(Box::new(OpenGLRenderer::new(platform)))
     }
 
+    fn new_audio(&self) -> GameResult<Box<dyn BackendAudio>> {
+        crate::framework::sound::cpal_impl::CpalAudio::new()
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

@@ -5,9 +5,6 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Instant;
 
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-#[cfg(feature = "ogg-playback")]
-use lewton::inside_ogg::OggStreamReader;
 use num_traits::clamp;
 
 use crate::engine_constants::EngineConstants;
@@ -25,6 +22,7 @@ use crate::sound::pixtone::{PixToneParameters, PixTonePlayback};
 use crate::sound::wave_bank::SoundBank;
 
 mod fir;
+mod mixer;
 #[cfg(feature = "ogg-playback")]
 mod ogg_playback;
 mod org_playback;
@@ -36,19 +34,52 @@ mod wav;
 mod wave_bank;
 
 /// Number of seconds to fade out the background music completely.
-const FADEOUT_DURATION: f32 = 5.0;
+pub const FADEOUT_DURATION: f32 = 5.0;
 
-pub struct SoundManager {
-    soundbank: Option<SoundBank>,
-    tx: Sender<PlaybackMessage>,
-    prev_song_id: usize,
-    current_song_id: usize,
-    no_audio: bool,
-    load_failed: bool,
-    stream: Option<cpal::Stream>,
+pub(crate) enum PlaybackMessage {
+    Stop,
+    PlayOrganyaFile(File),
+    #[cfg(feature = "ogg-playback")]
+    PlayOggSongSinglePartFile(File),
+    #[cfg(feature = "ogg-playback")]
+    PlayOggSongMultiPartFile(File, File),
+    PlaySample(u8),
+    LoopSample(u8),
+    LoopSampleFreq(u8, f32),
+    StopSample(u8),
+    SetSpeed(f32),
+    SetSongVolume(f32),
+    SetSampleVolume(f32),
+    FadeoutSong,
+    SaveState,
+    RestoreState,
+    SetSampleParams(u8, pixtone::PixToneParameters),
+    SetOrgInterpolation(InterpolationMode),
+    SetSampleData(u8, Vec<i16>),
 }
 
-enum SongFormat {
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub(crate) enum PlaybackState {
+    Stopped,
+    PlayingOrg,
+    #[cfg(feature = "ogg-playback")]
+    PlayingOgg,
+}
+
+pub(crate) enum PlaybackStateType {
+    None,
+    Organya(org_playback::SavedOrganyaPlaybackState),
+    #[cfg(feature = "ogg-playback")]
+    Ogg(ogg_playback::SavedOggPlaybackState),
+}
+
+impl Default for PlaybackStateType {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+pub(crate) enum SongFormat {
     Organya,
     #[cfg(feature = "ogg-playback")]
     OggSinglePart,
@@ -65,6 +96,16 @@ pub enum InterpolationMode {
     Polyphase,
 }
 
+pub struct SoundManager {
+    soundbank: Option<SoundBank>,
+    tx: Sender<PlaybackMessage>,
+    rx: Option<Receiver<PlaybackMessage>>,
+    prev_song_id: usize,
+    current_song_id: usize,
+    no_audio: bool,
+    load_failed: bool,
+}
+
 impl SoundManager {
     pub fn new(ctx: &mut Context) -> GameResult<SoundManager> {
         let (tx, rx): (Sender<PlaybackMessage>, Receiver<PlaybackMessage>) = mpsc::channel();
@@ -75,89 +116,57 @@ impl SoundManager {
             return Ok(SoundManager {
                 soundbank: None,
                 tx: tx.clone(),
+                rx: Some(rx),
                 prev_song_id: 0,
                 current_song_id: 0,
                 no_audio: true,
                 load_failed: false,
-                stream: None,
             });
         }
 
         let bnk = wave_bank::SoundBank::load_from(filesystem::open(ctx, "/builtin/organya-wavetable-doukutsu.bin")?)?;
-        Ok(SoundManager::bootstrap(bnk, tx, rx)?)
-    }
-
-    fn bootstrap(
-        soundbank: SoundBank,
-        tx: Sender<PlaybackMessage>,
-        rx: Receiver<PlaybackMessage>,
-    ) -> GameResult<SoundManager> {
+        
         let mut sound_manager = SoundManager {
-            soundbank: Some(soundbank.clone()),
+            soundbank: Some(bnk.clone()),
             tx,
+            rx: Some(rx),
             prev_song_id: 0,
             current_song_id: 0,
             no_audio: false,
             load_failed: false,
-            stream: None,
         };
 
-        let host = cpal::default_host();
-
-        let device_result =
-            host.default_output_device().ok_or_else(|| AudioError("Error initializing audio device.".to_owned()));
-
-        if device_result.is_err() {
-            log::error!("{}", device_result.err().unwrap().to_string());
-            sound_manager.load_failed = true;
-            return Ok(sound_manager);
+        if let Some(audio) = &mut ctx.audio {
+            sound_manager.attach_audio(audio);
         }
 
-        let device = device_result.unwrap();
-
-        let config_result = device.default_output_config();
-
-        if config_result.is_err() {
-            log::error!("{}", config_result.err().unwrap().to_string());
-            sound_manager.load_failed = true;
-            return Ok(sound_manager);
-        }
-
-        let config = config_result.unwrap();
-
-        let res = match config.sample_format() {
-            cpal::SampleFormat::I8 => run::<i8>(rx, soundbank, device, config.into()),
-            cpal::SampleFormat::I16 => run::<i16>(rx, soundbank, device, config.into()),
-            cpal::SampleFormat::I32 => run::<i32>(rx, soundbank, device, config.into()),
-            cpal::SampleFormat::I64 => run::<i64>(rx, soundbank, device, config.into()),
-            cpal::SampleFormat::U8 => run::<u8>(rx, soundbank, device, config.into()),
-            cpal::SampleFormat::U16 => run::<u16>(rx, soundbank, device, config.into()),
-            cpal::SampleFormat::U32 => run::<u32>(rx, soundbank, device, config.into()),
-            cpal::SampleFormat::U64 => run::<u64>(rx, soundbank, device, config.into()),
-            cpal::SampleFormat::F32 => run::<f32>(rx, soundbank, device, config.into()),
-            cpal::SampleFormat::F64 => run::<f64>(rx, soundbank, device, config.into()),
-            _ => Err(AudioError("Unsupported sample format.".to_owned())),
-        };
-
-        if let Err(res) = &res {
-            log::error!("Error initializing audio: {}", res);
-        }
-
-        sound_manager.stream = res.ok();
         Ok(sound_manager)
     }
 
-    pub fn reload(&mut self) -> GameResult<()> {
-        if self.no_audio {
-            log::info!("Skipping sound manager reload because audio is not enabled.");
-            return Ok(());
+    pub fn attach_audio(&mut self, audio: &mut Box<dyn crate::framework::backend::BackendAudio>) {
+        if let Some(rx) = self.rx.take() {
+            let sample_rate = audio.sample_rate();
+            let channels = audio.channels();
+            let bnk = self.soundbank.clone().unwrap();
+            let mut mixer = crate::sound::mixer::DoukutsuMixer::new(rx, bnk, sample_rate as f32, channels);
+            
+            audio.set_callback(Box::new(move |data| {
+                mixer.mix(data);
+            }));
+            self.no_audio = false;
         }
+    }
 
+    pub fn reload(&mut self, ctx: &mut Context) -> GameResult<()> {
         log::info!("Reloading sound manager.");
 
         let (tx, rx): (Sender<PlaybackMessage>, Receiver<PlaybackMessage>) = mpsc::channel();
-        let soundbank = self.soundbank.take().unwrap();
-        *self = SoundManager::bootstrap(soundbank, tx, rx)?;
+        self.tx = tx;
+        self.rx = Some(rx);
+        
+        if let Some(audio) = &mut ctx.audio {
+            self.attach_audio(audio);
+        }
 
         Ok(())
     }
@@ -168,24 +177,21 @@ impl SoundManager {
         }
 
         if self.tx.send(message).is_err() {
-            if !self.load_failed {
-                log::error!("Error sending message to audio thread. Press Ctrl + F3 to reload sound manager.");
-                self.reload()?;
-            }
+            log::error!("Error sending message to audio thread.");
         }
 
         Ok(())
     }
 
-    pub fn pause(&mut self) {
-        if let Some(stream) = &mut self.stream {
-            let _ = stream.pause();
+    pub fn pause(&mut self, ctx: &mut Context) {
+        if let Some(audio) = &mut ctx.audio {
+            audio.pause();
         }
     }
 
-    pub fn resume(&mut self) {
-        if let Some(stream) = &mut self.stream {
-            let _ = stream.play();
+    pub fn resume(&mut self, ctx: &mut Context) {
+        if let Some(audio) = &mut ctx.audio {
+            audio.resume();
         }
     }
 
@@ -317,8 +323,8 @@ impl SoundManager {
                             // we're sure that there's one element
                             let path = unsafe { paths.get_unchecked(0) };
 
-                            match filesystem::open(ctx, path).map(organya::Song::load_from) {
-                                Ok(Ok(org)) => {
+                            match filesystem::open(ctx, path) {
+                                Ok(file) => {
                                     log::info!("Playing Organya BGM: {} {}", song_id, path);
 
                                     self.prev_song_id = self.current_song_id;
@@ -327,12 +333,12 @@ impl SoundManager {
                                         .send(PlaybackMessage::SetOrgInterpolation(settings.organya_interpolation))
                                         .unwrap();
                                     self.send(PlaybackMessage::SaveState).unwrap();
-                                    self.send(PlaybackMessage::PlayOrganyaSong(Box::new(org))).unwrap();
+                                    self.send(PlaybackMessage::PlayOrganyaFile(file)).unwrap();
 
                                     return Ok(());
                                 }
-                                Ok(Err(err)) | Err(err) => {
-                                    log::warn!("Failed to load Organya BGM {}: {}", song_id, err);
+                                Err(err) => {
+                                    log::warn!("Failed to open Organya BGM {}: {}", song_id, err);
                                 }
                             }
                         }
@@ -341,21 +347,19 @@ impl SoundManager {
                             // we're sure that there's one element
                             let path = unsafe { paths.get_unchecked(0) };
 
-                            match filesystem::open(ctx, path).map(|f| {
-                                OggStreamReader::new(f).map_err(|e| GameError::ResourceLoadError(e.to_string()))
-                            }) {
-                                Ok(Ok(song)) => {
+                            match filesystem::open(ctx, path) {
+                                Ok(file) => {
                                     log::info!("Playing single part Ogg BGM: {} {}", song_id, path);
 
                                     self.prev_song_id = self.current_song_id;
                                     self.current_song_id = song_id;
                                     self.send(PlaybackMessage::SaveState).unwrap();
-                                    self.send(PlaybackMessage::PlayOggSongSinglePart(Box::new(song))).unwrap();
+                                    self.send(PlaybackMessage::PlayOggSongSinglePartFile(file)).unwrap();
 
                                     return Ok(());
                                 }
-                                Ok(Err(err)) | Err(err) => {
-                                    log::warn!("Failed to load single part Ogg BGM {}: {}", song_id, err);
+                                Err(err) => {
+                                    log::warn!("Failed to open single part Ogg BGM {}: {}", song_id, err);
                                 }
                             }
                         }
@@ -365,15 +369,8 @@ impl SoundManager {
                             let path_intro = unsafe { paths.get_unchecked(0) };
                             let path_loop = unsafe { paths.get_unchecked(1) };
 
-                            match (
-                                filesystem::open(ctx, path_intro).map(|f| {
-                                    OggStreamReader::new(f).map_err(|e| GameError::ResourceLoadError(e.to_string()))
-                                }),
-                                filesystem::open(ctx, path_loop).map(|f| {
-                                    OggStreamReader::new(f).map_err(|e| GameError::ResourceLoadError(e.to_string()))
-                                }),
-                            ) {
-                                (Ok(Ok(song_intro)), Ok(Ok(song_loop))) => {
+                            match (filesystem::open(ctx, path_intro), filesystem::open(ctx, path_loop)) {
+                                (Ok(file_intro), Ok(file_loop)) => {
                                     log::info!(
                                         "Playing multi part Ogg BGM: {} {} + {}",
                                         song_id,
@@ -384,16 +381,13 @@ impl SoundManager {
                                     self.prev_song_id = self.current_song_id;
                                     self.current_song_id = song_id;
                                     self.send(PlaybackMessage::SaveState).unwrap();
-                                    self.send(PlaybackMessage::PlayOggSongMultiPart(
-                                        Box::new(song_intro),
-                                        Box::new(song_loop),
-                                    ))
-                                    .unwrap();
+                                    self.send(PlaybackMessage::PlayOggSongMultiPartFile(file_intro, file_loop))
+                                        .unwrap();
 
                                     return Ok(());
                                 }
-                                (Ok(Err(err)), _) | (Err(err), _) | (_, Ok(Err(err))) | (_, Err(err)) => {
-                                    log::warn!("Failed to load multi part Ogg BGM {}: {}", song_id, err);
+                                (Err(err), _) | (_, Err(err)) => {
+                                    log::warn!("Failed to open multi part Ogg BGM {}: {}", song_id, err);
                                 }
                             }
                         }
@@ -549,372 +543,4 @@ impl SoundManager {
         }
         Ok(())
     }
-}
-
-pub(in crate::sound) enum PlaybackMessage {
-    Stop,
-    PlayOrganyaSong(Box<Song>),
-    #[cfg(feature = "ogg-playback")]
-    PlayOggSongSinglePart(Box<OggStreamReader<File>>),
-    #[cfg(feature = "ogg-playback")]
-    PlayOggSongMultiPart(Box<OggStreamReader<File>>, Box<OggStreamReader<File>>),
-    PlaySample(u8),
-    LoopSample(u8),
-    LoopSampleFreq(u8, f32),
-    StopSample(u8),
-    SetSpeed(f32),
-    SetSongVolume(f32),
-    SetSampleVolume(f32),
-    FadeoutSong,
-    SaveState,
-    RestoreState,
-    SetSampleParams(u8, PixToneParameters),
-    SetOrgInterpolation(InterpolationMode),
-    SetSampleData(u8, Vec<i16>),
-}
-
-#[derive(PartialEq, Eq)]
-enum PlaybackState {
-    Stopped,
-    PlayingOrg,
-    #[cfg(feature = "ogg-playback")]
-    PlayingOgg,
-}
-
-enum PlaybackStateType {
-    None,
-    Organya(SavedOrganyaPlaybackState),
-    #[cfg(feature = "ogg-playback")]
-    Ogg(SavedOggPlaybackState),
-}
-
-impl Default for PlaybackStateType {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
-fn run<T>(
-    rx: Receiver<PlaybackMessage>,
-    bank: SoundBank,
-    device: cpal::Device,
-    config: cpal::StreamConfig,
-) -> GameResult<cpal::Stream>
-where
-    T: cpal::SizedSample + cpal::FromSample<u16>,
-{
-    let sample_rate = config.sample_rate.0 as f32;
-    let channels = config.channels as usize;
-    let mut state = PlaybackState::Stopped;
-    let mut saved_state: PlaybackStateType = PlaybackStateType::None;
-    let mut speed = 1.0;
-    let mut org_engine = Box::new(OrgPlaybackEngine::new());
-    #[cfg(feature = "ogg-playback")]
-    let mut ogg_engine = Box::new(OggPlaybackEngine::new());
-    let mut pixtone = Box::new(PixTonePlayback::new());
-    pixtone.create_samples();
-
-    log::info!("Audio format: {} {}", sample_rate, channels);
-    org_engine.set_sample_rate(sample_rate as usize);
-    #[cfg(feature = "ogg-playback")]
-    {
-        org_engine.loops = usize::MAX;
-        ogg_engine.set_sample_rate(sample_rate as usize);
-    }
-
-    let buf_size = sample_rate as usize * 10 / 1000;
-    let mut bgm_buf = vec![0x8080; buf_size * 2];
-    let mut pxt_buf = vec![0x8000; buf_size];
-    let mut bgm_index = 0;
-    let mut pxt_index = 0;
-    let mut samples = 0;
-    let mut bgm_vol = 1.0_f32;
-    let mut bgm_vol_saved = 1.0_f32;
-    let mut sfx_vol = 1.0_f32;
-    let mut bgm_fadeout = false;
-    let mut last_fadeout = Instant::now();
-    pixtone.mix(&mut pxt_buf, sample_rate);
-
-    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
-
-    let stream_result = device.build_output_stream(
-        &config,
-        move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
-            loop {
-                if bgm_fadeout && bgm_vol > 0.0 {
-                    // Since this callback can be called at different time intervals,
-                    // we try to decrease the volume corresponding to the time elapsed since the last invocation.
-                    let elapsed = last_fadeout.elapsed().as_secs_f32();
-                    last_fadeout = Instant::now();
-
-                    let step = bgm_vol_saved / FADEOUT_DURATION * elapsed;
-                    bgm_vol -= step;
-
-                    if bgm_vol < 0.0 {
-                        bgm_vol = 0.0;
-                    }
-                }
-
-                match rx.try_recv() {
-                    Ok(PlaybackMessage::PlayOrganyaSong(song)) => {
-                        if state == PlaybackState::Stopped {
-                            saved_state = PlaybackStateType::None;
-                        }
-
-                        if bgm_fadeout {
-                            bgm_fadeout = false;
-                            bgm_vol = bgm_vol_saved;
-                        }
-
-                        org_engine.start_song(*song, &bank);
-
-                        for i in &mut bgm_buf[0..samples] {
-                            *i = 0x8000
-                        }
-                        samples = org_engine.render_to(&mut bgm_buf);
-                        bgm_index = 0;
-
-                        state = PlaybackState::PlayingOrg;
-                    }
-                    #[cfg(feature = "ogg-playback")]
-                    Ok(PlaybackMessage::PlayOggSongSinglePart(data)) => {
-                        if state == PlaybackState::Stopped {
-                            saved_state = PlaybackStateType::None;
-                        }
-
-                        if bgm_fadeout {
-                            bgm_fadeout = false;
-                            bgm_vol = bgm_vol_saved;
-                        }
-
-                        ogg_engine.start_single(data);
-
-                        for i in &mut bgm_buf[0..samples] {
-                            *i = 0x8000
-                        }
-                        samples = ogg_engine.render_to(&mut bgm_buf);
-                        bgm_index = 0;
-
-                        state = PlaybackState::PlayingOgg;
-                    }
-                    #[cfg(feature = "ogg-playback")]
-                    Ok(PlaybackMessage::PlayOggSongMultiPart(data_intro, data_loop)) => {
-                        if state == PlaybackState::Stopped {
-                            saved_state = PlaybackStateType::None;
-                        }
-
-                        if bgm_fadeout {
-                            bgm_fadeout = false;
-                            bgm_vol = bgm_vol_saved;
-                        }
-
-                        ogg_engine.start_multi(data_intro, data_loop);
-
-                        for i in &mut bgm_buf[0..samples] {
-                            *i = 0x8000
-                        }
-                        samples = ogg_engine.render_to(&mut bgm_buf);
-                        bgm_index = 0;
-
-                        state = PlaybackState::PlayingOgg;
-                    }
-                    Ok(PlaybackMessage::PlaySample(id)) => {
-                        pixtone.play_sfx(id);
-                    }
-
-                    Ok(PlaybackMessage::LoopSample(id)) => {
-                        pixtone.loop_sfx(id);
-                    }
-                    Ok(PlaybackMessage::LoopSampleFreq(id, freq)) => {
-                        pixtone.loop_sfx_freq(id, freq);
-                    }
-                    Ok(PlaybackMessage::StopSample(id)) => {
-                        pixtone.stop_sfx(id);
-                    }
-                    Ok(PlaybackMessage::Stop) => {
-                        if state == PlaybackState::Stopped {
-                            saved_state = PlaybackStateType::None;
-                        }
-
-                        state = PlaybackState::Stopped;
-                    }
-                    Ok(PlaybackMessage::SetSpeed(new_speed)) => {
-                        assert!(new_speed > 0.0);
-                        speed = new_speed;
-                        #[cfg(feature = "ogg-playback")]
-                        ogg_engine.set_sample_rate((sample_rate / new_speed) as usize);
-                        org_engine.set_sample_rate((sample_rate / new_speed) as usize);
-                    }
-                    Ok(PlaybackMessage::SetSongVolume(new_volume)) => {
-                        assert!(bgm_vol >= 0.0);
-                        if bgm_fadeout {
-                            bgm_vol_saved = new_volume;
-                        } else {
-                            bgm_vol = new_volume;
-                        }
-                    }
-                    Ok(PlaybackMessage::SetSampleVolume(new_volume)) => {
-                        assert!(sfx_vol >= 0.0);
-                        sfx_vol = new_volume;
-                    }
-                    Ok(PlaybackMessage::FadeoutSong) => {
-                        bgm_fadeout = true;
-                        bgm_vol_saved = bgm_vol;
-                        last_fadeout = Instant::now();
-                    }
-                    Ok(PlaybackMessage::SaveState) => {
-                        saved_state = match state {
-                            PlaybackState::Stopped => PlaybackStateType::None,
-                            PlaybackState::PlayingOrg => PlaybackStateType::Organya(org_engine.get_state()),
-                            #[cfg(feature = "ogg-playback")]
-                            PlaybackState::PlayingOgg => PlaybackStateType::Ogg(ogg_engine.get_state()),
-                        };
-                    }
-                    Ok(PlaybackMessage::RestoreState) => {
-                        let saved_state_loc = std::mem::take(&mut saved_state);
-
-                        match saved_state_loc {
-                            PlaybackStateType::None => {
-                                state = PlaybackState::Stopped;
-                            }
-                            PlaybackStateType::Organya(playback_state) => {
-                                org_engine.set_state(playback_state, &bank);
-
-                                if state == PlaybackState::Stopped {
-                                    org_engine.rewind();
-                                }
-
-                                for i in &mut bgm_buf[0..samples] {
-                                    *i = 0x8000
-                                }
-                                samples = org_engine.render_to(&mut bgm_buf);
-                                bgm_index = 0;
-
-                                if bgm_fadeout {
-                                    bgm_fadeout = false;
-                                    bgm_vol = bgm_vol_saved;
-                                }
-
-                                state = PlaybackState::PlayingOrg;
-                            }
-                            #[cfg(feature = "ogg-playback")]
-                            PlaybackStateType::Ogg(playback_state) => {
-                                ogg_engine.set_state(playback_state);
-
-                                if state == PlaybackState::Stopped {
-                                    ogg_engine.rewind();
-                                }
-
-                                for i in &mut bgm_buf[0..samples] {
-                                    *i = 0x8000
-                                }
-                                samples = ogg_engine.render_to(&mut bgm_buf);
-                                bgm_index = 0;
-
-                                if bgm_fadeout {
-                                    bgm_fadeout = false;
-                                    bgm_vol = bgm_vol_saved;
-                                }
-
-                                state = PlaybackState::PlayingOgg;
-                            }
-                        }
-                    }
-                    Ok(PlaybackMessage::SetSampleParams(id, params)) => {
-                        pixtone.set_sample_parameters(id, params);
-                    }
-                    Ok(PlaybackMessage::SetOrgInterpolation(interpolation)) => {
-                        org_engine.interpolation = interpolation;
-                    }
-                    Ok(PlaybackMessage::SetSampleData(id, data)) => {
-                        pixtone.set_sample_data(id, data);
-                    }
-                    Err(_) => {
-                        break;
-                    }
-                }
-            }
-
-            for frame in data.chunks_mut(channels) {
-                let (bgm_sample_l, bgm_sample_r): (u16, u16) = {
-                    if state == PlaybackState::Stopped {
-                        (0x8000, 0x8000)
-                    } else if bgm_index < samples {
-                        let samples = (bgm_buf[bgm_index], bgm_buf[bgm_index + 1]);
-                        bgm_index += 2;
-                        samples
-                    } else {
-                        for i in &mut bgm_buf[0..samples] {
-                            *i = 0x8000
-                        }
-
-                        match state {
-                            PlaybackState::PlayingOrg => {
-                                samples = org_engine.render_to(&mut bgm_buf);
-                            }
-                            #[cfg(feature = "ogg-playback")]
-                            PlaybackState::PlayingOgg => {
-                                samples = ogg_engine.render_to(&mut bgm_buf);
-                            }
-                            _ => unreachable!(),
-                        }
-                        bgm_index = 2;
-                        (bgm_buf[0], bgm_buf[1])
-                    }
-                };
-
-                let pxt_sample: u16 = pxt_buf[pxt_index];
-
-                if pxt_index < (pxt_buf.len() - 1) {
-                    pxt_index += 1;
-                } else {
-                    pxt_index = 0;
-                    pxt_buf.fill(0x8000);
-                    pixtone.mix(&mut pxt_buf, sample_rate / speed);
-                }
-
-                if frame.len() >= 2 {
-                    let sample_l = clamp(
-                        (((bgm_sample_l ^ 0x8000) as i16) as f32 * bgm_vol) as isize
-                            + (((pxt_sample ^ 0x8000) as i16) as f32 * sfx_vol) as isize,
-                        -0x7fff,
-                        0x7fff,
-                    ) as u16
-                        ^ 0x8000;
-                    let sample_r = clamp(
-                        (((bgm_sample_r ^ 0x8000) as i16) as f32 * bgm_vol) as isize
-                            + (((pxt_sample ^ 0x8000) as i16) as f32 * sfx_vol) as isize,
-                        -0x7fff,
-                        0x7fff,
-                    ) as u16
-                        ^ 0x8000;
-
-                    frame[0] = T::from_sample(sample_l);
-                    frame[1] = T::from_sample(sample_r);
-                } else {
-                    let sample = clamp(
-                        ((((bgm_sample_l ^ 0x8000) as i16) + ((bgm_sample_r ^ 0x8000) as i16)) as f32 * bgm_vol / 2.0)
-                            as isize
-                            + (((pxt_sample ^ 0x8000) as i16) as f32 * sfx_vol) as isize,
-                        -0x7fff,
-                        0x7fff,
-                    ) as u16
-                        ^ 0x8000;
-
-                    frame[0] = T::from_sample(sample);
-                }
-            }
-        },
-        err_fn,
-        None,
-    );
-
-    if stream_result.is_err() {
-        return Err(GameError::AudioError(stream_result.err().unwrap().to_string()));
-    }
-
-    let stream = stream_result.unwrap();
-    let _ = stream.play();
-
-    Ok(stream)
 }

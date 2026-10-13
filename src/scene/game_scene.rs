@@ -1596,7 +1596,7 @@ impl Scene for GameScene {
         }
 
         if key_code == ScanCode::F3 && ctx.keyboard_context.active_mods().ctrl() {
-            let _ = state.sound_manager.reload();
+            let _ = state.sound_manager.reload(ctx);
             return Ok(());
         }
 

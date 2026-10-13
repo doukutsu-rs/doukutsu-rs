@@ -140,6 +140,23 @@ impl Game {
     }
 
     pub(crate) fn update(&mut self, ctx: &mut Context) -> GameResult {
+        if let Some(audio) = &mut ctx.audio {
+            self.state.get_mut().sound_manager.attach_audio(audio);
+
+            for event in audio.update() {
+                match event {
+                    crate::framework::backend::AudioEvent::DeviceLost => {
+                        log::warn!("Audio device lost, reloading sound manager...");
+                        let _ = self.state.get_mut().sound_manager.reload(ctx);
+                    }
+                    crate::framework::backend::AudioEvent::ParametersChanged { sample_rate, channels } => {
+                        log::info!("Audio parameters changed: {} Hz, {} channels. Reloading...", sample_rate, channels);
+                        let _ = self.state.get_mut().sound_manager.reload(ctx);
+                    }
+                }
+            }
+        }
+
         // Snapshot config we need for the timing math while not holding any borrows on `self`.
         let (timing_mode, speed) = {
             let s = self.state.get_mut();
@@ -327,7 +344,7 @@ impl BackendCallbacks for Game {
         let state_ref = self.state.get_mut();
         if state_ref.settings.pause_on_focus_loss {
             ctx.suspended = false;
-            state_ref.sound_manager.resume();
+            state_ref.sound_manager.resume(ctx);
             self.loops = 0;
             self.pacer.reset();
         }
@@ -338,7 +355,7 @@ impl BackendCallbacks for Game {
         let state_ref = self.state.get_mut();
         if state_ref.settings.pause_on_focus_loss {
             ctx.suspended = true;
-            state_ref.sound_manager.pause();
+            state_ref.sound_manager.pause(ctx);
         }
         Ok(())
     }

@@ -12,7 +12,6 @@ use crate::framework::graphics::IndexData;
 
 const MAX_LAG_TICKS: u32 = 4;
 const MAX_LEAD: Duration = Duration::from_secs(1);
-/// ~52 days at 60Hz — re-anchor below this to keep `index * period` from growing without bound.
 const REANCHOR_INDEX: u32 = 1 << 25;
 const SCHEDULER_MARGIN: Duration = Duration::from_micros(500);
 const MAX_SPIN: Duration = Duration::from_millis(1);
@@ -226,8 +225,6 @@ impl FramePacer {
         }
     }
 
-    /// Caller MUST skip this in V-Sync — the blocking swap measures vblank wait,
-    /// not present latency, and would poison the EMA used by VRR pacing.
     pub fn record_swap_latency(&mut self, measured: Duration) {
         let cap = if self.tick_delta.is_zero() { Duration::from_millis(50) } else { self.tick_delta };
         self.swap_latency_ema = (self.swap_latency_ema * 7 + measured.min(cap)) / 8;

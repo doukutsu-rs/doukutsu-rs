@@ -8,7 +8,7 @@ use imgui::{DrawData, TextureId, Ui};
 use crate::common::{Color, Rect};
 use crate::framework::backend::{
     Backend, BackendCallbacks, BackendEventLoop, BackendRenderer, BackendShader, BackendTexture,
-    VertexData,
+    BackendAudio, VertexData,
 };
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
@@ -57,6 +57,10 @@ impl BackendEventLoop for NullEventLoop {
 
     fn new_renderer(&self) -> GameResult<Box<dyn BackendRenderer>> {
         Ok(Box::new(NullRenderer))
+    }
+
+    fn new_audio(&self) -> GameResult<Box<dyn BackendAudio>> {
+        Ok(Box::new(crate::framework::sound::null_impl::NullAudio))
     }
 
     fn as_any(&self) -> &dyn Any {

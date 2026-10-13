@@ -22,25 +22,25 @@
 //! emitted verbatim, so any downstream consumer (a GLSL driver's own
 //! preprocessor, a second pass, etc.) can act on them too. Externally
 //! supplied defines (via [`Preprocessor::define`] or the [`preprocess`]
-//! helper's slice argument) are tracked but **not** emitted — they're
+//! helper's slice argument) are tracked but **not** emitted - they're
 //! pre-conditions, not source-level directives.
 //!
 //! ## `#if` / `#elif` expression grammar
 //!
 //! - `defined(NAME)` and `defined NAME` → `1` if defined, else `0`.
 //! - Decimal integer literals.
-//! - Identifiers — resolved against the define table:
+//! - Identifiers - resolved against the define table:
 //!   - value-bearing: parse value as `i64`, fall back to `0` on parse error;
-//!   - presence-only: `1` (truthy — extension, C requires a value);
+//!   - presence-only: `1` (truthy - extension, C requires a value);
 //!   - undefined: `0`.
 //! - Unary `!`, parens, binary `&&`, `||`, `==`, `!=`.
 //!
 //! # Unsupported
 //!
-//! - `#include`, `#line`, `#pragma` — passed through verbatim if a `#`
+//! - `#include`, `#line`, `#pragma` - passed through verbatim if a `#`
 //!   directive name we don't own appears (e.g. `#version`, `#extension`).
 //! - Function-like macros (`#define X(a,b) ...`).
-//! - Macro expansion in source bodies — identifiers in regular lines are
+//! - Macro expansion in source bodies - identifiers in regular lines are
 //!   never substituted. Use a downstream preprocessor pass for that.
 //! - Token pasting (`##`) and stringification (`#x`).
 //! - Line continuation (`\<newline>`).
@@ -139,7 +139,7 @@ impl Preprocessor {
                     log::warn!("preprocessor warning (line {}): {}", lineno + 1, msg);
                 }
                 Some(_) => {
-                    // Directive in inactive branch — drop.
+                    // Directive in inactive branch - drop.
                 }
                 None => {
                     if active {
@@ -293,7 +293,7 @@ fn err(lineno: usize, msg: &str) -> GameError {
 
 // ---- Expression evaluator for #if / #elif --------------------------------
 //
-// Streaming lexer + recursive-descent parser. No `Vec<Tok>` is built —
+// Streaming lexer + recursive-descent parser. No `Vec<Tok>` is built -
 // the parser pulls tokens via `peek`/`advance` directly off the input
 // `&str`, so each `#if` / `#elif` evaluation allocates nothing on the
 // happy path (errors still allocate a `String` message, which is fine).
@@ -550,7 +550,7 @@ mod tests {
 
     #[test]
     fn if_value_lookup() {
-        // External (caller-supplied) defines are tracked but not emitted —
+        // External (caller-supplied) defines are tracked but not emitted -
         // they're pre-conditions, not source-level directives.
         let mut p = Preprocessor::new();
         p.define("VERSION", Some("3"));

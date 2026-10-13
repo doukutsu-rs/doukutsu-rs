@@ -417,6 +417,10 @@ impl BackendEventLoop for HorizonEventLoop {
         Deko3DRenderer::new(device, imgui)
     }
 
+    fn new_audio(&self) -> GameResult<Box<dyn BackendAudio>> {
+        crate::framework::sound::null_impl::NullAudio::new()
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

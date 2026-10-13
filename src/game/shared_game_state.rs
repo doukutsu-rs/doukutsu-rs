@@ -757,7 +757,7 @@ impl SharedGameState {
         self.canvas_size = ctx.viewport.logical_size;
 
         // Persist the window size so the next launch restores the same geometry.
-        // Only save when windowed — fullscreen sizes shouldn't overwrite the user's preferred windowed size.
+        // Only save when windowed - fullscreen sizes shouldn't overwrite the user's preferred windowed size.
         if ctx.window.mode == WindowMode::Windowed {
             let (ww, wh) = ctx.viewport.window_size;
             let new_geom = crate::game::settings::WindowGeometry { width: ww, height: wh, x: None, y: None };

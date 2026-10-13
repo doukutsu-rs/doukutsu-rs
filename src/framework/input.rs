@@ -46,7 +46,7 @@ pub struct InputContext {
     /// Last-known mouse position in logical (canvas) coordinates.
     pub mouse_position: (f32, f32),
     /// Mirrored from `imgui::Io::want_capture_keyboard` at the end of each
-    /// frame — game-level key callbacks should early-return when this is true.
+    /// frame - game-level key callbacks should early-return when this is true.
     pub want_capture_keyboard: bool,
     /// Mirrored from `imgui::Io::want_capture_mouse`.
     pub want_capture_mouse: bool,
@@ -173,7 +173,7 @@ impl Default for InputContext {
 
 /// Map a doukutsu-rs `ScanCode` to the corresponding `imgui::Key`. Variants
 /// imgui doesn't track (media keys, Sleep/Wake, OS-specific extras) return
-/// `None`. The `match` is exhaustive on purpose — adding a `ScanCode` variant
+/// `None`. The `match` is exhaustive on purpose - adding a `ScanCode` variant
 /// is a compile error until it's mapped (or explicitly ignored here).
 fn scancode_to_imgui_key(s: ScanCode) -> Option<imgui::Key> {
     use imgui::Key as K;
@@ -293,7 +293,6 @@ fn scancode_to_imgui_key(s: ScanCode) -> Option<imgui::Key> {
         ScanCode::Semicolon => K::Semicolon,
         ScanCode::Slash => K::Slash,
 
-        // Variants imgui doesn't track — drs-specific or OS extras.
         ScanCode::F13
         | ScanCode::F14
         | ScanCode::F15

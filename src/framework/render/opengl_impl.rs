@@ -770,7 +770,7 @@ impl BackendRenderer for OpenGLRenderer {
                 );
 
                 // Some drivers cache the FBO's dimensions at first validation
-                // and don't pick up the texture resize — force a re-attach.
+                // and don't pick up the texture resize - force a re-attach.
                 gl.framebuffer_texture_2d(
                     glow::FRAMEBUFFER,
                     glow::COLOR_ATTACHMENT0,

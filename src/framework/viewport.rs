@@ -37,7 +37,7 @@ pub enum DebugOverlayMode {
 pub struct Viewport {
     // --- Raw inputs (written by the backend) ---
     pub window_size: (u32, u32),
-    /// `drawable_size / window.size()` — `(1.0, 1.0)` off HiDPI.
+    /// `drawable_size / window.size()` - `(1.0, 1.0)` off HiDPI.
     pub dpi_scale: (f32, f32),
     /// left, top, right, bottom, in physical pixels.
     pub raw_insets: (f32, f32, f32, f32),
@@ -52,7 +52,7 @@ pub struct Viewport {
     pub pixel_scale: u32,
     pub display_scale: f32,
     /// Factor applied to logical coords to reach canvas-pixel coords. Mirrors
-    /// `pixel_scale` — NOT the final blit's `display_scale` — since gameplay
+    /// `pixel_scale` - NOT the final blit's `display_scale` - since gameplay
     /// renders into the canvas framebuffer, not the viewport.
     pub scale: f32,
     pub effective_insets: (f32, f32, f32, f32),
@@ -186,7 +186,7 @@ impl Viewport {
 
     /// Divide by `tex` before rounding so CS+ (2x-only scales) steps through
     /// 2×/4×/6× without skipping available scales unevenly. Stretch forces a
-    /// floor regardless of `scaling_mode` — a fractional final blit would
+    /// floor regardless of `scaling_mode` - a fractional final blit would
     /// defeat "fills the window pixel-for-pixel".
     fn compute_pixel_scale(&self, vp_h: u32) -> u32 {
         let step = self.base_height_step.max(1);
