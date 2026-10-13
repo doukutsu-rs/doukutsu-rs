@@ -120,6 +120,7 @@ jobs:
           if [ "${{ runner.os }}" == "macOS" ]; then
             CARGO_INCREMENTAL=1 cargo bundle --release --target ${{ matrix.target }}
             cp -a ./target/${{ matrix.target }}/release/bundle/osx/doukutsu-rs.app release/doukutsu-rs.app
+            ./misc/ci/macos_bundle_icon.sh release/doukutsu-rs.app
             codesign -s - -f ./release/doukutsu-rs.app/Contents/MacOS/doukutsu-rs
             cd release
             zip -9r "doukutsu-rs_mac-${{ matrix.arch_name }}.zip" doukutsu-rs.app
@@ -261,6 +262,7 @@ jobs:
   build_horizon:
     name: Horizon build
     runs-on: ubuntu-latest
+    if: false
     env:
       RUSTSWITCH_IMAGE: "ghcr.io/doukutsu-rs/drshorizon-build-env:latest"
     strategy:
