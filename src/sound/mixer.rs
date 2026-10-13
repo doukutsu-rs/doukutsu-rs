@@ -2,10 +2,10 @@ use std::sync::mpsc::{Receiver, TryRecvError};
 use std::time::Instant;
 use num_traits::clamp;
 use crate::framework::filesystem::File;
-use crate::sound::org_playback::OrgPlaybackEngine;
+use organya::org_playback::OrgPlaybackEngine;
 use crate::sound::ogg_playback::OggPlaybackEngine;
-use crate::sound::pixtone::PixTonePlayback;
-use crate::sound::wave_bank::SoundBank;
+use organya::pixtone::PixTonePlayback;
+use organya::wave_bank::SoundBank;
 use crate::sound::{PlaybackMessage, PlaybackState, PlaybackStateType, InterpolationMode, FADEOUT_DURATION};
 
 pub struct DoukutsuMixer {
@@ -188,7 +188,7 @@ impl DoukutsuMixer {
                     self.bgm_vol = self.bgm_vol_saved;
                 }
 
-                match crate::sound::organya::Song::load_from(file) {
+                match organya::organya::Song::load_from(file) {
                     Ok(song) => {
                         self.org_engine.start_song(song, &self.bank);
                         self.bgm_buf.fill(0x8000);

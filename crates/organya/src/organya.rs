@@ -5,7 +5,7 @@ use std::io;
 
 use byteorder::{LE, ReadBytesExt};
 
-use crate::framework::error::{GameError, GameResult};
+
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -95,7 +95,7 @@ impl Song {
         }
     }
 
-    pub fn load_from<R: io::Read>(mut f: R) -> GameResult<Song> {
+    pub fn load_from<R: io::Read>(mut f: R) -> io::Result<Song> {
         let mut magic = [0; 6];
 
         f.read_exact(&mut magic)?;
@@ -105,7 +105,7 @@ impl Song {
                 b"Org-01" => Version::Beta,
                 b"Org-02" => Version::Main,
                 b"Org-03" => Version::Extended,
-                _ => return Err(GameError::ResourceLoadError("Invalid magic number".to_string()))
+                _ => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid magic number"))
             };
 
         let wait = f.read_u16::<LE>()?;

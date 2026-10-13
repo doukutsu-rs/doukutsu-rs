@@ -4,8 +4,8 @@ use lewton::inside_ogg::OggStreamReader;
 use num_traits::clamp;
 
 use crate::framework::filesystem::File;
-use crate::sound::stuff::cubic_interp;
-use crate::sound::wav::WavFormat;
+use organya::stuff::cubic_interp;
+use organya::wav::WavFormat;
 
 pub(crate) struct OggPlaybackEngine {
     intro_music: Option<Arc<RwLock<Box<OggStreamReader<File>>>>>,

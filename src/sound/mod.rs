@@ -14,24 +14,18 @@ use crate::framework::error::{GameError, GameResult};
 use crate::framework::filesystem;
 use crate::framework::filesystem::File;
 use crate::game::settings::Settings;
+pub use organya::pixtone;
+pub use organya::InterpolationMode;
+use organya::org_playback::{OrgPlaybackEngine, SavedOrganyaPlaybackState};
+use organya::organya::Song;
+use organya::pixtone::{PixToneParameters, PixTonePlayback};
+use organya::wave_bank::SoundBank;
 #[cfg(feature = "ogg-playback")]
 use crate::sound::ogg_playback::{OggPlaybackEngine, SavedOggPlaybackState};
-use crate::sound::org_playback::{OrgPlaybackEngine, SavedOrganyaPlaybackState};
-use crate::sound::organya::Song;
-use crate::sound::pixtone::{PixToneParameters, PixTonePlayback};
-use crate::sound::wave_bank::SoundBank;
 
-mod fir;
 mod mixer;
 #[cfg(feature = "ogg-playback")]
 mod ogg_playback;
-mod org_playback;
-mod organya;
-pub mod pixtone;
-mod pixtone_sfx;
-mod stuff;
-mod wav;
-mod wave_bank;
 
 /// Number of seconds to fade out the background music completely.
 pub const FADEOUT_DURATION: f32 = 5.0;
@@ -68,7 +62,7 @@ pub(crate) enum PlaybackState {
 
 pub(crate) enum PlaybackStateType {
     None,
-    Organya(org_playback::SavedOrganyaPlaybackState),
+    Organya(SavedOrganyaPlaybackState),
     #[cfg(feature = "ogg-playback")]
     Ogg(ogg_playback::SavedOggPlaybackState),
 }
@@ -85,15 +79,6 @@ pub(crate) enum SongFormat {
     OggSinglePart,
     #[cfg(feature = "ogg-playback")]
     OggMultiPart,
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum InterpolationMode {
-    Nearest,
-    Linear,
-    Cosine,
-    Cubic,
-    Polyphase,
 }
 
 pub struct SoundManager {
@@ -124,7 +109,7 @@ impl SoundManager {
             });
         }
 
-        let bnk = wave_bank::SoundBank::load_from(filesystem::open(ctx, "/builtin/organya-wavetable-doukutsu.bin")?)?;
+        let bnk = organya::wave_bank::SoundBank::load_from(filesystem::open(ctx, "/builtin/organya-wavetable-doukutsu.bin")?)?;
         
         let mut sound_manager = SoundManager {
             soundbank: Some(bnk.clone()),
@@ -517,7 +502,7 @@ impl SoundManager {
 
             for filename in wavs {
                 if let Ok(mut file) = filesystem::open(ctx, &filename) {
-                    let wav = wav::WavSample::read_from(&mut file)?;
+                    let wav = organya::wav::WavSample::read_from(&mut file)?;
                     let id = filename
                         .file_stem()
                         .unwrap_or_default()

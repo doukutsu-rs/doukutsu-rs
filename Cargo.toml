@@ -65,6 +65,7 @@ android = []
 #sdl2-sys = { path = "./3rdparty/rust-sdl2/sdl2-sys", optional = true, features = ["bundled", "static-link"] }
 #cpal = { path = "./3rdparty/cpal" }
 bitfield = "0.16"
+organya = { path = "crates/organya", features = ["serde"] }
 byteorder = "1.4"
 clap = { version = "4.5.40", default-features = false, features = ["std", "help", "usage", "error-context", "cargo", "derive"] }
 case_insensitive_hashmap = "1.0.0"

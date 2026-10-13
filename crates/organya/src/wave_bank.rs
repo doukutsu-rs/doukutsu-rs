@@ -5,7 +5,7 @@ use std::fmt;
 use std::io;
 use std::sync::Arc;
 
-use crate::sound::wav;
+use crate::wav;
 
 #[derive(Clone)]
 pub struct SoundBank {

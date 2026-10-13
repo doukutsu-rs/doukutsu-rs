@@ -19,7 +19,7 @@ use crate::game::shared_game_state::{FontData, Season};
 use crate::game::stage::StageData;
 use crate::graphics::texture_set::TextureSet;
 use crate::i18n::Locale;
-use crate::sound::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
+use organya::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
 use crate::sound::SoundManager;
 
 mod npcs;

@@ -1,4 +1,4 @@
-use crate::sound::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
+use crate::pixtone::{Channel, Envelope, PixToneParameters, Waveform};
 
 pub static DEFAULT_PIXTONE_TABLE: [PixToneParameters; 160] = [
     PixToneParameters::empty(), // fx0

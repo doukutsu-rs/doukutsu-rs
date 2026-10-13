@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use lazy_static::lazy_static;
 
-use crate::sound::pixtone_sfx::DEFAULT_PIXTONE_TABLE;
-use crate::sound::stuff::cubic_interp;
+use crate::pixtone_sfx::DEFAULT_PIXTONE_TABLE;
+use crate::stuff::cubic_interp;
 
 lazy_static! {
     static ref WAVEFORMS: [[i8; 0x100]; 6] = {

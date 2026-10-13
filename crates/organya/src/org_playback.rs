@@ -6,13 +6,13 @@ use std::hint::unreachable_unchecked;
 use std::mem::MaybeUninit;
 use std::sync::Arc;
 
-use crate::sound::fir::FIR;
-use crate::sound::fir::FIR_STEP;
-use crate::sound::organya::{Song as Organya, Version};
-use crate::sound::stuff::*;
-use crate::sound::wav::*;
-use crate::sound::wave_bank::SoundBank;
-use crate::sound::InterpolationMode;
+use crate::fir::FIR;
+use crate::fir::FIR_STEP;
+use crate::organya::{Song as Organya, Version};
+use crate::stuff::*;
+use crate::wav::*;
+use crate::wave_bank::SoundBank;
+use crate::InterpolationMode;
 
 #[derive(Clone)]
 pub struct FIRData {
@@ -32,7 +32,7 @@ impl FIRData {
     }
 }
 
-pub(crate) struct OrgPlaybackEngine {
+pub struct OrgPlaybackEngine {
     song: Organya,
     lengths: [u8; 8],
     swaps: [usize; 8],
