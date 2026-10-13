@@ -21,9 +21,6 @@ defaults:
   run:
     shell: bash
 
-env:
-  VERSION: "1.0.0"
-
 jobs:
   build:
     name: ${{ matrix.name }}
@@ -75,14 +72,16 @@ jobs:
       - name: Set version
         id: set_version
         run: |
+          VERSION=$(./misc/ci/get_version.sh)
+
           if [ "${{ github.ref_type }}" == "tag" ]; then
             echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
             echo "channel=stable" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref_name }}" == "master" ]; then
-            echo "version=${{ env.VERSION }}-$((${{ github.run_number }} + 654))" >> $GITHUB_OUTPUT
+            echo "version=${VERSION}-$((${{ github.run_number }} + 654))" >> $GITHUB_OUTPUT
             echo "channel=nightly" >> $GITHUB_OUTPUT
           else
-            echo "version=${{ env.VERSION }}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "version=${VERSION}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
             echo "channel=nightly" >> $GITHUB_OUTPUT
           fi
 
@@ -192,14 +191,16 @@ jobs:
       - name: Set version
         id: set_version
         run: |
+          VERSION=$(./misc/ci/get_version.sh)
+
           if [ "${{ github.ref_type }}" == "tag" ]; then
             echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
             echo "channel=stable" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref_name }}" == "master" ]; then
-            echo "version=${{ env.VERSION }}-$((${{ github.run_number }} + 654))" >> $GITHUB_OUTPUT
+            echo "version=${VERSION}-$((${{ github.run_number }} + 654))" >> $GITHUB_OUTPUT
             echo "channel=nightly" >> $GITHUB_OUTPUT
           else
-            echo "version=${{ env.VERSION }}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "version=${VERSION}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
             echo "channel=nightly" >> $GITHUB_OUTPUT
           fi
 
@@ -283,14 +284,16 @@ jobs:
       - name: Set version
         id: set_version
         run: |
+          VERSION=$(./misc/ci/get_version.sh)
+
           if [ "${{ github.ref_type }}" == "tag" ]; then
             echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
             echo "channel=stable" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref_name }}" == "master" ]; then
-            echo "version=${{ env.VERSION }}-$((${{ github.run_number }} + 654))" >> $GITHUB_OUTPUT
+            echo "version=${VERSION}-$((${{ github.run_number }} + 654))" >> $GITHUB_OUTPUT
             echo "channel=nightly" >> $GITHUB_OUTPUT
           else
-            echo "version=${{ env.VERSION }}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "version=${VERSION}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
             echo "channel=nightly" >> $GITHUB_OUTPUT
           fi
 
@@ -349,19 +352,23 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          sparse-checkout: misc/ci
+          sparse-checkout: |
+            misc/ci
+            /Cargo.toml
           sparse-checkout-cone-mode: false
       - name: Set version
         id: set_version
         run: |
+          VERSION=$(./misc/ci/get_version.sh)
+
           if [ "${{ github.ref_type }}" == "tag" ]; then
             echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
             echo "channel=stable" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref_name }}" == "master" ]; then
-            echo "version=${{ env.VERSION }}-$((${{ github.run_number }} + 654))" >> $GITHUB_OUTPUT
+            echo "version=${VERSION}-$((${{ github.run_number }} + 654))" >> $GITHUB_OUTPUT
             echo "channel=nightly" >> $GITHUB_OUTPUT
           else
-            echo "version=${{ env.VERSION }}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "version=${VERSION}-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
             echo "channel=nightly" >> $GITHUB_OUTPUT
           fi
 
