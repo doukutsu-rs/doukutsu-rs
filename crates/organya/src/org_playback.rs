@@ -13,7 +13,7 @@ use crate::wave_bank::SoundBank;
 use crate::InterpolationMode;
 
 /// Frames processed per gain computation step, bounds the stack buffer used by `render_buffer`.
-const BLOCK_LEN: usize = 64;
+const BLOCK_LEN: usize = 256;
 
 const ORG_OCTAVE_LENS: [usize; 8] = [256, 256, 128, 128, 64, 32, 16, 8];
 
@@ -413,9 +413,15 @@ fn render_buffer(
     let mut done = 0;
 
     while done < out_l.len() && buf.playing {
-        // Split runs where the position wraps or the release ends, so the kernel never has to check either.
-        let to_end = ((buf.len as f64 - buf.position) / advance).ceil();
-        let mut n = if to_end >= 1.0 { to_end.min(BLOCK_LEN as f64) as usize } else { 1 };
+        // Endlessly looping buffers wrap inside the kernel. Anything else is split where the position wraps
+        // so loop counting and stopping happen here, runs are also split where the release ends.
+        let wrap = buf.looping && buf.nloops == -1;
+        let mut n = if wrap {
+            BLOCK_LEN
+        } else {
+            let to_end = ((buf.len as f64 - buf.position) / advance).ceil();
+            if to_end >= 1.0 { to_end.min(BLOCK_LEN as f64) as usize } else { 1 }
+        };
         if buf.release_len > 0 {
             n = n.min(buf.release_timer as usize + 1);
         }
@@ -438,7 +444,14 @@ fn render_buffer(
             }
         }
 
-        let run = Run { left, right, base: buf.base_pos, position: buf.position, advance };
+        let run = Run {
+            left,
+            right,
+            base: buf.base_pos,
+            position: buf.position,
+            advance,
+            wrap: if wrap { buf.len as f64 } else { f64::INFINITY },
+        };
         kernels::mix(
             mode,
             bank,
@@ -452,7 +465,14 @@ fn render_buffer(
         done += n;
         buf.position += advance * n as f64;
 
-        if buf.position as usize >= buf.len {
+        if wrap {
+            buf.position %= buf.len as f64;
+
+            // A release ending on the frame that wraps stops the buffer like a non-looping one would.
+            if !buf.playing && buf.position < advance {
+                buf.position = 0.0;
+            }
+        } else if buf.position as usize >= buf.len {
             if buf.looping && buf.nloops != 1 {
                 buf.position %= buf.len as f64;
                 if buf.nloops != -1 {

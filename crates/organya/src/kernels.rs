@@ -16,6 +16,19 @@ pub struct Run<'a> {
     pub base: usize,
     pub position: f64,
     pub advance: f64,
+    /// Length the position loops at, `f64::INFINITY` for runs that end before reaching their end.
+    pub wrap: f64,
+}
+
+impl Run<'_> {
+    #[inline(always)]
+    fn step(&self, mut pos: f64) -> f64 {
+        pos += self.advance;
+        while pos >= self.wrap {
+            pos -= self.wrap;
+        }
+        pos
+    }
 }
 
 /// Interpolates `gains.len()` frames from `run`, adding `sample * gain * pan` into the outputs.
@@ -106,21 +119,21 @@ fn mix_with<I: Interpolator>(
     let pan_l = f32x8::splat(pan_l);
     let pan_r = f32x8::splat(pan_r);
 
+    let mut pos = run.position;
+
     // The last block may extend past the run, its extra lanes read guard samples and get zero gain.
     for (block, gains) in gains.chunks(LANES).enumerate() {
         let start = block * LANES;
         let mut idx = [0; LANES];
         let mut frac = [0.0; LANES];
         for lane in 0..LANES {
-            let pos = run.position + run.advance * (start + lane) as f64;
             let ipos = pos as usize;
             idx[lane] = run.base + ipos;
             frac[lane] = (pos - ipos as f64) as f32;
+            pos = run.step(pos);
         }
 
-        let mut gain = [0.0; LANES];
-        gain[..gains.len()].copy_from_slice(gains);
-        let gain = f32x8::new(gain);
+        let gain = f32x8::new(pad_lanes(gains));
         let frac = f32x8::new(frac);
 
         let sl = I::interpolate(run.left, &idx, frac) * gain;
@@ -135,10 +148,28 @@ fn mix_with<I: Interpolator>(
     }
 }
 
+// Full blocks take the fixed size paths, a variable length copy compiles to a memcpy call.
+#[inline(always)]
+fn pad_lanes(values: &[f32]) -> [f32; LANES] {
+    match values.try_into() {
+        Ok(values) => values,
+        Err(_) => {
+            let mut padded = [0.0; LANES];
+            padded[..values.len()].copy_from_slice(values);
+            padded
+        }
+    }
+}
+
 #[inline(always)]
 fn accumulate(out: &mut [f32], v: f32x8) {
-    for (out, v) in out.iter_mut().zip(v.to_array()) {
-        *out += v;
+    match <&mut [f32; LANES]>::try_from(&mut *out) {
+        Ok(out) => *out = (f32x8::new(*out) + v).to_array(),
+        Err(_) => {
+            for (out, v) in out.iter_mut().zip(v.to_array()) {
+                *out += v;
+            }
+        }
     }
 }
 
@@ -152,11 +183,12 @@ fn mix_polyphase(
 ) {
     let half = bank.half();
     let taps = bank.taps();
+    let mut pos = run.position;
 
     for (k, &gain) in gains.iter().enumerate() {
-        let pos = run.position + run.advance * k as f64;
         let ipos = pos as usize;
         let frac = (pos - ipos as f64) as f32;
+        pos = run.step(pos);
         let start = run.base + ipos - half;
         let (row0, row1, t) = bank.rows(frac);
 
