@@ -620,11 +620,13 @@ impl ChallengeTime {
     }
 
     pub fn write(&self, ctx: &Context, state: &SharedGameState, filename: String) -> GameResult {
-        let mut file = filesystem::user_create(ctx, filename)?;
-
         let mut time = ChallengeTime::new();
-        time.load_time(&mut file, SaveFormat::Freeware)?;
 
+        if let Ok(mut file) = filesystem::user_open(ctx, &filename) {
+            time.load_time(&mut file, SaveFormat::Freeware)?;
+        }
+
+        let file = filesystem::user_create(ctx, filename)?;
         time
             .with_timing(state.settings.timing_mode)
             .write_time(file, state, SaveFormat::Freeware)
@@ -652,15 +654,26 @@ impl ChallengeTime {
             self.ticks = data.read_u32::<LE>()? as usize;
             return Ok(());
         }
+        
+        let mut buf = Vec::new();
+        data.read_to_end(&mut buf)?;
+
+        if buf.len() < 20 {
+            self.ticks = 0;
+            self.timing_mode = TimingMode::from_tps(0);
+            return Ok(());
+        }
+
+        let mut reader = Cursor::new(buf);
 
         let mut ticks: [u32; 4] = [0; 4];
 
         for iter in 0..=3 {
-            ticks[iter] = data.read_u32::<LE>()?;
+            ticks[iter] = reader.read_u32::<LE>()?;
         }
 
-        let random = data.read_u32::<LE>()?;
-        let tps = data.read_u16::<LE>().unwrap_or(0);
+        let random = reader.read_u32::<LE>()?;
+        let tps = reader.read_u16::<LE>().unwrap_or(0);
         let random_list: [u8; 4] = random.to_le_bytes();
 
         for iter in 0..=3 {

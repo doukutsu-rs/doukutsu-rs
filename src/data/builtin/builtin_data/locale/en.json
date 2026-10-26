@@ -9,6 +9,7 @@
     "no": "No",
     "on": "ON",
     "off": "OFF",
+    "ok": "OK",
     "choose_file": "No file selected…"
   },
   "menus": {
@@ -82,12 +83,27 @@
         "freeware": "Freeware",
         "plus": "Cave Story+ (PC)",
         "switch": "Cave Story+ (Switch) {version}",
-        "auto": "Auto-detect"
+        "auto": "Auto"
       },
       "file_filters": {
         "freeware": "Cave Story save",
         "plus": "Cave Story+ save",
         "switch": "Cave Story+ save"
+      },
+      "compat_warn": {
+        "title": "Compatibility warnings",
+        "warning": "Some info could not be exported due to the selected format limitations. Use this feature only for creating saves, compatible with a specific version of Cave Story. For creating a backup of the save data, open the user data directory and manually copy the `save.json` file."
+      },
+      "action_result": {
+        "success": {
+          "import": "Save successfuly imported",
+          "export": "Save successfuly exported"
+        },
+        "error": {
+          "import": "Import failed: {err}",
+          "export": "Export failed: {err}",
+          "import_save": "Failed to save imported data: {err}"
+        }
       }
     },
     "options_menu": {

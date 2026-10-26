@@ -1,13 +1,8 @@
 use std::path::PathBuf;
 
-use pelite::pe::imports::Import;
-
-use crate::common::Version;
 use crate::framework::context::Context;
 use crate::framework::error::{GameError, GameResult};
-use crate::framework::filesystem;
-use crate::game::profile::GameProfile;
-use crate::game::save_container::{SaveContainer, SaveFormat, SaveParams, SaveSlot, SWITCH_VER_1_2, SWITCH_VER_1_3};
+use crate::game::save_container::{SaveContainer, SaveFormat, SaveParams, SWITCH_VER_1_2, SWITCH_VER_1_3};
 use crate::game::shared_game_state::{GameDifficulty, SharedGameState};
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::coop_menu::PlayerCountMenu;
@@ -42,6 +37,8 @@ pub enum CurrentMenu {
     LoadConfirm,
     SavesLocation,
     ImportExport,
+    CompatibilityWarning,
+    ActionResult,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -148,6 +145,7 @@ pub struct MenuExportInfo {
     pub format: Option<SaveFormat>,
     pub picker_params: FilePickerParams,
     pub save_params: SaveParams,
+    pub out_path: Option<PathBuf>,
 }
 
 impl Default for MenuExportInfo {
@@ -156,7 +154,8 @@ impl Default for MenuExportInfo {
             location: SavesLocation::Filesystem,
             format: None,
             picker_params: FilePickerParams::new(),
-            save_params: SaveParams::default()
+            save_params: SaveParams::default(),
+            out_path: None,
         }
     }
 }
@@ -217,11 +216,47 @@ impl ImportExportMenuEntry {
             _ => unreachable!()
         }
     }
+
+    fn value_from_format(format: Option<SaveFormat>) -> usize {
+        match format {
+            None => 0, // Auto
+            Some(SaveFormat::Freeware) => 1,
+            Some(SaveFormat::Plus) => 2,
+            Some(SaveFormat::Switch(SWITCH_VER_1_2)) => 3,
+            Some(SaveFormat::Switch(SWITCH_VER_1_3)) => 4,
+            _ => unreachable!()
+        }
+    }
 }
 
 impl Default for ImportExportMenuEntry {
     fn default() -> Self {
-        ImportExportMenuEntry::Format
+        Self::Format
+    }
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum ActionResultMenuEntry {
+    Result,
+    Back(CurrentMenu)
+}
+
+impl Default for ActionResultMenuEntry {
+    fn default() -> Self {
+        Self::Back(CurrentMenu::SaveMenu)
+    }
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum CompatibilityWarningMenuEntry {
+    Warning,
+    Confirm,
+    Back
+}
+
+impl Default for CompatibilityWarningMenuEntry {
+    fn default() -> Self {
+        Self::Back
     }
 }
 
@@ -238,6 +273,8 @@ pub struct SaveSelectMenu {
     skip_difficulty_menu: bool,
     saves_location_menu: Menu<SavesLocationMenuEntry>,
     import_export_menu: Menu<ImportExportMenuEntry>,
+    result_menu: Menu<ActionResultMenuEntry>,
+    compat_warn_menu: Menu<CompatibilityWarningMenuEntry>,
 }
 
 impl SaveSelectMenu {
@@ -255,6 +292,8 @@ impl SaveSelectMenu {
             skip_difficulty_menu: false,
             saves_location_menu: Menu::new(0, 0, 75, 0),
             import_export_menu: Menu::new(0, 0, 75, 0),
+            result_menu: Menu::new(0, 0, 75, 0),
+            compat_warn_menu: Menu::new(0, 0, 250, 0),
         }
     }
 
@@ -268,6 +307,8 @@ impl SaveSelectMenu {
         self.load_confirm = Menu::new(0, 0, 75, 0);
         self.saves_location_menu = Menu::new(0, 0, 75, 0);
         self.import_export_menu = Menu::new(0, 0, 75, 0);
+        self.compat_warn_menu = Menu::new(0, 0, 230, 0);
+        self.result_menu = Menu::new(0, 0, 75, 0);
         self.skip_difficulty_menu = false;
 
         let mut should_mutate_selection = true;
@@ -305,40 +346,6 @@ impl SaveSelectMenu {
                 }
             }
         }
-        // let save_container = SaveContainer::load(ctx, state)?;
-        // for (iter, save) in self.saves.iter_mut().enumerate() {
-        //     if let Some(slot) = state.get_save_slot(iter + 1) {
-        //         if let Some(loaded_profile) = save_container.get_profile(slot) {
-        //             save.current_map = loaded_profile.current_map;
-        //             save.max_life = loaded_profile.max_life;
-        //             save.life = loaded_profile.life;
-        //             save.weapon_count = loaded_profile.weapon_data.iter().filter(|weapon| weapon.weapon_id != 0).count();
-        //             save.weapon_id = loaded_profile.weapon_data.map(|weapon| weapon.weapon_id);
-        //             save.difficulty = loaded_profile.difficulty;
-
-        //             self.save_menu.push_entry(SaveMenuEntry::Load(iter), MenuEntry::SaveData(*save));
-
-        //             if should_mutate_selection {
-        //                 should_mutate_selection = false;
-        //                 self.save_menu.selected = SaveMenuEntry::Load(iter);
-        //             }
-        //         } else {
-        //             self.save_menu.push_entry(SaveMenuEntry::New(iter), MenuEntry::NewSave);
-
-        //             if should_mutate_selection {
-        //                 should_mutate_selection = false;
-        //                 self.save_menu.selected = SaveMenuEntry::New(iter);
-        //             }
-        //         }
-        //     } else {
-        //         self.save_menu.push_entry(SaveMenuEntry::New(iter), MenuEntry::NewSave);
-
-        //         if should_mutate_selection {
-        //             should_mutate_selection = false;
-        //             self.save_menu.selected = SaveMenuEntry::New(iter);
-        //         }
-        //     }
-        // }
 
         self.save_menu.push_entry(SaveMenuEntry::ImportExport, MenuEntry::Active(state.loc.ts("menus.save_manage_menu.import_export_save")));
         self.save_menu.push_entry(SaveMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
@@ -427,6 +434,13 @@ impl SaveSelectMenu {
         );
         self.import_export_menu.push_entry(ImportExportMenuEntry::Back, MenuEntry::Active(state.loc.ts("common.back")));
 
+        self.compat_warn_menu.push_entry(
+            CompatibilityWarningMenuEntry::Warning,
+            MenuEntry::LongText(state.loc.ts("menus.save_manage_menu.compat_warn.warning"), true, true)
+        );
+        self.compat_warn_menu.push_entry(CompatibilityWarningMenuEntry::Confirm, MenuEntry::Active(state.loc.ts("common.ok")));
+        self.compat_warn_menu.push_entry(CompatibilityWarningMenuEntry::Back, MenuEntry::Active(state.loc.ts("common.back")));
+
         self.update_sizes(state);
 
         Ok(())
@@ -437,41 +451,15 @@ impl SaveSelectMenu {
     }
 
     fn update_sizes(&mut self, state: &SharedGameState) {
-        self.save_menu.update_width(state);
-        self.save_menu.update_height(state);
-        self.save_menu.x = ((state.canvas_size.0 - self.save_menu.width as f32) / 2.0).floor() as isize;
-        self.save_menu.y = ((state.canvas_size.1 - self.save_menu.height as f32) / 2.0).floor() as isize;
-
-        self.difficulty_menu.update_width(state);
-        self.difficulty_menu.update_height(state);
-        self.difficulty_menu.x = ((state.canvas_size.0 - self.difficulty_menu.width as f32) / 2.0).floor() as isize;
-        self.difficulty_menu.y =
-            30 + ((state.canvas_size.1 - self.difficulty_menu.height as f32) / 2.0).floor() as isize;
-
-        self.delete_confirm.update_width(state);
-        self.delete_confirm.update_height(state);
-        self.delete_confirm.x = ((state.canvas_size.0 - self.delete_confirm.width as f32) / 2.0).floor() as isize;
-        self.delete_confirm.y = 30 + ((state.canvas_size.1 - self.delete_confirm.height as f32) / 2.0).floor() as isize;
-
-        self.load_confirm.update_width(state);
-        self.load_confirm.update_height(state);
-        self.load_confirm.x = ((state.canvas_size.0 - self.load_confirm.width as f32) / 2.0).floor() as isize;
-        self.load_confirm.y = 30 + ((state.canvas_size.1 - self.load_confirm.height as f32) / 2.0).floor() as isize;
-
-        self.save_detailed.update_width(state);
-        self.save_detailed.update_height(state);
-        self.save_detailed.x = ((state.canvas_size.0 - self.save_detailed.width as f32) / 2.0).floor() as isize;
-        self.save_detailed.y = -40 + ((state.canvas_size.1 - self.save_detailed.height as f32) / 2.0).floor() as isize;
-
-        self.import_export_menu.update_width(state);
-        self.import_export_menu.update_height(state);
-        self.import_export_menu.x = ((state.canvas_size.0 - self.import_export_menu.width as f32) / 2.0).floor() as isize;
-        self.import_export_menu.y = ((state.canvas_size.1 - self.import_export_menu.height as f32) / 2.0).floor() as isize;
-
-        self.saves_location_menu.update_width(state);
-        self.saves_location_menu.update_height(state);
-        self.saves_location_menu.x = ((state.canvas_size.0 - self.saves_location_menu.width as f32) / 2.0).floor() as isize;
-        self.saves_location_menu.y = ((state.canvas_size.1 - self.saves_location_menu.height as f32) / 2.0).floor() as isize;
+        self.save_menu.update_sizes(state, (0, 0));
+        self.difficulty_menu.update_sizes(state, (0, 30));
+        self.delete_confirm.update_sizes(state, (0, 30));
+        self.load_confirm.update_sizes(state, (0, 30));
+        self.save_detailed.update_sizes(state, (0, -40));
+        self.import_export_menu.update_sizes(state, (0, 0));
+        self.saves_location_menu.update_sizes(state, (0, 0));
+        self.compat_warn_menu.update_sizes(state, (0, 0));
+        self.result_menu.update_sizes(state, (0, 0));
     }
 
     pub fn tick(
@@ -482,6 +470,7 @@ impl SaveSelectMenu {
         ctx: &mut Context,
     ) -> GameResult {
         self.update_sizes(state);
+
         match self.current_menu {
             CurrentMenu::SaveMenu => match self.save_menu.tick(controller, state) {
                 MenuSelectionResult::Selected(SaveMenuEntry::Back, _) | MenuSelectionResult::Canceled => exit_action(),
@@ -509,8 +498,9 @@ impl SaveSelectMenu {
                 MenuSelectionResult::Selected(SaveMenuEntry::ImportExport, _) => {
                     //self.current_menu = CurrentMenu::ImportExport;
                     //self.import_export_menu.selected = ImportExportMenuEntry::Back;
-                    self.current_menu = CurrentMenu::SavesLocation;
+
                     self.saves_location_menu.selected = SavesLocationMenuEntry::default();
+                    self.current_menu = CurrentMenu::SavesLocation;
                 }
                 _ => (),
             },
@@ -584,6 +574,13 @@ impl SaveSelectMenu {
                         self.export_info.format = loc.get_format();
                         self.export_info.picker_params = MenuExportInfo::fpicker_from_format(state, self.export_info.format, false);
 
+                        match self.import_export_menu.get_entry_mut(ImportExportMenuEntry::Format) {
+                            Some(MenuEntry::Options(_, value, _)) => {
+                                *value = ImportExportMenuEntry::value_from_format(self.export_info.format);
+                            },
+                            _ => {}
+                        }
+
                         self.current_menu = CurrentMenu::ImportExport;
                     }
                 }
@@ -595,7 +592,7 @@ impl SaveSelectMenu {
             CurrentMenu::ImportExport => match self.import_export_menu.tick(controller, state) {
                 MenuSelectionResult::Selected(ImportExportMenuEntry::Format, toggle)
                 | MenuSelectionResult::Right(ImportExportMenuEntry::Format, toggle, _) => {
-                    if let MenuEntry::Options(_, value, _) = toggle {
+                    if let MenuEntry::Options(_, value, opts) = toggle {
                         *value = match *value {
                             0..4 => *value + 1,
                             4 => 0,
@@ -606,7 +603,7 @@ impl SaveSelectMenu {
                     }
                 }
                 MenuSelectionResult::Left(ImportExportMenuEntry::Format, toggle, _) => {
-                    if let MenuEntry::Options(_, value, _) = toggle {
+                    if let MenuEntry::Options(_, value, opts) = toggle {
                         *value = match *value {
                             1..=4 => *value - 1,
                             0 => 4,
@@ -628,41 +625,104 @@ impl SaveSelectMenu {
 
                     log::trace!("{:?}", out_path);
 
-                    // let mut save_container = SaveContainer::load(ctx, state)?;
-                    // save_container.import(state, ctx, self.export_info.format, self.export_info.save_params.clone(), out_path.unwrap().clone())?;
-                    // save_container.save(ctx, state, self.export_info.save_params.clone())?;
                     let mut save_container = state.save.clone();
-                    save_container.import(state, ctx, self.export_info.format, self.export_info.save_params.clone(), out_path.unwrap().clone())?;
-                    save_container.save(ctx, state, self.export_info.save_params.clone())?;
+                    let import_res = save_container
+                        .import(
+                            state,
+                            ctx,
+                            self.export_info.format,
+                            self.export_info.save_params.clone(),
+                            out_path.unwrap().clone()
+                        );
+
+                    if let Err(e) = import_res.as_ref() {
+                        log::error!("Save import errror: {e}");
+                    }
+
+                    self.handle_action_result(
+                        state,
+                        import_res,
+                        "menus.save_manage_menu.action_result.error.import",
+                        CurrentMenu::ImportExport,
+                        "menus.save_manage_menu.action_result.success.import",
+                        CurrentMenu::SaveMenu
+                    );
+
+                    let save_res = save_container.save(ctx, state, self.export_info.save_params.clone());
+                    if let Err(e) = save_res.as_ref() {
+                        log::error!("Failed to save imported data: {e}");
+                    }
+
+                    self.handle_action_result(
+                        state,
+                        save_res,
+                        "menus.save_manage_menu.action_result.error.import_save",
+                        CurrentMenu::ImportExport,
+                        "menus.save_manage_menu.action_result.success.import",
+                        CurrentMenu::SaveMenu
+                    );
 
                     state.save = save_container;
                 }
                 MenuSelectionResult::Selected(ImportExportMenuEntry::Export, _) => {
                     let picker_params = MenuExportInfo::fpicker_from_format(state, self.export_info.format, true);
                     let selection = open_file_picker(&picker_params);
-                    let out_path = selection.and_then(|location| location.first().cloned());
+                    self.export_info.out_path = selection.and_then(|location| location.first().cloned());
 
-                    if out_path.is_none() {
+                    if self.export_info.out_path.is_none() {
                         // Export path is not selected, so we break export operation
                         return Ok(());
                     }
 
-                    log::trace!("{:?}", out_path);
+                    log::trace!("Save export path: {:?}", &self.export_info.out_path);
 
-
-                    let format = self.export_info.format.unwrap_or(state.settings.save_format);
-
-                    // let mut save_container = SaveContainer::load(ctx, state)?;
-                    // save_container.export(state, ctx, format, self.export_info.save_params.clone(), out_path.unwrap().clone())?;
-                    //state.save.export(state, ctx, format, self.export_info.save_params.clone(), out_path.unwrap().clone())?;
-                    let mut save_container = state.save.clone();
-                    save_container.export(state, ctx, format, self.export_info.save_params.clone(), out_path.unwrap().clone())?;
+                    self.current_menu = CurrentMenu::CompatibilityWarning;
                 }
                 MenuSelectionResult::Selected(ImportExportMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
                     self.current_menu = CurrentMenu::SaveMenu;
                 }
                 _ => (),
             },
+            CurrentMenu::CompatibilityWarning => match self.compat_warn_menu.tick(controller, state) {
+                MenuSelectionResult::Selected(CompatibilityWarningMenuEntry::Confirm, _) => {
+                    let format = self.export_info.format.unwrap_or(state.settings.save_format);
+                    let save_params = self.export_info.save_params.clone();
+                    let out_path = self.export_info.out_path.clone().unwrap();
+
+                    let mut save_container = state.save.clone();
+                    let export_res = save_container.export(
+                        state,
+                        ctx,
+                        format,
+                        save_params,
+                        out_path
+                    );
+
+                    if let Err(e) = export_res.as_ref() {
+                        log::error!("Save export errror: {e}");
+                    }
+
+                    self.handle_action_result(
+                        state,
+                        export_res,
+                        "menus.save_manage_menu.action_result.error.export",
+                        CurrentMenu::ImportExport,
+                        "menus.save_manage_menu.action_result.success.export",
+                        CurrentMenu::SaveMenu
+                    );
+                }
+                MenuSelectionResult::Selected(CompatibilityWarningMenuEntry::Back, _) => {
+                    self.current_menu = CurrentMenu::SaveMenu;
+                }
+                _ => (),
+            },
+            CurrentMenu::ActionResult => match self.result_menu.tick(controller, state) {
+                MenuSelectionResult::Selected(ActionResultMenuEntry::Back(target), _) => {
+                    self.current_menu = target;
+                    self.result_menu.entries.clear();
+                }
+                _ => (),
+            }
         }
 
         Ok(())
@@ -693,6 +753,12 @@ impl SaveSelectMenu {
             CurrentMenu::SavesLocation => {
                 self.saves_location_menu.draw(state, ctx)?;
             }
+            CurrentMenu::CompatibilityWarning => {
+                self.compat_warn_menu.draw(state, ctx)?;
+            }
+            CurrentMenu::ActionResult => {
+                self.result_menu.draw(state, ctx)?;
+            }
         }
         Ok(())
     }
@@ -706,5 +772,53 @@ impl SaveSelectMenu {
         }
 
         Ok(())
+    }
+
+    fn handle_action_result(
+        &mut self,
+        state: &SharedGameState,
+        res: GameResult,
+        err_msg: &str,
+        err_target: CurrentMenu,
+        success_msg: &str,
+        success_target: CurrentMenu
+    ) {
+        self.result_menu.entries.clear();
+
+        if let Err(e) = res.as_ref() {
+            let msg = match e {
+                GameError::IOError(ee) => ee.to_string(),
+                GameError::FilesystemError(ee) => ee.to_string(),
+                _ => e.to_string()
+            };
+
+            self.result_menu.set_entry(
+                ActionResultMenuEntry::Result,
+                MenuEntry::LongText(
+                    state.loc.tt(err_msg, &[("err", &msg)]),
+                    true,
+                    true
+                )
+            );
+            self.result_menu.set_entry(
+                ActionResultMenuEntry::Back(err_target),
+                MenuEntry::Active(state.loc.ts("common.back"))
+            );
+
+            self.result_menu.selected = ActionResultMenuEntry::Back(err_target);
+        } else {
+            self.result_menu.set_entry(
+                ActionResultMenuEntry::Result,
+                MenuEntry::Active(state.loc.ts(success_msg))
+            );
+            self.result_menu.set_entry(
+                ActionResultMenuEntry::Back(success_target),
+                MenuEntry::Active(state.loc.ts("common.back"))
+            );
+
+            self.result_menu.selected = ActionResultMenuEntry::Back(success_target);
+        }
+
+        self.current_menu = CurrentMenu::ActionResult;
     }
 }

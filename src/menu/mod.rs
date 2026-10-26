@@ -153,6 +153,8 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
                 return;
             }
         }
+
+        self.push_entry(id, entry);
     }
 
     pub fn set_id(&mut self, old_id: T, new_id: T) {
@@ -184,11 +186,11 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
         None
     }
 
-    pub fn update_sizes(&mut self, state: &SharedGameState) {
+    pub fn update_sizes(&mut self, state: &SharedGameState, offset: (isize, isize)) {
         self.update_width(state);
         self.update_height(state);
-        self.x = ((state.canvas_size.0 - self.width as f32) / 2.0).floor() as isize;
-        self.y = ((state.canvas_size.1 - self.height as f32) / 2.0).floor() as isize;
+        self.x = offset.0 + ((state.canvas_size.0 - self.width as f32) / 2.0).floor() as isize;
+        self.y = offset.1 + ((state.canvas_size.1 - self.height as f32) / 2.0).floor() as isize;
     }
 
     pub fn update_width(&mut self, state: &SharedGameState) {
@@ -897,7 +899,7 @@ impl<T: std::cmp::PartialEq + std::default::Default + Clone> Menu<T> {
         if (controller.trigger_up() || controller.trigger_down() || down_clicked || up_clicked) && !self.entries.is_empty() {
             state.sound_manager.play_sfx(1);
 
-            let mut selected = self.entries.iter().position(|(idx, _)| *idx == self.selected).ok_or(0).unwrap();
+            let mut selected = self.entries.iter().position(|(idx, _)| *idx == self.selected).unwrap_or(0);
 
             loop {
                 if controller.trigger_down() || down_clicked {
