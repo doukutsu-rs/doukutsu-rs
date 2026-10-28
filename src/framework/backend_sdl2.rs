@@ -726,7 +726,7 @@ impl BackendEventLoop for SDL2EventLoop {
     }
 
     fn new_audio(&self) -> GameResult<Box<dyn BackendAudio>> {
-        crate::framework::sound::cpal_impl::CpalAudio::new()
+        crate::framework::sound::cpal_impl::new_audio()
     }
 
     fn create_clipboard(&self) -> Option<ClipboardContext> {
