@@ -688,6 +688,7 @@ dependencies = [
  "organya",
  "paste",
  "pelite",
+ "pkg-config",
  "rc-box",
  "sdl2",
  "sdl2-sys",

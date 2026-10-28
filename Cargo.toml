@@ -127,3 +127,6 @@ sdl2-sys = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "244ae8
 [target.'cfg(target_os = "horizon")'.dependencies]
 #deko3d = { path = "./3rdparty/deko3d" }
 deko3d = { git = "https://github.com/doukutsu-rs/deko3d-rs", branch = "master" }
+
+[build-dependencies]
+pkg-config = "0.3"

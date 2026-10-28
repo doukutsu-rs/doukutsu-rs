@@ -1,3 +1,7 @@
+[env]
+CFLAGS_x86_64_unknown_freebsd = "-U__FreeBSD__ -D__FreeBSD__=__FreeBSD_cc_version/100000"
+CFLAGS_aarch64_unknown_freebsd = "-U__FreeBSD__ -D__FreeBSD__=__FreeBSD_cc_version/100000"
+
 [target.aarch64-linux-android]
 rustflags = [
     "-C", "link-arg=-lc++_static",
