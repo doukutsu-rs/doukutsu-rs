@@ -5,6 +5,7 @@ extern crate winres;
 
 fn main() {
     let target = env::var("TARGET").unwrap_or_else(|e| panic!("{}", e));
+    let host = env::var("HOST").unwrap_or_else(|e| panic!("{}", e));
 
     println!("cargo:rerun-if-changed=build.rs");
 
@@ -32,5 +33,19 @@ fn main() {
     if target.contains("android") {
         println!("cargo:rustc-link-lib=dylib=GLESv2");
         println!("cargo:rustc-link-lib=dylib=EGL");
+    }
+
+    #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
+    if env::var_os("CARGO_FEATURE_BACKEND_SDL").is_some() {
+        println!("cargo:rustc-link-lib=usbhid");
+
+        let mut linked_libusb = false;
+        if target == host {
+            linked_libusb = pkg_config::Config::new().probe("libusb-1.0").is_ok();
+        }
+
+        if !linked_libusb && target.contains("freebsd") {
+            println!("cargo:rustc-link-lib=usb");
+        }
     }
 }
