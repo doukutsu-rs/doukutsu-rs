@@ -451,7 +451,7 @@ impl BackendEventLoop for GlutinEventLoop {
     }
 
     fn new_audio(&self) -> GameResult<Box<dyn BackendAudio>> {
-        crate::framework::sound::cpal_impl::CpalAudio::new()
+        crate::framework::sound::cpal_impl::new_audio()
     }
 
     fn as_any(&self) -> &dyn Any {
