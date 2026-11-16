@@ -215,6 +215,8 @@ jobs:
           fi
 
           export DRS_BUILD_VERSION_OVERRIDE="${{ steps.set_version.outputs.version }}"
+          # Gradle versions < 9.1.0 don't support Java 25, which is currently the default version on the `ubuntu-latest` image
+          export JAVA_HOME=$JAVA_HOME_21_X64
 
           cd drsandroid
           touch local.properties
