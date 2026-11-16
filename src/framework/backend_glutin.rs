@@ -13,10 +13,13 @@ use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::{Fullscreen, WindowBuilder};
 use glutin::{Api, ContextBuilder, GlProfile, GlRequest, PossiblyCurrent, WindowedContext};
 use imgui::{DrawCmdParams, DrawData, DrawIdx, DrawVert};
-use winit::window::Icon;
+use winit::dpi::PhysicalPosition;
+use winit::monitor::MonitorHandle;
+use winit::window::{Icon, Window};
 
 use super::backend::{
-    Backend, BackendCallbacks, BackendEventLoop, BackendRenderer, BackendTexture, DeviceFormFactor, WindowParams,
+    Backend, BackendAudio, BackendCallbacks, BackendEventLoop, BackendRenderer, BackendTexture, DeviceFormFactor,
+    WindowDisplay, WindowParams,
 };
 use super::context::Context;
 use super::error::GameResult;
@@ -100,10 +103,9 @@ impl GlutinEventLoop {
             let mut buf: Vec<u8> = Vec::new();
             file.read_to_end(&mut buf);
 
-            let mut img = match image::load_from_memory_with_format(buf.as_slice(), image::ImageFormat::Bmp) {
-                Ok(image) => image.into_rgba8(),
-                Err(e) => panic!("Cannot set window icon"),
-            };
+            let mut img = image::load_from_memory_with_format(buf.as_slice(), image::ImageFormat::Bmp)
+                .and_then(image::DynamicImage::into_rgba8)
+                .expect("Cannot set window icon");
 
             let (width, height) = img.dimensions();
             let icon = Icon::from_rgba(img.into_raw(), width, height).unwrap();
@@ -145,10 +147,66 @@ impl GlutinEventLoop {
             }
         }
 
+        // Move window to the latest used display.
+        {
+            let wnd = windowed_context.window();
+            let target_display = &ctx.window.display;
+            let current_display = Self::window_display(wnd);
+
+            if target_display != &current_display {
+                if let Some(target_monitor) = Self::find_window_display(wnd, target_display) {
+                    let monitor_size = target_monitor.size().cast::<f64>();
+                    let monitor_pos = target_monitor.position().cast::<f64>();
+                    let window_size = wnd.outer_size().cast::<f64>();
+
+                    let x = monitor_pos.x + (monitor_size.width - window_size.width) / 2.0;
+                    let y = monitor_pos.y + (monitor_size.height - window_size.height) / 2.0;
+                    wnd.set_outer_position(PhysicalPosition::new(x, y));
+                }
+            }
+        }
+
         let rc = Rc::new(windowed_context);
         *self.refs.borrow_mut() = Some(rc.clone());
 
         rc
+    }
+
+    fn find_window_display(window: &Window, display: &WindowDisplay) -> Option<MonitorHandle> {
+        let mut monitors = window.available_monitors().enumerate();
+        let primary_monitor = window.primary_monitor();
+
+        match display {
+            WindowDisplay::Primary | WindowDisplay::Idx(0) => primary_monitor,
+            WindowDisplay::Idx(monitor_idx) => monitors
+                .find(|(idx, _)| *idx == *monitor_idx as usize)
+                .map(|(_, handle)| handle),
+            WindowDisplay::Name(name) => monitors
+                .find(|(_, handle)| Some(name) == handle.name().as_ref())
+                .map(|(_, h)| h),
+        }
+    }
+
+    fn window_display(window: &Window) -> WindowDisplay {
+        let primary_monitor = window.primary_monitor();
+        let current_monitor = window.current_monitor();
+
+        if current_monitor.is_none() || current_monitor == primary_monitor {
+            return WindowDisplay::Primary;
+        }
+
+        let monitor_handle = current_monitor.unwrap();
+        if let Some(name) = monitor_handle.name() {
+            return WindowDisplay::Name(name);
+        }
+
+        let mut monitors = window.available_monitors().enumerate();
+        let monitor_idx = monitors
+            .find(|(_, handle)| monitor_handle == *handle)
+            .map(|(idx, _)| idx)
+            .unwrap_or(0);
+
+        WindowDisplay::Idx(monitor_idx as u16)
     }
 }
 
@@ -221,7 +279,7 @@ impl BackendEventLoop for GlutinEventLoop {
 
         // Pinned winit predates `refresh_rate_millihertz()`; max over the supported
         // video modes is a fine proxy for the monitor's VRR ceiling.
-        fn query_refresh_mhz(window: &winit::window::Window) -> Option<u32> {
+        fn query_refresh_mhz(window: &Window) -> Option<u32> {
             window
                 .current_monitor()
                 .and_then(|m| m.video_modes().map(|v| v.refresh_rate() as u32 * 1000).max())
@@ -282,6 +340,17 @@ impl BackendEventLoop for GlutinEventLoop {
                     let new_rate = query_refresh_mhz(window.window());
                     if ctx.viewport.refresh_rate_mhz != new_rate {
                         ctx.viewport.refresh_rate_mhz = new_rate;
+                    }
+
+                    let display = Self::window_display(window.window());
+                    let old_display = &ctx.window.display;
+
+                    if display.ne(old_display) {
+                        log::debug!("Display has changed to {:#}", &display);
+
+                        ctx.window.display = display.clone();
+                        game.state.get_mut().settings.window_display = display;
+                        let _ = game.state.borrow().settings.save(&ctx);
                     }
                 }
                 Event::WindowEvent { event: WindowEvent::Touch(touch), window_id }

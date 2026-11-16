@@ -4,6 +4,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use imgui::DrawData;
+use serde::{Deserialize, Serialize};
 
 use super::clipboard::ClipboardContext;
 use super::context::Context;
@@ -396,15 +397,53 @@ pub trait BackendAudio: Any {
     fn as_any(&self) -> &dyn Any;
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum WindowDisplay {
+    Name(String),
+    Idx(u16),
+    Primary,
+}
+
+impl std::fmt::Display for WindowDisplay {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Name(name) => write!(f, "'{name}'"),
+            Self::Idx(idx) => write!(f, "idx={idx}"),
+            Self::Primary => write!(f, "primary"),
+        }
+    }
+}
+
+impl std::str::FromStr for WindowDisplay {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Ok(idx) = s.parse::<u16>() {
+            return Ok(if idx == 0 { Self::Primary } else { Self::Idx(idx) });
+        }
+
+        if s.eq_ignore_ascii_case("primary") {
+            return Ok(Self::Primary);
+        }
+
+        Ok(Self::Name(s.to_owned()))
+    }
+}
+
+#[derive(Clone)]
 pub struct WindowParams {
     pub size_hint: (u16, u16), // (width, height)
     pub mode: WindowMode,
+    pub display: WindowDisplay,
 }
 
 impl Default for WindowParams {
     fn default() -> Self {
-        Self { size_hint: (640, 480), mode: WindowMode::Windowed }
+        Self {
+            size_hint: (640, 480),
+            mode: WindowMode::Windowed,
+            display: WindowDisplay::Primary,
+        }
     }
 }
 

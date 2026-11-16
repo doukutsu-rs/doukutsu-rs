@@ -1,3 +1,4 @@
+use crate::framework::backend::WindowDisplay;
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem::{user_create, user_open};
@@ -97,6 +98,8 @@ pub struct Settings {
     pub inset_mode: InsetMode,
     #[serde(default)]
     pub window_geometry: Option<WindowGeometry>,
+    #[serde(default = "default_display")]
+    pub window_display: WindowDisplay,
 }
 
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
@@ -113,7 +116,7 @@ fn default_true() -> bool {
 
 #[inline(always)]
 fn current_version() -> u32 {
-    26
+    27
 }
 
 #[inline(always)]
@@ -206,6 +209,11 @@ fn default_rumble() -> bool {
 #[inline(always)]
 fn default_cutscene_skip_mode() -> CutsceneSkipMode {
     CutsceneSkipMode::Hold
+}
+
+#[inline(always)]
+fn default_display() -> WindowDisplay {
+    WindowDisplay::Primary
 }
 
 impl Settings {
@@ -404,6 +412,11 @@ impl Settings {
             self.window_geometry = None;
         }
 
+        if self.version == 26 {
+            self.version = 27;
+            self.window_display = default_display();
+        }
+
         if self.version != initial_version {
             log::info!("Upgraded configuration file from version {} to {}.", initial_version, self.version);
         }
@@ -527,6 +540,7 @@ impl Default for Settings {
             scaling_mode: default_scaling_mode(),
             inset_mode: default_inset_mode(),
             window_geometry: None,
+            window_display: default_display(),
         }
     }
 }

@@ -61,7 +61,7 @@ impl Context {
     }
 
     pub fn run(mut self: Pin<Box<Self>>, game: Pin<Box<Game>>) -> GameResult {
-        let backend = init_backend(self.headless, self.window)?;
+        let backend = init_backend(self.headless, self.window.clone())?;
         let mut event_loop = backend.create_event_loop(&self)?;
         let mut renderer = event_loop.new_renderer()?;
         let _ = renderer.set_swap_mode(self.swap_mode);

@@ -10,7 +10,7 @@ use log::LevelFilter as LogLevel;
 use scripting::tsc::text_script::ScriptMode;
 
 use crate::components::pacing_graph::PacingGraph;
-use crate::framework::backend::{BackendCallbacks, WindowParams};
+use crate::framework::backend::{BackendCallbacks, WindowDisplay, WindowParams};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::frame_pacer::FramePacer;
@@ -59,6 +59,14 @@ pub struct LaunchOptions {
     /// Startup in fullscreen mode.
     pub window_fullscreen: bool,
 
+    // TODO: add a command to list available displays.
+    #[arg(long)]
+    /// Name or index of the display on which the window will be created.
+    ///
+    /// The keyword "primary" and index 0 are reserved for the system's primary display.
+    /// If the display name consists entirely of digits, it will be treated as an index.
+    pub window_display: Option<WindowDisplay>,
+
     #[arg(long)]
     /// The renderer to prefer
     pub prefer_renderer: Option<String>,
@@ -78,6 +86,7 @@ impl Default for LaunchOptions {
             window_height: None,
             window_width: None,
             window_fullscreen: cfg!(target_os = "android"),
+            window_display: None,
             prefer_renderer: None,
             log_level: if cfg!(debug_assertions) { LogLevel::Debug } else { LogLevel::Info },
         }
@@ -97,6 +106,8 @@ impl LaunchOptions {
         if !self.window_fullscreen {
             self.window_fullscreen = settings.window_mode.is_fullscreen();
         }
+
+        self.window_display.get_or_insert_with(|| settings.window_display.clone());
     }
 
     pub fn window(&self) -> WindowParams {
@@ -105,9 +116,12 @@ impl LaunchOptions {
         let width = self.window_width.unwrap_or(default.size_hint.0);
         let height = self.window_height.unwrap_or(default.size_hint.1);
 
+        let display = self.window_display.clone().unwrap_or(default.display);
+
         WindowParams {
             size_hint: (width, height),
             mode: if self.window_fullscreen { WindowMode::Fullscreen } else { WindowMode::Windowed },
+            display,
         }
     }
 }
@@ -140,7 +154,8 @@ impl Game {
     }
 
     pub(crate) fn update(&mut self, ctx: &mut Context) -> GameResult {
-        if let Some(audio) = &mut ctx.audio {
+        let headless = ctx.headless;
+        if let Some(audio) = ctx.audio.as_mut().filter(|_| !headless) {
             self.state.get_mut().sound_manager.attach_audio(audio);
 
             for event in audio.update() {

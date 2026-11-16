@@ -18,11 +18,12 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Texture, TextureCreator, TextureQuery, WindowCanvas};
 use sdl2::rwops::RWops;
 use sdl2::surface::Surface;
-use sdl2::video::{FullscreenType, GLProfile, Window, WindowContext};
+use sdl2::video::{FullscreenType, GLProfile, Window, WindowContext, WindowPos};
 use sdl2::{controller, keyboard, pixels, EventPump, GameControllerSubsystem, Sdl, VideoSubsystem};
 
 use super::backend::{
-    Backend, BackendCallbacks, BackendEventLoop, BackendGamepad, BackendRenderer, DeviceFormFactor, WindowParams,
+    Backend, BackendAudio, BackendCallbacks, BackendEventLoop, BackendGamepad, BackendRenderer,
+    DeviceFormFactor, WindowDisplay, WindowParams,
 };
 use super::clipboard::{ClipboardBackend, ClipboardContext};
 use super::context::Context;
@@ -32,7 +33,6 @@ use super::gamepad::{Axis, Button, GamepadType};
 use super::graphics::SwapMode;
 use super::input::MouseButton;
 use super::keyboard::ScanCode;
-use crate::framework::backend::BackendAudio;
 use crate::game::shared_game_state::WindowMode;
 use crate::game::Game;
 use crate::input::touch_controls::TouchEvent;
@@ -202,6 +202,35 @@ impl SDL2EventLoop {
             window.set_icon(icon);
         }
 
+        // Move window to the latest used display.
+        let target_display_idx = Self::window_display_idx(window.subsystem(), &ctx.window.display);
+        let current_display_idx = window.display_index().unwrap_or(0);
+        log::debug!("Display idx (current -> target): {current_display_idx} -> {target_display_idx}");
+
+        if target_display_idx as i32 != current_display_idx {
+            if let Ok(bounds) = window.subsystem().display_bounds(target_display_idx as i32) {
+                let (width, height) = window.size();
+
+                let mut window_bounds = sdl2::rect::Rect::new(bounds.x(), bounds.y(), width, height);
+                window_bounds.center_on(bounds.center());
+
+                // HACK: the Fullscreen::Desktop mode is binded to the primary display,
+                // so we temporary disable the fullscreen mode of the window to change its position.
+                let fullscreen_state = window.fullscreen_state();
+                window.set_fullscreen(FullscreenType::Off);
+                window.set_position(
+                    WindowPos::Positioned(window_bounds.x()),
+                    WindowPos::Positioned(window_bounds.y()),
+                );
+                // If we dont't restore the fullscreen state, it will be restored later in the `handle_event` function,
+                // however, in that case, the window would remain in an incorrect state for a longer period of time,
+                // which is pretty bad UX
+                window.set_fullscreen(fullscreen_state);
+            } else {
+                log::warn!("Failed to obtain bounds for display {:#}", WindowDisplay::Idx(target_display_idx));
+            }
+        }
+
         // Disable non-latin IME (fix stuck)
         window.subsystem().text_input().stop();
 
@@ -228,6 +257,27 @@ impl SDL2EventLoop {
         };
 
         Ok(Box::new(event_loop))
+    }
+
+    fn window_display(&self) -> WindowDisplay {
+        let refs = self.refs.borrow();
+        let idx = refs.window.window().display_index().unwrap_or(0);
+
+        if idx == 0 {
+            return WindowDisplay::Primary;
+        }
+
+        WindowDisplay::Idx(idx as u16)
+    }
+
+    fn window_display_idx(video: &VideoSubsystem, display: &WindowDisplay) -> u16 {
+        match display {
+            WindowDisplay::Primary => 0,
+            WindowDisplay::Idx(idx) => *idx,
+            WindowDisplay::Name(name) => (0..video.num_video_displays().unwrap_or(1).max(1))
+                .rfind(|&i| video.display_name(i).is_ok_and(|display_name| display_name.eq(name)))
+                .unwrap_or(0) as u16,
+        }
     }
 
     fn set_seamless_titlebar(&mut self, enabled: bool) {
@@ -353,6 +403,28 @@ impl SDL2EventLoop {
                 }
                 WindowEvent::SizeChanged(_, _) => {
                     Self::refresh_viewport_metrics(ctx, game, refs);
+                }
+                WindowEvent::DisplayChanged(display_idx) => {
+                    log::debug!("Display has changed to idx={display_idx}");
+
+                    let display = if display_idx > 0 {
+                        let idx = display_idx.try_into().unwrap();
+                        refs
+                            .borrow()
+                            .video
+                            .display_name(display_idx)
+                            .map(WindowDisplay::Name)
+                            .unwrap_or(WindowDisplay::Idx(idx))
+                    } else {
+                        WindowDisplay::Primary
+                    };
+
+                    let old_display = &ctx.window.display;
+                    if old_display != &display {
+                        ctx.window.display = display.clone();
+                        game.state.get_mut().settings.window_display = display;
+                        let _ = game.state.get_mut().settings.save(ctx);
+                    }
                 }
                 _ => {}
             },
@@ -626,7 +698,9 @@ impl BackendEventLoop for SDL2EventLoop {
 
         // SDL has no API for this so we need to guess :)
         ctx.flags.set_supports_windowed_fullscreen(!IS_MOBILE && !IS_CONSOLE);
-        ctx.flags.set_has_touch_screen(false); // TODO: implement touch support in SDL backend
+        // TODO: detect platforms without a touch screen (e.g. Android TV).
+        // Maybe call `SDL_GetNumTouchDevices` directly from `sdl2_sys`?
+        ctx.flags.set_has_touch_screen(IS_MOBILE);
         ctx.flags.set_supports_insets(cfg!(target_os = "android"));
         ctx.flags.set_form_factor(match (IS_MOBILE, IS_CONSOLE) {
             (true, _) => DeviceFormFactor::Mobile,
